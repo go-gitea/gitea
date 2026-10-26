@@ -1,5 +1,4 @@
 import {validateTextareaNonEmpty, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {fomanticMobileScreen} from '../modules/fomantic.ts';
 import {POST} from '../modules/fetch.ts';
 import type {ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {html, htmlRaw} from '../utils/html.ts';
@@ -72,8 +71,9 @@ export function initRepoWiki() {
     const collapseWikiTocForMobile = (collapse: boolean) => {
       if (collapse) el.querySelector('details')?.removeAttribute('open');
     };
-    fomanticMobileScreen.addEventListener('change', (e) => collapseWikiTocForMobile(e.matches));
-    collapseWikiTocForMobile(fomanticMobileScreen.matches);
+    const mobileScreen = window.matchMedia('(max-width: 767.98px)');
+    mobileScreen.addEventListener('change', (e) => collapseWikiTocForMobile(e.matches));
+    collapseWikiTocForMobile(mobileScreen.matches);
   });
   registerGlobalInitFunc('initRepoWikiForm', initRepoWikiForm);
 }

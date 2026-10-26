@@ -21,7 +21,7 @@ import {
 } from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 import {createTippy} from '../../modules/tippy.ts';
-import {initTabSwitcher} from '../../modules/fomantic/tab.ts';
+import {initTabSwitcher} from '../../modules/tab.ts';
 import type EasyMDE from 'easymde';
 import type Dropzone from '@deltablot/dropzone';
 import {localUserSettings} from '../../modules/user-settings.ts';
@@ -225,8 +225,6 @@ export class ComboMarkdownEditor {
     const panelEditor = this.container.querySelector('.ui.tab[data-tab-panel="markdown-writer"]')!;
     const panelPreviewer = this.container.querySelector<HTMLElement>('.ui.tab[data-tab-panel="markdown-previewer"]')!;
 
-    // Fomantic Tab requires the "data-tab" to be globally unique.
-    // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
     const tabIdSuffix = generateElemId();
     this.tabEditor.setAttribute('data-tab', `markdown-writer-${tabIdSuffix}`);
     this.tabPreviewer.setAttribute('data-tab', `markdown-previewer-${tabIdSuffix}`);
@@ -242,7 +240,7 @@ export class ComboMarkdownEditor {
     });
 
     this.tabPreviewer.addEventListener('click', async () => {
-      // use capture to get the event before Fomantic Tab switches the tab, so that we can set the minHeight of the previewer panel to avoid flickering.
+      // capture: read the editor height before the tab switcher hides it, so the preview does not flicker
       panelPreviewer.style.minHeight = `${panelEditor?.clientHeight}px`;
       this.updateEditorContainerTabPage('previewer');
       const formData = new FormData();

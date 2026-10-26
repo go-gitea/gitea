@@ -167,7 +167,7 @@ const searchURL = computed(() => {
 });
 
 onMounted(() => {
-  changeReposFilter(reposFilter.value); // the filter dropdown is initialised by the global observer
+  changeReposFilter(reposFilter.value);
 });
 
 function changeTab(newTab: Tab) {
@@ -410,29 +410,29 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
         <div class="ui small fluid action left icon input">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="elSearch" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
-          <div class="ui dropdown icon button" :title="textFilter">
-            <svg-icon name="octicon-filter" :size="16"/>
-            <div class="menu">
-              <a class="item" @click="toggleArchivedFilter()">
-                <div class="ui checkbox" :title="checkboxArchivedFilterTitle">
-                  <!--the "tw-pointer-events-none" is necessary to prevent the checkbox from handling user's input,
-                      otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
-                  <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxArchivedFilterProps">
+          <div class="dropdown-container">
+            <button type="button" class="dropdown-trigger ui icon button tw-m-0" :title="textFilter" :aria-label="textFilter">
+              <svg-icon name="octicon-filter" :size="16"/>
+            </button>
+            <div class="dropdown-popup dropdown-popup-button">
+              <div class="dropdown-item" @click="toggleArchivedFilter()" role="menuitemcheckbox" :aria-checked="archivedFilter === 'both' ? 'mixed' : archivedFilter === 'archived'" :title="checkboxArchivedFilterTitle">
+                <span class="ui checkbox tw-pointer-events-none">
+                  <input type="checkbox" tabindex="-1" aria-hidden="true" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
                     <svg-icon name="octicon-archive" :size="16" class="tw-mr-1"/>
                     {{ textShowArchived }}
                   </label>
-                </div>
-              </a>
-              <a class="item" @click="togglePrivateFilter()">
-                <div class="ui checkbox" :title="checkboxPrivateFilterTitle">
-                  <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
+                </span>
+              </div>
+              <div class="dropdown-item" @click="togglePrivateFilter()" role="menuitemcheckbox" :aria-checked="privateFilter === 'both' ? 'mixed' : privateFilter === 'private'" :title="checkboxPrivateFilterTitle">
+                <span class="ui checkbox tw-pointer-events-none">
+                  <input type="checkbox" tabindex="-1" aria-hidden="true" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
                     <svg-icon name="octicon-lock" :size="16" class="tw-mr-1"/>
                     {{ textShowPrivate }}
                   </label>
-                </div>
-              </a>
+                </span>
+              </div>
             </div>
           </div>
         </div>

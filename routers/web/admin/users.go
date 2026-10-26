@@ -128,9 +128,9 @@ func Users(ctx *context.Context) {
 func NewUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdminUsers"] = true
-	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
+	ctx.Data["visibility"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["login_type"] = "0-0"
 	ctx.Data["user_type"] = api.UserTypeStringUser
 
@@ -152,7 +152,6 @@ func NewUserPost(ctx *context.Context) {
 	form := web.GetForm[*forms.AdminCreateUserForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdminUsers"] = true
-	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{

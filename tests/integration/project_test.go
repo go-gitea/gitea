@@ -203,12 +203,12 @@ func TestIssueSidebarProjectColumn(t *testing.T) {
 	columnCombo := cards.Find(".issue-sidebar-combo.sidebar-project-column-combo")
 	assert.Equal(t, 1, columnCombo.Length())
 
-	defaultItem := columnCombo.Find(`.menu .item[data-value="1"]`)
+	defaultItem := columnCombo.Find(`.dropdown-popup .dropdown-item[data-value="1"]`)
 	assert.Equal(t, 1, defaultItem.Length())
 
-	inProgressItem := columnCombo.Find(`.menu .item[data-value="2"]`)
+	inProgressItem := columnCombo.Find(`.dropdown-popup .dropdown-item[data-value="2"]`)
 	assert.Equal(t, 1, inProgressItem.Length())
-	doneItem := columnCombo.Find(`.menu .item[data-value="3"]`)
+	doneItem := columnCombo.Find(`.dropdown-popup .dropdown-item[data-value="3"]`)
 	assert.Equal(t, 1, doneItem.Length())
 
 	comboVal, exists := columnCombo.Find("input.combo-value").Attr("value")

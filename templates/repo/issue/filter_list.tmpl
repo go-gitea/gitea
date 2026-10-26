@@ -16,40 +16,37 @@
 {{end}}
 
 <!-- Project -->
-<div class="item ui dropdown jump project-filter {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}}">
-	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_project"}}
-	</span>
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu flex-items-menu">
+<div class="dropdown-container project-filter" data-placement="bottom-end">
+	<button type="button" class="dropdown-trigger item btn" {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}}>{{ctx.Locale.Tr "repo.issues.filter_project"}} {{svg "octicon-triangle-down" 14}}</button>
+	<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu issue-filter-popup">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_project"}}">
+			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_project"}}">
 		</div>
-		<a class="item {{if $showAllProjects}}selected{{end}}" href="{{QueryBuild $queryLink "project" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
-		<a class="item {{if $showNoProjectSelected}}selected{{end}}" href="{{QueryBuild $queryLink "project" -1}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
+		<a class="dropdown-item {{if $showAllProjects}}active{{end}}" href="{{QueryBuild $queryLink "project" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
+		<a class="dropdown-item {{if $showNoProjectSelected}}active{{end}}" href="{{QueryBuild $queryLink "project" -1}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
 		{{if .OpenProjects}}
-			<div class="divider"></div>
-			<div class="header">
+			<div class="dropdown-divider"></div>
+			<div class="dropdown-header">
 				{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
 			</div>
 			{{range $project := .OpenProjects}}
 				{{$toggle := SliceUtils.JoinToggleIDs $projectIDs $project.ID}}
 				{{/* FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet. If the support comes, here it should use "&project=${toggle.ToggledIDs}" */}}
-				<a class="item {{if $toggle.IsIncluded}}selected{{end}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
+				<a class="dropdown-item {{if $toggle.IsIncluded}}active{{end}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
 					{{svg $project.IconName}}<span class="gt-ellipsis">{{$project.Title}}</span>
 				</a>
 			{{end}}
 		{{end}}
 		{{if .ClosedProjects}}
-			<div class="divider"></div>
-			<div class="header">
+			<div class="dropdown-divider"></div>
+			<div class="dropdown-header">
 				{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
 			</div>
 			{{range $project := .ClosedProjects}}
 				{{$toggle := SliceUtils.JoinToggleIDs $projectIDs $project.ID}}
 				{{/* FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet. If the support comes, here it should use "&project=${toggle.ToggledIDs}" */}}
-				<a class="item {{if $toggle.IsIncluded}}selected{{end}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
+				<a class="dropdown-item {{if $toggle.IsIncluded}}active{{end}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
 					{{svg $project.IconName}}<span class="gt-ellipsis">{{$project.Title}}</span>
 				</a>
 			{{end}}
@@ -78,45 +75,39 @@
 
 {{if .IsSigned}}
 	<!-- Type -->
-	<div class="item ui dropdown jump">
-		<span class="text">
-			{{ctx.Locale.Tr "repo.issues.filter_type"}}
-		</span>
-		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		<div class="menu">
-			<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "all"}}">{{if .PageIsPullList}}{{ctx.Locale.Tr "repo.issues.filter_type.all_pull_requests"}}{{else}}{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}{{end}}</a>
-			<a class="{{if eq .ViewType "assigned"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "assigned"}}">{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
-			<a class="{{if eq .ViewType "created_by"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "created_by"}}">{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}</a>
+	<div class="dropdown-container" data-placement="bottom-end">
+		<button type="button" class="dropdown-trigger item btn">{{ctx.Locale.Tr "repo.issues.filter_type"}} {{svg "octicon-triangle-down" 14}}</button>
+		<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
+			<a class="{{if eq .ViewType "all"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "type" "all"}}">{{if .PageIsPullList}}{{ctx.Locale.Tr "repo.issues.filter_type.all_pull_requests"}}{{else}}{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}{{end}}</a>
+			<a class="{{if eq .ViewType "assigned"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "type" "assigned"}}">{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
+			<a class="{{if eq .ViewType "created_by"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "type" "created_by"}}">{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}</a>
 			{{if .PageIsPullList}}
-				<a class="{{if eq .ViewType "review_requested"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "review_requested"}}">{{ctx.Locale.Tr "repo.issues.filter_type.review_requested"}}</a>
-				<a class="{{if eq .ViewType "reviewed_by"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "reviewed_by"}}">{{ctx.Locale.Tr "repo.issues.filter_type.reviewed_by_you"}}</a>
+				<a class="{{if eq .ViewType "review_requested"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "type" "review_requested"}}">{{ctx.Locale.Tr "repo.issues.filter_type.review_requested"}}</a>
+				<a class="{{if eq .ViewType "reviewed_by"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "type" "reviewed_by"}}">{{ctx.Locale.Tr "repo.issues.filter_type.reviewed_by_you"}}</a>
 			{{end}}
-			<a class="{{if eq .ViewType "mentioned"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "mentioned"}}">{{ctx.Locale.Tr "repo.issues.filter_type.mentioning_you"}}</a>
+			<a class="{{if eq .ViewType "mentioned"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "type" "mentioned"}}">{{ctx.Locale.Tr "repo.issues.filter_type.mentioning_you"}}</a>
 		</div>
 	</div>
 {{end}}
 
 <!-- Sort -->
-<div class="item ui dropdown jump">
-	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_sort"}}
-	</span>
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
-		<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "latest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
-		<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "oldest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-		<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "recentupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-		<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "leastupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-		<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "mostcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-		<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "leastcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-		<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "nearduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-		<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "farduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+<div class="dropdown-container" data-placement="bottom-end">
+	<button type="button" class="dropdown-trigger item btn">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</button>
+	<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
+		<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "latest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+		<a class="{{if eq .SortType "oldest"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "oldest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+		<a class="{{if eq .SortType "recentupdate"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "recentupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+		<a class="{{if eq .SortType "leastupdate"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "leastupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+		<a class="{{if eq .SortType "mostcomment"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "mostcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+		<a class="{{if eq .SortType "leastcomment"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "leastcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+		<a class="{{if eq .SortType "nearduedate"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "nearduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+		<a class="{{if eq .SortType "farduedate"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "farduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 		{{if .ExclusiveLabelScopes}}
-			<div class="divider"></div>
-			<div class="header">{{ctx.Locale.Tr "repo.issues.filter_label"}}</div>
+			<div class="dropdown-divider"></div>
+			<div class="dropdown-header">{{ctx.Locale.Tr "repo.issues.filter_label"}}</div>
 			{{range $scope := .ExclusiveLabelScopes}}
 				{{$sortType := (printf "scope-%s" $scope)}}
-				<a class="{{if eq $.SortType $sortType}}active {{end}}item" href="{{QueryBuild $queryLink "sort" $sortType}}">{{$scope}}</a>
+				<a class="{{if eq $.SortType $sortType}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" $sortType}}">{{$scope}}</a>
 			{{end}}
 		{{end}}
 	</div>

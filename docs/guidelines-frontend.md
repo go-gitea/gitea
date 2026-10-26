@@ -6,8 +6,8 @@ and testing see [development.md](development.md) and [testing.md](testing.md).
 
 ## Background
 
-The frontend uses [Vue 3](https://vuejs.org/), hard-forked Fomantic-UI (built on jQuery)
-and [Tailwind CSS](https://tailwindcss.com/). Pages are rendered with Go HTML templates.
+The frontend uses [Vue 3](https://vuejs.org/) and [Tailwind CSS](https://tailwindcss.com/).
+Pages are rendered with Go HTML templates.
 Source files live in:
 
 - `web_src/css/`: CSS styles
@@ -29,16 +29,13 @@ Mixing frameworks arbitrarily makes code hard to maintain. Recommended combinati
 
 - Vue3
 - Vanilla JavaScript
-- Fomantic-UI (jQuery), deprecated, we vendored a specific version with a lot of changes.
 
-Avoid combinations such as Vue with Fomantic-UI.
-Vue components may reuse Fomantic-UI CSS classes for visual consistency.
+Vue components may reuse the global CSS classes like `.ui.button` for visual consistency.
 Use Go templates for simple or SEO-relevant pages and Vue for complex, interactive pages.
 Gitea uses Vue 3 **without** JSX to keep HTML and JavaScript separate.
 
 > [!NOTE]
-> Fomantic-UI is not an accessibility-friendly framework. Gitea patches some ARIA
-> behavior, but accessibility work is ongoing — prefer semantic HTML and test
+> Accessibility work is ongoing, prefer semantic HTML and test
 > keyboard/screen-reader behavior where you can.
 
 ## Gitea-specific conventions
@@ -93,6 +90,12 @@ in new code. Never bind user-provided data directly onto DOM nodes.
 - In Go templates and plain JavaScript, use the `.tw-hidden` class together with the
   `showElem()`, `hideElem()`, and `toggleElem()` helpers from
   [`web_src/js/utils/dom.ts`](../web_src/js/utils/dom.ts).
+
+## Dropdowns
+
+Menus and custom selects use the `.dropdown-container` component from
+[`web_src/js/modules/dropdown.ts`](../web_src/js/modules/dropdown.ts), see `/devtest/dropdown` for the markup.
+Plain-text single choices in forms use a native `<select>` inside a `.select-field` wrapper, which draws the field's triangle.
 
 ## UI component gallery
 

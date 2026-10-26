@@ -1,15 +1,13 @@
-import {hideElem, querySingleVisibleElem, showElem, toggleElem} from '../utils/dom.ts';
-import {htmlEscape} from '../utils/html.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {createElementFromAttrs, hideElem, querySingleVisibleElem, showElem, toggleElem} from '../utils/dom.ts';
+import {initDropdown} from '../modules/dropdown.ts';
+import {GET} from '../modules/fetch.ts';
 import {sanitizeRepoName} from './repo-common.ts';
 
 const {appSubUrl} = window.config;
 
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
-  const elSubmitButton = querySingleVisibleElem<HTMLInputElement>(form, '.ui.primary.button')!;
+  const elSubmitButton = querySingleVisibleElem<HTMLButtonElement>(form, '.ui.primary.button')!;
   const elCreateRepoErrorMessage = form.querySelector('#create-repo-error-message')!;
-  const elRepoOwnerDropdown = form.querySelector('#repo_owner_dropdown')!;
-  const elRepoTemplateDropdown = form.querySelector<HTMLInputElement>('#repo_template_search')!;
   const inputRepoTemplate = form.querySelector<HTMLInputElement>('#repo_template')!;
   const elTemplateUnits = form.querySelector('#template_units')!;
   const elNonTemplate = form.querySelector('#non_template')!;
@@ -21,38 +19,27 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
   inputRepoTemplate.addEventListener('change', checkTemplate);
   checkTemplate();
 
-  const $repoOwnerDropdown = fomanticQuery(elRepoOwnerDropdown);
-  const $repoTemplateDropdown = fomanticQuery(elRepoTemplateDropdown);
+  const repoOwnerDropdown = initDropdown(form.querySelector<HTMLElement>('#repo_owner_dropdown')!);
+  const repoTemplateDropdown = initDropdown(form.querySelector<HTMLElement>('#repo_template_search')!, {
+    async loadItems(query, signal) {
+      const params = new URLSearchParams({q: query, template: 'true', priority_owner_id: repoOwnerDropdown.value});
+      const response = await GET(`${appSubUrl}/repo/search?${params}`, {signal});
+      const {data} = await response.json() as {data: Array<{repository: {full_name: string, id: number}}>};
+      return data.map(({repository}) => createElementFromAttrs('div', {
+        class: 'dropdown-item',
+        'data-value': String(repository.id),
+      }, repository.full_name));
+    },
+  });
   const onChangeOwner = function () {
-    const ownerId = $repoOwnerDropdown.dropdown('get value');
-    const $ownerItem = $repoOwnerDropdown.dropdown('get item', ownerId);
-    hideElem(elCreateRepoErrorMessage);
-    elSubmitButton.disabled = false;
-    if ($ownerItem?.length) {
-      const elOwnerItem = $ownerItem[0];
-      elCreateRepoErrorMessage.textContent = elOwnerItem.getAttribute('data-create-repo-disallowed-prompt') ?? '';
-      const hasError = Boolean(elCreateRepoErrorMessage.textContent);
-      toggleElem(elCreateRepoErrorMessage, hasError);
-      elSubmitButton.disabled = hasError;
-    }
-    $repoTemplateDropdown.dropdown('setting', {
-      apiSettings: {
-        url: `${appSubUrl}/repo/search?q={query}&template=true&priority_owner_id=${ownerId}`,
-        onResponse(response: {data: Array<{repository: {full_name: string, id: number}}>}) {
-          const results = [];
-          results.push({name: '', value: ''}); // empty item means not using template
-          for (const tmplRepo of response.data) {
-            results.push({
-              name: htmlEscape(tmplRepo.repository.full_name),
-              value: String(tmplRepo.repository.id),
-            });
-          }
-          return {results};
-        },
-      },
-    });
+    const ownerItem = repoOwnerDropdown.findItem(repoOwnerDropdown.value);
+    elCreateRepoErrorMessage.textContent = ownerItem?.getAttribute('data-create-repo-disallowed-prompt') ?? '';
+    const hasError = Boolean(elCreateRepoErrorMessage.textContent);
+    toggleElem(elCreateRepoErrorMessage, hasError);
+    elSubmitButton.disabled = hasError;
+    if (repoTemplateDropdown.isShown()) repoTemplateDropdown.reload();
   };
-  $repoOwnerDropdown.dropdown('setting', 'onChange', onChangeOwner);
+  repoOwnerDropdown.valueInput!.addEventListener('change', onChangeOwner);
   onChangeOwner();
 }
 

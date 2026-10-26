@@ -1,22 +1,20 @@
 import {createApp} from 'vue';
 import {GET} from '../modules/fetch.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
+import {initDropdown} from '../modules/dropdown.ts';
+import {createElementFromHTML, activePageTimerRefresh, queryElems} from '../utils/dom.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
-import type {JQueryElem} from '../types.ts';
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
-  const elDropdown = el.querySelector(':scope > .ui.dropdown');
+  const elDropdown = el.querySelector<HTMLElement>(':scope > .dropdown-container');
   if (!elDropdown) return;
   const elButton = el.querySelector<HTMLButtonElement>(':scope > button')!;
 
-  fomanticQuery(elDropdown).dropdown({
-    onChange(_text: string, _value: string, $choice: JQueryElem) {
-      const choiceEl = $choice[0];
-      elButton.textContent = choiceEl.textContent;
-      elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url')!);
-    },
-  });
+  const dropdown = initDropdown(elDropdown);
+  queryElems(dropdown.popup, '.dropdown-item', (item) => item.addEventListener('click', () => {
+    elButton.textContent = item.textContent;
+    elButton.setAttribute('data-url', item.getAttribute('data-update-url')!);
+    dropdown.setActiveItem(item);
+  }));
 }
 
 function onCommitStatusChecksToggle(btn: HTMLElement) {

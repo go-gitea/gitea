@@ -46,8 +46,7 @@ func TestCompare(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1...master")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
-		// A dropdown for both base and head.
+		selection := htmlDoc.doc.Find(".dropdown-container.select-branch")
 		assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 
 		req = NewRequest(t, "GET", "/user2/repo1/compare/v1.1...HEAD")
@@ -69,7 +68,7 @@ func TestCompare(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
+		selection := htmlDoc.doc.Find(".dropdown-container.select-branch")
 		assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 	})
 
@@ -273,11 +272,11 @@ Hello from 2
 		body := resp.Body.String()
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
+		selection := htmlDoc.doc.Find(".dropdown-container.select-branch")
 		assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 		assert.Contains(t, body, "These branches do not share a common merge base")
-		assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
-		assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
+		assert.Equal(t, 1, htmlDoc.doc.Find(`a.dropdown-item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
+		assert.Equal(t, 1, htmlDoc.doc.Find(`a.dropdown-item[href="/user2/repo1/compare/master...master"]`).Length())
 		assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
 	})
 }

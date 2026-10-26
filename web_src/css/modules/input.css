@@ -101,17 +101,24 @@
   border-right-color: transparent;
 }
 
-.ui.action.input > .dropdown:first-child,
+.ui.action.input > .dropdown-container:first-child > .dropdown-field,
 .ui.action.input > .button:first-child {
   border-radius: 0.28571429rem 0 0 0.28571429rem;
 }
-.ui.action.input > .dropdown:not(:first-child),
+.ui.action.input > .select-field:not(:first-child) > select,
 .ui.action.input > .button:not(:first-child) {
   border-radius: 0;
 }
-.ui.action.input > .dropdown:last-child,
+.ui.action.input > .dropdown-container:last-child > .button,
 .ui.action.input > .button:last-child {
   border-radius: 0 0.28571429rem 0.28571429rem 0;
+}
+
+.ui.action.input > .select-field > select {
+  min-height: 2.71428571em;
+  width: auto;
+  min-width: 10em;
+  border-right: none;
 }
 
 .ui.fluid.input {
@@ -131,31 +138,14 @@
 .ui.action.input .ui.ui.button {
   border-color: var(--color-input-border);
 }
-
-/* currently used for search bar dropdowns in repo search and explore code */
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
-  min-width: 10em;
-}
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(:focus) {
-  border-right: none;
-}
-.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(.active):hover {
-  border-color: var(--color-input-border);
-}
-.ui.action.input:not([class*="left action"]) .ui.dropdown.selection.upward.visible {
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-}
 .ui.action.input:not([class*="left action"]) > input,
 .ui.action.input:not([class*="left action"]) > input:hover {
   border-right: none;
 }
-.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection,
-.ui.action.input:not([class*="left action"]) > input:focus + .ui.dropdown.selection:hover,
+.ui.action.input:not([class*="left action"]) > input:focus + .select-field > select,
 .ui.action.input:not([class*="left action"]) > input:focus + .button,
 .ui.action.input:not([class*="left action"]) > input:focus + .button:hover,
-.ui.action.input:not([class*="left action"]) > input:focus + i.icon + .button,
-.ui.action.input:not([class*="left action"]) > input:focus + i.icon + .button:hover {
+.ui.action.input:not([class*="left action"]) > input:focus + i.icon + .dropdown-container > .button {
   border-left-color: var(--color-primary);
 }
 .ui.action.input:not([class*="left action"]) > input:focus {

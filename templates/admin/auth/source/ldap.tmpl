@@ -1,15 +1,12 @@
 <div class="ldap dldap field {{if not (or (eq .type 2) (eq .type 5))}}tw-hidden{{end}}">
 	<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
-		<label>{{ctx.Locale.Tr "admin.auths.security_protocol"}}</label>
-		<div class="ui selection security-protocol dropdown">
-			<input type="hidden" id="security_protocol" name="security_protocol" value="{{.security_protocol}}">
-			<div class="text">{{.CurrentSecurityProtocol}}</div>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<div class="menu">
+		<label for="security_protocol">{{ctx.Locale.Tr "admin.auths.security_protocol"}}</label>
+		<div class="select-field">
+			<select id="security_protocol" autocomplete="off" name="security_protocol">
 				{{range .SecurityProtocols}}
-					<div class="item" data-value="{{.Type.Int}}">{{.Name}}</div>
+					<option value="{{.Type.Int}}" {{if eq $.security_protocol .Type.Int}}selected{{end}}>{{.Name}}</option>
 				{{end}}
-			</div>
+			</select>
 		</div>
 	</div>
 	<div class="required field">

@@ -6,7 +6,7 @@ import {stripTags} from '../utils.ts';
 
 type TippyOpts = {
   role?: string,
-  theme?: 'default' | 'tooltip' | 'menu' | 'box-with-header' | 'bare',
+  theme?: 'default' | 'tooltip' | 'menu' | 'box-with-header' | 'bare' | 'dropdown',
   limitSizeToViewport?: {horizontal?: boolean, vertical?: boolean}, // cap to the viewport and scroll the content
 } & Partial<Props>;
 
@@ -46,13 +46,21 @@ function sizeModifier(limit: {horizontal?: boolean, vertical?: boolean}): Popper
     phase: 'beforeWrite',
     requires: ['computeStyles'], // runs after "flip" and "offset", so both are final
     fn({state}) {
-      const offset = state.modifiersData.offset?.[state.placement];
-      const isVertical = state.placement.startsWith('top') || state.placement.startsWith('bottom');
-      const available = availableSizeForPlacement(
-        state.elements.reference.getBoundingClientRect(),
-        state.placement,
-        (isVertical ? offset?.y : offset?.x) ?? 0,
-      );
+      const referenceRect = state.elements.reference.getBoundingClientRect();
+      const availableFor = (placement: Placement) => {
+        const offset = state.modifiersData.offset?.[placement];
+        const isVertical = placement.startsWith('top') || placement.startsWith('bottom');
+        return availableSizeForPlacement(referenceRect, placement, (isVertical ? offset?.y : offset?.x) ?? 0);
+      };
+      const available = availableFor(state.placement);
+      // "flip" keeps the preferred side when the popup fits on neither, open towards the roomier one instead
+      const opposite = state.placement.replace(/^(top|bottom)/, (side) => side === 'top' ? 'bottom' : 'top') as Placement;
+      if (limit.vertical && state.rects.popper.height > available.height && availableFor(opposite).height > available.height) {
+        state.placement = opposite;
+        state.modifiersData.flip._skip = true;
+        state.reset = true;
+        return;
+      }
       const {style} = state.elements.popper;
       if (limit.horizontal) style.setProperty('--tippy-max-width', `${Math.max(0, Math.floor(available.width))}px`);
       if (limit.vertical) style.setProperty('--tippy-max-height', `${Math.max(0, Math.floor(available.height))}px`);
@@ -94,8 +102,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
-  const {onHide, onShow, onDestroy, role, theme, arrow, limitSizeToViewport, ...other} = opts;
-  // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
+  const {onHide, onHidden, onShow, onDestroy, role, theme, arrow, limitSizeToViewport, ...other} = opts;
   const resolvedTheme = theme || role || 'default';
   const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
 
@@ -112,6 +119,13 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       if (isMenu(instance) && instance.popper.contains(document.activeElement)) (instance.reference as HTMLElement).focus();
       return onHide?.(instance);
     },
+    onHidden: (instance: Instance) => {
+      for (const el of instance.popper.querySelectorAll('[data-tooltip-content]')) {
+        el._tippy?.clearDelayTimeouts();
+        el._tippy?.hide();
+      }
+      return onHidden?.(instance);
+    },
     onDestroy: (instance: Instance) => {
       visibleInstances.delete(instance);
       return onDestroy?.(instance);
@@ -124,7 +138,8 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
         }
       }
       visibleInstances.add(instance);
-      target.setAttribute('aria-controls', instance.popper.id);
+      if (!['tooltip', 'presentation'].includes(instance.props.role)) target.setAttribute('aria-controls', instance.popper.id); // tooltips use aria-describedby
+      if (limitSizeToViewport) instance.popper.style.removeProperty('--tippy-max-height'); // flip by the uncapped height
       if (isMenu(instance)) { // focusable by the arrow keys, out of the Tab order
         for (const item of instance.popper.querySelectorAll<HTMLElement>('.item')) item.tabIndex = -1;
       }
@@ -134,6 +149,10 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     popperOptions: {modifiers: [
       {name: 'arrow', options: {padding: arrowPadding}},
       ...limitSizeToViewport ? [sizeModifier(limitSizeToViewport)] : [],
+      ...resolvedTheme === 'dropdown' ? [ // move only on a real overflow, at unrounded positions
+        ...['flip', 'preventOverflow'].map((name) => ({name, options: {padding: 0}})),
+        {name: 'computeStyles', options: {roundOffsets: false}},
+      ] : [],
     ]},
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
@@ -278,20 +297,10 @@ export function initGlobalTooltips(): void {
 }
 
 export function showTemporaryTooltip(target: Element, content: Content): void {
-  // if the target is inside a dropdown or tippy popup, the menu will be hidden soon
-  // so display the tooltip on the "aria-controls" element or dropdown instead
-  let refClientRect: DOMRect | undefined;
-  const popupTippyId = target.closest(`[data-tippy-root]`)?.id;
-  if (popupTippyId) {
-    // for example, the "Copy Permalink" button in the "File View" page for the selected lines
-    target = document.body;
-    refClientRect = document.querySelector(`[aria-controls="${CSS.escape(popupTippyId)}"]`)?.getBoundingClientRect();
-    refClientRect = refClientRect ?? new DOMRect(0, 0, 0, 0); // fallback to empty rect if not found, tippy doesn't accept null
-  } else {
-    // for example, the "Copy Link" button in the issue header dropdown menu
-    target = target.closest('.ui.dropdown') ?? target;
-    refClientRect = target.getBoundingClientRect();
-  }
+  // a popup or dropdown item closes on click, so show the tooltip on what opened it
+  const popupTippy = target.closest('[data-tippy-root]')?._tippy;
+  target = popupTippy ? document.body : target.closest('.dropdown-container')?.querySelector(':scope > .dropdown-trigger') ?? target;
+  const refClientRect = (popupTippy?.reference ?? target).getBoundingClientRect();
   const tooltipTippy = target._tippy ?? attachTooltip(target, content);
   tooltipTippy.setContent(content);
   tooltipTippy.setProps({getReferenceClientRect: () => refClientRect});
@@ -306,9 +315,9 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
     },
   });
 
-  // on elements where the tooltip is re-located like "Copy Link" inside fomantic dropdowns, tippy.js gets
+  // on elements where the tooltip is re-located like "Copy Link" inside dropdowns, tippy.js gets
   // no `mouseout` event and the tooltip stays visible, hide it with timeout.
-  if (!popupTippyId) {
+  if (!popupTippy) {
     setTimeout(() => {
       if (tooltipTippy.state.isVisible) tooltipTippy.hide();
     }, 1500);

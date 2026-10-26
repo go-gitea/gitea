@@ -1,16 +1,14 @@
-import {toggleElem, queryElems} from '../utils/dom.ts';
+import {createElementFromAttrs, createElementFromHTML, toggleElem, queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {createSortable} from '../modules/sortable.ts';
-import {DELETE, POST} from '../modules/fetch.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {DELETE, GET, POST} from '../modules/fetch.ts';
+import {initDropdown} from '../modules/dropdown.ts';
 import {performFetchAction} from '../modules/fetch-action.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import type {SortableEvent} from 'sortablejs';
 
 type IssuePoster = {avatar_link: string, full_name: string, username: string};
-type ProcessedIssuePoster = {type: 'html', html: string};
-type IssuePosterResponse = {results: IssuePoster[]};
 
 function initRepoIssueListCheckboxes(issueSelectAll: HTMLInputElement) {
   const container = issueSelectAll.closest('.page-content')!;
@@ -74,62 +72,45 @@ function initRepoIssueListCheckboxes(issueSelectAll: HTMLInputElement) {
   ));
 }
 
-function initDropdownUserRemoteSearch(el: Element) {
-  let searchUrl = el.getAttribute('data-search-url');
+function initDropdownUserRemoteSearch(el: HTMLElement) {
+  const searchUrl = el.getAttribute('data-search-url');
   const actionJumpUrl = el.getAttribute('data-action-jump-url')!;
-  let selectedUsername = el.getAttribute('data-selected-username') || '';
-  const $searchDropdown = fomanticQuery(el);
-  const elMenu = el.querySelector('.menu')!;
-  const elSearchInput = el.querySelector<HTMLInputElement>('.ui.search input')!;
-  const elItemFromInput = el.querySelector('.menu > .item-from-input')!;
-
-  $searchDropdown.dropdown('setting', {
-    fullTextSearch: true,
-    selectOnKeydown: false,
-    action: (_text: string, value: string) => {
-      window.location.assign(actionJumpUrl.replace('{username}', () => encodeURIComponent(value)));
-    },
-  });
-
-  const selectUsername = (username: string) => {
-    queryElems(elMenu, '.item.active, .item.selected', (el) => el.classList.remove('active', 'selected'));
-    elMenu.querySelector(`.item[data-value="${CSS.escape(username)}"]`)?.classList.add('selected');
-  };
-
-  const processedResults: ProcessedIssuePoster[] = []; // to be used by dropdown to generate menu items
-  const syncItemFromInput = () => {
-    const inputVal = elSearchInput.value.trim();
-    elItemFromInput.setAttribute('data-value', inputVal);
-    elItemFromInput.textContent = inputVal;
-    const showItemFromInput = !processedResults.length && inputVal !== '';
-    toggleElem(elItemFromInput, showItemFromInput);
-    selectUsername(showItemFromInput ? inputVal : selectedUsername);
-  };
-
-  elSearchInput.value = selectedUsername;
-  if (!searchUrl) {
-    elSearchInput.addEventListener('input', syncItemFromInput);
-    return;
-  }
-
-  if (!searchUrl.includes('?')) searchUrl += '?';
-  $searchDropdown.dropdown('setting', {
-    onMenuUpdated: () => syncItemFromInput(),
-    apiSettings: {
-      url: `${searchUrl}&q={query}`,
-      onResponse(resp: IssuePosterResponse) {
-        // the content is provided by backend IssuePosters handler
-        processedResults.length = 0;
-        for (const item of resp.results) {
-          const htmlAvatar = html`<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20">`;
-          const htmlFullName = item.full_name ? html`<span class="username-fullname">(${item.full_name})</span>` : '';
-          const htmlItemInner = html`<span class="username-display">${htmlRaw(htmlAvatar)}<span>${item.username}</span>${htmlRaw(htmlFullName)}</span>`;
-          if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
-          const htmlItem = html`<div class="item" data-value="${item.username}">${htmlRaw(htmlItemInner)}</div>`;
-          processedResults.push({type: 'html', html: htmlItem});
+  const getUserUrl = (username: string) => actionJumpUrl.replace('{username}', () => encodeURIComponent(username));
+  const selectedUsername = el.querySelector<HTMLInputElement>('.dropdown-filter')!.value;
+  const clearItem = el.querySelector<HTMLElement>('.dropdown-item[data-value=""]')!;
+  clearItem.setAttribute('href', getUserUrl(''));
+  initDropdown(el, {
+    async loadItems(query, signal) {
+      const posters: IssuePoster[] = searchUrl ?
+        (await (await GET(`${searchUrl}${searchUrl.includes('?') ? '' : '?'}&q=${encodeURIComponent(query)}`, {signal})).json()).results :
+        [];
+      const items = posters.map((poster) => {
+        const item = createElementFromHTML(html`
+          <a class="dropdown-item" href="${getUserUrl(poster.username)}">
+            <span class="username-display">
+              <img class="ui avatar tw-align-middle" src="${poster.avatar_link}" aria-hidden="true" alt width="20" height="20">
+              <span>${poster.username}</span>
+              ${poster.full_name ? htmlRaw(html`<span class="username-fullname">(${poster.full_name})</span>`) : ''}
+            </span>
+          </a>
+        `);
+        item.classList.toggle('active', selectedUsername.toLowerCase() === poster.username.toLowerCase());
+        return item;
+      });
+      if (query && !items.length) {
+        const queryItem = createElementFromAttrs('a', {class: 'dropdown-item', href: getUserUrl(query)}, query);
+        if (searchUrl) {
+          queryItem.classList.add('active');
+          clearItem.classList.remove('active');
+          return [clearItem, queryItem];
         }
-        return {results: processedResults};
-      },
+        let matched = 0; // without a search url, "all users" stays while it fuzzy-matches the query
+        for (const char of clearItem.textContent.toLowerCase()) if (char === query.toLowerCase()[matched]) matched++;
+        clearItem.classList.toggle('active', matched === query.length);
+        return matched === query.length ? [clearItem, queryItem] : [queryItem];
+      }
+      clearItem.classList.toggle('active', Boolean(searchUrl) && !selectedUsername);
+      return [clearItem, ...items];
     },
   });
 }

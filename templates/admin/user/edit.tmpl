@@ -13,30 +13,24 @@
 				{{if .CanConvertUserType}}
 					<div class="required field">
 						<label for="user_type">{{ctx.Locale.Tr "admin.users.user_type"}}</label>
-						<div class="ui selection type dropdown">
-							<input type="hidden" id="user_type" name="user_type" value="{{Iif .User.IsTypeBot "Bot" "User"}}" required>
-							<div class="text">{{ctx.Locale.Tr (Iif .User.IsTypeBot "concept_user_bot" "concept_user_user")}}</div>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
-								<div class="item" data-value="User">{{ctx.Locale.Tr "concept_user_user"}}</div>
-								<div class="item" data-value="Bot">{{ctx.Locale.Tr "concept_user_bot"}}</div>
-							</div>
+						<div class="select-field">
+							<select id="user_type" autocomplete="off" name="user_type" required>
+								<option value="User" {{if not .User.IsTypeBot}}selected{{end}}>{{ctx.Locale.Tr "concept_user_user"}}</option>
+								<option value="Bot" {{if .User.IsTypeBot}}selected{{end}}>{{ctx.Locale.Tr "concept_user_bot"}}</option>
+							</select>
 						</div>
 					</div>
 				{{end}}
 				{{if not .User.IsTypeBot}}
 					<div class="required js-non-bot field {{if .Err_LoginType}}error{{end}}">
 						<label for="login_type">{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
-						<div class="ui selection type dropdown">
-							<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
-							<div class="text">{{ctx.Locale.Tr "admin.users.local"}}</div>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
-								<div class="item" data-value="0-0">{{ctx.Locale.Tr "admin.users.local"}}</div>
+						<div class="select-field">
+							<select id="login_type" autocomplete="off" name="login_type" required>
+								<option value="0-0" {{if eq .LoginSource.ID 0}}selected{{end}}>{{ctx.Locale.Tr "admin.users.local"}}</option>
 								{{range .Sources}}
-									<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
+									<option value="{{.Type.Int}}-{{.ID}}" {{if eq $.LoginSource.ID .ID}}selected{{end}}>{{.Name}}</option>
 								{{end}}
-							</div>
+							</select>
 						</div>
 					</div>
 				{{else}}
@@ -45,25 +39,10 @@
 
 				<div class="required field {{if .Err_Visibility}}error{{end}}">
 					<label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label>
-					<div class="ui selection type dropdown">
-						<input type="hidden" id="visibility" name="visibility" value="{{if .User.Visibility.IsPublic}}0{{else if .User.Visibility.IsLimited}}1{{else}}2{{end}}">
-						<div class="text">
-							{{if .User.Visibility.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
-							{{if .User.Visibility.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
-							{{if .User.Visibility.IsPrivate}}{{ctx.Locale.Tr "settings.visibility.private"}}{{end}}
-						</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							{{range $mode := .AllowedUserVisibilityModes}}
-								{{if $mode.IsPublic}}
-									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{ctx.Locale.Tr "settings.visibility.public"}}</div>
-								{{else if $mode.IsLimited}}
-									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{ctx.Locale.Tr "settings.visibility.limited"}}</div>
-								{{else if $mode.IsPrivate}}
-									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{ctx.Locale.Tr "settings.visibility.private"}}</div>
-								{{end}}
-							{{end}}
-						</div>
+					<div class="select-field">
+						<select id="visibility" name="visibility">
+							{{template "shared/user_visibility_options" dict "Modes" .AllowedUserVisibilityModes "Value" .User.Visibility}}
+						</select>
 					</div>
 				</div>
 
@@ -89,15 +68,10 @@
 
 				<div class="field {{if .Err_Language}}error{{end}}">
 					<label for="language">{{ctx.Locale.Tr "settings.language"}}</label>
-					<div class="ui selection dropdown">
-						<input name="language" type="hidden" value="{{.User.Language}}">
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="text">{{range .AllLangs}}{{if eq $.User.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
-						<div class="menu">
-						{{range .AllLangs}}
-							<div class="item{{if eq $.User.Language .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
-						{{end}}
-						</div>
+					<div class="select-field">
+						<select id="language" name="language">
+							{{template "shared/language_options" dict "Languages" .AllLangs "Value" .User.Language "FallbackLabel" (or .User.Language "-")}}
+						</select>
 					</div>
 				</div>
 

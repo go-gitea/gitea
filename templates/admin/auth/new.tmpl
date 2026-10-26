@@ -8,16 +8,13 @@
 				{{template "base/disable_form_autofill"}}
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_Type}}error{{end}}">
-					<label>{{ctx.Locale.Tr "admin.auths.auth_type"}}</label>
-					<div class="ui selection type dropdown">
-						<input type="hidden" id="auth_type" name="type" value="{{.type}}">
-						<div class="text">{{.CurrentTypeName}}</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
+					<label for="auth_type">{{ctx.Locale.Tr "admin.auths.auth_type"}}</label>
+					<div class="select-field">
+						<select id="auth_type" autocomplete="off" name="type">
 							{{range .AuthSources}}
-								<div class="item" data-value="{{.Type.Int}}">{{.Name}}</div>
+								<option value="{{.Type.Int}}" {{if eq $.type .Type.Int}}selected{{end}}>{{.Name}}</option>
 							{{end}}
-						</div>
+						</select>
 					</div>
 				</div>
 				<div class="required inline field {{if .Err_Name}}error{{end}}">

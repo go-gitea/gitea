@@ -257,9 +257,12 @@ func TestIssueViews(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		sel := htmlDoc.Find(".branch-selector-dropdown")
+		sel := htmlDoc.Find(".dropdown-container.select-branch")
 		assert.Equal(t, 1, sel.Length())
-		assert.False(t, sel.HasClass("disabled"), "branch selector should be enabled on the new issue form")
+		trigger := sel.Find("button.dropdown-trigger")
+		assert.Equal(t, 1, trigger.Length())
+		_, disabled := trigger.Attr("disabled")
+		assert.False(t, disabled, "branch selector should be enabled on the new issue form")
 	})
 
 	t.Run("ViewIssuesKeyword", func(t *testing.T) {
@@ -712,10 +715,12 @@ func TestIssueRefSelectorEnabledForPoster(t *testing.T) {
 	resp := posterSession.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	// The branch selector must not carry the "disabled" CSS class for the poster.
-	sel := htmlDoc.Find(".branch-selector-dropdown")
+	sel := htmlDoc.Find(".dropdown-container.select-branch")
 	assert.Equal(t, 1, sel.Length())
-	assert.False(t, sel.HasClass("disabled"), "branch selector should be enabled for the issue poster")
+	trigger := sel.Find("button.dropdown-trigger")
+	assert.Equal(t, 1, trigger.Length())
+	_, disabled := trigger.Attr("disabled")
+	assert.False(t, disabled, "branch selector should be enabled for the issue poster")
 	// The update-ref URL must be present so JS can send the POST request.
 	_, hasURL := sel.Attr("data-url-update-issueref")
 	assert.True(t, hasURL, "data-url-update-issueref must be set for the issue poster")

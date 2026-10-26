@@ -67,15 +67,6 @@ export type Issue = {
   labels: Array<Label>,
 };
 
-export type JQueryElem<T extends HTMLElement = HTMLElement> = ReturnType<typeof $<T>>;
-
-export type FomanticApiResponse<T> = {success: boolean, results: T[]};
-
-export type FomanticInitFunction = {
-  settings?: Record<string, any>,
-  (...args: any[]): any,
-};
-
 export type GitRefType = 'branch' | 'tag';
 
 export type Promisable<T> = T | Promise<T>; // stricter than type-fest which uses PromiseLike

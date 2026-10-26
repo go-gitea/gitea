@@ -1,10 +1,9 @@
 import {debounce} from './func.ts';
 import type {Promisable} from '../types.ts';
-import type $ from 'jquery';
 import {Idiomorph} from 'idiomorph';
 
 type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
-type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
+type ElementArg = Element | string | ArrayLikeIterable<Element>;
 type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
 
@@ -15,13 +14,9 @@ function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: a
   if (el instanceof Node) {
     func(el, ...args);
     return [el];
-  } else if (el.length !== undefined) {
-    // this works for: NodeList, HTMLCollection, Array, jQuery
-    const elems = el as ArrayLikeIterable<Element>;
-    for (const elem of elems) func(elem, ...args);
-    return elems;
   }
-  throw new Error('invalid argument to be shown/hidden');
+  for (const elem of el) func(elem, ...args);
+  return el;
 }
 
 export function toggleElemClass(el: ElementArg, className: string, force?: boolean): ArrayLikeIterable<Element> {
@@ -405,7 +400,7 @@ export function protectMorphElements(el: Element): ProtectedMorphElements {
   // If morph changes any style or layout, then the Dropdown will stop working.
   // So, protect such fragile components ahead, then morph, then recover.
   const ret: ProtectedMorphElements = {};
-  for (const it of el.querySelectorAll('.ui.dropdown, [data-morph-protect]')) {
+  for (const it of el.querySelectorAll('.dropdown-container, [data-morph-protect]')) {
     const id = generateElemId();
     ret[id] = it.outerHTML;
     it.setAttribute('data-morph-protect', id);
@@ -427,7 +422,7 @@ export type MorphElementOptions = {
 
 export function morphElementWithProtection(el: Element, newEl: Element, opts: MorphElementOptions): Element {
   const protectedElems = protectMorphElements(newEl);
-  const selectorSkipElems = '.ui.dropdown.active';
+  const selectorSkipElems = '.dropdown-container[data-shown]';
   const nodes = Idiomorph.morph(el, newEl, {
     morphStyle: opts.morphStyle,
     callbacks: {

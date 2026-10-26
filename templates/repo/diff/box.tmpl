@@ -39,9 +39,9 @@
 					data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}"
 					data-text-filter-changes-by-commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
 					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
-					<div class="ui jump dropdown tiny basic button custom">
+					<button type="button" class="ui tiny basic button">
 						{{svg "octicon-git-commit"}}
-					</div>
+					</button>
 				</div>
 			{{end}}
 			{{if and .PageIsPullFiles $.SignedUserID}}

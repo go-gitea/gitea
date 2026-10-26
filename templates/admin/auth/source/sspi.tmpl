@@ -27,16 +27,10 @@
 	</div>
 	<div class="field">
 		<label for="sspi_default_language">{{ctx.Locale.Tr "admin.auths.sspi_default_language"}}</label>
-		<div class="ui language selection dropdown" id="sspi_default_language">
-			<input name="sspi_default_language" type="hidden" value="{{.SSPIDefaultLanguage}}">
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<div class="text">{{range .AllLangs}}{{if eq $.SSPIDefaultLanguage .Lang}}{{.Name}}{{end}}{{end}}</div>
-			<div class="menu">
-				<div class="item{{if not $.SSPIDefaultLanguage}} active selected{{end}}" data-value="">-</div>
-			{{range .AllLangs}}
-				<div class="item{{if eq $.SSPIDefaultLanguage .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
-			{{end}}
-			</div>
+		<div class="select-field">
+			<select name="sspi_default_language" id="sspi_default_language">
+				{{template "shared/language_options" dict "Languages" .AllLangs "Value" .SSPIDefaultLanguage "EmptyLabel" "-" "FallbackLabel" .SSPIDefaultLanguage}}
+			</select>
 		</div>
 		<p class="help">{{ctx.Locale.Tr "admin.auths.sspi_default_language_helper"}}</p>
 	</div>

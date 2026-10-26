@@ -1,0 +1,10 @@
+{{$languageFound := false}}
+{{if .EmptyLabel}}
+	<option value="" {{if not .Value}}{{$languageFound = true}}selected{{end}}>{{.EmptyLabel}}</option>
+{{end}}
+{{range .Languages}}
+	<option value="{{.Lang}}" {{if eq $.Value .Lang}}{{$languageFound = true}}selected{{end}}>{{.Name}}</option>
+{{end}}
+{{if not $languageFound}}
+	<option value="{{.Value}}" selected hidden>{{.FallbackLabel}}</option>
+{{end}}

@@ -1,8 +1,8 @@
 <h4 class="ui top attached header">
 	{{.Title}}
 	<div class="ui right">
-		<div class="ui jump dropdown">
-			<div class="ui primary tiny button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</div>
+		<div class="dropdown-container">
+			<button type="button" class="dropdown-trigger dropdown-button-inline ui primary tiny button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</button>
 			{{template "repo/settings/webhook/link_menu" .}}
 		</div>
 	</div>

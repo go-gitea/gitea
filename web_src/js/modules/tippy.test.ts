@@ -34,6 +34,22 @@ test('createTippy handles keys in menus only', async () => {
   panelButton.remove();
 });
 
+test('createTippy limitSizeToViewport opens towards the roomier side when the popup fits on neither', async () => {
+  const button = createElementFromHTML('<button style="position: fixed; bottom: 20px">button</button>');
+  document.body.append(button);
+  const instance = createTippy(button, {
+    content: createElementFromHTML('<div style="height: 3000px"></div>'),
+    trigger: 'manual',
+    placement: 'bottom-start',
+    limitSizeToViewport: {vertical: true},
+  });
+  instance.show();
+  await instance.popperInstance!.update();
+  expect(instance.popper.querySelector('.tippy-box')!.getAttribute('data-placement')).toEqual('top-start');
+  instance.destroy();
+  button.remove();
+});
+
 test('availableSizeForPlacement', () => {
   const rect = (values: Partial<DOMRect>) => values as DOMRect;
   vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(1000);

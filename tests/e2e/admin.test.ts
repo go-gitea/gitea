@@ -7,8 +7,7 @@ test('create a bot and manage its access token', async ({page, request}) => {
   await login(page);
   await page.goto('/-/admin/users/new');
   await page.getByLabel('Username').fill(botName);
-  await page.getByLabel('Username').press('Tab');
-  await page.getByRole('option', {name: 'Bot'}).click();
+  await page.getByLabel('User Type').selectOption({label: 'Bot'});
   await page.getByLabel('Email Address').fill(`${botName}@${env.GITEA_TEST_E2E_DOMAIN}`);
   await page.getByRole('button', {name: 'Create User Account'}).click();
   await page.waitForURL(/\/-\/admin\/users\/\d+$/);

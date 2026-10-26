@@ -14,66 +14,60 @@
 				<!-- Right Menu -->
 				<div class="ui secondary menu tw-m-0">
 					<!-- Status Filter Menu Item -->
-					<div class="ui dropdown type jump item">
-						<span class="text">{{ctx.Locale.Tr "admin.users.list_status_filter.menu_text"}}</span>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu flex-items-menu">
-							<a class="item js-reset-status-filter">{{ctx.Locale.Tr "admin.users.list_status_filter.reset"}}</a>
-							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_admin"}}</label>
-							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_active]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_active"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_active]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_active"}}</label>
-							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_restricted"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_restricted"}}</label>
-							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_prohibit_login"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_prohibit_login"}}</label>
-							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_2fa_enabled"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_2fa_enabled"}}</label>
+					<div class="dropdown-container" data-keep-open>
+						<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "admin.users.list_status_filter.menu_text"}} {{svg "octicon-triangle-down" 14}}</button>
+						<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu">
+							<a class="dropdown-item js-reset-status-filter">{{ctx.Locale.Tr "admin.users.list_status_filter.reset"}}</a>
+							<div class="dropdown-divider"></div>
+							<label class="dropdown-item"><input type="radio" name="status_filter[is_admin]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
+							<label class="dropdown-item"><input type="radio" name="status_filter[is_admin]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_admin"}}</label>
+							<div class="dropdown-divider"></div>
+							<label class="dropdown-item"><input type="radio" name="status_filter[is_active]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_active"}}</label>
+							<label class="dropdown-item"><input type="radio" name="status_filter[is_active]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_active"}}</label>
+							<div class="dropdown-divider"></div>
+							<label class="dropdown-item"><input type="radio" name="status_filter[is_restricted]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_restricted"}}</label>
+							<label class="dropdown-item"><input type="radio" name="status_filter[is_restricted]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_restricted"}}</label>
+							<div class="dropdown-divider"></div>
+							<label class="dropdown-item"><input type="radio" name="status_filter[is_prohibit_login]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_prohibit_login"}}</label>
+							<label class="dropdown-item"><input type="radio" name="status_filter[is_prohibit_login]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_prohibit_login"}}</label>
+							<div class="dropdown-divider"></div>
+							<label class="dropdown-item"><input type="radio" name="status_filter[is_2fa_enabled]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_2fa_enabled"}}</label>
+							<label class="dropdown-item"><input type="radio" name="status_filter[is_2fa_enabled]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_2fa_enabled"}}</label>
 						</div>
 					</div>
 
-					<div class="ui dropdown type jump item">
-						<span class="text">{{ctx.Locale.Tr "admin.users.user_type"}}</span>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu flex-items-menu">
-							<label class="item"><input type="radio" name="user_type" value="" {{if not $.UserTypeFilter}}checked{{end}}> {{ctx.Locale.Tr "all"}}</label>
-							<label class="item"><input type="radio" name="user_type" value="User" {{if eq $.UserTypeFilter "User"}}checked{{end}}> {{ctx.Locale.Tr "concept_user_user"}}</label>
-							<label class="item"><input type="radio" name="user_type" value="Bot" {{if eq $.UserTypeFilter "Bot"}}checked{{end}}> {{ctx.Locale.Tr "concept_user_bot"}}</label>
+					<div class="dropdown-container" data-keep-open>
+						<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "admin.users.user_type"}} {{svg "octicon-triangle-down" 14}}</button>
+						<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu">
+							<label class="dropdown-item"><input type="radio" name="user_type" value="" {{if not $.UserTypeFilter}}checked{{end}}> {{ctx.Locale.Tr "all"}}</label>
+							<label class="dropdown-item"><input type="radio" name="user_type" value="User" {{if eq $.UserTypeFilter "User"}}checked{{end}}> {{ctx.Locale.Tr "concept_user_user"}}</label>
+							<label class="dropdown-item"><input type="radio" name="user_type" value="Bot" {{if eq $.UserTypeFilter "Bot"}}checked{{end}}> {{ctx.Locale.Tr "concept_user_bot"}}</label>
 						</div>
 					</div>
 
 					<!-- Authentication Source Filter Menu Item -->
 					{{if .HasAuthSources}}
-						<div class="ui dropdown type jump item">
-							<span class="text">{{ctx.Locale.Tr "admin.users.auth_source"}}</span>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu flex-items-menu">
+						<div class="dropdown-container" data-keep-open>
+							<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "admin.users.auth_source"}} {{svg "octicon-triangle-down" 14}}</button>
+							<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu">
 								{{range $index, $option := .AuthSourceFilterOptions}}
-									{{if eq $index 1}}<div class="divider"></div>{{end}}
-									<label class="item"><input type="radio" name="source_id" value="{{$option.Value}}" {{if $option.Selected}}checked{{end}}> {{$option.Label}}</label>
+									{{if eq $index 1}}<div class="dropdown-divider"></div>{{end}}
+									<label class="dropdown-item"><input type="radio" name="source_id" value="{{$option.Value}}" {{if $option.Selected}}checked{{end}}> {{$option.Label}}</label>
 								{{end}}
 							</div>
 						</div>
 					{{end}}
 
 					<!-- Sort Menu Item -->
-					<div class="ui dropdown type jump item">
-						<span class="text">
-							{{ctx.Locale.Tr "repo.issues.filter_sort"}}
-						</span>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<button type="submit" class="item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
-							<button type="submit" class="item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
-							<button type="submit" class="item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
-							<button type="submit" class="item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
-							<button type="submit" class="item" name="sort" value="recentupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</button>
-							<button type="submit" class="item" name="sort" value="leastupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</button>
+					<div class="dropdown-container">
+						<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</button>
+						<div class="dropdown-popup dropdown-popup-menu">
+							<button type="submit" class="dropdown-item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
+							<button type="submit" class="dropdown-item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
+							<button type="submit" class="dropdown-item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
+							<button type="submit" class="dropdown-item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
+							<button type="submit" class="dropdown-item" name="sort" value="recentupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</button>
+							<button type="submit" class="dropdown-item" name="sort" value="leastupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</button>
 						</div>
 					</div>
 				</div>

@@ -1,7 +1,7 @@
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import type {Promisable} from '../types.ts';
 import type {InitPerformanceTracer} from './init.ts';
-import {initAriaLabels} from './fomantic/base.ts';
+import {initAriaLabels} from './aria.ts';
 
 let globalSelectorObserverInited = false;
 
@@ -20,17 +20,23 @@ export function registerGlobalEventFunc<T extends HTMLElement, E extends Event>(
 }
 
 // It handles the global init functions by a selector, for example:
-// > registerGlobalSelectorObserver('.ui.dropdown:not(.custom)', (el) => { initDropdown(el, ...) });
+// > registerGlobalSelectorFunc('.dropdown-container', (el) => { initDropdown(el) });
 // ATTENTION: For most cases, it's recommended to use registerGlobalInitFunc instead,
 // Because this selector-based approach is less efficient and less maintainable.
 // But if there are already a lot of elements on many pages, this selector-based approach is more convenient for exiting code.
 export function registerGlobalSelectorFunc<T extends Element>(selector: string, handler: (el: T) => void) {
-  selectorHandlers.push({selector, handler: handler as (el: Element) => void});
+  const handled = new WeakSet<Element>(); // an element moved in the DOM (like a portalled dropdown popup) is not handled again
+  const handleOnce = (el: Element) => {
+    if (handled.has(el)) return;
+    handled.add(el);
+    handler(el as T);
+  };
+  selectorHandlers.push({selector, handler: handleOnce});
   // Then initAddedElementObserver will call this handler for all existing elements after all handlers are added.
   // This approach makes the init stage only need to do one "querySelectorAll".
   if (!globalSelectorObserverInited) return;
   for (const el of document.querySelectorAll<T>(selector)) {
-    handler(el);
+    handleOnce(el);
   }
 }
 
@@ -74,7 +80,7 @@ export function initGlobalSelectorObserver(perfTracer: InitPerformanceTracer | n
 
   attachGlobalEvents();
 
-  selectorHandlers.push({selector: '[data-global-init]', handler: callGlobalInitFunc});
+  selectorHandlers.unshift({selector: '[data-global-init]', handler: callGlobalInitFunc}); // first, they may pass options to components that selector functions init generically
   const observer = new MutationObserver((mutationList) => {
     const len = mutationList.length;
     for (let i = 0; i < len; i++) {

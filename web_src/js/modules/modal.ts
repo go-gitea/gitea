@@ -79,6 +79,9 @@ function createModalBackdrop(elModal: HTMLDialogElement): HTMLElement {
 export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
   if (elModal.open) return;
 
+  hideToastsAll();
+  hideAll(); // before remembering the opener, a hidden popup returns the focus to its trigger
+
   const elBackdrop = elModal.parentElement?.matches('.modal-backdrop') ? elModal.parentElement : createModalBackdrop(elModal);
   modalStates.set(elModal, {opts, opener: document.activeElement});
   elModal.querySelector('.close-modal')?.setAttribute('aria-label', 'Close');
@@ -86,8 +89,6 @@ export function showModal(elModal: HTMLDialogElement, opts: ModalOpts = {}) {
   // Avoid "cancel" buttons submitting the form, otherwise "Enter" in the form clicks this "cancel" button before the "ok" button
   queryElems(elModal, 'form button.cancel:not([type])', (button) => button.setAttribute('type', 'button'));
 
-  hideToastsAll();
-  hideAll();
   blockPage(elBackdrop);
 
   elModal.show(); // not showModal: popups and toasts mounted on body must stay usable above it, see https://github.com/whatwg/html/issues/9936
@@ -98,6 +99,7 @@ export function hideModal(elModal: HTMLDialogElement) {
   if (!elModal.open) return;
   const {opts, opener} = modalStates.get(elModal)!;
   const elBackdrop = elModal.parentElement!;
+  hideAll();
   elModal.close();
   blockPage(topModal()?.parentElement);
 

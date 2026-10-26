@@ -15,20 +15,22 @@
 							{{ctx.Locale.Tr "repo.diff.browse_source"}}
 						</a>
 						{{if and ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
-							<div class="ui dropdown tiny button">
-								{{ctx.Locale.Tr "repo.commit.operations"}}
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="menu">
-									<div class="header">{{ctx.Locale.Tr "repo.commit.operations"}}</div>
-									<div class="divider"></div>
-									<div class="item show-create-branch-modal"
+							<div class="dropdown-container">
+								<button type="button" class="dropdown-trigger ui tiny button">
+									{{ctx.Locale.Tr "repo.commit.operations"}}
+									{{svg "octicon-triangle-down" 14}}
+								</button>
+								<div class="dropdown-popup dropdown-popup-button">
+									<div class="dropdown-header">{{ctx.Locale.Tr "repo.commit.operations"}}</div>
+									<div class="dropdown-divider"></div>
+									<div class="dropdown-item show-create-branch-modal"
 										data-content="{{ctx.Locale.Tr "repo.branch.new_branch_from" (.CommitID)}}" {{/* used by the form */}}
 										data-branch-from="{{ShortSha .CommitID}}"
 										data-branch-from-urlcomponent="{{.CommitID}}"
 										data-modal="#create-branch-modal">
 										{{ctx.Locale.Tr "repo.branch.create_branch_operation"}}
 									</div>
-									<div class="item show-create-branch-modal"
+									<div class="dropdown-item show-create-branch-modal"
 										data-content="{{ctx.Locale.Tr "repo.branch.new_branch_from" (.CommitID)}}" {{/* used by the form */}}
 										data-branch-from="{{ShortSha .CommitID}}"
 										data-branch-from-urlcomponent="{{.CommitID}}"
@@ -37,87 +39,87 @@
 										data-modal-form="#create-tag-form">
 										{{ctx.Locale.Tr "repo.tag.create_tag_operation"}}
 									</div>
-									<div class="item show-modal revert-button"
+									<div class="dropdown-item show-modal revert-button"
 										data-modal="#cherry-pick-modal"
 										data-modal-cherry-pick-type="revert"
 										data-modal-cherry-pick-header="{{ctx.Locale.Tr "repo.commit.revert-header" (ShortSha .CommitID)}}"
 										data-modal-cherry-pick-content="{{ctx.Locale.Tr "repo.commit.revert-content"}}"
 										data-modal-cherry-pick-submit="{{ctx.Locale.Tr "repo.commit.revert"}}">{{ctx.Locale.Tr "repo.commit.revert"}}</div>
-									<div class="item cherry-pick-button show-modal"
+									<div class="dropdown-item cherry-pick-button show-modal"
 										data-modal="#cherry-pick-modal"
 										data-modal-cherry-pick-type="cherry-pick"
 										data-modal-cherry-pick-header="{{ctx.Locale.Tr "repo.commit.cherry-pick-header" (ShortSha .CommitID)}}"
 										data-modal-cherry-pick-content="{{ctx.Locale.Tr "repo.commit.cherry-pick-content"}}"
 										data-modal-cherry-pick-submit="{{ctx.Locale.Tr "repo.commit.cherry-pick"}}">{{ctx.Locale.Tr "repo.commit.cherry-pick"}}</div>
-									<dialog class="modal-dialog" id="cherry-pick-modal">
-										<div class="header">
-											<span id="cherry-pick-header"></span>
-										</div>
-										<div class="content">
-											<p id="cherry-pick-content" class="branch-dropdown"></p>
-
-											<form method="get">
-												{{template "repo/branch_dropdown" dict
-													"Repository" .Repository
-													"ShowTabBranches" true
-													"CurrentRefType" "branch"
-													"CurrentRefShortName" $.Repository.DefaultBranch
-													"RefFormActionTemplate" (print "{RepoLink}/_cherrypick/" .CommitID "/{RefShortName}")
-												}}
-												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>
-												<button type="submit" id="cherry-pick-submit" class="ui primary button"></button>
-											</form>
-										</div>
-									</dialog>
-									<dialog class="modal-dialog" id="create-branch-modal">
-										<div class="header">
-											{{ctx.Locale.Tr "repo.branch.new_branch"}}
-										</div>
-										<div class="content">
-											<form class="ui form" id="create-branch-form" action="" data-base-action="{{.RepoLink}}/branches/_new/commit/" method="post">
-												<div class="field">
-													<label>
-														{{ctx.Locale.Tr "repo.branch.new_branch_from" (HTMLFormat `<span class="%s" id="%s"></span>` "text" "modal-create-branch-from-span")}}
-													</label>
-												</div>
-												<div class="required field">
-													<label for="new_branch_name">{{ctx.Locale.Tr "repo.branch.name"}}</label>
-													<input id="new_branch_name" name="new_branch_name" required>
-												</div>
-
-												<div class="actions">
-													<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-													<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.branch.confirm_create_branch"}}</button>
-												</div>
-											</form>
-										</div>
-									</dialog>
-									<dialog class="modal-dialog" id="create-tag-modal">
-										<div class="header">
-											{{ctx.Locale.Tr "repo.tag.create_tag_operation"}}
-										</div>
-										<div class="content">
-											<form class="ui form" id="create-tag-form" action="" data-base-action="{{.RepoLink}}/branches/_new/commit/" method="post">
-												<input type="hidden" name="create_tag" value="true">
-												<div class="field">
-													<label>
-														{{ctx.Locale.Tr "repo.tag.create_tag_from" (HTMLFormat `<span class="%s" id="%s"></span>` "text" "modal-create-tag-from-span")}}
-													</label>
-												</div>
-												<div class="required field">
-													<label for="new_tag_name">{{ctx.Locale.Tr "repo.release.tag_name"}}</label>
-													<input id="new_tag_name" name="new_branch_name" required>
-												</div>
-
-												<div class="actions">
-													<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-													<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.tag.confirm_create_tag"}}</button>
-												</div>
-											</form>
-										</div>
-									</dialog>
 								</div>
 							</div>
+							<dialog class="modal-dialog" id="cherry-pick-modal">
+								<div class="header">
+									<span id="cherry-pick-header"></span>
+								</div>
+								<div class="content">
+									<p id="cherry-pick-content" class="branch-dropdown"></p>
+
+									<form method="get">
+										{{template "repo/branch_dropdown" dict
+											"Repository" .Repository
+											"ShowTabBranches" true
+											"CurrentRefType" "branch"
+											"CurrentRefShortName" $.Repository.DefaultBranch
+											"RefFormActionTemplate" (print "{RepoLink}/_cherrypick/" .CommitID "/{RefShortName}")
+										}}
+										<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>
+										<button type="submit" id="cherry-pick-submit" class="ui primary button"></button>
+									</form>
+								</div>
+							</dialog>
+							<dialog class="modal-dialog" id="create-branch-modal">
+								<div class="header">
+									{{ctx.Locale.Tr "repo.branch.new_branch"}}
+								</div>
+								<div class="content">
+									<form class="ui form" id="create-branch-form" action="" data-base-action="{{.RepoLink}}/branches/_new/commit/" method="post">
+										<div class="field">
+											<label>
+												{{ctx.Locale.Tr "repo.branch.new_branch_from" (HTMLFormat `<span class="%s" id="%s"></span>` "text" "modal-create-branch-from-span")}}
+											</label>
+										</div>
+										<div class="required field">
+											<label for="new_branch_name">{{ctx.Locale.Tr "repo.branch.name"}}</label>
+											<input id="new_branch_name" name="new_branch_name" required>
+										</div>
+
+										<div class="actions">
+											<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+											<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.branch.confirm_create_branch"}}</button>
+										</div>
+									</form>
+								</div>
+							</dialog>
+							<dialog class="modal-dialog" id="create-tag-modal">
+								<div class="header">
+									{{ctx.Locale.Tr "repo.tag.create_tag_operation"}}
+								</div>
+								<div class="content">
+									<form class="ui form" id="create-tag-form" action="" data-base-action="{{.RepoLink}}/branches/_new/commit/" method="post">
+										<input type="hidden" name="create_tag" value="true">
+										<div class="field">
+											<label>
+												{{ctx.Locale.Tr "repo.tag.create_tag_from" (HTMLFormat `<span class="%s" id="%s"></span>` "text" "modal-create-tag-from-span")}}
+											</label>
+										</div>
+										<div class="required field">
+											<label for="new_tag_name">{{ctx.Locale.Tr "repo.release.tag_name"}}</label>
+											<input id="new_tag_name" name="new_branch_name" required>
+										</div>
+
+										<div class="actions">
+											<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+											<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.tag.confirm_create_tag"}}</button>
+										</div>
+									</form>
+								</div>
+							</dialog>
 						{{end}}
 					</div>
 				{{end}}

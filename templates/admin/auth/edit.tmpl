@@ -28,16 +28,13 @@
 				{{if or .Source.IsLDAP .Source.IsDLDAP}}
 					{{$cfg:=.Source.Cfg}}
 					<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
-						<label>{{ctx.Locale.Tr "admin.auths.security_protocol"}}</label>
-						<div class="ui selection security-protocol dropdown">
-							<input type="hidden" id="security_protocol" name="security_protocol" value="{{$cfg.SecurityProtocol.Int}}">
-							<div class="text">{{$cfg.SecurityProtocolName}}</div>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
+						<label for="security_protocol">{{ctx.Locale.Tr "admin.auths.security_protocol"}}</label>
+						<div class="select-field">
+							<select id="security_protocol" autocomplete="off" name="security_protocol">
 								{{range .SecurityProtocols}}
-									<div class="item" data-value="{{.Type.Int}}">{{.Name}}</div>
+									<option value="{{.Type.Int}}" {{if eq $cfg.SecurityProtocol.Int .Type.Int}}selected{{end}}>{{.Name}}</option>
 								{{end}}
-							</div>
+							</select>
 						</div>
 					</div>
 					<div class="required field">
@@ -183,16 +180,13 @@
 				{{if .Source.IsSMTP}}
 					{{$cfg:=.Source.Cfg}}
 					<div class="inline required field">
-						<label>{{ctx.Locale.Tr "admin.auths.smtp_auth"}}</label>
-						<div class="ui selection type dropdown">
-							<input type="hidden" id="smtp_auth" name="smtp_auth" value="{{$cfg.Auth}}" required>
-							<div class="text">{{$cfg.Auth}}</div>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
+						<label for="smtp_auth">{{ctx.Locale.Tr "admin.auths.smtp_auth"}}</label>
+						<div class="select-field">
+							<select id="smtp_auth" name="smtp_auth" required>
 								{{range .SMTPAuths}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
+									<option value="{{.}}" {{if eq $cfg.Auth .}}selected{{end}}>{{.}}</option>
 								{{end}}
-							</div>
+							</select>
 						</div>
 					</div>
 					<div class="required field">
@@ -251,16 +245,13 @@
 				{{if .Source.IsOAuth2}}
 					{{$cfg:=.Source.Cfg}}
 					<div class="inline required field">
-						<label>{{ctx.Locale.Tr "admin.auths.oauth2_provider"}}</label>
-						<div class="ui selection type dropdown">
-							<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{$cfg.Provider}}" required>
-							<div class="text">{{.CurrentOAuth2Provider.DisplayName}}</div>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
+						<label for="oauth2_provider">{{ctx.Locale.Tr "admin.auths.oauth2_provider"}}</label>
+						<div class="select-field">
+							<select id="oauth2_provider" autocomplete="off" name="oauth2_provider" required>
 								{{range .OAuth2Providers}}
-									<div class="item" data-value="{{.Name}}">{{.DisplayName}}</div>
+									<option value="{{.Name}}" {{if eq $cfg.Provider .Name}}selected{{end}}>{{.DisplayName}}</option>
 								{{end}}
-							</div>
+							</select>
 						</div>
 					</div>
 					<div class="required field">
@@ -398,16 +389,10 @@
 					</div>
 					<div class="field">
 						<label for="sspi_default_language">{{ctx.Locale.Tr "admin.auths.sspi_default_language"}}</label>
-						<div class="ui language selection dropdown" id="sspi_default_language">
-							<input name="sspi_default_language" type="hidden" value="{{$cfg.DefaultLanguage}}">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="text">{{range .AllLangs}}{{if eq $cfg.DefaultLanguage .Lang}}{{.Name}}{{end}}{{end}}</div>
-							<div class="menu">
-								<div class="item{{if not $.SSPIDefaultLanguage}} active selected{{end}}" data-value="">-</div>
-							{{range .AllLangs}}
-								<div class="item{{if eq $cfg.DefaultLanguage .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
-							{{end}}
-							</div>
+						<div class="select-field">
+							<select name="sspi_default_language" id="sspi_default_language">
+								{{template "shared/language_options" dict "Languages" .AllLangs "Value" $cfg.DefaultLanguage "EmptyLabel" "-" "FallbackLabel" $cfg.DefaultLanguage}}
+							</select>
 						</div>
 						<p class="help">{{ctx.Locale.Tr "admin.auths.sspi_default_language_helper"}}</p>
 					</div>

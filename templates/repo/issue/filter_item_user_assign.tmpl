@@ -8,29 +8,29 @@
 * TextFilterMatchAny: the text for "issues with any assignee"
 */}}
 {{$queryLink := .QueryLink}}
-<div class="item ui dropdown jump {{if not .UserSearchList}}disabled{{end}}">
-	{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu flex-items-menu">
+<div class="dropdown-container" data-placement="bottom-end">
+	<button type="button" class="dropdown-trigger item btn" {{if not .UserSearchList}}disabled{{end}}>{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14}}</button>
+	<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu issue-filter-popup">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}">
+			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}">
 		</div>
 		{{if $.TextFilterMatchNone}}
 			{{$isSelected := eq .SelectedUserId "(none)"}}
-			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(none)")}}">
+			<a class="dropdown-item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(none)")}}">
 				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}} {{$.TextFilterMatchNone}}
 			</a>
 		{{end}}
 		{{if $.TextFilterMatchAny}}
 			{{$isSelected := eq .SelectedUserId "(any)"}}
-			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(any)")}}">
+			<a class="dropdown-item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(any)")}}">
 				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}} {{$.TextFilterMatchAny}}
 			</a>
 		{{end}}
-		<div class="divider"></div>
+		<div class="dropdown-divider"></div>
 		{{range $user := .UserSearchList}}
 			{{$isSelected := eq $.SelectedUserId (print $user.ID)}}
-			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL $user.ID)}}">
+			<a class="dropdown-item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL $user.ID)}}">
 				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}}
 				{{ctx.AvatarUtils.Avatar $user 20}}{{template "repo/search_name" .}}
 			</a>

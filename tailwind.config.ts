@@ -101,9 +101,7 @@ export default {
         // tw-hidden must win all other "display: xxx !important" classes to get the chance to "hide" an element.
         // do not use:
         // * "[hidden]" attribute: it's too weak, can not be applied to an element with "display: flex"
-        // * ".hidden" class: it has been polluted by Fomantic UI in many cases
         // * inline style="display: none": it's difficult to tweak
-        // * jQuery's show/hide/toggle: it can not show/hide elements with "display: xxx !important"
         // only use:
         // * this ".tw-hidden" class
         // * showElem/hideElem/toggleElem functions in "utils/dom.js"
