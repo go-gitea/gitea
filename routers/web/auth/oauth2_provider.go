@@ -103,7 +103,7 @@ func InfoOAuth(ctx *context.Context) {
 	// enforce the same user scope the REST API requires before returning identity
 	// claims; OIDC access tokens map to the "all" scope, so standard OIDC clients
 	// are unaffected and only explicitly-restricted tokens are rejected
-	tokenScope, _ := ctx.Data["ApiTokenScope"].(auth.AccessTokenScope)
+	tokenScope, _ := user_model.GetDoerTokenScope(ctx.Doer)
 	if allowed, err := tokenScope.HasScope(auth.AccessTokenScopeReadUser); err != nil {
 		ctx.ServerError("HasScope", err)
 		return
@@ -121,17 +121,7 @@ func InfoOAuth(ctx *context.Context) {
 		Picture:           ctx.Doer.AvatarLink(ctx),
 	}
 
-	var accessTokenScope auth.AccessTokenScope
-	if auHead := ctx.Req.Header.Get("Authorization"); auHead != "" {
-		if parsed, ok := httpauth.ParseAuthorizationHeader(auHead); ok && parsed.BearerToken != nil {
-			accessTokenScope, _, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, parsed.BearerToken.Token)
-		}
-	}
-
-	// since version 1.22 does not verify if groups should be public-only,
-	// onlyPublicGroups will be set only if 'public-only' is included in a valid scope
-	onlyPublicGroups, _ := accessTokenScope.PublicOnly()
-	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, onlyPublicGroups)
+	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, user_model.IsPublicOnlyDoer(ctx.Doer))
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return
@@ -141,12 +131,21 @@ func InfoOAuth(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+// RFC 6749 section 2.3.1: client_secret_basic credentials are form-urlencoded
+func parseClientSecretBasic(authHeader string) (clientID, clientSecret string, ok bool) {
+	parsed, _ := httpauth.ParseAuthorizationHeader(authHeader)
+	if parsed.BasicAuth == nil {
+		return "", "", false
+	}
+	clientID, errID := url.QueryUnescape(parsed.BasicAuth.Username)
+	clientSecret, errSecret := url.QueryUnescape(parsed.BasicAuth.Password)
+	return clientID, clientSecret, errID == nil && errSecret == nil
+}
+
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
 	var introspectingApp *auth.OAuth2Application
-	authHeader := ctx.Req.Header.Get("Authorization")
-	if parsed, ok := httpauth.ParseAuthorizationHeader(authHeader); ok && parsed.BasicAuth != nil {
-		clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
+	if clientID, clientSecret, ok := parseClientSecretBasic(ctx.Req.Header.Get("Authorization")); ok {
 		app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID)
 		if err != nil && !auth.IsErrOauthClientIDInvalid(err) {
 			// this is likely a database error; log it and respond without details
@@ -509,15 +508,14 @@ func AccessTokenOAuth(ctx *context.Context) {
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
 		if authHeader := ctx.Req.Header.Get("Authorization"); authHeader != "" {
-			parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
-			if !ok || parsed.BasicAuth == nil {
+			clientID, clientSecret, ok := parseClientSecretBasic(authHeader)
+			if !ok {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 					ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "cannot parse basic auth header",
 				})
 				return
 			}
-			clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 			// validate that any fields present in the form match the Basic auth header
 			if form.ClientID != "" && form.ClientID != clientID {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{

@@ -114,7 +114,7 @@ func (b *Base) HTTPError(status int, contents ...string) {
 func (b *Base) JSON(status int, content any) {
 	b.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	b.Resp.WriteHeader(status)
-	if err := json.MarshalWrite(b.Resp, content); err != nil {
+	if err := json.MarshalWriteRelaxed(b.Resp, content); err != nil {
 		log.Error("Render JSON failed: %v", err)
 	}
 }
@@ -148,14 +148,24 @@ func (b *Base) PlainText(status int, text string) {
 
 // Redirect redirects the request
 func (b *Base) Redirect(location string, status ...int) {
-	code := util.OptionalArg(status, http.StatusSeeOther)
 	// In case the request is made by "fetch-action" module, make JS redirect to the new location
 	// Otherwise, the JS fetch will follow the redirection and read a "login" page, embed it to the current page, which is not expected.
 	if httplib.IsGiteaFetchActionRequest(b.Req) {
 		b.JSON(http.StatusOK, map[string]any{"redirect": location})
 		return
 	}
+	code := util.OptionalArg(status, http.StatusSeeOther)
 	http.Redirect(b.Resp, b.Req, location, code)
+}
+
+func (b *Base) RedirectForLogin(location string) {
+	if httplib.IsGiteaFetchActionRequest(b.Req) {
+		// let fetch-action handles the redirect automatically
+		b.JSON(http.StatusUnauthorized, map[string]any{"redirect": location})
+	} else {
+		// keep the old behaivor, use 303 to redirect to login page
+		http.Redirect(b.Resp, b.Req, location, http.StatusSeeOther)
+	}
 }
 
 type ServeHeaderOptions = httplib.ServeHeaderOptions

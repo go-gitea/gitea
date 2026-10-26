@@ -77,73 +77,56 @@ func TestViewSummaryBranchFromRun(t *testing.T) {
 }
 
 func TestConvertToViewModel(t *testing.T) {
-	task := &actions_model.ActionTask{
-		Status: actions_model.StatusSuccess,
-		Steps: []*actions_model.ActionTaskStep{
-			{Name: "Run step-name", Index: 0, Status: actions_model.StatusSuccess, LogLength: 1, Started: timeutil.TimeStamp(1), Stopped: timeutil.TimeStamp(5)},
+	for _, c := range []struct {
+		name             string
+		task             actions_model.ActionTask
+		expectedViewJobs []*ViewJobStep
+	}{
+		{
+			name: "success",
+			task: actions_model.ActionTask{
+				Status: actions_model.StatusSuccess,
+				Steps: []*actions_model.ActionTaskStep{
+					{Name: "Run step-name", Index: 0, Status: actions_model.StatusSuccess, LogLength: 1, Started: timeutil.TimeStamp(1), Stopped: timeutil.TimeStamp(5)},
+				},
+				Stopped: timeutil.TimeStamp(20),
+			},
+			expectedViewJobs: []*ViewJobStep{
+				{Summary: "Set up job", Duration: "0s", Status: "success"},
+				{Summary: "Run step-name", Duration: "4s", Status: "success"},
+				{Summary: "Complete job", Duration: "15s", Status: "success"},
+			},
 		},
-		Stopped: timeutil.TimeStamp(20),
+		{
+			name: "cancelling task does not render running steps",
+			task: actions_model.ActionTask{
+				Status: actions_model.StatusCancelling,
+				Steps: []*actions_model.ActionTaskStep{
+					{Name: "Run step-name", Index: 0, Status: actions_model.StatusRunning, LogLength: 1},
+				},
+			},
+			expectedViewJobs: []*ViewJobStep{
+				{Summary: "Set up job", Duration: "0s", Status: "success"},
+				{Summary: "Run step-name", Duration: "0s", Status: "cancelling"},
+				{Summary: "Complete job", Duration: "0s", Status: "pending"},
+			},
+		},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			viewJobSteps, _, err := convertToViewModel(t.Context(), translation.MockLocale{}, nil, &c.task)
+			require.NoError(t, err)
+
+			if c.task.Status == actions_model.StatusSuccess {
+				t.Run("out of range cursor step", func(t *testing.T) {
+					cursors := []LogCursor{{Step: -1, Expanded: true}, {Step: 3, Expanded: true}}
+					_, logs, err := convertToViewModel(t.Context(), translation.MockLocale{}, cursors, &c.task)
+					require.NoError(t, err)
+					assert.Empty(t, logs)
+				})
+			}
+			assert.Equal(t, c.expectedViewJobs, viewJobSteps)
+		})
 	}
-
-	viewJobSteps, _, err := convertToViewModel(t.Context(), translation.MockLocale{}, nil, task)
-	require.NoError(t, err)
-
-	t.Run("out of range cursor step", func(t *testing.T) {
-		cursors := []LogCursor{{Step: -1, Expanded: true}, {Step: 3, Expanded: true}}
-		_, logs, err := convertToViewModel(t.Context(), translation.MockLocale{}, cursors, task)
-		require.NoError(t, err)
-		assert.Empty(t, logs)
-	})
-
-	expectedViewJobs := []*ViewJobStep{
-		{
-			Summary:  "Set up job",
-			Duration: "0s",
-			Status:   "success",
-		},
-		{
-			Summary:  "Run step-name",
-			Duration: "4s",
-			Status:   "success",
-		},
-		{
-			Summary:  "Complete job",
-			Duration: "15s",
-			Status:   "success",
-		},
-	}
-	assert.Equal(t, expectedViewJobs, viewJobSteps)
-}
-
-func TestConvertToViewModelCancellingTaskDoesNotRenderRunningSteps(t *testing.T) {
-	task := &actions_model.ActionTask{
-		Status: actions_model.StatusCancelling,
-		Steps: []*actions_model.ActionTaskStep{
-			{Name: "Run step-name", Index: 0, Status: actions_model.StatusRunning, LogLength: 1},
-		},
-	}
-
-	viewJobSteps, _, err := convertToViewModel(t.Context(), translation.MockLocale{}, nil, task)
-	require.NoError(t, err)
-
-	expectedViewJobs := []*ViewJobStep{
-		{
-			Summary:  "Set up job",
-			Duration: "0s",
-			Status:   "success",
-		},
-		{
-			Summary:  "Run step-name",
-			Duration: "0s",
-			Status:   "cancelling",
-		},
-		{
-			Summary:  "Complete job",
-			Duration: "0s",
-			Status:   "pending",
-		},
-	}
-	assert.Equal(t, expectedViewJobs, viewJobSteps)
 }
 
 func TestPendingNeeds(t *testing.T) {

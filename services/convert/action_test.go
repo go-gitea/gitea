@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -126,7 +127,7 @@ func TestToActionWorkflowRun_UsesTriggerEvent(t *testing.T) {
 	assert.Equal(t, "schedule", apiRun.Event)
 }
 
-func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
+func TestToActionWorkflowJob_StepStatusAndBatchParity(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
@@ -142,10 +143,11 @@ func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
 	require.NoError(t, db.Insert(ctx, run))
 
 	task := &actions_model.ActionTask{
-		ID:     900102,
-		JobID:  9001,
-		RepoID: 2,
-		Status: actions_model.StatusFailure,
+		ID:       900102,
+		JobID:    9001,
+		RepoID:   2,
+		RunnerID: 34346,
+		Status:   actions_model.StatusFailure,
 	}
 	require.NoError(t, db.Insert(ctx, task))
 
@@ -162,8 +164,8 @@ func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
 	require.NoError(t, db.Insert(ctx, job))
 
 	require.NoError(t, db.Insert(ctx,
-		&actions_model.ActionTaskStep{TaskID: task.ID, RepoID: 2, Index: 0, Name: "step-success", Status: actions_model.StatusSuccess},
 		&actions_model.ActionTaskStep{TaskID: task.ID, RepoID: 2, Index: 1, Name: "step-failure", Status: actions_model.StatusFailure},
+		&actions_model.ActionTaskStep{TaskID: task.ID, RepoID: 2, Index: 0, Name: "step-success", Status: actions_model.StatusSuccess},
 	))
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
@@ -172,10 +174,15 @@ func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, apiJob.Steps, 2)
 
+	assert.Equal(t, "runner_to_be_deleted-user", apiJob.RunnerName)
 	assert.Equal(t, "completed", apiJob.Steps[0].Status, "step 0 status")
 	assert.Equal(t, "success", apiJob.Steps[0].Conclusion, "step 0 conclusion (succeeded before the failure)")
 	assert.Equal(t, "completed", apiJob.Steps[1].Status, "step 1 status")
 	assert.Equal(t, "failure", apiJob.Steps[1].Conclusion, "step 1 conclusion")
+
+	apiJobs, err := ToActionWorkflowJobs(ctx, []*actions_model.ActionRunJob{job})
+	require.NoError(t, err)
+	assert.Equal(t, []*api.ActionWorkflowJob{apiJob}, apiJobs)
 }
 
 func TestToActionsStatus(t *testing.T) {

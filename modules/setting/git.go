@@ -90,16 +90,6 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	GitConfig.SetOption("maintenance.auto", "false")
 	GitConfig.SetOption("receive.autogc", "false")
 
-	secGitReflog := rootCfg.Section("git.reflog")
-	if secGitReflog.HasKey("ENABLED") {
-		deprecatedSetting(rootCfg, "git.reflog", "ENABLED", "git.config", "core.logAllRefUpdates", "1.21")
-		GitConfig.SetOption("core.logAllRefUpdates", secGitReflog.Key("ENABLED").In("true", []string{"true", "false"}))
-	}
-	if secGitReflog.HasKey("EXPIRATION") {
-		deprecatedSetting(rootCfg, "git.reflog", "EXPIRATION", "git.config", "gc.reflogExpire", "1.21")
-		GitConfig.SetOption("gc.reflogExpire", secGitReflog.Key("EXPIRATION").String()+".days")
-	}
-
 	for _, key := range secGitConfig.Keys() {
 		GitConfig.SetOption(key.Name(), key.String())
 	}
