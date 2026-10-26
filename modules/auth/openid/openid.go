@@ -28,7 +28,7 @@ var (
 	openIDInstance = sync.OnceValue(func() *openid.OpenID {
 		return openid.NewOpenID(&http.Client{
 			Timeout:   30 * time.Second,
-			Transport: egress.NewSecurityPolicy("openid").NewHTTPTransport(),
+			Transport: egress.NewSecurityPolicy("openid").NewHTTPTransport(nil),
 		})
 	})
 )

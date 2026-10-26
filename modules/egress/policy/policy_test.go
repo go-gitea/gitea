@@ -4,8 +4,10 @@
 package policy
 
 import (
+	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/netip"
 	"net/url"
 	"testing"
@@ -173,18 +175,17 @@ func TestNewDialContext(t *testing.T) {
 	t.Cleanup(func() { _ = ln.Close() })
 	addr := ln.Addr().String()
 
-	dial := func(proxy string, allowProxies bool) error {
-		policy := NewPolicy("test", Lax, WithBlock("loopback", ""), WithProxy(http.ProxyURL(&url.URL{Scheme: "http", Host: proxy})))
-		_, _ = policy.Proxy(&http.Request{})
-		conn, err := policy.dialContext(allowProxies)(t.Context(), "tcp", addr)
+	dial := func(p *Policy) error {
+		conn, err := p.NewDialContext()(t.Context(), "tcp", addr)
 		if err == nil {
 			_ = conn.Close()
 		}
 		return err
 	}
-	assert.NoError(t, dial(addr, true))
-	assert.ErrorIs(t, dial(addr, false), ErrDenied)
-	assert.ErrorIs(t, dial("127.0.0.1:1", true), ErrDenied)
+	// every dial is checked, a configured proxy's own address included
+	assert.ErrorIs(t, dial(NewPolicy("test", Lax, WithBlock("loopback", ""))), ErrDenied)
+	assert.ErrorIs(t, dial(NewPolicy("test", Lax, WithBlock("loopback", ""), WithProxy(http.ProxyURL(&url.URL{Scheme: "http", Host: addr})))), ErrDenied)
+	assert.NoError(t, dial(NewPolicy("test", Lax, WithAllow("loopback", ""))))
 }
 
 func TestProxy(t *testing.T) {
@@ -200,6 +201,70 @@ func TestProxy(t *testing.T) {
 
 	_, err := NewPolicy("test", Lax, WithProxy(http.ProxyURL(&url.URL{Scheme: "socks4", Host: "proxy.corp:1080"}))).Proxy(&http.Request{})
 	assert.ErrorContains(t, err, "unsupported proxy scheme")
+}
+
+func TestDirectTargetAtProxyAddress(t *testing.T) {
+	// the proxy must only ever see proxy-form requests, never an origin-form one
+	proxy := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		assert.True(t, r.URL.IsAbs(), "the proxy must not be reached as an origin server")
+	}))
+	t.Cleanup(proxy.Close)
+	proxyURL, err := url.Parse(proxy.URL)
+	require.NoError(t, err)
+	selectProxy := func(req *http.Request) (*url.URL, error) {
+		if req.URL.Hostname() == "proxied.example.com" {
+			return proxyURL, nil
+		}
+		return nil, nil //nolint:nilnil // no proxy for this request
+	}
+	// get primes the dialer's proxy exemption with one proxied request, then dials target directly
+	get := func(p *Policy, target string) error {
+		client := &http.Client{Transport: p.NewHTTPTransport(nil)}
+		defer client.CloseIdleConnections()
+		for _, u := range []string{"http://proxied.example.com/", target} {
+			resp, err := client.Get(u)
+			if err != nil {
+				return err
+			}
+			_ = resp.Body.Close()
+		}
+		return nil
+	}
+	// a direct request to the proxy's own address is denied, in lax and strict mode,
+	// and a block entry wins over an allow of the same address
+	assert.ErrorIs(t, get(NewPolicy("test", Lax, WithProxy(selectProxy)), proxy.URL), ErrDenied)
+	assert.ErrorIs(t, get(NewPolicy("test", Strict, WithAllow("proxied.example.com", ""), WithProxy(selectProxy)), proxy.URL), ErrDenied)
+	assert.ErrorIs(t, get(NewPolicy("test", Lax, WithAllow("loopback", ""), WithBlock(proxyURL.Host, ""), WithProxy(selectProxy)), proxy.URL), ErrDenied)
+	// a direct request to an allowed target still goes through
+	origin := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	t.Cleanup(origin.Close)
+	assert.NoError(t, get(NewPolicy("test", Lax, WithAllow("loopback", ""), WithProxy(selectProxy)), origin.URL))
+}
+
+func TestProxiedTargetNeedsNoDNS(t *testing.T) {
+	// a proxied request is not screened: the proxy resolves the target, so the request
+	// must succeed even when the target's name does not resolve locally (.invalid never does)
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.True(t, r.URL.IsAbs(), "the proxy must see the request in proxy form")
+		_, _ = w.Write([]byte("proxied"))
+	}))
+	t.Cleanup(proxy.Close)
+	proxyURL, err := url.Parse(proxy.URL)
+	require.NoError(t, err)
+	p := NewPolicy("test", Lax, WithProxy(func(req *http.Request) (*url.URL, error) {
+		if req.URL.Hostname() == "no-such-host.invalid" {
+			return proxyURL, nil
+		}
+		return nil, nil //nolint:nilnil // no proxy for this request
+	}))
+	client := &http.Client{Transport: p.NewHTTPTransport(nil)}
+	defer client.CloseIdleConnections()
+	resp, err := client.Get("http://no-such-host.invalid/repo.git")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "proxied", string(body))
 }
 
 func TestInternalRanges(t *testing.T) {
