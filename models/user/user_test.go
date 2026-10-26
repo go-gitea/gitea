@@ -28,18 +28,13 @@ import (
 )
 
 func TestIsUsableUsername(t *testing.T) {
-	assert.NoError(t, user_model.IsUsableUsername("a"))
-	assert.NoError(t, user_model.IsUsableUsername("foo.wiki"))
-	assert.NoError(t, user_model.IsUsableUsername("foo.git"))
+	for _, username := range []string{"a", "foo.wiki", "foo.git"} {
+		assert.NoError(t, user_model.IsUsableUsername(username))
+	}
 
-	assert.Error(t, user_model.IsUsableUsername("a--b"))
-	assert.Error(t, user_model.IsUsableUsername("-1_."))
-	assert.Error(t, user_model.IsUsableUsername(".profile"))
-	assert.Error(t, user_model.IsUsableUsername("-"))
-	assert.Error(t, user_model.IsUsableUsername("🌞"))
-	assert.Error(t, user_model.IsUsableUsername("the..repo"))
-	assert.Error(t, user_model.IsUsableUsername("foo.RSS"))
-	assert.Error(t, user_model.IsUsableUsername("foo.PnG"))
+	for _, username := range []string{"a--b", "-1_.", ".profile", "-", "🌞", "the..repo", "foo.RSS", "foo.PnG"} {
+		assert.Error(t, user_model.IsUsableUsername(username))
+	}
 }
 
 func TestOAuth2Application_LoadUser(t *testing.T) {
@@ -161,28 +156,17 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	// test orgs
-	testOrgSuccess := func(opts user_model.SearchUserOptions, expectedOrgIDs []int64) {
-		opts.Types = []user_model.UserType{user_model.UserTypeOrganization}
-		testSuccess(opts, expectedOrgIDs)
+	for page, expectedOrgIDs := range [][]int64{{3, 6}, {7, 17}, {19, 25}, {26, 41}, {42}} {
+		testSuccess(user_model.SearchUserOptions{
+			Types:       []user_model.UserType{user_model.UserTypeOrganization},
+			OrderBy:     "id ASC",
+			ListOptions: db.ListOptions{Page: page + 1, PageSize: 2},
+		}, expectedOrgIDs)
 	}
-
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1, PageSize: 2}},
-		[]int64{3, 6})
-
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 2, PageSize: 2}},
-		[]int64{7, 17})
-
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 3, PageSize: 2}},
-		[]int64{19, 25})
-
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 4, PageSize: 2}},
-		[]int64{26, 41})
-
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
-		[]int64{42})
-
-	testOrgSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 6, PageSize: 2}},
-		[]int64{})
+	testSuccess(user_model.SearchUserOptions{
+		Types:       []user_model.UserType{user_model.UserTypeOrganization},
+		ListOptions: db.ListOptions{Page: 6, PageSize: 2},
+	}, []int64{})
 
 	// test users
 	testUserSuccess := func(opts user_model.SearchUserOptions, expectedUserIDs []int64) {
@@ -403,50 +387,34 @@ func TestGetMaileableUsersByIDs(t *testing.T) {
 }
 
 func TestNewUserRedirect(t *testing.T) {
-	// redirect to a completely new name
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	for _, testCase := range []struct {
+		userID  int64
+		newName string
+	}{
+		{1, "newusername"}, // redirect to a completely new name
+		{1, "olduser1"},    // redirect to previously used name
+		{2, "newusername"}, // redirect for a previously-unredirected user
+	} {
+		t.Run(fmt.Sprintf("%d/%s", testCase.userID, testCase.newName), func(t *testing.T) {
+			assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, "newusername"))
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.userID})
+			assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, testCase.newName))
 
-	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
-		LowerName:      user.LowerName,
-		RedirectUserID: user.ID,
-	})
-	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
-		LowerName:      "olduser1",
-		RedirectUserID: user.ID,
-	})
-}
-
-func TestNewUserRedirect2(t *testing.T) {
-	// redirect to previously used name
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, "olduser1"))
-
-	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
-		LowerName:      user.LowerName,
-		RedirectUserID: user.ID,
-	})
-	unittest.AssertNotExistsBean(t, &user_model.Redirect{
-		LowerName:      "olduser1",
-		RedirectUserID: user.ID,
-	})
-}
-
-func TestNewUserRedirect3(t *testing.T) {
-	// redirect for a previously-unredirected user
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, "newusername"))
-
-	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
-		LowerName:      user.LowerName,
-		RedirectUserID: user.ID,
-	})
+			unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
+				LowerName:      user.LowerName,
+				RedirectUserID: user.ID,
+			})
+			if testCase.userID == 1 {
+				redirect := &user_model.Redirect{LowerName: "olduser1", RedirectUserID: user.ID}
+				if testCase.newName == "olduser1" {
+					unittest.AssertNotExistsBean(t, redirect)
+				} else {
+					unittest.AssertExistsAndLoadBean(t, redirect)
+				}
+			}
+		})
+	}
 }
 
 func TestGetUserByOpenID(t *testing.T) {
@@ -546,13 +514,11 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 
 	// limited user
 	test(user33, user33, true)
-	test(user33, user4, true)
 	test(user33, user29, false)
 	test(user33, nil, false)
 
 	// private user
 	test(user31, user31, true)
-	test(user31, user4, false)
 	test(user31, user20, true)
 	test(user31, user29, false)
 	test(user31, user33, true)

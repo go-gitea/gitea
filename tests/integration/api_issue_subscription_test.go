@@ -56,25 +56,19 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 
 	issue1Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue1.RepoID})
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s", issue1Repo.OwnerName, issue1Repo.Name, issue1.Index, owner.Name)
-	req := NewRequest(t, "DELETE", urlStr).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
-	testSubscription(issue1, false)
-
-	req = NewRequest(t, "DELETE", urlStr).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
-	testSubscription(issue1, false)
+	for _, expectedCode := range []int{http.StatusCreated, http.StatusOK} {
+		req := NewRequest(t, "DELETE", urlStr).
+			AddTokenAuth(token)
+		MakeRequest(t, req, expectedCode)
+		testSubscription(issue1, false)
+	}
 
 	issue5Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue5.RepoID})
 	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s", issue5Repo.OwnerName, issue5Repo.Name, issue5.Index, owner.Name)
-	req = NewRequest(t, "PUT", urlStr).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
-	testSubscription(issue5, true)
-
-	req = NewRequest(t, "PUT", urlStr).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
-	testSubscription(issue5, true)
+	for _, expectedCode := range []int{http.StatusCreated, http.StatusOK} {
+		req := NewRequest(t, "PUT", urlStr).
+			AddTokenAuth(token)
+		MakeRequest(t, req, expectedCode)
+		testSubscription(issue5, true)
+	}
 }

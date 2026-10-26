@@ -143,30 +143,23 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 			assert.True(t, strings.HasPrefix(body, "From "), "patch output should start with a format-patch header, got: %q", body[:min(40, len(body))])
 		})
 
-		t.Run("CommitToCommitDiff", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f?output=diff").AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusOK)
-			assert.Contains(t, resp.Body.String(), "diff --git ")
-		})
-
-		t.Run("BranchToCommitDiff", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
+		for _, testCase := range []struct {
+			name string
+			url  string
+		}{
+			{"CommitToCommitDiff", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f?output=diff"},
 			// 8babce96... is the head of remove-files-b; pairing it with add-csv guarantees a non-empty diff.
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...8babce967f21b9dfa6987f943b91093dac58a4f0?output=diff").AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusOK)
-			assert.Contains(t, resp.Body.String(), "diff --git ")
-		})
+			{"BranchToCommitDiff", "/api/v1/repos/user2/repo20/compare/add-csv...8babce967f21b9dfa6987f943b91093dac58a4f0?output=diff"},
+			{"TwoDotSeparator", "/api/v1/repos/user2/repo20/compare/add-csv..remove-files-b?output=diff"},
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
 
-		t.Run("TwoDotSeparator", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv..remove-files-b?output=diff").AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusOK)
-			assert.Contains(t, resp.Body.String(), "diff --git ")
-		})
+				req := NewRequest(t, "GET", testCase.url).AddTokenAuth(token)
+				resp := MakeRequest(t, req, http.StatusOK)
+				assert.Contains(t, resp.Body.String(), "diff --git ")
+			})
+		}
 
 		t.Run("SlashedBranchName", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
