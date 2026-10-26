@@ -974,6 +974,33 @@ jobs:
 			runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 			runner.fetchTask(t)
 		})
+
+		t.Run("Sidebar hides workflow_call-only workflows", func(t *testing.T) {
+			apiRepo := createActionsTestRepo(t, user2Token, "workflow-call-sidebar", false)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+			job := "jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/callee.yaml", "on: workflow_call\n"+job)
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/mixed.yaml", "on: [workflow_call, workflow_dispatch]\n"+job)
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/no-events.yaml", "on: []\n"+job)
+			former := createWorkflowFile(t, user2Token, repo.OwnerName, repo.Name, ".gitea/workflows/former.yaml",
+				getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create former.yaml", "on: push\n"+job))
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "former.yaml"})
+			MakeRequest(t, NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/.gitea/workflows/former.yaml", repo.OwnerName, repo.Name), &api.UpdateFileOptions{
+				FileOptions:   api.FileOptions{BranchName: repo.DefaultBranch, Message: "make former.yaml reusable"},
+				SHA:           former.Content.SHA,
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("on: workflow_call\n" + job)),
+			}).AddTokenAuth(user2Token), http.StatusOK)
+
+			doc := NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions"), http.StatusOK).Body)
+			listed := func(name string) int {
+				return doc.Find(fmt.Sprintf(`.flex-container-nav > .menu > a.item[href*="workflow=%s&"]`, name)).Length()
+			}
+			assert.Zero(t, listed("callee.yaml"))
+			assert.Zero(t, listed("former.yaml"))
+			assert.Equal(t, 1, listed("mixed.yaml"))
+			assert.Equal(t, 1, listed("no-events.yaml"))
+			assert.Equal(t, 1, doc.Find(`.flex-container-nav details .menu a.item[href*="workflow=former.yaml&"]`).Length())
+		})
 	})
 }
 

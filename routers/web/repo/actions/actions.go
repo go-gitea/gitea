@@ -143,8 +143,8 @@ func List(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplListActions)
 }
 
-// prepareOtherWorkflows surfaces historical runs whose workflow file no longer
-// exists on the default branch (renamed, removed, or only on other branches).
+// prepareOtherWorkflows surfaces historical runs whose workflow is not listed: renamed,
+// removed, only on other branches, or callable only by other workflows.
 func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, scopedNames container.Set[string], curWorkflowID string) []string {
 	listed := make(container.Set[string], len(workflows))
 	for _, w := range workflows {
@@ -226,9 +226,13 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			workflows = append(workflows, workflow)
 			continue
 		}
-		if _, err := actions.GetEventsFromContent(content); err != nil {
+		events, err := actions.GetEventsFromContent(content)
+		if err != nil {
 			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 			workflows = append(workflows, workflow)
+			continue
+		}
+		if len(events) == 0 && slices.Contains(wf.On(), "workflow_call") { // events never include workflow_call
 			continue
 		}
 		workflow.Workflow = wf
