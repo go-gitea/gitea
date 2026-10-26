@@ -2,7 +2,7 @@
 <div class="page-content organization times">
 	{{template "org/header" .}}
 	<div class="ui container">
-		<div class="ui grid">
+		<div class="ui stackable grid">
 			<div class="three wide column">
 				<form class="ui form" method="get">
 					<input type="hidden" name="by" value="{{$.WorktimeBy}}">
@@ -19,7 +19,7 @@
 			</div>
 			<div class="thirteen wide column">
 				<div class="ui column">
-					<div class="ui compact small menu">
+					<div class="ui compact small menu tw-flex-wrap">
 						{{$queryParams := QueryBuild "from" .RangeFrom "to" .RangeTo}}
 						<a class="{{Iif .WorktimeByRepos "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=repos&{{$queryParams}}">{{svg "octicon-repo"}} {{ctx.Locale.Tr "org.worktime.by_repositories"}}</a>
 						<a class="{{Iif .WorktimeByMilestones "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=milestones&{{$queryParams}}">{{svg "octicon-milestone"}} {{ctx.Locale.Tr "org.worktime.by_milestones"}}</a>
