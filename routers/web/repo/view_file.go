@@ -169,7 +169,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	if ctx.Repo.TreePath == ".editorconfig" {
-		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx, ctx.Repo.Commit)
+		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx)
 		if editorconfigWarning != nil {
 			ctx.Data["FileWarning"] = strings.TrimSpace(editorconfigWarning.Error())
 		}

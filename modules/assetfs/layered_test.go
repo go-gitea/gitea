@@ -74,34 +74,22 @@ func TestLayered(t *testing.T) {
 
 	assertRead("", fs.ErrNotExist, "no-such")
 
-	files, err := assets.ListFiles(".", true)
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"f1", "f2", "fa"}, files)
-
-	files, err = assets.ListFiles(".", false)
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"d1", "d2", "da"}, files)
-
-	files, err = assets.ListFiles(".")
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"d1", "d2", "da", "f1", "f2", "fa"}, files)
-
-	files, err = assets.ListAllFiles(".", true)
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"d1/f", "d2/f", "da/f", "f1", "f2", "fa"}, files)
-
-	files, err = assets.ListAllFiles(".", false)
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"d1", "d2", "da", "da/sub1", "da/sub2"}, files)
-
-	files, err = assets.ListAllFiles(".")
-	assert.NoError(t, err)
-	assert.Equal(t, []string{
+	assertList := func(listFiles func(string, ...bool) ([]string, error), expected []string, fileMode ...bool) {
+		files, err := listFiles(".", fileMode...)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, files)
+	}
+	assertList(assets.ListFiles, []string{"f1", "f2", "fa"}, true)
+	assertList(assets.ListFiles, []string{"d1", "d2", "da"}, false)
+	assertList(assets.ListFiles, []string{"d1", "d2", "da", "f1", "f2", "fa"})
+	assertList(assets.ListAllFiles, []string{"d1/f", "d2/f", "da/f", "f1", "f2", "fa"}, true)
+	assertList(assets.ListAllFiles, []string{"d1", "d2", "da", "da/sub1", "da/sub2"}, false)
+	assertList(assets.ListAllFiles, []string{
 		"d1", "d1/f",
 		"d2", "d2/f",
 		"da", "da/f", "da/sub1", "da/sub2",
 		"f1", "f2", "fa",
-	}, files)
+	})
 
 	assert.Empty(t, assets.GetFileLayerName("no-such"))
 	assert.Equal(t, "l1", assets.GetFileLayerName("f1"))

@@ -660,7 +660,7 @@ var (
 	}
 
 	// These names are reserved for user accounts: user's keys, user's rss feed, user's avatar, etc.
-	// DO NOT add any new stuff! The paths with these names are processed by `/{username}` handler (UsernameSubRoute) manually.
+	// HINT: OWNER-NAME-RESERVED-EXT: DO NOT add any new stuff! The paths with these names are processed by UsernamePreRoute handler manually.
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom", "*.png"}
 )
 
@@ -1180,6 +1180,15 @@ func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]
 }
 
 func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]int64, error) {
+	users, err := getDoerUsersByNames(ctx, names, allowSystemDoer)
+	ids := make([]int64, 0, len(users))
+	for _, u := range users {
+		ids = append(ids, u.ID)
+	}
+	return ids, err
+}
+
+func getDoerUsersByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]*User, error) {
 	namesLower := make([]string, 0, len(names))
 	namesMap := make(map[string]*User, len(names))
 	for _, name := range names {
@@ -1193,16 +1202,16 @@ func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer 
 		}
 	}
 
-	var users []*User
-	err := db.GetEngine(ctx).In("lower_name", namesLower).Where("`type` IN (?,?)", UserTypeIndividual, UserTypeBot).Find(&users)
+	var dbUsers []*User
+	err := db.GetEngine(ctx).In("lower_name", namesLower).Where("`type` IN (?,?)", UserTypeIndividual, UserTypeBot).Find(&dbUsers)
 	if err != nil {
 		return nil, err
 	}
-	for _, user := range users {
+	for _, user := range dbUsers {
 		namesMap[user.LowerName] = user
 	}
 
-	ids := make([]int64, 0, len(names))
+	users := make([]*User, 0, len(names))
 	var errFinal error
 	for _, nameLower := range namesLower {
 		u := namesMap[nameLower]
@@ -1210,9 +1219,13 @@ func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer 
 			errFinal = ErrUserNotExist{Name: nameLower}
 			continue
 		}
-		ids = append(ids, u.ID)
+		users = append(users, u)
 	}
-	return ids, errFinal
+	return users, errFinal
+}
+
+func GetDoerUsersByNames(ctx context.Context, names []string) ([]*User, error) {
+	return getDoerUsersByNames(ctx, names, false)
 }
 
 func GetDoerUserIDsByNamesWithSystem(ctx context.Context, names []string) ([]int64, error) {

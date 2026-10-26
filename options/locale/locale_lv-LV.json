@@ -2697,7 +2697,6 @@
   "units.error.no_unit_allowed_repo": "Jums nav tiesību aplūkot nevienu šī repozitorija sadaļu.",
   "units.error.unit_not_allowed": "Jums nav tiesību piekļūt šai repozitorija sadaļai.",
   "packages.title": "Pakotnes",
-  "packages.desc": "Pārvaldīt repozitorija pakotnes.",
   "packages.empty": "Pašlaik šeit nav nevienas pakotnes.",
   "packages.empty.documentation": "Papildus informācija par pakotņu reģistru pieejama <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%s\">dokumentācijā</a>.",
   "packages.empty.repo": "Neparādās augšupielādēta pakotne? Apmeklējiet <a href=\"%[1]s\">pakotņu iestatījumus</a>, lai sasaistītu ar repozitoriju.",
@@ -2931,6 +2930,8 @@
   "projects.type-1.display_name": "Individuālais projekts",
   "projects.type-2.display_name": "Repozitorija projekts",
   "projects.type-3.display_name": "Organizācijas projekts",
+  "projects.workflows.actions": "Darbības",
+  "projects.workflows.none": "Nav",
   "git.filemode.directory": "Direktorija",
   "git.filemode.submodule": "Apakšmodulis",
   "actions.general.token_permissions.mode.restricted": "Ierobežots"
