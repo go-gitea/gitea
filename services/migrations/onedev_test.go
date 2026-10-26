@@ -38,31 +38,36 @@ func TestOneDevServerVersion(t *testing.T) {
 
 	baseURL, err := url.Parse(server.URL)
 	assert.NoError(t, err)
-	downloader := &OneDevDownloader{baseURL: baseURL, client: server.Client()}
+	downloader := func() *OneDevDownloader { return &OneDevDownloader{baseURL: baseURL, client: server.Client()} }
 
 	t.Run("LargeResponse", func(t *testing.T) {
 		respMap.Store(&respMapType{"/~api/version/server": {code: http.StatusOK, body: strings.Repeat("x", maxOneDevVersionResponseSize+1)}})
-		_, err := downloader.getServerVersion(t.Context())
+		_, err := downloader().getServerVersion(t.Context())
 		assert.ErrorContains(t, err, "server version response exceeds")
 	})
 
 	t.Run("LegacyEndpoint", func(t *testing.T) {
 		respMap.Store(&respMapType{"/~api/version/server": {code: http.StatusOK, body: "12.0.1"}})
-		v, err := downloader.getServerVersion(t.Context())
+		d := downloader()
+		v, err := d.getServerVersion(t.Context())
+		assert.NoError(t, err)
+		assert.Equal(t, "12.0.1", v.String())
+		respMap.Store(&respMapType{}) // remove the legacy endpoint, then next call should use the cached version
+		v, err = d.getServerVersion(t.Context())
 		assert.NoError(t, err)
 		assert.Equal(t, "12.0.1", v.String())
 	})
 
 	t.Run("NewEndpoint", func(t *testing.T) {
 		respMap.Store(&respMapType{"/~api/server/version": {code: http.StatusOK, body: "16.9.7"}})
-		v, err := downloader.getServerVersion(t.Context())
+		v, err := downloader().getServerVersion(t.Context())
 		assert.NoError(t, err)
 		assert.Equal(t, "16.9.7", v.String())
 	})
 
 	t.Run("NoEndpoint", func(t *testing.T) {
 		respMap.Store(&respMapType{})
-		_, err := downloader.getServerVersion(t.Context())
+		_, err := downloader().getServerVersion(t.Context())
 		assert.ErrorContains(t, err, "server version request failed")
 	})
 }

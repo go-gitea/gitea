@@ -78,6 +78,8 @@ type OneDevDownloader struct {
 	maxIssueIndex int64
 	userMap       map[int64]*onedevUser
 	milestoneMap  map[int64]string
+
+	cachedServerVersion *version.Version
 }
 
 // NewOneDevDownloader creates a new downloader
@@ -163,14 +165,18 @@ func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpo
 
 // getServerVersion reads the OneDev server version.
 func (d *OneDevDownloader) getServerVersion(ctx context.Context) (_ *version.Version, retErr error) {
+	if d.cachedServerVersion != nil {
+		return d.cachedServerVersion, nil
+	}
 	// OneDev moved the endpoint from /~api/version/server to /~api/server/version in 16.8, so both are tried, the new first.
 	oneDevVersionEndpoints := []string{"/~api/server/version", "/~api/version/server"}
 	for _, endpoint := range oneDevVersionEndpoints {
 		ver, err := d.getServerVersionByEndpoint(ctx, endpoint)
 		if err == nil {
+			d.cachedServerVersion = ver
 			return ver, nil
 		}
-		retErr = errors.Join(err, fmt.Errorf("%s: %w", endpoint, err))
+		retErr = errors.Join(err, fmt.Errorf("failed to get OneDev server version via %s: %w", endpoint, err))
 	}
 	return nil, retErr
 }
@@ -180,11 +186,11 @@ func (d *OneDevDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, e
 	// check OneDev server version
 	serverVersion, err := d.getServerVersion(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get OneDev server version; OneDev %s or newer required: %w", OneDevRequiredVersion, err)
+		return nil, fmt.Errorf("OneDev %s or newer is required: %w", OneDevRequiredVersion, err)
 	}
 	requiredVersion, _ := version.NewVersion(OneDevRequiredVersion)
 	if serverVersion.LessThan(requiredVersion) {
-		return nil, fmt.Errorf("OneDev %s or newer required; currently running OneDev %s", OneDevRequiredVersion, serverVersion)
+		return nil, fmt.Errorf("OneDev version %s is too old, %s or newer is required", serverVersion, OneDevRequiredVersion)
 	}
 
 	info := make([]struct {
