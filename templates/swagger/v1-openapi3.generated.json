@@ -24999,6 +24999,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Remove assignees from an issue",
@@ -25064,6 +25067,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add assignees to an issue",
