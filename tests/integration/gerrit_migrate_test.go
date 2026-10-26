@@ -244,15 +244,19 @@ func TestGerritMigrateWeb(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 
-	hasGerritEntry := func(doc *HTMLDoc) bool {
-		return doc.Find(".migrate-entry-title").FilterFunction(func(_ int, s *goquery.Selection) bool {
-			return strings.TrimSpace(s.Text()) == "Gerrit"
-		}).Length() == 1
+	gerritEntryHref := func(doc *HTMLDoc) (string, bool) {
+		entry := doc.Find("a.migrate-entry").FilterFunction(func(_ int, s *goquery.Selection) bool {
+			return strings.TrimSpace(s.Find(".migrate-entry-title").Text()) == "Gerrit"
+		})
+		require.Equal(t, 1, entry.Length())
+		return entry.Attr("href")
 	}
 	doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/repo/migrate"), http.StatusOK).Body)
-	assert.True(t, hasGerritEntry(doc))
-	doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/repo/migrate?mirror=true"), http.StatusOK).Body)
-	assert.True(t, hasGerritEntry(doc))
+	_, ok := gerritEntryHref(doc)
+	assert.True(t, ok)
+	doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/repo/migrate?mirror=1"), http.StatusOK).Body)
+	mirrorHref, ok := gerritEntryHref(doc)
+	require.True(t, ok)
 
 	resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", structs.GerritService)), http.StatusOK)
 	doc = NewHTMLParser(t, resp.Body)
@@ -267,7 +271,7 @@ func TestGerritMigrateWeb(t *testing.T) {
 	assert.False(t, checked)
 	assert.Zero(t, form.Find(`input[name="issues"]`).Length())
 
-	resp = session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d&mirror=true", structs.GerritService)), http.StatusOK)
+	resp = session.MakeRequest(t, NewRequest(t, "GET", mirrorHref), http.StatusOK)
 	_, checked = NewHTMLParser(t, resp.Body).Find(`input[name="mirror"]`).Attr("checked")
 	assert.True(t, checked)
 
