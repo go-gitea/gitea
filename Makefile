@@ -68,9 +68,7 @@ endif
 
 # GOTEST_FLAGS is for unit test and integration test
 GOTEST_FLAGS ?= -timeout 40m
-ifneq ($(filter -race,$(GOTEST_FLAGS)),) # instrumented SQLite halves test speed
-	override GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS)
-endif
+override GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS) # race-instrumented SQLite halves test speed
 
 STORED_VERSION_FILE := VERSION
 

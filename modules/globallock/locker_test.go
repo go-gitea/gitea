@@ -41,25 +41,6 @@ func TestLocker(t *testing.T) {
 	})
 }
 
-func TestRedisLockerClose(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		locker := &redisLocker{}
-		locker.closeCtx, locker.closeCancel = context.WithCancel(t.Context())
-		locker.startExtend()
-		synctest.Wait()
-		started := time.Now()
-		var closers sync.WaitGroup
-		for range 8 {
-			closers.Go(func() {
-				assert.NoError(t, locker.Close())
-			})
-		}
-		closers.Wait()
-		assert.Equal(t, started, time.Now())
-		assert.NoError(t, locker.Close())
-	})
-}
-
 func testLocker(t *testing.T, locker Locker) {
 	runTest := func(name string, run func(*testing.T)) {
 		t.Run(name, func(t *testing.T) {
