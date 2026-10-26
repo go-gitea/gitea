@@ -379,8 +379,8 @@ func TestGiteaUploadAttachments(t *testing.T) {
 		IssueIndex:  pull.Issue.Index,
 		PosterID:    doer.ID,
 		Created:     time.Now(),
-		Content:     "see [a.txt](https://old/a) and [gone](https://old/gone)",
-		Attachments: []*base.Attachment{file("a.txt", "https://old/a", "aaa"), gone},
+		Content:     "see [a.txt](https://old/a) and [gone](https://old/gone) and [a2](https://old/a2)",
+		Attachments: []*base.Attachment{file("a.txt", "https://old/a", "aaa"), gone, file("a2.txt", "https://old/a2", "22")},
 	}))
 	require.NoError(t, uploader.CreateReviews(ctx, &base.Review{
 		IssueIndex: pull.Issue.Index,
@@ -408,8 +408,9 @@ func TestGiteaUploadAttachments(t *testing.T) {
 	a := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{CommentID: comment.ID, Name: "a.txt", Size: 3})
 	assert.Equal(t, pull.Issue.ID, a.IssueID)
 	assert.Equal(t, repo.ID, a.RepoID)
-	assert.Equal(t, "see [a.txt](/attachments/"+a.UUID+") and [gone](https://old/gone)", comment.Content,
-		"the reference of a skipped file is kept")
+	a2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{CommentID: comment.ID, Name: "a2.txt"})
+	assert.Equal(t, "see [a.txt](/attachments/"+a.UUID+") and [gone](https://old/gone) and [a2](/attachments/"+a2.UUID+")", comment.Content,
+		"the reference of a skipped file is kept, a link that is the prefix of another one does not corrupt it")
 	unittest.AssertNotExistsBean(t, &repo_model.Attachment{CommentID: comment.ID, Name: "gone.txt"})
 
 	code := findComment(issues_model.CommentTypeCode, "inline ")

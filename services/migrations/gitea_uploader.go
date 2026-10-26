@@ -5,10 +5,13 @@
 package migrations
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -1004,6 +1007,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 // A file that cannot be downloaded is skipped, its reference is kept.
 func (g *GiteaLocalUploader) saveAttachments(ctx context.Context, content *string, assets []*base.Attachment, uploaderID int64, created time.Time) ([]*repo_model.Attachment, error) {
 	var attachments []*repo_model.Attachment
+	replacements := map[string]string{}
 	for _, asset := range assets {
 		// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
 		// ... we must assume that they are safe and simply download the attachment
@@ -1047,9 +1051,13 @@ func (g *GiteaLocalUploader) saveAttachments(ctx context.Context, content *strin
 		}
 
 		if asset.Link != "" {
-			*content = strings.ReplaceAll(*content, asset.Link, setting.AppSubURL+"/attachments/"+attach.UUID)
+			replacements[asset.Link] = setting.AppSubURL + "/attachments/" + attach.UUID
 		}
 		attachments = append(attachments, attach)
+	}
+	// longest first, so that a link which is a prefix of another one (".../attachments/1" and ".../attachments/12") does not corrupt it
+	for _, link := range slices.SortedFunc(maps.Keys(replacements), func(a, b string) int { return cmp.Compare(len(b), len(a)) }) {
+		*content = strings.ReplaceAll(*content, link, replacements[link])
 	}
 	return attachments, nil
 }

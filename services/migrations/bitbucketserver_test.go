@@ -345,7 +345,7 @@ func TestBitbucketServerReviewRequestsAndAttachments(t *testing.T) {
 {"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000200000,"user":{"id":7,"name":"alice"},
  "comment":{"id":2,"text":"file [b](attachment:5/13)","author":{"id":7,"name":"alice"},"createdDate":1700000200000,
  "properties":{"reactions":[{"emoticon":{"shortcut":"thumbsup"},"users":[{"id":8,"name":"bob"},{"id":9,"name":"carol"}]},
-  {"emoticon":{"shortcut":"tada"},"users":[{"id":8,"name":"bob"}]},{"emoticon":{"shortcut":"banana"},"users":[{"id":8,"name":"bob"}]}]}}},
+  {"emoticon":{"shortcut":"+1"},"users":[{"id":8,"name":"bob"}]},{"emoticon":{"shortcut":"tada"},"users":[{"id":8,"name":"bob"}]},{"emoticon":{"shortcut":"banana"},"users":[{"id":8,"name":"bob"}]}]}}},
 {"action":"APPROVED","createdDate":1700000100000,"user":{"id":9,"name":"carol"}},
 {"action":"REVIEWED","createdDate":1700000100000,"user":{"id":10,"name":"dave"}}
 ]}`))
@@ -407,7 +407,7 @@ func TestBitbucketServerReviewRequestsAndAttachments(t *testing.T) {
 		{UserID: 8, UserName: "bob", Content: "+1"},
 		{UserID: 9, UserName: "carol", Content: "+1"},
 		{UserID: 8, UserName: "bob", Content: "hooray"},
-	}, comments[0].Reactions, "unknown emoticons are dropped")
+	}, comments[0].Reactions, "unknown emoticons are dropped, emoticons of one reaction are merged")
 	assert.Equal(t, map[string]string{"file-13.txt": "content 13"}, readAttachments(comments[0].Attachments))
 
 	reviews, err := d.GetReviews(t.Context(), prs[0])

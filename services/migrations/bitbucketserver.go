@@ -299,7 +299,11 @@ func (c *bbsComment) reactions() []*base.Reaction {
 			continue
 		}
 		for _, u := range r.Users {
-			reactions = append(reactions, &base.Reaction{UserID: u.ID, UserName: u.login(), Content: content})
+			reaction := &base.Reaction{UserID: u.ID, UserName: u.login(), Content: content}
+			// several emoticons map to one reaction, a user can only have it once
+			if !slices.ContainsFunc(reactions, func(o *base.Reaction) bool { return *o == *reaction }) {
+				reactions = append(reactions, reaction)
+			}
 		}
 	}
 	return reactions
