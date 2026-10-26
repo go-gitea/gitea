@@ -16,5 +16,5 @@ function patchLabels(parent: ParentNode, containerSelector: string, labelSelecto
 // link labels and inputs in `.ui.checkbox` and `.ui.form .field` so labels are clickable and accessible
 export function initAriaLabels(container: ParentNode) {
   patchLabels(container, '.ui.checkbox', 'label', 'input', 'data-checkbox-patched');
-  patchLabels(container, '.ui.form .field', ':scope > label', ':scope > input, :scope > select, :scope > .select-field > select, :scope > textarea', 'data-field-patched');
+  patchLabels(container, '.ui.form .field', ':scope > label', ':scope > input, :scope > select, :scope > .select-wrapper > select, :scope > textarea', 'data-field-patched');
 }

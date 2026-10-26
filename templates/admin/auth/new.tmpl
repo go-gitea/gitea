@@ -9,7 +9,7 @@
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_Type}}error{{end}}">
 					<label for="auth_type">{{ctx.Locale.Tr "admin.auths.auth_type"}}</label>
-					<div class="select-field">
+					<div class="select-wrapper">
 						<select id="auth_type" autocomplete="off" name="type">
 							{{range .AuthSources}}
 								<option value="{{.Type.Int}}" {{if eq $.type .Type.Int}}selected{{end}}>{{.Name}}</option>

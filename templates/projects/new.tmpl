@@ -31,7 +31,7 @@
 		{{if not .PageIsEditProjects}}
 			<div class="field">
 				<label>{{ctx.Locale.Tr "repo.projects.template.desc"}}</label>
-				<div class="select-field">
+				<div class="select-wrapper">
 					<select name="template_type">
 						<option value="" hidden data-placeholder>{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</option>
 						{{range $element := .TemplateConfigs}}
@@ -44,7 +44,7 @@
 
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.projects.card_type.desc"}}</label>
-			<div class="select-field">
+			<div class="select-wrapper">
 				<select name="card_type">
 					{{range $element := .CardTypes}}
 						<option value="{{$element.CardType}}" {{if eq $element.CardType (Iif (eq $.card_type NIL) 1 $.card_type)}}selected{{end}}>{{ctx.Locale.Tr $element.Translation}}</option>

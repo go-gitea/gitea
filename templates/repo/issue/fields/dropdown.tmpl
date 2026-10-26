@@ -15,7 +15,7 @@
 		</div>
 	</div>
 	{{else}}
-	<div class="select-field">
+	<div class="select-wrapper">
 		<select name="form-field-{{.item.ID}}" aria-label="{{.item.Attributes.label}}" {{if .item.Validations.required}}required{{end}}>
 			<option value="" data-placeholder {{if eq .item.Attributes.default nil}}selected{{end}} {{if .item.Validations.required}}disabled{{end}}></option>
 			{{range $i, $opt := .item.Attributes.options}}

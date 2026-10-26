@@ -2,6 +2,19 @@
   flex-wrap: wrap;
 }
 
+.code-editor-options .select-wrapper > select {
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 6px 26px 6px 10px;
+  border-color: var(--color-light-border);
+  color: var(--color-text);
+}
+
+.code-editor-options .select-wrapper::after {
+  right: 5px;
+}
+
 .editor-loading {
   padding: 1rem;
   text-align: center;

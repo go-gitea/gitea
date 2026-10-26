@@ -12,7 +12,7 @@
 				</div>
 				<div class="required field">
 					<label for="user_type">{{ctx.Locale.Tr "admin.users.user_type"}}</label>
-					<div class="select-field">
+					<div class="select-wrapper">
 						<select id="user_type" autocomplete="off" name="user_type" required>
 							<option value="User" {{if eq $.user_type "User"}}selected{{end}}>{{ctx.Locale.Tr "concept_user_user"}}</option>
 							<option value="Bot" {{if eq $.user_type "Bot"}}selected{{end}}>{{ctx.Locale.Tr "concept_user_bot"}}</option>
@@ -21,7 +21,7 @@
 				</div>
 				<div class="required field js-non-bot {{if .Err_LoginType}}error{{end}}">
 					<label for="login_type">{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
-					<div class="select-field">
+					<div class="select-wrapper">
 						<select id="login_type" autocomplete="off" name="login_type" required>
 							<option value="0-0" {{if eq $.login_type "0-0"}}selected{{end}}>{{ctx.Locale.Tr "admin.users.local"}}</option>
 							{{range .Sources}}
@@ -33,7 +33,7 @@
 
 				<div class="required field {{if .Err_Visibility}}error{{end}}">
 					<label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label>
-					<div class="select-field">
+					<div class="select-wrapper">
 						<select id="visibility" name="visibility">
 							{{template "shared/user_visibility_options" dict "Modes" .AllowedUserVisibilityModes "Value" .visibility}}
 						</select>

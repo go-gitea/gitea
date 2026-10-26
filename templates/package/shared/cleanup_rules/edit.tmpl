@@ -10,7 +10,7 @@
 		</div>
 		<div class="{{if .IsEditRule}}disabled {{end}}field {{if .Err_Type}}error{{end}}">
 			<label>{{ctx.Locale.Tr "packages.filter.type"}}</label>
-			<div class="select-field">
+			<div class="select-wrapper">
 				<select name="type">
 					{{range $type := .AvailableTypes}}
 					<option{{if eq $.CleanupRule.Type $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
@@ -28,7 +28,7 @@
 		<p>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.title"}}</p>
 		<div class="field {{if .Err_KeepCount}}error{{end}}">
 			<label>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count"}}:</label>
-			<div class="select-field">
+			<div class="select-wrapper">
 				<select name="keep_count">
 					<option{{if eq .CleanupRule.KeepCount 0}} selected="selected"{{end}} value="0"></option>
 					<option{{if eq .CleanupRule.KeepCount 1}} selected="selected"{{end}} value="1">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.1"}}</option>
@@ -49,7 +49,7 @@
 		<p>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.remove.title"}}</p>
 		<div class="field {{if .Err_RemoveDays}}error{{end}}">
 			<label>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.remove.days"}}:</label>
-			<div class="select-field">
+			<div class="select-wrapper">
 				<select name="remove_days">
 					<option{{if eq .CleanupRule.RemoveDays 0}} selected="selected"{{end}} value="0"></option>
 					<option{{if eq .CleanupRule.RemoveDays 7}} selected="selected"{{end}} value="7">{{ctx.Locale.Tr "tool.days" 7}}</option>

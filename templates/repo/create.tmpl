@@ -175,7 +175,7 @@
 
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.readme"}}</label>
-						<div class="select-field">
+						<div class="select-wrapper">
 							<select name="readme">
 								{{range .Readmes}}
 									<option value="{{.}}" {{if eq . $.readme}}selected{{end}}>{{.}}</option>
@@ -198,7 +198,7 @@
 					</div>
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.object_format"}}</label>
-						<div class="select-field">
+						<div class="select-wrapper">
 							<select name="object_format_name">
 								{{$objectFormatFound := false}}
 								{{range .SupportedObjectFormats}}

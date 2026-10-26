@@ -9,7 +9,7 @@
 <div class="ui small fluid action input">
 	{{template "shared/search/input" dict "Value" .Value "Disabled" .Disabled "Placeholder" .Placeholder}}
 	{{if .SearchModes}}
-		<div class="select-field" data-tooltip-content="{{ctx.Locale.Tr "search.type_tooltip"}}">
+		<div class="select-wrapper" data-tooltip-content="{{ctx.Locale.Tr "search.type_tooltip"}}">
 			<select name="search_mode" aria-label="{{ctx.Locale.Tr "search.type_tooltip"}}" {{if .Disabled}}disabled{{end}}>
 				{{range $mode := .SearchModes}}
 					<option value="{{$mode.ModeValue}}" {{if eq $.SelectedSearchMode $mode.ModeValue}}selected{{end}} title="{{ctx.Locale.Tr $mode.TooltipTrKey}}">{{ctx.Locale.Tr $mode.TitleTrKey}}</option>

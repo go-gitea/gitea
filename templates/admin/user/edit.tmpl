@@ -13,7 +13,7 @@
 				{{if .CanConvertUserType}}
 					<div class="required field">
 						<label for="user_type">{{ctx.Locale.Tr "admin.users.user_type"}}</label>
-						<div class="select-field">
+						<div class="select-wrapper">
 							<select id="user_type" autocomplete="off" name="user_type" required>
 								<option value="User" {{if not .User.IsTypeBot}}selected{{end}}>{{ctx.Locale.Tr "concept_user_user"}}</option>
 								<option value="Bot" {{if .User.IsTypeBot}}selected{{end}}>{{ctx.Locale.Tr "concept_user_bot"}}</option>
@@ -24,7 +24,7 @@
 				{{if not .User.IsTypeBot}}
 					<div class="required js-non-bot field {{if .Err_LoginType}}error{{end}}">
 						<label for="login_type">{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
-						<div class="select-field">
+						<div class="select-wrapper">
 							<select id="login_type" autocomplete="off" name="login_type" required>
 								<option value="0-0" {{if eq .LoginSource.ID 0}}selected{{end}}>{{ctx.Locale.Tr "admin.users.local"}}</option>
 								{{range .Sources}}
@@ -39,7 +39,7 @@
 
 				<div class="required field {{if .Err_Visibility}}error{{end}}">
 					<label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label>
-					<div class="select-field">
+					<div class="select-wrapper">
 						<select id="visibility" name="visibility">
 							{{template "shared/user_visibility_options" dict "Modes" .AllowedUserVisibilityModes "Value" .User.Visibility}}
 						</select>
@@ -68,7 +68,7 @@
 
 				<div class="field {{if .Err_Language}}error{{end}}">
 					<label for="language">{{ctx.Locale.Tr "settings.language"}}</label>
-					<div class="select-field">
+					<div class="select-wrapper">
 						<select id="language" name="language">
 							{{template "shared/language_options" dict "Languages" .AllLangs "Value" .User.Language "FallbackLabel" (or .User.Language "-")}}
 						</select>

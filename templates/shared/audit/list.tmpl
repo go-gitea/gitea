@@ -6,7 +6,7 @@
 			{{template "shared/search/button"}}
 		</div>
 		<div class="ui small input">
-			<div class="select-field">
+			<div class="select-wrapper">
 				<select name="action" aria-label="{{ctx.Locale.Tr "audit.filter.action"}}">
 					<option value="" data-placeholder>{{ctx.Locale.Tr "audit.filter.action"}}</option>
 					{{range $action := .AuditActions}}
@@ -16,7 +16,7 @@
 			</div>
 		</div>
 		<div class="ui small input">
-			<div class="select-field">
+			<div class="select-wrapper">
 				<select name="origin" aria-label="{{ctx.Locale.Tr "audit.filter.origin"}}">
 					<option value="" data-placeholder>{{ctx.Locale.Tr "audit.filter.origin"}}</option>
 					{{range $origin := .AuditOrigins}}

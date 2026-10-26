@@ -11,7 +11,7 @@
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.settings.matrix.message_type"}}</label>
-			<div class="select-field">
+			<div class="select-wrapper">
 				<select id="message_type" name="message_type">
 					<option value="1" {{if ne .MatrixHook.MessageType 2}}selected{{end}}>m.notice</option>
 					<option value="2" {{if eq .MatrixHook.MessageType 2}}selected{{end}}>m.text</option>

@@ -105,7 +105,7 @@
 .ui.action.input > .button:first-child {
   border-radius: 0.28571429rem 0 0 0.28571429rem;
 }
-.ui.action.input > .select-field:not(:first-child) > select,
+.ui.action.input > .select-wrapper:not(:first-child) > select,
 .ui.action.input > .button:not(:first-child) {
   border-radius: 0;
 }
@@ -114,7 +114,7 @@
   border-radius: 0 0.28571429rem 0.28571429rem 0;
 }
 
-.ui.action.input > .select-field > select {
+.ui.action.input > .select-wrapper > select {
   min-height: 2.71428571em;
   width: auto;
   min-width: 10em;
@@ -142,7 +142,7 @@
 .ui.action.input:not([class*="left action"]) > input:hover {
   border-right: none;
 }
-.ui.action.input:not([class*="left action"]) > input:focus + .select-field > select,
+.ui.action.input:not([class*="left action"]) > input:focus + .select-wrapper > select,
 .ui.action.input:not([class*="left action"]) > input:focus + .button,
 .ui.action.input:not([class*="left action"]) > input:focus + .button:hover,
 .ui.action.input:not([class*="left action"]) > input:focus + i.icon + .dropdown-container > .button {

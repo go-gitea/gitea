@@ -44,7 +44,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/language" method="post">
 				<div class="field">
-					<div class="select-field">
+					<div class="select-wrapper">
 						<select name="language" id="language" aria-label="{{ctx.Locale.Tr "settings.language"}}">
 							{{template "shared/language_options" dict "Languages" .AllLangs "Value" .SignedUser.Language "FallbackLabel" (or .SignedUser.Language ctx.Locale.LangName)}}
 						</select>

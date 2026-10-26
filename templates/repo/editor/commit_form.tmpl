@@ -70,7 +70,7 @@
 		{{if and .CommitCandidateEmails (gt (len .CommitCandidateEmails) 1)}}
 			<div class="field">
 				<label>{{ctx.Locale.Tr "repo.editor.commit_email"}}</label>
-				<div class="select-field">
+				<div class="select-wrapper">
 					<select name="commit_email">
 						{{- range $email := .CommitCandidateEmails -}}
 							<option {{if eq $email $.CommitDefaultEmail}}selected{{end}} value="{{$email}}">{{$email}}</option>

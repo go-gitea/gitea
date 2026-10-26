@@ -18,7 +18,7 @@
   min-width: 100px !important;
 }
 
-.list-header-search > .ui.input :is(.select-field > select, .dropdown-field) {
+.list-header-search > .ui.input :is(.select-wrapper > select, .dropdown-field) {
   min-width: auto;
 }
 

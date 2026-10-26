@@ -8,7 +8,7 @@
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.settings.content_type"}}</label>
-			<div class="select-field">
+			<div class="select-wrapper">
 				<select id="content_type" name="content_type">
 					<option value="1" {{if ne .Webhook.ContentType 2}}selected{{end}}>application/json</option>
 					<option value="2" {{if eq .Webhook.ContentType 2}}selected{{end}}>application/x-www-form-urlencoded</option>
