@@ -511,6 +511,22 @@ func TestProxyHTTP(t *testing.T) {
 		assert.Equal(t, "http://git.example.com/repo.git", rec.Body.String())
 	})
 
+	t.Run("OperatorAsTarget", func(t *testing.T) {
+		t.Parallel()
+		// the operator's proxy must not be reachable as an origin server, not even after
+		// a request through it has primed the dialer's proxy exemption
+		operator := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.True(t, r.URL.IsAbs(), "the operator's proxy must not be reached as an origin server")
+		}))
+		t.Cleanup(operator.Close)
+		opURL, err := url.Parse(operator.URL)
+		require.NoError(t, err)
+
+		srv := newServer(policy.NewPolicy("test", policy.Lax, policy.WithProxy(http.ProxyURL(opURL))), "", nil)
+		assert.Equal(t, http.StatusOK, serve(srv, http.MethodGet, "http://git.example.com/repo.git", "").Code)
+		assert.Equal(t, http.StatusForbidden, serve(srv, http.MethodGet, operator.URL+"/status", "").Code)
+	})
+
 	t.Run("Denied", func(t *testing.T) {
 		t.Parallel()
 		origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

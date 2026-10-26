@@ -65,13 +65,14 @@ type server struct {
 
 func newServer(p *policy.Policy, auth string, proxyTLS *tls.Config) *server {
 	s := &server{auth: auth, policy: p, dial: p.NewDialContext(), proxyTLS: cmp.Or(proxyTLS, &tls.Config{})}
-	transport := p.NewHTTPTransport()
-	transport.Proxy = s.upstreamProxy
-	transport.TLSClientConfig = s.proxyTLS.Clone() // the transport adds its ALPN protocols to the config it gets
-	transport.ReadBufferSize = 64 * 1024
+	base := &http.Transport{
+		Proxy:           s.upstreamProxy,
+		TLSClientConfig: s.proxyTLS.Clone(), // the transport adds its ALPN protocols to the config it gets
+		ReadBufferSize:  64 * 1024,
+	}
 	s.reverseProxy = &httputil.ReverseProxy{
 		Rewrite:       func(*httputil.ProxyRequest) {},
-		Transport:     transport,
+		Transport:     p.NewHTTPTransport(base),
 		FlushInterval: -1,
 		BufferPool:    copyBuffers{},
 		ErrorHandler:  func(w http.ResponseWriter, _ *http.Request, err error) { writeUpstreamError(w, err) },

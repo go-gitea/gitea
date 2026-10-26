@@ -39,7 +39,6 @@ type Policy struct {
 	internalRanges     []netip.Prefix
 	internalRangesKey  string // the setting the ranges were read from, named in rejections
 	proxyFunc          func(*http.Request) (*url.URL, error)
-	proxyAddrs         sync.Map // dial addresses proxyFunc returned, the operator's proxies are exempt from the lists
 }
 
 type Option func(*Policy)
@@ -224,34 +223,27 @@ func (p *Policy) checkHostIPs(u *url.URL, ips []net.IP) error {
 
 // NewDialContext returns a dial function that checks the resolved address at connect time, so DNS rebinding can't bypass it.
 func (p *Policy) NewDialContext() func(ctx context.Context, network, addr string) (net.Conn, error) {
-	return p.dialContext(false)
-}
-
-// dialContext can let through the proxies the selector returned, for a transport dialing proxies and targets alike
-func (p *Policy) dialContext(allowProxies bool) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		dialer := net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
-		if _, isProxy := p.proxyAddrs.Load(addr); !allowProxies || !isProxy {
-			host, _, err := net.SplitHostPort(addr) // the requested host, also on redirects where the request's Host is empty
+		host, _, err := net.SplitHostPort(addr) // the requested host, also on redirects where the request's Host is empty
+		if err != nil {
+			return nil, err
+		}
+		dialer.Control = func(_, ipAddr string, _ syscall.RawConn) error {
+			addrPort, err := netip.ParseAddrPort(ipAddr)
 			if err != nil {
-				return nil, err
+				return fmt.Errorf("%s can only call HTTP servers via TCP, deny '%s(%s)': %w", p.usage, host, ipAddr, err)
 			}
-			dialer.Control = func(_, ipAddr string, _ syscall.RawConn) error {
-				addrPort, err := netip.ParseAddrPort(ipAddr)
-				if err != nil {
-					return fmt.Errorf("%s can only call HTTP servers via TCP, deny '%s(%s)': %w", p.usage, host, ipAddr, err)
-				}
-				if err := p.checkAddr(host, addrPort); err != nil {
-					return fmt.Errorf("%w: %w", ErrDenied, err)
-				}
-				return nil
+			if err := p.checkAddr(host, addrPort); err != nil {
+				return fmt.Errorf("%w: %w", ErrDenied, err)
 			}
+			return nil
 		}
 		return dialer.DialContext(ctx, network, addr)
 	}
 }
 
-// Proxy selects the proxy for req and lets the dialer reach it.
+// Proxy selects the proxy for req.
 func (p *Policy) Proxy(req *http.Request) (proxyURL *url.URL, err error) {
 	if p.proxyFunc != nil {
 		proxyURL, err = p.proxyFunc(req)
@@ -260,19 +252,103 @@ func (p *Policy) Proxy(req *http.Request) (proxyURL *url.URL, err error) {
 		if _, ok := proxyPorts[proxyURL.Scheme]; !ok {
 			return nil, fmt.Errorf("unsupported proxy scheme %q, use http, https or socks5", proxyURL.Scheme)
 		}
-		p.proxyAddrs.LoadOrStore(ProxyDialAddr(proxyURL), struct{}{})
 	}
 	return proxyURL, err
 }
 
-func (p *Policy) NewHTTPTransport() *http.Transport {
+// proxyDialer reaches the operator's proxies, which are configuration rather than user input
+var proxyDialer = &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
+
+// proxyTransport routes each request through the dialer its traffic deserves: a request
+// the selector sends to a proxy is dialed by a transport that only dials that proxy
+// (operator configuration, not user input, so unchecked), every other request is dialed
+// with the policy check. The split is by role, not by address: a direct request whose
+// target is a proxy's address is still checked.
+type proxyTransport struct {
+	transport *http.Transport // direct requests: no proxy, the policy-checked dialer
+	mu        sync.Mutex
+	proxied   map[string]*http.Transport // proxy URL -> transport that only dials that proxy
+}
+
+// NewHTTPTransport returns a RoundTripper that enforces the policy on direct dials and
+// lets proxy dials through. The base transport is configured for the policy: DialContext
+// becomes the policy's dialer, Proxy defaults to the policy's selector, and unset
+// transport settings get their defaults; nil builds a default transport.
+func (p *Policy) NewHTTPTransport(base *http.Transport) http.RoundTripper {
+	if base == nil {
+		base = &http.Transport{}
+	}
+	if base.Proxy == nil {
+		base.Proxy = p.Proxy
+	}
+	base.DialContext = p.NewDialContext()
+	if !base.ForceAttemptHTTP2 {
+		base.ForceAttemptHTTP2 = true
+	}
+	if base.MaxIdleConns == 0 {
+		base.MaxIdleConns = 100
+	}
+	if base.IdleConnTimeout == 0 {
+		base.IdleConnTimeout = 90 * time.Second
+	}
+	if base.TLSHandshakeTimeout == 0 {
+		base.TLSHandshakeTimeout = 10 * time.Second
+	}
+	if base.ExpectContinueTimeout == 0 {
+		base.ExpectContinueTimeout = 1 * time.Second
+	}
+	return &proxyTransport{transport: base, proxied: map[string]*http.Transport{}}
+}
+
+// RoundTrip sends req through the proxy the selector picks, or dials it directly with the policy check.
+func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	selector := t.transport.Proxy
+	if selector == nil {
+		return t.transport.RoundTrip(req) // no selector: every request is direct
+	}
+	proxyURL, err := selector(req)
+	if err != nil {
+		return nil, err
+	}
+	if proxyURL == nil {
+		return t.transport.RoundTrip(req)
+	}
+	return t.proxiedTransport(proxyURL).RoundTrip(req)
+}
+
+// CloseIdleConnections closes the idle connections of the direct and all proxied transports.
+func (t *proxyTransport) CloseIdleConnections() {
+	t.transport.CloseIdleConnections()
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for _, tr := range t.proxied {
+		tr.CloseIdleConnections()
+	}
+}
+
+// proxiedTransport returns the transport that only dials proxyURL, creating it on first use.
+func (t *proxyTransport) proxiedTransport(proxyURL *url.URL) *http.Transport {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	tr, ok := t.proxied[proxyURL.String()]
+	if !ok {
+		tr = newProxiedTransport(proxyURL, t.transport)
+		t.proxied[proxyURL.String()] = tr
+	}
+	return tr
+}
+
+// newProxiedTransport returns a transport that only dials proxyURL, unchecked: the proxy is operator configuration.
+func newProxiedTransport(proxyURL *url.URL, base *http.Transport) *http.Transport {
 	return &http.Transport{
-		Proxy:                 p.Proxy,
-		DialContext:           p.dialContext(true),
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+		Proxy:                 http.ProxyURL(proxyURL),
+		DialContext:           proxyDialer.DialContext,
+		ForceAttemptHTTP2:     base.ForceAttemptHTTP2,
+		MaxIdleConns:          base.MaxIdleConns,
+		IdleConnTimeout:       base.IdleConnTimeout,
+		TLSHandshakeTimeout:   base.TLSHandshakeTimeout,
+		ExpectContinueTimeout: base.ExpectContinueTimeout,
+		TLSClientConfig:       base.TLSClientConfig.Clone(),
+		ReadBufferSize:        base.ReadBufferSize,
 	}
 }

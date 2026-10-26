@@ -52,7 +52,7 @@ func TestWebhookPolicyProxy(t *testing.T) {
 	defer test.MockVariableValue(&setting.Webhook.ProxyURL, proxyURL.String())()
 	defer test.MockVariableValue(&setting.Webhook.ProxyURLFixed, proxyURL)()
 	defer test.MockVariableValue(&setting.Webhook.ProxyHosts, []string{"*.discordapp.com", "discordapp.com"})()
-	selectProxy := NewWebhookPolicy().NewHTTPTransport().Proxy
+	selectProxy := NewWebhookPolicy().Proxy
 
 	for target, want := range map[string]string{
 		"https://discordapp.com/api/webhooks/xxxxxxxxx/xxxxxxxxxxxxxxxxxxx": proxyURL.String(),
