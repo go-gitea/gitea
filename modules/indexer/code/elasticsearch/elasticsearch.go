@@ -28,7 +28,7 @@ import (
 	"github.com/go-enry/go-enry/v2"
 )
 
-const esRepoIndexerLatestVersion = 3
+const esRepoIndexerLatestVersion = 4
 
 var _ internal.Indexer = &Indexer{}
 
@@ -52,7 +52,7 @@ const (
     		"analysis": {
       			"analyzer": {
 					"content_analyzer": {
-						"tokenizer": "content_tokenizer",
+						"tokenizer": "standard",
 						"filter" : ["lowercase"]
 					},
         			"filename_path_analyzer": {
@@ -63,10 +63,6 @@ const (
         			}
       			},
 				"tokenizer": {
-					"content_tokenizer": {
-						"type": "simple_pattern_split",
-						"pattern": "[^a-zA-Z0-9]"
-					},
 					"path_tokenizer": {
 						"type": "path_hierarchy",
 						"delimiter": "/"
