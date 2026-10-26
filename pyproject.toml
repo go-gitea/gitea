@@ -1,7 +1,7 @@
 [project]
 name = "gitea"
 version = "0.0.0"
-requires-python = ">=3.10"
+requires-python = ">=3.14"
 
 [dependency-groups]
 dev = [
