@@ -68,12 +68,8 @@ endif
 
 # GOTEST_FLAGS is for unit test and integration test
 GOTEST_FLAGS ?= -timeout 40m
-
-ifneq ($(filter -race,$(GOTEST_FLAGS)),)
-	# disable race detection for the packages that slow down the tests
-	# only add the flag when `-race` argument exists to share test cache as much as possible
-	GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS)
-endif
+# disable race detection for the packages that slow down the tests
+GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS)
 
 STORED_VERSION_FILE := VERSION
 
