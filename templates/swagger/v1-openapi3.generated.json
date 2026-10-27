@@ -26618,6 +26618,9 @@
           },
           "409": {
             "description": "Cannot cancel a non-existent stopwatch"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete an issue's existing stopwatch.",
@@ -26727,6 +26730,9 @@
           },
           "409": {
             "description": "Cannot stop a non-existent stopwatch"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Stop an issue's existing stopwatch.",
@@ -26899,6 +26905,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Unsubscribe user from issue",
@@ -26959,6 +26968,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Subscribe user to issue",

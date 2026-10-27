@@ -14141,6 +14141,9 @@
           },
           "409": {
             "description": "Cannot cancel a non-existent stopwatch"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -14250,6 +14253,9 @@
           },
           "409": {
             "description": "Cannot stop a non-existent stopwatch"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -14416,6 +14422,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -14474,6 +14483,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }

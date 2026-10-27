@@ -103,6 +103,8 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description:  Cannot stop a non-existent stopwatch
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	issue := prepareIssueForStopwatch(ctx)
 	if ctx.Written() {
@@ -155,6 +157,8 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description:  Cannot cancel a non-existent stopwatch
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	issue := prepareIssueForStopwatch(ctx)
 	if ctx.Written() {

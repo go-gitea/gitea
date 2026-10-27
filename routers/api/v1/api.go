@@ -814,18 +814,14 @@ func mustEnableRepoProjects(ctx *context.APIContext) {
 
 // FIXME: for consistency, maybe most mustNotBeArchived checks should be replaced with mustEnableEditor
 func mustNotBeArchived(ctx *context.APIContext) {
-	if ctx.Repo.Repository.IsArchived {
-		ctx.APIError(http.StatusLocked, "repo is archived")
-		return
-	}
-}
-
-func mustNotBeArchivedForWrite(ctx *context.APIContext) {
 	switch ctx.Req.Method {
 	case http.MethodGet, http.MethodHead, http.MethodOptions:
 		return
 	}
-	mustNotBeArchived(ctx)
+	if ctx.Repo.Repository.IsArchived {
+		ctx.APIError(http.StatusLocked, "repo is archived")
+		return
+	}
 }
 
 func mustEnableEditor(ctx *context.APIContext) {
@@ -1434,7 +1430,7 @@ func Routes() *web.Router {
 							Get(repo.GetReleaseByTag).
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
-				}, mustEnableUnit(unit.TypeReleases), mustNotBeArchivedForWrite)
+				}, mustEnableUnit(unit.TypeReleases), mustNotBeArchived)
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
 				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {
@@ -1635,10 +1631,16 @@ func Routes() *web.Router {
 							m.Delete("/{id}", repo.DeleteTime)
 						}, reqToken())
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
-						m.Post("/stopwatch/start", reqToken(), repo.StartIssueStopwatch)
+						m.Group("/stopwatch", func() {
+							m.Post("/start", repo.StartIssueStopwatch)
+							m.Post("/stop", repo.StopIssueStopwatch)
+							m.Delete("/delete", repo.DeleteIssueStopwatch)
+						}, reqToken())
 						m.Group("/subscriptions", func() {
 							m.Get("", repo.GetIssueSubscribers)
 							m.Get("/check", reqToken(), repo.CheckIssueSubscription)
+							m.Put("/{user}", reqToken(), repo.AddIssueSubscription)
+							m.Delete("/{user}", reqToken(), repo.DelIssueSubscription)
 						})
 						m.Combo("/reactions").
 							Get(repo.GetIssueReactions).
@@ -1662,9 +1664,11 @@ func Routes() *web.Router {
 							Post(reqToken(), bind(api.IssueMeta{}), repo.CreateIssueBlocking).
 							Delete(reqToken(), bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
 						m.Group("/pin", func() {
-							m.Combo("").Post(repo.PinIssue).Delete(repo.UnpinIssue)
-							m.Patch("/{position}", repo.MoveIssuePin)
-						}, reqToken(), reqAdmin())
+							m.Combo("").
+								Post(reqToken(), reqAdmin(), repo.PinIssue).
+								Delete(reqToken(), reqAdmin(), repo.UnpinIssue)
+							m.Patch("/{position}", reqToken(), reqAdmin(), repo.MoveIssuePin)
+						})
 						m.Group("/lock", func() {
 							m.Combo("").
 								Put(bind(api.LockIssueOption{}), repo.LockIssue).
@@ -1689,15 +1693,7 @@ func Routes() *web.Router {
 				m.Group("/projects", func() {
 					addProjectRoutes(m, reqToken(), reqRepoWriter(unit.TypeProjects))
 				}, reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
-			}, repoAssignment(), mustNotBeArchivedForWrite)
-
-			// stay usable in archived repositories, e.g. to stop a stopwatch started before archiving
-			m.Group("/{username}/{reponame}/issues/{index}", func() {
-				m.Post("/stopwatch/stop", repo.StopIssueStopwatch)
-				m.Delete("/stopwatch/delete", repo.DeleteIssueStopwatch)
-				m.Put("/subscriptions/{user}", repo.AddIssueSubscription)
-				m.Delete("/subscriptions/{user}", repo.DelIssueSubscription)
-			}, repoAssignment(), mustEnableIssuesOrPulls, reqToken())
+			}, repoAssignment(), mustNotBeArchived)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs

@@ -55,6 +55,8 @@ func AddIssueSubscription(ctx *context.APIContext) {
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	setIssueSubscription(ctx, true)
 }
@@ -99,6 +101,8 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	setIssueSubscription(ctx, false)
 }
