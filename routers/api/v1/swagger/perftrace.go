@@ -4,12 +4,12 @@
 package swagger
 
 import (
-	"gitea.dev/modules/gtprof"
+	api "gitea.dev/modules/structs"
 )
 
 // PerfTraceRouteList
 // swagger:response PerfTraceRouteList
 type swaggerResponsePerfTraceRouteList struct {
 	// in:body
-	Body []gtprof.TraceRouteStat `json:"body"`
+	Body []api.PerfTraceRoute `json:"body"`
 }

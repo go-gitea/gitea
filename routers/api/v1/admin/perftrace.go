@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"gitea.dev/modules/gtprof"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 )
 
@@ -31,6 +34,14 @@ func ListPerfTraces(ctx *context.APIContext) {
 	//   in: query
 	//   description: exclude streams, git transfers and downloads which are slow by design
 	//   type: boolean
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// - name: since
 	//   in: query
 	//   description: only include traces after this time (RFC 3339)
@@ -57,8 +68,35 @@ func ListPerfTraces(ctx *context.APIContext) {
 		q.Since = t
 	}
 	stats := gtprof.GetTraceRouteStats(q)
-	if stats == nil {
-		stats = []*gtprof.TraceRouteStat{}
+	listOpts := utils.GetListOptions(ctx)
+	ctx.SetTotalCountHeader(int64(len(stats)))
+	stats = util.PaginateSlice(stats, listOpts.Page, listOpts.PageSize)
+	res := make([]*api.PerfTraceRoute, 0, len(stats))
+	for _, s := range stats {
+		res = append(res, convertPerfTraceRoute(s))
 	}
-	ctx.JSON(http.StatusOK, stats)
+	ctx.JSON(http.StatusOK, res)
+}
+
+func convertPerfTraceSpan(s *gtprof.TraceSpanRecord) *api.PerfTraceSpan {
+	ret := &api.PerfTraceSpan{Name: s.Name, DurationMs: s.DurationMs, Attributes: s.Attributes}
+	for _, c := range s.Children {
+		ret.Children = append(ret.Children, convertPerfTraceSpan(c))
+	}
+	return ret
+}
+
+func convertPerfTraceRoute(r *gtprof.TraceRouteStat) *api.PerfTraceRoute {
+	ret := &api.PerfTraceRoute{
+		Route: r.Route, LongRunning: r.LongRunning, Count: r.Count, MaxDurationMs: r.MaxDurationMs,
+		P95DurationMs: r.P95DurationMs, LastTime: r.LastTime, Records: make([]*api.PerfTraceRecord, 0, len(r.Records)),
+	}
+	for _, rec := range r.Records {
+		ret.Records = append(ret.Records, &api.PerfTraceRecord{
+			Time: rec.Time, Route: rec.Route, DurationMs: rec.DurationMs, LongRunning: rec.LongRunning,
+			SQLCount: rec.SQLCount, SQLDurationMs: rec.SQLDurationMs, GitCount: rec.GitCount, GitDurationMs: rec.GitDurationMs,
+			Root: convertPerfTraceSpan(rec.Root),
+		})
+	}
+	return ret
 }
