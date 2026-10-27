@@ -5,6 +5,7 @@ package migrations
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -246,7 +247,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		Base: base.PullRequestBranch{
 			CloneURL:  "",
 			Ref:       "master",
-			SHA:       "827aa28a907853e5ddfa40c8f9bc52471a2685fd",
+			SHA:       "d9e165e4c7ab6b701f0205d0ffb637e5d2856297",
 			RepoName:  "test_repo",
 			OwnerName: "gitea",
 		},
@@ -260,7 +261,6 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		Merged:         true,
 		MergedTime:     new(time.Unix(1598982934, 0)),
 		MergeCommitSHA: "827aa28a907853e5ddfa40c8f9bc52471a2685fd",
-		PatchURL:       mockServer.URL + "/gitea/test_repo/pulls/12.patch",
 	}, prs[1])
 
 	reviews, err := downloader.GetReviews(ctx, &base.Issue{Number: 7, ForeignIndex: 7})
@@ -273,7 +273,8 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			ReviewerName: "6543",
 			CommitID:     "187ece0cb6631e2858a6872e5733433bb3ca3b03",
 			CreatedAt:    time.Date(2020, 9, 1, 16, 12, 58, 0, time.UTC),
-			State:        "COMMENT", // TODO
+			State:        base.ReviewStateCommented,
+			Dismissed:    true,
 			Comments: []*base.ReviewComment{
 				{
 					ID:        116561,
@@ -298,7 +299,8 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			ReviewerName: "techknowlogick",
 			CommitID:     "187ece0cb6631e2858a6872e5733433bb3ca3b03",
 			CreatedAt:    time.Date(2020, 9, 1, 17, 6, 47, 0, time.UTC),
-			State:        "REQUEST_CHANGES", // TODO
+			State:        base.ReviewStateChangesRequested,
+			Dismissed:    true,
 			Content:      "I think this needs some changes",
 		},
 		{
@@ -309,6 +311,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			CommitID:     "187ece0cb6631e2858a6872e5733433bb3ca3b03",
 			CreatedAt:    time.Date(2020, 9, 1, 17, 19, 51, 0, time.UTC),
 			State:        base.ReviewStateApproved,
+			Dismissed:    true,
 			Official:     true,
 			Content:      "looks good",
 		},
@@ -317,15 +320,16 @@ func TestGiteaDownloadRepo(t *testing.T) {
 
 func TestGiteaDownloadCommentsPaging(t *testing.T) {
 	for _, tc := range []struct {
-		maxResponseItems, commentCount, requests int
-		paginated                                bool
+		maxResponseItems, pageSize, commentCount, requests int
+		paginated                                          bool
 	}{
-		{maxResponseItems: 2, commentCount: 2, requests: 2},
-		{maxResponseItems: 2, commentCount: 3, requests: 1},
-		{maxResponseItems: 2, commentCount: 4, requests: 3, paginated: true},
-		{maxResponseItems: 0, commentCount: 0, requests: 1},
+		{maxResponseItems: 2, pageSize: 2, commentCount: 2, requests: 2},
+		{maxResponseItems: 2, pageSize: 2, commentCount: 3, requests: 1},
+		{maxResponseItems: 2, pageSize: 2, commentCount: 4, requests: 3, paginated: true},
+		{maxResponseItems: 0, pageSize: 10, commentCount: 0, requests: 1},
+		{maxResponseItems: math.MaxInt, pageSize: 100, commentCount: 0, requests: 1},
 	} {
-		t.Run(strconv.Itoa(tc.commentCount), func(t *testing.T) {
+		t.Run(fmt.Sprintf("maxResponseItems=%d/comments=%d", tc.maxResponseItems, tc.commentCount), func(t *testing.T) {
 			commentRequests := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
@@ -352,6 +356,7 @@ func TestGiteaDownloadCommentsPaging(t *testing.T) {
 
 			downloader, err := NewGiteaDownloader(t.Context(), server.URL, "o/r", "", "", "")
 			require.NoError(t, err)
+			require.Equal(t, tc.pageSize, downloader.maxPerPage)
 
 			comments, _, err := downloader.GetComments(t.Context(), &base.Issue{Number: 1})
 			require.NoError(t, err)

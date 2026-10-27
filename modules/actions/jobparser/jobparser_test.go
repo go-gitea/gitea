@@ -18,72 +18,21 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	tests := []struct {
-		name    string
-		options []ParseOption
-		wantErr bool
-	}{
-		{
-			name:    "multiple_jobs",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "multiple_matrix",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "has_needs",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "has_with",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "has_secrets",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "empty_step",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "job_name_with_matrix",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "prefixed_newline",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "continue_on_error_expr",
-			options: nil,
-			wantErr: false,
-		},
-	}
-	invalidFileTests := []struct {
-		name string
-	}{
-		{name: "null_job_implicit"},
-		{name: "null_job_explicit"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			content := ReadTestdata(t, tt.name+".in.yaml")
-			want := ReadTestdata(t, tt.name+".out.yaml")
-			got, err := Parse(content, append([]ParseOption{WithGitContext(&model.GithubContext{})}, tt.options...)...)
-			if tt.wantErr {
-				require.Error(t, err)
-			}
+	for _, name := range []string{
+		"multiple_jobs",
+		"multiple_matrix",
+		"has_needs",
+		"has_with",
+		"has_secrets",
+		"empty_step",
+		"job_name_with_matrix",
+		"prefixed_newline",
+		"continue_on_error_expr",
+	} {
+		t.Run(name, func(t *testing.T) {
+			content := ReadTestdata(t, name+".in.yaml")
+			want := ReadTestdata(t, name+".out.yaml")
+			got, err := Parse(content, WithGitContext(&model.GithubContext{}))
 			require.NoError(t, err)
 
 			builder := &strings.Builder{}
@@ -102,9 +51,9 @@ func TestParse(t *testing.T) {
 		})
 	}
 
-	for _, tt := range invalidFileTests {
-		t.Run(tt.name, func(t *testing.T) {
-			content := ReadTestdata(t, tt.name+".in.yaml")
+	for _, name := range []string{"null_job_implicit", "null_job_explicit"} {
+		t.Run(name, func(t *testing.T) {
+			content := ReadTestdata(t, name+".in.yaml")
 			require.NotPanics(t, func() {
 				_, err := Parse(content)
 				require.Error(t, err)
@@ -290,17 +239,68 @@ func TestParseInterpolatesRunName(t *testing.T) {
 	assert.Empty(t, result[0].RunName)
 }
 
-func TestParseRunsOnFromJSONArray(t *testing.T) {
+func TestParseRunsOnFromJSONKeepsWhatGitHubRejectsForTheJobToFail(t *testing.T) {
 	content := []byte("on: push\njobs:\n  build:\n    runs-on: ${{ fromJSON(vars.RUNNER) }}\n    steps: [{run: echo}]\n")
 	_, err := Parse(content)
 	require.NoError(t, err)
-	for runner, want := range map[string][]string{`["self-hosted", "linux"]`: {"self-hosted", "linux"}, "[]": {""}} {
+	for runner, want := range map[string][]string{`["self-hosted", "linux"]`: {"self-hosted", "linux"}, "[]": {}, "{}": {}} {
 		result, err := Parse(content, WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"RUNNER": runner}))
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		_, job := result[0].Job()
 		assert.Equal(t, want, job.RunsOn(), runner)
 	}
+	for runner, problem := range map[string]string{`["a"]`: "", `""`: "Unexpected value ''", `[["a"]]`: "A sequence was not expected"} {
+		result, err := Parse(content, WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"RUNNER": runner}))
+		require.NoError(t, err)
+		payload, err := result[0].Marshal()
+		require.NoError(t, err)
+		_, job, err := ParseRawSingleWorkflow(payload)
+		require.NoError(t, err)
+		assert.Equal(t, problem, job.RunsOnProblem(), runner)
+	}
+}
+
+func TestParseJobNames(t *testing.T) {
+	result, err := Parse([]byte(`on: push
+jobs:
+  scalars:
+    strategy: {matrix: {value: [[1.0, true, false, 0, 1000000000000000, '', null, {os: linux}], ['', null]]}}
+    steps: [{run: echo}]
+  trimmed:
+    name: '  Trimmed  '
+    strategy: {matrix: {v: [a]}}
+    steps: [{run: echo}]
+  blank:
+    name: '   '
+    steps: [{run: echo}]
+  folded:
+    name: "${{ ' Folded' }}"
+    strategy: {matrix: {v: [a]}}
+    steps: [{run: echo}]
+  computed:
+    name: ${{ format('  {0}  ', matrix.missing) }}
+    strategy: {matrix: {v: [a]}}
+    steps: [{run: echo}]
+  padded:
+    name: ${{ format('  {0}  ', matrix.v) }}
+    strategy: {matrix: {v: [a]}}
+    steps: [{run: echo}]
+`), WithGitContext(&model.GithubContext{}))
+	require.NoError(t, err)
+	names := map[string][]string{}
+	for _, parsed := range result {
+		id, job := parsed.Job()
+		names[id] = append(names[id], job.DisplayName())
+	}
+	assert.Equal(t, map[string][]string{
+		"scalars":  {"scalars", "scalars (1, true, false, 0, 1E+15, linux)"},
+		"trimmed":  {"Trimmed (a)"},
+		"blank":    {"blank"},
+		"folded":   {" Folded (a)"},
+		"computed": {"computed"},
+		"padded":   {"a"},
+	}, names)
 }
 
 func TestJobFieldsWithoutMatrix(t *testing.T) {
@@ -409,6 +409,8 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 		{"empty vector", "\n  version: ${{ fromJson(needs.setup.outputs.empty) }}\n", `Matrix vector "version" does not contain any values`},
 		{"empty include", "\n  include: ${{ fromJson(needs.setup.outputs.empty) }}\n", "Matrix must define at least one vector"},
 		{"whole matrix not a mapping", " ${{ fromJson(needs.setup.outputs.empty) }}\n", `Matrix "" is not a map of matrix keys to values`},
+		{"unresolved need", "\n  v: ${{ fromJson(needs.missing.outputs.v) }}\n", "evaluate matrix"},
+		{"invalid strategy field", "\n  os: [linux]\nmax-parallel: ${{ fromJSON('bad') }}\n", "evaluate strategy"},
 	} {
 		t.Run(tt.name+" errors", func(t *testing.T) {
 			_, err := expand(t, tt.matrix)
@@ -422,16 +424,6 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 		require.Len(t, got, 1)
 		assert.Equal(t, "build", got[0].Name)
 		assert.Equal(t, 1, got[0].Strategy.JobTotal)
-	})
-
-	t.Run("unresolved need errors", func(t *testing.T) {
-		_, err := expand(t, "\n  v: ${{ fromJson(needs.missing.outputs.v) }}\n")
-		require.ErrorContains(t, err, "evaluate matrix")
-	})
-
-	t.Run("invalid strategy field errors", func(t *testing.T) {
-		_, err := expand(t, "\n  os: [linux]\nmax-parallel: ${{ fromJSON('bad') }}\n")
-		require.ErrorContains(t, err, "evaluate strategy")
 	})
 
 	// The combination count comes from a runtime output, so it must be rejected before one Job per
@@ -454,6 +446,37 @@ func TestReadWorkflowJobConditionContexts(t *testing.T) {
 			assert.NoError(t, err, condition)
 		} else {
 			assert.ErrorContains(t, err, "Unrecognized named-value: '"+unavailable+"'", condition)
+		}
+	}
+}
+
+func TestValidateWorkflowStaticJobKindAndRunsOnLikeGitHub(t *testing.T) {
+	for job, want := range map[string]string{
+		"{runs-on: x, steps: [{run: echo}]}":      "",
+		"{uses: o/r/.gitea/workflows/c.yml@main}": "",
+		"{runs-on: []}": "",
+		"{runs-on: {}}": "",
+		"{runs-on: {group: org/g, labels: [a, 1]}}":           "",
+		"{runs-on: {group: '${{ vars.G }}'}}":                 "",
+		"{steps: [{run: echo}]}":                              "Required property is missing: runs-on",
+		"{with: {}}":                                          "Required property is missing: uses",
+		"{runs-on: x, uses: o/r/.gitea/workflows/c.yml@main}": "Unexpected value 'uses'",
+		"{Runs-On: x}":                                        "Unexpected value 'Runs-On'",
+		"{runs-on: ~}":                                        "runs-on: Unexpected value ''",
+		"{runs-on: ['']}":                                     "runs-on: Unexpected value ''",
+		"{runs-on: [[a]]}":                                    "runs-on: A sequence was not expected",
+		"{runs-on: {labels: {a: b}}}":                         "runs-on: A mapping was not expected",
+		"{runs-on: {foo: x}}":                                 "runs-on: Unexpected value 'foo'",
+		"{runs-on: {group: org/}}":                            "runs-on: Invalid runs-on group name 'org/'.",
+		"{runs-on: {group: a/b/c}}":                           "runs-on: Invalid runs-on group name 'a/b/c'. Please use 'organization/' or 'enterprise/' prefix to target a single runner group.",
+		"{if: true}": "There's not enough info to determine what you meant. Add one of these properties: " +
+			"cancel-timeout-minutes, container, continue-on-error, defaults, env, environment, outputs, runs-on, secrets, services, snapshot, steps, timeout-minutes, uses, with",
+	} {
+		_, err := ValidateWorkflowStatic([]byte("on: push\njobs:\n  build: " + job + "\n"))
+		if want == "" {
+			assert.NoError(t, err, job)
+		} else {
+			assert.EqualError(t, err, "job build: "+want, job)
 		}
 	}
 }

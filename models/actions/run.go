@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -39,9 +40,9 @@ type ActionRun struct {
 	TriggerUserID     int64                  `xorm:"index"`
 	TriggerUser       *user_model.User       `xorm:"-"`
 	ScheduleID        int64
-	Ref               string `xorm:"index"` // the commit/tag/… that caused the run
-	IsRefDeleted      bool   `xorm:"-"`
-	CommitSHA         string
+	Ref               string                       `xorm:"index"` // the commit/tag/… that caused the run
+	IsRefDeleted      bool                         `xorm:"-"`
+	CommitSHA         string                       `xorm:"index"`
 	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool                         // may need approval if it's a fork pull request
 	ApprovedBy        int64                        `xorm:"index"` // who approved
@@ -295,9 +296,10 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 	return &run, nil
 }
 
-func GetRunsByRepoAndID(ctx context.Context, repoID int64, runIDs []int64) ([]*ActionRun, error) {
-	var runs []*ActionRun
-	err := db.GetEngine(ctx).In("id", runIDs).Where("repo_id=?", repoID).Find(&runs)
+func GetRunsByRepoAndID(ctx context.Context, repoID int64, runIDs []int64) (runs []*ActionRun, err error) {
+	if len(runIDs) > 0 {
+		err = db.GetEngine(ctx).In("id", runIDs).Where("repo_id=?", repoID).OrderBy("id").Find(&runs)
+	}
 	return runs, err
 }
 
@@ -407,26 +409,27 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 		return nil, nil
 	}
 
-	var jobsToCancel []*ActionRunJob
-
 	attempts, jobs, err := getConcurrencyEntriesToReplace(ctx, attempt.RepoID, attempt.ConcurrencyGroup, attempt.ConcurrencyCancel)
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
 	jobs = slices.DeleteFunc(jobs, func(job *ActionRunJob) bool { return job.RunID == attempt.RunID })
-	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group
-	for _, concurrentAttempt := range attempts {
-		if concurrentAttempt.RunID == attempt.RunID {
-			continue
-		}
-		jobs, err := GetRunJobsByRunAndAttemptID(ctx, concurrentAttempt.RunID, concurrentAttempt.ID)
-		if err != nil {
-			return nil, fmt.Errorf("find run %d attempt %d jobs: %w", concurrentAttempt.RunID, concurrentAttempt.ID, err)
-		}
-		jobsToCancel = append(jobsToCancel, jobs...)
+	attempts = slices.DeleteFunc(attempts, func(concurrentAttempt *ActionRunAttempt) bool { return concurrentAttempt.RunID == attempt.RunID })
+	attemptJobs, err := getRunJobsByAttempts(ctx, attempts)
+	if err != nil {
+		return nil, fmt.Errorf("find concurrent attempt jobs: %w", err)
 	}
+	return CancelJobs(ctx, append(jobs, attemptJobs...), false)
+}
 
-	return CancelJobs(ctx, jobsToCancel, false)
+func getRunJobsByAttempts(ctx context.Context, attempts []*ActionRunAttempt) (jobs []*ActionRunJob, _ error) {
+	for chunk := range slices.Chunk(attempts, db.DefaultMaxInSize) {
+		attemptIDs := container.FilterSlice(chunk, func(attempt *ActionRunAttempt) (int64, bool) { return attempt.ID, true })
+		if err := db.GetEngine(ctx).In("run_attempt_id", attemptIDs).Find(&jobs); err != nil {
+			return nil, err
+		}
+	}
+	return jobs, nil
 }

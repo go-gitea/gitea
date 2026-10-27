@@ -139,16 +139,9 @@ func Runners(ctx *context.Context) {
 	}
 
 	// ownid=0,repo_id=0,means this token is used for global
-	var token *actions_model.ActionRunnerToken
-	token, err = actions_model.GetLatestRunnerToken(ctx, opts.OwnerID, opts.RepoID)
-	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
-		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID)
-		if err != nil {
-			ctx.ServerError("CreateRunnerToken", err)
-			return
-		}
-	} else if err != nil {
-		ctx.ServerError("GetLatestRunnerToken", err)
+	token, err := actions_model.GetOrCreateActiveRunnerToken(ctx, opts.OwnerID, opts.RepoID)
+	if err != nil {
+		ctx.ServerError("GetOrCreateActiveRunnerToken", err)
 		return
 	}
 
@@ -400,31 +393,24 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	runners, err := db.Find[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{IDs: runnerIDs})
+	runners, err := db.Find[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{IDs: runnerIDs, Sort: "oldest"})
 	if err != nil {
 		ctx.ServerError("FindRunners", err)
 		return
 	}
 
-	err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
-		for _, r := range runners {
-			switch action {
-			case "delete":
+	if action == "delete" {
+		err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
+			for _, r := range runners {
 				if err := actions_model.DeleteRunner(txCtx, r.ID); err != nil {
 					return err
 				}
-			case "disable":
-				if err := actions_model.SetRunnerDisabled(txCtx, r, true); err != nil {
-					return err
-				}
-			case "enable":
-				if err := actions_model.SetRunnerDisabled(txCtx, r, false); err != nil {
-					return err
-				}
 			}
-		}
-		return nil
-	})
+			return nil
+		})
+	} else {
+		err = actions_model.SetRunnersDisabled(ctx, runners, action == "disable")
+	}
 	if err != nil {
 		log.Warn("RunnerBulkActionPost.%s failed: %v, url: %s", action, err, ctx.Req.URL)
 		ctx.Flash.Error(ctx.Tr(failedKey))

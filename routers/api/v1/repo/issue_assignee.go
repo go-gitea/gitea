@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
@@ -11,6 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -146,14 +148,8 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIErrorNotFound()
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -187,9 +183,8 @@ func checkAssignableUser(ctx *context.APIContext, assigneeName string, repo *rep
 }
 
 func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption, isAdd bool) {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -203,13 +198,13 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 		return
 	}
 
-	assigneeIDs, err := user_model.GetUserIDsByNames(ctx, opts.Assignees, false)
+	assigneeIDs, err := user_model.GetDoerUserIDsByNames(ctx, opts.Assignees)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-			return
+		} else {
+			ctx.APIErrorAuto(err)
 		}
-		ctx.APIErrorAuto(err)
 		return
 	}
 

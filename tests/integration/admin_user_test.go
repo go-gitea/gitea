@@ -16,8 +16,10 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/services/auth/source/ldap"
 	"gitea.dev/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,25 +27,66 @@ import (
 func TestAdminViewUsers(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/-/admin/users")
-	session.MakeRequest(t, req, http.StatusOK)
+	t.Run("List", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		req := NewRequest(t, "GET", "/-/admin/users")
+		session.MakeRequest(t, req, http.StatusOK)
 
-	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/-/admin/users")
-	session.MakeRequest(t, req, http.StatusForbidden)
-}
+		session = loginUser(t, "user2")
+		req = NewRequest(t, "GET", "/-/admin/users")
+		session.MakeRequest(t, req, http.StatusForbidden)
+	})
 
-func TestAdminViewUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	t.Run("ViewUser", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		req := NewRequest(t, "GET", "/-/admin/users/1")
+		session.MakeRequest(t, req, http.StatusOK)
 
-	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/-/admin/users/1")
-	session.MakeRequest(t, req, http.StatusOK)
+		session = loginUser(t, "user2")
+		req = NewRequest(t, "GET", "/-/admin/users/1")
+		session.MakeRequest(t, req, http.StatusForbidden)
+	})
 
-	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/-/admin/users/1")
-	session.MakeRequest(t, req, http.StatusForbidden)
+	t.Run("FilterAuthSource", func(t *testing.T) {
+		source := &auth_model.Source{Type: auth_model.LDAP, Name: "test-user-list-filter", IsActive: false, Cfg: &ldap.Source{}} // users stay attached to a deactivated source
+		require.NoError(t, auth_model.CreateSource(t.Context(), source))
+
+		user2 := &user_model.User{ID: 2, LoginType: auth_model.LDAP, LoginSource: source.ID}
+		require.NoError(t, user_model.UpdateUserCols(t.Context(), user2, "login_type", "login_source"))
+
+		session := loginUser(t, "user1")
+		listUsers := func(query string) (*HTMLDoc, []string) {
+			req := NewRequest(t, "GET", "/-/admin/users?"+query)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
+			return doc, doc.Find("table tbody tr td:nth-child(2) a").Map(func(_ int, s *goquery.Selection) string {
+				return s.Text()
+			})
+		}
+
+		doc, users := listUsers("source_id=") // the "All" option submits an empty value
+		AssertHTMLElement(t, doc, `input[name="source_id"][value=""][checked]`, true)
+		assert.Subset(t, users, []string{"user1", "user2"})
+
+		doc, users = listUsers(fmt.Sprintf("source_id=%d", source.ID)) // the "test-user-list-filter" LDAP source
+		AssertHTMLElement(t, doc, fmt.Sprintf(`input[name="source_id"][value="%d"][checked]`, source.ID), true)
+		assert.Equal(t, []string{"user2"}, users)
+		assert.Equal(t, source.Name, doc.Find("table tbody tr td:nth-child(4)").Text())
+
+		_, users = listUsers("source_id=0") // 0 means the "Local" source
+		assert.Contains(t, users, "user1")
+		assert.NotContains(t, users, "user2")
+
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadAdmin)
+		req := NewRequest(t, "GET", "/api/v1/admin/users?source_id=0").AddTokenAuth(token) // the API also treats 0 as local users
+		apiUsers := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []api.User{})
+		apiUserNames := make([]string, 0, len(apiUsers))
+		for _, u := range apiUsers {
+			apiUserNames = append(apiUserNames, u.UserName)
+		}
+		assert.Contains(t, apiUserNames, "user1")
+		assert.NotContains(t, apiUserNames, "user2")
+	})
 }
 
 func TestAdminEditUser(t *testing.T) {
@@ -233,6 +276,17 @@ func TestAdminBotUser(t *testing.T) {
 			assert.Equal(t, int64(1), events[0].ActorID)
 			assert.Equal(t, "ci", audit_model.DecodeMetadata(events[0].Metadata)["token"])
 		}
+	})
+
+	t.Run("TokenIgnoresMustChangePassword", func(t *testing.T) {
+		bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "bot-user"})
+		bot.IsActive, bot.MustChangePassword = true, true
+		require.NoError(t, user_model.UpdateUserCols(t.Context(), bot, "is_active", "must_change_password"))
+		token := &auth_model.AccessToken{UID: bot.ID, Name: "git", Scope: auth_model.AccessTokenScopeAll}
+		require.NoError(t, auth_model.NewAccessToken(t.Context(), token))
+
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1").AddTokenAuth(token.Token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1.git/info/refs?service=git-upload-pack").AddBasicAuth(bot.Name, token.Token), http.StatusOK)
 	})
 
 	t.Run("APIRejectsAuthSource", func(t *testing.T) {

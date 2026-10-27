@@ -125,7 +125,7 @@ Gitea 的发音是 [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY)，就像 "gi-tea
 
 **在哪里可以找到安全补丁？**
 
-在 [发布日志](https://github.com/go-gitea/gitea/releases) 或 [变更日志](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md) 中，搜索关键词 `SECURITY` 以找到安全补丁。
+在 [发布日志](https://github.com/go-gitea/gitea/releases) 中，搜索关键词 `SECURITY` 以找到安全补丁。
 
 ## 许可证
 

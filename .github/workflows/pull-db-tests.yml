@@ -25,6 +25,8 @@ jobs:
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
         ports:
           - "5432:5432"
       ldap:
@@ -61,6 +63,8 @@ jobs:
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
         ports:
           - "5432:5432"
       ldap:
@@ -95,17 +99,17 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          TAGS: bindata gogit
+          TAGS: bindata
       - run: GITEA_TEST_DATABASE=sqlite make test-migration
         env:
-          TAGS: bindata gogit
+          TAGS: bindata
       - name: run tests
         run: GITEA_TEST_DATABASE=sqlite make test-integration
         timeout-minutes: 50
         env:
           # sqlite driver can contain large amount of Golang code, so don't use race detector for it, otherwise, extremely slow
           GOTEST_FLAGS: -timeout=40m
-          TAGS: bindata gogit
+          TAGS: bindata
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true'
@@ -113,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       elasticsearch:
-        image: elasticsearch:8.19.21@sha256:ae1f398ec8734a63eb7f719cecc2ea33e2bb46e23bdf24641dec86fd256bf594
+        image: elasticsearch:8.19.23@sha256:3f4d63c59ca5a05b535179dfcced47a514119e351fa81653f69902beacae90c9
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -163,13 +167,6 @@ jobs:
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
-      - name: unit-tests-gogit
-        run: make test-backend
-        env:
-          GOTEST_FLAGS: -race -timeout=20m
-          TAGS: bindata gogit
-          GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
-          GITEA_TEST_CI_SKIP_EXTERNAL: true
       - run: make test-check
 
   test-mysql:
@@ -188,7 +185,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: elasticsearch:8.19.21@sha256:ae1f398ec8734a63eb7f719cecc2ea33e2bb46e23bdf24641dec86fd256bf594
+        image: elasticsearch:8.19.23@sha256:3f4d63c59ca5a05b535179dfcced47a514119e351fa81653f69902beacae90c9
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -226,7 +223,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:ef0b8db33970ecd01bed49c3a84a1d083c435a9891718df619298b67b352e74a
+        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:07d7dedecdbfcf6776035dc5eefb5bfd9aa1804b2f6b99f7dedb397d8a599069
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard

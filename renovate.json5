@@ -79,10 +79,6 @@
       "allowedVersions": "^3", // need to migrate
     },
     {
-      "matchPackageNames": ["@citation-js/core", "@citation-js/plugin-bibtex", "@citation-js/plugin-csl"],
-      "allowedVersions": "<0.8", // https://github.com/citation-js/citation-js/pull/277
-    },
-    {
       "matchPackageNames": ["typescript"],
       "allowedVersions": "^6", // typescript-eslint is not yet compatible with typescript 7
     },
@@ -110,6 +106,11 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["mcr.microsoft.com/**"],
       "minimumReleaseAgeBehaviour": "timestamp-optional", // registry has no release timestamps, https://github.com/renovatebot/renovate/issues/38656
+    },
+    {
+      "matchDepTypes": ["engines"],
+      "matchDepNames": ["pnpm"],
+      "rangeStrategy": "bump", // keep in sync with packageManager
     },
     {
       "matchManagers": ["gomod"],

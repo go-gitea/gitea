@@ -450,7 +450,6 @@
   "settings.key_name": "Nome della Chiave",
   "settings.key_content": "Contenuto",
   "settings.principal_content": "Contenuto",
-  "settings.delete_key": "Rimuovi",
   "settings.ssh_key_deletion": "Rimuovi chiave SSH",
   "settings.gpg_key_deletion": "Rimuovi chiave GPG",
   "settings.ssh_principal_deletion": "Rimuovi certificato SSH principale",
@@ -531,7 +530,6 @@
   "settings.delete_account_title": "Elimina account utente",
   "settings.delete_account_desc": "Sei sicuro di voler rimuovere questo account utente permanentemente?",
   "settings.email_notifications.enable": "Abilita Notifiche Email",
-  "settings.email_notifications.onmention": "Solo email su Menzione",
   "settings.email_notifications.disable": "Disabilita notifiche email",
   "settings.email_notifications.submit": "Imposta Preferenze Email",
   "settings.email_notifications.andyourown": "E Le Tue Notifiche",
@@ -2195,7 +2193,6 @@
   "units.error.no_unit_allowed_repo": "Non possiedi il permesso di accedere ad alcuna sezione di questo repository.",
   "units.error.unit_not_allowed": "Non possiedi il permesso di accedere a questa sezione di repository.",
   "packages.title": "Pacchetti",
-  "packages.desc": "Gestisci pacchetti repository.",
   "packages.empty": "Non ci sono ancora pacchetti.",
   "packages.empty.repo": "Hai caricato un pacchetto, ma non è mostrato qui? Vai alle <a href=\"%[1]s\">impostazioni del pacchetto</a> e collegalo a questo repo.",
   "packages.filter.type": "Tipo",
@@ -2286,5 +2283,6 @@
   "actions.workflow.scope_owner": "Proprietario",
   "actions.workflow.required": "Richiesto",
   "actions.job_queue.filter_repo_no_select": "Tutte le repository",
+  "projects.workflows.none": "Nessuno",
   "actions.general.token_permissions.mode.restricted": "Limitato"
 }

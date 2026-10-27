@@ -84,6 +84,7 @@ var (
 	UserTwoFactorRegenerate         = define("user:twofactor:regenerate", "Regenerated two-factor authentication secret for user {scope}.")
 	UserTwoFactorDisable            = define("user:twofactor:disable", "Disabled two-factor authentication for user {scope}.")
 	UserWebAuthAdd                  = define("user:webauth:add", "Added WebAuthn key {credential} for user {scope}.")
+	UserWebAuthRename               = define("user:webauth:rename", "Renamed WebAuthn key {previous_credential} of user {scope} to {credential}.")
 	UserWebAuthRemove               = define("user:webauth:remove", "Removed WebAuthn key {credential} from user {scope}.")
 	UserExternalLoginAdd            = define("user:externallogin:add", "Added external login {external_id} for user {scope} using provider {provider}.")
 	UserExternalLoginRemove         = define("user:externallogin:remove", "Removed external login from authentication source {auth_source_id} for user {scope}.")
@@ -183,6 +184,10 @@ var (
 	ProjectCreate = define("project:create", "Created project {project} in {scope}.")
 	ProjectUpdate = define("project:update", "Updated project {project} in {scope}.")
 	ProjectDelete = define("project:delete", "Deleted project {project} from {scope}.")
+
+	ProjectWorkflowCreate = define("project:workflow:create", "Created workflow {workflow_id} for {event} in project {project} of {scope}.")
+	ProjectWorkflowUpdate = define("project:workflow:update", "Updated workflow {workflow_id} for {event} in project {project} of {scope}.")
+	ProjectWorkflowDelete = define("project:workflow:delete", "Deleted workflow {workflow_id} for {event} from project {project} of {scope}.")
 
 	WikiPageCreate = define("wiki:page:create", "Created wiki page {page} in repository {scope}.")
 	WikiPageUpdate = define("wiki:page:update", "Updated wiki page {page} in repository {scope}.")

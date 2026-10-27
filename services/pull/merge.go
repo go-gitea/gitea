@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"uuid"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -27,6 +28,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/references"
@@ -277,6 +279,18 @@ func recordMergeIntent(ctx context.Context, pr *issues_model.PullRequest, doer *
 	})
 }
 
+// clearMergeIntent reverts recordMergeIntent after the merged commit failed to reach the base repo
+func clearMergeIntent(ctx context.Context, pr *issues_model.PullRequest) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		pr.MergedUnix, pr.MergedCommitID, pr.MergerID = 0, "", 0
+		if _, err := db.GetEngine(ctx).NoAutoTime().ID(pr.ID).Cols("merged_unix", "merged_commit_id", "merger_id").Update(pr); err != nil {
+			return err
+		}
+		_, err := db.GetEngine(ctx).Where("pull_id=?", pr.ID).Cols("merged_commit_id").Update(&pull_model.AutoMerge{})
+		return err
+	})
+}
+
 func hasPullRequestCommitBeenMerged(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
 	if pr.MergedCommitID == "" {
 		return false, nil
@@ -284,13 +298,27 @@ func hasPullRequestCommitBeenMerged(ctx context.Context, pr *issues_model.PullRe
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return false, err
 	}
+	// the recorded commit is missing from the base repo if the push never succeeded, then it is not merged
 	return git.IsCommitInBranch(ctx, pr.BaseRepo, pr.MergedCommitID, pr.BaseBranch)
 }
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-func Merge(prID int64, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+func Merge(outerCtx context.Context, prID int64, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+	outerCtxId := uuid.NewV4().String()
+
+	_, outerSpan := gtprof.GetTracer().Start(outerCtx, gtprof.TraceSpanContext)
+	outerSpan.SetAttributeString("context.trace-id", outerCtxId) // this attribute is only used internally for debugging purpose
+	defer outerSpan.End()
+
+	// TODO: in the future, the contexts from graceful.GetManager() should be wrapped with gtprof tracing, refactor the code to framework-level support
 	ctx := graceful.GetManager().HammerContext() // don't abort the git operation even if the user's request is canceled
+
+	ctx, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanContext)
+	span.SetAttributeString(gtprof.TraceAttrGeneralName, "merge-pull-request")
+	span.SetAttributeString(gtprof.TraceAttrGeneralDesc, fmt.Sprintf("merge pull request %d with merge style %s", prID, mergeStyle))
+	span.SetAttributeString("context.trace-id-outer", outerCtxId) // this attribute is only used internally for debugging purpose
+	defer span.End()
 
 	err := globallock.LockAndDo(ctx, getPullWorkingLockKey(prID), func(ctx context.Context) error {
 		pr, err := issues_model.GetPullRequestByID(ctx, prID)
@@ -325,6 +353,12 @@ func Merge(prID int64, doer *user_model.User, mergeStyle repo_model.MergeStyle, 
 				},
 			})
 			if err != nil {
+				// clear the intent only if the commit verifiably didn't reach the base branch
+				if merged, checkErr := hasPullRequestCommitBeenMerged(ctx, pr); checkErr == nil && !merged && pr.MergedCommitID != "" {
+					if clearErr := clearMergeIntent(ctx, pr); clearErr != nil {
+						log.Error("Unable to clear merge intent of %-v: %v", pr, clearErr)
+					}
+				}
 				return err
 			}
 		}

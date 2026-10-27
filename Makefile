@@ -6,11 +6,10 @@ SHASUM ?= shasum -a 256
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1.67.4 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v4/cmd/editorconfig-checker@v4.0.2 # renovate: datasource=go
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2 # renovate: datasource=go
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.17 # renovate: datasource=go
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.6 # renovate: datasource=go
-GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.8.0 # renovate: datasource=go
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.9.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
 SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
 
@@ -69,14 +68,15 @@ endif
 
 # GOTEST_FLAGS is for unit test and integration test
 GOTEST_FLAGS ?= -timeout 40m
+# disable race detection for the packages that slow down the tests
+GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS)
 
 STORED_VERSION_FILE := VERSION
 
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-# VERSION: the branch name for the build and filenames, e.g.: "feature/foo-bar", "main"
-#          branch name "release/v1.27.2" is stripped to "1.27.2".
+# VERSION: the name for the build and filenames, e.g.: "1.2.3" for tag "v1.2.3", "main-nightly" for branch "main"
 # GITEA_VERSION: the Gitea's internal version for display, e.g. "1.28.0+dev-356-ge47d0b66ea"
 ifeq ($(GITHUB_REF_TYPE),tag)
 	# convert tag "v1.2.3" to "1.2.3"
@@ -99,11 +99,6 @@ else ifeq ($(GITHUB_REF_TYPE),branch)
 	endif
 else
 	$(error unsupported ref type $(GITHUB_REF_TYPE))
-endif
-
-# if version == "main" then add "-nightly" to the version for nightly builds: "main-nightly"
-ifeq ($(VERSION),main)
-	VERSION := main-nightly
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
@@ -132,11 +127,9 @@ GO_LICENSE_FILE := assets/go-licenses.json
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
 
 GO_DIRS := build cmd modelmigration models modules routers services tests tools
-WEB_DIRS := web_src/js web_src/css
 
 ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.json
 
 GO_SOURCES := $(wildcard *.go)
@@ -273,10 +266,10 @@ checks-frontend: lockfile-check svg-check ## check frontend files
 checks-backend: tidy-check swagger-check openapi3-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
-lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml lint-shell ## lint everything
+lint: lint-frontend lint-backend lint-templates lint-swagger lint-md lint-actions lint-json lint-yaml lint-shell ## lint everything
 
 .PHONY: lint-fix
-lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix ## lint everything and fix issues
+lint-fix: lint-frontend-fix lint-backend-fix ## lint everything and fix issues
 
 .PHONY: lint-frontend
 lint-frontend: lint-js lint-css ## lint frontend files
@@ -319,14 +312,6 @@ lint-md: node_modules ## lint markdown files
 .PHONY: lint-md-fix
 lint-md-fix: node_modules ## lint markdown files and fix issues
 	pnpm exec markdownlint --fix *.md
-
-.PHONY: lint-spell
-lint-spell: ## lint spelling
-	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error
-
-.PHONY: lint-spell-fix
-lint-spell-fix: ## lint spelling and fix issues
-	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
 lint-go: ## lint go files
@@ -556,7 +541,7 @@ release-compress: | $(DIST_DIRS)
 
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS)
-	echo $(VERSION) > $(STORED_VERSION_FILE)
+	echo $(GITEA_VERSION) > $(STORED_VERSION_FILE)
 # bsdtar needs a ^ to prevent matching subdirectories
 	$(eval EXCL := --exclude=$(shell tar --help | grep -q bsdtar && echo "^")./)
 # use transform to a add a release-folder prefix; in bsdtar the transform parameter equivalent is -s
@@ -578,15 +563,14 @@ deps-backend: ## install backend dependencies
 	$(GO) mod download
 
 .PHONY: deps-tools
-deps-tools: ## install tool dependencies
-	$(GO) install $(AIR_PACKAGE) & \
-	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
-	$(GO) install $(GOLANGCI_LINT_PACKAGE) & \
-	$(GO) install $(GXZ_PACKAGE) & \
-	$(GO) install $(MISSPELL_PACKAGE) & \
-	$(GO) install $(SWAGGER_PACKAGE) & \
-	$(GO) install $(GOVULNCHECK_PACKAGE) & \
-	$(GO) install $(ACTIONLINT_PACKAGE) & \
+deps-tools: ## fetch and compile tool dependencies
+	$(GO) run -exec true $(AIR_PACKAGE) & \
+	$(GO) run -exec true $(EDITORCONFIG_CHECKER_PACKAGE) & \
+	$(GO) run -exec true $(GOLANGCI_LINT_PACKAGE) & \
+	$(GO) run -exec true $(GXZ_PACKAGE) & \
+	$(GO) run -exec true $(SWAGGER_PACKAGE) & \
+	$(GO) run -exec true $(GOVULNCHECK_PACKAGE) & \
+	$(GO) run -exec true $(ACTIONLINT_PACKAGE) & \
 	wait
 
 node_modules: pnpm-lock.yaml

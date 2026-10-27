@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +26,7 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 
-	uid, exists := htmlDoc.doc.Find("#uid").Attr("value")
+	uid, exists := htmlDoc.doc.Find(`input[name="uid"]`).Attr("value")
 	assert.True(t, exists, "The template has changed")
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
@@ -32,7 +35,7 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 		"repo_name":  repoName,
 		"service":    fmt.Sprintf("%d", structs.PlainGitService),
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	return resp
 }
@@ -40,5 +43,15 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 func TestRepoMigrate(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testRepoMigrate(t, session, "https://github.com/go-gitea/test_repo.git", "git")
+	resp := testRepoMigrate(t, session, "https://github.com/go-gitea/test_repo.git", "git")
+	assert.Equal(t, "/user2/git", *test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
+
+	t.Run("ProviderEntries", func(t *testing.T) {
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/repo/migrate"), http.StatusOK)
+		entries := NewHTMLParser(t, resp.Body).Find(".migrate-entry-title").FilterFunction(func(_ int, s *goquery.Selection) bool {
+			return strings.Contains(s.Text(), "Bitbucket")
+		})
+		assert.Equal(t, 1, entries.Length())
+		assert.Equal(t, "Bitbucket", strings.TrimSpace(entries.Text()))
+	})
 }

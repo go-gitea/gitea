@@ -19,7 +19,6 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/storage"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -55,15 +54,18 @@ jobs:
 		createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "trigger", wfFileContent))
 
 		task := runner.fetchTask(t)
+		allocated := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id})
+		registered := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: allocated.RunnerID})
+		require.NoError(t, actions_model.SetRunnerDisabled(t.Context(), registered, true))
 
-		resp, err := runner.client.runnerServiceClient.UpdateLog(t.Context(), connect.NewRequest(&runnerv1.UpdateLogRequest{
+		resp, err := runner.client.runnerServiceClient.UpdateLog(t.Context(), &runnerv1.UpdateLogRequest{
 			TaskId: task.Id,
 			Index:  0,
 			Rows:   nil,
 			NoMore: true,
-		}))
+		})
 		require.NoError(t, err)
-		assert.EqualValues(t, 0, resp.Msg.AckIndex)
+		assert.EqualValues(t, 0, resp.AckIndex)
 
 		freshTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id})
 		require.True(t, freshTask.LogInStorage, "log_in_storage must flip after empty NoMore=true")
@@ -73,18 +75,20 @@ jobs:
 
 		_, err = dbfs.Open(t.Context(), actions_module.DBFSPrefix+freshTask.LogFilename)
 		assert.ErrorIs(t, err, os.ErrNotExist, "DBFS row must be cleaned up after TransferLogs")
+		runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id, Status: actions_model.StatusSuccess})
 
 		// The runner re-sends its final UpdateLog when the response was lost.
 		// A sealed log must ack the re-send and still reject new appended rows.
 		t.Run("re-sent finalize is idempotent", func(t *testing.T) {
 			finalize := &runnerv1.UpdateLogRequest{TaskId: task.Id, Index: 0, Rows: nil, NoMore: true}
-			resp, err := runner.client.runnerServiceClient.UpdateLog(t.Context(), connect.NewRequest(finalize))
+			resp, err := runner.client.runnerServiceClient.UpdateLog(t.Context(), finalize)
 			require.NoError(t, err)
-			assert.EqualValues(t, 0, resp.Msg.AckIndex)
+			assert.EqualValues(t, 0, resp.AckIndex)
 
-			_, err = runner.client.runnerServiceClient.UpdateLog(t.Context(), connect.NewRequest(&runnerv1.UpdateLogRequest{
+			_, err = runner.client.runnerServiceClient.UpdateLog(t.Context(), &runnerv1.UpdateLogRequest{
 				TaskId: task.Id, Index: 0, Rows: []*runnerv1.LogRow{{Content: "late"}}, NoMore: true,
-			}))
+			})
 			require.Error(t, err, "appending rows past the seal must be rejected")
 		})
 	})

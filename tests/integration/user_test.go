@@ -41,6 +41,9 @@ func testViewUser(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2")
 	MakeRequest(t, req, http.StatusOK)
 
+	req = NewRequest(t, "GET", "/user2/-/repositories")
+	MakeRequest(t, req, http.StatusNotFound)
+
 	req = NewRequest(t, "GET", "/user2.keys")
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, `# Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.
@@ -84,6 +87,7 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	org22 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
 	req := NewRequest(t, "GET", "/"+org22.Name)
 	MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/"+org22.Name).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
 
 	session := loginUser(t, "user1")
 	oldName := org22.Name
@@ -106,6 +110,8 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	org23 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
 	req = NewRequest(t, "GET", "/"+org23.Name)
 	MakeRequest(t, req, http.StatusNotFound)
+	strangerSession := loginUser(t, "user4")
+	strangerSession.MakeRequest(t, NewRequest(t, "POST", "/"+org23.Name+"?action=follow"), http.StatusNotFound)
 
 	oldName = org23.Name
 	newName = "org23_renamed"
@@ -127,6 +133,9 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
 	req = NewRequest(t, "GET", "/"+user31.Name)
 	MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/"+user31.Name).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/"+user31.Name+".keys"), http.StatusNotFound)
+	strangerSession.MakeRequest(t, NewRequest(t, "POST", "/"+user31.Name+"?action=follow"), http.StatusNotFound)
 
 	oldName = user31.Name
 	newName = "user31_renamed"
@@ -229,6 +238,7 @@ func testRenameReservedUsername(t *testing.T) {
 
 func testExportUserGPGKeys(t *testing.T) {
 	testExportUserGPGKeys := func(t *testing.T, user, expected string) {
+		t.Helper()
 		session := loginUser(t, user)
 		t.Logf("Testing username %s export gpg keys", user)
 		req := NewRequest(t, "GET", "/"+user+".gpg")
@@ -316,7 +326,7 @@ func testGetUserRss(t *testing.T) {
 	user34 := "the_34-user.with.all.allowedChars"
 	req := NewRequestf(t, "GET", "/%s.rss", user34)
 	resp := MakeRequest(t, req, http.StatusOK)
-	if assert.Equal(t, "application/rss+xml;charset=utf-8", resp.Header().Get("Content-Type")) {
+	if assert.Equal(t, "application/rss+xml; charset=utf-8", resp.Header().Get("Content-Type")) {
 		rssDoc := NewHTMLParser(t, resp.Body).Find("channel")
 		title, _ := rssDoc.ChildrenFiltered("title").Html()
 		assert.Equal(t, "Feed of &#34;the_1-user.with.all.allowedChars&#34;", title)
@@ -330,6 +340,12 @@ func testGetUserRss(t *testing.T) {
 	session := loginUser(t, "user2")
 	req = NewRequestf(t, "GET", "/non-existent-user.rss")
 	session.MakeRequest(t, req, http.StatusNotFound)
+
+	MakeRequest(t, NewRequest(t, "GET", "/").SetHeader("Accept", "application/rss+xml"), http.StatusUnsupportedMediaType)
+
+	defer test.MockVariableValue(&setting.Other.EnableFeed, false)()
+	MakeRequest(t, NewRequestf(t, "GET", "/%s.rss", user34), http.StatusNotFound)
+	MakeRequest(t, NewRequestf(t, "GET", "/%s", user34).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
 }
 
 func testUserListStopWatches(t *testing.T) {

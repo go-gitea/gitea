@@ -445,7 +445,6 @@
   "settings.key_name": "Sleutel naam",
   "settings.key_content": "Inhoud",
   "settings.principal_content": "Inhoud",
-  "settings.delete_key": "Verwijder",
   "settings.ssh_key_deletion": "Verwijder SSH-sleutel",
   "settings.gpg_key_deletion": "Verwijder GPG-sleutel",
   "settings.ssh_principal_deletion": "Verwijder de SSH-certificaat verantwoordelijke",
@@ -527,7 +526,6 @@
   "settings.delete_account_title": "Verwijder gebruikers account",
   "settings.delete_account_desc": "Weet je zeker dat je dit gebruikersaccount permanent wil verwijderen?",
   "settings.email_notifications.enable": "E-mailnotificaties inschakelen",
-  "settings.email_notifications.onmention": "Alleen e-mail op vermelding",
   "settings.email_notifications.disable": "E-mailnotificaties uitschakelen",
   "settings.email_notifications.submit": "E-mailvoorkeur instellen",
   "settings.email_notifications.andyourown": "En je eigen notificaties",
@@ -2002,5 +2000,6 @@
   "actions.workflow.scope_owner": "Eigenaar",
   "actions.workflow.required": "Vereist",
   "actions.job_queue.filter_repo_no_select": "Alle repositories",
+  "projects.workflows.none": "Geen",
   "actions.general.token_permissions.mode.restricted": "Beperkt"
 }

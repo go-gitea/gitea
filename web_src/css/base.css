@@ -2,6 +2,8 @@
   /* fonts */
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
   --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
+  /* sturdier fonts precede "math", which is thin Latin Modern Math in Firefox and Linux Chromium, DejaVu Math follows it for its small display operators, https://issues.chromium.org/issues/40069293 */
+  --fonts-math: "Cambria Math", "STIX Two Math", gitea-math-book, "Libertinus Math", math, "DejaVu Math TeX Gyre", "Noto Sans Math";
   /* GitHub explicitly sets font names like: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   Actually "Twemoji Mozilla" emoji font is widely used by browsers like Firefox, Pale Moon, and it is more likely up-to-dated than the system emoji font.
   So not setting emoji font seems to be the best choice, here we just use a non-existing dummy font name and let browsers choose. */
@@ -45,7 +47,6 @@
   --gap-block: 0.5rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
 
   --background-view-image: repeating-conic-gradient(var(--color-transparency-grid-dark) 0 25%, var(--color-transparency-grid-light) 0 50%) 0 0 / 18px 18px;
-  --box-shadow-kbd: inset 0 -1px 0 var(--color-secondary);
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -105,6 +106,16 @@ code,
 samp,
 .tw-font-mono {
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
+}
+
+@font-face {
+  font-family: gitea-math-book; /* the Book weight shares its family name with the thinner Regular */
+  src: local("NewComputerModernMath-Book"), local("NewCMMath-Book");
+}
+
+math {
+  font-family: var(--fonts-math);
+  font-size-adjust: ex-height 0.52; /* match KaTeX's x-height (0.431 × 1.21em) regardless of math font, https://github.com/w3c/mathml-core/issues/41 */
 }
 
 /* there are many <code> blocks in non-markup(.markup code) / non-code-diff(code.code-inner) containers, for example: translation strings, etc,
@@ -833,7 +844,7 @@ table th[data-sortt-desc] .svg {
 }
 
 /* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
-.ui.modal .header.flex-left-right,
+.modal-dialog .header.flex-left-right,
 .flex-left-right {
   display: flex;
   flex-wrap: wrap;

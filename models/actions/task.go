@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -236,13 +237,13 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 
 func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 	if step.Name != "" {
-		name = string(step.Name) // the step has an explicit name
+		name = step.Name // the step has an explicit name
 	} else {
 		// for unnamed step, its "String()" method tries to get a display name by its "name", "uses",
 		// "run" or "id" (last fallback), we add the "Run " prefix for unnamed steps for better display
 		// for multi-line "run" scripts, only use the first line to match GitHub's behavior
 		// https://github.com/actions/runner/blob/66800900843747f37591b077091dd2c8cf2c1796/src/Runner.Worker/Handlers/ScriptHandler.cs#L45-L58
-		runStr, _, _ := strings.Cut(strings.TrimSpace(string(step.Run)), "\n")
+		runStr, _, _ := strings.Cut(strings.TrimSpace(step.Run), "\n")
 		name = "Run " + util.IfZero(strings.TrimSpace(runStr), step.String())
 	}
 	return util.EllipsisDisplayString(name, limit) // database column has a length limit
@@ -251,6 +252,10 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 // errJobAlreadyClaimed is a sentinel used inside claimJobForRunner to signal that
 // another runner won the optimistic-lock race; it is never returned to callers.
 var errJobAlreadyClaimed = errors.New("job already claimed by another runner")
+
+var errRunnerDisabled = errors.New("runner is disabled")
+
+var errRunnerAlreadyUsed = errors.New("ephemeral runner already has a task")
 
 // pickTaskBatchSize bounds how many waiting jobs each CreateTaskForRunner query loads,
 // so a large backlog is not fetched into memory on every runner poll.
@@ -298,12 +303,21 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
 			return nil, false, err
 		}
+		// A short page means no waiting jobs remain beyond it.
+		isLastPage := len(jobs) < pickTaskBatchSize
+		if !isLastPage {
+			last := jobs[len(jobs)-1] // read before a lost claim bumps Updated
+			cursorUpdated, cursorID = last.Updated, last.ID
+		}
 
 		for _, v := range jobs {
 			if !runner.CanMatchLabels(v.RunsOn) {
 				continue
 			}
 			task, ok, err := claimJobForRunner(ctx, runner, v)
+			if errors.Is(err, errRunnerDisabled) || errors.Is(err, errRunnerAlreadyUsed) {
+				return nil, false, nil
+			}
 			if err != nil {
 				return nil, false, err
 			}
@@ -313,12 +327,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			// Another runner claimed this job concurrently; try the next one.
 		}
 
-		// A short page means no waiting jobs remain beyond it.
-		if len(jobs) < pickTaskBatchSize {
+		if isLastPage {
 			return nil, false, nil
 		}
-		last := jobs[len(jobs)-1]
-		cursorUpdated, cursorID = last.Updated, last.ID
 	}
 }
 
@@ -331,6 +342,28 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
+		freshRunner, err := getRunnerForUpdate(ctx, runner.ID)
+		if err != nil {
+			return err
+		}
+		if freshRunner.IsDisabled {
+			return errRunnerDisabled
+		}
+		if freshRunner.Ephemeral {
+			var hasTask bool
+			if setting.Database.Type.IsMSSQL() {
+				// Do not wait for task reports which may already be waiting for this runner.
+				hasTask, err = e.SQL("SELECT TOP (1) 1 FROM action_task WITH (NOWAIT) WHERE runner_id = ?", freshRunner.ID).Exist()
+			} else {
+				hasTask, err = e.Where("runner_id = ?", freshRunner.ID).Exist(new(ActionTask))
+			}
+			if err != nil {
+				return err
+			}
+			if hasTask {
+				return errRunnerAlreadyUsed
+			}
+		}
 
 		if err := job.LoadAttributes(ctx); err != nil {
 			return err
@@ -450,10 +483,10 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 	if len(cols) > 0 {
 		sess.Cols(cols...)
 	}
-	_, err := sess.Update(task)
+	affected, err := sess.Update(task)
 
-	// Automatically delete the ephemeral runner if the task is done
-	if err == nil && task.Status.IsDone() && util.SliceContainsString(cols, "status") {
+	// A released task must not retire a runner reused by a later claim.
+	if err == nil && affected > 0 && task.Status.IsDone() && util.SliceContainsString(cols, "status") {
 		return DeleteEphemeralRunner(ctx, task.RunnerID)
 	}
 	return err
@@ -478,6 +511,11 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 	stepStates := map[int64]*runnerv1.StepState{}
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
+	}
+	reportedSteps := state.ReportedSteps
+	if err := validateReportedSteps(reportedSteps); err != nil {
+		log.Warn("Ignore the steps reported for task %d: %v", state.Id, err)
+		reportedSteps = nil
 	}
 
 	// Only one request can update the task because the final state needs to be calculated with all job states.
@@ -535,22 +573,14 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return err
 		}
 
+		if len(reportedSteps) > 0 {
+			return updateReportedSteps(ctx, task, reportedSteps, now)
+		}
+		if slices.ContainsFunc(task.Steps, (*ActionTaskStep).IsReported) {
+			return nil // the indexes of the steps of the workflow file no longer match the stored steps
+		}
 		for _, step := range task.Steps {
-			var result runnerv1.Result
-			if v, ok := stepStates[step.Index]; ok {
-				result = v.Result
-				step.LogIndex = v.LogIndex
-				step.LogLength = v.LogLength
-				if step.Started == 0 && v.StartedAt != nil {
-					step.Started = now
-				}
-			}
-			if result != runnerv1.Result_RESULT_UNSPECIFIED {
-				step.Status = StatusFromResult(result)
-				step.Stopped = util.IfZero(step.Stopped, now)
-			} else if step.Started != 0 {
-				step.Status = StatusRunning
-			}
+			step.applyState(stepStates[step.Index], now)
 			if _, err := db.GetEngine(ctx).ID(step.ID).Update(step); err != nil {
 				return err
 			}
@@ -634,13 +664,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	}
 
 	for _, step := range task.Steps {
-		if !step.Status.IsDone() {
-			step.Status = status
-			if step.Started == 0 {
-				step.Started = now
-			}
-			step.Stopped = now
-		}
+		step.stop(status, now)
 		if _, err := e.ID(step.ID).Update(step); err != nil {
 			return err
 		}

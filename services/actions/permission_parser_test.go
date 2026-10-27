@@ -16,21 +16,52 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-func TestParseRawPermissions_ReadAll(t *testing.T) {
-	var rawPerms yaml.Node
-	err := yaml.Unmarshal([]byte(`read-all`), &rawPerms)
-	assert.NoError(t, err)
-
-	result := parseRawPermissionsExplicit(&rawPerms)
-	require.NotNil(t, result)
-
-	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeCode])
-	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeIssues])
-	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypePullRequests])
-	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypePackages])
-	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeActions])
-	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeWiki])
-	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeProjects])
+func TestParseRawPermissions_Scopes(t *testing.T) {
+	for _, tt := range []struct {
+		name          string
+		input         string
+		expectedModes [7]perm.AccessMode
+		idToken       bool
+	}{
+		{"ReadAll", "read-all", [7]perm.AccessMode{
+			perm.AccessModeRead, perm.AccessModeRead, perm.AccessModeRead,
+			perm.AccessModeRead, perm.AccessModeRead, perm.AccessModeRead, perm.AccessModeRead,
+		}, false},
+		{"WriteAll", "write-all", [7]perm.AccessMode{
+			perm.AccessModeWrite, perm.AccessModeWrite, perm.AccessModeWrite,
+			perm.AccessModeWrite, perm.AccessModeWrite, perm.AccessModeWrite, perm.AccessModeWrite,
+		}, true},
+		{"IndividualScopes", `
+contents: write
+issues: read
+pull-requests: none
+packages: write
+actions: read
+wiki: write
+projects: none
+id-token: write
+`, [7]perm.AccessMode{
+			perm.AccessModeWrite, perm.AccessModeRead, perm.AccessModeNone,
+			perm.AccessModeWrite, perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeNone,
+		}, true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var rawPerms yaml.Node
+			err := yaml.Unmarshal([]byte(tt.input), &rawPerms)
+			assert.NoError(t, err)
+			result := parseRawPermissionsExplicit(&rawPerms)
+			require.NotNil(t, result)
+			for i, unitType := range []unit.Type{
+				unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypePackages,
+				unit.TypeActions, unit.TypeWiki, unit.TypeProjects,
+			} {
+				assert.Equal(t, tt.expectedModes[i], result.UnitAccessModes[unitType])
+			}
+			if tt.idToken {
+				assert.True(t, result.IDToken)
+			}
+		})
+	}
 }
 
 // TestParseRawPermissions_GithubScopes verifies that all scopes that github supports are accounted for
@@ -61,49 +92,6 @@ statuses: read`
 	require.NotNil(t, result)
 
 	// No asserts for permissions set on purpose
-}
-
-func TestParseRawPermissions_WriteAll(t *testing.T) {
-	var rawPerms yaml.Node
-	err := yaml.Unmarshal([]byte(`write-all`), &rawPerms)
-	assert.NoError(t, err)
-
-	result := parseRawPermissionsExplicit(&rawPerms)
-	require.NotNil(t, result)
-
-	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeCode])
-	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeIssues])
-	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypePullRequests])
-	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypePackages])
-	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeActions])
-	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
-	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeProjects])
-}
-
-func TestParseRawPermissions_IndividualScopes(t *testing.T) {
-	yamlContent := `
-contents: write
-issues: read
-pull-requests: none
-packages: write
-actions: read
-wiki: write
-projects: none
-`
-	var rawPerms yaml.Node
-	err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
-	assert.NoError(t, err)
-
-	result := parseRawPermissionsExplicit(&rawPerms)
-	require.NotNil(t, result)
-
-	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeCode])
-	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeIssues])
-	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypePullRequests])
-	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypePackages])
-	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeActions])
-	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
-	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeProjects])
 }
 
 func TestParseRawPermissions_Priority(t *testing.T) {

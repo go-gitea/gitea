@@ -151,7 +151,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		SecretKey = "!#@FDEWREWR&*("
 	}
 
-	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
+	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_remember")
 
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
@@ -180,10 +180,6 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
-	deprecatedSetting(rootCfg, "cors", "X_FRAME_OPTIONS", "security", "X_FRAME_OPTIONS", "v1.26.0")
-	if !sec.HasKey("X_FRAME_OPTIONS") {
-		Security.XFrameOptions = rootCfg.Section("cors").Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
-	}
 	if err := sec.MapTo(&Security); err != nil {
 		log.Fatal("Failed to map security settings: %v", err)
 	}

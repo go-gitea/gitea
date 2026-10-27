@@ -46,21 +46,13 @@ func GetDivergingCommits(ctx context.Context, repo RepositoryFacade, baseBranch,
 // GetCommitIDsBetweenReverse returns the last commit IDs between two commits in reverse order (from old to new) with limit.
 // If the result exceeds the limit, the old commits IDs will be ignored
 func GetCommitIDsBetweenReverse(ctx context.Context, repo RepositoryFacade, startRef, endRef, notRef string, limit int) ([]string, error) {
-	genCmd := func(reversions ...string) *gitcmd.Command {
-		cmd := gitcmd.NewCommand("rev-list", "--reverse").
-			AddArguments("-n").AddDynamicArguments(strconv.Itoa(limit)).
-			AddDynamicArguments(reversions...)
-		if notRef != "" { // --not should be kept as the last parameter of git command, otherwise the result will be wrong
-			cmd.AddOptionValues("--not", notRef)
-		}
-		return cmd
+	cmd := gitcmd.NewCommand("rev-list", "--reverse").
+		AddArguments("-n").AddDynamicArguments(strconv.Itoa(limit)).
+		AddDynamicArguments(startRef + ".." + endRef)
+	if notRef != "" { // --not should be kept as the last parameter of git command, otherwise the result will be wrong
+		cmd.AddOptionValues("--not", notRef)
 	}
-	stdout, _, err := genCmd(startRef + ".." + endRef).WithRepo(repo).RunStdString(ctx)
-	if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
-		// if the start and end are not related (no merge base), just get all commits pushed by "end ref"
-		// previously it would return the results of git rev-list before last so let's try that...
-		stdout, _, err = genCmd(endRef).WithRepo(repo).RunStdString(ctx)
-	}
+	stdout, _, err := cmd.WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -122,18 +122,13 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// 3 -Init git bare new repository.
-	if err = git.InitRepository(ctx, generateRepo, generateRepo.ObjectFormatName); err != nil {
+	if err = git.InitRepository(ctx, generateRepo, generateRepo.ObjectFormatName, ""); err != nil {
 		return nil, fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = git.CreateDelegateHooks(ctx, generateRepo); err != nil {
 		return nil, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
-	// 4 - Update the git repository
-	if err = updateGitRepoAfterCreate(ctx, generateRepo); err != nil {
-		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
-	}
-
-	// 5 - generate the repository contents according to the template
+	// 4 - generate the repository contents according to the template
 	// Git Content
 	if opts.GitContent && !templateRepo.IsEmpty {
 		if err = GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
@@ -180,6 +175,11 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		if err = GenerateProtectedBranch(ctx, templateRepo, generateRepo); err != nil {
 			return nil, err
 		}
+	}
+
+	// 5 - Update the git repository
+	if err = updateGitRepoAfterCreate(ctx, generateRepo); err != nil {
+		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
 	// 6 - update repository status to be ready
