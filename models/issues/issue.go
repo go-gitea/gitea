@@ -790,7 +790,8 @@ func insertMigratedAttachments(ctx context.Context, issueID, commentID int64, at
 		attach.IssueID = issueID
 		attach.CommentID = commentID
 	}
-	return db.Insert(ctx, attachments)
+	_, err := db.GetEngine(ctx).NoAutoTime().Insert(attachments)
+	return err
 }
 
 // ChangeIssueTimeEstimate changes the plan time of this issue, as the given user.
