@@ -236,30 +236,21 @@ func TestRenderMessage(t *testing.T) {
 		}
 	})
 
-	t.Run("ReservedPlaceholders", func(t *testing.T) {
-		assert.Equal(t,
-			"User Actor started impersonating user owner/repo.",
-			renderMessage(audit_model.UserImpersonation, actor, scope, nil),
-		)
-	})
-
-	t.Run("NonStringMetadata", func(t *testing.T) {
-		assert.Equal(t,
-			"Removed external login from authentication source 7 for user owner/repo.",
-			renderMessage(audit_model.UserExternalLoginRemove, actor, scope, map[string]any{"auth_source_id": int64(7)}),
-		)
-	})
-
-	t.Run("MissingMetadataKeepsTheKey", func(t *testing.T) {
-		assert.Equal(t,
-			"Added deploy key deploy_key for repository owner/repo.",
-			renderMessage(audit_model.RepositoryDeployKeyAdd, actor, scope, nil),
-		)
-	})
-
-	t.Run("UnknownActionFallsBackToItsName", func(t *testing.T) {
-		assert.Equal(t, "not:an:action", renderMessage(audit_model.Action("not:an:action"), actor, scope, nil))
-	})
+	for _, tc := range []struct {
+		name     string
+		action   audit_model.Action
+		metadata map[string]any
+		message  string
+	}{
+		{"ReservedPlaceholders", audit_model.UserImpersonation, nil, "User Actor started impersonating user owner/repo."},
+		{"NonStringMetadata", audit_model.UserExternalLoginRemove, map[string]any{"auth_source_id": int64(7)}, "Removed external login from authentication source 7 for user owner/repo."},
+		{"MissingMetadataKeepsTheKey", audit_model.RepositoryDeployKeyAdd, nil, "Added deploy key deploy_key for repository owner/repo."},
+		{"UnknownActionFallsBackToItsName", audit_model.Action("not:an:action"), nil, "not:an:action"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.message, renderMessage(tc.action, actor, scope, tc.metadata))
+		})
+	}
 }
 
 func TestActionFilters(t *testing.T) {

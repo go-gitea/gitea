@@ -3968,6 +3968,8 @@
   "projects.type-3.display_name": "조직 프로젝트",
   "projects.enter_fullscreen": "전체 화면",
   "projects.exit_fullscreen": "전체 화면 종료",
+  "projects.workflows.actions": "액션",
+  "projects.workflows.none": "없음",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "디렉토리",
   "git.filemode.normal_file": "일반",

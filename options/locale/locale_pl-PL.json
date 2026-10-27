@@ -3905,6 +3905,8 @@
   "projects.type-3.display_name": "Projekt organizacji",
   "projects.enter_fullscreen": "Tryb pełnoekranowy",
   "projects.exit_fullscreen": "Zamknij tryb pełnoekranowy",
+  "projects.workflows.actions": "Akcje",
+  "projects.workflows.none": "Brak",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "Katalog",
   "git.filemode.normal_file": "Regularny",

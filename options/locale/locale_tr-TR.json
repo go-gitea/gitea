@@ -3634,6 +3634,8 @@
   "projects.type-3.display_name": "Organizasyon Projesi",
   "projects.enter_fullscreen": "Tam Ekran",
   "projects.exit_fullscreen": "Tam Ekrandan Çık",
+  "projects.workflows.actions": "İşlemler",
+  "projects.workflows.none": "Yok",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "Dizin",
   "git.filemode.normal_file": "Normal dosya",

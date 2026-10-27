@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,4 +45,13 @@ func TestRepoMigrate(t *testing.T) {
 	session := loginUser(t, "user2")
 	resp := testRepoMigrate(t, session, "https://github.com/go-gitea/test_repo.git", "git")
 	assert.Equal(t, "/user2/git", *test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
+
+	t.Run("ProviderEntries", func(t *testing.T) {
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/repo/migrate"), http.StatusOK)
+		entries := NewHTMLParser(t, resp.Body).Find(".migrate-entry-title").FilterFunction(func(_ int, s *goquery.Selection) bool {
+			return strings.Contains(s.Text(), "Bitbucket")
+		})
+		assert.Equal(t, 1, entries.Length())
+		assert.Equal(t, "Bitbucket", strings.TrimSpace(entries.Text()))
+	})
 }

@@ -99,19 +99,6 @@ type AuthMiddleware struct {
 	MiddlewareHandler func(*context.Context)
 }
 
-func (a *AuthMiddleware) AllowBasicFor(match func(*http.Request) bool) types.PreMiddlewareProvider {
-	return func(next http.Handler) http.Handler {
-		nextWithBasic := a.AllowBasic(next)
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if match(r) {
-				nextWithBasic.ServeHTTP(w, r)
-			} else {
-				next.ServeHTTP(w, r)
-			}
-		})
-	}
-}
-
 func newWebAuthMiddleware() *AuthMiddleware {
 	type keyAllowOAuth2 struct{}
 	type keyAllowBasic struct{}
@@ -271,15 +258,18 @@ func Routes() *web.Router {
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	routes.BeforeRouting(chi_middleware.GetHead)
+	routes.BeforeRouting(user.UsernamePreRoute)
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 	routes.Methods("GET, HEAD", "/assets/site-manifest.json", misc.SiteManifest)
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, public.AssetsCors(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	routes.Methods("GET, HEAD", "/favicon.ico", misc.StaticRedirect("/assets/img/favicon.png"))
+
+	// HINT: USERNAME-AVATAR-APPLE-TOUCH-ICON: these two paths conflict with "/{username}.png"
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/apple-touch-icon-precomposed.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
-	routes.Methods("GET, HEAD", "/favicon.ico", misc.StaticRedirect("/assets/img/favicon.png"))
 
 	var mid []any
 
@@ -919,16 +909,19 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	}, adminReq, ctxDataSet(reqctx.ContextData{"EnableOAuth2": setting.OAuth2.Enabled, "EnablePackages": setting.Packages.Enabled}))
 	// ***** END: Admin *****
 
-	m.Group("", func() {
-		// tokens only authenticate feeds, the other variants render data outside any token scope
-		m.Get("/{username}", webAuth.AllowBasicFor(func(req *http.Request) bool {
-			isFeed, _ := feed.GetFeedType(req.URL.Path, req)
-			return isFeed
-		}), user.UsernameSubRoute)
-		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)
-	}, optSignIn)
+	m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), webAuth.AllowBasic, webAuth.AllowOAuth2, optSignIn, repo.GetAttachment)
 
-	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), user.ActionUserFollow)
+	m.Group("", func() {
+		// "UsernamePreRoute" is used to rewrite username with a suffix like "/username.png" to "/-/ownername.png/username"
+		m.Get("/-/ownername.png/{username}", user.AvatarByUsernameSize)
+		m.Get("/-/ownername.keys/{username}", user.ShowSSHKeys)
+		m.Get("/-/ownername.gpg/{username}", user.ShowGPGKeys)
+		m.Get("/-/ownername.rss/{username}", feed.ShowUserFeedRSS)
+		m.Get("/-/ownername.atom/{username}", feed.ShowUserFeedAtom)
+		m.Get("/{username}", user.OwnerProfile)
+	}, webAuth.AllowBasic, optSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer())
+
+	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer(), user.ActionUserFollow)
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireUnitWriter(unit.TypeCode)
@@ -997,8 +990,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)
-			m.Get("/dashboard/-/heatmap", user.DashboardHeatmap)
-			m.Get("/dashboard/-/heatmap/{team}", user.DashboardHeatmap)
+			m.Get("/dashboard/-/heatmap", context.ReqContextUserVisibleToDoer(), user.DashboardHeatmap)
+			m.Get("/dashboard/-/heatmap/{team}", context.ReqContextUserVisibleToDoer(), user.DashboardHeatmap)
 			m.Get("/issues", user.Issues)
 			m.Get("/issues/{team}", user.Issues)
 			m.Get("/pulls", user.Pulls)
@@ -1148,7 +1141,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/mentions-in-owner", reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), org.GetMentionsInOwner)
 
 		m.Get("/repositories", org.Repositories)
-		m.Get("/heatmap", user.DashboardHeatmap)
+		m.Get("/heatmap", context.ReqContextUserVisibleToDoer(), user.DashboardHeatmap)
 
 		m.Group("/projects", func() {
 			m.Group("", func() {
@@ -1305,7 +1298,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// end "/{username}/{reponame}/settings"
 
 	// user/org home, including rss feeds like "/{username}/{reponame}.rss"
-	m.Get("/{username}/{reponame}", optSignIn, webAuth.AllowBasic, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
+	m.Get("/{username}/{reponame}", optSignIn, webAuth.AllowBasic, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.Home)
 
 	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind[*structs.MarkupOption](), misc.Markup)
 
@@ -1768,7 +1761,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.Home)
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.Home)
 			m.Get("/*", context.RepoRefByType(""), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
-		}, repo.SetEditorconfigIfExists)
+		})
 		m.Get("/tree/*", repo.RedirectRepoTreeToSrc)    // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
 		m.Get("/blob/*", repo.RedirectRepoBlobToCommit) // redirect "/owner/repo/blob/*" requests to "/owner/repo/src/commit/*"
 
