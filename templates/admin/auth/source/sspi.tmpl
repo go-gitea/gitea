@@ -27,7 +27,7 @@
 	</div>
 	<div class="field">
 		<label for="sspi_default_language">{{ctx.Locale.Tr "admin.auths.sspi_default_language"}}</label>
-		<div class="select-wrapper">
+		<div class="select-field">
 			<select name="sspi_default_language" id="sspi_default_language">
 				{{template "shared/language_options" dict "Languages" .AllLangs "Value" .SSPIDefaultLanguage "EmptyLabel" "-" "FallbackLabel" .SSPIDefaultLanguage}}
 			</select>

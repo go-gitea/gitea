@@ -2,7 +2,7 @@
   flex-wrap: wrap;
 }
 
-.code-editor-options .select-wrapper > select {
+.code-editor-options .select-field > select {
   width: auto;
   min-width: 0;
   min-height: 0;
@@ -11,7 +11,7 @@
   color: var(--color-text);
 }
 
-.code-editor-options .select-wrapper::after {
+.code-editor-options .select-field::after {
   right: 5px;
 }
 

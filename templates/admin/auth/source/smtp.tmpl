@@ -1,7 +1,7 @@
 <div class="smtp field {{if not (eq .type 3)}}tw-hidden{{end}}">
 	<div class="inline required field">
 		<label for="smtp_auth">{{ctx.Locale.Tr "admin.auths.smtp_auth"}}</label>
-		<div class="select-wrapper">
+		<div class="select-field">
 			<select id="smtp_auth" name="smtp_auth">
 				{{range .SMTPAuths}}
 					<option value="{{.}}" {{if eq $.smtp_auth .}}selected{{end}}>{{.}}</option>

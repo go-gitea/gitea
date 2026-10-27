@@ -464,7 +464,7 @@
 					<p>
 						{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}
 					</p>
-					<div class="select-wrapper">
+					<div class="select-field">
 						<select name="projects_mode" aria-label="{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}">
 							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
 							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
@@ -554,7 +554,7 @@
 							<p>
 								{{ctx.Locale.Tr "repo.settings.default_merge_style_desc"}}
 							</p>
-							<div class="select-wrapper">
+							<div class="select-field">
 								<select name="pulls_default_merge_style" aria-label="{{ctx.Locale.Tr "repo.settings.default_merge_style_desc"}}">
 									<option value="merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "merge")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</option>
 									<option value="rebase" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</option>
@@ -567,7 +567,7 @@
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message"}}</label>
 							{{$squashMergeMessage := $prUnit.PullRequestsConfig.DefaultSquashMergeMessage}}
-							<div class="select-wrapper">
+							<div class="select-field">
 								<select name="pulls_default_squash_merge_message">
 									<option value="BLANK" {{if eq $squashMergeMessage "BLANK"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title"}}</option>
 									<option value="COMMIT_MESSAGES" {{if eq $squashMergeMessage "COMMIT_MESSAGES"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_merge_message.title_and_commit_details"}}</option>
@@ -612,7 +612,7 @@
 						</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_update_style"}}</label>
-							<div class="select-wrapper">
+							<div class="select-field">
 								<select name="pulls_default_update_style">
 									{{range .PullsDefaultUpdateStyleOptions}}
 										<option value="{{.Value}}" {{if .Selected}}selected{{end}}>{{.Text}}</option>

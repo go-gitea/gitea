@@ -50,7 +50,7 @@
 
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
 					<span class="inline required field"><label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label></span>
-					<div class="select-wrapper">
+					<div class="select-field">
 						<select id="visibility" name="visibility">
 							{{template "shared/user_visibility_options" dict "Modes" .AllowedUserVisibilityModes "Value" .SignedUser.Visibility}}
 						</select>

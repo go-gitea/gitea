@@ -31,7 +31,7 @@
 						<div class="tag-target-selector tw-contents">
 							<span>@</span>
 							<label class="tw-sr-only" for="release-tag-target">{{ctx.Locale.Tr "repo.release.target"}}</label>
-							<div class="select-wrapper">
+							<div class="select-field">
 								<select id="release-tag-target" class="tw-w-auto tw-max-w-full tw-pl-[33.5px]" name="tag_target">
 									{{if not (SliceUtils.Contains .Branches .tag_target)}}
 										<option value="{{.tag_target}}" selected>{{.tag_target}}</option>

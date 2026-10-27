@@ -18,7 +18,7 @@
 }
 
 .page-content.install form.ui.form input:not([type="checkbox"],[type="radio"]),
-.page-content.install form.ui.form .select-wrapper {
+.page-content.install form.ui.form .select-field {
   width: 60%;
 }
 

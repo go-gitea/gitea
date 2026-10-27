@@ -45,7 +45,7 @@
 }
 
 .ui.form select,
-.select-wrapper > select {
+.select-field > select {
   field-sizing: content;
   min-height: 2.71428571em;
   padding: 0.43em 3.2em 0.43em 1em;
@@ -54,31 +54,31 @@
   border-radius: var(--border-radius);
 }
 
-.select-wrapper {
+.select-field {
   position: relative;
   display: inline-flex;
   max-width: 100%;
   color: var(--color-input-text);
 }
 
-.ui.form .field:not(.inline) > .select-wrapper,
+.ui.form .field:not(.inline) > .select-field,
 .ui.form .field:not(.inline) > .dropdown-container:has(> .dropdown-field) {
   display: flex;
 }
 
-.select-wrapper > select {
+.select-field > select {
   appearance: none;
 }
 
-.select-wrapper > select:has(> option:checked[data-placeholder]) {
+.select-field > select:has(> option:checked[data-placeholder]) {
   color: var(--color-placeholder-text);
 }
 
-.select-wrapper:has(> select:disabled)::after {
+.select-field:has(> select:disabled)::after {
   opacity: calc(0.8 * var(--opacity-disabled));
 }
 
-.select-wrapper::after { /* a select has no pseudo elements, so its wrapper draws the triangle of a selection field */
+.select-field::after { /* a select has no pseudo elements, so its wrapper draws the triangle of a selection field */
   content: "";
   position: absolute;
   top: 50%;
@@ -132,7 +132,7 @@ textarea,
 .ui.input > input,
 .ui.form input:not([type="checkbox"], [type="radio"], .dropdown-filter),
 .ui.form select,
-.select-wrapper > select,
+.select-field > select,
 .ui.form textarea,
 .ui.search > .prompt {
   background: var(--color-input-background);
@@ -145,7 +145,7 @@ textarea:focus,
 .ui.input input:focus,
 .ui.form input:not([type="checkbox"], [type="radio"], .dropdown-filter):focus,
 .ui.form select:focus,
-.select-wrapper > select:focus,
+.select-field > select:focus,
 .ui.form textarea:focus,
 .ui.search > .prompt:focus {
   background: var(--color-input-background);
@@ -168,7 +168,7 @@ textarea:focus,
   vertical-align: top;
 }
 
-.ui.form .field.error :is(.dropdown-field, .select-wrapper > select) {
+.ui.form .field.error :is(.dropdown-field, .select-field > select) {
   border-color: var(--color-error-border);
 }
 
@@ -202,14 +202,14 @@ textarea:focus,
   display: block;
 }
 .ui.form .field.error textarea,
-.ui.form .field.error .select-wrapper > select,
+.ui.form .field.error .select-field > select,
 .ui.form .field.error input {
   background-color: var(--color-error-bg);
   border-color: var(--color-error-border);
   color: var(--color-input-text);
 }
 .ui.form .field.error textarea:focus,
-.ui.form .field.error .select-wrapper > select:focus,
+.ui.form .field.error .select-field > select:focus,
 .ui.form .field.error input:focus {
   background-color: var(--color-error-bg);
   border-color: var(--color-error-border);
@@ -311,7 +311,7 @@ textarea:focus,
 }
 
 .ui.form .inline.field > input,
-.ui.form .inline.field > .select-wrapper {
+.ui.form .inline.field > .select-field {
   display: inline-block;
   width: auto;
   margin-top: 0;
@@ -378,7 +378,7 @@ input:-webkit-autofill:active {
 }
 
 .ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"], .dropdown-filter),
-.ui.form.left-right-form .inline.field > .select-wrapper,
+.ui.form.left-right-form .inline.field > .select-field,
 .ui.form.left-right-form .inline.field > .dropdown-container,
 .ui.form.left-right-form .inline.field textarea {
   width: 50%;
@@ -400,7 +400,7 @@ input:-webkit-autofill:active {
     margin: 0;
   }
   .ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"], .dropdown-filter),
-  .ui.form.left-right-form .inline.field > .select-wrapper,
+  .ui.form.left-right-form .inline.field > .select-field,
   .ui.form.left-right-form .inline.field > .dropdown-container,
   .ui.form.left-right-form .inline.field textarea {
     width: 100%;

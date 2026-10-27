@@ -14,7 +14,7 @@
 			<form class="ui form ignore-dirty">
 				<div class="ui small fluid action input">
 					{{template "shared/search/input" dict "Value" .Query}}
-					<div class="select-wrapper">
+					<div class="select-field">
 						<select name="type" aria-label="{{ctx.Locale.Tr "packages.filter.type"}}">
 							<option value="" data-placeholder>{{ctx.Locale.Tr "packages.filter.type"}}</option>
 							<option value="all">{{ctx.Locale.Tr "packages.filter.type.all"}}</option>

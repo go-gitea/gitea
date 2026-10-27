@@ -16,7 +16,7 @@
 					<p>{{ctx.Locale.Tr "install.require_db_desc"}}</p>
 					<div class="inline required field {{if .Err_DbType}}error{{end}}">
 						<label for="db_type">{{ctx.Locale.Tr "install.db_type"}}</label>
-						<div class="select-wrapper">
+						<div class="select-field">
 							<select id="db_type" autocomplete="off" name="db_type">
 								{{range .DbTypeNames}}
 									<option value="{{.type}}" {{if eq $.CurDbType .type}}selected{{end}}>{{.name}}</option>
@@ -47,7 +47,7 @@
 					<div class="tw-mt-4 tw-hidden" data-db-setting-for="postgres">
 						<div class="inline required field">
 							<label for="ssl_mode">{{ctx.Locale.Tr "install.ssl_mode"}}</label>
-							<div class="select-wrapper">
+							<div class="select-field">
 								{{$sslMode := or .ssl_mode "disable"}}
 								<select id="ssl_mode" name="ssl_mode">
 									{{if not (eq $sslMode "disable" "require" "verify-full")}}

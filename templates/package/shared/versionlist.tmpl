@@ -8,7 +8,7 @@
 <form class="ui form ignore-dirty">
 	<div class="ui small fluid action input">
 		{{template "shared/search/input" dict "Value" .Query "Placeholder" (ctx.Locale.Tr "search.package_kind")}}
-		<div class="select-wrapper">
+		<div class="select-field">
 			<select name="sort" aria-label="{{ctx.Locale.Tr "repo.issues.filter_sort"}}">
 				<option value="version_asc"{{if eq .Sort "version_asc"}} selected="selected"{{end}}>{{ctx.Locale.Tr "filter.string.asc"}}</option>
 				<option value="version_desc"{{if eq .Sort "version_desc"}} selected="selected"{{end}}>{{ctx.Locale.Tr "filter.string.desc"}}</option>
@@ -17,7 +17,7 @@
 			</select>
 		</div>
 		{{if eq .PackageDescriptor.Package.Type "container"}}
-		<div class="select-wrapper">
+		<div class="select-field">
 			<select name="tagged" aria-label="{{ctx.Locale.Tr "repo.tags"}}">
 				{{$isTagged := or (eq .Tagged "") (eq .Tagged "tagged")}}
 				<option value="tagged"{{if $isTagged}} selected="selected"{{end}}>{{ctx.Locale.Tr "packages.filter.container.tagged"}}</option>

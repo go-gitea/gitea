@@ -9,7 +9,7 @@
 					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/notifications/email" method="post">
 						<div class="field">
 							<label>{{ctx.Locale.Tr "settings.email_desc"}}</label>
-							<div class="select-wrapper">
+							<div class="select-field">
 								<select name="preference">
 									<option value="enabled" {{if eq $.EmailNotificationsPreference "enabled"}}selected{{end}}>{{ctx.Locale.Tr "settings.email_notifications.enable"}}</option>
 									<option value="andyourown" {{if eq $.EmailNotificationsPreference "andyourown"}}selected{{end}}>{{ctx.Locale.Tr "settings.email_notifications.andyourown"}}</option>
@@ -36,7 +36,7 @@
 					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/notifications/actions" method="post">
 						<div class="field">
 							<label>{{ctx.Locale.Tr "settings.email_notifications.actions.desc" "https://docs.gitea.com/usage/actions/overview/"}}</label>
-							<div class="select-wrapper">
+							<div class="select-field">
 								<select name="preference">
 									<option value="all" {{if eq $.ActionsEmailNotificationsPreference "all"}}selected{{end}}>{{ctx.Locale.Tr "all"}}</option>
 									<option value="failure-only" {{if eq $.ActionsEmailNotificationsPreference "failure-only"}}selected{{end}}>{{ctx.Locale.Tr "settings.email_notifications.actions.failure_only"}}</option>

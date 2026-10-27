@@ -123,7 +123,7 @@
 			</div>
 			<div class="field">
 				<label>{{ctx.Locale.Tr "actions.runs.branch"}}</label>
-				<div class="select-wrapper">
+				<div class="select-field">
 					<select data-workflow-badge-branch>
 						<option value="{{.Repository.DefaultBranch}}" selected>{{.Repository.DefaultBranch}}</option>
 						{{range $branchName := .RunBranches}}
