@@ -24,8 +24,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPreReceiveActionsBranch(t *testing.T) {
+func TestPreReceive(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("Branch", testPreReceiveActionsBranch)
+	t.Run("Tag", testPreReceiveSystemUserTag)
+	t.Run("CanWrite", testPreReceiveCanWriteCodePerBranch)
+}
+
+func testPreReceiveActionsBranch(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		protection    *git_model.ProtectedBranchConfig
@@ -93,15 +99,9 @@ func TestPreReceiveActionsBranch(t *testing.T) {
 	}
 }
 
-func TestPreReceiveSystemUserTag(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
+func testPreReceiveSystemUserTag(t *testing.T) {
 	deployKey, err := deploykey_model.AddDeployKeyToken(t.Context(), 2, "tag-pusher", perm.AccessModeWrite)
 	require.NoError(t, err)
-	defer func() {
-		_, err := db.DeleteByID[deploykey_model.DeployKey](t.Context(), deployKey.ID)
-		require.NoError(t, err)
-	}()
 	actionsDoer := user_model.NewActionsUserWithTaskID(53)
 	deployKeyDoer := user_model.NewDeployKeyUserWithKeyID(deployKey.ID)
 
@@ -148,9 +148,7 @@ func TestPreReceiveSystemUserTag(t *testing.T) {
 // the exact ref being pushed on every call, derived from that ref rather than shared mutable state.
 // Otherwise, a per-branch grant (an open PR with "allow edits from maintainers") could be batched
 // together with a protected branch or a tag to escalate into full repository write.
-func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
+func testPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
 	require.NoError(t, baseRepo.LoadOwner(t.Context()))

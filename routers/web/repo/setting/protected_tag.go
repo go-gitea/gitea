@@ -164,7 +164,7 @@ func setTagsContext(ctx *context.Context) error {
 		return err
 	}
 	users := []*user_model.User{user_model.NewActionsUser(), user_model.NewDeployKeyUser()}
-	ctx.Data["Users"] = append(users, repoUsers...)
+	ctx.Data["PushUsers"] = append(users, repoUsers...)
 
 	if ctx.Repo.Owner.IsOrganization() {
 		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, ctx.Repo.Owner.ID, ctx.Repo.Repository.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
@@ -172,7 +172,7 @@ func setTagsContext(ctx *context.Context) error {
 			ctx.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return err
 		}
-		ctx.Data["Teams"] = teams
+		ctx.Data["PushTeams"] = teams
 	}
 
 	return nil
