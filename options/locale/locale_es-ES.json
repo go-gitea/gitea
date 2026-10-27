@@ -2620,7 +2620,6 @@
   "units.error.no_unit_allowed_repo": "No tiene permisos para acceder a ninguna sección de este repositorio.",
   "units.error.unit_not_allowed": "No tiene permisos para acceder a esta sección del repositorio.",
   "packages.title": "Paquetes",
-  "packages.desc": "Administrar paquetes del repositorio.",
   "packages.empty": "Todavía no hay paquetes.",
   "packages.empty.documentation": "Para más información sobre el registro de paquetes, consulte <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%s\">la documentación</a>.",
   "packages.empty.repo": "¿Has subido un paquete, pero no se muestra aquí? Ve a <a href=\"%[1]s\">la configuración del paquete</a> y añade el link a este repositorio.",
@@ -2846,6 +2845,8 @@
   "projects.type-1.display_name": "Proyecto individual",
   "projects.type-2.display_name": "Proyecto repositorio",
   "projects.type-3.display_name": "Proyecto de organización",
+  "projects.workflows.actions": "Acciones",
+  "projects.workflows.none": "Ninguno",
   "git.filemode.directory": "Directorio",
   "git.filemode.submodule": "Submódulo",
   "actions.general.token_permissions.mode.restricted": "Restringido"

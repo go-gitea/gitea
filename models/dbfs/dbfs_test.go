@@ -9,6 +9,7 @@ import (
 	"os"
 	"testing"
 
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestDbfsBasic(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
 	// test basic write/read
@@ -52,38 +54,29 @@ func TestDbfsBasic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "0bcdefghi9", string(buf))
 
-	// write to new size
-	_, err = f.Seek(-1, io.SeekEnd)
-	assert.NoError(t, err)
-	_, err = f.Write([]byte("JKLMNOP")) // blocks: 0bcd efgh iJKL MNOP
-	assert.NoError(t, err)
-	_, err = f.Seek(0, io.SeekStart)
-	assert.NoError(t, err)
-	buf, err = io.ReadAll(f)
-	assert.NoError(t, err)
-	assert.Equal(t, "0bcdefghiJKLMNOP", string(buf))
-
-	// write beyond EOF and fill with zero
-	_, err = f.Seek(5, io.SeekCurrent)
-	assert.NoError(t, err)
-	_, err = f.Write([]byte("xyzu")) // blocks: 0bcd efgh iJKL MNOP 0000 0xyz u
-	assert.NoError(t, err)
-	_, err = f.Seek(0, io.SeekStart)
-	assert.NoError(t, err)
-	buf, err = io.ReadAll(f)
-	assert.NoError(t, err)
-	assert.Equal(t, "0bcdefghiJKLMNOP\x00\x00\x00\x00\x00xyzu", string(buf))
-
-	// write to the block with zeros
-	_, err = f.Seek(-6, io.SeekCurrent)
-	assert.NoError(t, err)
-	_, err = f.Write([]byte("ABCD")) // blocks: 0bcd efgh iJKL MNOP 000A BCDz u
-	assert.NoError(t, err)
-	_, err = f.Seek(0, io.SeekStart)
-	assert.NoError(t, err)
-	buf, err = io.ReadAll(f)
-	assert.NoError(t, err)
-	assert.Equal(t, "0bcdefghiJKLMNOP\x00\x00\x00ABCDzu", string(buf))
+	for _, write := range []struct {
+		offset   int64
+		whence   int
+		content  string
+		expected string
+	}{
+		// write to new size
+		{-1, io.SeekEnd, "JKLMNOP", "0bcdefghiJKLMNOP"}, // blocks: 0bcd efgh iJKL MNOP
+		// write beyond EOF and fill with zero
+		{5, io.SeekCurrent, "xyzu", "0bcdefghiJKLMNOP\x00\x00\x00\x00\x00xyzu"}, // blocks: 0bcd efgh iJKL MNOP 0000 0xyz u
+		// write to the block with zeros
+		{-6, io.SeekCurrent, "ABCD", "0bcdefghiJKLMNOP\x00\x00\x00ABCDzu"}, // blocks: 0bcd efgh iJKL MNOP 000A BCDz u
+	} {
+		_, err = f.Seek(write.offset, write.whence)
+		assert.NoError(t, err)
+		_, err = f.Write([]byte(write.content))
+		assert.NoError(t, err)
+		_, err = f.Seek(0, io.SeekStart)
+		assert.NoError(t, err)
+		buf, err = io.ReadAll(f)
+		assert.NoError(t, err)
+		assert.Equal(t, write.expected, string(buf))
+	}
 
 	assert.NoError(t, f.Close())
 
@@ -119,17 +112,11 @@ func TestDbfsBasic(t *testing.T) {
 	assert.EqualValues(t, 10, stat.Size())
 
 	t.Run("NonExisting", func(t *testing.T) {
-		f, err := OpenFile(t.Context(), "non-existing.txt", os.O_RDONLY)
-		assert.ErrorIs(t, err, os.ErrNotExist)
-		assert.Nil(t, f)
-
-		f, err = OpenFile(t.Context(), "non-existing.txt", os.O_WRONLY)
-		assert.ErrorIs(t, err, os.ErrNotExist)
-		assert.Nil(t, f)
-
-		f, err = OpenFile(t.Context(), "non-existing.txt", os.O_WRONLY|os.O_APPEND|os.O_TRUNC)
-		assert.ErrorIs(t, err, os.ErrNotExist)
-		assert.Nil(t, f)
+		for _, flags := range []int{os.O_RDONLY, os.O_WRONLY, os.O_WRONLY | os.O_APPEND | os.O_TRUNC} {
+			f, err := OpenFile(t.Context(), "non-existing.txt", flags)
+			assert.ErrorIs(t, err, os.ErrNotExist)
+			assert.Nil(t, f)
+		}
 	})
 
 	t.Run("Existing", func(t *testing.T) {
@@ -165,6 +152,7 @@ func TestDbfsBasic(t *testing.T) {
 }
 
 func TestDbfsReadWrite(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
 	f1, err := OpenFile(t.Context(), "test.log", os.O_RDWR|os.O_CREATE)
@@ -197,6 +185,7 @@ func TestDbfsReadWrite(t *testing.T) {
 }
 
 func TestDbfsSeekWrite(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
 	// write something
@@ -207,17 +196,12 @@ func TestDbfsSeekWrite(t *testing.T) {
 	n, err := fw.Write([]byte("111"))
 	assert.NoError(t, err)
 
-	_, err = fw.Seek(int64(n), io.SeekStart)
-	assert.NoError(t, err)
-
-	_, err = fw.Write([]byte("222"))
-	assert.NoError(t, err)
-
-	_, err = fw.Seek(int64(n), io.SeekStart)
-	assert.NoError(t, err)
-
-	_, err = fw.Write([]byte("333"))
-	assert.NoError(t, err)
+	for _, content := range []string{"222", "333"} {
+		_, err = fw.Seek(int64(n), io.SeekStart)
+		assert.NoError(t, err)
+		_, err = fw.Write([]byte(content))
+		assert.NoError(t, err)
+	}
 
 	// then read it
 	fr, err := OpenFile(t.Context(), "test2.log", os.O_RDONLY)
