@@ -259,10 +259,7 @@ func TestIssueViews(t *testing.T) {
 
 		sel := htmlDoc.Find(".dropdown-container.select-branch")
 		assert.Equal(t, 1, sel.Length())
-		trigger := sel.Find("button.dropdown-trigger")
-		assert.Equal(t, 1, trigger.Length())
-		_, disabled := trigger.Attr("disabled")
-		assert.False(t, disabled, "branch selector should be enabled on the new issue form")
+		assert.Equal(t, 1, sel.Find("button.dropdown-trigger:not([disabled])").Length(), "branch selector should be enabled on the new issue form")
 	})
 
 	t.Run("ViewIssuesKeyword", func(t *testing.T) {
@@ -717,10 +714,7 @@ func TestIssueRefSelectorEnabledForPoster(t *testing.T) {
 
 	sel := htmlDoc.Find(".dropdown-container.select-branch")
 	assert.Equal(t, 1, sel.Length())
-	trigger := sel.Find("button.dropdown-trigger")
-	assert.Equal(t, 1, trigger.Length())
-	_, disabled := trigger.Attr("disabled")
-	assert.False(t, disabled, "branch selector should be enabled for the issue poster")
+	assert.Equal(t, 1, sel.Find("button.dropdown-trigger:not([disabled])").Length(), "branch selector should be enabled for the issue poster")
 	// The update-ref URL must be present so JS can send the POST request.
 	_, hasURL := sel.Attr("data-url-update-issueref")
 	assert.True(t, hasURL, "data-url-update-issueref must be set for the issue poster")
