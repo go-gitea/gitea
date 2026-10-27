@@ -11,18 +11,21 @@ import (
 	"testing"
 	"time"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	mirror_service "gitea.dev/services/mirror"
 	repo_service "gitea.dev/services/repository"
 	wiki_service "gitea.dev/services/wiki"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMirrorPush(t *testing.T) {
@@ -56,6 +59,7 @@ func TestMirrorPush(t *testing.T) {
 			assert.True(t, doRemovePushMirror(t, session, "user2", "repo2", repo2PushMirrorID))
 			unittest.AssertNotExistsBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
 		})
+		t.Run("APIDelete", testMirrorPushAPIDelete)
 		t.Run("Push", func(t *testing.T) {
 			testMirrorPush(t, serverURL)
 		})
@@ -63,6 +67,37 @@ func TestMirrorPush(t *testing.T) {
 			testMirrorPushWikiDefaultBranchMismatch(t, serverURL)
 		})
 	})
+}
+
+func testMirrorPushAPIDelete(t *testing.T) {
+	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo2/push_mirrors", &api.CreatePushMirrorOption{
+		RemoteAddress:  "https://127.0.0.1/user1/repo1.git",
+		RemoteUsername: "user1",
+		RemotePassword: "mirror-secret",
+		Interval:       "8h",
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	pushMirror := DecodeJSON(t, resp, &api.PushMirror{})
+
+	remoteAddress, err := git.GetRemoteAddress(t.Context(), repo2, pushMirror.RemoteName)
+	require.NoError(t, err)
+	assert.Contains(t, remoteAddress, "mirror-secret")
+
+	req = NewRequest(t, "DELETE", "/api/v1/repos/user2/repo2/push_mirrors/"+url.PathEscape(pushMirror.RemoteName)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+	unittest.AssertNotExistsBean(t, &repo_model.PushMirror{RepoID: repo2.ID, RemoteName: pushMirror.RemoteName})
+
+	// the git remote, which carries the credentials, must be gone too
+	_, err = git.GetRemoteAddress(t.Context(), repo2, pushMirror.RemoteName)
+	assert.Error(t, err)
+
+	// deleting it again (or any unknown name) is a 404, as documented
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {

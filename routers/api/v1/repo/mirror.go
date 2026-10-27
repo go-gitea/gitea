@@ -337,10 +337,26 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 	}
 
 	remoteName := ctx.PathParam("name")
-	// Delete push mirror on repo by name.
-	err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{RepoID: ctx.Repo.Repository.ID, RemoteName: remoteName})
+	pushMirror, exist, err := db.Get[repo_model.PushMirror](ctx, repo_model.PushMirrorOptions{
+		RepoID:     ctx.Repo.Repository.ID,
+		RemoteName: remoteName,
+	}.ToConds())
 	if err != nil {
-		ctx.APIError(http.StatusNotFound, err.Error())
+		ctx.APIErrorInternal(err)
+		return
+	} else if !exist {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	// Remove the git remote first (it holds the mirror credentials), like the web settings handler does.
+	if err := mirror_service.RemovePushMirrorRemote(ctx, pushMirror); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: pushMirror.ID, RepoID: pushMirror.RepoID}); err != nil {
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
