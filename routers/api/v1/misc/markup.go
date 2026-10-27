@@ -31,8 +31,8 @@ func Markup(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MarkupRender"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.MarkupOption](ctx)
 	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
@@ -56,8 +56,8 @@ func Markdown(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MarkdownRender"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.MarkdownOption](ctx)
 	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
@@ -83,8 +83,8 @@ func MarkdownRaw(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MarkdownRender"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	textBytes, _ := io.ReadAll(io.LimitReader(ctx.Req.Body, setting.UI.MaxDisplayFileSize))
 	common.RenderMarkup(ctx.Base, ctx.Repo, "markdown", util.UnsafeBytesToString(textBytes), "", "")
 }
