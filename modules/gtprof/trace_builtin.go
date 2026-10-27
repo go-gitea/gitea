@@ -77,7 +77,9 @@ func (t *traceBuiltinSpan) end() {
 			sb := &strings.Builder{}
 			t.toString(sb, 0)
 			tailmsg.GetManager().GetTraceRecorder().Record(sb.String())
-			globalTraceStore.add(newTraceRecord(t.ts))
+			if h := slowTraceHandler.Load(); h != nil {
+				(*h)(t.ts)
+			}
 		}
 	}
 }
@@ -94,4 +96,11 @@ var traceBuiltinThreshold atomic.Int64
 
 func EnableBuiltinTracer(threshold time.Duration) {
 	traceBuiltinThreshold.Store(int64(threshold))
+}
+
+var slowTraceHandler atomic.Pointer[func(root *TraceSpan)]
+
+// SetSlowTraceHandler sets a callback which receives every finished root span slower than the builtin tracer threshold
+func SetSlowTraceHandler(h func(root *TraceSpan)) {
+	slowTraceHandler.Store(&h)
 }

@@ -15,8 +15,8 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/glob"
-	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/perftrace"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -368,8 +368,8 @@ func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 func TestAPIAdminPerfTraces(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	gtprof.EnableBuiltinTracer(time.Nanosecond) // record every request
-	defer gtprof.EnableBuiltinTracer(0)
+	perftrace.Enable(time.Nanosecond) // record every request
+	defer perftrace.Enable(0)
 	MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/issues"), http.StatusOK)
 
 	adminToken := getUserToken(t, "user1", auth_model.AccessTokenScopeReadAdmin)
