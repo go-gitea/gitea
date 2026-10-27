@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -24,15 +25,21 @@ import (
 	"xorm.io/xorm/contexts"
 )
 
+type runnerMaintenanceFailureKey struct{}
+
 type runnerMaintenanceFailure struct {
 	kind     string
+	runnerID int64
 	armed    atomic.Bool
 	observed atomic.Bool
 }
 
 func (h *runnerMaintenanceFailure) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
-	sql := strings.NewReplacer("`", "", "\"", "").Replace(c.SQL)
-	match := strings.Contains(sql, " action_runner ")
+	if !slices.Contains(c.Args, any(h.runnerID)) || h.kind != "delete" && c.Ctx.Value(runnerMaintenanceFailureKey{}) != h {
+		return c.Ctx, nil
+	}
+	sql := strings.NewReplacer("`", "", "\"", "", "[", "", "]", "").Replace(c.SQL)
+	match := strings.Contains(sql, "action_runner ")
 	switch h.kind {
 	case "find":
 		match = match && strings.HasPrefix(sql, "SELECT")
@@ -82,12 +89,22 @@ func TestRunnerBulkMaintenanceFailures(t *testing.T) {
 			runner := &actions_model.ActionRunner{UUID: "barrier-failure-" + tc.kind, Name: "barrier-failure-" + tc.kind}
 			runner.GenerateAndFillToken()
 			require.NoError(t, actions_model.CreateRunner(t.Context(), runner))
+			other := &actions_model.ActionRunner{UUID: "barrier-unrelated-" + tc.kind, Name: "barrier-unrelated-" + tc.kind}
+			other.GenerateAndFillToken()
+			require.NoError(t, actions_model.CreateRunner(t.Context(), other))
 			session := loginUser(t, "user1")
-			hook := &runnerMaintenanceFailure{kind: tc.kind}
-			hook.armed.Store(true)
+			hook := &runnerMaintenanceFailure{kind: tc.kind, runnerID: runner.ID}
+			t.Cleanup(func() { hook.armed.Store(false) })
 			unittest.GetXORMEngine().AddHook(hook)
+			hook.armed.Store(true)
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID})
+			_, err := actions_model.GetRunnerByID(context.WithValue(t.Context(), runnerMaintenanceFailureKey{}, hook), other.ID)
+			require.NoError(t, err)
+			require.False(t, hook.observed.Load())
 			req := NewRequestWithValues(t, "POST", "/-/admin/actions/runners/bulk", map[string]string{"action": tc.action, "ids": strings.Join(base.Int64sToStrings([]int64{runner.ID}), ",")})
+			req.Request = req.WithContext(context.WithValue(req.Context(), runnerMaintenanceFailureKey{}, hook))
 			session.MakeRequest(t, req, tc.status)
+			hook.armed.Store(false)
 			require.True(t, hook.observed.Load())
 			actual := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID})
 			assert.False(t, actual.IsDisabled)
