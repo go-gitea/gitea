@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -975,7 +976,7 @@ jobs:
 			runner.fetchTask(t)
 		})
 
-		t.Run("Sidebar hides workflow_call-only workflows", func(t *testing.T) {
+		t.Run("Sidebar groups workflow_call-only workflows", func(t *testing.T) {
 			apiRepo := createActionsTestRepo(t, user2Token, "workflow-call-sidebar", false)
 			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 			job := "jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"
@@ -995,11 +996,22 @@ jobs:
 			listed := func(name string) int {
 				return doc.Find(fmt.Sprintf(`.flex-container-nav > .menu > a.item[href*="workflow=%s&"]`, name)).Length()
 			}
+			grouped := func(name string) int {
+				return doc.Find(fmt.Sprintf(`.flex-container-nav details .menu a.item[href*="workflow=%s&"]`, name)).Length()
+			}
+			assert.Equal(t, 1, doc.Find(".flex-container-nav details").Length()) // no "Other workflows": former.yaml's runs stay with its file
+			assert.Equal(t, "2", doc.Find(".flex-container-nav details summary .ui.label").Text())
+			assert.Equal(t, 1, grouped("callee.yaml"))
+			assert.Equal(t, 1, grouped("former.yaml"))
 			assert.Zero(t, listed("callee.yaml"))
-			assert.Zero(t, listed("former.yaml"))
 			assert.Equal(t, 1, listed("mixed.yaml"))
 			assert.Equal(t, 1, listed("no-events.yaml"))
-			assert.Equal(t, 1, doc.Find(`.flex-container-nav details .menu a.item[href*="workflow=former.yaml&"]`).Length())
+
+			doc = NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=callee.yaml"), http.StatusOK).Body)
+			assert.Equal(t, "This workflow can only be called by other workflows.", strings.TrimSpace(doc.Find(".empty-placeholder h2").Text()))
+			assert.Zero(t, doc.Find(`[data-url*="/disable?workflow=callee.yaml"]`).Length())
+			doc = NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=mixed.yaml"), http.StatusOK).Body)
+			assert.Equal(t, 1, doc.Find(`[data-url*="/disable?workflow=mixed.yaml"]`).Length())
 		})
 	})
 }
