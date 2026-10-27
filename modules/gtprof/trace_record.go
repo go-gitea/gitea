@@ -29,34 +29,34 @@ func isLongRunningRoute(route string) bool {
 
 // TraceSpanRecord is the structured (JSON-friendly) form of a finished span
 type TraceSpanRecord struct {
-	Name       string             `json:"name"`
-	DurationMs float64            `json:"duration_ms"`
-	Attributes map[string]string  `json:"attributes,omitempty"`
-	Children   []*TraceSpanRecord `json:"children,omitempty"`
+	Name       string
+	DurationMs float64
+	Attributes map[string]string
+	Children   []*TraceSpanRecord
 }
 
 // TraceRecord is a slow root span with its summary counters
 type TraceRecord struct {
-	Time          time.Time        `json:"time"`
-	Route         string           `json:"route"`
-	DurationMs    float64          `json:"duration_ms"`
-	LongRunning   bool             `json:"long_running"`
-	SQLCount      int              `json:"sql_count"`
-	SQLDurationMs float64          `json:"sql_duration_ms"`
-	GitCount      int              `json:"git_count"`
-	GitDurationMs float64          `json:"git_duration_ms"`
-	Root          *TraceSpanRecord `json:"root"`
+	Time          time.Time
+	Route         string
+	DurationMs    float64
+	LongRunning   bool
+	SQLCount      int
+	SQLDurationMs float64
+	GitCount      int
+	GitDurationMs float64
+	Root          *TraceSpanRecord
 }
 
 // TraceRouteStat is the aggregation of the slow records of one route
 type TraceRouteStat struct {
-	Route         string         `json:"route"`
-	LongRunning   bool           `json:"long_running"`
-	Count         int64          `json:"count"`
-	MaxDurationMs float64        `json:"max_duration_ms"`
-	P95DurationMs float64        `json:"p95_duration_ms"`
-	LastTime      time.Time      `json:"last_time"`
-	Records       []*TraceRecord `json:"records"`
+	Route         string
+	LongRunning   bool
+	Count         int64
+	MaxDurationMs float64
+	P95DurationMs float64
+	LastTime      time.Time
+	Records       []*TraceRecord
 }
 
 type traceRouteData struct {
@@ -70,6 +70,7 @@ type traceStore struct {
 	routes map[string]*traceRouteData
 }
 
+// globalTraceStore is process-local and best-effort: with several instances each node only sees its own slow requests
 var globalTraceStore = &traceStore{routes: map[string]*traceRouteData{}}
 
 func (s *TraceSpan) toRecord(rec *TraceRecord) *TraceSpanRecord {

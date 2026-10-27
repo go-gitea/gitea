@@ -24,7 +24,6 @@ import (
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/routers"
 	"gitea.dev/routers/install"
 	"gitea.dev/services/audit"
@@ -224,7 +223,7 @@ func serveInstalled(c *cli.Command) error {
 		}
 	}
 
-	gtprof.EnableBuiltinTracer(util.Iif(setting.IsProd, 2000*time.Millisecond, 100*time.Millisecond))
+	gtprof.EnableBuiltinTracer(setting.PerfTraceThreshold)
 
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()
