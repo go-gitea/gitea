@@ -13,6 +13,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -203,7 +204,19 @@ func FilterReadableComments(ctx context.Context, doer *user_model.User, perm acc
 		repo *repo_model.Repository
 		perm access_model.Permission
 	}
-	targets := map[int64]refTarget{issue.RepoID: {issue.Repo, perm}}
+	targets := cache.NewEphemeralCache()
+	targets.Put("ref-target", issue.RepoID, refTarget{issue.Repo, perm})
+	getRepoPerm := func(refRepoID int64) (refTarget, error) {
+		return cache.GetWithEphemeralCache(ctx, targets, "ref-target", refRepoID, func(ctx context.Context, repoID int64) (refTarget, error) {
+			repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+			if err != nil {
+				return refTarget{}, err
+			}
+			repoPerm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
+			return refTarget{repo, repoPerm}, err
+		})
+	}
+
 	readable := comments[:0]
 	for _, c := range comments {
 		var refRepoID int64
@@ -220,18 +233,9 @@ func FilterReadableComments(ctx context.Context, doer *user_model.User, perm acc
 			}
 		}
 		if refRepoID != 0 {
-			target, ok := targets[refRepoID]
-			if !ok {
-				repo, err := repo_model.GetRepositoryByID(ctx, refRepoID)
-				if err != nil {
-					return nil, err
-				}
-				repoPerm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
-				if err != nil {
-					return nil, err
-				}
-				target = refTarget{repo, repoPerm}
-				targets[refRepoID] = target
+			target, err := getRepoPerm(refRepoID)
+			if err != nil {
+				return nil, err
 			}
 			if !target.perm.CanReadIssuesOrPulls(refIsPull) {
 				continue
