@@ -101,8 +101,6 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	tag := ctx.PathParam("tag")
 

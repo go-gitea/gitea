@@ -48,8 +48,6 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description: Cannot start a stopwatch again if it already exists
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	issue := prepareIssueForStopwatch(ctx)
 	if ctx.Written() {

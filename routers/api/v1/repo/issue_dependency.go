@@ -386,8 +386,6 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Issue"
 	//   "404":
 	//     description: the issue does not exist
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	dependency := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if ctx.Written() {
@@ -445,8 +443,6 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Issue"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	dependency := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if ctx.Written() {

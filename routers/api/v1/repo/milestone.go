@@ -147,8 +147,6 @@ func CreateMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Milestone"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.CreateMilestoneOption](ctx)
 
 	milestone := &issues_model.Milestone{
@@ -207,8 +205,6 @@ func EditMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Milestone"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.EditMilestoneOption](ctx)
 	milestone := getMilestoneByIDOrName(ctx)
 	if milestone == nil {
@@ -264,8 +260,6 @@ func DeleteMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	m := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {

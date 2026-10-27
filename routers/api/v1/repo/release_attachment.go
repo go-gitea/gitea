@@ -202,8 +202,6 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "413":
 	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	// Check if attachments are enabled
 	if !setting.Attachment.Enabled {
@@ -311,8 +309,6 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.EditAttachmentOptions](ctx)
 
@@ -388,8 +384,6 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")

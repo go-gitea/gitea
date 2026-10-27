@@ -61,8 +61,6 @@ func AddIssueAssignees(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	opts := web.GetForm[*api.IssueAssigneesOption](ctx)
 	updateIssueAssignees(ctx, *opts, true)
@@ -108,8 +106,6 @@ func DeleteIssueAssignees(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	opts := web.GetForm[*api.IssueAssigneesOption](ctx)
 	updateIssueAssignees(ctx, *opts, false)

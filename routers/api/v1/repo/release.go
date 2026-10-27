@@ -243,8 +243,6 @@ func CreateRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.CreateReleaseOption](ctx)
 	if ctx.Repo.Repository.IsEmpty {
@@ -347,8 +345,6 @@ func EditRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Release"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.EditReleaseOption](ctx)
 	id := ctx.PathParamInt64("id")
@@ -427,8 +423,6 @@ func DeleteRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	id := ctx.PathParamInt64("id")
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)

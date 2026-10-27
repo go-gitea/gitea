@@ -527,8 +527,6 @@ func EditIssueCommentDeprecated(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.EditIssueCommentOption](ctx)
 	editIssueComment(ctx, *form)
@@ -595,8 +593,6 @@ func DeleteIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	deleteIssueComment(ctx)
 }
@@ -636,8 +632,6 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	deleteIssueComment(ctx)
 }

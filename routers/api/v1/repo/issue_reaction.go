@@ -135,8 +135,6 @@ func PostIssueCommentReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.EditReactionOption](ctx)
 
@@ -180,8 +178,6 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.EditReactionOption](ctx)
 
@@ -353,8 +349,6 @@ func PostIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.EditReactionOption](ctx)
 	changeIssueReaction(ctx, *form, true)
 }
@@ -396,8 +390,6 @@ func DeleteIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm[*api.EditReactionOption](ctx)
 	changeIssueReaction(ctx, *form, false)
 }
