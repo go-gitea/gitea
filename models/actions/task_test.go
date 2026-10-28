@@ -476,6 +476,8 @@ func TestRunnerGroupMembership(t *testing.T) {
 	orgGroup, err := CreateRunnerGroup(t.Context(), 3, "gpu")
 	require.NoError(t, err)
 	_, err = CreateRunnerGroup(t.Context(), 0, "GPU")
+	require.NoError(t, err)
+	_, err = CreateRunnerGroup(t.Context(), 0, "gpu")
 	require.ErrorIs(t, err, util.ErrAlreadyExist)
 	group, err := CreateRunnerGroup(t.Context(), 0, "cpu")
 	require.NoError(t, err)

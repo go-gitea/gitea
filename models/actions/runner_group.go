@@ -183,11 +183,8 @@ func CreateRunnerGroup(ctx context.Context, ownerID int64, name string) (*Action
 		return nil, util.NewInvalidArgumentErrorf("invalid runner group name %q", name)
 	}
 	group := &ActionRunnerGroup{OwnerID: ownerID, Name: name, LowerName: strings.ToLower(name)}
-	cond := builder.Eq{"lower_name": group.LowerName}
-	if ownerID != 0 {
-		cond["owner_id"] = []int64{ownerID, 0}
-	}
-	exists, err := db.GetEngine(ctx).Where(cond).Exist(new(ActionRunnerGroup)) // global and owner names never overlap, an unprefixed runs-on.group would match both
+	cond := builder.Eq{"lower_name": group.LowerName, "owner_id": []int64{ownerID, 0}}
+	exists, err := db.GetEngine(ctx).Where(cond).Exist(new(ActionRunnerGroup)) // like github.com, owners can't take a global name, but global names may shadow owner ones so users can't squat them
 	if err != nil {
 		return nil, err
 	}
