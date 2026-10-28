@@ -166,31 +166,6 @@ func addParticipant(poster *user_model.User, participants []*user_model.User) []
 	return append(participants, poster)
 }
 
-func filterXRefComments(ctx *context.Context, issue *issues_model.Issue) error {
-	// Remove comments that the user has no permissions to see
-	for i := 0; i < len(issue.Comments); {
-		c := issue.Comments[i]
-		if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
-			var err error
-			// Set RefRepo for description in template
-			c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
-			if err != nil {
-				return err
-			}
-			perm, err := access_model.GetDoerRepoPermission(ctx, c.RefRepo, ctx.Doer)
-			if err != nil {
-				return err
-			}
-			if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
-				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
-				continue
-			}
-		}
-		i++
-	}
-	return nil
-}
-
 // combineXRefComments keeps only the first reference from each issue, carrying over the action of later ones
 func combineXRefComments(issue *issues_model.Issue) {
 	first := make(map[int64]*issues_model.Comment)
@@ -376,8 +351,9 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := filterXRefComments(ctx, issue); err != nil {
-		ctx.ServerError("filterXRefComments", err)
+	var err error
+	if issue.Comments, err = issue_service.FilterReadableComments(ctx, ctx.Doer, ctx.Repo.Permission, issue, issue.Comments); err != nil {
+		ctx.ServerError("FilterReadableComments", err)
 		return
 	}
 	combineXRefComments(issue)
@@ -759,13 +735,6 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			if err = comment.LoadAssigneeUserAndTeam(ctx); err != nil {
 				ctx.ServerError("LoadAssigneeUserAndTeam", err)
 				return
-			}
-		} else if comment.Type == issues_model.CommentTypeRemoveDependency || comment.Type == issues_model.CommentTypeAddDependency {
-			if err = comment.LoadDepIssueDetails(ctx); err != nil {
-				if !issues_model.IsErrIssueNotExist(err) {
-					ctx.ServerError("LoadDepIssueDetails", err)
-					return
-				}
 			}
 		} else if comment.Type.HasContentSupport() {
 			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{

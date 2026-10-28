@@ -5,14 +5,11 @@
 package repo
 
 import (
-	stdCtx "context"
 	"errors"
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
@@ -189,10 +186,14 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	if comments, err = issue_service.FilterReadableComments(ctx, ctx.Doer, ctx.Repo.Permission, issue, comments); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 
 	var apiComments []*api.TimelineComment
 	for _, comment := range comments {
-		if comment.Type != issues_model.CommentTypeCode && isXRefCommentAccessible(ctx, ctx.Doer, comment, issue.RepoID) {
+		if comment.Type != issues_model.CommentTypeCode {
 			comment.Issue = issue
 			apiComments = append(apiComments, convert.ToTimelineComment(ctx, issue.Repo, comment, ctx.Doer))
 		}
@@ -200,26 +201,6 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 
 	ctx.SetTotalCountHeader(int64(len(apiComments)))
 	ctx.JSON(http.StatusOK, &apiComments)
-}
-
-func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *issues_model.Comment, issueRepoID int64) bool {
-	// Remove comments that the user has no permissions to see
-	if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
-		var err error
-		// Set RefRepo for description in template
-		c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
-		if err != nil {
-			return false
-		}
-		perm, err := access_model.GetDoerRepoPermission(ctx, c.RefRepo, user)
-		if err != nil {
-			return false
-		}
-		if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
-			return false
-		}
-	}
-	return true
 }
 
 // ListRepoIssueComments returns all issue-comments for a repo
