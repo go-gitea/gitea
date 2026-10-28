@@ -349,10 +349,12 @@ func handleRepoHomeFeed(ctx *context.Context) bool {
 	}
 	if ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType) {
 		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
-	} else if ctx.Repo.TreePath == "" {
-		feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+	} else if !ctx.Repo.Permission.CanRead(unit_model.TypeCode) && !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
+		// the branch and file feeds list commits, so gate them like RequireUnitReader(TypeCode) on "/rss/branch/*",
+		// which also admits maintainers of a PR allowing maintainer edits, who can push to its head branch without code read access
+		ctx.NotFound(nil)
 	} else {
-		feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+		feed.RenderBranchFeed(ctx, showFeedType)
 	}
 	return true
 }
