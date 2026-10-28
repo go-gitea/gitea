@@ -217,7 +217,7 @@ func (app *OAuth2Application) GenerateClientSecret(ctx context.Context) (string,
 	// for code scanners to grab sensitive tokens.
 	clientSecret := "gto_" + base32Lower.EncodeToString(rBytes)
 
-	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(clientSecret), bcrypt.DefaultCost)
+	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(clientSecret), util.Iif(setting.IsInTesting, bcrypt.MinCost, bcrypt.DefaultCost))
 	if err != nil {
 		return "", err
 	}

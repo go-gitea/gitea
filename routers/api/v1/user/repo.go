@@ -77,8 +77,8 @@ func ListUserRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listUserRepos(ctx, ctx.ContextUser, ctx.IsSigned)
 }
@@ -159,8 +159,8 @@ func ListOrgRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
 }

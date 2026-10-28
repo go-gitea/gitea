@@ -34,6 +34,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // ErrCommentNotExist represents a "CommentNotExist" kind of error.
@@ -398,12 +399,19 @@ func (c *Comment) LoadIssue(ctx context.Context) (err error) {
 	return err
 }
 
+var (
+	_ xorm.BeforeInsertProcessor = (*Comment)(nil)
+	_ xorm.BeforeUpdateProcessor = (*Comment)(nil)
+)
+
 // BeforeInsert will be invoked by XORM before inserting a record
 func (c *Comment) BeforeInsert() {
 	c.PatchQuoted = c.Patch
 	if !utf8.ValidString(c.Patch) {
 		c.PatchQuoted = strconv.Quote(c.Patch)
 	}
+
+	sanitizeDatabaseStringContent(&c.Content)
 }
 
 // BeforeUpdate will be invoked by XORM before updating a record
@@ -412,6 +420,8 @@ func (c *Comment) BeforeUpdate() {
 	if !utf8.ValidString(c.Patch) {
 		c.PatchQuoted = strconv.Quote(c.Patch)
 	}
+
+	sanitizeDatabaseStringContent(&c.Content)
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.

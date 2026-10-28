@@ -202,8 +202,8 @@ func ListProjects(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /orgs/{org}/projects organization orgListProjects
 	// ---
@@ -233,8 +233,8 @@ func ListProjects(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /user/projects user userCurrentListProjects
 	// ---
@@ -288,8 +288,8 @@ func ListProjects(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	scope := projectScopeFromContext(ctx)
 	listOptions := utils.GetListOptions(ctx)
@@ -344,8 +344,8 @@ func GetProject(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Project"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /orgs/{org}/projects/{id} organization orgGetProject
 	// ---
@@ -367,8 +367,8 @@ func GetProject(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Project"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /user/projects/{id} user userCurrentGetProject
 	// ---
@@ -385,8 +385,8 @@ func GetProject(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Project"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findProject(ctx)
 	if ctx.Written() {
@@ -425,12 +425,8 @@ func CreateProject(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Project"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /orgs/{org}/projects organization orgCreateProject
 	// ---
@@ -452,10 +448,8 @@ func CreateProject(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Project"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /user/projects user userCurrentCreateProject
 	// ---
@@ -472,8 +466,8 @@ func CreateProject(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Project"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	scope := projectScopeFromContext(ctx)
 	form := web.GetForm[*api.CreateProjectOption](ctx)
@@ -540,12 +534,8 @@ func EditProject(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Project"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation PATCH /orgs/{org}/projects/{id} organization orgEditProject
 	// ---
@@ -573,10 +563,8 @@ func EditProject(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Project"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation PATCH /user/projects/{id} user userCurrentEditProject
 	// ---
@@ -599,10 +587,8 @@ func EditProject(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Project"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findProject(ctx)
 	if ctx.Written() {
@@ -669,10 +655,8 @@ func DeleteProject(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation DELETE /orgs/{org}/projects/{id} organization orgDeleteProject
 	// ---
@@ -692,8 +676,8 @@ func DeleteProject(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation DELETE /user/projects/{id} user userCurrentDeleteProject
 	// ---
@@ -708,8 +692,8 @@ func DeleteProject(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findProject(ctx)
 	if ctx.Written() {
@@ -756,8 +740,8 @@ func ListProjectColumns(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumnList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /orgs/{org}/projects/{id}/columns organization orgListProjectColumns
 	// ---
@@ -787,8 +771,8 @@ func ListProjectColumns(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumnList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /user/projects/{id}/columns user userCurrentListProjectColumns
 	// ---
@@ -813,8 +797,8 @@ func ListProjectColumns(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumnList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findProject(ctx)
 	if ctx.Written() {
@@ -870,14 +854,8 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ProjectColumn"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/columns organization orgCreateProjectColumn
 	// ---
@@ -905,12 +883,8 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ProjectColumn"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /user/projects/{id}/columns user userCurrentCreateProjectColumn
 	// ---
@@ -933,12 +907,8 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ProjectColumn"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findOpenProject(ctx)
 	if ctx.Written() {
@@ -991,8 +961,8 @@ func GetProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumn"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /orgs/{org}/projects/{id}/columns/{column_id} organization orgGetProjectColumn
 	// ---
@@ -1020,8 +990,8 @@ func GetProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumn"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /user/projects/{id}/columns/{column_id} user userCurrentGetProjectColumn
 	// ---
@@ -1044,8 +1014,8 @@ func GetProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumn"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	_, column := projectScopeFromContext(ctx).findColumn(ctx)
 	if ctx.Written() {
@@ -1092,14 +1062,8 @@ func EditProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumn"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation PATCH /orgs/{org}/projects/{id}/columns/{column_id} organization orgEditProjectColumn
 	// ---
@@ -1133,12 +1097,8 @@ func EditProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumn"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation PATCH /user/projects/{id}/columns/{column_id} user userCurrentEditProjectColumn
 	// ---
@@ -1167,12 +1127,8 @@ func EditProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumn"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	_, column := projectScopeFromContext(ctx).findOpenColumn(ctx)
 	if ctx.Written() {
@@ -1232,14 +1188,8 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation DELETE /orgs/{org}/projects/{id}/columns/{column_id} organization orgDeleteProjectColumn
 	// ---
@@ -1266,12 +1216,8 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation DELETE /user/projects/{id}/columns/{column_id} user userCurrentDeleteProjectColumn
 	// ---
@@ -1293,12 +1239,8 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	_, column := projectScopeFromContext(ctx).findOpenColumn(ctx)
 	if ctx.Written() {
@@ -1342,12 +1284,8 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/columns/{column_id}/default organization orgSetDefaultProjectColumn
 	// ---
@@ -1374,10 +1312,8 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /user/projects/{id}/columns/{column_id}/default user userCurrentSetDefaultProjectColumn
 	// ---
@@ -1399,10 +1335,8 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project, column := projectScopeFromContext(ctx).findOpenColumn(ctx)
 	if ctx.Written() {
@@ -1446,14 +1380,8 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/columns/move organization orgMoveProjectColumns
 	// ---
@@ -1480,12 +1408,8 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /user/projects/{id}/columns/move user userCurrentMoveProjectColumns
 	// ---
@@ -1507,12 +1431,8 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	project := projectScopeFromContext(ctx).findOpenProject(ctx)
 	if ctx.Written() {
@@ -1582,8 +1502,8 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /orgs/{org}/projects/{id}/columns/{column_id}/issues organization orgListProjectColumnIssues
 	// ---
@@ -1619,8 +1539,8 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation GET /user/projects/{id}/columns/{column_id}/issues user userCurrentListProjectColumnIssues
 	// ---
@@ -1651,8 +1571,8 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	scope := projectScopeFromContext(ctx)
 	project, column := scope.findColumn(ctx)
@@ -1744,14 +1664,8 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/columns/{column_id}/issues/{issue_id} organization orgAddIssueToProjectColumn
 	// ---
@@ -1784,14 +1698,8 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /user/projects/{id}/columns/{column_id}/issues/{issue_id} user userCurrentAddIssueToProjectColumn
 	// ---
@@ -1819,14 +1727,8 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	column, issue := projectScopeFromContext(ctx).findColumnIssue(ctx)
 	if ctx.Written() {
@@ -1875,12 +1777,8 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation DELETE /orgs/{org}/projects/{id}/columns/{column_id}/issues/{issue_id} organization orgRemoveIssueFromProjectColumn
 	// ---
@@ -1912,12 +1810,8 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation DELETE /user/projects/{id}/columns/{column_id}/issues/{issue_id} user userCurrentRemoveIssueFromProjectColumn
 	// ---
@@ -1944,12 +1838,8 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	column, issue := projectScopeFromContext(ctx).findColumnIssue(ctx)
 	if ctx.Written() {
@@ -1998,14 +1888,8 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/issues/{issue_id}/move organization orgMoveProjectIssue
 	// ---
@@ -2037,14 +1921,8 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// swagger:operation POST /user/projects/{id}/issues/{issue_id}/move user userCurrentMoveProjectIssue
 	// ---
@@ -2071,14 +1949,8 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	scope := projectScopeFromContext(ctx)
 	project := scope.findOpenProject(ctx)
