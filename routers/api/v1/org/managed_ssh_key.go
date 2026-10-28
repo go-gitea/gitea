@@ -24,10 +24,8 @@ func GetManagedSSHKey(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ManagedSSHKey"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	shared.GetManagedSSHKey(ctx, ctx.Org.Organization.AsUser())
 }
@@ -48,8 +46,8 @@ func RegenerateManagedSSHKey(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ManagedSSHKey"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	shared.RegenerateManagedSSHKey(ctx, ctx.Org.Organization.AsUser())
 }

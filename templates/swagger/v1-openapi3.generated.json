@@ -14644,11 +14644,8 @@
           "200": {
             "$ref": "#/components/responses/ManagedSSHKey"
           },
-          "403": {
-            "$ref": "#/components/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/notFound"
+          "default": {
+            "$ref": "#/components/responses/error"
           }
         },
         "summary": "Get the managed SSH key that authenticates the organization's SSH migrations and mirrors",
@@ -14675,8 +14672,8 @@
           "200": {
             "$ref": "#/components/responses/ManagedSSHKey"
           },
-          "403": {
-            "$ref": "#/components/responses/forbidden"
+          "default": {
+            "$ref": "#/components/responses/error"
           }
         },
         "summary": "Generate a new managed SSH key for the organization, replacing the current one",
@@ -35328,8 +35325,8 @@
           "200": {
             "$ref": "#/components/responses/ManagedSSHKey"
           },
-          "404": {
-            "$ref": "#/components/responses/notFound"
+          "default": {
+            "$ref": "#/components/responses/error"
           }
         },
         "summary": "Get the managed SSH key that authenticates the user's SSH migrations and mirrors",
@@ -35344,6 +35341,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/ManagedSSHKey"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
           }
         },
         "summary": "Generate a new managed SSH key for the user, replacing the current one",
