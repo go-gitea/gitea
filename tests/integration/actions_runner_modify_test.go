@@ -254,11 +254,11 @@ func TestActionsRunnerModify(t *testing.T) {
 		assert.Equal(t, group.ID, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID}).GroupID)
 		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunnerAccess{GroupID: group.ID, RepoID: repo1.ID})
 
-		doDelete(t, sessionAdmin, adminGroupsURL, group.ID, http.StatusBadRequest)
+		doAction(t, sessionAdmin, adminGroupsURL, group.ID, "delete", http.StatusBadRequest)
 
 		assign(t, "")
 		assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID}).GroupID)
-		doDelete(t, sessionAdmin, adminGroupsURL, group.ID, http.StatusOK)
+		doAction(t, sessionAdmin, adminGroupsURL, group.ID, "delete", http.StatusOK)
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerGroup{ID: group.ID})
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerAccess{GroupID: group.ID})
 	})
