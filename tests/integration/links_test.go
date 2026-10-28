@@ -195,7 +195,7 @@ func testLinksAsUser(t *testing.T) {
 	assert.NotEmpty(t, apiRepos)
 
 	defer test.MockVariableValue(&setting.DisableGitHooks, false)()
-	_, err := db.GetEngine(t.Context()).ID(2).Update(&user_model.User{AllowGitHook: true})
+	_, err := db.GetEngine(t.Context()).ID(2).Cols("allow_git_hook").Update(&user_model.User{AllowGitHook: true})
 	require.NoError(t, err)
 	repoLinks := []string{
 		"",
