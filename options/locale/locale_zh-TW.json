@@ -2930,7 +2930,6 @@
   "units.error.no_unit_allowed_repo": "您未被允許存取此儲存庫的任何區域。",
   "units.error.unit_not_allowed": "您未被允許訪問此儲存庫區域",
   "packages.title": "套件",
-  "packages.desc": "管理儲存庫套件。",
   "packages.empty": "目前還沒有套件。",
   "packages.no_metadata": "沒有元數據。",
   "packages.empty.documentation": "關於套件註冊中心的詳情請參閱<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%s\">說明文件</a>。",
@@ -3178,6 +3177,7 @@
   "projects.type-1.display_name": "個人專案",
   "projects.type-2.display_name": "儲存庫專案",
   "projects.type-3.display_name": "組織專案",
+  "projects.workflows.none": "無",
   "git.filemode.directory": "目錄",
   "git.filemode.submodule": "子模組",
   "actions.general.token_permissions.mode.restricted": "受限"

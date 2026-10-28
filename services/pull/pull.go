@@ -98,6 +98,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 	assignees := make(map[int64]*user_model.User)
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
+	var addedProjectIDs []int64
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr)
 		if err != nil {
@@ -119,7 +120,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		if len(opts.ProjectIDs) > 0 && canAssignProject {
-			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs); err != nil {
+			if addedProjectIDs, _, err = issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs); err != nil {
 				return err
 			}
 		}
@@ -194,6 +195,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	for _, assignee := range assignees {
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assignee.ID])
 	}
+	notify_service.IssueChangeProjects(ctx, issue.Poster, issue, addedProjectIDs, nil)
 
 	return nil
 }
@@ -358,26 +360,6 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	})
 }
 
-func checkForInvalidation(ctx context.Context, requests issues_model.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
-	}
-	gitRepo, err := git.OpenRepository(ctx, repo)
-	if err != nil {
-		return fmt.Errorf("gitrepo.OpenRepository: %w", err)
-	}
-	go func() {
-		// FIXME: graceful: We need to tell the manager we're doing something...
-		err := InvalidateCodeComments(ctx, requests, doer, repo, gitRepo, branch)
-		if err != nil {
-			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
-		}
-		gitRepo.Close()
-	}()
-	return nil
-}
-
 type TestPullRequestOptions struct {
 	RepoID      int64
 	Doer        *user_model.User
@@ -436,8 +418,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			if err = headBranchPRs.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
-			if invalidationErr := checkForInvalidation(ctx, headBranchPRs, opts.RepoID, opts.Doer, opts.Branch); invalidationErr != nil {
-				log.Error("checkForInvalidation: %v", invalidationErr)
+			if invalidationErr := InvalidateCodeComments(ctx, headBranchPRs, repo, opts.Branch); invalidationErr != nil {
+				log.Error("InvalidateCodeComments: %v", invalidationErr)
 			}
 			if err == nil {
 				for _, pr := range headBranchPRs {
