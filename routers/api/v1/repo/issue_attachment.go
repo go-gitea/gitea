@@ -54,7 +54,7 @@ func GetIssueAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
-	//   "404":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
@@ -97,7 +97,7 @@ func ListIssueAttachments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AttachmentList"
-	//   "404":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
@@ -152,16 +152,8 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/error"
-	//   "413":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
@@ -252,12 +244,8 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
-	//   "404":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	attachment := getIssueAttachmentSafeWrite(ctx)
 	if attachment == nil {
@@ -315,10 +303,8 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	attachment := getIssueAttachmentSafeWrite(ctx)
 	if attachment == nil {

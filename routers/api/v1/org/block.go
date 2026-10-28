@@ -53,8 +53,8 @@ func CheckUserBlock(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	shared.CheckUserBlock(ctx, ctx.Org.Organization.AsUser())
 }
@@ -81,10 +81,8 @@ func BlockUser(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	shared.BlockUser(ctx, ctx.Org.Organization.AsUser())
 }
@@ -107,10 +105,8 @@ func UnblockUser(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	shared.UnblockUser(ctx, ctx.Doer, ctx.Org.Organization.AsUser())
 }
