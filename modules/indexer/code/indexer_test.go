@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	indexer_module "gitea.dev/modules/indexer"
 	"gitea.dev/modules/indexer/code/bleve"
 	"gitea.dev/modules/indexer/code/elasticsearch"
@@ -47,6 +49,12 @@ abc bcd cde def
 
 func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 	t.Run(name, func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 62})
+		require.NoError(t, git.ForceFastImport(t.Context(), repo, []git.FastImportCommit{{
+			Ref:    "refs/heads/master",
+			Parent: "refs/heads/master^0",
+			Files:  []git.FastImportFile{{Path: "unicode.txt", Content: unicodeSearchContent}},
+		}}))
 		assert.NoError(t, setupRepositoryIndexes(t.Context(), indexer))
 		// Wait for the index to catch up: ES/OpenSearch make writes visible
 		// only after a refresh (default interval: 1s). Bleve is synchronous

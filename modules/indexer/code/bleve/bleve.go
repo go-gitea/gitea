@@ -7,9 +7,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/analyze"
@@ -307,59 +309,76 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	}
 
 	from, pageSize := opts.GetSkipTake()
-	searchRequest := bleve.NewSearchRequestOptions(indexerQuery, pageSize, from, false)
-	searchRequest.Fields = []string{"Content", "Filename", "RepoID", "Language", "CommitID", "UpdatedAt"}
-	searchRequest.IncludeLocations = true
-
-	if len(opts.Language) == 0 {
-		searchRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
+	// grams prove terms of up to 3 runes, longer ones are verified against the content, so fetch candidates until the page is full
+	matched, scanned := 0, 0
+	if !slices.ContainsFunc(terms, func(term string) bool { return utf8.RuneCountInString(term) > 3 }) {
+		matched, scanned = from, from
 	}
+	var result *bleve.SearchResult
+	var total int64
+	searchResults := make([]*internal.SearchResult, 0, pageSize)
+	for {
+		size := from + pageSize - matched
+		searchRequest := bleve.NewSearchRequestOptions(indexerQuery, size, scanned, false)
+		searchRequest.Fields = []string{"Content", "Filename", "RepoID", "Language", "CommitID", "UpdatedAt"}
+		searchRequest.IncludeLocations = true
+		if result == nil && len(opts.Language) == 0 {
+			searchRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
+		}
+		searchRequest.SortBy([]string{"-_score", "UpdatedAt"})
 
-	searchRequest.SortBy([]string{"-_score", "UpdatedAt"})
-
-	result, err := b.inner.Indexer.SearchInContext(ctx, searchRequest)
-	if err != nil {
-		return 0, nil, nil, err
-	}
-
-	total := int64(result.Total)
-
-	searchResults := make([]*internal.SearchResult, 0, len(result.Hits))
-	for _, hit := range result.Hits {
-		content, okContent := hit.Fields["Content"].(string)
-		language, okLanguage := hit.Fields["Language"].(string)
-		commitID, okCommitID := hit.Fields["CommitID"].(string)
-		updatedAt, okUpdatedAt := hit.Fields["UpdatedAt"].(string)
-		repoID, okRepoID := hit.Fields["RepoID"].(float64)
-		if !okContent || !okLanguage || !okCommitID || !okUpdatedAt || !okRepoID {
-			hitFieldsJson, _ := json.Marshal(hit.Fields)
-			setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, string(hitFieldsJson))
-			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
+		batch, err := b.inner.Indexer.SearchInContext(ctx, searchRequest)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		if result == nil {
+			result = batch
 		}
 
-		var startIndex, endIndex int
-		if len(hit.Locations["Filename"]) > 0 {
-			startIndex, endIndex = internal.FilenameMatchIndexPos(content)
-		} else if startIndex, endIndex = internal.ContentMatchIndexPos(content, terms); startIndex < 0 {
-			total--
-			continue
-		}
+		for _, hit := range batch.Hits {
+			scanned++
+			content, okContent := hit.Fields["Content"].(string)
+			language, okLanguage := hit.Fields["Language"].(string)
+			commitID, okCommitID := hit.Fields["CommitID"].(string)
+			updatedAt, okUpdatedAt := hit.Fields["UpdatedAt"].(string)
+			repoID, okRepoID := hit.Fields["RepoID"].(float64)
+			if !okContent || !okLanguage || !okCommitID || !okUpdatedAt || !okRepoID {
+				hitFieldsJson, _ := json.Marshal(hit.Fields)
+				setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, string(hitFieldsJson))
+				return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
+			}
 
-		var updatedUnix timeutil.TimeStamp
-		if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
-			updatedUnix = timeutil.TimeStamp(t.Unix())
+			var startIndex, endIndex int
+			if len(hit.Locations["Filename"]) > 0 {
+				startIndex, endIndex = internal.FilenameMatchIndexPos(content)
+			} else if startIndex, endIndex = internal.ContentMatchIndexPos(content, terms); startIndex < 0 {
+				continue
+			}
+			matched++
+			if matched <= from {
+				continue
+			}
+
+			var updatedUnix timeutil.TimeStamp
+			if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
+				updatedUnix = timeutil.TimeStamp(t.Unix())
+			}
+			searchResults = append(searchResults, &internal.SearchResult{
+				RepoID:      int64(repoID),
+				StartIndex:  startIndex,
+				EndIndex:    endIndex,
+				Filename:    internal.FilenameOfIndexerID(hit.ID),
+				Content:     content,
+				CommitID:    commitID,
+				UpdatedUnix: updatedUnix,
+				Language:    language,
+				Color:       enry.GetColor(language),
+			})
 		}
-		searchResults = append(searchResults, &internal.SearchResult{
-			RepoID:      int64(repoID),
-			StartIndex:  startIndex,
-			EndIndex:    endIndex,
-			Filename:    internal.FilenameOfIndexerID(hit.ID),
-			Content:     content,
-			CommitID:    commitID,
-			UpdatedUnix: updatedUnix,
-			Language:    language,
-			Color:       enry.GetColor(language),
-		})
+		if matched == from+pageSize || len(batch.Hits) < size {
+			total = max(int64(matched), int64(matched)+int64(batch.Total)-int64(scanned))
+			break
+		}
 	}
 	if total == 0 {
 		return 0, nil, nil, nil
@@ -372,6 +391,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		facetRequest.Fields = []string{"Content", "RepoID", "Language", "CommitID", "UpdatedAt"}
 		facetRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
 
+		var err error
 		if result, err = b.inner.Indexer.Search(facetRequest); err != nil {
 			return 0, nil, nil, err
 		}
