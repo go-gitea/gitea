@@ -659,8 +659,15 @@ func userAllPublicRepoCond(cond builder.Cond, ownerVisibilityLimit []structs.Vis
 
 // AccessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) builder.Cond {
+	unitCond := builder.NewCond()
+	if unitType != unit.TypeInvalid {
+		if unitType.UnitGlobalDisabled() {
+			return builder.Expr("1=0")
+		}
+		unitCond = builder.In("`repository`.id", builder.Select("repo_id").From("repo_unit").Where(builder.Eq{"type": unitType}))
+	}
 	if user_model.IsPublicOnlyDoer(user) && !user.IsRestricted {
-		return PublicRepoUnderPublicOwnerCond()
+		return PublicRepoUnderPublicOwnerCond().And(unitCond)
 	}
 	cond := builder.NewCond()
 
@@ -699,7 +706,7 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 			cond = userAllPublicRepoCond(cond, orgVisibilityLimit)
 		}
 	}
-	return cond.And(DoerTokenRepoCond(user))
+	return cond.And(DoerTokenRepoCond(user), unitCond)
 }
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
