@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -134,6 +135,7 @@ func testLinksNoLoginNotExist(t *testing.T) {
 }
 
 func testLinksAsUser(t *testing.T) {
+	// TOOD: it is questionable whether it's worth to keep these tests, these endpoints should have their own tests
 	session := loginUser(t, "user2")
 	links := []string{
 		"/explore/repos",
@@ -192,6 +194,9 @@ func testLinksAsUser(t *testing.T) {
 	apiRepos := DecodeJSON(t, respAPI, []*api.Repository{})
 	assert.NotEmpty(t, apiRepos)
 
+	defer test.MockVariableValue(&setting.DisableGitHooks, false)()
+	_, err := db.GetEngine(t.Context()).ID(2).Update(&user_model.User{AllowGitHook: true})
+	require.NoError(t, err)
 	repoLinks := []string{
 		"",
 		"/issues",
@@ -202,15 +207,16 @@ func testLinksAsUser(t *testing.T) {
 		"/settings/collaboration",
 		"/settings/branches",
 		"/settings/hooks",
-		// FIXME: below links should return 200 but 404 ??
-		//"/settings/hooks/git",
-		//"/settings/hooks/git/pre-receive",
-		//"/settings/hooks/git/update",
-		//"/settings/hooks/git/post-receive",
+
+		"/settings/hooks/git",
+		"/settings/hooks/git/pre-receive",
+		"/settings/hooks/git/update",
+		"/settings/hooks/git/post-receive",
+
 		"/settings/keys",
 		"/releases",
 		"/releases/new",
-		//"/wiki/_pages",
+		"/wiki/?action=_pages",
 		"/wiki/?action=_new",
 		"/activity",
 	}
