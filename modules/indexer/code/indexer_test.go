@@ -51,9 +51,15 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 	t.Run(name, func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 62})
 		require.NoError(t, git.ForceFastImport(t.Context(), repo, []git.FastImportCommit{{
-			Ref:    "refs/heads/master",
-			Parent: "refs/heads/master^0",
-			Files:  []git.FastImportFile{{Path: "unicode.txt", Content: unicodeSearchContent}},
+			Ref: "refs/heads/master",
+			Files: []git.FastImportFile{
+				{Path: "avocado.md", Content: "# repo1\n\npineaple pie of cucumber juice"},
+				{Path: "cucumber.md", Content: "Salad is good for your health"},
+				{Path: "example-file.js", Content: "console.log(\"Hello, World!\")"},
+				{Path: "ham.md", Content: "This is also not cheese"},
+				{Path: "potato/ham.md", Content: "This is not cheese"},
+				{Path: "unicode.txt", Content: unicodeSearchContent},
+			},
 		}}))
 		assert.NoError(t, setupRepositoryIndexes(t.Context(), indexer))
 		// Wait for the index to catch up: ES/OpenSearch make writes visible
