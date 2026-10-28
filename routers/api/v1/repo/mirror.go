@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -19,6 +20,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/migrations"
@@ -337,6 +339,11 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 	}
 
 	remoteName := ctx.PathParam("name")
+	if remoteName == "" {
+		// an empty name would drop the name condition and match the repo's first push mirror
+		ctx.APIErrorNotFound()
+		return
+	}
 	pushMirror, exist, err := db.Get[repo_model.PushMirror](ctx, repo_model.PushMirrorOptions{
 		RepoID:     ctx.Repo.Repository.ID,
 		RemoteName: remoteName,
@@ -349,8 +356,11 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 		return
 	}
 
+	pushMirror.Repo = ctx.Repo.Repository
+
 	// Remove the git remote first (it holds the mirror credentials), like the web settings handler does.
-	if err := mirror_service.RemovePushMirrorRemote(ctx, pushMirror); err != nil {
+	// A remote that is already gone must not block deleting the database row.
+	if err := mirror_service.RemovePushMirrorRemote(ctx, pushMirror); err != nil && !git.IsRemoteNotExistError(err) {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -359,6 +369,9 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, ctx.Repo.Repository, "mirror_id", pushMirror.ID, "remote_address", pushMirror.RemoteAddress)
+
 	ctx.Status(http.StatusNoContent)
 }
 

@@ -83,13 +83,17 @@ func testMirrorPushAPIDelete(t *testing.T) {
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	pushMirror := DecodeJSON(t, resp, &api.PushMirror{})
+	t.Cleanup(func() {
+		// make sure the remote with the test credentials doesn't leak into later subtests if an assertion fails
+		_ = git.ManagedRemoteRemove(t.Context(), repo2, pushMirror.RemoteName)
+	})
 
 	remoteAddress, err := git.GetRemoteAddress(t.Context(), repo2, pushMirror.RemoteName)
 	require.NoError(t, err)
 	assert.Contains(t, remoteAddress, "mirror-secret")
 
-	req = NewRequest(t, "DELETE", "/api/v1/repos/user2/repo2/push_mirrors/"+url.PathEscape(pushMirror.RemoteName)).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
+	deleteURL := "/api/v1/repos/user2/repo2/push_mirrors/" + url.PathEscape(pushMirror.RemoteName)
+	MakeRequest(t, NewRequest(t, "DELETE", deleteURL).AddTokenAuth(token), http.StatusNoContent)
 	unittest.AssertNotExistsBean(t, &repo_model.PushMirror{RepoID: repo2.ID, RemoteName: pushMirror.RemoteName})
 
 	// the git remote, which carries the credentials, must be gone too
@@ -97,7 +101,18 @@ func testMirrorPushAPIDelete(t *testing.T) {
 	assert.Error(t, err)
 
 	// deleting it again (or any unknown name) is a 404, as documented
-	MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "DELETE", deleteURL).AddTokenAuth(token), http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/repos/user2/repo2/push_mirrors/remote_mirror_unknown").AddTokenAuth(token), http.StatusNotFound)
+
+	// a push mirror whose git remote is already gone can still be deleted
+	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo2/push_mirrors", &api.CreatePushMirrorOption{
+		RemoteAddress: "https://127.0.0.1/user1/repo1.git",
+		Interval:      "8h",
+	}).AddTokenAuth(token)
+	orphan := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PushMirror{})
+	require.NoError(t, git.ManagedRemoteRemove(t.Context(), repo2, orphan.RemoteName))
+	MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/repos/user2/repo2/push_mirrors/"+url.PathEscape(orphan.RemoteName)).AddTokenAuth(token), http.StatusNoContent)
+	unittest.AssertNotExistsBean(t, &repo_model.PushMirror{RepoID: repo2.ID, RemoteName: orphan.RemoteName})
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {
