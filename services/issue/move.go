@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"uuid"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -21,8 +22,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/util"
-
-	"github.com/google/uuid"
 )
 
 // MoveIssueOptions are the options for MoveIssue
