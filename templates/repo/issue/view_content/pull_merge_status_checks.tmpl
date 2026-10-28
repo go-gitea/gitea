@@ -2,33 +2,41 @@
 * StatusCheckData: see backend pullCommitStatusCheckData struct
 */}}
 {{$statusCheckData := $.StatusCheckData}}
-{{if $statusCheckData}}
-	{{$commitStatuses := $statusCheckData.PullCommitStatuses}}
-	<div class="item flex-left-right commit-status-toggle">
-		<div>{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</div>
-		<button type="button" data-global-click="onCommitStatusChecksToggle" class="btn interact-fg"
-						data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
-						data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}"
-		>{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
-	</div>
-
-	{{if $statusCheckData.RequireApprovalRunCount}}
-	<div class="item flex-left-right" id="approve-status-checks">
-		<div>
-			<strong>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals" $statusCheckData.RequireApprovalRunCount}}</strong>
-			<p>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals_helper"}}</p>
-		</div>
-		{{if $statusCheckData.CanApprove}}
-		<button type="button" class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
-			{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
-		</button>
+<details class="item merge-box-checks" data-kind="checks"{{if not $statusCheckData.AllPassed}} open{{end}}>
+	<summary>
+		{{template "repo/issue/view_content/pull_merge_section" ($statusCheckData.Section ctx.Locale)}}
+		{{svg "octicon-chevron-right" 16 "merge-box-chevron"}}
+	</summary>
+	<div class="merge-box-checks-body">
+		{{if and $statusCheckData.RequireApprovalRunCount $statusCheckData.CanApprove}}
+			<div id="approve-status-checks">
+				<button type="button" class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
+					{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
+				</button>
+			</div>
+		{{end}}
+		{{range $group := $statusCheckData.Groups}}
+		<details class="merge-box-checks-group" data-kind="{{$group.Kind.Name}}" open>
+			<summary class="flex-text-inline">{{$group.Title ctx.Locale}}{{svg "octicon-chevron-right" 12 "merge-box-chevron"}}</summary>
+			<div class="flex-divided-list">
+				{{range $cs := $group.CommitStatuses}}
+				<div class="item commit-status-item">
+					<div class="flex-text-block tw-flex-1">
+						{{$actionStatus := $statusCheckData.ActionsStatuses.IconStatus $cs}}
+						{{if $actionStatus}}
+							{{template "repo/icons/action_status" (dict "Status" $actionStatus "Size" 18 "ClassName" "commit-status icon")}}
+						{{else}}
+							{{template "repo/icons/commit_status" $cs}}
+						{{end}}
+						<span class="gt-ellipsis" title="{{$cs.Context}} {{$cs.Description}}">{{if $cs.TargetURL}}<a class="muted" href="{{$cs.TargetURL}}">{{$cs.Context}}</a>{{else}}{{$cs.Context}}{{end}} <span class="tw-text-12 tw-text-text-light-2">{{$cs.Description}}</span></span>
+					</div>
+					{{if call $statusCheckData.IsContextRequired $cs.Context}}
+						<div class="ui basic label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
+					{{end}}
+				</div>
+				{{end}}
+			</div>
+		</details>
 		{{end}}
 	</div>
-	{{end}}
-
-	<div class="item tw-p-0">
-		<div class="commit-status-list flex-divided-list items-px-default">
-			{{template "repo/pulls/status_items" (dict "CommitStatuses" $commitStatuses "StatusCheckData" $statusCheckData)}}
-		</div>
-	</div>
-{{end}}
+</details>

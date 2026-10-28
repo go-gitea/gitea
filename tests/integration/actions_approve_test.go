@@ -110,7 +110,8 @@ jobs:
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index))
 		resp = user4Session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Zero(t, htmlDoc.doc.Find("#approve-status-checks button.link-action").Length())
+		assert.Contains(t, htmlDoc.doc.Find(".merge-box-checks summary").First().Text(), "2 workflows awaiting approval")
+		assert.Zero(t, htmlDoc.doc.Find("#approve-status-checks").Length())
 
 		// user2 can see the approve button
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index))

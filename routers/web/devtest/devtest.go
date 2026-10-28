@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	"gitea.dev/routers/web/repo"
 	"gitea.dev/services/context"
 )
 
@@ -252,6 +253,8 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataUnicodeEscape(ctx)
 	case "/devtest/avatar-stack":
 		prepareMockDataAvatarStack(ctx)
+	case "/devtest/pull-merge-box":
+		ctx.Data["MergeBoxScenarios"] = repo.MockPullMergeBoxes(ctx)
 	}
 }
 
