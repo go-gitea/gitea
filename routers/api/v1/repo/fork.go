@@ -51,8 +51,8 @@ func ListForks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 	forks, total, err := repo_service.FindForks(ctx, ctx.Repo.Repository, ctx.Doer, listOptions)
@@ -138,14 +138,8 @@ func CreateFork(ctx *context.APIContext) {
 	// responses:
 	//   "202":
 	//     "$ref": "#/responses/Repository"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     description: The repository with the same name already exists.
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.CreateForkOption](ctx)
 	forkOwner := ctx.Doer // user/org that will own the fork
