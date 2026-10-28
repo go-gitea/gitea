@@ -32,7 +32,7 @@ func TestBleveIndexerTokenFilter(t *testing.T) {
 		expectedIDs []int64
 	}{
 		{keyword: "12345", expectedIDs: []int64{2}},
-		{keyword: "DNS", expectedIDs: []int64{}},
+		{keyword: "DNS", expectedIDs: []int64{2}},
 		{keyword: "mdns", expectedIDs: []int64{2}},
 		{keyword: "port", expectedIDs: []int64{2}},
 		{keyword: "port2", expectedIDs: []int64{2}},

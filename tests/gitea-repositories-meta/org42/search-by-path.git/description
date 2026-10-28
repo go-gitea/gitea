@@ -6,4 +6,5 @@ This repository will be used to test code search. The snippet below shows its di
 ├── ham.md
 ├── potato
 |   └── ham.md
-└── example-file.js
+├── example-file.js
+└── unicode.txt
