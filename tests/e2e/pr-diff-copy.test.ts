@@ -5,12 +5,14 @@ import {apiCreateFiles, apiCreatePR, apiCreateRepo, login, randomString} from '.
 test('a copied pull request diff pastes as text', async ({page, request}) => {
   const repoName = `e2e-pr-diff-copy-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
-  const createPR = (async () => {
-    await apiCreateRepo(request, {name: repoName});
-    await apiCreateFiles(request, owner, repoName, [{path: 'copy.txt', content: 'one | two\n'}], {branch: 'main', newBranch: 'feat'});
-    return apiCreatePR(request, owner, repoName, 'feat', 'main', 'title');
-  })();
-  const [index] = await Promise.all([createPR, login(page)]);
+  const [index] = await Promise.all([
+    (async () => {
+      await apiCreateRepo(request, {name: repoName});
+      await apiCreateFiles(request, owner, repoName, [{path: 'copy.txt', content: 'one | two\n'}], {branch: 'main', newBranch: 'feat'});
+      return apiCreatePR(request, owner, repoName, 'feat', 'main', 'title');
+    })(),
+    login(page),
+  ]);
   await page.goto(`/${owner}/${repoName}/pulls/${index}/files`);
 
   await page.getByRole('main').selectText();
