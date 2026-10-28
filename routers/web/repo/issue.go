@@ -223,7 +223,6 @@ func getActionIssues(ctx *context.Context, accessMode perm.AccessMode) issues_mo
 			ctx.NotFound(errors.New("some issue's RepoID is incorrect"))
 			return nil
 		}
-		// the route only checks the access mode on either unit, not on the unit of each item
 		if !ctx.Repo.Permission.CanAccess(accessMode, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues)) {
 			ctx.NotFound(nil)
 			return nil
