@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {apiCreateFiles, apiCreatePR, apiCreateRepo, login, randomString} from './utils.ts';
 
-test('a copied pull request diff pastes as text, not as a markdown table', async ({page, request}) => {
+test('a copied pull request diff pastes as text', async ({page, request}) => {
   const repoName = `e2e-pr-diff-copy-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   const createPR = (async () => {
