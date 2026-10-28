@@ -46,8 +46,8 @@ func ListTopics(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicNames"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := &repo_model.FindTopicOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -96,12 +96,8 @@ func UpdateTopics(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/invalidTopicsError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.RepoTopicOptions](ctx)
 	topicNames := form.Topics
@@ -159,12 +155,8 @@ func AddTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/invalidTopicsError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam("topic")))
 
@@ -228,12 +220,8 @@ func DeleteTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/invalidTopicsError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam("topic")))
 
@@ -284,10 +272,8 @@ func TopicSearch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicListResponse"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := &repo_model.FindTopicOptions{
 		Keyword:     ctx.FormString("q"),
