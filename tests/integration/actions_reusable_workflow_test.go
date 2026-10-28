@@ -370,16 +370,10 @@ jobs:
 					Status: actions_model.StatusSuccess,
 				}))
 				job := "jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"
-				newFile := func(path, content string) *api.ChangeFileOperation {
-					return &api.ChangeFileOperation{Operation: "create", Path: path, ContentBase64: base64.StdEncoding.EncodeToString([]byte(content))}
-				}
-				MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", repo.OwnerName, repo.Name), &api.ChangeFilesOptions{
-					FileOptions: api.FileOptions{BranchName: repo.DefaultBranch, Message: "add mixed and no-events workflows"},
-					Files: []*api.ChangeFileOperation{ // one commit for both to keep the test fast
-						newFile(".gitea/workflows/mixed.yaml", "on: [workflow_call, workflow_dispatch]\n"+job),
-						newFile(".gitea/workflows/no-events.yaml", "on: []\n"+job),
-					},
-				}).AddTokenAuth(user2Token), http.StatusCreated)
+				testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{}, map[string]string{
+					".gitea/workflows/mixed.yaml":     "on: [workflow_call, workflow_dispatch]\n" + job,
+					".gitea/workflows/no-events.yaml": "on: []\n" + job,
+				})
 
 				doc := NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions"), http.StatusOK).Body)
 				listed := func(name string) int {
