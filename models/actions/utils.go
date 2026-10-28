@@ -12,24 +12,18 @@ import (
 	"io"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
-func generateSaltedToken() (string, string, string, string, error) {
-	salt, err := util.CryptoRandomString(10)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	buf, err := util.CryptoRandomBytes(20)
-	if err != nil {
-		return "", "", "", "", err
-	}
+func generateSaltedToken() (string, string, string, string) {
+	salt := util.CryptoRandomString(10)
+	buf := util.CryptoRandomBytes(20)
 	token := hex.EncodeToString(buf)
 	hash := auth_model.HashToken(token, salt)
-	return token, salt, hash, token[len(token)-8:], nil
+	return token, salt, hash, token[len(token)-8:]
 }
 
 /*
@@ -93,24 +87,5 @@ func calculateDuration(started, stopped timeutil.TimeStamp, status Status, fallb
 		}
 		return end.AsTime().Sub(s)
 	}
-	return timeSince(s).Truncate(time.Second)
-}
-
-// best effort function to convert an action schedule to action run, to be used in GenerateGiteaContext
-func (s *ActionSchedule) ToActionRun() *ActionRun {
-	return &ActionRun{
-		Title:         s.Title,
-		RepoID:        s.RepoID,
-		Repo:          s.Repo,
-		OwnerID:       s.OwnerID,
-		WorkflowID:    s.WorkflowID,
-		TriggerUserID: s.TriggerUserID,
-		TriggerUser:   s.TriggerUser,
-		Ref:           s.Ref,
-		CommitSHA:     s.CommitSHA,
-		Event:         s.Event,
-		EventPayload:  s.EventPayload,
-		Created:       s.Created,
-		Updated:       s.Updated,
-	}
+	return max(timeSince(s), 0).Truncate(time.Second)
 }

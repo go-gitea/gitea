@@ -7,12 +7,11 @@ import (
 	"context"
 	"errors"
 
-	"code.gitea.io/gitea/modules/indexer/internal"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/indexer/internal"
+	"gitea.dev/modules/log"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
-	"github.com/ethantkoenig/rupture"
 )
 
 var _ internal.Indexer = &Indexer{}
@@ -69,9 +68,7 @@ func (i *Indexer) Init(_ context.Context) (bool, error) {
 		return false, err
 	}
 
-	if err = rupture.WriteIndexMetadata(i.indexDir, &rupture.IndexMetadata{
-		Version: i.version,
-	}); err != nil {
+	if err = writeIndexMetadataVersion(i.indexDir, i.version); err != nil {
 		return false, err
 	}
 

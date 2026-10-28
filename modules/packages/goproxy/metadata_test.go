@@ -28,48 +28,41 @@ func TestParsePackage(t *testing.T) {
 		return bytes.NewReader(buf.Bytes())
 	}
 
-	t.Run("EmptyPackage", func(t *testing.T) {
-		data := createArchive(nil)
-
-		p, err := ParsePackage(data, int64(data.Len()))
-		assert.Nil(t, p)
-		assert.ErrorIs(t, err, ErrInvalidStructure)
-	})
-
-	t.Run("InvalidNameOrVersionStructure", func(t *testing.T) {
-		data := createArchive(map[string][]byte{
+	for _, testCase := range []struct {
+		name          string
+		files         map[string][]byte
+		expectedError error
+		goMod         string
+	}{
+		{"EmptyPackage", nil, ErrInvalidStructure, ""},
+		{"InvalidNameOrVersionStructure", map[string][]byte{
 			packageName + "/" + packageVersion + "/go.mod": {},
-		})
-
-		p, err := ParsePackage(data, int64(data.Len()))
-		assert.Nil(t, p)
-		assert.ErrorIs(t, err, ErrInvalidStructure)
-	})
-
-	t.Run("GoModFileInWrongDirectory", func(t *testing.T) {
-		data := createArchive(map[string][]byte{
+		}, ErrInvalidStructure, ""},
+		{"GoModFileInWrongDirectory", map[string][]byte{
 			packageName + "@" + packageVersion + "/subdir/go.mod": {},
-		})
-
-		p, err := ParsePackage(data, int64(data.Len()))
-		assert.NotNil(t, p)
-		assert.NoError(t, err)
-		assert.Equal(t, packageName, p.Name)
-		assert.Equal(t, packageVersion, p.Version)
-		assert.Equal(t, "module gitea.com/go-gitea/gitea", p.GoMod)
-	})
-
-	t.Run("Valid", func(t *testing.T) {
-		data := createArchive(map[string][]byte{
+		}, nil, "module gitea.com/go-gitea/gitea"},
+		{"InvalidVersion", map[string][]byte{
+			packageName + "@v1.0.0\nv99.0.0/go.mod": []byte("module " + packageName),
+		}, ErrInvalidVersion, ""},
+		{"Valid", map[string][]byte{
 			packageName + "@" + packageVersion + "/subdir/go.mod": []byte("invalid"),
 			packageName + "@" + packageVersion + "/go.mod":        []byte("valid"),
-		})
+		}, nil, "valid"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			data := createArchive(testCase.files)
 
-		p, err := ParsePackage(data, int64(data.Len()))
-		assert.NotNil(t, p)
-		assert.NoError(t, err)
-		assert.Equal(t, packageName, p.Name)
-		assert.Equal(t, packageVersion, p.Version)
-		assert.Equal(t, "valid", p.GoMod)
-	})
+			p, err := ParsePackage(data, int64(data.Len()))
+			if testCase.expectedError != nil {
+				assert.Nil(t, p)
+				assert.ErrorIs(t, err, testCase.expectedError)
+			} else {
+				assert.NotNil(t, p)
+				assert.NoError(t, err)
+				assert.Equal(t, packageName, p.Name)
+				assert.Equal(t, packageVersion, p.Version)
+				assert.Equal(t, testCase.goMod, p.GoMod)
+			}
+		})
+	}
 }

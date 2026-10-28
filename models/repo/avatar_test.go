@@ -6,8 +6,8 @@ package repo
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,4 +24,20 @@ func TestRepoAvatarLink(t *testing.T) {
 	setting.AppSubURL = "/sub-path"
 	link = repo.AvatarLink(t.Context())
 	assert.Equal(t, "https://localhost/sub-path/repo-avatars/avatar.png", link)
+}
+
+func TestArchiveType(t *testing.T) {
+	for _, tc := range []struct {
+		input, name, archiveType string
+	}{
+		{"test.tar.gz", "test", "tar.gz"},
+		{"a/b/test.zip", "a/b/test", "zip"},
+		{"1234.bundle", "1234", "bundle"},
+		{"test", "test", "unknown"},
+		{"test.xz", "test.xz", "unknown"},
+	} {
+		name, archiveType := SplitArchiveNameType(tc.input)
+		assert.Equal(t, tc.name, name)
+		assert.Equal(t, tc.archiveType, archiveType.String())
+	}
 }

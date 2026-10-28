@@ -6,13 +6,13 @@ package packages_test
 import (
 	"testing"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
-	_ "code.gitea.io/gitea/models"
-	_ "code.gitea.io/gitea/models/actions"
-	_ "code.gitea.io/gitea/models/activities"
+	_ "gitea.dev/models"
+	_ "gitea.dev/models/actions"
+	_ "gitea.dev/models/activities"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -38,29 +38,21 @@ func TestHasOwnerPackages(t *testing.T) {
 	assert.False(t, has)
 	assert.NoError(t, err)
 
-	pv, err := packages_model.GetOrInsertVersion(t.Context(), &packages_model.PackageVersion{
-		PackageID:    p.ID,
-		LowerVersion: "internal",
-		IsInternal:   true,
-	})
-	assert.NotNil(t, pv)
-	assert.NoError(t, err)
+	for _, testCase := range []struct {
+		version           packages_model.PackageVersion
+		assertHasPackages assert.BoolAssertionFunc
+	}{
+		// A package with an internal package version gets automatically cleaned up and should return false
+		{packages_model.PackageVersion{PackageID: p.ID, LowerVersion: "internal", IsInternal: true}, assert.False},
+		// A package with a normal package version should return true
+		{packages_model.PackageVersion{PackageID: p.ID, LowerVersion: "normal", IsInternal: false}, assert.True},
+	} {
+		pv, err := packages_model.GetOrInsertVersion(t.Context(), &testCase.version)
+		assert.NotNil(t, pv)
+		assert.NoError(t, err)
 
-	// A package with an internal package version gets automatically cleaned up and should return false
-	has, err = packages_model.HasOwnerPackages(t.Context(), owner.ID)
-	assert.False(t, has)
-	assert.NoError(t, err)
-
-	pv, err = packages_model.GetOrInsertVersion(t.Context(), &packages_model.PackageVersion{
-		PackageID:    p.ID,
-		LowerVersion: "normal",
-		IsInternal:   false,
-	})
-	assert.NotNil(t, pv)
-	assert.NoError(t, err)
-
-	// A package with a normal package version should return true
-	has, err = packages_model.HasOwnerPackages(t.Context(), owner.ID)
-	assert.True(t, has)
-	assert.NoError(t, err)
+		has, err = packages_model.HasOwnerPackages(t.Context(), owner.ID)
+		testCase.assertHasPackages(t, has)
+		assert.NoError(t, err)
+	}
 }

@@ -4,113 +4,43 @@
 package storage
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
-	"github.com/minio/minio-go/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestMinioStorage(t *testing.T) {
-	if os.Getenv("CI") == "" {
-		t.Skip("minioStorage not present outside of CI")
-		return
-	}
-	storageType := setting.MinioStorageType
-	config := &setting.Storage{
+func prepareMinioStorageConfig(t *testing.T, basePath string) *setting.Storage {
+	return &setting.Storage{
 		MinioConfig: setting.MinioStorageConfig{
-			Endpoint:        "minio:9000",
+			Endpoint:        test.ExternalServiceHTTP(t, "TEST_MINIO_ENDPOINT", "minio:9000"),
 			AccessKeyID:     "123456",
 			SecretAccessKey: "12345678",
 			Bucket:          "gitea",
 			Location:        "us-east-1",
+			BasePath:        basePath,
 		},
-	}
-	table := []struct {
-		name string
-		test func(t *testing.T, typStr Type, cfg *setting.Storage)
-	}{
-		{
-			name: "iterator",
-			test: testStorageIterator,
-		},
-		{
-			name: "testBlobStorageURLContentTypeAndDisposition",
-			test: testBlobStorageURLContentTypeAndDisposition,
-		},
-	}
-	for _, entry := range table {
-		t.Run(entry.name, func(t *testing.T) {
-			entry.test(t, storageType, config)
-		})
 	}
 }
 
-func TestMinioStoragePath(t *testing.T) {
-	m := &MinioStorage{basePath: ""}
-	assert.Empty(t, m.buildMinioPath("/"))
-	assert.Empty(t, m.buildMinioPath("."))
-	assert.Equal(t, "a", m.buildMinioPath("/a"))
-	assert.Equal(t, "a/b", m.buildMinioPath("/a/b/"))
-	assert.Empty(t, m.buildMinioDirPrefix(""))
-	assert.Equal(t, "a/", m.buildMinioDirPrefix("/a/"))
-
-	m = &MinioStorage{basePath: "/"}
-	assert.Empty(t, m.buildMinioPath("/"))
-	assert.Empty(t, m.buildMinioPath("."))
-	assert.Equal(t, "a", m.buildMinioPath("/a"))
-	assert.Equal(t, "a/b", m.buildMinioPath("/a/b/"))
-	assert.Empty(t, m.buildMinioDirPrefix(""))
-	assert.Equal(t, "a/", m.buildMinioDirPrefix("/a/"))
-
-	m = &MinioStorage{basePath: "/base"}
-	assert.Equal(t, "base", m.buildMinioPath("/"))
-	assert.Equal(t, "base", m.buildMinioPath("."))
-	assert.Equal(t, "base/a", m.buildMinioPath("/a"))
-	assert.Equal(t, "base/a/b", m.buildMinioPath("/a/b/"))
-	assert.Equal(t, "base/", m.buildMinioDirPrefix(""))
-	assert.Equal(t, "base/a/", m.buildMinioDirPrefix("/a/"))
-
-	m = &MinioStorage{basePath: "/base/"}
-	assert.Equal(t, "base", m.buildMinioPath("/"))
-	assert.Equal(t, "base", m.buildMinioPath("."))
-	assert.Equal(t, "base/a", m.buildMinioPath("/a"))
-	assert.Equal(t, "base/a/b", m.buildMinioPath("/a/b/"))
-	assert.Equal(t, "base/", m.buildMinioDirPrefix(""))
-	assert.Equal(t, "base/a/", m.buildMinioDirPrefix("/a/"))
+func TestMinioStorage(t *testing.T) {
+	for _, basePath := range []string{"", "test-base-path"} {
+		objStore, err := NewStorage(setting.MinioStorageType, prepareMinioStorageConfig(t, basePath))
+		require.NoError(t, err)
+		testStorageGeneral(t, objStore)
+	}
 }
 
 func TestS3StorageBadRequest(t *testing.T) {
-	if os.Getenv("CI") == "" {
-		t.Skip("S3Storage not present outside of CI")
-		return
-	}
-	cfg := &setting.Storage{
-		MinioConfig: setting.MinioStorageConfig{
-			Endpoint:        "minio:9000",
-			AccessKeyID:     "123456",
-			SecretAccessKey: "12345678",
-			Bucket:          "bucket",
-			Location:        "us-east-1",
-		},
-	}
-	message := "ERROR"
-	old := getBucketVersioning
-	defer func() { getBucketVersioning = old }()
-	getBucketVersioning = func(ctx context.Context, minioClient *minio.Client, bucket string) error {
-		return minio.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Code:       "FixtureError",
-			Message:    message,
-		}
-	}
+	cfg := prepareMinioStorageConfig(t, "")
+	cfg.MinioConfig.SecretAccessKey = "invalid-secret"
 	_, err := NewStorage(setting.MinioStorageType, cfg)
-	assert.ErrorContains(t, err, message)
+	assert.ErrorContains(t, err, "ObjectStorage.BucketExists: endpoint="+cfg.MinioConfig.Endpoint)
 }
 
 func TestMinioCredentials(t *testing.T) {
@@ -122,18 +52,21 @@ func TestMinioCredentials(t *testing.T) {
 		FakeEndpoint = "http://localhost"
 	)
 
-	t.Run("Static Credentials", func(t *testing.T) {
-		cfg := setting.MinioStorageConfig{
-			AccessKeyID:     ExpectedAccessKey,
-			SecretAccessKey: ExpectedSecretAccessKey,
-			IamEndpoint:     FakeEndpoint,
-		}
+	checkCredentials := func(t *testing.T, cfg setting.MinioStorageConfig, suffix string) {
 		creds := buildMinioCredentials(cfg)
 		v, err := creds.Get()
 
 		assert.NoError(t, err)
-		assert.Equal(t, ExpectedAccessKey, v.AccessKeyID)
-		assert.Equal(t, ExpectedSecretAccessKey, v.SecretAccessKey)
+		assert.Equal(t, ExpectedAccessKey+suffix, v.AccessKeyID)
+		assert.Equal(t, ExpectedSecretAccessKey+suffix, v.SecretAccessKey)
+	}
+
+	t.Run("Static Credentials", func(t *testing.T) {
+		checkCredentials(t, setting.MinioStorageConfig{
+			AccessKeyID:     ExpectedAccessKey,
+			SecretAccessKey: ExpectedSecretAccessKey,
+			IamEndpoint:     FakeEndpoint,
+		}, "")
 	})
 
 	t.Run("Chain", func(t *testing.T) {
@@ -145,24 +78,14 @@ func TestMinioCredentials(t *testing.T) {
 			t.Setenv("MINIO_ACCESS_KEY", ExpectedAccessKey+"Minio")
 			t.Setenv("MINIO_SECRET_KEY", ExpectedSecretAccessKey+"Minio")
 
-			creds := buildMinioCredentials(cfg)
-			v, err := creds.Get()
-
-			assert.NoError(t, err)
-			assert.Equal(t, ExpectedAccessKey+"Minio", v.AccessKeyID)
-			assert.Equal(t, ExpectedSecretAccessKey+"Minio", v.SecretAccessKey)
+			checkCredentials(t, cfg, "Minio")
 		})
 
 		t.Run("EnvAWS", func(t *testing.T) {
 			t.Setenv("AWS_ACCESS_KEY", ExpectedAccessKey+"AWS")
 			t.Setenv("AWS_SECRET_KEY", ExpectedSecretAccessKey+"AWS")
 
-			creds := buildMinioCredentials(cfg)
-			v, err := creds.Get()
-
-			assert.NoError(t, err)
-			assert.Equal(t, ExpectedAccessKey+"AWS", v.AccessKeyID)
-			assert.Equal(t, ExpectedSecretAccessKey+"AWS", v.SecretAccessKey)
+			checkCredentials(t, cfg, "AWS")
 		})
 
 		t.Run("FileMinio", func(t *testing.T) {
@@ -170,12 +93,7 @@ func TestMinioCredentials(t *testing.T) {
 			t.Setenv("MINIO_SHARED_CREDENTIALS_FILE", "testdata/minio.json")
 			t.Setenv("AWS_SHARED_CREDENTIALS_FILE", "testdata/fake")
 
-			creds := buildMinioCredentials(cfg)
-			v, err := creds.Get()
-
-			assert.NoError(t, err)
-			assert.Equal(t, ExpectedAccessKey+"MinioFile", v.AccessKeyID)
-			assert.Equal(t, ExpectedSecretAccessKey+"MinioFile", v.SecretAccessKey)
+			checkCredentials(t, cfg, "MinioFile")
 		})
 
 		t.Run("FileAWS", func(t *testing.T) {
@@ -183,12 +101,7 @@ func TestMinioCredentials(t *testing.T) {
 			t.Setenv("MINIO_SHARED_CREDENTIALS_FILE", "testdata/fake.json")
 			t.Setenv("AWS_SHARED_CREDENTIALS_FILE", "testdata/aws_credentials")
 
-			creds := buildMinioCredentials(cfg)
-			v, err := creds.Get()
-
-			assert.NoError(t, err)
-			assert.Equal(t, ExpectedAccessKey+"AWSFile", v.AccessKeyID)
-			assert.Equal(t, ExpectedSecretAccessKey+"AWSFile", v.SecretAccessKey)
+			checkCredentials(t, cfg, "AWSFile")
 		})
 
 		t.Run("IAM", func(t *testing.T) {
@@ -209,14 +122,9 @@ func TestMinioCredentials(t *testing.T) {
 			defer server.Close()
 
 			// Use the provided EC2 Instance Metadata server
-			creds := buildMinioCredentials(setting.MinioStorageConfig{
+			checkCredentials(t, setting.MinioStorageConfig{
 				IamEndpoint: server.URL,
-			})
-			v, err := creds.Get()
-
-			assert.NoError(t, err)
-			assert.Equal(t, ExpectedAccessKey+"IAM", v.AccessKeyID)
-			assert.Equal(t, ExpectedSecretAccessKey+"IAM", v.SecretAccessKey)
+			}, "IAM")
 		})
 	})
 }

@@ -6,70 +6,46 @@ package fileicon_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/fileicon"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/fileicon"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRenderEntryIconHTML_WithDifferentThemes(t *testing.T) {
 	// Test that folder icons use the folder theme
-	t.Run("FolderUsesBasicTheme", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.UI.FileIconTheme, "material")()
-		defer test.MockVariableValue(&setting.UI.FolderIconTheme, "basic")()
-
-		folderEntry := &fileicon.EntryInfo{
-			BaseName:  "testfolder",
-			EntryMode: git.EntryModeTree,
-		}
-
-		html := fileicon.RenderEntryIconHTML(nil, folderEntry)
+	for _, testCase := range []struct {
+		name, folderTheme, expected string
+		entry                       fileicon.EntryInfo
+	}{
 		// Basic theme renders octicon classes
-		assert.Contains(t, string(html), "octicon-file-directory-fill")
-	})
-
-	t.Run("FileUsesMaterialTheme", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.UI.FileIconTheme, "material")()
-		defer test.MockVariableValue(&setting.UI.FolderIconTheme, "basic")()
-
-		fileEntry := &fileicon.EntryInfo{
-			BaseName:  "test.js",
-			EntryMode: git.EntryModeBlob,
-		}
-
-		html := fileicon.RenderEntryIconHTML(nil, fileEntry)
+		{
+			"FolderUsesBasicTheme", "basic", "octicon-file-directory-fill",
+			fileicon.EntryInfo{BaseName: "testfolder", EntryMode: git.EntryModeTree},
+		},
 		// Material theme for files renders material icons
-		assert.Contains(t, string(html), "svg-mfi-")
-	})
-
-	t.Run("SymlinkToFolderUsesBasicTheme", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.UI.FileIconTheme, "material")()
-		defer test.MockVariableValue(&setting.UI.FolderIconTheme, "basic")()
-
-		symlinkEntry := &fileicon.EntryInfo{
-			BaseName:      "link",
-			EntryMode:     git.EntryModeSymlink,
-			SymlinkToMode: git.EntryModeTree,
-		}
-
-		html := fileicon.RenderEntryIconHTML(nil, symlinkEntry)
+		{
+			"FileUsesMaterialTheme", "basic", "svg-mfi-",
+			fileicon.EntryInfo{BaseName: "test.js", EntryMode: git.EntryModeBlob},
+		},
 		// Symlinks to folders should use folder theme
-		assert.Contains(t, string(html), "octicon-file-directory-symlink")
-	})
-
-	t.Run("BothMaterialTheme", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.UI.FileIconTheme, "material")()
-		defer test.MockVariableValue(&setting.UI.FolderIconTheme, "material")()
-
-		folderEntry := &fileicon.EntryInfo{
-			BaseName:  "testfolder",
-			EntryMode: git.EntryModeTree,
-		}
-
-		html := fileicon.RenderEntryIconHTML(nil, folderEntry)
+		{
+			"SymlinkToFolderUsesBasicTheme", "basic", "octicon-file-directory-symlink",
+			fileicon.EntryInfo{BaseName: "link", EntryMode: git.EntryModeSymlink, SymlinkToMode: git.EntryModeTree},
+		},
 		// Material theme for folders renders material folder icons
-		assert.Contains(t, string(html), "svg-mfi-")
-	})
+		{
+			"BothMaterialTheme", "material", "svg-mfi-",
+			fileicon.EntryInfo{BaseName: "testfolder", EntryMode: git.EntryModeTree},
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.UI.FileIconTheme, "material")()
+			defer test.MockVariableValue(&setting.UI.FolderIconTheme, testCase.folderTheme)()
+
+			assert.Contains(t, string(fileicon.RenderEntryIconHTML(nil, &testCase.entry)), testCase.expected)
+		})
+	}
 }

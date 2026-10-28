@@ -11,14 +11,14 @@ import (
 	"path"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/context"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/context"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -62,6 +62,7 @@ func getExpectedFileResponseForUpdate(info apiFileResponseInfo) *api.FileRespons
 			LastCommitterDate: new(info.lastCommitterWhen),
 			LastAuthorDate:    new(info.lastAuthorWhen),
 			Type:              "file",
+			Mode:              "100644",
 			Size:              20,
 			Encoding:          &encoding,
 			Content:           &content,
@@ -136,10 +137,10 @@ func TestAPIUpdateFile(t *testing.T) {
 			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusOK)
-			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
+			gitRepo, _ := git.OpenRepository(t.Context(), repo1)
 			defer gitRepo.Close()
-			commitID, _ := gitRepo.GetBranchCommitID(updateFileOptions.NewBranchName)
-			lasCommit, _ := gitRepo.GetCommitByPath(treePath)
+			commitID, _ := gitRepo.GetBranchCommitID(t.Context(), updateFileOptions.NewBranchName)
+			lasCommit, _ := gitRepo.GetCommitByPath(t.Context(), treePath)
 			expectedFileResponse := getExpectedFileResponseForUpdate(apiFileResponseInfo{
 				commitID:          commitID,
 				treePath:          treePath,
@@ -147,8 +148,7 @@ func TestAPIUpdateFile(t *testing.T) {
 				lastCommitterWhen: lasCommit.Committer.When,
 				lastAuthorWhen:    lasCommit.Author.When,
 			})
-			var fileResponse api.FileResponse
-			DecodeJSON(t, resp, &fileResponse)
+			fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 			normalizeFileContentResponseCommitTime(fileResponse.Content)
 			assert.Equal(t, expectedFileResponse.Content, fileResponse.Content)
 			assert.Equal(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
@@ -167,8 +167,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var fileResponse api.FileResponse
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 		expectedSHA := "08bd14b2e2852529157324de9c226b3364e76136"
 		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/update/file%d.txt", fileID)
 		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
@@ -182,7 +181,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		updateFileOptions.SHA = ""
 		req = NewRequestWithJSON(t, "PUT", "/api/v1/repos/user2/repo1/contents/update-create.txt", &updateFileOptions).AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse = DecodeJSON(t, resp, &api.FileResponse{})
 		assert.Equal(t, "08bd14b2e2852529157324de9c226b3364e76136", fileResponse.Content.SHA)
 		assert.Equal(t, setting.AppURL+"user2/repo1/raw/branch/master/update-create.txt", *fileResponse.Content.DownloadURL)
 
@@ -197,7 +196,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse = DecodeJSON(t, resp, &api.FileResponse{})
 		expectedSHA = "08bd14b2e2852529157324de9c226b3364e76136"
 		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
 		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
@@ -215,7 +214,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse = DecodeJSON(t, resp, &api.FileResponse{})
 		expectedMessage := "Update " + treePath + "\n"
 		assert.Equal(t, expectedMessage, fileResponse.Commit.Message)
 
@@ -229,64 +228,52 @@ func TestAPIUpdateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
-		expectedAPIError := context.APIError{
+		expectedAPIError := &context.APIError{
 			Message: "sha does not match [given: " + updateFileOptions.SHA + ", expected: " + correctSHA + "]",
 			URL:     setting.API.SwaggerURL,
 		}
-		var apiError context.APIError
-		DecodeJSON(t, resp, &apiError)
+		apiError := DecodeJSON(t, resp, &context.APIError{})
 		assert.Equal(t, expectedAPIError, apiError)
 
-		// Test creating a file in repo1 by user4 who does not have write access
-		fileID++
-		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(user2, repo16, treePath)
-		updateFileOptions = getUpdateFileOptions()
-		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &updateFileOptions).
-			AddTokenAuth(token4)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Tests a repo with no token given so will fail
-		fileID++
-		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(user2, repo16, treePath)
-		updateFileOptions = getUpdateFileOptions()
-		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &updateFileOptions)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Test using access token for a private repo that the user of the token owns
-		fileID++
-		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(user2, repo16, treePath)
-		updateFileOptions = getUpdateFileOptions()
-		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath), &updateFileOptions).
-			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusOK)
-
-		// Test using org repo "org3/repo3" where user2 is a collaborator
-		fileID++
-		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(org3, repo3, treePath)
-		updateFileOptions = getUpdateFileOptions()
-		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath), &updateFileOptions).
-			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusOK)
-
-		// Test using org repo "org3/repo3" with no user token
-		fileID++
-		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(org3, repo3, treePath)
-		updateFileOptions = getUpdateFileOptions()
-		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath), &updateFileOptions)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Test using repo "user2/repo1" where user4 is a NOT collaborator
-		fileID++
-		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(user2, repo1, treePath)
-		updateFileOptions = getUpdateFileOptions()
-		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
-			AddTokenAuth(token4)
-		MakeRequest(t, req, http.StatusForbidden)
+		testCases := []struct {
+			owner          *user_model.User
+			repo           *repo_model.Repository
+			token          string
+			expectedStatus int
+		}{
+			// Test creating a file in repo1 by user4 who does not have write access
+			{user2, repo16, token4, http.StatusNotFound},
+			// Tests a repo with no token given so will fail
+			{user2, repo16, "", http.StatusNotFound},
+			// Test using access token for a private repo that the user of the token owns
+			{user2, repo16, token2, http.StatusOK},
+			// Test using org repo "org3/repo3" where user2 is a collaborator
+			{org3, repo3, token2, http.StatusOK},
+			// Test using org repo "org3/repo3" with no user token
+			{org3, repo3, "", http.StatusNotFound},
+			// Test using repo "user2/repo1" where user4 is a NOT collaborator
+			{user2, repo1, token4, http.StatusForbidden},
+		}
+		permissionFiles := map[*repo_model.Repository]map[string]string{}
+		for i, testCase := range testCases {
+			if permissionFiles[testCase.repo] == nil {
+				permissionFiles[testCase.repo] = map[string]string{}
+			}
+			permissionFiles[testCase.repo][fmt.Sprintf("update/file%d.txt", fileID+i+1)] = "This is a NEW file"
+		}
+		for _, testCase := range testCases {
+			if permissionFiles[testCase.repo] != nil {
+				createFileInBranch(testCase.owner, testCase.repo, createFileInBranchOptions{}, permissionFiles[testCase.repo])
+				delete(permissionFiles, testCase.repo)
+			}
+			fileID++
+			treePath = fmt.Sprintf("update/file%d.txt", fileID)
+			updateFileOptions = getUpdateFileOptions()
+			req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", testCase.owner.Name, testCase.repo.Name, treePath), &updateFileOptions)
+			if testCase.token != "" {
+				req.AddTokenAuth(testCase.token)
+			}
+			MakeRequest(t, req, testCase.expectedStatus)
+		}
 	})
 }

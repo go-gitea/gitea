@@ -12,22 +12,49 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	packages_service "code.gitea.io/gitea/services/packages"
-	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	container_module "gitea.dev/modules/packages/container"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	packages_service "gitea.dev/services/packages"
+	packages_cleanup_service "gitea.dev/services/packages/cleanup"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestPackageCleanupRuleDuplicateType(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	session := loginUser(t, user.Name)
+
+	// Create the first cleanup rule for the generic package type.
+	req := NewRequestWithValues(t, "POST", "/user/settings/packages/rules/add", map[string]string{
+		"type":        "generic",
+		"action":      "save",
+		"keep_count":  "0",
+		"remove_days": "0",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// Try to create another cleanup rule for the same package type.
+	req = NewRequestWithValues(t, "POST", "/user/settings/packages/rules/add", map[string]string{
+		"type":        "generic",
+		"action":      "save",
+		"keep_count":  "0",
+		"remove_days": "0",
+	})
+
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "A cleanup rule for this package type already exists.")
+}
 
 func TestPackageAPI(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -53,8 +80,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiPackages []*api.Package
-		DecodeJSON(t, resp, &apiPackages)
+		apiPackages := DecodeJSON(t, resp, []*api.Package{})
 
 		assert.Len(t, apiPackages, 1)
 		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
@@ -75,8 +101,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var p *api.Package
-		DecodeJSON(t, resp, &p)
+		p := DecodeJSON(t, resp, &api.Package{})
 
 		assert.Equal(t, string(packages_model.TypeGeneric), p.Type)
 		assert.Equal(t, packageName, p.Name)
@@ -85,49 +110,40 @@ func TestPackageAPI(t *testing.T) {
 		assert.Equal(t, user.Name, p.Creator.UserName)
 	})
 
-	t.Run("DeleteEntirePackage", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	for _, c := range []struct {
+		name        string
+		packageName string
+		suffix      string
+	}{
+		{"DeleteEntirePackage", "test-package-entire-delete", ""},
+		{"DeletePackageVersion", "test-package-version-delete", "/1.0.1"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		packageName := "test-package-entire-delete"
-		for _, version := range []string{"1.0.1", "1.0.2"} {
-			url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/file.bin", user.Name, packageName, version)
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusCreated)
-		}
+			for _, version := range []string{"1.0.1", "1.0.2"} {
+				url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/file.bin", user.Name, c.packageName, version)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusCreated)
+			}
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s", user.Name, packageName)).
-			AddTokenAuth(tokenWritePackage)
-		MakeRequest(t, req, http.StatusNoContent)
+			url := fmt.Sprintf("/api/v1/packages/%s/generic/%s", user.Name, c.packageName) + c.suffix
+			req := NewRequest(t, "DELETE", url).
+				AddTokenAuth(tokenWritePackage)
+			MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s", user.Name, packageName)).
-			AddTokenAuth(tokenReadPackage)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
+			req = NewRequest(t, "GET", url).
+				AddTokenAuth(tokenReadPackage)
+			MakeRequest(t, req, http.StatusNotFound)
 
-	t.Run("DeletePackageVersion", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		packageName := "test-package-version-delete"
-		for _, version := range []string{"1.0.1", "1.0.2"} {
-			url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/file.bin", user.Name, packageName, version)
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusCreated)
-		}
-
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.1", user.Name, packageName)).
-			AddTokenAuth(tokenWritePackage)
-		MakeRequest(t, req, http.StatusNoContent)
-
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.1", user.Name, packageName)).
-			AddTokenAuth(tokenReadPackage)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.2", user.Name, packageName)).
-			AddTokenAuth(tokenReadPackage)
-		MakeRequest(t, req, http.StatusOK)
-	})
+			if c.suffix != "" {
+				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.2", user.Name, c.packageName)).
+					AddTokenAuth(tokenReadPackage)
+				MakeRequest(t, req, http.StatusOK)
+			}
+		})
+	}
 
 	t.Run("ListPackageVersions", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -136,8 +152,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiPackages []*api.Package
-		DecodeJSON(t, resp, &apiPackages)
+		apiPackages := DecodeJSON(t, resp, []*api.Package{})
 
 		assert.Len(t, apiPackages, 1)
 		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
@@ -152,8 +167,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiPackage *api.Package
-		DecodeJSON(t, resp, &apiPackage)
+		apiPackage := DecodeJSON(t, resp, &api.Package{})
 
 		assert.Equal(t, string(packages_model.TypeGeneric), apiPackage.Type)
 		assert.Equal(t, packageName, apiPackage.Name)
@@ -171,8 +185,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var ap1 *api.Package
-		DecodeJSON(t, resp, &ap1)
+		ap1 := DecodeJSON(t, resp, &api.Package{})
 		assert.Nil(t, ap1.Repository)
 
 		// create a repository
@@ -189,8 +202,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		var ap2 *api.Package
-		DecodeJSON(t, resp, &ap2)
+		ap2 := DecodeJSON(t, resp, &api.Package{})
 		assert.NotNil(t, ap2.Repository)
 		assert.Equal(t, newRepo.ID, ap2.Repository.ID)
 
@@ -206,8 +218,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		var ap3 *api.Package
-		DecodeJSON(t, resp, &ap3)
+		ap3 := DecodeJSON(t, resp, &api.Package{})
 		assert.Nil(t, ap3.Repository)
 
 		// force link to a repository the currently logged-in user doesn't have access to
@@ -217,8 +228,7 @@ func TestPackageAPI(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).AddTokenAuth(tokenReadPackage)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		var ap4 *api.Package
-		DecodeJSON(t, resp, &ap4)
+		ap4 := DecodeJSON(t, resp, &api.Package{})
 		assert.Nil(t, ap4.Repository)
 
 		assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(t.Context(), privateRepoID))
@@ -235,8 +245,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var files []*api.PackageFile
-		DecodeJSON(t, resp, &files)
+		files := DecodeJSON(t, resp, []*api.PackageFile{})
 
 		assert.Len(t, files, 1)
 		assert.Equal(t, int64(0), files[0].Size)
@@ -275,7 +284,8 @@ func TestPackageAccess(t *testing.T) {
 	limitedOrgNoMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
 	publicOrgNoMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
-	uploadPackage := func(doer, owner *user_model.User, filename string, expectedStatus int) {
+	uploadPackage := func(t *testing.T, doer, owner *user_model.User, filename string, expectedStatus int) {
+		t.Helper()
 		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/%s.bin", owner.Name, filename)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
 		if doer != nil {
@@ -296,6 +306,20 @@ func TestPackageAccess(t *testing.T) {
 	type Target struct {
 		Owner          *user_model.User
 		ExpectedStatus int
+	}
+
+	unauthorizedTargets := []Target{
+		{admin, http.StatusUnauthorized},
+		{inactive, http.StatusUnauthorized},
+		{user, http.StatusUnauthorized},
+		{limitedUser, http.StatusUnauthorized},
+		{privateUser, http.StatusUnauthorized},
+		{privateOrgMember, http.StatusUnauthorized},
+		{limitedOrgMember, http.StatusUnauthorized},
+		{publicOrgMember, http.StatusUnauthorized},
+		{privateOrgNoMember, http.StatusUnauthorized},
+		{limitedOrgNoMember, http.StatusUnauthorized},
+		{publicOrgNoMember, http.StatusUnauthorized},
 	}
 
 	t.Run("Upload", func(t *testing.T) {
@@ -326,36 +350,12 @@ func TestPackageAccess(t *testing.T) {
 			{ // Without credentials no upload should be possible
 				Doer:     nil,
 				Filename: "nil",
-				Targets: []Target{
-					{admin, http.StatusUnauthorized},
-					{inactive, http.StatusUnauthorized},
-					{user, http.StatusUnauthorized},
-					{limitedUser, http.StatusUnauthorized},
-					{privateUser, http.StatusUnauthorized},
-					{privateOrgMember, http.StatusUnauthorized},
-					{limitedOrgMember, http.StatusUnauthorized},
-					{publicOrgMember, http.StatusUnauthorized},
-					{privateOrgNoMember, http.StatusUnauthorized},
-					{limitedOrgNoMember, http.StatusUnauthorized},
-					{publicOrgNoMember, http.StatusUnauthorized},
-				},
+				Targets:  unauthorizedTargets,
 			},
 			{ // Inactive users can't upload anywhere
 				Doer:     inactive,
 				Filename: "inactive",
-				Targets: []Target{
-					{admin, http.StatusUnauthorized},
-					{inactive, http.StatusUnauthorized},
-					{user, http.StatusUnauthorized},
-					{limitedUser, http.StatusUnauthorized},
-					{privateUser, http.StatusUnauthorized},
-					{privateOrgMember, http.StatusUnauthorized},
-					{limitedOrgMember, http.StatusUnauthorized},
-					{publicOrgMember, http.StatusUnauthorized},
-					{privateOrgNoMember, http.StatusUnauthorized},
-					{limitedOrgNoMember, http.StatusUnauthorized},
-					{publicOrgNoMember, http.StatusUnauthorized},
-				},
+				Targets:  unauthorizedTargets,
 			},
 			{ // Normal users can upload to self and orgs in which they are members and have package write access
 				Doer:     user,
@@ -377,8 +377,10 @@ func TestPackageAccess(t *testing.T) {
 		}
 
 		for _, c := range cases {
-			for _, t := range c.Targets {
-				uploadPackage(c.Doer, t.Owner, c.Filename, t.ExpectedStatus)
+			for _, target := range c.Targets {
+				t.Run(fmt.Sprintf("%s-%s", c.Filename, target.Owner.Name), func(t *testing.T) {
+					uploadPackage(t, c.Doer, target.Owner, c.Filename, target.ExpectedStatus)
+				})
 			}
 		}
 	})
@@ -424,20 +426,8 @@ func TestPackageAccess(t *testing.T) {
 				},
 			},
 			{ // Inactive users have no access
-				Doer: inactive,
-				Targets: []Target{
-					{admin, http.StatusUnauthorized},
-					{inactive, http.StatusUnauthorized},
-					{user, http.StatusUnauthorized},
-					{limitedUser, http.StatusUnauthorized},
-					{privateUser, http.StatusUnauthorized},
-					{privateOrgMember, http.StatusUnauthorized},
-					{limitedOrgMember, http.StatusUnauthorized},
-					{publicOrgMember, http.StatusUnauthorized},
-					{privateOrgNoMember, http.StatusUnauthorized},
-					{limitedOrgNoMember, http.StatusUnauthorized},
-					{publicOrgNoMember, http.StatusUnauthorized},
-				},
+				Doer:    inactive,
+				Targets: unauthorizedTargets,
 			},
 			{ // Normal users can access self, public or limited users/orgs and private orgs in which they are members
 				Doer: user,
@@ -562,7 +552,7 @@ func TestPackageCleanup(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		// Upload and delete a generic package and upload a container blob
-		data, _ := util.CryptoRandomBytes(5)
+		data := util.CryptoRandomBytes(5)
 		url := fmt.Sprintf("/api/packages/%s/generic/cleanup-test/1.1.1/file.bin", user.Name)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(data)).
 			AddBasicAuth(user.Name)
@@ -572,7 +562,7 @@ func TestPackageCleanup(t *testing.T) {
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		data, _ = util.CryptoRandomBytes(5)
+		data = util.CryptoRandomBytes(5)
 		url = fmt.Sprintf("/v2/%s/cleanup-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256(data))
 		req = NewRequestWithBody(t, "POST", url, bytes.NewReader(data)).
 			AddBasicAuth(user.Name)

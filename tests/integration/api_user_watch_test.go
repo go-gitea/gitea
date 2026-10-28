@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -41,35 +41,25 @@ func TestAPIWatch(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 
-	t.Run("GetWatchedRepos", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	for _, tc := range []struct {
+		name, url, token string
+	}{
+		{"GetWatchedRepos", fmt.Sprintf("/api/v1/users/%s/subscriptions", user), token},
+		{"GetMyWatchedRepos", "/api/v1/user/subscriptions", tokenWithRepoScope},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/subscriptions", user)).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
+			req := NewRequest(t, "GET", tc.url).AddTokenAuth(tc.token)
+			resp := MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
+			assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
 
-		var repos []api.Repository
-		DecodeJSON(t, resp, &repos)
-		assert.Len(t, repos, 1)
-		assert.Equal(t, repo, repos[0].FullName)
-	})
-
-	t.Run("GetMyWatchedRepos", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", "/api/v1/user/subscriptions").
-			AddTokenAuth(tokenWithRepoScope)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
-
-		var repos []api.Repository
-		DecodeJSON(t, resp, &repos)
-		assert.Len(t, repos, 1)
-		assert.Equal(t, repo, repos[0].FullName)
-	})
+			repos := DecodeJSON(t, resp, []api.Repository{})
+			assert.Len(t, repos, 1)
+			assert.Equal(t, repo, repos[0].FullName)
+		})
+	}
 
 	t.Run("IsWatching", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -84,6 +74,27 @@ func TestAPIWatch(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription", repo+"notexisting")).
 			AddTokenAuth(tokenWithRepoScope)
 		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("PublicOnly", func(t *testing.T) {
+		publicOnlyToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopePublicOnly, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
+
+		MakeRequest(t, NewRequest(t, "PUT", "/api/v1/repos/user2/repo1/subscription").AddTokenAuth(tokenWithRepoScope), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "PUT", "/api/v1/repos/user2/repo2/subscription").AddTokenAuth(tokenWithRepoScope), http.StatusOK)
+
+		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/user/subscriptions").AddTokenAuth(publicOnlyToken), http.StatusOK)
+		repos := DecodeJSON(t, resp, []api.Repository{})
+		for _, r := range repos {
+			assert.False(t, r.Private, "private repo %s leaked via /user/subscriptions", r.FullName)
+		}
+		assert.NotContains(t, repoNames(repos), "user2/repo2")
+
+		resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/user1/subscriptions").AddTokenAuth(publicOnlyToken), http.StatusOK)
+		repos = DecodeJSON(t, resp, []api.Repository{})
+		for _, r := range repos {
+			assert.False(t, r.Private, "private repo %s leaked via /users/{username}/subscriptions", r.FullName)
+		}
+		assert.NotContains(t, repoNames(repos), "user2/repo2")
 	})
 
 	t.Run("Unwatch", func(t *testing.T) {

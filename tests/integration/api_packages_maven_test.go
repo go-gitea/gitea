@@ -12,12 +12,12 @@ import (
 	"sync"
 	"testing"
 
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/packages/maven"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/packages/maven"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,6 +45,22 @@ func TestPackageMaven(t *testing.T) {
 		assert.Equal(t, contentType, h.Get("Content-Type"))
 		assert.Equal(t, strconv.FormatInt(contentLength, 10), h.Get("Content-Length"))
 		assert.NotEmpty(t, h.Get("Last-Modified"))
+	}
+
+	checkDownload := func(t *testing.T, name, contentType, content string, downloadCount int64) {
+		for _, method := range []string{"HEAD", "GET"} {
+			req := NewRequest(t, method, fmt.Sprintf("%s/%s/%s", root, packageVersion, name)).AddBasicAuth(user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
+			checkHeaders(t, resp.Header(), contentType, int64(len(content)))
+			if method == "GET" {
+				assert.Equal(t, []byte(content), resp.Body.Bytes())
+			}
+		}
+
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeMaven)
+		require.NoError(t, err)
+		assert.Len(t, pvs, 1)
+		assert.Equal(t, downloadCount, pvs[0].DownloadCount)
 	}
 
 	t.Run("Upload", func(t *testing.T) {
@@ -139,22 +155,7 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "HEAD", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename)).AddBasicAuth(user.Name)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		checkHeaders(t, resp.Header(), "application/java-archive", 4)
-
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename)).AddBasicAuth(user.Name)
-		resp = MakeRequest(t, req, http.StatusOK)
-
-		checkHeaders(t, resp.Header(), "application/java-archive", 4)
-
-		assert.Equal(t, []byte("test"), resp.Body.Bytes())
-
-		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeMaven)
-		require.NoError(t, err)
-		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(0), pvs[0].DownloadCount)
+		checkDownload(t, filename, "application/java-archive", "test", 0)
 	})
 
 	t.Run("UploadVerifySHA1", func(t *testing.T) {
@@ -199,8 +200,9 @@ func TestPackageMaven(t *testing.T) {
 
 		pd, err = packages.GetPackageDescriptor(t.Context(), pvs[0])
 		require.NoError(t, err)
-		assert.IsType(t, &maven.Metadata{}, pd.Metadata)
-		assert.Equal(t, packageDescription, pd.Metadata.(*maven.Metadata).Description)
+		metadata, ok := pd.Metadata.(*maven.Metadata)
+		require.True(t, ok)
+		assert.Equal(t, packageDescription, metadata.Description)
 
 		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		require.NoError(t, err)
@@ -218,22 +220,7 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("DownloadPOM", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "HEAD", fmt.Sprintf("%s/%s/%s.pom", root, packageVersion, filename)).AddBasicAuth(user.Name)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		checkHeaders(t, resp.Header(), "text/xml", int64(len(pomContent)))
-
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s.pom", root, packageVersion, filename)).AddBasicAuth(user.Name)
-		resp = MakeRequest(t, req, http.StatusOK)
-
-		checkHeaders(t, resp.Header(), "text/xml", int64(len(pomContent)))
-
-		assert.Equal(t, []byte(pomContent), resp.Body.Bytes())
-
-		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeMaven)
-		require.NoError(t, err)
-		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(1), pvs[0].DownloadCount)
+		checkDownload(t, filename+".pom", "text/xml", pomContent, 1)
 	})
 
 	t.Run("DownloadChecksums", func(t *testing.T) {
@@ -321,11 +308,9 @@ func TestPackageMavenConcurrent(t *testing.T) {
 
 		var wg sync.WaitGroup
 		for i := range 10 {
-			wg.Add(1)
-			go func(i int) {
+			wg.Go(func() {
 				putFile(t, fmt.Sprintf("/%s/%s.jar", packageVersion, strconv.Itoa(i)), "test", http.StatusCreated)
-				wg.Done()
-			}(i)
+			})
 		}
 		wg.Wait()
 	})

@@ -6,12 +6,12 @@ package admin
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/cron"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/cron"
 )
 
 // ListCronTasks api for getting cron tasks
@@ -33,13 +33,13 @@ func ListCronTasks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CronList"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 	tasks := cron.ListTasks()
 	count := len(tasks)
 
 	listOpts := utils.GetListOptions(ctx)
-	tasks = util.PaginateSlice(tasks, listOpts.Page, listOpts.PageSize).(cron.TaskTable)
+	tasks = util.PaginateSlice(tasks, listOpts.Page, listOpts.PageSize)
 
 	res := make([]structs.Cron, len(tasks))
 	for i, task := range tasks {
@@ -72,8 +72,8 @@ func PostCronTask(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	task := cron.GetTask(ctx.PathParam("task"))
 	if task == nil {
 		ctx.APIErrorNotFound()

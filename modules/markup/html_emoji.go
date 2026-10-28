@@ -7,23 +7,21 @@ import (
 	"strings"
 	"unicode"
 
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/setting"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
 
-func createEmoji(ctx *RenderContext, content, name string) *html.Node {
+func createEmoji(ctx *RenderContext, content, alias string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
 	span.Attr = append(span.Attr, ctx.RenderInternal.NodeSafeAttr("class", "emoji"))
-	if name != "" {
-		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: name})
-	}
+	span.Attr = append(span.Attr, html.Attribute{Key: "data-alias", Val: alias})
 
 	text := &html.Node{
 		Type: html.TextNode,
@@ -41,7 +39,6 @@ func createCustomEmoji(ctx *RenderContext, alias string) *html.Node {
 		Attr: []html.Attribute{},
 	}
 	span.Attr = append(span.Attr, ctx.RenderInternal.NodeSafeAttr("class", "emoji"))
-	span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
 
 	img := &html.Node{
 		Type:     html.ElementNode,
@@ -69,6 +66,11 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 		m[1] += start
 		start = m[1]
 
+		// don't render a shortcode whose ":" directly follows a backtick (an unclosed code span)
+		if m[0] > 0 && node.Data[m[0]-1] == '`' {
+			continue
+		}
+
 		alias := node.Data[m[0]:m[1]]
 
 		var nextChar byte
@@ -83,7 +85,7 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 		converted := emoji.FromAlias(alias)
 		if converted != nil {
 			// standard emoji
-			replaceContent(node, m[0], m[1], createEmoji(ctx, converted.Emoji, converted.Description))
+			replaceContent(node, m[0], m[1], createEmoji(ctx, converted.Emoji, converted.Aliases[0]))
 			node = node.NextSibling.NextSibling
 			start = 0 // restart searching start since node has changed
 		} else if _, exist := setting.UI.CustomEmojisMap[alias]; exist {
@@ -111,7 +113,7 @@ func emojiProcessor(ctx *RenderContext, node *html.Node) {
 		start = m[1]
 		val := emoji.FromCode(codepoint)
 		if val != nil {
-			replaceContent(node, m[0], m[1], createEmoji(ctx, codepoint, val.Description))
+			replaceContent(node, m[0], m[1], createEmoji(ctx, codepoint, val.Aliases[0]))
 			node = node.NextSibling.NextSibling
 			start = 0
 		}

@@ -8,22 +8,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	container_model "code.gitea.io/gitea/models/packages/container"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/globallock"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
-	packages_service "code.gitea.io/gitea/services/packages"
-	container_service "code.gitea.io/gitea/services/packages/container"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	container_model "gitea.dev/models/packages/container"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	packages_module "gitea.dev/modules/packages"
+	container_module "gitea.dev/modules/packages/container"
+	notify_service "gitea.dev/services/notify"
+	packages_service "gitea.dev/services/packages"
+	container_service "gitea.dev/services/packages/container"
 
 	"github.com/opencontainers/go-digest"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
@@ -379,25 +377,9 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 }
 
 func createManifestBlob(ctx context.Context, contentStore *packages_module.ContentStore, mci *manifestCreationInfo, pv *packages_model.PackageVersion, buf *packages_module.HashedBuffer) (_ *packages_model.PackageBlob, created bool, manifestDigest string, _ error) {
-	pb, exists, err := packages_model.GetOrInsertBlob(ctx, packages_service.NewPackageBlob(buf))
+	pb, exists, err := packages_service.GetOrSavePackageBlob(ctx, contentStore, packages_service.NewPackageBlob(buf), buf)
 	if err != nil {
-		log.Error("Error inserting package blob: %v", err)
 		return nil, false, "", err
-	}
-	// FIXME: Workaround to be removed in v1.20
-	// https://github.com/go-gitea/gitea/issues/19586
-	if exists {
-		err = contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256))
-		if err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
-			log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
-			exists = false
-		}
-	}
-	if !exists {
-		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), buf, buf.Size()); err != nil {
-			log.Error("Error saving package blob in content store: %v", err)
-			return nil, false, "", err
-		}
 	}
 
 	manifestDigest = digestFromHashSummer(buf)

@@ -6,10 +6,10 @@ package misc
 import (
 	"net/http"
 
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // Shows a list of all Label templates
@@ -46,8 +46,8 @@ func GetLabelTemplate(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelTemplateInfo"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	name := util.PathJoinRelX(ctx.PathParam("name"))
 
 	labels, err := repo_module.LoadTemplateLabelsByDisplayName(name)

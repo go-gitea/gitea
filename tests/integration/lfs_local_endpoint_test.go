@@ -9,8 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/lfs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,8 +20,6 @@ func str2url(raw string) *url.URL {
 }
 
 func TestDetermineLocalEndpoint(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
 	root := t.TempDir()
 
 	rootdotgit := t.TempDir()

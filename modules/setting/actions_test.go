@@ -5,96 +5,67 @@ package setting
 
 import (
 	"path/filepath"
+	"slices"
 	"testing"
+
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
-	iniStr := `
+	for _, tc := range []struct {
+		iniStr, logType, artifactType string
+	}{
+		{`
 	[storage]
 	STORAGE_TYPE = minio
-	`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
-
-	iniStr = `
+	`, "minio", "minio"},
+		{`
 [storage.actions_log]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
-
-	iniStr = `
+`, "minio", "local"},
+		{`
 [storage.actions_log]
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
-
-	iniStr = `
+`, "minio", "local"},
+		{`
 [storage.actions_artifacts]
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
-
-	iniStr = `
+`, "local", "minio"},
+		{`
 [storage.actions_artifacts]
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
+`, "local", "minio"},
+		{``, "local", "local"},
+	} {
+		cfg, err := NewConfigProviderFromData(tc.iniStr)
+		assert.NoError(t, err)
+		assert.NoError(t, loadActionsFrom(cfg))
 
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
-
-	iniStr = ``
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
+		assert.EqualValues(t, tc.logType, Actions.LogStorage.Type)
+		if tc.logType == "minio" {
+			assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
+		} else {
+			assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
+		}
+		assert.EqualValues(t, tc.artifactType, Actions.ArtifactStorage.Type)
+		if tc.artifactType == "minio" {
+			assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
+		} else {
+			assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
+		}
+	}
 }
 
 func Test_WorkflowDirs(t *testing.T) {
@@ -235,6 +206,74 @@ DEFAULT_ACTIONS_URL = gitea
 				return
 			}
 			assert.Equal(t, tt.wantURL, Actions.DefaultActionsURL.URL())
+		})
+	}
+}
+
+func Test_ScopedWorkflowDirs(t *testing.T) {
+	defer test.MockVariableValue(&Actions)()
+
+	defaultWorkflowDirs := []string{".gitea/workflows", ".github/workflows"}
+	defaultScopedDirs := []string{".gitea/scoped_workflows"}
+
+	tests := []struct {
+		name       string
+		iniStr     string
+		wantScoped []string
+		wantErr    bool
+	}{
+		{
+			name:       "default",
+			iniStr:     `[actions]`,
+			wantScoped: defaultScopedDirs,
+		},
+		{
+			name:       "custom dir",
+			iniStr:     "[actions]\nSCOPED_WORKFLOW_DIRS = .gitea/my-scoped",
+			wantScoped: []string{".gitea/my-scoped"},
+		},
+		{
+			name:       "empty disables the feature",
+			iniStr:     "[actions]\nSCOPED_WORKFLOW_DIRS = , ,",
+			wantScoped: []string{},
+		},
+		{
+			name:    "overlap equal with workflow dir",
+			iniStr:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows\nSCOPED_WORKFLOW_DIRS = .gitea/workflows",
+			wantErr: true,
+		},
+		{
+			name:    "scoped dir nested under workflow dir",
+			iniStr:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows\nSCOPED_WORKFLOW_DIRS = .gitea/workflows/scoped",
+			wantErr: true,
+		},
+		{
+			name:    "workflow dir nested under scoped dir",
+			iniStr:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows/ci\nSCOPED_WORKFLOW_DIRS = .gitea/workflows",
+			wantErr: true,
+		},
+		{
+			name:       "no overlap",
+			iniStr:     "[actions]\nSCOPED_WORKFLOW_DIRS = .gitea/scoped",
+			wantScoped: []string{".gitea/scoped"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// reset to defaults so MapTo starts clean (absent keys keep the defaults)
+			Actions.WorkflowDirs = slices.Clone(defaultWorkflowDirs)
+			Actions.ScopedWorkflowDirs = slices.Clone(defaultScopedDirs)
+
+			cfg, err := NewConfigProviderFromData(tt.iniStr)
+			require.NoError(t, err)
+			err = loadActionsFrom(cfg)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantScoped, Actions.ScopedWorkflowDirs)
 		})
 	}
 }

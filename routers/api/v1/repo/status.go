@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	commitstatus_service "gitea.dev/services/repository/commitstatus"
 )
 
 // NewCommitStatus creates a new CommitStatus
@@ -47,15 +47,13 @@ func NewCommitStatus(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/CommitStatus"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.CreateStatusOption)
+	form := web.GetForm[*api.CreateStatusOption](ctx)
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
-		ctx.APIError(http.StatusBadRequest, nil)
+		ctx.APIError(http.StatusBadRequest, "sha not provided")
 		return
 	}
 	status := &git_model.CommitStatus{
@@ -118,10 +116,8 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitStatusList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	getCommitStatuses(ctx, ctx.PathParam("sha"))
 }
@@ -172,10 +168,8 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitStatusList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {
@@ -246,10 +240,8 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CombinedStatus"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {

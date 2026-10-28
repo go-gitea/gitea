@@ -8,14 +8,14 @@ import (
 	"path"
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	issue_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	issue_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -104,19 +104,14 @@ func TestConsistencyUpdateAction(t *testing.T) {
 	//
 	// Get rid of incorrectly set created_unix
 	//
-	count, err := activities_model.CountActionCreatedUnixString(t.Context())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, count)
-	count, err = activities_model.FixActionCreatedUnixString(t.Context())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, count)
-
-	count, err = activities_model.CountActionCreatedUnixString(t.Context())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, count)
-	count, err = activities_model.FixActionCreatedUnixString(t.Context())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, count)
+	for _, wantCount := range []int{1, 0} {
+		count, err := activities_model.CountActionCreatedUnixString(t.Context())
+		assert.NoError(t, err)
+		assert.EqualValues(t, wantCount, count)
+		count, err = activities_model.FixActionCreatedUnixString(t.Context())
+		assert.NoError(t, err)
+		assert.EqualValues(t, wantCount, count)
+	}
 
 	//
 	// XORM must be happy now

@@ -4,15 +4,14 @@
 package misc
 
 import (
-	"net/http"
+	"io"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/context"
 )
 
 // Markup render markup document to HTML
@@ -32,16 +31,10 @@ func Markup(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MarkupRender"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*api.MarkupOption)
-
-	if ctx.HasAPIError() {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.GetErrMsg())
-		return
-	}
-
+	form := web.GetForm[*api.MarkupOption](ctx)
 	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath)
 }
@@ -63,16 +56,10 @@ func Markdown(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MarkdownRender"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*api.MarkdownOption)
-
-	if ctx.HasAPIError() {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.GetErrMsg())
-		return
-	}
-
+	form := web.GetForm[*api.MarkdownOption](ctx)
 	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, "")
 }
@@ -96,11 +83,8 @@ func MarkdownRaw(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MarkdownRender"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	defer ctx.Req.Body.Close()
-	if err := markdown.RenderRaw(markup.NewRenderContext(ctx), ctx.Req.Body, ctx.Resp); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	//   default:
+	//     "$ref": "#/responses/error"
+	textBytes, _ := io.ReadAll(io.LimitReader(ctx.Req.Body, setting.UI.MaxDisplayFileSize))
+	common.RenderMarkup(ctx.Base, ctx.Repo, "markdown", util.UnsafeBytesToString(textBytes), "", "")
 }

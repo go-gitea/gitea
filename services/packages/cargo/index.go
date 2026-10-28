@@ -12,17 +12,17 @@ import (
 	"path"
 	"strconv"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	repo_service "code.gitea.io/gitea/services/repository"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	packages_model "gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	cargo_module "gitea.dev/modules/packages/cargo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	repo_service "gitea.dev/services/repository"
+	files_service "gitea.dev/services/repository/files"
 )
 
 const (
@@ -162,7 +162,7 @@ func BuildPackageIndex(ctx context.Context, p *packages_model.Package) (*bytes.B
 
 	var b bytes.Buffer
 	for _, pd := range pds {
-		metadata := pd.Metadata.(*cargo_module.Metadata)
+		metadata := packages_model.DescriptorMetadata[*cargo_module.Metadata](pd)
 
 		dependencies := metadata.Dependencies
 		if dependencies == nil {
@@ -278,7 +278,7 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 			return err
 		}
 
-		commit, err := t.GetBranchCommit(repo.DefaultBranch)
+		commit, err := t.GetBranchCommit(ctx, repo.DefaultBranch)
 		if err != nil {
 			return err
 		}

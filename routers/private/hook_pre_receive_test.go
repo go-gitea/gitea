@@ -1,0 +1,190 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package private
+
+import (
+	"net/http"
+	"testing"
+
+	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/private"
+	"gitea.dev/services/contexttest"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestPreReceive(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("Branch", testPreReceiveActionsBranch)
+	t.Run("Tag", testPreReceiveSystemUserTag)
+	t.Run("CanWrite", testPreReceiveCanWriteCodePerBranch)
+}
+
+func testPreReceiveActionsBranch(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		protection    *git_model.ProtectedBranchConfig
+		forcePush     bool
+		deleteBranch  bool
+		targetBranch  bool
+		defaultBranch bool
+		allowed       bool
+	}{
+		{name: "push", protection: &git_model.ProtectedBranchConfig{CanPush: true}, allowed: true},
+		{name: "push allowlist", protection: &git_model.ProtectedBranchConfig{CanPush: true, EnableWhitelist: true}},
+		{name: "force push", protection: &git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true}, forcePush: true, allowed: true},
+		{name: "force push allowlist", protection: &git_model.ProtectedBranchConfig{CanPush: true, CanForcePush: true, EnableForcePushAllowlist: true}, forcePush: true},
+		{name: "deletion disabled", protection: &git_model.ProtectedBranchConfig{CanPush: true}, deleteBranch: true},
+		{name: "deletion allowed", protection: &git_model.ProtectedBranchConfig{CanPush: true, CanDelete: true}, deleteBranch: true, allowed: true},
+		{name: "pull request target", protection: &git_model.ProtectedBranchConfig{CanPush: true, CanDelete: true}, deleteBranch: true, targetBranch: true},
+		{name: "unprotected deletion", deleteBranch: true, allowed: true},
+		{name: "unprotected pull request target", deleteBranch: true, targetBranch: true},
+		{name: "default branch", protection: &git_model.ProtectedBranchConfig{CanPush: true, CanDelete: true}, deleteBranch: true, defaultBranch: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtx, resp := contexttest.MockPrivateContext(t, "/")
+			ctx := &preReceiveContext{PrivateContext: mockCtx, opts: &private.HookOptions{UserID: user_model.ActionsUserID}}
+			ctx.SetPathParam("owner", "user2")
+			ctx.SetPathParam("repo", "repo2")
+			RepoAssignment(ctx.PrivateContext)
+			require.False(t, ctx.Written())
+			defer ctx.Repo.GitRepo.Close()
+
+			doer := user_model.NewActionsUserWithTaskID(53)
+			loadContextDoerPermission(ctx.PrivateContext, doer.ID, doer.ExtDoerData.EncodeToString())
+
+			if tc.protection != nil {
+				protection := git_model.ProtectedBranch{ProtectedBranchConfig: *tc.protection}
+				protection.RepoID = ctx.Repo.Repository.ID
+				protection.RuleName = "probe"
+				require.NoError(t, db.Insert(t.Context(), &protection))
+				defer func() {
+					require.NoError(t, git_model.DeleteProtectedBranch(t.Context(), ctx.Repo.Repository, protection.ID))
+				}()
+			}
+
+			oldCommitID, newCommitID := "205ac761f3326a7ebe416e8673760016450b5cec", "1032bbf17fbc0d9c95bb5418dabe8f8c99278700"
+			if tc.forcePush {
+				oldCommitID, newCommitID = newCommitID, oldCommitID
+			}
+			if tc.deleteBranch {
+				newCommitID = ctx.Repo.GetObjectFormat().EmptyObjectID().String()
+			}
+			if tc.targetBranch {
+				ctx.Repo.Repository.Units = append(ctx.Repo.Repository.Units, &repo_model.RepoUnit{Type: unit.TypePullRequests, Config: &repo_model.PullRequestsConfig{DefaultTargetBranch: "probe"}})
+			}
+			if tc.defaultBranch {
+				ctx.Repo.Repository.DefaultBranch = "probe"
+			}
+			preReceiveBranch(ctx, oldCommitID, newCommitID, git.RefNameFromBranch("probe"))
+			if tc.allowed {
+				assert.False(t, ctx.Written(), resp.Body.String())
+			} else if tc.deleteBranch {
+				assert.Equal(t, http.StatusForbidden, resp.Code)
+			} else {
+				assert.Contains(t, resp.Body.String(), "Not allowed to")
+			}
+		})
+	}
+}
+
+func testPreReceiveSystemUserTag(t *testing.T) {
+	deployKey, err := deploykey_model.AddDeployKeyToken(t.Context(), 2, "tag-pusher", perm.AccessModeWrite)
+	require.NoError(t, err)
+	actionsDoer := user_model.NewActionsUserWithTaskID(53)
+	deployKeyDoer := user_model.NewDeployKeyUserWithKeyID(deployKey.ID)
+
+	for _, tc := range []struct {
+		name      string
+		doer      *user_model.User
+		allowlist []int64
+		allowed   bool
+	}{
+		{name: "actions allowlisted", doer: actionsDoer, allowlist: []int64{user_model.ActionsUserID}, allowed: true},
+		{name: "actions not allowlisted", doer: actionsDoer, allowlist: []int64{2, user_model.DeployKeyUserID}},
+		{name: "deploy key allowlisted", doer: deployKeyDoer, allowlist: []int64{user_model.DeployKeyUserID}, allowed: true},
+		{name: "deploy key not allowlisted", doer: deployKeyDoer, allowlist: []int64{2, user_model.ActionsUserID}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtx, resp := contexttest.MockPrivateContext(t, "/")
+			ctx := &preReceiveContext{PrivateContext: mockCtx, opts: &private.HookOptions{UserID: tc.doer.ID}}
+			ctx.SetPathParam("owner", "user2")
+			ctx.SetPathParam("repo", "repo2")
+			RepoAssignment(ctx.PrivateContext)
+			require.False(t, ctx.Written())
+			defer ctx.Repo.GitRepo.Close()
+
+			require.True(t, loadContextDoerPermission(ctx.PrivateContext, tc.doer.ID, tc.doer.ExtDoerData.EncodeToString()))
+
+			protectedTag := &git_model.ProtectedTag{RepoID: ctx.Repo.Repository.ID, NamePattern: "v*", AllowlistUserIDs: tc.allowlist}
+			require.NoError(t, git_model.InsertProtectedTag(t.Context(), protectedTag))
+			defer func() {
+				require.NoError(t, git_model.DeleteProtectedTag(t.Context(), protectedTag))
+			}()
+
+			preReceiveTag(ctx, git.RefNameFromTag("v1.0.0"))
+			if tc.allowed {
+				assert.False(t, ctx.Written(), resp.Body.String())
+			} else {
+				assert.Equal(t, http.StatusForbidden, resp.Code)
+				assert.Contains(t, resp.Body.String(), "Tag v1.0.0 is protected")
+			}
+		})
+	}
+}
+
+// TestPreReceiveCanWriteCodePerBranch ensures the maintainer-edit write grant is evaluated against
+// the exact ref being pushed on every call, derived from that ref rather than shared mutable state.
+// Otherwise, a per-branch grant (an open PR with "allow edits from maintainers") could be batched
+// together with a protected branch or a tag to escalate into full repository write.
+func testPreReceiveCanWriteCodePerBranch(t *testing.T) {
+	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+	require.NoError(t, baseRepo.LoadOwner(t.Context()))
+	require.NoError(t, headRepo.LoadOwner(t.Context()))
+
+	// An open PR from the head repo owner, with maintainer edits allowed: this grants the base
+	// repo owner write access to exactly this head branch and nothing else.
+	pr := &issues_model.PullRequest{
+		Issue: &issues_model.Issue{
+			RepoID:   baseRepo.ID,
+			PosterID: headRepo.OwnerID,
+		},
+		HeadRepoID:          headRepo.ID,
+		BaseRepoID:          baseRepo.ID,
+		HeadBranch:          "granted-branch",
+		BaseBranch:          "master",
+		AllowMaintainerEdit: true,
+	}
+	require.NoError(t, issues_model.NewPullRequest(t.Context(), baseRepo, pr.Issue, nil, nil, pr))
+
+	// The pusher is the base repo owner (the maintainer) with only read access on the head repo.
+	mockCtx, _ := contexttest.MockPrivateContext(t, "/")
+	ctx := &preReceiveContext{PrivateContext: mockCtx}
+	ctx.SetPathParam("owner", headRepo.OwnerName)
+	ctx.SetPathParam("repo", headRepo.Name)
+	RepoAssignment(ctx.PrivateContext)
+	loadContextDoerPermission(ctx.PrivateContext, baseRepo.OwnerID, "")
+
+	// The granted branch must be writable...
+	assert.True(t, ctx.canWriteCodeRef(git.RefNameFromBranch("granted-branch")))
+
+	// ...but another branch in the same push must NOT inherit that grant.
+	assert.False(t, ctx.canWriteCodeRef(git.RefNameFromBranch("master")))
+
+	// ...and a tag sharing the granted branch's name must NOT inherit it either: the grant is
+	// scoped to PR head branches, so a non-branch ref can never match it. (A tag ref already
+	// yields an empty branch name, so this guards the per-ref evaluation, not the IsBranch check.)
+	assert.False(t, ctx.canWriteCodeRef(git.RefNameFromTag("granted-branch")))
+}

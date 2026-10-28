@@ -9,15 +9,15 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 const (
@@ -54,7 +54,7 @@ func NewBadge(ctx *context.Context) {
 
 // NewBadgePost response for adding a new badge
 func NewBadgePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AdminCreateBadgeForm)
+	form := web.GetForm[*forms.AdminCreateBadgeForm](ctx)
 
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
@@ -100,12 +100,11 @@ func ViewBadge(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.badges.details")
 	ctx.Data["PageIsAdminBadges"] = true
 
-	prepareBadgeInfo(ctx)
+	badge := prepareBadgeInfo(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	badge := ctx.Data["Badge"].(*user_model.Badge)
 	opts := &user_model.GetBadgeUsersOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
@@ -143,7 +142,7 @@ func EditBadgePost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.AdminEditBadgeForm)
+	form := web.GetForm[*forms.AdminEditBadgeForm](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
@@ -204,7 +203,7 @@ func BadgeUsers(ctx *context.Context) {
 
 	ctx.Data["Users"] = users
 	ctx.Data["Total"] = count
-	ctx.Data["Page"] = context.NewPagination(count, setting.UI.Admin.UserPagingNum, page, 5)
+	ctx.Data["Page"] = context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.Admin.UserPagingNum).CurPage(page).Build()
 
 	ctx.HTML(http.StatusOK, tplBadgeUsers)
 }
@@ -309,8 +308,7 @@ func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions
 	ctx.Data["Total"] = count
 	ctx.Data["Badges"] = badges
 
-	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplName)

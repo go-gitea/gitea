@@ -10,14 +10,15 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/services/migrations"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/convert"
+	"gitea.dev/services/gitproxy"
+	"gitea.dev/services/migrations"
 
 	"github.com/urfave/cli/v3"
 )
@@ -32,7 +33,7 @@ func newDumpRepositoryCommand() *cli.Command {
 			&cli.StringFlag{
 				Name:  "git_service",
 				Value: "",
-				Usage: "Git service, git, github, gitea, gitlab. If clone_addr could be recognized, this could be ignored.",
+				Usage: "Git service, git, github, gitea, forgejo, gitlab. If clone_addr could be recognized, this could be ignored.",
 			},
 			&cli.StringFlag{
 				Name:    "repo_dir",
@@ -94,6 +95,9 @@ func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
 	if err := git.InitSimple(); err != nil {
 		return err
 	}
+	if err := gitproxy.Run(ctx); err != nil {
+		return err
+	}
 
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
@@ -113,6 +117,8 @@ func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
 		serviceStr = "gitlab"
 	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://gitea.com/") {
 		serviceStr = "gitea"
+	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://codeberg.org/") {
+		serviceStr = "forgejo"
 	}
 	if serviceStr == "" {
 		return errors.New("git_service missed or clone_addr cannot be recognized")

@@ -4,12 +4,15 @@
 package git
 
 import (
+	"bufio"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseTreeEntriesLong(t *testing.T) {
+func TestParseTreeEntries(t *testing.T) {
 	testCases := []struct {
 		Input    string
 		Expected []*TreeEntry
@@ -50,22 +53,6 @@ func TestParseTreeEntriesLong(t *testing.T) {
 				},
 			},
 		},
-	}
-	for _, testCase := range testCases {
-		entries, err := ParseTreeEntries([]byte(testCase.Input))
-		assert.NoError(t, err)
-		assert.Len(t, entries, len(testCase.Expected))
-		for i, entry := range entries {
-			assert.Equal(t, testCase.Expected[i], entry)
-		}
-	}
-}
-
-func TestParseTreeEntriesShort(t *testing.T) {
-	testCases := []struct {
-		Input    string
-		Expected []*TreeEntry
-	}{
 		{
 			Input: `100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af	README.md
 040000 tree 84b90550547016f73c5dd3f50dea662389e67b6d	assets
@@ -99,4 +86,32 @@ func TestParseTreeEntriesInvalid(t *testing.T) {
 	entries, err := ParseTreeEntries([]byte("100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af"))
 	assert.Error(t, err)
 	assert.Empty(t, entries)
+}
+
+func TestParseCatFileTreeLine(t *testing.T) {
+	input := "100644 looooooooooooooooooooooooong-file-name.txt\x0012345678901234567890"
+	input += "40755 some-directory\x00abcdefg123abcdefg123"
+
+	var readCount int
+
+	buf := bufio.NewReaderSize(strings.NewReader(input), 20) // NewReaderSize has a limit: min buffer size = 16
+	mode, name, objID, n, err := ParseCatFileTreeLine(Sha1ObjectFormat, buf)
+	readCount += n
+	assert.NoError(t, err)
+	assert.Equal(t, EntryModeBlob, mode)
+	assert.Equal(t, "looooooooooooooooooooooooong-file-name.txt", name)
+	assert.Equal(t, "12345678901234567890", string(objID.RawValue()))
+
+	mode, name, objID, n, err = ParseCatFileTreeLine(Sha1ObjectFormat, buf)
+	readCount += n
+	assert.NoError(t, err)
+	assert.Equal(t, EntryModeTree, mode)
+	assert.Equal(t, "some-directory", name)
+	assert.Equal(t, "abcdefg123abcdefg123", string(objID.RawValue()))
+
+	assert.Equal(t, len(input), readCount)
+
+	_, _, _, n, err = ParseCatFileTreeLine(Sha1ObjectFormat, buf)
+	assert.ErrorIs(t, err, io.EOF)
+	assert.Zero(t, n)
 }

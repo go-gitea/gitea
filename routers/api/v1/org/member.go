@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/user"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	org_service "code.gitea.io/gitea/services/org"
+	"gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/routers/api/v1/user"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	org_service "gitea.dev/services/org"
 )
 
 // listMembers list an organization's members
@@ -74,15 +74,15 @@ func ListMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	var (
 		isMember bool
 		err      error
 	)
 
-	if ctx.Doer != nil {
+	if user_model.DoerCanViewPrivate(ctx.Doer) {
 		isMember, err = ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -116,8 +116,8 @@ func ListPublicMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listMembers(ctx, false)
 }
@@ -143,14 +143,14 @@ func IsMember(ctx *context.APIContext) {
 	//     description: user is a member
 	//   "303":
 	//     description: redirection to /orgs/{org}/public_members/{username}
-	//   "404":
-	//     description: user is not a member
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
-	if ctx.Doer != nil {
+	if user_model.DoerCanViewPrivate(ctx.Doer) {
 		userIsMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -194,8 +194,8 @@ func IsPublicMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: user is a public member
-	//   "404":
-	//     description: user is not a public member
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
@@ -221,7 +221,7 @@ func checkCanChangeOrgUserStatus(ctx *context.APIContext, targetUser *user_model
 	// allow org owners to change status of members
 	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	} else if !isOwner {
 		ctx.APIError(http.StatusForbidden, "Cannot change member visibility")
 	}
@@ -248,10 +248,8 @@ func PublicizeMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: membership publicized
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	userToPublicize := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
@@ -290,10 +288,8 @@ func ConcealMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	userToConceal := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
@@ -332,8 +328,8 @@ func DeleteMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: member removed
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	member := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {

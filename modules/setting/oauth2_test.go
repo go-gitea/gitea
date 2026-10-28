@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/generate"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -60,9 +60,11 @@ func TestGetGeneralSigningSecretSave(t *testing.T) {
 }
 
 func TestOauth2DefaultApplications(t *testing.T) {
+	defer test.MockVariableValue(&OAuth2)()
+
 	cfg, _ := NewConfigProviderFromData(``)
 	loadOAuth2From(cfg)
-	assert.Equal(t, []string{"git-credential-oauth", "git-credential-manager", "tea"}, OAuth2.DefaultApplications)
+	assert.Equal(t, []string{"git-credential-oauth", "git-credential-manager", "tea", "gitea-app", "gitea-vscode"}, OAuth2.DefaultApplications)
 
 	cfg, _ = NewConfigProviderFromData(`[oauth2]
 DEFAULT_APPLICATIONS = tea

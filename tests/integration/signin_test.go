@@ -6,21 +6,23 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/web/auth"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/routers"
+	"gitea.dev/routers/web/auth"
+	"gitea.dev/services/context"
+	"gitea.dev/tests"
 
 	"github.com/markbates/goth"
 	"github.com/stretchr/testify/assert"
@@ -36,8 +38,7 @@ func testLoginFailed(t *testing.T, username, password, message string) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	resultMsg := htmlDoc.doc.Find(".ui.message>p").Text()
-
+	resultMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.message.flash-message").Text())
 	assert.Equal(t, message, resultMsg)
 }
 
@@ -110,65 +111,43 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 		_ = auth.Oauth2SetLinkAccountData(ctx, auth.LinkAccountData{AuthSourceID: authSource.ID, GothUser: gothUser})
 	}
 
-	t.Run("EnablePasswordSignInForm=false", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, false)()
+	for _, enabled := range []bool{false, true} {
+		t.Run("EnablePasswordSignInForm="+strconv.FormatBool(enabled), func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, enabled)()
 
-		req := NewRequest(t, "GET", "/user/login")
-		resp := MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-		AssertHTMLElement(t, doc, "form[action='/user/login']", false)
+			req := NewRequest(t, "GET", "/user/login")
+			resp := MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
+			AssertHTMLElement(t, doc, "form[action='/user/login']", enabled)
 
-		req = NewRequest(t, "POST", "/user/login")
-		MakeRequest(t, req, http.StatusForbidden)
+			postStatus := http.StatusForbidden
+			if enabled {
+				postStatus = http.StatusOK
+			}
+			req = NewRequest(t, "POST", "/user/login")
+			MakeRequest(t, req, postStatus)
 
-		req = NewRequest(t, "GET", "/user/link_account")
-		defer web.RouteMockReset()
-		web.RouteMock(web.MockAfterMiddlewares, mockLinkAccount)
-		resp = MakeRequest(t, req, http.StatusOK)
-		doc = NewHTMLParser(t, resp.Body)
-		AssertHTMLElement(t, doc, "form[action='/user/link_account_signin']", false)
-	})
+			req = NewRequest(t, "GET", "/user/link_account")
+			defer web.RouteMockReset()
+			web.RouteMock(web.MockAfterMiddlewares, mockLinkAccount)
+			resp = MakeRequest(t, req, http.StatusOK)
+			doc = NewHTMLParser(t, resp.Body)
+			AssertHTMLElement(t, doc, "form[action='/user/link_account_signin']", enabled)
+		})
+	}
 
-	t.Run("EnablePasswordSignInForm=true", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, true)()
+	for _, enabled := range []bool{false, true} {
+		t.Run("EnablePasskeyAuth="+strconv.FormatBool(enabled), func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, enabled)()
 
-		req := NewRequest(t, "GET", "/user/login")
-		resp := MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-		AssertHTMLElement(t, doc, "form[action='/user/login']", true)
-
-		req = NewRequest(t, "POST", "/user/login")
-		MakeRequest(t, req, http.StatusOK)
-
-		req = NewRequest(t, "GET", "/user/link_account")
-		defer web.RouteMockReset()
-		web.RouteMock(web.MockAfterMiddlewares, mockLinkAccount)
-		resp = MakeRequest(t, req, http.StatusOK)
-		doc = NewHTMLParser(t, resp.Body)
-		AssertHTMLElement(t, doc, "form[action='/user/link_account_signin']", true)
-	})
-
-	t.Run("EnablePasskeyAuth=false", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, false)()
-
-		req := NewRequest(t, "GET", "/user/login")
-		resp := MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-		AssertHTMLElement(t, doc, ".signin-passkey", false)
-	})
-
-	t.Run("EnablePasskeyAuth=true", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, true)()
-
-		req := NewRequest(t, "GET", "/user/login")
-		resp := MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-		AssertHTMLElement(t, doc, ".signin-passkey", true)
-	})
+			req := NewRequest(t, "GET", "/user/login")
+			resp := MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
+			AssertHTMLElement(t, doc, ".signin-passkey", enabled)
+		})
+	}
 }
 
 func TestRequireSignInView(t *testing.T) {
@@ -178,13 +157,23 @@ func TestRequireSignInView(t *testing.T) {
 		require.False(t, setting.Service.BlockAnonymousAccessExpensive)
 		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
 		MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", "/-/ws")
+		MakeRequest(t, req, http.StatusUpgradeRequired)
 	})
 	t.Run("RequireSignInView", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 		defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
-		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
-		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
+		t.Run("AccessPublicRepo", func(t *testing.T) {
+			req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
+			resp := MakeRequest(t, req, http.StatusSeeOther)
+			assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
+		})
+		t.Run("UpdateTheme", func(t *testing.T) {
+			session := emptyTestSession(t)
+			req := NewRequest(t, "POST", "/-/web-theme/apply?theme=gitea-dark")
+			session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "gitea-dark", session.GetSiteCookie(middleware.CookieTheme))
+		})
 	})
 	t.Run("BlockAnonymousAccessExpensive", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, false)()
@@ -193,9 +182,41 @@ func TestRequireSignInView(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/user2/repo1")
 		MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", "/-/ws")
+		MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", "/user2/repo1/src/branch/master")
 		resp := MakeRequest(t, req, http.StatusSeeOther)
 		assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
+	})
+}
+
+func TestSignOut(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	t.Run("NormalLogout", func(t *testing.T) {
+		session := loginUser(t, "user2")
+
+		req := NewRequest(t, "GET", "/user/logout")
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/", resp.Header().Get("Location"))
+
+		// logged out, try to view a private repo, should fail
+		req = NewRequest(t, "GET", "/user2/repo2")
+		session.MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("ReverseProxyLogoutRedirect", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.EnableReverseProxyAuth, true)()
+		defer test.MockVariableValue(&setting.ReverseProxyLogoutRedirect, "/my-sso/logout?return_to=/my-sso/home")()
+
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "GET", "/user/logout")
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/my-sso/logout?return_to=/my-sso/home", resp.Header().Get("Location"))
+
+		// logged out, try to view a private repo, should fail
+		req = NewRequest(t, "GET", "/user2/repo2")
+		session.MakeRequest(t, req, http.StatusNotFound)
 	})
 }

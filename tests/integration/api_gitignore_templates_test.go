@@ -7,46 +7,45 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/modules/options"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/options"
+	repo_module "gitea.dev/modules/repository"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIListGitignoresTemplates(t *testing.T) {
+func TestAPIGitignoreTemplates(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/api/v1/gitignore/templates")
-	resp := MakeRequest(t, req, http.StatusOK)
+	t.Run("List", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/gitignore/templates")
+		resp := MakeRequest(t, req, http.StatusOK)
 
-	// This tests if the API returns a list of strings
-	var gitignoreList []string
-	DecodeJSON(t, resp, &gitignoreList)
-}
+		templateList := DecodeJSON(t, resp, []string{}) // this is a very long list
+		assert.Contains(t, templateList, "C++")
+		assert.Contains(t, templateList, "Go")
+	})
 
-func TestAPIGetGitignoreTemplateInfo(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	t.Run("Info", func(t *testing.T) {
+		// If Gitea has for some reason no Gitignore templates, we need to skip this test
+		if len(repo_module.Gitignores) == 0 {
+			return
+		}
 
-	// If Gitea has for some reason no Gitignore templates, we need to skip this test
-	if len(repo_module.Gitignores) == 0 {
-		return
-	}
+		// Use the first template for the test
+		templateName := repo_module.Gitignores[0]
 
-	// Use the first template for the test
-	templateName := repo_module.Gitignores[0]
+		urlStr := "/api/v1/gitignore/templates/" + templateName
+		req := NewRequest(t, "GET", urlStr)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-	urlStr := "/api/v1/gitignore/templates/" + templateName
-	req := NewRequest(t, "GET", urlStr)
-	resp := MakeRequest(t, req, http.StatusOK)
+		templateInfo := DecodeJSON(t, resp, &api.GitignoreTemplateInfo{})
 
-	var templateInfo api.GitignoreTemplateInfo
-	DecodeJSON(t, resp, &templateInfo)
+		// We get the text of the template here
+		text, _ := options.Gitignore(templateName)
 
-	// We get the text of the template here
-	text, _ := options.Gitignore(templateName)
-
-	assert.Equal(t, templateInfo.Name, templateName)
-	assert.Equal(t, templateInfo.Source, string(text))
+		assert.Equal(t, templateInfo.Name, templateName)
+		assert.Equal(t, templateInfo.Source, string(text))
+	})
 }

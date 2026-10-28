@@ -6,12 +6,13 @@ package admin
 import (
 	"net/http"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	repo_service "code.gitea.io/gitea/services/repository"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 )
 
 // ListUnadoptedRepositories lists the unadopted repositories that match the provided names
@@ -30,15 +31,15 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
-	// - name: pattern
+	// - name: query
 	//   in: query
-	//   description: pattern of repositories to search for
+	//   description: glob pattern of repositories to search for, in the form owner or owner/repo
 	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StringSlice"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 	if listOptions.Page == 0 {
@@ -76,10 +77,8 @@ func AdoptRepository(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 	ownerName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
 
@@ -99,7 +98,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
+	exist, err := git.IsRepositoryExist(ctx, gitrepo.CodeRepoByName(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -140,8 +139,8 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 	ownerName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
 
@@ -161,7 +160,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
+	exist, err := git.IsRepositoryExist(ctx, gitrepo.CodeRepoByName(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

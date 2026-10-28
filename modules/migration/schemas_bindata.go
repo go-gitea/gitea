@@ -12,9 +12,9 @@ import (
 	"path"
 	"sync"
 
-	_ "embed"
+	"gitea.dev/modules/assetfs"
 
-	"code.gitea.io/gitea/modules/assetfs"
+	_ "embed"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )

@@ -6,11 +6,11 @@ package repository
 import (
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,22 +71,33 @@ func TestRepository_HasWiki(t *testing.T) {
 }
 
 func TestMakeRepoPrivateClearsWatches(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	for _, name := range []string{"MakeRepoPrivate", "updateRepository"} {
+		t.Run(name, func(t *testing.T) {
+			assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	assert.False(t, repo.IsPrivate)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+			assert.False(t, repo.IsPrivate)
 
-	watchers, err := repo_model.GetRepoWatchersIDs(t.Context(), repo.ID)
-	require.NoError(t, err)
-	require.NotEmpty(t, watchers)
+			watchers, err := repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
+			require.NoError(t, err)
+			require.NotEmpty(t, watchers)
 
-	assert.NoError(t, MakeRepoPrivate(t.Context(), repo, true))
+			if name == "MakeRepoPrivate" {
+				assert.NoError(t, MakeRepoPrivate(t.Context(), repo, true))
+			} else {
+				repo.IsPrivate = true
+				require.NoError(t, updateRepository(t.Context(), repo, true))
+			}
 
-	watchers, err = repo_model.GetRepoWatchersIDs(t.Context(), repo.ID)
-	assert.NoError(t, err)
-	assert.Empty(t, watchers)
+			watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
+			assert.NoError(t, err)
+			assert.Empty(t, watchers)
 
-	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
-	assert.True(t, updatedRepo.IsPrivate)
-	assert.Zero(t, updatedRepo.NumWatches)
+			updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+			if name == "MakeRepoPrivate" {
+				assert.True(t, updatedRepo.IsPrivate)
+			}
+			assert.Zero(t, updatedRepo.NumWatches)
+		})
+	}
 }

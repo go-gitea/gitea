@@ -6,6 +6,7 @@ package integration
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -13,32 +14,27 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/migrations"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/migrations"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
+	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v4"
 )
 
 func TestDumpRestore(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		AllowLocalNetworks := setting.Migrations.AllowLocalNetworks
-		setting.Migrations.AllowLocalNetworks = true
-		AppVer := setting.AppVer
 		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
-		setting.AppVer = "1.16.0"
-		defer func() {
-			setting.Migrations.AllowLocalNetworks = AllowLocalNetworks
-			setting.AppVer = AppVer
-		}()
-
-		assert.NoError(t, migrations.Init())
+		defer test.MockVariableValue(&setting.AppVer, "1.16.0")()
 
 		reponame := "repo1"
 
@@ -53,6 +49,10 @@ func TestDumpRestore(t *testing.T) {
 		//
 
 		ctx := t.Context()
+		for bean, id := range map[any]int64{&issues_model.Issue{}: 1, &issues_model.Comment{}: 2, &issues_model.Reaction{}: 3, &issues_model.Reaction{}: 4} {
+			_, err := db.GetEngine(ctx).Table(bean).ID(id).Update(map[string]any{"original_author": "octocat", "original_author_id": 583231})
+			require.NoError(t, err)
+		}
 		opts := migrations.MigrateOptions{
 			GitServiceType: structs.GiteaService,
 			Issues:         true,
@@ -73,6 +73,14 @@ func TestDumpRestore(t *testing.T) {
 		d := filepath.Join(basePath, repo.OwnerName, repo.Name)
 		for _, f := range []string{"repo.yml", "topic.yml", "label.yml", "milestone.yml", "issue.yml"} {
 			assert.FileExists(t, filepath.Join(d, f))
+		}
+		var issues []*base.Issue
+		var comments []*base.Comment
+		require.NoError(t, base.Load(filepath.Join(d, "issue.yml"), &issues, false))
+		require.NoError(t, base.Load(filepath.Join(d, "comments/1.yml"), &comments, false))
+		for _, author := range []user_model.ExternalUserMigrated{issues[1], issues[1].Reactions[0], comments[0], comments[0].Reactions[0]} {
+			assert.Equal(t, user_model.GhostUserID, author.GetExternalID())
+			assert.Equal(t, "octocat", author.GetExternalName())
 		}
 
 		//
@@ -192,10 +200,12 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 		},
 		"CloneURL": {transform: c.replaceRepoName},
 	}
+	compareBaseBranch := maps.Clone(*comparePullRequestBranch)
+	compareBaseBranch["SHA"] = compareField{ignore: true}
 	prs, ok := c.assertEqual("pull_request.yml", []base.PullRequest{}, compareFields{
 		"Assignees": {ignore: true}, // not implemented yet
 		"Head":      {nested: comparePullRequestBranch},
-		"Base":      {nested: comparePullRequestBranch},
+		"Base":      {nested: &compareBaseBranch},
 		"Labels":    {ignore: true}, // because org labels are not handled properly
 	}).([]*base.PullRequest)
 	assert.True(c.t, ok)

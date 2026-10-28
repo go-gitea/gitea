@@ -8,11 +8,11 @@ import (
 	"slices"
 	"sort"
 
-	"code.gitea.io/gitea/models/db"
-	organization_model "code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/models/db"
+	organization_model "gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
 
 	"xorm.io/builder"
 )
@@ -121,7 +121,7 @@ func FindReviews(ctx context.Context, opts FindReviewOptions) (ReviewList, error
 	reviews := make([]*Review, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.toCond())
 	if opts.Page > 0 && !opts.IsListAll() {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 	}
 	return reviews, sess.
 		Asc("created_unix").
@@ -135,7 +135,7 @@ func FindLatestReviews(ctx context.Context, opts FindReviewOptions) (ReviewList,
 	cond := opts.toCond()
 	sess := db.GetEngine(ctx).Where(cond)
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 	}
 
 	sess.In("id", builder.
@@ -170,14 +170,22 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (latestReviews, mig
 	// filter them in memory to get the latest review of each reviewer
 	// Since the reviews should not be too many for one issue, less than 100 commonly, it's acceptable to do this in memory
 	// And since there are too less indexes in review table, it will be very slow to filter in the database
-	reviewersMap := make(map[int64][]*Review)         // key is reviewer id
-	originalReviewersMap := make(map[int64][]*Review) // key is original author id
-	reviewTeamsMap := make(map[int64][]*Review)       // key is reviewer team id
+	type originalReviewer struct {
+		id   int64
+		name string
+	}
+	reviewersMap := make(map[int64][]*Review)                    // key is reviewer id
+	originalReviewersMap := make(map[originalReviewer][]*Review) // key is original author
+	reviewTeamsMap := make(map[int64][]*Review)                  // key is reviewer team id
 	countedReviewTypes := []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, ReviewTypeComment}
 	for _, review := range reviews {
 		if review.ReviewerTeamID == 0 && slices.Contains(countedReviewTypes, review.Type) && !review.Dismissed {
 			if review.OriginalAuthorID != 0 {
-				originalReviewersMap[review.OriginalAuthorID] = append(originalReviewersMap[review.OriginalAuthorID], review)
+				key := originalReviewer{id: review.OriginalAuthorID}
+				if review.OriginalAuthorID == user_model.GhostUserID {
+					key.name = review.OriginalAuthor
+				}
+				originalReviewersMap[key] = append(originalReviewersMap[key], review)
 			} else {
 				reviewersMap[review.ReviewerID] = append(reviewersMap[review.ReviewerID], review)
 			}

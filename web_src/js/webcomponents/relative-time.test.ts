@@ -54,8 +54,35 @@ test('switches to datetime format after default threshold', async () => {
   expect(getText(el)).toMatch(/on [A-Z][a-z]{2} \d{1,2}/);
 });
 
+test('accepts unix seconds as integer string', async () => {
+  const el = createRelativeTime(String(Math.floor(Date.now() / 1000) - 3 * 60));
+  await Promise.resolve();
+  expect(getText(el)).toBe('3 minutes ago');
+});
+
+test('ignores fractional unix seconds', async () => {
+  const el = createRelativeTime('1700000000.5');
+  el.shadowRoot!.textContent = 'fallback';
+  await Promise.resolve();
+  expect(getText(el)).toBe('fallback');
+});
+
+test('ignores negative unix seconds', async () => {
+  const el = createRelativeTime('-86400');
+  el.shadowRoot!.textContent = 'fallback';
+  await Promise.resolve();
+  expect(getText(el)).toBe('fallback');
+});
+
 test('ignores invalid datetime', async () => {
   const el = createRelativeTime('bogus');
+  el.shadowRoot!.textContent = 'fallback';
+  await Promise.resolve();
+  expect(getText(el)).toBe('fallback');
+});
+
+test('ignores partial numeric datetime', async () => {
+  const el = createRelativeTime('123abc');
   el.shadowRoot!.textContent = 'fallback';
   await Promise.resolve();
   expect(getText(el)).toBe('fallback');
@@ -107,6 +134,18 @@ test('respects lang from parent element', async () => {
   container.append(el);
   await Promise.resolve();
   expect(getText(el)).toBe('vor 3 Tagen');
+});
+
+test('falls back when navigator.language is invalid', async () => {
+  vi.spyOn(navigator, 'language', 'get').mockReturnValue('undefined');
+  try {
+    const el = document.createElement('relative-time');
+    el.setAttribute('datetime', new Date(Date.now() - 3 * 60 * 1000).toISOString());
+    await Promise.resolve();
+    expect(getText(el)).toBe('3 minutes ago');
+  } finally {
+    vi.restoreAllMocks();
+  }
 });
 
 test('switches to datetime with P1D threshold', async () => {

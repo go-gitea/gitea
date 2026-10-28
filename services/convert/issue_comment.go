@@ -6,24 +6,24 @@ package convert
 import (
 	"context"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 // ToAPIComment converts a issues_model.Comment to the api.Comment format for API usage
 func ToAPIComment(ctx context.Context, repo *repo_model.Repository, c *issues_model.Comment) *api.Comment {
 	return &api.Comment{
 		ID:          c.ID,
-		Poster:      ToUser(ctx, c.Poster, nil),
+		Poster:      ToAuthor(ctx, c.Poster, c.OriginalAuthor, nil),
 		HTMLURL:     c.HTMLURL(ctx),
 		IssueURL:    c.IssueURL(ctx),
 		PRURL:       c.PRURL(ctx),
 		Body:        c.Content,
-		Attachments: ToAPIAttachments(repo, c.Attachments),
+		Attachments: ToAPIAttachments(ctx, repo, c.Attachments),
 		Created:     c.CreatedUnix.AsTime(),
 		Updated:     c.UpdatedUnix.AsTime(),
 	}
@@ -86,7 +86,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 	comment := &api.TimelineComment{
 		ID:       c.ID,
 		Type:     c.Type.String(),
-		Poster:   ToUser(ctx, c.Poster, nil),
+		Poster:   ToAuthor(ctx, c.Poster, c.OriginalAuthor, nil),
 		HTMLURL:  c.HTMLURL(ctx),
 		IssueURL: c.IssueURL(ctx),
 		PRURL:    c.PRURL(ctx),

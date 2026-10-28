@@ -11,22 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsEmptyString(t *testing.T) {
-	cases := []struct {
-		s        string
-		expected bool
-	}{
-		{"", true},
-		{" ", true},
-		{"   ", true},
-		{"  a", false},
-	}
-
-	for _, v := range cases {
-		assert.Equal(t, v.expected, IsEmptyString(v.s))
-	}
-}
-
 func Test_NormalizeEOL(t *testing.T) {
 	data1 := []string{
 		"",
@@ -56,25 +40,12 @@ func Test_NormalizeEOL(t *testing.T) {
 		"Ends without EOLtoo.",
 	}
 
-	buildEOLData := func(data []string, eol string) []byte {
-		return []byte(strings.Join(data, eol))
+	for _, data := range [][]string{data1, data2} {
+		unix := []byte(strings.Join(data, "\n"))
+		for _, input := range [][]byte{[]byte(strings.Join(data, "\r\n")), []byte(strings.Join(data, "\r")), unix} {
+			assert.Equal(t, unix, NormalizeEOL(input))
+		}
 	}
-
-	dos := buildEOLData(data1, "\r\n")
-	unix := buildEOLData(data1, "\n")
-	mac := buildEOLData(data1, "\r")
-
-	assert.Equal(t, unix, NormalizeEOL(dos))
-	assert.Equal(t, unix, NormalizeEOL(mac))
-	assert.Equal(t, unix, NormalizeEOL(unix))
-
-	dos = buildEOLData(data2, "\r\n")
-	unix = buildEOLData(data2, "\n")
-	mac = buildEOLData(data2, "\r")
-
-	assert.Equal(t, unix, NormalizeEOL(dos))
-	assert.Equal(t, unix, NormalizeEOL(mac))
-	assert.Equal(t, unix, NormalizeEOL(unix))
 
 	assert.Equal(t, []byte("one liner"), NormalizeEOL([]byte("one liner")))
 	assert.Equal(t, []byte("\n"), NormalizeEOL([]byte("\n")))
@@ -86,35 +57,31 @@ func Test_NormalizeEOL(t *testing.T) {
 }
 
 func Test_RandomInt(t *testing.T) {
-	randInt, err := CryptoRandomInt(255)
+	randInt := CryptoRandomInt(255)
 	assert.GreaterOrEqual(t, randInt, int64(0))
 	assert.LessOrEqual(t, randInt, int64(255))
-	assert.NoError(t, err)
 }
 
 func Test_RandomString(t *testing.T) {
-	str1, err := CryptoRandomString(32)
-	assert.NoError(t, err)
+	str1 := CryptoRandomString(32)
+	var err error
 	matches, err := regexp.MatchString(`^[a-zA-Z0-9]{32}$`, str1)
 	assert.NoError(t, err)
 	assert.True(t, matches)
 
-	str2, err := CryptoRandomString(32)
-	assert.NoError(t, err)
+	str2 := CryptoRandomString(32)
 	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{32}$`, str1)
 	assert.NoError(t, err)
 	assert.True(t, matches)
 
 	assert.NotEqual(t, str1, str2)
 
-	str3, err := CryptoRandomString(256)
-	assert.NoError(t, err)
+	str3 := CryptoRandomString(256)
 	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{256}$`, str3)
 	assert.NoError(t, err)
 	assert.True(t, matches)
 
-	str4, err := CryptoRandomString(256)
-	assert.NoError(t, err)
+	str4 := CryptoRandomString(256)
 	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{256}$`, str4)
 	assert.NoError(t, err)
 	assert.True(t, matches)
@@ -123,21 +90,11 @@ func Test_RandomString(t *testing.T) {
 }
 
 func Test_RandomBytes(t *testing.T) {
-	bytes1, err := CryptoRandomBytes(32)
-	assert.NoError(t, err)
-
-	bytes2, err := CryptoRandomBytes(32)
-	assert.NoError(t, err)
-
-	assert.NotEqual(t, bytes1, bytes2)
-
-	bytes3, err := CryptoRandomBytes(256)
-	assert.NoError(t, err)
-
-	bytes4, err := CryptoRandomBytes(256)
-	assert.NoError(t, err)
-
-	assert.NotEqual(t, bytes3, bytes4)
+	for _, length := range []int64{32, 256} {
+		bytes1 := CryptoRandomBytes(length)
+		bytes2 := CryptoRandomBytes(length)
+		assert.NotEqual(t, bytes1, bytes2)
+	}
 }
 
 // Test case for any function which accepts and returns a single string.
@@ -175,9 +132,9 @@ func TestToTitleCase(t *testing.T) {
 	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`FOO BAR BAZ`))
 }
 
-func TestReserveLineBreakForTextarea(t *testing.T) {
-	assert.Equal(t, "test\ndata", ReserveLineBreakForTextarea("test\r\ndata"))
-	assert.Equal(t, "test\ndata\n", ReserveLineBreakForTextarea("test\r\ndata\r\n"))
+func TestNormalizeStringEOL(t *testing.T) {
+	assert.Equal(t, "test\ndata", NormalizeStringEOL("test\r\ndata"))
+	assert.Equal(t, " test\ndata\n ", NormalizeStringEOL(" test\rdata\r "))
 }
 
 func TestOptionalArg(t *testing.T) {
@@ -191,4 +148,11 @@ func TestOptionalArg(t *testing.T) {
 	assert.Equal(t, 100, foo(nil, 100))
 	assert.Equal(t, 42, bar(nil))
 	assert.Equal(t, 100, bar(nil, 100))
+}
+
+func TestPathEscapeSegments(t *testing.T) {
+	assert.Equal(t, "a", PathEscapeSegments("a"))
+	assert.Equal(t, "a/b", PathEscapeSegments("a/b"))
+	assert.Equal(t, "a/b%20c", PathEscapeSegments("a/b c"))
+	assert.Equal(t, "a/b+c", PathEscapeSegments("a/b+c"))
 }

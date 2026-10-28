@@ -1,15 +1,15 @@
-import {throttle} from 'throttle-debounce';
+import {throttle} from '../utils/func.ts';
 import {addDelegatedEventListener, generateElemId, isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
-  popup: HTMLDivElement;
-  overflowItems: Array<HTMLElement>;
-  button: HTMLButtonElement | null;
-  menuItemsEl: HTMLElement;
-  resizeObserver: ResizeObserver;
-  mutationObserver: MutationObserver;
-  lastWidth: number;
+  popup!: HTMLDivElement;
+  overflowItems: Array<HTMLElement> = [];
+  button: HTMLButtonElement | null = null;
+  menuItemsEl!: HTMLElement;
+  resizeObserver!: ResizeObserver;
+  mutationObserver!: MutationObserver;
+  lastWidth!: number;
 
   updateButtonActivationState() {
     if (!this.button || !this.popup) return;
@@ -21,7 +21,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     this.popup.style.display = '';
     this.button!.setAttribute('aria-expanded', 'true');
     setTimeout(() => this.popup.focus(), 0);
-    document.addEventListener('click', this.onClickOutside, true);
+    document.addEventListener('click', this.onClickOutside, {capture: true});
   }
 
   hidePopup() {
@@ -37,7 +37,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     }
   };
 
-  updateItems = throttle(100, () => {
+  updateItems = throttle(() => {
     if (!this.popup) {
       const div = document.createElement('div');
       div.classList.add('overflow-menu-popup');
@@ -100,7 +100,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     const itemOverFlowMenuButton = this.querySelector<HTMLButtonElement>('.overflow-menu-button');
 
     // move items in popup back into the menu items for subsequent measurement
-    for (const item of this.overflowItems || []) {
+    for (const item of this.overflowItems) {
       if (!itemFlexSpace || item.getAttribute('data-after-flex-space')) {
         this.menuItemsEl.append(item);
       } else {
@@ -125,7 +125,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       const itemRight = item.offsetLeft + item.offsetWidth;
       if (menuRight - itemRight < 38) { // roughly the width of .overflow-menu-button with some extra space
         const onlyLastItem = idx === menuItems.length - 1 && this.overflowItems.length === 0;
-        const lastItemFit = onlyLastItem && menuRight - itemRight > 0;
+        const lastItemFit = onlyLastItem && menuRight > itemRight;
         const moveToPopup = !onlyLastItem || !lastItemFit;
         if (moveToPopup) this.overflowItems.push(item);
       }
@@ -183,7 +183,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     this.append(this.button);
     this.append(this.popup);
     this.updateButtonActivationState();
-  });
+  }, 100);
 
   init() {
     // for horizontal menus where fomantic boldens active items, prevent this bold text from
@@ -213,6 +213,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         if (newWidth !== this.lastWidth) {
           requestAnimationFrame(() => {
             this.updateItems();
+            this.setAttribute('data-ready', ''); // reveal via CSS [data-ready]
           });
           this.lastWidth = newWidth;
         }
@@ -235,9 +236,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     // check whether the mandatory `.overflow-menu-items` element is present initially which happens
     // with Vue which renders differently than browsers. If it's not there, like in the case of browser
     // template rendering, wait for its addition.
-    // The eslint rule is not sophisticated enough or aware of this problem, see
-    // https://github.com/43081j/eslint-plugin-wc/pull/130
-    const menuItemsEl = this.querySelector<HTMLElement>('.overflow-menu-items'); // eslint-disable-line wc/no-child-traversal-in-connectedcallback
+    const menuItemsEl = this.querySelector<HTMLElement>('.overflow-menu-items'); // eslint-disable-line wc/no-child-traversal-in-connectedcallback -- the observer below covers the case the rule warns about, see https://github.com/43081j/eslint-plugin-wc/pull/130
     if (menuItemsEl) {
       this.menuItemsEl = menuItemsEl;
       this.init();

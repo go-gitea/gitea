@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,21 +51,18 @@ func TestRepoActivity(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		// Should be 1 published release
-		list := htmlDoc.doc.Find("#published-releases").Next().Find("p.desc")
-		assert.Len(t, list.Nodes, 1)
-
-		// Should be 1 merged pull request
-		list = htmlDoc.doc.Find("#merged-pull-requests").Next().Find("p.desc")
-		assert.Len(t, list.Nodes, 1)
-
-		// Should be 2 proposed pull requests
-		list = htmlDoc.doc.Find("#proposed-pull-requests").Next().Find("p.desc")
-		assert.Len(t, list.Nodes, 2)
-
-		// Should be 3 new issues
-		list = htmlDoc.doc.Find("#new-issues").Next().Find("p.desc")
-		assert.Len(t, list.Nodes, 3)
+		for _, section := range []struct {
+			selector string
+			count    int
+		}{
+			{"#published-releases", 1},     // Should be 1 published release
+			{"#merged-pull-requests", 1},   // Should be 1 merged pull request
+			{"#proposed-pull-requests", 2}, // Should be 2 proposed pull requests
+			{"#new-issues", 3},             // Should be 3 new issues
+		} {
+			list := htmlDoc.doc.Find(section.selector).Next().Find("p.desc")
+			assert.Len(t, list.Nodes, section.count)
+		}
 
 		// Non-existing default branch
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"})

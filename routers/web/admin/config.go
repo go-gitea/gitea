@@ -5,24 +5,19 @@
 package admin
 
 import (
-	"errors"
 	"net/http"
-	"net/url"
-	"strings"
 
-	system_model "code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/setting/config"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/mailer"
-
-	"gitea.com/go-chi/session"
+	system_model "gitea.dev/models/system"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/setting/config"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/mailer"
 )
 
 const (
@@ -59,63 +54,6 @@ func TestCache(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/-/admin/config")
 }
 
-func shadowPasswordKV(cfgItem, splitter string) string {
-	fields := strings.Split(cfgItem, splitter)
-	for i := range fields {
-		if strings.HasPrefix(fields[i], "password=") {
-			fields[i] = "password=******"
-			break
-		}
-	}
-	return strings.Join(fields, splitter)
-}
-
-func shadowURL(provider, cfgItem string) string {
-	u, err := url.Parse(cfgItem)
-	if err != nil {
-		log.Error("Shadowing Password for %v failed: %v", provider, err)
-		return cfgItem
-	}
-	if u.User != nil {
-		atIdx := strings.Index(cfgItem, "@")
-		if atIdx > 0 {
-			colonIdx := strings.LastIndex(cfgItem[:atIdx], ":")
-			if colonIdx > 0 {
-				return cfgItem[:colonIdx+1] + "******" + cfgItem[atIdx:]
-			}
-		}
-	}
-	return cfgItem
-}
-
-func shadowPassword(provider, cfgItem string) string {
-	switch provider {
-	case "redis":
-		return shadowPasswordKV(cfgItem, ",")
-	case "mysql":
-		// root:@tcp(localhost:3306)/macaron?charset=utf8
-		atIdx := strings.Index(cfgItem, "@")
-		if atIdx > 0 {
-			colonIdx := strings.Index(cfgItem[:atIdx], ":")
-			if colonIdx > 0 {
-				return cfgItem[:colonIdx+1] + "******" + cfgItem[atIdx:]
-			}
-		}
-		return cfgItem
-	case "postgres":
-		// user=jiahuachen dbname=macaron port=5432 sslmode=disable
-		if !strings.HasPrefix(cfgItem, "postgres://") {
-			return shadowPasswordKV(cfgItem, " ")
-		}
-		fallthrough
-	case "couchbase":
-		return shadowURL(provider, cfgItem)
-		// postgres://pqgotest:password@localhost/pqgotest?sslmode=verify-full
-		// Notice: use shadowURL
-	}
-	return cfgItem
-}
-
 // Config show admin config page
 func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config_summary")
@@ -150,26 +88,10 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
 	ctx.Data["CacheInterval"] = setting.CacheService.Interval
-
-	ctx.Data["CacheConn"] = shadowPassword(setting.CacheService.Adapter, setting.CacheService.Conn)
 	ctx.Data["CacheItemTTL"] = setting.CacheService.TTL
 
 	sessionCfg := setting.SessionConfig
-	if sessionCfg.Provider == "VirtualSession" {
-		var realSession session.Options
-		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
-			log.Error("Unable to unmarshall session config for virtual provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
-		}
-		sessionCfg.Provider = realSession.Provider
-		sessionCfg.ProviderConfig = realSession.ProviderConfig
-		sessionCfg.CookieName = realSession.CookieName
-		sessionCfg.CookiePath = realSession.CookiePath
-		sessionCfg.Gclifetime = realSession.Gclifetime
-		sessionCfg.Maxlifetime = realSession.Maxlifetime
-		sessionCfg.Secure = realSession.Secure
-		sessionCfg.Domain = realSession.Domain
-	}
-	sessionCfg.ProviderConfig = shadowPassword(sessionCfg.Provider, sessionCfg.ProviderConfig)
+	sessionCfg.ProviderConfig = ""
 	ctx.Data["SessionConfig"] = sessionCfg
 
 	ctx.Data["Git"] = setting.Git
@@ -222,11 +144,7 @@ loop:
 
 		err := validateConfigKeyValue(key, value)
 		if err != nil {
-			if errors.Is(err, util.ErrInvalidArgument) {
-				ctx.JSONError(err.Error())
-			} else {
-				ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-			}
+			ctx.JSONErrorAuto(err)
 			break loop
 		}
 		configSettings[key] = value

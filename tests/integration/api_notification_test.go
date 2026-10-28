@@ -8,19 +8,37 @@ import (
 	"net/http"
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPINotification(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	t.Run("public only", func(t *testing.T) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
+
+		token := getUserToken(t, user2.Name, auth_model.AccessTokenScopeReadNotification, auth_model.AccessTokenScopePublicOnly)
+		req := NewRequest(t, "GET", "/api/v1/notifications").
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+
+		req = NewRequest(t, "GET", "/api/v1/notifications/new").
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d", thread5.ID)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -37,8 +55,7 @@ func TestAPINotification(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/notifications?since="+since).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var apiNL []api.NotificationThread
-	DecodeJSON(t, resp, &apiNL)
+	apiNL := DecodeJSON(t, resp, []api.NotificationThread{})
 
 	assert.Len(t, apiNL, 1)
 	assert.EqualValues(t, 5, apiNL[0].ID)
@@ -49,7 +66,7 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?all=%s&before=%s", "true", before)).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiNL)
+	apiNL = DecodeJSON(t, resp, []api.NotificationThread{})
 
 	assert.Len(t, apiNL, 3)
 	assert.EqualValues(t, 4, apiNL[0].ID)
@@ -66,7 +83,7 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?status-types=unread", user2.Name, repo1.Name)).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiNL)
+	apiNL = DecodeJSON(t, resp, []api.NotificationThread{})
 
 	assert.Len(t, apiNL, 1)
 	assert.EqualValues(t, 4, apiNL[0].ID)
@@ -75,7 +92,7 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?status-types=unread&status-types=pinned", user2.Name, repo1.Name)).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiNL)
+	apiNL = DecodeJSON(t, resp, []api.NotificationThread{})
 
 	assert.Len(t, apiNL, 2)
 	assert.EqualValues(t, 4, apiNL[0].ID)
@@ -97,8 +114,7 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d", thread5.ID)).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	var apiN api.NotificationThread
-	DecodeJSON(t, resp, &apiN)
+	apiN := DecodeJSON(t, resp, &api.NotificationThread{})
 
 	assert.EqualValues(t, 5, apiN.ID)
 	assert.False(t, apiN.Pinned)
@@ -110,22 +126,20 @@ func TestAPINotification(t *testing.T) {
 
 	MakeRequest(t, NewRequest(t, "GET", "/api/v1/notifications/new"), http.StatusUnauthorized)
 
-	newStruct := struct {
-		New int64 `json:"new"`
-	}{}
-
 	// -- check notifications --
 	req = NewRequest(t, "GET", "/api/v1/notifications/new").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &newStruct)
+	newStruct := DecodeJSON(t, resp, &struct {
+		New int64 `json:"new"`
+	}{})
 	assert.Positive(t, newStruct.New)
 
 	// -- mark notifications as read --
 	req = NewRequest(t, "GET", "/api/v1/notifications?status-types=unread").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiNL)
+	apiNL = DecodeJSON(t, resp, []api.NotificationThread{})
 	assert.Len(t, apiNL, 2)
 
 	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801 <- only Notification 4 is in this filter ...
@@ -136,7 +150,7 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/notifications?status-types=unread").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiNL)
+	apiNL = DecodeJSON(t, resp, []api.NotificationThread{})
 	assert.Len(t, apiNL, 1)
 
 	// -- PATCH /notifications/threads/{id} --
@@ -152,7 +166,9 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/notifications/new").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &newStruct)
+	newStruct = DecodeJSON(t, resp, &struct {
+		New int64 `json:"new"`
+	}{})
 	assert.Zero(t, newStruct.New)
 }
 
@@ -169,8 +185,7 @@ func TestAPINotificationPUT(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/notifications?all=true").
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var apiNL []api.NotificationThread
-	DecodeJSON(t, resp, &apiNL)
+	apiNL := DecodeJSON(t, resp, []api.NotificationThread{})
 
 	assert.Len(t, apiNL, 4)
 	assert.EqualValues(t, 5, apiNL[0].ID)
@@ -193,7 +208,7 @@ func TestAPINotificationPUT(t *testing.T) {
 	req = NewRequest(t, "PUT", "/api/v1/notifications?status-types=read&status-type=pinned&to-status=unread").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusResetContent)
-	DecodeJSON(t, resp, &apiNL)
+	apiNL = DecodeJSON(t, resp, []api.NotificationThread{})
 	assert.Len(t, apiNL, 1)
 	assert.EqualValues(t, 2, apiNL[0].ID)
 	assert.True(t, apiNL[0].Unread)
@@ -205,7 +220,7 @@ func TestAPINotificationPUT(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/notifications?all=true").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiNL)
+	apiNL = DecodeJSON(t, resp, []api.NotificationThread{})
 
 	assert.Len(t, apiNL, 4)
 	assert.EqualValues(t, 2, apiNL[0].ID)

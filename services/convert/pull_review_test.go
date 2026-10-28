@@ -6,9 +6,9 @@ package convert
 import (
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -48,4 +48,8 @@ func Test_ToPullReview(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, prList, 1)
 	})
+}
+
+func TestPatch2DiffInvalidUTF8(t *testing.T) {
+	assert.Equal(t, "@@ -1 +1 @@\n+caf�", patch2diff("diff --git a/a b/a\n@@ -1 +1 @@\n+caf\xe9"))
 }

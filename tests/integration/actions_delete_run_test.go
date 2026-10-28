@@ -11,20 +11,40 @@ import (
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/routers/web/repo/actions"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/routers/web/repo/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestActionsDeleteRun(t *testing.T) {
 	now := time.Now()
+	outcomes := make(map[string]*mockTaskOutcome)
+	for _, jobName := range []string{"job1", "job2", "job3"} {
+		outcomes[jobName] = &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+			logRows: []*runnerv1.LogRow{
+				{
+					Time:    timestamppb.New(now.Add(4 * time.Second)),
+					Content: "  \U0001F433  docker create image",
+				},
+				{
+					Time:    timestamppb.New(now.Add(5 * time.Second)),
+					Content: jobName,
+				},
+				{
+					Time:    timestamppb.New(now.Add(6 * time.Second)),
+					Content: "\U0001F3C1  Job succeeded",
+				},
+			},
+		}
+	}
 	testCase := struct {
 		treePath         string
 		fileContent      string
@@ -51,59 +71,7 @@ jobs:
     steps:
       - run: echo job3
 `,
-		outcomes: map[string]*mockTaskOutcome{
-			"job1": {
-				result: runnerv1.Result_RESULT_SUCCESS,
-				logRows: []*runnerv1.LogRow{
-					{
-						Time:    timestamppb.New(now.Add(4 * time.Second)),
-						Content: "  \U0001F433  docker create image",
-					},
-					{
-						Time:    timestamppb.New(now.Add(5 * time.Second)),
-						Content: "job1",
-					},
-					{
-						Time:    timestamppb.New(now.Add(6 * time.Second)),
-						Content: "\U0001F3C1  Job succeeded",
-					},
-				},
-			},
-			"job2": {
-				result: runnerv1.Result_RESULT_SUCCESS,
-				logRows: []*runnerv1.LogRow{
-					{
-						Time:    timestamppb.New(now.Add(4 * time.Second)),
-						Content: "  \U0001F433  docker create image",
-					},
-					{
-						Time:    timestamppb.New(now.Add(5 * time.Second)),
-						Content: "job2",
-					},
-					{
-						Time:    timestamppb.New(now.Add(6 * time.Second)),
-						Content: "\U0001F3C1  Job succeeded",
-					},
-				},
-			},
-			"job3": {
-				result: runnerv1.Result_RESULT_SUCCESS,
-				logRows: []*runnerv1.LogRow{
-					{
-						Time:    timestamppb.New(now.Add(4 * time.Second)),
-						Content: "  \U0001F433  docker create image",
-					},
-					{
-						Time:    timestamppb.New(now.Add(5 * time.Second)),
-						Content: "job3",
-					},
-					{
-						Time:    timestamppb.New(now.Add(6 * time.Second)),
-						Content: "\U0001F3C1  Job succeeded",
-					},
-				},
-			},
-		},
+		outcomes: outcomes,
 		expectedStatuses: map[string]string{
 			"job1": actions_model.StatusSuccess.String(),
 			"job2": actions_model.StatusSuccess.String(),
@@ -136,7 +104,7 @@ jobs:
 			runID = run.ID
 		}
 
-		jobs, err := actions_model.GetRunJobsByRunID(t.Context(), runID)
+		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(t.Context(), apiRepo.ID, runID)
 		assert.NoError(t, err)
 
 		for i := 0; i < len(testCase.outcomes); i++ {

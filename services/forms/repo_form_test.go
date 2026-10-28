@@ -6,7 +6,10 @@ package forms
 import (
 	"testing"
 
+	"gitea.dev/modules/json"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSubmitReviewForm_IsEmpty(t *testing.T) {
@@ -36,4 +39,64 @@ func TestSubmitReviewForm_IsEmpty(t *testing.T) {
 	for _, v := range cases {
 		assert.Equal(t, v.expected, v.form.HasEmptyContent())
 	}
+}
+
+func TestMergePullRequestForm(t *testing.T) {
+	expected := &MergePullRequestForm{
+		Do:                     "merge",
+		MergeTitleField:        "title",
+		MergeMessageField:      "message",
+		MergeCommitID:          "merge-id",
+		HeadCommitID:           "head-id",
+		ForceMerge:             true,
+		MergeWhenChecksSucceed: true,
+		DeleteBranchAfterMerge: new(true),
+		HasMergeMessageField:   true,
+	}
+
+	t.Run("NewFields", func(t *testing.T) {
+		input := `{
+	"do": "merge",
+	"merge_title_field": "title",
+	"merge_message_field": "message",
+	"merge_commit_id": "merge-id",
+	"head_commit_id": "head-id",
+	"force_merge": true,
+	"merge_when_checks_succeed": true,
+	"delete_branch_after_merge": true
+}`
+		var m *MergePullRequestForm
+		require.NoError(t, json.Unmarshal([]byte(input), &m))
+		assert.Equal(t, expected, m)
+	})
+
+	t.Run("OldFields", func(t *testing.T) {
+		input := `{
+	"Do": "merge",
+	"MergeTitleField": "title",
+	"MergeMessageField": "message",
+	"MergeCommitID": "merge-id",
+	"head_commit_id": "head-id",
+	"force_merge": true,
+	"merge_when_checks_succeed": true,
+	"delete_branch_after_merge": true
+}`
+		var m *MergePullRequestForm
+		require.NoError(t, json.Unmarshal([]byte(input), &m))
+		assert.Equal(t, expected, m)
+	})
+
+	t.Run("OmittedMergeMessageFieldClearsPreviousMessage", func(t *testing.T) {
+		form := &MergePullRequestForm{MergeMessageField: "previous message", HasMergeMessageField: true}
+		require.NoError(t, json.Unmarshal([]byte(`{"do": "squash"}`), &form))
+		assert.Empty(t, form.MergeMessageField)
+		assert.False(t, form.HasMergeMessageField)
+	})
+
+	t.Run("EmptyMergeMessageField", func(t *testing.T) {
+		var form MergePullRequestForm
+		require.NoError(t, json.Unmarshal([]byte(`{"do": "squash", "merge_message_field": ""}`), &form))
+		assert.Empty(t, form.MergeMessageField)
+		assert.True(t, form.HasMergeMessageField)
+	})
 }

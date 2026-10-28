@@ -7,12 +7,12 @@ import (
 	"bytes"
 	"testing"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	packages_service "code.gitea.io/gitea/services/packages"
-	"code.gitea.io/gitea/tests"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	packages_module "gitea.dev/modules/packages"
+	packages_service "gitea.dev/services/packages"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,28 +55,21 @@ func TestRemovePackage(t *testing.T) {
 
 	// Verify properties exist before deletion
 	checkProps := func(p *packages_model.Package, pv *packages_model.PackageVersion, pf *packages_model.PackageFile, shouldExist bool) {
-		pps, err := packages_model.GetProperties(t.Context(), packages_model.PropertyTypePackage, p.ID)
-		require.NoError(t, err)
-		if shouldExist {
-			assert.NotEmpty(t, pps)
-		} else {
-			assert.Empty(t, pps)
-		}
-
-		pps, err = packages_model.GetProperties(t.Context(), packages_model.PropertyTypeVersion, pv.ID)
-		require.NoError(t, err)
-		if shouldExist {
-			assert.NotEmpty(t, pps)
-		} else {
-			assert.Empty(t, pps)
-		}
-
-		pps, err = packages_model.GetProperties(t.Context(), packages_model.PropertyTypeFile, pf.ID)
-		require.NoError(t, err)
-		if shouldExist {
-			assert.NotEmpty(t, pps)
-		} else {
-			assert.Empty(t, pps)
+		for _, property := range []struct {
+			refType packages_model.PropertyType
+			refID   int64
+		}{
+			{packages_model.PropertyTypePackage, p.ID},
+			{packages_model.PropertyTypeVersion, pv.ID},
+			{packages_model.PropertyTypeFile, pf.ID},
+		} {
+			pps, err := packages_model.GetProperties(t.Context(), property.refType, property.refID)
+			require.NoError(t, err)
+			if shouldExist {
+				assert.NotEmpty(t, pps)
+			} else {
+				assert.Empty(t, pps)
+			}
 		}
 	}
 

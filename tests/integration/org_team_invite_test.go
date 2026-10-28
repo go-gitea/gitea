@@ -10,325 +10,240 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOrgTeamEmailInvite(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
+	var prepared bool
+	prepare := func(t *testing.T) func() {
+		if prepared {
+			cleanup := tests.PrintCurrentTest(t)
+			assert.NoError(t, unittest.LoadFixtures())
+			return cleanup
+		} else {
+			prepared = true
+			return tests.PrepareTestEnv(t)
+		}
 	}
 
-	defer tests.PrepareTestEnv(t)()
+	for _, name := range []string{"Direct", "RedirectsExistingUser", "RedirectsExistingUserWithLogin"} {
+		t.Run(name, func(t *testing.T) {
+			defer prepare(t)()
 
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+			org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+			team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
-	assert.NoError(t, err)
-	assert.False(t, isMember)
+			isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
+			assert.NoError(t, err)
+			assert.False(t, isMember)
 
-	session := loginUser(t, "user1")
+			// create the invite
+			session := loginUser(t, "user1")
 
-	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
-	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
-		"uid":   "1",
-		"uname": user.Email,
-	})
-	resp := session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
+			teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
+			req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
+				"uid":   "1",
+				"uname": user.Email,
+			})
+			resp := session.MakeRequest(t, req, http.StatusSeeOther)
+			req = NewRequest(t, "GET", test.RedirectURL(resp))
+			session.MakeRequest(t, req, http.StatusOK)
 
-	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
-	assert.NoError(t, err)
-	assert.Len(t, invites, 1)
+			// get the invite token
+			invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
+			assert.NoError(t, err)
+			assert.Len(t, invites, 1)
 
-	session = loginUser(t, user.Name)
+			inviteURL := "/org/invite/" + invites[0].Token
+			switch name {
+			case "Direct":
+				session = loginUser(t, user.Name)
+			case "RedirectsExistingUser":
+				// Check that users are redirected to accept the invitation correctly after login
+				req = NewRequest(t, "GET", "/user/login?redirect_to="+url.QueryEscape(inviteURL))
+				resp = MakeRequest(t, req, http.StatusOK)
 
-	// join the team
-	inviteURL := "/org/invite/" + invites[0].Token
-	req = NewRequest(t, "POST", inviteURL)
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
+				req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+					"user_name": "user5",
+					"password":  "password",
+				})
+				for _, c := range resp.Result().Cookies() {
+					req.AddCookie(c)
+				}
 
-	isMember, err = organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
-	assert.NoError(t, err)
-	assert.True(t, isMember)
-}
+				resp = MakeRequest(t, req, http.StatusSeeOther)
+				assert.Equal(t, inviteURL, test.RedirectURL(resp))
 
-// Check that users are redirected to accept the invitation correctly after login
-func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
+				// complete the login process
+				ch := http.Header{}
+				ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
+				cr := http.Request{Header: ch}
+
+				session = emptyTestSession(t)
+				baseURL, err := url.Parse(setting.AppURL)
+				assert.NoError(t, err)
+				session.jar.SetCookies(baseURL, cr.Cookies())
+				inviteURL = test.RedirectURL(resp)
+			case "RedirectsExistingUserWithLogin":
+				// Test that a logged-in user who navigates to the sign-up link is then redirected using redirect_to
+				// For example: an invite may have been created before the user account was created, but they may be
+				// accepting the invite after having created an account separately
+				session = loginUser(t, "user5")
+
+				// accept the invite (note: this uses the sign_up url)
+				req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
+				resp = session.MakeRequest(t, req, http.StatusSeeOther)
+				assert.Equal(t, inviteURL, test.RedirectURL(resp))
+				inviteURL = test.RedirectURL(resp)
+			}
+
+			// join the team
+			req = NewRequest(t, "POST", inviteURL)
+			resp = session.MakeRequest(t, req, http.StatusSeeOther)
+			req = NewRequest(t, "GET", test.RedirectURL(resp))
+			session.MakeRequest(t, req, http.StatusOK)
+
+			isMember, err = organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
+			assert.NoError(t, err)
+			assert.True(t, isMember)
+		})
 	}
 
-	defer tests.PrepareTestEnv(t)()
+	// Check that newly signed up users are redirected to accept the invitation correctly
+	t.Run("RedirectsNewUser", func(t *testing.T) {
+		defer prepare(t)()
 
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 
-	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
-	assert.NoError(t, err)
-	assert.False(t, isMember)
+		// create the invite
+		session := loginUser(t, "user1")
 
-	// create the invite
-	session := loginUser(t, "user1")
+		teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
+		req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
+			"uid":   "1",
+			"uname": "doesnotexist@example.com",
+		})
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		req = NewRequest(t, "GET", test.RedirectURL(resp))
+		session.MakeRequest(t, req, http.StatusOK)
 
-	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
-	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
-		"uid":   "1",
-		"uname": user.Email,
-	})
-	resp := session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
+		// get the invite token
+		invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
+		assert.NoError(t, err)
+		assert.Len(t, invites, 1)
 
-	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
-	assert.NoError(t, err)
-	assert.Len(t, invites, 1)
+		// accept the invite
+		inviteURL := "/org/invite/" + invites[0].Token
+		req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
+		resp = MakeRequest(t, req, http.StatusOK)
 
-	// accept the invite
-	inviteURL := "/org/invite/" + invites[0].Token
-	req = NewRequest(t, "GET", "/user/login?redirect_to="+url.QueryEscape(inviteURL))
-	resp = MakeRequest(t, req, http.StatusOK)
+		req = NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
+			"user_name": "doesnotexist",
+			"email":     "doesnotexist@example.com",
+			"password":  "examplePassword!1",
+			"retype":    "examplePassword!1",
+		})
+		for _, c := range resp.Result().Cookies() {
+			req.AddCookie(c)
+		}
 
-	req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-		"user_name": "user5",
-		"password":  "password",
-	})
-	for _, c := range resp.Result().Cookies() {
-		req.AddCookie(c)
-	}
+		resp = MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, inviteURL, test.RedirectURL(resp))
 
-	resp = MakeRequest(t, req, http.StatusSeeOther)
-	assert.Equal(t, inviteURL, test.RedirectURL(resp))
+		// complete the signup process
+		ch := http.Header{}
+		ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
+		cr := http.Request{Header: ch}
 
-	// complete the login process
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
+		session = emptyTestSession(t)
+		baseURL, err := url.Parse(setting.AppURL)
+		assert.NoError(t, err)
+		session.jar.SetCookies(baseURL, cr.Cookies())
 
-	session = emptyTestSession(t)
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	session.jar.SetCookies(baseURL, cr.Cookies())
+		// make the redirected request
+		req = NewRequest(t, "POST", test.RedirectURL(resp))
+		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+		req = NewRequest(t, "GET", test.RedirectURL(resp))
+		session.MakeRequest(t, req, http.StatusOK)
 
-	// make the request
-	req = NewRequest(t, "POST", test.RedirectURL(resp))
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
+		// get the new user
+		newUser, err := user_model.GetUserByName(t.Context(), "doesnotexist")
+		assert.NoError(t, err)
 
-	isMember, err = organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
-	assert.NoError(t, err)
-	assert.True(t, isMember)
-}
-
-// Check that newly signed up users are redirected to accept the invitation correctly
-func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
-	defer tests.PrepareTestEnv(t)()
-
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-
-	// create the invite
-	session := loginUser(t, "user1")
-
-	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
-	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
-		"uid":   "1",
-		"uname": "doesnotexist@example.com",
-	})
-	resp := session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
-
-	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
-	assert.NoError(t, err)
-	assert.Len(t, invites, 1)
-
-	// accept the invite
-	inviteURL := "/org/invite/" + invites[0].Token
-	req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	req = NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
-		"user_name": "doesnotexist",
-		"email":     "doesnotexist@example.com",
-		"password":  "examplePassword!1",
-		"retype":    "examplePassword!1",
-	})
-	for _, c := range resp.Result().Cookies() {
-		req.AddCookie(c)
-	}
-
-	resp = MakeRequest(t, req, http.StatusSeeOther)
-	assert.Equal(t, inviteURL, test.RedirectURL(resp))
-
-	// complete the signup process
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
-
-	session = emptyTestSession(t)
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	session.jar.SetCookies(baseURL, cr.Cookies())
-
-	// make the redirected request
-	req = NewRequest(t, "POST", test.RedirectURL(resp))
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
-
-	// get the new user
-	newUser, err := user_model.GetUserByName(t.Context(), "doesnotexist")
-	assert.NoError(t, err)
-
-	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, newUser.ID)
-	assert.NoError(t, err)
-	assert.True(t, isMember)
-}
-
-// Check that users are redirected correctly after confirming their email
-func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
-	// enable email confirmation temporarily
-	defer test.MockVariableValue(&setting.Service.RegisterEmailConfirm, true)()
-	defer tests.PrepareTestEnv(t)()
-
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-
-	// user1: create the invite
-	session := loginUser(t, "user1")
-
-	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
-	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
-		"uid":   "1",
-		"uname": "doesnotexist@example.com",
-	})
-	resp := session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
-
-	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
-	assert.NoError(t, err)
-	assert.Len(t, invites, 1)
-
-	// new user: accept the invite
-	session = emptyTestSession(t)
-
-	inviteURL := "/org/invite/" + invites[0].Token
-	req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
-	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
-		"user_name": "doesnotexist",
-		"email":     "doesnotexist@example.com",
-		"password":  "examplePassword!1",
-		"retype":    "examplePassword!1",
-	})
-	session.MakeRequest(t, req, http.StatusOK)
-
-	user, err := user_model.GetUserByName(t.Context(), "doesnotexist")
-	assert.NoError(t, err)
-
-	activationCode := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, user)
-	activateURL := "/user/activate?code=" + activationCode
-	req = NewRequestWithValues(t, "POST", activateURL, map[string]string{
-		"password": "examplePassword!1",
+		isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, newUser.ID)
+		assert.NoError(t, err)
+		assert.True(t, isMember)
 	})
 
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	// should be redirected to accept the invite
-	assert.Equal(t, inviteURL, test.RedirectURL(resp))
+	// Check that users are redirected correctly after confirming their email
+	t.Run("RedirectsNewUserWithActivation", func(t *testing.T) {
+		// enable email confirmation temporarily
+		defer test.MockVariableValue(&setting.Service.RegisterEmailConfirm, true)()
+		defer prepare(t)()
 
-	req = NewRequest(t, "POST", test.RedirectURL(resp))
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
+		org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 
-	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
-	assert.NoError(t, err)
-	assert.True(t, isMember)
-}
+		// user1: create the invite
+		session := loginUser(t, "user1")
 
-// Test that a logged-in user who navigates to the sign-up link is then redirected using redirect_to
-// For example: an invite may have been created before the user account was created, but they may be
-// accepting the invite after having created an account separately
-func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
+		teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
+		req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
+			"uid":   "1",
+			"uname": "doesnotexist@example.com",
+		})
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		req = NewRequest(t, "GET", test.RedirectURL(resp))
+		session.MakeRequest(t, req, http.StatusOK)
 
-	defer tests.PrepareTestEnv(t)()
+		// get the invite token
+		invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
+		assert.NoError(t, err)
+		assert.Len(t, invites, 1)
 
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		// new user: accept the invite
+		session = emptyTestSession(t)
 
-	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
-	assert.NoError(t, err)
-	assert.False(t, isMember)
+		inviteURL := "/org/invite/" + invites[0].Token
+		req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
+		session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
+			"user_name": "doesnotexist",
+			"email":     "doesnotexist@example.com",
+			"password":  "examplePassword!1",
+			"retype":    "examplePassword!1",
+		})
+		session.MakeRequest(t, req, http.StatusOK)
 
-	// create the invite
-	session := loginUser(t, "user1")
+		user, err := user_model.GetUserByName(t.Context(), "doesnotexist")
+		assert.NoError(t, err)
 
-	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
-	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
-		"uid":   "1",
-		"uname": user.Email,
+		activationCode := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, user)
+		activateURL := "/user/activate?code=" + activationCode
+		req = NewRequestWithValues(t, "POST", activateURL, map[string]string{
+			"password": "examplePassword!1",
+		})
+
+		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+		// should be redirected to accept the invite
+		assert.Equal(t, inviteURL, test.RedirectURL(resp))
+
+		req = NewRequest(t, "POST", test.RedirectURL(resp))
+		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+		req = NewRequest(t, "GET", test.RedirectURL(resp))
+		session.MakeRequest(t, req, http.StatusOK)
+
+		isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
+		assert.NoError(t, err)
+		assert.True(t, isMember)
 	})
-	resp := session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
-
-	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
-	assert.NoError(t, err)
-	assert.Len(t, invites, 1)
-
-	// note: the invited user has logged in
-	session = loginUser(t, "user5")
-
-	// accept the invite (note: this uses the sign_up url)
-	inviteURL := "/org/invite/" + invites[0].Token
-	req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	assert.Equal(t, inviteURL, test.RedirectURL(resp))
-
-	// make the request
-	req = NewRequest(t, "POST", test.RedirectURL(resp))
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
-
-	isMember, err = organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
-	assert.NoError(t, err)
-	assert.True(t, isMember)
 }

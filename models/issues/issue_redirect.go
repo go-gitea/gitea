@@ -6,7 +6,7 @@ package issues
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 // IssueRedirect stores a mapping from an old (repo, index) to the current issue ID after a move.

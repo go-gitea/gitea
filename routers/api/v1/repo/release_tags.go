@@ -6,11 +6,11 @@ package repo
 import (
 	"net/http"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	release_service "code.gitea.io/gitea/services/release"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	release_service "gitea.dev/services/release"
 )
 
 // GetReleaseByTag get a single release of a repository by tag name
@@ -39,8 +39,8 @@ func GetReleaseByTag(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	tag := ctx.PathParam("tag")
 
@@ -60,7 +60,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 	}
 
 	if release.IsDraft { // only the users with write access can see draft releases
-		if !ctx.IsSigned || !ctx.Repo.CanWrite(unit_model.TypeReleases) {
+		if !ctx.IsSigned || !ctx.Repo.Permission.CanWrite(unit_model.TypeReleases) {
 			ctx.APIErrorNotFound()
 			return
 		}
@@ -97,10 +97,8 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	tag := ctx.PathParam("tag")
 

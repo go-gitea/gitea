@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,17 +27,12 @@ func TestPushMirrorsIterate(t *testing.T) {
 	})
 
 	long, _ := time.ParseDuration("24h")
-	db.Insert(t.Context(), &repo_model.PushMirror{
-		RemoteName:     "test-2",
-		LastUpdateUnix: now,
-		Interval:       long,
-	})
-
-	db.Insert(t.Context(), &repo_model.PushMirror{
-		RemoteName:     "test-3",
-		LastUpdateUnix: now,
-		Interval:       0,
-	})
+	for _, mirror := range []*repo_model.PushMirror{
+		{RemoteName: "test-2", LastUpdateUnix: now, Interval: long},
+		{RemoteName: "test-3", LastUpdateUnix: now, Interval: 0},
+	} {
+		db.Insert(t.Context(), mirror)
+	}
 
 	repo_model.PushMirrorsIterate(t.Context(), 1, func(idx int, bean any) error {
 		m, ok := bean.(*repo_model.PushMirror)

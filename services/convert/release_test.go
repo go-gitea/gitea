@@ -6,8 +6,8 @@ package convert
 import (
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,4 +24,8 @@ func TestRelease_ToRelease(t *testing.T) {
 	assert.EqualValues(t, 1, apiRelease.ID)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/releases/1", apiRelease.URL)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/releases/1/assets", apiRelease.UploadURL)
+	assert.Equal(t, release1.PublishedUnix.AsTimePtr(), apiRelease.PublishedAt)
+
+	release1.IsDraft = true
+	assert.Nil(t, ToAPIRelease(t.Context(), repo1, release1).PublishedAt, "an unpublished release has no publication date")
 }

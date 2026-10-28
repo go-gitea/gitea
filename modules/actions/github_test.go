@@ -6,7 +6,7 @@ package actions
 import (
 	"testing"
 
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -76,12 +76,6 @@ func TestCanGithubEventMatch(t *testing.T) {
 			GithubEventPullRequest,
 			webhook_module.HookEventPullRequest,
 			true,
-		},
-		{
-			"pull_request_target cannot match",
-			GithubEventPullRequest,
-			webhook_module.HookEventPullRequestComment,
-			false,
 		},
 		// pull_request_review event
 		{

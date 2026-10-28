@@ -7,8 +7,9 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
+
+	"gitea.dev/modules/consts"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,43 +19,46 @@ func TestFileURLToPath(t *testing.T) {
 	cases := []struct {
 		url      string
 		expected string
-		haserror bool
+		invalid  bool
 		windows  bool
 	}{
-		// case 0
 		{
-			url:      "",
-			haserror: true,
+			url:     "",
+			invalid: true,
 		},
-		// case 1
 		{
-			url:      "http://test.io",
-			haserror: true,
+			url:     "http://test.io",
+			invalid: true,
 		},
-		// case 2
 		{
 			url:      "file:///path",
 			expected: "/path",
 		},
-		// case 3
 		{
 			url:      "file:///C:/path",
 			expected: "C:/path",
 			windows:  true,
 		},
+		{
+			url:      "file:///z:/path",
+			expected: "z:/path",
+			windows:  true,
+		},
+		{
+			url:      "file:///path",
+			expected: "/path",
+			windows:  true,
+		},
 	}
 
-	for n, c := range cases {
-		if c.windows && runtime.GOOS != "windows" {
-			continue
-		}
+	for _, c := range cases {
 		u, _ := url.Parse(c.url)
-		p, err := FileURLToPath(u)
-		if c.haserror {
-			assert.Error(t, err, "case %d: should return error", n)
+		p, err := fileURLToPathInternal(u, c.windows)
+		if c.invalid {
+			assert.Error(t, err, "case %s: should return error", c.url)
 		} else {
-			assert.NoError(t, err, "case %d: should not return error", n)
-			assert.Equal(t, c.expected, p, "case %d: should be equal", n)
+			assert.NoError(t, err, "case %s: should not return error", c.url)
+			assert.Equal(t, c.expected, p, "case %s: should be equal", c.url)
 		}
 	}
 }
@@ -138,6 +142,10 @@ func TestMisc_IsReadmeFileName(t *testing.T) {
 		assert.Equal(t, testCase.expected, ok)
 		assert.Equal(t, testCase.idx, idx)
 	}
+
+	idx, ok := IsReadmeFileExtension("readme", ".md")
+	assert.False(t, ok)
+	assert.Zero(t, idx)
 }
 
 func TestCleanPath(t *testing.T) {
@@ -151,36 +159,21 @@ func TestCleanPath(t *testing.T) {
 		{[]string{`a`}, `a`},
 		{[]string{`/a/`}, `a`},
 		{[]string{`../a/`, `../b`, `c/..`, `d`}, `a/b/d`},
-		{[]string{`a\..\b`}, `a\..\b`},
 		{[]string{`a`, ``, `b`}, `a/b`},
 		{[]string{`a`, `..`, `b`}, `a/b`},
 		{[]string{`lfs`, `repo/..`, `user/../path`}, `lfs/path`},
 	}
 	for _, c := range cases {
 		assert.Equal(t, c.expected, PathJoinRel(c.elems...), "case: %v", c.elems)
-	}
-
-	cases = []struct {
-		elems    []string
-		expected string
-	}{
-		{[]string{}, ``},
-		{[]string{``}, ``},
-		{[]string{`..`}, `.`},
-		{[]string{`a`}, `a`},
-		{[]string{`/a/`}, `a`},
-		{[]string{`../a/`, `../b`, `c/..`, `d`}, `a/b/d`},
-		{[]string{`a\..\b`}, `b`},
-		{[]string{`a`, ``, `b`}, `a/b`},
-		{[]string{`a`, `..`, `b`}, `a/b`},
-		{[]string{`lfs`, `repo/..`, `user/../path`}, `lfs/path`},
-	}
-	for _, c := range cases {
 		assert.Equal(t, c.expected, PathJoinRelX(c.elems...), "case: %v", c.elems)
 	}
 
+	backslashPath := []string{`a\..\b`}
+	assert.Equal(t, `a\..\b`, PathJoinRel(backslashPath...), "case: %v", backslashPath)
+	assert.Equal(t, `b`, PathJoinRelX(backslashPath...), "case: %v", backslashPath)
+
 	// for POSIX only, but the result is similar on Windows, because the first element must be an absolute path
-	if isOSWindows() {
+	if consts.IsWindows {
 		cases = []struct {
 			elems    []string
 			expected string

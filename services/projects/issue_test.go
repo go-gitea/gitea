@@ -4,15 +4,16 @@
 package project
 
 import (
+	"strconv"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	org_model "code.gitea.io/gitea/models/organization"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	org_model "gitea.dev/models/organization"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,31 +25,24 @@ func Test_Projects(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	org3 := unittest.AssertExistsAndLoadBean(t, &org_model.Organization{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	// user15 is on org3's team7 (write access to the public repo32 only), so it can see org3 public repos
+	// but has no access to the private repo3 — a genuine "no permission to the private repo" org member.
+	user15 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 
 	t.Run("User projects", func(t *testing.T) {
-		pi1 := project_model.ProjectIssue{
-			ProjectID:       4,
-			IssueID:         1,
-			ProjectColumnID: 4,
-		}
-		err := db.Insert(t.Context(), &pi1)
-		assert.NoError(t, err)
-		defer func() {
-			_, err = db.DeleteByID[project_model.ProjectIssue](t.Context(), pi1.ID)
+		for _, issueID := range []int64{1, 4} {
+			projectIssue := project_model.ProjectIssue{
+				ProjectID:       4,
+				IssueID:         issueID,
+				ProjectColumnID: 4,
+			}
+			err := db.Insert(t.Context(), &projectIssue)
 			assert.NoError(t, err)
-		}()
-
-		pi2 := project_model.ProjectIssue{
-			ProjectID:       4,
-			IssueID:         4,
-			ProjectColumnID: 4,
+			defer func() {
+				_, err := db.DeleteByID[project_model.ProjectIssue](t.Context(), projectIssue.ID)
+				assert.NoError(t, err)
+			}()
 		}
-		err = db.Insert(t.Context(), &pi2)
-		assert.NoError(t, err)
-		defer func() {
-			_, err = db.DeleteByID[project_model.ProjectIssue](t.Context(), pi2.ID)
-			assert.NoError(t, err)
-		}()
 
 		projects, err := db.Find[project_model.Project](t.Context(), project_model.SearchOptions{
 			OwnerID: user2.ID,
@@ -57,34 +51,22 @@ func Test_Projects(t *testing.T) {
 		assert.Len(t, projects, 3)
 		assert.EqualValues(t, 4, projects[0].ID)
 
-		t.Run("Authenticated user", func(t *testing.T) {
-			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
-				Owner: user2,
-				Doer:  user2,
+		for _, testCase := range []struct {
+			name       string
+			options    issues_model.IssuesOptions
+			issueCount int
+		}{
+			{"Authenticated user", issues_model.IssuesOptions{Owner: user2, Doer: user2}, 2},                                        // user2 can visit both issues, one from public repository one from private repository
+			{"Anonymous user", issues_model.IssuesOptions{AllPublic: true}, 1},                                                      // anonymous user can only visit public repo issues
+			{"Authenticated user with no permission to the private repo", issues_model.IssuesOptions{Owner: user2, Doer: user4}, 1}, // user4 can only visit public repo issues
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &testCase.options)
+				assert.NoError(t, err)
+				assert.Len(t, columnIssues, 1) // 4 has 2 issues, 6 will not contains here because 0 issues
+				assert.Len(t, columnIssues[4], testCase.issueCount)
 			})
-			assert.NoError(t, err)
-			assert.Len(t, columnIssues, 1)    // 4 has 2 issues, 6 will not contains here because 0 issues
-			assert.Len(t, columnIssues[4], 2) // user2 can visit both issues, one from public repository one from private repository
-		})
-
-		t.Run("Anonymous user", func(t *testing.T) {
-			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
-				AllPublic: true,
-			})
-			assert.NoError(t, err)
-			assert.Len(t, columnIssues, 1)
-			assert.Len(t, columnIssues[4], 1) // anonymous user can only visit public repo issues
-		})
-
-		t.Run("Authenticated user with no permission to the private repo", func(t *testing.T) {
-			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
-				Owner: user2,
-				Doer:  user4,
-			})
-			assert.NoError(t, err)
-			assert.Len(t, columnIssues, 1)
-			assert.Len(t, columnIssues[4], 1) // user4 can only visit public repo issues
-		})
+		}
 	})
 
 	t.Run("Org projects", func(t *testing.T) {
@@ -101,28 +83,18 @@ func Test_Projects(t *testing.T) {
 			assert.NoError(t, err)
 		}()
 
-		column1 := project_model.Column{
-			Title:     "column 1",
-			ProjectID: project1.ID,
-		}
-		err = project_model.NewColumn(t.Context(), &column1)
-		assert.NoError(t, err)
-
-		column2 := project_model.Column{
-			Title:     "column 2",
-			ProjectID: project1.ID,
-		}
-		err = project_model.NewColumn(t.Context(), &column2)
+		// Get the default column created by the template (issues will be assigned here)
+		defaultColumn, err := project1.MustDefaultColumn(t.Context())
 		assert.NoError(t, err)
 
 		// issue 6 belongs to private repo 3 under org 3
 		issue6 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, project1.ID, column1.ID)
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, []int64{project1.ID})
 		assert.NoError(t, err)
 
 		// issue 16 belongs to public repo 16 under org 3
 		issue16 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 16})
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, project1.ID, column1.ID)
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, []int64{project1.ID})
 		assert.NoError(t, err)
 
 		projects, err := db.Find[project_model.Project](t.Context(), project_model.SearchOptions{
@@ -132,33 +104,65 @@ func Test_Projects(t *testing.T) {
 		assert.Len(t, projects, 1)
 		assert.Equal(t, project1.ID, projects[0].ID)
 
-		t.Run("Authenticated user", func(t *testing.T) {
-			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
-				Owner: org3.AsUser(),
-				Doer:  userAdmin,
+		for _, testCase := range []struct {
+			name       string
+			options    issues_model.IssuesOptions
+			issueCount int
+		}{
+			{"Authenticated user", issues_model.IssuesOptions{Owner: org3.AsUser(), Doer: userAdmin}, 2}, // admin can visit both issues, one from public repository one from private repository
+			{"Anonymous user", issues_model.IssuesOptions{AllPublic: true}, 1},                           // anonymous user can only visit public repo issues
+			// user2 is on org3's Owners team and has owner access to the private repo3, so it is not a
+			// valid "no permission" subject; user15 has no access to repo3 but can see the public repo32.
+			{"Authenticated user with no permission to the private repo", issues_model.IssuesOptions{Owner: org3.AsUser(), Doer: user15}, 1}, // user15 can only visit public repo issues
+			// user2 is on org3's Owners team, so it has access to the private repo3 and must see both the
+			// public and the private issue — the owner-team access that team.authorize grants at runtime.
+			{"Org owner team member", issues_model.IssuesOptions{Owner: org3.AsUser(), Doer: user2}, 2}, // owner-team member visits both public and private issues
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &testCase.options)
+				assert.NoError(t, err)
+				assert.Len(t, columnIssues, 1) // default column has 2 issues
+				assert.Len(t, columnIssues[defaultColumn.ID], testCase.issueCount)
 			})
-			assert.NoError(t, err)
-			assert.Len(t, columnIssues, 1)             // column1 has 2 issues, 6 will not contains here because 0 issues
-			assert.Len(t, columnIssues[column1.ID], 2) // user2 can visit both issues, one from public repository one from private repository
-		})
+		}
+	})
 
-		t.Run("Anonymous user", func(t *testing.T) {
-			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
-				AllPublic: true,
-			})
-			assert.NoError(t, err)
-			assert.Len(t, columnIssues, 1)
-			assert.Len(t, columnIssues[column1.ID], 1) // anonymous user can only visit public repo issues
-		})
+	t.Run("Moving an issue in one project keeps its column in other projects", func(t *testing.T) {
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		// issue 11 is in repo1 but in no fixture project, so reconciling its memberships disturbs nothing
+		issue11 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 11})
 
-		t.Run("Authenticated user with no permission to the private repo", func(t *testing.T) {
-			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
-				Owner: org3.AsUser(),
-				Doer:  user2,
-			})
-			assert.NoError(t, err)
-			assert.Len(t, columnIssues, 1)
-			assert.Len(t, columnIssues[column1.ID], 1) // user4 can only visit public repo issues
+		projects := make([]*project_model.Project, 2)
+		for i := range projects {
+			projects[i] = &project_model.Project{
+				Title:        "multi-project isolation " + strconv.Itoa(i),
+				RepoID:       repo1.ID,
+				Type:         project_model.TypeRepository,
+				TemplateType: project_model.TemplateTypeBasicKanban,
+			}
+			assert.NoError(t, project_model.NewProject(t.Context(), projects[i]))
+			defer func() {
+				assert.NoError(t, project_model.DeleteProjectByID(t.Context(), projects[i].ID))
+			}()
+		}
+
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue11, user2, []int64{projects[0].ID, projects[1].ID})
+		assert.NoError(t, err)
+
+		// the column the issue must stay in for the second project
+		otherColumn, err := projects[1].MustDefaultColumn(t.Context())
+		assert.NoError(t, err)
+
+		// move the issue into a non-default column of the first project only
+		targetColumn := &project_model.Column{Title: "target", ProjectID: projects[0].ID}
+		assert.NoError(t, project_model.NewColumn(t.Context(), targetColumn))
+		assert.NoError(t, MoveIssuesOnProjectColumn(t.Context(), user2, targetColumn, map[int64]int64{0: issue11.ID}))
+
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{
+			IssueID: issue11.ID, ProjectID: projects[0].ID, ProjectColumnID: targetColumn.ID,
+		})
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{
+			IssueID: issue11.ID, ProjectID: projects[1].ID, ProjectColumnID: otherColumn.ID,
 		})
 	})
 
@@ -172,39 +176,22 @@ func Test_Projects(t *testing.T) {
 		assert.Len(t, projects, 1)
 		assert.EqualValues(t, 1, projects[0].ID)
 
-		t.Run("Authenticated user", func(t *testing.T) {
-			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
-				RepoIDs: []int64{repo1.ID},
-				Doer:    userAdmin,
+		for _, testCase := range []struct {
+			name    string
+			options issues_model.IssuesOptions
+		}{
+			{"Authenticated user", issues_model.IssuesOptions{RepoIDs: []int64{repo1.ID}, Doer: userAdmin}},
+			{"Anonymous user", issues_model.IssuesOptions{AllPublic: true}},
+			{"Authenticated user with no permission to the private repo", issues_model.IssuesOptions{RepoIDs: []int64{repo1.ID}, Doer: user2}},
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &testCase.options)
+				assert.NoError(t, err)
+				assert.Len(t, columnIssues, 3)
+				assert.Len(t, columnIssues[1], 2)
+				assert.Len(t, columnIssues[2], 1)
+				assert.Len(t, columnIssues[3], 1)
 			})
-			assert.NoError(t, err)
-			assert.Len(t, columnIssues, 3)
-			assert.Len(t, columnIssues[1], 2)
-			assert.Len(t, columnIssues[2], 1)
-			assert.Len(t, columnIssues[3], 1)
-		})
-
-		t.Run("Anonymous user", func(t *testing.T) {
-			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
-				AllPublic: true,
-			})
-			assert.NoError(t, err)
-			assert.Len(t, columnIssues, 3)
-			assert.Len(t, columnIssues[1], 2)
-			assert.Len(t, columnIssues[2], 1)
-			assert.Len(t, columnIssues[3], 1)
-		})
-
-		t.Run("Authenticated user with no permission to the private repo", func(t *testing.T) {
-			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
-				RepoIDs: []int64{repo1.ID},
-				Doer:    user2,
-			})
-			assert.NoError(t, err)
-			assert.Len(t, columnIssues, 3)
-			assert.Len(t, columnIssues[1], 2)
-			assert.Len(t, columnIssues[2], 1)
-			assert.Len(t, columnIssues[3], 1)
-		})
+		}
 	})
 }

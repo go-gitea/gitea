@@ -5,47 +5,54 @@ package globallock
 
 import (
 	"context"
-	"os"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
+
+	"gitea.dev/modules/test"
 
 	"github.com/go-redsync/redsync/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+func newTestRedisLocker(t *testing.T) Locker {
+	t.Helper()
+	return NewRedisLocker(test.PrepareTestRedis(t))
+}
+
 func TestLocker(t *testing.T) {
 	t.Run("redis", func(t *testing.T) {
-		url := "redis://127.0.0.1:6379/0"
-		if os.Getenv("CI") == "" {
-			// Make it possible to run tests against a local redis instance
-			url = os.Getenv("TEST_REDIS_URL")
-			if url == "" {
-				t.Skip("TEST_REDIS_URL not set and not running in CI")
-				return
-			}
-		}
-		oldExpiry := redisLockExpiry
-		redisLockExpiry = 5 * time.Second // make it shorter for testing
-		defer func() {
-			redisLockExpiry = oldExpiry
-		}()
-
-		locker := NewRedisLocker(url)
+		defer test.MockVariableValue(&redisLockExpiry, 5*time.Second)() // make it shorter for testing
+		locker := newTestRedisLocker(t)
 		testLocker(t, locker)
-		testRedisLocker(t, locker.(*redisLocker))
-		require.NoError(t, locker.(*redisLocker).Close())
+		rl, ok := locker.(*redisLocker)
+		require.True(t, ok)
+		testRedisLocker(t, rl)
+		require.NoError(t, rl.Close())
 	})
 	t.Run("memory", func(t *testing.T) {
 		locker := NewMemoryLocker()
 		testLocker(t, locker)
-		testMemoryLocker(t, locker.(*memoryLocker))
+		ml, ok := locker.(*memoryLocker)
+		require.True(t, ok)
+		testMemoryLocker(t, ml)
 	})
 }
 
 func testLocker(t *testing.T, locker Locker) {
-	t.Run("lock", func(t *testing.T) {
+	runTest := func(name string, run func(*testing.T)) {
+		t.Run(name, func(t *testing.T) {
+			if _, memory := locker.(*memoryLocker); memory {
+				synctest.Test(t, run)
+			} else {
+				run(t)
+			}
+		})
+	}
+
+	runTest("lock", func(t *testing.T) {
 		parentCtx := t.Context()
 		release, err := locker.Lock(parentCtx, "test")
 		defer release()
@@ -71,7 +78,7 @@ func testLocker(t *testing.T, locker Locker) {
 		}()
 	})
 
-	t.Run("try lock", func(t *testing.T) {
+	runTest("try lock", func(t *testing.T) {
 		parentCtx := t.Context()
 		ok, release, err := locker.TryLock(parentCtx, "test")
 		defer release()
@@ -99,7 +106,7 @@ func testLocker(t *testing.T, locker Locker) {
 		}()
 	})
 
-	t.Run("wait and acquired", func(t *testing.T) {
+	runTest("wait and acquired", func(t *testing.T) {
 		ctx := t.Context()
 		release, err := locker.Lock(ctx, "test")
 		require.NoError(t, err)
@@ -119,7 +126,7 @@ func testLocker(t *testing.T, locker Locker) {
 		wg.Wait()
 	})
 
-	t.Run("multiple release", func(t *testing.T) {
+	runTest("multiple release", func(t *testing.T) {
 		ctx := t.Context()
 
 		release1, err := locker.Lock(ctx, "test")
@@ -170,7 +177,8 @@ func testRedisLocker(t *testing.T, locker *redisLocker) {
 		// It simulates that there are some problems with extending like network issues or redis server down.
 		v, ok := locker.mutexM.Load("test")
 		require.True(t, ok)
-		m := v.(*redsync.Mutex)
+		m, ok := v.(*redsync.Mutex)
+		require.True(t, ok)
 		_, _ = m.Unlock() // release it to make it impossible to extend
 
 		// In current design, callers can't know the lock can't be extended.

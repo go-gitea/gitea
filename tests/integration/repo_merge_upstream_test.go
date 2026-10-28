@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,38 +62,32 @@ func TestRepoMergeUpstream(t *testing.T) {
 			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "new-file.txt", "master", "test-content-1"))
 
 			var mergeUpstreamLink string
-			t.Run("DetectDefaultBranch", func(t *testing.T) {
+			for _, test := range []struct{ name, branch string }{
 				// the repo shows a prompt to "sync fork" (defaults to the default branch)
-				require.Eventually(t, func() bool {
-					resp := session.MakeRequest(t, NewRequestf(t, "GET", "/%s/test-repo-fork/src/branch/fork-branch", forkUser.Name), http.StatusOK)
-					htmlDoc := NewHTMLParser(t, resp.Body)
-					mergeUpstreamLink = queryMergeUpstreamButtonLink(htmlDoc)
-					if mergeUpstreamLink == "" {
-						return false
+				{"DetectDefaultBranch", "master"},
+				{"DetectSameBranch", "fork-branch"},
+			} {
+				t.Run(test.name, func(t *testing.T) {
+					if test.branch == "fork-branch" {
+						// if the fork-branch name also exists in the base repo, then use that branch instead
+						req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/_new/branch/master", map[string]string{
+							"new_branch_name": "fork-branch",
+						})
+						sessionBaseUser.MakeRequest(t, req, http.StatusSeeOther)
 					}
-					respMsg, _ := htmlDoc.Find(".ui.message:not(.positive)").Html()
-					return strings.Contains(respMsg, `This branch is 1 commit behind <a href="/user2/repo1/src/branch/master">user2/repo1:master</a>`)
-				}, 5*time.Second, 100*time.Millisecond)
-			})
 
-			t.Run("DetectSameBranch", func(t *testing.T) {
-				// if the fork-branch name also exists in the base repo, then use that branch instead
-				req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/_new/branch/master", map[string]string{
-					"new_branch_name": "fork-branch",
+					require.Eventually(t, func() bool {
+						resp := session.MakeRequest(t, NewRequestf(t, "GET", "/%s/test-repo-fork/src/branch/fork-branch", forkUser.Name), http.StatusOK)
+						htmlDoc := NewHTMLParser(t, resp.Body)
+						mergeUpstreamLink = queryMergeUpstreamButtonLink(htmlDoc)
+						if mergeUpstreamLink == "" {
+							return false
+						}
+						respMsg, _ := htmlDoc.Find(".ui.message:not(.positive)").Html()
+						return strings.Contains(respMsg, fmt.Sprintf(`This branch is 1 commit behind <a href="/user2/repo1/src/branch/%s">user2/repo1:%s</a>`, test.branch, test.branch))
+					}, 5*time.Second, 100*time.Millisecond)
 				})
-				sessionBaseUser.MakeRequest(t, req, http.StatusSeeOther)
-
-				require.Eventually(t, func() bool {
-					resp := session.MakeRequest(t, NewRequestf(t, "GET", "/%s/test-repo-fork/src/branch/fork-branch", forkUser.Name), http.StatusOK)
-					htmlDoc := NewHTMLParser(t, resp.Body)
-					mergeUpstreamLink = queryMergeUpstreamButtonLink(htmlDoc)
-					if mergeUpstreamLink == "" {
-						return false
-					}
-					respMsg, _ := htmlDoc.Find(".ui.message:not(.positive)").Html()
-					return strings.Contains(respMsg, `This branch is 1 commit behind <a href="/user2/repo1/src/branch/fork-branch">user2/repo1:fork-branch</a>`)
-				}, 5*time.Second, 100*time.Millisecond)
-			})
+			}
 
 			// click the "sync fork" button
 			req = NewRequest(t, "POST", mergeUpstreamLink)
@@ -131,8 +125,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			resp := MakeRequest(t, req, http.StatusOK)
 			checkFileContent("fork-branch", "test-content-2")
 
-			var mergeResp api.MergeUpstreamResponse
-			DecodeJSON(t, resp, &mergeResp)
+			mergeResp := DecodeJSON(t, resp, &api.MergeUpstreamResponse{})
 			assert.Equal(t, "merge", mergeResp.MergeStyle)
 
 			// after merge, there should be no "sync fork" button anymore
@@ -160,8 +153,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var mergeResp api.MergeUpstreamResponse
-			DecodeJSON(t, resp, &mergeResp)
+			mergeResp := DecodeJSON(t, resp, &api.MergeUpstreamResponse{})
 			assert.Equal(t, "fast-forward", mergeResp.MergeStyle)
 
 			// ff_only=true when fast-forward is not possible (should fail)
@@ -172,6 +164,19 @@ func TestRepoMergeUpstream(t *testing.T) {
 				FfOnly: true,
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusBadRequest)
+		})
+
+		t.Run("BasePrivateBlocksSync", func(t *testing.T) {
+			// add a new commit to the base repo, then make the base repo private
+			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "secret.txt", "master", "private-content"))
+			baseRepo.IsPrivate = true
+			_, err := db.GetEngine(t.Context()).ID(baseRepo.ID).Cols("is_private").Update(baseRepo)
+			require.NoError(t, err)
+			// the fork owner can no longer read the base repo, so syncing must be refused
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/test-repo-fork/merge-upstream", forkUser.Name), &api.MergeUpstreamRequest{
+				Branch: "fork-branch",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusForbidden)
 		})
 	})
 }

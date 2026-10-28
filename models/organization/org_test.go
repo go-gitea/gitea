@@ -8,14 +8,16 @@ import (
 	"sort"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -288,6 +290,76 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.Empty(t, orgUsers)
 }
 
+func TestOrgMembersSearch(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	member := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	testCases := []struct {
+		name         string
+		opts         *organization.FindOrgMembersOpts
+		expectedUIDs []int64
+	}{
+		{
+			name: "match by username",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:        3,
+				Doer:         member,
+				IsDoerMember: true,
+				Keyword:      "user4",
+			},
+			expectedUIDs: []int64{4},
+		},
+		{
+			name: "match by full name",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:        3,
+				Doer:         member,
+				IsDoerMember: true,
+				Keyword:      "user27",
+			},
+			expectedUIDs: []int64{28},
+		},
+		{
+			name: "private email hidden",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:        3,
+				Doer:         member,
+				IsDoerMember: true,
+				Keyword:      "user2@example.com",
+			},
+			expectedUIDs: []int64{},
+		},
+		{
+			name: "admin can search private email",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:   3,
+				Doer:    admin,
+				Keyword: "user2@example.com",
+			},
+			expectedUIDs: []int64{2},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			count, err := organization.CountOrgMembers(t.Context(), tc.opts)
+			assert.NoError(t, err)
+			assert.EqualValues(t, len(tc.expectedUIDs), count)
+
+			members, err := organization.GetOrgUsersByOrgID(t.Context(), tc.opts)
+			assert.NoError(t, err)
+			memberUIDs := make([]int64, 0, len(members))
+			for _, member := range members {
+				memberUIDs = append(memberUIDs, member.UID)
+			}
+			slices.Sort(memberUIDs)
+			assert.Equal(t, tc.expectedUIDs, memberUIDs)
+		})
+	}
+}
+
 func TestChangeOrgUserStatus(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -363,79 +435,80 @@ func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {
 	testSuccess(4, []int64{})
 }
 
-func TestHasOrgVisibleTypePublic(t *testing.T) {
+func TestHasOrgVisibleType(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
-	const newOrgName = "test-org-public"
-	org := &organization.Organization{
-		Name:       newOrgName,
-		Visibility: structs.VisibleTypePublic,
-	}
+	t.Run("Public", func(t *testing.T) {
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
-	unittest.AssertNotExistsBean(t, &user_model.User{Name: org.Name, Type: user_model.UserTypeOrganization})
-	assert.NoError(t, organization.CreateOrganization(t.Context(), org, owner))
-	org = unittest.AssertExistsAndLoadBean(t,
-		&organization.Organization{Name: org.Name, Type: user_model.UserTypeOrganization})
-	test1 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), owner)
-	test2 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), org3)
-	test3 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), nil)
-	assert.True(t, test1) // owner of org
-	assert.True(t, test2) // user not a part of org
-	assert.True(t, test3) // logged out user
+		const newOrgName = "test-org-public"
+		org := &organization.Organization{
+			Name:       newOrgName,
+			Visibility: structs.VisibleTypePublic,
+		}
 
-	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29, IsRestricted: true})
-	require.True(t, restrictedUser.IsRestricted)
-	assert.True(t, organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), restrictedUser))
-	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
-	assert.False(t, organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), restrictedUser))
-}
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: org.Name, Type: user_model.UserTypeOrganization})
+		assert.NoError(t, organization.CreateOrganization(t.Context(), org, owner))
+		org = unittest.AssertExistsAndLoadBean(t,
+			&organization.Organization{Name: org.Name, Type: user_model.UserTypeOrganization})
+		test1 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), owner)
+		test2 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), org3)
+		test3 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), nil)
+		assert.True(t, test1) // owner of org
+		assert.True(t, test2) // user not a part of org
+		assert.True(t, test3) // logged out user
 
-func TestHasOrgVisibleTypeLimited(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+		restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29, IsRestricted: true})
+		require.True(t, restrictedUser.IsRestricted)
+		assert.True(t, organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), restrictedUser))
+		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+		assert.False(t, organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), restrictedUser))
+	})
 
-	const newOrgName = "test-org-limited"
-	org := &organization.Organization{
-		Name:       newOrgName,
-		Visibility: structs.VisibleTypeLimited,
-	}
+	t.Run("Limited", func(t *testing.T) {
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
-	unittest.AssertNotExistsBean(t, &user_model.User{Name: org.Name, Type: user_model.UserTypeOrganization})
-	assert.NoError(t, organization.CreateOrganization(t.Context(), org, owner))
-	org = unittest.AssertExistsAndLoadBean(t,
-		&organization.Organization{Name: org.Name, Type: user_model.UserTypeOrganization})
-	test1 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), owner)
-	test2 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), org3)
-	test3 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), nil)
-	assert.True(t, test1)  // owner of org
-	assert.True(t, test2)  // user not a part of org
-	assert.False(t, test3) // logged out user
-}
+		const newOrgName = "test-org-limited"
+		org := &organization.Organization{
+			Name:       newOrgName,
+			Visibility: structs.VisibleTypeLimited,
+		}
 
-func TestHasOrgVisibleTypePrivate(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: org.Name, Type: user_model.UserTypeOrganization})
+		assert.NoError(t, organization.CreateOrganization(t.Context(), org, owner))
+		org = unittest.AssertExistsAndLoadBean(t,
+			&organization.Organization{Name: org.Name, Type: user_model.UserTypeOrganization})
+		test1 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), owner)
+		test2 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), org3)
+		test3 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), nil)
+		assert.True(t, test1)  // owner of org
+		assert.True(t, test2)  // user not a part of org
+		assert.False(t, test3) // logged out user
+	})
 
-	const newOrgName = "test-org-private"
-	org := &organization.Organization{
-		Name:       newOrgName,
-		Visibility: structs.VisibleTypePrivate,
-	}
+	t.Run("Private", func(t *testing.T) {
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
-	unittest.AssertNotExistsBean(t, &user_model.User{Name: org.Name, Type: user_model.UserTypeOrganization})
-	assert.NoError(t, organization.CreateOrganization(t.Context(), org, owner))
-	org = unittest.AssertExistsAndLoadBean(t,
-		&organization.Organization{Name: org.Name, Type: user_model.UserTypeOrganization})
-	test1 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), owner)
-	test2 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), org3)
-	test3 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), nil)
-	assert.True(t, test1)  // owner of org
-	assert.False(t, test2) // user not a part of org
-	assert.False(t, test3) // logged out user
+		const newOrgName = "test-org-private"
+		org := &organization.Organization{
+			Name:       newOrgName,
+			Visibility: structs.VisibleTypePrivate,
+		}
+
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: org.Name, Type: user_model.UserTypeOrganization})
+		assert.NoError(t, organization.CreateOrganization(t.Context(), org, owner))
+		org = unittest.AssertExistsAndLoadBean(t,
+			&organization.Organization{Name: org.Name, Type: user_model.UserTypeOrganization})
+		test1 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), owner)
+		test2 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), org3)
+		test3 := organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), nil)
+		assert.True(t, test1)  // owner of org
+		assert.False(t, test2) // user not a part of org
+		assert.False(t, test3) // logged out user
+	})
 }
 
 func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {
@@ -454,6 +527,22 @@ func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, users, 1)
 	assert.NotNil(t, users[5])
+}
+
+func TestCanCreateOrgRepoByOwnerTeamWithoutFlag(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	ownerTeam, err := org.GetOwnerTeam(t.Context())
+	require.NoError(t, err)
+
+	ownerTeam.CanCreateOrgRepo = false
+	_, err = db.GetEngine(t.Context()).ID(ownerTeam.ID).Cols("can_create_org_repo").Update(ownerTeam)
+	require.NoError(t, err)
+
+	ok, err := organization.CanCreateOrgRepo(t.Context(), org.ID, 2)
+	require.NoError(t, err)
+	assert.True(t, ok)
 }
 
 func TestUser_RemoveOrgRepo(t *testing.T) {
@@ -480,63 +569,70 @@ func TestUser_RemoveOrgRepo(t *testing.T) {
 }
 
 func TestCreateOrganization(t *testing.T) {
-	// successful creation of org
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	const newOrgName = "neworg"
-	org := &organization.Organization{
-		Name: newOrgName,
-	}
+	t.Run("Unauthorized", func(t *testing.T) {
+		// unauthorized creation of org
 
-	unittest.AssertNotExistsBean(t, &user_model.User{Name: newOrgName, Type: user_model.UserTypeOrganization})
-	assert.NoError(t, organization.CreateOrganization(t.Context(), org, owner))
-	org = unittest.AssertExistsAndLoadBean(t,
-		&organization.Organization{Name: newOrgName, Type: user_model.UserTypeOrganization})
-	ownerTeam := unittest.AssertExistsAndLoadBean(t,
-		&organization.Team{Name: organization.OwnerTeamName, OrgID: org.ID})
-	unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: owner.ID, TeamID: ownerTeam.ID})
-	unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		const newOrgName = "neworg"
+		org := &organization.Organization{
+			Name: newOrgName,
+		}
+
+		unittest.AssertNotExistsBean(t, &organization.Organization{Name: newOrgName, Type: user_model.UserTypeOrganization})
+		err := organization.CreateOrganization(t.Context(), org, owner)
+		assert.Error(t, err)
+		assert.True(t, organization.IsErrUserNotAllowedCreateOrg(err))
+		unittest.AssertNotExistsBean(t, &organization.Organization{Name: newOrgName, Type: user_model.UserTypeOrganization})
+		unittest.CheckConsistencyFor(t, &organization.Organization{}, &organization.Team{})
+	})
+
+	t.Run("ExistingName", func(t *testing.T) {
+		// create org with same name as existent org
+
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org := &organization.Organization{Name: "org3"}                       // should already exist
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: org.Name}) // sanity check
+		err := organization.CreateOrganization(t.Context(), org, owner)
+		assert.Error(t, err)
+		assert.True(t, user_model.IsErrUserAlreadyExist(err))
+		unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
+	})
+
+	t.Run("ReservedName", func(t *testing.T) {
+		// create org with unusable name
+
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		err := organization.CreateOrganization(t.Context(), &organization.Organization{Name: "assets"}, owner)
+		assert.Error(t, err)
+		assert.True(t, db.IsErrNameReserved(err))
+		unittest.CheckConsistencyFor(t, &organization.Organization{}, &organization.Team{})
+	})
+
+	t.Run("Success", func(t *testing.T) {
+		// successful creation of org
+
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		const newOrgName = "neworg"
+		org := &organization.Organization{
+			Name: newOrgName,
+		}
+
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: newOrgName, Type: user_model.UserTypeOrganization})
+		assert.NoError(t, organization.CreateOrganization(t.Context(), org, owner))
+		org = unittest.AssertExistsAndLoadBean(t,
+			&organization.Organization{Name: newOrgName, Type: user_model.UserTypeOrganization})
+		ownerTeam := unittest.AssertExistsAndLoadBean(t,
+			&organization.Team{Name: organization.OwnerTeamName, OrgID: org.ID})
+		unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: owner.ID, TeamID: ownerTeam.ID})
+		unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
+	})
 }
 
-func TestCreateOrganization2(t *testing.T) {
-	// unauthorized creation of org
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	const newOrgName = "neworg"
-	org := &organization.Organization{
-		Name: newOrgName,
-	}
-
-	unittest.AssertNotExistsBean(t, &organization.Organization{Name: newOrgName, Type: user_model.UserTypeOrganization})
-	err := organization.CreateOrganization(t.Context(), org, owner)
-	assert.Error(t, err)
-	assert.True(t, organization.IsErrUserNotAllowedCreateOrg(err))
-	unittest.AssertNotExistsBean(t, &organization.Organization{Name: newOrgName, Type: user_model.UserTypeOrganization})
-	unittest.CheckConsistencyFor(t, &organization.Organization{}, &organization.Team{})
-}
-
-func TestCreateOrganization3(t *testing.T) {
-	// create org with same name as existent org
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	org := &organization.Organization{Name: "org3"}                       // should already exist
-	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: org.Name}) // sanity check
-	err := organization.CreateOrganization(t.Context(), org, owner)
-	assert.Error(t, err)
-	assert.True(t, user_model.IsErrUserAlreadyExist(err))
-	unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
-}
-
-func TestCreateOrganization4(t *testing.T) {
-	// create org with unusable name
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	err := organization.CreateOrganization(t.Context(), &organization.Organization{Name: "assets"}, owner)
-	assert.Error(t, err)
-	assert.True(t, db.IsErrNameReserved(err))
-	unittest.CheckConsistencyFor(t, &organization.Organization{}, &organization.Team{})
+func TestOrAnyRepoUnitPermission(t *testing.T) {
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+	org := organization.Organization{Visibility: structs.VisibleTypeLimited}
+	assert.Equal(t, perm.AccessModeNone, org.AnyRepoUnitPermission(t.Context(), nil, unit.TypeWiki))
+	assert.Equal(t, perm.AccessModeRead, org.AnyRepoUnitPermission(t.Context(), &user_model.User{}, unit.TypeWiki))
 }

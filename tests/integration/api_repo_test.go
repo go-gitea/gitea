@@ -4,401 +4,486 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIUserReposNotLogin(t *testing.T) {
+func TestAPIRepoFixtureReads(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
-	resp := MakeRequest(t, req, http.StatusOK)
+	t.Run("UserRepos", func(t *testing.T) {
+		userOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		userOther := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		targetUser := userOwner
 
-	var apiRepos []api.Repository
-	DecodeJSON(t, resp, &apiRepos)
-	expectedLen := unittest.GetCount(t, repo_model.Repository{OwnerID: user.ID},
-		unittest.Cond("is_private = ?", false))
-	assert.Len(t, apiRepos, expectedLen)
-	for _, repo := range apiRepos {
-		assert.Equal(t, user.ID, repo.Owner.ID)
-		assert.False(t, repo.Private)
-	}
-}
+		testCases := []struct {
+			name         string
+			doer         *user_model.User
+			count        int
+			privateCount int
+		}{
+			{name: "Anonymous", doer: nil, count: 7},
+			{name: "UserOwner", doer: userOwner, count: 14, privateCount: 7},
+			{name: "UserOther", doer: userOther, count: 7},
+		}
 
-func TestAPISearchRepo(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	const keyword = "test"
-
-	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	var body api.SearchResults
-	DecodeJSON(t, resp, &body)
-	assert.NotEmpty(t, body.Data)
-	for _, repo := range body.Data {
-		assert.Contains(t, repo.Name, keyword)
-		assert.False(t, repo.Private)
-	}
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 16})
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 18})
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20})
-	orgUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
-
-	oldAPIDefaultNum := setting.API.DefaultPagingNum
-	defer func() {
-		setting.API.DefaultPagingNum = oldAPIDefaultNum
-	}()
-	setting.API.DefaultPagingNum = 10
-
-	// Map of expected results, where key is user for login
-	type expectedResults map[*user_model.User]struct {
-		count           int
-		repoOwnerID     int64
-		repoName        string
-		includesPrivate bool
-	}
-
-	testCases := []struct {
-		name, requestURL string
-		expectedResults
-	}{
-		{
-			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 36},
-				user:  {count: 36},
-				user2: {count: 36},
-			},
-		},
-		{
-			name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10&private=false", expectedResults: expectedResults{
-				nil:   {count: 10},
-				user:  {count: 10},
-				user2: {count: 10},
-			},
-		},
-		{
-			name: "RepositoriesDefault", requestURL: "/api/v1/repos/search?default&private=false", expectedResults: expectedResults{
-				nil:   {count: 10},
-				user:  {count: 10},
-				user2: {count: 10},
-			},
-		},
-		{
-			name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "big_test_"), expectedResults: expectedResults{
-				nil:   {count: 7, repoName: "big_test_"},
-				user:  {count: 7, repoName: "big_test_"},
-				user2: {count: 7, repoName: "big_test_"},
-			},
-		},
-		{
-			name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "user2/big_test_"), expectedResults: expectedResults{
-				user2: {count: 2, repoName: "big_test_"},
-			},
-		},
-		{
-			name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
-				nil:   {count: 5},
-				user:  {count: 9, includesPrivate: true},
-				user2: {count: 6, includesPrivate: true},
-			},
-		},
-		{
-			name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
-				nil:   {count: 1},
-				user:  {count: 2, includesPrivate: true},
-				user2: {count: 2, includesPrivate: true},
-				user4: {count: 1},
-			},
-		},
-		{
-			name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", org3.ID), expectedResults: expectedResults{
-				nil:   {count: 1},
-				user:  {count: 4, includesPrivate: true},
-				user2: {count: 3, includesPrivate: true},
-				org3:  {count: 4, includesPrivate: true},
-			},
-		},
-		{
-			name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
-				nil:   {count: 1, repoOwnerID: orgUser.ID},
-				user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
-				user2: {count: 1, repoOwnerID: orgUser.ID},
-			},
-		},
-		{name: "RepositoriesAccessibleAndRelatedToUser4", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user4.ID), expectedResults: expectedResults{
-			nil:   {count: 3},
-			user:  {count: 4, includesPrivate: true},
-			user4: {count: 7, includesPrivate: true},
-		}},
-		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeSource", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "source"), expectedResults: expectedResults{
-			nil:   {count: 0},
-			user:  {count: 1, includesPrivate: true},
-			user4: {count: 1, includesPrivate: true},
-		}},
-		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "fork"), expectedResults: expectedResults{
-			nil:   {count: 1},
-			user:  {count: 1},
-			user4: {count: 2, includesPrivate: true},
-		}},
-		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "fork"), expectedResults: expectedResults{
-			nil:   {count: 1},
-			user:  {count: 1},
-			user4: {count: 2, includesPrivate: true},
-		}},
-		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "mirror"), expectedResults: expectedResults{
-			nil:   {count: 2},
-			user:  {count: 2},
-			user4: {count: 4, includesPrivate: true},
-		}},
-		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "mirror"), expectedResults: expectedResults{
-			nil:   {count: 1},
-			user:  {count: 1},
-			user4: {count: 2, includesPrivate: true},
-		}},
-		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeCollaborative", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "collaborative"), expectedResults: expectedResults{
-			nil:   {count: 0},
-			user:  {count: 1, includesPrivate: true},
-			user4: {count: 1, includesPrivate: true},
-		}},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			for userToLogin, expected := range testCase.expectedResults {
-				var testName string
-				var userID int64
-				var token string
-				if userToLogin != nil && userToLogin.ID > 0 {
-					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
-					session := loginUser(t, userToLogin.Name)
-					token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-					userID = userToLogin.ID
-				} else {
-					testName = "AnonymousUser"
-					_ = emptyTestSession(t)
-				}
-
-				t.Run(testName, func(t *testing.T) {
-					request := NewRequest(t, "GET", testCase.requestURL).
-						AddTokenAuth(token)
-					response := MakeRequest(t, request, http.StatusOK)
-
-					var body api.SearchResults
-					DecodeJSON(t, response, &body)
-
-					repoNames := make([]string, 0, len(body.Data))
-					for _, repo := range body.Data {
-						repoNames = append(repoNames, fmt.Sprintf("%d:%s:%t", repo.ID, repo.FullName, repo.Private))
-					}
-					assert.Len(t, repoNames, expected.count)
-					for _, repo := range body.Data {
-						r := getRepo(t, repo.ID)
-						hasAccess, err := access_model.HasAnyUnitAccess(t.Context(), userID, r)
-						assert.NoError(t, err, "Error when checking if User: %d has access to %s: %v", userID, repo.FullName, err)
-						assert.True(t, hasAccess, "User: %d does not have access to %s", userID, repo.FullName)
-
-						assert.NotEmpty(t, repo.Name)
-						assert.Equal(t, repo.Name, r.Name)
-
-						if len(expected.repoName) > 0 {
-							assert.Contains(t, repo.Name, expected.repoName)
-						}
-
-						if expected.repoOwnerID > 0 {
-							assert.Equal(t, expected.repoOwnerID, repo.Owner.ID)
-						}
-
-						if !expected.includesPrivate {
-							assert.False(t, repo.Private, "User: %d not expecting private repository: %s", userID, repo.FullName)
-						}
-					}
-				})
+		for _, tc := range testCases {
+			var token string
+			if tc.doer != nil {
+				session := loginUser(t, tc.doer.Name)
+				token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
 			}
-		})
-	}
-}
 
-var repoCache = make(map[int64]*repo_model.Repository)
+			t.Run(tc.name, func(t *testing.T) {
+				req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", targetUser.Name).AddTokenAuth(token)
+				resp := MakeRequest(t, req, http.StatusOK)
 
-func getRepo(t *testing.T, repoID int64) *repo_model.Repository {
-	if _, ok := repoCache[repoID]; !ok {
-		repoCache[repoID] = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-	}
-	return repoCache[repoID]
-}
+				apiRepos := DecodeJSON(t, resp, []*api.Repository{})
+				assert.Len(t, apiRepos, tc.count)
+				privateCount := 0
+				for _, repo := range apiRepos {
+					assert.Equal(t, targetUser.ID, repo.Owner.ID)
+					if repo.Private {
+						privateCount++
+					}
+				}
+				assert.Equal(t, tc.privateCount, privateCount)
+			})
+		}
+	})
 
-func TestAPIViewRepo(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	t.Run("SearchRepo", func(t *testing.T) {
+		const keyword = "test"
 
-	var repo api.Repository
+		req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
-	resp := MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &repo)
-	assert.EqualValues(t, 1, repo.ID)
-	assert.Equal(t, "repo1", repo.Name)
-	assert.Equal(t, 2, repo.Releases)
-	assert.Equal(t, 1, repo.OpenIssues)
-	assert.Equal(t, 3, repo.OpenPulls)
+		body := DecodeJSON(t, resp, &api.SearchResults{})
+		assert.NotEmpty(t, body.Data)
+		for _, repo := range body.Data {
+			assert.Contains(t, repo.Name, keyword)
+			assert.False(t, repo.Private)
+		}
 
-	req = NewRequest(t, "GET", "/api/v1/repos/user12/repo10")
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &repo)
-	assert.EqualValues(t, 10, repo.ID)
-	assert.Equal(t, "repo10", repo.Name)
-	assert.Equal(t, 1, repo.OpenPulls)
-	assert.Equal(t, 1, repo.Forks)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 16})
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 18})
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20})
+		orgUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
-	req = NewRequest(t, "GET", "/api/v1/repos/user5/repo4")
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &repo)
-	assert.EqualValues(t, 4, repo.ID)
-	assert.Equal(t, "repo4", repo.Name)
-	assert.Equal(t, 1, repo.Stars)
-}
+		defer test.MockVariableValue(&setting.API.DefaultPagingNum, 10)()
 
-func TestAPIOrgRepos(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	// org3 is an Org. Check their repos.
-	sourceOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+		// Map of expected results, where key is user for login
+		type expectedResults map[*user_model.User]struct {
+			count           int
+			repoOwnerID     int64
+			repoName        string
+			includesPrivate bool
+		}
 
-	expectedResults := map[*user_model.User]struct {
-		count           int
-		includesPrivate bool
-	}{
-		user:  {count: 1},
-		user:  {count: 3, includesPrivate: true},
-		user2: {count: 3, includesPrivate: true},
-		org3:  {count: 1},
-	}
+		testCases := []struct {
+			name, requestURL string
+			expectedResults
+		}{
+			{
+				name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
+					nil:   {count: 36},
+					user:  {count: 36},
+					user2: {count: 36},
+				},
+			},
+			{
+				name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10&private=false", expectedResults: expectedResults{
+					nil:   {count: 10},
+					user:  {count: 10},
+					user2: {count: 10},
+				},
+			},
+			{
+				name: "RepositoriesDefault", requestURL: "/api/v1/repos/search?default&private=false", expectedResults: expectedResults{
+					nil:   {count: 10},
+					user:  {count: 10},
+					user2: {count: 10},
+				},
+			},
+			{
+				name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "big_test_"), expectedResults: expectedResults{
+					nil:   {count: 7, repoName: "big_test_"},
+					user:  {count: 7, repoName: "big_test_"},
+					user2: {count: 7, repoName: "big_test_"},
+				},
+			},
+			{
+				name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "user2/big_test_"), expectedResults: expectedResults{
+					user2: {count: 2, repoName: "big_test_"},
+				},
+			},
+			{
+				name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
+					nil:   {count: 5},
+					user:  {count: 9, includesPrivate: true},
+					user2: {count: 6, includesPrivate: true},
+				},
+			},
+			{
+				name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
+					nil:   {count: 1},
+					user:  {count: 2, includesPrivate: true},
+					user2: {count: 2, includesPrivate: true},
+					user4: {count: 1},
+				},
+			},
+			{
+				name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", org3.ID), expectedResults: expectedResults{
+					nil:   {count: 1},
+					user:  {count: 4, includesPrivate: true},
+					user2: {count: 3, includesPrivate: true},
+					org3:  {count: 4, includesPrivate: true},
+				},
+			},
+			{
+				name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
+					nil:   {count: 1, repoOwnerID: orgUser.ID},
+					user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
+					user2: {count: 1, repoOwnerID: orgUser.ID},
+				},
+			},
+			{name: "RepositoriesAccessibleAndRelatedToUser4", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user4.ID), expectedResults: expectedResults{
+				nil:   {count: 3},
+				user:  {count: 4, includesPrivate: true},
+				user4: {count: 7, includesPrivate: true},
+			}},
+			{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeSource", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "source"), expectedResults: expectedResults{
+				nil:   {count: 0},
+				user:  {count: 1, includesPrivate: true},
+				user4: {count: 1, includesPrivate: true},
+			}},
+			{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "fork"), expectedResults: expectedResults{
+				nil:   {count: 1},
+				user:  {count: 1},
+				user4: {count: 2, includesPrivate: true},
+			}},
+			{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "fork"), expectedResults: expectedResults{
+				nil:   {count: 1},
+				user:  {count: 1},
+				user4: {count: 2, includesPrivate: true},
+			}},
+			{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "mirror"), expectedResults: expectedResults{
+				nil:   {count: 2},
+				user:  {count: 2},
+				user4: {count: 4, includesPrivate: true},
+			}},
+			{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "mirror"), expectedResults: expectedResults{
+				nil:   {count: 1},
+				user:  {count: 1},
+				user4: {count: 2, includesPrivate: true},
+			}},
+			{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeCollaborative", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "collaborative"), expectedResults: expectedResults{
+				nil:   {count: 0},
+				user:  {count: 1, includesPrivate: true},
+				user4: {count: 1, includesPrivate: true},
+			}},
+		}
 
-	for userToLogin, expected := range expectedResults {
-		testName := fmt.Sprintf("LoggedUser%d", userToLogin.ID)
-		session := loginUser(t, userToLogin.Name)
+		tokens := make(map[int64]string)
+		repoCache := cache.NewEphemeralCache(time.Hour)
+		getRepo := func(t *testing.T, id int64) *repo_model.Repository {
+			r, _ := cache.GetWithEphemeralCache(t.Context(), repoCache, "cache-group-test", fmt.Sprintf("repo:%d", id), func(context.Context, string) (*repo_model.Repository, error) {
+				return unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: id}), nil
+			})
+			return r
+		}
+		for _, testCase := range testCases {
+			t.Run(testCase.name, func(t *testing.T) {
+				for userToLogin, expected := range testCase.expectedResults {
+					var testName string
+					var userID int64
+					var token string
+					if userToLogin != nil && userToLogin.ID > 0 {
+						testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
+						userID = userToLogin.ID
+						token = tokens[userID]
+						if token == "" {
+							token = getTokenForLoggedInUser(t, loginUser(t, userToLogin.Name), auth_model.AccessTokenScopeReadRepository)
+							tokens[userID] = token
+						}
+					} else {
+						testName = "AnonymousUser"
+						_ = emptyTestSession(t)
+					}
+
+					t.Run(testName, func(t *testing.T) {
+						request := NewRequest(t, "GET", testCase.requestURL).
+							AddTokenAuth(token)
+						response := MakeRequest(t, request, http.StatusOK)
+
+						body := DecodeJSON(t, response, &api.SearchResults{})
+
+						repoNames := make([]string, 0, len(body.Data))
+						for _, repo := range body.Data {
+							repoNames = append(repoNames, fmt.Sprintf("%d:%s:%t", repo.ID, repo.FullName, repo.Private))
+						}
+						assert.Len(t, repoNames, expected.count)
+						for _, repo := range body.Data {
+							r := getRepo(t, repo.ID)
+							hasAccess, err := access_model.HasAnyUnitAccess(t.Context(), userID, r)
+							assert.NoError(t, err, "Error when checking if User: %d has access to %s: %v", userID, repo.FullName, err)
+							assert.True(t, hasAccess, "User: %d does not have access to %s", userID, repo.FullName)
+
+							assert.NotEmpty(t, repo.Name)
+							assert.Equal(t, repo.Name, r.Name)
+
+							if len(expected.repoName) > 0 {
+								assert.Contains(t, repo.Name, expected.repoName)
+							}
+
+							if expected.repoOwnerID > 0 {
+								assert.Equal(t, expected.repoOwnerID, repo.Owner.ID)
+							}
+
+							if !expected.includesPrivate {
+								assert.False(t, repo.Private, "User: %d not expecting private repository: %s", userID, repo.FullName)
+							}
+						}
+					})
+				}
+			})
+		}
+	})
+
+	t.Run("ViewRepo", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
+		resp := MakeRequest(t, req, http.StatusOK)
+		repo := DecodeJSON(t, resp, &api.Repository{})
+		assert.EqualValues(t, 1, repo.ID)
+		assert.Equal(t, "repo1", repo.Name)
+		assert.Equal(t, 2, repo.Releases)
+		assert.Equal(t, 1, repo.OpenIssues)
+		assert.Equal(t, 3, repo.OpenPulls)
+
+		req = NewRequest(t, "GET", "/api/v1/repos/user12/repo10")
+		resp = MakeRequest(t, req, http.StatusOK)
+		repo = DecodeJSON(t, resp, &api.Repository{})
+		assert.EqualValues(t, 10, repo.ID)
+		assert.Equal(t, "repo10", repo.Name)
+		assert.Equal(t, 1, repo.OpenPulls)
+		assert.Equal(t, 1, repo.Forks)
+
+		req = NewRequest(t, "GET", "/api/v1/repos/user5/repo4")
+		resp = MakeRequest(t, req, http.StatusOK)
+		repo = DecodeJSON(t, resp, &api.Repository{})
+		assert.EqualValues(t, 4, repo.ID)
+		assert.Equal(t, "repo4", repo.Name)
+		assert.Equal(t, 1, repo.Stars)
+	})
+
+	t.Run("OrgRepos", func(t *testing.T) {
+		userOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		userAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		userOther := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+		// org3 is an Org. Try to log in as different doers to list its repos.
+		targetOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+
+		testCases := []struct {
+			name         string
+			doer         *user_model.User
+			count        int
+			privateCount int
+		}{
+			{name: "Anonymous", doer: nil, count: 1},
+			{name: "UserNormal", doer: userOwner, count: 3, privateCount: 2},
+			{name: "UserAdmin", doer: userAdmin, count: 3, privateCount: 2},
+			{name: "UserOther", doer: userOther, count: 1},
+		}
+
+		for _, tc := range testCases {
+			var token string
+			if tc.doer != nil {
+				session := loginUser(t, tc.doer.Name)
+				token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
+			}
+
+			t.Run(tc.name, func(t *testing.T) {
+				req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", targetOrg.Name).AddTokenAuth(token)
+				resp := MakeRequest(t, req, http.StatusOK)
+
+				apiRepos := DecodeJSON(t, resp, []*api.Repository{})
+				assert.Len(t, apiRepos, tc.count)
+				privateCount := 0
+				for _, repo := range apiRepos {
+					assert.Equal(t, targetOrg.ID, repo.Owner.ID)
+					if repo.Private {
+						privateCount++
+					}
+				}
+				assert.Equal(t, tc.privateCount, privateCount)
+			})
+		}
+	})
+
+	t.Run("GetRepoByIDUnauthorized", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		session := loginUser(t, user.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+		req := NewRequest(t, "GET", "/api/v1/repositories/2").
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	// mirror-sync must fail with "400 (Bad Request)" when an attempt is made to
+	// sync a non-mirror repository.
+	t.Run("MirrorSyncNonMirrorRepo", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
+		resp := MakeRequest(t, req, http.StatusOK)
+		repo := DecodeJSON(t, resp, &api.Repository{})
+		assert.False(t, repo.Mirror)
+
+		req = NewRequestf(t, "POST", "/api/v1/repos/user2/repo1/mirror-sync").
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusBadRequest)
+		errRespJSON := DecodeJSON(t, resp, map[string]string{})
+		assert.Equal(t, "Repository is not a mirror", errRespJSON["message"])
+	})
+
+	t.Run("RepoGetReviewers", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/reviewers", user.Name, repo.Name).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		reviewers := DecodeJSON(t, resp, []*api.User{})
+		if assert.Len(t, reviewers, 1) {
+			assert.ElementsMatch(t, []int64{2}, []int64{reviewers[0].ID})
+		}
+	})
+
+	t.Run("RepoGetAssignees", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees", user.Name, repo.Name).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		assignees := DecodeJSON(t, resp, []*api.User{})
+		assert.Len(t, assignees, 1)
+
+		assignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees/%s", user.Name, repo.Name, assignee.Name).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		nonAssignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees/%s", user.Name, repo.Name, nonAssignee.Name).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees/%s", user.Name, repo.Name, "org3").
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusBadRequest)
+	})
+
+	// See issue #28483. Tests to make sure we consider more than just code unit-enabled repositories.
+	t.Run("OrgReposWithCodeUnitDisabled", func(t *testing.T) {
+		repo21 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo21"})
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo21.OwnerID})
+
+		// Disable code repository unit.
+		var units []unit_model.Type
+		units = append(units, unit_model.TypeCode)
+
+		err := repo_service.UpdateRepositoryUnits(t.Context(), repo21, nil, units)
+		assert.NoError(t, err, "should have been able to delete code repository unit")
+
+		assert.False(t, repo21.UnitEnabled(t.Context(), unit_model.TypeCode))
+
+		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
 
-		t.Run(testName, func(t *testing.T) {
-			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", sourceOrg.Name).
-				AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusOK)
+		req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", org3.Name).
+			AddTokenAuth(token)
 
-			var apiRepos []*api.Repository
-			DecodeJSON(t, resp, &apiRepos)
-			assert.Len(t, apiRepos, expected.count)
-			for _, repo := range apiRepos {
-				if !expected.includesPrivate {
-					assert.False(t, repo.Private)
-				}
-			}
-		})
-	}
-}
+		resp := MakeRequest(t, req, http.StatusOK)
+		apiRepos := DecodeJSON(t, resp, []*api.Repository{})
 
-// See issue #28483. Tests to make sure we consider more than just code unit-enabled repositories.
-func TestAPIOrgReposWithCodeUnitDisabled(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	repo21 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo21"})
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo21.OwnerID})
+		var repoNames []string
+		for _, r := range apiRepos {
+			repoNames = append(repoNames, r.Name)
+		}
 
-	// Disable code repository unit.
-	var units []unit_model.Type
-	units = append(units, unit_model.TypeCode)
-
-	err := repo_service.UpdateRepositoryUnits(t.Context(), repo21, nil, units)
-	assert.NoError(t, err, "should have been able to delete code repository unit")
-
-	assert.False(t, repo21.UnitEnabled(t.Context(), unit_model.TypeCode))
-
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
-
-	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", org3.Name).
-		AddTokenAuth(token)
-
-	resp := MakeRequest(t, req, http.StatusOK)
-	var apiRepos []*api.Repository
-	DecodeJSON(t, resp, &apiRepos)
-
-	var repoNames []string
-	for _, r := range apiRepos {
-		repoNames = append(repoNames, r.Name)
-	}
-
-	assert.Contains(t, repoNames, repo21.Name)
-}
-
-func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-	req := NewRequest(t, "GET", "/api/v1/repositories/2").
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
+		assert.Contains(t, repoNames, repo21.Name)
+	})
 }
 
 func TestAPIRepoMigrate(t *testing.T) {
-	testCases := []struct {
-		ctxUserID, userID  int64
-		cloneURL, repoName string
-		expectedStatus     int
-	}{
-		{ctxUserID: 1, userID: 2, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-admin", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, userID: 2, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-own", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, userID: 1, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-bad", expectedStatus: http.StatusForbidden},
-		{ctxUserID: 2, userID: 3, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-org", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, userID: 6, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
-		{ctxUserID: 2, userID: 3, cloneURL: "https://localhost:3000/user/test_repo.git", repoName: "private-ip", expectedStatus: http.StatusUnprocessableEntity},
-		{ctxUserID: 2, userID: 3, cloneURL: "https://10.0.0.1/user/test_repo.git", repoName: "private-ip", expectedStatus: http.StatusUnprocessableEntity},
-	}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// migrate from a local fixture repo (user2/repo1) via the live listener so the test runs offline
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		cloneAddr := fmt.Sprintf("%s%s/%s.git", u.String(), repo1.OwnerName, repo1.Name)
 
-	defer tests.PrepareTestEnv(t)()
-	for _, testCase := range testCases {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
-		session := loginUser(t, user.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
-			CloneAddr:   testCase.cloneURL,
-			RepoOwnerID: testCase.userID,
-			RepoName:    testCase.repoName,
-		}).AddTokenAuth(token)
-		resp := MakeRequest(t, req, NoExpectedStatus)
-		if resp.Code == http.StatusUnprocessableEntity {
-			respJSON := map[string]string{}
-			DecodeJSON(t, resp, &respJSON)
-			switch respJSON["message"] {
-			case "Remote visit addressed rate limitation.":
-				t.Log("test hit github rate limitation")
-			case "You can not import from disallowed hosts.":
-				assert.Equal(t, "private-ip", testCase.repoName)
-			default:
-				assert.FailNow(t, "unexpected error", "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
+		t.Run("Permitted", func(t *testing.T) {
+			for _, testCase := range []struct {
+				ctxUserID, ownerID int64
+				repoName           string
+				expectedStatus     int
+			}{
+				{ctxUserID: 1, ownerID: 2, repoName: "git-admin", expectedStatus: http.StatusCreated},
+				{ctxUserID: 2, ownerID: 2, repoName: "git-own", expectedStatus: http.StatusCreated},
+				{ctxUserID: 2, ownerID: 1, repoName: "git-bad", expectedStatus: http.StatusForbidden},
+				{ctxUserID: 2, ownerID: 3, repoName: "git-org", expectedStatus: http.StatusCreated},
+				{ctxUserID: 2, ownerID: 6, repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
+			} {
+				user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
+				token := getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopeWriteRepository)
+				req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
+					CloneAddr:   cloneAddr,
+					RepoOwnerID: testCase.ownerID,
+					RepoName:    testCase.repoName,
+				}).AddTokenAuth(token)
+				MakeRequest(t, req, testCase.expectedStatus)
 			}
-		} else {
-			assert.Equal(t, testCase.expectedStatus, resp.Code)
-		}
-	}
+		})
+
+		t.Run("DisallowedHost", func(t *testing.T) {
+			defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
+			for _, cloneURL := range []string{"https://localhost:3000/user/test_repo.git", "https://10.0.0.1/user/test_repo.git"} {
+				req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
+					CloneAddr:   cloneURL,
+					RepoOwnerID: 3,
+					RepoName:    "private-ip",
+				}).AddBasicAuth("user2")
+				resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
+				assert.Equal(t, "You can not import from disallowed hosts.", DecodeJSON(t, resp, map[string]string{})["message"])
+			}
+		})
+	})
 }
 
 func TestAPIRepoMigrateConflict(t *testing.T) {
@@ -431,32 +516,9 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 			}).
 			AddTokenAuth(httpContext.Token)
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
-		respJSON := map[string]string{}
-		DecodeJSON(t, resp, &respJSON)
+		respJSON := DecodeJSON(t, resp, map[string]string{})
 		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
-}
-
-// mirror-sync must fail with "400 (Bad Request)" when an attempt is made to
-// sync a non-mirror repository.
-func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	var repo api.Repository
-	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
-	resp := MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &repo)
-	assert.False(t, repo.Mirror)
-
-	req = NewRequestf(t, "POST", "/api/v1/repos/user2/repo1/mirror-sync").
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusBadRequest)
-	errRespJSON := map[string]string{}
-	DecodeJSON(t, resp, &errRespJSON)
-	assert.Equal(t, "Repository is not a mirror", errRespJSON["message"])
 }
 
 func testAPIOrgCreateRepo(t *testing.T, session *TestSession, orgName, repoName string, status int) {
@@ -511,8 +573,7 @@ func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 			}).
 			AddTokenAuth(httpContext.Token)
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
-		respJSON := map[string]string{}
-		DecodeJSON(t, resp, &respJSON)
+		respJSON := DecodeJSON(t, resp, map[string]string{})
 		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
 }
@@ -548,7 +609,6 @@ func TestAPIRepoTransfer(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	repoName := "moveME"
-	apiRepo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
 		Name:        repoName,
 		Description: "repo move around",
@@ -557,7 +617,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 		AutoInit:    true,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 
 	// start testing
 	for _, testCase := range testCases {
@@ -583,7 +643,6 @@ func transfer(t *testing.T) *repo_model.Repository {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	repoName := "moveME"
-	apiRepo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
 		Name:        repoName,
 		Description: "repo move around",
@@ -593,7 +652,7 @@ func transfer(t *testing.T) *repo_model.Repository {
 	}).AddTokenAuth(token)
 
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer", repo.OwnerName, repo.Name), &api.TransferRepoOption{
@@ -628,8 +687,7 @@ func TestAPIAcceptTransfer(t *testing.T) {
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept", repo.OwnerName, repo.Name)).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusAccepted)
-	apiRepo := new(api.Repository)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 	assert.Equal(t, "user4", apiRepo.Owner.UserName)
 }
 
@@ -657,8 +715,7 @@ func TestAPIRejectTransfer(t *testing.T) {
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject", repo.OwnerName, repo.Name)).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	apiRepo := new(api.Repository)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 	assert.Equal(t, "user2", apiRepo.Owner.UserName)
 }
 
@@ -671,62 +728,28 @@ func TestAPIGenerateRepo(t *testing.T) {
 
 	templateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44})
 
-	// user
-	repo := new(api.Repository)
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
-		Owner:       user.Name,
-		Name:        "new-repo",
-		Description: "test generate repo",
-		Private:     false,
-		GitContent:  true,
-	}).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, repo)
+	for _, ownerName := range []string{
+		// user
+		user.Name,
+		// org
+		"org3",
+	} {
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
+			Owner:       ownerName,
+			Name:        "new-repo",
+			Description: "test generate repo",
+			Private:     false,
+			GitContent:  true,
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		apiRepo := DecodeJSON(t, resp, &api.Repository{})
 
-	assert.Equal(t, "new-repo", repo.Name)
+		assert.Equal(t, "new-repo", apiRepo.Name)
+		assert.NotEmpty(t, apiRepo.DefaultBranch)
 
-	// org
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
-		Owner:       "org3",
-		Name:        "new-repo",
-		Description: "test generate repo",
-		Private:     false,
-		GitContent:  true,
-	}).AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, repo)
-
-	assert.Equal(t, "new-repo", repo.Name)
-}
-
-func TestAPIRepoGetReviewers(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/reviewers", user.Name, repo.Name).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var reviewers []*api.User
-	DecodeJSON(t, resp, &reviewers)
-	if assert.Len(t, reviewers, 1) {
-		assert.ElementsMatch(t, []int64{2}, []int64{reviewers[0].ID})
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/branches/%s", ownerName, apiRepo.Name, apiRepo.DefaultBranch).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		branch := DecodeJSON(t, resp, &api.Branch{})
+		assert.Equal(t, apiRepo.DefaultBranch, branch.Name)
 	}
-}
-
-func TestAPIRepoGetAssignees(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees", user.Name, repo.Name).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var assignees []*api.User
-	DecodeJSON(t, resp, &assignees)
-	assert.Len(t, assignees, 2)
 }

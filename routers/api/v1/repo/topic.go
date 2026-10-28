@@ -7,14 +7,14 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // ListTopics returns list of current topics for repo
@@ -46,8 +46,8 @@ func ListTopics(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicNames"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := &repo_model.FindTopicOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -96,12 +96,10 @@ func UpdateTopics(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/invalidTopicsError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*api.RepoTopicOptions)
+	form := web.GetForm[*api.RepoTopicOptions](ctx)
 	topicNames := form.Topics
 	validTopics, invalidTopics := repo_model.SanitizeAndValidateTopics(topicNames)
 
@@ -157,10 +155,8 @@ func AddTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/invalidTopicsError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam("topic")))
 
@@ -224,10 +220,8 @@ func DeleteTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/invalidTopicsError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.PathParam("topic")))
 
@@ -278,10 +272,8 @@ func TopicSearch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicListResponse"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := &repo_model.FindTopicOptions{
 		Keyword:     ctx.FormString("q"),
@@ -300,7 +292,7 @@ func TopicSearch(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, map[string]any{
-		"topics": topicResponses,
+	ctx.JSON(http.StatusOK, api.TopicListResponse{
+		Topics: topicResponses,
 	})
 }

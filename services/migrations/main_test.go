@@ -8,13 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/unittest"
-	base "code.gitea.io/gitea/modules/migration"
+	"gitea.dev/models/unittest"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
+	setting.Migrations.AllowedHostList = "private:*, loopback:*"
 	unittest.MainTest(m)
 }
 
@@ -25,8 +27,7 @@ func assertTimeEqual(t *testing.T, expected, actual time.Time) {
 func assertTimePtrEqual(t *testing.T, expected, actual *time.Time) {
 	if expected == nil {
 		assert.Nil(t, actual)
-	} else {
-		assert.NotNil(t, actual)
+	} else if assert.NotNil(t, actual) {
 		assertTimeEqual(t, *expected, *actual)
 	}
 }
@@ -53,6 +54,7 @@ func assertCommentsEqual(t *testing.T, expected, actual []*base.Comment) {
 func assertLabelEqual(t *testing.T, expected, actual *base.Label) {
 	assert.Equal(t, expected.Name, actual.Name)
 	assert.Equal(t, expected.Exclusive, actual.Exclusive)
+	assert.Equal(t, expected.Archived, actual.Archived)
 	assert.Equal(t, expected.Color, actual.Color)
 	assert.Equal(t, expected.Description, actual.Description)
 }
@@ -211,6 +213,7 @@ func assertRepositoryEqual(t *testing.T, expected, actual *base.Repository) {
 	assert.Equal(t, expected.IsPrivate, actual.IsPrivate)
 	assert.Equal(t, expected.IsMirror, actual.IsMirror)
 	assert.Equal(t, expected.Description, actual.Description)
+	assert.Equal(t, expected.Website, actual.Website)
 	assert.Equal(t, expected.CloneURL, actual.CloneURL)
 	assert.Equal(t, expected.OriginalURL, actual.OriginalURL)
 	assert.Equal(t, expected.DefaultBranch, actual.DefaultBranch)
@@ -226,6 +229,7 @@ func assertReviewEqual(t *testing.T, expected, actual *base.Review) {
 	assert.Equal(t, expected.Content, actual.Content, "Content")
 	assert.WithinDuration(t, expected.CreatedAt, actual.CreatedAt, 10*time.Second)
 	assert.Equal(t, expected.State, actual.State, "State")
+	assert.Equal(t, expected.Dismissed, actual.Dismissed, "Dismissed")
 	assertReviewCommentsEqual(t, expected.Comments, actual.Comments)
 }
 

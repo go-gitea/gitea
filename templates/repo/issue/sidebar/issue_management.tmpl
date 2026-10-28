@@ -4,7 +4,7 @@
 	{{/* Pin issue */}}
 	{{if or .PinEnabled .Issue.IsPinned}}
 		<form class="tw-mt-1 form-fetch-action single-button-form" method="post" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.max_pinned"}}"{{end}}>
-			<button class="fluid ui button {{if not $.NewPinAllowed}}disabled{{end}}">
+			<button type="submit" class="fluid ui button {{if not $.NewPinAllowed}}disabled{{end}}">
 				{{if not .Issue.IsPinned}}
 					{{svg "octicon-pin"}}
 					{{ctx.Locale.Tr "pin"}}
@@ -17,14 +17,14 @@
 	{{end}}
 
 	{{/* Lock/unlock conversation */}}
-	<button class="tw-mt-1 fluid ui show-modal button{{if .Issue.IsLocked}} red{{end}}" data-modal="#lock-conversation">
+	<button type="button" class="tw-mt-1 fluid ui show-modal button{{if .Issue.IsLocked}} red{{end}}" data-modal="#lock-conversation">
 		{{if .Issue.IsLocked}}
 			{{svg "octicon-key"}} {{ctx.Locale.Tr "repo.issues.unlock"}}
 		{{else}}
 			{{svg "octicon-lock"}} {{ctx.Locale.Tr "repo.issues.lock"}}
 		{{end}}
 	</button>
-	<div class="ui tiny modal" id="lock-conversation">
+	<dialog class="modal-dialog" id="lock-conversation">
 		<div class="header">
 			{{if .Issue.IsLocked}}
 				{{ctx.Locale.Tr "repo.issues.unlock.title"}}
@@ -66,9 +66,9 @@
 				{{end}}
 
 				<div class="actions">
-					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-					{{/* explicitly focus the submit button, to avoid Fomantic modal focuses and popups the dropdown */}}
-					<button class="ui red button" autofocus>
+					<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+					{{/* explicitly focus the submit button, otherwise the modal focuses and pops up the dropdown */}}
+					<button type="submit" class="ui red button" autofocus>
 						{{if .Issue.IsLocked}}
 							{{ctx.Locale.Tr "repo.issues.unlock_confirm"}}
 						{{else}}
@@ -78,243 +78,12 @@
 				</div>
 			</form>
 		</div>
-	</div>
-	{{if not .Issue.IsPull}}
-	<button class="tw-mt-1 fluid ui show-modal button" data-modal="#sidebar-move-issue">
-		{{svg "octicon-arrow-right"}}
-		{{ctx.Locale.Tr "repo.issues.move_copy_button"}}
-	</button>
-	<div class="ui tiny modal" id="sidebar-move-issue"
-		data-i18n-move="{{ctx.Locale.Tr "repo.issues.move_copy_move"}}"
-		data-i18n-copy="{{ctx.Locale.Tr "repo.issues.move_copy_copy"}}"
-		data-i18n-no-results="{{ctx.Locale.Tr "repo.issues.move_copy_no_results"}}"
-		data-i18n-warning="{{ctx.Locale.Tr "repo.issues.move_copy_warning"}}"
-		data-i18n-copy-info="{{ctx.Locale.Tr "repo.issues.move_copy_copy_info"}}"
-		data-i18n-same-repo-warning="{{ctx.Locale.Tr "repo.issues.move_copy_same_repo_warning"}}"
-		data-current-repo="{{.Repository.OwnerName}}/{{.Repository.Name}}">
-		<div class="header">
-			{{ctx.Locale.Tr "repo.issues.move_copy_title"}}
-		</div>
-		<div class="content">
-			<div class="ui warning message" id="move-copy-warning-msg">
-				{{ctx.Locale.Tr "repo.issues.move_copy_warning"}}
-			</div>
-			<form class="ui form form-fetch-action" id="move-copy-issue-form" method="post" action="{{.Issue.Link}}/move_repo">
-				<div class="field">
-					<label>{{ctx.Locale.Tr "repo.issues.move_copy_action"}}</label>
-					<div class="grouped fields">
-						<div class="field">
-							<div class="ui radio checkbox">
-								<input type="radio" name="action_type" value="move" checked id="action-move">
-								<label for="action-move">{{ctx.Locale.Tr "repo.issues.move_copy_move"}}</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui radio checkbox">
-								<input type="radio" name="action_type" value="copy" id="action-copy">
-								<label for="action-copy">{{ctx.Locale.Tr "repo.issues.move_copy_copy"}}</label>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="field">
-					<label>{{ctx.Locale.Tr "repo.issues.move_copy_target"}}</label>
-					<div class="ui search" style="position: relative;">
-						<input type="text" id="repo-search" class="prompt" placeholder="{{ctx.Locale.Tr "repo.issues.move_copy_search"}}" autocomplete="off">
-						<input type="hidden" name="new_repo" id="repo-search-value" required>
-						<div id="repo-search-results" class="results" style="display:none; position:absolute; z-index:9999; width:100%; max-height:200px; overflow-y:auto; background:#fff; border:1px solid #ddd; border-radius:4px;"></div>
-					</div>
-				</div>
-				<div id="copy-options" style="display:none;">
-					<div class="field">
-						<div class="ui checkbox">
-							<input type="checkbox" name="copy_labels" id="copy-labels" value="true">
-							<label for="copy-labels">{{ctx.Locale.Tr "repo.issues.move_copy_copy_labels"}}</label>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input type="checkbox" name="copy_milestone" id="copy-milestone" value="true">
-							<label for="copy-milestone">{{ctx.Locale.Tr "repo.issues.move_copy_copy_milestone"}}</label>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input type="checkbox" name="copy_project" id="copy-project" value="true">
-							<label for="copy-project">{{ctx.Locale.Tr "repo.issues.move_copy_copy_project"}}</label>
-						</div>
-					</div>
-					<div class="field copy-only-option">
-						<div class="ui checkbox">
-							<input type="checkbox" name="copy_attachments" id="copy-attachments" value="true">
-							<label for="copy-attachments">{{ctx.Locale.Tr "repo.issues.move_copy_copy_attachments"}}</label>
-						</div>
-					</div>
-					<div class="field copy-only-option">
-						<div class="ui checkbox">
-							<input type="checkbox" name="copy_assignees" id="copy-assignees" value="true">
-							<label for="copy-assignees">{{ctx.Locale.Tr "repo.issues.move_copy_copy_assignees"}}</label>
-						</div>
-					</div>
-				</div>
-				<div id="dep-type-section" style="display:none; margin-top:1em;">
-					<div class="field">
-						<label>{{ctx.Locale.Tr "repo.issues.move_copy_dep_type"}}</label>
-						<div class="grouped fields">
-							<div class="field">
-								<div class="ui radio checkbox">
-									<input type="radio" name="dep_type" value="" checked id="dep-none">
-									<label for="dep-none">{{ctx.Locale.Tr "repo.issues.move_copy_dep_none"}}</label>
-								</div>
-							</div>
-							<div class="field">
-								<div class="ui radio checkbox">
-									<input type="radio" name="dep_type" value="original_blocks_copy" id="dep-orig-blocks">
-									<label for="dep-orig-blocks">{{ctx.Locale.Tr "repo.issues.move_copy_dep_original_blocks"}}</label>
-								</div>
-							</div>
-							<div class="field">
-								<div class="ui radio checkbox">
-									<input type="radio" name="dep_type" value="copy_blocks_original" id="dep-copy-blocks">
-									<label for="dep-copy-blocks">{{ctx.Locale.Tr "repo.issues.move_copy_dep_copy_blocks"}}</label>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="actions">
-					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-					<button class="ui red button" id="move-copy-submit">{{ctx.Locale.Tr "repo.issues.move_copy_confirm"}}</button>
-				</div>
-			</form>
-		</div>
-	</div>
-	<script>
-	(function() {
-		const modal = document.getElementById('sidebar-move-issue');
-		const searchInput = document.getElementById('repo-search');
-		const hiddenInput = document.getElementById('repo-search-value');
-		const resultsDiv = document.getElementById('repo-search-results');
-		const form = document.getElementById('move-copy-issue-form');
-		const submitBtn = document.getElementById('move-copy-submit');
-		const warningMsg = document.getElementById('move-copy-warning-msg');
-		const copyOptions = document.getElementById('copy-options');
-		const depTypeSection = document.getElementById('dep-type-section');
-		const copyOnlyOptions = document.querySelectorAll('.copy-only-option');
-		const baseLink = '{{.RepoLink}}/issues/accessible-repos';
-		const currentRepo = modal.dataset.currentRepo;
-		let debounceTimer;
-
-		if (!searchInput) return;
-
-		function isCopyMode() {
-			return document.querySelector('input[name="action_type"]:checked')?.value === 'copy';
-		}
-
-		function updateUI() {
-			var selectedRepo = hiddenInput.value;
-			var isSame = selectedRepo === currentRepo;
-			var copyMode = isCopyMode();
-			if (isSame) {
-				warningMsg.textContent = modal.dataset.i18nSameRepoWarning;
-				warningMsg.classList.remove('warning', 'info');
-				warningMsg.classList.add('info');
-				copyOptions.style.display = 'none';
-			} else if (copyMode) {
-				warningMsg.textContent = modal.dataset.i18nCopyInfo;
-				warningMsg.classList.remove('warning');
-				warningMsg.classList.add('info');
-				copyOptions.style.display = selectedRepo ? '' : 'none';
-			} else {
-				warningMsg.textContent = modal.dataset.i18nWarning;
-				warningMsg.classList.remove('info');
-				warningMsg.classList.add('warning');
-				copyOptions.style.display = selectedRepo ? '' : 'none';
-			}
-			copyOnlyOptions.forEach(function(el) {
-				el.style.display = (copyMode && !isSame) ? '' : 'none';
-			});
-		}
-
-		document.querySelectorAll('input[name="action_type"]').forEach(function(radio) {
-			radio.addEventListener('change', function() {
-				if (this.value === 'copy') {
-					form.action = '{{.Issue.Link}}/copy_repo';
-					submitBtn.textContent = modal.dataset.i18nCopy;
-					depTypeSection.style.display = '';
-				} else {
-					form.action = '{{.Issue.Link}}/move_repo';
-					submitBtn.textContent = modal.dataset.i18nMove;
-					depTypeSection.style.display = 'none';
-				}
-				updateUI();
-				fetchRepos(searchInput.value.trim());
-			});
-		});
-
-		function fetchRepos(q) {
-			fetch(baseLink + '?q=' + encodeURIComponent(q), {headers: {'Accept': 'application/json'}})
-				.then(function(r) { return r.json(); })
-				.then(function(data) {
-					resultsDiv.innerHTML = '';
-					if (!data || data.length === 0) {
-						resultsDiv.innerHTML = '<div style="padding:8px;color:#999;">' + modal.dataset.i18nNoResults + '</div>';
-						resultsDiv.style.display = 'block';
-						return;
-					}
-					var ul = document.createElement('ul');
-					ul.style.cssText = 'list-style:none;margin:0;padding:0;';
-					if (!isCopyMode()) {
-							data = data.filter(function(repo) { return repo.full_name !== currentRepo; });
-						}
-						if (data.length === 0) {
-							resultsDiv.innerHTML = '<div style="padding:8px;color:#999;">' + modal.dataset.i18nNoResults + '</div>';
-							resultsDiv.style.display = 'block';
-							return;
-						}
-						data.forEach(function(repo) {
-						var li = document.createElement('li');
-						li.textContent = repo.full_name;
-						li.style.cssText = 'padding:8px 12px;cursor:pointer;';
-						li.addEventListener('mouseenter', function() { this.style.background = '#f0f0f0'; });
-						li.addEventListener('mouseleave', function() { this.style.background = ''; });
-						li.addEventListener('click', function() {
-							searchInput.value = repo.full_name;
-							hiddenInput.value = repo.full_name;
-							resultsDiv.style.display = 'none';
-							updateUI();
-						});
-						ul.appendChild(li);
-					});
-					resultsDiv.appendChild(ul);
-					resultsDiv.style.display = 'block';
-				});
-		}
-
-		searchInput.addEventListener('focus', function() {
-			fetchRepos(this.value.trim());
-		});
-
-		searchInput.addEventListener('input', function() {
-			clearTimeout(debounceTimer);
-			const q = this.value.trim();
-			debounceTimer = setTimeout(function() { fetchRepos(q); }, 300);
-		});
-
-		document.addEventListener('click', function(e) {
-			if (!resultsDiv.contains(e.target) && e.target !== searchInput) {
-				resultsDiv.style.display = 'none';
-			}
-		});
-	})();
-	</script>
-	{{end}}
-
-	<button class="tw-mt-1 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
+	</dialog>
+	<button type="button" class="tw-mt-1 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "repo.issues.delete"}}
 	</button>
-	<div class="ui g-modal-confirm modal" id="sidebar-delete-issue">
+	<dialog class="modal-dialog" id="sidebar-delete-issue">
 		<div class="header">
 			{{if .Issue.IsPull}}
 				{{ctx.Locale.Tr "repo.pulls.delete.title"}}
@@ -334,5 +103,5 @@
 		<form action="{{.Issue.Link}}/delete" method="post">
 			{{template "base/modal_actions_confirm" .}}
 		</form>
-	</div>
+	</dialog>
 {{end}}

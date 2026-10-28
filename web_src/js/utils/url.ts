@@ -1,47 +1,46 @@
-export function pathEscapeSegments(s: string): string {
-  return s.split('/').map(encodeURIComponent).join('/');
+/** Matches URLs, excluding characters that are never valid unencoded in URLs per RFC 3986. */
+export const urlRawRegex = () => /\bhttps?:\/\/[^\s<>[\]]+/gi; // JS regexp has internal states, so always use a new instance
+
+/** Strip trailing punctuation that is likely not part of the URL. */
+export function trimUrlPunctuation(url: string): string {
+  url = url.replace(/[.,;:'"]+$/, '');
+  // Strip trailing closing parens only if unbalanced (not part of the URL like Wikipedia links),
+  // counted once as a URL can carry as many parens as the text it was found in is long
+  let unbalanced = 0;
+  for (const char of url) unbalanced += char === ')' ? 1 : char === '(' ? -1 : 0;
+  let strip = 0;
+  while (strip < unbalanced && url[url.length - 1 - strip] === ')') strip++;
+  return strip ? url.slice(0, -strip) : url;
 }
 
-// Match HTML tags (to skip) or URLs (to linkify) in HTML content
-const urlLinkifyPattern = /(<([-\w]+)[^>]*>)|(<\/([-\w]+)[^>]*>)|(https?:\/\/[^\s<>"'`|(){}[\]]+)/gi;
-const trailingPunctPattern = /[.,;:!?]+$/;
+export function urlQueryEscape(s: string) {
+  // See "TestQueryEscape" in backend
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#encoding_for_rfc3986
+  return encodeURIComponent(s).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  ).replaceAll('%20', '+');
+}
 
-// Convert URLs to clickable links in HTML, preserving existing HTML tags
-export function linkifyURLs(html: string): string {
-  let inAnchor = false;
-  return html.replace(urlLinkifyPattern, (match, _openTagFull, openTag, _closeTagFull, closeTag, url) => {
-    // skip URLs inside existing <a> tags
-    if (openTag === 'a') {
-      inAnchor = true;
-      return match;
-    } else if (closeTag === 'a') {
-      inAnchor = false;
-      return match;
+export function pathEscape(s: string): string {
+  // See "TestPathEscape" in backend
+  return encodeURIComponent(s).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  ).replaceAll(/%(\w\w)/g, (v) => {
+    switch (v) {
+      case '%24': return '$';
+      case '%26': return '&';
+      case '%2B': return '+';
+      case '%3A': return ':';
+      case '%3D': return '=';
+      case '%40': return '@';
+      default: return v;
     }
-    if (inAnchor || !url) {
-      return match;
-    }
-
-    const trailingPunct = url.match(trailingPunctPattern);
-    const cleanUrl = trailingPunct ? url.slice(0, -trailingPunct[0].length) : url;
-    const trailing = trailingPunct ? trailingPunct[0] : '';
-    // safe because regexp only matches valid URLs (no quotes or angle brackets)
-    return `<a href="${cleanUrl}" target="_blank">${cleanUrl}</a>${trailing}`; // eslint-disable-line github/unescaped-html-literal
   });
 }
 
-/** Convert an absolute or relative URL to an absolute URL with the current origin. It only
- *  processes absolute HTTP/HTTPS URLs or relative URLs like '/xxx' or '//host/xxx'. */
-export function toOriginUrl(urlStr: string) {
-  try {
-    if (urlStr.startsWith('http://') || urlStr.startsWith('https://') || urlStr.startsWith('/')) {
-      const {origin, protocol, hostname, port} = window.location;
-      const url = new URL(urlStr, origin);
-      url.protocol = protocol;
-      url.hostname = hostname;
-      url.port = port || (protocol === 'https:' ? '443' : '80');
-      return url.toString();
-    }
-  } catch {}
-  return urlStr;
+export function pathEscapeSegments(s: string): string {
+  // The same as backend's PathEscapeSegments
+  return s.split('/').map(pathEscape).join('/');
 }
