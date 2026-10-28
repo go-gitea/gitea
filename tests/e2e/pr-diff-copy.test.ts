@@ -19,5 +19,5 @@ test('a copied pull request diff pastes as text', async ({page, request}) => {
   const comment = page.getByRole('textbox', {name: 'Review comment'});
   await comment.press('ControlOrMeta+KeyV');
   await expect(comment).toHaveValue(/one \| two/);
-  await expect(comment).not.toHaveValue(/one \\\| two/);
+  await expect(comment).not.toHaveValue(/one \\\| two/); // paste-markdown also inserts the table until https://github.com/github/paste-markdown/pull/128
 });
