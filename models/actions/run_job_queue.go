@@ -21,8 +21,11 @@ type JobQueueOptions struct {
 }
 
 func (opts JobQueueOptions) session(ctx context.Context) *xorm.Session {
-	// a reusable-workflow caller only tracks its children, it never occupies a runner itself
-	sess := db.GetEngine(ctx).Table("action_run_job").Where(builder.Eq{"`action_run_job`.is_reusable_caller": false})
+	// a reusable-workflow caller only tracks its children, it never occupies a runner itself.
+	// SQLite planner workaround: `<> true`, not `= false`. Nearly every job is a non-caller, but SQLite cannot see that skew
+	// and would drive this query from the is_reusable_caller index, reading the whole table. It cannot use an index for `<>`,
+	// so the status/pickup indexes are used instead. The result is the same on every database.
+	sess := db.GetEngine(ctx).Table("action_run_job").Where(builder.Neq{"`action_run_job`.is_reusable_caller": true})
 	if opts.RepoID > 0 {
 		sess = sess.And(builder.Eq{"`action_run_job`.repo_id": opts.RepoID})
 	}
