@@ -72,6 +72,9 @@ func checkMoveIssueTarget(ctx context.Context, doer *user_model.User, issue *iss
 	if !perm.CanWrite(unit.TypeIssues) {
 		return util.NewPermissionDeniedErrorf("no permission to write issues in the target repository")
 	}
+	if user_model.IsUserBlockedBy(ctx, doer, targetRepo.OwnerID) {
+		return user_model.ErrBlockedUser
+	}
 	return nil
 }
 
@@ -198,6 +201,12 @@ func MoveIssue(ctx context.Context, doer *user_model.User, issue *issues_model.I
 	if err := issue.LoadAssignees(ctx); err != nil {
 		return err
 	}
+	if err := issue.LoadPoster(ctx); err != nil {
+		return err
+	}
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, targetRepo.OwnerID) {
+		return user_model.ErrBlockedUser
+	}
 	oldRepo := issue.Repo
 	oldIndex := issue.Index
 
@@ -210,10 +219,15 @@ func MoveIssue(ctx context.Context, doer *user_model.User, issue *issues_model.I
 		if err != nil {
 			return err
 		}
-		issue.RepoID, issue.Repo, issue.Index = targetRepo.ID, targetRepo, newIndex
-		if err := issues_model.UpdateIssueCols(ctx, issue, "repo_id", "index"); err != nil {
+		// only move the issue if it hasn't been moved concurrently
+		affected, err := db.GetEngine(ctx).Where("id = ? AND repo_id = ?", issue.ID, oldRepo.ID).Cols("repo_id", "`index`").
+			Update(&issues_model.Issue{RepoID: targetRepo.ID, Index: newIndex})
+		if err != nil {
 			return err
+		} else if affected != 1 {
+			return util.NewNotExistErrorf("issue %d is no longer in repository %d", issue.ID, oldRepo.ID)
 		}
+		issue.RepoID, issue.Repo, issue.Index = targetRepo.ID, targetRepo, newIndex
 		if err := issues_model.CreateIssueRedirect(ctx, oldRepo.ID, oldIndex, issue.ID); err != nil {
 			return err
 		}
@@ -300,7 +314,9 @@ func MoveIssue(ctx context.Context, doer *user_model.User, issue *issues_model.I
 		}
 		for _, watch := range watchers {
 			watcher, err := user_model.GetUserByID(ctx, watch.UserID)
-			if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				continue
+			} else if err != nil {
 				return err
 			}
 			canRead, err := canReadIssues(ctx, watcher, targetRepo)
@@ -321,11 +337,12 @@ func MoveIssue(ctx context.Context, doer *user_model.User, issue *issues_model.I
 		}
 
 		_, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-			Type:    issues_model.CommentTypeMoveIssueFrom,
-			Doer:    doer,
-			Repo:    targetRepo,
-			Issue:   issue,
-			Content: fmt.Sprintf("%s#%d", oldRepo.FullName(), oldIndex),
+			Type:      issues_model.CommentTypeMoveIssueFrom,
+			Doer:      doer,
+			Repo:      targetRepo,
+			Issue:     issue,
+			RefRepoID: oldRepo.ID,
+			Content:   fmt.Sprintf("%s#%d", oldRepo.FullName(), oldIndex),
 		})
 		return err
 	})
@@ -365,8 +382,9 @@ func removeCrossRepoDependencies(ctx context.Context, doer *user_model.User, iss
 }
 
 // copyIssueAttachments duplicates the attachments of the issue body for the target repository.
-// It returns the new attachment UUIDs and the content with the attachment links replaced.
-func copyIssueAttachments(ctx context.Context, issue *issues_model.Issue, targetRepo *repo_model.Repository) (uuids []string, content string, err error) {
+// It returns the new attachments and the content with the attachment links replaced.
+// The new attachments are returned even on error, so the caller can remove their files.
+func copyIssueAttachments(ctx context.Context, issue *issues_model.Issue, targetRepo *repo_model.Repository) (newAttachments []*repo_model.Attachment, content string, err error) {
 	attachments, err := repo_model.GetAttachmentsByIssueID(ctx, issue.ID)
 	if err != nil {
 		return nil, "", err
@@ -384,19 +402,20 @@ func copyIssueAttachments(ctx context.Context, issue *issues_model.Issue, target
 			Size:       attachment.Size,
 		}
 		if _, err := storage.Copy(storage.Attachments, newAttachment.RelativePath(), storage.Attachments, attachment.RelativePath()); err != nil {
-			return nil, "", err
+			return newAttachments, "", err
 		}
+		newAttachments = append(newAttachments, newAttachment)
 		if err := db.Insert(ctx, newAttachment); err != nil {
-			return nil, "", err
+			return newAttachments, "", err
 		}
-		uuids = append(uuids, newAttachment.UUID)
 		content = strings.ReplaceAll(content, attachment.UUID, newAttachment.UUID)
 	}
-	return uuids, content, nil
+	return newAttachments, content, nil
 }
 
 // CopyIssue creates a copy of an issue in another repository and returns the new issue.
-func CopyIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, targetRepo *repo_model.Repository, opts CopyIssueOptions) (*issues_model.Issue, error) {
+// The copy is posted by the doer, the timeline of the copy links to the original issue.
+func CopyIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, targetRepo *repo_model.Repository, opts CopyIssueOptions) (_ *issues_model.Issue, err error) {
 	if err := checkMoveIssueTarget(ctx, doer, issue, targetRepo); err != nil {
 		return nil, err
 	}
@@ -418,13 +437,29 @@ func CopyIssue(ctx context.Context, doer *user_model.User, issue *issues_model.I
 	newIssue := &issues_model.Issue{
 		RepoID:   targetRepo.ID,
 		Repo:     targetRepo,
-		PosterID: issue.PosterID,
+		PosterID: doer.ID,
+		Poster:   doer,
 		Title:    issue.Title,
 		Content:  issue.Content,
 	}
 	var labelIDs, assigneeIDs, projectIDs []int64
-	var uuids []string
-	err := db.WithTx(ctx, func(ctx context.Context) error {
+	var attachments []*repo_model.Attachment
+	defer func() {
+		if err == nil || len(attachments) == 0 {
+			return
+		}
+		uuids := make([]string, 0, len(attachments))
+		for _, attachment := range attachments {
+			uuids = append(uuids, attachment.UUID)
+			if err := storage.Attachments.Delete(attachment.RelativePath()); err != nil {
+				log.Error("Delete copied attachment %s: %v", attachment.RelativePath(), err)
+			}
+		}
+		if _, err := db.GetEngine(ctx).In("uuid", uuids).Delete(new(repo_model.Attachment)); err != nil {
+			log.Error("Delete copied attachments: %v", err)
+		}
+	}()
+	err = db.WithTx(ctx, func(ctx context.Context) error {
 		if opts.KeepLabels {
 			if err := issue.LoadLabels(ctx); err != nil {
 				return err
@@ -460,7 +495,7 @@ func CopyIssue(ctx context.Context, doer *user_model.User, issue *issues_model.I
 		}
 		if opts.CopyAttachments {
 			var err error
-			if uuids, newIssue.Content, err = copyIssueAttachments(ctx, issue, targetRepo); err != nil {
+			if attachments, newIssue.Content, err = copyIssueAttachments(ctx, issue, targetRepo); err != nil {
 				return err
 			}
 		}
@@ -485,35 +520,43 @@ func CopyIssue(ctx context.Context, doer *user_model.User, issue *issues_model.I
 		}
 	}
 
+	uuids := make([]string, 0, len(attachments))
+	for _, attachment := range attachments {
+		uuids = append(uuids, attachment.UUID)
+	}
 	if err := NewIssue(ctx, targetRepo, newIssue, labelIDs, uuids, assigneeIDs, projectIDs); err != nil {
 		return nil, err
 	}
+	attachments = nil // they belong to the new issue now
 
+	var depErr error
 	switch opts.Dependency {
 	case CopyIssueDependencyOriginalBlocksCopy:
-		err = issues_model.CreateIssueDependency(ctx, doer, newIssue, issue)
+		depErr = issues_model.CreateIssueDependency(ctx, doer, newIssue, issue)
 	case CopyIssueDependencyCopyBlocksOriginal:
-		err = issues_model.CreateIssueDependency(ctx, doer, issue, newIssue)
+		depErr = issues_model.CreateIssueDependency(ctx, doer, issue, newIssue)
 	}
-	if err != nil {
-		log.Error("CreateIssueDependency between issue %d and its copy %d: %v", issue.ID, newIssue.ID, err)
+	if depErr != nil {
+		log.Error("CreateIssueDependency between issue %d and its copy %d: %v", issue.ID, newIssue.ID, depErr)
 	}
 
 	if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-		Type:    issues_model.CommentTypeCopyIssueTo,
-		Doer:    doer,
-		Repo:    issue.Repo,
-		Issue:   issue,
-		Content: fmt.Sprintf("%s#%d", targetRepo.FullName(), newIssue.Index),
+		Type:      issues_model.CommentTypeCopyIssueTo,
+		Doer:      doer,
+		Repo:      issue.Repo,
+		Issue:     issue,
+		RefRepoID: targetRepo.ID,
+		Content:   fmt.Sprintf("%s#%d", targetRepo.FullName(), newIssue.Index),
 	}); err != nil {
 		return nil, err
 	}
 	if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-		Type:    issues_model.CommentTypeCopyIssueFrom,
-		Doer:    doer,
-		Repo:    targetRepo,
-		Issue:   newIssue,
-		Content: fmt.Sprintf("%s#%d", issue.Repo.FullName(), issue.Index),
+		Type:      issues_model.CommentTypeCopyIssueFrom,
+		Doer:      doer,
+		Repo:      targetRepo,
+		Issue:     newIssue,
+		RefRepoID: issue.Repo.ID,
+		Content:   fmt.Sprintf("%s#%d", issue.Repo.FullName(), issue.Index),
 	}); err != nil {
 		return nil, err
 	}

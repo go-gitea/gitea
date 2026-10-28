@@ -187,6 +187,11 @@ func AsCommentType(typeName string) CommentType {
 	return CommentTypeUndefined
 }
 
+// CommentTypeIsMoveOrCopy returns true if the comment records an issue move or copy between repositories
+func CommentTypeIsMoveOrCopy(t CommentType) bool {
+	return t >= CommentTypeMoveIssueTo && t <= CommentTypeCopyIssueFrom
+}
+
 func (t CommentType) HasContentSupport() bool {
 	switch t {
 	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview:

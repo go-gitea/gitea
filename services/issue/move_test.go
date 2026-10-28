@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -75,7 +76,7 @@ func TestCopyIssue(t *testing.T) {
 	assert.Equal(t, targetRepo.ID, copied.RepoID)
 	assert.Equal(t, issue.Title, copied.Title)
 	assert.Equal(t, issue.Content, copied.Content)
-	assert.Equal(t, issue.PosterID, copied.PosterID)
+	assert.Equal(t, doer.ID, copied.PosterID)
 
 	labels, err := issues_model.GetLabelsByIssueID(t.Context(), copied.ID)
 	require.NoError(t, err)
@@ -84,7 +85,22 @@ func TestCopyIssue(t *testing.T) {
 	assert.Equal(t, targetRepo.ID, labels[0].RepoID)
 
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueAssignees{IssueID: copied.ID, AssigneeID: 1})
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeCopyIssueTo})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeCopyIssueTo, RefRepoID: targetRepo.ID})
+
+	// users who can't read the private target repository don't see where the issue was copied to
+	comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{IssueID: issue.ID, Type: issues_model.CommentTypeCopyIssueTo})
+	require.NoError(t, err)
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	perm5, err := access_model.GetDoerRepoPermission(t.Context(), srcRepo, user5)
+	require.NoError(t, err)
+	readable, err := FilterReadableComments(t.Context(), user5, perm5, issue, comments)
+	require.NoError(t, err)
+	assert.Empty(t, readable)
+	perm2, err := access_model.GetDoerRepoPermission(t.Context(), srcRepo, doer)
+	require.NoError(t, err)
+	readable, err = FilterReadableComments(t.Context(), doer, perm2, issue, comments)
+	require.NoError(t, err)
+	assert.Len(t, readable, 1)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: copied.ID, Type: issues_model.CommentTypeCopyIssueFrom, Content: "user2/repo1#1"})
 }
 
