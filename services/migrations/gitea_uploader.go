@@ -1009,6 +1009,9 @@ func (g *GiteaLocalUploader) saveAttachments(ctx context.Context, content *strin
 	var attachments []*repo_model.Attachment
 	replacements := map[string]string{}
 	for _, asset := range assets {
+		if asset.Link != "" {
+			replacements[asset.Link] = asset.Link // kept unless the file is saved
+		}
 		// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
 		// ... we must assume that they are safe and simply download the attachment
 		var rc io.ReadCloser
@@ -1055,10 +1058,12 @@ func (g *GiteaLocalUploader) saveAttachments(ctx context.Context, content *strin
 		}
 		attachments = append(attachments, attach)
 	}
-	// longest first, so that a link which is a prefix of another one (".../attachments/1" and ".../attachments/12") does not corrupt it
+	// one pass, longest first, so that a link which is a prefix of another one (".../attachments/1" and ".../attachments/12") does not corrupt it
+	oldnew := make([]string, 0, 2*len(replacements))
 	for _, link := range slices.SortedFunc(maps.Keys(replacements), func(a, b string) int { return cmp.Compare(len(b), len(a)) }) {
-		*content = strings.ReplaceAll(*content, link, replacements[link])
+		oldnew = append(oldnew, link, replacements[link])
 	}
+	*content = strings.NewReplacer(oldnew...).Replace(*content)
 	return attachments, nil
 }
 
