@@ -206,4 +206,3 @@ func TestSettingAmbiguousUnicodeDetection(t *testing.T) {
 	_, out = EscapeControlHTML("a test", &translation.MockLocale{})
 	assert.EqualValues(t, `a test`, out)
 }
-
