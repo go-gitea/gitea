@@ -64,7 +64,7 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 	if err != nil {
 		return nil, err
 	}
-	if !isFeedYearValid(year) {
+	if !timeutil.IsValidYear(year) {
 		cond = cond.And(builder.Gt{"created_unix": timeutil.TimeStampNow() - (366+7)*86400}) // (366+7) days to include the first week for the heatmap
 	}
 

@@ -443,14 +443,10 @@ func ActivityReadable(user, doer *user_model.User) bool {
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
-func isFeedYearValid(year int) bool {
-	return year >= 1970 && year <= 9999
-}
-
 func FeedDateCond(opts GetFeedsOptions) builder.Cond {
 	cond := builder.NewCond()
 	if opts.Date == "" {
-		if isFeedYearValid(opts.Year) {
+		if timeutil.IsValidYear(opts.Year) {
 			yearStart := time.Date(opts.Year, time.January, 1, 0, 0, 0, 0, setting.DefaultUILocation)
 			cond = cond.And(builder.Gte{"`action`.created_unix": yearStart.Unix()}, builder.Lt{"`action`.created_unix": yearStart.AddDate(1, 0, 0).Unix()})
 		}
