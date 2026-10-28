@@ -204,7 +204,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 				},
 			},
 			// Search for matches on the contents of files within the repo '62'.
-			// This scenario yields two results (both are based on contents, the first one is an exact match where as the second is a 'fuzzy' one)
+			// This scenario yields two results (both are based on contents, the first one is an exact match where as the second is a words match)
 			{
 				RepoIDs: []int64{62},
 				Keyword: "This is not cheese",
