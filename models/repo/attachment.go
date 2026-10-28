@@ -133,6 +133,9 @@ func ExistAttachmentsByUUID(ctx context.Context, uuid string) (bool, error) {
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
 func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment, error) {
+	if issueID == 0 { // unsaved issue, would match every issue-less attachment
+		return []*Attachment{}, nil
+	}
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
 }
@@ -257,15 +260,17 @@ func DeleteAttachmentsByRelease(ctx context.Context, releaseID int64) error {
 	return err
 }
 
-// CountOrphanedAttachments returns the number of bad attachments
-func CountOrphanedAttachments(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
-		Count(new(Attachment))
+func sqlOrphanedAttachmentsWhereCond() string {
+	return "(issue_id > 0 and issue_id not in (select id from `issue`))" +
+		" or (release_id > 0 and release_id not in (select id from `release`))" +
+		" or (comment_id > 0 and comment_id not in (select id from `comment`))"
 }
 
-// DeleteOrphanedAttachments delete all bad attachments
+func CountOrphanedAttachments(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(sqlOrphanedAttachmentsWhereCond()).Count(new(Attachment))
+}
+
 func DeleteOrphanedAttachments(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
-		Delete(new(Attachment))
+	_, err := db.GetEngine(ctx).Where(sqlOrphanedAttachmentsWhereCond()).Delete(new(Attachment))
 	return err
 }

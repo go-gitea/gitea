@@ -58,8 +58,8 @@ func ListPullReviews(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReviewList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
@@ -137,8 +137,8 @@ func GetPullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	review, _, statusSet := prepareSingleReview(ctx)
 	if statusSet {
@@ -187,8 +187,8 @@ func GetPullReviewComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReviewCommentList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	review, _, statusSet := prepareSingleReview(ctx)
 	if statusSet {
@@ -245,12 +245,8 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullReviewComment"
-	//   "400":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.CreatePullReviewCommentReplyOptions](ctx)
 
@@ -313,12 +309,8 @@ func ResolvePullReviewComment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "400":
-	//     "$ref": "#/responses/validationError"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	updatePullReviewCommentResolve(ctx, true)
 }
 
@@ -349,12 +341,8 @@ func UnresolvePullReviewComment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "400":
-	//     "$ref": "#/responses/validationError"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	updatePullReviewCommentResolve(ctx, false)
 }
 
@@ -435,10 +423,8 @@ func DeletePullReview(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	review, _, statusSet := prepareSingleReview(ctx)
 	if statusSet {
@@ -494,10 +480,8 @@ func CreatePullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.CreatePullReviewOptions](ctx)
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
@@ -507,7 +491,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	}
 
 	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body, len(opts.Comments) > 0)
+	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
 	if isWrong {
 		return
 	}
@@ -562,7 +546,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	// create review and associate all pending review comments
 	review, _, err := pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, pr.Issue, reviewType, opts.Body, opts.CommitID, nil)
 	if err != nil {
-		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
+		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) || issues_model.IsContentEmptyErr(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
@@ -617,10 +601,8 @@ func SubmitPullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.SubmitPullReviewOptions](ctx)
 	review, pr, isWrong := prepareSingleReview(ctx)
@@ -634,7 +616,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 	}
 
 	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body, len(review.Comments) > 0)
+	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
 	if isWrong {
 		return
 	}
@@ -654,7 +636,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 	// create review and associate all pending review comments
 	review, _, err = pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, pr.Issue, reviewType, opts.Body, headCommitID, nil)
 	if err != nil {
-		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
+		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) || issues_model.IsContentEmptyErr(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
@@ -672,16 +654,12 @@ func SubmitPullReview(ctx *context.APIContext) {
 }
 
 // preparePullReviewType return ReviewType and false or nil and true if an error happen
-func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest, event api.ReviewStateType, body string, hasComments bool) (issues_model.ReviewType, bool) {
+func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest, event api.ReviewStateType, body string) (issues_model.ReviewType, bool) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		ctx.APIErrorInternal(err)
 		return -1, true
 	}
 
-	needsBody := true
-	hasBody := len(strings.TrimSpace(body)) > 0
-
-	var reviewType issues_model.ReviewType
 	switch event {
 	case api.ReviewStateApproved:
 		// can not approve your own PR
@@ -689,8 +667,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 			ctx.APIError(http.StatusUnprocessableEntity, "approve your own pull is not allowed")
 			return -1, true
 		}
-		reviewType = issues_model.ReviewTypeApprove
-		needsBody = false
+		return issues_model.ReviewTypeApprove, false
 
 	case api.ReviewStateRequestChanges:
 		// can not reject your own PR
@@ -698,27 +675,17 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 			ctx.APIError(http.StatusUnprocessableEntity, "reject your own pull is not allowed")
 			return -1, true
 		}
-		reviewType = issues_model.ReviewTypeReject
-
-	case api.ReviewStateComment:
-		reviewType = issues_model.ReviewTypeComment
-		needsBody = false
-		// if there is no body we need to ensure that there are comments
-		if !hasBody && !hasComments {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("review event %s requires a body or a comment", event))
+		if strings.TrimSpace(body) == "" {
+			ctx.APIError(http.StatusUnprocessableEntity, "review event REQUEST_CHANGES requires a body")
 			return -1, true
 		}
+		return issues_model.ReviewTypeReject, false
+
+	case api.ReviewStateComment:
+		return issues_model.ReviewTypeComment, false
 	default:
-		reviewType = issues_model.ReviewTypePending
+		return issues_model.ReviewTypePending, false
 	}
-
-	// reject reviews with empty body if a body is required for this call
-	if needsBody && !hasBody {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("review event %s requires a body", event))
-		return -1, true
-	}
-
-	return reviewType, false
 }
 
 // prepareSingleReview return review, related pull and false or nil, nil and true if an error happen
@@ -787,10 +754,8 @@ func CreateReviewRequests(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullReviewList"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.PullReviewRequestOptions](ctx)
 	apiReviewRequest(ctx, *opts, true)
@@ -828,12 +793,8 @@ func DeleteReviewRequests(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	opts := web.GetForm[*api.PullReviewRequestOptions](ctx)
 	apiReviewRequest(ctx, *opts, false)
 }
@@ -1008,12 +969,8 @@ func DismissPullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	opts := web.GetForm[*api.DismissPullReviewOptions](ctx)
 	dismissReview(ctx, opts.Message, true, opts.Priors)
 }
@@ -1051,12 +1008,8 @@ func UnDismissPullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	dismissReview(ctx, "", false, false)
 }
 

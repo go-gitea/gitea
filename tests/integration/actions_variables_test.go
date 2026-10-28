@@ -27,21 +27,21 @@ func TestActionsVariables(t *testing.T) {
 	require.NoError(t, db.DeleteAllRecords("action_variable"))
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	_, _ = actions_model.InsertVariable(ctx, user2.ID, 0, "VAR", "user2-var", "user2-var-description")
+	_, _ = actions_model.InsertVariable(ctx, actions_model.BelongingScopeOwner(user2.ID), "VAR", "user2-var", "user2-var-description")
 	user2Var := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{OwnerID: user2.ID, Name: "VAR"})
 	userWebURL := "/user/settings/actions/variables"
 
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3, Type: user_model.UserTypeOrganization})
-	_, _ = actions_model.InsertVariable(ctx, org3.ID, 0, "VAR", "org3-var", "org3-var-description")
+	_, _ = actions_model.InsertVariable(ctx, actions_model.BelongingScopeOwner(org3.ID), "VAR", "org3-var", "org3-var-description")
 	org3Var := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{OwnerID: org3.ID, Name: "VAR"})
 	orgWebURL := "/org/org3/settings/actions/variables"
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	_, _ = actions_model.InsertVariable(ctx, 0, repo1.ID, "VAR", "repo1-var", "repo1-var-description")
+	_, _ = actions_model.InsertVariable(ctx, actions_model.BelongingScopeRepo(repo1.ID), "VAR", "repo1-var", "repo1-var-description")
 	repo1Var := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{RepoID: repo1.ID, Name: "VAR"})
 	repoWebURL := "/user2/repo1/settings/actions/variables"
 
-	_, _ = actions_model.InsertVariable(ctx, 0, 0, "VAR", "global-var", "global-var-description")
+	_, _ = actions_model.InsertVariable(ctx, actions_model.BelongingScope{}, "VAR", "global-var", "global-var-description")
 	globalVar := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{Name: "VAR", Data: "global-var"})
 	adminWebURL := "/-/admin/actions/variables"
 
@@ -76,57 +76,30 @@ func TestActionsVariables(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &actions_model.ActionVariable{ID: id})
 	}
 
-	t.Run("UpdateUserVar", func(t *testing.T) {
-		theVar := user2Var
-		t.Run("FromOrg", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, orgWebURL, theVar.ID)
+	originURLs := map[string]string{
+		"User":  userWebURL,
+		"Org":   orgWebURL,
+		"Repo":  repoWebURL,
+		"Admin": adminWebURL,
+	}
+	for _, variable := range []struct {
+		name    string
+		id      int64
+		origins []string
+	}{
+		{"User", user2Var.ID, []string{"Org", "Repo", "Admin"}},
+		{"Org", org3Var.ID, []string{"Repo", "User", "Admin"}},
+		{"Repo", repo1Var.ID, []string{"Org", "User", "Admin"}},
+		{"Global", globalVar.ID, []string{"Org", "User", "Repo"}},
+	} {
+		t.Run("Update"+variable.name+"Var", func(t *testing.T) {
+			for _, origin := range variable.origins {
+				t.Run("From"+origin, func(t *testing.T) {
+					assertDenied(t, sessionAdmin, originURLs[origin], variable.id)
+				})
+			}
 		})
-		t.Run("FromRepo", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, repoWebURL, theVar.ID)
-		})
-		t.Run("FromAdmin", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, adminWebURL, theVar.ID)
-		})
-	})
-
-	t.Run("UpdateOrgVar", func(t *testing.T) {
-		theVar := org3Var
-		t.Run("FromRepo", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, repoWebURL, theVar.ID)
-		})
-		t.Run("FromUser", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, userWebURL, theVar.ID)
-		})
-		t.Run("FromAdmin", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, adminWebURL, theVar.ID)
-		})
-	})
-
-	t.Run("UpdateRepoVar", func(t *testing.T) {
-		theVar := repo1Var
-		t.Run("FromOrg", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, orgWebURL, theVar.ID)
-		})
-		t.Run("FromUser", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, userWebURL, theVar.ID)
-		})
-		t.Run("FromAdmin", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, adminWebURL, theVar.ID)
-		})
-	})
-
-	t.Run("UpdateGlobalVar", func(t *testing.T) {
-		theVar := globalVar
-		t.Run("FromOrg", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, orgWebURL, theVar.ID)
-		})
-		t.Run("FromUser", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, userWebURL, theVar.ID)
-		})
-		t.Run("FromRepo", func(t *testing.T) {
-			assertDenied(t, sessionAdmin, repoWebURL, theVar.ID)
-		})
-	})
+	}
 
 	t.Run("UpdateSuccess", func(t *testing.T) {
 		t.Run("User", func(t *testing.T) {

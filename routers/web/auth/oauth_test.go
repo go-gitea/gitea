@@ -6,15 +6,18 @@ package auth
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync/atomic"
 	"testing"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/hostmatcher"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"gitea.dev/modules/egress/policy"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
 	"gitea.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -30,6 +33,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider
 	response, terr := oauth2_provider.NewAccessTokenResponse(t.Context(), grant, signingKey, signingKey)
 	assert.Nil(t, terr)
 	assert.NotNil(t, response)
+	assert.Equal(t, grant.Scope, response.Scope)
 
 	parsedToken, err := jwt.ParseWithClaims(response.IDToken, &oauth2_provider.OIDCToken{}, func(token *jwt.Token) (any, error) {
 		assert.NotNil(t, token.Method)
@@ -98,24 +102,71 @@ func TestOAuth2AvatarClientBlocksLoopback(t *testing.T) {
 	assert.False(t, hit.Load(), "avatar client must refuse to dial a loopback address")
 }
 
-func TestOAuth2AvatarAllowListRestricts(t *testing.T) {
-	defer test.MockVariableValue(&setting.Security.AllowedHostList, "avatars.example.com")()
-	allowList := oauth2AvatarAllowList()
-	assert.True(t, allowList.MatchHostName("avatars.example.com"), "the configured host must be allowed")
-	assert.False(t, allowList.MatchHostName("8.8.8.8"), "an unrelated external host must be rejected")
-
-	// the default `external` allow-list still permits external hosts
-	setting.Security.AllowedHostList = hostmatcher.MatchBuiltinExternal
-	assert.True(t, oauth2AvatarAllowList().MatchHostName("8.8.8.8"), "default allow-list permits external hosts")
-}
-
 func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
-	// external-only allow-list must reject link-local cloud metadata (169.254.169.254) at dial time
 	resp, err := oauth2AvatarHTTPClient().Get("http://169.254.169.254/latest/meta-data/")
 	if resp != nil {
 		_ = resp.Body.Close()
 	}
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "can only call allowed HTTP servers",
+	assert.ErrorIs(t, err, policy.ErrDenied,
 		"avatar client must refuse a link-local cloud-metadata address")
+}
+
+func TestOAuth2ScopeChange(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("oauth2-scope-change")}
+	authorize := func(scope string) *httptest.ResponseRecorder {
+		ctx, resp := contexttest.MockContext(t, "/login/oauth/authorize", mockOpt)
+		ctx.Doer = doer
+		web.SetForm(ctx, &forms.AuthorizationForm{ResponseType: "code", ClientID: app.ClientID, RedirectURI: app.RedirectURIs[0], State: "state", Scope: scope})
+		AuthorizeOAuth(ctx)
+		return resp
+	}
+	assert.Equal(t, http.StatusSeeOther, authorize("").Code)
+	assert.Equal(t, http.StatusSeeOther, authorize("profile openid").Code)
+	grant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1})
+	require.NoError(t, auth.UpdateGrantScope(t.Context(), grant, "openid profile read:user write:user"))
+	assert.Equal(t, http.StatusSeeOther, authorize("openid profile write:user").Code)
+	require.NoError(t, auth.UpdateGrantScope(t.Context(), grant, "openid invalid:scope"))
+	assert.Equal(t, http.StatusOK, authorize("openid profile").Code)
+	require.NoError(t, auth.UpdateGrantScope(t.Context(), grant, "openid profile"))
+	assert.Equal(t, http.StatusOK, authorize("openid profile email").Code)
+
+	for _, tt := range []struct {
+		name, scope, wantScope string
+	}{
+		{"only invalid scopes", "invalid:scope unsupported", "no-token-scope"},
+		{"OIDC with invalid scope", "openid invalid:scope", "openid no-token-scope"},
+		{"comma-only scope", ",", "no-token-scope"},
+		{"OIDC with comma-only scope", "openid ,,", "openid no-token-scope"},
+		{"OIDC scopes", "openid profile email", "openid profile email"},
+		{"mixed valid and invalid scopes", "openid groups read:user,invalid:scope public-only unsupported", "openid groups public-only read:user"},
+		{"normalized access scopes", " read:user  openid profile email read:user ", "openid profile email read:user"},
+		{"redundant read scope", "openid read:user write:user", "openid write:user"},
+		{"redundant scope with all", "openid all read:user", "openid all"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := authorize(tt.scope)
+			require.Equal(t, http.StatusOK, resp.Code)
+			ctx, resp := contexttest.MockContext(t, "/login/oauth/grant", mockOpt)
+			ctx.Doer = doer
+			web.SetForm(ctx, &forms.GrantApplicationForm{ClientID: app.ClientID, Granted: true, RedirectURI: app.RedirectURIs[0], State: "state", Scope: tt.scope})
+			GrantApplicationOAuth(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			redirect, err := url.Parse(resp.Header().Get("Location"))
+			require.NoError(t, err)
+			assert.Empty(t, redirect.Query().Get("error"))
+			assert.Equal(t, "state", redirect.Query().Get("state"))
+			unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, Scope: tt.wantScope})
+			assert.NotEmpty(t, redirect.Query().Get("code"))
+			resp = authorize(tt.scope)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			redirect, err = url.Parse(resp.Header().Get("Location"))
+			require.NoError(t, err)
+			assert.NotEmpty(t, redirect.Query().Get("code"))
+			assert.Empty(t, redirect.Query().Get("error"))
+		})
+	}
 }

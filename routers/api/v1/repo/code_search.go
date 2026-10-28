@@ -13,6 +13,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/indexer"
@@ -280,7 +281,7 @@ func codeSearchRepoIDs(ctx *context.APIContext, query *indexer.SearchQuery) (rep
 		}
 	}
 
-	isSiteAdmin := ctx.Doer != nil && ctx.Doer.IsAdmin && !ctx.PublicOnly
+	isSiteAdmin := ctx.Doer != nil && ctx.Doer.IsAdmin && !user_model.IsPublicOnlyDoer(ctx.Doer)
 	if isSiteAdmin && len(fullNames) == 0 && len(ownerNames) == 0 {
 		return nil, true
 	}
@@ -288,9 +289,6 @@ func codeSearchRepoIDs(ctx *context.APIContext, query *indexer.SearchQuery) (rep
 	cond := builder.NewCond()
 	if !isSiteAdmin {
 		cond = cond.And(repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypeCode))
-	}
-	if ctx.PublicOnly {
-		cond = cond.And(repo_model.PublicRepoUnderPublicOwnerCond())
 	}
 	if len(fullNames) > 0 {
 		cond = cond.And(repo_model.FullNamesCond(fullNames))

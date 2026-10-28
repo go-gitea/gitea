@@ -38,6 +38,18 @@ func TestActionTask_GetRunJobLink(t *testing.T) {
 	assert.Empty(t, (&ActionTask{Job: &ActionRunJob{ID: 42, Run: &ActionRun{ID: 10}}}).GetRunJobLink())
 }
 
+func TestGetTaskRunnerNames(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	runner := &ActionRunner{Name: "queue-runner"}
+	require.NoError(t, db.Insert(ctx, runner))
+	task := &ActionTask{RunnerID: runner.ID, TokenHash: "queue-test-task"}
+	require.NoError(t, db.Insert(ctx, task))
+	names, err := GetTaskRunnerNames(ctx, []int64{task.ID, 987654321})
+	require.NoError(t, err)
+	assert.Equal(t, map[int64]string{task.ID: runner.Name}, names)
+}
+
 func TestMakeTaskStepDisplayName(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -82,14 +94,14 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 		{
 			name: "very long name truncated",
 			jobStep: &jobparser.Step{
-				Name: jobparser.BlockSafeString(strings.Repeat("a", 300)),
+				Name: strings.Repeat("a", 300),
 			},
 			expected: strings.Repeat("a", 252) + "…",
 		},
 		{
 			name: "very long run truncated",
 			jobStep: &jobparser.Step{
-				Run: jobparser.BlockSafeString(strings.Repeat("a", 300)),
+				Run: strings.Repeat("a", 300),
 			},
 			expected: "Run " + strings.Repeat("a", 248) + "…",
 		},
@@ -229,136 +241,106 @@ func TestStopTaskCancellingKeepsReportTime(t *testing.T) {
 // its job to the waiting queue and deletes the task and its steps, so a failure
 // while assembling the runner response cannot strand the job in running state.
 func TestReleaseTaskForRunner(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
+	for _, tt := range []struct {
+		name      string
+		runTitle  string
+		runIndex  int64
+		jobName   string
+		batchSize int
+	}{
+		{"release", "release-task-test-run", 9902, "release-job", 0},
+		{"pagination", "pagination-test-run", 9903, "target-job", 2},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			if tt.batchSize != 0 {
+				defer func(orig int) { pickTaskBatchSize = orig }(pickTaskBatchSize)
+				pickTaskBatchSize = tt.batchSize
+			}
 
-	run := &ActionRun{
-		Title:         "release-task-test-run",
-		RepoID:        1,
-		OwnerID:       2,
-		WorkflowID:    "test.yaml",
-		Index:         9902,
-		TriggerUserID: 2,
-		Ref:           "refs/heads/main",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
-		Status:        StatusWaiting,
+			run := &ActionRun{
+				Title:         tt.runTitle,
+				RepoID:        1,
+				OwnerID:       2,
+				WorkflowID:    "test.yaml",
+				Index:         tt.runIndex,
+				TriggerUserID: 2,
+				Ref:           "refs/heads/main",
+				CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+				Event:         "push",
+				TriggerEvent:  "push",
+				Status:        StatusWaiting,
+			}
+			require.NoError(t, db.Insert(t.Context(), run))
+
+			if tt.batchSize != 0 {
+				// Five waiting jobs the runner cannot run, then one it can.
+				// With a page size of 2 the matching job only appears on the third page.
+				for i := range 5 {
+					mismatch := &ActionRunJob{
+						RunID:     run.ID,
+						RepoID:    run.RepoID,
+						OwnerID:   run.OwnerID,
+						CommitSHA: run.CommitSHA,
+						Name:      "mismatch-" + string(rune('a'+i)),
+						Attempt:   1,
+						JobID:     "mismatch-" + string(rune('a'+i)),
+						Status:    StatusWaiting,
+						RunsOn:    []string{"windows-latest"},
+					}
+					require.NoError(t, db.Insert(t.Context(), mismatch))
+				}
+			}
+
+			job := &ActionRunJob{
+				RunID:           run.ID,
+				RepoID:          run.RepoID,
+				OwnerID:         run.OwnerID,
+				CommitSHA:       run.CommitSHA,
+				Name:            tt.jobName,
+				Attempt:         1,
+				JobID:           tt.jobName,
+				Status:          StatusWaiting,
+				RunsOn:          []string{"ubuntu-latest"},
+				WorkflowPayload: []byte("on: push\njobs:\n  " + tt.jobName + ":\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
+			}
+			require.NoError(t, db.Insert(t.Context(), job))
+
+			runner := &ActionRunner{
+				UUID:        tt.name + "-runner-uuid",
+				Name:        tt.name + "-runner",
+				AgentLabels: []string{"ubuntu-latest"},
+			}
+			runner.GenerateAndFillToken()
+			require.NoError(t, db.Insert(t.Context(), runner))
+
+			task, ok, err := CreateTaskForRunner(t.Context(), runner)
+			require.NoError(t, err)
+			require.True(t, ok)
+			require.NotNil(t, task)
+
+			claimed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+			if tt.batchSize != 0 {
+				assert.Equal(t, StatusRunning, claimed.Status)
+				assert.Equal(t, task.ID, claimed.TaskID)
+			} else {
+				require.Equal(t, StatusRunning, claimed.Status)
+				require.Equal(t, task.ID, claimed.TaskID)
+
+				require.NoError(t, ReleaseTaskForRunner(t.Context(), task))
+
+				// Job is back in the waiting queue with no task assigned.
+				released := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+				assert.Equal(t, StatusWaiting, released.Status)
+				assert.Zero(t, released.TaskID)
+				assert.Zero(t, released.Started)
+
+				// The task and its steps are gone.
+				unittest.AssertNotExistsBean(t, &ActionTask{ID: task.ID})
+				unittest.AssertNotExistsBean(t, &ActionTaskStep{TaskID: task.ID})
+			}
+		})
 	}
-	require.NoError(t, db.Insert(t.Context(), run))
-
-	job := &ActionRunJob{
-		RunID:           run.ID,
-		RepoID:          run.RepoID,
-		OwnerID:         run.OwnerID,
-		CommitSHA:       run.CommitSHA,
-		Name:            "release-job",
-		Attempt:         1,
-		JobID:           "release-job",
-		Status:          StatusWaiting,
-		RunsOn:          []string{"ubuntu-latest"},
-		WorkflowPayload: []byte("on: push\njobs:\n  release-job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
-	}
-	require.NoError(t, db.Insert(t.Context(), job))
-
-	runner := &ActionRunner{
-		UUID:        "release-runner-uuid",
-		Name:        "release-runner",
-		AgentLabels: []string{"ubuntu-latest"},
-	}
-	runner.GenerateAndFillToken()
-	require.NoError(t, db.Insert(t.Context(), runner))
-
-	task, ok, err := CreateTaskForRunner(t.Context(), runner)
-	require.NoError(t, err)
-	require.True(t, ok)
-	require.NotNil(t, task)
-
-	claimed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
-	require.Equal(t, StatusRunning, claimed.Status)
-	require.Equal(t, task.ID, claimed.TaskID)
-
-	require.NoError(t, ReleaseTaskForRunner(t.Context(), task))
-
-	// Job is back in the waiting queue with no task assigned.
-	released := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
-	assert.Equal(t, StatusWaiting, released.Status)
-	assert.Zero(t, released.TaskID)
-	assert.Zero(t, released.Started)
-
-	// The task and its steps are gone.
-	unittest.AssertNotExistsBean(t, &ActionTask{ID: task.ID})
-	unittest.AssertNotExistsBean(t, &ActionTaskStep{TaskID: task.ID})
-}
-
-// TestCreateTaskForRunnerPagination verifies that a job sitting beyond the first page is still claimed
-func TestCreateTaskForRunnerPagination(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	defer func(orig int) { pickTaskBatchSize = orig }(pickTaskBatchSize)
-	pickTaskBatchSize = 2
-
-	run := &ActionRun{
-		Title:         "pagination-test-run",
-		RepoID:        1,
-		OwnerID:       2,
-		WorkflowID:    "test.yaml",
-		Index:         9903,
-		TriggerUserID: 2,
-		Ref:           "refs/heads/main",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
-		Status:        StatusWaiting,
-	}
-	require.NoError(t, db.Insert(t.Context(), run))
-
-	// Five waiting jobs the runner cannot run, then one it can.
-	// With a page size of 2 the matching job only appears on the third page.
-	for i := range 5 {
-		mismatch := &ActionRunJob{
-			RunID:     run.ID,
-			RepoID:    run.RepoID,
-			OwnerID:   run.OwnerID,
-			CommitSHA: run.CommitSHA,
-			Name:      "mismatch-" + string(rune('a'+i)),
-			Attempt:   1,
-			JobID:     "mismatch-" + string(rune('a'+i)),
-			Status:    StatusWaiting,
-			RunsOn:    []string{"windows-latest"},
-		}
-		require.NoError(t, db.Insert(t.Context(), mismatch))
-	}
-
-	target := &ActionRunJob{
-		RunID:           run.ID,
-		RepoID:          run.RepoID,
-		OwnerID:         run.OwnerID,
-		CommitSHA:       run.CommitSHA,
-		Name:            "target-job",
-		Attempt:         1,
-		JobID:           "target-job",
-		Status:          StatusWaiting,
-		RunsOn:          []string{"ubuntu-latest"},
-		WorkflowPayload: []byte("on: push\njobs:\n  target-job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
-	}
-	require.NoError(t, db.Insert(t.Context(), target))
-
-	runner := &ActionRunner{
-		UUID:        "pagination-runner-uuid",
-		Name:        "pagination-runner",
-		AgentLabels: []string{"ubuntu-latest"},
-	}
-	runner.GenerateAndFillToken()
-	require.NoError(t, db.Insert(t.Context(), runner))
-
-	task, ok, err := CreateTaskForRunner(t.Context(), runner)
-	require.NoError(t, err)
-	require.True(t, ok)
-	require.NotNil(t, task)
-
-	claimed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: target.ID})
-	assert.Equal(t, StatusRunning, claimed.Status)
-	assert.Equal(t, task.ID, claimed.TaskID)
 }
 
 type failFirstStepWrite struct{ fired atomic.Bool }
@@ -393,6 +375,114 @@ func TestUpdateTaskByStateIsAtomic(t *testing.T) {
 	assert.Equal(t, StatusSuccess, gotJob.Status)
 	assert.GreaterOrEqual(t, gotJob.Stopped, before)
 	assert.GreaterOrEqual(t, unittest.AssertExistsAndLoadBean(t, &ActionTaskStep{TaskID: task.ID}).Started, before)
+}
+
+func TestUpdateTaskByStateReportedSteps(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	task, _ := newRunningTaskForCancelling(t, "reported-steps-job", true)
+	require.NoError(t, db.Insert(t.Context(), &ActionTaskStep{Name: "Run echo", TaskID: task.ID, RepoID: task.RepoID, Status: StatusWaiting}))
+
+	report := func(t *testing.T, steps []*runnerv1.StepState, reported ...*runnerv1.StepState) []*ActionTaskStep {
+		t.Helper()
+		_, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{Id: task.ID, Steps: steps, ReportedSteps: reported})
+		require.NoError(t, err)
+		got, err := GetTaskStepsByTaskID(t.Context(), task.ID)
+		require.NoError(t, err)
+		return got
+	}
+	started := timestamppb.Now()
+	setup := &runnerv1.StepState{Id: 0, Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, StartedAt: started}
+	main := &runnerv1.StepState{Id: 1, Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN}
+	legacy := []*runnerv1.StepState{{Id: 0, StartedAt: started, LogLength: 3}}
+
+	t.Run("invalid reported steps fall back to the workflow steps", func(t *testing.T) {
+		got := report(t, legacy, setup, &runnerv1.StepState{Id: 1, Stage: runnerv1.StepStage_STEP_STAGE_SETUP})
+		require.Len(t, got, 1)
+		assert.False(t, got[0].IsReported())
+		assert.Equal(t, StatusRunning, got[0].Status)
+		assert.EqualValues(t, 3, got[0].LogLength)
+	})
+
+	t.Run("reported steps replace the workflow steps", func(t *testing.T) {
+		got := report(t, legacy, setup, main)
+		require.Len(t, got, 2)
+		assert.Equal(t, runnerv1.StepStage_STEP_STAGE_SETUP, got[0].StepStage())
+		assert.EqualValues(t, -1, got[0].WorkflowStepIndex())
+		assert.Equal(t, StatusRunning, got[0].Status)
+		assert.NotZero(t, got[0].Started)
+		assert.Equal(t, "Run echo", got[1].Name)
+		assert.Equal(t, StatusWaiting, got[1].Status)
+		assert.EqualValues(t, 0, got[1].WorkflowStepIndex())
+	})
+
+	t.Run("an inserted step keeps the state of the others", func(t *testing.T) {
+		before, err := GetTaskStepsByTaskID(t.Context(), task.ID)
+		require.NoError(t, err)
+		doneSetup := &runnerv1.StepState{Id: 0, Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, StartedAt: started, Result: runnerv1.Result_RESULT_SUCCESS, LogLength: 4}
+		pre := &runnerv1.StepState{Id: 1, Name: "Pre Run checkout", Stage: runnerv1.StepStage_STEP_STAGE_PRE, StartedAt: started, LogIndex: 4, LogLength: 2}
+		movedMain := &runnerv1.StepState{Id: 2, Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN}
+		got := report(t, legacy, doneSetup, pre, movedMain)
+		require.Len(t, got, 3)
+		assert.Equal(t, StatusSuccess, got[0].Status)
+		assert.Equal(t, before[0].Started, got[0].Started)
+		assert.Equal(t, runnerv1.StepStage_STEP_STAGE_PRE, got[1].StepStage())
+		assert.Equal(t, StatusRunning, got[1].Status)
+		assert.EqualValues(t, 4, got[1].LogIndex)
+		assert.EqualValues(t, 2, got[2].Index)
+	})
+
+	t.Run("workflow steps no longer apply once reported", func(t *testing.T) {
+		before, err := GetTaskStepsByTaskID(t.Context(), task.ID)
+		require.NoError(t, err)
+		got := report(t, []*runnerv1.StepState{{Id: 0, Result: runnerv1.Result_RESULT_FAILURE}})
+		assert.Equal(t, before, got)
+	})
+
+	t.Run("unfinished steps stop with the task", func(t *testing.T) {
+		doneSetup := &runnerv1.StepState{Id: 0, Name: "Set up job", Stage: runnerv1.StepStage_STEP_STAGE_SETUP, StartedAt: started, Result: runnerv1.Result_RESULT_SUCCESS}
+		runningMain := &runnerv1.StepState{Id: 1, Name: "Run echo", Stage: runnerv1.StepStage_STEP_STAGE_MAIN, StartedAt: started}
+		cleanup := &runnerv1.StepState{Id: 2, Name: "Complete job", Stage: runnerv1.StepStage_STEP_STAGE_CLEANUP}
+		_, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{
+			Id: task.ID, Result: runnerv1.Result_RESULT_FAILURE,
+			ReportedSteps: []*runnerv1.StepState{doneSetup, runningMain, cleanup},
+		})
+		require.NoError(t, err)
+		got, err := GetTaskStepsByTaskID(t.Context(), task.ID)
+		require.NoError(t, err)
+		require.Len(t, got, 3)
+		assert.Equal(t, StatusSuccess, got[0].Status)
+		for _, step := range got[1:] {
+			assert.Equal(t, StatusFailure, step.Status, step.Name)
+			assert.NotZero(t, step.Started, step.Name)
+			assert.NotZero(t, step.Stopped, step.Name)
+		}
+	})
+}
+
+func TestValidateReportedSteps(t *testing.T) {
+	step := func(id int64, stage runnerv1.StepStage, number int64) *runnerv1.StepState {
+		return &runnerv1.StepState{Id: id, Stage: stage, Number: number}
+	}
+	assert.NoError(t, validateReportedSteps([]*runnerv1.StepState{
+		step(0, runnerv1.StepStage_STEP_STAGE_SETUP, 0),
+		step(1, runnerv1.StepStage_STEP_STAGE_PRE, 0),
+		step(2, runnerv1.StepStage_STEP_STAGE_MAIN, 0),
+		step(3, runnerv1.StepStage_STEP_STAGE_MAIN, 1),
+		step(4, runnerv1.StepStage_STEP_STAGE_CLEANUP, 0),
+		step(5, runnerv1.StepStage(100), 0), // a stage added later, with several steps told apart by number
+		step(6, runnerv1.StepStage(100), 1),
+	}))
+	for name, steps := range map[string][]*runnerv1.StepState{
+		"unspecified stage": {step(0, runnerv1.StepStage_STEP_STAGE_UNSPECIFIED, 0)},
+		"negative stage":    {step(0, runnerv1.StepStage(-1), 0)},
+		"id not position":   {step(1, runnerv1.StepStage_STEP_STAGE_SETUP, 0)},
+		"negative number":   {step(0, runnerv1.StepStage_STEP_STAGE_MAIN, -1)},
+		"duplicate main":    {step(0, runnerv1.StepStage_STEP_STAGE_MAIN, 0), step(1, runnerv1.StepStage_STEP_STAGE_MAIN, 0)},
+		"duplicate setup":   {step(0, runnerv1.StepStage_STEP_STAGE_SETUP, 0), step(1, runnerv1.StepStage_STEP_STAGE_SETUP, 0)},
+		"too many":          make([]*runnerv1.StepState, maxReportedSteps+1),
+	} {
+		assert.Error(t, validateReportedSteps(steps), name)
+	}
 }
 
 // newRunningTaskForCancelling inserts a running run/job/task assigned to a fresh runner,

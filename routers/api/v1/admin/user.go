@@ -70,14 +70,8 @@ func CreateUser(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/User"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm[*api.CreateUserOption](ctx)
 
@@ -179,14 +173,8 @@ func EditUser(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/User"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm[*api.EditUserOption](ctx)
 
@@ -282,12 +270,8 @@ func DeleteUser(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if ctx.ContextUser.IsOrganization() {
 		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization but not user")
@@ -338,10 +322,8 @@ func CreatePublicKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PublicKey"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.CreateKeyOption](ctx)
 
@@ -370,10 +352,8 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if err := asymkey_service.DeletePublicKey(ctx, ctx.ContextUser, ctx.PathParamInt64("id")); err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
@@ -400,7 +380,7 @@ func SearchUsers(ctx *context.APIContext) {
 	// parameters:
 	// - name: source_id
 	//   in: query
-	//   description: ID of the user's login source to search for
+	//   description: ID of the user's login source to search for, 0 means the local users
 	//   type: integer
 	//   format: int64
 	// - name: login_name
@@ -458,10 +438,8 @@ func SearchUsers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 
@@ -483,7 +461,7 @@ func SearchUsers(ctx *context.APIContext) {
 		Actor:         ctx.Doer,
 		Types:         []user_model.UserType{user_model.UserTypeIndividual},
 		LoginName:     ctx.FormTrim("login_name"),
-		SourceID:      ctx.FormInt64("source_id"),
+		SourceID:      ctx.FormOptionalInt64("source_id"),
 		Keyword:       ctx.FormTrim("q"),
 		Visible:       visible,
 		OrderBy:       orderBy,
@@ -544,10 +522,8 @@ func RenameUser(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if ctx.ContextUser.IsOrganization() {
 		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization but not user")

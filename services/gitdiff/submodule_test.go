@@ -14,6 +14,26 @@ import (
 )
 
 func TestParseSubmoduleInfo(t *testing.T) {
+	const (
+		deletedGitmodules = `diff --git a/.gitmodules b/.gitmodules
+index 0510edd..e69de29 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -1,3 +0,0 @@
+-[submodule "gitea-mirror"]
+-	path = gitea
+-	url = https://gitea.com/gitea/gitea-mirror
+`
+		deletedSubmodule = `diff --git a/gitea b/gitea
+deleted file mode 160000
+index c8ffe77..0000000
+--- a/gitea
++++ /dev/null
+@@ -1 +0,0 @@
+-Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
+`
+	)
+
 	type testcase struct {
 		name    string
 		gitdiff string
@@ -79,23 +99,8 @@ rename to gitea
 `,
 		},
 		{
-			name: "deleted",
-			gitdiff: `diff --git a/.gitmodules b/.gitmodules
-index 0510edd..e69de29 100644
---- a/.gitmodules
-+++ b/.gitmodules
-@@ -1,3 +0,0 @@
--[submodule "gitea-mirror"]
--	path = gitea
--	url = https://gitea.com/gitea/gitea-mirror
-diff --git a/gitea b/gitea
-deleted file mode 160000
-index c8ffe77..0000000
---- a/gitea
-+++ /dev/null
-@@ -1 +0,0 @@
--Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
-`,
+			name:    "deleted",
+			gitdiff: deletedGitmodules + deletedSubmodule,
 			infos: map[int]SubmoduleDiffInfo{
 				1: {
 					PreviousRefID: "c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d",
@@ -113,14 +118,7 @@ index 0510edd..bced3d8 100644
 -	path = gitea
 +	path = gitea-1.22
  	url = https://gitea.com/gitea/gitea-mirror
-diff --git a/gitea b/gitea
-deleted file mode 160000
-index c8ffe77..0000000
---- a/gitea
-+++ /dev/null
-@@ -1 +0,0 @@
--Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
-diff --git a/gitea-1.22 b/gitea-1.22
+` + deletedSubmodule + `diff --git a/gitea-1.22 b/gitea-1.22
 new file mode 160000
 index 0000000..8eefa1f
 --- /dev/null
@@ -139,22 +137,7 @@ index 0000000..8eefa1f
 		},
 		{
 			name: "converted to file",
-			gitdiff: `diff --git a/.gitmodules b/.gitmodules
-index 0510edd..e69de29 100644
---- a/.gitmodules
-+++ b/.gitmodules
-@@ -1,3 +0,0 @@
--[submodule "gitea-mirror"]
--	path = gitea
--	url = https://gitea.com/gitea/gitea-mirror
-diff --git a/gitea b/gitea
-deleted file mode 160000
-index c8ffe77..0000000
---- a/gitea
-+++ /dev/null
-@@ -1 +0,0 @@
--Subproject commit c8ffe777cf9c5bb47a38e3e0b3a3b5de6cd8813d
-diff --git a/gitea b/gitea
+			gitdiff: deletedGitmodules + deletedSubmodule + `diff --git a/gitea b/gitea
 new file mode 100644
 index 0000000..33a9488
 --- /dev/null
@@ -203,7 +186,7 @@ index 0000000..68972a9
 
 	for _, testcase := range tests {
 		t.Run(testcase.name, func(t *testing.T) {
-			diff, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
+			diff, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff))
 			assert.NoError(t, err)
 
 			for i, expected := range testcase.infos {

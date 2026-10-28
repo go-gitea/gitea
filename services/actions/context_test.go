@@ -16,7 +16,9 @@ import (
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
@@ -95,6 +97,54 @@ jobs:
 	// Rerun reads raw_concurrency from the DB to re-evaluate the group;
 	// see services/actions/rerun.go. Must survive the insert.
 	assert.NotEmpty(t, persisted.RawConcurrency)
+}
+
+func TestPrepareRunAndInsert_JobIfAndRunsOn(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
+
+	run := insertMaxParallelRun(t, `on: push
+jobs:
+  start:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+  skip:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    concurrency: skip
+    steps:
+      - run: echo
+  skip-caller:
+    if: false
+    uses: ./.gitea/workflows/callee.yml
+  invalid:
+    if: fromJSON('{')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+  unset-runs-on:
+    runs-on: ${{ vars.UNSET }}
+    steps:
+      - run: echo
+`, false)
+
+	jobs := map[string]*actions_model.ActionRunJob{}
+	for _, job := range runJobs(t, run.ID, run.LatestAttemptID) {
+		jobs[job.JobID] = job
+	}
+	assert.Equal(t, actions_model.StatusWaiting, jobs["start"].Status)
+	assert.Equal(t, actions_model.StatusSkipped, jobs["skip"].Status)
+	assert.False(t, jobs["skip"].IsConcurrencyEvaluated)
+	assert.Equal(t, actions_model.StatusSkipped, jobs["skip-caller"].Status)
+	assert.Equal(t, actions_model.StatusSkipped, jobs["invalid"].Status)
+	assert.Equal(t, actions_model.StatusFailure, jobs["unset-runs-on"].Status)
+	for id, key := range map[string]string{"invalid": "if", "unset-runs-on": "runs-on"} {
+		summary, err := actions_model.GetActionRunJobSummary(t.Context(), run.RepoID, run.ID, run.LatestAttemptID, jobs[id].ID, 0)
+		require.NoError(t, err)
+		assert.Contains(t, summary.Content, "Error when evaluating `"+key+"` for job `"+id+"`")
+	}
 }
 
 func TestComputeReusableCallerOutputs(t *testing.T) {
@@ -251,8 +301,10 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 		assert.Equal(t, map[string]string{"result": "bar"}, out)
 	})
 
-	t.Run("CallPayload inputs reachable in output expression", func(t *testing.T) {
+	t.Run("CallPayload and dispatch inputs reachable in output expression", func(t *testing.T) {
 		run := insertRun(t, "payload-out.yaml")
+		run.Event, run.EventPayload = "workflow_dispatch", `{"inputs":{"target":"prod"}}`
+		require.NoError(t, actions_model.UpdateRun(ctx, run, "event", "event_payload"))
 		payload, err := json.Marshal(api.WorkflowCallPayload{
 			Inputs: map[string]any{"env": "staging"},
 		})
@@ -265,11 +317,16 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
     outputs:
       env:
         value: ${{ inputs.env }}
+      target:
+        value: ${{ inputs.target }}
 `, string(payload))
+		caller.WorkflowPayload = []byte("on: {workflow_dispatch: {inputs: {target: {type: string}}}}\njobs:\n  caller:\n    uses: ./.gitea/workflows/callee.yml\n")
+		_, err = actions_model.UpdateRunJob(ctx, caller, nil, "workflow_payload")
+		require.NoError(t, err)
 
 		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
 		require.NoError(t, err)
-		assert.Equal(t, map[string]string{"env": "staging"}, out)
+		assert.Equal(t, map[string]string{"env": "staging", "target": "prod"}, out)
 	})
 
 	t.Run("nested caller outputs propagate to outer", func(t *testing.T) {
@@ -293,20 +350,24 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 		assert.Equal(t, map[string]string{"bubbled": "bubble-value"}, out)
 	})
 
-	t.Run("matrix children with same JobID prefer non-empty values", func(t *testing.T) {
+	t.Run("matrix children combine outputs by completion order while ignoring empty values", func(t *testing.T) {
 		run := insertRun(t, "matrix-out.yaml")
 		caller := insertCaller(t, run, "caller", 0, `on:
   workflow_call:
     outputs:
       foo:
         value: ${{ jobs.matrix.outputs.foo }}
+      bar:
+        value: ${{ jobs.matrix.outputs.bar }}
 `, "")
-		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
-		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "filled"})
+		later := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "latest", "bar": "kept"})
+		earlier := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "earlier"})
+		empty := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
+		later.Stopped, earlier.Stopped, empty.Stopped = 200, 100, 300
 
-		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, caller, map[int64][]*actions_model.ActionRunJob{caller.ID: {later, earlier, empty}})
 		require.NoError(t, err)
-		assert.Equal(t, map[string]string{"foo": "filled"}, out)
+		assert.Equal(t, map[string]string{"foo": "latest", "bar": "kept"}, out)
 	})
 }
 
@@ -316,7 +377,7 @@ func TestFindTaskNeeds(t *testing.T) {
 	task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 51})
 	job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: task.JobID})
 
-	ret, err := FindTaskNeeds(t.Context(), job)
+	ret, _, err := FindTaskNeeds(t.Context(), job)
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Contains(t, ret, "job1")
@@ -325,7 +386,7 @@ func TestFindTaskNeeds(t *testing.T) {
 	assert.Equal(t, "bbb", ret["job1"].Outputs["output_b"])
 }
 
-func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
+func TestGenerateGiteaContext(t *testing.T) {
 	payload := api.PullRequestPayload{
 		PullRequest: &api.PullRequest{
 			Base: &api.PRBranchInfo{
@@ -355,6 +416,14 @@ func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
 
 	assert.Equal(t, "refs/heads/main", giteaCtx["ref"])
 	assert.Equal(t, "main", giteaCtx["ref_name"])
+
+	run.TriggerEvent, run.Ref = string(actions_module.GithubEventPullRequest), "refs/pull/1/head"
+	assert.Equal(t, "branch", GenerateGiteaContext(t.Context(), run, nil, nil)["ref_type"])
+
+	defer test.MockVariableValue(&setting.Actions.ArtifactRetentionDays, 7)()
+	assert.Equal(t, "7", GenerateGiteaContext(t.Context(), run, nil, nil)["retention_days"])
+	setting.Actions.ArtifactRetentionDays = 0
+	assert.Empty(t, GenerateGiteaContext(t.Context(), run, nil, nil)["retention_days"])
 }
 
 func TestGenerateGiteaContextRefProtected(t *testing.T) {
@@ -370,32 +439,22 @@ func TestGenerateGiteaContextRefProtected(t *testing.T) {
 		NamePattern: "v*",
 	}))
 
-	gitCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
-		RepoID:      repo.ID,
-		Repo:        repo,
-		TriggerUser: &user_model.User{Name: "test-user"},
-		Ref:         "refs/heads/master",
-	}, nil, nil)
-
-	assert.Equal(t, true, gitCtx["ref_protected"])
-
-	tagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
-		RepoID:      repo.ID,
-		Repo:        repo,
-		TriggerUser: &user_model.User{Name: "test-user"},
-		Ref:         "refs/tags/v1.0.0",
-	}, nil, nil)
-
-	assert.Equal(t, true, tagCtx["ref_protected"])
-
-	unprotectedTagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
-		RepoID:      repo.ID,
-		Repo:        repo,
-		TriggerUser: &user_model.User{Name: "test-user"},
-		Ref:         "refs/tags/other",
-	}, nil, nil)
-
-	assert.Equal(t, false, unprotectedTagCtx["ref_protected"])
+	for _, tc := range []struct {
+		ref       string
+		protected bool
+	}{
+		{"refs/heads/master", true},
+		{"refs/tags/v1.0.0", true},
+		{"refs/tags/other", false},
+	} {
+		gitCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+			RepoID:      repo.ID,
+			Repo:        repo,
+			TriggerUser: &user_model.User{Name: "test-user"},
+			Ref:         tc.ref,
+		}, nil, nil)
+		assert.Equal(t, tc.protected, gitCtx["ref_protected"])
+	}
 }
 
 // TestGenerateGiteaContext_NilAttempt verifies that, with no explicit attempt,

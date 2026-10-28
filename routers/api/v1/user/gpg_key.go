@@ -66,8 +66,8 @@ func ListGPGKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listGPGKeys(ctx, ctx.ContextUser.ID, utils.GetListOptions(ctx))
 }
@@ -91,10 +91,8 @@ func ListMyGPGKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
-	//   "401":
-	//     "$ref": "#/responses/unauthorized"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listGPGKeys(ctx, ctx.Doer.ID, utils.GetListOptions(ctx))
 }
@@ -116,12 +114,8 @@ func GetGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKey"
-	//   "401":
-	//     "$ref": "#/responses/unauthorized"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -171,12 +165,8 @@ func GetVerificationToken(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/string"
-	//   "401":
-	//     "$ref": "#/responses/unauthorized"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	token := asymkey_model.VerificationToken(ctx.Doer, 1)
 	ctx.PlainText(http.StatusOK, token)
@@ -194,14 +184,8 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/GPGKey"
-	//   "401":
-	//     "$ref": "#/responses/unauthorized"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.VerifyGPGKeyOption](ctx)
 	token := asymkey_model.VerificationToken(ctx.Doer, 1)
@@ -259,14 +243,8 @@ func CreateGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/GPGKey"
-	//   "401":
-	//     "$ref": "#/responses/unauthorized"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.CreateGPGKeyOption](ctx)
 	CreateUserGPGKey(ctx, *form, ctx.Doer.ID)
@@ -289,12 +267,8 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "401":
-	//     "$ref": "#/responses/unauthorized"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
 		ctx.APIErrorNotFound("gpg keys setting is not allowed to be changed")

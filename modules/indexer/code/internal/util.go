@@ -7,7 +7,10 @@ import (
 	"cmp"
 	"slices"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
+	"gitea.dev/modules/indexer"
 	"gitea.dev/modules/indexer/internal"
 	"gitea.dev/modules/log"
 )
@@ -61,4 +64,54 @@ func MergeMatchRanges(ranges []MatchRange) []MatchRange {
 		merged = append(merged, r)
 	}
 	return merged
+}
+
+func SearchTerms(opts *SearchOptions) []string {
+	if opts.Keyword == "" {
+		return nil
+	}
+	if opts.SearchMode == "" || opts.SearchMode == indexer.SearchModeExact {
+		return []string{opts.Keyword}
+	} else {
+		return strings.Fields(opts.Keyword)
+	}
+}
+
+// ContentMatchRanges returns the merged byte ranges of all term occurrences in content, or nil unless all terms occur
+func ContentMatchRanges(content string, terms []string) []MatchRange {
+	lowerContent := strings.ToLower(content)
+	var lowerRanges []MatchRange
+	for _, term := range terms {
+		lowerTerm := strings.ToLower(term)
+		found := false
+		for offset := 0; ; {
+			position := strings.Index(lowerContent[offset:], lowerTerm)
+			if position < 0 {
+				break
+			}
+			found = true
+			offset += position + len(lowerTerm)
+			lowerRanges = append(lowerRanges, MatchRange{Start: offset - len(lowerTerm), End: offset})
+		}
+		if !found {
+			return nil
+		}
+	}
+	lowerRanges = MergeMatchRanges(lowerRanges)
+	ranges := make([]MatchRange, 0, len(lowerRanges))
+	lowerOffset, index, originalStart := 0, 0, 0
+	for offset := 0; index < len(lowerRanges); {
+		if lowerOffset == lowerRanges[index].Start {
+			originalStart = offset
+		}
+		if lowerOffset == lowerRanges[index].End {
+			ranges = append(ranges, MatchRange{Start: originalStart, End: offset})
+			index++
+			continue
+		}
+		character, size := utf8.DecodeRuneInString(content[offset:])
+		lowerOffset += utf8.RuneLen(unicode.ToLower(character))
+		offset += size
+	}
+	return ranges
 }

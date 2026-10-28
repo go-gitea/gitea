@@ -6,6 +6,8 @@ package nuget
 import (
 	"archive/zip"
 	"bytes"
+	"maps"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -82,61 +84,45 @@ func TestParsePackageMetaData(t *testing.T) {
 	createArchive := func(files map[string]string) []byte {
 		var buf bytes.Buffer
 		archive := zip.NewWriter(&buf)
-		for name, content := range files {
+		for _, name := range slices.Sorted(maps.Keys(files)) {
 			w, _ := archive.Create(name)
-			w.Write([]byte(content))
+			w.Write([]byte(files[name]))
 		}
 		archive.Close()
 		return buf.Bytes()
 	}
 
-	t.Run("MissingNuspecFile", func(t *testing.T) {
-		data := createArchive(map[string]string{"dummy.txt": ""})
-
-		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
-		assert.Nil(t, np)
-		assert.ErrorIs(t, err, ErrMissingNuspecFile)
-	})
-
-	t.Run("MissingNuspecFileInRoot", func(t *testing.T) {
-		data := createArchive(map[string]string{"sub/package.nuspec": ""})
-
-		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
-		assert.Nil(t, np)
-		assert.ErrorIs(t, err, ErrMissingNuspecFile)
-	})
-
-	t.Run("InvalidNuspecFile", func(t *testing.T) {
-		data := createArchive(map[string]string{"package.nuspec": ""})
-
-		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
-		assert.Nil(t, np)
-		assert.Error(t, err)
-	})
-
-	t.Run("InvalidPackageId", func(t *testing.T) {
-		data := createArchive(map[string]string{"package.nuspec": `<?xml version="1.0" encoding="utf-8"?>
+	for _, testCase := range []struct {
+		name          string
+		files         map[string]string
+		expectedError error
+	}{
+		{"MissingNuspecFile", map[string]string{"dummy.txt": ""}, ErrMissingNuspecFile},
+		{"MissingNuspecFileInRoot", map[string]string{"sub/package.nuspec": ""}, ErrMissingNuspecFile},
+		{"InvalidNuspecFile", map[string]string{"package.nuspec": ""}, nil},
+		{"InvalidPackageId", map[string]string{"package.nuspec": `<?xml version="1.0" encoding="utf-8"?>
 		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
 		  <metadata></metadata>
-		</package>`})
-
-		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
-		assert.Nil(t, np)
-		assert.ErrorIs(t, err, ErrNuspecInvalidID)
-	})
-
-	t.Run("InvalidPackageVersion", func(t *testing.T) {
-		data := createArchive(map[string]string{"package.nuspec": `<?xml version="1.0" encoding="utf-8"?>
+		</package>`}, ErrNuspecInvalidID},
+		{"InvalidPackageVersion", map[string]string{"package.nuspec": `<?xml version="1.0" encoding="utf-8"?>
 		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
 		  <metadata>
 			<id>` + id + `</id>
 		  </metadata>
-		</package>`})
+		</package>`}, ErrNuspecInvalidVersion},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			data := createArchive(testCase.files)
 
-		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
-		assert.Nil(t, np)
-		assert.ErrorIs(t, err, ErrNuspecInvalidVersion)
-	})
+			np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+			assert.Nil(t, np)
+			if testCase.expectedError == nil {
+				assert.Error(t, err)
+			} else {
+				assert.ErrorIs(t, err, testCase.expectedError)
+			}
+		})
+	}
 
 	t.Run("MissingReadme", func(t *testing.T) {
 		data := createArchive(map[string]string{"package.nuspec": nuspecContent})
@@ -145,6 +131,14 @@ func TestParsePackageMetaData(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, np)
 		assert.Empty(t, np.Metadata.Readme)
+	})
+
+	t.Run("IgnoresNuspecShadowingRootNuspec", func(t *testing.T) {
+		data := createArchive(map[string]string{"/package.nuspec": "", "package.nuspec": nuspecContent})
+
+		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+		assert.NoError(t, err)
+		assert.Equal(t, id, np.ID)
 	})
 
 	t.Run("Dependency Package", func(t *testing.T) {

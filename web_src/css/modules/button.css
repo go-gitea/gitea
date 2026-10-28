@@ -10,7 +10,7 @@
   font-size: 1rem;
   text-align: center;
   text-decoration: none;
-  line-height: 1;
+  line-height: var(--line-height-default);
   border-radius: var(--border-radius);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -92,19 +92,18 @@
 }
 .ui.button:not(.icon) > .icon:not(.button):not(.dropdown) {
   margin: 0 0.42857143em 0 -0.21428571em;
-  vertical-align: baseline;
 }
 
 /* reference sizes (not exactly at the moment): normal: padding-x=21, height=38 ; compact: padding-x=15, height=32 */
 .ui.button { /* stylelint-disable-line no-duplicate-selectors -- deliberate second block for the reference sizes */
   gap: var(--gap-block);
   min-height: 38px;
-  padding: 0.57em /* around 8px */ 1.43em /* around 20px */;
+  padding: 0.43em /* around 6px, keeps CJK text within min-height */ 1.43em /* around 20px */;
 }
 .ui.compact.buttons .button,
 .ui.compact.button {
   gap: var(--gap-inline);
-  padding: 6px 15px;
+  padding: 3px 15px;
   min-height: 32px;
 }
 .ui.compact.icon.buttons .button,
@@ -149,7 +148,7 @@
 
 .ui.icon.buttons .button,
 .ui.icon.button:not(.compact) {
-  padding: 0.57em;
+  padding-inline: 0.57em;
 }
 .ui.icon.buttons .button > .icon,
 .ui.icon.button > .icon {
@@ -245,16 +244,19 @@
   border-color: var(--color-red-dark-2);
 }
 
-.ui.green.button {
+.ui.green.button,
+.ui.green.buttons .button {
   color: var(--color-white);
   background: var(--color-green);
 }
 
-.ui.green.button:hover {
+.ui.green.button:hover,
+.ui.green.buttons .button:hover {
   background: var(--color-green-dark-1);
 }
 
-.ui.green.button:active {
+.ui.green.button:active,
+.ui.green.buttons .button:active {
   background: var(--color-green-dark-2);
 }
 
@@ -335,6 +337,14 @@ It needs some tricks to tweak the left/right borders with active state */
 
 .ui.buttons .button:hover + .button {
   border-left: 1px solid var(--color-secondary-dark-2);
+}
+
+.ui:is(.primary, .red, .green).buttons .button:hover {
+  border-color: transparent; /* let the colored hover background fill the border */
+}
+
+.ui:is(.primary, .red, .green).buttons .button:hover + .button {
+  border-left-color: transparent;
 }
 
 /* TODO: these "tw-hidden" selectors are only used by "blame.tmpl" buttons: Raw/Normal View/History/Unescape, need to be refactored to a clear solution later */

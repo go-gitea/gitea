@@ -190,7 +190,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 	protectionRequireSigned := false
 	if protectedBranch != nil {
 		protectedBranch.Repo = targetRepo
-		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer)
+		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer, doerRepoPerm)
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
 		// If branch-wide push is restricted, allow direct commit when the
 		// URL-derived tree path matches an unprotected file pattern. The
@@ -307,18 +307,14 @@ func (r *Repository) RefTypeNameSubURL() string {
 	return r.RefFullName.RefWebLinkPath()
 }
 
-// GetEditorconfig returns the .editorconfig definition if found in the
-// HEAD of the default repo branch.
-func (r *Repository) GetEditorconfig(ctx context.Context, optCommit ...*git.Commit) (cfg *editorconfig.Editorconfig, warning, err error) {
+// GetEditorconfig returns the .editorconfig of the current commit, falling back to the default branch
+func (r *Repository) GetEditorconfig(ctx context.Context) (cfg *editorconfig.Editorconfig, warning, err error) {
 	if r.GitRepo == nil {
 		return nil, nil, nil
 	}
 
-	var commit *git.Commit
-
-	if len(optCommit) != 0 {
-		commit = optCommit[0]
-	} else {
+	commit := r.Commit
+	if commit == nil {
 		commit, err = r.GitRepo.GetBranchCommit(ctx, r.Repository.DefaultBranch)
 		if err != nil {
 			return nil, nil, err
@@ -389,6 +385,15 @@ func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
 	return path.Join(curAppURL.Host, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
+// ComposeGoGetCloneURL returns the clone URL for the go-import meta content.
+func ComposeGoGetCloneURL(ctx *Context, owner, repo string) string {
+	useSSH := setting.Repository.GoGetCloneURLProtocol == "ssh" || (setting.Repository.DisableHTTPGit && !setting.SSH.Disabled)
+	if useSSH {
+		return repo_model.ComposeSSHCloneURI(ctx.Doer, owner, repo)
+	}
+	return repo_model.ComposeHTTPSCloneURL(ctx, owner, repo)
+}
+
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
 // if user does not have actual access to the requested repository,
 // or the owner or repository does not exist at all.
@@ -402,13 +407,7 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 		return
 	}
 
-	var cloneURL string
-	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame)
-	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame)
-	}
-	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), cloneURL)
+	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), ComposeGoGetCloneURL(ctx, username, reponame))
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
 	ctx.PlainText(http.StatusOK, htmlMeta)
 }

@@ -1,6 +1,6 @@
 - Never assume, verify before claiming
 - List development targets with `make help`
-- Read relevant developer documentation in the `docs` folder
+- Before working on code, read the `docs` guides for every area touched: `guidelines-backend.md` for Go, `guidelines-frontend.md` for TS, CSS and Vue, both for templates, `testing.md` for tests, `development.md` for config options and migrations, `guidelines-refactoring.md` for refactors
 - PR descriptions: minimal, only what and why, no task or file listings. Include screenshots for UI changes, before and after when modifying existing UI. Aim for less than 1000 characters
 - Reference issues and PRs by full URL, not by number
 - Use Conventional Commits for commit messages and PR titles, plus Gitea's `enhance` type for user-facing enhancements
@@ -12,6 +12,8 @@
 - In `options/locale`, only edit `locale_en-US.json`, other locales are synced automatically
 - In TS, use `!` instead of `?.`/`??` when a value always exists
 - In Go, prefer to use modern language features wherever possible
+- In Go, function-name prefixes in errors like `fmt.Errorf("Foo: %w", err)` must always name the function they are in
+- Write sizes as multiplications like `64 * 1024`, not bit shifts like `64 << 10`
 - Prefer `tw-*` utilities over inline `style` and `flex-*` helpers over per-child `tw-ml-*`/`tw-mr-*` margins, falling back to `tw-*` where specificity requires `!important`
 - Run `make fmt` after `.go` edits, `make tidy` after `go.mod` edits, `make generate-swagger` after API changes, and lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`
 - Fix the cause rather than disabling a linter or weakening a test. Where unavoidable, use the narrowest scope with a trailing comment giving the reason
