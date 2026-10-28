@@ -30111,17 +30111,8 @@
           "200": {
             "$ref": "#/components/responses/PullReview"
           },
-          "403": {
-            "$ref": "#/components/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/components/responses/validationError"
-          },
-          "423": {
-            "$ref": "#/components/responses/repoArchivedError"
+          "default": {
+            "$ref": "#/components/responses/error"
           }
         },
         "summary": "Update the body of a submitted review",
