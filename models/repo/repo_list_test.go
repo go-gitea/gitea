@@ -488,10 +488,14 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 func TestFindUserCodeAccessibleRepoIDsRequiresCodeUnit(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	repoIDs, err := repo_model.FindUserCodeAccessibleRepoIDs(t.Context(), nil)
-	require.NoError(t, err)
-	assert.Contains(t, repoIDs, int64(1))
-	assert.NotContains(t, repoIDs, int64(50))
+	publicOnlyUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	publicOnlyUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:repository")
+	for _, user := range []*user_model.User{nil, publicOnlyUser} {
+		repoIDs, err := repo_model.FindUserCodeAccessibleRepoIDs(t.Context(), user)
+		require.NoError(t, err)
+		assert.Contains(t, repoIDs, int64(1))
+		assert.NotContains(t, repoIDs, int64(50))
+	}
 }
 
 func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {

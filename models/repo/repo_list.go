@@ -661,10 +661,8 @@ func userAllPublicRepoCond(cond builder.Cond, ownerVisibilityLimit []structs.Vis
 func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) builder.Cond {
 	unitCond := builder.NewCond()
 	if unitType != unit.TypeInvalid {
-		if unitType.UnitGlobalDisabled() {
-			return builder.Expr("1=0")
-		}
-		unitCond = builder.In("`repository`.id", builder.Select("repo_id").From("repo_unit").Where(builder.Eq{"type": unitType}))
+		unitCond = builder.Exists(builder.Select("id").From("repo_unit").Where(builder.Expr("repo_unit.repo_id = `repository`.id").
+			And(builder.Eq{"repo_unit.type": unitType}, builder.NotIn("repo_unit.type", unit.DisabledRepoUnitsGet()))))
 	}
 	if user_model.IsPublicOnlyDoer(user) && !user.IsRestricted {
 		return PublicRepoUnderPublicOwnerCond().And(unitCond)
