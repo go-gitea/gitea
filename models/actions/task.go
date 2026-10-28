@@ -292,7 +292,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false, "runs_on_group": runsOnGroups}.And(jobCond, accessCond)
 	claimCond := builder.And(jobCond, accessCond, builder.Exists(builder.Select("1").From("action_runner").
-		Where(builder.Eq{"id": runner.ID, "group_id": runner.GroupID, "is_disabled": false}.And(builder.IsNull{"deleted"}))))
+		Where(builder.Eq{"id": runner.ID, "group_id": runner.GroupID, "is_disabled": false}.And(builder.Eq{"deleted": 0}.Or(builder.IsNull{"deleted"})))))
 
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
