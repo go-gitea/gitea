@@ -325,6 +325,23 @@ func TestCreateUserCustomTimestamps(t *testing.T) {
 	assert.Equal(t, creationTimestamp, fetched.UpdatedUnix)
 }
 
+func TestGetAllUsers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	bot := &user_model.User{Name: "test-bot", Email: "test-bot@example.com", Type: user_model.UserTypeBot}
+	require.NoError(t, user_model.CreateUser(t.Context(), bot, &user_model.Meta{}))
+
+	users, err := user_model.GetAllUsers(t.Context())
+	require.NoError(t, err)
+	ids := make([]int64, 0, len(users))
+	for _, u := range users {
+		assert.False(t, u.IsOrganization(), "organization %s listed as a user", u.Name)
+		ids = append(ids, u.ID)
+	}
+	assert.Contains(t, ids, bot.ID, "bot users are listed by `gitea admin user list`")
+	assert.Contains(t, ids, int64(1))
+}
+
 func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
