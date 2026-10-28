@@ -51,8 +51,8 @@ func ListPackages(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PackageList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 
@@ -104,8 +104,8 @@ func GetPackage(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Package"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	apiPackage, err := convert.ToPackage(ctx, ctx.Package.Descriptor, ctx.Doer)
 	if err != nil {
@@ -140,8 +140,8 @@ func DeletePackage(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	err := packages_service.RemovePackage(ctx, ctx.Doer, ctx.Package.Descriptor.Package)
 	if err != nil {
@@ -180,8 +180,8 @@ func DeletePackageVersion(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 	if err != nil {
@@ -222,8 +222,8 @@ func ListPackageFiles(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PackageFileList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	apiPackageFiles := make([]*api.PackageFile, 0, len(ctx.Package.Descriptor.Files))
 	for _, pfd := range ctx.Package.Descriptor.Files {
@@ -267,8 +267,8 @@ func ListPackageVersions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PackageList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 
@@ -315,8 +315,8 @@ func GetLatestPackageVersion(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Package"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pvs, _, err := packages.SearchLatestVersions(ctx, &packages.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
@@ -377,8 +377,8 @@ func LinkPackage(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
@@ -439,8 +439,8 @@ func UnlinkPackage(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
