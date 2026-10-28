@@ -8,7 +8,7 @@
 			{{ctx.Locale.Tr "repo.code_preview_line_from_to" .LineStart .LineStop $link}}
 		{{- end}}
 	</div>
-	<table class="file-view">
+	<table class="file-view" data-paste-markdown-skip>
 		<tbody>
 			{{- range $idx, $line := .HighlightLines -}}
 			<tr>

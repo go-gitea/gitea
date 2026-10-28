@@ -54,7 +54,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 			<div id="code-preview-{{$firstComment.ID}}" class="ui table segment {{if $resolved}}tw-hidden{{end}}">
 				<div class="diff-file-box file-content {{TabSizeClass $editorconfig $file.Name}}">
 					<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
-						<table>
+						<table data-paste-markdown-skip>
 							<tbody>
 								{{template "repo/diff/section_unified" dict "file" $file}}
 							</tbody>
