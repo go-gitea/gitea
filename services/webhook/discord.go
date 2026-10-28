@@ -108,6 +108,9 @@ var (
 // To keep it simple, we currently truncate at 2000.
 const discordDescriptionCharactersLimit = 2000
 
+// discordTitleCharactersLimit is Discord's documented embed title limit.
+const discordTitleCharactersLimit = 256
+
 type discordConvertor struct {
 	Username  string
 	AvatarURL string
@@ -202,7 +205,7 @@ func (d discordConvertor) PullRequest(p *api.PullRequestPayload) (DiscordPayload
 		if p.RequestedReviewer.FullName != "" {
 			reviewerName += " (" + p.RequestedReviewer.FullName + ")"
 		}
-		title += " (Requested Reviewer: " + reviewerName + ")"
+		title = util.TruncateRunes(title+" (Requested Reviewer: "+reviewerName+")", discordTitleCharactersLimit)
 	}
 
 	return d.createPayload(p.Sender, title, extraMarkdown, p.PullRequest.HTMLURL, color), nil
