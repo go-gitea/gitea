@@ -7,35 +7,20 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddRunnerGroups(_ context.Context, x base.EngineMigration) error {
-	type ActionRunner struct {
-		GroupID int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
-	}
-	type ActionRunJob struct {
-		RunsOnGroup string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	}
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(ActionRunner), new(ActionRunJob)); err != nil {
-		return err
+func AddProjectWorkflow(_ context.Context, x base.EngineMigration) error {
+	type ProjectWorkflow struct {
+		ID              int64 `xorm:"pk autoincr"`
+		ProjectID       int64 `xorm:"INDEX"`
+		WorkflowEvent   string
+		WorkflowFilters string             `xorm:"TEXT JSON"`
+		WorkflowActions string             `xorm:"TEXT JSON"`
+		Enabled         bool               `xorm:"DEFAULT true NOT NULL"`
+		CreatedUnix     timeutil.TimeStamp `xorm:"created"`
+		UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	type ActionRunnerGroup struct {
-		ID                      int64  `xorm:"pk autoincr"`
-		OwnerID                 int64  `xorm:"UNIQUE(owner_name) NOT NULL DEFAULT 0"`
-		Name                    string `xorm:"VARCHAR(255) NOT NULL"`
-		LowerName               string `xorm:"VARCHAR(255) UNIQUE(owner_name) NOT NULL"`
-		IncludesAllRepositories bool   `xorm:"NOT NULL DEFAULT false"`
-	}
-	type ActionRunnerAccess struct {
-		ID      int64 `xorm:"pk autoincr"`
-		GroupID int64 `xorm:"UNIQUE(group_repo) NOT NULL"`
-		RepoID  int64 `xorm:"INDEX UNIQUE(group_repo) NOT NULL"`
-	}
-	return x.Sync(new(ActionRunnerGroup), new(ActionRunnerAccess)) // plain Sync, the ignore flags above would skip the unique indexes
+	return x.Sync(&ProjectWorkflow{})
 }

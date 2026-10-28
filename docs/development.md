@@ -105,10 +105,13 @@ When adding configuration options it is not enough to add them to the
 [`custom/conf/app.example.ini`](../custom/conf/app.example.ini), and document them in
 the [configuration cheat sheet](https://docs.gitea.com/administration/config-cheat-sheet),
 which lives in the [documentation repository](https://gitea.com/gitea/docs).
+Every `app.example.ini` change needs a companion PR there that copies the ini text
+verbatim into every affected version's cheat sheet, translated where feasible, with a
+`WIP:` title prefix until the Gitea PR merges.
 
 ## Database migrations
 
-If you make breaking changes to a database-persisted struct under `models/`, add a
+Avoid migrations unless the alternative is a workaround. If you make breaking changes to a database-persisted struct under `models/`, add a
 new migration in `modelmigration/`. See [testing.md](testing.md#migration-tests)
 for running the migration tests.
 

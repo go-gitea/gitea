@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/container"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -44,8 +45,8 @@ func ListIssueLabels(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
@@ -93,12 +94,8 @@ func AddIssueLabels(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.IssueLabelsOption](ctx)
 	issue, labels, err := prepareForReplaceOrAdd(ctx, *form)
@@ -153,14 +150,8 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
@@ -222,12 +213,8 @@ func ReplaceIssueLabels(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.IssueLabelsOption](ctx)
 	issue, labels, err := prepareForReplaceOrAdd(ctx, *form)
 	if err != nil {
@@ -275,12 +262,8 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
@@ -339,12 +322,23 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		}
 		labelIDs = append(labelIDs, repoLabelIDs...)
 		if ctx.Repo.Owner.IsOrganization() {
-			orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, labelNames)
+			repoLabels, err := issues_model.GetLabelsByIDs(ctx, repoLabelIDs, "name")
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return nil, nil, err
 			}
-			labelIDs = append(labelIDs, orgLabelIDs...)
+			orgLabelNames := container.SetOf(labelNames...)
+			for _, label := range repoLabels {
+				orgLabelNames.Remove(label.Name)
+			}
+			if len(orgLabelNames) > 0 {
+				orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, orgLabelNames.Values())
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return nil, nil, err
+				}
+				labelIDs = append(labelIDs, orgLabelIDs...)
+			}
 		}
 	}
 

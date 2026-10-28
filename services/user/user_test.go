@@ -119,7 +119,7 @@ func TestDeleteUserUnlinkedAttachments(t *testing.T) {
 }
 
 func TestPurgeUser(t *testing.T) {
-	test := func(userID int64) {
+	for _, userID := range []int64{2, 4, 8, 11} {
 		assert.NoError(t, unittest.PrepareTestDatabase())
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
 
@@ -129,11 +129,6 @@ func TestPurgeUser(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: userID})
 		unittest.CheckConsistencyFor(t, &user_model.User{}, &repo_model.Repository{})
 	}
-	test(2)
-	test(4)
-	test(8)
-	test(11)
-
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Error(t, DeleteUser(t.Context(), org, false))
 }

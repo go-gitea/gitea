@@ -2645,7 +2645,6 @@
   "units.error.no_unit_allowed_repo": "У вас нет доступа ни к одному разделу этого репозитория.",
   "units.error.unit_not_allowed": "У вас нет доступа к этому разделу репозитория.",
   "packages.title": "Пакеты",
-  "packages.desc": "Управление пакетами репозитория.",
   "packages.empty": "Пока нет пакетов.",
   "packages.empty.documentation": "Дополнительную информацию о реестре пакетов можно найти в <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%s\">документации</a>.",
   "packages.empty.repo": "Вы загрузили пакет, но он здесь не отображается? Перейдите в <a href=\"%[1]s\">настройки пакета</a> и свяжите его с этим репозиторием.",
@@ -2873,6 +2872,8 @@
   "projects.type-1.display_name": "Индивидуальный проект",
   "projects.type-2.display_name": "Проект репозитория",
   "projects.type-3.display_name": "Проект организации",
+  "projects.workflows.actions": "Действия",
+  "projects.workflows.none": "Нет",
   "git.filemode.directory": "Каталог",
   "git.filemode.submodule": "Подмодуль",
   "actions.general.token_permissions.mode.restricted": "Ограничено"

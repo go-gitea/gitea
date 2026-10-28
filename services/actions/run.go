@@ -63,6 +63,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte, vars map[string]string, inputs map[string]any, wfRawConcurrency *act_model.RawConcurrency) error {
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
 	var needPostCommitEmit bool
+	pending := *run
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -122,6 +123,9 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		if err != nil {
 			return fmt.Errorf("parse workflow: %w", err)
 		}
+		if len(jobs) > actions_model.MaxJobNumPerRun {
+			return runJobLimitError()
+		}
 		titleChanged := len(jobs) > 0 && jobs[0].RunName != ""
 		if titleChanged {
 			run.Title = util.EllipsisDisplayString(jobs[0].RunName, 255)
@@ -151,6 +155,9 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			hasWaitingJobs = hasWaitingJobs || (runJob.Status == actions_model.StatusWaiting && !runJob.IsReusableCaller)
 			runJobs = append(runJobs, runJob)
 		}
+		if err := checkRunJobLimit(ctx, run.ID, runAttempt.ID, 0); err != nil { // inline reusable expansions only counted the jobs inserted before them
+			return err
+		}
 
 		runAttempt.Status = actions_model.AggregateJobStatus(runJobs)
 		if err := actions_model.UpdateRunAttempt(ctx, runAttempt, "status"); err != nil {
@@ -166,6 +173,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 
 		return nil
 	}); err != nil {
+		*run = pending // drop the ID and index of the rolled back insert
 		return err
 	}
 
