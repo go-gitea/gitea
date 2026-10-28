@@ -74,6 +74,19 @@ conditional `UPDATE` or a lock.
   plain `Sync`.
 - When inserting rows with preset IDs, MSSQL requires `SET IDENTITY_INSERT` to be
   enabled and PostgreSQL requires the sequence to be updated afterwards.
+- Struct conditions skip zero-valued fields, so `Get(&Reaction{IssueID: 1})` also
+  matches comment reactions. Use `Where` or `builder` when a zero value matters.
+- Struct updates skip zero-valued fields unless selected by `Cols` or `AllCols()`.
+  `Cols` silently ignores unknown names. `updated` columns are always written unless
+  `NoAutoTime()` is used.
+- `xorm:"deleted"` columns count both `0` and `NULL` as not deleted, so hand-written
+  conditions must accept both.
+- On every start, `SyncAllTables` drops indexes absent from the model, so declare
+  migration-created indexes there, including in backports. It only warns about
+  nullability and default changes, so apply them through migrations.
+- `ForUpdate` only works on MySQL and PostgreSQL. MSSQL rejects TEXT columns in
+  struct conditions and inserts of more than 1000 rows.
+- Paginated queries need a unique tiebreaker like `id` for a stable order.
 
 ## Dependencies
 
