@@ -412,7 +412,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 	}
 
 	var whitelistUsers, whitelistTeams []int64
-	whitelistUsers, err = user_model.GetDoerUserIDsByNames(ctx, form.WhitelistUsernames)
+	whitelistUsers, err = user_model.GetDoerUserIDsByNamesWithSystem(ctx, form.WhitelistUsernames)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -530,7 +530,7 @@ func EditTagProtection(ctx *context.APIContext) {
 	}
 
 	if form.WhitelistUsernames != nil {
-		whitelistUsers, err = user_model.GetDoerUserIDsByNames(ctx, form.WhitelistUsernames)
+		whitelistUsers, err = user_model.GetDoerUserIDsByNamesWithSystem(ctx, form.WhitelistUsernames)
 		if err != nil {
 			if errors.Is(err, util.ErrNotExist) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())

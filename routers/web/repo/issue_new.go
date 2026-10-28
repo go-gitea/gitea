@@ -80,7 +80,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 			metaData.LabelsData.SetSelectedLabelNames(template.Labels)
 		}
 		if metaData.AssigneesData.SelectedAssigneeIDs == "" {
-			selectedAssigneeIDs, _ := user_model.GetDoerUserIDsByNames(ctx, template.Assignees)
+			selectedAssigneeIDs, _ := user_model.GetRealDoerUserIDsByNames(ctx, template.Assignees)
 			metaData.AssigneesData.SelectedAssigneeIDs = base.JoinInt64s(selectedAssigneeIDs, ",")
 		}
 

@@ -526,7 +526,7 @@ func loadAssigneeUserIDs(ctx *context.APIContext, oneAssignee string, multipleAs
 		assigneeNames.Add(strings.ToLower(assignee))
 	}
 	assigneeNames.Remove("")
-	assignees, err := user_model.GetDoerUsersByNames(ctx, assigneeNames.Values())
+	assignees, err := user_model.GetRealDoerUsersByNames(ctx, assigneeNames.Values())
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: %s", err))
