@@ -19,6 +19,9 @@ import (
 	"gitea.dev/modules/util"
 )
 
+// cjkPunctuation is full-width punctuation that may directly surround an issue reference, e.g. "修复 #1。"
+const cjkPunctuation = `\x{3000}、。，．：；！？（）［］【】「」『』《》〈〉`
+
 var (
 	// validNamePattern performs only the most basic validation for user or repository names
 	// Repository name should contain only alphanumeric, dash ('-'), underscore ('_') and dot ('.') characters.
@@ -32,12 +35,12 @@ var (
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[-\w][-.\w]*?|@[-\w][-.\w]*?/[-\w][-.\w]*?)(?:\s|$|[:,;.?!](\s|$)|'|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\")([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$)`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\"|[` + cjkPunctuation + `])([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$|[` + cjkPunctuation + `])`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\'|,)`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. org/repo#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|[` + cjkPunctuation + `])([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$|[` + cjkPunctuation + `])`)
 	// crossReferenceCommitPattern matches a string that references a commit in a different repository
 	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
 	crossReferenceCommitPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)@([0-9a-f]{7,64})(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)

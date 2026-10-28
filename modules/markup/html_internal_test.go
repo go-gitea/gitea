@@ -157,6 +157,9 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 	// should render with :
 	test("#1234: test", "%s: test", "#", 1234)
 	test("wow (#54321: test)", "wow (%s: test)", "#", 54321)
+
+	// should render next to CJK punctuation
+	test("修复 #1。见（#2）", "修复 %s。见（%s）", "#", 1, 2)
 }
 
 func TestRender_IssueIndexPattern3(t *testing.T) {

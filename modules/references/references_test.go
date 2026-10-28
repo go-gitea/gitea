@@ -90,6 +90,14 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
+			"Closes #3，see（#4）and org3/repo4#200。",
+			[]testResult{
+				{3, "", "", "3", false, XRefActionCloses, &RefSpan{Start: 7, End: 9}, &RefSpan{Start: 0, End: 6}, ""},
+				{4, "", "", "4", false, XRefActionNone, &RefSpan{Start: 18, End: 20}, nil, ""},
+				{200, "org3", "repo4", "200", false, XRefActionNone, &RefSpan{Start: 27, End: 41}, nil, ""},
+			},
+		},
+		{
 			"This [one](#919) no, this is a URL fragment.",
 			[]testResult{},
 		},
