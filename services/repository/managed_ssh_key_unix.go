@@ -5,6 +5,10 @@
 
 package repository
 
+func defaultSSHCommand() string {
+	return "ssh"
+}
+
 func restrictToCurrentUser(string) error {
 	return nil // temp dirs are created with mode 0700
 }

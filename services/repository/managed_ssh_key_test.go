@@ -89,4 +89,7 @@ func TestManagedSSHEnv(t *testing.T) {
 
 	defer test.MockVariableValue(&setting.Migrations.SSHHostKeyChecking, "no")()
 	assert.Contains(t, managedSSHCommand("id", knownHosts), `-o StrictHostKeyChecking=no -o "UserKnownHostsFile=\"`+os.DevNull+`\""`)
+
+	defer test.MockVariableValue(&setting.Migrations.SSHCommand, "/opt/ssh")()
+	assert.True(t, strings.HasPrefix(managedSSHCommand("id", knownHosts), util.ShellEscape("/opt/ssh")+" "))
 }

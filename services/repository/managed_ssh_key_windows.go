@@ -5,7 +5,29 @@
 
 package repository
 
-import "golang.org/x/sys/windows"
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+
+	"gitea.dev/modules/util"
+
+	"golang.org/x/sys/windows"
+)
+
+// defaultSSHCommand falls back to the OpenSSH client bundled with Windows, which isn't always on PATH
+func defaultSSHCommand() string {
+	if _, err := exec.LookPath("ssh"); err == nil {
+		return "ssh"
+	}
+	if systemRoot := os.Getenv("SystemRoot"); systemRoot != "" {
+		bundled := filepath.Join(systemRoot, "System32", "OpenSSH", "ssh.exe")
+		if exist, _ := util.IsExist(bundled); exist {
+			return bundled
+		}
+	}
+	return "ssh"
+}
 
 // restrictToCurrentUser replaces the inherited ACL of dir and its future files, Win32-OpenSSH rejects keys other accounts can access
 func restrictToCurrentUser(dir string) error {

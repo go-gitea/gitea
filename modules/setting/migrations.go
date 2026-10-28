@@ -20,7 +20,6 @@ var Migrations = struct {
 	RetryBackoff:       3,
 	EgressMode:         "lax",
 	SSHHostKeyChecking: "accept-new",
-	SSHCommand:         "ssh",
 }
 
 func loadMigrationsFrom(rootCfg ConfigProvider) {
@@ -56,5 +55,5 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 
 	Migrations.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool(false)
 	Migrations.SSHHostKeyChecking = sec.Key("SSH_HOST_KEY_CHECKING").In("accept-new", []string{"accept-new", "yes", "no"})
-	Migrations.SSHCommand = sec.Key("SSH_COMMAND").MustString("ssh")
+	Migrations.SSHCommand = sec.Key("SSH_COMMAND").String()
 }

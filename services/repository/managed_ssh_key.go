@@ -83,7 +83,11 @@ func managedSSHCommand(keyFile, knownHosts string) string {
 	if setting.Migrations.SSHHostKeyChecking == "no" {
 		knownHosts = os.DevNull
 	}
-	return util.ShellEscape(setting.Migrations.SSHCommand) + " -o BatchMode=yes -o IdentitiesOnly=yes -o IdentityAgent=none -o ControlPath=none" +
+	sshCommand := setting.Migrations.SSHCommand
+	if sshCommand == "" {
+		sshCommand = defaultSSHCommand()
+	}
+	return util.ShellEscape(sshCommand) + " -o BatchMode=yes -o IdentitiesOnly=yes -o IdentityAgent=none -o ControlPath=none" +
 		" -i " + util.ShellEscape(keyFile) +
 		" -o StrictHostKeyChecking=" + setting.Migrations.SSHHostKeyChecking +
 		" -o " + util.ShellEscape(`UserKnownHostsFile="`+knownHosts+`"`) // ssh splits the option value on spaces
