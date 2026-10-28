@@ -15,6 +15,7 @@ import (
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -359,6 +360,48 @@ jobs:
 				assert.Equal(t, actions_model.StatusSuccess, attempt2.Status)
 				run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
 				assert.Equal(t, actions_model.StatusSuccess, run.Status)
+			})
+
+			t.Run("Sidebar groups workflow_call-only workflows", func(t *testing.T) {
+				// a run from before reusable2.yaml became workflow_call-only must not move it to "Other workflows"
+				require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRun{
+					Title: "former push run", RepoID: repo.ID, OwnerID: repo.OwnerID, WorkflowID: "reusable2.yaml", Index: 9701,
+					TriggerUserID: user2.ID, Ref: "refs/heads/" + repo.DefaultBranch, Event: "push", TriggerEvent: "push",
+					Status: actions_model.StatusSuccess,
+				}))
+				job := "jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"
+				newFile := func(path, content string) *api.ChangeFileOperation {
+					return &api.ChangeFileOperation{Operation: "create", Path: path, ContentBase64: base64.StdEncoding.EncodeToString([]byte(content))}
+				}
+				MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", repo.OwnerName, repo.Name), &api.ChangeFilesOptions{
+					FileOptions: api.FileOptions{BranchName: repo.DefaultBranch, Message: "add mixed and no-events workflows"},
+					Files: []*api.ChangeFileOperation{ // one commit for both to keep the test fast
+						newFile(".gitea/workflows/mixed.yaml", "on: [workflow_call, workflow_dispatch]\n"+job),
+						newFile(".gitea/workflows/no-events.yaml", "on: []\n"+job),
+					},
+				}).AddTokenAuth(user2Token), http.StatusCreated)
+
+				doc := NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions"), http.StatusOK).Body)
+				listed := func(name string) int {
+					return doc.Find(fmt.Sprintf(`.flex-container-nav > .menu > a.item[href*="workflow=%s&"]`, name)).Length()
+				}
+				grouped := func(name string) int {
+					return doc.Find(fmt.Sprintf(`.flex-container-nav details .menu a.item[href*="workflow=%s&"]`, name)).Length()
+				}
+				assert.Equal(t, 1, doc.Find(".flex-container-nav details").Length()) // no "Other workflows"
+				assert.Equal(t, "2", doc.Find(".flex-container-nav details summary .ui.label").Text())
+				assert.Equal(t, 1, grouped("reusable1.yaml"))
+				assert.Equal(t, 1, grouped("reusable2.yaml"))
+				assert.Zero(t, listed("reusable1.yaml"))
+				assert.Equal(t, 1, listed("caller.yaml"))
+				assert.Equal(t, 1, listed("mixed.yaml"))
+				assert.Equal(t, 1, listed("no-events.yaml"))
+
+				doc = NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=reusable1.yaml"), http.StatusOK).Body)
+				assert.Equal(t, "This workflow can only be called by other workflows.", strings.TrimSpace(doc.Find(".empty-placeholder h2").Text()))
+				assert.Zero(t, doc.Find(`[data-url*="/disable?workflow=reusable1.yaml"]`).Length())
+				doc = NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=mixed.yaml"), http.StatusOK).Body)
+				assert.Equal(t, 1, doc.Find(`[data-url*="/disable?workflow=mixed.yaml"]`).Length())
 			})
 		})
 
@@ -974,44 +1017,6 @@ jobs:
 			runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 			runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 			runner.fetchTask(t)
-		})
-
-		t.Run("Sidebar groups workflow_call-only workflows", func(t *testing.T) {
-			apiRepo := createActionsTestRepo(t, user2Token, "workflow-call-sidebar", false)
-			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-			job := "jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"
-			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/callee.yaml", "on: workflow_call\n"+job)
-			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/mixed.yaml", "on: [workflow_call, workflow_dispatch]\n"+job)
-			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/no-events.yaml", "on: []\n"+job)
-			former := createWorkflowFile(t, user2Token, repo.OwnerName, repo.Name, ".gitea/workflows/former.yaml",
-				getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create former.yaml", "on: push\n"+job))
-			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "former.yaml"})
-			MakeRequest(t, NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/.gitea/workflows/former.yaml", repo.OwnerName, repo.Name), &api.UpdateFileOptions{
-				FileOptions:   api.FileOptions{BranchName: repo.DefaultBranch, Message: "make former.yaml reusable"},
-				SHA:           former.Content.SHA,
-				ContentBase64: base64.StdEncoding.EncodeToString([]byte("on: workflow_call\n" + job)),
-			}).AddTokenAuth(user2Token), http.StatusOK)
-
-			doc := NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions"), http.StatusOK).Body)
-			listed := func(name string) int {
-				return doc.Find(fmt.Sprintf(`.flex-container-nav > .menu > a.item[href*="workflow=%s&"]`, name)).Length()
-			}
-			grouped := func(name string) int {
-				return doc.Find(fmt.Sprintf(`.flex-container-nav details .menu a.item[href*="workflow=%s&"]`, name)).Length()
-			}
-			assert.Equal(t, 1, doc.Find(".flex-container-nav details").Length()) // no "Other workflows": former.yaml's runs stay with its file
-			assert.Equal(t, "2", doc.Find(".flex-container-nav details summary .ui.label").Text())
-			assert.Equal(t, 1, grouped("callee.yaml"))
-			assert.Equal(t, 1, grouped("former.yaml"))
-			assert.Zero(t, listed("callee.yaml"))
-			assert.Equal(t, 1, listed("mixed.yaml"))
-			assert.Equal(t, 1, listed("no-events.yaml"))
-
-			doc = NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=callee.yaml"), http.StatusOK).Body)
-			assert.Equal(t, "This workflow can only be called by other workflows.", strings.TrimSpace(doc.Find(".empty-placeholder h2").Text()))
-			assert.Zero(t, doc.Find(`[data-url*="/disable?workflow=callee.yaml"]`).Length())
-			doc = NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=mixed.yaml"), http.StatusOK).Body)
-			assert.Equal(t, 1, doc.Find(`[data-url*="/disable?workflow=mixed.yaml"]`).Length())
 		})
 	})
 }
