@@ -224,13 +224,13 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 		}
 
 		if options.SignInRequired && !ctx.IsSigned {
-			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			ctx.RedirectForLogin(middleware.RedirectLinkUserLogin(ctx.Req))
 			return
 		}
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
 		if !options.SignOutRequired && !ctx.IsSigned && ctx.GetSiteCookie(setting.CookieRememberName) != "" {
-			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			ctx.RedirectForLogin(middleware.RedirectLinkUserLogin(ctx.Req))
 			return
 		}
 
@@ -258,15 +258,18 @@ func Routes() *web.Router {
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	routes.BeforeRouting(chi_middleware.GetHead)
+	routes.BeforeRouting(user.UsernamePreRoute)
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 	routes.Methods("GET, HEAD", "/assets/site-manifest.json", misc.SiteManifest)
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, public.AssetsCors(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	routes.Methods("GET, HEAD", "/favicon.ico", misc.StaticRedirect("/assets/img/favicon.png"))
+
+	// HINT: USERNAME-AVATAR-APPLE-TOUCH-ICON: these two paths conflict with "/{username}.png"
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/apple-touch-icon-precomposed.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
-	routes.Methods("GET, HEAD", "/favicon.ico", misc.StaticRedirect("/assets/img/favicon.png"))
 
 	var mid []any
 
@@ -323,6 +326,12 @@ func Routes() *web.Router {
 //   - For non-browser client requests: git clone via http, no Sec-Fetch-Site header.
 //     Such requests are not cross-origin requests, so disable CrossOriginProtection.
 var optSignInFromAnyOrigin = verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: true})
+
+func addProjectWorkflowRoutes(m *web.Router) {
+	m.Post("/workflows", project.CreateWorkflow)
+	m.Post("/workflows/{workflow_id}", project.UpdateWorkflow)
+	m.Post("/workflows/{workflow_id}/delete", project.DeleteWorkflow)
+}
 
 // addProjectBoardRoutes registers a board's column and card routes, shared by the
 // repository and owner mount points.
@@ -900,13 +909,19 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	}, adminReq, ctxDataSet(reqctx.ContextData{"EnableOAuth2": setting.OAuth2.Enabled, "EnablePackages": setting.Packages.Enabled}))
 	// ***** END: Admin *****
 
-	m.Group("", func() {
-		// it handles "username.rss" in the handler, so allow basic auth as other rss/atom routes
-		m.Get("/{username}", webAuth.AllowBasic, user.UsernameSubRoute)
-		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)
-	}, optSignIn)
+	m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), webAuth.AllowBasic, webAuth.AllowOAuth2, optSignIn, repo.GetAttachment)
 
-	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), user.ActionUserFollow)
+	m.Group("", func() {
+		// "UsernamePreRoute" is used to rewrite username with a suffix like "/username.png" to "/-/ownername.png/username"
+		m.Get("/-/ownername.png/{username}", user.AvatarByUsernameSize)
+		m.Get("/-/ownername.keys/{username}", user.ShowSSHKeys)
+		m.Get("/-/ownername.gpg/{username}", user.ShowGPGKeys)
+		m.Get("/-/ownername.rss/{username}", feed.ShowUserFeedRSS)
+		m.Get("/-/ownername.atom/{username}", feed.ShowUserFeedAtom)
+		m.Get("/{username}", user.OwnerProfile)
+	}, webAuth.AllowBasic, optSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer())
+
+	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer(), user.ActionUserFollow)
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireUnitWriter(unit.TypeCode)
@@ -930,7 +945,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
-			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+			if ctx.Package.AccessMode < accessMode {
 				ctx.NotFound(nil)
 			}
 		}
@@ -975,8 +990,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)
-			m.Get("/dashboard/-/heatmap", user.DashboardHeatmap)
-			m.Get("/dashboard/-/heatmap/{team}", user.DashboardHeatmap)
+			m.Get("/dashboard/-/heatmap", context.ReqContextUserVisibleToDoer(), user.DashboardHeatmap)
+			m.Get("/dashboard/-/heatmap/{team}", context.ReqContextUserVisibleToDoer(), user.DashboardHeatmap)
 			m.Get("/issues", user.Issues)
 			m.Get("/issues/{team}", user.Issues)
 			m.Get("/pulls", user.Pulls)
@@ -1126,12 +1141,14 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/mentions-in-owner", reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), org.GetMentionsInOwner)
 
 		m.Get("/repositories", org.Repositories)
-		m.Get("/heatmap", user.DashboardHeatmap)
+		m.Get("/heatmap", context.ReqContextUserVisibleToDoer(), user.DashboardHeatmap)
 
 		m.Group("/projects", func() {
 			m.Group("", func() {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
+				m.Get("/{id}/workflows", org.ProjectWorkflows)
+				m.Get("/{id}/workflows/{workflow_id}", org.ProjectWorkflows)
 			}, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
@@ -1144,6 +1161,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
 					addProjectBoardRoutes(m)
+					addProjectWorkflowRoutes(m)
 				})
 			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
@@ -1280,7 +1298,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// end "/{username}/{reponame}/settings"
 
 	// user/org home, including rss feeds like "/{username}/{reponame}.rss"
-	m.Get("/{username}/{reponame}", optSignIn, webAuth.AllowBasic, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
+	m.Get("/{username}/{reponame}", optSignIn, webAuth.AllowBasic, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.Home)
 
 	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind[*structs.MarkupOption](), misc.Markup)
 
@@ -1503,6 +1521,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, ctxDataSet(reqctx.ContextData{"EnableFeed": setting.Other.EnableFeed}))
 		m.Get("/releases/attachments/{uuid}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)
 		m.Get("/releases/download/{vTag}/{fileName}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.RedirectDownload)
+		m.Post("/releases/{id}/reactions/{action}", reqSignIn, context.RepoMustNotBeArchived(), repo.ChangeReleaseReaction)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind[*forms.NewReleaseForm](), repo.NewReleasePost)
@@ -1534,6 +1553,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
+		m.Get("/{id}/workflows", repo.ProjectWorkflows)
+		m.Get("/{id}/workflows/{workflow_id}", repo.ProjectWorkflows)
 		m.Group("", func() {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind[*forms.CreateProjectForm](), repo.NewProjectPost)
@@ -1545,6 +1566,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
 				addProjectBoardRoutes(m)
+				addProjectWorkflowRoutes(m)
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 	}, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
@@ -1661,7 +1683,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", web.Bind[*forms.CodeCommentForm](), repo.SetShowOutdatedComments, repo.CreateCodeComment)
 					m.Post("/submit", web.Bind[*forms.SubmitReviewForm](), repo.SubmitReview)
-				}, context.RepoMustNotBeArchived())
+				}, reqSignIn, context.RepoMustNotBeArchived())
 			})
 		})
 	}, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader)
@@ -1742,7 +1764,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.Home)
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.Home)
 			m.Get("/*", context.RepoRefByType(""), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
-		}, repo.SetEditorconfigIfExists)
+		})
 		m.Get("/tree/*", repo.RedirectRepoTreeToSrc)    // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
 		m.Get("/blob/*", repo.RedirectRepoBlobToCommit) // redirect "/owner/repo/blob/*" requests to "/owner/repo/src/commit/*"
 

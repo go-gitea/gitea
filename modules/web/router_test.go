@@ -208,30 +208,18 @@ func TestRouter(t *testing.T) {
 			method:       "GET",
 			handlerMarks: []string{"not-found:/api/v1"},
 		})
-		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches", resultStruct{
-			method:     "GET",
-			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo"},
-		})
-
-		testRoute(t, "POST /api/v1/repos/the-user/the-repo/branches", resultStruct{
-			method:     "POST",
-			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo"},
-		})
-
-		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
-			method:     "GET",
-			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo", "name": "master"},
-		})
-
-		testRoute(t, "PATCH /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
-			method:     "PATCH",
-			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo", "name": "master"},
-		})
-
-		testRoute(t, "DELETE /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
-			method:     "DELETE",
-			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo", "name": "master"},
-		})
+		for _, method := range []string{"GET", "POST"} {
+			testRoute(t, method+" /api/v1/repos/the-user/the-repo/branches", resultStruct{
+				method:     method,
+				pathParams: map[string]string{"username": "the-user", "reponame": "the-repo"},
+			})
+		}
+		for _, method := range []string{"GET", "PATCH", "DELETE"} {
+			testRoute(t, method+" /api/v1/repos/the-user/the-repo/branches/master", resultStruct{
+				method:     method,
+				pathParams: map[string]string{"username": "the-user", "reponame": "the-repo", "name": "master"},
+			})
+		}
 	})
 
 	t.Run("MatchPath", func(t *testing.T) {

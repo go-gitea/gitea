@@ -1,8 +1,6 @@
-import '../../fomantic/build/fomantic.js';
-import {userEvent} from 'vitest/browser';
 import {initGlobalShortcut, makeFullKeyFromEvent} from './shortcut.ts';
 import {initGlobalSelectorObserver} from './observer.ts';
-import {initGiteaFomantic} from './fomantic.ts';
+import {initGlobalModal} from './modal.ts';
 
 function press(key: string, options: KeyboardEventInit = {}, target: HTMLElement = document.body) {
   const event = new KeyboardEvent('keydown', {key, bubbles: true, cancelable: true, ...options});
@@ -21,7 +19,7 @@ beforeAll(() => {
     <select><option>Value</option></select>
     <div contenteditable="true"><span>Editable</span></div>
   `;
-  initGiteaFomantic();
+  initGlobalModal();
   initGlobalShortcut();
   initGlobalSelectorObserver(null);
 });
@@ -106,7 +104,7 @@ test('normalizes keys and sorts modifiers alphabetically', () => {
   }
 });
 
-test('shows current shortcuts with ? and closes with Escape or the close button', async () => {
+test('shows current shortcuts with ? and closes with Escape or the close button', () => {
   const input = document.querySelector('input')!;
   const click = vi.spyOn(document.querySelector('button')!, 'click');
   press('?', {shiftKey: true}, input);
@@ -115,20 +113,20 @@ test('shows current shortcuts with ? and closes with Escape or the close button'
   expect(document.querySelector('#global-shortcut-help')).toBeNull();
   press('g');
   expect(press('?', {shiftKey: true}).defaultPrevented).toBe(true);
-  const modal = document.querySelector<HTMLElement>('#global-shortcut-help')!;
-  expect(modal.classList.contains('active')).toBe(true);
+  const modal = document.querySelector<HTMLDialogElement>('#global-shortcut-help')!;
+  expect(modal.open).toBe(true);
   expect(modal.querySelector('.shortcut-list tr:nth-child(2) td:last-child')!.textContent).toBe('Issues');
   expect(modal.querySelector('.shortcut-list')!.textContent).toContain('Search code');
   expect(modal.querySelectorAll('.shortcut-list tr')).toHaveLength(3);
   press('g');
   press('i');
   expect(click).not.toHaveBeenCalled();
-  await userEvent.keyboard('{Escape}');
-  expect(modal.classList.contains('active')).toBe(false);
+  press('Escape');
+  expect(modal.open).toBe(false);
 
   input.setAttribute('placeholder', '<b>Updated search</b>');
   press('?');
-  expect(document.querySelectorAll('.ui.modal')).toHaveLength(1);
+  expect(document.querySelectorAll('.modal-dialog')).toHaveLength(1);
   expect(modal.querySelector('.shortcut-list')!.textContent).toContain('<b>Updated search</b>');
   expect(modal.querySelector('.shortcut-list b')).toBeNull();
   expect(modal.querySelectorAll('.shortcut-list tr')).toHaveLength(3);

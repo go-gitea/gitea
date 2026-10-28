@@ -46,11 +46,6 @@ func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head s
 		WithRepo(repo).
 		WithStdoutCopy(w).
 		RunWithStderr(ctx); err != nil {
-		if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
-			// git >= 2.28 now returns an error if base and head have become unrelated.
-			// it doesn't make sense to count the changed files in this case because UI won't display such diff
-			return 0, nil
-		}
 		return 0, err
 	}
 	return w.numLines, nil

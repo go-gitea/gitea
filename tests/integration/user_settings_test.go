@@ -56,58 +56,55 @@ func WithDisabledFeatures(t *testing.T, features ...string) {
 	})
 }
 
+func TestRevokeOAuth2GrantOfOtherUser(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// grant 1 belongs to user1, so user2 must not be able to act on it
+	session := loginUser(t, "user2")
+	req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/1/revoke/1", nil)
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	grant := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1})
+	assert.EqualValues(t, 1, grant.UserID)
+}
+
 func TestUserSettingsAccount(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	t.Run("all features enabled", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	for _, testCase := range []struct {
+		name           string
+		features       []string
+		credentials    bool
+		deleteSelector string
+		deletion       bool
+	}{
+		{"all features enabled", nil, true, `form[action="/user/settings/account/delete"]`, true},
+		{"credentials disabled", []string{setting.UserFeatureManageCredentials}, false, `form[action="/user/settings/account/delete"]`, true},
+		{"deletion disabled", []string{setting.UserFeatureDeletion}, true, "#delete-form", false},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			if len(testCase.features) > 0 {
+				WithDisabledFeatures(t, testCase.features...)
+			}
 
-		session := loginUser(t, "user2")
-		req := NewRequest(t, "GET", "/user/settings/account")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
+			session := loginUser(t, "user2")
+			req := NewRequest(t, "GET", "/user/settings/account")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
 
-		// account navbar should display
-		AssertHTMLElement(t, doc, ".menu a[href='/user/settings/account']", true)
+			if len(testCase.features) == 0 {
+				// account navbar should display
+				AssertHTMLElement(t, doc, ".menu a[href='/user/settings/account']", true)
+			} else {
+				assertNavbar(t, doc)
+			}
 
-		AssertHTMLElement(t, doc, "#password", true)
-		AssertHTMLElement(t, doc, "#email", true)
-		AssertHTMLElement(t, doc, `form[action="/user/settings/account/delete"]`, true)
-	})
-
-	t.Run("credentials disabled", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
-
-		session := loginUser(t, "user2")
-		req := NewRequest(t, "GET", "/user/settings/account")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		assertNavbar(t, doc)
-
-		AssertHTMLElement(t, doc, "#password", false)
-		AssertHTMLElement(t, doc, "#email", false)
-		AssertHTMLElement(t, doc, `form[action="/user/settings/account/delete"]`, true)
-	})
-
-	t.Run("deletion disabled", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		WithDisabledFeatures(t, setting.UserFeatureDeletion)
-
-		session := loginUser(t, "user2")
-		req := NewRequest(t, "GET", "/user/settings/account")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		assertNavbar(t, doc)
-
-		AssertHTMLElement(t, doc, "#password", true)
-		AssertHTMLElement(t, doc, "#email", true)
-		AssertHTMLElement(t, doc, "#delete-form", false)
-	})
+			AssertHTMLElement(t, doc, "#password", testCase.credentials)
+			AssertHTMLElement(t, doc, "#email", testCase.credentials)
+			AssertHTMLElement(t, doc, testCase.deleteSelector, testCase.deletion)
+		})
+	}
 
 	t.Run("deletion, credentials and email notifications are disabled", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -163,33 +160,27 @@ func TestUserSettingsUpdateEmail(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusNotFound)
 	})
 
-	t.Run("primary email not found", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	for _, testCase := range []struct {
+		name string
+		id   string
+	}{
+		{"primary email not found", "9999"},
+		{"primary email not owned by user", "6"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		session := loginUser(t, "user2")
-		req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
-			"_method": "PRIMARY",
-			"id":      "9999",
+			session := loginUser(t, "user2")
+			req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
+				"_method": "PRIMARY",
+				"id":      testCase.id,
+			})
+			resp := session.MakeRequest(t, req, http.StatusSeeOther)
+			assert.Equal(t, "/user/settings/account", resp.Header().Get("Location"))
+			flashMsg := session.GetCookieFlashMessage()
+			assert.Equal(t, "The selected email address could not be found.", flashMsg.ErrorMsg)
 		})
-		resp := session.MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, "/user/settings/account", resp.Header().Get("Location"))
-		flashMsg := session.GetCookieFlashMessage()
-		assert.Equal(t, "The selected email address could not be found.", flashMsg.ErrorMsg)
-	})
-
-	t.Run("primary email not owned by user", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		session := loginUser(t, "user2")
-		req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
-			"_method": "PRIMARY",
-			"id":      "6",
-		})
-		resp := session.MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, "/user/settings/account", resp.Header().Get("Location"))
-		flashMsg := session.GetCookieFlashMessage()
-		assert.Equal(t, "The selected email address could not be found.", flashMsg.ErrorMsg)
-	})
+	}
 }
 
 func TestUserSettingsDeleteEmail(t *testing.T) {
@@ -219,47 +210,46 @@ func TestUserSettingsDelete(t *testing.T) {
 	})
 }
 
-func TestUserSettingsAppearance(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func TestUserSettingsPages(t *testing.T) {
+	for _, page := range []string{"appearance", "packages", "packages/rules/add", "organization", "repos", "blocked_users"} {
+		t.Run(page, func(t *testing.T) {
+			defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user/settings/appearance")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
+			session := loginUser(t, "user2")
+			req := NewRequest(t, "GET", "/user/settings/"+page)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
 
-	assertNavbar(t, doc)
+			assertNavbar(t, doc)
+		})
+	}
 }
 
 func TestUserSettingsSecurity(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	t.Run("credentials disabled", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
+	for _, testCase := range []struct {
+		name     string
+		feature  string
+		register bool
+	}{
+		{"credentials disabled", setting.UserFeatureManageCredentials, true},
+		{"mfa disabled", setting.UserFeatureManageMFA, false},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			WithDisabledFeatures(t, testCase.feature)
 
-		session := loginUser(t, "user2")
-		req := NewRequest(t, "GET", "/user/settings/security")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
+			session := loginUser(t, "user2")
+			req := NewRequest(t, "GET", "/user/settings/security")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
 
-		assertNavbar(t, doc)
+			assertNavbar(t, doc)
 
-		AssertHTMLElement(t, doc, "#register-webauthn", true)
-	})
-
-	t.Run("mfa disabled", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		WithDisabledFeatures(t, setting.UserFeatureManageMFA)
-
-		session := loginUser(t, "user2")
-		req := NewRequest(t, "GET", "/user/settings/security")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		assertNavbar(t, doc)
-
-		AssertHTMLElement(t, doc, "#register-webauthn", false)
-	})
+			AssertHTMLElement(t, doc, "#register-webauthn", testCase.register)
+		})
+	}
 
 	t.Run("credentials and mfa disabled", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -339,19 +329,14 @@ func TestUserSettingsApplications(t *testing.T) {
 			t.Run("OK", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 				defer test.MockVariableValue(&setting.OAuth2.CustomSchemes, []string{"my-app"})()
-				req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
-					"application_name":    "Test native app",
-					"redirect_uris":       "http://127.0.0.1",
-					"confidential_client": "false",
-				})
-				session.MakeRequest(t, req, http.StatusSeeOther)
-
-				req = NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
-					"application_name":    "Test native app",
-					"redirect_uris":       "my-app://127.0.0.1",
-					"confidential_client": "false",
-				})
-				session.MakeRequest(t, req, http.StatusSeeOther)
+				for _, redirectURI := range []string{"http://127.0.0.1", "my-app://127.0.0.1"} {
+					req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
+						"application_name":    "Test native app",
+						"redirect_uris":       redirectURI,
+						"confidential_client": "false",
+					})
+					session.MakeRequest(t, req, http.StatusSeeOther)
+				}
 			})
 		})
 	})
@@ -360,51 +345,33 @@ func TestUserSettingsApplications(t *testing.T) {
 func TestUserSettingsKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	t.Run("all enabled", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	for _, testCase := range []struct {
+		name    string
+		feature string
+		ssh     bool
+		gpg     bool
+	}{
+		{"all enabled", "", true, true},
+		{"ssh keys disabled", setting.UserFeatureManageSSHKeys, false, true},
+		{"gpg keys disabled", setting.UserFeatureManageGPGKeys, true, false},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			if testCase.feature != "" {
+				WithDisabledFeatures(t, testCase.feature)
+			}
 
-		session := loginUser(t, "user2")
-		req := NewRequest(t, "GET", "/user/settings/keys")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
+			session := loginUser(t, "user2")
+			req := NewRequest(t, "GET", "/user/settings/keys")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
 
-		assertNavbar(t, doc)
+			assertNavbar(t, doc)
 
-		AssertHTMLElement(t, doc, "#add-ssh-button", true)
-		AssertHTMLElement(t, doc, "#add-gpg-key-panel", true)
-	})
-
-	t.Run("ssh keys disabled", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		WithDisabledFeatures(t, setting.UserFeatureManageSSHKeys)
-
-		session := loginUser(t, "user2")
-		req := NewRequest(t, "GET", "/user/settings/keys")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		assertNavbar(t, doc)
-
-		AssertHTMLElement(t, doc, "#add-ssh-button", false)
-		AssertHTMLElement(t, doc, "#add-gpg-key-panel", true)
-	})
-
-	t.Run("gpg keys disabled", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		WithDisabledFeatures(t, setting.UserFeatureManageGPGKeys)
-
-		session := loginUser(t, "user2")
-		req := NewRequest(t, "GET", "/user/settings/keys")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		assertNavbar(t, doc)
-
-		AssertHTMLElement(t, doc, "#add-ssh-button", true)
-		AssertHTMLElement(t, doc, "#add-gpg-key-panel", false)
-	})
+			AssertHTMLElement(t, doc, "#add-ssh-button", testCase.ssh)
+			AssertHTMLElement(t, doc, "#add-gpg-key-panel", testCase.gpg)
+		})
+	}
 
 	t.Run("ssh & gpg keys disabled", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -430,59 +397,4 @@ func TestUserSettingsSecrets(t *testing.T) {
 	} else {
 		session.MakeRequest(t, req, http.StatusNotFound)
 	}
-}
-
-func TestUserSettingsPackages(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user/settings/packages")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-
-	assertNavbar(t, doc)
-}
-
-func TestUserSettingsPackagesRulesAdd(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user/settings/packages/rules/add")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-
-	assertNavbar(t, doc)
-}
-
-func TestUserSettingsOrganization(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user/settings/organization")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-
-	assertNavbar(t, doc)
-}
-
-func TestUserSettingsRepos(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user/settings/repos")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-
-	assertNavbar(t, doc)
-}
-
-func TestUserSettingsBlockedUsers(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user/settings/blocked_users")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-
-	assertNavbar(t, doc)
 }

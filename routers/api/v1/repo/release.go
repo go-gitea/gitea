@@ -10,6 +10,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
@@ -23,7 +24,7 @@ func canAccessReleaseDraft(ctx *context.APIContext) bool {
 	if !ctx.IsSigned || !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
 		return false
 	}
-	scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
 	if !hasApiTokenScope {
 		// not API token request, the request is from a user session with write access
 		return true
@@ -60,8 +61,8 @@ func GetRelease(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	id := ctx.PathParamInt64("id")
 	release, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
@@ -107,8 +108,8 @@ func GetLatestRelease(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.APIErrorInternal(err)
@@ -168,8 +169,8 @@ func ListReleases(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	listOptions := utils.GetListOptions(ctx)
 	if ctx.Written() {
 		return
@@ -236,12 +237,8 @@ func CreateRelease(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Release"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm[*api.CreateReleaseOption](ctx)
 	if ctx.Repo.Repository.IsEmpty {
@@ -342,8 +339,8 @@ func EditRelease(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.EditReleaseOption](ctx)
 	id := ctx.PathParamInt64("id")
@@ -418,10 +415,8 @@ func DeleteRelease(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	id := ctx.PathParamInt64("id")
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)

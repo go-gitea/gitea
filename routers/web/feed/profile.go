@@ -9,7 +9,6 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
@@ -30,16 +29,13 @@ func ShowUserFeedAtom(ctx *context.Context) {
 
 // showUserFeed show user activity as RSS / Atom feed
 func showUserFeed(ctx *context.Context, formatType string) {
-	isOrganisation := ctx.ContextUser.IsOrganization()
-	if !setting.Other.EnableFeed ||
-		isOrganisation && !organization.HasOrgOrUserVisible(ctx, ctx.ContextUser, ctx.Doer) ||
-		!isOrganisation && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+	if !setting.Other.EnableFeed {
 		ctx.NotFound(nil)
 		return
 	}
 
 	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	if ctx.IsSigned && isOrganisation && !includePrivate {
+	if ctx.IsSigned && ctx.ContextUser.IsOrganization() && !includePrivate {
 		// When feed is requested by a member of the organization,
 		// include the private repo's the member has access to.
 		isOrgMember, err := organization.IsOrganizationMember(ctx, ctx.ContextUser.ID, ctx.Doer.ID)
@@ -50,16 +46,11 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		includePrivate = isOrgMember
 	}
 
-	// a public-only API token must not surface private activity, even for its own owner
-	if includePrivate && context.TokenIsPublicOnly(ctx) {
-		includePrivate = false
-	}
-
 	actions, _, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
 		Actor:           ctx.Doer,
 		IncludePrivate:  includePrivate,
-		OnlyPerformedBy: !isOrganisation,
+		OnlyPerformedBy: !ctx.ContextUser.IsOrganization(),
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
 	})
@@ -95,12 +86,12 @@ func showUserFeed(ctx *context.Context, formatType string) {
 // writeFeed write a feeds.Feed as atom or rss to ctx.Resp
 func writeFeed(ctx *context.Context, feed *feeds.Feed, formatType string) {
 	if formatType == "atom" {
-		ctx.Resp.Header().Set("Content-Type", "application/atom+xml;charset=utf-8")
+		ctx.Resp.Header().Set("Content-Type", ContentTypeAtomXml+"; charset=utf-8")
 		if err := feed.WriteAtom(ctx.Resp); err != nil {
 			ctx.ServerError("Render Atom failed", err)
 		}
 	} else {
-		ctx.Resp.Header().Set("Content-Type", "application/rss+xml;charset=utf-8")
+		ctx.Resp.Header().Set("Content-Type", ContentTypeRssXml+"; charset=utf-8")
 		if err := feed.WriteRss(ctx.Resp); err != nil {
 			ctx.ServerError("Render RSS failed", err)
 		}

@@ -108,7 +108,7 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 	// a token-authenticated request must not mint a token with a broader scope than its own, nor
 	// drop the public-only restriction. Web routes accept basic-auth PATs/OAuth tokens too, so this
 	// must mirror the REST API guard in routers/api/v1/user/app.go.
-	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	apiTokenScope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
 	if hasApiTokenScope {
 		hasScope, err := apiTokenScope.CanCreateChildScope(t.Scope)
 		if err != nil {

@@ -669,7 +669,6 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypePullRequests)

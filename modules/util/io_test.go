@@ -26,28 +26,23 @@ func TestReadWithLimit(t *testing.T) {
 	bs := []byte("0123456789abcdef")
 
 	// normal test
-	buf, err := readWithLimit(bytes.NewBuffer(bs), 5, 2)
-	assert.NoError(t, err)
-	assert.Equal(t, []byte("01"), buf)
-
-	buf, err = readWithLimit(bytes.NewBuffer(bs), 5, 5)
-	assert.NoError(t, err)
-	assert.Equal(t, []byte("01234"), buf)
-
-	buf, err = readWithLimit(bytes.NewBuffer(bs), 5, 6)
-	assert.NoError(t, err)
-	assert.Equal(t, []byte("012345"), buf)
-
-	buf, err = readWithLimit(bytes.NewBuffer(bs), 5, len(bs))
-	assert.NoError(t, err)
-	assert.Equal(t, []byte("0123456789abcdef"), buf)
-
-	buf, err = readWithLimit(bytes.NewBuffer(bs), 5, 100)
-	assert.NoError(t, err)
-	assert.Equal(t, []byte("0123456789abcdef"), buf)
+	for _, testCase := range []struct {
+		limit    int
+		expected string
+	}{
+		{2, "01"},
+		{5, "01234"},
+		{6, "012345"},
+		{len(bs), "0123456789abcdef"},
+		{100, "0123456789abcdef"},
+	} {
+		buf, err := readWithLimit(bytes.NewBuffer(bs), 5, testCase.limit)
+		assert.NoError(t, err)
+		assert.Equal(t, []byte(testCase.expected), buf)
+	}
 
 	// test with error
-	buf, err = readWithLimit(&readerWithError{bytes.NewBuffer(bs)}, 5, 10)
+	buf, err := readWithLimit(&readerWithError{bytes.NewBuffer(bs)}, 5, 10)
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("0123456789"), buf)
 

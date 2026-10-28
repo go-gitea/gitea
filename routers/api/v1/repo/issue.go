@@ -10,14 +10,13 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -123,10 +122,8 @@ func SearchIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
@@ -137,10 +134,9 @@ func SearchIssues(ctx *context.APIContext) {
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
 	repoIDs, allPublic, err := common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
-		Doer:       ctx.Doer,
-		PublicOnly: ctx.PublicOnly,
-		OwnerName:  ctx.FormString("owner"),
-		TeamName:   ctx.FormString("team"),
+		Doer:      ctx.Doer,
+		OwnerName: ctx.FormString("owner"),
+		TeamName:  ctx.FormString("team"),
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
@@ -324,8 +320,8 @@ func ListIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -336,8 +332,8 @@ func ListIssues(ctx *context.APIContext) {
 	keyword := ctx.FormTrim("q")
 
 	var labelIDs []int64
-	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
-		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, splitted)
+	if labelsParam := ctx.FormTrim("labels"); labelsParam != "" {
+		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, strings.Split(labelsParam, ","))
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -509,23 +505,51 @@ func GetIssue(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIErrorNotFound()
+	if err := issue.LoadAttributes(ctx); err != nil {
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue))
+}
+
+func loadAssigneeUserIDs(ctx *context.APIContext, oneAssignee string, multipleAssignees []string) []int64 {
+	assigneeNames := container.Set[string]{}
+	assigneeNames.Add(strings.ToLower(oneAssignee))
+	for _, assignee := range multipleAssignees {
+		assigneeNames.Add(strings.ToLower(assignee))
+	}
+	assigneeNames.Remove("")
+	assignees, err := user_model.GetRealDoerUsersByNames(ctx, assigneeNames.Values())
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: %s", err))
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil
+	}
+
+	// Check if the passed assignees is assignable
+	assigneeIDs := make([]int64, 0, len(assignees))
+	for _, assignee := range assignees {
+		valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
+		if err != nil {
+			ctx.APIErrorAuto(err)
+			return nil
+		} else if !valid {
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("User %s cannot be assigned to this issue", assignee.Name))
+			return nil
+		}
+		assigneeIDs = append(assigneeIDs, assignee.ID)
+	}
+	return assigneeIDs
 }
 
 // CreateIssue create an issue of a repository
@@ -555,16 +579,8 @@ func CreateIssue(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "412":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.CreateIssueOption](ctx)
 	issue := &issues_model.Issue{
@@ -578,41 +594,21 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	assigneeIDs := make([]int64, 0)
-	var err error
 	if ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
-		issue.DeadlineUnix = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
-		issue.MilestoneID = form.Milestone
-		assigneeIDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
+		_, err := common.ApplyAPIDeadlineTimestamp(&issue.DeadlineUnix, form.Deadline, nil)
 		if err != nil {
-			if errors.Is(err, util.ErrNotExist) {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: %s", err))
-			} else {
-				ctx.APIErrorInternal(err)
-			}
+			ctx.APIErrorAuto(err)
 			return
 		}
-
-		// Check if the passed assignees is assignable
-		for _, aID := range assigneeIDs {
-			assignee, err := user_model.GetUserByID(ctx, aID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-
-			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			if !valid {
-				ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name}.Error())
-				return
-			}
+		issue.MilestoneID = form.Milestone
+		assigneeIDs = loadAssigneeUserIDs(ctx, form.Assignee, form.Assignees)
+		if ctx.Written() {
+			return
 		}
 	} else {
-		// setting labels is not allowed if user is not a writer
+		// setting labels and projects is not allowed if user is not a writer
 		form.Labels = make([]int64, 0)
+		form.Projects = nil
 	}
 
 	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, form.Projects); err != nil {
@@ -626,7 +622,15 @@ func CreateIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if form.Closed {
+	// Refetch from database to assign some automatic values and project workflow changes
+	var err error
+	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if form.Closed && !issue.IsClosed {
 		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
 				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue because it still has open dependencies")
@@ -635,13 +639,6 @@ func CreateIssue(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-	}
-
-	// Refetch from database to assign some automatic values
-	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
 }
@@ -682,29 +679,17 @@ func EditIssue(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "412":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.EditIssueOption](ctx)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
-	issue.Repo = ctx.Repo.Repository
 	canWrite := ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 
-	err = issue.LoadAttributes(ctx)
+	err := issue.LoadAttributes(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -824,7 +809,7 @@ func EditIssue(ctx *context.APIContext) {
 
 	// Update projects if provided
 	if canWrite && form.Projects != nil {
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, *form.Projects); err != nil {
+		if err := issue_service.AssignOrRemoveProjects(ctx, issue, ctx.Doer, *form.Projects); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
 				ctx.APIError(http.StatusBadRequest, err.Error())
 			} else {
@@ -871,19 +856,14 @@ func DeleteIssue(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	//   default:
+	//     "$ref": "#/responses/error"
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
-	if err = issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
+	if err := issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -891,22 +871,20 @@ func DeleteIssue(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func editIssueDeadline(ctx *context.APIContext, issue *issues_model.Issue, deadline *time.Time, removeDeadline *bool) bool {
-	if deadline == nil && removeDeadline == nil {
+func editIssueDeadline(ctx *context.APIContext, issue *issues_model.Issue, deadline optional.Option[*string], removeDeadline *bool) bool {
+	newDeadlineUnix := issue.DeadlineUnix
+	changed, err := common.ApplyAPIDeadlineTimestamp(&newDeadlineUnix, deadline, removeDeadline)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return false
+	}
+	if !changed {
 		return true
 	}
-	if removeDeadline != nil && *removeDeadline {
-		deadline = nil
-	} else if deadline == nil {
-		ctx.APIError(http.StatusBadRequest, "The due_date cannot be empty")
+	if err := issues_model.UpdateIssueDeadline(ctx, issue, newDeadlineUnix, ctx.Doer); err != nil {
+		ctx.APIErrorAuto(err)
 		return false
 	}
-	deadlineUnix := common.ParseAPIDeadlineToEndOfDay(deadline)
-	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-		ctx.APIErrorInternal(err)
-		return false
-	}
-	issue.DeadlineUnix = deadlineUnix
 	return true
 }
 
@@ -943,18 +921,11 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/IssueDeadline"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.EditDeadlineOption](ctx)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -963,13 +934,20 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		return
 	}
 
-	deadlineUnix := common.ParseAPIDeadlineToEndOfDay(form.Deadline)
-	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-		ctx.APIErrorInternal(err)
+	newDeadlineUnix := issue.DeadlineUnix
+	changed, err := common.ApplyAPIDeadlineTimestamp(&newDeadlineUnix, form.Deadline, nil)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
-
-	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: deadlineUnix.AsTimePtr()})
+	if changed {
+		if err := issues_model.UpdateIssueDeadline(ctx, issue, newDeadlineUnix, ctx.Doer); err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
+	}
+	// StatusCreated is the copied & pasted garbage
+	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: issue.DeadlineUnix.AsTimePtr()})
 }
 
 func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {
@@ -993,4 +971,18 @@ func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, stat
 			return
 		}
 	}
+}
+
+func getRepoIssueByIndexForDoer(ctx *context.APIContext, index int64) *issues_model.Issue {
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, index)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil
+	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.APIErrorNotFound()
+		return nil
+	}
+	issue.Repo = ctx.Repo.Repository
+	return issue
 }

@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -45,7 +46,7 @@ const (
 	tplIssueView   templates.TplName = "repo/issue/view"
 
 	tplPullMergeBox templates.TplName = "repo/issue/view_content/pull_merge_box"
-	tplReactions    templates.TplName = "repo/issue/view_content/reactions"
+	tplReactions    templates.TplName = "shared/reactions"
 
 	issueTemplateKey      = "IssueTemplate"
 	issueTemplateTitleKey = "IssueTemplateTitle"
@@ -100,7 +101,7 @@ func MustEnableIssues(ctx *context.Context) {
 	unitExtTracker, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 	if err == nil {
 		extURL := unitExtTracker.ExternalTrackerConfig().ExternalTrackerURL
-		if extURL != "" {
+		if extURL != "" && !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
 			ctx.Redirect(extURL)
 			return
 		}
@@ -461,7 +462,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 			if !valid {
-				ctx.ServerError("canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name})
+				ctx.HTTPError(http.StatusForbidden, fmt.Sprintf("User %d cannot be assigned to this issue", assigneeID))
 				return
 			}
 
@@ -536,25 +537,20 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
-	if len(issue.Reactions) == 0 {
-		ctx.JSON(http.StatusOK, map[string]any{
-			"empty": true,
-			"html":  "",
-		})
-		return
-	}
+	renderReactions(ctx, fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index), issue.Reactions, setting.UI.Reactions)
+}
 
+func renderReactions(ctx *context.Context, actionURL string, reactions issues_model.ReactionList, allowedReactions []string) {
 	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
-		"Reactions": issue.Reactions.GroupByType(),
+		"ActionURL":        actionURL,
+		"Reactions":        reactions.GroupByType(),
+		"AllowedReactions": allowedReactions,
 	})
 	if err != nil {
-		ctx.ServerError("ChangeIssueReaction.HTMLString", err)
+		ctx.ServerError("RenderToHTML", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]any{
-		"html": html,
-	})
+	ctx.JSON(http.StatusOK, map[string]any{"html": html})
 }
 
 // GetIssueAttachments returns attachments for the issue

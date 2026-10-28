@@ -151,12 +151,12 @@ func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User,
 			}
 		}
 
-		// Notify @mentioned users. GetDoerUserIDsByNames still returns the found IDs
+		// Notify @mentioned users. GetRealDoerUserIDsByNames still returns the found IDs
 		// when some names don't exist, so only an error other than ErrUserNotExist is a failure.
 		if len(mentionedUsernames) > 0 {
-			mentionedIDs, err := user_model.GetDoerUserIDsByNames(ctx, mentionedUsernames)
+			mentionedIDs, err := user_model.GetRealDoerUserIDsByNames(ctx, mentionedUsernames)
 			if err != nil && !user_model.IsErrUserNotExist(err) {
-				return fmt.Errorf("GetDoerUserIDsByNames: %w", err)
+				return fmt.Errorf("GetRealDoerUserIDsByNames: %w", err)
 			}
 			receiverIDs.AddMultiple(mentionedIDs...)
 		}

@@ -25,6 +25,26 @@ import (
 
 func TestActionsDeleteRun(t *testing.T) {
 	now := time.Now()
+	outcomes := make(map[string]*mockTaskOutcome)
+	for _, jobName := range []string{"job1", "job2", "job3"} {
+		outcomes[jobName] = &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+			logRows: []*runnerv1.LogRow{
+				{
+					Time:    timestamppb.New(now.Add(4 * time.Second)),
+					Content: "  \U0001F433  docker create image",
+				},
+				{
+					Time:    timestamppb.New(now.Add(5 * time.Second)),
+					Content: jobName,
+				},
+				{
+					Time:    timestamppb.New(now.Add(6 * time.Second)),
+					Content: "\U0001F3C1  Job succeeded",
+				},
+			},
+		}
+	}
 	testCase := struct {
 		treePath         string
 		fileContent      string
@@ -51,59 +71,7 @@ jobs:
     steps:
       - run: echo job3
 `,
-		outcomes: map[string]*mockTaskOutcome{
-			"job1": {
-				result: runnerv1.Result_RESULT_SUCCESS,
-				logRows: []*runnerv1.LogRow{
-					{
-						Time:    timestamppb.New(now.Add(4 * time.Second)),
-						Content: "  \U0001F433  docker create image",
-					},
-					{
-						Time:    timestamppb.New(now.Add(5 * time.Second)),
-						Content: "job1",
-					},
-					{
-						Time:    timestamppb.New(now.Add(6 * time.Second)),
-						Content: "\U0001F3C1  Job succeeded",
-					},
-				},
-			},
-			"job2": {
-				result: runnerv1.Result_RESULT_SUCCESS,
-				logRows: []*runnerv1.LogRow{
-					{
-						Time:    timestamppb.New(now.Add(4 * time.Second)),
-						Content: "  \U0001F433  docker create image",
-					},
-					{
-						Time:    timestamppb.New(now.Add(5 * time.Second)),
-						Content: "job2",
-					},
-					{
-						Time:    timestamppb.New(now.Add(6 * time.Second)),
-						Content: "\U0001F3C1  Job succeeded",
-					},
-				},
-			},
-			"job3": {
-				result: runnerv1.Result_RESULT_SUCCESS,
-				logRows: []*runnerv1.LogRow{
-					{
-						Time:    timestamppb.New(now.Add(4 * time.Second)),
-						Content: "  \U0001F433  docker create image",
-					},
-					{
-						Time:    timestamppb.New(now.Add(5 * time.Second)),
-						Content: "job3",
-					},
-					{
-						Time:    timestamppb.New(now.Add(6 * time.Second)),
-						Content: "\U0001F3C1  Job succeeded",
-					},
-				},
-			},
-		},
+		outcomes: outcomes,
 		expectedStatuses: map[string]string{
 			"job1": actions_model.StatusSuccess.String(),
 			"job2": actions_model.StatusSuccess.String(),
