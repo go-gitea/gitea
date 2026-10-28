@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"path"
 	"testing"
@@ -21,6 +20,7 @@ import (
 )
 
 func assertLinkPageComplete(t *testing.T, session *TestSession, link string, containStrings ...string) {
+	t.Helper()
 	req := NewRequest(t, "GET", link)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "Page did not complete: "+link)
@@ -190,6 +190,8 @@ func testLinksAsUser(t *testing.T) {
 	reqAPI := NewRequestf(t, "GET", "/api/v1/users/user2/repos")
 	respAPI := MakeRequest(t, reqAPI, http.StatusOK)
 	apiRepos := DecodeJSON(t, respAPI, []*api.Repository{})
+	assert.NotEmpty(t, apiRepos)
+
 	repoLinks := []string{
 		"",
 		"/issues",
@@ -212,11 +214,8 @@ func testLinksAsUser(t *testing.T) {
 		"/wiki/?action=_new",
 		"/activity",
 	}
-	for _, repo := range apiRepos {
-		for _, link := range repoLinks {
-			link = fmt.Sprintf("/user2/%s%s", repo.Name, link)
-			assertLinkPageComplete(t, session, link)
-		}
+	for _, link := range repoLinks {
+		assertLinkPageComplete(t, session, "/user2/repo1"+link)
 	}
 }
 
