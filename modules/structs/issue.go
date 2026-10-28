@@ -292,32 +292,37 @@ type LockIssueOption struct {
 	Reason string `json:"lock_reason"`
 }
 
-// MoveIssueOption options for moving an issue to another repo
+// MoveIssueOption options for moving an issue to another repository
 // swagger:model
 type MoveIssueOption struct {
 	// target repository in "owner/repo" format
 	// required: true
-	NewRepo string `json:"new_repo" binding:"Required"`
-	// copy labels to the target repo
-	CopyLabels bool `json:"copy_labels"`
-	// copy milestone to the target repo
-	CopyMilestone bool `json:"copy_milestone"`
-	// copy project to the target repo
-	CopyProject bool `json:"copy_project"`
+	TargetRepo string `json:"target_repo" binding:"Required"`
+	// find or create labels with the same names in the target repository
+	KeepLabels bool `json:"keep_labels"`
+	// find or create a milestone with the same name in the target repository
+	KeepMilestone bool `json:"keep_milestone"`
+	// find or create projects with the same titles in the target repository
+	KeepProjects bool `json:"keep_projects"`
 }
 
-// CopyIssueOption options for copying an issue to another repo
+// CopyIssueOption options for copying an issue to another repository
 // swagger:model
 type CopyIssueOption struct {
 	// target repository in "owner/repo" format
 	// required: true
-	NewRepo string `json:"new_repo" binding:"Required"`
-	// copy labels to the target repo
-	CopyLabels bool `json:"copy_labels"`
-	// copy milestone to the target repo
-	CopyMilestone bool `json:"copy_milestone"`
-	// copy project to the target repo
-	CopyProject bool `json:"copy_project"`
-	// dependency type: "", "original_blocks_copy", "copy_blocks_original"
-	DepType string `json:"dep_type"`
+	TargetRepo string `json:"target_repo" binding:"Required"`
+	// find or create labels with the same names in the target repository
+	KeepLabels bool `json:"keep_labels"`
+	// find or create a milestone with the same name in the target repository
+	KeepMilestone bool `json:"keep_milestone"`
+	// find or create projects with the same titles in the target repository
+	KeepProjects bool `json:"keep_projects"`
+	// duplicate the attachments of the issue body
+	CopyAttachments bool `json:"copy_attachments"`
+	// keep the assignees who can access the target repository
+	CopyAssignees bool `json:"copy_assignees"`
+	// dependency between the original issue and the copy
+	// enum: original_blocks_copy,copy_blocks_original
+	Dependency string `json:"dependency"`
 }

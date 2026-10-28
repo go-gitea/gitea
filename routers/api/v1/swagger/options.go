@@ -264,4 +264,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	MergeUpstreamRequest api.MergeUpstreamRequest
+
+	// in:body
+	MoveIssueOption api.MoveIssueOption
+
+	// in:body
+	CopyIssueOption api.CopyIssueOption
 }

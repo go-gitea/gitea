@@ -7,6 +7,9 @@ import (
 	"context"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // IssueRedirect stores a mapping from an old (repo, index) to the current issue ID after a move.
@@ -31,17 +34,13 @@ func CreateIssueRedirect(ctx context.Context, originalRepoID, originalIndex, iss
 	return err
 }
 
-// GetIssueRedirect returns the redirect record for the given original repo and index, or nil if none exists.
+// GetIssueRedirect returns the redirect record for the given original repo and index
 func GetIssueRedirect(ctx context.Context, originalRepoID, originalIndex int64) (*IssueRedirect, error) {
-	r := &IssueRedirect{}
-	has, err := db.GetEngine(ctx).
-		Where("original_repo_id = ? AND original_index = ?", originalRepoID, originalIndex).
-		Get(r)
+	r, has, err := db.Get[IssueRedirect](ctx, builder.Eq{"original_repo_id": originalRepoID, "original_index": originalIndex})
 	if err != nil {
 		return nil, err
-	}
-	if !has {
-		return nil, nil
+	} else if !has {
+		return nil, util.NewNotExistErrorf("issue redirect for repo %d index %d does not exist", originalRepoID, originalIndex)
 	}
 	return r, nil
 }

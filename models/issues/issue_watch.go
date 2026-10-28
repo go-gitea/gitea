@@ -128,16 +128,6 @@ func CountIssueWatchers(ctx context.Context, issueID int64) (int64, error) {
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").Count(new(IssueWatch))
 }
 
-// RemoveIssueWatchersWithoutRepoAccess removes watches for users who have no access entry for the given repo.
-// ownerID is always kept. Should be called after moving an issue to a private repository.
-func RemoveIssueWatchersWithoutRepoAccess(ctx context.Context, issueID, newRepoID, ownerID int64) error {
-	_, err := db.GetEngine(ctx).
-		Where("issue_id = ? AND is_watching = ? AND user_id != ?", issueID, true, ownerID).
-		And("user_id NOT IN (SELECT user_id FROM `access` WHERE repo_id = ?)", newRepoID).
-		Delete(new(IssueWatch))
-	return err
-}
-
 // RemoveIssueWatchersByRepoID remove issue watchers by repoID
 func RemoveIssueWatchersByRepoID(ctx context.Context, userID, repoID int64) error {
 	_, err := db.GetEngine(ctx).

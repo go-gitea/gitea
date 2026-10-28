@@ -122,10 +122,10 @@ const (
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
 
-	CommentTypeMoveIssueTo   // 39 issue moved to another repo (recorded on source/moved issue)
-	CommentTypeMoveIssueFrom // 40 issue moved from another repo (recorded on destination issue — unused for now, kept for symmetry)
-	CommentTypeCopyIssueTo   // 41 issue copied to another repo (recorded on source issue)
-	CommentTypeCopyIssueFrom // 42 issue copied from another repo (recorded on copied issue)
+	CommentTypeMoveIssueTo   // 39 issue moved to another repo (rendered like CommentTypeMoveIssueFrom, the issue keeps its timeline)
+	CommentTypeMoveIssueFrom // 40 issue moved from another repo
+	CommentTypeCopyIssueTo   // 41 issue copied to another repo (recorded on the original issue)
+	CommentTypeCopyIssueFrom // 42 issue copied from another repo (recorded on the copy)
 )
 
 var commentStrings = []string{
