@@ -113,9 +113,6 @@ func (g *GithubGraphQLDownloader) getPullRequestsGraphQL(ctx context.Context, pa
 }
 
 func (g *GithubGraphQLDownloader) convertGraphQLPullRequest(ctx context.Context, node *gqlPullRequest, prefetchedByNodeID map[string]*gqlPrefetched) (*base.PullRequest, error) {
-	if err := g.archiveSource(ctx, "graphql/pulls", node.Number, node); err != nil {
-		return nil, err
-	}
 	issue, err := g.convertGraphQLIssue(ctx, &node.gqlIssue, prefetchedByNodeID)
 	if err != nil {
 		return nil, err

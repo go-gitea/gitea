@@ -591,9 +591,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(ctx context.Context, prs ...*bas
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		if !pr.Issue.IsClosed && !pr.HasMerged {
-			pull.StartPullRequestCheckImmediately(ctx, pr)
-		}
+		pull.StartPullRequestCheckImmediately(ctx, pr)
 	}
 	return nil
 }
@@ -610,8 +608,9 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		return "", fmt.Errorf("the PR[%d] was not checked for safety", pr.Number)
 	}
 
+	patchPath := fmt.Sprintf("pulls/%d.patch", pr.Number)
 	// Anonymous function to download the patch file (allows us to use defer)
-	err = func() error {
+	if err := func() error {
 		// if the patchURL is empty there is nothing to download
 		if pr.PatchURL == "" {
 			return nil
@@ -627,7 +626,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		}
 		defer ret.Close()
 
-		f, err := git.CreateRepoFile(ctx, g.repo, fmt.Sprintf("pulls/%d.patch", pr.Number))
+		f, err := git.CreateRepoFile(ctx, g.repo, patchPath)
 		if err != nil {
 			return err
 		}
@@ -637,24 +636,12 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		_, err = io.Copy(f, ret)
 
 		return err
-	}()
-	if err != nil {
-		return "", err
+	}(); err != nil {
+		// the patch is only a fallback for display, GitHub refuses it for very large pull requests
+		log.Warn("PR #%d in %s/%s: unable to download patch: %v", pr.Number, g.repoOwner, g.repoName, err)
+		_ = git.RemoveRepoFileOrDir(ctx, g.repo, patchPath) // a truncated patch would be read as valid
 	}
 
-	if g.gitServiceType == structs.GithubService && g.gitRepo != nil && pr.Head.SHA != "" {
-		sha, refErr := g.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
-		if refErr == nil && sha == pr.Head.SHA {
-			if pr.State == "closed" {
-				return pr.Head.Ref, nil
-			}
-			head = fmt.Sprintf("migration/github/pr-%d", pr.Number)
-			for g.gitRepo.IsBranchExist(ctx, head) {
-				head = fmt.Sprintf("migration/github/pr-%d-%s", pr.Number, uuid.New().String())
-			}
-			return head, git.UpdateRef(ctx, g.repo, git.BranchPrefix+head, sha)
-		}
-	}
 	head = "unknown repository"
 	if pr.IsForkPullRequest() && pr.State != "closed" {
 		// OK we want to fetch the current head as a branch from its CloneURL
@@ -679,17 +666,8 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				// ... let's try something less nice
 				remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 			}
-			address, err := git.GetRemoteAddress(ctx, g.repo, remote)
-			if err != nil && !git.IsRemoteNotExistError(err) {
-				return "", err
-			}
-			if address != "" && address != pr.Head.CloneURL {
-				remote = "head-pr-" + strconv.FormatInt(pr.Number, 10) + "-" + uuid.New().String()
-			}
-			if address != pr.Head.CloneURL {
-				err = g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, false)
-			}
-			if err != nil {
+			// ... now add the remote
+			if err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true); err != nil {
 				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
 				return head, nil
 			}
@@ -735,8 +713,8 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				}
 			}
 			g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
+			head = localRef
 		}
-		head = localRef
 
 		// 5. Now if pr.Head.SHA == "" we should recover this to the head of this branch
 		if pr.Head.SHA == "" {

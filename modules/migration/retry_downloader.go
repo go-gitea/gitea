@@ -32,13 +32,10 @@ func (d *RetryDownloader) retry(ctx context.Context, work func(context.Context) 
 		err   error
 	)
 	for ; times > 0; times-- {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
 		if err = work(ctx); err == nil {
 			return nil
 		}
-		if IsErrNotSupported(err) || times == 1 {
+		if IsErrNotSupported(err) {
 			return err
 		}
 		select {
@@ -48,17 +45,6 @@ func (d *RetryDownloader) retry(ctx context.Context, work func(context.Context) 
 		}
 	}
 	return err
-}
-
-func (d *RetryDownloader) GetAllComments(ctx context.Context, page, perPage int) ([]*Comment, bool, error) {
-	var comments []*Comment
-	var isEnd bool
-	err := d.retry(ctx, func(ctx context.Context) error {
-		var err error
-		comments, isEnd, err = d.Downloader.GetAllComments(ctx, page, perPage)
-		return err
-	})
-	return comments, isEnd, err
 }
 
 // GetRepoInfo returns a repository information with retry
@@ -162,6 +148,22 @@ func (d *RetryDownloader) GetComments(ctx context.Context, commentable Commentab
 
 	err = d.retry(ctx, func(context.Context) error {
 		comments, isEnd, err = d.Downloader.GetComments(ctx, commentable)
+		return err
+	})
+
+	return comments, isEnd, err
+}
+
+// GetAllComments returns a page of a repository's comments with retry
+func (d *RetryDownloader) GetAllComments(ctx context.Context, page, perPage int) ([]*Comment, bool, error) {
+	var (
+		comments []*Comment
+		isEnd    bool
+		err      error
+	)
+
+	err = d.retry(ctx, func(ctx context.Context) error {
+		comments, isEnd, err = d.Downloader.GetAllComments(ctx, page, perPage)
 		return err
 	})
 
