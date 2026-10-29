@@ -70,6 +70,10 @@ func CreateCodeComment(ctx *context.Context) {
 	if !issue.IsPull {
 		return
 	}
+	if issue_service.IsLockedForDoer(issue, ctx.Repo.Permission) {
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
+		return
+	}
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
@@ -227,6 +231,10 @@ func SubmitReview(ctx *context.Context) {
 		return
 	}
 	if !issue.IsPull {
+		return
+	}
+	if issue_service.IsLockedForDoer(issue, ctx.Repo.Permission) {
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}
 	if ctx.HasError() {
