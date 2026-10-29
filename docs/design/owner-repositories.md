@@ -1,7 +1,6 @@
 # Owner Repositories Design
 
 Users and organizations ("owners") can have repositories with reserved names that affect their profile or their other repositories.
-First discussed in https://github.com/go-gitea/gitea/pull/39924.
 
 ## Names
 
