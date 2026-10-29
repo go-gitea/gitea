@@ -18,9 +18,8 @@ const (
 	// RemotePrefix is the base directory of the remotes information of git.
 	RemotePrefix = "refs/remotes/"
 	// PullPrefix is the base directory of the pull information of git.
-	PullPrefix      = "refs/pull/"
-	pullSuffix      = "/head"
-	pullMergeSuffix = "/merge"
+	PullPrefix = "refs/pull/"
+	pullSuffix = "/head"
 )
 
 // refNamePatternInvalid is regular expression with unallowed characters in git reference name
@@ -100,9 +99,8 @@ func RefNameFromPullIndex(prIndex int64) RefName {
 	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + pullSuffix)
 }
 
-// MergeRefNameFromPullIndex returns the ref holding the test merge of a pull request into its base branch
 func MergeRefNameFromPullIndex(prIndex int64) RefName {
-	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + pullMergeSuffix)
+	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + "/merge")
 }
 
 func (ref RefName) String() string {
@@ -153,7 +151,7 @@ func (ref RefName) PullIndex() (int64, bool) {
 		return 0, false
 	}
 	pullStr, last, ok := strings.CutLast(s, "/")
-	if !ok || (last != "head" && last != "merge") {
+	if !ok || last != "head" {
 		return 0, false
 	}
 	pullIndex, err := strconv.ParseInt(pullStr, 10, 64)
@@ -184,11 +182,7 @@ func (ref RefName) ShortName() string {
 		return ref.RemoteName()
 	}
 	if ref.IsPull() {
-		name := ref.nameWithoutPrefix(PullPrefix)
-		if trimmed, ok := strings.CutSuffix(name, pullMergeSuffix); ok {
-			return trimmed
-		}
-		return strings.TrimSuffix(name, pullSuffix)
+		return strings.TrimSuffix(ref.nameWithoutPrefix(PullPrefix), pullSuffix)
 	}
 	if ref.IsFor() {
 		return ref.ForBranchName()

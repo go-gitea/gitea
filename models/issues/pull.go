@@ -407,11 +407,6 @@ func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefN
 	return git.RefNameFromPullIndex(pr.Index).String()
 }
 
-// GetGitMergeRefName returns git ref for the hidden test merge of the pull request into its base branch
-func (pr *PullRequest) GetGitMergeRefName() string {
-	return git.MergeRefNameFromPullIndex(pr.Index).String()
-}
-
 func (pr *PullRequest) GetInstructionsCliArgs() (ret struct {
 	BaseBranchArg  string
 	HeadBranchArg  string

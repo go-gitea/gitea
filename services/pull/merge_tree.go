@@ -22,6 +22,11 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 	if err != nil {
 		return false, fmt.Errorf("MergeTree: %w", err)
 	}
+	if pr.Index > 0 {
+		if _, err := updateMergeRef(ctx, pr, baseCommitID, pr.HeadCommitID, treeHash, conflict); err != nil {
+			log.Error("updateMergeRef for %-v: %v", pr, err)
+		}
+	}
 	if conflict {
 		pr.Status = issues_model.PullRequestStatusConflict
 		// sometimes git merge-tree will detect conflicts but not list any conflicted files

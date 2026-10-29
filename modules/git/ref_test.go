@@ -25,12 +25,6 @@ func TestRefName(t *testing.T) {
 	assert.True(t, RefName("refs/pull/1/head").IsPull())
 	assert.True(t, RefName("refs/pull/1/merge").IsPull())
 	assert.Equal(t, "my/pull", RefName("refs/pull/my/pull/head").ShortName())
-	pullIndex, ok = RefName("refs/pull/2/merge").PullIndex()
-	assert.True(t, ok)
-	assert.EqualValues(t, 2, pullIndex)
-	assert.Equal(t, "2", RefName("refs/pull/2/merge").ShortName())
-	_, ok = RefName("refs/pull/2/other").PullIndex()
-	assert.False(t, ok)
 
 	// Test for branch names
 	assert.Equal(t, "main", RefName("refs/for/main").ForBranchName())

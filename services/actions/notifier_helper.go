@@ -71,10 +71,8 @@ type notifyInput struct {
 	Payload     api.Payloader
 	PullRequest *issues_model.PullRequest
 
-	encodedPayload string // cached by EncodedPayload
-
-	mergeCommitID       string // cached by MergeCommitID
-	mergeCommitResolved bool
+	encodedPayload string  // cached by EncodedPayload
+	mergeCommitID  *string // UpdateMergeRef result shared by the event's runs
 }
 
 func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event webhook_module.HookEventType) *notifyInput {
@@ -129,18 +127,6 @@ func (input *notifyInput) EncodedPayload() (string, error) {
 		input.encodedPayload = string(p)
 	}
 	return input.encodedPayload, nil
-}
-
-// MergeCommitID returns the test merge commit of the pull request, or empty when the pull request cannot be merged cleanly
-func (input *notifyInput) MergeCommitID(ctx context.Context) string {
-	if !input.mergeCommitResolved {
-		input.mergeCommitResolved = true
-		var err error
-		if input.mergeCommitID, err = pull_service.UpdateMergeRef(ctx, input.PullRequest); err != nil {
-			log.Error("UpdateMergeRef for pull request %d in %s: %v", input.PullRequest.Index, input.Repo.FullName(), err)
-		}
-	}
-	return input.mergeCommitID
 }
 
 func (input *notifyInput) Notify(ctx context.Context) {
@@ -426,12 +412,16 @@ func buildApproveAndInsertRun(
 		IsScopedRun:       isScopedRun,
 	}
 
-	// like GitHub, pull_request runs check out the head merged into the base, falling back to the head when they conflict
-	if dwf.TriggerEvent.Name == actions_module.GithubEventPullRequest && input.PullRequest != nil && ref.String() == input.PullRequest.GetGitHeadRefName() {
-		if mergeCommitID := input.MergeCommitID(ctx); mergeCommitID != "" {
-			run.Ref = input.PullRequest.GetGitMergeRefName()
-			run.CommitSHA = mergeCommitID
+	// merged pull requests keep the head, GitHub's base branch ref would vouch for the head's workflow file
+	if dwf.TriggerEvent.Name == actions_module.GithubEventPullRequest && input.PullRequest != nil && !input.PullRequest.HasMerged {
+		if input.mergeCommitID == nil {
+			mergeCommitID, err := pull_service.UpdateMergeRef(ctx, input.PullRequest, commit.ID.String())
+			if err != nil {
+				log.Error("UpdateMergeRef for %-v: %v", input.PullRequest, err)
+			}
+			input.mergeCommitID = &mergeCommitID
 		}
+		run.MergeCommitSHA = *input.mergeCommitID
 	}
 
 	if err := validateCalledWorkflows(ctx, run, dwf.Content); err != nil {

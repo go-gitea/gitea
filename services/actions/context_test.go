@@ -389,6 +389,7 @@ func TestFindTaskNeeds(t *testing.T) {
 func TestGenerateGiteaContext(t *testing.T) {
 	payload := api.PullRequestPayload{
 		PullRequest: &api.PullRequest{
+			Index: 1,
 			Base: &api.PRBranchInfo{
 				Name: "owner:main",
 				Ref:  "main",
@@ -419,6 +420,12 @@ func TestGenerateGiteaContext(t *testing.T) {
 
 	run.TriggerEvent, run.Ref = string(actions_module.GithubEventPullRequest), "refs/pull/1/head"
 	assert.Equal(t, "branch", GenerateGiteaContext(t.Context(), run, nil, nil)["ref_type"])
+
+	run.MergeCommitSHA = "abcdef1234567890"
+	giteaCtx = GenerateGiteaContext(t.Context(), run, nil, nil)
+	assert.Equal(t, "refs/pull/1/merge", giteaCtx["ref"])
+	assert.Equal(t, "1/merge", giteaCtx["ref_name"])
+	assert.Equal(t, "abcdef1234567890", giteaCtx["sha"])
 
 	defer test.MockVariableValue(&setting.Actions.ArtifactRetentionDays, 7)()
 	assert.Equal(t, "7", GenerateGiteaContext(t.Context(), run, nil, nil)["retention_days"])

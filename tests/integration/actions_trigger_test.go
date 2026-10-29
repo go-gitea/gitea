@@ -1190,6 +1190,10 @@ jobs:
 		assert.NotEmpty(t, addFileResp)
 		sha = addFileResp.Commit.SHA
 		waitCommitStatusAndInsertFakeStatus(t, repo, sha)
+		mergeCommitSHA := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, Event: webhook_module.HookEventPullRequestSync}).MergeCommitSHA
+		parents, _, err := gitcmd.NewCommand("rev-parse").AddDynamicArguments(mergeCommitSHA+"^1", mergeCommitSHA+"^2").WithRepo(repo).RunStdString(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, addWorkflow.Commit.SHA+"\n"+sha+"\n", parents)
 
 		// milestoned
 		milestone := &issues_model.Milestone{
@@ -1253,59 +1257,6 @@ func insertFakeStatus(t *testing.T, repo *repo_model.Repository, sha string, pre
 		ContextHash: prev.ContextHash,
 	})
 	assert.NoError(t, err)
-}
-
-func TestPullRequestEventMergeRef(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
-			Name:          "repo-pull-request-merge-ref",
-			AutoInit:      true,
-			Readme:        "Default",
-			DefaultBranch: "main",
-		})
-		require.NoError(t, err)
-
-		testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{OldBranch: "main", NewBranch: "main", CommitMessage: "add workflow"}, map[string]string{
-			".gitea/workflows/pr.yml": "on: pull_request\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo test\n",
-		})
-		head := testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{OldBranch: "main", NewBranch: "feature", CommitMessage: "add feature"}, map[string]string{"feature.txt": "feature"})
-		conflictHead := testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{OldBranch: "main", NewBranch: "conflict", CommitMessage: "add conflict"}, map[string]string{"base.txt": "conflict"})
-		base := testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{OldBranch: "main", NewBranch: "main", CommitMessage: "add base"}, map[string]string{"base.txt": "base"})
-
-		createPull := func(headBranch string) *issues_model.PullRequest {
-			pullRequest := &issues_model.PullRequest{HeadRepoID: repo.ID, BaseRepoID: repo.ID, HeadBranch: headBranch, BaseBranch: "main", HeadRepo: repo, BaseRepo: repo, Type: issues_model.PullRequestGitea}
-			pullIssue := &issues_model.Issue{RepoID: repo.ID, Title: "PR from " + headBranch, PosterID: user2.ID, Poster: user2, IsPull: true}
-			require.NoError(t, pull_service.NewPullRequest(t.Context(), &pull_service.NewPullRequestOptions{Repo: repo, Issue: pullIssue, PullRequest: pullRequest}))
-			return pullRequest
-		}
-
-		t.Run("Mergeable", func(t *testing.T) {
-			pr := createPull("feature")
-			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, Ref: pr.GetGitMergeRefName()})
-			assert.Equal(t, "add feature", run.Title)
-
-			gitRepo, err := git.OpenRepository(t.Context(), repo)
-			require.NoError(t, err)
-			defer gitRepo.Close()
-			mergeCommitID, err := gitRepo.GetRefCommitID(t.Context(), pr.GetGitMergeRefName())
-			require.NoError(t, err)
-			assert.Equal(t, mergeCommitID, run.CommitSHA)
-			mergeCommit, err := gitRepo.GetCommit(t.Context(), mergeCommitID)
-			require.NoError(t, err)
-			require.Len(t, mergeCommit.Parents, 2)
-			assert.Equal(t, base.Commit.SHA, mergeCommit.Parents[0].String())
-			assert.Equal(t, head.Commit.SHA, mergeCommit.Parents[1].String())
-
-			checkCommitStatusAndInsertFakeStatus(t, repo, head.Commit.SHA)
-		})
-
-		t.Run("Conflict", func(t *testing.T) {
-			pr := createPull("conflict")
-			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, Ref: pr.GetGitHeadRefName()})
-			assert.Equal(t, conflictHead.Commit.SHA, run.CommitSHA)
-		})
-	})
 }
 
 func TestPullRequestReviewCommitStatusEvent(t *testing.T) {
@@ -1824,6 +1775,7 @@ jobs:
 		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
 		assert.Equal(t, actions_module.GithubEventPullRequest, actionRun.TriggerEvent)
 		assert.Equal(t, pullRequest.MergedCommitID, actionRun.CommitSHA)
+		assert.Empty(t, actionRun.MergeCommitSHA)
 	})
 }
 
