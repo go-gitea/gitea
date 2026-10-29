@@ -318,13 +318,13 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   padding: 0; /* let the file-not-rendered-prompt layout itself */
 }
 
-/* this background ensures images can break <hr>. We can only do this on
-   cases where the background is known and not transparent. */
-.file-view.markup :is(img, video):not(table *),
-.comment-body .markup :is(img, video):not(table *), /* regular comment */
-.comment-content .markup :is(img, video):not(table *), /* code comment */
-.wiki .markup :is(img, video):not(table *) {
+/* lets images cover the heading borders and <hr> they float over */
+.markup-body-background :is(img, video) {
   background: var(--color-box-body);
+}
+
+.markup table :is(img, video) {
+  background: none;
 }
 
 .markup img[align="right"],

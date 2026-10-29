@@ -42,7 +42,7 @@
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
-						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission $.IsIssuePoster}}data-can-edit="true"{{end}}>
+						<div class="render-content markup markup-body-background" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission $.IsIssuePoster}}data-can-edit="true"{{end}}>
 							{{if .Issue.RenderedContent}}
 								{{.Issue.RenderedContent}}
 							{{else}}
