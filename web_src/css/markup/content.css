@@ -352,11 +352,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   display: none;
 }
 
-.markup mark {
-  color: var(--color-text);
-  background-color: var(--color-highlight-bg);
-}
-
 .markup pre > code {
   font-size: 100%;
 }

@@ -108,6 +108,11 @@ samp,
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
+mark {
+  background: var(--color-highlight-bg);
+  color: inherit;
+}
+
 @font-face {
   font-family: gitea-math-book; /* the Book weight shares its family name with the thinner Regular */
   src: local("NewComputerModernMath-Book"), local("NewCMMath-Book");
