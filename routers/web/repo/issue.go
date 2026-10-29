@@ -52,28 +52,6 @@ const (
 	issueTemplateTitleKey = "IssueTemplateTitle"
 )
 
-// IssueTemplateCandidates issue templates
-var IssueTemplateCandidates = []string{
-	"ISSUE_TEMPLATE.md",
-	"ISSUE_TEMPLATE.yaml",
-	"ISSUE_TEMPLATE.yml",
-	"issue_template.md",
-	"issue_template.yaml",
-	"issue_template.yml",
-	".gitea/ISSUE_TEMPLATE.md",
-	".gitea/ISSUE_TEMPLATE.yaml",
-	".gitea/ISSUE_TEMPLATE.yml",
-	".gitea/issue_template.md",
-	".gitea/issue_template.yaml",
-	".gitea/issue_template.yml",
-	".github/ISSUE_TEMPLATE.md",
-	".github/ISSUE_TEMPLATE.yaml",
-	".github/ISSUE_TEMPLATE.yml",
-	".github/issue_template.md",
-	".github/issue_template.yaml",
-	".github/issue_template.yml",
-}
-
 // MustAllowUserComment checks to make sure if an issue is locked.
 // If locked and user has permissions to write to the repository,
 // then the comment is allowed, else it is blocked

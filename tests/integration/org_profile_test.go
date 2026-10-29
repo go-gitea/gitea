@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -47,7 +48,7 @@ func createTestProfile(t *testing.T, orgName, profileRepoName, readmeContent str
 
 	// create readme
 	createFileOptions := getCreateProfileReadmeFileOptions(readmeContent)
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", orgName, profileRepoName, "README.md"), &createFileOptions).
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", orgName, profileRepoName, util.Iif(strings.HasPrefix(profileRepoName, ".profile"), "README.md", "profile/README.md")), &createFileOptions).
 		AddTokenAuth(tokenAdmin)
 	MakeRequest(t, req, http.StatusCreated)
 }
@@ -129,4 +130,11 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	bodyString = util.UnsafeBytesToString(resp.Body.Bytes())
 	assert.Contains(t, bodyString, contentPrivateReadme)
 	assert.NotContains(t, bodyString, `id="org-home-view-as-dropdown"`)
+
+	createTestProfile(t, "org6", ".github", "Owner Readme Content ![](banner.png)")
+	req = NewRequest(t, "GET", "/org6")
+	resp = MakeRequest(t, req, http.StatusOK)
+	bodyString = util.UnsafeBytesToString(resp.Body.Bytes())
+	assert.Contains(t, bodyString, "Owner Readme Content")
+	assert.Contains(t, bodyString, `/org6/.github/media/branch/main/profile/banner.png`)
 }

@@ -5,23 +5,25 @@ package user
 
 import (
 	"errors"
+	"html/template"
 	"net/url"
+	"path"
+	"slices"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
-	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
+	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
+	"gitea.dev/services/ownerrepo"
 )
 
 // prepareContextForProfileBigAvatar set the context for big avatar view on the profile page
@@ -90,47 +92,44 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 }
 
-func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProfileRepoName ...string) (profileDbRepo *repo_model.Repository, profileReadmeBlob *git.Blob) {
-	profileRepoName := util.OptionalArg(optProfileRepoName, RepoNameProfile)
-	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, profileRepoName)
+type ProfileReadme struct {
+	Repo    *repo_model.Repository
+	Blob    *git.Blob
+	TreeDir string
+}
+
+func (readme *ProfileReadme) Render(ctx *context.Context) (template.HTML, error) {
+	content, err := readme.Blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 	if err != nil {
-		if !repo_model.IsErrRepoNotExist(err) {
-			log.Error("FindOwnerProfileReadme failed to GetRepositoryByName: %v", err)
+		return "", err
+	}
+	rctx := renderhelper.NewRenderContextRepoFile(ctx, readme.Repo, renderhelper.RepoFileOptions{
+		CurrentRefSubURL: git.RefNameFromBranch(readme.Repo.DefaultBranch).RefWebLinkPath(),
+		CurrentTreePath:  readme.TreeDir,
+	})
+	return markdown.RenderString(rctx, content)
+}
+
+func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User) *ProfileReadme {
+	return findProfileReadme(ctx, doer, slices.Concat([]string{RepoNameProfile}, ownerrepo.DefaultsRepoNames))
+}
+
+func findProfileReadme(ctx *context.Context, doer *user_model.User, repoNames []string) *ProfileReadme {
+	var readme *ProfileReadme
+	ownerrepo.Find(ctx, doer, ctx.ContextUser, repoNames, func(found *ownerrepo.Repo) bool {
+		treeDir := util.Iif(slices.Contains(ownerrepo.DefaultsRepoNames, found.Repo.LowerName), "profile", "")
+		if blob, err := found.Commit.GetBlobByPath(ctx, found.GitRepo, path.Join(treeDir, "README.md")); err == nil {
+			readme = &ProfileReadme{Repo: found.Repo, Blob: blob, TreeDir: treeDir}
 		}
-		return nil, nil
-	}
-
-	perm, err := access_model.GetDoerRepoPermission(ctx, profileDbRepo, doer)
-	if err != nil {
-		log.Error("FindOwnerProfileReadme failed to GetRepositoryByName: %v", err)
-		return nil, nil
-	}
-	if profileDbRepo.IsEmpty || !perm.CanRead(unit.TypeCode) {
-		return nil, nil
-	}
-
-	profileGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, profileDbRepo)
-	if err != nil {
-		log.Error("FindOwnerProfileReadme failed to OpenRepository: %v", err)
-		return nil, nil
-	}
-
-	commit, err := profileGitRepo.GetBranchCommit(ctx, profileDbRepo.DefaultBranch)
-	if err != nil {
-		log.Error("FindOwnerProfileReadme failed to GetBranchCommit: %v", err)
-		return nil, nil
-	}
-
-	profileReadmeBlob, _ = commit.GetBlobByPath(ctx, profileGitRepo, "README.md") // no need to handle this error
-	return profileDbRepo, profileReadmeBlob
+		return readme != nil
+	})
+	return readme
 }
 
 type PrepareOwnerHeaderResult struct {
-	ProfilePublicRepo        *repo_model.Repository
-	ProfilePublicReadmeBlob  *git.Blob
-	ProfilePrivateRepo       *repo_model.Repository
-	ProfilePrivateReadmeBlob *git.Blob
-	HasOrgProfileReadme      bool
+	ProfilePublicReadme  *ProfileReadme
+	ProfilePrivateReadme *ProfileReadme
+	HasOrgProfileReadme  bool
 }
 
 const (
@@ -150,13 +149,12 @@ func RenderUserOrgHeader(ctx *context.Context) (result *PrepareOwnerHeaderResult
 
 	result = &PrepareOwnerHeaderResult{}
 	if ctx.ContextUser.IsOrganization() {
-		result.ProfilePublicRepo, result.ProfilePublicReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer)
-		result.ProfilePrivateRepo, result.ProfilePrivateReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
-		result.HasOrgProfileReadme = result.ProfilePublicReadmeBlob != nil || result.ProfilePrivateReadmeBlob != nil
+		result.ProfilePublicReadme = FindOwnerProfileReadme(ctx, ctx.Doer)
+		result.ProfilePrivateReadme = findProfileReadme(ctx, ctx.Doer, []string{RepoNameProfilePrivate})
+		result.HasOrgProfileReadme = result.ProfilePublicReadme != nil || result.ProfilePrivateReadme != nil
 		ctx.Data["HasOrgProfileReadme"] = result.HasOrgProfileReadme // many pages need it to show the "overview" tab
 	} else {
-		_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
-		ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
+		ctx.Data["HasUserProfileReadme"] = FindOwnerProfileReadme(ctx, ctx.Doer) != nil
 		prepareContextForProfileBigAvatar(ctx)
 	}
 	return result, nil
