@@ -930,11 +930,6 @@
   color: inherit;
 }
 
-.repository .repo-search-result mark {
-  color: inherit;
-  background: var(--color-highlight-bg);
-}
-
 .repository .activity-header {
   display: flex;
   justify-content: space-between;
