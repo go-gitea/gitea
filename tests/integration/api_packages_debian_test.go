@@ -119,8 +119,7 @@ func TestPackageDebian(t *testing.T) {
 
 							req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/debian/%s/%s/files", user.Name, packageName, packageVersion)).
 								AddBasicAuth(user.Name)
-							var apiFiles []*api.PackageFile
-							DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &apiFiles)
+							apiFiles := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.PackageFile{})
 							var fileProperties []map[string]string
 							for _, apiFile := range apiFiles {
 								fileProperties = append(fileProperties, apiFile.Properties)
