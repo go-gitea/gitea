@@ -217,7 +217,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 			return fmt.Errorf("removeOrgRepo: %w", err)
 		}
 
-		// Remove project's issues that belong to old organization's projects
+		// Remove project's issues that belong to old organization's projects, this intentionally doesn't trigger project workflows
 		projects, err := project_model.GetAllProjectsIDsByOwnerIDAndType(ctx, oldOwner.ID, project_model.TypeOrganization)
 		if err != nil {
 			return fmt.Errorf("Unable to find old org projects: %w", err)

@@ -2934,7 +2934,6 @@
   "units.error.no_unit_allowed_repo": "Nejste oprávněni přistupovat k žádné části tohoto repozitáře.",
   "units.error.unit_not_allowed": "Nejste oprávněni přistupovat k této části repozitáře.",
   "packages.title": "Balíčky",
-  "packages.desc": "Správa balíčků repozitáře.",
   "packages.empty": "Zatím nejsou žádné balíčky.",
   "packages.no_metadata": "Žádná metadata.",
   "packages.empty.documentation": "Další informace o registru balíčků naleznete v <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%s\">dokumentaci</a>.",
@@ -3185,6 +3184,8 @@
   "projects.type-1.display_name": "Samostatný projekt",
   "projects.type-2.display_name": "Projekt repozitíře",
   "projects.type-3.display_name": "Projekt organizace",
+  "projects.workflows.actions": "Akce",
+  "projects.workflows.none": "Žádný",
   "git.filemode.directory": "Adresář",
   "git.filemode.submodule": "Submodul",
   "actions.general.token_permissions.mode.restricted": "Omezený"

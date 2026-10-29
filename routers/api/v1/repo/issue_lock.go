@@ -45,15 +45,12 @@ func LockIssue(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	reason := web.GetForm[*api.LockIssueOption](ctx).Reason
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -70,7 +67,7 @@ func LockIssue(ctx *context.APIContext) {
 		}
 
 		issue.Repo = ctx.Repo.Repository
-		err = issues_model.LockIssue(ctx, opt)
+		err := issues_model.LockIssue(ctx, opt)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -109,14 +106,11 @@ func UnlockIssue(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -132,7 +126,7 @@ func UnlockIssue(ctx *context.APIContext) {
 		}
 
 		issue.Repo = ctx.Repo.Repository
-		err = issues_model.UnlockIssue(ctx, opt)
+		err := issues_model.UnlockIssue(ctx, opt)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

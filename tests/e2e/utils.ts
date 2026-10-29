@@ -130,6 +130,21 @@ export async function createProjectColumn(requestContext: APIRequestContext, own
   }), 'createProjectColumn');
 }
 
+export async function apiCreateProject(requestContext: APIRequestContext, owner: string, repo: string, title: string): Promise<number> {
+  const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/projects`, {
+    headers: apiHeaders(),
+    data: {title},
+  }), 'apiCreateProject');
+  return (await response.json()).id;
+}
+
+export async function apiCreateLabel(requestContext: APIRequestContext, owner: string, repo: string, name: string, color: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/labels`, {
+    headers: apiHeaders(),
+    data: {name, color},
+  }), 'apiCreateLabel');
+}
+
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
   await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${name}`, {
     headers: apiHeaders(),

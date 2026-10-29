@@ -59,7 +59,6 @@ func TestRedisBroker(t *testing.T) {
 
 		ch, cancel := subscriber.Subscribe(t.Name())
 		defer cancel()
-		waitSubscribed(t, subscriber, t.Name())
 
 		publisher.Publish(t.Name(), []byte("cross-process"))
 

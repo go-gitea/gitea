@@ -79,7 +79,7 @@ func MustEnableIssues(ctx *context.Context) {
 	unitExtTracker, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 	if err == nil {
 		extURL := unitExtTracker.ExternalTrackerConfig().ExternalTrackerURL
-		if extURL != "" {
+		if extURL != "" && !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
 			ctx.Redirect(extURL)
 			return
 		}
@@ -440,7 +440,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 			if !valid {
-				ctx.ServerError("canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name})
+				ctx.HTTPError(http.StatusForbidden, fmt.Sprintf("User %d cannot be assigned to this issue", assigneeID))
 				return
 			}
 

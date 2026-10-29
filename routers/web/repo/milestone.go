@@ -134,7 +134,7 @@ func NewMilestonePost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
 }
 
-// EditMilestone render edting milestone page
+// EditMilestone render editing milestone page
 func EditMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
@@ -157,7 +157,7 @@ func EditMilestone(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
-// EditMilestonePost response for edting milestone
+// EditMilestonePost response for editing milestone
 func EditMilestonePost(ctx *context.Context) {
 	form := web.GetForm[*forms.CreateMilestoneForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
@@ -197,7 +197,7 @@ func EditMilestonePost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
 }
 
-// ChangeMilestoneStatus response for change a milestone's status
+// ChangeMilestoneStatus response for changing a milestone's status
 func ChangeMilestoneStatus(ctx *context.Context) {
 	var toClose bool
 	switch ctx.PathParam("action") {
