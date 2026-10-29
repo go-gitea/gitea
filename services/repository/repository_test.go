@@ -8,6 +8,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
+	pages_model "gitea.dev/models/pages"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -50,7 +51,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	repo.IsPrivate = true
 
 	// Update it
-	err = updateRepository(t.Context(), repo, true)
+	err = UpdateRepository(t.Context(), repo, true)
 	assert.NoError(t, err)
 
 	// Check visibility of action has become private
@@ -59,6 +60,27 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.True(t, act.IsPrivate)
+}
+
+func TestSetArchiveRepoStateDisablesPages(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	require.NoError(t, pages_model.UpsertSite(t.Context(), &pages_model.Site{
+		RepoID: 1, Enabled: true, SourceType: "upload", PagesUpdatedUnixNano: 1,
+	}))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	require.NoError(t, SetArchiveRepoState(t.Context(), repo, true))
+	archived := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.True(t, archived.IsArchived)
+	site, has, err := pages_model.GetSiteByRepoID(t.Context(), 1)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.False(t, site.Enabled)
+	assert.Greater(t, site.PagesUpdatedUnixNano, int64(1))
+
+	require.NoError(t, SetArchiveRepoState(t.Context(), repo, false))
+	unarchived := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.False(t, unarchived.IsArchived)
 }
 
 func TestRepository_HasWiki(t *testing.T) {
@@ -71,7 +93,7 @@ func TestRepository_HasWiki(t *testing.T) {
 }
 
 func TestMakeRepoPrivateClearsWatches(t *testing.T) {
-	for _, name := range []string{"MakeRepoPrivate", "updateRepository"} {
+	for _, name := range []string{"MakeRepoPrivate", "UpdateRepository"} {
 		t.Run(name, func(t *testing.T) {
 			assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -86,7 +108,7 @@ func TestMakeRepoPrivateClearsWatches(t *testing.T) {
 				assert.NoError(t, MakeRepoPrivate(t.Context(), repo, true))
 			} else {
 				repo.IsPrivate = true
-				require.NoError(t, updateRepository(t.Context(), repo, true))
+				require.NoError(t, UpdateRepository(t.Context(), repo, true))
 			}
 
 			watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
@@ -100,4 +122,20 @@ func TestMakeRepoPrivateClearsWatches(t *testing.T) {
 			assert.Zero(t, updatedRepo.NumWatches)
 		})
 	}
+}
+
+func TestMakeRepoPrivateUpdatesForks(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	fork := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+	assert.False(t, repo.IsPrivate)
+	assert.False(t, fork.IsPrivate)
+
+	assert.NoError(t, MakeRepoPrivate(t.Context(), repo, true))
+
+	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+	updatedFork := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: fork.ID})
+	assert.True(t, updatedRepo.IsPrivate)
+	assert.True(t, updatedFork.IsPrivate)
 }

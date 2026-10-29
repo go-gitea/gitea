@@ -14980,6 +14980,55 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pages/content": {
+      "post": {
+        "consumes": [
+          "application/gzip"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Upload a Pages TAR.GZ artifact",
+        "operationId": "repoUploadPagesContent",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "complete TAR.GZ bytes",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PagesContentCommit"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/projects": {
       "get": {
         "produces": [
@@ -31015,6 +31064,22 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "PagesContentCommit": {
+      "type": "object",
+      "title": "PagesContentCommit describes the current prepared Pages artifact.",
+      "properties": {
+        "pages_updated_unix_nano": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PagesUpdatedUnixNano"
+        },
+        "tar_gz_sha256": {
+          "type": "string",
+          "x-go-name": "TarGzSHA256"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "PayloadCommit": {
       "description": "PayloadCommit represents a commit",
       "type": "object",
@@ -34376,6 +34441,12 @@
         "items": {
           "$ref": "#/definitions/Package"
         }
+      }
+    },
+    "PagesContentCommit": {
+      "description": "PagesContentCommit",
+      "schema": {
+        "$ref": "#/definitions/PagesContentCommit"
       }
     },
     "Project": {

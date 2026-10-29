@@ -12,6 +12,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	pages_model "gitea.dev/models/pages"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -66,6 +67,7 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 
 	// One row per table that repository deletion used to leave behind (#38494).
 	assert.NoError(t, db.Insert(t.Context(),
+		&pages_model.Site{RepoID: 1, Enabled: true, SourceType: "upload", PagesUpdatedUnixNano: 1},
 		&actions_model.ActionVariable{RepoID: 1, Name: "to_purge", Data: "value"},
 		&actions_model.ActionRunAttempt{RepoID: 1, RunID: unittest.NonexistentID, Attempt: 1},
 		&actions_model.ActionTasksVersion{RepoID: 1, Version: 1},
@@ -86,4 +88,13 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusIndex{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &issues_model.Reaction{ReleaseID: 1})
+	pagesSite, hasPagesSite, err := pages_model.GetSiteByRepoID(t.Context(), 1)
+	assert.NoError(t, err)
+	assert.True(t, hasPagesSite)
+	if hasPagesSite {
+		assert.True(t, pagesSite.Deleted)
+		assert.False(t, pagesSite.Enabled)
+		assert.Empty(t, pagesSite.SourceType)
+		assert.Empty(t, pagesSite.TarGzSHA256)
+	}
 }

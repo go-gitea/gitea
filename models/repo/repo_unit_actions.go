@@ -30,6 +30,7 @@ func (ActionsTokenPermissionMode) EnumValues() []ActionsTokenPermissionMode {
 type ActionsTokenPermissions struct {
 	UnitAccessModes map[unit.Type]perm.AccessMode `json:"unit_access_modes,omitempty"`
 	IDToken         bool                          `json:"id_token,omitempty"` // default modes never grant it, like on GitHub
+	Pages           bool                          `json:"pages,omitempty"`    // publishing a Pages artifact is a separate write capability
 }
 
 var ActionsTokenUnitTypes = []unit.Type{
@@ -54,6 +55,7 @@ func MakeActionsTokenPermissions(unitAccessMode perm.AccessMode) (ret ActionsTok
 func MakeWriteAllActionsTokenPermissions() ActionsTokenPermissions {
 	ret := MakeActionsTokenPermissions(perm.AccessModeWrite)
 	ret.IDToken = true
+	ret.Pages = true
 	return ret
 }
 
@@ -64,6 +66,7 @@ func ClampActionsTokenPermissions(p1, p2 ActionsTokenPermissions) (ret ActionsTo
 		ret.UnitAccessModes[ut] = min(p1.UnitAccessModes[ut], p2.UnitAccessModes[ut])
 	}
 	ret.IDToken = p1.IDToken && p2.IDToken
+	ret.Pages = p1.Pages && p2.Pages
 	return ret
 }
 

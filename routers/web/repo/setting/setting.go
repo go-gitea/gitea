@@ -1013,7 +1013,7 @@ func handleSettingsPostArchive(ctx *context.Context) {
 		return
 	}
 
-	if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
+	if err := repo_service.SetArchiveRepoState(ctx, repo, true); err != nil {
 		log.Error("Tried to archive a repo: %s", err)
 		ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -1041,7 +1041,7 @@ func handleSettingsPostUnarchive(ctx *context.Context) {
 	}
 
 	repo := ctx.Repo.Repository
-	if err := repo_model.SetArchiveRepoState(ctx, repo, false); err != nil {
+	if err := repo_service.SetArchiveRepoState(ctx, repo, false); err != nil {
 		log.Error("Tried to unarchive a repo: %s", err)
 		ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")

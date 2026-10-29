@@ -1241,6 +1241,12 @@ func Routes() *web.Router {
 			m.Post("/migrate", reqToken(), rejectPublicOnly(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
+				m.Group("/pages/deployments", func() {
+					m.Post("", reqToken(), bind(api.PagesDeploymentOption{}), repo.CreatePagesDeployment)
+					m.Get("/{digest}", reqToken(), repo.GetPagesDeployment)
+					m.Post("/{digest}/cancel", reqToken(), repo.CancelPagesDeployment)
+				})
+				m.Post("/pages/content", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), repo.UploadPagesContent)
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).

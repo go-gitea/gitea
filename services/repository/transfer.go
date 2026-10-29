@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
+	pages_service "gitea.dev/services/pages"
 )
 
 type LimitReachedError struct{ Limit int }
@@ -57,6 +58,11 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	}
 
 	oldOwnerName := repo.OwnerName
+	releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	if err != nil {
+		return err
+	}
+	defer releasePagesState()
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
@@ -177,6 +183,9 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	// Update repository.
 	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "owner_id", "owner_name"); err != nil {
 		return fmt.Errorf("update owner: %w", err)
+	}
+	if err := pages_service.TouchRepositoryInTransaction(ctx, repo.ID); err != nil {
+		return err
 	}
 
 	// Remove redundant collaborators.
@@ -452,6 +461,11 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 
 	var isDirectTransfer bool
 	oldOwnerName := repo.OwnerName
+	releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	if err != nil {
+		return err
+	}
+	defer releasePagesState()
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Admin is always allowed to transfer || user transfer repo back to his account,

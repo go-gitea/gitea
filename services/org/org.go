@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
+	pages_service "gitea.dev/services/pages"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -119,6 +120,9 @@ func updateRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Reposi
 	}
 
 	if makePrivate {
+		if err := pages_service.DisableRepositoryInTransaction(ctx, repo.ID); err != nil {
+			return err
+		}
 		if _, err := db.GetEngine(ctx).Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{
 			IsPrivate: true,
 		}); err != nil {
@@ -164,6 +168,11 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 
 	oldVisibility := org.Visibility
 	org.Visibility = visibility
+	releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	if err != nil {
+		return err
+	}
+	defer releasePagesState()
 	// FIXME: If it's a big forks network(forks and sub forks), the database transaction will be too long to fail.
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := user_model.UpdateUserColsNoAutoTime(ctx, org.AsUser(), "visibility"); err != nil {

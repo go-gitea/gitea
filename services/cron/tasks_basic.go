@@ -5,6 +5,7 @@ package cron
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	git_model "gitea.dev/models/git"
@@ -12,11 +13,13 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	packages_cleanup_service "gitea.dev/services/packages/cleanup"
+	pages_service "gitea.dev/services/pages"
 	repo_service "gitea.dev/services/repository"
 	archiver_service "gitea.dev/services/repository/archiver"
 )
@@ -160,6 +163,12 @@ func registerSyncRepoLicenses() {
 }
 
 func initBasicTasks() {
+	registerPagesTask("update_pages_branch_sources", func(ctx context.Context) error {
+		return pages_service.UpdateDueBranchSources(ctx, 50)
+	})
+	registerPagesTask("verify_pages_domains", func(ctx context.Context) error {
+		return pages_service.VerifyDueDomains(ctx, 100)
+	})
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
 	}
@@ -176,4 +185,25 @@ func initBasicTasks() {
 		registerCleanupPackages()
 	}
 	registerSyncRepoLicenses()
+}
+
+func registerPagesTask(name string, run func(context.Context) error) {
+	config := &BaseConfig{Enabled: true, RunAtStart: true, Schedule: "@every 1m"}
+	if _, err := setting.GetCronSettings(name, config); err != nil {
+		log.Fatal("Unable to read Pages cron task %s: %v", name, err)
+	}
+	if !validPagesSchedule(config.Schedule) {
+		log.Fatal("Pages cron task %s requires a schedule of at least one minute", name)
+	}
+	RegisterTaskFatal(name, config, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
+		return run(ctx)
+	})
+}
+
+func validPagesSchedule(schedule string) bool {
+	if interval, found := strings.CutPrefix(schedule, "@every "); found {
+		duration, err := time.ParseDuration(interval)
+		return err == nil && duration >= time.Minute
+	}
+	return !scheduleHasSeconds(schedule)
 }

@@ -1,0 +1,114 @@
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings pages")}}
+<div class="repo-setting-content">
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.settings.pages.title"}}</h4>
+	<div class="ui attached segment">
+		<p>{{ctx.Locale.Tr "repo.settings.pages.description"}}</p>
+		{{if .Repository.IsPrivate}}<p class="text orange">{{ctx.Locale.Tr "repo.settings.pages.private_source_public_site"}}</p>{{end}}
+		<form class="ui form" method="post">
+			<input type="hidden" name="action" value="save">
+			<div class="field">
+				<label>
+					<input type="checkbox" name="enabled" value="true" {{if .PagesSite.Enabled}}checked{{end}}>
+					{{ctx.Locale.Tr "repo.settings.pages.enabled"}}
+				</label>
+			</div>
+			<div class="field">
+				<label for="pages-source-type">{{ctx.Locale.Tr "repo.settings.pages.source"}}</label>
+				<select id="pages-source-type" name="source_type">
+					<option value="upload" {{if eq .PagesSite.SourceType "upload"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pages.source.upload"}}</option>
+					<option value="branch" {{if eq .PagesSite.SourceType "branch"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pages.source.branch"}}</option>
+					<option value="actions" {{if eq .PagesSite.SourceType "actions"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pages.source.actions"}}</option>
+				</select>
+			</div>
+			<div class="field">
+				<label for="pages-source-branch">{{ctx.Locale.Tr "repo.settings.pages.branch"}}</label>
+				<input id="pages-source-branch" name="source_branch" value="{{.PagesSite.SourceBranch}}" placeholder="main">
+			</div>
+			<div class="field">
+				<label for="pages-source-path">{{ctx.Locale.Tr "repo.settings.pages.path"}}</label>
+				<input id="pages-source-path" name="source_path" value="{{.PagesSite.SourcePath}}" placeholder="/">
+			</div>
+			<button class="ui primary button" type="submit">{{ctx.Locale.Tr "repo.settings.pages.save"}}</button>
+		</form>
+		{{if .PagesSite.Enabled}}
+			<form class="tw-mt-2" method="post">
+				<input type="hidden" name="action" value="close">
+				<button class="ui button" type="submit">{{ctx.Locale.Tr "repo.settings.pages.close"}}</button>
+			</form>
+		{{end}}
+	</div>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.settings.pages.content"}}</h4>
+	<div class="ui attached segment">
+		{{if .PagesSite.TarGzSHA256}}
+			<p>{{ctx.Locale.Tr "repo.settings.pages.content.ready"}} <code>{{.PagesSite.TarGzSHA256}}</code></p>
+		{{else}}
+			<p>{{ctx.Locale.Tr "repo.settings.pages.content.waiting"}}</p>
+		{{end}}
+		{{if .PagesSourceError}}<p class="text red">{{.PagesSourceError}}</p>{{end}}
+	</div>
+
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.settings.pages.upload"}}</h4>
+	<div class="ui attached segment">
+		<p>{{ctx.Locale.Tr "repo.settings.pages.upload.description"}}</p>
+		<form class="ui form" method="post" enctype="multipart/form-data">
+			<input type="hidden" name="action" value="upload">
+			<div class="field"><label for="pages-archive">{{ctx.Locale.Tr "repo.settings.pages.upload.file"}}</label><input id="pages-archive" type="file" name="archive" accept=".tar.gz,application/gzip" required></div>
+			<button class="ui primary button" type="submit">{{ctx.Locale.Tr "repo.settings.pages.upload.submit"}}</button>
+		</form>
+	</div>
+
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.settings.pages.domains"}}</h4>
+	<div class="ui attached segment">
+		<form class="ui form" method="post">
+			<input type="hidden" name="action" value="add-domain">
+			<div class="inline fields">
+				<div class="field"><label for="pages-domain">{{ctx.Locale.Tr "repo.settings.pages.domain"}}</label><input id="pages-domain" name="host" required></div>
+				<button class="ui primary button" type="submit">{{ctx.Locale.Tr "repo.settings.pages.domain.add"}}</button>
+			</div>
+		</form>
+		<table class="ui table unstackable">
+			<thead><tr><th>{{ctx.Locale.Tr "repo.settings.pages.domain"}}</th><th>{{ctx.Locale.Tr "repo.settings.pages.domain.state"}}</th><th>{{ctx.Locale.Tr "repo.settings.pages.domain.txt"}}</th><th></th></tr></thead>
+			<tbody>
+			{{range .PagesDomains}}
+				<tr>
+					<td>{{.Host}}</td>
+					<td>{{.State}}</td>
+					<td>{{if eq .State "pending"}}<code>_gitea-pages.{{.Host}} TXT {{.TXTToken}}</code>{{else}}{{.TXTResult}}{{end}}</td>
+					<td><form method="post"><input type="hidden" name="action" value="remove-domain"><input type="hidden" name="domain_id" value="{{.ID}}"><button class="ui small button" type="submit">{{ctx.Locale.Tr "repo.settings.pages.domain.remove"}}</button></form></td>
+				</tr>
+			{{else}}
+				<tr><td colspan="4">{{ctx.Locale.Tr "repo.settings.pages.domain.empty"}}</td></tr>
+			{{end}}
+			</tbody>
+		</table>
+	</div>
+
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.settings.pages.instances"}}</h4>
+	<div class="ui attached table segment">
+		<table class="ui table unstackable">
+			<thead><tr><th>{{ctx.Locale.Tr "admin.pages.id"}}</th><th>{{ctx.Locale.Tr "repo.settings.pages.instance.default_url"}}</th><th>{{ctx.Locale.Tr "repo.settings.pages.instance.content"}}</th><th>{{ctx.Locale.Tr "repo.settings.pages.instance.default"}}</th><th>{{ctx.Locale.Tr "repo.settings.pages.instance.custom_url"}}</th><th>{{ctx.Locale.Tr "repo.settings.pages.instance.custom"}}</th><th>{{ctx.Locale.Tr "repo.settings.pages.instance.error"}}</th></tr></thead>
+			<tbody>
+			{{range .PagesInstanceResults}}
+				<tr>
+					<td>{{.Instance.ID}}</td>
+					<td>{{if .DefaultURL}}<a href="{{.DefaultURL}}">{{.DefaultURL}}</a>{{else}}{{ctx.Locale.Tr "repo.settings.pages.instance.address_error"}}{{end}}</td>
+					{{if and .Result .MatchesState}}
+						<td>{{if and $.PagesSite.TarGzSHA256 (eq .Result.ActualTarGzSHA256 $.PagesSite.TarGzSHA256)}}{{ctx.Locale.Tr "repo.settings.pages.instance.installed"}}{{else}}{{ctx.Locale.Tr "repo.settings.pages.instance.not_ready"}}{{end}}</td>
+						<td>{{if .Result.DefaultPublished}}{{ctx.Locale.Tr "repo.settings.pages.instance.published"}}{{else}}{{ctx.Locale.Tr "repo.settings.pages.instance.not_ready"}}{{end}}</td>
+						<td>{{if .CustomURL}}<a href="{{.CustomURL}}">{{.CustomURL}}</a>{{else}}-{{end}}</td>
+						<td>{{if .CustomURL}}{{if .Result.CustomPublished}}{{ctx.Locale.Tr "repo.settings.pages.instance.published"}}{{else}}{{ctx.Locale.Tr "repo.settings.pages.instance.not_ready"}}{{end}}{{else}}-{{end}}</td>
+						<td>{{if .ErrorMessage}}{{.ErrorMessage}}{{else}}-{{end}}</td>
+					{{else}}
+						<td>{{ctx.Locale.Tr "repo.settings.pages.instance.pending"}}</td><td>{{ctx.Locale.Tr "repo.settings.pages.instance.pending"}}</td>
+						<td>{{if .CustomURL}}<a href="{{.CustomURL}}">{{.CustomURL}}</a>{{else}}-{{end}}</td>
+						<td>{{if .CustomURL}}{{ctx.Locale.Tr "repo.settings.pages.instance.pending"}}{{else}}-{{end}}</td><td>-</td>
+					{{end}}
+				</tr>
+			{{else}}
+				<tr><td colspan="7">{{ctx.Locale.Tr "repo.settings.pages.instance.empty"}}</td></tr>
+			{{end}}
+			</tbody>
+		</table>
+	</div>
+</div>
+{{template "repo/settings/layout_footer" .}}

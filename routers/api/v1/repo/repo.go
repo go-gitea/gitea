@@ -972,7 +972,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			return err
 		}
 		if *opts.Archived {
-			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
+			if err := repo_service.SetArchiveRepoState(ctx, repo, true); err != nil {
 				log.Error("Tried to archive a repo: %s", err)
 				ctx.APIErrorInternal(err)
 				return err
@@ -982,7 +982,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
-			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
+			if err := repo_service.SetArchiveRepoState(ctx, repo, false); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.APIErrorInternal(err)
 				return err

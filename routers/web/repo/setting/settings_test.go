@@ -4,18 +4,26 @@
 package setting
 
 import (
+	"bytes"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"testing"
 
 	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/organization"
+	pages_model "gitea.dev/models/pages"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	pages_content "gitea.dev/modules/pages"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
@@ -28,6 +36,40 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestPagesUploadInitializesUploadSource(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/pages")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, "index.html"), []byte("Pages upload"), 0o600))
+	var archive bytes.Buffer
+	require.NoError(t, pages_content.PackDirectory(t.Context(), root, &archive, pages_content.DefaultLimits()))
+
+	var body bytes.Buffer
+	form := multipart.NewWriter(&body)
+	require.NoError(t, form.WriteField("action", "upload"))
+	file, err := form.CreateFormFile("archive", "site.tar.gz")
+	require.NoError(t, err)
+	_, err = io.Copy(file, &archive)
+	require.NoError(t, err)
+	require.NoError(t, form.Close())
+
+	request := httptest.NewRequest(http.MethodPost, "/user2/repo1/settings/pages", &body).WithContext(ctx.Req.Context())
+	request.Header.Set("Content-Type", form.FormDataContentType())
+	ctx.Req = request
+	PagesPost(ctx)
+
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	site, has, err := pages_model.GetSiteByRepoID(t.Context(), 1)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.Equal(t, pages_model.SourceTypeUpload, site.SourceType)
+	assert.False(t, site.Enabled)
+	assert.NotEmpty(t, site.TarGzSHA256)
+}
 
 func TestAddDeployKey(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

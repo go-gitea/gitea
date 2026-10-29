@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	pages_model "gitea.dev/models/pages"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -173,6 +174,11 @@ func TestRenameUser(t *testing.T) {
 		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 		caps := strings.ToUpper(user.Name)
+		require.NoError(t, pages_model.UpsertSite(t.Context(), &pages_model.Site{
+			RepoID:               34,
+			Enabled:              true,
+			PagesUpdatedUnixNano: 1,
+		}))
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: user.Name})
 
@@ -180,6 +186,10 @@ func TestRenameUser(t *testing.T) {
 
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: caps})
+		site, has, err := pages_model.GetSiteByRepoID(t.Context(), 34)
+		require.NoError(t, err)
+		require.True(t, has)
+		assert.Greater(t, site.PagesUpdatedUnixNano, int64(1))
 		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
 			Action:    audit_model.UserName,
 			ScopeType: audit_model.ScopeUser,

@@ -1,0 +1,69 @@
+{{template "admin/layout_head" (dict "pageClass" "admin pages")}}
+<div class="admin-setting-content">
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "admin.pages.title"}}</h4>
+	<div class="ui attached segment">
+		<p>{{ctx.Locale.Tr "admin.pages.description"}}</p>
+		<form class="ui form" method="post">
+			<input type="hidden" name="action" value="policy">
+			<div class="field">
+				<label>
+					<input type="checkbox" name="enabled" value="true" {{if .PagesTXTPolicyEnabled}}checked{{end}}>
+					{{ctx.Locale.Tr "admin.pages.policy.enabled"}}
+				</label>
+			</div>
+			<button class="ui primary button" type="submit">{{ctx.Locale.Tr "admin.pages.save"}}</button>
+		</form>
+	</div>
+
+	{{if .PagesOneTimeToken}}
+		<div class="ui warning message">
+			<div class="header">{{ctx.Locale.Tr "admin.pages.token"}}</div>
+			<p>{{ctx.Locale.Tr "admin.pages.token.warning"}}</p>
+			<code class="tw-break-all">{{.PagesOneTimeToken}}</code>
+		</div>
+	{{end}}
+
+	<div class="ui top attached segment">
+		<h4>{{ctx.Locale.Tr "admin.pages.instances"}}</h4>
+		<form class="ui form" method="post">
+			<input type="hidden" name="action" value="create">
+			<button class="ui primary button" type="submit">{{ctx.Locale.Tr "admin.pages.create"}}</button>
+		</form>
+	</div>
+	<div class="ui attached table segment">
+		<table class="ui table unstackable">
+			<thead>
+				<tr>
+					<th>{{ctx.Locale.Tr "admin.pages.id"}}</th>
+					<th>{{ctx.Locale.Tr "admin.pages.root_url"}}</th>
+					<th>{{ctx.Locale.Tr "admin.pages.root_updated"}}</th>
+					<th>{{ctx.Locale.Tr "admin.pages.actions"}}</th>
+				</tr>
+			</thead>
+			<tbody>
+			{{range .PagesInstances}}
+				<tr>
+					<td>{{.ID}}</td>
+					<td>{{if .RootURL}}<a href="{{.RootURL}}">{{.RootURL}}</a>{{else}}{{ctx.Locale.Tr "admin.pages.unregistered"}}{{end}}</td>
+					<td>{{if .RootUpdatedUnixNano}}{{.RootUpdatedUnixNano}}{{else}}-{{end}}</td>
+					<td>
+						<form class="tw-inline-flex tw-gap-2" method="post">
+							<input type="hidden" name="action" value="reset">
+							<input type="hidden" name="instance_id" value="{{.ID}}">
+							<button class="ui small button" type="submit">{{ctx.Locale.Tr "admin.pages.reset"}}</button>
+						</form>
+						<form class="tw-inline-flex" method="post">
+							<input type="hidden" name="action" value="remove">
+							<input type="hidden" name="instance_id" value="{{.ID}}">
+							<button class="ui small negative button" type="submit">{{ctx.Locale.Tr "admin.pages.remove"}}</button>
+						</form>
+					</td>
+				</tr>
+			{{else}}
+				<tr><td colspan="4">{{ctx.Locale.Tr "admin.pages.empty"}}</td></tr>
+			{{end}}
+			</tbody>
+		</table>
+	</div>
+</div>
+{{template "admin/layout_footer" .}}

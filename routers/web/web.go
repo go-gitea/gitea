@@ -4,6 +4,7 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 	"gitea.dev/modules/imagecaptcha"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/metrics"
+	pages_content "gitea.dev/modules/pages"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/session"
@@ -318,6 +320,36 @@ func Routes() *web.Router {
 
 	routes.Mount("", webRoutes)
 	return routes
+}
+
+// pagesFormLimit runs before the common web context, which otherwise parses
+// multipart forms before reaching the repository Pages upload handler.
+func pagesFormLimit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		const formOverhead = 1 * 1024 * 1024
+		limit := pages_content.DefaultMaxCompressedSize + formOverhead
+		if req.ContentLength > limit {
+			http.Error(w, "Pages upload exceeds the size limit", http.StatusRequestEntityTooLarge)
+			return
+		}
+		req.Body = http.MaxBytesReader(w, req.Body, limit)
+		if strings.Contains(req.Header.Get("Content-Type"), "multipart/form-data") {
+			if err := req.ParseMultipartForm(32 * 1024 * 1024); err != nil {
+				if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+					http.Error(w, "Pages upload exceeds the size limit", http.StatusRequestEntityTooLarge)
+				} else {
+					http.Error(w, "Invalid Pages upload form", http.StatusBadRequest)
+				}
+				return
+			}
+			defer func() {
+				if err := req.MultipartForm.RemoveAll(); err != nil {
+					log.Warn("Unable to remove Pages upload temporary files: %v", err)
+				}
+			}()
+		}
+		next.ServeHTTP(w, req)
+	})
 }
 
 // optSignInFromAnyOrigin means that the user can (optionally) be signed in from any origin (no cross-origin protection)
@@ -784,6 +816,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("", admin.Dashboard)
 		m.Get("/system_status", admin.SystemStatus)
 		m.Post("", web.Bind[*forms.AdminDashboardForm](), admin.DashboardPost)
+		m.Combo("/pages").Get(admin.Pages).Post(admin.PagesPost)
 
 		m.Get("/self_check", admin.SelfCheck)
 		m.Post("/self_check", admin.SelfCheckPost)
@@ -1198,6 +1231,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
 
 		m.Combo("/public_access").Get(repo_setting.PublicAccess).Post(repo_setting.PublicAccessPost)
+		m.Combo("/pages").Get(repo_setting.Pages).Post(types.PreMiddlewareProvider(pagesFormLimit), repo_setting.PagesPost)
 
 		m.Group("/collaboration", func() {
 			m.Combo("").Get(repo_setting.Collaboration).Post(repo_setting.CollaborationPost)

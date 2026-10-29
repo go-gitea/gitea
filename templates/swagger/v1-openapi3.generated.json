@@ -983,6 +983,16 @@
         },
         "description": "PackageList"
       },
+      "PagesContentCommit": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PagesContentCommit"
+            }
+          }
+        },
+        "description": "PagesContentCommit"
+      },
       "Project": {
         "content": {
           "application/json": {
@@ -8528,6 +8538,22 @@
             "x-go-name": "Size"
           }
         },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PagesContentCommit": {
+        "properties": {
+          "pages_updated_unix_nano": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "PagesUpdatedUnixNano"
+          },
+          "tar_gz_sha256": {
+            "type": "string",
+            "x-go-name": "TarGzSHA256"
+          }
+        },
+        "title": "PagesContentCommit describes the current prepared Pages artifact.",
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -27482,6 +27508,56 @@
         "summary": "Mark notification threads as read, pinned or unread on a specific repo",
         "tags": [
           "notification"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pages/content": {
+      "post": {
+        "operationId": "repoUploadPagesContent",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/gzip": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "description": "complete TAR.GZ bytes",
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PagesContentCommit"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Upload a Pages TAR.GZ artifact",
+        "tags": [
+          "repository"
         ]
       }
     },

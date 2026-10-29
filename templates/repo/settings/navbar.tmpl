@@ -12,6 +12,9 @@
 		<a class="{{if .PageIsSettingsCollaboration}}active {{end}}item" href="{{.RepoLink}}/settings/collaboration">
 			{{ctx.Locale.Tr "repo.settings.collaboration"}}
 		</a>
+		<a class="{{if .PageIsSettingsPages}}active {{end}}item" href="{{.RepoLink}}/settings/pages">
+			{{ctx.Locale.Tr "repo.settings.pages"}}
+		</a>
 		{{if not DisableWebhooks}}
 			<a class="{{if .PageIsSettingsHooks}}active {{end}}item" href="{{.RepoLink}}/settings/hooks">
 				{{ctx.Locale.Tr "repo.settings.hooks"}}

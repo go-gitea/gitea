@@ -29,6 +29,7 @@ import (
 	org_service "gitea.dev/services/org"
 	"gitea.dev/services/packages"
 	container_service "gitea.dev/services/packages/container"
+	pages_service "gitea.dev/services/pages"
 	repo_service "gitea.dev/services/repository"
 	websocket_service "gitea.dev/services/websocket"
 )
@@ -53,12 +54,24 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 	oldUserName := u.Name
 
 	if onlyCapitalization {
-		u.Name = newUserName
-		if err := user_model.UpdateUserCols(ctx, u, "name"); err != nil {
-			u.Name = oldUserName
+		releasePagesState, err := pages_service.LockLifecycleState(ctx)
+		if err != nil {
 			return err
 		}
-		if err := repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName); err != nil {
+		defer releasePagesState()
+
+		err = db.WithTx(ctx, func(ctx context.Context) error {
+			u.Name = newUserName
+			if err := user_model.UpdateUserCols(ctx, u, "name"); err != nil {
+				return err
+			}
+			if err := repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName); err != nil {
+				return err
+			}
+			return pages_service.TouchOwnerRepositoriesInTransaction(ctx, u.ID)
+		})
+		if err != nil {
+			u.Name = oldUserName
 			return err
 		}
 
@@ -66,6 +79,12 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 
 		return nil
 	}
+
+	releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	if err != nil {
+		return err
+	}
+	defer releasePagesState()
 
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
@@ -84,6 +103,9 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 	}
 
 	if err = repo_model.UpdateRepositoryOwnerName(ctx, oldUserName, newUserName); err != nil {
+		return err
+	}
+	if err := pages_service.TouchOwnerRepositoriesInTransaction(ctx, u.ID); err != nil {
 		return err
 	}
 
