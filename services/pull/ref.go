@@ -28,7 +28,7 @@ func EnumPullRequestsByHeadCommitID(ctx context.Context, repo *repo_model.Reposi
 	for _, refStr := range refs {
 		ref := git.RefName(refStr)
 		prIndex, ok := ref.PullIndex()
-		if !ok {
+		if !ok || ref != git.RefNameFromPullIndex(prIndex) {
 			continue
 		}
 
