@@ -927,8 +927,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	reqRepoCodeWriter := context.RequireUnitWriter(unit.TypeCode)
 	reqRepoReleaseWriter := context.RequireUnitWriter(unit.TypeReleases)
 	reqRepoReleaseReader := context.RequireUnitReader(unit.TypeReleases)
-	reqRepoIssuesOrPullsWriter := context.RequireUnitWriter(unit.TypeIssues, unit.TypePullRequests)
-	reqRepoIssuesOrPullsReader := context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoProjectsReader := context.RequireUnitReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireUnitWriter(unit.TypeProjects)
 	reqRepoActionsReader := context.RequireUnitReader(unit.TypeActions)
@@ -1348,7 +1346,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/milestones", repo.Milestones)
 		m.Get("/milestone/{id}", repo.MilestoneIssuesAndPulls)
 		m.Get("/issues/suggestions", repo.IssueSuggestions)
-	}, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader) // issue/pull attachments, labels, milestones
+	}, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests)) // issue/pull attachments, labels, milestones
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
 
 	m.Group("/{username}/{reponame}/{type:issues}", func() {
@@ -1421,14 +1419,14 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/{action}", web.Bind[*forms.ReactionForm](), repo.ChangeCommentReaction)
-		}, reqRepoIssuesOrPullsReader) // edit issue/pull comment
+		}) // edit issue/pull comment
 
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind[*forms.CreateLabelForm](), repo.NewLabel)
 			m.Post("/edit", web.Bind[*forms.CreateLabelForm](), repo.UpdateLabel)
 			m.Post("/delete", repo.DeleteLabel)
 			m.Post("/initialize", web.Bind[*forms.InitializeLabelsForm](), repo.InitializeLabels)
-		}, reqRepoIssuesOrPullsWriter)
+		}, context.RequireUnitWriter(unit.TypeIssues, unit.TypePullRequests))
 
 		m.Group("/milestones", func() {
 			m.Combo("/new").Get(repo.NewMilestone).
@@ -1437,7 +1435,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{id}/edit", web.Bind[*forms.CreateMilestoneForm](), repo.EditMilestonePost)
 			m.Post("/{id}/{action}", repo.ChangeMilestoneStatus)
 			m.Post("/delete", repo.DeleteMilestone)
-		}, reqRepoIssuesOrPullsWriter)
+		}, context.RequireUnitWriter(unit.TypeIssues, unit.TypePullRequests))
 
 		// FIXME: many "pulls" requests are sent to "issues" endpoints incorrectly, need to move these routes to the proper place
 		m.Group("/issues", func() {
