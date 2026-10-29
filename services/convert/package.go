@@ -5,19 +5,13 @@ package convert
 
 import (
 	"context"
+	"slices"
 
 	"gitea.dev/models/packages"
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
-	alpine_module "gitea.dev/modules/packages/alpine"
-	arch_module "gitea.dev/modules/packages/arch"
-	conan_module "gitea.dev/modules/packages/conan"
-	conda_module "gitea.dev/modules/packages/conda"
-	debian_module "gitea.dev/modules/packages/debian"
-	nuget_module "gitea.dev/modules/packages/nuget"
-	rpm_module "gitea.dev/modules/packages/rpm"
-	vagrant_module "gitea.dev/modules/packages/vagrant"
 	api "gitea.dev/modules/structs"
+	packages_service "gitea.dev/services/packages"
 )
 
 // ToPackage convert a packages.PackageDescriptor to api.Package
@@ -48,19 +42,11 @@ func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_m
 }
 
 // ToPackageFile converts packages.PackageFileDescriptor to api.PackageFile
-func ToPackageFile(pfd *packages.PackageFileDescriptor) *api.PackageFile {
+func ToPackageFile(packageType packages.Type, pfd *packages.PackageFileDescriptor) *api.PackageFile {
 	properties := make(map[string]string)
+	publicPropertyNames := packages_service.GetSpecManager().Get(packageType).PublicPropertyNames()
 	for _, pp := range pfd.Properties {
-		switch pp.Name { // only properties locating the file, the others are internal and can be large
-		case alpine_module.PropertyBranch, alpine_module.PropertyRepository, alpine_module.PropertyArchitecture,
-			arch_module.PropertyRepository, arch_module.PropertyArchitecture,
-			conan_module.PropertyRecipeUser, conan_module.PropertyRecipeChannel, conan_module.PropertyRecipeRevision,
-			conan_module.PropertyPackageReference, conan_module.PropertyPackageRevision,
-			conda_module.PropertySubdir,
-			debian_module.PropertyDistribution, debian_module.PropertyComponent, debian_module.PropertyArchitecture,
-			nuget_module.PropertySymbolID,
-			rpm_module.PropertyGroup, rpm_module.PropertyArchitecture,
-			vagrant_module.PropertyProvider:
+		if slices.Contains(publicPropertyNames, pp.Name) {
 			properties[pp.Name] = pp.Value
 		}
 	}
