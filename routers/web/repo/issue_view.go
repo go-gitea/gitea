@@ -39,6 +39,7 @@ import (
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
 	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
 	user_service "gitea.dev/services/user"
 )
 
@@ -165,31 +166,6 @@ func addParticipant(poster *user_model.User, participants []*user_model.User) []
 	return append(participants, poster)
 }
 
-func filterXRefComments(ctx *context.Context, issue *issues_model.Issue) error {
-	// Remove comments that the user has no permissions to see
-	for i := 0; i < len(issue.Comments); {
-		c := issue.Comments[i]
-		if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
-			var err error
-			// Set RefRepo for description in template
-			c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
-			if err != nil {
-				return err
-			}
-			perm, err := access_model.GetDoerRepoPermission(ctx, c.RefRepo, ctx.Doer)
-			if err != nil {
-				return err
-			}
-			if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
-				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
-				continue
-			}
-		}
-		i++
-	}
-	return nil
-}
-
 // combineXRefComments keeps only the first reference from each issue, carrying over the action of later ones
 func combineXRefComments(issue *issues_model.Issue) {
 	first := make(map[int64]*issues_model.Comment)
@@ -216,6 +192,11 @@ func combineXRefComments(issue *issues_model.Issue) {
 	}
 }
 
+// project workflows post as the user who triggered them, the metadata keeps their changes apart
+func sameCommentMetaData(a, b *issues_model.CommentMetaData) bool {
+	return a == b || (a != nil && b != nil && *a == *b)
+}
+
 // combineLabelComments combine the nearby label comments as one.
 func combineLabelComments(issue *issues_model.Issue) {
 	var prev, cur *issues_model.Comment
@@ -225,8 +206,9 @@ func combineLabelComments(issue *issues_model.Issue) {
 			prev = issue.Comments[i-1]
 		}
 		if i == 0 || cur.Type != issues_model.CommentTypeLabel ||
-			(prev != nil && prev.PosterID != cur.PosterID) ||
-			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) {
+			(prev != nil && (prev.PosterID != cur.PosterID || prev.OriginalAuthor != cur.OriginalAuthor)) ||
+			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) ||
+			(prev != nil && !sameCommentMetaData(prev.CommentMetaData, cur.CommentMetaData)) {
 			if cur.Type == issues_model.CommentTypeLabel && cur.Label != nil {
 				if cur.Content != "1" {
 					cur.RemovedLabels = append(cur.RemovedLabels, cur.Label)
@@ -361,7 +343,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanRead(unit.TypeProjects)
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	if err := issue.LoadAttributes(ctx); err != nil {
@@ -369,8 +351,9 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := filterXRefComments(ctx, issue); err != nil {
-		ctx.ServerError("filterXRefComments", err)
+	var err error
+	if issue.Comments, err = issue_service.FilterReadableComments(ctx, ctx.Doer, ctx.Repo.Permission, issue, issue.Comments); err != nil {
+		ctx.ServerError("FilterReadableComments", err)
 		return
 	}
 	combineXRefComments(issue)
@@ -753,13 +736,6 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadAssigneeUserAndTeam", err)
 				return
 			}
-		} else if comment.Type == issues_model.CommentTypeRemoveDependency || comment.Type == issues_model.CommentTypeAddDependency {
-			if err = comment.LoadDepIssueDetails(ctx); err != nil {
-				if !issues_model.IsErrIssueNotExist(err) {
-					ctx.ServerError("LoadDepIssueDetails", err)
-					return
-				}
-			}
 		} else if comment.Type.HasContentSupport() {
 			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
 				FootnoteContextID: strconv.FormatInt(comment.ID, 10),
@@ -900,14 +876,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 				return
 			}
 			if perm.CanWrite(unit.TypeCode) {
-				// Check if branch is not protected
-				if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
-					if protected, err := git_model.IsBranchProtected(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
-						log.Error("IsProtectedBranch: %v", err)
-					} else if !protected {
-						canDelete = true
-						ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
+				if err := repo_service.CanDeleteBranchWithPermission(ctx, pull.HeadRepo, pull.HeadBranch, ctx.Doer, perm); err != nil {
+					if errors.Is(err, util.ErrPermissionDenied) {
+						log.Trace("CanDeleteBranch: %v", err)
+					} else {
+						log.Error("CanDeleteBranch: %v", err)
 					}
+				} else {
+					canDelete = true
+					ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
 				}
 				canWriteToHeadRepo = true
 			}

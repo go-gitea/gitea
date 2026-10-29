@@ -21,17 +21,48 @@ import (
 	mirror_service "gitea.dev/services/mirror"
 	repo_service "gitea.dev/services/repository"
 	wiki_service "gitea.dev/services/wiki"
-	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMirrorPush(t *testing.T) {
-	onGiteaRun(t, testMirrorPush)
-}
+	onGiteaRun(t, func(t *testing.T, serverURL *url.URL) {
+		t.Run("SettingsUpdate", func(t *testing.T) {
+			session := loginUser(t, "user2")
+			repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+			testCreatePushMirror(t, session, "user2", "repo2", "https://127.0.0.1/user1/repo1.git", "", "", "24h")
 
-func TestMirrorPushWikiDefaultBranchMismatch(t *testing.T) {
-	onGiteaRun(t, testMirrorPushWikiDefaultBranchMismatch)
+			pushMirrors, cnt, err := repo_model.GetPushMirrorsByRepoID(t.Context(), repo2.ID, db.ListOptions{})
+			assert.NoError(t, err)
+			assert.EqualValues(t, 1, cnt)
+			assert.Equal(t, 24*time.Hour, pushMirrors[0].Interval)
+			repo2PushMirrorID := pushMirrors[0].ID
+
+			// update repo2 push mirror
+			assert.True(t, doUpdatePushMirror(t, session, "user2", "repo2", repo2PushMirrorID, "10m0s"))
+			pushMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
+			assert.Equal(t, 10*time.Minute, pushMirror.Interval)
+
+			// avoid updating repo2 push mirror from repo1
+			assert.False(t, doUpdatePushMirror(t, session, "user2", "repo1", repo2PushMirrorID, "20m0s"))
+			pushMirror = unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
+			assert.Equal(t, 10*time.Minute, pushMirror.Interval) // not changed
+
+			// avoid deleting repo2 push mirror from repo1
+			assert.False(t, doRemovePushMirror(t, session, "user2", "repo1", repo2PushMirrorID))
+			unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
+
+			// delete repo2 push mirror
+			assert.True(t, doRemovePushMirror(t, session, "user2", "repo2", repo2PushMirrorID))
+			unittest.AssertNotExistsBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
+		})
+		t.Run("Push", func(t *testing.T) {
+			testMirrorPush(t, serverURL)
+		})
+		t.Run("WikiDefaultBranchMismatch", func(t *testing.T) {
+			testMirrorPushWikiDefaultBranchMismatch(t, serverURL)
+		})
+	})
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {
@@ -149,36 +180,4 @@ func doUpdatePushMirror(t *testing.T, session *TestSession, owner, repo string, 
 	})
 	resp := session.MakeRequest(t, req, NoExpectedStatus)
 	return resp.Code == http.StatusSeeOther
-}
-
-func TestRepoSettingPushMirrorUpdate(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	testCreatePushMirror(t, session, "user2", "repo2", "https://127.0.0.1/user1/repo1.git", "", "", "24h")
-
-	pushMirrors, cnt, err := repo_model.GetPushMirrorsByRepoID(t.Context(), repo2.ID, db.ListOptions{})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, cnt)
-	assert.Equal(t, 24*time.Hour, pushMirrors[0].Interval)
-	repo2PushMirrorID := pushMirrors[0].ID
-
-	// update repo2 push mirror
-	assert.True(t, doUpdatePushMirror(t, session, "user2", "repo2", repo2PushMirrorID, "10m0s"))
-	pushMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
-	assert.Equal(t, 10*time.Minute, pushMirror.Interval)
-
-	// avoid updating repo2 push mirror from repo1
-	assert.False(t, doUpdatePushMirror(t, session, "user2", "repo1", repo2PushMirrorID, "20m0s"))
-	pushMirror = unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
-	assert.Equal(t, 10*time.Minute, pushMirror.Interval) // not changed
-
-	// avoid deleting repo2 push mirror from repo1
-	assert.False(t, doRemovePushMirror(t, session, "user2", "repo1", repo2PushMirrorID))
-	unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
-
-	// delete repo2 push mirror
-	assert.True(t, doRemovePushMirror(t, session, "user2", "repo2", repo2PushMirrorID))
-	unittest.AssertNotExistsBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
 }

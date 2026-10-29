@@ -65,7 +65,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPrio
 	}
 }
 
-func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.BranchProtection, expectedHTTPStatus int) {
+func testAPIEditBranchProtection(t *testing.T, branchName string, body any, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/branch_protections/"+branchName, body).
 		AddTokenAuth(token)
@@ -89,21 +89,6 @@ func testAPIDeleteBranch(t *testing.T, branchName string, expectedHTTPStatus int
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/branches/%s", branchName).
 		AddTokenAuth(token)
 	MakeRequest(t, req, expectedHTTPStatus)
-}
-
-func TestAPIGetBranch(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	for _, test := range []struct {
-		BranchName string
-		Exists     bool
-	}{
-		{"master", true},
-		{"master/doesnotexist", false},
-		{"feature/1", true},
-		{"feature/1/doesnotexist", false},
-	} {
-		testAPIGetBranch(t, test.BranchName, test.Exists)
-	}
 }
 
 func TestAPICreateBranch(t *testing.T) {
@@ -275,8 +260,6 @@ func TestAPIRenameBranch(t *testing.T) {
 }
 
 func TestAPIUpdateBranchReference(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		ctx := NewAPITestContext(t, "user2", "update-branch", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 		giteaURL.Path = ctx.GitPath()
@@ -312,34 +295,23 @@ func TestAPIUpdateBranchReference(t *testing.T) {
 			assert.NotEmpty(t, newCommit)
 		})(t)
 
-		updateReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
-			NewCommitID: newCommit,
-			OldCommitID: featureInitialCommit,
-		}).AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, updateReq, http.StatusNoContent)
+		updateBranch := func(newCommitID, oldCommitID string, force bool, expectedStatus int) {
+			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+				NewCommitID: newCommitID,
+				OldCommitID: oldCommitID,
+				Force:       force,
+			}).AddTokenAuth(ctx.Token)
+			ctx.Session.MakeRequest(t, req, expectedStatus)
+		}
+		updateBranch(newCommit, featureInitialCommit, false, http.StatusNoContent)
 
 		t.Run("FastForwardApplied", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
 			assert.Equal(t, newCommit, branch.Commit.ID)
 		}))
 
-		staleReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
-			NewCommitID: newCommit,
-			OldCommitID: featureInitialCommit,
-		}).AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, staleReq, http.StatusUnprocessableEntity)
-
-		nonFFReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
-			NewCommitID: featureInitialCommit,
-			OldCommitID: newCommit,
-		}).AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, nonFFReq, http.StatusUnprocessableEntity)
-
-		forceReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
-			NewCommitID: featureInitialCommit,
-			OldCommitID: newCommit,
-			Force:       true,
-		}).AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, forceReq, http.StatusNoContent)
+		updateBranch(newCommit, featureInitialCommit, false, http.StatusUnprocessableEntity)
+		updateBranch(featureInitialCommit, newCommit, false, http.StatusUnprocessableEntity)
+		updateBranch(featureInitialCommit, newCommit, true, http.StatusNoContent)
 
 		t.Run("ForceApplied", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
 			assert.Equal(t, featureInitialCommit, branch.Commit.ID)
@@ -357,6 +329,19 @@ func testAPIRenameBranch(t *testing.T, doerName, ownerName, repoName, from, to s
 
 func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("GetBranch", func(t *testing.T) {
+		for _, test := range []struct {
+			BranchName string
+			Exists     bool
+		}{
+			{"master", true},
+			{"master/doesnotexist", false},
+			{"feature/1", true},
+			{"feature/1/doesnotexist", false},
+		} {
+			testAPIGetBranch(t, test.BranchName, test.Exists)
+		}
+	})
 	t.Run("Basic", testAPIBranchProtectionBasic)
 	t.Run("BypassAllowlistValidation", testAPIBranchProtectionBypassAllowlistValidation)
 }
@@ -406,6 +391,15 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 
 	// Test branch deletion
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
+	testAPICreateBranchProtection(t, "branch2", 3, http.StatusCreated)
+	testAPIDeleteBranch(t, "branch2", http.StatusForbidden)
+	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
+		EnablePush: new(true), EnableDeletion: new(true), EnableDeletionAllowlist: new(true),
+		DeletionAllowlistUsernames: []string{"user2"},
+	}, http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
+	assert.True(t, bp.EnableDeletion)
+	assert.Equal(t, []string{"user2"}, bp.DeletionAllowlistUsernames)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
 	testAPIDeleteBranch(t, "branch2", http.StatusNotFound)        // deleted branch, there is a record in DB with IsDelete=true
 	testAPIDeleteBranch(t, "no-such-branch", http.StatusNotFound) // non-existing branch, not exist in git or DB

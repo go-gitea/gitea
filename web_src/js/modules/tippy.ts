@@ -81,8 +81,8 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (!inMenu && focused !== menuInstance.reference && focused !== document.body) return; // body: macOS Safari and Firefox do not focus clicked buttons
   if (e.key === 'Escape') {
     menuInstance.hide();
-  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    focusMenuItem(menuInstance, e.key === 'ArrowDown' ? 1 : -1);
+  } else if (['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft'].includes(e.key)) {
+    focusMenuItem(menuInstance, e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1);
   } else if ((e.key === 'Enter' || e.key === ' ') && inMenu) {
     focused.click();
   } else {
@@ -166,8 +166,7 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
 
   let allowHTML = target.getAttribute('data-tooltip-render') === 'html';
   if (!allowHTML && typeof content === 'string') {
-    content = htmlEscape(content);
-    content = content.replace(/\n/g, '<br>');
+    content = htmlEscape(content).split('\n').join(html`<br>`);
     allowHTML = true;
   }
 

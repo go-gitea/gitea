@@ -22,43 +22,37 @@ const (
 )
 
 func TestParsePackage(t *testing.T) {
-	t.Run("MissingMetadataFile", func(t *testing.T) {
-		var buf bytes.Buffer
-		zw := gzip.NewWriter(&buf)
-		tw := tar.NewWriter(zw)
-		tw.Close()
-		zw.Close()
+	for _, name := range []string{"MissingMetadataFile", "Valid"} {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			zw := gzip.NewWriter(&buf)
+			tw := tar.NewWriter(zw)
+			if name == "Valid" {
+				content := `{"name":"` + packageName + `","version":"` + packageVersion + `"}`
+				hdr := &tar.Header{
+					Name: packageName + "/metadata.json",
+					Mode: 0o600,
+					Size: int64(len(content)),
+				}
+				tw.WriteHeader(hdr)
+				tw.Write([]byte(content))
+			}
+			tw.Close()
+			zw.Close()
 
-		p, err := ParsePackage(&buf)
-		assert.Nil(t, p)
-		assert.ErrorIs(t, err, ErrMissingMetadataFile)
-	})
-
-	t.Run("Valid", func(t *testing.T) {
-		var buf bytes.Buffer
-		zw := gzip.NewWriter(&buf)
-		tw := tar.NewWriter(zw)
-
-		content := `{"name":"` + packageName + `","version":"` + packageVersion + `"}`
-
-		hdr := &tar.Header{
-			Name: packageName + "/metadata.json",
-			Mode: 0o600,
-			Size: int64(len(content)),
-		}
-		tw.WriteHeader(hdr)
-		tw.Write([]byte(content))
-
-		tw.Close()
-		zw.Close()
-
-		p, err := ParsePackage(&buf)
-		assert.NoError(t, err)
-		assert.NotNil(t, p)
-		assert.Equal(t, packageName, p.Name)
-		assert.Equal(t, packageVersion, p.Version)
-		assert.NotNil(t, p.Metadata)
-	})
+			p, err := ParsePackage(&buf)
+			if name == "MissingMetadataFile" {
+				assert.Nil(t, p)
+				assert.ErrorIs(t, err, ErrMissingMetadataFile)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, p)
+				assert.Equal(t, packageName, p.Name)
+				assert.Equal(t, packageVersion, p.Version)
+				assert.NotNil(t, p.Metadata)
+			}
+		})
+	}
 }
 
 func TestParseChefMetadata(t *testing.T) {

@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
@@ -44,17 +43,9 @@ type APIContext struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo       *Repository
-	Org        *APIOrganization
-	Package    *Package
-	PublicOnly bool // Whether the request is for a public endpoint
-}
-
-// TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
-// A public-only token cannot reach a private repo or a repo owned by a non-public (limited or
-// private) owner; any other token is unrestricted by this check.
-func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
-	return !ctx.PublicOnly || !publicOnlyTokenDeniedRepo(ctx, repo)
+	Repo    *Repository
+	Org     *APIOrganization
+	Package *Package
 }
 
 func init() {
@@ -75,53 +66,13 @@ type APIError struct {
 	URL     string `json:"url"`
 }
 
-// APIValidationError is error format response related to input validation
-// swagger:response validationError
-type APIValidationError struct {
-	Message string `json:"message"`
-	URL     string `json:"url"`
-}
-
-// APIInvalidTopicsError is error format response to invalid topics
-// swagger:response invalidTopicsError
-type APIInvalidTopicsError struct {
-	Message       string   `json:"message"`
-	InvalidTopics []string `json:"invalidTopics"`
-}
-
 // APIEmpty is an empty response
 // swagger:response empty
 type APIEmpty struct{}
 
-// APIForbiddenError is a forbidden error response
-// swagger:response forbidden
-type APIForbiddenError struct {
-	APIError
-}
-
-// APIUnauthorizedError is an unauthorized error response
-// swagger:response unauthorized
-type APIUnauthorizedError struct {
-	APIError
-}
-
-// APINotFound is a not found empty response
-// swagger:response notFound
-type APINotFound struct{}
-
-// APIConflict is a conflict empty response
-// swagger:response conflict
-type APIConflict struct{}
-
 // APIString is a string response
 // swagger:response string
 type APIString string
-
-// APIRepoArchivedError is an error that is raised when an archived repo should be modified
-// swagger:response repoArchivedError
-type APIRepoArchivedError struct {
-	APIError
-}
 
 // APIErrorInternal responds with error message, status is 500
 func (ctx *APIContext) APIErrorInternal(err error) {

@@ -90,18 +90,20 @@ func TestPullView_CodeOwner(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
+		readmeBranchOptions := func(branch, content string) *files_service.ChangeRepoFilesOptions {
+			return &files_service.ChangeRepoFilesOptions{
+				NewBranch: branch,
+				Files: []*files_service.ChangeRepoFile{{
+					Operation:     "update",
+					TreePath:      "README.md",
+					ContentReader: strings.NewReader(content),
+				}},
+			}
+		}
+
 		t.Run("First Pull Request", func(t *testing.T) {
 			// create a new branch to prepare for pull request
-			_, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
-				NewBranch: "codeowner-basebranch",
-				Files: []*files_service.ChangeRepoFile{
-					{
-						Operation:     "update",
-						TreePath:      "README.md",
-						ContentReader: strings.NewReader("# This is a new project\n"),
-					},
-				},
-			})
+			_, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, readmeBranchOptions("codeowner-basebranch", "# This is a new project\n"))
 			assert.NoError(t, err)
 
 			// Create a pull request.
@@ -131,17 +133,14 @@ func TestPullView_CodeOwner(t *testing.T) {
 			}, 10*time.Second, 20*time.Millisecond, "code owner user8 was never requested for review")
 			unittest.AssertCount(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest}, 2) // only user5 and user8
 
-			err = issue_service.ChangeTitle(t.Context(), pr.Issue, user2, "[WIP] Test Pull Request")
-			assert.NoError(t, err)
-			prUpdated1 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
-			assert.NoError(t, prUpdated1.LoadIssue(t.Context()))
-			assert.Equal(t, "[WIP] Test Pull Request", prUpdated1.Issue.Title)
-
-			err = issue_service.ChangeTitle(t.Context(), prUpdated1.Issue, user2, "Test Pull Request2")
-			assert.NoError(t, err)
-			prUpdated2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
-			assert.NoError(t, prUpdated2.LoadIssue(t.Context()))
-			assert.Equal(t, "Test Pull Request2", prUpdated2.Issue.Title)
+			prUpdated := pr
+			for _, title := range []string{"[WIP] Test Pull Request", "Test Pull Request2"} {
+				err = issue_service.ChangeTitle(t.Context(), prUpdated.Issue, user2, title)
+				assert.NoError(t, err)
+				prUpdated = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+				assert.NoError(t, prUpdated.LoadIssue(t.Context()))
+				assert.Equal(t, title, prUpdated.Issue.Title)
+			}
 
 			// ensure it cannot be merged
 			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
@@ -175,16 +174,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 		})
 
 		t.Run("Dismissed Code Owner Review", func(t *testing.T) {
-			_, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
-				NewBranch: "codeowner-dismiss-branch",
-				Files: []*files_service.ChangeRepoFile{
-					{
-						Operation:     "update",
-						TreePath:      "README.md",
-						ContentReader: strings.NewReader("# New README content\n"),
-					},
-				},
-			})
+			_, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, readmeBranchOptions("codeowner-dismiss-branch", "# New README content\n"))
 			assert.NoError(t, err)
 
 			session := loginUser(t, "user2")
@@ -230,16 +220,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		t.Run("Second Pull Request", func(t *testing.T) {
 			// create a new branch to prepare for pull request
-			resp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
-				NewBranch: "codeowner-basebranch2",
-				Files: []*files_service.ChangeRepoFile{
-					{
-						Operation:     "update",
-						TreePath:      "README.md",
-						ContentReader: strings.NewReader("# This is a new project2\n"),
-					},
-				},
-			})
+			resp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, readmeBranchOptions("codeowner-basebranch2", "# This is a new project2\n"))
 			assert.NoError(t, err)
 
 			// Create a pull request.
@@ -277,16 +258,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.NoError(t, err)
 
 			// create a new branch to prepare for pull request
-			resp, err := files_service.ChangeRepoFiles(t.Context(), forkedRepo, user5, &files_service.ChangeRepoFilesOptions{
-				NewBranch: "codeowner-basebranch-forked",
-				Files: []*files_service.ChangeRepoFile{
-					{
-						Operation:     "update",
-						TreePath:      "README.md",
-						ContentReader: strings.NewReader("# This is a new forked project\n"),
-					},
-				},
-			})
+			resp, err := files_service.ChangeRepoFiles(t.Context(), forkedRepo, user5, readmeBranchOptions("codeowner-basebranch-forked", "# This is a new forked project\n"))
 			assert.NoError(t, err)
 
 			session := loginUser(t, "user5")

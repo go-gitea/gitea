@@ -5,13 +5,11 @@
 package repo
 
 import (
-	stdCtx "context"
 	"errors"
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
-	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
@@ -60,25 +58,18 @@ func ListIssueComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorInternal(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIErrorNotFound()
-		return
-	}
-
-	issue.Repo = ctx.Repo.Repository
 
 	opts := &issues_model.FindCommentsOptions{
 		IssueID: issue.ID,
@@ -164,20 +155,18 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TimelineList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorInternal(err)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
-	issue.Repo = ctx.Repo.Repository
 
 	opts := &issues_model.FindCommentsOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -197,10 +186,14 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	if comments, err = issue_service.FilterReadableComments(ctx, ctx.Doer, ctx.Repo.Permission, issue, comments); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 
 	var apiComments []*api.TimelineComment
 	for _, comment := range comments {
-		if comment.Type != issues_model.CommentTypeCode && isXRefCommentAccessible(ctx, ctx.Doer, comment, issue.RepoID) {
+		if comment.Type != issues_model.CommentTypeCode {
 			comment.Issue = issue
 			apiComments = append(apiComments, convert.ToTimelineComment(ctx, issue.Repo, comment, ctx.Doer))
 		}
@@ -208,26 +201,6 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 
 	ctx.SetTotalCountHeader(int64(len(apiComments)))
 	ctx.JSON(http.StatusOK, &apiComments)
-}
-
-func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *issues_model.Comment, issueRepoID int64) bool {
-	// Remove comments that the user has no permissions to see
-	if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
-		var err error
-		// Set RefRepo for description in template
-		c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
-		if err != nil {
-			return false
-		}
-		perm, err := access_model.GetDoerRepoPermission(ctx, c.RefRepo, user)
-		if err != nil {
-			return false
-		}
-		if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
-			return false
-		}
-	}
-	return true
 }
 
 // ListRepoIssueComments returns all issue-comments for a repo
@@ -269,8 +242,8 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
@@ -372,22 +345,12 @@ func CreateIssueComment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Comment"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.CreateIssueCommentOption](ctx)
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIErrorNotFound()
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -440,10 +403,8 @@ func GetIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Comment"
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -504,12 +465,8 @@ func EditIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Comment"
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.EditIssueCommentOption](ctx)
 	editIssueComment(ctx, *form)
@@ -556,10 +513,8 @@ func EditIssueCommentDeprecated(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Comment"
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.EditIssueCommentOption](ctx)
 	editIssueComment(ctx, *form)
@@ -571,8 +526,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -623,10 +577,8 @@ func DeleteIssueComment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	deleteIssueComment(ctx)
 }
@@ -662,10 +614,8 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	deleteIssueComment(ctx)
 }
@@ -676,11 +626,11 @@ func deleteIssueComment(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if !comment.Type.HasContentSupport() {
+	}
+	if !comment.Type.HasContentSupport() {
 		ctx.Status(http.StatusBadRequest)
 		return
 	}
