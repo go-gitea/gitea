@@ -35,12 +35,17 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
+	if issue_service.IsLockedForDoer(issue, ctx.Repo.Permission) {
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
+		return
+	}
+
+	form := web.GetForm[*forms.CreateCommentForm](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
-	form := web.GetForm[*forms.CreateCommentForm](ctx)
 	issueType := util.Iif(issue.IsPull, "pulls", "issues")
 
 	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {

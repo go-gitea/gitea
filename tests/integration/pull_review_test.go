@@ -33,8 +33,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPullView_ReviewerMissed(t *testing.T) {
+func TestPullReview(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("ReviewerMissed", testPullReviewReviewerMissed)
+	t.Run("LockedPR", testPullReviewLockedPR)
+}
+
+func testPullReviewReviewerMissed(t *testing.T) {
 	session := loginUser(t, "user1")
 
 	req := NewRequest(t, "GET", "/pulls")
@@ -51,6 +56,26 @@ func TestPullView_ReviewerMissed(t *testing.T) {
 	req = NewRequest(t, "GET", "/user2/repo1/pulls/2")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+}
+
+func testPullReviewLockedPR(t *testing.T) {
+	const reviewsURL = "/api/v1/repos/user2/repo1/pulls/3/reviews"
+	token := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository)
+	resp := MakeRequest(t, NewRequestWithJSON(t, "POST", reviewsURL, &api.CreatePullReviewOptions{Event: api.ReviewStatePending, Body: "test"}).AddTokenAuth(token), http.StatusOK)
+	pendingReview := DecodeJSON(t, resp, &api.PullReview{})
+	require.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: 3, IsLocked: true}, "is_locked"))
+	commentCount := unittest.GetCount(t, &issues_model.Comment{IssueID: 3})
+	reviewOptions := &api.CreatePullReviewOptions{Event: api.ReviewStateComment, Body: "test"}
+
+	session := loginUser(t, "user4")
+	testSubmitReview(t, session, "user2", "repo1", "3", "", "comment", http.StatusBadRequest)
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/pulls/3/files/reviews/comments", map[string]string{"content": "test"}), http.StatusBadRequest)
+	MakeRequest(t, NewRequestWithJSON(t, "POST", reviewsURL, reviewOptions).AddTokenAuth(token), http.StatusForbidden)
+	MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/%d", reviewsURL, pendingReview.ID), &api.SubmitPullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
+	MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls/3/comments/7/replies", &api.CreatePullReviewCommentReplyOptions{Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
+	unittest.AssertCount(t, &issues_model.Comment{IssueID: 3}, commentCount)
+
+	MakeRequest(t, NewRequestWithJSON(t, "POST", reviewsURL, reviewOptions).AddTokenAuth(getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)), http.StatusOK)
 }
 
 func TestPullView_CodeOwner(t *testing.T) {
@@ -355,27 +380,6 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 			testSubmitReview(t, user2Session, "user2", "repo1", elem[4], "", "reject", http.StatusUnprocessableEntity)
 		})
 	})
-}
-
-func TestPullReviewOnLockedPR(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	const reviewsURL = "/api/v1/repos/user2/repo1/pulls/3/reviews"
-	token := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository)
-	resp := MakeRequest(t, NewRequestWithJSON(t, "POST", reviewsURL, &api.CreatePullReviewOptions{Event: api.ReviewStatePending, Body: "test"}).AddTokenAuth(token), http.StatusOK)
-	pendingReview := DecodeJSON(t, resp, &api.PullReview{})
-	require.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: 3, IsLocked: true}, "is_locked"))
-	commentCount := unittest.GetCount(t, &issues_model.Comment{IssueID: 3})
-	reviewOptions := &api.CreatePullReviewOptions{Event: api.ReviewStateComment, Body: "test"}
-
-	session := loginUser(t, "user4")
-	testSubmitReview(t, session, "user2", "repo1", "3", "", "comment", http.StatusBadRequest)
-	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/pulls/3/files/reviews/comments", map[string]string{"content": "test"}), http.StatusBadRequest)
-	MakeRequest(t, NewRequestWithJSON(t, "POST", reviewsURL, reviewOptions).AddTokenAuth(token), http.StatusForbidden)
-	MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/%d", reviewsURL, pendingReview.ID), &api.SubmitPullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
-	MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls/3/comments/7/replies", &api.CreatePullReviewCommentReplyOptions{Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
-	unittest.AssertCount(t, &issues_model.Comment{IssueID: 3}, commentCount)
-
-	MakeRequest(t, NewRequestWithJSON(t, "POST", reviewsURL, reviewOptions).AddTokenAuth(getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)), http.StatusOK)
 }
 
 func testSubmitReview(t *testing.T, session *TestSession, owner, repo, pullNumber, commitID, reviewType string, expectedSubmitStatus int) *httptest.ResponseRecorder {
