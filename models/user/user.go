@@ -441,6 +441,18 @@ func (u *User) IsIndividual() bool {
 	return u.ID > 0 && u.Type == UserTypeIndividual
 }
 
+// IsFollowable returns whether other users can follow this user (individuals, bots and organizations)
+func (u *User) IsFollowable() bool {
+	if u.ID <= 0 {
+		return false
+	}
+	switch u.Type {
+	case UserTypeIndividual, UserTypeBot, UserTypeOrganization:
+		return true
+	}
+	return false
+}
+
 // IsTypeBot returns whether the user is of type bot
 func (u *User) IsTypeBot() bool {
 	return u.Type == UserTypeBot
@@ -1053,7 +1065,7 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// Glossaries for XxxUser:
+// HINT: USER-TYPE-GLOSSARY: Glossaries for XxxUser:
 // * Possible: The user may or may not exist in the database, but we can still return a valid user object (e.g. Ghost user) for the given ID.
 // * Individual: The user is a real person, not an organization or a bot.
 // * Doer: The user is the one performing an action (individual, bot or system)
