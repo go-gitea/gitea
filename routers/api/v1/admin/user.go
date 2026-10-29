@@ -459,7 +459,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	searchOpts := user_model.SearchUserOptions{
 		Actor:         ctx.Doer,
-		Types:         []user_model.UserType{user_model.UserTypeIndividual},
+		Types:         []user_model.UserType{user_model.UserTypeIndividual, user_model.UserTypeBot},
 		LoginName:     ctx.FormTrim("login_name"),
 		SourceID:      ctx.FormOptionalInt64("source_id"),
 		Keyword:       ctx.FormTrim("q"),
