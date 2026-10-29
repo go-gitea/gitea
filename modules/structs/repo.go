@@ -122,10 +122,13 @@ type Repository struct {
 	DefaultUpdateStyle            string           `json:"default_update_style"`
 	SquashMergeCommitMessage      string           `json:"squash_merge_commit_message"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
-	RestrictPullsToCollaborators  bool             `json:"restrict_pulls_to_collaborators"`
-	AvatarURL                     string           `json:"avatar_url"`
-	Internal                      bool             `json:"internal"`
-	MirrorInterval                string           `json:"mirror_interval"`
+	// who is allowed to create pull requests: "anyone", "collaborator_read" or "collaborator_write"
+	PullRequestsCreationRestriction string `json:"pull_requests_creation_restriction"`
+	// who is allowed to create issues: "anyone", "collaborator_read" or "collaborator_write"
+	IssuesCreationRestriction string `json:"issues_creation_restriction"`
+	AvatarURL                 string `json:"avatar_url"`
+	Internal                  bool   `json:"internal"`
+	MirrorInterval            string `json:"mirror_interval"`
 	// ObjectFormatName of the underlying git repository
 	ObjectFormatName ObjectFormatName `json:"object_format_name"`
 	// swagger:strfmt date-time
@@ -242,8 +245,10 @@ type EditRepoOption struct {
 	SquashMergeCommitMessage *string `json:"squash_merge_commit_message,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
-	// either `true` to restrict pull request creation to collaborators only, or `false` to allow anyone with read access.
-	RestrictPullsToCollaborators *bool `json:"restrict_pulls_to_collaborators,omitempty"`
+	// who is allowed to create pull requests: "anyone", "collaborator_read" (must be a collaborator with read access) or "collaborator_write" (must be a collaborator with write access).
+	PullRequestsCreationRestriction *string `json:"pull_requests_creation_restriction,omitempty" binding:"In(anyone,collaborator_read,collaborator_write)"`
+	// who is allowed to create issues: "anyone", "collaborator_read" (must be a collaborator with read access) or "collaborator_write" (must be a collaborator with write access).
+	IssuesCreationRestriction *string `json:"issues_creation_restriction,omitempty" binding:"In(anyone,collaborator_read,collaborator_write)"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time

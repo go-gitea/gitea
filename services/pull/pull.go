@@ -76,8 +76,18 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		canAssignProject = canCreate
 
 		if !canCreate {
-			if repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().RestrictToCollaborators {
-				return issues_model.ErrMustCollaborator
+			restriction := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().GetCreationRestriction()
+			if restriction != repo_model.CreationRestrictionAnyone {
+				result, err := access_model.CheckCreationRestriction(ctx, repo, issue.Poster, unit.TypePullRequests, restriction)
+				if err != nil {
+					return err
+				}
+				switch result {
+				case access_model.CreationDeniedNotCollaborator:
+					return issues_model.ErrMustCollaborator
+				case access_model.CreationDeniedNeedsWriteAccess:
+					return issues_model.ErrMustHaveWriteAccess
+				}
 			}
 
 			// or user should have write permission in the head repo

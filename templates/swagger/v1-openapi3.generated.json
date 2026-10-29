@@ -6131,6 +6131,11 @@
           "internal_tracker": {
             "$ref": "#/components/schemas/InternalTracker"
           },
+          "issues_creation_restriction": {
+            "description": "who is allowed to create issues: \"anyone\", \"collaborator_read\" (must be a collaborator with read access) or \"collaborator_write\" (must be a collaborator with write access).",
+            "type": "string",
+            "x-go-name": "IssuesCreationRestriction"
+          },
           "mirror_interval": {
             "description": "set to a string like `8h30m0s` to set the mirror interval time",
             "type": "string",
@@ -6167,10 +6172,10 @@
             "type": "string",
             "x-go-name": "ProjectsMode"
           },
-          "restrict_pulls_to_collaborators": {
-            "description": "either `true` to restrict pull request creation to collaborators only, or `false` to allow anyone with read access.",
-            "type": "boolean",
-            "x-go-name": "RestrictPullsToCollaborators"
+          "pull_requests_creation_restriction": {
+            "description": "who is allowed to create pull requests: \"anyone\", \"collaborator_read\" (must be a collaborator with read access) or \"collaborator_write\" (must be a collaborator with write access).",
+            "type": "string",
+            "x-go-name": "PullRequestsCreationRestriction"
           },
           "squash_merge_commit_message": {
             "description": "set the default squash merge commit message body: \"PR_BODY\", \"COMMIT_MESSAGES\", or \"BLANK\".",
@@ -9791,6 +9796,11 @@
           "internal_tracker": {
             "$ref": "#/components/schemas/InternalTracker"
           },
+          "issues_creation_restriction": {
+            "description": "who is allowed to create issues: \"anyone\", \"collaborator_read\" or \"collaborator_write\"",
+            "type": "string",
+            "x-go-name": "IssuesCreationRestriction"
+          },
           "language": {
             "type": "string",
             "x-go-name": "Language"
@@ -9873,6 +9883,11 @@
             "type": "string",
             "x-go-name": "ProjectsMode"
           },
+          "pull_requests_creation_restriction": {
+            "description": "who is allowed to create pull requests: \"anyone\", \"collaborator_read\" or \"collaborator_write\"",
+            "type": "string",
+            "x-go-name": "PullRequestsCreationRestriction"
+          },
           "release_counter": {
             "format": "int64",
             "type": "integer",
@@ -9880,10 +9895,6 @@
           },
           "repo_transfer": {
             "$ref": "#/components/schemas/RepoTransfer"
-          },
-          "restrict_pulls_to_collaborators": {
-            "type": "boolean",
-            "x-go-name": "RestrictPullsToCollaborators"
           },
           "size": {
             "format": "int64",

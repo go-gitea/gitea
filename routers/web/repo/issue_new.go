@@ -368,6 +368,10 @@ func NewIssuePost(ctx *context.Context) {
 			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.new.blocked_user"))
+		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
+			ctx.JSONError(ctx.Tr("repo.issues.new.must_collaborator"))
+		} else if errors.Is(err, issues_model.ErrMustHaveWriteAccess) {
+			ctx.JSONError(ctx.Tr("repo.issues.new.must_write_access"))
 		} else {
 			ctx.ServerError("NewIssue", err)
 		}

@@ -803,6 +803,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				config = unit.IssuesConfig()
 			}
 
+			if opts.IssuesCreationRestriction != nil {
+				config.CreationRestriction = repo_model.CreationRestriction(*opts.IssuesCreationRestriction)
+			}
+
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeIssues,
@@ -893,7 +897,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			optional.AssignPtrValue(changed, &config.AllowRebaseUpdate, opts.AllowRebaseUpdate)
 			optional.AssignPtrValue(changed, &config.DefaultDeleteBranchAfterMerge, opts.DefaultDeleteBranchAfterMerge)
 			optional.AssignPtrValue(changed, &config.DefaultAllowMaintainerEdit, opts.DefaultAllowMaintainerEdit)
-			optional.AssignPtrValue(changed, &config.RestrictToCollaborators, opts.RestrictPullsToCollaborators)
+			if opts.PullRequestsCreationRestriction != nil {
+				config.CreationRestriction = repo_model.CreationRestriction(*opts.PullRequestsCreationRestriction)
+				*changed = true
+			}
 			optional.AssignPtrString(changed, &config.DefaultMergeStyle, opts.DefaultMergeStyle)
 			optional.AssignPtrString(changed, &config.DefaultUpdateStyle, opts.DefaultUpdateStyle)
 			optional.AssignPtrString(changed, &config.DefaultSquashMergeMessage, opts.SquashMergeCommitMessage)

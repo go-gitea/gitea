@@ -564,7 +564,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err.Error())
-		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
+		} else if errors.Is(err, issues_model.ErrMustCollaborator) || errors.Is(err, issues_model.ErrMustHaveWriteAccess) {
 			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)

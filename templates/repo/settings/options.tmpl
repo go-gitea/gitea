@@ -363,6 +363,8 @@
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.issues"}}</label>
 					{{$isInternalTrackerEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeIssues}}
+					{{$issuesCreationRestriction := "anyone"}}
+					{{if $isInternalTrackerEnabled}}{{$issuesCreationRestriction = (.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeIssues).IssuesConfig.GetCreationRestriction.String}}{{end}}
 					<div class="field">
 						<div class="ui checkbox {{if $isIssuesGlobalDisabled}}disabled{{end}}"{{if $isIssuesGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system" name="enable_internal_tracker" type="checkbox" data-target="#internal_issue_box" {{if $isInternalTrackerEnabled}}checked{{end}}>
@@ -370,6 +372,26 @@
 						</div>
 					</div>
 					<div class="field tw-pl-4 {{if not $isInternalTrackerEnabled}}disabled{{end}}" id="internal_issue_box">
+						<div class="field">
+							<p>{{ctx.Locale.Tr "repo.settings.issues.creation_restriction_desc"}}</p>
+							<div class="ui dropdown selection">
+								<select name="issues_creation_restriction">
+									<option value="anyone" {{if eq $issuesCreationRestriction "anyone"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_anyone"}}</option>
+									<option value="collaborator_read" {{if eq $issuesCreationRestriction "collaborator_read"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_read"}}</option>
+									<option value="collaborator_write" {{if eq $issuesCreationRestriction "collaborator_write"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_write"}}</option>
+								</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="default text">
+									{{if eq $issuesCreationRestriction "anyone"}}{{ctx.Locale.Tr "repo.settings.creation_restriction_anyone"}}{{end}}
+									{{if eq $issuesCreationRestriction "collaborator_read"}}{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_read"}}{{end}}
+									{{if eq $issuesCreationRestriction "collaborator_write"}}{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_write"}}{{end}}
+								</div>
+								<div class="menu">
+									<div class="item" data-value="anyone">{{ctx.Locale.Tr "repo.settings.creation_restriction_anyone"}}</div>
+									<div class="item" data-value="collaborator_read">{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_read"}}</div>
+									<div class="item" data-value="collaborator_write">{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_write"}}</div>
+								</div>
+							</div>
+						</div>
 						{{if .Repository.CanEnableTimetracker}}
 							<div class="field">
 								<div class="ui checkbox">
@@ -526,9 +548,29 @@
 					</div>
 					<div class="field{{if not $pullRequestEnabled}} disabled{{end}}" id="pull_box">
 						<div class="field">
-							<div class="ui checkbox">
-								<input name="pulls_restrict_to_collaborators" type="checkbox" {{if $prUnit.PullRequestsConfig.RestrictToCollaborators}}checked{{end}}>
-								<label>{{ctx.Locale.Tr "repo.settings.pulls.restrict_to_collaborators"}}</label>
+							<p>{{ctx.Locale.Tr "repo.settings.pulls.creation_restriction_desc"}}</p>
+							<div class="ui dropdown selection">
+								<select name="pulls_creation_restriction">
+									<option value="anyone" {{if eq $prUnit.PullRequestsConfig.GetCreationRestriction.String "anyone"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_anyone"}}</option>
+									<option value="collaborator_read" {{if eq $prUnit.PullRequestsConfig.GetCreationRestriction.String "collaborator_read"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_read"}}</option>
+									<option value="collaborator_write" {{if eq $prUnit.PullRequestsConfig.GetCreationRestriction.String "collaborator_write"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_write"}}</option>
+								</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="default text">
+									{{if (eq $prUnit.PullRequestsConfig.GetCreationRestriction.String "anyone")}}
+										{{ctx.Locale.Tr "repo.settings.creation_restriction_anyone"}}
+									{{end}}
+									{{if (eq $prUnit.PullRequestsConfig.GetCreationRestriction.String "collaborator_read")}}
+										{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_read"}}
+									{{end}}
+									{{if (eq $prUnit.PullRequestsConfig.GetCreationRestriction.String "collaborator_write")}}
+										{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_write"}}
+									{{end}}
+								</div>
+								<div class="menu">
+									<div class="item" data-value="anyone">{{ctx.Locale.Tr "repo.settings.creation_restriction_anyone"}}</div>
+									<div class="item" data-value="collaborator_read">{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_read"}}</div>
+									<div class="item" data-value="collaborator_write">{{ctx.Locale.Tr "repo.settings.creation_restriction_collaborator_write"}}</div>
+								</div>
 							</div>
 						</div>
 						<div class="field">

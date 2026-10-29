@@ -30,6 +30,9 @@ import (
 
 var ErrMustCollaborator = util.NewPermissionDeniedErrorf("user must be a collaborator")
 
+// ErrMustHaveWriteAccess is returned when a repository's creation restriction requires write access to the unit
+var ErrMustHaveWriteAccess = util.NewPermissionDeniedErrorf("user must have write access")
+
 const reviewedBy = "Reviewed-by: "
 
 // ErrPullRequestNotExist represents a "PullRequestNotExist" kind of error.
