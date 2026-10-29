@@ -4,30 +4,62 @@
 package common
 
 import (
+	"errors"
+	"strings"
+
+	"gitea.dev/models/db"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/indexer"
 	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/codesearch"
 	"gitea.dev/services/context"
 )
 
-func PrepareCodeSearch(ctx *context.Context) (ret struct {
-	Keyword    string
-	Language   string
-	SearchMode indexer.SearchModeType
-},
-) {
-	ret.Language = ctx.FormTrim("l")
-	ret.Keyword = ctx.FormTrim("q")
-	ret.SearchMode = indexer.SearchModeType(ctx.FormTrim("search_mode"))
-
-	ctx.Data["Keyword"] = ret.Keyword
-	ctx.Data["Language"] = ret.Language
-	ctx.Data["SelectedSearchMode"] = string(ret.SearchMode)
-	if setting.Indexer.RepoIndexerEnabled {
-		ctx.Data["SearchModes"] = code_indexer.SupportedSearchModes()
-	} else {
-		ctx.Data["SearchModes"] = indexer.GitGrepSupportedSearchModes()
+func SearchCode(ctx *context.Context, opts *codesearch.Options) {
+	keyword := ctx.FormString("q")
+	ctx.Data["Keyword"] = keyword
+	ctx.Data["IsRepoIndexerEnabled"] = opts.Engine == codesearch.Indexer
+	if keyword == "" {
+		return
 	}
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	return ret
+	opts.Doer = ctx.Doer
+	opts.Paginator = &db.ListOptions{Page: max(1, ctx.FormInt("page")), PageSize: setting.UI.RepoSearchPagingNum}
+	result, err := codesearch.Search(ctx, keyword, opts)
+	if err != nil {
+		if queryError, ok := errors.AsType[*indexer.SearchQueryError](err); ok {
+			ctx.Data["CodeSearchError"] = queryError.Message
+		} else if errors.Is(err, codesearch.ErrIndexerUnavailable) {
+			ctx.Data["CodeIndexerUnavailable"] = true
+		} else {
+			ctx.ServerError("SearchCode", err)
+		}
+		return
+	}
+	ctx.Data["Language"] = result.Query.Language
+	ctx.Data["KeywordWithoutLanguage"] = result.Query.WithoutLanguage()
+	results := make([]*codeSearchResult, len(result.Results))
+	for i, hit := range result.Results {
+		results[i] = &codeSearchResult{Result: hit}
+		for _, fragment := range code_indexer.BuildResultFragments(hit.Content, hit.ContentMatches) {
+			content := strings.TrimSuffix(fragment.Content, "\n")
+			lineNumbers := make([]int, 1+strings.Count(content, "\n"))
+			for i := range lineNumbers {
+				lineNumbers[i] = fragment.StartLine + i
+			}
+			results[i].Fragments = append(results[i].Fragments, code_indexer.HighlightSearchResultCode(hit.Filename, hit.Language, lineNumbers, content))
+		}
+	}
+	ctx.Data["SearchResults"] = results
+	ctx.Data["SearchResultLanguages"] = result.Languages
+	ctx.Data["RepoMaps"] = result.Repos
+	ctx.Data["CodeSearchIncomplete"] = result.Incomplete
+	pager := context.NewPagerBuilder(ctx).TotalCount(result.Total).PerPageLimit(opts.Paginator.PageSize).CurPage(opts.Paginator.Page).Build()
+	pager.RemoveParam(container.SetOf("search_mode", "l"))
+	ctx.Data["Page"] = pager
+}
+
+type codeSearchResult struct {
+	*code_indexer.Result
+	Fragments [][]*code_indexer.ResultLine
 }

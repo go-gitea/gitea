@@ -8371,7 +8371,7 @@
     },
     "/repos/{owner}/{repo}/code/search": {
       "get": {
-        "description": "The files of the ref are searched with git grep, which returns at most 50 files.",
+        "description": "The files of the ref are searched with git grep, which returns at most 50 files. The result window is limited to 1000 files (page * limit).",
         "produces": [
           "application/json"
         ],
@@ -8397,7 +8397,7 @@
           },
           {
             "type": "string",
-            "description": "keywords to search for, with an optional \"path:DIR\" qualifier to only search the files in a directory",
+            "description": "Terms must all occur in a file. Supports \"exact phrases\", /regexp/ and path:DIR. Language and repository qualifiers are not supported.",
             "name": "q",
             "in": "query",
             "required": true
@@ -8406,18 +8406,6 @@
             "type": "string",
             "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
             "name": "ref",
-            "in": "query"
-          },
-          {
-            "enum": [
-              "exact",
-              "words",
-              "regexp"
-            ],
-            "type": "string",
-            "default": "exact",
-            "description": "how to match the keywords",
-            "name": "search_mode",
             "in": "query"
           },
           {
@@ -8437,11 +8425,8 @@
           "200": {
             "$ref": "#/responses/CodeSearchResults"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "default": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -20191,7 +20176,7 @@
     },
     "/search/code": {
       "get": {
-        "description": "The default branches are searched with the code indexer.",
+        "description": "Authentication is required. The default branches are searched with the code indexer. Regular expressions are not supported. The result window is limited to 1000 files (page * limit).",
         "produces": [
           "application/json"
         ],
@@ -20203,7 +20188,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "keywords that must all occur in a file, with optional qualifiers:\n\"repo:OWNER/NAME\", \"user:NAME\" and \"org:NAME\" to only search these repositories (each can be repeated),\n\"path:DIR\" to only search the files in a directory, \"language:NAME\" to only search the files of a language\n",
+            "description": "Literal terms and \"exact phrases\" must all occur in a file, with optional qualifiers:\n\"repo:OWNER/NAME\", \"user:NAME\" and \"org:NAME\" to only search these repositories (each can be repeated),\n\"path:DIR\" to only search the files in a directory, \"language:NAME\" to only search the files of a language\n",
             "name": "q",
             "in": "query",
             "required": true
@@ -20225,13 +20210,7 @@
           "200": {
             "$ref": "#/responses/CodeSearchResults"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          },
-          "503": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
@@ -25758,34 +25737,24 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "CodeSearchResultItem": {
-      "description": "CodeSearchResultItem represents a file matching a code search",
       "type": "object",
+      "title": "CodeSearchResultItem is a matching file.",
       "properties": {
         "html_url": {
-          "description": "The web URL of the file at the searched commit",
+          "description": "File URL at the searched commit",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "language": {
-          "description": "The programming language of the file, if known",
+          "description": "Programming language (Gitea extension)",
           "type": "string",
           "x-go-name": "Language"
         },
-        "line_numbers": {
-          "description": "The line numbers of the lines in the content fragment",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "LineNumbers"
-        },
         "name": {
-          "description": "The name of the file",
           "type": "string",
           "x-go-name": "Name"
         },
         "path": {
-          "description": "The path of the file in the repository",
           "type": "string",
           "x-go-name": "Path"
         },
@@ -25793,7 +25762,6 @@
           "$ref": "#/definitions/Repository"
         },
         "text_matches": {
-          "description": "The fragments of the file content that matched",
           "type": "array",
           "items": {
             "$ref": "#/definitions/CodeSearchTextMatch"
@@ -25801,7 +25769,7 @@
           "x-go-name": "TextMatches"
         },
         "url": {
-          "description": "The API URL of the file contents at the searched commit",
+          "description": "Contents API URL at the searched commit",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -25809,16 +25777,15 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "CodeSearchResults": {
-      "description": "CodeSearchResults represents the results of a code search",
       "type": "object",
+      "title": "CodeSearchResults contains matching files.",
       "properties": {
         "incomplete_results": {
-          "description": "Whether the search stopped before finding all matching files",
+          "description": "Search stopped early",
           "type": "boolean",
           "x-go-name": "IncompleteResults"
         },
         "items": {
-          "description": "The matching files",
           "type": "array",
           "items": {
             "$ref": "#/definitions/CodeSearchResultItem"
@@ -25826,7 +25793,6 @@
           "x-go-name": "Items"
         },
         "total_count": {
-          "description": "The total number of matching files",
           "type": "integer",
           "format": "int64",
           "x-go-name": "TotalCount"
@@ -25835,16 +25801,14 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "CodeSearchTextMatch": {
-      "description": "CodeSearchTextMatch represents a fragment of a property that matched a code search",
       "type": "object",
+      "title": "CodeSearchTextMatch is a matching fragment.",
       "properties": {
         "fragment": {
-          "description": "The part of the property value that matched",
           "type": "string",
           "x-go-name": "Fragment"
         },
         "matches": {
-          "description": "The matched terms in the fragment",
           "type": "array",
           "items": {
             "$ref": "#/definitions/CodeSearchTextMatchTerm"
@@ -25852,17 +25816,14 @@
           "x-go-name": "Matches"
         },
         "object_type": {
-          "description": "The type of the resource containing the property",
           "type": "string",
           "x-go-name": "ObjectType"
         },
         "object_url": {
-          "description": "The API URL of the resource containing the property",
           "type": "string",
           "x-go-name": "ObjectURL"
         },
         "property": {
-          "description": "The name of the matched property",
           "type": "string",
           "x-go-name": "Property"
         }
@@ -25870,11 +25831,11 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "CodeSearchTextMatchTerm": {
-      "description": "CodeSearchTextMatchTerm represents a matched term in a text match fragment",
       "type": "object",
+      "title": "CodeSearchTextMatchTerm is a matched term.",
       "properties": {
         "indices": {
-          "description": "The start and end UTF-8 byte offsets of the text in the fragment",
+          "description": "Start and end UTF-8 byte offsets in the fragment, end-exclusive",
           "type": "array",
           "items": {
             "type": "integer",
@@ -25883,7 +25844,6 @@
           "x-go-name": "Indices"
         },
         "text": {
-          "description": "The matched text",
           "type": "string",
           "x-go-name": "Text"
         }

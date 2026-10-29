@@ -9,7 +9,6 @@ type FileUpdate struct {
 	Filename string
 	BlobSha  string
 	Size     int64
-	Sized    bool
 }
 
 // RepoChanges changes (file additions/updates/removals) to a repo
@@ -26,8 +25,6 @@ type IndexerData struct {
 // SearchResult result of performing a search in a repo
 type SearchResult struct {
 	RepoID      int64
-	StartIndex  int
-	EndIndex    int
 	Filename    string
 	Content     string
 	CommitID    string

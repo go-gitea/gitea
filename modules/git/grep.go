@@ -8,8 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,122 +15,47 @@ import (
 	"gitea.dev/modules/util"
 )
 
-type GrepResult struct {
-	Filename    string
-	LineNumbers []int
-	LineCodes   []string
-}
-
-type GrepModeType string
-
-const (
-	GrepModeExact  GrepModeType = "exact"
-	GrepModeWords  GrepModeType = "words"
-	GrepModeRegexp GrepModeType = "regexp"
-)
-
-type GrepOptions struct {
-	RefName           string
-	MaxResultLimit    int
-	ContextLineNumber int
-	GrepMode          GrepModeType
-	MaxLineLength     int // the maximum length of a line to parse, exceeding chars will be truncated
-	PathspecList      []string
-}
-
-// grepSearchTimeout is the timeout for git grep search, it should be long enough to get results
-// but not too long to cause performance issues
-const grepSearchTimeout = 30 * time.Second
-
-func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
-	/*
-	 The output is like this ( "^@" means \x00):
-
-	 HEAD:.air.toml
-	 6^@bin = "gitea"
-
-	 HEAD:.changelog.yml
-	 2^@repo: go-gitea/gitea
-	*/
-	var results []*GrepResult
-	cmd := gitcmd.NewCommand("grep", "--null", "--break", "--heading", "--line-number", "--full-name")
-	cmd.AddOptionValues("--context", strconv.Itoa(opts.ContextLineNumber))
-	switch opts.GrepMode {
-	case GrepModeExact:
-		cmd.AddArguments("--fixed-strings").AddOptionGrepExpr(search)
-	case GrepModeRegexp:
-		cmd.AddArguments("--perl-regexp").AddOptionGrepExpr(search)
-	default: /* words */
-		words := strings.Fields(search)
-		cmd.AddArguments("--fixed-strings", "--ignore-case")
-		for i, word := range words {
-			cmd.AddOptionGrepExpr(word)
-			if i < len(words)-1 {
-				cmd.AddOptionValues("--and")
-			}
-		}
+func GrepSearch(ctx context.Context, repo *Repository, patterns []string, refName string, visit func(string) (bool, error), paths ...string) (incomplete bool, err error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
 	}
-	cmd.AddDynamicArguments(util.IfZero(opts.RefName, "HEAD"))
-	cmd.AddDashesAndList(opts.PathspecList...)
-	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
-
+	if len(patterns) == 0 {
+		return false, nil
+	}
+	cmd := gitcmd.NewCommand("grep", "-l", "-z", "-I", "--perl-regexp", "--ignore-case", "--full-name")
+	for _, pattern := range patterns {
+		cmd.AddOptionGrepExpr(pattern)
+	}
+	cmd.AddDynamicArguments(util.IfZero(refName, "HEAD"))
+	cmd.AddDashesAndList(paths...)
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	err := cmd.WithRepo(repo).
-		WithTimeout(grepSearchTimeout).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			isInBlock := false
-			rd := bufio.NewReaderSize(stdoutReader, util.IfZero(opts.MaxLineLength, 16*1024))
-			var res *GrepResult
-			for {
-				lineBytes, isPrefix, err := rd.ReadLine()
-				if isPrefix {
-					lineBytes = slices.Clone(lineBytes)
-					for isPrefix && err == nil {
-						_, isPrefix, err = rd.ReadLine()
-					}
-				}
-				if len(lineBytes) == 0 && err != nil {
-					break
-				}
-				line := string(lineBytes) // the memory of lineBytes is mutable
-				if !isInBlock {
-					if _ /* ref */, filename, ok := strings.Cut(line, ":"); ok {
-						isInBlock = true
-						res = &GrepResult{Filename: filename}
-						results = append(results, res)
-					}
-					continue
-				}
-				if line == "" {
-					if len(results) >= opts.MaxResultLimit {
-						return ctx.CancelPipeline(nil)
-					}
-					isInBlock = false
-					continue
-				}
-				if line == "--" {
-					continue
-				}
-				if lineNum, lineCode, ok := strings.Cut(line, "\x00"); ok {
-					lineNumInt, _ := strconv.Atoi(lineNum)
-					res.LineNumbers = append(res.LineNumbers, lineNumInt)
-					res.LineCodes = append(res.LineCodes, lineCode)
+	runErr := cmd.WithRepo(repo).
+		WithTimeout(30 * time.Second).
+		WithPipelineFunc(func(pipelineCtx gitcmd.Context) error {
+			scanner := bufio.NewScanner(stdoutReader)
+			scanner.Split(util.BufioScannerSplit(0))
+			for scanner.Scan() {
+				_, filename, _ := strings.Cut(scanner.Text(), ":")
+				keepGoing, err := visit(filename)
+				if err != nil || !keepGoing {
+					incomplete = !keepGoing
+					return pipelineCtx.CancelPipeline(err)
 				}
 			}
-			return nil
-		}).
-		RunWithStderr(ctx)
-	// git grep exits by cancel (killed), usually it is caused by the limit of results
-	if gitcmd.IsErrorExitCode(err, -1) && err.Stderr() == "" {
-		return results, nil
+			return scanner.Err()
+		}).RunWithStderr(ctx)
+	if err := ctx.Err(); err != nil {
+		return incomplete, err
 	}
-	// git grep exits with 1 if no results are found
-	if gitcmd.IsErrorExitCode(err, 1) && err.Stderr() == "" {
-		return nil, nil
+	if errors.Is(runErr, context.DeadlineExceeded) {
+		return true, nil
 	}
-	if err != nil && !errors.Is(err, context.Canceled) {
-		return nil, fmt.Errorf("unable to run git grep: %w", err)
+	if gitcmd.IsErrorExitCode(runErr, 1) && runErr.Stderr() == "" {
+		return incomplete, nil
 	}
-	return results, nil
+	if runErr != nil {
+		return false, fmt.Errorf("GrepSearch: %w", runErr)
+	}
+	return incomplete, nil
 }

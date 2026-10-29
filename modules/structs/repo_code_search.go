@@ -3,54 +3,40 @@
 
 package structs
 
-// CodeSearchResults represents the results of a code search
+// CodeSearchResults contains matching files.
 type CodeSearchResults struct {
-	// The total number of matching files
 	TotalCount int64 `json:"total_count"`
-	// Whether the search stopped before finding all matching files
-	IncompleteResults bool `json:"incomplete_results"`
-	// The matching files
-	Items []*CodeSearchResultItem `json:"items"`
+	// Search stopped early
+	IncompleteResults bool                    `json:"incomplete_results"`
+	Items             []*CodeSearchResultItem `json:"items"`
 }
 
-// CodeSearchResultItem represents a file matching a code search
+// CodeSearchResultItem is a matching file.
 type CodeSearchResultItem struct {
-	// The name of the file
 	Name string `json:"name"`
-	// The path of the file in the repository
 	Path string `json:"path"`
-	// The API URL of the file contents at the searched commit
+	// Contents API URL at the searched commit
 	URL string `json:"url"`
-	// The web URL of the file at the searched commit
+	// File URL at the searched commit
 	HTMLURL string `json:"html_url"`
-	// The programming language of the file, if known
-	Language string `json:"language,omitempty"`
-	// The repository containing the file
-	Repository *Repository `json:"repository"`
-	// The line numbers of the lines in the content fragment
-	LineNumbers []string `json:"line_numbers"`
-	// The fragments of the file content that matched
+	// Programming language (Gitea extension)
+	Language    string                 `json:"language,omitempty"`
+	Repository  *Repository            `json:"repository"`
 	TextMatches []*CodeSearchTextMatch `json:"text_matches"`
 }
 
-// CodeSearchTextMatch represents a fragment of a property that matched a code search
+// CodeSearchTextMatch is a matching fragment.
 type CodeSearchTextMatch struct {
-	// The API URL of the resource containing the property
-	ObjectURL string `json:"object_url"`
-	// The type of the resource containing the property
-	ObjectType string `json:"object_type"`
-	// The name of the matched property
-	Property string `json:"property"`
-	// The part of the property value that matched
-	Fragment string `json:"fragment"`
-	// The matched terms in the fragment
-	Matches []*CodeSearchTextMatchTerm `json:"matches"`
+	ObjectURL  string                     `json:"object_url"`
+	ObjectType string                     `json:"object_type"`
+	Property   string                     `json:"property"`
+	Fragment   string                     `json:"fragment"`
+	Matches    []*CodeSearchTextMatchTerm `json:"matches"`
 }
 
-// CodeSearchTextMatchTerm represents a matched term in a text match fragment
+// CodeSearchTextMatchTerm is a matched term.
 type CodeSearchTextMatchTerm struct {
-	// The matched text
 	Text string `json:"text"`
-	// The start and end UTF-8 byte offsets of the text in the fragment
+	// Start and end UTF-8 byte offsets in the fragment, end-exclusive
 	Indices []int `json:"indices"`
 }

@@ -5,120 +5,142 @@ package gitgrep
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/indexer"
 	code_indexer "gitea.dev/modules/indexer/code"
-	"gitea.dev/modules/setting"
+	"gitea.dev/modules/indexer/code/internal"
+	"gitea.dev/modules/util"
 )
 
-// indexSettingToGitGrepPathspecList returns the pathspecs of the files to search, case-insensitive like the lowercased patterns.
-// Git matches any of the positive pathspecs, so with include patterns the directory is filtered from the results instead.
-func indexSettingToGitGrepPathspecList(dir string) (list []string) {
-	for _, expr := range setting.Indexer.IncludePatterns {
-		list = append(list, ":(glob,icase)"+expr.PatternString())
-	}
-	if dir != "" && len(list) == 0 {
-		list = append(list, ":(literal)"+dir+"/")
-	}
-	for _, expr := range setting.Indexer.ExcludePatterns {
-		list = append(list, ":(glob,exclude,icase)"+expr.PatternString())
-	}
-	return list
-}
-
-// MaxResultLimit is the maximum number of files a search returns
 const MaxResultLimit = 50
 
 type SearchOptions struct {
-	RepoID     int64
-	Ref        git.RefName
-	Keyword    string
-	SearchMode indexer.SearchModeType
-	Path       string // only search the files in this directory
-	Page       int
-	PageSize   int
+	RepoID   int64
+	Ref      git.RefName
+	Terms    []indexer.SearchTerm
+	Path     string
+	Page     int
+	PageSize int
 }
 
-func PerformSearch(ctx context.Context, gitRepo *git.Repository, opts *SearchOptions) (searchResults []*code_indexer.Result, total int64, isLimited bool, err error) {
-	grepMode := git.GrepModeWords
-	switch opts.SearchMode {
-	case indexer.SearchModeExact:
-		grepMode = git.GrepModeExact
-	case indexer.SearchModeRegexp:
-		grepMode = git.GrepModeRegexp
+func PerformSearch(ctx context.Context, gitRepo *git.Repository, opts *SearchOptions) (searchResults []*code_indexer.Result, total int64, incomplete bool, err error) {
+	if opts == nil || len(opts.Terms) == 0 {
+		return nil, 0, false, nil
 	}
-	res, err := git.GrepSearch(ctx, gitRepo, opts.Keyword, git.GrepOptions{
-		ContextLineNumber: 1,
-		GrepMode:          grepMode,
-		RefName:           opts.Ref.String(),
-		MaxResultLimit:    MaxResultLimit + 1, // one more to know whether results were dropped
-		PathspecList:      indexSettingToGitGrepPathspecList(opts.Path),
-	})
+	matcher, err := internal.NewFileMatcher(opts.Terms)
 	if err != nil {
-		// TODO: if no branch exists, it reports: exit status 128, fatal: this operation must be run in a work tree.
-		return nil, 0, false, fmt.Errorf("git.GrepSearch: %w", err)
+		return nil, 0, false, err
 	}
-	commitID, err := gitRepo.GetRefCommitID(ctx, opts.Ref.String())
+	searchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	defer func() {
+		if ctx.Err() != nil {
+			err = ctx.Err()
+		} else if errors.Is(searchCtx.Err(), context.DeadlineExceeded) {
+			err = nil
+			incomplete = true
+		}
+	}()
+	patterns := make([]string, 0, len(opts.Terms))
+	for _, term := range opts.Terms {
+		pattern := term.Text
+		if term.Kind == indexer.SearchTermLiteral {
+			pattern = strings.ReplaceAll(regexp.QuoteMeta(strings.ToLower(pattern)), "i", "[iİ]")
+		}
+		patterns = append(patterns, "(*UTF)"+pattern)
+	}
+	commit, err := gitRepo.GetCommit(searchCtx, util.IfZero(opts.Ref.String(), "HEAD"))
 	if err != nil {
-		return nil, 0, false, fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
+		if ctx.Err() != nil {
+			return nil, 0, false, ctx.Err()
+		}
+		if empty, emptyErr := gitRepo.IsEmpty(searchCtx); emptyErr == nil && empty {
+			return nil, 0, false, nil
+		}
+		return nil, 0, false, fmt.Errorf("PerformSearch: %w", err)
 	}
-
-	isLimited = len(res) > MaxResultLimit
+	var paths []string
 	if opts.Path != "" {
-		res = slices.DeleteFunc(res, func(r *git.GrepResult) bool { return !strings.HasPrefix(r.Filename, opts.Path+"/") })
+		paths = []string{":(literal)" + opts.Path + "/"}
 	}
-	res = res[:min(len(res), MaxResultLimit)]
-	total = int64(len(res))
-	pageStart := min((opts.Page-1)*opts.PageSize, len(res))
-	pageEnd := min(opts.Page*opts.PageSize, len(res))
-	res = res[pageStart:pageEnd]
-	matchPattern, _ := grepMatchPattern(opts.Keyword, grepMode) // positions are optional, git grep's PCRE may not compile as Go regexp
-	for _, r := range res {
-		rawContent := strings.Join(r.LineCodes, "\n")
-		searchResults = append(searchResults, &code_indexer.Result{
-			RepoID:   opts.RepoID,
-			Filename: r.Filename,
-			CommitID: commitID,
-			// UpdatedUnix: not supported yet
-			// Language:    not supported yet
-			// Color:       not supported yet
-			Lines:          code_indexer.HighlightSearchResultCode(r.Filename, "", r.LineNumbers, rawContent),
-			RawContent:     rawContent,
-			ContentMatches: findMatchRanges(matchPattern, rawContent),
-		})
+	files, err := code_indexer.ListFiles(searchCtx, gitRepo, commit.ID.String(), paths...)
+	if err != nil {
+		return nil, 0, false, err
 	}
-	return searchResults, total, isLimited, nil
-}
-
-// grepMatchPattern returns a Go regexp matching what git.GrepSearch matches in the given mode
-func grepMatchPattern(keyword string, grepMode git.GrepModeType) (*regexp.Regexp, error) {
-	switch grepMode {
-	case git.GrepModeExact:
-		return regexp.Compile(regexp.QuoteMeta(keyword))
-	case git.GrepModeRegexp:
-		return regexp.Compile(keyword)
-	default:
-		var words []string
-		for word := range strings.FieldsSeq(keyword) {
-			words = append(words, regexp.QuoteMeta(word))
-		}
-		return regexp.Compile("(?i)" + strings.Join(words, "|"))
-	}
-}
-
-func findMatchRanges(pattern *regexp.Regexp, content string) (ranges []code_indexer.MatchRange) {
-	if pattern == nil {
-		return nil
-	}
-	for _, loc := range pattern.FindAllStringIndex(content, -1) {
-		if loc[0] < loc[1] {
-			ranges = append(ranges, code_indexer.MatchRange{Start: loc[0], End: loc[1]})
+	eligible := make(map[string]internal.FileUpdate, len(files))
+	var pathMatches []string
+	for _, file := range files {
+		eligible[file.Filename] = file
+		if _, ok := matcher.MatchFile(file.Filename, ""); ok {
+			pathMatches = append(pathMatches, file.Filename)
 		}
 	}
-	return ranges
+	if len(eligible) == 0 {
+		return nil, 0, false, nil
+	}
+	slices.Sort(pathMatches)
+	batch, err := git.NewBatch(searchCtx, gitRepo)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	defer batch.Close()
+	var results []*code_indexer.Result
+	accept := func(filename string) (bool, error) {
+		if err := searchCtx.Err(); err != nil {
+			return false, err
+		}
+		file, ok := eligible[filename]
+		if !ok {
+			return true, nil
+		}
+		content, searchable, err := internal.ReadFile(batch, file)
+		if err != nil {
+			return false, err
+		}
+		if !searchable {
+			return true, nil
+		}
+		result := &code_indexer.Result{RepoID: opts.RepoID, Filename: filename, CommitID: commit.ID.String(), Content: string(content)}
+		if matcher.MatchResult(result) {
+			if len(results) == MaxResultLimit {
+				incomplete = true
+				return false, nil
+			}
+			results = append(results, result)
+		}
+		return true, nil
+	}
+	grepIncomplete, err := git.GrepSearch(searchCtx, gitRepo, patterns, commit.ID.String(), func(filename string) (bool, error) {
+		for len(pathMatches) > 0 && pathMatches[0] < filename {
+			keepGoing, err := accept(pathMatches[0])
+			pathMatches = pathMatches[1:]
+			if err != nil || !keepGoing {
+				return keepGoing, err
+			}
+		}
+		if len(pathMatches) > 0 && pathMatches[0] == filename {
+			pathMatches = pathMatches[1:]
+		}
+		return accept(filename)
+	}, paths...)
+	if err == nil && !grepIncomplete {
+		for _, filename := range pathMatches {
+			keepGoing, acceptErr := accept(filename)
+			if acceptErr != nil || !keepGoing {
+				err = acceptErr
+				break
+			}
+		}
+	}
+	if err != nil && searchCtx.Err() == nil {
+		return nil, 0, false, fmt.Errorf("PerformSearch: %w", err)
+	}
+	return util.PaginateSlice(results, max(opts.Page, 1), util.IfZero(opts.PageSize, MaxResultLimit)), int64(len(results)), incomplete || grepIncomplete, nil
 }

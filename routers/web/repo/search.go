@@ -6,80 +6,27 @@ package repo
 import (
 	"net/http"
 
-	"gitea.dev/models/db"
 	"gitea.dev/modules/git"
-	code_indexer "gitea.dev/modules/indexer/code"
-	"gitea.dev/modules/indexer/code/gitgrep"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/routers/common"
+	"gitea.dev/services/codesearch"
 	"gitea.dev/services/context"
 )
 
 const tplSearch templates.TplName = "repo/search"
 
-// Search render repository search page
 func Search(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
-	prepareSearch := common.PrepareCodeSearch(ctx)
-	if prepareSearch.Keyword == "" {
-		ctx.HTML(http.StatusOK, tplSearch)
-		return
-	}
-
-	page := ctx.FormInt("page")
-	if page <= 0 {
-		page = 1
-	}
-
-	var total int64
-	var searchResults []*code_indexer.Result
-	var searchResultLanguages []*code_indexer.SearchResultLanguages
-	if setting.Indexer.RepoIndexerEnabled {
-		var err error
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
-			RepoIDs:    []int64{ctx.Repo.Repository.ID},
-			Keyword:    prepareSearch.Keyword,
-			SearchMode: prepareSearch.SearchMode,
-			Language:   prepareSearch.Language,
-			Paginator: &db.ListOptions{
-				Page:     page,
-				PageSize: setting.UI.RepoSearchPagingNum,
-			},
-		})
-		if err != nil {
-			if code_indexer.IsAvailable(ctx) {
-				ctx.ServerError("SearchResults", err)
-				return
-			}
-			ctx.Data["CodeIndexerUnavailable"] = true
-		} else {
-			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
-		}
-	} else {
-		var err error
-		// ref should be default branch or the first existing branch
-		searchRef := git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
-		searchResults, total, _, err = gitgrep.PerformSearch(ctx, ctx.Repo.GitRepo, &gitgrep.SearchOptions{
-			RepoID:     ctx.Repo.Repository.ID,
-			Ref:        searchRef,
-			Keyword:    prepareSearch.Keyword,
-			SearchMode: prepareSearch.SearchMode,
-			Page:       page,
-			PageSize:   setting.UI.RepoSearchPagingNum,
-		})
-		if err != nil {
-			ctx.ServerError("gitgrep.PerformSearch", err)
-			return
-		}
-	}
-
 	ctx.Data["Repo"] = ctx.Repo.Repository
-	ctx.Data["SearchResults"] = searchResults
-	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-
-	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.RepoSearchPagingNum).CurPage(page).Build()
-	ctx.Data["Page"] = pager
-
-	ctx.HTML(http.StatusOK, tplSearch)
+	engine := codesearch.GitGrep
+	if setting.Indexer.RepoIndexerEnabled {
+		engine = codesearch.Indexer
+	}
+	common.SearchCode(ctx, &codesearch.Options{
+		Engine: engine, RepoID: ctx.Repo.Repository.ID, GitRepo: ctx.Repo.GitRepo, Ref: git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch),
+	})
+	if !ctx.Written() {
+		ctx.HTML(http.StatusOK, tplSearch)
+	}
 }

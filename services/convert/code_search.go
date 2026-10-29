@@ -7,7 +7,6 @@ import (
 	"context"
 	"net/url"
 	"path"
-	"strconv"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -16,38 +15,32 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// ToCodeSearchResultItem converts a code search result in the repository to an API item
 func ToCodeSearchResultItem(ctx context.Context, repo *repo_model.Repository, apiRepo *api.Repository, result *code_indexer.Result) *api.CodeSearchResultItem {
-	fileURL := repo.APIURL(ctx) + "/contents/" + util.PathEscapeSegments(result.Filename) + "?ref=" + url.QueryEscape(result.CommitID)
+	fragments := code_indexer.BuildResultFragments(result.Content, result.ContentMatches)
 	item := &api.CodeSearchResultItem{
 		Name:        path.Base(result.Filename),
 		Path:        result.Filename,
-		URL:         fileURL,
+		URL:         repo.APIURL(ctx) + "/contents/" + util.PathEscapeSegments(result.Filename) + "?ref=" + url.QueryEscape(result.CommitID),
 		HTMLURL:     repo.HTMLURL(ctx) + "/src/" + git.RefNameFromCommit(result.CommitID).RefWebLinkPath() + "/" + util.PathEscapeSegments(result.Filename),
 		Language:    result.Language,
 		Repository:  apiRepo,
-		LineNumbers: make([]string, len(result.Lines)),
-		TextMatches: []*api.CodeSearchTextMatch{toCodeSearchTextMatch(fileURL, result.RawContent, result.ContentMatches)},
+		TextMatches: make([]*api.CodeSearchTextMatch, 0, len(fragments)),
 	}
-	for i, line := range result.Lines {
-		item.LineNumbers[i] = strconv.Itoa(line.Num)
+	for _, fragment := range fragments {
+		textMatch := &api.CodeSearchTextMatch{
+			ObjectURL:  item.URL,
+			ObjectType: "FileContent",
+			Property:   "content",
+			Fragment:   fragment.Content,
+			Matches:    make([]*api.CodeSearchTextMatchTerm, 0, len(fragment.Matches)),
+		}
+		for _, matchRange := range fragment.Matches {
+			textMatch.Matches = append(textMatch.Matches, &api.CodeSearchTextMatchTerm{
+				Text:    fragment.Content[matchRange.Start:matchRange.End],
+				Indices: []int{matchRange.Start, matchRange.End},
+			})
+		}
+		item.TextMatches = append(item.TextMatches, textMatch)
 	}
 	return item
-}
-
-func toCodeSearchTextMatch(objectURL, fragment string, ranges []code_indexer.MatchRange) *api.CodeSearchTextMatch {
-	textMatch := &api.CodeSearchTextMatch{
-		ObjectURL:  objectURL,
-		ObjectType: "FileContent",
-		Property:   "content",
-		Fragment:   fragment,
-		Matches:    make([]*api.CodeSearchTextMatchTerm, 0, len(ranges)),
-	}
-	for _, r := range ranges {
-		textMatch.Matches = append(textMatch.Matches, &api.CodeSearchTextMatchTerm{
-			Text:    fragment[r.Start:r.End],
-			Indices: []int{r.Start, r.End},
-		})
-	}
-	return textMatch
 }

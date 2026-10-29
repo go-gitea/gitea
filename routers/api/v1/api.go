@@ -315,7 +315,7 @@ func reqToken() func(ctx *context.APIContext) {
 func reqExploreSignIn() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if (setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView) && !ctx.IsSigned {
-			ctx.APIError(http.StatusUnauthorized, "you must be signed in")
+			ctx.APIError(http.StatusUnauthorized, "you must be signed in to search for users")
 		}
 	}
 }
@@ -330,8 +330,15 @@ func reqUsersExploreEnabled() func(ctx *context.APIContext) {
 
 func reqCodeSearchEnabled() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage {
+		if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage || unit.TypeCode.UnitGlobalDisabled() {
 			ctx.APIErrorNotFound()
+			return
+		}
+		needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+		} else if needTwoFactor {
+			ctx.APIError(http.StatusForbidden, "two-factor authentication is required")
 		}
 	}
 }
@@ -1319,7 +1326,7 @@ func Routes() *web.Router {
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
 				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
-				m.Get("/code/search", context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode), repo.SearchRepoCode)
+				m.Get("/code/search", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.SearchRepoCode)
 				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
 				m.Methods("HEAD,GET", "/archive/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
@@ -1883,7 +1890,7 @@ func Routes() *web.Router {
 			m.Get("/search", repo.TopicSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
-		m.Get("/search/code", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqExploreSignIn(), reqCodeSearchEnabled(), repo.SearchCode)
+		m.Get("/search/code", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqToken(), reqCodeSearchEnabled(), repo.SearchCode)
 	}, sudo())
 
 	return m

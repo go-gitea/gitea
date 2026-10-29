@@ -6,10 +6,9 @@ package indexer
 type SearchModeType string
 
 const (
-	SearchModeExact  SearchModeType = "exact"
-	SearchModeWords  SearchModeType = "words"
-	SearchModeFuzzy  SearchModeType = "fuzzy"
-	SearchModeRegexp SearchModeType = "regexp"
+	SearchModeExact SearchModeType = "exact"
+	SearchModeWords SearchModeType = "words"
+	SearchModeFuzzy SearchModeType = "fuzzy"
 )
 
 type SearchMode struct {
@@ -39,16 +38,6 @@ func SearchModesExactWordsFuzzy() []SearchMode {
 			ModeValue:    SearchModeFuzzy,
 			TooltipTrKey: "search.fuzzy_tooltip",
 			TitleTrKey:   "search.fuzzy",
-		},
-	}...)
-}
-
-func GitGrepSupportedSearchModes() []SearchMode {
-	return append(SearchModesExactWords(), []SearchMode{
-		{
-			ModeValue:    SearchModeRegexp,
-			TooltipTrKey: "search.regexp_tooltip",
-			TitleTrKey:   "search.regexp",
 		},
 	}...)
 }
