@@ -49,7 +49,7 @@ func TestAPIFollow(t *testing.T) {
 		require.NoError(t, err)
 		req = NewRequest(t, "PUT", "/api/v1/user/following/reserved-user").
 			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
 	for _, list := range []struct {
