@@ -11,12 +11,9 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
-	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -45,9 +42,7 @@ func userProfile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
 
-	profileDbRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
-
-	prepareUserProfileTabData(ctx, profileDbRepo, profileReadmeBlob)
+	prepareUserProfileTabData(ctx, shared_user.FindOwnerProfileReadme(ctx, ctx.Doer))
 
 	// prepare the user nav header data after "prepareUserProfileTabData" to avoid re-querying the NumFollowers & NumFollowing
 	// because ctx.Data["NumFollowers"] and "NumFollowing" logic duplicates in both of them
@@ -60,7 +55,7 @@ func userProfile(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProfile)
 }
 
-func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
+func prepareUserProfileTabData(ctx *context.Context, profileReadme *shared_user.ProfileReadme) {
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
 	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
@@ -229,17 +224,10 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 		total = count
 	case "overview":
-		if bytes, err := profileReadme.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
-			log.Error("failed to GetBlobContent: %v", err)
+		if profileContent, err := profileReadme.Render(ctx); err != nil {
+			log.Error("failed to render profile readme: %v", err)
 		} else {
-			rctx := renderhelper.NewRenderContextRepoFile(ctx, profileDbRepo, renderhelper.RepoFileOptions{
-				CurrentRefSubURL: git.RefNameFromBranch(profileDbRepo.DefaultBranch).RefWebLinkPath(),
-			})
-			if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
-				log.Error("failed to RenderString: %v", err)
-			} else {
-				ctx.Data["ProfileReadmeContent"] = profileContent
-			}
+			ctx.Data["ProfileReadmeContent"] = profileContent
 		}
 	case "organizations":
 		orgs, count, err := db.FindAndCount[organization.Organization](ctx, organization.FindOrgOptions{

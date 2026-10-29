@@ -97,9 +97,8 @@ func setTemplateIfExists(ctx *context.Context, templateRepo *repo_model.Reposito
 
 // NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
-	templateRepo, templateGitRepo := issue_service.TemplateRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.FormString("template"))
+	templateRepo, templateGitRepo := issue_service.GetIssueTemplateSourceRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.FormString("template"))
 	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx, templateRepo, templateGitRepo)
-	hasTemplates := issue_service.HasTemplatesOrContactLinks(ctx, templateRepo, templateGitRepo)
 
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
@@ -143,9 +142,9 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypeIssues)
 	ctx.Data["IsIssuePoster"] = true // the current user will be the poster of the new issue
 
-	if !issueConfig.BlankIssuesEnabled && hasTemplates && !templateLoaded {
+	if !issueConfig.BlankIssuesEnabled && (len(ret.IssueTemplates) > 0 || len(issueConfig.ContactLinks) > 0) && !templateLoaded {
 		// The "issues/new" and "issues/new/choose" share the same prefill query parameters, if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
-		ctx.Redirect(fmt.Sprintf("%s/issues/new/choose?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
+		ctx.Redirect(ctx.Repo.Repository.Link()+"/issues/new/choose"+util.Iif(ctx.Req.URL.RawQuery == "", "", "?"+ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
 
@@ -181,7 +180,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 
-	templateRepo, templateGitRepo := issue_service.TemplateRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, "")
+	templateRepo, templateGitRepo := issue_service.GetIssueTemplateSourceRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, "")
 	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx, templateRepo, templateGitRepo)
 	ctx.Data["IssueTemplates"] = ret.IssueTemplates
 
@@ -189,13 +188,13 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 		ctx.Flash.Warning(renderErrorOfTemplates(ctx, ret.TemplateErrors), true)
 	}
 
-	if !issue_service.HasTemplatesOrContactLinks(ctx, templateRepo, templateGitRepo) {
+	issueConfig, err := issue_service.GetTemplateConfigFromDefaultBranch(ctx, templateRepo, templateGitRepo)
+	if len(ret.IssueTemplates) == 0 && len(issueConfig.ContactLinks) == 0 {
 		// The "issues/new" and "issues/new/choose" share the same prefill query parameters, if no template here, just redirect to the "issues/new" page with these parameters.
-		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
+		ctx.Redirect(ctx.Repo.Repository.Link()+"/issues/new"+util.Iif(ctx.Req.URL.RawQuery == "", "", "?"+ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
 
-	issueConfig, err := issue_service.GetTemplateConfigFromDefaultBranch(ctx, templateRepo, templateGitRepo)
 	ctx.Data["IssueConfig"] = issueConfig
 	ctx.Data["IssueConfigError"] = err // ctx.Flash.Err makes problems here
 
@@ -354,7 +353,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
-		templateRepo, templateGitRepo := issue_service.TemplateRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, filename)
+		templateRepo, templateGitRepo := issue_service.GetIssueTemplateSourceRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, filename)
 		if template, err := issue_template.UnmarshalFromRepo(ctx, templateGitRepo, templateRepo.DefaultBranch, filename); err == nil {
 			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}

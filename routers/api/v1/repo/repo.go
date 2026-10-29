@@ -1169,7 +1169,7 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	//     "$ref": "#/responses/IssueTemplates"
 	//   default:
 	//     "$ref": "#/responses/error"
-	templateRepo, templateGitRepo := issue.TemplateRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, "")
+	templateRepo, templateGitRepo := issue.GetIssueTemplateSourceRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, "")
 	ret := issue.ParseTemplatesFromDefaultBranch(ctx, templateRepo, templateGitRepo)
 	if cnt := len(ret.TemplateErrors); cnt != 0 {
 		ctx.Resp.Header().Add("X-Gitea-Warning", "error occurs when parsing issue template: count="+strconv.Itoa(cnt))
@@ -1200,7 +1200,7 @@ func GetIssueConfig(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepoIssueConfig"
 	//   default:
 	//     "$ref": "#/responses/error"
-	templateRepo, templateGitRepo := issue.TemplateRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, "")
+	templateRepo, templateGitRepo := issue.GetIssueTemplateSourceRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, "")
 	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx, templateRepo, templateGitRepo)
 	ctx.JSON(http.StatusOK, issueConfig)
 }
@@ -1228,7 +1228,7 @@ func ValidateIssueConfig(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepoIssueConfigValidation"
 	//   default:
 	//     "$ref": "#/responses/error"
-	templateRepo, templateGitRepo := issue.TemplateRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, "")
+	templateRepo, templateGitRepo := issue.GetIssueTemplateSourceRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, "")
 	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx, templateRepo, templateGitRepo)
 
 	if err == nil {

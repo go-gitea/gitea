@@ -62,27 +62,6 @@ const (
 	pullRequestTemplateKey = "PullRequestTemplate"
 )
 
-var pullRequestTemplateCandidates = []string{
-	"PULL_REQUEST_TEMPLATE.md",
-	"PULL_REQUEST_TEMPLATE.yaml",
-	"PULL_REQUEST_TEMPLATE.yml",
-	"pull_request_template.md",
-	"pull_request_template.yaml",
-	"pull_request_template.yml",
-	".gitea/PULL_REQUEST_TEMPLATE.md",
-	".gitea/PULL_REQUEST_TEMPLATE.yaml",
-	".gitea/PULL_REQUEST_TEMPLATE.yml",
-	".gitea/pull_request_template.md",
-	".gitea/pull_request_template.yaml",
-	".gitea/pull_request_template.yml",
-	".github/PULL_REQUEST_TEMPLATE.md",
-	".github/PULL_REQUEST_TEMPLATE.yaml",
-	".github/PULL_REQUEST_TEMPLATE.yml",
-	".github/pull_request_template.md",
-	".github/pull_request_template.yaml",
-	".github/pull_request_template.yml",
-}
-
 func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
@@ -1360,7 +1339,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
-		templateRepo, templateGitRepo := issue_service.TemplateRepoForPaths(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, filename, pullRequestTemplateCandidates)
+		templateRepo, templateGitRepo := issue_service.GetPullRequestTemplateSourceRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, filename)
 		if template, err := issue_template.UnmarshalFromRepo(ctx, templateGitRepo, templateRepo.DefaultBranch, filename); err == nil {
 			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}

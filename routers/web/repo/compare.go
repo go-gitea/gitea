@@ -631,8 +631,8 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 			if ctx.Written() {
 				return
 			}
-			templateRepo, templateGitRepo := issue_service.TemplateRepoForPaths(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.FormString("template"), pullRequestTemplateCandidates)
-			_, templateErrs := setTemplateIfExists(ctx, templateRepo, templateGitRepo, pullRequestTemplateKey, pullRequestTemplateCandidates, pageMetaData)
+			templateRepo, templateGitRepo := issue_service.GetPullRequestTemplateSourceRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.FormString("template"))
+			_, templateErrs := setTemplateIfExists(ctx, templateRepo, templateGitRepo, pullRequestTemplateKey, issue_service.PullRequestTemplateCandidates, pageMetaData)
 			if len(templateErrs) > 0 {
 				ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 			}

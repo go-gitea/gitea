@@ -841,6 +841,11 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	return repos, count, sess.Find(&repos)
 }
 
+func GetOwnerRepositoriesByNames(ctx context.Context, ownerID int64, lowerNames []string) (RepositoryList, error) {
+	repos := make(RepositoryList, 0, len(lowerNames))
+	return repos, db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID}).In("lower_name", lowerNames).Find(&repos)
+}
+
 func GetOwnerRepositoriesByIDs(ctx context.Context, ownerID int64, repoIDs []int64) (RepositoryList, error) {
 	if len(repoIDs) == 0 {
 		return RepositoryList{}, nil

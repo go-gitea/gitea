@@ -11,9 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/issue/template"
@@ -21,6 +19,7 @@ import (
 	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/ownerrepo"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -45,6 +44,29 @@ var IssueTemplateCandidates = []string{
 	".github/issue_template.yaml",
 	".github/issue_template.yml",
 }
+
+var PullRequestTemplateCandidates = []string{
+	"PULL_REQUEST_TEMPLATE.md",
+	"PULL_REQUEST_TEMPLATE.yaml",
+	"PULL_REQUEST_TEMPLATE.yml",
+	"pull_request_template.md",
+	"pull_request_template.yaml",
+	"pull_request_template.yml",
+	".gitea/PULL_REQUEST_TEMPLATE.md",
+	".gitea/PULL_REQUEST_TEMPLATE.yaml",
+	".gitea/PULL_REQUEST_TEMPLATE.yml",
+	".gitea/pull_request_template.md",
+	".gitea/pull_request_template.yaml",
+	".gitea/pull_request_template.yml",
+	".github/PULL_REQUEST_TEMPLATE.md",
+	".github/PULL_REQUEST_TEMPLATE.yaml",
+	".github/PULL_REQUEST_TEMPLATE.yml",
+	".github/pull_request_template.md",
+	".github/pull_request_template.yaml",
+	".github/pull_request_template.yml",
+}
+
+var issueTemplateSourcePaths = slices.Concat(templateDirCandidates, IssueTemplateCandidates)
 
 // templateDirCandidates issue templates directory
 var templateDirCandidates = []string{
@@ -205,75 +227,43 @@ func GetTemplateConfigFromDefaultBranch(ctx context.Context, repo *repo.Reposito
 	return GetDefaultTemplateConfig(), nil
 }
 
-func TemplateRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, targetGitRepo *git.Repository, templatePath string) (*repo.Repository, *git.Repository) {
-	return TemplateRepoForPaths(ctx, doer, targetRepo, targetGitRepo, templatePath, slices.Concat(templateDirCandidates, IssueTemplateCandidates))
+func GetIssueTemplateSourceRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, targetGitRepo *git.Repository, templatePath string) (*repo.Repository, *git.Repository) {
+	return getTemplateSourceRepo(ctx, doer, targetRepo, targetGitRepo, templatePath, issueTemplateSourcePaths)
 }
 
-func TemplateRepoForPaths(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, targetGitRepo *git.Repository, templatePath string, paths []string) (*repo.Repository, *git.Repository) {
-	if hasAnyPath(ctx, targetRepo, targetGitRepo, templatePath, paths) {
+func GetPullRequestTemplateSourceRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, targetGitRepo *git.Repository, templatePath string) (*repo.Repository, *git.Repository) {
+	return getTemplateSourceRepo(ctx, doer, targetRepo, targetGitRepo, templatePath, PullRequestTemplateCandidates)
+}
+
+func getTemplateSourceRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, targetGitRepo *git.Repository, templatePath string, paths []string) (*repo.Repository, *git.Repository) {
+	if !targetRepo.IsEmpty {
+		if commit, err := targetGitRepo.GetBranchCommit(ctx, targetRepo.DefaultBranch); err == nil && hasAnyPath(ctx, targetGitRepo, commit, templatePath, paths) {
+			return targetRepo, targetGitRepo
+		}
+	}
+	found := ownerrepo.Find(ctx, doer, targetRepo.Owner, ownerrepo.DefaultsRepoNames, func(found *ownerrepo.Repo) bool {
+		return hasAnyPath(ctx, found.GitRepo, found.Commit, "", paths)
+	})
+	if found == nil {
 		return targetRepo, targetGitRepo
 	}
-	sourceRepo, sourceGitRepo, err := ownerTemplateRepo(ctx, doer, targetRepo, templatePath, paths)
-	if err != nil {
-		log.Error("ownerTemplateRepo: %v", err)
-	}
-	if sourceGitRepo == nil {
-		return targetRepo, targetGitRepo
-	}
-	return sourceRepo, sourceGitRepo
+	return found.Repo, found.GitRepo
 }
 
-func ownerTemplateRepo(ctx reqctx.RequestContext, doer *user_model.User, targetRepo *repo.Repository, templatePath string, paths []string) (*repo.Repository, *git.Repository, error) {
-	for _, name := range []string{".gitea", ".github"} {
-		sourceRepo, err := repo.GetRepositoryByName(ctx, targetRepo.OwnerID, name)
-		if repo.IsErrRepoNotExist(err) {
-			continue
-		} else if err != nil {
-			return nil, nil, err
-		}
-		if sourceRepo.IsEmpty {
-			continue
-		}
-		sourceRepo.Owner = targetRepo.Owner
-		perm, err := access_model.GetDoerRepoPermission(ctx, sourceRepo, doer)
-		if err != nil {
-			return nil, nil, err
-		}
-		if !perm.CanRead(unit.TypeCode) {
-			continue
-		}
-		sourceGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, sourceRepo)
-		if err != nil {
-			return nil, nil, err
-		}
-		if hasAnyPath(ctx, sourceRepo, sourceGitRepo, templatePath, paths) {
-			return sourceRepo, sourceGitRepo, nil
-		}
-	}
-	return nil, nil, nil
-}
-
-func hasAnyPath(ctx context.Context, repo *repo.Repository, gitRepo *git.Repository, templatePath string, paths []string) bool {
-	if repo.IsEmpty {
-		return false
-	}
-	commit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
-	if err != nil {
-		return false
-	}
+func hasAnyPath(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, templatePath string, paths []string) bool {
+	trees := map[string]*git.Tree{} // one tree read per directory instead of per path
 	exists := func(treePath string) bool {
-		_, err := commit.GetTreeEntryByPath(ctx, gitRepo, treePath)
+		dir, name := path.Split(path.Clean(treePath))
+		tree, ok := trees[dir]
+		if !ok {
+			tree, _ = commit.SubTree(ctx, gitRepo, strings.TrimSuffix(dir, "/"))
+			trees[dir] = tree
+		}
+		if tree == nil {
+			return false
+		}
+		_, err := tree.GetTreeEntryByPath(ctx, gitRepo, name)
 		return err == nil
 	}
 	return templatePath != "" && exists(templatePath) || slices.ContainsFunc(paths, exists)
-}
-
-func HasTemplatesOrContactLinks(ctx context.Context, repo *repo.Repository, gitRepo *git.Repository) bool {
-	ret := ParseTemplatesFromDefaultBranch(ctx, repo, gitRepo)
-	if len(ret.IssueTemplates) > 0 {
-		return true
-	}
-
-	issueConfig, _ := GetTemplateConfigFromDefaultBranch(ctx, repo, gitRepo)
-	return len(issueConfig.ContactLinks) > 0
 }
