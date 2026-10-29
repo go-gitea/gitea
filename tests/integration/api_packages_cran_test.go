@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	cran_module "gitea.dev/modules/packages/cran"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
@@ -160,6 +161,28 @@ func TestPackageCran(t *testing.T) {
 			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 2)
+
+			// the files API tells the source package from the binary and where the binary belongs
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/cran/%s/%s/files", user.Name, packageName, packageVersion)).
+				AddBasicAuth(user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
+			var apiFiles []*api.PackageFile
+			DecodeJSON(t, resp, &apiFiles)
+			assert.Len(t, apiFiles, 2)
+			for _, f := range apiFiles {
+				switch f.Name {
+				case fmt.Sprintf("%s_%s.tar.gz", packageName, packageVersion):
+					assert.Equal(t, map[string]string{cran_module.PropertyType: cran_module.TypeSource}, f.Properties)
+				case fmt.Sprintf("%s_%s.zip", packageName, packageVersion):
+					assert.Equal(t, map[string]string{
+						cran_module.PropertyType:     cran_module.TypeBinary,
+						cran_module.PropertyPlatform: "windows",
+						cran_module.PropertyRVersion: "4.2",
+					}, f.Properties)
+				default:
+					assert.Fail(t, "unexpected file", f.Name)
+				}
+			}
 
 			req = NewRequestWithBody(t, "PUT", uploadURL, test.WriteZipArchive(map[string]string{
 				"package/DESCRIPTION": string(createDescription(packageName, packageVersion)),
