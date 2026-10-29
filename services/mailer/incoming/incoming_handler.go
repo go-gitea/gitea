@@ -72,7 +72,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 		return err
 	}
 
-	if issue.IsLockedForDoer(perm) {
+	if issue_service.IsLockedForDoer(issue, perm) {
 		log.Debug("can't write issue or pull")
 		return nil
 	}
