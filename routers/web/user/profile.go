@@ -5,7 +5,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
@@ -33,7 +32,7 @@ const (
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
 func OwnerProfile(ctx *context.Context) {
-	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
+	// HINT: USER-TYPE-GLOSSARY: in the future it needs to handle more user types correctly
 	if ctx.ContextUser.IsOrganization() {
 		org.Home(ctx)
 	} else {
@@ -306,11 +305,6 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 // ActionUserFollow is for follow/unfollow user request
 func ActionUserFollow(ctx *context.Context) {
-	if !ctx.ContextUser.IsFollowable() {
-		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
-		return
-	}
-
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
@@ -318,25 +312,22 @@ func ActionUserFollow(ctx *context.Context) {
 	case "unfollow":
 		err = user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
-
 	if err != nil {
-		log.Error("Failed to apply action %q: %v", ctx.FormString("action"), err)
-		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
+		ctx.ServerError("ActionUserFollow", err)
 		return
 	}
+
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
-	switch ctx.ContextUser.Type {
-	case user_model.UserTypeIndividual, user_model.UserTypeBot:
-		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
-	case user_model.UserTypeOrganization:
+
+	// HINT: USER-TYPE-GLOSSARY: follow the logic in OwnerProfile
+	if ctx.ContextUser.IsOrganization() {
 		ctx.Data["Org"] = ctx.ContextUser
-		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+		ctx.Data["IsFollowing"] = user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 		ctx.HTML(http.StatusOK, tplFollowUnfollow)
-	default:
-		log.Error("Failed to apply action %q: unsupported context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
-		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
+	} else {
+		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
 	}
 }

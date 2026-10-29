@@ -1065,7 +1065,7 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// Glossaries for XxxUser:
+// HINT: USER-TYPE-GLOSSARY: Glossaries for XxxUser:
 // * Possible: The user may or may not exist in the database, but we can still return a valid user object (e.g. Ghost user) for the given ID.
 // * Individual: The user is a real person, not an organization or a bot.
 // * Doer: The user is the one performing an action (individual, bot or system)
