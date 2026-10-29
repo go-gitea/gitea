@@ -8,8 +8,10 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -22,8 +24,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPreReceiveActionsBranch(t *testing.T) {
+func TestPreReceive(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("Branch", testPreReceiveActionsBranch)
+	t.Run("Tag", testPreReceiveSystemUserTag)
+	t.Run("CanWrite", testPreReceiveCanWriteCodePerBranch)
+}
+
+func testPreReceiveActionsBranch(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		protection    *git_model.ProtectedBranchConfig
@@ -91,13 +99,56 @@ func TestPreReceiveActionsBranch(t *testing.T) {
 	}
 }
 
+func testPreReceiveSystemUserTag(t *testing.T) {
+	deployKey, err := deploykey_model.AddDeployKeyToken(t.Context(), 2, "tag-pusher", perm.AccessModeWrite)
+	require.NoError(t, err)
+	actionsDoer := user_model.NewActionsUserWithTaskID(53)
+	deployKeyDoer := user_model.NewDeployKeyUserWithKeyID(deployKey.ID)
+
+	for _, tc := range []struct {
+		name      string
+		doer      *user_model.User
+		allowlist []int64
+		allowed   bool
+	}{
+		{name: "actions allowlisted", doer: actionsDoer, allowlist: []int64{user_model.ActionsUserID}, allowed: true},
+		{name: "actions not allowlisted", doer: actionsDoer, allowlist: []int64{2, user_model.DeployKeyUserID}},
+		{name: "deploy key allowlisted", doer: deployKeyDoer, allowlist: []int64{user_model.DeployKeyUserID}, allowed: true},
+		{name: "deploy key not allowlisted", doer: deployKeyDoer, allowlist: []int64{2, user_model.ActionsUserID}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtx, resp := contexttest.MockPrivateContext(t, "/")
+			ctx := &preReceiveContext{PrivateContext: mockCtx, opts: &private.HookOptions{UserID: tc.doer.ID}}
+			ctx.SetPathParam("owner", "user2")
+			ctx.SetPathParam("repo", "repo2")
+			RepoAssignment(ctx.PrivateContext)
+			require.False(t, ctx.Written())
+			defer ctx.Repo.GitRepo.Close()
+
+			require.True(t, loadContextDoerPermission(ctx.PrivateContext, tc.doer.ID, tc.doer.ExtDoerData.EncodeToString()))
+
+			protectedTag := &git_model.ProtectedTag{RepoID: ctx.Repo.Repository.ID, NamePattern: "v*", AllowlistUserIDs: tc.allowlist}
+			require.NoError(t, git_model.InsertProtectedTag(t.Context(), protectedTag))
+			defer func() {
+				require.NoError(t, git_model.DeleteProtectedTag(t.Context(), protectedTag))
+			}()
+
+			preReceiveTag(ctx, git.RefNameFromTag("v1.0.0"))
+			if tc.allowed {
+				assert.False(t, ctx.Written(), resp.Body.String())
+			} else {
+				assert.Equal(t, http.StatusForbidden, resp.Code)
+				assert.Contains(t, resp.Body.String(), "Tag v1.0.0 is protected")
+			}
+		})
+	}
+}
+
 // TestPreReceiveCanWriteCodePerBranch ensures the maintainer-edit write grant is evaluated against
 // the exact ref being pushed on every call, derived from that ref rather than shared mutable state.
 // Otherwise, a per-branch grant (an open PR with "allow edits from maintainers") could be batched
 // together with a protected branch or a tag to escalate into full repository write.
-func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
+func testPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
 	require.NoError(t, baseRepo.LoadOwner(t.Context()))
