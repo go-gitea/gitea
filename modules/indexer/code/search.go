@@ -5,6 +5,7 @@ package code
 
 import (
 	"context"
+	"html"
 	"html/template"
 	"strings"
 	"unicode/utf8"
@@ -38,10 +39,10 @@ type MatchRange = internal.MatchRange
 
 type SearchOptions = internal.SearchOptions
 
-func HighlightSearchResultCode(filename, language string, lineNums []int, code string) []*ResultLine {
+func HighlightSearchResultCode(filename, language string, lineNums []int, code string, matches ...MatchRange) []*ResultLine {
 	lexer := highlight.DetectChromaLexerByFileName(filename, language)
-	hl := highlight.RenderCodeByLexer(lexer, code)
-	highlightedLines := highlight.UnsafeSplitHighlightedLines(hl)
+	hl := markMatches(code, string(highlight.RenderCodeByLexer(lexer, code)), matches)
+	highlightedLines := highlight.UnsafeSplitHighlightedLines(template.HTML(hl))
 
 	lines := make([]*ResultLine, min(len(highlightedLines), len(lineNums)))
 	for i := range lines {
@@ -51,6 +52,52 @@ func HighlightSearchResultCode(filename, language string, lineNums []int, code s
 		}
 	}
 	return lines
+}
+
+// markMatches wraps the code byte ranges in <mark>, split at tags, skipping code bytes the lexer dropped
+func markMatches(code, highlighted string, matches []MatchRange) string {
+	if len(matches) == 0 {
+		return highlighted
+	}
+	var marked strings.Builder
+	marked.Grow(len(highlighted))
+	offset, open := 0, false
+	for highlighted != "" {
+		var token string
+		switch highlighted[0] {
+		case '<':
+			token = highlighted[:strings.IndexByte(highlighted, '>')+1]
+			highlighted = highlighted[len(token):]
+			if open {
+				marked.WriteString("</mark>")
+				open = false
+			}
+			marked.WriteString(token)
+			continue
+		case '&':
+			token = highlighted[:strings.IndexByte(highlighted, ';')+1]
+		default:
+			token = highlighted[:1]
+		}
+		highlighted = highlighted[len(token):]
+		text := html.UnescapeString(token)
+		for offset < len(code) && !strings.HasPrefix(code[offset:], text) {
+			offset++
+		}
+		for len(matches) > 0 && matches[0].End <= offset {
+			matches = matches[1:]
+		}
+		if inMatch := len(matches) > 0 && matches[0].Start <= offset; inMatch != open {
+			marked.WriteString(util.Iif(inMatch, "<mark>", "</mark>"))
+			open = inMatch
+		}
+		marked.WriteString(token)
+		offset += len(text)
+	}
+	if open {
+		marked.WriteString("</mark>")
+	}
+	return marked.String()
 }
 
 func PerformSearch(ctx context.Context, opts *SearchOptions) (int64, []*Result, []*SearchResultLanguages, error) {

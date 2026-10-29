@@ -47,7 +47,7 @@ func SearchCode(ctx *context.Context, opts *codesearch.Options) {
 			for i := range lineNumbers {
 				lineNumbers[i] = fragment.StartLine + i
 			}
-			results[i].Fragments = append(results[i].Fragments, code_indexer.HighlightSearchResultCode(hit.Filename, hit.Language, lineNumbers, content))
+			results[i].Fragments = append(results[i].Fragments, code_indexer.HighlightSearchResultCode(hit.Filename, hit.Language, lineNumbers, content, fragment.Matches...))
 		}
 	}
 	ctx.Data["SearchResults"] = results

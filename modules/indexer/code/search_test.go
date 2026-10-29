@@ -45,3 +45,11 @@ func TestBuildResultFragments(t *testing.T) {
 		}
 	})
 }
+
+func TestHighlightSearchResultCodeMatches(t *testing.T) {
+	code := "x := \"a<b\"\r\nfoo()"
+	lines := HighlightSearchResultCode("main.go", "", []int{1, 2}, code, MatchRange{Start: 2, End: 9}, MatchRange{Start: 12, End: 15})
+	require.Len(t, lines, 2)
+	assert.Equal(t, `<span class="nx">x</span><span class="w"> </span><span class="o"><mark>:=</mark></span><span class="w"><mark> </mark></span><span class="s"><mark>&#34;a&lt;b</mark>&#34;</span><span class="w">`+"\n</span>", string(lines[0].FormattedContent))
+	assert.Equal(t, `<span class="nf"><mark>foo</mark></span><span class="p">(</span><span class="p">)</span>`, string(lines[1].FormattedContent))
+}
