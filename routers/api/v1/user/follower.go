@@ -84,8 +84,8 @@ func ListFollowers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listUserFollowers(ctx, ctx.ContextUser)
 }
@@ -150,8 +150,8 @@ func ListFollowing(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listUserFollowing(ctx, ctx.ContextUser)
 }
@@ -178,8 +178,8 @@ func CheckMyFollowing(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	checkUserFollowing(ctx, ctx.Doer, ctx.ContextUser.ID)
 }
@@ -203,8 +203,8 @@ func CheckFollowing(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	target := GetUserByPathParam(ctx, "target") // FIXME: it is not right to call this function, it should load the "target" directly
 	if ctx.Written() {
@@ -227,12 +227,8 @@ func Follow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if err := user_model.FollowUser(ctx, ctx.Doer, ctx.ContextUser); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
@@ -261,8 +257,8 @@ func Unfollow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if err := user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
 		ctx.APIErrorInternal(err)

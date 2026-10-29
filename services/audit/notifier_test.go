@@ -28,54 +28,42 @@ func TestAuditNotifier(t *testing.T) {
 	SetRequestInfo(ctx, audit_model.OriginUI, "127.0.0.1")
 	notifier := new(auditNotifier)
 
-	issue := &issues_model.Issue{ID: 10, Index: 5, Title: "Issue title", Poster: doer, Repo: repo}
-	notifier.NewIssue(ctx, issue, nil)
-	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
-		Action:    audit_model.IssueCreate,
-		ScopeType: audit_model.ScopeRepository,
-		ScopeID:   repo.ID,
-		Origin:    audit_model.OriginUI,
-	})
-
-	pr := &issues_model.PullRequest{ID: 11, Issue: &issues_model.Issue{ID: 12, Index: 6, Title: "PR title", Poster: doer, Repo: repo, IsPull: true}}
-	notifier.NewPullRequest(ctx, pr, nil)
-	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
-		Action:    audit_model.PullRequestCreate,
-		ScopeType: audit_model.ScopeRepository,
-		ScopeID:   repo.ID,
-		Origin:    audit_model.OriginUI,
-	})
-
-	notifier.NewWikiPage(ctx, doer, repo, "Home", "")
-	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
-		Action:    audit_model.WikiPageCreate,
-		ScopeType: audit_model.ScopeRepository,
-		ScopeID:   repo.ID,
-		Origin:    audit_model.OriginUI,
-	})
-
-	notifier.CreateRepository(ctx, doer, doer, repo)
-	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
-		Action:    audit_model.RepositoryCreate,
-		ActorID:   doer.ID,
-		ScopeType: audit_model.ScopeRepository,
-		ScopeID:   repo.ID,
-		Origin:    audit_model.OriginUI,
-	})
-
-	notifier.TransferRepository(ctx, doer, repo, "previous_owner")
-	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
-		Action:    audit_model.RepositoryTransferFinish,
-		ActorID:   doer.ID,
-		ScopeType: audit_model.ScopeRepository,
-		ScopeID:   repo.ID,
-		Message:   "Transferred repository owner/repo from previous_owner to owner.",
-	})
-
-	notifier.ChangeDefaultBranch(ctx, repo)
-	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
-		Action:    audit_model.RepositoryBranchDefault,
-		ScopeType: audit_model.ScopeRepository,
-		ScopeID:   repo.ID,
-	})
+	for _, tc := range []struct {
+		notify func()
+		event  audit_model.Event
+	}{
+		{
+			func() {
+				notifier.NewIssue(ctx, &issues_model.Issue{ID: 10, Index: 5, Title: "Issue title", Poster: doer, Repo: repo}, nil)
+			},
+			audit_model.Event{Action: audit_model.IssueCreate, Origin: audit_model.OriginUI},
+		},
+		{
+			func() {
+				notifier.NewPullRequest(ctx, &issues_model.PullRequest{ID: 11, Issue: &issues_model.Issue{ID: 12, Index: 6, Title: "PR title", Poster: doer, Repo: repo, IsPull: true}}, nil)
+			},
+			audit_model.Event{Action: audit_model.PullRequestCreate, Origin: audit_model.OriginUI},
+		},
+		{
+			func() { notifier.NewWikiPage(ctx, doer, repo, "Home", "") },
+			audit_model.Event{Action: audit_model.WikiPageCreate, Origin: audit_model.OriginUI},
+		},
+		{
+			func() { notifier.CreateRepository(ctx, doer, doer, repo) },
+			audit_model.Event{Action: audit_model.RepositoryCreate, ActorID: doer.ID, Origin: audit_model.OriginUI},
+		},
+		{
+			func() { notifier.TransferRepository(ctx, doer, repo, "previous_owner") },
+			audit_model.Event{Action: audit_model.RepositoryTransferFinish, ActorID: doer.ID, Message: "Transferred repository owner/repo from previous_owner to owner."},
+		},
+		{
+			func() { notifier.ChangeDefaultBranch(ctx, repo) },
+			audit_model.Event{Action: audit_model.RepositoryBranchDefault},
+		},
+	} {
+		tc.notify()
+		tc.event.ScopeType = audit_model.ScopeRepository
+		tc.event.ScopeID = repo.ID
+		unittest.AssertExistsAndLoadBean(t, &tc.event)
+	}
 }

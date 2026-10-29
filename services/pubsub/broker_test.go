@@ -29,7 +29,6 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 		b := newBroker(t)
 		ch, cancel := b.Subscribe(t.Name())
 		defer cancel()
-		waitSubscribed(t, b, t.Name())
 
 		b.Publish(t.Name(), []byte("hello"))
 		assert.Equal(t, []byte("hello"), recvWithin(t, ch, recvTimeout))
@@ -44,7 +43,6 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 			defer cancel()
 			channels[i] = ch
 		}
-		waitSubscribed(t, b, t.Name()) // all local subscribers share one Redis SUBSCRIBE
 
 		b.Publish(t.Name(), []byte("broadcast"))
 		for i, ch := range channels {
@@ -59,8 +57,6 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 		defer cancelA()
 		chB, cancelB := b.Subscribe(topicB)
 		defer cancelB()
-		waitSubscribed(t, b, topicA)
-		waitSubscribed(t, b, topicB)
 
 		b.Publish(topicA, []byte("only-a"))
 		assert.Equal(t, []byte("only-a"), recvWithin(t, chA, recvTimeout))
@@ -100,7 +96,6 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 		defer cancelSlow()
 		fast, cancelFast := b.Subscribe(t.Name())
 		defer cancelFast()
-		waitSubscribed(t, b, t.Name())
 
 		// Drain fast concurrently so it keeps up while slow's buffer fills.
 		got := make(chan struct{}, 1)
@@ -145,23 +140,6 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 			t.Fatal("fast subscriber received nothing while slow subscriber stalled")
 		}
 	})
-}
-
-// waitSubscribed blocks until Redis registers the subscription, since
-// RedisBroker.Subscribe returns before the server acks SUBSCRIBE and a publish
-// right after it would race it. Topics are per-scenario, so any subscriber is
-// this one. No-op for MemoryBroker, which registers synchronously.
-func waitSubscribed(t *testing.T, b Broker, topic string) {
-	t.Helper()
-	rb, ok := b.(*RedisBroker)
-	if !ok {
-		return
-	}
-	channel := redisChannelForTopic(topic)
-	require.Eventually(t, func() bool {
-		res, err := rb.client.PubSubNumSub(t.Context(), channel).Result()
-		return err == nil && res[channel] > 0
-	}, 5*time.Second, 10*time.Millisecond, "redis did not register a subscriber on %q", topic)
 }
 
 // recvWithin returns the next message or fails if none arrives before timeout.

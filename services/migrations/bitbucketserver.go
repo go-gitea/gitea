@@ -113,7 +113,7 @@ type BitbucketServerDownloader struct {
 // NewBitbucketServerDownloader creates a Bitbucket Server downloader
 func NewBitbucketServerDownloader(_ context.Context, baseURL, username, password, token, projectKey, repoSlug string) *BitbucketServerDownloader {
 	return &BitbucketServerDownloader{
-		client:     getMigrationHTTPClient(),
+		client:     &http.Client{Transport: getMigrationTransport()}, // not retrying, callAPI retries rate limits itself
 		sleep:      bitbucketServerSleep,
 		baseURL:    strings.TrimSuffix(baseURL, "/"),
 		projectKey: projectKey,

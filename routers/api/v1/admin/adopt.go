@@ -38,8 +38,8 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StringSlice"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 	if listOptions.Page == 0 {
@@ -77,10 +77,8 @@ func AdoptRepository(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 	ownerName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
 
@@ -141,8 +139,8 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 	ownerName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
 
