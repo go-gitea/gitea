@@ -41,14 +41,21 @@ func init() {
 	db.RegisterModel(new(ActionSchedule))
 }
 
-// CreateScheduleTaskBySchedules creates new schedule task.
-func CreateScheduleTaskBySchedules(ctx context.Context, rows []*ActionSchedule) error {
-	// Return early if there are no rows to insert
-	if len(rows) == 0 {
-		return nil
-	}
-
+// ReplaceScheduleTasksByRepo replaces a repository's schedules with the ones given. A cron that is
+// still registered for the same workflow keeps its existing spec row, and with it the scheduler's
+// cursor: recomputing the cursor here would skip an occurrence that is due but not yet started.
+func ReplaceScheduleTasksByRepo(ctx context.Context, repoID int64, rows []*ActionSchedule) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		registered, err := scheduleSpecsByCron(ctx, repoID)
+		if err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Delete(&ActionSchedule{RepoID: repoID}); err != nil {
+			return err
+		}
+
+		var inUse []int64
+
 		// Loop through each schedule row
 		for _, row := range rows {
 			row.Title = util.EllipsisDisplayString(row.Title, 255)
@@ -61,6 +68,18 @@ func CreateScheduleTaskBySchedules(ctx context.Context, rows []*ActionSchedule) 
 			now := time.Now()
 
 			for _, spec := range row.Specs {
+				key := scheduleSpecKey{row.WorkflowID, spec}
+				if specRow, ok := registered[key]; ok {
+					// point the surviving row at the new schedule, writing nothing the scheduler owns
+					delete(registered, key)
+					specRow.ScheduleID = row.ID
+					if err := UpdateScheduleSpec(ctx, specRow, "schedule_id"); err != nil {
+						return err
+					}
+					inUse = append(inUse, specRow.ID)
+					continue
+				}
+
 				specRow := &ActionScheduleSpec{
 					RepoID:     row.RepoID,
 					ScheduleID: row.ID,
@@ -81,10 +100,54 @@ func CreateScheduleTaskBySchedules(ctx context.Context, rows []*ActionSchedule) 
 				if err = db.Insert(ctx, specRow); err != nil {
 					return err
 				}
+				inUse = append(inUse, specRow.ID)
 			}
+		}
+
+		// drop the specs this registration did not claim, including any left orphaned earlier
+		sess := db.GetEngine(ctx).Where("repo_id = ?", repoID)
+		if len(inUse) > 0 {
+			sess = sess.NotIn("id", inUse)
+		}
+		if _, err := sess.Delete(&ActionScheduleSpec{}); err != nil {
+			return err
 		}
 		return nil
 	})
+}
+
+type scheduleSpecKey struct {
+	workflowID string
+	spec       string
+}
+
+// scheduleSpecsByCron returns a repository's spec rows keyed by the workflow and cron they were
+// registered for, so a replacement can tell which of them are still in use.
+func scheduleSpecsByCron(ctx context.Context, repoID int64) (map[scheduleSpecKey]*ActionScheduleSpec, error) {
+	schedules, err := db.Find[ActionSchedule](ctx, FindScheduleOptions{RepoID: repoID})
+	if err != nil {
+		return nil, fmt.Errorf("scheduleSpecsByCron: %w", err)
+	}
+	if len(schedules) == 0 {
+		return map[scheduleSpecKey]*ActionScheduleSpec{}, nil
+	}
+
+	var specs []*ActionScheduleSpec
+	if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Find(&specs); err != nil {
+		return nil, fmt.Errorf("scheduleSpecsByCron: %w", err)
+	}
+
+	workflowIDs := make(map[int64]string, len(schedules))
+	for _, schedule := range schedules {
+		workflowIDs[schedule.ID] = schedule.WorkflowID
+	}
+	byCron := make(map[scheduleSpecKey]*ActionScheduleSpec, len(specs))
+	for _, spec := range specs {
+		if workflowID, ok := workflowIDs[spec.ScheduleID]; ok {
+			byCron[scheduleSpecKey{workflowID, spec.Spec}] = spec
+		}
+	}
+	return byCron, nil
 }
 
 func DeleteScheduleTaskByRepo(ctx context.Context, id int64) error {

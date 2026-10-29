@@ -601,18 +601,17 @@ func handleSchedules(
 		return nil
 	}
 
-	if count, err := db.Count[actions_model.ActionSchedule](ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
-		log.Error("CountSchedules: %v", err)
-		return err
-	} else if count > 0 {
-		// replacing the schedules leaves their in-progress runs alone, as GitHub does
-		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
-			log.Error("DeleteScheduleTaskByRepo: %v", err)
-		}
-	}
-
 	if len(detectedWorkflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find schedules", input.Repo.FullName(), commit.ID)
+		if count, err := db.Count[actions_model.ActionSchedule](ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
+			log.Error("CountSchedules: %v", err)
+			return err
+		} else if count > 0 {
+			// dropping the schedules leaves their in-progress runs alone, as GitHub does
+			if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
+				log.Error("DeleteScheduleTaskByRepo: %v", err)
+			}
+		}
 		return nil
 	}
 
@@ -654,7 +653,7 @@ func handleSchedules(
 		crons = append(crons, run)
 	}
 
-	return actions_model.CreateScheduleTaskBySchedules(ctx, crons)
+	return actions_model.ReplaceScheduleTasksByRepo(ctx, input.Repo.ID, crons)
 }
 
 // DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks
