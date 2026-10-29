@@ -30992,7 +30992,7 @@
           "x-go-name": "Name"
         },
         "properties": {
-          "description": "The type specific properties of the package file, e.g. the distribution and component of a Debian package",
+          "description": "The type specific properties locating the package file, e.g. the distribution and component of a Debian package",
           "type": "object",
           "additionalProperties": {
             "type": "string"

@@ -117,21 +117,19 @@ func TestPackageDebian(t *testing.T) {
 							assert.Equal(t, packageName, pd.Package.Name)
 							assert.Equal(t, packageVersion, pd.Version.Version)
 
-							// the files API exposes the file properties, which tell the distribution and component apart
 							req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/debian/%s/%s/files", user.Name, packageName, packageVersion)).
 								AddBasicAuth(user.Name)
-							resp := MakeRequest(t, req, http.StatusOK)
 							var apiFiles []*api.PackageFile
-							DecodeJSON(t, resp, &apiFiles)
-							foundProperties := false
-							for _, f := range apiFiles {
-								if f.Properties[debian_module.PropertyDistribution] == distribution &&
-									f.Properties[debian_module.PropertyComponent] == component &&
-									f.Properties[debian_module.PropertyArchitecture] == architecture {
-									foundProperties = true
-								}
+							DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &apiFiles)
+							var fileProperties []map[string]string
+							for _, apiFile := range apiFiles {
+								fileProperties = append(fileProperties, apiFile.Properties)
 							}
-							assert.True(t, foundProperties, "no file with distribution %s, component %s and architecture %s in %v", distribution, component, architecture, apiFiles)
+							assert.Contains(t, fileProperties, map[string]string{
+								debian_module.PropertyDistribution: distribution,
+								debian_module.PropertyComponent:    component,
+								debian_module.PropertyArchitecture: architecture,
+							})
 
 							pfs, err := packages.GetFilesByVersionID(t.Context(), pv.ID)
 							assert.NoError(t, err)

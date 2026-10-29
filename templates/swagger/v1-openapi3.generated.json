@@ -8510,7 +8510,7 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "The type specific properties of the package file, e.g. the distribution and component of a Debian package",
+            "description": "The type specific properties locating the package file, e.g. the distribution and component of a Debian package",
             "type": "object",
             "x-go-name": "Properties"
           },
