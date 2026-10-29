@@ -55,7 +55,7 @@ func TestRender_IssueList(t *testing.T) {
 </ul>`},
 		{
 			"IssueFootnote", "foo[^1][^2]\n\n[^1]: bar\n[^2]: baz",
-			`<p>foo<sup id="fnref:user-content-1-12345"><a href="#fn:user-content-1-12345" rel="nofollow">1 </a></sup><sup id="fnref:user-content-2-12345"><a href="#fn:user-content-2-12345" rel="nofollow">2 </a></sup></p>
+			`<p>foo<sup id="fnref:user-content-1-12345"><a href="#fn:user-content-1-12345" rel="nofollow">[1]</a></sup><sup id="fnref:user-content-2-12345"><a href="#fn:user-content-2-12345" rel="nofollow">[2]</a></sup></p>
 <div>
 <hr/>
 <ol>
