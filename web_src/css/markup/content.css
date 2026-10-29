@@ -524,3 +524,11 @@ the manually written code-block elements on "packages" pages don't have the cont
 .markup .auto-hide-control .ui.button:active {
   background: var(--color-secondary-dark-1) !important;
 }
+
+.markup .color-preview {
+  display: inline-block;
+  margin-left: 0.4em;
+  height: 0.67em;
+  width: 0.67em;
+  border-radius: var(--border-radius);
+}

@@ -461,58 +461,6 @@ a.label,
   color: var(--color-text) !important;
 }
 
-.color-preview {
-  display: inline-block;
-  margin-left: 0.4em;
-  height: 0.67em;
-  width: 0.67em;
-  border-radius: var(--border-radius);
-}
-
-.attention-header > p:first-child {
-  display: flex;
-  align-items: center;
-}
-
-.attention-icon {
-  margin-inline-end: 6px;
-}
-
-blockquote.attention-note {
-  border-left-color: var(--color-info-text);
-}
-strong.attention-note, svg.attention-note {
-  color: var(--color-info-text);
-}
-
-blockquote.attention-tip {
-  border-left-color: var(--color-success-text);
-}
-strong.attention-tip, svg.attention-tip {
-  color: var(--color-success-text);
-}
-
-blockquote.attention-important {
-  border-left-color: var(--color-priority-text);
-}
-strong.attention-important, svg.attention-important {
-  color: var(--color-priority-text);
-}
-
-blockquote.attention-warning {
-  border-left-color: var(--color-warning-text);
-}
-strong.attention-warning, svg.attention-warning {
-  color: var(--color-warning-text);
-}
-
-blockquote.attention-caution {
-  border-left-color: var(--color-error-text);
-}
-strong.attention-caution, svg.attention-caution {
-  color: var(--color-error-text);
-}
-
 /* FIXME: this is a longstanding dirty patch since 2015, it only makes the pages more messy and shouldn't be used */
 .center {
   text-align: center;
