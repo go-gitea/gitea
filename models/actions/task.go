@@ -23,18 +23,17 @@ import (
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 // ActionTask represents a distribution of job
 type ActionTask struct {
-	// RunnerID must stay declared before ID: xorm orders composite index columns by field order,
-	// and "WHERE runner_id=? ORDER BY id DESC" needs (runner_id, id)
-	RunnerID int64 `xorm:"index(runner_id_id)"`
-	ID       int64 `xorm:"pk autoincr index(runner_id_id)"`
+	ID       int64
 	JobID    int64
 	Job      *ActionRunJob     `xorm:"-"`
 	Steps    []*ActionTaskStep `xorm:"-"`
 	Attempt  int64
+	RunnerID int64
 	Status   Status             `xorm:"index"`
 	Started  timeutil.TimeStamp `xorm:"index"`
 	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
@@ -68,6 +67,15 @@ const taskReportTimeout = time.Minute
 
 func init() {
 	db.RegisterModel(new(ActionTask))
+}
+
+// TableIndices implements xorm's TableIndices interface
+func (*ActionTask) TableIndices() []*schemas.Index {
+	// "WHERE runner_id=? ORDER BY id DESC" needs (runner_id, id); it also serves plain runner_id lookups.
+	// xorm tags can't express it because they order composite columns by field order and ID comes first.
+	runnerIDIndex := schemas.NewIndex("runner_id_id", schemas.IndexType)
+	runnerIDIndex.AddColumn("runner_id", "id")
+	return []*schemas.Index{runnerIDIndex}
 }
 
 func (task *ActionTask) IsStopped() bool {
