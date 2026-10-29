@@ -185,6 +185,10 @@ var (
 	ProjectUpdate = define("project:update", "Updated project {project} in {scope}.")
 	ProjectDelete = define("project:delete", "Deleted project {project} from {scope}.")
 
+	ProjectWorkflowCreate = define("project:workflow:create", "Created workflow {workflow_id} for {event} in project {project} of {scope}.")
+	ProjectWorkflowUpdate = define("project:workflow:update", "Updated workflow {workflow_id} for {event} in project {project} of {scope}.")
+	ProjectWorkflowDelete = define("project:workflow:delete", "Deleted workflow {workflow_id} for {event} from project {project} of {scope}.")
+
 	WikiPageCreate = define("wiki:page:create", "Created wiki page {page} in repository {scope}.")
 	WikiPageUpdate = define("wiki:page:update", "Updated wiki page {page} in repository {scope}.")
 	WikiPageDelete = define("wiki:page:delete", "Deleted wiki page {page} from repository {scope}.")

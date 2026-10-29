@@ -21,99 +21,72 @@ func TestBleveIndexer(t *testing.T) {
 	tests.TestIndexer(t, indexer)
 }
 
-func TestBleveIndexerNoAssignee(t *testing.T) {
-	dir := t.TempDir()
-	indexer := NewIndexer(dir)
-	defer indexer.Close()
-
-	_, err := indexer.Init(t.Context())
-	require.NoError(t, err)
-
-	require.NoError(t, indexer.Index(t.Context(),
-		&internal.IndexerData{ID: 1, Title: "assigned through assignee_ids", AssigneeIDs: []int64{2}},
-		&internal.IndexerData{ID: 2, Title: "unassigned", NoAssignee: true},
-		&internal.IndexerData{ID: 3, Title: "assigned through multiple assignee_ids", AssigneeIDs: []int64{3, 4}},
-	))
-
-	testCases := []struct {
+func TestBleveIndexerSearch(t *testing.T) {
+	type searchCase struct {
 		name        string
 		opts        *internal.SearchOptions
 		expectedIDs []int64
+	}
+	for _, testCase := range []struct {
+		name       string
+		data       []*internal.IndexerData
+		searches   []searchCase
+		checkTotal bool
 	}{
 		{
-			name:        "none",
-			opts:        &internal.SearchOptions{AssigneeID: "(none)"},
-			expectedIDs: []int64{2},
+			name: "no assignee",
+			data: []*internal.IndexerData{
+				{ID: 1, Title: "assigned through assignee_ids", AssigneeIDs: []int64{2}},
+				{ID: 2, Title: "unassigned", NoAssignee: true},
+				{ID: 3, Title: "assigned through multiple assignee_ids", AssigneeIDs: []int64{3, 4}},
+			},
+			searches: []searchCase{
+				{"none", &internal.SearchOptions{AssigneeID: "(none)"}, []int64{2}},
+				{"any", &internal.SearchOptions{AssigneeID: "(any)"}, []int64{1, 3}},
+				{"specific", &internal.SearchOptions{AssigneeID: "2"}, []int64{1}},
+				{"specific first multi-assignee", &internal.SearchOptions{AssigneeID: "3"}, []int64{3}},
+				{"specific second multi-assignee", &internal.SearchOptions{AssigneeID: "4"}, []int64{3}},
+			},
+			checkTotal: true,
 		},
 		{
-			name:        "any",
-			opts:        &internal.SearchOptions{AssigneeID: "(any)"},
-			expectedIDs: []int64{1, 3},
+			name: "token filter",
+			data: []*internal.IndexerData{
+				{ID: 1, Title: "fix(packages): SomeThing needs a rewrite (#12345)"},
+				{ID: 2, Title: "add support for mDNS discovery abc1234"},
+			},
+			searches: []searchCase{
+				{"exact original case", &internal.SearchOptions{Keyword: "SomeThing"}, []int64{1}},
+				{"case matching original transitions", &internal.SearchOptions{Keyword: "someThing"}, []int64{1}},
+				{"all lower case", &internal.SearchOptions{Keyword: "something"}, []int64{1}},
+				{"all upper case", &internal.SearchOptions{Keyword: "SOMETHING"}, []int64{1}},
+				{"number match", &internal.SearchOptions{Keyword: "12345"}, []int64{1}},
+				{"number as part", &internal.SearchOptions{Keyword: "1234"}, []int64{2}},
+				{"sub-word search still works", &internal.SearchOptions{Keyword: "DNS"}, []int64{2}},
+				{"sub-word search, lower case", &internal.SearchOptions{Keyword: "mdns"}, []int64{2}},
+				{"keyword is camel case", &internal.SearchOptions{Keyword: "addSupport"}, []int64{2}},
+				{"keyword not match", &internal.SearchOptions{Keyword: "addsupport"}, []int64{}},
+			},
 		},
-		{
-			name:        "specific",
-			opts:        &internal.SearchOptions{AssigneeID: "2"},
-			expectedIDs: []int64{1},
-		},
-		{
-			name:        "specific first multi-assignee",
-			opts:        &internal.SearchOptions{AssigneeID: "3"},
-			expectedIDs: []int64{3},
-		},
-		{
-			name:        "specific second multi-assignee",
-			opts:        &internal.SearchOptions{AssigneeID: "4"},
-			expectedIDs: []int64{3},
-		},
-	}
-
-	for _, testCase := range testCases {
+	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			result, err := indexer.Search(t.Context(), testCase.opts)
+			indexer := NewIndexer(t.TempDir())
+			defer indexer.Close()
+
+			_, err := indexer.Init(t.Context())
 			require.NoError(t, err)
-			assert.Equal(t, int64(len(testCase.expectedIDs)), result.Total)
-			assert.ElementsMatch(t, testCase.expectedIDs, searchResultIDs(result))
-		})
-	}
-}
+			require.NoError(t, indexer.Index(t.Context(), testCase.data...))
 
-func TestBleveIndexerTokenFilter(t *testing.T) {
-	dir := t.TempDir()
-	indexer := NewIndexer(dir)
-	defer indexer.Close()
-
-	_, err := indexer.Init(t.Context())
-	require.NoError(t, err)
-
-	require.NoError(t, indexer.Index(t.Context(),
-		&internal.IndexerData{ID: 1, Title: "fix(packages): SomeThing needs a rewrite (#12345)"},
-		&internal.IndexerData{ID: 2, Title: "add support for mDNS discovery abc1234"},
-	))
-
-	testCases := []struct {
-		name        string
-		keyword     string
-		expectedIDs []int64
-	}{
-		{name: "exact original case", keyword: "SomeThing", expectedIDs: []int64{1}},
-		{name: "case matching original transitions", keyword: "someThing", expectedIDs: []int64{1}},
-		{name: "all lower case", keyword: "something", expectedIDs: []int64{1}},
-		{name: "all upper case", keyword: "SOMETHING", expectedIDs: []int64{1}},
-		{name: "number match", keyword: "12345", expectedIDs: []int64{1}},
-		{name: "number as part", keyword: "1234", expectedIDs: []int64{2}},
-		{name: "sub-word search still works", keyword: "DNS", expectedIDs: []int64{2}},
-		{name: "sub-word search, lower case", keyword: "mdns", expectedIDs: []int64{2}},
-		{name: "keyword is camel case", keyword: "addSupport", expectedIDs: []int64{2}},
-		{name: "keyword not match", keyword: "addsupport", expectedIDs: []int64{}},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			result, err := indexer.Search(t.Context(), &internal.SearchOptions{
-				Keyword: testCase.keyword,
-			})
-			require.NoError(t, err)
-			assert.ElementsMatch(t, testCase.expectedIDs, searchResultIDs(result))
+			for _, search := range testCase.searches {
+				t.Run(search.name, func(t *testing.T) {
+					result, err := indexer.Search(t.Context(), search.opts)
+					require.NoError(t, err)
+					if testCase.checkTotal {
+						assert.Equal(t, int64(len(search.expectedIDs)), result.Total)
+					}
+					assert.ElementsMatch(t, search.expectedIDs, searchResultIDs(result))
+				})
+			}
 		})
 	}
 }
