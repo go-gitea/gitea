@@ -9,12 +9,14 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIFollow(t *testing.T) {
@@ -41,6 +43,13 @@ func TestAPIFollow(t *testing.T) {
 		req = NewRequest(t, "PUT", "/api/v1/user/following/user2").
 			AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteUser))
 		MakeRequest(t, req, http.StatusForbidden)
+
+		// reserved users can't be followed
+		_, err := db.GetEngine(t.Context()).Insert(&user_model.User{Name: "reserved-user", LowerName: "reserved-user", Type: user_model.UserTypeUserReserved})
+		require.NoError(t, err)
+		req = NewRequest(t, "PUT", "/api/v1/user/following/reserved-user").
+			AddTokenAuth(token2)
+		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
 	t.Run("ListFollowing", func(t *testing.T) {
