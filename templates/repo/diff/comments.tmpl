@@ -60,7 +60,7 @@
 		</div>
 		<div class="ui attached segment comment-body">
 			{{$doerIsPoster := eq $signedUserID $comment.PosterID}}
-			<div class="render-content markup markup-body-background" {{if or $canWrite $doerIsPoster}}data-can-edit="true"{{end}}>
+			<div class="render-content markup" {{if or $canWrite $doerIsPoster}}data-can-edit="true"{{end}}>
 			{{if $comment.RenderedContent}}
 				{{$comment.RenderedContent}}
 			{{else}}

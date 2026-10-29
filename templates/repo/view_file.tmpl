@@ -95,7 +95,7 @@
 		{{if not .RenderAsMarkup}}
 			{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus}}
 		{{end}}
-		<div class="file-view {{if eq .RenderAsMarkup "markup-inplace"}}markup markup-body-background {{.MarkupType}}{{else if .IsPlainText}}plain-text{{else if .IsDisplayingSource}}code-view{{end}}">
+		<div class="file-view {{if eq .RenderAsMarkup "markup-inplace"}}markup {{.MarkupType}}{{else if .IsPlainText}}plain-text{{else if .IsDisplayingSource}}code-view{{end}}">
 			{{if .IsFileTooLarge}}
 				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
 			{{else if not .FileSize}}

@@ -318,13 +318,8 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   padding: 0; /* let the file-not-rendered-prompt layout itself */
 }
 
-/* lets images cover the heading borders and <hr> they float over */
-.markup-body-background :is(img, video) {
-  background: var(--color-box-body);
-}
-
-.markup table :is(img, video) {
-  background: none;
+.markup :is(h1, h2, hr) {
+  display: flow-root; /* keep borders clear of floated images */
 }
 
 .markup img[align="right"],
