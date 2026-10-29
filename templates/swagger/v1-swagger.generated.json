@@ -30948,8 +30948,7 @@
           "x-go-name": "ID"
         },
         "metadata": {
-          "description": "The type specific metadata of the version (e.g. author and summary of a PyPI package). It is only returned\nwhen a single version is requested, and only for the package types that publish it.",
-          "x-go-name": "Metadata"
+          "$ref": "#/definitions/PackageMetadata"
         },
         "name": {
           "description": "The name of the package",
@@ -30971,6 +30970,130 @@
           "description": "The version of the package",
           "type": "string",
           "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PackageCargoDependency": {
+      "description": "PackageCargoDependency represents a dependency of a Cargo package version",
+      "type": "object",
+      "properties": {
+        "default_features": {
+          "type": "boolean",
+          "x-go-name": "DefaultFeatures"
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Features"
+        },
+        "kind": {
+          "description": "The kind of the dependency: normal, dev or build",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "name": {
+          "description": "The name of the dependency as it is used in Cargo.toml",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "optional": {
+          "type": "boolean",
+          "x-go-name": "Optional"
+        },
+        "package": {
+          "description": "The real name of the crate if the dependency is renamed in Cargo.toml",
+          "type": "string",
+          "x-go-name": "Package"
+        },
+        "registry": {
+          "type": "string",
+          "x-go-name": "Registry"
+        },
+        "req": {
+          "description": "The version requirement",
+          "type": "string",
+          "x-go-name": "Req"
+        },
+        "target": {
+          "description": "The target the dependency is limited to, e.g. cfg(unix)",
+          "type": "string",
+          "x-go-name": "Target"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PackageCargoMetadata": {
+      "description": "PackageCargoMetadata represents the metadata of a Cargo package version",
+      "type": "object",
+      "properties": {
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Authors"
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Categories"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PackageCargoDependency"
+          },
+          "x-go-name": "Dependencies"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "documentation_url": {
+          "type": "string",
+          "x-go-name": "DocumentationURL"
+        },
+        "features": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "x-go-name": "Features"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Keywords"
+        },
+        "license": {
+          "type": "string",
+          "x-go-name": "License"
+        },
+        "links": {
+          "type": "string",
+          "x-go-name": "Links"
+        },
+        "project_url": {
+          "type": "string",
+          "x-go-name": "ProjectURL"
+        },
+        "readme": {
+          "type": "string",
+          "x-go-name": "Readme"
+        },
+        "repository_url": {
+          "type": "string",
+          "x-go-name": "RepositoryURL"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -31023,6 +31146,54 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Size"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PackageMetadata": {
+      "description": "PackageMetadata holds the metadata of a package version, in the field of its package type",
+      "type": "object",
+      "properties": {
+        "cargo": {
+          "$ref": "#/definitions/PackageCargoMetadata"
+        },
+        "pypi": {
+          "$ref": "#/definitions/PackagePyPIMetadata"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PackagePyPIMetadata": {
+      "description": "PackagePyPIMetadata represents the metadata of a PyPI package version",
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string",
+          "x-go-name": "Author"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "license": {
+          "type": "string",
+          "x-go-name": "License"
+        },
+        "long_description": {
+          "type": "string",
+          "x-go-name": "LongDescription"
+        },
+        "project_url": {
+          "type": "string",
+          "x-go-name": "ProjectURL"
+        },
+        "requires_python": {
+          "type": "string",
+          "x-go-name": "RequiresPython"
+        },
+        "summary": {
+          "type": "string",
+          "x-go-name": "Summary"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"

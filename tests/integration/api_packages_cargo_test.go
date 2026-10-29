@@ -20,11 +20,13 @@ import (
 	"gitea.dev/modules/json"
 	cargo_module "gitea.dev/modules/packages/cargo"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	cargo_router "gitea.dev/routers/api/packages/cargo"
 	cargo_service "gitea.dev/services/packages/cargo"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageCargo(t *testing.T) {
@@ -188,12 +190,21 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 			// the version endpoint publishes the metadata, so a client can publish the crate elsewhere
 			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/cargo/%s/%s", user.Name, packageName, packageVersion)).
 				AddBasicAuth(user.Name)
-			var apiPackage struct {
-				Metadata cargo_module.Metadata `json:"metadata"`
-			}
+			var apiPackage api.Package
 			DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &apiPackage)
-			assert.Equal(t, *pd.Metadata.(*cargo_module.Metadata), apiPackage.Metadata)
-			assert.NotEmpty(t, apiPackage.Metadata.Dependencies)
+			require.NotNil(t, apiPackage.Metadata)
+			require.NotNil(t, apiPackage.Metadata.Cargo)
+			assert.Nil(t, apiPackage.Metadata.PyPI)
+			stored := pd.Metadata.(*cargo_module.Metadata)
+			assert.Equal(t, stored.Description, apiPackage.Metadata.Cargo.Description)
+			assert.Equal(t, stored.Features, apiPackage.Metadata.Cargo.Features)
+			require.Len(t, apiPackage.Metadata.Cargo.Dependencies, len(stored.Dependencies))
+			assert.NotEmpty(t, apiPackage.Metadata.Cargo.Dependencies)
+			for i, d := range stored.Dependencies {
+				assert.Equal(t, d.Name, apiPackage.Metadata.Cargo.Dependencies[i].Name)
+				assert.Equal(t, d.Req, apiPackage.Metadata.Cargo.Dependencies[i].Req)
+				assert.Equal(t, d.Kind, apiPackage.Metadata.Cargo.Dependencies[i].Kind)
+			}
 
 			assert.Equal(t, packageName, pd.Package.Name)
 			assert.Equal(t, packageVersion, pd.Version.Version)

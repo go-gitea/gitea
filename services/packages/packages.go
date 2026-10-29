@@ -25,6 +25,7 @@ import (
 	packages_module "gitea.dev/modules/packages"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	api "gitea.dev/modules/structs"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -46,7 +47,7 @@ type Specialization interface {
 // publish the metadata of a version through the API (a single version only,
 // the list stays small).
 type PublicMetadataPublisher interface {
-	PublicMetadata(pd *packages_model.PackageDescriptor) any
+	PublicMetadata(pd *packages_model.PackageDescriptor) *api.PackageMetadata
 }
 
 // PackageInfo describes a package
