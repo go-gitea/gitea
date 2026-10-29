@@ -412,8 +412,7 @@ func buildApproveAndInsertRun(
 		IsScopedRun:       isScopedRun,
 	}
 
-	// merged pull requests keep the head, GitHub's base branch ref would vouch for the head's workflow file
-	if dwf.TriggerEvent.Name == actions_module.GithubEventPullRequest && input.PullRequest != nil && !input.PullRequest.HasMerged {
+	if dwf.TriggerEvent.Name == actions_module.GithubEventPullRequest && input.PullRequest != nil {
 		if input.mergeCommitID == nil {
 			mergeCommitID, err := pull_service.UpdateMergeRef(ctx, input.PullRequest, commit.ID.String())
 			if err != nil {

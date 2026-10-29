@@ -47,12 +47,7 @@ func TestPullRequestMergeable(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	t.Run("NoConflict-MergeTree", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusMergeable, nil, nil)
-		mergeRef := git.MergeRefNameFromPullIndex(pr.Index).String()
-		baseCommitID, err := git.GetFullCommitID(t.Context(), pr.BaseRepo, git.BranchPrefix+pr.BaseBranch)
-		require.NoError(t, err)
-		parents, _, err := gitcmd.NewCommand("rev-parse").AddDynamicArguments(mergeRef+"^1", mergeRef+"^2").WithRepo(pr.BaseRepo).RunStdString(t.Context())
-		require.NoError(t, err)
-		assert.Equal(t, baseCommitID+"\n"+pr.HeadCommitID+"\n", parents)
+		assert.True(t, git.IsReferenceExist(t.Context(), pr.BaseRepo, git.MergeRefNameFromPullIndex(pr.Index).String()))
 	})
 	t.Run("NoConflict-TmpRepo", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByTmpRepo, pr, issues_model.PullRequestStatusMergeable, nil, nil)

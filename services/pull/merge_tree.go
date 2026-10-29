@@ -22,8 +22,8 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 	if err != nil {
 		return false, fmt.Errorf("MergeTree: %w", err)
 	}
-	if pr.Index > 0 {
-		if _, err := updateMergeRef(ctx, pr, baseCommitID, pr.HeadCommitID, treeHash, conflict); err != nil {
+	if pr.Index > 0 && !conflict {
+		if _, err := updateMergeRef(ctx, pr, baseCommitID, pr.HeadCommitID, treeHash); err != nil {
 			log.Error("updateMergeRef for %-v: %v", pr, err)
 		}
 	}

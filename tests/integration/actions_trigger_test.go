@@ -1123,6 +1123,7 @@ jobs:
 		// closed
 		err = issue_service.CloseIssue(t.Context(), pullIssue, user2, "")
 		assert.NoError(t, err)
+		assert.False(t, git.IsReferenceExist(t.Context(), repo, git.MergeRefNameFromPullIndex(pullRequest.Index).String()))
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// reopened
@@ -1776,6 +1777,10 @@ jobs:
 		assert.Equal(t, actions_module.GithubEventPullRequest, actionRun.TriggerEvent)
 		assert.Equal(t, pullRequest.MergedCommitID, actionRun.CommitSHA)
 		assert.Empty(t, actionRun.MergeCommitSHA)
+		mergedCommitID, err := git.GetFullCommitID(t.Context(), baseRepo, git.MergedRefNameFromPullIndex(pullRequest.Index).String())
+		require.NoError(t, err)
+		assert.Equal(t, pullRequest.MergedCommitID, mergedCommitID)
+		assert.False(t, git.IsReferenceExist(t.Context(), baseRepo, git.MergeRefNameFromPullIndex(pullRequest.Index).String()))
 	})
 }
 

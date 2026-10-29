@@ -131,6 +131,11 @@ func syncGitConfig(ctx context.Context) (err error) {
 		}
 	}
 
+	// after the user's options which replace all values: internal refs only keep objects alive, clients can neither see nor push them
+	if err := configAddNonExist(ctx, "transfer.hideRefs", hiddenRefPrefix); err != nil {
+		return err
+	}
+
 	GlobalConfig = &GlobalConfigStruct{}
 	// HINT: GIT-DIFF-TREE-UI-CONFIG: Git's bug: git-diff-tree loads config with /* no "diff" UI options */ (since 20 years ago).
 	// https://github.com/git/git/blame/5d2e7709234afea1b6ddb25cd4f60d3d5fb3c200/builtin/diff-tree.c#L127

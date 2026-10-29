@@ -180,7 +180,7 @@ func (repo *Repository) searchCommits(ctx context.Context, id ObjectID, opts Sea
 	// https://git-scm.com/docs/git-log#Documentation/git-log.txt---all
 	// note this is done only for command created above
 	if opts.All {
-		cmd.AddArguments("--all")
+		cmd.AddArguments("--exclude="+PullPrefix+"*/merge", "--all")
 	}
 
 	// interpret search string keywords as string instead of regex
