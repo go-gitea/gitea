@@ -110,7 +110,7 @@ samp,
 
 mark {
   background: var(--color-highlight-bg);
-  color: var(--color-text);
+  color: inherit;
 }
 
 @font-face {
