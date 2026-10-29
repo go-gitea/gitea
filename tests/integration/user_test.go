@@ -134,6 +134,7 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	req = NewRequest(t, "GET", "/"+user31.Name)
 	MakeRequest(t, req, http.StatusNotFound)
 	MakeRequest(t, NewRequest(t, "GET", "/"+user31.Name).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/"+user31.Name+".keys"), http.StatusNotFound)
 	strangerSession.MakeRequest(t, NewRequest(t, "POST", "/"+user31.Name+"?action=follow"), http.StatusNotFound)
 
 	oldName = user31.Name
@@ -237,6 +238,7 @@ func testRenameReservedUsername(t *testing.T) {
 
 func testExportUserGPGKeys(t *testing.T) {
 	testExportUserGPGKeys := func(t *testing.T, user, expected string) {
+		t.Helper()
 		session := loginUser(t, user)
 		t.Logf("Testing username %s export gpg keys", user)
 		req := NewRequest(t, "GET", "/"+user+".gpg")
@@ -324,7 +326,7 @@ func testGetUserRss(t *testing.T) {
 	user34 := "the_34-user.with.all.allowedChars"
 	req := NewRequestf(t, "GET", "/%s.rss", user34)
 	resp := MakeRequest(t, req, http.StatusOK)
-	if assert.Equal(t, "application/rss+xml;charset=utf-8", resp.Header().Get("Content-Type")) {
+	if assert.Equal(t, "application/rss+xml; charset=utf-8", resp.Header().Get("Content-Type")) {
 		rssDoc := NewHTMLParser(t, resp.Body).Find("channel")
 		title, _ := rssDoc.ChildrenFiltered("title").Html()
 		assert.Equal(t, "Feed of &#34;the_1-user.with.all.allowedChars&#34;", title)
@@ -338,6 +340,8 @@ func testGetUserRss(t *testing.T) {
 	session := loginUser(t, "user2")
 	req = NewRequestf(t, "GET", "/non-existent-user.rss")
 	session.MakeRequest(t, req, http.StatusNotFound)
+
+	MakeRequest(t, NewRequest(t, "GET", "/").SetHeader("Accept", "application/rss+xml"), http.StatusUnsupportedMediaType)
 
 	defer test.MockVariableValue(&setting.Other.EnableFeed, false)()
 	MakeRequest(t, NewRequestf(t, "GET", "/%s.rss", user34), http.StatusNotFound)

@@ -10,64 +10,49 @@ import (
 )
 
 func Test_getStorageInheritNameSectionTypeForRepoArchive(t *testing.T) {
-	// packages storage inherits from storage if nothing configured
-	iniStr := `
+	for _, tc := range []struct {
+		ini, basePath string
+	}{
+		// packages storage inherits from storage if nothing configured
+		{`
 [storage]
 STORAGE_TYPE = minio
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
-
-	// we can also configure packages storage directly
-	iniStr = `
+`, "repo-archive/"},
+		// we can also configure packages storage directly
+		{`
 [storage.repo-archive]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
-
-	// or we can indicate the storage type in the packages section
-	iniStr = `
+`, "repo-archive/"},
+		// or we can indicate the storage type in the packages section
+		{`
 [repo-archive]
 STORAGE_TYPE = my_minio
 
 [storage.my_minio]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
-
-	// or we can indicate the storage type  and minio base path in the packages section
-	iniStr = `
+`, "repo-archive/"},
+		// or we can indicate the storage type  and minio base path in the packages section
+		{`
 [repo-archive]
 STORAGE_TYPE = my_minio
 MINIO_BASE_PATH = my_archive/
 
 [storage.my_minio]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
+`, "my_archive/"},
+	} {
+		cfg, err := NewConfigProviderFromData(tc.ini)
+		assert.NoError(t, err)
+		assert.NoError(t, loadRepoArchiveFrom(cfg))
 
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "my_archive/", RepoArchive.Storage.MinioConfig.BasePath)
+		assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
+		assert.Equal(t, tc.basePath, RepoArchive.Storage.MinioConfig.BasePath)
+	}
 }
 
 func Test_RepoArchiveStorage(t *testing.T) {
-	iniStr := `
+	for _, ini := range []string{
+		`
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [storage]
 STORAGE_TYPE            = minio
@@ -77,17 +62,8 @@ MINIO_LOCATION          = homenet
 MINIO_USE_SSL           = true
 MINIO_ACCESS_KEY_ID     = correct_key
 MINIO_SECRET_ACCESS_KEY = correct_key
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	storage := RepoArchive.Storage
-
-	assert.EqualValues(t, "minio", storage.Type)
-	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
-
-	iniStr = `
+`,
+		`
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [storage.repo-archive]
 STORAGE_TYPE = s3
@@ -99,13 +75,15 @@ MINIO_LOCATION          = homenet
 MINIO_USE_SSL           = true
 MINIO_ACCESS_KEY_ID     = correct_key
 MINIO_SECRET_ACCESS_KEY = correct_key
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
+`,
+	} {
+		cfg, err := NewConfigProviderFromData(ini)
+		assert.NoError(t, err)
 
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	storage = RepoArchive.Storage
+		assert.NoError(t, loadRepoArchiveFrom(cfg))
+		storage := RepoArchive.Storage
 
-	assert.EqualValues(t, "minio", storage.Type)
-	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
+		assert.EqualValues(t, "minio", storage.Type)
+		assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
+	}
 }

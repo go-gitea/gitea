@@ -69,17 +69,6 @@ func TestRender_Images(t *testing.T) {
 		"[!["+title+"]("+url+")]("+href+")",
 		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
-	render(
-		"!["+title+"]("+url+")",
-		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
-
-	render(
-		"[["+title+"|"+url+"]]",
-		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" title="`+title+`" alt="`+title+`"/></a></p>`)
-	render(
-		"[!["+title+"]("+url+")]("+href+")",
-		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
-
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, false)()
 	render(
 		"<a><img src='a.jpg'></a>", // by the way, empty "a" tag will be removed

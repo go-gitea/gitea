@@ -16,26 +16,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_ProcessAvatarPNG(t *testing.T) {
-	setting.Avatar.MaxWidth = 4096
-	setting.Avatar.MaxHeight = 4096
+func Test_ProcessAvatarFormats(t *testing.T) {
+	for _, format := range []string{"png", "jpeg"} {
+		t.Run(format, func(t *testing.T) {
+			setting.Avatar.MaxWidth = 4096
+			setting.Avatar.MaxHeight = 4096
 
-	data, err := os.ReadFile("testdata/avatar.png")
-	assert.NoError(t, err)
+			data, err := os.ReadFile("testdata/avatar." + format)
+			assert.NoError(t, err)
 
-	_, err = processAvatarImage(data, 262144)
-	assert.NoError(t, err)
-}
-
-func Test_ProcessAvatarJPEG(t *testing.T) {
-	setting.Avatar.MaxWidth = 4096
-	setting.Avatar.MaxHeight = 4096
-
-	data, err := os.ReadFile("testdata/avatar.jpeg")
-	assert.NoError(t, err)
-
-	_, err = processAvatarImage(data, 262144)
-	assert.NoError(t, err)
+			_, err = processAvatarImage(data, 262144)
+			assert.NoError(t, err)
+		})
+	}
 }
 
 func Test_ProcessAvatarInvalidData(t *testing.T) {
