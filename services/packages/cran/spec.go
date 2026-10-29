@@ -17,6 +17,12 @@ type Specialization struct {
 
 var _ packages_service.Specialization = (*Specialization)(nil)
 
+// PublicPropertyAliases exposes the R version under its correct name as well,
+// next to the misspelled stored one, which stays for existing clients.
+func (s Specialization) PublicPropertyAliases() map[string]string {
+	return map[string]string{cran_module.PropertyRVersion: cran_module.PropertyRVersionPublic}
+}
+
 // PublicPropertyNames are the properties that tell a source package from a
 // binary one and, for a binary, the platform and R version it was built for.
 func (s Specialization) PublicPropertyNames() []string {

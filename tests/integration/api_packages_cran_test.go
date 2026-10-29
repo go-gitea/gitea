@@ -177,7 +177,9 @@ func TestPackageCran(t *testing.T) {
 					assert.Equal(t, map[string]string{
 						cran_module.PropertyType:     cran_module.TypeBinary,
 						cran_module.PropertyPlatform: "windows",
-						cran_module.PropertyRVersion: "4.2",
+						// the misspelled stored name stays, the correct one is exposed next to it
+						cran_module.PropertyRVersion:       "4.2",
+						cran_module.PropertyRVersionPublic: "4.2",
 					}, f.Properties)
 				default:
 					assert.Fail(t, "unexpected file", f.Name)
