@@ -11,6 +11,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -645,6 +646,91 @@ func SubmitPullReview(ctx *context.APIContext) {
 	}
 
 	// convert response
+	apiReview, err := convert.ToPullReview(ctx, review, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiReview)
+}
+
+// UpdatePullReview updates the body of a submitted review
+func UpdatePullReview(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/pulls/{index}/reviews/{id} repository repoUpdatePullReview
+	// ---
+	// summary: Update the body of a submitted review
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/UpdatePullReviewOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReview"
+	//   default:
+	//     "$ref": "#/responses/error"
+
+	opts := web.GetForm[*api.UpdatePullReviewOptions](ctx)
+	review, _, isWrong := prepareSingleReview(ctx)
+	if isWrong {
+		return
+	}
+
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, review.Issue, review.ReviewerID, perm.AccessModeWrite) {
+		ctx.APIError(http.StatusForbidden, "no permission to update review")
+		return
+	}
+
+	comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{
+		Type:     issues_model.CommentTypeReview,
+		IssueID:  review.IssueID,
+		ReviewID: review.ID,
+	})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if review.Type == issues_model.ReviewTypePending || len(comments) == 0 {
+		ctx.APIError(http.StatusUnprocessableEntity, "only a submitted review can be updated")
+		return
+	}
+	comment := comments[len(comments)-1] // reviews created pending via the API also carry an earlier one
+
+	oldContent := comment.Content
+	comment.Content = opts.Body
+	if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+	review.Content = opts.Body
+
 	apiReview, err := convert.ToPullReview(ctx, review, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
