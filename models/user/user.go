@@ -441,6 +441,18 @@ func (u *User) IsIndividual() bool {
 	return u.ID > 0 && u.Type == UserTypeIndividual
 }
 
+// IsFollowable returns whether other users can follow this user (individuals, bots and organizations)
+func (u *User) IsFollowable() bool {
+	if u.ID <= 0 {
+		return false
+	}
+	switch u.Type {
+	case UserTypeIndividual, UserTypeBot, UserTypeOrganization:
+		return true
+	}
+	return false
+}
+
 // IsTypeBot returns whether the user is of type bot
 func (u *User) IsTypeBot() bool {
 	return u.Type == UserTypeBot

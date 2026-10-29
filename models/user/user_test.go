@@ -739,3 +739,17 @@ func TestCanCreateRepo(t *testing.T) {
 		assert.True(t, doerNormal.CanCreateRepoIn(orgOwner(10, 100)))
 	})
 }
+
+func TestUserIsFollowable(t *testing.T) {
+	for userType, expected := range map[user_model.UserType]bool{
+		user_model.UserTypeIndividual:           true,
+		user_model.UserTypeBot:                  true,
+		user_model.UserTypeOrganization:         true,
+		user_model.UserTypeUserReserved:         false,
+		user_model.UserTypeOrganizationReserved: false,
+		user_model.UserTypeRemoteUser:           false,
+	} {
+		assert.Equal(t, expected, (&user_model.User{ID: 1, Type: userType}).IsFollowable(), "type %d", userType)
+	}
+	assert.False(t, (&user_model.User{}).IsFollowable())
+}

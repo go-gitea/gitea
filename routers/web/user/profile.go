@@ -329,6 +329,11 @@ func ActionUserFollow(ctx *context.Context) {
 		return
 	}
 
+	if !ctx.ContextUser.IsFollowable() {
+		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
+		return
+	}
+
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
@@ -346,8 +351,7 @@ func ActionUserFollow(ctx *context.Context) {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
-	// Non-organization users render the same profile page, so they answer with the same card.
-	if !ctx.ContextUser.IsOrganization() {
+	if !isOrg { // followable non-organization users render the same profile page, so they answer with the same card
 		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
 		return
 	}
