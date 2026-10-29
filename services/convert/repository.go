@@ -108,6 +108,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	defaultSquashMergeMessage := repo_model.DefaultPullRequestsConfig().DefaultSquashMergeMessage
 	defaultAllowMaintainerEdit := false
 	defaultTargetBranch := ""
+	restrictPullsToCollaborators := false
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
@@ -127,6 +128,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		defaultSquashMergeMessage = config.DefaultSquashMergeMessage
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
 		defaultTargetBranch = config.DefaultTargetBranch
+		restrictPullsToCollaborators = config.RestrictToCollaborators
 	}
 	hasProjects := false
 	projectsMode := repo_model.ProjectsModeAll
@@ -256,6 +258,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		SquashMergeCommitMessage:      string(defaultSquashMergeMessage),
 		DefaultAllowMaintainerEdit:    defaultAllowMaintainerEdit,
 		DefaultTargetBranch:           defaultTargetBranch,
+		RestrictPullsToCollaborators:  restrictPullsToCollaborators,
 		AvatarURL:                     repo.AvatarLink(ctx),
 		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorLastSyncAt:              lastSync,

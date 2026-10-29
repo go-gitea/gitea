@@ -137,6 +137,7 @@ type RepoSettingForm struct {
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
 	DefaultTargetBranch              string
+	PullsRestrictToCollaborators     bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool

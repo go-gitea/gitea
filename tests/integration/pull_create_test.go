@@ -256,6 +256,37 @@ func TestPullCreatePrFromBaseToFork(t *testing.T) {
 	})
 }
 
+// Test checks that a non-collaborator fork owner cannot create a pull request
+// when the base repository restricts pull request creation to collaborators,
+// and that creation succeeds again once the restriction is lifted.
+func TestPullCreateRestrictToCollaborators(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// user4 is a non-admin, non-collaborator of user2/repo1
+		sessionFork := loginUser(t, "user4")
+		testRepoFork(t, sessionFork, "user2", "repo1", "user4", "repo1", "")
+		testEditFileToNewBranch(t, sessionFork, "user4", "repo1", "master", "restrict-branch", "README.md", "Hello, World (Edited)\n")
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		updateRepoPullRequestConfig(t, repo1.ID, func(c *repo_model.PullRequestsConfig) { c.RestrictToCollaborators = true })
+
+		testPullCreateFailure(t, sessionFork, "user2", "repo1", "master", "user4", "repo1", "restrict-branch", "This should be blocked")
+
+		updateRepoPullRequestConfig(t, repo1.ID, func(c *repo_model.PullRequestsConfig) { c.RestrictToCollaborators = false })
+
+		resp := testPullCreateDirectly(t, sessionFork, createPullRequestOptions{
+			BaseRepoOwner: "user2",
+			BaseRepoName:  "repo1",
+			BaseBranch:    "master",
+			HeadRepoOwner: "user4",
+			HeadRepoName:  "repo1",
+			HeadBranch:    "restrict-branch",
+			Title:         "This should succeed",
+		})
+		url := test.RedirectURL(resp)
+		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
+	})
+}
+
 func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user1")

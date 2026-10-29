@@ -683,6 +683,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultSquashMergeMessage:     util.IfZero(repo_model.SquashMergeMessage(form.PullsDefaultSquashMergeMessage), repo_model.DefaultPullRequestsConfig().DefaultSquashMergeMessage),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
+			RestrictToCollaborators:       form.PullsRestrictToCollaborators,
 		}
 		if err := prConfig.ValidateUpdateSettings(); err != nil {
 			ctx.JSONErrorAuto(err)

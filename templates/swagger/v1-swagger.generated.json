@@ -29273,6 +29273,11 @@
           "type": "string",
           "x-go-name": "ProjectsMode"
         },
+        "restrict_pulls_to_collaborators": {
+          "description": "either `true` to restrict pull request creation to collaborators only, or `false` to allow anyone with read access.",
+          "type": "boolean",
+          "x-go-name": "RestrictPullsToCollaborators"
+        },
         "squash_merge_commit_message": {
           "description": "set the default squash merge commit message body: \"PR_BODY\", \"COMMIT_MESSAGES\", or \"BLANK\".",
           "type": "string",
@@ -32961,6 +32966,10 @@
         },
         "repo_transfer": {
           "$ref": "#/definitions/RepoTransfer"
+        },
+        "restrict_pulls_to_collaborators": {
+          "type": "boolean",
+          "x-go-name": "RestrictPullsToCollaborators"
         },
         "size": {
           "type": "integer",

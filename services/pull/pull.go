@@ -76,6 +76,10 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		canAssignProject = canCreate
 
 		if !canCreate {
+			if repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().RestrictToCollaborators {
+				return issues_model.ErrMustCollaborator
+			}
+
 			// or user should have write permission in the head repo
 			if err := pr.LoadHeadRepo(ctx); err != nil {
 				return err

@@ -134,6 +134,7 @@ type PullRequestsConfig struct {
 	DefaultSquashMergeMessage     SquashMergeMessage
 	DefaultAllowMaintainerEdit    bool
 	DefaultTargetBranch           string
+	RestrictToCollaborators       bool
 }
 
 func DefaultPullRequestsConfig() *PullRequestsConfig {

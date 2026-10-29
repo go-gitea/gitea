@@ -2156,6 +2156,8 @@
   "repo.settings.pulls.default_target_branch_default": "Default branch (%s)",
   "repo.settings.pulls.default_delete_branch_after_merge": "Delete pull request branch after merge by default",
   "repo.settings.pulls.default_allow_edits_from_maintainers": "Allow edits from maintainers by default",
+  "repo.settings.pulls.restrict_to_collaborators": "Restrict pull request creation to collaborators",
+  "repo.settings.pulls.restrict_to_collaborators_desc": "Only collaborators of this repository will be able to create pull requests, including from their own forks.",
   "repo.settings.releases_desc": "Enable Repository Releases",
   "repo.settings.packages_desc": "Enable Repository Packages Registry",
   "repo.settings.projects_desc": "Enable Projects",

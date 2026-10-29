@@ -122,6 +122,7 @@ type Repository struct {
 	DefaultUpdateStyle            string           `json:"default_update_style"`
 	SquashMergeCommitMessage      string           `json:"squash_merge_commit_message"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
+	RestrictPullsToCollaborators  bool             `json:"restrict_pulls_to_collaborators"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
@@ -241,6 +242,8 @@ type EditRepoOption struct {
 	SquashMergeCommitMessage *string `json:"squash_merge_commit_message,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
+	// either `true` to restrict pull request creation to collaborators only, or `false` to allow anyone with read access.
+	RestrictPullsToCollaborators *bool `json:"restrict_pulls_to_collaborators,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time

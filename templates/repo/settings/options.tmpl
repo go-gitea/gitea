@@ -526,6 +526,12 @@
 					</div>
 					<div class="field{{if not $pullRequestEnabled}} disabled{{end}}" id="pull_box">
 						<div class="field">
+							<div class="ui checkbox">
+								<input name="pulls_restrict_to_collaborators" type="checkbox" {{if $prUnit.PullRequestsConfig.RestrictToCollaborators}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "repo.settings.pulls.restrict_to_collaborators"}}</label>
+							</div>
+						</div>
+						<div class="field">
 							<p>
 								{{ctx.Locale.Tr "repo.settings.merge_style_desc"}}
 							</p>

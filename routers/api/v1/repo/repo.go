@@ -893,6 +893,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			optional.AssignPtrValue(changed, &config.AllowRebaseUpdate, opts.AllowRebaseUpdate)
 			optional.AssignPtrValue(changed, &config.DefaultDeleteBranchAfterMerge, opts.DefaultDeleteBranchAfterMerge)
 			optional.AssignPtrValue(changed, &config.DefaultAllowMaintainerEdit, opts.DefaultAllowMaintainerEdit)
+			optional.AssignPtrValue(changed, &config.RestrictToCollaborators, opts.RestrictPullsToCollaborators)
 			optional.AssignPtrString(changed, &config.DefaultMergeStyle, opts.DefaultMergeStyle)
 			optional.AssignPtrString(changed, &config.DefaultUpdateStyle, opts.DefaultUpdateStyle)
 			optional.AssignPtrString(changed, &config.DefaultSquashMergeMessage, opts.SquashMergeCommitMessage)
