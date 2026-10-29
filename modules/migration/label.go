@@ -10,4 +10,5 @@ type Label struct {
 	Color       string `json:"color"`
 	Description string `json:"description"`
 	Exclusive   bool   `json:"exclusive"`
+	Archived    bool   `json:"archived"`
 }

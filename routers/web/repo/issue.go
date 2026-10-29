@@ -101,7 +101,7 @@ func MustEnableIssues(ctx *context.Context) {
 	unitExtTracker, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 	if err == nil {
 		extURL := unitExtTracker.ExternalTrackerConfig().ExternalTrackerURL
-		if extURL != "" {
+		if extURL != "" && !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
 			ctx.Redirect(extURL)
 			return
 		}

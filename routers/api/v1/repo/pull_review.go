@@ -58,8 +58,8 @@ func ListPullReviews(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReviewList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
@@ -137,8 +137,8 @@ func GetPullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	review, _, statusSet := prepareSingleReview(ctx)
 	if statusSet {
@@ -187,8 +187,8 @@ func GetPullReviewComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReviewCommentList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	review, _, statusSet := prepareSingleReview(ctx)
 	if statusSet {
@@ -245,14 +245,8 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullReviewComment"
-	//   "400":
-	//     "$ref": "#/responses/validationError"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.CreatePullReviewCommentReplyOptions](ctx)
 
@@ -318,12 +312,8 @@ func ResolvePullReviewComment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "400":
-	//     "$ref": "#/responses/validationError"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	updatePullReviewCommentResolve(ctx, true)
 }
 
@@ -354,12 +344,8 @@ func UnresolvePullReviewComment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "400":
-	//     "$ref": "#/responses/validationError"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	updatePullReviewCommentResolve(ctx, false)
 }
 
@@ -440,10 +426,8 @@ func DeletePullReview(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	review, _, statusSet := prepareSingleReview(ctx)
 	if statusSet {
@@ -499,12 +483,8 @@ func CreatePullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.CreatePullReviewOptions](ctx)
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
@@ -624,12 +604,8 @@ func SubmitPullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.SubmitPullReviewOptions](ctx)
 	review, pr, isWrong := prepareSingleReview(ctx)
@@ -789,10 +765,8 @@ func CreateReviewRequests(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullReviewList"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.PullReviewRequestOptions](ctx)
 	apiReviewRequest(ctx, *opts, true)
@@ -830,12 +804,8 @@ func DeleteReviewRequests(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	opts := web.GetForm[*api.PullReviewRequestOptions](ctx)
 	apiReviewRequest(ctx, *opts, false)
 }
@@ -1010,12 +980,8 @@ func DismissPullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	opts := web.GetForm[*api.DismissPullReviewOptions](ctx)
 	dismissReview(ctx, opts.Message, true, opts.Priors)
 }
@@ -1053,12 +1019,8 @@ func UnDismissPullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	dismissReview(ctx, "", false, false)
 }
 

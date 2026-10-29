@@ -39,75 +39,30 @@ func TestRelease_Create(t *testing.T) {
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v0.1",
-		Target:       "master",
-		Title:        "v0.1 is released",
-		Note:         "v0.1 is released",
-		IsDraft:      false,
-		IsPrerelease: false,
-		IsTag:        false,
-	}, nil, ""))
-
-	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v0.1.1",
-		Target:       "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		Title:        "v0.1.1 is released",
-		Note:         "v0.1.1 is released",
-		IsDraft:      false,
-		IsPrerelease: false,
-		IsTag:        false,
-	}, nil, ""))
-
-	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v0.1.2",
-		Target:       "65f1bf2",
-		Title:        "v0.1.2 is released",
-		Note:         "v0.1.2 is released",
-		IsDraft:      false,
-		IsPrerelease: false,
-		IsTag:        false,
-	}, nil, ""))
-
-	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v0.1.3",
-		Target:       "65f1bf2",
-		Title:        "v0.1.3 is released",
-		Note:         "v0.1.3 is released",
-		IsDraft:      true,
-		IsPrerelease: false,
-		IsTag:        false,
-	}, nil, ""))
-
-	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v0.1.4",
-		Target:       "65f1bf2",
-		Title:        "v0.1.4 is released",
-		Note:         "v0.1.4 is released",
-		IsDraft:      false,
-		IsPrerelease: true,
-		IsTag:        false,
-	}, nil, ""))
+	for _, testCase := range []struct {
+		tagName, target       string
+		isDraft, isPrerelease bool
+	}{
+		{"v0.1", "master", false, false},
+		{"v0.1.1", "65f1bf27bc3bf70f64657658635e66094edbcb4d", false, false},
+		{"v0.1.2", "65f1bf2", false, false},
+		{"v0.1.3", "65f1bf2", true, false},
+		{"v0.1.4", "65f1bf2", false, true},
+	} {
+		assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
+			RepoID:       repo.ID,
+			Repo:         repo,
+			PublisherID:  user.ID,
+			Publisher:    user,
+			TagName:      testCase.tagName,
+			Target:       testCase.target,
+			Title:        testCase.tagName + " is released",
+			Note:         testCase.tagName + " is released",
+			IsDraft:      testCase.isDraft,
+			IsPrerelease: testCase.isPrerelease,
+			IsTag:        false,
+		}, nil, ""))
+	}
 
 	testPlayload := "testtest"
 
@@ -328,76 +283,51 @@ func TestRelease_createTag(t *testing.T) {
 	defer timeutil.MockSet(fakeNow)()
 	advance := func() { fakeNow = fakeNow.Add(time.Second); timeutil.MockSet(fakeNow) }
 
-	// Test a changed release
-	release := &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v2.1.1",
-		Target:       "master",
-		Title:        "v2.1.1 is released",
-		Note:         "v2.1.1 is released",
-		IsDraft:      false,
-		IsPrerelease: false,
-		IsTag:        false,
+	for _, testCase := range []struct {
+		tagName, target, state string
+		isDraft, isPrerelease  bool
+	}{
+		// Test a changed release
+		{"v2.1.1", "master", "released", false, false},
+		// Test a changed draft
+		{"v2.2.1", "65f1bf2", "draft", true, false},
+		// Test a changed pre-release
+		{"v2.3.1", "65f1bf2", "pre-released", false, true},
+	} {
+		release := &repo_model.Release{
+			RepoID:       repo.ID,
+			Repo:         repo,
+			PublisherID:  user.ID,
+			Publisher:    user,
+			TagName:      testCase.tagName,
+			Target:       testCase.target,
+			Title:        testCase.tagName + " is " + testCase.state,
+			Note:         testCase.tagName + " is " + testCase.state,
+			IsDraft:      testCase.isDraft,
+			IsPrerelease: testCase.isPrerelease,
+			IsTag:        false,
+		}
+		_, err = createTag(t.Context(), gitRepo, release, "")
+		assert.NoError(t, err)
+		if !testCase.isDraft && !testCase.isPrerelease {
+			assert.NotEmpty(t, release.CreatedUnix)
+		}
+		releaseCreatedUnix := release.CreatedUnix
+		advance()
+		if testCase.isDraft || testCase.isPrerelease {
+			release.Title = "Changed title"
+		}
+		if !testCase.isDraft {
+			release.Note = "Changed note"
+		}
+		_, err = createTag(t.Context(), gitRepo, release, "")
+		assert.NoError(t, err)
+		if testCase.isDraft {
+			assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
+		} else {
+			assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
+		}
 	}
-	_, err = createTag(t.Context(), gitRepo, release, "")
-	assert.NoError(t, err)
-	assert.NotEmpty(t, release.CreatedUnix)
-	releaseCreatedUnix := release.CreatedUnix
-	advance()
-	release.Note = "Changed note"
-	_, err = createTag(t.Context(), gitRepo, release, "")
-	assert.NoError(t, err)
-	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
-
-	// Test a changed draft
-	release = &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v2.2.1",
-		Target:       "65f1bf2",
-		Title:        "v2.2.1 is draft",
-		Note:         "v2.2.1 is draft",
-		IsDraft:      true,
-		IsPrerelease: false,
-		IsTag:        false,
-	}
-	_, err = createTag(t.Context(), gitRepo, release, "")
-	assert.NoError(t, err)
-	releaseCreatedUnix = release.CreatedUnix
-	advance()
-	release.Title = "Changed title"
-	_, err = createTag(t.Context(), gitRepo, release, "")
-	assert.NoError(t, err)
-	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
-
-	// Test a changed pre-release
-	release = &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v2.3.1",
-		Target:       "65f1bf2",
-		Title:        "v2.3.1 is pre-released",
-		Note:         "v2.3.1 is pre-released",
-		IsDraft:      false,
-		IsPrerelease: true,
-		IsTag:        false,
-	}
-	_, err = createTag(t.Context(), gitRepo, release, "")
-	assert.NoError(t, err)
-	releaseCreatedUnix = release.CreatedUnix
-	advance()
-	release.Title = "Changed title"
-	release.Note = "Changed note"
-	_, err = createTag(t.Context(), gitRepo, release, "")
-	assert.NoError(t, err)
-	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 }
 
 func TestCreateNewTag(t *testing.T) {
