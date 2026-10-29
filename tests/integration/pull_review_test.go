@@ -30,6 +30,46 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestPullView_MergerAttribution(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pull.IssueID})
+	merger := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	require.NotEqual(t, issue.PosterID, merger.ID)
+
+	for _, tc := range []struct {
+		name           string
+		originalAuthor string
+		mergerID       int64
+		merged         bool
+		want, href     string
+	}{
+		{"external creator", "external-creator", merger.ID, true, merger.GetDisplayName(), merger.HomeLink()},
+		{"local creator", "", merger.ID, true, merger.GetDisplayName(), merger.HomeLink()},
+		{"ghost merger", "external-creator", user_model.GhostUserID, true, user_model.NewGhostUser().GetDisplayName(), ""},
+		{"no recorded merger, external creator", "external-creator", 0, true, user_model.NewGhostUser().GetDisplayName(), ""},
+		{"no recorded merger, local creator", "", 0, true, user_model.NewGhostUser().GetDisplayName(), ""},
+		{"unmerged external creator", "external-creator", 0, false, "external-creator", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			issue.OriginalAuthor = tc.originalAuthor
+			require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "original_author"))
+			pull.MergerID, pull.HasMerged = tc.mergerID, tc.merged
+			require.NoError(t, pull.UpdateCols(t.Context(), "merger_id", "has_merged"))
+
+			resp := MakeRequest(t, NewRequest(t, http.MethodGet, "/user2/repo1/pulls/2"), http.StatusOK)
+			header := NewHTMLParser(t, resp.Body).doc.Find(".issue-title-meta > .flex-text-block").First()
+			if tc.merged {
+				actor := header.ChildrenFiltered("a")
+				assert.Equal(t, tc.want, actor.Text())
+				assert.Equal(t, tc.href, actor.AttrOr("href", ""))
+			} else {
+				assert.True(t, strings.HasPrefix(strings.TrimSpace(header.Find("#pull-desc-display").Text()), tc.want))
+			}
+		})
+	}
+}
+
 func TestPullView_ReviewerMissed(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
