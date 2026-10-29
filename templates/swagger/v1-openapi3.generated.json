@@ -8462,6 +8462,10 @@
             "type": "integer",
             "x-go-name": "ID"
           },
+          "metadata": {
+            "description": "The type specific metadata of the version (e.g. author and summary of a PyPI package). It is only returned\nwhen a single version is requested, and only for the package types that publish it.",
+            "x-go-name": "Metadata"
+          },
           "name": {
             "description": "The name of the package",
             "type": "string",

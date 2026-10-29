@@ -28,6 +28,9 @@ type Package struct {
 	// swagger:strfmt date-time
 	// The date and time when the package was created
 	CreatedAt time.Time `json:"created_at"`
+	// The type specific metadata of the version (e.g. author and summary of a PyPI package). It is only returned
+	// when a single version is requested, and only for the package types that publish it.
+	Metadata any `json:"metadata,omitempty"`
 }
 
 // PackageFile represents a package file

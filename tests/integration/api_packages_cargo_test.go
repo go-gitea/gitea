@@ -184,6 +184,17 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 			assert.NoError(t, err)
 			assert.NotNil(t, pd.SemVer)
 			assert.IsType(t, &cargo_module.Metadata{}, pd.Metadata)
+
+			// the version endpoint publishes the metadata, so a client can publish the crate elsewhere
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/cargo/%s/%s", user.Name, packageName, packageVersion)).
+				AddBasicAuth(user.Name)
+			var apiPackage struct {
+				Metadata cargo_module.Metadata `json:"metadata"`
+			}
+			DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &apiPackage)
+			assert.Equal(t, *pd.Metadata.(*cargo_module.Metadata), apiPackage.Metadata)
+			assert.NotEmpty(t, apiPackage.Metadata.Dependencies)
+
 			assert.Equal(t, packageName, pd.Package.Name)
 			assert.Equal(t, packageVersion, pd.Version.Version)
 

@@ -42,6 +42,13 @@ type Specialization interface {
 	RenderSetupManual(ctx context.Context, pkg *packages_model.PackageDescriptor, viewData any) template.HTML
 }
 
+// PublicMetadataPublisher is implemented by a Specialization whose packages
+// publish the metadata of a version through the API (a single version only,
+// the list stays small).
+type PublicMetadataPublisher interface {
+	PublicMetadata(pd *packages_model.PackageDescriptor) any
+}
+
 // PackageInfo describes a package
 type PackageInfo struct {
 	Owner       *user_model.User

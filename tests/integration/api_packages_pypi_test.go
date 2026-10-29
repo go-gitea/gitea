@@ -98,6 +98,22 @@ func TestPackagePyPI(t *testing.T) {
 				metadata, ok := pd.Metadata.(*pypi.Metadata)
 				require.True(t, ok)
 				assert.Equal(t, projectURL, metadata.ProjectURL)
+
+				// the version endpoint publishes the metadata, the list does not
+				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/pypi/%s/%s", user.Name, packageName, packageVersion)).
+					AddBasicAuth(user.Name)
+				resp := MakeRequest(t, req, http.StatusOK)
+				var apiPackage struct {
+					Metadata pypi.Metadata `json:"metadata"`
+				}
+				DecodeJSON(t, resp, &apiPackage)
+				assert.Equal(t, *metadata, apiPackage.Metadata)
+				assert.Equal(t, packageAuthor, apiPackage.Metadata.Author)
+				assert.Equal(t, packageDescription, apiPackage.Metadata.Summary)
+
+				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?type=pypi", user.Name)).AddBasicAuth(user.Name)
+				resp = MakeRequest(t, req, http.StatusOK)
+				assert.NotContains(t, resp.Body.String(), `"metadata"`)
 			} else {
 				assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
 			}
