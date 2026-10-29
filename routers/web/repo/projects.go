@@ -488,7 +488,7 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		ctx.ServerError("GetIssueByID", err)
 		return
 	}
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.NotFound(nil)
 		return
 	}

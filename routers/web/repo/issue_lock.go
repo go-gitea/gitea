@@ -18,6 +18,10 @@ func LockIssue(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound(nil)
+		return
+	}
 
 	if issue.IsLocked {
 		ctx.JSONError(ctx.Tr("repo.issues.lock_duplicate"))
@@ -40,6 +44,10 @@ func LockIssue(ctx *context.Context) {
 func UnlockIssue(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
+		return
+	}
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound(nil)
 		return
 	}
 

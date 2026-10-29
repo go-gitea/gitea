@@ -15,7 +15,9 @@ import (
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/references"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/web"
 	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -174,7 +176,7 @@ func TestCombineLabelComments(t *testing.T) {
 	}
 }
 
-func TestUpdateIssueStatusRequiresItemUnitWrite(t *testing.T) {
+func TestIssueActionsRequireItemUnitWrite(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	// user4's team on org3/repo3 uses per-unit permissions: pull requests write, issues read
 	_, err := db.GetEngine(t.Context()).ID(2).Cols("authorize").Update(&organization.Team{AccessMode: perm.AccessModeNone})
@@ -197,4 +199,19 @@ func TestUpdateIssueStatusRequiresItemUnitWrite(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, closeIssues("12"))
 	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).IsClosed)
+
+	lockIssue := func(index string) int {
+		ctx, resp := contexttest.MockContext(t, "org3/repo3/issues/"+index+"/lock")
+		contexttest.LoadUser(t, ctx, 4)
+		contexttest.LoadRepo(t, ctx, 3)
+		ctx.SetPathParam("index", index)
+		web.SetForm(ctx, &forms.IssueLockForm{Reason: "Spam"})
+		LockIssue(ctx)
+		return resp.Code
+	}
+	assert.Equal(t, http.StatusNotFound, lockIssue("1"))
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6}).IsLocked)
+
+	assert.Equal(t, http.StatusOK, lockIssue("2"))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).IsLocked)
 }
