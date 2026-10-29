@@ -783,10 +783,10 @@ func ListActionTasks(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	listOptions := utils.GetListOptions(ctx)
 
-	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, &actions_model.FindTaskOptions{
+	tasks, total, err := actions_model.FindTasksWithCappedCount(ctx, actions_model.FindTaskOptions{
 		ListOptions: listOptions,
 		RepoID:      ctx.Repo.Repository.ID,
-	})
+	}, 0)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

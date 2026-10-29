@@ -27,12 +27,14 @@ import (
 
 // ActionTask represents a distribution of job
 type ActionTask struct {
-	ID       int64
+	// RunnerID must stay declared before ID: xorm orders composite index columns by field order,
+	// and "WHERE runner_id=? ORDER BY id DESC" needs (runner_id, id)
+	RunnerID int64 `xorm:"index(runner_id_id)"`
+	ID       int64 `xorm:"pk autoincr index(runner_id_id)"`
 	JobID    int64
 	Job      *ActionRunJob     `xorm:"-"`
 	Steps    []*ActionTaskStep `xorm:"-"`
 	Attempt  int64
-	RunnerID int64              `xorm:"index"`
 	Status   Status             `xorm:"index"`
 	Started  timeutil.TimeStamp `xorm:"index"`
 	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`

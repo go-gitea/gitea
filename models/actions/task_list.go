@@ -25,7 +25,8 @@ func (tasks TaskList) GetJobIDs() []int64 {
 func (tasks TaskList) LoadJobs(ctx context.Context) error {
 	jobIDs := tasks.GetJobIDs()
 	jobs := make(map[int64]*ActionRunJob, len(jobIDs))
-	if err := db.GetEngine(ctx).In("id", jobIDs).Find(&jobs); err != nil {
+	// workflow_payload can be large and is never needed when listing tasks
+	if err := db.GetEngine(ctx).In("id", jobIDs).Omit("workflow_payload").Find(&jobs); err != nil {
 		return err
 	}
 	for _, t := range tasks {
@@ -34,12 +35,29 @@ func (tasks TaskList) LoadJobs(ctx context.Context) error {
 		}
 	}
 
-	// TODO: Replace with "ActionJobList(maps.Values(jobs))" once available
-	var jobsList ActionJobList = make([]*ActionRunJob, 0, len(jobs))
+	// Load repos and runs here instead of via ActionJobList.LoadAttributes,
+	// so that the large event_payload column of the runs can be skipped.
+	jobsList := make(ActionJobList, 0, len(jobs))
 	for _, j := range jobs {
 		jobsList = append(jobsList, j)
 	}
-	return jobsList.LoadAttributes(ctx, true)
+	if err := jobsList.LoadRepos(ctx); err != nil {
+		return err
+	}
+	runIDs := jobsList.GetRunIDs()
+	runs := make(map[int64]*ActionRun, len(runIDs))
+	if err := db.GetEngine(ctx).In("id", runIDs).Omit("event_payload").Find(&runs); err != nil {
+		return err
+	}
+	for _, j := range jobsList {
+		if j.Run == nil {
+			j.Run = runs[j.RunID]
+		}
+		if j.Run != nil {
+			j.Run.Repo = j.Repo
+		}
+	}
+	return nil
 }
 
 func (tasks TaskList) LoadSteps(ctx context.Context) error {
@@ -112,4 +130,34 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 
 func (opts FindTaskOptions) ToOrders() string {
 	return "`id` DESC"
+}
+
+// FindTasksWithCappedCount finds a page of tasks for list pages. Unlike db.FindAndCount it skips the
+// potentially huge log_indexes column, and when maxCount > 0 the returned total never exceeds maxCount,
+// so a runner or repository with millions of tasks does not need a full COUNT(*).
+func FindTasksWithCappedCount(ctx context.Context, opts FindTaskOptions, maxCount int64) ([]*ActionTask, int64, error) {
+	cond := opts.ToConds()
+	sess := db.GetEngine(ctx).Where(cond).Omit("log_indexes").OrderBy(opts.ToOrders())
+	if !opts.IsListAll() && opts.GetPageSize() > 0 && opts.GetPage() >= 1 {
+		sess.Limit(opts.GetPageSize(), (opts.GetPage()-1)*opts.GetPageSize())
+	}
+	tasks := make([]*ActionTask, 0, max(opts.GetPageSize(), 0))
+	if err := sess.Find(&tasks); err != nil {
+		return nil, 0, err
+	}
+
+	if maxCount <= 0 {
+		total, err := db.GetEngine(ctx).Where(cond).Count(new(ActionTask))
+		return tasks, total, err
+	}
+	// a short first page already tells the exact total
+	if opts.GetPage() <= 1 && int64(len(tasks)) < int64(opts.GetPageSize()) {
+		return tasks, int64(len(tasks)), nil
+	}
+	// selecting at most maxCount ids is bounded by the limit and portable across databases
+	ids := make([]int64, 0, 64)
+	if err := db.GetEngine(ctx).Table("action_task").Where(cond).Cols("id").Limit(int(maxCount)).Find(&ids); err != nil {
+		return nil, 0, err
+	}
+	return tasks, int64(len(ids)), nil
 }
