@@ -41,6 +41,13 @@ func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_m
 
 // ToPackageFile converts packages.PackageFileDescriptor to api.PackageFile
 func ToPackageFile(pfd *packages.PackageFileDescriptor) *api.PackageFile {
+	var properties map[string]string
+	if len(pfd.Properties) > 0 {
+		properties = make(map[string]string, len(pfd.Properties))
+		for _, p := range pfd.Properties {
+			properties[p.Name] = p.Value
+		}
+	}
 	return &api.PackageFile{
 		ID:         pfd.File.ID,
 		Size:       pfd.Blob.Size,
@@ -49,5 +56,6 @@ func ToPackageFile(pfd *packages.PackageFileDescriptor) *api.PackageFile {
 		HashSHA1:   pfd.Blob.HashSHA1,
 		HashSHA256: pfd.Blob.HashSHA256,
 		HashSHA512: pfd.Blob.HashSHA512,
+		Properties: properties,
 	}
 }

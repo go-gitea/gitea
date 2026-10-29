@@ -8506,6 +8506,14 @@
             "type": "string",
             "x-go-name": "Name"
           },
+          "properties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The type specific properties of the package file, e.g. the distribution and component of a Debian package",
+            "type": "object",
+            "x-go-name": "Properties"
+          },
           "sha1": {
             "description": "The SHA1 hash of the package file",
             "type": "string",

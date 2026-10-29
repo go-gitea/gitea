@@ -19,6 +19,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	debian_module "gitea.dev/modules/packages/debian"
+	api "gitea.dev/modules/structs"
 	packages_cleanup_service "gitea.dev/services/packages/cleanup"
 	"gitea.dev/tests"
 
@@ -115,6 +116,22 @@ func TestPackageDebian(t *testing.T) {
 							assert.IsType(t, &debian_module.Metadata{}, pd.Metadata)
 							assert.Equal(t, packageName, pd.Package.Name)
 							assert.Equal(t, packageVersion, pd.Version.Version)
+
+							// the files API exposes the file properties, which tell the distribution and component apart
+							req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/debian/%s/%s/files", user.Name, packageName, packageVersion)).
+								AddBasicAuth(user.Name)
+							resp := MakeRequest(t, req, http.StatusOK)
+							var apiFiles []*api.PackageFile
+							DecodeJSON(t, resp, &apiFiles)
+							foundProperties := false
+							for _, f := range apiFiles {
+								if f.Properties[debian_module.PropertyDistribution] == distribution &&
+									f.Properties[debian_module.PropertyComponent] == component &&
+									f.Properties[debian_module.PropertyArchitecture] == architecture {
+									foundProperties = true
+								}
+							}
+							assert.True(t, foundProperties, "no file with distribution %s, component %s and architecture %s in %v", distribution, component, architecture, apiFiles)
 
 							pfs, err := packages.GetFilesByVersionID(t.Context(), pv.ID)
 							assert.NoError(t, err)
