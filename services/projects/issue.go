@@ -12,8 +12,10 @@ import (
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
+	issue_service "gitea.dev/services/issue"
 
 	"xorm.io/builder"
 )
@@ -76,8 +78,44 @@ func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *is
 	})
 }
 
-// MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
+// MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column,
+// then closes the moved issues if the project closes issues in that column
 func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
+	if err := moveIssuesOnProjectColumn(ctx, doer, column, sortedIssueIDs); err != nil {
+		return err
+	}
+	return closeIssuesInColumn(ctx, doer, column, sortedIssueIDs)
+}
+
+// closeIssuesInColumn applies the "card moved" workflow, failures are logged only as the move has already happened
+func closeIssuesInColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
+	w, err := project_model.GetEnabledWorkflow(ctx, column.ProjectID, project_model.WorkflowEventCardMoved)
+	if err != nil || w == nil || w.ColumnID != column.ID {
+		return err
+	}
+	issueIDs := make([]int64, 0, len(sortedIssueIDs))
+	for _, issueID := range sortedIssueIDs {
+		issueIDs = append(issueIDs, issueID)
+	}
+	issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
+	if err != nil {
+		return err
+	}
+	if _, err := issues.LoadRepositories(ctx); err != nil {
+		return err
+	}
+	for _, issue := range issues {
+		if issue.IsClosed {
+			continue
+		}
+		if err := issue_service.CloseIssue(ctx, issue, doer, ""); err != nil {
+			log.Error("CloseIssue: %v", err)
+		}
+	}
+	return nil
+}
+
+func moveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		issueIDs := make([]int64, 0, len(sortedIssueIDs))
 		for _, issueID := range sortedIssueIDs {
