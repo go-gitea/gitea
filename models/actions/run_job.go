@@ -25,7 +25,6 @@ import (
 
 // MaxJobNumPerRun is the maximum number of jobs in a single run.
 // https://docs.github.com/en/actions/reference/limits#existing-system-limits
-// TODO: check this limit when creating jobs
 const MaxJobNumPerRun = 256
 
 // ActionRunJob represents a job of a run
@@ -100,7 +99,7 @@ type ActionRunJob struct {
 
 	// IsReusableCaller marks this job as a reusable workflow caller.
 	// Caller jobs do not run on a runner; their status is derived from their child jobs.
-	IsReusableCaller bool `xorm:"index NOT NULL DEFAULT FALSE"`
+	IsReusableCaller bool `xorm:"NOT NULL DEFAULT FALSE"`
 	// IsExpanded reports whether this job's lazy expansion (children-row insertion) is complete.
 	// For a reusable workflow caller, true means children rows exist and CallPayload is populated.
 	IsExpanded bool `xorm:"NOT NULL DEFAULT FALSE"`
