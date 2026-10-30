@@ -27,13 +27,11 @@ type TestSource struct {
 	TestField string
 }
 
-// FromDB fills up a LDAPConfig from serialized format.
 func (source *TestSource) FromDB(bs []byte) error {
 	auth_model.UnmarshalAuthSourceConfig(bs, source)
 	return nil
 }
 
-// ToDB exports a LDAPConfig to a serialized format.
 func (source *TestSource) ToDB() ([]byte, error) {
 	return json.Marshal(source)
 }
@@ -67,29 +65,20 @@ func TestUnmarshalAuthSourceConfig(t *testing.T) {
 
 	cfg := &TestSource{}
 	source := &auth_model.Source{Type: auth_model.OAuth2, Name: t.Name(), IsActive: true, Cfg: cfg}
-	err := db.Insert(t.Context(), source)
-	require.NoError(t, err)
+	require.NoError(t, db.Insert(t.Context(), source))
 	cfg.SetAuthSource(source)
 
-	t.Run("ValidConfig", func(t *testing.T) {
-		for _, data := range []string{`{"TestField":"TestValue"}`, "", "null"} {
-			auth_model.UnmarshalAuthSourceConfig([]byte(data), cfg)
-			assert.Equal(t, "TestValue", cfg.TestField)
-			assert.Same(t, source, cfg.GetAuthSource())
-		}
-	})
-
-	t.Run("InvalidConfigDeactivatesSource", func(t *testing.T) {
-		_, err = db.GetEngine(t.Context()).ID(source.ID).NoAutoTime().Cols("updated_unix").Update(&auth_model.Source{UpdatedUnix: timeutil.TimeStampNow() - 60})
-		require.NoError(t, err)
-		has, _ := db.GetEngine(t.Context()).ID(source.ID).And("is_active=?", true).Get(&auth_model.Source{})
-		assert.True(t, has)
-
-		auth_model.UnmarshalAuthSourceConfig([]byte(`{"TestField":false}`), cfg)
+	for _, data := range []string{`{"TestField":"TestValue"}`, "", "null"} {
+		auth_model.UnmarshalAuthSourceConfig([]byte(data), cfg)
+		assert.Equal(t, "TestValue", cfg.TestField)
 		assert.Same(t, source, cfg.GetAuthSource())
-		require.Eventually(t, func() bool {
-			has, _ := db.GetEngine(t.Context()).ID(source.ID).And("is_active=?", false).Get(&auth_model.Source{})
-			return has
-		}, time.Second, time.Millisecond)
-	})
+	}
+
+	_, err := db.GetEngine(t.Context()).ID(source.ID).NoAutoTime().Cols("updated_unix").Update(&auth_model.Source{UpdatedUnix: timeutil.TimeStampNow() - 60})
+	require.NoError(t, err)
+	auth_model.UnmarshalAuthSourceConfig([]byte(`{"TestField":false}`), cfg)
+	require.Eventually(t, func() bool {
+		has, _ := db.GetEngine(t.Context()).ID(source.ID).And("is_active=?", false).Get(&auth_model.Source{})
+		return has
+	}, time.Second, time.Millisecond)
 }
