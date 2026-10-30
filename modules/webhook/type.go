@@ -37,9 +37,10 @@ const (
 	// FIXME: This event should be a group of pull_request_review_xxx events
 	HookEventPullRequestReview HookEventType = "pull_request_review"
 	// Actions event only
-	HookEventSchedule    HookEventType = "schedule"
-	HookEventWorkflowRun HookEventType = "workflow_run"
-	HookEventWorkflowJob HookEventType = "workflow_job"
+	HookEventSchedule         HookEventType = "schedule"
+	HookEventWorkflowDispatch HookEventType = "workflow_dispatch"
+	HookEventWorkflowRun      HookEventType = "workflow_run"
+	HookEventWorkflowJob      HookEventType = "workflow_job"
 )
 
 func AllEvents() []HookEventType {

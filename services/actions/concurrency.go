@@ -12,6 +12,7 @@ import (
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -29,7 +30,7 @@ func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 	actionsRunCtx := GenerateGiteaContext(ctx, run, attempt, nil)
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	if inputs == nil {
-		if run.Event == "workflow_dispatch" {
+		if run.Event == webhook_module.HookEventWorkflowDispatch {
 			setting.PanicInDevOrTesting("run %d: workflow_dispatch inputs must be resolved by the caller", run.ID)
 		}
 		inputs = map[string]any{}

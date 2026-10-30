@@ -158,7 +158,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	return MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts), nil
 }
 
-// GetLatestPullCommitStatuses returns a pull request head commit's latest statuses without workflow_dispatch runs', which don't count for pull requests, as on GitHub
+// GetLatestPullCommitStatuses returns a pull request head commit's latest statuses without workflow_dispatch runs', which don't count for pull requests
 func GetLatestPullCommitStatuses(ctx context.Context, repoID int64, sha string) ([]*git_model.CommitStatus, error) {
 	statuses, err := git_model.GetLatestCommitStatus(ctx, repoID, sha, db.ListOptionsAll)
 	return slices.DeleteFunc(statuses, func(status *git_model.CommitStatus) bool {
