@@ -164,14 +164,15 @@ func retrieveProjectsInternal(ctx *context.Context, repo *repo_model.Repository)
 }
 
 // GetActionIssue will return the issue which is used in the context.
-func GetActionIssue(ctx *context.Context) *issues_model.Issue {
+func GetActionIssue(ctx *context.Context, accessModeOpt ...perm.AccessMode) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
 		return nil
 	}
 	issue.Repo = ctx.Repo.Repository
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+	accessMode := util.OptionalArg(accessModeOpt, perm.AccessModeRead)
+	if !ctx.Repo.Permission.CanAccess(accessMode, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues)) {
 		ctx.NotFound(nil)
 		return nil
 	}
