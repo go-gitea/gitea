@@ -148,6 +148,29 @@ func TestGithubGetAllCommentsSkipsEmptyReactionsAndRecordsRateLimit(t *testing.T
 	assert.Zero(t, downloader.rates[0].Remaining)
 }
 
+func TestGithubGetIssueRecoversIssueOmittedFromList(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v3/repos/o/r/issues/123":
+			_, _ = w.Write([]byte(`{"number":123,"title":"recovered issue","user":{"id":1,"login":"user"},"created_at":"2024-08-12T08:38:46Z","updated_at":"2025-01-21T10:05:11Z","state":"closed"}`))
+		case "/api/v3/repos/o/r/issues/123/reactions":
+			_, _ = w.Write([]byte(`[]`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+	require.NoError(t, err)
+
+	issue, err := downloader.GetIssue(t.Context(), 123)
+	require.NoError(t, err)
+	assert.EqualValues(t, 123, issue.Number)
+	assert.Equal(t, "recovered issue", issue.Title)
+}
+
 func TestGitHubDownloadRepo(t *testing.T) {
 	token := os.Getenv("GITHUB_READ_TOKEN")
 	liveMode := token != ""

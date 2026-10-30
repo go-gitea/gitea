@@ -445,40 +445,11 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 		if issue.IsPullRequest() {
 			continue
 		}
-
-		labels := make([]*base.Label, 0, len(issue.Labels))
-		for _, l := range issue.Labels {
-			labels = append(labels, convertGithubLabel(l))
-		}
-
-		reactions, err := g.getIssueReactions(ctx, issue.GetNumber(), perPage, issue.Reactions)
+		converted, err := g.convertGithubIssue(ctx, issue, perPage)
 		if err != nil {
 			return nil, false, err
 		}
-
-		var assignees []string
-		for i := range issue.Assignees {
-			assignees = append(assignees, issue.Assignees[i].GetLogin())
-		}
-
-		allIssues = append(allIssues, &base.Issue{
-			Title:        *issue.Title,
-			Number:       int64(*issue.Number),
-			PosterID:     issue.GetUser().GetID(),
-			PosterName:   issue.GetUser().GetLogin(),
-			PosterEmail:  issue.GetUser().GetEmail(),
-			Content:      issue.GetBody(),
-			Milestone:    issue.GetMilestone().GetTitle(),
-			State:        issue.GetState(),
-			Created:      issue.GetCreatedAt().Time,
-			Updated:      issue.GetUpdatedAt().Time,
-			Labels:       labels,
-			Reactions:    reactions,
-			Closed:       issue.ClosedAt.GetTime(),
-			IsLocked:     issue.GetLocked(),
-			Assignees:    assignees,
-			ForeignIndex: int64(*issue.Number),
-		})
+		allIssues = append(allIssues, converted)
 	}
 
 	g.issuePage, g.issueCursor, g.nextIssueCursor = page, opt.After, resp.After
@@ -490,6 +461,83 @@ func (g *GithubDownloaderV3) isLastPage(resp *github.Response, n, perPage int) b
 		return n < perPage
 	}
 	return resp.NextPage == 0 && resp.After == ""
+}
+
+func (g *GithubDownloaderV3) convertGithubIssue(ctx context.Context, issue *github.Issue, perPage int) (*base.Issue, error) {
+	labels := make([]*base.Label, 0, len(issue.Labels))
+	for _, l := range issue.Labels {
+		labels = append(labels, convertGithubLabel(l))
+	}
+
+	// get reactions
+	var reactions []*base.Reaction
+	if !g.SkipReactions && (issue.Reactions == nil || issue.Reactions.TotalCount == nil || issue.Reactions.GetTotalCount() > 0) {
+		for i := 1; ; i++ {
+			g.waitAndPickClient(ctx)
+			res, resp, err := g.getClient().Reactions.ListIssueReactions(ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListReactionOptions{
+				ListOptions: github.ListOptions{
+					Page:    i,
+					PerPage: perPage,
+				},
+			})
+			g.setRateFromResponse(resp)
+			if err != nil {
+				return nil, err
+			}
+			if len(res) == 0 {
+				break
+			}
+			for _, reaction := range res {
+				reactions = append(reactions, &base.Reaction{
+					UserID:   reaction.User.GetID(),
+					UserName: reaction.User.GetLogin(),
+					Content:  reaction.GetContent(),
+				})
+			}
+		}
+	}
+
+	var assignees []string
+	for i := range issue.Assignees {
+		assignees = append(assignees, issue.Assignees[i].GetLogin())
+	}
+
+	return &base.Issue{
+		Title:        issue.GetTitle(),
+		Number:       int64(issue.GetNumber()),
+		PosterID:     issue.GetUser().GetID(),
+		PosterName:   issue.GetUser().GetLogin(),
+		PosterEmail:  issue.GetUser().GetEmail(),
+		Content:      issue.GetBody(),
+		Milestone:    issue.GetMilestone().GetTitle(),
+		State:        issue.GetState(),
+		Created:      issue.GetCreatedAt().Time,
+		Updated:      issue.GetUpdatedAt().Time,
+		Labels:       labels,
+		Reactions:    reactions,
+		Closed:       issue.ClosedAt.GetTime(),
+		IsLocked:     issue.GetLocked(),
+		Assignees:    assignees,
+		ForeignIndex: int64(issue.GetNumber()),
+	}, nil
+}
+
+// GetIssue recovers an issue omitted from the repository listing.
+func (g *GithubDownloaderV3) GetIssue(ctx context.Context, number int64) (*base.Issue, error) {
+	ctx = withGithubRateLimitWait(ctx)
+	g.waitAndPickClient(ctx)
+	issue, resp, err := g.getClient().Issues.Get(ctx, g.repoOwner, g.repoName, int(number))
+	g.setRateFromResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+	if issue.IsPullRequest() {
+		return nil, fmt.Errorf("issue %d is a pull request", number)
+	}
+	if int64(issue.GetNumber()) != number {
+		return nil, fmt.Errorf("GitHub returned issue %d while recovering issue %d", issue.GetNumber(), number)
+	}
+	return g.convertGithubIssue(ctx, issue, g.maxPerPage)
 }
 
 // SupportGetRepoComments return true if it supports get repo comments
