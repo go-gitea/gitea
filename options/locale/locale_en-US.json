@@ -1793,7 +1793,6 @@
   "repo.pulls.show_changes_since_your_last_review": "Show changes since your last review",
   "repo.pulls.showing_specified_commit_range": "Showing only changes between %[1]s..%[2]s",
   "repo.pulls.select_commit_hold_shift_for_range": "Select commit. Hold Shift and click to select a range.",
-  "repo.pulls.review_not_possible_for_commit_range": "Review is not possible when viewing a commit range",
   "repo.pulls.commit_position": "Commit %[1]d of %[2]d",
   "repo.pulls.previous_commit": "Previous commit",
   "repo.pulls.next_commit": "Next commit",

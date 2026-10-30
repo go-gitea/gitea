@@ -29,7 +29,6 @@ const elMount = document.querySelector('#diff-commit-select')!;
 const queryParams = elMount.getAttribute('data-queryparams');
 const issueLink = elMount.getAttribute('data-issuelink');
 const mergeBase = elMount.getAttribute('data-merge-base');
-// the diff on screen covers (beforeCommit, afterCommit], both unset when showing all commits
 const beforeCommit = elMount.getAttribute('data-before-commit');
 const afterCommit = elMount.getAttribute('data-after-commit');
 const uniqueIdMenu = generateElemId('diff-commit-selector-menu-');
@@ -41,7 +40,7 @@ const locale = shallowRef<Record<string, string>>({filter_changes_by_commit: elM
 const commits = ref<Array<Commit>>([]); // deep, the commit objects are mutated in place
 const hoverActivated = shallowRef(false);
 const lastReviewCommitSha = shallowRef<string | null>(null);
-const activeRange = shallowRef<[number, number] | null>(null); // inclusive indexes into commits
+const activeRange = shallowRef<[number, number] | null>(null);
 
 function isActive(idx: number) {
   return activeRange.value !== null && activeRange.value[0] <= idx && idx <= activeRange.value[1];
@@ -149,9 +148,8 @@ async function toggleMenu() {
   nextTick(() => {
     if (menuVisible.value) {
       focusElem(elShowAllChanges.value, elExpandBtn.value);
-      // scroll the menu itself, scrollIntoView would also move the page when the menu overflows the viewport
       const elActive = elMenu.value.querySelector<HTMLElement>('.item.active');
-      if (elActive) elMenu.value.scrollTop = elActive.offsetTop - elMenu.value.clientHeight / 2;
+      if (elActive) elMenu.value.scrollTop = elActive.offsetTop - elMenu.value.clientHeight / 2; // scrollIntoView would also scroll the page
     } else {
       focusElem(elExpandBtn.value, elShowAllChanges.value);
     }
@@ -173,8 +171,7 @@ async function fetchCommits() {
   }
   locale.value = {...locale.value, ...results.locale};
   const end = commits.value.findIndex((x) => x.id === afterCommit);
-  // beforeCommit is the merge base or the parent of the first commit when it is not in the list
-  if (end >= 0) activeRange.value = [commits.value.findIndex((x) => x.id === beforeCommit) + 1, end];
+  if (end >= 0) activeRange.value = [commits.value.findIndex((x) => x.id === beforeCommit) + 1, end]; // starts at 0 when beforeCommit is outside the list
 }
 
 function showAllChanges() {

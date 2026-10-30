@@ -678,7 +678,6 @@ func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
 	return nil
 }
 
-// setSingleCommitNavContext exposes the reviewed commit and its neighbors.
 func setSingleCommitNavContext(ctx *context.Context, commits []*git.Commit, commit *git.Commit) {
 	idx := slices.IndexFunc(commits, func(c *git.Commit) bool { return bytes.Equal(c.ID.RawValue(), commit.ID.RawValue()) })
 	if idx < 0 {
@@ -686,10 +685,9 @@ func setSingleCommitNavContext(ctx *context.Context, commits []*git.Commit, comm
 	}
 
 	ctx.Data["SingleCommit"] = commit
-	ctx.Data["SingleCommitIndex"] = len(commits) - idx
+	ctx.Data["SingleCommitIndex"] = len(commits) - idx // commits are newest-first
 	ctx.Data["SingleCommitCount"] = len(commits)
 
-	// The commit list is newest-first while a reviewer walks it oldest-first, so the indexes are mirrored.
 	if idx+1 < len(commits) {
 		ctx.Data["SingleCommitPrevID"] = commits[idx+1].ID.String()
 	}
@@ -725,17 +723,11 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	headCommitID := prCompareInfo.HeadCommitID
-	// show all commits when:
-	// * both before and after commit IDs are empty (default view)
-	// * before commit ID is the PR's base commit and after commit ID is the PR's head commit (default view)
-	// * there is only one commit in the PR and after commit ID is the PR's head commit (single-commit view)
 	isShowAllCommits := (beforeCommitID == "" && afterCommitID == "") ||
 		(beforeCommitID == prCompareInfo.CompareBase && afterCommitID == headCommitID) ||
-		len(prCompareInfo.Commits) == 1 && afterCommitID == headCommitID
+		(beforeCommitID == "" && afterCommitID == headCommitID && len(prCompareInfo.Commits) == 1) // the only commit is the full diff
 	isSingleCommit := beforeCommitID == "" && afterCommitID != "" && !isShowAllCommits
 
-	// it's questionable why single commit review can be submitted, but the range commits review cannot be submitted
-	ctx.Data["CanSubmitReview"] = isShowAllCommits || isSingleCommit
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 
 	// "commits list" is half-open, half-closed: (base, head]
@@ -750,6 +742,10 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 			ctx.ServerError("GetCommit(afterCommitID)", err)
 			return
 		}
+	}
+	if afterCommit == nil && isSingleCommit {
+		ctx.Redirect(ctx.Repo.RepoLink + "/commit/" + afterCommitID) // timeline commits outlive force pushes
+		return
 	}
 	if afterCommit == nil {
 		ctx.NotFound(nil)
@@ -784,7 +780,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["CompareInfo"] = prCompareInfo
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
-	ctx.Data["ReviewCommitID"] = afterCommitID // the review happens on the "after commit" (the latest commit in the range)
 
 	if isSingleCommit {
 		setSingleCommitNavContext(ctx, prCompareInfo.Commits, afterCommit)
