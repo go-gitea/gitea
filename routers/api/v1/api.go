@@ -1726,7 +1726,7 @@ func Routes() *web.Router {
 			addActionsRoutes(
 				m,
 				reqOrgMembership(),
-				reqOrgOwnership(),
+				reqOrgActionsManagement(),
 				org.NewAction(),
 			)
 			m.Group("/public_members", func() {
