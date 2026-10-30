@@ -54,12 +54,8 @@ func AddEmail(ctx *context.APIContext) {
 	// responses:
 	//   '201':
 	//     "$ref": "#/responses/EmailList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
 		ctx.APIErrorNotFound("emails are not allowed to be changed")
@@ -105,8 +101,8 @@ func DeleteEmail(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
 		ctx.APIErrorNotFound("emails are not allowed to be changed")

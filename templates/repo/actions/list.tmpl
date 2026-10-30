@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 
-{{$showCreateWorkflowBadge := Iif .WorkflowBadge true false}}
-{{$showEnableDisableWorkflow := and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
+{{$showCreateWorkflowBadge := and .WorkflowBadge (not .CurWorkflowIsReusable)}}
+{{$showEnableDisableWorkflow := and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow (or (not .CurWorkflowIsReusable) .CurWorkflowDisabled)}}
 
 <div class="page-content repository actions">
 	{{template "repo/header" .}}
@@ -101,7 +101,7 @@
 				{{end}}
 
 				<div class="ui attached segment">
-					{{template "repo/actions/runs_list" dict "ActionRunListData" $.ActionRunListData}}
+					{{template "repo/actions/runs_list" dict "ActionRunListData" $.ActionRunListData "CurWorkflowIsReusable" $.CurWorkflowIsReusable}}
 					{{template "base/paginate" dict "Page" $.Page}}
 				</div>
 			</div>
@@ -113,7 +113,7 @@
 </div>
 
 {{if $showCreateWorkflowBadge}}
-<div id="workflow-status-badge-modal" class="ui tiny modal">
+<dialog id="workflow-status-badge-modal" class="modal-dialog">
 	<div class="header">{{ctx.Locale.Tr "actions.workflow.status_badge"}}</div>
 	<div class="content">
 		<div class="ui form" data-global-init="initWorkflowBadgeForm"
@@ -157,7 +157,7 @@
 			</div>
 		</div>
 	</div>
-</div>
+</dialog>
 {{end}}
 
 {{template "base/footer" .}}

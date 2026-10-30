@@ -80,7 +80,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 			metaData.LabelsData.SetSelectedLabelNames(template.Labels)
 		}
 		if metaData.AssigneesData.SelectedAssigneeIDs == "" {
-			selectedAssigneeIDs, _ := user_model.GetDoerUserIDsByNames(ctx, template.Assignees)
+			selectedAssigneeIDs, _ := user_model.GetRealDoerUserIDsByNames(ctx, template.Assignees)
 			metaData.AssigneesData.SelectedAssigneeIDs = base.JoinInt64s(selectedAssigneeIDs, ",")
 		}
 
@@ -111,7 +111,6 @@ func NewIssue(ctx *context.Context) {
 
 	isProjectsEnabled := ctx.Repo.Permission.CanRead(unit.TypeProjects)
 	ctx.Data["IsProjectsEnabled"] = isProjectsEnabled
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
 	pageMetaData := retrieveRepoIssueMetaDataWithPrefill(ctx, ctx.Repo.Repository, false)
@@ -264,6 +263,12 @@ func ValidateRepoMetasForCreateIssue(ctx *context.Context, form forms.CreateIssu
 	pageMetaData.MilestonesData.SelectedMilestoneID = form.MilestoneID
 
 	inputProjectIDs := ctx.FormStringInt64s("project_ids")
+	allProjects := slices.Concat(pageMetaData.ProjectsData.OpenProjects, pageMetaData.ProjectsData.ClosedProjects)
+	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
+	if len(inputProjectIDs) > 0 && !candidateProjects.Contains(inputProjectIDs...) {
+		ctx.NotFound(nil)
+		return ret
+	}
 	pageMetaData.SetSelectedProjectIDs(inputProjectIDs)
 
 	// prepare assignees

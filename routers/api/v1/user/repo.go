@@ -19,15 +19,13 @@ import (
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
-	searchOpts := repo_model.SearchRepoOptions{
-		Actor:       u,
+	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
+		OwnerID:     u.ID,
+		Actor:       ctx.Doer,
 		Private:     private,
 		ListOptions: opts,
 		OrderBy:     "id ASC",
-	}
-	searchOpts.ApplyPublicOnly(ctx.PublicOnly)
-
-	repos, count, err := repo_model.GetUserRepositories(ctx, searchOpts)
+	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -79,8 +77,8 @@ func ListUserRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listUserRepos(ctx, ctx.ContextUser, ctx.IsSigned)
 }
@@ -112,7 +110,6 @@ func ListMyRepos(ctx *context.APIContext) {
 		Private:            ctx.IsSigned,
 		IncludeDescription: true,
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
@@ -162,8 +159,8 @@ func ListOrgRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
 }

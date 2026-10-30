@@ -4,12 +4,23 @@
 package repo
 
 import (
+	"net/http"
 	"testing"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/references"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCombineXRefComments(t *testing.T) {
@@ -36,6 +47,20 @@ func TestCombineXRefComments(t *testing.T) {
 }
 
 func TestCombineLabelComments(t *testing.T) {
+	labelComment := func(posterID int64, content, labelName string, createdUnix timeutil.TimeStamp, addedLabels, removedLabels []*issues_model.Label) *issues_model.Comment {
+		return &issues_model.Comment{
+			Type:          issues_model.CommentTypeLabel,
+			PosterID:      posterID,
+			Content:       content,
+			Label:         &issues_model.Label{Name: labelName},
+			CreatedUnix:   createdUnix,
+			AddedLabels:   addedLabels,
+			RemovedLabels: removedLabels,
+		}
+	}
+	comment := func(posterID int64, content string) *issues_model.Comment {
+		return &issues_model.Comment{Type: issues_model.CommentTypeComment, PosterID: posterID, Content: content, CreatedUnix: 0}
+	}
 	kases := []struct {
 		name           string
 		beforeCombined []*issues_model.Comment
@@ -44,345 +69,98 @@ func TestCombineLabelComments(t *testing.T) {
 		{
 			name: "kase 1",
 			beforeCombined: []*issues_model.Comment{
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:        issues_model.CommentTypeComment,
-					PosterID:    1,
-					Content:     "test",
-					CreatedUnix: 0,
-				},
+				labelComment(1, "1", "kind/bug", 0, nil, nil),
+				labelComment(1, "", "kind/bug", 0, nil, nil),
+				comment(1, "test"),
 			},
 			afterCombined: []*issues_model.Comment{
-				{
-					Type:        issues_model.CommentTypeLabel,
-					PosterID:    1,
-					Content:     "1",
-					CreatedUnix: 0,
-					AddedLabels: []*issues_model.Label{},
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-				},
-				{
-					Type:        issues_model.CommentTypeComment,
-					PosterID:    1,
-					Content:     "test",
-					CreatedUnix: 0,
-				},
+				labelComment(1, "1", "kind/bug", 0, []*issues_model.Label{}, nil),
+				comment(1, "test"),
 			},
 		},
 		{
 			name: "kase 2",
 			beforeCombined: []*issues_model.Comment{
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 70,
-				},
-				{
-					Type:        issues_model.CommentTypeComment,
-					PosterID:    1,
-					Content:     "test",
-					CreatedUnix: 0,
-				},
+				labelComment(1, "1", "kind/bug", 0, nil, nil),
+				labelComment(1, "", "kind/bug", 70, nil, nil),
+				comment(1, "test"),
 			},
 			afterCombined: []*issues_model.Comment{
-				{
-					Type:        issues_model.CommentTypeLabel,
-					PosterID:    1,
-					Content:     "1",
-					CreatedUnix: 0,
-					AddedLabels: []*issues_model.Label{
-						{
-							Name: "kind/bug",
-						},
-					},
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-				},
-				{
-					Type:        issues_model.CommentTypeLabel,
-					PosterID:    1,
-					Content:     "",
-					CreatedUnix: 70,
-					RemovedLabels: []*issues_model.Label{
-						{
-							Name: "kind/bug",
-						},
-					},
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-				},
-				{
-					Type:        issues_model.CommentTypeComment,
-					PosterID:    1,
-					Content:     "test",
-					CreatedUnix: 0,
-				},
+				labelComment(1, "1", "kind/bug", 0, []*issues_model.Label{{Name: "kind/bug"}}, nil),
+				labelComment(1, "", "kind/bug", 70, nil, []*issues_model.Label{{Name: "kind/bug"}}),
+				comment(1, "test"),
 			},
 		},
 		{
 			name: "kase 3",
 			beforeCombined: []*issues_model.Comment{
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 2,
-					Content:  "",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:        issues_model.CommentTypeComment,
-					PosterID:    1,
-					Content:     "test",
-					CreatedUnix: 0,
-				},
+				labelComment(1, "1", "kind/bug", 0, nil, nil),
+				labelComment(2, "", "kind/bug", 0, nil, nil),
+				comment(1, "test"),
 			},
 			afterCombined: []*issues_model.Comment{
-				{
-					Type:        issues_model.CommentTypeLabel,
-					PosterID:    1,
-					Content:     "1",
-					CreatedUnix: 0,
-					AddedLabels: []*issues_model.Label{
-						{
-							Name: "kind/bug",
-						},
-					},
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-				},
-				{
-					Type:        issues_model.CommentTypeLabel,
-					PosterID:    2,
-					Content:     "",
-					CreatedUnix: 0,
-					RemovedLabels: []*issues_model.Label{
-						{
-							Name: "kind/bug",
-						},
-					},
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-				},
-				{
-					Type:        issues_model.CommentTypeComment,
-					PosterID:    1,
-					Content:     "test",
-					CreatedUnix: 0,
-				},
+				labelComment(1, "1", "kind/bug", 0, []*issues_model.Label{{Name: "kind/bug"}}, nil),
+				labelComment(2, "", "kind/bug", 0, nil, []*issues_model.Label{{Name: "kind/bug"}}),
+				comment(1, "test"),
+			},
+		},
+		{
+			name: "migrated events of different original authors",
+			beforeCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeComment, PosterID: 1},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "alice", Content: "1", Label: &issues_model.Label{Name: "kind/bug"}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "bob", Content: "1", Label: &issues_model.Label{Name: "kind/ui"}},
+			},
+			afterCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeComment, PosterID: 1},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "alice", Content: "1", Label: &issues_model.Label{Name: "kind/bug"}, AddedLabels: []*issues_model.Label{{Name: "kind/bug"}}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, OriginalAuthor: "bob", Content: "1", Label: &issues_model.Label{Name: "kind/ui"}, AddedLabels: []*issues_model.Label{{Name: "kind/ui"}}},
 			},
 		},
 		{
 			name: "kase 4",
 			beforeCombined: []*issues_model.Comment{
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "kind/backport",
-					},
-					CreatedUnix: 10,
-				},
+				labelComment(1, "1", "kind/bug", 0, nil, nil),
+				labelComment(1, "1", "kind/backport", 10, nil, nil),
 			},
 			afterCombined: []*issues_model.Comment{
-				{
-					Type:        issues_model.CommentTypeLabel,
-					PosterID:    1,
-					Content:     "1",
-					CreatedUnix: 10,
-					AddedLabels: []*issues_model.Label{
-						{
-							Name: "kind/bug",
-						},
-						{
-							Name: "kind/backport",
-						},
-					},
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-				},
+				labelComment(1, "1", "kind/bug", 10, []*issues_model.Label{{Name: "kind/bug"}, {Name: "kind/backport"}}, nil),
 			},
 		},
 		{
 			name: "kase 5",
 			beforeCombined: []*issues_model.Comment{
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:        issues_model.CommentTypeComment,
-					PosterID:    2,
-					Content:     "testtest",
-					CreatedUnix: 0,
-				},
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
+				labelComment(1, "1", "kind/bug", 0, nil, nil),
+				comment(2, "testtest"),
+				labelComment(1, "", "kind/bug", 0, nil, nil),
 			},
 			afterCombined: []*issues_model.Comment{
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					AddedLabels: []*issues_model.Label{
-						{
-							Name: "kind/bug",
-						},
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:        issues_model.CommentTypeComment,
-					PosterID:    2,
-					Content:     "testtest",
-					CreatedUnix: 0,
-				},
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "",
-					RemovedLabels: []*issues_model.Label{
-						{
-							Name: "kind/bug",
-						},
-					},
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
+				labelComment(1, "1", "kind/bug", 0, []*issues_model.Label{{Name: "kind/bug"}}, nil),
+				comment(2, "testtest"),
+				labelComment(1, "", "kind/bug", 0, nil, []*issues_model.Label{{Name: "kind/bug"}}),
 			},
 		},
 		{
 			name: "kase 6",
 			beforeCombined: []*issues_model.Comment{
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "reviewed/confirmed",
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					CreatedUnix: 0,
-				},
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "kind/feature",
-					},
-					CreatedUnix: 0,
-				},
+				labelComment(1, "1", "kind/bug", 0, nil, nil),
+				labelComment(1, "1", "reviewed/confirmed", 0, nil, nil),
+				labelComment(1, "", "kind/bug", 0, nil, nil),
+				labelComment(1, "1", "kind/feature", 0, nil, nil),
 			},
 			afterCombined: []*issues_model.Comment{
-				{
-					Type:     issues_model.CommentTypeLabel,
-					PosterID: 1,
-					Content:  "1",
-					Label: &issues_model.Label{
-						Name: "kind/bug",
-					},
-					AddedLabels: []*issues_model.Label{
-						{
-							Name: "reviewed/confirmed",
-						},
-						{
-							Name: "kind/feature",
-						},
-					},
-					CreatedUnix: 0,
-				},
+				labelComment(1, "1", "kind/bug", 0, []*issues_model.Label{{Name: "reviewed/confirmed"}, {Name: "kind/feature"}}, nil),
+			},
+		},
+		{
+			name: "project workflow",
+			beforeCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "kind/bug"}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "status/done"}, CommentMetaData: &issues_model.CommentMetaData{SpecialDoerName: issues_model.SpecialDoerNameProjectWorkflow}},
+			},
+			afterCombined: []*issues_model.Comment{
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "kind/bug"}, AddedLabels: []*issues_model.Label{{Name: "kind/bug"}}},
+				{Type: issues_model.CommentTypeLabel, PosterID: 1, Content: "1", Label: &issues_model.Label{Name: "status/done"}, AddedLabels: []*issues_model.Label{{Name: "status/done"}}, CommentMetaData: &issues_model.CommentMetaData{SpecialDoerName: issues_model.SpecialDoerNameProjectWorkflow}},
 			},
 		},
 	}
@@ -396,4 +174,44 @@ func TestCombineLabelComments(t *testing.T) {
 			assert.EqualValues(t, kase.afterCombined, issue.Comments)
 		})
 	}
+}
+
+func TestIssueActionsRequireItemUnitWrite(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	// user4's team on org3/repo3 uses per-unit permissions: pull requests write, issues read
+	_, err := db.GetEngine(t.Context()).ID(2).Cols("authorize").Update(&organization.Team{AccessMode: perm.AccessModeNone})
+	require.NoError(t, err)
+	_, err = db.GetEngine(t.Context()).Where("team_id = ? AND `type` = ?", 2, unit.TypeIssues).Cols("access_mode").Update(&organization.TeamUnit{AccessMode: perm.AccessModeRead})
+	require.NoError(t, err)
+
+	closeIssues := func(issueIDs string) int {
+		ctx, resp := contexttest.MockContext(t, "org3/repo3/issues/status")
+		contexttest.LoadUser(t, ctx, 4)
+		contexttest.LoadRepo(t, ctx, 3)
+		ctx.Req.Form.Set("issue_ids", issueIDs)
+		ctx.Req.Form.Set("action", "close")
+		UpdateIssueStatus(ctx)
+		return resp.Code
+	}
+	assert.Equal(t, http.StatusNotFound, closeIssues("6,12"))
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6}).IsClosed)
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).IsClosed)
+
+	assert.Equal(t, http.StatusOK, closeIssues("12"))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).IsClosed)
+
+	lockIssue := func(index string) int {
+		ctx, resp := contexttest.MockContext(t, "org3/repo3/issues/"+index+"/lock")
+		contexttest.LoadUser(t, ctx, 4)
+		contexttest.LoadRepo(t, ctx, 3)
+		ctx.SetPathParam("index", index)
+		web.SetForm(ctx, &forms.IssueLockForm{Reason: "Spam"})
+		LockIssue(ctx)
+		return resp.Code
+	}
+	assert.Equal(t, http.StatusNotFound, lockIssue("1"))
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6}).IsLocked)
+
+	assert.Equal(t, http.StatusOK, lockIssue("2"))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).IsLocked)
 }
