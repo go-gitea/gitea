@@ -4,7 +4,6 @@
 package org
 
 import (
-	"errors"
 	"slices"
 	"testing"
 
@@ -104,9 +103,7 @@ func TestSetOrganizationArchived(t *testing.T) {
 
 	err = SetOrganizationArchived(ctx, org, true)
 	assert.ErrorIs(t, err, util.ErrUnprocessableContent)
-	errHasMirrors, ok := errors.AsType[ErrOrgHasMirrors](err)
-	require.True(t, ok)
-	assert.Equal(t, []string{"repo5"}, errHasMirrors.Mirrors)
+	assert.EqualError(t, err, "organization has mirror repositories: repo5")
 	assert.False(t, unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).IsArchived)
 	assert.False(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).IsArchived)
 

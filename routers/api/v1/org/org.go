@@ -395,11 +395,8 @@ func Edit(ctx *context.APIContext) {
 	}
 
 	if form.Archived != nil && *form.Archived && !ctx.Org.Organization.IsArchived {
-		if mirrors, err := org.GetMirrorNames(ctx, ctx.Org.Organization.ID); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		} else if len(mirrors) > 0 {
-			ctx.APIErrorAuto(org.ErrOrgHasMirrors{Mirrors: mirrors})
+		if err := org.CheckOrganizationArchivable(ctx, ctx.Org.Organization.ID); err != nil {
+			ctx.APIErrorAuto(err)
 			return
 		}
 	}

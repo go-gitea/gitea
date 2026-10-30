@@ -196,22 +196,19 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 	return nil
 }
 
-type ErrOrgHasMirrors struct {
-	Mirrors []string
-}
-
-func (e ErrOrgHasMirrors) Error() string {
-	return "organization has mirror repositories: " + strings.Join(e.Mirrors, ", ")
-}
-
-func (e ErrOrgHasMirrors) Unwrap() error {
-	return util.ErrUnprocessableContent
-}
-
 func GetMirrorNames(ctx context.Context, orgID int64) ([]string, error) {
 	var names []string
 	return names, db.GetEngine(ctx).Table("repository").Where(builder.Eq{"owner_id": orgID, "is_mirror": true}).
 		Asc("lower_name").Cols("name").Find(&names)
+}
+
+func CheckOrganizationArchivable(ctx context.Context, orgID int64) error {
+	mirrors, err := GetMirrorNames(ctx, orgID)
+	if err != nil || len(mirrors) == 0 {
+		return err
+	}
+	names := strings.Join(mirrors, ", ")
+	return util.ErrorWrapTranslatable(util.ErrorWrap(util.ErrUnprocessableContent, "organization has mirror repositories: %s", names), "org.settings.archive_has_mirrors", names)
 }
 
 // SetOrganizationArchived also archives the repositories, unarchiving leaves them archived like GitHub does
@@ -228,10 +225,8 @@ func SetOrganizationArchived(ctx context.Context, org *org_model.Organization, a
 		if !archived {
 			return nil
 		}
-		if mirrors, err := GetMirrorNames(ctx, org.ID); err != nil {
+		if err := CheckOrganizationArchivable(ctx, org.ID); err != nil {
 			return err
-		} else if len(mirrors) > 0 {
-			return ErrOrgHasMirrors{Mirrors: mirrors}
 		}
 		cond := builder.Eq{"owner_id": org.ID, "is_archived": false}
 		if err := db.GetEngine(ctx).Where(cond).Find(&repos); err != nil {

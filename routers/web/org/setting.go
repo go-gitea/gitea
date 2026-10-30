@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
@@ -251,11 +250,7 @@ func SettingsRenamePost(ctx *context.Context) {
 
 func SettingsArchivePost(ctx *context.Context) {
 	if err := org_service.SetOrganizationArchived(ctx, ctx.Org.Organization, ctx.FormBool("archive")); err != nil {
-		if errHasMirrors, ok := errors.AsType[org_service.ErrOrgHasMirrors](err); ok {
-			ctx.JSONError(ctx.Tr("org.settings.archive_has_mirrors", strings.Join(errHasMirrors.Mirrors, ", ")))
-			return
-		}
-		ctx.ServerError("SetOrganizationArchived", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")

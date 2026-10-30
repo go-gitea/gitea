@@ -404,19 +404,13 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		return fmt.Errorf("UpdateUserCols: %w", err)
 	}
 
-	if err = user_model.IncrUserRepoNum(ctx, u.ID); err != nil {
-		return fmt.Errorf("IncrUserRepoNum: %w", err)
+	// the update evaluates the archived flag under the owner row lock, so a concurrent SetOrganizationArchived can't be missed
+	if incremented, err := user_model.IncrUserRepoNumUnlessArchived(ctx, u.ID); err != nil {
+		return fmt.Errorf("IncrUserRepoNumUnlessArchived: %w", err)
+	} else if !incremented {
+		return ErrOrgArchived
 	}
 	u.NumRepos++
-
-	// read after IncrUserRepoNum locked the owner row, so a concurrent SetOrganizationArchived can't be missed
-	if u.IsOrganization() {
-		if archived, err := user_model.IsUserArchived(ctx, u.ID); err != nil {
-			return err
-		} else if archived {
-			return ErrOrgArchived
-		}
-	}
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
