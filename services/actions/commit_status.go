@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
@@ -95,21 +94,14 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 			return "", "", errors.New("head commit is missing in event payload")
 		}
 		commitID = payload.HeadCommit.ID
-	case webhook_module.HookEventPullRequest,
+	case // pull_request
+		webhook_module.HookEventPullRequest,
 		webhook_module.HookEventPullRequestSync,
 		webhook_module.HookEventPullRequestAssign,
 		webhook_module.HookEventPullRequestLabel,
 		webhook_module.HookEventPullRequestReviewRequest,
-		webhook_module.HookEventPullRequestMilestone,
-		webhook_module.HookEventPullRequestReviewApproved,
-		webhook_module.HookEventPullRequestReviewRejected,
-		webhook_module.HookEventPullRequestReviewComment:
-		if run.Event.IsPullRequestReview() {
-			event = run.TriggerEvent
-			if git.RefName(run.Ref).IsPull() { // older review runs had the review's commit as ref and post on the payload head
-				return event, run.CommitSHA, nil
-			}
-		} else if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+		webhook_module.HookEventPullRequestMilestone:
+		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
 			event = "pull_request_target"
 		} else {
 			event = "pull_request"
@@ -124,6 +116,11 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 			return "", "", errors.New("head of pull request is missing in event payload")
 		}
 		commitID = payload.PullRequest.Head.Sha
+	case webhook_module.HookEventPullRequestReviewApproved,
+		webhook_module.HookEventPullRequestReviewRejected,
+		webhook_module.HookEventPullRequestReviewComment:
+		event = run.TriggerEvent
+		commitID = run.CommitSHA
 	case webhook_module.HookEventRelease:
 		event = string(run.Event)
 		commitID = run.CommitSHA
