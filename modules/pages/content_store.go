@@ -66,9 +66,7 @@ func ParseContentRelativePath(objectPath string) (repoID int64, digest string, o
 type ContentStore struct{ store storage.ObjectStorage }
 
 // NewContentStore creates a store over the configured Pages backend.
-func NewContentStore() *ContentStore { return newContentStore(storage.Pages) }
-
-func newContentStore(store storage.ObjectStorage) *ContentStore { return &ContentStore{store: store} }
+func NewContentStore() *ContentStore { return &ContentStore{store: storage.Pages} }
 
 func (s *ContentStore) relativePath(repoID int64, digest string) (string, error) {
 	if s == nil || s.store == nil {

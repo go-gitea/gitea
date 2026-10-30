@@ -67,7 +67,7 @@ func TestContentStoreKeepsDigestPathImmutable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store := newContentStore(backend)
+	store := &ContentStore{store: backend}
 	data := []byte("checked Pages content")
 	digest := sha256.Sum256(data)
 	key := hex.EncodeToString(digest[:])

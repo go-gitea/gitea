@@ -196,10 +196,12 @@ func TestPagesInstanceRegistrationAndAuthentication(t *testing.T) {
 	require.Len(t, token, 43)
 	require.Len(t, instance.TokenHash, 64)
 
-	authenticated, err := pages_service.AuthenticateInstance(t.Context(), "Bearer "+token)
+	authenticated, err := pages_service.AuthenticateInstance(t.Context(), "bEaReR\t"+token)
 	require.NoError(t, err)
 	require.Equal(t, instance.ID, authenticated.ID)
 	_, err = pages_service.AuthenticateInstance(t.Context(), "Bearer wrong")
+	require.ErrorIs(t, err, util.ErrNotExist)
+	_, err = pages_service.AuthenticateInstance(t.Context(), "Bearer "+token+" extra")
 	require.ErrorIs(t, err, util.ErrNotExist)
 
 	registered, err := pages_service.RegisterInstanceRootURL(t.Context(), instance.ID, instance.TokenHash, "https://pages.example.test")
@@ -243,7 +245,7 @@ func TestPagesInstanceRegistrationAndAuthentication(t *testing.T) {
 
 func TestPagesReservesManagementDNSNamespace(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	defer test.MockVariableValue(&setting.AppDomain, "gitea.example.test")()
+	defer test.MockVariableValue(&setting.AppDomain, "Gitea.Example.Test")()
 
 	instance, _, err := pages_service.CreateInstance(t.Context())
 	require.NoError(t, err)

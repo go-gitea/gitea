@@ -5,20 +5,17 @@ package pages
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"net/url"
-	"strings"
 	"sync"
 	"time"
 
 	"gitea.dev/models/db"
 	pages_model "gitea.dev/models/pages"
+	"gitea.dev/modules/auth/httpauth"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/globallock"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -86,8 +83,7 @@ func latestSiteUpdateTime(ctx context.Context) (int64, error) {
 
 func generateTokenAndHash() (string, string) {
 	raw := generateToken()
-	digest := sha256.Sum256([]byte(raw))
-	return raw, hex.EncodeToString(digest[:])
+	return raw, base.EncodeSha256(raw)
 }
 
 func generateToken() string {
@@ -160,16 +156,16 @@ func RemoveInstance(ctx context.Context, instanceID int64) error {
 
 // AuthenticateInstance identifies the caller without storing its raw token.
 func AuthenticateInstance(ctx context.Context, authorization string) (*pages_model.Instance, error) {
-	raw, found := strings.CutPrefix(authorization, "Bearer ")
-	if !found || len(raw) != 43 {
+	auth, ok := httpauth.ParseAuthorizationHeader(authorization)
+	if !ok || auth.BearerToken == nil || len(auth.BearerToken.Token) != 43 {
 		return nil, util.ErrNotExist
 	}
+	raw := auth.BearerToken.Token
 	decoded, err := base64.RawURLEncoding.DecodeString(raw)
 	if err != nil || len(decoded) != 32 {
 		return nil, util.ErrNotExist
 	}
-	digest := sha256.Sum256([]byte(raw))
-	instance, has, err := db.Get[pages_model.Instance](ctx, builder.Eq{"token_hash": hex.EncodeToString(digest[:])})
+	instance, has, err := db.Get[pages_model.Instance](ctx, builder.Eq{"token_hash": base.EncodeSha256(raw)})
 	if err != nil {
 		return nil, fmt.Errorf("AuthenticateInstance: %w", err)
 	}
@@ -206,9 +202,6 @@ func RegisterInstanceRootURL(ctx context.Context, instanceID int64, tokenHash, r
 	if err != nil {
 		return nil, err
 	}
-	if dnsNamespacesOverlap(host, strings.ToLower(setting.AppDomain)) {
-		return nil, ErrDomainConflict
-	}
 	var registered *pages_model.Instance
 	err = withDomainLock(ctx, func(ctx context.Context) error {
 		return withStateChange(ctx, func(ctx context.Context, updated int64) error {
@@ -223,30 +216,8 @@ func RegisterInstanceRootURL(ctx context.Context, instanceID int64, tokenHash, r
 				registered = instance
 				return nil
 			}
-			others, err := pages_model.ListInstances(ctx)
-			if err != nil {
+			if err := checkDNSNamespaceConflict(ctx, host, instanceID); err != nil {
 				return err
-			}
-			for _, other := range others {
-				if other.ID == instanceID || other.RootURL == "" {
-					continue
-				}
-				u, err := url.Parse(other.RootURL)
-				if err != nil {
-					return err
-				}
-				if dnsNamespacesOverlap(host, u.Hostname()) {
-					return ErrDomainConflict
-				}
-			}
-			domains := make([]*pages_model.Domain, 0)
-			if err := db.GetEngine(ctx).Find(&domains); err != nil {
-				return err
-			}
-			for _, domain := range domains {
-				if dnsNamespacesOverlap(host, domain.Host) {
-					return ErrDomainConflict
-				}
 			}
 			instance.RootURL = normalized
 			instance.RootUpdatedUnixNano = updated

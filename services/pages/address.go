@@ -6,11 +6,14 @@ package pages
 import (
 	"context"
 	"math/big"
+	"net/netip"
 	"net/url"
 	"strings"
 
+	"gitea.dev/models/db"
 	pages_model "gitea.dev/models/pages"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
 
 	"golang.org/x/net/idna"
 )
@@ -18,6 +21,12 @@ import (
 const (
 	ownerAlphabet       = "-._0123456789abcdefghijklmnopqrstuvwxyz"
 	ownerDirectAlphabet = "0123456789abcdefghijklmnopqrstuvwxyz-"
+)
+
+var domainNameProfile = idna.New(
+	idna.MapForLookup(),
+	idna.BidiRule(),
+	idna.VerifyDNSLength(true),
 )
 
 // DefaultSiteURL derives the public address from the instance root and the
@@ -86,27 +95,13 @@ func encodeOwnerDNSLabel(owner string) (string, error) {
 	return "x-" + number.Text(36), nil
 }
 
-func normalizeDNSHost(raw string) (string, error) {
-	if raw == "" || strings.HasSuffix(raw, ".") {
+func normalizeDomainName(raw string) (string, error) {
+	host, err := domainNameProfile.ToASCII(raw)
+	if err != nil || !strings.Contains(host, ".") {
 		return "", ErrInvalidAddress
 	}
-	host, err := idna.Lookup.ToASCII(strings.ToLower(raw))
-	if err != nil || len(host) > 253 || len(host) < 3 {
+	if _, err := netip.ParseAddr(host); err == nil {
 		return "", ErrInvalidAddress
-	}
-	labels := strings.Split(host, ".")
-	if len(labels) < 2 {
-		return "", ErrInvalidAddress
-	}
-	for _, label := range labels {
-		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
-			return "", ErrInvalidAddress
-		}
-		for _, c := range label {
-			if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-') {
-				return "", ErrInvalidAddress
-			}
-		}
 	}
 	return host, nil
 }
@@ -117,16 +112,49 @@ func normalizeRootURL(raw string) (string, string, error) {
 		u.Port() != "" || u.Path != "" && u.Path != "/" || u.RawQuery != "" || u.Fragment != "" {
 		return "", "", ErrInvalidAddress
 	}
-	host, err := normalizeDNSHost(u.Hostname())
+	host, err := normalizeDomainName(u.Hostname())
 	if err != nil || u.Host != u.Hostname() {
 		return "", "", ErrInvalidAddress
 	}
-	if len("_acme-challenge."+host) > 253 || len("*."+host) > 253 {
+	if len("_acme-challenge."+host) > 253 {
 		return "", "", ErrInvalidAddress
 	}
 	return u.Scheme + "://" + host, host, nil
 }
 
 func dnsNamespacesOverlap(a, b string) bool {
+	a, b = strings.ToLower(a), strings.ToLower(b)
 	return a == b || strings.HasSuffix(a, "."+b) || strings.HasSuffix(b, "."+a)
+}
+
+func checkDNSNamespaceConflict(ctx context.Context, host string, excludedInstanceID int64) error {
+	if dnsNamespacesOverlap(host, setting.AppDomain) {
+		return ErrDomainConflict
+	}
+	instances, err := pages_model.ListInstances(ctx)
+	if err != nil {
+		return err
+	}
+	for _, instance := range instances {
+		if instance.ID == excludedInstanceID || instance.RootURL == "" {
+			continue
+		}
+		root, err := url.Parse(instance.RootURL)
+		if err != nil {
+			return err
+		}
+		if dnsNamespacesOverlap(host, root.Hostname()) {
+			return ErrDomainConflict
+		}
+	}
+	domains := make([]*pages_model.Domain, 0)
+	if err := db.GetEngine(ctx).Find(&domains); err != nil {
+		return err
+	}
+	for _, domain := range domains {
+		if dnsNamespacesOverlap(host, domain.Host) {
+			return ErrDomainConflict
+		}
+	}
+	return nil
 }

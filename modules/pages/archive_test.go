@@ -64,6 +64,14 @@ func TestValidateAcceptsMissingInRootSymlink(t *testing.T) {
 	assert.NotEmpty(t, manifest.SHA256Hex)
 }
 
+func TestValidateAcceptsIndexlessWebsite(t *testing.T) {
+	data := testArchive(t, testFile("assets/app.js", "page"))
+	manifest, err := ValidateArchive(t.Context(), bytes.NewReader(data), testLimits())
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, manifest.SiteBytes)
+	assert.Equal(t, 1, manifest.Entries)
+}
+
 func TestValidateRejectsUnsafePathsAndTypes(t *testing.T) {
 	tests := []struct {
 		name  string

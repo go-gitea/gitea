@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 	"slices"
 	"time"
 
@@ -24,12 +23,9 @@ var ErrDomainBusy = errors.New("another Pages domain change is still pending")
 
 // AddDomain reserves one custom Host and returns its business TXT value.
 func AddDomain(ctx context.Context, repoID int64, rawHost string) (*pages_model.Domain, error) {
-	host, err := normalizeDNSHost(rawHost)
+	host, err := normalizeDomainName(rawHost)
 	if err != nil || len("_gitea-pages."+host) > 253 {
 		return nil, ErrInvalidAddress
-	}
-	if dnsNamespacesOverlap(host, setting.AppDomain) {
-		return nil, ErrDomainConflict
 	}
 	token := generateToken()
 	var created *pages_model.Domain
@@ -51,21 +47,8 @@ func AddDomain(ctx context.Context, repoID int64, rawHost string) (*pages_model.
 				}
 				return ErrDomainConflict
 			}
-			instances, err := pages_model.ListInstances(ctx)
-			if err != nil {
+			if err := checkDNSNamespaceConflict(ctx, host, 0); err != nil {
 				return err
-			}
-			for _, instance := range instances {
-				if instance.RootURL == "" {
-					continue
-				}
-				root, err := url.Parse(instance.RootURL)
-				if err != nil {
-					return err
-				}
-				if dnsNamespacesOverlap(host, root.Hostname()) {
-					return ErrDomainConflict
-				}
 			}
 			domains, err := pages_model.ListDomainsByRepoID(ctx, repoID)
 			if err != nil {
