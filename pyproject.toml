@@ -14,6 +14,3 @@ dev = [
 profile="golang"
 ignore="H005,H013,H016,H020,H021,H030,H045"
 include="H018"
-
-[tool.djlint.per-file-ignores]
-"templates/user/auth/signin_inner.tmpl"="H046" # https://github.com/go-gitea/gitea/pull/31689
