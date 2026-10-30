@@ -1022,7 +1022,7 @@
   "repo.mirror_last_synced": "Last Synchronized",
   "repo.mirror_password_placeholder": "(Unchanged)",
   "repo.mirror_password_blank_placeholder": "(Unset)",
-  "repo.mirror_password_help": "Change the username or the host to erase a stored password.",
+  "repo.mirror_password_help": "Change the username or the address to erase a stored password.",
   "repo.watchers": "Watchers",
   "repo.stargazers": "Stargazers",
   "repo.stars_remove_warning": "This will remove all stars from this repository.",
