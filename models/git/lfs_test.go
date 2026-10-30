@@ -12,6 +12,7 @@ import (
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	quota_model "gitea.dev/models/quota"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/lfs"
@@ -58,4 +59,23 @@ func TestIterateLFSMetaObjectsForRepoUpdatesDoNotSkip(t *testing.T) {
 
 	expected := []int64{created[0].ID, created[1].ID, created[2].ID}
 	assert.Equal(t, expected, iterated)
+}
+
+func TestLFSDeletionInvalidatesQuotaUsage(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	p := lfs.Pointer{Oid: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Size: 1024}
+	_, err := git_model.NewLFSMetaObject(ctx, 1, p)
+	assert.NoError(t, err)
+	assert.NoError(t, quota_model.StoreUsage(ctx, &quota_model.Usage{RepoID: 1, OwnerID: 2, LFSBytes: 1024}))
+	_, err = git_model.RemoveLFSMetaObjectByOidFn(ctx, 1, p.Oid, func(int64) error { return context.Canceled })
+	assert.ErrorIs(t, err, context.Canceled)
+	_, found, err := quota_model.GetUsage(ctx, 1)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	_, err = git_model.RemoveLFSMetaObjectByOid(ctx, 1, p.Oid)
+	assert.NoError(t, err)
+	_, found, err = quota_model.GetUsage(ctx, 1)
+	assert.NoError(t, err)
+	assert.False(t, found)
 }

@@ -277,3 +277,8 @@ func OwnerUsage(ctx context.Context, ownerID int64) (int64, error) {
 		Select("COALESCE(SUM(quota_usage.git_bytes + quota_usage.lfs_bytes), 0) AS total").Get(&result)
 	return result.Total, err
 }
+
+func InvalidateUsage(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).ID(repoID).Delete(new(Usage))
+	return err
+}

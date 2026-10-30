@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"gitea.dev/models/db"
+	quota_model "gitea.dev/models/quota"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -150,8 +151,12 @@ func RemoveLFSMetaObjectByOidFn(ctx context.Context, repoID int64, oid string, f
 
 	return db.WithTx2(ctx, func(ctx context.Context) (int64, error) {
 		m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repoID}
-		if _, err := db.DeleteByBean(ctx, m); err != nil {
+		if removed, err := db.DeleteByBean(ctx, m); err != nil {
 			return -1, err
+		} else if removed > 0 {
+			if err := quota_model.InvalidateUsage(ctx, repoID); err != nil {
+				return -1, err
+			}
 		}
 
 		count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
