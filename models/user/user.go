@@ -441,6 +441,18 @@ func (u *User) IsIndividual() bool {
 	return u.ID > 0 && u.Type == UserTypeIndividual
 }
 
+// IsFollowable returns whether other users can follow this user (individuals, bots and organizations)
+func (u *User) IsFollowable() bool {
+	if u.ID <= 0 {
+		return false
+	}
+	switch u.Type {
+	case UserTypeIndividual, UserTypeBot, UserTypeOrganization:
+		return true
+	}
+	return false
+}
+
 // IsTypeBot returns whether the user is of type bot
 func (u *User) IsTypeBot() bool {
 	return u.Type == UserTypeBot
@@ -1053,11 +1065,12 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// Glossaries for XxxUser:
+// HINT: USER-TYPE-GLOSSARY: Glossaries for XxxUser:
 // * Possible: The user may or may not exist in the database, but we can still return a valid user object (e.g. Ghost user) for the given ID.
 // * Individual: The user is a real person, not an organization or a bot.
-// * Doer: The user is the one performing an action
-// * Valid: The user is an active user and not prohibited from signing in
+// * Doer: The user is the one performing an action (individual, bot or system)
+// * Valid: The user is an active and existing user and not prohibited from signing in
+// * Real: The user is an existing one and not a system user
 // * System: Negative ID (e.g. Ghost, Actions, DeployKey, etc.) and not a real person, Ghost is not included if there is no "Possible" keyword
 
 // GetPossibleUserByID returns the possible user and its ID. If the user doesn't exist, it returns Ghost user
@@ -1224,7 +1237,7 @@ func getDoerUsersByNames(ctx context.Context, names []string, allowSystemDoer bo
 	return users, errFinal
 }
 
-func GetDoerUsersByNames(ctx context.Context, names []string) ([]*User, error) {
+func GetRealDoerUsersByNames(ctx context.Context, names []string) ([]*User, error) {
 	return getDoerUsersByNames(ctx, names, false)
 }
 
@@ -1232,9 +1245,9 @@ func GetDoerUserIDsByNamesWithSystem(ctx context.Context, names []string) ([]int
 	return getDoerUserIDsByNames(ctx, names, true)
 }
 
-// GetDoerUserIDsByNames returns a slice of ids corresponds to names.
+// GetRealDoerUserIDsByNames returns a slice of ids corresponds to names.
 // It always returns found user IDs even if some names are not found, but returns an error if any name is not found.
-func GetDoerUserIDsByNames(ctx context.Context, names []string) ([]int64, error) {
+func GetRealDoerUserIDsByNames(ctx context.Context, names []string) ([]int64, error) {
 	return getDoerUserIDsByNames(ctx, names, false)
 }
 
