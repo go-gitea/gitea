@@ -33,7 +33,7 @@ func NewMigrationHTTPTransport() http.RoundTripper {
 	return retryAfterTransport{newMigrationTransport()}
 }
 
-func newMigrationTransport() *http.Transport {
+func newMigrationTransport() http.RoundTripper {
 	base := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify}}
 	return egress.NewMigrationPolicy().NewHTTPTransport(base)
 }

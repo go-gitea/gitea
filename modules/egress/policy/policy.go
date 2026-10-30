@@ -43,13 +43,14 @@ type Policy struct {
 
 type Option func(*Policy)
 
-// WithAllow sets the allow list from the setting named by key
+// WithAllow sets the allow list and reference to key responsible for it
 func WithAllow(hostList, key string) Option {
 	return func(p *Policy) {
 		p.allow, p.allowKey = *NewAllowList(hostList, p.mode), key
 	}
 }
 
+// WithBlock sets the blocklist and reference to key responsible for it
 func WithBlock(hostList, key string) Option {
 	return func(p *Policy) {
 		p.block, p.blockKey = *NewBlockList(hostList), key
@@ -64,6 +65,7 @@ func WithInternalRanges(hostList, key string) Option {
 	}
 }
 
+// WithProxy sets the proxyfunc in the policy
 func WithProxy(proxyFunc func(*http.Request) (*url.URL, error)) Option {
 	return func(p *Policy) {
 		p.proxyFunc = proxyFunc
@@ -221,10 +223,16 @@ func (p *Policy) checkHostIPs(u *url.URL, ips []net.IP) error {
 	return firstErr
 }
 
+const (
+	// dialTimeout bounds a dial, dialKeepAlive probes idle connections — every egress dialer uses these
+	dialTimeout   = 30 * time.Second
+	dialKeepAlive = 30 * time.Second
+)
+
 // NewDialContext returns a dial function that checks the resolved address at connect time, so DNS rebinding can't bypass it.
 func (p *Policy) NewDialContext() func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
-		dialer := net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
+		dialer := net.Dialer{Timeout: dialTimeout, KeepAlive: dialKeepAlive}
 		host, _, err := net.SplitHostPort(addr) // the requested host, also on redirects where the request's Host is empty
 		if err != nil {
 			return nil, err
@@ -256,8 +264,10 @@ func (p *Policy) Proxy(req *http.Request) (proxyURL *url.URL, err error) {
 	return proxyURL, err
 }
 
-// proxyDialer reaches the operator's proxies, which are configuration rather than user input
-var proxyDialer = &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
+// ProxyDialer returns a dialer for the operator's proxies, which are configuration rather than user input.
+func ProxyDialer() *net.Dialer {
+	return &net.Dialer{Timeout: dialTimeout, KeepAlive: dialKeepAlive}
+}
 
 // proxyTransport routes each request through the dialer its traffic deserves: a request
 // the selector sends to a proxy is dialed by a transport that only dials that proxy
@@ -278,6 +288,7 @@ func (p *Policy) NewHTTPTransport(base *http.Transport) http.RoundTripper {
 	if base == nil {
 		base = &http.Transport{}
 	}
+
 	if base.Proxy == nil {
 		base.Proxy = p.Proxy
 	}
@@ -285,18 +296,10 @@ func (p *Policy) NewHTTPTransport(base *http.Transport) http.RoundTripper {
 	if !base.ForceAttemptHTTP2 {
 		base.ForceAttemptHTTP2 = true
 	}
-	if base.MaxIdleConns == 0 {
-		base.MaxIdleConns = 100
-	}
-	if base.IdleConnTimeout == 0 {
-		base.IdleConnTimeout = 90 * time.Second
-	}
-	if base.TLSHandshakeTimeout == 0 {
-		base.TLSHandshakeTimeout = 10 * time.Second
-	}
-	if base.ExpectContinueTimeout == 0 {
-		base.ExpectContinueTimeout = 1 * time.Second
-	}
+	base.MaxIdleConns = cmp.Or(base.MaxIdleConns, 100)
+	base.IdleConnTimeout = cmp.Or(base.IdleConnTimeout, 90*time.Second)
+	base.TLSHandshakeTimeout = cmp.Or(base.TLSHandshakeTimeout, 10*time.Second)
+	base.ExpectContinueTimeout = cmp.Or(base.ExpectContinueTimeout, 1*time.Second)
 	return &proxyTransport{transport: base, proxied: map[string]*http.Transport{}}
 }
 
@@ -340,15 +343,8 @@ func (t *proxyTransport) proxiedTransport(proxyURL *url.URL) *http.Transport {
 
 // newProxiedTransport returns a transport that only dials proxyURL, unchecked: the proxy is operator configuration.
 func newProxiedTransport(proxyURL *url.URL, base *http.Transport) *http.Transport {
-	return &http.Transport{
-		Proxy:                 http.ProxyURL(proxyURL),
-		DialContext:           proxyDialer.DialContext,
-		ForceAttemptHTTP2:     base.ForceAttemptHTTP2,
-		MaxIdleConns:          base.MaxIdleConns,
-		IdleConnTimeout:       base.IdleConnTimeout,
-		TLSHandshakeTimeout:   base.TLSHandshakeTimeout,
-		ExpectContinueTimeout: base.ExpectContinueTimeout,
-		TLSClientConfig:       base.TLSClientConfig.Clone(),
-		ReadBufferSize:        base.ReadBufferSize,
-	}
+	tr := base.Clone() // carries over every setting of the direct transport
+	tr.Proxy = http.ProxyURL(proxyURL)
+	tr.DialContext = ProxyDialer().DialContext
+	return tr
 }
