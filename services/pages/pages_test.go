@@ -102,11 +102,27 @@ func TestDeletePagesVersion(t *testing.T) {
 	}
 	first := commit("first")
 	current := commit("current")
+	site, err := pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{
+		Enabled: true, SourceType: pages_model.PublishSourceArtifact,
+	})
+	require.NoError(t, err)
+	previousUpdate := site.PagesUpdatedUnixNano
 
-	require.ErrorIs(t, pages_service.DeleteVersion(t.Context(), 1, current.Version.ID), pages_service.ErrCurrentVersion)
+	require.NoError(t, pages_service.DeleteVersion(t.Context(), 1, current.Version.ID))
 	_, has, err := pages_model.GetVersionByID(t.Context(), current.Version.ID)
 	require.NoError(t, err)
+	require.False(t, has)
+	_, err = pages_content.NewContentStore().Stat(1, current.Version.TarGzSHA256)
+	require.ErrorIs(t, err, os.ErrNotExist)
+	site, has, err = pages_model.GetSiteByRepoID(t.Context(), 1)
+	require.NoError(t, err)
 	require.True(t, has)
+	require.False(t, site.Enabled)
+	require.Zero(t, site.CurrentVersionID)
+	require.Greater(t, site.PagesUpdatedUnixNano, previousUpdate)
+	status, err := pages_service.GetActionsDeploymentStatus(t.Context(), 1, current.Version.TarGzSHA256)
+	require.NoError(t, err)
+	require.Equal(t, pages_service.ActionsDeploymentStatusCancelled, status)
 
 	require.NoError(t, pages_service.DeleteVersion(t.Context(), 1, first.Version.ID))
 	_, has, err = pages_model.GetVersionByID(t.Context(), first.Version.ID)

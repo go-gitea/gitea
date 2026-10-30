@@ -20,13 +20,13 @@
 		</div>
 	{{end}}
 	<div class="ui attached table segment">
-		<table class="ui very basic table unstackable">
+		<table class="ui very basic selectable table unstackable">
 			<thead>
 				<tr>
 					<th class="collapsing">ID</th>
 					<th class="tw-w-1/2 tw-text-center">{{ctx.Locale.Tr "admin.pages.root_url"}}</th>
 					<th class="tw-w-1/2 tw-text-center">{{ctx.Locale.Tr "admin.pages.last_communication"}}</th>
-					<th class="collapsing">{{ctx.Locale.Tr "admin.notices.op"}}</th>
+					<th class="collapsing tw-text-right">{{ctx.Locale.Tr "admin.notices.op"}}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -41,8 +41,8 @@
 							{{end}}
 						</td>
 						<td class="tw-text-center">{{if $instance.LastCommunicationUnix}}{{DateUtils.TimeSince $instance.LastCommunicationUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
-						<td class="collapsing">
-							<div class="tw-flex tw-gap-2">
+						<td class="collapsing tw-text-right">
+							<div class="tw-flex tw-gap-2 tw-justify-end">
 								<a class="link-action" href aria-label="{{ctx.Locale.Tr "admin.pages.reset"}}" data-tooltip-content="{{ctx.Locale.Tr "admin.pages.reset"}}" data-url="{{$.Link}}?action=reset&amp;instance_id={{$instance.ID}}" data-modal-confirm-header="{{ctx.Locale.Tr "admin.pages.reset_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "admin.pages.reset_confirm_desc"}}">{{svg "octicon-sync"}}</a>
 								<a class="link-action negative tw-text-red" href aria-label="{{ctx.Locale.Tr "admin.pages.remove"}}" data-tooltip-content="{{ctx.Locale.Tr "admin.pages.remove"}}" data-url="{{$.Link}}?action=remove&amp;instance_id={{$instance.ID}}" data-modal-confirm-header="{{ctx.Locale.Tr "admin.pages.remove_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "admin.pages.remove_confirm_desc"}}">{{svg "octicon-trash"}}</a>
 							</div>

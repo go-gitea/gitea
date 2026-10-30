@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	pages_model "gitea.dev/models/pages"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	pages_service "gitea.dev/services/pages"
 
@@ -101,6 +102,36 @@ func TestGetActionsDeploymentStatusCustomFailureDoesNotBlockDefault(t *testing.T
 	status, err := pages_service.GetActionsDeploymentStatus(t.Context(), site.RepoID, currentActionsVersion(t, site).TarGzSHA256)
 	require.NoError(t, err)
 	require.Equal(t, pages_service.ActionsDeploymentStatusSuccess, status)
+}
+
+func TestGetCurrentDeploymentStatusFiltersStaleResults(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	site := currentActionsSite(t)
+	first := currentActionsInstance(t, "https://pages-a.example.test")
+	second := currentActionsInstance(t, "http://pages-b.example.test")
+	require.NoError(t, pages_model.InsertDomain(t.Context(), &pages_model.Domain{
+		RepoID: site.RepoID, Host: "site.example.test", TXTToken: "token",
+		State: pages_model.DomainStateActive, TXTResult: pages_model.TXTResultValid, CreatedUnixNano: 1,
+	}))
+	currentActionsResult(t, first, site, true, false, pages_model.InstanceErrorACMEFailed)
+	currentActionsResult(t, second, site, false, false, pages_model.InstanceErrorContentInstallFailed)
+
+	second.RootUpdatedUnixNano++
+	require.NoError(t, pages_model.UpdateInstance(t.Context(), second))
+	repo, err := repo_model.GetRepositoryByID(t.Context(), site.RepoID)
+	require.NoError(t, err)
+	deployment, err := pages_service.GetCurrentDeploymentStatus(t.Context(), repo)
+	require.NoError(t, err)
+	require.Equal(t, pages_service.DeploymentStatusPublishing, deployment.Status)
+	require.Len(t, deployment.Instances, 2)
+	require.Equal(t, pages_service.DeploymentStatusPublished, deployment.Instances[0].DefaultStatus)
+	require.Equal(t, pages_service.DeploymentStatusFailed, deployment.Instances[0].CustomStatus)
+	require.Equal(t, pages_model.InstanceErrorACMEFailed, deployment.Instances[0].ErrorCode)
+	require.Equal(t, "https://site.example.test/", deployment.Instances[0].CustomURL)
+	require.Equal(t, pages_service.DeploymentStatusPublishing, deployment.Instances[1].DefaultStatus)
+	require.Equal(t, pages_service.DeploymentStatusPublishing, deployment.Instances[1].CustomStatus)
+	require.Empty(t, deployment.Instances[1].ErrorCode)
+	require.Equal(t, "http://site.example.test/", deployment.Instances[1].CustomURL)
 }
 
 func currentActionsSite(t *testing.T) *pages_model.Site {

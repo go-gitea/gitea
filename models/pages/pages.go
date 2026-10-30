@@ -105,7 +105,7 @@ type Version struct {
 // TableName returns the database table name.
 func (Version) TableName() string { return "pages_version" }
 
-// Instance stores an administrator-registered Pages process.
+// Instance stores an administrator-registered Pages service.
 type Instance struct {
 	ID                    int64              `xorm:"pk autoincr"`
 	RootURL               string             `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`

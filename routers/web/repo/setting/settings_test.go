@@ -147,79 +147,10 @@ func TestPagesVersionsPostDeletesHistoricalVersion(t *testing.T) {
 	require.False(t, has)
 }
 
-func TestClassifyPagesPublication(t *testing.T) {
-	const (
-		pagesUpdated = int64(10)
-		rootUpdated  = int64(20)
-	)
-	current := func() *pages_model.InstanceResult {
-		return &pages_model.InstanceResult{
-			AppliedPagesUpdatedUnixNano:  pagesUpdated,
-			AppliedRootUpdatedUnixNano:   rootUpdated,
-			AppliedRequireGiteaTXTRecord: true,
-		}
-	}
-
-	tests := []struct {
-		name       string
-		result     *pages_model.InstanceResult
-		custom     bool
-		requireTXT bool
-		state      pagesPublicationState
-		errorCode  pages_model.InstanceErrorCode
-	}{
-		{name: "no result", state: pagesPublicationPublishing},
-		{name: "stale result", result: &pages_model.InstanceResult{}, state: pagesPublicationPublishing},
-		{name: "default published", result: func() *pages_model.InstanceResult {
-			result := current()
-			result.DefaultPublished = true
-			result.ErrorCode = pages_model.InstanceErrorACMEFailed
-			return result
-		}(), state: pagesPublicationPublished},
-		{name: "default failed", result: func() *pages_model.InstanceResult {
-			result := current()
-			result.ErrorCode = pages_model.InstanceErrorContentInstallFailed
-			return result
-		}(), state: pagesPublicationFailed, errorCode: pages_model.InstanceErrorContentInstallFailed},
-		{name: "certificate pending", result: func() *pages_model.InstanceResult {
-			result := current()
-			result.ErrorCode = pages_model.InstanceErrorCertificatePending
-			return result
-		}(), state: pagesPublicationPublishing},
-		{name: "custom published", result: func() *pages_model.InstanceResult {
-			result := current()
-			result.CustomPublished = true
-			return result
-		}(), custom: true, requireTXT: true, state: pagesPublicationPublished},
-		{name: "custom TXT requirement changed", result: func() *pages_model.InstanceResult {
-			result := current()
-			result.CustomPublished = true
-			return result
-		}(), custom: true, requireTXT: false, state: pagesPublicationPublishing},
-		{name: "custom failed", result: func() *pages_model.InstanceResult {
-			result := current()
-			result.ErrorCode = pages_model.InstanceErrorTXTInvalid
-			return result
-		}(), custom: true, requireTXT: true, state: pagesPublicationFailed, errorCode: pages_model.InstanceErrorTXTInvalid},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			state, errorCode := classifyPagesPublication(testCase.result, pagesUpdated, rootUpdated, testCase.requireTXT, testCase.custom)
-			assert.Equal(t, testCase.state, state)
-			assert.Equal(t, testCase.errorCode, errorCode)
-		})
-	}
-}
-
-func TestLoadPagesSettingsDataIncludesDisplayTimes(t *testing.T) {
+func TestLoadPagesSettingsDataIncludesDomainTimes(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	site, err := pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{Enabled: true, SourceType: pages_model.PublishSourceArtifact})
+	_, err := pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{Enabled: true, SourceType: pages_model.PublishSourceArtifact})
 	require.NoError(t, err)
-	current := &pages_model.Version{RepoID: 1, TarGzSHA256: strings.Repeat("b", 64), OriginType: pages_model.VersionOriginUpload}
-	require.NoError(t, db.Insert(t.Context(), current))
-	site.CurrentVersionID = current.ID
-	require.NoError(t, pages_model.UpdateSite(t.Context(), site))
 	require.NoError(t, pages_model.InsertDomain(t.Context(), &pages_model.Domain{
 		RepoID: 1, Host: "pages.example.test", TXTToken: "token", State: pages_model.DomainStateActive,
 		TXTResult: pages_model.TXTResultInvalid, TXTLastSuccessUnixNano: 1_700_000_100 * int64(time.Second),
@@ -230,14 +161,10 @@ func TestLoadPagesSettingsDataIncludesDisplayTimes(t *testing.T) {
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 1)
 	require.True(t, loadPagesSettingsData(ctx))
-	loadedSite, ok := ctx.Data["PagesSite"].(*pages_model.Site)
-	require.True(t, ok)
-	require.Equal(t, timeutil.TimeStamp(loadedSite.PagesUpdatedUnixNano/int64(time.Second)), ctx.Data["PagesLastChangeUnix"])
 	domain, ok := ctx.Data["PagesActiveDomain"].(*pagesDomainView)
 	require.True(t, ok)
 	require.Equal(t, timeutil.TimeStamp(1_700_000_000), domain.TXTLastCheckUnix)
 	require.Equal(t, timeutil.TimeStamp(1_700_000_100), domain.TXTLastSuccessUnix)
-	require.Equal(t, true, ctx.Data["PagesHasContent"])
 	require.Equal(t, true, ctx.Data["PageIsSettingsPagesSettings"])
 }
 
@@ -277,32 +204,6 @@ func TestLoadPagesVersionsDataUsesStablePagination(t *testing.T) {
 	require.False(t, versionViews[0].Current)
 	require.Equal(t, history.ID, versionViews[0].ID)
 	require.Equal(t, "/user2/repo1/actions/runs/"+strconv.FormatInt(run.ID, 10), versionViews[0].OriginURL)
-}
-
-func TestPagesPublicationStatus(t *testing.T) {
-	tests := []struct {
-		name      string
-		addresses []pagesPublicationState
-		state     pagesPublicationState
-		partial   bool
-	}{
-		{name: "empty"},
-		{name: "published", addresses: []pagesPublicationState{pagesPublicationPublished, pagesPublicationPublished}, state: pagesPublicationPublished},
-		{name: "publishing", addresses: []pagesPublicationState{pagesPublicationPublished, pagesPublicationPublishing}, state: pagesPublicationPublishing},
-		{name: "failed", addresses: []pagesPublicationState{pagesPublicationFailed, pagesPublicationFailed}, state: pagesPublicationFailed},
-		{name: "partial failure", addresses: []pagesPublicationState{pagesPublicationPublished, pagesPublicationFailed}, state: pagesPublicationFailed, partial: true},
-	}
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			view := &pagesPublicationView{}
-			for _, state := range testCase.addresses {
-				view.Addresses = append(view.Addresses, &pagesAddressView{State: state})
-			}
-			view.finalizeStatus()
-			assert.Equal(t, testCase.state, view.State)
-			assert.Equal(t, testCase.partial, view.Partial)
-		})
-	}
 }
 
 func TestAddDeployKey(t *testing.T) {

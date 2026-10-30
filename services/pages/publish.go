@@ -20,10 +20,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-var (
-	ErrSourceChanged  = errors.New("Pages source changed while publishing")
-	ErrCurrentVersion = errors.New("current Pages version cannot be deleted")
-)
+var ErrSourceChanged = errors.New("Pages source changed while publishing")
 
 // ContentCommitResult identifies the retained version and synchronization time
 // produced by a content operation.
@@ -100,7 +97,7 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 			return nil, ErrSourceChanged
 		}
 		site = &pages_model.Site{RepoID: repoID, SourceType: opts.InitialSource}
-	} else if site.Deleted || opts.RequiredSource != "" && site.SourceType != opts.RequiredSource {
+	} else if site.Deleted || opts.RequiredSource != "" && (!site.Enabled || site.SourceType != opts.RequiredSource) {
 		return nil, ErrSourceChanged
 	}
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
@@ -134,7 +131,7 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 				return ErrSourceChanged
 			}
 			current = &pages_model.Site{RepoID: repoID, SourceType: opts.InitialSource}
-		} else if current.Deleted || opts.RequiredSource != "" && current.SourceType != opts.RequiredSource {
+		} else if current.Deleted || opts.RequiredSource != "" && (!current.Enabled || current.SourceType != opts.RequiredSource) {
 			return ErrSourceChanged
 		}
 		currentRepo, err := repo_model.GetRepositoryByID(ctx, repoID)
@@ -315,7 +312,7 @@ func DeleteVersion(ctx context.Context, repoID, versionID int64) error {
 	defer release()
 
 	var deleted *pages_model.Version
-	err = db.WithTx(ctx, func(ctx context.Context) error {
+	err = withStateChange(ctx, func(ctx context.Context, updated int64) error {
 		site, has, err := pages_model.GetSiteByRepoID(ctx, repoID)
 		if err != nil {
 			return err
@@ -331,7 +328,12 @@ func DeleteVersion(ctx context.Context, repoID, versionID int64) error {
 			return util.ErrNotExist
 		}
 		if site.CurrentVersionID == versionID {
-			return ErrCurrentVersion
+			site.CurrentVersionID = 0
+			site.Enabled = false
+			site.PagesUpdatedUnixNano = updated
+			if err := pages_model.UpdateSite(ctx, site); err != nil {
+				return err
+			}
 		}
 		if err := pages_model.DeleteVersionByID(ctx, versionID); err != nil {
 			return err

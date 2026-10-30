@@ -1,56 +1,5 @@
 {{template "repo/settings/layout_head" (dict "pageClass" "repository settings pages")}}
 <div class="repo-setting-content" data-global-init="initRepoPagesSettings">
-	<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.settings.pages.title"}}</h4>
-	<div class="ui attached segment">
-		<p>{{ctx.Locale.Tr "repo.settings.pages.description"}}</p>
-		{{if not .PagesHasSite}}
-			<div class="ui message">{{ctx.Locale.Tr "repo.settings.pages.status.not_configured"}}</div>
-		{{else if not .PagesSite.Enabled}}
-			<div class="ui message">{{ctx.Locale.Tr "repo.settings.pages.status.disabled"}}</div>
-		{{else if not .PagesHasContent}}
-			{{if .PagesSourceError}}
-				<div class="ui negative message">{{ctx.Locale.Tr "repo.settings.pages.status.source_failed"}}</div>
-			{{else if eq .PagesSite.SourceType "branch"}}
-				<div class="ui info message">{{ctx.Locale.Tr "repo.settings.pages.status.waiting_branch"}}</div>
-			{{else}}
-				<div class="ui info message">{{ctx.Locale.Tr "repo.settings.pages.status.waiting_artifact"}}</div>
-			{{end}}
-		{{else if not .PagesDefaultPublication.Addresses}}
-			<div class="ui warning message">{{ctx.Locale.Tr "repo.settings.pages.status.no_instances"}}</div>
-		{{else}}
-			{{if and (eq .PagesDefaultPublication.State "failed") .PagesDefaultPublication.Partial}}
-				<div class="ui warning message">{{ctx.Locale.Tr "repo.settings.pages.status.partial"}}</div>
-			{{else if eq .PagesDefaultPublication.State "failed"}}
-				<div class="ui negative message">{{ctx.Locale.Tr "repo.settings.pages.status.failed"}}</div>
-			{{else if eq .PagesDefaultPublication.State "publishing"}}
-				<div class="ui info message">{{ctx.Locale.Tr "repo.settings.pages.status.publishing"}}</div>
-			{{end}}
-			<div class="flex-divided-list items-with-main">
-				{{range $address := .PagesDefaultPublication.Addresses}}
-					<div class="item">
-						<div class="item-leading">
-							<span class="{{if eq $address.State "published"}}tw-text-green{{else if eq $address.State "failed"}}tw-text-red{{else}}tw-text-orange{{end}}">{{svg "octicon-dot-fill" 22}}</span>
-						</div>
-						<div class="item-main">
-							<div class="item-title"><a href="{{$address.URL}}" target="_blank" rel="noopener noreferrer">{{$address.URL}}</a></div>
-							<div class="item-body">
-								{{if eq $address.State "published"}}{{ctx.Locale.Tr "repo.settings.pages.address.published"}}
-								{{else if eq $address.State "failed"}}{{$address.ErrorMessage}}
-								{{else}}{{ctx.Locale.Tr "repo.settings.pages.address.publishing"}}{{end}}
-							</div>
-						</div>
-						{{if eq $address.State "published"}}
-							<div class="item-trailing"><a class="ui tiny button" href="{{$address.URL}}" target="_blank" rel="noopener noreferrer">{{ctx.Locale.Tr "repo.settings.pages.address.visit"}}</a></div>
-						{{end}}
-					</div>
-				{{end}}
-			</div>
-		{{end}}
-		{{if and .PagesHasSite .PagesLastChangeUnix}}
-			<p class="tw-mt-3 tw-text-12 tw-text-secondary">{{ctx.Locale.Tr "repo.settings.pages.last_change" (DateUtils.FullTime .PagesLastChangeUnix)}}</p>
-		{{end}}
-	</div>
-
 	<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.settings.pages.build.title"}}</h4>
 	<div class="ui attached segment">
 		{{if .Repository.IsPrivate}}
@@ -60,7 +9,6 @@
 			<div class="ui warning message">
 				<div class="header">{{ctx.Locale.Tr "repo.settings.pages.build.source_error"}}</div>
 				<p>{{.PagesSourceError}}</p>
-				{{if .PagesHasContent}}<p>{{ctx.Locale.Tr "repo.settings.pages.build.previous_content"}}</p>{{end}}
 			</div>
 		{{end}}
 
@@ -115,8 +63,6 @@
 
 	<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.settings.pages.domain.title"}}</h4>
 	<div class="ui attached segment">
-		<p>{{ctx.Locale.Tr "repo.settings.pages.domain.description"}}</p>
-
 		{{if not .PagesHasSite}}
 			<div class="ui message">{{ctx.Locale.Tr "repo.settings.pages.domain.configure_source"}}</div>
 		{{else if .PagesPendingDomain}}
@@ -135,7 +81,7 @@
 					<button type="button" class="btn interact-fg tw-px-1" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#pages-domain-txt-value" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
 				</div>
 				<p>{{.PagesPendingDomain.TXTText}}</p>
-					{{if .PagesPendingDomain.TXTLastCheckUnix}}<p>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.last_check" (DateUtils.FullTime .PagesPendingDomain.TXTLastCheckUnix)}}</p>{{end}}
+				{{if .PagesPendingDomain.TXTLastCheckUnix}}<p>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.last_check" (DateUtils.FullTime .PagesPendingDomain.TXTLastCheckUnix)}}</p>{{end}}
 			</div>
 			<button type="button" class="ui red button link-action" data-url="{{.RepoLink}}/settings/pages?action=remove-domain&amp;domain_id={{.PagesPendingDomain.ID}}" data-fetch-sync="$body" data-modal-confirm-header="{{ctx.Locale.Tr "repo.settings.pages.domain.remove_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "repo.settings.pages.domain.remove_confirm_desc" .PagesPendingDomain.Host}}">{{ctx.Locale.Tr "repo.settings.pages.domain.remove"}}</button>
 		{{else if .PagesReleasingDomain}}
@@ -150,27 +96,33 @@
 					<label for="pages-domain">{{ctx.Locale.Tr "repo.settings.pages.domain"}}</label>
 					<input id="pages-domain" name="host" value="{{if .PagesActiveDomain}}{{.PagesActiveDomain.Host}}{{end}}" placeholder="www.example.com" required>
 				</div>
-				<button class="ui button" type="submit">{{if .PagesActiveDomain}}{{ctx.Locale.Tr "repo.settings.pages.domain.change"}}{{else}}{{ctx.Locale.Tr "repo.settings.pages.domain.add"}}{{end}}</button>
+				<button class="ui primary button" type="submit">{{if .PagesActiveDomain}}{{ctx.Locale.Tr "repo.settings.pages.domain.change"}}{{else}}{{ctx.Locale.Tr "repo.settings.pages.domain.add"}}{{end}}</button>
 			</form>
 		{{end}}
 
 		{{if .PagesActiveDomain}}
 			<div class="ui divider"></div>
-			<div class="tw-flex tw-items-center tw-justify-between tw-gap-2">
-				<div>
-					<strong>{{.PagesActiveDomain.Host}}</strong>
-					<span class="ui small label">{{ctx.Locale.Tr "repo.settings.pages.domain.state.active"}}</span>
+			<div class="flex-divided-list items-with-main">
+				<div class="item">
+					<div class="item-main">
+						<div class="item-title tw-break-anywhere">
+							{{.PagesActiveDomain.Host}}
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.settings.pages.domain.state.active"}}</span>
+						</div>
+					</div>
+					<div class="item-trailing">
+						<button type="button" class="ui red tiny button link-action" data-url="{{.RepoLink}}/settings/pages?action=remove-domain&amp;domain_id={{.PagesActiveDomain.ID}}" data-fetch-sync="$body" data-modal-confirm-header="{{ctx.Locale.Tr "repo.settings.pages.domain.remove_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "repo.settings.pages.domain.remove_confirm_desc" .PagesActiveDomain.Host}}">{{ctx.Locale.Tr "repo.settings.pages.domain.remove"}}</button>
+					</div>
 				</div>
-				<button type="button" class="ui red tiny button link-action" data-url="{{.RepoLink}}/settings/pages?action=remove-domain&amp;domain_id={{.PagesActiveDomain.ID}}" data-fetch-sync="$body" data-modal-confirm-header="{{ctx.Locale.Tr "repo.settings.pages.domain.remove_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "repo.settings.pages.domain.remove_confirm_desc" .PagesActiveDomain.Host}}">{{ctx.Locale.Tr "repo.settings.pages.domain.remove"}}</button>
 			</div>
 
-				{{if not .PagesRequireGiteaTXTRecord}}
+			{{if not .PagesRequireGiteaTXTRecord}}
 				<div class="ui info message">{{ctx.Locale.Tr "repo.settings.pages.domain.policy_disabled"}}</div>
 			{{else if eq .PagesActiveDomain.TXTResult "valid"}}
-					<div class="ui positive message">
-						<p>{{ctx.Locale.Tr "repo.settings.pages.domain.ownership_valid"}}</p>
-						{{if .PagesActiveDomain.TXTLastCheckUnix}}<p>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.last_check" (DateUtils.FullTime .PagesActiveDomain.TXTLastCheckUnix)}}</p>{{end}}
-					</div>
+				<div class="ui positive message">
+					<p>{{ctx.Locale.Tr "repo.settings.pages.domain.ownership_valid"}}</p>
+					{{if .PagesActiveDomain.TXTLastCheckUnix}}<p>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.last_check" (DateUtils.FullTime .PagesActiveDomain.TXTLastCheckUnix)}}</p>{{end}}
+				</div>
 			{{else}}
 				<div class="ui warning message">
 					<p>{{ctx.Locale.Tr "repo.settings.pages.domain.ownership_invalid" .PagesActiveDomain.TXTText}}</p>
@@ -185,27 +137,6 @@
 						<button type="button" class="btn interact-fg tw-px-1" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#pages-active-domain-txt-value" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
 					</div>
 				</div>
-			{{end}}
-
-			{{if not .PagesSite.Enabled}}
-				<div class="ui message">{{ctx.Locale.Tr "repo.settings.pages.domain.publication.disabled"}}</div>
-			{{else if not .PagesHasContent}}
-				<div class="ui info message">{{ctx.Locale.Tr "repo.settings.pages.domain.publication.waiting"}}</div>
-			{{else if not .PagesCustomPublication.Addresses}}
-				<div class="ui warning message">{{ctx.Locale.Tr "repo.settings.pages.domain.publication.no_instances"}}</div>
-			{{else if eq .PagesCustomPublication.State "published"}}
-				<div class="ui positive message">{{ctx.Locale.Tr "repo.settings.pages.domain.publication.published"}}</div>
-			{{else if eq .PagesCustomPublication.State "failed"}}
-				<div class="ui warning message">
-					<div class="header">{{if .PagesCustomPublication.Partial}}{{ctx.Locale.Tr "repo.settings.pages.domain.publication.partial"}}{{else}}{{ctx.Locale.Tr "repo.settings.pages.domain.publication.failed"}}{{end}}</div>
-					<ul>
-						{{range $address := .PagesCustomPublication.Addresses}}
-							{{if eq $address.State "failed"}}<li><code>{{$address.InstanceRootURL}}</code>: {{$address.ErrorMessage}}</li>{{end}}
-						{{end}}
-					</ul>
-				</div>
-			{{else}}
-				<div class="ui info message">{{ctx.Locale.Tr "repo.settings.pages.domain.publication.publishing"}}</div>
 			{{end}}
 		{{end}}
 	</div>

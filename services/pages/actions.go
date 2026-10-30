@@ -124,7 +124,7 @@ func CommitActionsArtifact(ctx context.Context, repoID int64, task *actions_mode
 	if err != nil {
 		return nil, err
 	}
-	if !has || site.Deleted || site.SourceType != pages_model.PublishSourceArtifact {
+	if !has || site.Deleted || !site.Enabled || site.SourceType != pages_model.PublishSourceArtifact {
 		return nil, ErrSourceChanged
 	}
 	if !actionsRefAllowed(site, claims) {
@@ -312,59 +312,23 @@ func GetActionsDeploymentStatus(ctx context.Context, repoID int64, digest string
 	if _, err := pages_content.ContentRelativePath(repoID, digest); err != nil {
 		return "", ErrActionsDeploymentRequest
 	}
-	site, has, err := pages_model.GetSiteByRepoID(ctx, repoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		return "", err
 	}
-	if !has || site.Deleted {
-		return "", util.ErrNotExist
-	}
-	version, has, err := pages_model.GetCurrentVersion(ctx, site)
+	deployment, err := GetCurrentDeploymentStatus(ctx, repo)
 	if err != nil {
 		return "", err
 	}
-	if !site.Enabled || !has || version.TarGzSHA256 != digest {
+	if deployment.TarGzSHA256 != digest || deployment.Status == DeploymentStatusDisabled {
 		return ActionsDeploymentStatusCancelled, nil
 	}
-	instances, err := pages_model.ListInstances(ctx)
-	if err != nil {
-		return "", err
-	}
-	serviceCount := 0
-	allPublished := true
-	results, err := pages_model.ListInstanceResultsByRepoID(ctx, repoID)
-	if err != nil {
-		return "", err
-	}
-	resultByInstance := make(map[int64]*pages_model.InstanceResult, len(results))
-	for _, result := range results {
-		resultByInstance[result.InstanceID] = result
-	}
-	for _, instance := range instances {
-		if instance.RootURL == "" {
-			continue
-		}
-		serviceCount++
-		result := resultByInstance[instance.ID]
-		if result == nil || result.AppliedPagesUpdatedUnixNano != site.PagesUpdatedUnixNano ||
-			result.AppliedRootUpdatedUnixNano != instance.RootUpdatedUnixNano {
-			allPublished = false
-			continue
-		}
-		// A result with the current target and an error means the instance
-		// explicitly rejected this deployment. A default address can still be
-		// successful while a custom domain reports its own certificate or
-		// entry error, so that error does not block the default deployment.
-		if result.ErrorCode != "" && !result.DefaultPublished {
-			return ActionsDeploymentStatusFailure, nil
-		}
-		if !result.ConfigApplied || result.ActualTarGzSHA256 != digest || !result.DefaultPublished {
-			allPublished = false
-			continue
-		}
-	}
-	if serviceCount > 0 && allPublished {
+	switch deployment.Status {
+	case DeploymentStatusPublished:
 		return ActionsDeploymentStatusSuccess, nil
+	case DeploymentStatusFailed:
+		return ActionsDeploymentStatusFailure, nil
+	default:
+		return ActionsDeploymentStatusInProgress, nil
 	}
-	return ActionsDeploymentStatusInProgress, nil
 }

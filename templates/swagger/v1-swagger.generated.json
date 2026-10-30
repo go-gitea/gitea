@@ -15241,9 +15241,6 @@
           "204": {
             "description": "Pages version deleted"
           },
-          "409": {
-            "description": "The current Pages version cannot be deleted"
-          },
           "default": {
             "$ref": "#/responses/error"
           }

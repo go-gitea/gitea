@@ -79,7 +79,7 @@ func UploadPagesContent(ctx *context.APIContext) {
 	})
 }
 
-// DeletePagesVersion deletes one retained non-current Pages version.
+// DeletePagesVersion deletes one retained Pages version.
 func DeletePagesVersion(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pages/versions/{id} repository repoDeletePagesVersion
 	// ---
@@ -104,8 +104,6 @@ func DeletePagesVersion(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: Pages version deleted
-	//   "409":
-	//     description: The current Pages version cannot be deleted
 	//   default:
 	//     "$ref": "#/responses/error"
 	err := pages_service.DeleteVersion(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
@@ -113,8 +111,6 @@ func DeletePagesVersion(ctx *context.APIContext) {
 		switch {
 		case errors.Is(err, util.ErrNotExist):
 			ctx.APIErrorNotFound("PagesVersion")
-		case errors.Is(err, pages_service.ErrCurrentVersion):
-			ctx.APIError(http.StatusConflict, err.Error())
 		default:
 			ctx.APIErrorInternal(err)
 		}

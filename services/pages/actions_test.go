@@ -249,6 +249,14 @@ func TestActionsVersionAndRunMarkerCommitAtomically(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 1, total)
 	require.Len(t, versions, 1)
+
+	_, err = SaveSiteSettings(t.Context(), 1, SiteSettings{SourceType: pages_model.PublishSourceArtifact})
+	require.NoError(t, err)
+	_, err = commit(runs[0].ID, archive("closed site"))
+	require.ErrorIs(t, err, ErrSourceChanged)
+	_, total, err = pages_model.FindVersions(t.Context(), &pages_model.FindVersionOptions{ListOptions: db.ListOptionsAll, RepoID: 1})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, total)
 }
 
 type archiveTestEntry struct {

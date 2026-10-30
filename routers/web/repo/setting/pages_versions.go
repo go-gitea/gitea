@@ -67,6 +67,25 @@ type pagesVersionView struct {
 	Current     bool
 }
 
+type pagesDeploymentTargetView struct {
+	URL        string
+	Status     string
+	StatusText string
+}
+
+type pagesInstanceDeploymentView struct {
+	RootURL string
+	Default pagesDeploymentTargetView
+	Custom  pagesDeploymentTargetView
+	Error   string
+}
+
+type pagesDeploymentView struct {
+	Status     string
+	StatusText string
+	Instances  []*pagesInstanceDeploymentView
+}
+
 func loadPagesVersionsData(ctx *context.Context) bool {
 	upload.AddUploadContext(ctx, "pages")
 	repoID := ctx.Repo.Repository.ID
@@ -104,6 +123,7 @@ func loadPagesVersionsData(ctx *context.Context) bool {
 		actionRunByID[run.ID] = run
 	}
 	versionViews := make([]*pagesVersionView, 0, len(versions))
+	currentVersionOnPage := false
 	for _, version := range versions {
 		shortDigest := version.TarGzSHA256
 		if len(shortDigest) > 12 {
@@ -117,7 +137,40 @@ func loadPagesVersionsData(ctx *context.Context) bool {
 		if run := actionRunByID[version.OriginActionRunID]; run != nil {
 			view.OriginURL = ctx.Repo.RepoLink + "/actions/runs/" + strconv.FormatInt(run.ID, 10)
 		}
+		currentVersionOnPage = currentVersionOnPage || view.Current
 		versionViews = append(versionViews, view)
+	}
+	if currentVersionOnPage {
+		deployment, err := pages_service.GetCurrentDeploymentStatus(ctx, ctx.Repo.Repository)
+		if err != nil {
+			ctx.ServerError("GetCurrentDeploymentStatus", err)
+			return false
+		}
+		statusText := func(status pages_service.DeploymentStatus) string {
+			return ctx.Locale.TrString("repo.settings.pages.versions.deployment.status." + string(status))
+		}
+		deploymentView := &pagesDeploymentView{
+			Status: string(deployment.Status), StatusText: statusText(deployment.Status),
+			Instances: make([]*pagesInstanceDeploymentView, 0, len(deployment.Instances)),
+		}
+		for _, instance := range deployment.Instances {
+			view := &pagesInstanceDeploymentView{
+				RootURL: instance.RootURL,
+				Default: pagesDeploymentTargetView{
+					URL: instance.DefaultURL, Status: string(instance.DefaultStatus), StatusText: statusText(instance.DefaultStatus),
+				},
+			}
+			if instance.CustomURL != "" {
+				view.Custom = pagesDeploymentTargetView{
+					URL: instance.CustomURL, Status: string(instance.CustomStatus), StatusText: statusText(instance.CustomStatus),
+				}
+			}
+			if instance.ErrorCode != "" {
+				view.Error = ctx.Locale.TrString("repo.settings.pages.error." + string(instance.ErrorCode))
+			}
+			deploymentView.Instances = append(deploymentView.Instances, view)
+		}
+		ctx.Data["PagesCurrentDeployment"] = deploymentView
 	}
 
 	ctx.Data["Title"] = ctx.Tr("repo.settings.pages.versions.title")
@@ -206,10 +259,7 @@ func PagesVersionsPost(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("repo.settings.pages.versions.restore_success"))
 		}
 	case "delete-version":
-		err := pages_service.DeleteVersion(ctx, repoID, ctx.FormInt64("version_id"))
-		if errors.Is(err, pages_service.ErrCurrentVersion) {
-			ctx.Flash.Error(ctx.Tr("repo.settings.pages.versions.delete_current"))
-		} else if err != nil {
+		if err := pages_service.DeleteVersion(ctx, repoID, ctx.FormInt64("version_id")); err != nil {
 			ctx.Flash.Error(ctx.Tr("repo.settings.pages.versions.delete_error"))
 		} else {
 			ctx.Flash.Success(ctx.Tr("repo.settings.pages.versions.delete_success"))
