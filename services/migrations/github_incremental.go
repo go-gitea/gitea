@@ -10,7 +10,7 @@ import (
 
 	base "gitea.dev/modules/migration"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 )
 
 // The incremental layer resumes a metadata sync from the max updated time already stored per stream.
