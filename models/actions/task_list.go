@@ -84,14 +84,17 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
-	if opts.Status > StatusUnknown {
-		cond = cond.And(builder.Eq{"status": opts.Status})
-	}
 	if opts.UpdatedBefore > 0 {
 		cond = cond.And(builder.Lt{"updated": opts.UpdatedBefore})
+		if opts.Status != StatusUnknown {
+			cond = cond.And(builder.Eq{"status": opts.Status})
+		}
 	}
 	if opts.StartedBefore > 0 {
 		cond = cond.And(builder.Lt{"started": opts.StartedBefore})
+		if opts.Status != StatusUnknown {
+			cond = cond.And(builder.Eq{"status": opts.Status})
+		}
 	}
 	if opts.RunnerID > 0 {
 		cond = cond.And(builder.Eq{"runner_id": opts.RunnerID})

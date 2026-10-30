@@ -33,9 +33,9 @@ type ActionTask struct {
 	Steps    []*ActionTaskStep `xorm:"-"`
 	Attempt  int64
 	RunnerID int64              `xorm:"index(runner_id_created)"`
-	Status   Status             `xorm:"index"`
-	Started  timeutil.TimeStamp `xorm:"index"`
-	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
+	Status   Status             `xorm:"index(status_started) index(status_stopped)"`
+	Started  timeutil.TimeStamp `xorm:"index index(status_started)"`
+	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired) index(status_stopped)"`
 
 	RepoID            int64  `xorm:"index"`
 	OwnerID           int64  `xorm:"index"`
