@@ -1746,14 +1746,17 @@ func Routes() *web.Router {
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			}, reqOrgVisible())
-			m.Group("", func() {
-				addActionsRoutes(
-					m,
-					reqOrgMembership(),
-					reqOrgOwnership(),
-					org.NewAction(),
-				)
-			}, orgMustNotBeArchived)
+			addActionsRoutes(
+				m,
+				reqOrgMembership(),
+				func(ctx *context.APIContext) { // archive check after the owner check, so non-owners can't probe the archive state
+					reqOrgOwnership()(ctx)
+					if !ctx.Written() {
+						orgMustNotBeArchived(ctx)
+					}
+				},
+				org.NewAction(),
+			)
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
 				m.Combo("/{username}").Get(org.IsPublicMember).

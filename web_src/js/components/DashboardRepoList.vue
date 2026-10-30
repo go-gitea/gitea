@@ -105,7 +105,6 @@ const pageDataDefaults = {
   textNewOrg: '',
   textOrgVisibilityLimited: '',
   textOrgVisibilityPrivate: '',
-  textOrgArchived: '',
   textShowArchivedOrgs: '',
   textAllOrgsArchived: '',
   textSearchOrgs: '',
@@ -121,7 +120,7 @@ const {
   textShowBothPrivatePublic, textShowOnlyPublic, textShowOnlyPrivate,
   textAll, textSources, textForks, textMirrors, textCollaborative,
   textFirstPage, textPreviousPage, textNextPage, textLastPage,
-  textMyOrgs, textNewOrg, textOrgVisibilityLimited, textOrgVisibilityPrivate, textOrgArchived,
+  textMyOrgs, textNewOrg, textOrgVisibilityLimited, textOrgVisibilityPrivate,
   textShowArchivedOrgs, textAllOrgsArchived, textSearchOrgs, textNoMatchingOrgs,
 }: typeof pageDataDefaults = {...pageDataDefaults, ...pageData.dashboardRepoList};
 
@@ -597,11 +596,13 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class="repo-list-icon"/>
               <div class="tw-inline-block tw-truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
-              <div class="tw-flex tw-gap-1"><!-- div to prevent underline of label on hover -->
+              <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
-                <span class="ui tiny basic label" v-if="org.is_archived">{{ textOrgArchived }}</span>
+              </div>
+              <div v-if="org.is_archived">
+                <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
             <div class="tw-text-grey-light tw-flex tw-items-center tw-ml-2">

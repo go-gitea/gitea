@@ -95,6 +95,7 @@ func TestArchivedOrg(t *testing.T) {
 		} {
 			MakeRequest(t, req.AddTokenAuth(token), http.StatusLocked)
 		}
+		MakeRequest(t, NewRequest(t, "POST", "/api/v1/orgs/org3/actions/runners/registration-token"), http.StatusUnauthorized)
 
 		for _, req := range []*RequestWrapper{
 			NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{"name": "org3", "full_name": "x"}),
