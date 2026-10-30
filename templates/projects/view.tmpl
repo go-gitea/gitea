@@ -37,6 +37,10 @@
 					{{svg "octicon-pencil"}}
 					{{ctx.Locale.Tr "repo.issues.label_edit"}}
 				</a>
+				<a class="item" href="{{.Link}}/workflows">
+					{{svg "octicon-workflow"}}
+					{{ctx.Locale.Tr "repo.projects.workflows"}}
+				</a>
 				{{if .Project.IsClosed}}
 					<button type="button" class="item btn link-action" data-url="{{.Link}}/open">
 						{{svg "octicon-check"}}

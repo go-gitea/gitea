@@ -1,0 +1,30 @@
+<h2 class="ui dividing header">
+	{{ctx.Locale.Tr "repo.projects.workflows"}}
+	<div class="sub header">{{ctx.Locale.Tr "repo.projects.workflows.desc"}}</div>
+</h2>
+{{template "base/alert" .}}
+<form class="ui form" action="{{.Link}}" method="post">
+	{{range $item := .WorkflowItems}}
+		{{$event := print $item.Event}}
+		<div class="field">
+			<div class="ui checkbox">
+				<input type="checkbox" name="enabled_{{$event}}" {{if and $item.Workflow $item.Workflow.Enabled}}checked{{end}}>
+				<label><strong>{{ctx.Locale.Tr $item.Label}}</strong></label>
+			</div>
+			<div class="help">{{ctx.Locale.Tr $item.Desc}}</div>
+		</div>
+		<div class="field">
+			<select class="ui dropdown" name="column_{{$event}}" aria-label="{{ctx.Locale.Tr "repo.projects.workflows.column"}}">
+				<option value="0">{{ctx.Locale.Tr "repo.projects.workflows.column"}}</option>
+				{{range $column := $.Columns}}
+					<option value="{{$column.ID}}" {{if and $item.Workflow (eq $item.Workflow.ColumnID $column.ID)}}selected{{end}}>{{$column.Title}}</option>
+				{{end}}
+			</select>
+		</div>
+		<div class="divider"></div>
+	{{end}}
+	<div class="flex-text-block tw-justify-end">
+		<a class="ui cancel button" href="{{.CancelLink}}">{{ctx.Locale.Tr "repo.milestones.cancel"}}</a>
+		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.projects.workflows.save"}}</button>
+	</div>
+</form>

@@ -392,3 +392,40 @@ func TestProjects(t *testing.T) {
 		require.Equal(t, "user4", assignees[3].Name)
 	})
 }
+
+func TestProjectWorkflowSettings(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	repoProject := project_model.Project{Title: "workflow project", RepoID: repo2.ID, Type: project_model.TypeRepository, TemplateType: project_model.TemplateTypeBasicKanban}
+	require.NoError(t, project_model.NewProject(t.Context(), &repoProject))
+	columns, err := project_model.GetColumns(t.Context(), repoProject.ID, db.ListOptionsAll)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(columns), 2)
+
+	sess := loginUser(t, "user2")
+	workflowsLink := fmt.Sprintf("/%s/projects/%d/workflows", repo2.FullName(), repoProject.ID)
+	sess.MakeRequest(t, NewRequest(t, "GET", workflowsLink), http.StatusOK)
+
+	// an enabled workflow needs a column
+	req := NewRequestWithValues(t, "POST", workflowsLink, map[string]string{"enabled_item_closed": "on"})
+	sess.MakeRequest(t, req, http.StatusSeeOther)
+	workflows, err := project_model.GetWorkflowsByProjectID(t.Context(), repoProject.ID)
+	require.NoError(t, err)
+	assert.Empty(t, workflows)
+
+	req = NewRequestWithValues(t, "POST", workflowsLink, map[string]string{
+		"enabled_item_closed": "on",
+		"column_item_closed":  strconv.FormatInt(columns[1].ID, 10),
+	})
+	sess.MakeRequest(t, req, http.StatusSeeOther)
+	w, err := project_model.GetEnabledWorkflow(t.Context(), repoProject.ID, project_model.WorkflowEventItemClosed)
+	require.NoError(t, err)
+	require.NotNil(t, w)
+	assert.Equal(t, columns[1].ID, w.ColumnID)
+
+	// the owner-level pages render too
+	orgProject := project_model.Project{Title: "org workflow project", OwnerID: 3, Type: project_model.TypeOrganization, TemplateType: project_model.TemplateTypeBasicKanban}
+	require.NoError(t, project_model.NewProject(t.Context(), &orgProject))
+	sess.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/org3/-/projects/%d/workflows", orgProject.ID)), http.StatusOK)
+}

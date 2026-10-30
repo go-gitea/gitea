@@ -5,11 +5,14 @@ package project
 
 import (
 	"errors"
+	"net/http"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/web"
+	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	project_service "gitea.dev/services/projects"
@@ -202,4 +205,90 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	ctx.JSONOK()
+}
+
+type workflowItem struct {
+	Event    project_model.WorkflowEvent
+	Label    string
+	Desc     string
+	Workflow *project_model.Workflow
+}
+
+func workflowItems(workflows map[project_model.WorkflowEvent]*project_model.Workflow) []workflowItem {
+	labels := map[project_model.WorkflowEvent][2]string{
+		project_model.WorkflowEventItemAdded:         {"repo.projects.workflows.item_added", "repo.projects.workflows.item_added_desc"},
+		project_model.WorkflowEventItemReopened:      {"repo.projects.workflows.item_reopened", "repo.projects.workflows.item_reopened_desc"},
+		project_model.WorkflowEventItemClosed:        {"repo.projects.workflows.item_closed", "repo.projects.workflows.item_closed_desc"},
+		project_model.WorkflowEventPullRequestMerged: {"repo.projects.workflows.pull_request_merged", "repo.projects.workflows.pull_request_merged_desc"},
+		project_model.WorkflowEventChangesRequested:  {"repo.projects.workflows.changes_requested", "repo.projects.workflows.changes_requested_desc"},
+		project_model.WorkflowEventReviewApproved:    {"repo.projects.workflows.review_approved", "repo.projects.workflows.review_approved_desc"},
+		project_model.WorkflowEventCardMoved:         {"repo.projects.workflows.card_moved", "repo.projects.workflows.card_moved_desc"},
+	}
+	items := make([]workflowItem, 0, len(project_model.WorkflowEvents))
+	for _, event := range project_model.WorkflowEvents {
+		items = append(items, workflowItem{Event: event, Label: labels[event][0], Desc: labels[event][1], Workflow: workflows[event]})
+	}
+	return items
+}
+
+func RenderWorkflows(ctx *context.Context) {
+	project := findProject(ctx)
+	if ctx.Written() {
+		return
+	}
+	columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
+	if err != nil {
+		ctx.ServerError("GetColumns", err)
+		return
+	}
+	workflows, err := project_model.GetWorkflowsByProjectID(ctx, project.ID)
+	if err != nil {
+		ctx.ServerError("GetWorkflowsByProjectID", err)
+		return
+	}
+
+	ctx.Data["Title"] = ctx.Tr("repo.projects.workflows")
+	ctx.Data["PageIsViewProjects"] = true
+	ctx.Data["PageIsEditProjects"] = true
+	ctx.Data["Project"] = project
+	ctx.Data["Columns"] = columns
+	ctx.Data["WorkflowItems"] = workflowItems(workflows)
+	ctx.Data["CancelLink"] = project.Link(ctx)
+
+	if ctx.Repo != nil && ctx.Repo.Repository != nil {
+		ctx.HTML(http.StatusOK, "repo/projects/workflows")
+		return
+	}
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+	ctx.HTML(http.StatusOK, "org/projects/workflows")
+}
+
+func WorkflowsPost(ctx *context.Context) {
+	project := findProject(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	for _, event := range project_model.WorkflowEvents {
+		enabled := ctx.FormBool("enabled_" + string(event))
+		columnID := ctx.FormInt64("column_" + string(event))
+		if columnID == 0 {
+			if enabled {
+				ctx.Flash.Error(ctx.Tr("repo.projects.workflows.column_required"))
+				ctx.Redirect(project.Link(ctx) + "/workflows")
+				return
+			}
+			continue
+		}
+		if err := project_model.SaveWorkflow(ctx, project.ID, event, columnID, enabled); err != nil {
+			ctx.ServerError("SaveWorkflow", err)
+			return
+		}
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.projects.workflows.saved"))
+	ctx.Redirect(project.Link(ctx))
 }
