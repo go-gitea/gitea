@@ -126,8 +126,6 @@ request → selector (`Policy.Proxy`) ── proxy chosen ──→ proxy dialer
 
 When a proxy isn't configured, the address is from the localhost rangec or the host is somehow exempt from proxying,
 the connection is direct and is always screened — including a direct request to the proxy's own address.
-The webhook policy is the one exception on the proxied side: when the configured webhook proxy is used,
-the target hostname is still screened with `CheckHost`, because the proxy resolves the target.
 
 ## Consequences
 
@@ -135,7 +133,7 @@ the target hostname is still screened with `CheckHost`, because the proxy resolv
 
 **Negative**: matching logic is complex; operators must understand modes and per-component settings; minor DNS/classification overhead. Cloud metadata endpoints (AWS IMDS, Alibaba) are reachable when a range covering them is configured explicitly (`cgnat`, `169.254.0.0/16`, `fc00::/7`); a startup warning fires when `ALLOWED_INTERNAL_RANGES` overlaps metadata-bearing ranges, and targeted block entries can deny specific metadata IPs (migrations and git only).
 
-**Proxy caveat**: when a proxy is configured, the egress policy does not IP-check the target — the dial goes to the proxy and the proxy is expected to enforce restrictions. This is a trust delegation, not enforcement. Direct requests are still screened, so the proxy's own listener is not reachable through a direct request. Hostname screening still runs for the webhook-specific proxy case.
+**Proxy caveat**: when a proxy is configured, the egress policy does not check the target — the dial goes to the proxy and the proxy is expected to enforce restrictions. This is a trust delegation, not enforcement. Direct requests are still screened, so the proxy's own listener is not reachable through a direct request.
 
 **Upgrade note**: restricted targets are denied by default, so existing webhooks, migrations and remotes pointing at internal hosts start failing after upgrade until they are allow-listed (via an IP entry or `ALLOWED_INTERNAL_RANGES`). Hostname entries match the exact host only — previously an apex entry covered subdomains (`NO_PROXY`-style); add `*.example.com` to keep subdomain coverage.
 

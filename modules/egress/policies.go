@@ -84,24 +84,10 @@ func newMigrationPolicy(selectProxy func(*http.Request) (*url.URL, error)) *poli
 }
 
 func NewWebhookPolicy() *policy.Policy {
-	var p *policy.Policy
-	selectProxy := proxy.WebHookProxy()
-	if webhookProxy := setting.Webhook.ProxyURLFixed; webhookProxy != nil {
-		next := selectProxy
-		selectProxy = func(req *http.Request) (*url.URL, error) {
-			u, err := next(req)
-			if err == nil && u != nil && u.String() == webhookProxy.String() { // by value: the env fallback may return an equal URL
-				err = p.CheckHost(req.URL) // the webhook proxy resolves the target, so only its name can be checked
-			}
-			return u, err
-		}
-	}
-	p = policy.NewPolicy("webhook", policyMode(setting.Security.EgressMode),
+	return policy.NewPolicy("webhook", policyMode(setting.Security.EgressMode),
 		policy.WithAllow(setting.Webhook.AllowedHostList, "security.ALLOWED_HOST_LIST"),
 		policy.WithInternalRanges(setting.Security.AllowedInternalRanges, "security.ALLOWED_INTERNAL_RANGES"),
-		policy.WithProxy(selectProxy))
-
-	return p
+		policy.WithProxy(proxy.WebHookProxy()))
 }
 
 func NewSecurityPolicy(usage string) *policy.Policy {
