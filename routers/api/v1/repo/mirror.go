@@ -339,11 +339,6 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 	}
 
 	remoteName := ctx.PathParam("name")
-	if remoteName == "" {
-		// an empty name would drop the name condition and match the repo's first push mirror
-		ctx.APIErrorNotFound()
-		return
-	}
 	pushMirror, exist, err := db.Get[repo_model.PushMirror](ctx, repo_model.PushMirrorOptions{
 		RepoID:     ctx.Repo.Repository.ID,
 		RemoteName: remoteName,
@@ -357,10 +352,7 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 	}
 
 	pushMirror.Repo = ctx.Repo.Repository
-
-	// Remove the git remote first (it holds the mirror credentials), like the web settings handler does.
-	// A remote that is already gone must not block deleting the database row.
-	if err := mirror_service.RemovePushMirrorRemote(ctx, pushMirror); err != nil && !git.IsRemoteNotExistError(err) {
+	if err := mirror_service.RemovePushMirrorRemote(ctx, pushMirror); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

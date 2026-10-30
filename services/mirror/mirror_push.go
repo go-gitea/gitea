@@ -59,7 +59,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 // RemovePushMirrorRemote removes the push mirror remote.
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
 	_ = m.GetRepository(ctx)
-	if err := git.ManagedRemoteRemove(ctx, m.Repo, m.RemoteName); err != nil {
+	if err := git.ManagedRemoteRemove(ctx, m.Repo, m.RemoteName); err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 
