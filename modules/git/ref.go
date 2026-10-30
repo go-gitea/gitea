@@ -101,10 +101,12 @@ func RefNameFromPullIndex(prIndex int64) RefName {
 	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + pullSuffix)
 }
 
+// MergeRefNameFromPullIndex is the test merge, removed on close like on GitHub
 func MergeRefNameFromPullIndex(prIndex int64) RefName {
 	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + "/merge")
 }
 
+// MergedRefNameFromPullIndex hides and keeps the merged commit from git gc
 func MergedRefNameFromPullIndex(prIndex int64) RefName {
 	return RefName(hiddenRefPrefix + "/pull/" + strconv.FormatInt(prIndex, 10) + "/merged")
 }
