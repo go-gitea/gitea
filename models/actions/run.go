@@ -35,8 +35,8 @@ type ActionRun struct {
 	RepoID            int64                  `xorm:"unique(repo_index) index(repo_status)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
-	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
-	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
+	WorkflowID        string                 `xorm:"index"`              // the name of workflow file
+	Index             int64                  `xorm:"unique(repo_index)"` // a unique number for each run of a repository
 	TriggerUserID     int64                  `xorm:"index"`
 	TriggerUser       *user_model.User       `xorm:"-"`
 	ScheduleID        int64

@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -23,7 +24,7 @@ import (
 // PullRequestsOptions holds the options for PRs
 type PullRequestsOptions struct {
 	db.ListOptions
-	State       string
+	IsClosed    optional.Option[bool]
 	SortType    string
 	Labels      []int64
 	MilestoneID int64
@@ -39,9 +40,8 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 	}
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
-	switch opts.State {
-	case "closed", "open":
-		sess.And("issue.is_closed=?", opts.State == "closed")
+	if opts.IsClosed.Has() {
+		sess.And("issue.is_closed=?", opts.IsClosed.Value())
 	}
 
 	if len(opts.Labels) > 0 {

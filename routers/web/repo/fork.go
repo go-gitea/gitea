@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -60,7 +61,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	}
 	var orgs []*organization.Organization
 	for _, org := range ownedOrgs {
-		if forkRepo.OwnerID != org.ID && !repo_model.HasForkedRepo(ctx, org.ID, forkRepo.ID) {
+		if repository.CanUserForkBetweenOwners(forkRepo.OwnerID, org.ID) && !repo_model.HasForkedRepo(ctx, org.ID, forkRepo.ID) {
 			orgs = append(orgs, org)
 		}
 	}
@@ -69,14 +70,10 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	for {
 		if !repository.CanUserForkBetweenOwners(ctx.Doer.ID, traverseParentRepo.OwnerID) {
 			canForkToUser = false
-		} else {
-			for i, org := range orgs {
-				if org.ID == traverseParentRepo.OwnerID {
-					orgs = append(orgs[:i], orgs[i+1:]...)
-					break
-				}
-			}
 		}
+		orgs = slices.DeleteFunc(orgs, func(org *organization.Organization) bool {
+			return !repository.CanUserForkBetweenOwners(org.ID, traverseParentRepo.OwnerID)
+		})
 
 		if !traverseParentRepo.IsFork {
 			break

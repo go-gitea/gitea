@@ -13,6 +13,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -92,7 +93,7 @@ func testPullRequestsNewest(t *testing.T) {
 		ListOptions: db.ListOptions{
 			Page: 1,
 		},
-		State:    "open",
+		IsClosed: optional.Some(false),
 		SortType: "newest",
 	})
 	assert.NoError(t, err)
@@ -130,7 +131,7 @@ func testPullRequestsClosedRecentSortType(t *testing.T) {
 				ListOptions: db.ListOptions{
 					Page: 1,
 				},
-				State:    "closed",
+				IsClosed: optional.Some(true),
 				SortType: test.sortType,
 			})
 			require.NoError(t, err)
@@ -175,7 +176,7 @@ func testPullRequestsOldest(t *testing.T) {
 		ListOptions: db.ListOptions{
 			Page: 1,
 		},
-		State:    "open",
+		IsClosed: optional.Some(false),
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
