@@ -79,7 +79,7 @@ func (opts FindTaskByRepoOptions) ToConds() builder.Cond {
 }
 
 func (opts FindTaskByRepoOptions) ToOrders() string {
-	return "`id` DESC"
+	return "`created` DESC"
 }
 
 type FindTaskByStatusUpdatedOptions struct {
@@ -120,14 +120,15 @@ func (opts FindTaskByRunnerOptions) ToConds() builder.Cond {
 }
 
 func (opts FindTaskByRunnerOptions) ToOrders() string {
-	return "`id` DESC"
+	return "`created` DESC"
 }
 
 // FindTasksPage skips the COUNT of db.FindAndCount and the per-line log_indexes, which list pages never show
-func FindTasksPage(ctx context.Context, opts interface{
+func FindTasksPage(ctx context.Context, opts interface {
 	db.FindOptions
 	db.Paginator
-}) (tasks []*ActionTask, hasMore bool, _ error) {
+},
+) (tasks []*ActionTask, hasMore bool, _ error) {
 	skip, take := opts.GetSkipTake()
 	if err := db.GetEngine(ctx).Where(opts.ToConds()).Omit("log_indexes").OrderBy(opts.ToOrders()).Limit(take+1, skip).Find(&tasks); err != nil {
 		return nil, false, err

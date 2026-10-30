@@ -37,7 +37,7 @@ type ActionTask struct {
 	Started  timeutil.TimeStamp `xorm:"index index(status_started)"`
 	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired) index(status_stopped)"`
 
-	RepoID            int64  `xorm:"index"`
+	RepoID            int64  `xorm:"index(repo_id_created)"`
 	OwnerID           int64  `xorm:"index"`
 	CommitSHA         string `xorm:"index"`
 	IsForkPullRequest bool
@@ -54,7 +54,7 @@ type ActionTask struct {
 	LogIndexes   LogIndexes `xorm:"LONGBLOB"`                   // line number to offset
 	LogExpired   bool       `xorm:"index(stopped_log_expired)"` // files that are too old will be deleted
 
-	Created timeutil.TimeStamp `xorm:"created index(runner_id_created)"`
+	Created timeutil.TimeStamp `xorm:"created index(runner_id_created) index(repo_id_created)"`
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
