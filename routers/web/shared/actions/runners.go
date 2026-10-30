@@ -194,7 +194,7 @@ func RunnersEdit(ctx *context.Context) {
 
 	ctx.Data["Runner"] = runner
 
-	opts := actions_model.FindTaskOptions{
+	opts := actions_model.FindTaskByRunnerOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: 30,
@@ -202,7 +202,7 @@ func RunnersEdit(ctx *context.Context) {
 		RunnerID: runner.ID,
 	}
 
-	tasks, hasMore, err := actions_model.FindTasksPage(ctx, opts)
+	tasks, hasMore, err := actions_model.FindTasksPage(ctx, &opts)
 	if err != nil {
 		ctx.ServerError("FindTasksPage", err)
 		return

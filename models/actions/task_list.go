@@ -69,48 +69,65 @@ func (tasks TaskList) LoadAttributes(ctx context.Context) error {
 	return tasks.LoadJobs(ctx)
 }
 
-type FindTaskOptions struct {
+type FindTaskByRepoOptions struct {
 	db.ListOptions
 	RepoID int64
+}
 
+func (opts FindTaskByRepoOptions) ToConds() builder.Cond {
+	return builder.NewCond().And(builder.Eq{"repo_id": opts.RepoID})
+}
+
+func (opts FindTaskByRepoOptions) ToOrders() string {
+	return "`id` DESC"
+}
+
+type FindTaskByStatusUpdatedOptions struct {
+	db.ListOptions
 	Status        Status
 	UpdatedBefore timeutil.TimeStamp
+}
+
+func (opts FindTaskByStatusUpdatedOptions) ToConds() builder.Cond {
+	return builder.NewCond().And(builder.Lt{"updated": opts.UpdatedBefore}).And(builder.Eq{"status": opts.Status})
+}
+
+func (opts FindTaskByStatusUpdatedOptions) ToOrders() string {
+	return "`updated` DESC"
+}
+
+type FindTaskByStatusStartedOptions struct {
+	db.ListOptions
+	Status        Status
 	StartedBefore timeutil.TimeStamp
-	RunnerID      int64
 }
 
-func (opts FindTaskOptions) ToConds() builder.Cond {
-	cond := builder.NewCond()
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
-	if opts.UpdatedBefore > 0 {
-		cond = cond.And(builder.Lt{"updated": opts.UpdatedBefore})
-		if opts.Status != StatusUnknown {
-			cond = cond.And(builder.Eq{"status": opts.Status})
-		}
-	}
-	if opts.StartedBefore > 0 {
-		cond = cond.And(builder.Lt{"started": opts.StartedBefore})
-		if opts.Status != StatusUnknown {
-			cond = cond.And(builder.Eq{"status": opts.Status})
-		}
-	}
-	if opts.RunnerID > 0 {
-		cond = cond.And(builder.Eq{"runner_id": opts.RunnerID})
-	}
-	return cond
+func (opts FindTaskByStatusStartedOptions) ToConds() builder.Cond {
+	return builder.NewCond().And(builder.Lt{"started": opts.StartedBefore}).And(builder.Eq{"status": opts.Status})
 }
 
-func (opts FindTaskOptions) ToOrders() string {
-	if opts.RunnerID > 0 {
-		return "`created` DESC, `id` DESC" // runner_id_created index serves it, id keeps pages stable within a second
-	}
+func (opts FindTaskByStatusStartedOptions) ToOrders() string {
+	return "`started` DESC"
+}
+
+type FindTaskByRunnerOptions struct {
+	db.ListOptions
+	RunnerID int64
+}
+
+func (opts FindTaskByRunnerOptions) ToConds() builder.Cond {
+	return builder.NewCond().And(builder.Eq{"runner_id": opts.RunnerID})
+}
+
+func (opts FindTaskByRunnerOptions) ToOrders() string {
 	return "`id` DESC"
 }
 
 // FindTasksPage skips the COUNT of db.FindAndCount and the per-line log_indexes, which list pages never show
-func FindTasksPage(ctx context.Context, opts FindTaskOptions) (tasks []*ActionTask, hasMore bool, _ error) {
+func FindTasksPage(ctx context.Context, opts interface{
+	db.FindOptions
+	db.Paginator
+}) (tasks []*ActionTask, hasMore bool, _ error) {
 	skip, take := opts.GetSkipTake()
 	if err := db.GetEngine(ctx).Where(opts.ToConds()).Omit("log_indexes").OrderBy(opts.ToOrders()).Limit(take+1, skip).Find(&tasks); err != nil {
 		return nil, false, err

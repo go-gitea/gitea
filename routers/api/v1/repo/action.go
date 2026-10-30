@@ -783,7 +783,7 @@ func ListActionTasks(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	listOptions := utils.GetListOptions(ctx)
 
-	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, &actions_model.FindTaskOptions{
+	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, &actions_model.FindTaskByRepoOptions{
 		ListOptions: listOptions,
 		RepoID:      ctx.Repo.Repository.ID,
 	})
