@@ -440,7 +440,8 @@ func ViewProject(ctx *context.Context) {
 			accessCond,
 		)
 		milestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-			RepoCond: repoCond,
+			RepoCond:  repoCond,
+			ProjectID: project.ID,
 		})
 		if err != nil {
 			ctx.ServerError("GetOrgMilestones", err)

@@ -16,6 +16,14 @@
 	"description": {
 	    "description": "Long, multiline, description.",
 	    "type": "string"
+	},
+	"exclusive": {
+	    "description": "Whether the label's scope allows only one label of it per issue.",
+	    "type": "boolean"
+	},
+	"archived": {
+	    "description": "Whether the label is archived.",
+	    "type": "boolean"
 	}
     },
     "required": [
