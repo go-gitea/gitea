@@ -20,11 +20,11 @@
 	</div>
 	<div class="flex-text-block tw-flex-wrap">
 		<span>{{ctx.Locale.Tr "repo.pulls.commit_position" $.SingleCommitIndex $.SingleCommitCount}}</span>
-		<div class="ui compact icon buttons">
-			<a class="ui tiny basic button hover-opaque js-previous-commit-link {{if not $.SingleCommitPrevID}}disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.previous_commit"}}"
+		<div class="ui compact icon buttons hover-opaque">
+			<a class="ui tiny basic button js-previous-commit-link {{if not $.SingleCommitPrevID}}disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.previous_commit"}}"
 				{{if $prevID}}href="{{$prLink}}/commits/{{PathEscape $prevID}}{{$queryParams}}"{{end}}
 			>{{svg "octicon-chevron-left"}}</a>
-			<a class="ui tiny basic button hover-opaque js-next-commit-link {{if not $nextID}}disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.next_commit"}}"
+			<a class="ui tiny basic button js-next-commit-link {{if not $nextID}}disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.next_commit"}}"
 				{{if $nextID}}href="{{$prLink}}/commits/{{PathEscape $nextID}}{{$queryParams}}"{{end}}
 			>{{svg "octicon-chevron-right"}}</a>
 		</div>
