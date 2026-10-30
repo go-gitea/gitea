@@ -1922,6 +1922,16 @@
             "type": "string",
             "x-go-name": "Name"
           },
+          "owner_id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "OwnerID"
+          },
+          "repo_id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "RepoID"
+          },
           "status": {
             "type": "string",
             "x-go-name": "Status"

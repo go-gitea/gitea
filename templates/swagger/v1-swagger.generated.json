@@ -25044,6 +25044,16 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "owner_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OwnerID"
+        },
+        "repo_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoID"
+        },
         "status": {
           "type": "string",
           "x-go-name": "Status"
