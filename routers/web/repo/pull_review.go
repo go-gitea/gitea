@@ -56,6 +56,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
+	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
 	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
 }
@@ -209,6 +210,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
+	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
