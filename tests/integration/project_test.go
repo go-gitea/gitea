@@ -377,6 +377,23 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 
 func TestProjects(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("PrivateLinkedPullRequest", func(t *testing.T) {
+		require.NoError(t, db.Insert(t.Context(), &issues_model.Comment{
+			Type:       issues_model.CommentTypePullRef,
+			PosterID:   2,
+			IssueID:    1,
+			RefRepoID:  3,
+			RefIssueID: 12,
+			RefIsPull:  true,
+		}))
+		const linkedPR = `href="/org3/repo3/pulls/2"`
+
+		resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/projects/1"), http.StatusOK)
+		assert.NotContains(t, resp.Body.String(), linkedPR)
+
+		resp = loginUser(t, "user2").MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/projects/1"), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), linkedPR)
+	})
 	t.Run("LoadIssuesAssigneesForProject", func(t *testing.T) {
 		_ = db.TruncateBeans(t.Context(), "project_issue", "issue_assignees")
 		_ = db.Insert(t.Context(),
@@ -398,25 +415,4 @@ func TestProjects(t *testing.T) {
 		require.Equal(t, "user2", assignees[2].Name)
 		require.Equal(t, "user4", assignees[3].Name)
 	})
-}
-
-func TestProjectLinkedPullRequests(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	// pull6 of the private org3/repo3 references issue 1, which is on the board of the public user2/repo1
-	require.NoError(t, db.Insert(t.Context(), &issues_model.Comment{
-		Type:       issues_model.CommentTypePullRef,
-		PosterID:   2,
-		IssueID:    1,
-		RefRepoID:  3,
-		RefIssueID: 12,
-		RefIsPull:  true,
-	}))
-	const linkedPR = `href="/org3/repo3/pulls/2"`
-
-	resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/projects/1"), http.StatusOK)
-	assert.NotContains(t, resp.Body.String(), linkedPR)
-
-	resp = loginUser(t, "user2").MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/projects/1"), http.StatusOK)
-	assert.Contains(t, resp.Body.String(), linkedPR)
 }
