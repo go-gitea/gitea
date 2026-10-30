@@ -1,6 +1,8 @@
 {{$disabledReviewTooltip := "" -}}
 {{if $.Repository.IsArchived -}}
 	{{$disabledReviewTooltip = ctx.Locale.Tr "repo.archive.pull.nocomment" -}}
+{{else if not $.CanSubmitReview -}}
+	{{$disabledReviewTooltip = ctx.Locale.Tr "repo.pulls.review_not_possible_for_commit_range" -}}
 {{end -}}
 <div data-global-init="initPullReviewBox">
 <div {{if $disabledReviewTooltip}}data-tooltip-content="{{$disabledReviewTooltip}}"{{end}}>
@@ -10,10 +12,11 @@
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
 </div>
+{{if $.CanSubmitReview}}
 <div class="review-box-panel tippy-target">
 	<div class="ui segment">
 		<form class="ui form form-fetch-action" action="{{.Issue.Link}}/files/reviews/submit" method="post">
-			<input type="hidden" name="commit_id" value="{{.CompareInfo.HeadCommitID}}">{{/* not the commit on screen, that would make approvals stale */}}
+			<input type="hidden" name="commit_id" value="{{.ReviewCommitID}}">
 			<div class="field flex-text-block">
 				<b class="tw-flex-1">{{ctx.Locale.Tr "repo.diff.review.header"}}</b>
 				<a class="muted close-review-panel">{{svg "octicon-x" 16}}</a>
@@ -55,4 +58,5 @@
 		</form>
 	</div>
 </div>
+{{end}}
 </div>

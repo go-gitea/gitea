@@ -23,40 +23,56 @@ import (
 func TestPullDiff(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("CompletePRDiff", func(t *testing.T) {
-		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files", []string{"test1.txt", "test10.txt", "test2.txt", "test3.txt", "test4.txt", "test5.txt", "test6.txt", "test7.txt", "test8.txt", "test9.txt"})
+		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files", false, []string{"test1.txt", "test10.txt", "test2.txt", "test3.txt", "test4.txt", "test5.txt", "test6.txt", "test7.txt", "test8.txt", "test9.txt"})
 	})
 	t.Run("CommitRangePRDiff", func(t *testing.T) {
-		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files/4ca8bcaf27e28504df7bf996819665986b01c847..23576dd018294e476c06e569b6b0f170d0558705", []string{"test2.txt", "test3.txt", "test4.txt"})
+		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files/4ca8bcaf27e28504df7bf996819665986b01c847..23576dd018294e476c06e569b6b0f170d0558705", true, []string{"test2.txt", "test3.txt", "test4.txt"})
 	})
-	t.Run("SingleCommitPRDiff", testPullDiffSingleCommit)
+	t.Run("SingleCommit", testPullDiffSingleCommit)
 }
 
 func testPullDiffSingleCommit(t *testing.T) {
-	doc := testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/commits/c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", []string{"test3.txt"})
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+
 	bar := doc.Find("[data-commit-single-index]")
-	assert.Contains(t, bar.Text(), "test 3")
-	assert.Contains(t, bar.Text(), "Sebastian Sauer")
+	require.Equal(t, 1, bar.Length())
+	barText := bar.Text()
+	assert.Contains(t, barText, "test 3")
+	assert.Contains(t, barText, "Sebastian Sauer")
 	assert.Equal(t, "3", bar.AttrOr("data-commit-single-index", ""))
 	assert.Equal(t, "10", bar.AttrOr("data-commit-total-count", ""))
+
 	assert.Contains(t, bar.Find(".js-previous-commit-link").AttrOr("href", ""), "/pulls/1/commits/96cef4a7b72b3c208340ae6f0cf55a93e9077c93")
 	assert.Contains(t, bar.Find(".js-next-commit-link").AttrOr("href", ""), "/pulls/1/commits/23576dd018294e476c06e569b6b0f170d0558705")
 
 	commitSelect := doc.Find("#diff-commit-select")
 	assert.Equal(t, "96cef4a7b72b3c208340ae6f0cf55a93e9077c93", commitSelect.AttrOr("data-before-commit", ""))
 	assert.Equal(t, "c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", commitSelect.AttrOr("data-after-commit", ""))
-	assert.Equal(t, "1978192d98bb1b65e11c2cf37da854fbf94bffd6", doc.Find(`.review-box-panel input[name="commit_id"]`).AttrOr("value", ""))
 
-	resp := MakeRequest(t, NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/4ca8bcaf27e28504df7bf996819665986b01c847"), http.StatusOK)
+	panel := doc.Find(".review-box-panel form")
+	require.Equal(t, 1, panel.Length())
+	assert.Equal(t, "c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", panel.Find(`input[name="commit_id"]`).AttrOr("value", ""))
+
+	req = NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/files/reviews/new_comment")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "1978192d98bb1b65e11c2cf37da854fbf94bffd6", NewHTMLParser(t, resp.Body).Find(`input[name="latest_commit_id"]`).AttrOr("value", ""))
+
+	req = NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/4ca8bcaf27e28504df7bf996819665986b01c847")
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	bar = NewHTMLParser(t, resp.Body).Find("[data-commit-single-index]")
 	assert.Equal(t, "1", bar.AttrOr("data-commit-single-index", ""))
 	assert.True(t, bar.Find(".js-previous-commit-link").HasClass("disabled"))
 	assert.False(t, bar.Find(".js-next-commit-link").HasClass("disabled"))
 
-	resp = MakeRequest(t, NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/cbff181af4c9c7fee3cf6c106699e07d9a3f54e6"), http.StatusSeeOther)
+	req = NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/cbff181af4c9c7fee3cf6c106699e07d9a3f54e6")
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/user2/commitsonpr/commit/cbff181af4c9c7fee3cf6c106699e07d9a3f54e6", test.RedirectURL(resp))
 }
 
-func testPullDiffAssertPage(t *testing.T, prDiffURL string, expectedFilenames []string) *HTMLDoc {
+func testPullDiffAssertPage(t *testing.T, prDiffURL string, reviewBtnDisabled bool, expectedFilenames []string) {
 	session := loginUser(t, "user2")
 
 	req := NewRequest(t, "GET", "/user2/commitsonpr/pulls")
@@ -78,10 +94,10 @@ func testPullDiffAssertPage(t *testing.T, prDiffURL string, expectedFilenames []
 		assert.Equal(t, expectedFilenames[i], filename)
 	})
 
+	// Ensure the review button is enabled for full PR reviews
 	btn := doc.Find(".review-box-button")
 	require.Equal(t, 1, btn.Length())
-	assert.False(t, btn.Is("[disabled]"))
-	return doc
+	assert.Equal(t, reviewBtnDisabled, btn.Is("[disabled]"))
 }
 
 func TestLongLineDiffRendering(t *testing.T) {
