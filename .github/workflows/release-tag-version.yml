@@ -71,7 +71,7 @@ jobs:
       - name: Install GH CLI
         uses: dev-hanz-ops/install-gh-cli-action@6089bdde54118ad7ca3d22053eb2d69387fd2779 # v0.3.0
         with:
-          gh-cli-version: 2.39.1
+          gh-cli-version: 2.103.2 # renovate: datasource=github-releases depName=cli/cli extractVersion=^v(?<version>.+)$
       - id: range
         run: |
           previous=$(git tag --list --sort=-v:refname | grep -xE 'v[0-9]+\.[0-9]+\.[0-9]+' | grep -A1 -xF "$GITHUB_REF_NAME" | tail -1) # highest stable version below this one
