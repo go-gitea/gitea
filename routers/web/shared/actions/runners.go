@@ -161,9 +161,6 @@ func Runners(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, rCtx.RunnersTemplate)
 }
 
-// runnerTaskListMaxCount caps the task total (and thus the page count) of the runner edit page
-const runnerTaskListMaxCount = 10000
-
 // RunnersEdit renders runner edit page for repository level
 func RunnersEdit(ctx *context.Context) {
 	ctx.Data["PageIsSharedSettingsRunners"] = true
@@ -206,10 +203,9 @@ func RunnersEdit(ctx *context.Context) {
 		RunnerID: runner.ID,
 	}
 
-	// the exact total is unaffordable for runners with millions of tasks, so cap it
-	tasks, count, err := actions_model.FindTasksWithCappedCount(ctx, opts, runnerTaskListMaxCount)
+	tasks, hasMore, err := actions_model.FindTasksPage(ctx, opts)
 	if err != nil {
-		ctx.ServerError("CountTasks", err)
+		ctx.ServerError("FindTasksPage", err)
 		return
 	}
 
@@ -219,7 +215,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	ctx.Data["Tasks"] = tasks
-	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(-1).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build().WithUnlimitedPaging(len(tasks), hasMore)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)

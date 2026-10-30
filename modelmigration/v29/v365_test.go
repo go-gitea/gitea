@@ -27,14 +27,9 @@ func TestAddActionTaskRunnerIDIDIndex(t *testing.T) {
 
 	require.NoError(t, AddActionTaskRunnerIDIDIndex(t.Context(), x))
 
-	schema, ok := migrationtest.LoadTableSchemasMap(t, x)["action_task"]
-	require.True(t, ok)
-	var cols [][]string
-	for _, idx := range schema.Indexes {
-		cols = append(cols, idx.Cols)
-	}
-	assert.Contains(t, cols, []string{"runner_id", "id"})
-	// existing indexes must survive the partial-struct sync
-	assert.Contains(t, cols, []string{"runner_id"})
-	assert.Contains(t, cols, []string{"status"})
+	indexes := migrationtest.LoadTableSchemasMap(t, x)["action_task"].Indexes
+	require.Contains(t, indexes, "runner_id_id")
+	assert.Equal(t, []string{"runner_id", "id"}, indexes["runner_id_id"].Cols)
+	assert.NotContains(t, indexes, "runner_id")
+	assert.Contains(t, indexes, "status")
 }

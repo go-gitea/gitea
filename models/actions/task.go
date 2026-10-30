@@ -69,10 +69,8 @@ func init() {
 	db.RegisterModel(new(ActionTask))
 }
 
-// TableIndices implements xorm's TableIndices interface
+// TableIndices declares (runner_id, id), which xorm tags can't since they order composite columns by field order
 func (*ActionTask) TableIndices() []*schemas.Index {
-	// "WHERE runner_id=? ORDER BY id DESC" needs (runner_id, id); it also serves plain runner_id lookups.
-	// xorm tags can't express it because they order composite columns by field order and ID comes first.
 	runnerIDIndex := schemas.NewIndex("runner_id_id", schemas.IndexType)
 	runnerIDIndex.AddColumn("runner_id", "id")
 	return []*schemas.Index{runnerIDIndex}
