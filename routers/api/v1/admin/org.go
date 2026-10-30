@@ -7,12 +7,14 @@ package admin
 import (
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 )
@@ -39,10 +41,8 @@ func CreateOrg(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Organization"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.CreateOrgOption](ctx)
 
@@ -74,6 +74,8 @@ func CreateOrg(ctx *context.APIContext) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.OrganizationCreate, org.AsUser())
+
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
@@ -96,8 +98,8 @@ func GetAllOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 

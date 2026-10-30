@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"bytes"
 	stdCtx "context"
 	"errors"
 	"fmt"
@@ -21,6 +20,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
@@ -29,24 +29,25 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	shared_actions "gitea.dev/routers/web/shared/actions"
 	shared_user "gitea.dev/routers/web/shared/user"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
-
-	"go.yaml.in/yaml/v4"
 )
 
 const (
 	tplListActions           templates.TplName = "repo/actions/list"
 	tplDispatchInputsActions templates.TplName = "repo/actions/workflow_dispatch_inputs"
 	tplViewActions           templates.TplName = "repo/actions/view"
+	tplArtifactPreviewAction templates.TplName = "repo/actions/artifact_preview"
 )
 
 type WorkflowInfo struct {
 	EntryName string
 	ErrMsg    string
 	Workflow  *act_model.Workflow
+	Reusable  bool // only triggered by workflow_call
 }
 
 type workflowBadge struct {
@@ -220,17 +221,19 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			ctx.ServerError("GetContentFromEntry", err)
 			return nil, ""
 		}
-		wf, err := act_model.ReadWorkflow(bytes.NewReader(content))
+		wf, err := jobparser.ReadWorkflow(content)
 		if err != nil {
 			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 			workflows = append(workflows, workflow)
 			continue
 		}
-		if err := actions.ValidateWorkflowContent(content); err != nil {
+		events, err := actions.GetEventsFromContent(content)
+		if err != nil {
 			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 			workflows = append(workflows, workflow)
 			continue
 		}
+		workflow.Reusable = len(events) == 0 && slices.Contains(wf.On(), "workflow_call") // events never include workflow_call
 		workflow.Workflow = wf
 		// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
 		hasJobWithoutNeeds := false
@@ -262,7 +265,11 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 		workflows = append(workflows, workflow)
 	}
 
+	reusableWorkflows := slices.DeleteFunc(slices.Clone(workflows), func(w WorkflowInfo) bool { return !w.Reusable })
 	ctx.Data["workflows"] = workflows
+	ctx.Data["ReusableWorkflows"] = reusableWorkflows
+	ctx.Data["CurWorkflowIsReusable"] = ctx.FormInt64("scoped_workflow_source_repo_id") == 0 &&
+		slices.ContainsFunc(reusableWorkflows, func(w WorkflowInfo) bool { return w.EntryName == curWorkflowID })
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 	ctx.Data["RepoID"] = ctx.Repo.Repository.ID
 	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.Permission.IsAdmin()
@@ -390,7 +397,7 @@ func loadScopedWorkflowModel(ctx *context.Context, repo *repo_model.Repository, 
 	if content == nil {
 		return nil // the workflow does not exist on the source's default branch
 	}
-	wf, err := act_model.ReadWorkflow(bytes.NewReader(content))
+	wf, err := jobparser.ReadWorkflow(content)
 	if err != nil {
 		return nil
 	}
@@ -441,12 +448,13 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	}
 
 	ctx.Data["CurWorkflowExists"] = true
-	curWfDispatchCfg := workflowDispatchConfig(curWorkflow)
+	curWfDispatchCfg := curWorkflow.WorkflowDispatchConfig()
 	if curWfDispatchCfg == nil {
 		return
 	}
 
 	ctx.Data["WorkflowDispatchConfig"] = curWfDispatchCfg
+	ctx.Data["WorkflowDispatchInputs"] = curWorkflow.WorkflowDispatchInputs()
 
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
@@ -503,8 +511,7 @@ func (data *actionRunListData) prepareFullPageRuns(ctx *context.Context, otherWo
 		ctx.ServerError("FindAndCount", err)
 		return false
 	}
-	data.pager = context.NewPagination(total, opts.PageSize, opts.Page, 5)
-	data.pager.AddParamFromRequest(ctx.Req)
+	data.pager = context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	data.ActionRuns = runs
 	return true
 }
@@ -543,20 +550,21 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 		return false
 	}
 
+	activeRuns := slices.DeleteFunc(slices.Clone(data.ActionRuns), func(run *actions_model.ActionRun) bool {
+		return !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked)
+	})
+	jobsByRun, err := actions_model.GetLatestAttemptJobsByRuns(ctx, activeRuns)
+	if err != nil {
+		ctx.ServerError("GetLatestAttemptJobsByRuns", err)
+		return false
+	}
+
 	data.RunErrors = make(map[int64]string)
-	for _, run := range data.ActionRuns {
-		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
-			continue
-		}
-		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
-		if err != nil {
-			ctx.ServerError("GetRunJobsByRunID", err)
-			return false
-		}
-		for _, job := range jobs {
+	for _, run := range activeRuns {
+		for _, job := range jobsByRun[run.ID] {
 			// A deferred matrix is unresolvable until its needs finish, so the whole per-job block
 			// is skipped: parsing the payload would report a valid workflow as invalid.
-			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
+			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending) {
 				continue
 			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
@@ -569,7 +577,7 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 					break
 				}
 			}
-			if job.Status.IsWaiting() {
+			if job.Status.IsWaiting() && !job.IsReusableCaller {
 				hasOnlineRunner := false
 				for _, runner := range runners {
 					if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
@@ -596,10 +604,7 @@ func (data *actionRunListData) fillRefreshMeta(ctx *context.Context) bool {
 		}
 		actionRunIDs = append(actionRunIDs, run.ID)
 	}
-	data.RefreshIntervalMs = util.Iif[int64](hasActiveRuns, 3*1000, 12*1000)
-	if !setting.IsProd {
-		data.RefreshIntervalMs = util.Iif[int64](hasActiveRuns, 1000, 2*1000) // faster in dev mode to make debug easier
-	}
+	data.RefreshIntervalMs = shared_actions.RefreshIntervalMs(hasActiveRuns)
 	if len(data.ActionRuns) == 0 {
 		data.RefreshIntervalMs = 0
 	}
@@ -645,7 +650,15 @@ func (data *actionRunListData) preparePartialRefreshRuns(ctx *context.Context) b
 		ctx.ServerError("GetRunsByRepoAndID", err)
 		return false
 	}
-	data.ActionRuns = runs
+	runsMap := make(map[int64]*actions_model.ActionRun, len(runs))
+	for _, run := range runs {
+		runsMap[run.ID] = run
+	}
+	for _, id := range data.refreshRunIDs {
+		if run, ok := runsMap[id]; ok {
+			data.ActionRuns = append(data.ActionRuns, run)
+		}
+	}
 	return true
 }
 
@@ -659,7 +672,7 @@ func (data *actionRunListData) prepareCommon(ctx *context.Context, workflows []W
 		return false
 	}
 	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, data.ActionRuns); err != nil {
-		log.Error("LoadIsRefDeleted", err)
+		log.Error("loadIsRefDeleted: %v", err)
 	}
 
 	if !data.processActionRuns(ctx) {
@@ -749,91 +762,6 @@ func loadIsRefDeleted(ctx stdCtx.Context, repoID int64, runs actions_model.RunLi
 		}
 	}
 	return nil
-}
-
-type WorkflowDispatchInput struct {
-	Name        string   `yaml:"name"`
-	Description string   `yaml:"description"`
-	Required    bool     `yaml:"required"`
-	Default     string   `yaml:"default"`
-	Type        string   `yaml:"type"`
-	Options     []string `yaml:"options"`
-}
-
-func (i WorkflowDispatchInput) IsDefaultTrue() bool {
-	return util.ParseYamlBool(i.Default)
-}
-
-type WorkflowDispatch struct {
-	Inputs []WorkflowDispatchInput
-}
-
-func workflowDispatchConfig(w *act_model.Workflow) *WorkflowDispatch {
-	switch w.RawOn.Kind {
-	case yaml.ScalarNode:
-		var val string
-		if !decodeNode(w.RawOn, &val) {
-			return nil
-		}
-		if val == "workflow_dispatch" {
-			return &WorkflowDispatch{}
-		}
-	case yaml.SequenceNode:
-		var val []string
-		if !decodeNode(w.RawOn, &val) {
-			return nil
-		}
-		if slices.Contains(val, "workflow_dispatch") {
-			return &WorkflowDispatch{}
-		}
-	case yaml.MappingNode:
-		var val map[string]yaml.Node
-		if !decodeNode(w.RawOn, &val) {
-			return nil
-		}
-
-		workflowDispatchNode, found := val["workflow_dispatch"]
-		if !found {
-			return nil
-		}
-
-		var workflowDispatch WorkflowDispatch
-		var workflowDispatchVal map[string]yaml.Node
-		if !decodeNode(workflowDispatchNode, &workflowDispatchVal) {
-			return &workflowDispatch
-		}
-
-		inputsNode, found := workflowDispatchVal["inputs"]
-		if !found || inputsNode.Kind != yaml.MappingNode {
-			return &workflowDispatch
-		}
-
-		i := 0
-		for {
-			if i+1 >= len(inputsNode.Content) {
-				break
-			}
-			var input WorkflowDispatchInput
-			if decodeNode(*inputsNode.Content[i+1], &input) {
-				input.Name = inputsNode.Content[i].Value
-				workflowDispatch.Inputs = append(workflowDispatch.Inputs, input)
-			}
-			i += 2
-		}
-		return &workflowDispatch
-
-	default:
-		return nil
-	}
-	return nil
-}
-
-func decodeNode(node yaml.Node, out any) bool {
-	if err := node.Decode(out); err != nil {
-		log.Warn("Failed to decode node %v into %T: %v", node, out, err)
-		return false
-	}
-	return true
 }
 
 func actionsListRedirectURL(repoLink, workflow, scopedWorkflowSourceRepoID, actor, status, branch string) string {

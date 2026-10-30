@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
@@ -500,16 +501,6 @@ type UserIDCount struct {
 	Count  int64
 }
 
-// GetUIDsAndNotificationCounts returns the unread counts for every user between the two provided times.
-// It must return all user IDs which appear during the period, including count=0 for users who have read all.
-func GetUIDsAndNotificationCounts(ctx context.Context, since, until timeutil.TimeStamp) ([]UserIDCount, error) {
-	sql := `SELECT user_id, sum(case when status= ? then 1 else 0 end) AS count FROM notification ` +
-		`WHERE user_id IN (SELECT user_id FROM notification WHERE updated_unix >= ? AND ` +
-		`updated_unix < ?) GROUP BY user_id`
-	var res []UserIDCount
-	return res, db.GetEngine(ctx).SQL(sql, NotificationStatusUnread, since, until).Find(&res)
-}
-
 // SetIssueReadBy sets issue to be read by given user. The bool result is true
 // when the unread count actually decreased, so callers can skip a push on no-op.
 func SetIssueReadBy(ctx context.Context, issueID, userID int64) (bool, error) {
@@ -636,6 +627,13 @@ func DeleteIssueNotifications(ctx context.Context, issueID int64) error {
 		And("subject_id = ?", issueID).
 		Delete(new(Notification))
 	return err
+}
+
+func GetNotificationsByIDs(ctx context.Context, ids []int64, userID int64) (ret NotificationList, _ error) {
+	err := db.GetEngine(ctx).
+		Where("user_id = ?", userID).And(builder.In("id", ids)).
+		Find(&ret)
+	return ret, err
 }
 
 // UpdateNotificationStatuses updates the statuses of all of a user's notifications

@@ -120,6 +120,7 @@ type Repository struct {
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
 	DefaultUpdateStyle            string           `json:"default_update_style"`
+	SquashMergeCommitMessage      string           `json:"squash_merge_commit_message"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
@@ -154,7 +155,7 @@ type CreateRepoOption struct {
 	// Whether the repository is template
 	Template bool `json:"template"`
 	// Gitignores to use
-	Gitignores string `json:"gitignores"`
+	Gitignores string `json:"gitignores" binding:"MaxSize(1024)"`
 	// License to use
 	License string `json:"license" binding:"MaxSize(100)"`
 	// Readme of the repository to create
@@ -173,7 +174,7 @@ type CreateRepoOption struct {
 type EditRepoOption struct {
 	// name of the repository
 	// unique: true
-	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
+	Name *string `json:"name,omitempty" binding:"AlphaDashDot;MaxSize(100)"`
 	// a short description of the repository.
 	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
 	// a URL with more information about the repository.
@@ -236,6 +237,8 @@ type EditRepoOption struct {
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
 	// set to an update style to be used by this repository: "merge" or "rebase".
 	DefaultUpdateStyle *string `json:"default_update_style,omitempty"`
+	// set the default squash merge commit message body: "PR_BODY", "COMMIT_MESSAGES", or "BLANK".
+	SquashMergeCommitMessage *string `json:"squash_merge_commit_message,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
 	// set to `true` to archive this repository.
@@ -344,22 +347,24 @@ type GitServiceType int
 
 // enumerate all GitServiceType
 const (
-	NotMigrated       GitServiceType = iota // 0 not migrated from external sites
-	PlainGitService                         // 1 plain git service
-	GithubService                           // 2 github.com
-	GiteaService                            // 3 gitea service
-	GitlabService                           // 4 gitlab service
-	GogsService                             // 5 gogs service
-	OneDevService                           // 6 onedev service
-	GitBucketService                        // 7 gitbucket service
-	CodebaseService                         // 8 codebase service
-	CodeCommitService                       // 9 codecommit service
+	NotMigrated            GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                              // 1 plain git service
+	GithubService                                // 2 github.com
+	GiteaService                                 // 3 gitea service
+	GitlabService                                // 4 gitlab service
+	GogsService                                  // 5 gogs service
+	OneDevService                                // 6 onedev service
+	GitBucketService                             // 7 gitbucket service
+	CodebaseService                              // 8 codebase service
+	CodeCommitService                            // 9 codecommit service
+	BitbucketServerService                       // 10 bitbucket server (data center) service
+	ForgejoService                               // 11 forgejo service
 )
 
 // Name represents the service type's name
 // WARNING: the name has to be equal to that on goth's library
 func (gt GitServiceType) Name() string {
-	return strings.ToLower(gt.Title())
+	return strings.ToLower(strings.ReplaceAll(gt.Title(), " ", ""))
 }
 
 // Title represents the service type's proper title
@@ -381,10 +386,32 @@ func (gt GitServiceType) Title() string {
 		return "Codebase"
 	case CodeCommitService:
 		return "CodeCommit"
+	case BitbucketServerService:
+		return "Bitbucket Server"
+	case ForgejoService:
+		return "Forgejo"
 	case PlainGitService:
 		return "Git"
 	}
 	return ""
+}
+
+// Variants returns the hosting options of gt's provider, which share one entry on the migrate page
+func (gt GitServiceType) Variants() []GitServiceType {
+	switch gt {
+	case BitbucketServerService:
+		return []GitServiceType{BitbucketServerService}
+	}
+	return nil
+}
+
+// ProviderTitle returns the title of gt's entry on the migrate page
+func (gt GitServiceType) ProviderTitle() string {
+	switch gt {
+	case BitbucketServerService:
+		return "Bitbucket"
+	}
+	return gt.Title()
 }
 
 // MigrateRepoOptions options for migrating repository's
@@ -399,7 +426,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit"]
+	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit","bitbucketserver","forgejo"]
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
@@ -425,7 +452,7 @@ type MigrateRepoOptions struct {
 // TokenAuth represents whether a service type supports token-based auth
 func (gt GitServiceType) TokenAuth() bool {
 	switch gt {
-	case GithubService, GiteaService, GitlabService:
+	case GithubService, GiteaService, GitlabService, ForgejoService:
 		return true
 	}
 	return false
@@ -437,11 +464,13 @@ var SupportedFullGitService = []GitServiceType{
 	GithubService,
 	GitlabService,
 	GiteaService,
+	ForgejoService,
 	GogsService,
 	OneDevService,
 	GitBucketService,
 	CodebaseService,
 	CodeCommitService,
+	BitbucketServerService,
 }
 
 // RepoTransfer represents a pending repo transfer

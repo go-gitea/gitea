@@ -28,6 +28,24 @@ import (
 func TestAPINotification(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	t.Run("public only", func(t *testing.T) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
+
+		token := getUserToken(t, user2.Name, auth_model.AccessTokenScopeReadNotification, auth_model.AccessTokenScopePublicOnly)
+		req := NewRequest(t, "GET", "/api/v1/notifications").
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+
+		req = NewRequest(t, "GET", "/api/v1/notifications/new").
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d", thread5.ID)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
@@ -343,7 +361,7 @@ func TestAPIReleaseNotificationWatcherWithoutAccess(t *testing.T) {
 		require.True(t, repo2.IsPrivate)
 
 		// user4 watches the repo even though they cannot read it
-		require.NoError(t, repo_model.WatchRepo(t.Context(), user4, repo2, true))
+		require.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user4, repo2, repo_model.WatchOptions{Mode: repo_model.WatchModeNormal, WatchReleases: true}))
 
 		session2 := loginUser(t, user2.Name)
 		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository)

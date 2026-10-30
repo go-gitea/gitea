@@ -24,7 +24,7 @@ let lastWorker: MockSharedWorker;
 
 class MockSharedWorker {
   port = new MockMessagePort();
-  // eslint-disable-next-line unicorn/no-this-assignment
+  // eslint-disable-next-line unicorn/no-this-assignment -- the test needs a handle on the instance the module constructs
   constructor() { lastWorker = this }
   addEventListener() {}
 }

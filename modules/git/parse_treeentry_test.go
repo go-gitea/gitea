@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseTreeEntriesLong(t *testing.T) {
+func TestParseTreeEntries(t *testing.T) {
 	testCases := []struct {
 		Input    string
 		Expected []*TreeEntry
@@ -53,22 +53,6 @@ func TestParseTreeEntriesLong(t *testing.T) {
 				},
 			},
 		},
-	}
-	for _, testCase := range testCases {
-		entries, err := ParseTreeEntries([]byte(testCase.Input))
-		assert.NoError(t, err)
-		assert.Len(t, entries, len(testCase.Expected))
-		for i, entry := range entries {
-			assert.Equal(t, testCase.Expected[i], entry)
-		}
-	}
-}
-
-func TestParseTreeEntriesShort(t *testing.T) {
-	testCases := []struct {
-		Input    string
-		Expected []*TreeEntry
-	}{
 		{
 			Input: `100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af	README.md
 040000 tree 84b90550547016f73c5dd3f50dea662389e67b6d	assets

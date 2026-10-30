@@ -46,39 +46,22 @@ func TestIssueTemplateStringSlice_UnmarshalYAML(t *testing.T) {
 	tests := []struct {
 		name    string
 		content string
-		tmpl    *IssueTemplate
-		want    *IssueTemplate
+		labels  []string
 		wantErr string
 	}{
 		{
 			name:    "array",
 			content: `labels: ["a", "b", "c"]`,
-			tmpl: &IssueTemplate{
-				Labels: []string{"should_be_overwrote"},
-			},
-			want: &IssueTemplate{
-				Labels: []string{"a", "b", "c"},
-			},
+			labels:  []string{"a", "b", "c"},
 		},
 		{
 			name:    "string",
 			content: `labels: "a,b,c"`,
-			tmpl: &IssueTemplate{
-				Labels: []string{"should_be_overwrote"},
-			},
-			want: &IssueTemplate{
-				Labels: []string{"a", "b", "c"},
-			},
+			labels:  []string{"a", "b", "c"},
 		},
 		{
 			name:    "empty",
 			content: `labels:`,
-			tmpl: &IssueTemplate{
-				Labels: []string{"should_be_overwrote"},
-			},
-			want: &IssueTemplate{
-				Labels: nil,
-			},
 		},
 		{
 			name: "error",
@@ -87,18 +70,21 @@ labels:
   a: aa
   b: bb
 `,
-			tmpl:    &IssueTemplate{},
-			wantErr: "yaml: unmarshal errors:\n  line 3: cannot unmarshal !!map into IssueTemplateStringSlice",
+			wantErr: "yaml: construct errors: line 3: cannot unmarshal !!map into IssueTemplateStringSlice",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := yaml.Unmarshal([]byte(tt.content), tt.tmpl)
+			tmpl := &IssueTemplate{}
+			if tt.wantErr == "" {
+				tmpl.Labels = []string{"should_be_overwrote"}
+			}
+			err := yaml.Unmarshal([]byte(tt.content), tmpl)
 			if tt.wantErr != "" {
 				assert.EqualError(t, err, tt.wantErr)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.want, tt.tmpl)
+				assert.Equal(t, &IssueTemplate{Labels: tt.labels}, tmpl)
 			}
 		})
 	}

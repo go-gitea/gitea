@@ -6,6 +6,7 @@ package swift
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -54,6 +55,19 @@ func TestParsePackage(t *testing.T) {
 		assert.ErrorIs(t, err, ErrManifestFileTooLarge)
 	})
 
+	t.Run("TooManyManifestFiles", func(t *testing.T) {
+		entries := make([][2]string, 0, maxManifestFiles+1)
+		entries = append(entries, [2]string{"Package.swift", "// swift-tools-version:5.7"})
+		for i := range maxManifestFiles {
+			entries = append(entries, [2]string{fmt.Sprintf("Package@swift-5.%d.swift", i), "// swift-tools-version:5.7"})
+		}
+
+		data := writeOrderedZipArchive(entries)
+		p, err := ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
+		assert.Nil(t, p)
+		assert.ErrorIs(t, err, ErrManifestFilesTooLarge)
+	})
+
 	t.Run("WithoutMetadata", func(t *testing.T) {
 		content1 := "// swift-tools-version:5.7\n//\n//  Package.swift"
 		content2 := "// swift-tools-version:5.6\n//\n//  Package@swift-5.6.swift"
@@ -85,6 +99,7 @@ func TestParsePackage(t *testing.T) {
 		nestedManifest := "// swift-tools-version:6.3\n//\n//  nested fixture package"
 
 		data := writeOrderedZipArchive([][2]string{
+			{"/Package.swift", nestedManifest},
 			{"Package.swift", rootManifest},
 			{"Package@swift-5.5.swift", rootAltManifest},
 			{"Package@swift-5.7.1.swift", rootPatchAltManifest},
@@ -149,15 +164,15 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, contentA, p.Metadata.Manifests[""].Content)
 	})
 
-	t.Run("WithMetadata", func(t *testing.T) {
+	parseWithMetadata := func(metadata string) (*Package, error) {
 		data := test.WriteZipArchive(map[string]string{
 			"Package.swift": "// swift-tools-version:5.7\n//\n//  Package.swift",
 		})
+		return ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), strings.NewReader(metadata))
+	}
 
-		p, err := ParsePackage(
-			bytes.NewReader(data.Bytes()), int64(data.Len()),
-			strings.NewReader(`{"name":"`+packageName+`","version":"`+packageVersion+`","description":"`+packageDescription+`","keywords":["swift","package"],"license":"`+packageLicense+`","licenseURL":"`+packageLicenseURL+`","codeRepository":"`+packageRepositoryURL+`","author":{"givenName":"`+packageAuthor+`"},"repositoryURLs":["`+packageRepositoryURL+`"]}`),
-		)
+	t.Run("WithMetadata", func(t *testing.T) {
+		p, err := parseWithMetadata(`{"name":"` + packageName + `","version":"` + packageVersion + `","description":"` + packageDescription + `","keywords":["swift","package"],"license":"` + packageLicense + `","licenseURL":"` + packageLicenseURL + `","codeRepository":"` + packageRepositoryURL + `","author":{"givenName":"` + packageAuthor + `"},"repositoryURLs":["` + packageRepositoryURL + `"]}`)
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
@@ -177,15 +192,8 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("WithExplicitNameField", func(t *testing.T) {
-		data := test.WriteZipArchive(map[string]string{
-			"Package.swift": "// swift-tools-version:5.7\n//\n//  Package.swift",
-		})
-
 		authorName := "John Doe"
-		p, err := ParsePackage(
-			bytes.NewReader(data.Bytes()), int64(data.Len()),
-			strings.NewReader(`{"name":"`+packageName+`","version":"`+packageVersion+`","description":"`+packageDescription+`","author":{"name":"`+authorName+`","givenName":"John","familyName":"Doe"}}`),
-		)
+		p, err := parseWithMetadata(`{"name":"` + packageName + `","version":"` + packageVersion + `","description":"` + packageDescription + `","author":{"name":"` + authorName + `","givenName":"John","familyName":"Doe"}}`)
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
@@ -195,14 +203,7 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("WithEmptyJSONMetadata", func(t *testing.T) {
-		data := test.WriteZipArchive(map[string]string{
-			"Package.swift": "// swift-tools-version:5.7\n//\n//  Package.swift",
-		})
-
-		p, err := ParsePackage(
-			bytes.NewReader(data.Bytes()), int64(data.Len()),
-			strings.NewReader(`{}`),
-		)
+		p, err := parseWithMetadata(`{}`)
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 		assert.NotNil(t, p.Metadata)
@@ -211,15 +212,8 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("NameFieldGeneration", func(t *testing.T) {
-		data := test.WriteZipArchive(map[string]string{
-			"Package.swift": "// swift-tools-version:5.7\n//\n//  Package.swift",
-		})
-
 		// Test with only individual name components - Name should be auto-generated
-		p, err := ParsePackage(
-			bytes.NewReader(data.Bytes()), int64(data.Len()),
-			strings.NewReader(`{"author":{"givenName":"John","middleName":"Q","familyName":"Doe"}}`),
-		)
+		p, err := parseWithMetadata(`{"author":{"givenName":"John","middleName":"Q","familyName":"Doe"}}`)
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 		assert.Equal(t, "John Q Doe", p.Metadata.Author.Name)
@@ -230,42 +224,16 @@ func TestParsePackage(t *testing.T) {
 }
 
 func TestTrimmedVersionString(t *testing.T) {
-	cases := []struct {
-		Version  *version.Version
+	for _, c := range []struct {
+		Versions []string
 		Expected string
 	}{
-		{
-			Version:  version.Must(version.NewVersion("1")),
-			Expected: "1.0",
-		},
-		{
-			Version:  version.Must(version.NewVersion("1.0")),
-			Expected: "1.0",
-		},
-		{
-			Version:  version.Must(version.NewVersion("1.0.0")),
-			Expected: "1.0",
-		},
-		{
-			Version:  version.Must(version.NewVersion("1.0.1")),
-			Expected: "1.0.1",
-		},
-		{
-			Version:  version.Must(version.NewVersion("1.0+meta")),
-			Expected: "1.0",
-		},
-		{
-			Version:  version.Must(version.NewVersion("1.0.0+meta")),
-			Expected: "1.0",
-		},
-		{
-			Version:  version.Must(version.NewVersion("1.0.1+meta")),
-			Expected: "1.0.1",
-		},
-	}
-
-	for _, c := range cases {
-		assert.Equal(t, c.Expected, TrimmedVersionString(c.Version))
+		{[]string{"1", "1.0", "1.0.0", "1.0+meta", "1.0.0+meta"}, "1.0"},
+		{[]string{"1.0.1", "1.0.1+meta"}, "1.0.1"},
+	} {
+		for _, input := range c.Versions {
+			assert.Equal(t, c.Expected, TrimmedVersionString(version.Must(version.NewVersion(input))))
+		}
 	}
 }
 

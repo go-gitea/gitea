@@ -11,7 +11,7 @@ export type Mention = {
   avatar: string,
 };
 
-export type RequestData = string | FormData | URLSearchParams | Record<string, any>;
+export type RequestData = FormData | URLSearchParams | Record<string, unknown> | unknown[];
 
 export type RequestOpts = {
   data?: RequestData,
@@ -36,6 +36,16 @@ export type IssuePageInfo = {
   issueDependencySearchType: string,
 };
 
+export type Label = {
+  id: number,
+  name: string,
+  exclusive: boolean,
+  is_archived: boolean,
+  color: string,
+  description: string,
+  url: string,
+};
+
 export type Issue = {
   id: number,
   number: number,
@@ -49,11 +59,17 @@ export type Issue = {
     merged: boolean;
   },
   repository: {
+    id: number,
+    name: string,
+    owner: string,
     full_name: string,
-    html_url: string,
   },
-  labels: Array<string>,
+  labels: Array<Label>,
 };
+
+export type JQueryElem<T extends HTMLElement = HTMLElement> = ReturnType<typeof $<T>>;
+
+export type FomanticApiResponse<T> = {success: boolean, results: T[]};
 
 export type FomanticInitFunction = {
   settings?: Record<string, any>,
@@ -71,7 +87,7 @@ export type StopwatchData = {
   seconds: number,
 };
 
-// keep in sync with services/websocket/events.go
+// keep in sync with services/websocket
 export type ServerUserEventMessage =
   {eventType: 'notification-count', eventData: {count: number}} |
   {eventType: 'stopwatches', eventData: Array<StopwatchData>} |
@@ -81,7 +97,8 @@ export const serverUserEventTypes = ['notification-count', 'stopwatches', 'logou
 
 export type UserEventMessage = ServerUserEventMessage |
   {eventType: 'worker-unavailable'} |
-  {eventType: 'worker-connected'};
+  {eventType: 'worker-connected'} |
+  {eventType: 'worker-attached'}; // joined an open socket after its connect snapshot
 
 export type UserEventType = UserEventMessage['eventType'];
 

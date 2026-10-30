@@ -15,6 +15,11 @@ import (
 )
 
 func TestCSVDiff(t *testing.T) {
+	const diffHeader = `diff --git a/unittest.csv b/unittest.csv
+--- a/unittest.csv
++++ b/unittest.csv
+`
+
 	cases := []struct {
 		diff  string
 		base  string
@@ -23,10 +28,7 @@ func TestCSVDiff(t *testing.T) {
 	}{
 		// case 0 - initial commit of a csv
 		{
-			diff: `diff --git a/unittest.csv b/unittest.csv
---- a/unittest.csv
-+++ b/unittest.csv
-@@ -0,0 +1,2 @@
+			diff: diffHeader + `@@ -0,0 +1,2 @@
 +col1,col2
 +a,a`,
 			base: "",
@@ -39,10 +41,7 @@ a,a`,
 		},
 		// case 1 - adding 1 row at end
 		{
-			diff: `diff --git a/unittest.csv b/unittest.csv
---- a/unittest.csv
-+++ b/unittest.csv
-@@ -1,2 +1,3 @@
+			diff: diffHeader + `@@ -1,2 +1,3 @@
  col1,col2
 -a,a
 +a,a
@@ -60,10 +59,7 @@ b,b`,
 		},
 		// case 2 - row deleted
 		{
-			diff: `diff --git a/unittest.csv b/unittest.csv
---- a/unittest.csv
-+++ b/unittest.csv
-@@ -1,3 +1,2 @@
+			diff: diffHeader + `@@ -1,3 +1,2 @@
  col1,col2
 -a,a
  b,b`,
@@ -80,10 +76,7 @@ b,b`,
 		},
 		// case 3 - row changed
 		{
-			diff: `diff --git a/unittest.csv b/unittest.csv
---- a/unittest.csv
-+++ b/unittest.csv
-@@ -1,2 +1,2 @@
+			diff: diffHeader + `@@ -1,2 +1,2 @@
  col1,col2
 -b,b
 +b,c`,
@@ -98,10 +91,7 @@ b,c`,
 		},
 		// case 4 - all deleted
 		{
-			diff: `diff --git a/unittest.csv b/unittest.csv
---- a/unittest.csv
-+++ b/unittest.csv
-@@ -1,2 +0,0 @@
+			diff: diffHeader + `@@ -1,2 +0,0 @@
 -col1,col2
 -b,c`,
 			base: `col1,col2
@@ -114,10 +104,7 @@ b,c`,
 		},
 		// case 5 - renames first column
 		{
-			diff: `diff --git a/unittest.csv b/unittest.csv
---- a/unittest.csv
-+++ b/unittest.csv
-@@ -1,3 +1,3 @@
+			diff: diffHeader + `@@ -1,3 +1,3 @@
 -col1,col2,col3
 +cola,col2,col3
  a,b,c`,
@@ -132,10 +119,7 @@ a,b,c`,
 		},
 		// case 6 - inserts a column after first, deletes last column
 		{
-			diff: `diff --git a/unittest.csv b/unittest.csv
---- a/unittest.csv
-+++ b/unittest.csv
-@@ -1,2 +1,2 @@
+			diff: diffHeader + `@@ -1,2 +1,2 @@
 -col1,col2,col3
 -a,b,c
 +col1,col1a,col2
@@ -151,10 +135,7 @@ a,d,b`,
 		},
 		// case 7 - deletes first column, inserts column after last
 		{
-			diff: `diff --git a/unittest.csv b/unittest.csv
---- a/unittest.csv
-+++ b/unittest.csv
-@@ -1,2 +1,2 @@
+			diff: diffHeader + `@@ -1,2 +1,2 @@
 -col1,col2,col3
 -a,b,c
 +col2,col3,col4
@@ -170,10 +151,7 @@ b,c,d`,
 		},
 		// case 8 - two columns deleted, 2 added
 		{
-			diff: `diff --git a/unittest.csv b/unittest.csv
---- a/unittest.csv
-+++ b/unittest.csv
-@@ -1,2 +1,2 @@
+			diff: diffHeader + `@@ -1,2 +1,2 @@
 -col1,col2,col
 -a,b,c
 +col3,col4,col5
@@ -190,7 +168,7 @@ c,d,e`,
 	}
 
 	for n, c := range cases {
-		diff, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff), "")
+		diff, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff))
 		assert.NoError(t, err)
 
 		var baseReader *csv.Reader

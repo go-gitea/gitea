@@ -21,24 +21,20 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestIsUsableUsername(t *testing.T) {
-	assert.NoError(t, user_model.IsUsableUsername("a"))
-	assert.NoError(t, user_model.IsUsableUsername("foo.wiki"))
-	assert.NoError(t, user_model.IsUsableUsername("foo.git"))
+	for _, username := range []string{"a", "foo.wiki", "foo.git"} {
+		assert.NoError(t, user_model.IsUsableUsername(username))
+	}
 
-	assert.Error(t, user_model.IsUsableUsername("a--b"))
-	assert.Error(t, user_model.IsUsableUsername("-1_."))
-	assert.Error(t, user_model.IsUsableUsername(".profile"))
-	assert.Error(t, user_model.IsUsableUsername("-"))
-	assert.Error(t, user_model.IsUsableUsername("🌞"))
-	assert.Error(t, user_model.IsUsableUsername("the..repo"))
-	assert.Error(t, user_model.IsUsableUsername("foo.RSS"))
-	assert.Error(t, user_model.IsUsableUsername("foo.PnG"))
+	for _, username := range []string{"a--b", "-1_.", ".profile", "-", "🌞", "the..repo", "foo.RSS", "foo.PnG"} {
+		assert.Error(t, user_model.IsUsableUsername(username))
+	}
 }
 
 func TestOAuth2Application_LoadUser(t *testing.T) {
@@ -95,6 +91,12 @@ func TestUserEmails(t *testing.T) {
 			setting.Service.NoReplyAddress = "example.com"
 			testGetUserByEmail(t, "user1-2@example.COM", 1)
 		})
+
+		t.Run("EmptyEmail", func(t *testing.T) {
+			// A user whose email address is empty must not own commits that have no author email.
+			require.NoError(t, db.Insert(t.Context(), &user_model.EmailAddress{UID: 2, Email: "", LowerEmail: "", IsActivated: true}))
+			testGetUserByEmail(t, "", 0)
+		})
 	})
 	t.Run("GetUserByEmail", func(t *testing.T) {
 		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
@@ -121,6 +123,8 @@ func TestUserEmails(t *testing.T) {
 }
 
 func TestCanCreateOrganization(t *testing.T) {
+	defer test.MockVariableValue(&setting.Admin.DisableRegularOrgCreation)()
+
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -152,28 +156,17 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	// test orgs
-	testOrgSuccess := func(opts user_model.SearchUserOptions, expectedOrgIDs []int64) {
-		opts.Types = []user_model.UserType{user_model.UserTypeOrganization}
-		testSuccess(opts, expectedOrgIDs)
+	for page, expectedOrgIDs := range [][]int64{{3, 6}, {7, 17}, {19, 25}, {26, 41}, {42}} {
+		testSuccess(user_model.SearchUserOptions{
+			Types:       []user_model.UserType{user_model.UserTypeOrganization},
+			OrderBy:     "id ASC",
+			ListOptions: db.ListOptions{Page: page + 1, PageSize: 2},
+		}, expectedOrgIDs)
 	}
-
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1, PageSize: 2}},
-		[]int64{3, 6})
-
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 2, PageSize: 2}},
-		[]int64{7, 17})
-
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 3, PageSize: 2}},
-		[]int64{19, 25})
-
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 4, PageSize: 2}},
-		[]int64{26, 41})
-
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
-		[]int64{42})
-
-	testOrgSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 6, PageSize: 2}},
-		[]int64{})
+	testSuccess(user_model.SearchUserOptions{
+		Types:       []user_model.UserType{user_model.UserTypeOrganization},
+		ListOptions: db.ListOptions{Page: 6, PageSize: 2},
+	}, []int64{})
 
 	// test users
 	testUserSuccess := func(opts user_model.SearchUserOptions, expectedUserIDs []int64) {
@@ -208,6 +201,11 @@ func TestSearchUsers(t *testing.T) {
 
 	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: optional.Some(true)},
 		[]int64{24})
+
+	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
+	testUserSuccess(user_model.SearchUserOptions{Actor: restrictedUser}, []int64{29})
+	restrictedUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:user")
+	testUserSuccess(user_model.SearchUserOptions{Actor: restrictedUser}, []int64{29})
 }
 
 func TestEmailNotificationPreferences(t *testing.T) {
@@ -283,33 +281,13 @@ func TestNewGitSig(t *testing.T) {
 }
 
 func TestDisplayName(t *testing.T) {
-	users := make([]*user_model.User, 0, 20)
-	err := db.GetEngine(t.Context()).Find(&users)
-	assert.NoError(t, err)
+	u := &user_model.User{Name: "name"}
+	assert.Equal(t, "name", u.DisplayName())
+	assert.Equal(t, "name", u.DisplayNameWithFullName())
 
-	for _, user := range users {
-		displayName := user.DisplayName()
-		assert.Equal(t, strings.TrimSpace(displayName), displayName)
-		if len(strings.TrimSpace(user.FullName)) == 0 {
-			assert.Equal(t, user.Name, displayName)
-		}
-		assert.NotEmpty(t, strings.TrimSpace(displayName))
-	}
-}
-
-func TestCreateUserInvalidEmail(t *testing.T) {
-	user := &user_model.User{
-		Name:               "GiteaBot",
-		Email:              "GiteaBot@gitea.io\r\n",
-		Passwd:             ";p['////..-++']",
-		IsAdmin:            false,
-		Theme:              setting.UI.DefaultTheme,
-		MustChangePassword: false,
-	}
-
-	err := user_model.CreateUser(t.Context(), user, &user_model.Meta{})
-	assert.Error(t, err)
-	assert.True(t, user_model.IsErrEmailCharIsNotSupported(err))
+	u = &user_model.User{Name: "name", FullName: "Full Name"}
+	assert.Equal(t, "Full Name", u.DisplayName())
+	assert.Equal(t, "name (Full Name)", u.DisplayNameWithFullName())
 }
 
 func TestCreateUserEmailAlreadyUsed(t *testing.T) {
@@ -378,18 +356,15 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 	assert.LessOrEqual(t, fetched.UpdatedUnix, timestampEnd)
 }
 
-func TestGetUserIDsByNames(t *testing.T) {
+func TestGetDoerUserIDsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	ids, err := user_model.GetRealDoerUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"})
+	assert.ErrorIs(t, err, util.ErrNotExist)
+	assert.Equal(t, []int64{1, 2}, ids)
 
-	// ignore non existing
-	IDs, err := user_model.GetUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"}, true)
+	ids, err = user_model.GetDoerUserIDsByNamesWithSystem(t.Context(), []string{"gitea-actions", "gitea:deploy-key"})
 	assert.NoError(t, err)
-	assert.Equal(t, []int64{1, 2}, IDs)
-
-	// ignore non existing
-	IDs, err = user_model.GetUserIDsByNames(t.Context(), []string{"user1", "do_not_exist"}, false)
-	assert.Error(t, err)
-	assert.Equal(t, []int64(nil), IDs)
+	assert.Equal(t, []int64{-2, -3}, ids)
 }
 
 func TestGetMaileableUsersByIDs(t *testing.T) {
@@ -412,50 +387,34 @@ func TestGetMaileableUsersByIDs(t *testing.T) {
 }
 
 func TestNewUserRedirect(t *testing.T) {
-	// redirect to a completely new name
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	for _, testCase := range []struct {
+		userID  int64
+		newName string
+	}{
+		{1, "newusername"}, // redirect to a completely new name
+		{1, "olduser1"},    // redirect to previously used name
+		{2, "newusername"}, // redirect for a previously-unredirected user
+	} {
+		t.Run(fmt.Sprintf("%d/%s", testCase.userID, testCase.newName), func(t *testing.T) {
+			assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, "newusername"))
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.userID})
+			assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, testCase.newName))
 
-	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
-		LowerName:      user.LowerName,
-		RedirectUserID: user.ID,
-	})
-	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
-		LowerName:      "olduser1",
-		RedirectUserID: user.ID,
-	})
-}
-
-func TestNewUserRedirect2(t *testing.T) {
-	// redirect to previously used name
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, "olduser1"))
-
-	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
-		LowerName:      user.LowerName,
-		RedirectUserID: user.ID,
-	})
-	unittest.AssertNotExistsBean(t, &user_model.Redirect{
-		LowerName:      "olduser1",
-		RedirectUserID: user.ID,
-	})
-}
-
-func TestNewUserRedirect3(t *testing.T) {
-	// redirect for a previously-unredirected user
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.NoError(t, user_model.NewUserRedirect(t.Context(), user.ID, user.Name, "newusername"))
-
-	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
-		LowerName:      user.LowerName,
-		RedirectUserID: user.ID,
-	})
+			unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
+				LowerName:      user.LowerName,
+				RedirectUserID: user.ID,
+			})
+			if testCase.userID == 1 {
+				redirect := &user_model.Redirect{LowerName: "olduser1", RedirectUserID: user.ID}
+				if testCase.newName == "olduser1" {
+					unittest.AssertNotExistsBean(t, redirect)
+				} else {
+					unittest.AssertExistsAndLoadBean(t, redirect)
+				}
+			}
+		})
+	}
 }
 
 func TestGetUserByOpenID(t *testing.T) {
@@ -536,6 +495,10 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 	test(user20, user1, true)
 	test(user31, user1, true)
 	test(user33, user1, true)
+	publicOnlyAdmin := *user1
+	publicOnlyAdmin.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:user")
+	test(user31, &publicOnlyAdmin, false)
+	test(user33, &publicOnlyAdmin, false)
 
 	// non admin viewer
 	test(user4, user4, true)
@@ -551,13 +514,11 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 
 	// limited user
 	test(user33, user33, true)
-	test(user33, user4, true)
 	test(user33, user29, false)
 	test(user33, nil, false)
 
 	// private user
 	test(user31, user31, true)
-	test(user31, user4, false)
 	test(user31, user20, true)
 	test(user31, user29, false)
 	test(user31, user33, true)

@@ -5,18 +5,19 @@ package code
 
 import (
 	"context"
-	"os"
+	"fmt"
 	"slices"
 	"testing"
 	"time"
 
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	indexer_module "gitea.dev/modules/indexer"
 	"gitea.dev/modules/indexer/code/bleve"
 	"gitea.dev/modules/indexer/code/elasticsearch"
 	"gitea.dev/modules/indexer/code/internal"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
@@ -37,8 +38,29 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m)
 }
 
+const unicodeSearchContent = `Поставщик
+日本語のテキスト
+हिन्दी
+ภาษาไทย
+İSTANBUL
+<em>literal</em>
+abc bcd cde def
+`
+
 func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 	t.Run(name, func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 62})
+		require.NoError(t, git.ForceFastImport(t.Context(), repo, []git.FastImportCommit{{
+			Ref: "refs/heads/master",
+			Files: []git.FastImportFile{
+				{Path: "avocado.md", Content: "# repo1\n\npineaple pie of cucumber juice"},
+				{Path: "cucumber.md", Content: "Salad is good for your health"},
+				{Path: "example-file.js", Content: "console.log(\"Hello, World!\")"},
+				{Path: "ham.md", Content: "This is also not cheese"},
+				{Path: "potato/ham.md", Content: "This is not cheese"},
+				{Path: "unicode.txt", Content: unicodeSearchContent},
+			},
+		}}))
 		assert.NoError(t, setupRepositoryIndexes(t.Context(), indexer))
 		// Wait for the index to catch up: ES/OpenSearch make writes visible
 		// only after a refresh (default interval: 1s). Bleve is synchronous
@@ -57,6 +79,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 			Langs      int
 			SearchMode indexer_module.SearchModeType
 			Results    []codeSearchResult
+			Match      string
 		}{
 			// Search for an exact match on the contents of a file
 			// This scenario yields a single result (the file README.md on the repo '1')
@@ -88,6 +111,10 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					{
 						Filename: "README.md",
 						Content:  "# repo1\n\nDescription for repo1",
+					},
+					{
+						Filename: "avocado.md",
+						Content:  "# repo1\n\npineaple pie of cucumber juice",
 					},
 				},
 			},
@@ -178,8 +205,20 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			// Search for a match on the full path of a file within the repo '62'.
+			{
+				RepoIDs: []int64{62},
+				Keyword: "potato/ham",
+				Langs:   1,
+				Results: []codeSearchResult{
+					{
+						Filename: "potato/ham.md",
+						Content:  "This is not cheese",
+					},
+				},
+			},
 			// Search for matches on the contents of files within the repo '62'.
-			// This scenario yields two results (both are based on contents, the first one is an exact match where as the second is a 'fuzzy' one)
+			// This scenario yields two results (both are based on contents, the first one is an exact match where as the second is a words match)
 			{
 				RepoIDs: []int64{62},
 				Keyword: "This is not cheese",
@@ -197,10 +236,9 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 			},
 			// Search for matches on the contents of files regardless of case.
 			{
-				RepoIDs:    nil,
-				Keyword:    "dESCRIPTION",
-				Langs:      1,
-				SearchMode: indexer_module.SearchModeFuzzy,
+				RepoIDs: nil,
+				Keyword: "dESCRIPTION",
+				Langs:   1,
 				Results: []codeSearchResult{
 					{
 						Filename: "README.md",
@@ -245,6 +283,13 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+			{RepoIDs: []int64{62}, Keyword: "ставщ", Langs: 1, SearchMode: indexer_module.SearchModeExact, Results: []codeSearchResult{{Filename: "unicode.txt", Content: unicodeSearchContent}}},
+			{RepoIDs: []int64{62}, Keyword: "テキスト", Langs: 1, Results: []codeSearchResult{{Filename: "unicode.txt", Content: unicodeSearchContent}}},
+			{RepoIDs: []int64{62}, Keyword: "हिन्दी", Langs: 1, SearchMode: indexer_module.SearchModeExact, Results: []codeSearchResult{{Filename: "unicode.txt", Content: unicodeSearchContent}}},
+			{RepoIDs: []int64{62}, Keyword: "iSTANBUL", Langs: 1, SearchMode: indexer_module.SearchModeExact, Match: "İSTANBUL", Results: []codeSearchResult{{Filename: "unicode.txt", Content: unicodeSearchContent}}},
+			{RepoIDs: []int64{62}, Keyword: "literal", Langs: 1, Match: "literal", Results: []codeSearchResult{{Filename: "unicode.txt", Content: unicodeSearchContent}}},
+			{RepoIDs: []int64{62}, Keyword: "日本 ภาษา", Langs: 1, Match: "日本", Results: []codeSearchResult{{Filename: "unicode.txt", Content: unicodeSearchContent}}},
+			{RepoIDs: []int64{62}, Keyword: "abcdef", SearchMode: indexer_module.SearchModeExact},
 		}
 
 		for _, kw := range keywords {
@@ -260,14 +305,15 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 				})
 				require.NoError(t, err)
 				require.Len(t, langs, kw.Langs)
+				require.EqualValues(t, len(kw.Results), total)
+				require.Len(t, res, len(kw.Results))
 
 				hits := make([]codeSearchResult, 0, len(res))
 
-				if total > 0 {
-					assert.NotEmpty(t, kw.Results, "The given scenario does not provide any expected results")
-				}
-
 				for _, hit := range res {
+					if kw.Match != "" {
+						require.Equal(t, kw.Match, hit.Content[hit.StartIndex:hit.EndIndex])
+					}
 					hits = append(hits, codeSearchResult{
 						Filename: hit.Filename,
 						Content:  hit.Content,
@@ -295,7 +341,6 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 
 func TestBleveIndexAndSearch(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	defer test.MockVariableValue(&setting.Indexer.TypeBleveMaxFuzzniess, 2)()
 	dir := t.TempDir()
 
 	idx := bleve.NewIndexer(dir)
@@ -310,13 +355,9 @@ func TestBleveIndexAndSearch(t *testing.T) {
 func TestESIndexAndSearch(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	u := os.Getenv("TEST_INDEXER_CODE_ES_URL")
-	if u == "" {
-		t.SkipNow()
-		return
-	}
+	u := test.ExternalServiceHTTP(t, "TEST_ELASTICSEARCH_URL", "http://elasticsearch:9200")
 
-	indexer := elasticsearch.NewIndexer(u, "gitea_codes")
+	indexer := elasticsearch.NewIndexer(u, fmt.Sprintf("test_code_indexer_%d", time.Now().UnixNano()))
 	if _, err := indexer.Init(t.Context()); err != nil {
 		if indexer != nil {
 			indexer.Close()

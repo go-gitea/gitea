@@ -4,24 +4,16 @@
 package validation
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"gitea.com/go-chi/binding"
-	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
-)
-
-const (
-	testRoute = "/test"
 )
 
 type (
 	validationTestCase struct {
 		description    string
 		data           any
-		expectedErrors binding.Errors
+		expectedErrors BindingErrors
 	}
 
 	TestForm struct {
@@ -29,28 +21,16 @@ type (
 		URL          string `form:"ValidUrl" binding:"ValidUrl"`
 		GlobPattern  string `form:"GlobPattern" binding:"GlobPattern"`
 		RegexPattern string `form:"RegexPattern" binding:"RegexPattern"`
+		Email        string `form:"Email" binding:"Email"`
 	}
 )
 
 func performValidationTest(t *testing.T, testCase validationTestCase) {
-	httpRecorder := httptest.NewRecorder()
-	m := chi.NewRouter()
+	assert.Equal(t, testCase.expectedErrors, Binder().Validate(t.Context(), testCase.data))
+}
 
-	m.Post(testRoute, func(resp http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, testCase.expectedErrors, binding.Validate(req, testCase.data))
-	})
-
-	req, err := http.NewRequest(http.MethodPost, testRoute, nil)
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Add("Content-Type", "x-www-form-urlencoded")
-	m.ServeHTTP(httpRecorder, req)
-
-	switch httpRecorder.Code {
-	case http.StatusNotFound:
-		panic("Routing is messed up in test fixture (got 404): check methods and paths")
-	case http.StatusInternalServerError:
-		panic("Something bad happened on '" + testCase.description + "'")
-	}
+func TestEmailValidation(t *testing.T) {
+	assert.Nil(t, Binder().Validate(t.Context(), &TestForm{Email: "b@a"}))
+	assert.Equal(t, BindingErrors{{FieldNames: []string{"Email"}, Classification: "EmailError", Message: "invalid email"}},
+		Binder().Validate(t.Context(), &TestForm{Email: "abc"}))
 }

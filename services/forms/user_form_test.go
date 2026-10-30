@@ -23,16 +23,8 @@ func TestRegisterForm_IsDomainAllowed_Empty(t *testing.T) {
 func TestRegisterForm_IsDomainAllowed_InvalidEmail(t *testing.T) {
 	defer test.MockVariableValue(&setting.Service.EmailDomainAllowList, []glob.Glob{glob.MustCompile("gitea.io")})()
 
-	tt := []struct {
-		email string
-	}{
-		{"invalid-email"},
-		{"gitea.io"},
-	}
-
-	for _, v := range tt {
-		form := RegisterForm{Email: v.email}
-
+	for _, email := range []string{"invalid-email", "gitea.io"} {
+		form := RegisterForm{Email: email}
 		assert.False(t, form.IsEmailDomainAllowed())
 	}
 }
@@ -46,6 +38,7 @@ func TestRegisterForm_IsDomainAllowed_AllowedEmail(t *testing.T) {
 	}{
 		{"security@gitea.io", true},
 		{"security@gITea.io", true},
+		{"hack%evil.example@gitea.io", false},
 		{"invalid", false},
 		{"seee@example.com", false},
 
@@ -69,6 +62,7 @@ func TestRegisterForm_IsDomainAllowed_BlockedEmail(t *testing.T) {
 	}{
 		{"security@gitea.io", false},
 		{"security@gitea.example", true},
+		{"gitea.io!hack@gitea.example", false},
 		{"invalid", true},
 
 		{"user@my.block", false},
@@ -85,23 +79,12 @@ func TestRegisterForm_IsDomainAllowed_BlockedEmail(t *testing.T) {
 func TestDetectInvalidOAuth2ApplicationRedirectURI(t *testing.T) {
 	defer test.MockVariableValue(&setting.OAuth2.CustomSchemes)()
 	setting.OAuth2.CustomSchemes = []string{"my-app"}
-	assertValid := func(t *testing.T, s string, valid bool) {
-		ret := DetectInvalidOAuth2ApplicationRedirectURI([]string{s})
-		if valid {
-			assert.Empty(t, ret)
-		} else {
-			assert.Equal(t, s, ret)
-		}
+	for _, uri := range []string{"my-app:", "my-app:/foo", "http://foo", "https://foo"} {
+		assert.Empty(t, DetectInvalidOAuth2ApplicationRedirectURI([]string{uri}))
 	}
-	assertValid(t, "my-app:", true)
-	assertValid(t, "my-app:/foo", true)
-	assertValid(t, "http://foo", true)
-	assertValid(t, "https://foo", true)
-
-	assertValid(t, "my-app", false)
-	assertValid(t, "ftp:", false)
-	assertValid(t, "ftp://foo", false)
-	assertValid(t, "https://[invalid", false)
+	for _, uri := range []string{"my-app", "ftp:", "ftp://foo", "https://[invalid"} {
+		assert.Equal(t, uri, DetectInvalidOAuth2ApplicationRedirectURI([]string{uri}))
+	}
 
 	ret := DetectInvalidOAuth2ApplicationRedirectURI([]string{"my-app:", "http://foo", "https://foo"})
 	assert.Empty(t, ret)

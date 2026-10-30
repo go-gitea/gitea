@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
 	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func resultFilenames(doc *HTMLDoc) []string {
@@ -40,22 +42,31 @@ func TestSearchRepo(t *testing.T) {
 	defer test.MockVariableValue(&setting.Indexer.ExcludePatterns, setting.IndexerGlobFromString("**/y/**"))()
 
 	repo, err = repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "glob")
-	assert.NoError(t, err)
-
+	require.NoError(t, err)
+	require.NoError(t, git.ForceFastImport(t.Context(), repo.CodeStorageRepo(), []git.FastImportCommit{{
+		Ref: "refs/heads/master",
+		Files: []git.FastImportFile{
+			{Path: "a.txt", Content: "file1 loren ipsum\n"},
+			{Path: "aaa.doc", Content: "file2 loren ipsum\n"},
+			{Path: "x/b.txt", Content: "file3\n"},
+			{Path: "x/y/a.txt", Content: "file4\n"},
+			{Path: "x/y/z/a.txt", Content: "file5\n"},
+		},
+	}}))
 	code_indexer.UpdateRepoIndexer(repo)
 
 	testSearch(t, "/user2/glob/search?q=loren&page=1", []string{"a.txt"})
 	testSearch(t, "/user2/glob/search?q=loren&page=1&t=match", []string{"a.txt"})
-	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt", "a.txt"})
-	testSearch(t, "/user2/glob/search?q=file3&page=1&t=match", []string{"x/b.txt", "a.txt"})
-	testSearch(t, "/user2/glob/search?q=file4&page=1&t=match", []string{"x/b.txt", "a.txt"})
-	testSearch(t, "/user2/glob/search?q=file5&page=1&t=match", []string{"x/b.txt", "a.txt"})
+	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt"})
+	testSearch(t, "/user2/glob/search?q=file3&page=1&t=match", []string{"x/b.txt"})
+	testSearch(t, "/user2/glob/search?q=file4&page=1&t=match", []string{})
+	testSearch(t, "/user2/glob/search?q=file5&page=1&t=match", []string{})
 }
 
 func testSearch(t *testing.T, url string, expected []string) {
+	t.Helper()
 	req := NewRequest(t, "GET", url)
 	resp := MakeRequest(t, req, http.StatusOK)
-
 	filenames := resultFilenames(NewHTMLParser(t, resp.Body))
-	assert.Equal(t, expected, filenames)
+	assert.Equal(t, expected, filenames, "url=%s", url)
 }

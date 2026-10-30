@@ -13,6 +13,8 @@ import (
 func TestBaseRedis(t *testing.T) {
 	redisConn := test.PrepareTestRedis(t)
 	queueSetting := setting.QueueSettings{Length: 10, ConnStr: redisConn}
-	testQueueBasic(t, newBaseRedisSimple, toBaseConfig("baseRedis", queueSetting), false)
-	testQueueBasic(t, newBaseRedisUnique, toBaseConfig("baseRedisUnique", queueSetting), true)
+	optsSimple := testQueueBasicOptions{NotifiableQueue: true}
+	optsUnique := testQueueBasicOptions{UniqueQueue: true, NotifiableQueue: true}
+	testQueueBasic(t, newBaseRedisSimple, toBaseConfig("baseRedis", queueSetting), optsSimple)
+	testQueueBasic(t, newBaseRedisUnique, toBaseConfig("baseRedisUnique", queueSetting), optsUnique)
 }

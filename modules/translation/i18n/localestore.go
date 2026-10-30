@@ -177,5 +177,8 @@ func (l *locale) HasKey(trKey string) bool {
 		return false
 	}
 	_, ok = l.idxToMsgMap[idx]
+	if !ok {
+		_, ok = l.store.localeMap[l.store.defaultLang]
+	}
 	return ok
 }

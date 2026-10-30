@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCancelStopwatch, apiCloseIssue, randomString} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCloseIssue, randomString} from './utils.ts';
 
 // The /-/ws WebSocket pipeline is push-only: every event is fired by the server
 // immediately on the DB write. These tests exercise that each event type
@@ -17,16 +17,16 @@ test.describe('events', () => {
       loginUser(page, owner),
     ]);
     await page.goto('/');
-    const badge = page.locator('a.not-mobile .notification_count');
+    const badge = page.locator('#navbar .notification_count');
     await expect(badge).toBeHidden();
 
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
     await apiCreateIssue(request, {owner, repo: repoName, title: 'events-notif', headers: apiUserHeaders(commenter)});
-    await expect(badge).toBeVisible();
+    await expect(badge).toHaveText('1');
   });
 
-  test('stopwatch appears and hides via real-time push', async ({page, request}) => {
+  test('stopwatch appears via real-time push and stops from its popup', async ({page, request}) => {
     const name = `ev-sw-push-${randomString(8)}`;
     const headers = apiUserHeaders(name);
 
@@ -40,23 +40,24 @@ test.describe('events', () => {
     ]);
     // Page loads before the stopwatch starts — the icon is hidden in the rendered HTML
     await page.goto('/');
-    const stopwatch = page.locator('.active-stopwatch.not-mobile');
+    const stopwatch = page.getByTitle('Active Time Tracker');
     // Element must exist in the DOM (just hidden); otherwise the push has nothing to reveal.
     await expect(stopwatch).toHaveCount(1);
     await expect(stopwatch).toBeHidden();
 
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
-    // Drive both directions from outside this tab; each push must reach it
     await apiStartStopwatch(request, name, name, 1, {headers});
     await expect(stopwatch).toBeVisible();
 
-    await apiCancelStopwatch(request, name, name, 1, {headers});
+    await stopwatch.click();
+    await expect(page.locator('.stopwatch-link')).toHaveAttribute('href', `/${name}/${name}/issues/1`);
+    await page.getByRole('button', {name: 'Stop Timer'}).click();
     await expect(stopwatch).toBeHidden();
   });
 
   // Closing an issue stops the timer away from any stopwatch route handler.
-  test('stopwatch renders when already active and hides when the issue is closed', async ({page, request}) => {
+  test('stopwatch renders when already active and hides with its popup when the issue is closed', async ({page, request}) => {
     const name = `ev-sw-close-${randomString(8)}`;
     const headers = apiUserHeaders(name);
 
@@ -70,12 +71,16 @@ test.describe('events', () => {
       })(),
     ]);
     await page.goto('/');
-    const stopwatch = page.locator('.active-stopwatch.not-mobile');
+    const stopwatch = page.getByTitle('Active Time Tracker');
     await expect(stopwatch).toBeVisible();
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
+    await stopwatch.click();
+    const stopButton = page.getByRole('button', {name: 'Stop Timer'});
+    await expect(stopButton).toBeVisible();
 
     await apiCloseIssue(request, name, name, 1, {headers});
     await expect(stopwatch).toBeHidden();
+    await expect(stopButton).toBeHidden();
   });
 
   // Repro for https://github.com/go-gitea/gitea/pull/36965#issuecomment-4321282667:
@@ -103,7 +108,7 @@ test.describe('events', () => {
     // neither of these would be present.
     await expect(page.getByRole('button', {name: 'Stop timer'})).toBeVisible();
     await expect(page.getByRole('button', {name: 'Discard timer'})).toBeVisible();
-    await expect(page.locator('.active-stopwatch.not-mobile')).toBeVisible();
+    await expect(page.getByTitle('Active Time Tracker')).toBeVisible();
   });
 
   test('logout propagation', async ({browser, request}) => {

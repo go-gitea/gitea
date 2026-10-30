@@ -14,6 +14,7 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -22,8 +23,8 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/label"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/optional"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -33,6 +34,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	feed_service "gitea.dev/services/feed"
@@ -129,8 +131,8 @@ func Search(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SearchResults"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	private := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
 
@@ -148,7 +150,6 @@ func Search(ctx *context.APIContext) {
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	if ctx.FormString("template") != "" {
 		opts.Template = optional.Some(ctx.FormBool("template"))
@@ -252,17 +253,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		ObjectFormatName: string(opt.ObjectFormatName),
 	})
 	if err != nil {
-		if repo_model.IsErrRepoAlreadyExist(err) {
-			ctx.APIError(http.StatusConflict, "The repository with the same name already exists.")
-		} else if db.IsErrNameReserved(err) ||
-			db.IsErrNamePatternNotAllowed(err) ||
-			label.IsErrTemplateLoad(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-		} else if errors.Is(err, util.ErrPermissionDenied) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -292,12 +283,8 @@ func Create(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "409":
-	//     description: The repository with the same name already exists.
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 	opt := web.GetForm[*api.CreateRepoOption](ctx)
 	if ctx.Doer.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
@@ -334,14 +321,8 @@ func Generate(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     description: The repository with the same name already exists.
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.GenerateRepoOption](ctx)
 
 	if !ctx.Repo.Repository.IsTemplate {
@@ -446,12 +427,8 @@ func CreateOrgRepoDeprecated(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	CreateOrgRepo(ctx)
 }
@@ -478,12 +455,8 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm[*api.CreateRepoOption](ctx)
 	orgName := ctx.PathParam("org")
 	org := prepareDoerCreateRepoInOrg(ctx, orgName)
@@ -514,8 +487,8 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if err := ctx.Repo.Repository.LoadAttributes(ctx); err != nil {
 		ctx.APIErrorInternal(err)
@@ -542,8 +515,8 @@ func GetByID(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo, err := repo_model.GetRepositoryByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -554,11 +527,6 @@ func GetByID(ctx *context.APIContext) {
 		}
 		return
 	}
-	if !ctx.TokenCanAccessRepo(repo) {
-		ctx.APIErrorNotFound()
-		return
-	}
-
 	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -596,12 +564,8 @@ func Edit(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := *web.GetForm[*api.EditRepoOption](ctx)
 
@@ -610,6 +574,7 @@ func Edit(ctx *context.APIContext) {
 	}
 
 	if err := updateRepoUnits(ctx, opts); err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -713,7 +678,9 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	// Default branch only updated if changed and exist or the repository is empty
 	updateRepoLicense := false
+	oldDefaultBranch := ""
 	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || git.IsBranchExist(ctx, ctx.Repo.Repository, *opts.DefaultBranch)) {
+		oldDefaultBranch = repo.DefaultBranch
 		repo.DefaultBranch = *opts.DefaultBranch
 		if !repo.IsEmpty {
 			if err := git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
@@ -727,6 +694,14 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
 		ctx.APIErrorInternal(err)
 		return err
+	}
+
+	if oldDefaultBranch != "" {
+		actions_service.SwitchSchedulesToDefaultBranch(ctx, repo, oldDefaultBranch)
+	}
+
+	if visibilityChanged {
+		audit.Record(ctx, audit_model.RepositoryVisibility, repo, "visibility", repo.IsPrivate)
 	}
 
 	if updateRepoLicense {
@@ -744,24 +719,21 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 // updateRepoUnits updates repo units: Issue settings, Wiki settings, PR settings
 func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
 	var units []repo_model.RepoUnit
 	var deleteUnitTypes []unit_model.Type
 
-	if opts.HasIssues != nil {
-		if *opts.HasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-			// Check that values are valid
-			if !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
-				err := errors.New("External tracker URL not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-				return err
+	if opts.HasIssues != nil && *opts.HasIssues {
+		if opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
+			if (opts.InternalTracker == nil || opts.ExternalTracker.ExternalTrackerURL != "") && !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
+				return util.ErrorWrap(util.ErrUnprocessableContent, "external tracker URL not valid")
 			}
-			if len(opts.ExternalTracker.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
-				err := errors.New("External tracker URL format not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-				return err
+			if opts.InternalTracker != nil && (opts.ExternalTracker.ExternalTrackerStyle == "" || opts.ExternalTracker.ExternalTrackerStyle == markup.IssueNameStyleNumeric) {
+				return util.ErrorWrap(util.ErrUnprocessableContent, "external tracker style Numeric is only used for internal tracker")
+			}
+			if opts.ExternalTracker.ExternalTrackerFormat != "" && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
+				return util.ErrorWrap(util.ErrUnprocessableContent, "External tracker URL format not valid")
 			}
 
 			units = append(units, repo_model.RepoUnit{
@@ -774,8 +746,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					ExternalTrackerRegexpPattern: opts.ExternalTracker.ExternalTrackerRegexpPattern,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
-		} else if *opts.HasIssues && opts.ExternalTracker == nil && !unit_model.TypeIssues.UnitGlobalDisabled() {
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
+		}
+		if (opts.ExternalTracker == nil || opts.InternalTracker != nil) && !unit_model.TypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
 			var config *repo_model.IssuesConfig
 
@@ -801,24 +775,20 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   unit_model.TypeIssues,
 				Config: config,
 			})
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-		} else if !*opts.HasIssues {
-			if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-			}
-			if !unit_model.TypeIssues.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
-			}
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 		}
+	}
+	if opts.HasIssues != nil && !*opts.HasIssues {
+		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
+		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 	}
 
 	if opts.HasWiki != nil {
 		if *opts.HasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidURL(opts.ExternalWiki.ExternalWikiURL) {
-				err := errors.New("External wiki URL not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, "Invalid external wiki URL")
-				return err
+				return util.ErrorWrap(util.ErrUnprocessableContent, "external wiki URL not valid")
 			}
 
 			units = append(units, repo_model.RepoUnit{
@@ -892,11 +862,14 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			optional.AssignPtrValue(changed, &config.DefaultAllowMaintainerEdit, opts.DefaultAllowMaintainerEdit)
 			optional.AssignPtrString(changed, &config.DefaultMergeStyle, opts.DefaultMergeStyle)
 			optional.AssignPtrString(changed, &config.DefaultUpdateStyle, opts.DefaultUpdateStyle)
+			optional.AssignPtrString(changed, &config.DefaultSquashMergeMessage, opts.SquashMergeCommitMessage)
+			if opts.SquashMergeCommitMessage != nil && !config.DefaultSquashMergeMessage.IsValid() {
+				return util.NewInvalidArgumentErrorf("invalid squash_merge_commit_message: %s", config.DefaultSquashMergeMessage)
+			}
 			// only validate update-style fields when the caller is actually changing one of them,
 			// so unrelated PATCH calls don't reject historical configs.
 			if opts.AllowMergeUpdate != nil || opts.AllowRebaseUpdate != nil || opts.DefaultUpdateStyle != nil {
 				if err := config.ValidateUpdateSettings(); err != nil {
-					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return err
 				}
 			}
@@ -971,12 +944,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	if len(units)+len(deleteUnitTypes) > 0 {
 		if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
-			ctx.APIErrorInternal(err)
 			return err
 		}
 	}
-
-	log.Trace("Repository advanced settings updated: %s/%s", owner.Name, repo.Name)
 	return nil
 }
 
@@ -1146,22 +1116,11 @@ func Delete(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
-
-	canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if !canDelete {
-		ctx.APIError(http.StatusForbidden, "Given user is not owner of organization.")
-		return
-	}
 
 	if ctx.Repo.GitRepo != nil {
 		ctx.Repo.GitRepo.Close()
@@ -1197,8 +1156,8 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueTemplates"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	ret := issue.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	if cnt := len(ret.TemplateErrors); cnt != 0 {
 		ctx.Resp.Header().Add("X-Gitea-Warning", "error occurs when parsing issue template: count="+strconv.Itoa(cnt))
@@ -1227,8 +1186,8 @@ func GetIssueConfig(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoIssueConfig"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.JSON(http.StatusOK, issueConfig)
 }
@@ -1254,8 +1213,8 @@ func ValidateIssueConfig(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoIssueConfigValidation"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 
 	if err == nil {
@@ -1298,8 +1257,8 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActivityFeedsList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 
@@ -1310,7 +1269,6 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

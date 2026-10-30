@@ -90,7 +90,10 @@ func handler(items ...notificationOpts) []notificationOpts {
 		}
 
 		if err != nil {
-			log.Error("Was unable to create notification (source %v): %v", opts.Source, err)
+			// the issue can be gone by now, e.g. its repository was deleted
+			if !issues_model.IsErrIssueNotExist(err) {
+				log.Error("Unable to create notification (source %v): %v", opts.Source, err)
+			}
 			continue
 		}
 		for _, userID := range notifiedIDs {
@@ -315,10 +318,13 @@ func (ns *notificationService) RepoPendingTransfer(ctx context.Context, doer, ne
 			return
 		}
 		for i := range users {
+			if users[i].IsTypeBot() {
+				continue
+			}
 			opts.ReceiverID = users[i].ID
 			_ = ns.queue.Push(opts)
 		}
-	} else {
+	} else if !newOwner.IsTypeBot() {
 		opts.ReceiverID = newOwner.ID
 		_ = ns.queue.Push(opts)
 	}

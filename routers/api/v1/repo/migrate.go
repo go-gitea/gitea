@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
@@ -17,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -49,12 +49,8 @@ func Migrate(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "409":
-	//     description: The repository with the same name already exists.
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.MigrateRepoOptions](ctx)
 
@@ -98,16 +94,16 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}
 
+	gitServiceType := convert.ToGitServiceType(form.Service)
+
 	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
-		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
+		err = migrations.IsMigrateURLAllowedForService(remoteAddr, gitServiceType, ctx.Doer)
 	}
 	if err != nil {
 		handleRemoteAddrError(ctx, err)
 		return
 	}
-
-	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
 		ctx.APIError(http.StatusForbidden, "the site administrator has disabled the creation of new pull mirrors")
@@ -245,11 +241,9 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
-		if strings.Contains(err.Error(), "Authentication failed") ||
-			strings.Contains(err.Error(), "Bad credentials") ||
-			strings.Contains(err.Error(), "could not read Username") {
+		if migrations.IsAuthenticationError(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Authentication failed: %v.", err))
-		} else if strings.Contains(err.Error(), "fatal:") {
+		} else if _, ok := gitcmd.ErrorAsStderr(err); ok {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Migration failed: %v.", err))
 		} else {
 			ctx.APIErrorInternal(err)

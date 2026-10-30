@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -23,7 +24,7 @@ import (
 // PullRequestsOptions holds the options for PRs
 type PullRequestsOptions struct {
 	db.ListOptions
-	State       string
+	IsClosed    optional.Option[bool]
 	SortType    string
 	Labels      []int64
 	MilestoneID int64
@@ -39,9 +40,8 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 	}
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
-	switch opts.State {
-	case "closed", "open":
-		sess.And("issue.is_closed=?", opts.State == "closed")
+	if opts.IsClosed.Has() {
+		sess.And("issue.is_closed=?", opts.IsClosed.Value())
 	}
 
 	if len(opts.Labels) > 0 {
@@ -162,6 +162,14 @@ func GetPullRequestIDsByCheckStatus(ctx context.Context, status PullRequestStatu
 	prs := make([]int64, 0, 10)
 	return prs, db.GetEngine(ctx).Table("pull_request").
 		Where("status=?", status).
+		Cols("pull_request.id").
+		Find(&prs)
+}
+
+func GetInterruptedPullRequestIDs(ctx context.Context) ([]int64, error) {
+	prs := make([]int64, 0, 10)
+	return prs, db.GetEngine(ctx).Table("pull_request").
+		Where("merged_commit_id <> '' AND has_merged = ? AND merged_unix >= ?", false, timeutil.TimeStampNow()-24*3600).
 		Cols("pull_request.id").
 		Find(&prs)
 }

@@ -36,8 +36,8 @@ import {initRepoEditor} from './features/repo-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
+import {initCompLabelEdit} from './features/comp/LabelEdit.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
-import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWiki} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCaptcha} from './features/captcha.ts';
@@ -55,22 +55,28 @@ import {initRepositorySearch} from './features/repo-search.ts';
 import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
-import {initGlobalFetchAction} from './features/common-fetch-action.ts';
+import {initGlobalFetchAction} from './modules/fetch-action.ts';
 import {initCommmPageComponents, initGlobalComponent, initGlobalDropdown, initGlobalInput} from './features/common-page.ts';
 import {initGlobalButtonClickOnEnter, initGlobalButtons} from './features/common-button.ts';
-import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
+import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit} from './features/common-form.ts';
+import {initGlobalFormDirtyLeaveConfirm} from './modules/are-you-sure.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
 import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
+import {initProjectWorkflow} from './features/project-workflow.ts';
 import {initDevtest} from './modules/devtest.ts';
 import {initRepoWatch} from './features/repo-watch.ts';
+import {initPackagesView} from './features/packages.ts';
+import {initAsyncHashChangeListeners} from './modules/hashchange.ts';
+import {initGlobalModal} from './modules/modal.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
   initGiteaFomantic,
 
+  initGlobalModal,
   initGlobalComponent,
   initGlobalDropdown,
   initGlobalFetchAction,
@@ -84,11 +90,11 @@ const initPerformanceTracer = callInitFunctions([
   initGlobalInput,
   initGlobalShortcut,
 
-  initCommonOrganization,
   initCommonIssueListQuickGoto,
 
   initCompSearchUserBox,
   initCompWebHookEditor,
+  initCompLabelEdit,
 
   initInstall,
 
@@ -103,6 +109,7 @@ const initPerformanceTracer = callInitFunctions([
   initTableSort,
   initRepoFileSearch,
   initCopyContent,
+  initPackagesView,
 
   initAdminCommon,
   initAdminUserListSearchForm,
@@ -160,6 +167,7 @@ const initPerformanceTracer = callInitFunctions([
 
   initRepoFileView,
   initActionsPermissionsForm,
+  initProjectWorkflow,
 
   initDevtest,
 ]);
@@ -174,3 +182,7 @@ if (initDur > 500) {
 }
 
 window.config.frontendInited = true;
+
+// then init the async hash change handlers, then they can do async content loading by URL hash
+// e.g.: expand hidden comments or load incomplete diff files
+initAsyncHashChangeListeners();

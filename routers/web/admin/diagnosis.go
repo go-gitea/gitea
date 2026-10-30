@@ -70,7 +70,7 @@ func MonitorDiagnosis(ctx *context.Context) {
 	for _, record := range tailmsg.GetManager().GetTraceRecorder().GetRecords() {
 		_, _ = f.Write(util.UnsafeStringToBytes(record.Time.Format(time.RFC3339)))
 		_, _ = f.Write([]byte(" "))
-		_, _ = f.Write(util.UnsafeStringToBytes((record.Content)))
+		_, _ = f.Write(util.UnsafeStringToBytes(record.Content))
 		_, _ = f.Write([]byte("\n\n"))
 	}
 }

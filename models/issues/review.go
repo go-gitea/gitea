@@ -223,7 +223,7 @@ func (r *Review) HTMLTypeColorClass() string {
 	case ReviewTypeReject:
 		return "tw-text-red"
 	case ReviewTypeRequest:
-		return "tw-text-yellow"
+		return util.Iif(r.Official, "tw-text-yellow", "tw-text-text-light")
 	}
 	return "tw-text-text-light"
 }
@@ -428,9 +428,6 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 
 // GetCurrentReview returns the current pending review of reviewer for given issue
 func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Issue) (*Review, error) {
-	if reviewer == nil {
-		return nil, nil //nolint:nilnil // return nil when reviewer is nil
-	}
 	reviews, err := FindReviews(ctx, FindReviewOptions{
 		Types:      []ReviewType{ReviewTypePending},
 		IssueID:    issue.ID,
@@ -442,9 +439,10 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 	if len(reviews) == 0 {
 		return nil, ErrReviewNotExist{}
 	}
-	reviews[0].Reviewer = reviewer
-	reviews[0].Issue = issue
-	return reviews[0], nil
+	pendingReview := reviews[0]
+	pendingReview.Reviewer = reviewer
+	pendingReview.Issue = issue
+	return pendingReview, nil
 }
 
 // ReviewExists returns whether a review exists for a particular line of code in the PR
@@ -456,7 +454,7 @@ func ReviewExists(ctx context.Context, issue *Issue, treePath string, line int64
 type ContentEmptyErr struct{}
 
 func (ContentEmptyErr) Error() string {
-	return "Review content is empty"
+	return "review requires a body or a comment"
 }
 
 // IsContentEmptyErr returns true if err is a ContentEmptyErr
@@ -1065,19 +1063,23 @@ func (r *Review) GetCodeCommentsCount(ctx context.Context) int {
 	return int(count)
 }
 
-// HTMLURL formats a URL-string to the related review issue-comment
+// HashTag returns unique hash tag for review.
+func (r *Review) HashTag() string {
+	return fmt.Sprintf("pullrequestreview-%d", r.ID)
+}
+
+// HTMLURL formats a URL-string to the review on the pull request page
 func (r *Review) HTMLURL(ctx context.Context) string {
-	opts := FindCommentsOptions{
-		Type:     CommentTypeReview,
-		IssueID:  r.IssueID,
-		ReviewID: r.ID,
+	if r.Type != ReviewTypeApprove && r.Type != ReviewTypeComment && r.Type != ReviewTypeReject {
+		return "" // only submitted reviews get a timeline block carrying the anchor
 	}
-	comment := new(Comment)
-	has, err := db.GetEngine(ctx).Where(opts.ToConds()).Get(comment)
-	if err != nil || !has {
+	if err := r.LoadIssue(ctx); err != nil {
 		return ""
 	}
-	return comment.HTMLURL(ctx)
+	if err := r.Issue.LoadRepo(ctx); err != nil {
+		return ""
+	}
+	return r.Issue.HTMLURL(ctx) + "#" + r.HashTag()
 }
 
 // RemapExternalUser ExternalUserRemappable interface

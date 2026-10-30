@@ -130,9 +130,9 @@ func toProject(ctx context.Context, p *project_model.Project, doer *user_model.U
 		Description:     p.Description,
 		OwnerID:         p.OwnerID,
 		RepoID:          p.RepoID,
-		CreatorID:       p.CreatorID,
+		CreatorID:       p.CreatorID, //nolint:staticcheck // deprecated but useful to API response
 		State:           state,
-		IsClosed:        p.IsClosed,
+		IsClosed:        p.IsClosed, //nolint:staticcheck // deprecated but useful to API response
 		TemplateType:    projectTemplateTypeToString(p.TemplateType),
 		CardType:        projectCardTypeToString(p.CardType),
 		Type:            projectTypeToString(p.Type),
@@ -192,6 +192,26 @@ func ToProjectColumnList(ctx context.Context, columns []*project_model.Column, d
 	result := make([]*api.ProjectColumn, len(columns))
 	for i, column := range columns {
 		result[i] = toProjectColumn(ctx, column, doer, creators)
+	}
+	return result
+}
+
+func ToProjectWorkflow(wf *project_model.Workflow) *api.ProjectWorkflow {
+	return &api.ProjectWorkflow{
+		ID:      wf.ID,
+		Event:   string(wf.WorkflowEvent),
+		Enabled: wf.Enabled,
+		Filters: api.ProjectWorkflowFilters(wf.WorkflowFilters),
+		Actions: api.ProjectWorkflowActions(wf.WorkflowActions),
+		Created: wf.CreatedUnix.AsTime(),
+		Updated: wf.UpdatedUnix.AsTime(),
+	}
+}
+
+func ToProjectWorkflowList(workflows []*project_model.Workflow) []*api.ProjectWorkflow {
+	result := make([]*api.ProjectWorkflow, len(workflows))
+	for i, wf := range workflows {
+		result[i] = ToProjectWorkflow(wf)
 	}
 	return result
 }

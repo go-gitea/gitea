@@ -11,22 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsEmptyString(t *testing.T) {
-	cases := []struct {
-		s        string
-		expected bool
-	}{
-		{"", true},
-		{" ", true},
-		{"   ", true},
-		{"  a", false},
-	}
-
-	for _, v := range cases {
-		assert.Equal(t, v.expected, IsEmptyString(v.s))
-	}
-}
-
 func Test_NormalizeEOL(t *testing.T) {
 	data1 := []string{
 		"",
@@ -56,25 +40,12 @@ func Test_NormalizeEOL(t *testing.T) {
 		"Ends without EOLtoo.",
 	}
 
-	buildEOLData := func(data []string, eol string) []byte {
-		return []byte(strings.Join(data, eol))
+	for _, data := range [][]string{data1, data2} {
+		unix := []byte(strings.Join(data, "\n"))
+		for _, input := range [][]byte{[]byte(strings.Join(data, "\r\n")), []byte(strings.Join(data, "\r")), unix} {
+			assert.Equal(t, unix, NormalizeEOL(input))
+		}
 	}
-
-	dos := buildEOLData(data1, "\r\n")
-	unix := buildEOLData(data1, "\n")
-	mac := buildEOLData(data1, "\r")
-
-	assert.Equal(t, unix, NormalizeEOL(dos))
-	assert.Equal(t, unix, NormalizeEOL(mac))
-	assert.Equal(t, unix, NormalizeEOL(unix))
-
-	dos = buildEOLData(data2, "\r\n")
-	unix = buildEOLData(data2, "\n")
-	mac = buildEOLData(data2, "\r")
-
-	assert.Equal(t, unix, NormalizeEOL(dos))
-	assert.Equal(t, unix, NormalizeEOL(mac))
-	assert.Equal(t, unix, NormalizeEOL(unix))
 
 	assert.Equal(t, []byte("one liner"), NormalizeEOL([]byte("one liner")))
 	assert.Equal(t, []byte("\n"), NormalizeEOL([]byte("\n")))
@@ -119,17 +90,11 @@ func Test_RandomString(t *testing.T) {
 }
 
 func Test_RandomBytes(t *testing.T) {
-	bytes1 := CryptoRandomBytes(32)
-
-	bytes2 := CryptoRandomBytes(32)
-
-	assert.NotEqual(t, bytes1, bytes2)
-
-	bytes3 := CryptoRandomBytes(256)
-
-	bytes4 := CryptoRandomBytes(256)
-
-	assert.NotEqual(t, bytes3, bytes4)
+	for _, length := range []int64{32, 256} {
+		bytes1 := CryptoRandomBytes(length)
+		bytes2 := CryptoRandomBytes(length)
+		assert.NotEqual(t, bytes1, bytes2)
+	}
 }
 
 // Test case for any function which accepts and returns a single string.

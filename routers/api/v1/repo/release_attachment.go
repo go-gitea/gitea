@@ -74,8 +74,8 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	releaseID := ctx.PathParamInt64("id")
 	if !checkReleaseMatchRepo(ctx, releaseID) {
@@ -98,7 +98,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
-	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
+	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attach))
 }
 
 // ListReleaseAttachments lists all attachments of the release
@@ -128,8 +128,8 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AttachmentList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	releaseID := ctx.PathParamInt64("id")
 	release, err := repo_model.GetReleaseByID(ctx, releaseID)
@@ -196,11 +196,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "413":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	// Check if attachments are enabled
@@ -263,7 +259,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attach))
 }
 
 // EditReleaseAttachment updates the given attachment
@@ -305,10 +301,8 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.EditAttachmentOptions](ctx)
 
@@ -346,7 +340,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attach))
 }
 
 // DeleteReleaseAttachment delete a given attachment
@@ -382,8 +376,8 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")

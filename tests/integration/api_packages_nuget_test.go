@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -165,216 +164,153 @@ func TestPackageNuGet(t *testing.T) {
 	url := fmt.Sprintf("/api/packages/%s/nuget", user.Name)
 
 	t.Run("ServiceIndex", func(t *testing.T) {
-		t.Run("v2", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
+		for _, version := range []string{"v2", "v3"} {
+			t.Run(version, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
 
-			privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate})
+				privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate})
 
-			cases := []struct {
-				Owner          string
-				UseBasicAuth   bool
-				token          string
-				expectedStatus int
-			}{
-				{privateUser.Name, false, "", http.StatusOK},
-				{privateUser.Name, true, "", http.StatusOK},
-				{privateUser.Name, false, writeToken, http.StatusOK},
-				{privateUser.Name, false, readToken, http.StatusOK},
-				{privateUser.Name, false, badToken, http.StatusOK},
-				{user.Name, false, "", http.StatusOK},
-				{user.Name, true, "", http.StatusOK},
-				{user.Name, false, writeToken, http.StatusOK},
-				{user.Name, false, readToken, http.StatusOK},
-				{user.Name, false, badToken, http.StatusOK},
-			}
+				cases := []struct {
+					Owner          string
+					UseBasicAuth   bool
+					token          string
+					expectedStatus int
+				}{
+					{privateUser.Name, false, "", http.StatusOK},
+					{privateUser.Name, true, "", http.StatusOK},
+					{privateUser.Name, false, writeToken, http.StatusOK},
+					{privateUser.Name, false, readToken, http.StatusOK},
+					{privateUser.Name, false, badToken, http.StatusOK},
+					{user.Name, false, "", http.StatusOK},
+					{user.Name, true, "", http.StatusOK},
+					{user.Name, false, writeToken, http.StatusOK},
+					{user.Name, false, readToken, http.StatusOK},
+					{user.Name, false, badToken, http.StatusOK},
+				}
 
-			for _, c := range cases {
-				t.Run(c.Owner, func(t *testing.T) {
-					url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
+				for _, c := range cases {
+					t.Run(c.Owner, func(t *testing.T) {
+						url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
 
-					req := NewRequest(t, "GET", url)
-					if c.UseBasicAuth {
-						req.AddBasicAuth(user.Name)
-					} else if c.token != "" {
-						addNuGetAPIKeyHeader(req, c.token)
-					}
-					resp := MakeRequest(t, req, c.expectedStatus)
-					if c.expectedStatus != http.StatusOK {
-						return
-					}
-
-					var result nuget.ServiceIndexResponseV2
-					decodeXML(t, resp, &result)
-
-					assert.Equal(t, setting.AppURL+url[1:], result.Base)
-					assert.Equal(t, "Packages", result.Workspace.Collection.Href)
-				})
-			}
-		})
-
-		t.Run("v3", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate})
-
-			cases := []struct {
-				Owner          string
-				UseBasicAuth   bool
-				token          string
-				expectedStatus int
-			}{
-				{privateUser.Name, false, "", http.StatusOK},
-				{privateUser.Name, true, "", http.StatusOK},
-				{privateUser.Name, false, writeToken, http.StatusOK},
-				{privateUser.Name, false, readToken, http.StatusOK},
-				{privateUser.Name, false, badToken, http.StatusOK},
-				{user.Name, false, "", http.StatusOK},
-				{user.Name, true, "", http.StatusOK},
-				{user.Name, false, writeToken, http.StatusOK},
-				{user.Name, false, readToken, http.StatusOK},
-				{user.Name, false, badToken, http.StatusOK},
-			}
-
-			for _, c := range cases {
-				t.Run(c.Owner, func(t *testing.T) {
-					url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
-
-					req := NewRequest(t, "GET", url+"/index.json")
-					if c.UseBasicAuth {
-						req.AddBasicAuth(user.Name)
-					} else if c.token != "" {
-						addNuGetAPIKeyHeader(req, c.token)
-					}
-					resp := MakeRequest(t, req, c.expectedStatus)
-
-					if c.expectedStatus != http.StatusOK {
-						return
-					}
-
-					result := DecodeJSON(t, resp, &nuget.ServiceIndexResponseV3{})
-
-					assert.Equal(t, "3.0.0", result.Version)
-					assert.NotEmpty(t, result.Resources)
-
-					root := setting.AppURL + url[1:]
-					for _, r := range result.Resources {
-						switch r.Type {
-						case "SearchQueryService":
-							fallthrough
-						case "SearchQueryService/3.0.0-beta":
-							fallthrough
-						case "SearchQueryService/3.0.0-rc":
-							assert.Equal(t, root+"/query", r.ID)
-						case "RegistrationsBaseUrl":
-							fallthrough
-						case "RegistrationsBaseUrl/3.0.0-beta":
-							fallthrough
-						case "RegistrationsBaseUrl/3.0.0-rc":
-							assert.Equal(t, root+"/registration", r.ID)
-						case "PackageBaseAddress/3.0.0":
-							assert.Equal(t, root+"/package", r.ID)
-						case "PackagePublish/2.0.0":
-							assert.Equal(t, root, r.ID)
+						endpoint := url
+						if version == "v3" {
+							endpoint += "/index.json"
 						}
-					}
-				})
-			}
-		})
+						req := NewRequest(t, "GET", endpoint)
+						if c.UseBasicAuth {
+							req.AddBasicAuth(user.Name)
+						} else if c.token != "" {
+							addNuGetAPIKeyHeader(req, c.token)
+						}
+						resp := MakeRequest(t, req, c.expectedStatus)
+						if c.expectedStatus != http.StatusOK {
+							return
+						}
+
+						if version == "v2" {
+							var result nuget.ServiceIndexResponseV2
+							decodeXML(t, resp, &result)
+
+							assert.Equal(t, setting.AppURL+url[1:], result.Base)
+							assert.Equal(t, "Packages", result.Workspace.Collection.Href)
+						} else {
+							result := DecodeJSON(t, resp, &nuget.ServiceIndexResponseV3{})
+
+							assert.Equal(t, "3.0.0", result.Version)
+							assert.NotEmpty(t, result.Resources)
+
+							root := setting.AppURL + url[1:]
+							for _, r := range result.Resources {
+								switch r.Type {
+								case "SearchQueryService":
+									fallthrough
+								case "SearchQueryService/3.0.0-beta":
+									fallthrough
+								case "SearchQueryService/3.0.0-rc":
+									assert.Equal(t, root+"/query", r.ID)
+								case "RegistrationsBaseUrl":
+									fallthrough
+								case "RegistrationsBaseUrl/3.0.0-beta":
+									fallthrough
+								case "RegistrationsBaseUrl/3.0.0-rc":
+									assert.Equal(t, root+"/registration", r.ID)
+								case "PackageBaseAddress/3.0.0":
+									assert.Equal(t, root+"/package", r.ID)
+								case "PackagePublish/2.0.0":
+									assert.Equal(t, root, r.ID)
+								}
+							}
+						}
+					})
+				}
+			})
+		}
 	})
 
 	t.Run("Upload", func(t *testing.T) {
 		t.Run("DependencyPackage", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			// create with username/password
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusCreated)
+			for _, useToken := range []bool{false, true} {
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
+				if useToken {
+					// create with token
+					req.AddTokenAuth(writeToken)
+				} else {
+					// create with username/password
+					req.AddBasicAuth(user.Name)
+				}
+				MakeRequest(t, req, http.StatusCreated)
 
-			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
-			assert.NoError(t, err)
-			assert.Len(t, pvs, 1, "Should have one version")
+				pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
+				assert.NoError(t, err)
+				assert.Len(t, pvs, 1, "Should have one version")
 
-			pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
-			assert.NoError(t, err)
-			assert.NotNil(t, pd.SemVer)
-			assert.IsType(t, &nuget_module.Metadata{}, pd.Metadata)
-			assert.Equal(t, packageName, pd.Package.Name)
-			assert.Equal(t, packageVersion, pd.Version.Version)
+				pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
+				assert.NoError(t, err)
+				assert.NotNil(t, pd.SemVer)
+				assert.IsType(t, &nuget_module.Metadata{}, pd.Metadata)
+				assert.Equal(t, packageName, pd.Package.Name)
+				assert.Equal(t, packageVersion, pd.Version.Version)
 
-			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
-			assert.NoError(t, err)
-			assert.Len(t, pfs, 2, "Should have 2 files: nuget and nuspec")
-			for _, pf := range pfs {
-				switch pf.Name {
-				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
-					assert.True(t, pf.IsLead)
+				pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
+				assert.NoError(t, err)
+				assert.Len(t, pfs, 2, "Should have 2 files: nuget and nuspec")
+				for _, pf := range pfs {
+					switch pf.Name {
+					case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
+						assert.True(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
-					assert.NoError(t, err)
-					assert.Equal(t, int64(len(content)), pb.Size)
-				case packageName + ".nuspec":
-					assert.False(t, pf.IsLead)
-				default:
-					assert.Fail(t, "unexpected filename", "unexpected filename: %v", pf.Name)
+						pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
+						assert.NoError(t, err)
+						assert.Equal(t, int64(len(content)), pb.Size)
+					case packageName + ".nuspec":
+						assert.False(t, pf.IsLead)
+					default:
+						assert.Fail(t, "unexpected filename", "unexpected filename: %v", pf.Name)
+					}
+				}
+
+				req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusConflict)
+
+				if !useToken {
+					// delete the package
+					assert.NoError(t, packageService.DeletePackageVersionAndReferences(t.Context(), pvs[0]))
+
+					// create failure with token without write access
+					req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+						AddTokenAuth(readToken)
+					MakeRequest(t, req, http.StatusUnauthorized)
 				}
 			}
-
-			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusConflict)
-
-			// delete the package
-			assert.NoError(t, packageService.DeletePackageVersionAndReferences(t.Context(), pvs[0]))
-
-			// create failure with token without write access
-			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
-				AddTokenAuth(readToken)
-			MakeRequest(t, req, http.StatusUnauthorized)
-
-			// create with token
-			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
-				AddTokenAuth(writeToken)
-			MakeRequest(t, req, http.StatusCreated)
-
-			pvs, err = packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
-			assert.NoError(t, err)
-			assert.Len(t, pvs, 1, "Should have one version")
-
-			pd, err = packages.GetPackageDescriptor(t.Context(), pvs[0])
-			assert.NoError(t, err)
-			assert.NotNil(t, pd.SemVer)
-			assert.IsType(t, &nuget_module.Metadata{}, pd.Metadata)
-			assert.Equal(t, packageName, pd.Package.Name)
-			assert.Equal(t, packageVersion, pd.Version.Version)
-
-			pfs, err = packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
-			assert.NoError(t, err)
-			assert.Len(t, pfs, 2, "Should have 2 files: nuget and nuspec")
-			for _, pf := range pfs {
-				switch pf.Name {
-				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
-					assert.True(t, pf.IsLead)
-
-					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
-					assert.NoError(t, err)
-					assert.Equal(t, int64(len(content)), pb.Size)
-				case packageName + ".nuspec":
-					assert.False(t, pf.IsLead)
-				default:
-					assert.Fail(t, "unexpected filename", "unexpected filename: %v", pf.Name)
-				}
-			}
-
-			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusConflict)
 		})
 
 		t.Run("SymbolPackage", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			createSymbolPackage := func(id, packageType string) io.Reader {
+			createSymbolPackage := func(id, packageType string) []byte {
 				symbolData, _ := base64.StdEncoding.DecodeString(`QlNKQgEAAQAAAAAADAAAAFBEQiB2MS4wAAAAAAAABgB8AAAAWAAAACNQZGIAAAAA1AAAAAgBAAAj
 fgAA3AEAAAQAAAAjU3RyaW5ncwAAAADgAQAABAAAACNVUwDkAQAAMAAAACNHVUlEAAAAFAIAACgB
 AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
@@ -390,19 +326,19 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				</metadata>
 				</package>`,
 					symbolFilename: string(symbolData),
-				})
+				}).Bytes()
 			}
 
-			req := NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage("unknown-package", "SymbolsPackage")).
-				AddBasicAuth(user.Name)
+			pkgSymbolsPackageErr := createSymbolPackage("unknown-package", "SymbolsPackage")
+			req := NewRequestWithBody(t, "PUT", url+"/symbolpackage", bytes.NewReader(pkgSymbolsPackageErr)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "DummyPackage")).
-				AddBasicAuth(user.Name)
+			pkgDummyPackage := createSymbolPackage(packageName, "DummyPackage")
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", bytes.NewReader(pkgDummyPackage)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "SymbolsPackage")).
-				AddBasicAuth(user.Name)
+			pkgSymbolsPackage := createSymbolPackage(packageName, "SymbolsPackage")
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", bytes.NewReader(pkgSymbolsPackage)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
@@ -426,13 +362,13 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
-					assert.Equal(t, int64(633), pb.Size)
+					assert.EqualValues(t, len(content), pb.Size)
 				case fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion):
 					assert.False(t, pf.IsLead)
 
 					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
-					assert.Equal(t, int64(616), pb.Size)
+					assert.EqualValues(t, len(pkgSymbolsPackage), pb.Size)
 				case packageName + ".nuspec":
 					assert.False(t, pf.IsLead)
 
@@ -456,7 +392,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				}
 			}
 
-			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "SymbolsPackage")).
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", bytes.NewReader(createSymbolPackage(packageName, "SymbolsPackage"))).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
@@ -562,11 +498,11 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		}
 
 		t.Run("v2", func(t *testing.T) {
-			t.Run("Search()", func(t *testing.T) {
+			testSearch := func(t *testing.T, endpoint, query string) {
 				defer tests.PrintCurrentTest(t)()
 
 				for i, c := range cases {
-					req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?searchTerm='%s'&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+					req := NewRequest(t, "GET", fmt.Sprintf("%s/%s?%s&$skip=%d&$top=%d", url, endpoint, fmt.Sprintf(query, c.Query), c.Skip, c.Take)).
 						AddBasicAuth(user.Name)
 					resp := MakeRequest(t, req, http.StatusOK)
 
@@ -576,59 +512,27 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
 					assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
 
-					req = NewRequest(t, "GET", fmt.Sprintf("%s/Search()/$count?searchTerm='%s'&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
+					req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/$count?%s&$skip=%d&$top=%d", url, endpoint, fmt.Sprintf(query, c.Query), c.Skip, c.Take)).
 						AddBasicAuth(user.Name)
 					resp = MakeRequest(t, req, http.StatusOK)
 
 					assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
 				}
+			}
+
+			t.Run("Search()", func(t *testing.T) {
+				testSearch(t, "Search()", "searchTerm='%s'")
 			})
 
 			t.Run("Packages()", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				for i, c := range cases {
-					req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
-						AddBasicAuth(user.Name)
-					resp := MakeRequest(t, req, http.StatusOK)
-
-					var result FeedResponse
-					decodeXML(t, resp, &result)
-
-					assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
-					assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
-
-					req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
-						AddBasicAuth(user.Name)
-					resp = MakeRequest(t, req, http.StatusOK)
-
-					assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
-				}
+				testSearch(t, "Packages()", "$filter=substringof('%s',tolower(Id))")
 			})
 
 			t.Run("Packages()", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
 				t.Run("substringof", func(t *testing.T) {
-					defer tests.PrintCurrentTest(t)()
-
-					for i, c := range cases {
-						req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages()?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
-							AddBasicAuth(user.Name)
-						resp := MakeRequest(t, req, http.StatusOK)
-
-						var result FeedResponse
-						decodeXML(t, resp, &result)
-
-						assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
-						assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
-
-						req = NewRequest(t, "GET", fmt.Sprintf("%s/Packages()/$count?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take)).
-							AddBasicAuth(user.Name)
-						resp = MakeRequest(t, req, http.StatusOK)
-
-						assert.Equal(t, strconv.FormatInt(c.ExpectedTotal, 10), resp.Body.String(), "case %d: unexpected total hits", i)
-					}
+					testSearch(t, "Packages()", "$filter=substringof('%s',tolower(Id))")
 				})
 
 				t.Run("IdEq", func(t *testing.T) {

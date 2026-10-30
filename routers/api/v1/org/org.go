@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	feed_service "gitea.dev/services/feed"
@@ -40,7 +42,6 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 		UserID:            u.ID,
 		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, u),
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -76,8 +77,8 @@ func ListMyOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listUserOrgs(ctx, ctx.Doer)
 }
@@ -106,8 +107,8 @@ func ListUserOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listUserOrgs(ctx, ctx.ContextUser)
 }
@@ -133,10 +134,8 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationPermissions"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	var o *user_model.User
 	if o = user.GetUserByPathParam(ctx, "org"); o == nil {
@@ -144,13 +143,6 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	}
 
 	op := api.OrganizationPermissions{}
-
-	// A public-only token must not disclose membership/permission details of a
-	// non-public org, even for the token owner's own private orgs.
-	if ctx.PublicOnly && !o.Visibility.IsPublic() {
-		ctx.APIErrorNotFound()
-		return
-	}
 
 	if !organization.HasOrgOrUserVisible(ctx, o, ctx.Doer) {
 		ctx.APIErrorNotFound()
@@ -223,7 +215,6 @@ func GetAll(ctx *context.APIContext) {
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Visible:     vMode,
 	}
-	searchOpts.ApplyPublicOnly(ctx.PublicOnly)
 
 	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, searchOpts)
 	if err != nil {
@@ -257,10 +248,8 @@ func Create(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Organization"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.CreateOrgOption](ctx)
 	if !ctx.Doer.CanCreateOrganization() {
 		ctx.APIError(http.StatusForbidden, "not allowed to create org")
@@ -296,6 +285,8 @@ func Create(ctx *context.APIContext) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.OrganizationCreate, org.AsUser())
+
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
@@ -315,8 +306,8 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
 		ctx.APIErrorNotFound()
@@ -353,10 +344,8 @@ func Rename(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.RenameOrgOption](ctx)
 	orgUser := ctx.Org.Organization.AsUser()
@@ -394,8 +383,8 @@ func Edit(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.EditOrgOption](ctx)
 
@@ -440,8 +429,8 @@ func Delete(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 		ctx.APIErrorInternal(err)
@@ -478,8 +467,8 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActivityFeedsList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	includePrivate := false
 	if ctx.IsSigned {
@@ -505,7 +494,6 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
@@ -560,10 +548,8 @@ func DeleteOrgRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// Intentionally it only loads repository IDs to avoid loading too much data into memory
 	// There is no need to do pagination here as the number of repositories is expected to be manageable

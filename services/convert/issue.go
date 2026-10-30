@@ -33,7 +33,7 @@ func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.
 	return toIssue(ctx, doer, issue, APIAssetDownloadURL)
 }
 
-func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
+func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(ctx context.Context, repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -50,10 +50,10 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
 		Index:       issue.Index,
-		Poster:      ToUser(ctx, issue.Poster, doer),
+		Poster:      ToAuthor(ctx, issue.Poster, issue.OriginalAuthor, doer),
 		Title:       issue.Title,
 		Body:        issue.Content,
-		Attachments: toAttachments(issue.Repo, issue.Attachments, getDownloadURL),
+		Attachments: toAttachments(ctx, issue.Repo, issue.Attachments, getDownloadURL),
 		Ref:         issue.Ref,
 		State:       issue.State(),
 		IsLocked:    issue.IsLocked,

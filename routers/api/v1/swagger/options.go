@@ -54,6 +54,9 @@ type swaggerParameterBodies struct {
 	CreateKeyOption api.CreateKeyOption
 
 	// in:body
+	CreateDeployKeyTokenOption api.CreateDeployKeyTokenOption
+
+	// in:body
 	RenameUserOption api.RenameUserOption
 
 	// in:body
@@ -252,6 +255,12 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	MoveProjectIssueOption api.MoveProjectIssueOption
+
+	// in:body
+	CreateProjectWorkflowOption api.CreateProjectWorkflowOption
+
+	// in:body
+	EditProjectWorkflowOption api.EditProjectWorkflowOption
 
 	// in:body
 	MergeUpstreamRequest api.MergeUpstreamRequest

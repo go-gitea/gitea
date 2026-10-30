@@ -23,7 +23,7 @@
 								{{end}}
 							</div>
 						</div>
-						<button class="ui primary button"{{if .Repository.IsEmpty}} disabled{{end}}>{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
+						<button type="submit" class="ui primary button"{{if .Repository.IsEmpty}} disabled{{end}}>{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
 					</div>
 					<div class="help tw-mt-4 tw-p-0">{{ctx.Locale.Tr "repo.settings.default_target_branch_desc"}}</div>
 				</form>
@@ -50,7 +50,7 @@
 							</div>
 							<div class="item-trailing">
 								<a class="ui tiny button" href="{{$.Repository.Link}}/settings/branches/edit?rule_name={{.RuleName}}">{{ctx.Locale.Tr "repo.settings.edit_protected_branch"}}</a>
-								<button class="ui red tiny button link-action" data-modal-confirm="#repo-branch-protection-delete-modal" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete?id={{.ID}}">
+								<button type="button" class="ui red tiny button link-action" data-modal-confirm="#repo-branch-protection-delete-modal" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete?id={{.ID}}">
 									{{ctx.Locale.Tr "repo.settings.protected_branch.delete_rule"}}
 								</button>
 							</div>
@@ -65,10 +65,10 @@
 		{{end}}
 	</div>
 
-<div class="ui small modal" id="repo-branch-protection-delete-modal">
+<dialog class="modal-dialog" id="repo-branch-protection-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.protected_branch_deletion"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.protected_branch_deletion_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</dialog>
 
 {{template "repo/settings/layout_footer" .}}

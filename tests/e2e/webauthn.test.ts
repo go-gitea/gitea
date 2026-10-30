@@ -5,7 +5,7 @@ const signedIn = /^(?!.*\/user\/(login|webauthn))/; // the target of a finished 
 
 async function registerKey(page: Page, nickname: string) {
   await page.goto('/user/settings/security');
-  await page.getByLabel('Nickname').fill(nickname);
+  await page.getByRole('textbox', {name: 'Nickname'}).fill(nickname);
   await page.getByRole('button', {name: 'Add Security Key'}).click();
 }
 
@@ -19,7 +19,7 @@ async function signInWithPassword(page: Page, username: string) {
 
 // regression: credProtect level 3 hid the credential from the second-factor login
 test('security key survives credProtect', async ({page, request, browserName}) => {
-  test.skip(browserName !== 'chromium', 'only the CDP authenticator emulates credProtect'); // eslint-disable-line playwright/no-skipped-test
+  test.skip(browserName !== 'chromium', 'only the CDP authenticator emulates credProtect'); // eslint-disable-line playwright/no-skipped-test -- conditional skip, the reason is in the message
 
   const username = `e2e-credprotect-${randomString(8)}`;
   await apiCreateUser(request, username);

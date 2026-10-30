@@ -34,6 +34,11 @@ export default defineConfig({
       name: 'firefox',
       use: {
         ...devices['Desktop Firefox'],
+        launchOptions: {
+          firefoxUserPrefs: {
+            'dom.events.testing.asyncClipboard': true, // disable paste prompt
+          },
+        },
       },
     },
   ],

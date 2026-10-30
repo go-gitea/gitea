@@ -199,17 +199,14 @@ func TestPackageContainer(t *testing.T) {
 	t.Run("DetermineSupport", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
+		for _, token := range []string{userToken, readToken} {
+			req := NewRequest(t, "GET", setting.AppURL+"v2").
+				AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "registry/2.0", resp.Header().Get("Docker-Distribution-Api-Version"))
+		}
+
 		req := NewRequest(t, "GET", setting.AppURL+"v2").
-			AddTokenAuth(userToken)
-		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, "registry/2.0", resp.Header().Get("Docker-Distribution-Api-Version"))
-
-		req = NewRequest(t, "GET", setting.AppURL+"v2").
-			AddTokenAuth(readToken)
-		resp = MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, "registry/2.0", resp.Header().Get("Docker-Distribution-Api-Version"))
-
-		req = NewRequest(t, "GET", setting.AppURL+"v2").
 			AddTokenAuth(badToken)
 		MakeRequest(t, req, http.StatusUnauthorized)
 	})
@@ -221,19 +218,13 @@ func TestPackageContainer(t *testing.T) {
 			t.Run("UploadBlob/Monolithic", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "POST", url+"/blobs/uploads").
-					AddTokenAuth(anonymousToken)
-				MakeRequest(t, req, http.StatusUnauthorized)
+				for _, token := range []string{anonymousToken, readToken, badToken} {
+					req := NewRequest(t, "POST", url+"/blobs/uploads").
+						AddTokenAuth(token)
+					MakeRequest(t, req, http.StatusUnauthorized)
+				}
 
-				req = NewRequest(t, "POST", url+"/blobs/uploads").
-					AddTokenAuth(readToken)
-				MakeRequest(t, req, http.StatusUnauthorized)
-
-				req = NewRequest(t, "POST", url+"/blobs/uploads").
-					AddTokenAuth(badToken)
-				MakeRequest(t, req, http.StatusUnauthorized)
-
-				req = NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, unknownDigest), bytes.NewReader(blobContent)).
+				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, unknownDigest), bytes.NewReader(blobContent)).
 					AddTokenAuth(userToken)
 				MakeRequest(t, req, http.StatusBadRequest)
 
@@ -259,15 +250,13 @@ func TestPackageContainer(t *testing.T) {
 			t.Run("UploadBlob/Chunked", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
+				for _, token := range []string{readToken, badToken} {
+					req := NewRequest(t, "POST", url+"/blobs/uploads").
+						AddTokenAuth(token)
+					MakeRequest(t, req, http.StatusUnauthorized)
+				}
+
 				req := NewRequest(t, "POST", url+"/blobs/uploads").
-					AddTokenAuth(readToken)
-				MakeRequest(t, req, http.StatusUnauthorized)
-
-				req = NewRequest(t, "POST", url+"/blobs/uploads").
-					AddTokenAuth(badToken)
-				MakeRequest(t, req, http.StatusUnauthorized)
-
-				req = NewRequest(t, "POST", url+"/blobs/uploads").
 					AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusAccepted)
 
@@ -610,33 +599,28 @@ func TestPackageContainer(t *testing.T) {
 			t.Run("HeadBlob", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).
-					AddTokenAuth(userToken)
+				req := NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).AddTokenAuth(userToken)
 				MakeRequest(t, req, http.StatusNotFound)
 
-				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-					AddTokenAuth(userToken)
+				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusOK)
-
+				assert.Equal(t, "application/octet-stream", resp.Header().Get("Content-Type"))
 				assert.Equal(t, strconv.Itoa(len(blobContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
 
-				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-					AddTokenAuth(anonymousToken)
+				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).AddTokenAuth(anonymousToken)
 				MakeRequest(t, req, http.StatusOK)
 			})
 
 			t.Run("GetBlob", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).
-					AddTokenAuth(userToken)
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).AddTokenAuth(userToken)
 				MakeRequest(t, req, http.StatusNotFound)
 
-				req = NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-					AddTokenAuth(userToken)
+				req = NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusOK)
-
+				assert.Equal(t, "application/octet-stream", resp.Header().Get("Content-Type"))
 				assert.Equal(t, strconv.Itoa(len(blobContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
 				assert.Equal(t, blobContent, resp.Body.Bytes())
@@ -719,41 +703,25 @@ func TestPackageContainer(t *testing.T) {
 			})
 
 			t.Run("Delete", func(t *testing.T) {
-				t.Run("Blob", func(t *testing.T) {
-					defer tests.PrintCurrentTest(t)()
+				for _, c := range []struct {
+					name, url string
+				}{
+					{"Blob", fmt.Sprintf("%s/blobs/%s", url, blobDigest)},
+					{"ManifestByDigest", fmt.Sprintf("%s/manifests/%s", url, untaggedManifestDigest)},
+					{"ManifestByTag", fmt.Sprintf("%s/manifests/%s", url, multiTag)},
+				} {
+					t.Run(c.name, func(t *testing.T) {
+						defer tests.PrintCurrentTest(t)()
 
-					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-						AddTokenAuth(userToken)
-					MakeRequest(t, req, http.StatusAccepted)
+						req := NewRequest(t, "DELETE", c.url).
+							AddTokenAuth(userToken)
+						MakeRequest(t, req, http.StatusAccepted)
 
-					req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-						AddTokenAuth(userToken)
-					MakeRequest(t, req, http.StatusNotFound)
-				})
-
-				t.Run("ManifestByDigest", func(t *testing.T) {
-					defer tests.PrintCurrentTest(t)()
-
-					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/manifests/%s", url, untaggedManifestDigest)).
-						AddTokenAuth(userToken)
-					MakeRequest(t, req, http.StatusAccepted)
-
-					req = NewRequest(t, "HEAD", fmt.Sprintf("%s/manifests/%s", url, untaggedManifestDigest)).
-						AddTokenAuth(userToken)
-					MakeRequest(t, req, http.StatusNotFound)
-				})
-
-				t.Run("ManifestByTag", func(t *testing.T) {
-					defer tests.PrintCurrentTest(t)()
-
-					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/manifests/%s", url, multiTag)).
-						AddTokenAuth(userToken)
-					MakeRequest(t, req, http.StatusAccepted)
-
-					req = NewRequest(t, "HEAD", fmt.Sprintf("%s/manifests/%s", url, multiTag)).
-						AddTokenAuth(userToken)
-					MakeRequest(t, req, http.StatusNotFound)
-				})
+						req = NewRequest(t, "HEAD", c.url).
+							AddTokenAuth(userToken)
+						MakeRequest(t, req, http.StatusNotFound)
+					})
+				}
 			})
 		})
 	}

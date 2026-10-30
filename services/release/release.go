@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -140,7 +141,9 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 					NewCommitID: commit.ID.String(),
 				}, commits)
 			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
-			rel.CreatedUnix = timeutil.TimeStampNow()
+		}
+		if rel.PublishedUnix.IsZero() {
+			rel.PublishedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(ctx, rel.TagName)
 		if err != nil {
@@ -148,6 +151,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 		}
 
 		rel.Sha1 = commit.ID.String()
+		rel.CreatedUnix = timeutil.TimeStamp(commit.Committer.When.Unix()) // dated by its commit, so an old commit does not become the latest release
 		rel.NumCommits, err = git.CommitsCountOfCommit(ctx, rel.Repo, commit.ID.String())
 		if err != nil {
 			return false, fmt.Errorf("CommitsCount: %w", err)
@@ -273,6 +277,12 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 	isConvertedFromTag := oldRelease.IsTag && !rel.IsTag
+	// a zero PublishedUnix means "draft", so withdrawing a release has to clear it again
+	if rel.IsDraft {
+		rel.PublishedUnix = 0
+	} else if isConvertedFromTag || oldRelease.IsDraft {
+		rel.PublishedUnix = timeutil.TimeStampNow()
+	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err = repo_model.UpdateRelease(ctx, rel); err != nil {
@@ -410,6 +420,10 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 
 	if err := repo_model.DeleteAttachmentsByRelease(ctx, rel.ID); err != nil {
 		return fmt.Errorf("DeleteAttachments: %w", err)
+	}
+
+	if _, err := db.DeleteByBean(ctx, &issues_model.Reaction{ReleaseID: rel.ID}); err != nil {
+		return fmt.Errorf("DeleteReleaseByID: %w", err)
 	}
 
 	for i := range rel.Attachments {

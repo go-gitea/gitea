@@ -20,9 +20,7 @@ func TestGrepSearch(t *testing.T) {
 	assert.NoError(t, err)
 	defer repo.Close()
 
-	res, err := GrepSearch(t.Context(), repo, "void", GrepOptions{})
-	assert.NoError(t, err)
-	assert.Equal(t, []*GrepResult{
+	expectedResults := []*GrepResult{
 		{
 			Filename:    "java-hello/main.java",
 			LineNumbers: []int{3},
@@ -33,51 +31,36 @@ func TestGrepSearch(t *testing.T) {
 			LineNumbers: []int{3},
 			LineCodes:   []string{" public static void main(String[] args)"},
 		},
-	}, res)
+	}
+	for _, testcase := range []struct {
+		options  GrepOptions
+		expected []*GrepResult
+	}{
+		{GrepOptions{}, expectedResults},
+		{GrepOptions{PathspecList: []string{":(glob)java-hello/*"}}, expectedResults[:1]},
+		{GrepOptions{PathspecList: []string{":(glob,exclude)java-hello/*"}}, expectedResults[1:]},
+		{GrepOptions{MaxResultLimit: 1}, expectedResults[:1]},
+		{GrepOptions{MaxResultLimit: 1, MaxLineLength: 39}, []*GrepResult{
+			{
+				Filename:    "java-hello/main.java",
+				LineNumbers: []int{3},
+				LineCodes:   []string{" public static void main(String[] arg"},
+			},
+		}},
+	} {
+		res, err := GrepSearch(t.Context(), repo, "void", testcase.options)
+		assert.NoError(t, err)
+		assert.Equal(t, testcase.expected, res)
+	}
 
-	res, err = GrepSearch(t.Context(), repo, "void", GrepOptions{PathspecList: []string{":(glob)java-hello/*"}})
-	assert.NoError(t, err)
-	assert.Equal(t, []*GrepResult{
-		{
-			Filename:    "java-hello/main.java",
-			LineNumbers: []int{3},
-			LineCodes:   []string{" public static void main(String[] args)"},
-		},
-	}, res)
-
-	res, err = GrepSearch(t.Context(), repo, "void", GrepOptions{PathspecList: []string{":(glob,exclude)java-hello/*"}})
-	assert.NoError(t, err)
-	assert.Equal(t, []*GrepResult{
-		{
-			Filename:    "main.vendor.java",
-			LineNumbers: []int{3},
-			LineCodes:   []string{" public static void main(String[] args)"},
-		},
-	}, res)
-
-	res, err = GrepSearch(t.Context(), repo, "void", GrepOptions{MaxResultLimit: 1})
-	assert.NoError(t, err)
-	assert.Equal(t, []*GrepResult{
-		{
-			Filename:    "java-hello/main.java",
-			LineNumbers: []int{3},
-			LineCodes:   []string{" public static void main(String[] args)"},
-		},
-	}, res)
-
-	res, err = GrepSearch(t.Context(), repo, "void", GrepOptions{MaxResultLimit: 1, MaxLineLength: 39})
-	assert.NoError(t, err)
-	assert.Equal(t, []*GrepResult{
-		{
-			Filename:    "java-hello/main.java",
-			LineNumbers: []int{3},
-			LineCodes:   []string{" public static void main(String[] arg"},
-		},
-	}, res)
-
-	res, err = GrepSearch(t.Context(), repo, "no-such-content", GrepOptions{})
+	res, err := GrepSearch(t.Context(), repo, "no-such-content", GrepOptions{})
 	assert.NoError(t, err)
 	assert.Empty(t, res)
+
+	// search a string starting with a dash
+	res, err = GrepSearch(t.Context(), repo, "-v", GrepOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, []*GrepResult{{Filename: ".gitattributes", LineNumbers: []int{1}, LineCodes: []string{"*.vendor.java linguist-vendored"}}}, res)
 
 	nonExistingRepo := &Repository{RepositoryBase: RepositoryBase{repoFacade: gitrepo.RepositoryUnmanaged("no-such-git-repo")}}
 	res, err = GrepSearch(t.Context(), nonExistingRepo, "no-such-content", GrepOptions{})
