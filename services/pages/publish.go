@@ -78,7 +78,7 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 	if _, err := candidate.Seek(0, io.SeekStart); err != nil {
 		return nil, fmt.Errorf("commitContent: rewind: %w", err)
 	}
-	manifest, err := pages_content.ValidateArchive(ctx, candidate, limits)
+	digest, err := pages_content.ValidateArchive(ctx, candidate, limits)
 	if err != nil {
 		return nil, fmt.Errorf("commitContent: validate: %w", err)
 	}
@@ -116,7 +116,7 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 	if _, err := candidate.Seek(0, io.SeekStart); err != nil {
 		return nil, fmt.Errorf("commitContent: rewind for storage: %w", err)
 	}
-	if err := store.Save(repoID, manifest.SHA256Hex, candidate, n); err != nil {
+	if err := store.Save(repoID, digest, candidate, n); err != nil {
 		return nil, fmt.Errorf("commitContent: storage save: %w", err)
 	}
 	var version *pages_model.Version
@@ -139,13 +139,13 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 			return ErrSourceChanged
 		}
 		var hasVersion bool
-		version, hasVersion, err = pages_model.GetVersionByRepoIDAndDigest(ctx, repoID, manifest.SHA256Hex)
+		version, hasVersion, err = pages_model.GetVersionByRepoIDAndDigest(ctx, repoID, digest)
 		if err != nil {
 			return err
 		}
 		if !hasVersion {
 			version = &pages_model.Version{
-				RepoID: repoID, TarGzSHA256: manifest.SHA256Hex,
+				RepoID: repoID, TarGzSHA256: digest,
 				OriginType: opts.Origin, OriginActionRunID: opts.ActionRunID,
 			}
 			if err := pages_model.InsertVersion(ctx, version); err != nil {
@@ -174,7 +174,7 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 		return err
 	})
 	if err != nil {
-		if cleanupErr := deleteUnreferencedContent(ctx, store, repoID, manifest.SHA256Hex); cleanupErr != nil {
+		if cleanupErr := deleteUnreferencedContent(ctx, store, repoID, digest); cleanupErr != nil {
 			log.Warn("Unable to clean unpublished Pages object for repo %d: %v", repoID, cleanupErr)
 		}
 		return nil, fmt.Errorf("commitContent: record version: %w", err)

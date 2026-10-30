@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
@@ -57,19 +59,16 @@ func TestValidateAcceptsMissingInRootSymlink(t *testing.T) {
 		testFile("index.html", "page"),
 		testHeader(&tar.Header{Name: "latest", Typeflag: tar.TypeSymlink, Linkname: "releases/current"}),
 	)
-	manifest, err := ValidateArchive(t.Context(), bytes.NewReader(data), testLimits())
+	digest, err := ValidateArchive(t.Context(), bytes.NewReader(data), testLimits())
 	require.NoError(t, err)
-	assert.EqualValues(t, 4, manifest.SiteBytes)
-	assert.Equal(t, 2, manifest.Entries)
-	assert.NotEmpty(t, manifest.SHA256Hex)
+	want := sha256.Sum256(data)
+	assert.Equal(t, hex.EncodeToString(want[:]), digest)
 }
 
 func TestValidateAcceptsIndexlessWebsite(t *testing.T) {
 	data := testArchive(t, testFile("assets/app.js", "page"))
-	manifest, err := ValidateArchive(t.Context(), bytes.NewReader(data), testLimits())
+	_, err := ValidateArchive(t.Context(), bytes.NewReader(data), testLimits())
 	require.NoError(t, err)
-	assert.EqualValues(t, 4, manifest.SiteBytes)
-	assert.Equal(t, 1, manifest.Entries)
 }
 
 func TestValidateRejectsUnsafePathsAndTypes(t *testing.T) {
@@ -203,6 +202,72 @@ func TestValidateArchiveLimitsIncludeBoundary(t *testing.T) {
 	})
 }
 
+func TestValidateArchiveHonorsCancellationWhileReading(t *testing.T) {
+	makeArchive := func(t *testing.T, bodyBytes, tailBytes int) []byte {
+		t.Helper()
+		var tarData bytes.Buffer
+		tw := tar.NewWriter(&tarData)
+		require.NoError(t, tw.WriteHeader(&tar.Header{Name: "index.html", Typeflag: tar.TypeReg, Size: int64(bodyBytes)}))
+		_, err := tw.Write(bytes.Repeat([]byte{'a'}, bodyBytes))
+		require.NoError(t, err)
+		require.NoError(t, tw.Close())
+		tarData.Write(make([]byte, tailBytes))
+
+		var compressed bytes.Buffer
+		gz, err := gzip.NewWriterLevel(&compressed, gzip.NoCompression)
+		require.NoError(t, err)
+		_, err = gz.Write(tarData.Bytes())
+		require.NoError(t, err)
+		require.NoError(t, gz.Close())
+		return compressed.Bytes()
+	}
+
+	for _, tt := range []struct {
+		name      string
+		bodyBytes int
+		tailBytes int
+		cancelAt  func(int) int
+	}{
+		{name: "file body", bodyBytes: 128 * 1024, cancelAt: func(size int) int { return size / 2 }},
+		{name: "TAR tail", bodyBytes: 4, tailBytes: 128 * 1024, cancelAt: func(size int) int { return size - 64*1024 }},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			data := makeArchive(t, tt.bodyBytes, tt.tailBytes)
+			ctx, cancel := context.WithCancel(t.Context())
+			reader := &cancelAfterReader{reader: bytes.NewReader(data), cancel: cancel, remaining: tt.cancelAt(len(data))}
+			limits := testLimits()
+			limits.MaxCompressedBytes = int64(len(data) + 1)
+			limits.MaxTarBytes = int64(tt.bodyBytes + tt.tailBytes + 4*1024)
+			limits.MaxSiteBytes = int64(tt.bodyBytes + 1)
+			limits.MaxFileBytes = int64(tt.bodyBytes + 1)
+
+			_, err := ValidateArchive(ctx, reader, limits)
+			require.ErrorIs(t, err, context.Canceled)
+			assert.Less(t, reader.read, len(data))
+		})
+	}
+}
+
+type cancelAfterReader struct {
+	reader    io.Reader
+	cancel    context.CancelFunc
+	remaining int
+	read      int
+}
+
+func (r *cancelAfterReader) Read(p []byte) (int, error) {
+	if r.remaining == 0 {
+		r.cancel()
+	}
+	if r.remaining > 0 && len(p) > r.remaining {
+		p = p[:r.remaining]
+	}
+	n, err := r.reader.Read(p)
+	r.read += n
+	r.remaining -= n
+	return n, err
+}
+
 func TestPackDirectoryProducesSafeDeterministicArchive(t *testing.T) {
 	root := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(root, "index.html"), []byte("page"), 0o755))
@@ -212,9 +277,8 @@ func TestPackDirectoryProducesSafeDeterministicArchive(t *testing.T) {
 	require.NoError(t, PackDirectory(context.Background(), root, &second, testLimits()))
 	assert.Equal(t, first.Bytes(), second.Bytes())
 
-	manifest, err := ValidateArchive(t.Context(), bytes.NewReader(first.Bytes()), testLimits())
+	_, err := ValidateArchive(t.Context(), bytes.NewReader(first.Bytes()), testLimits())
 	require.NoError(t, err)
-	assert.EqualValues(t, 4, manifest.SiteBytes)
 
 	gz, err := gzip.NewReader(bytes.NewReader(first.Bytes()))
 	require.NoError(t, err)

@@ -75,9 +75,8 @@ func TestConvertPagesArtifactUsesCommonArchiveValidation(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanup()
 	defer candidate.Close()
-	manifest, err := pages_content.ValidateArchive(t.Context(), candidate, pages_content.DefaultLimits())
+	_, err = pages_content.ValidateArchive(t.Context(), candidate, pages_content.DefaultLimits())
 	require.NoError(t, err)
-	assert.EqualValues(t, 4, manifest.SiteBytes)
 
 	unsafe := storePagesArtifact(t, "unsafe.zip", []archiveTestEntry{{name: "../index.html", body: "page"}})
 	candidate, cleanup, err = convertPagesArtifact(unsafe)

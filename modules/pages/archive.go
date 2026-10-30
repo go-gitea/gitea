@@ -96,15 +96,6 @@ func (l Limits) valid() bool {
 		l.MaxEntries > 0 && l.MaxPathBytes > 0 && l.MaxPathDepth > 0 && l.MaxSymlinkDepth > 0
 }
 
-type Manifest struct {
-	SHA256          [sha256.Size]byte
-	SHA256Hex       string
-	CompressedBytes int64
-	TarBytes        int64
-	SiteBytes       int64
-	Entries         int
-}
-
 type archiveError struct{ kind, err error }
 
 func (e *archiveError) Error() string { return fmt.Sprintf("%s: %v", e.kind, e.err) }
@@ -113,158 +104,156 @@ func archiveErrorf(kind error, format string, args ...any) error {
 	return &archiveError{kind: kind, err: fmt.Errorf(format, args...)}
 }
 
-// ValidateArchive checks one complete gzip stream containing one TAR archive.
-func ValidateArchive(ctx context.Context, r io.Reader, limits Limits) (Manifest, error) {
+// ValidateArchive checks one complete gzip stream containing one TAR archive and returns its lowercase SHA-256 digest.
+func ValidateArchive(ctx context.Context, r io.Reader, limits Limits) (string, error) {
 	if !limits.valid() || r == nil {
-		return Manifest{}, archiveErrorf(ErrInvalidArchive, "invalid limits or reader")
+		return "", archiveErrorf(ErrInvalidArchive, "invalid limits or reader")
 	}
-	hashReader := &hashLimitReader{r: r, hash: sha256.New(), limit: limits.MaxCompressedBytes}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	hashReader := &hashLimitReader{ctx: ctx, r: r, hash: sha256.New(), limit: limits.MaxCompressedBytes}
 	gz, err := gzip.NewReader(hashReader)
 	if err != nil {
-		return Manifest{}, archiveErrorf(ErrInvalidArchive, "gzip header: %w", err)
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return "", ctxErr
+		}
+		return "", archiveErrorf(ErrInvalidArchive, "gzip header: %w", err)
 	}
+	defer gz.Close()
 	gz.Multistream(false)
-	tarBody := &boundedReader{r: gz, limit: limits.MaxTarBytes + 1}
+	tarBody := &boundedReader{ctx: ctx, r: gz, limit: limits.MaxTarBytes + 1}
 	tr := tar.NewReader(tarBody)
 	entries := make(map[string]archiveEntry)
 	folded := make(map[string]string)
 	var siteBytes int64
-	regularFiles := 0
+	hasRegularFile := false
 	count := 0
 	for {
 		if err := ctx.Err(); err != nil {
-			_ = gz.Close()
-			return Manifest{}, err
+			return "", err
 		}
 		hdr, err := tr.Next()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
-			_ = gz.Close()
-			if errors.Is(err, errReaderLimit) {
-				return Manifest{}, archiveErrorf(ErrArchiveTooLarge, "TAR data exceeds %d bytes", limits.MaxTarBytes)
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return "", ctxErr
 			}
-			return Manifest{}, archiveErrorf(ErrInvalidArchive, "TAR: %w", err)
+			if errors.Is(err, errReaderLimit) {
+				return "", archiveErrorf(ErrArchiveTooLarge, "TAR data exceeds %d bytes", limits.MaxTarBytes)
+			}
+			return "", archiveErrorf(ErrInvalidArchive, "TAR: %w", err)
 		}
 		count++
 		if count > limits.MaxEntries {
-			_ = gz.Close()
-			return Manifest{}, archiveErrorf(ErrArchiveTooLarge, "more than %d entries", limits.MaxEntries)
+			return "", archiveErrorf(ErrArchiveTooLarge, "more than %d entries", limits.MaxEntries)
 		}
 		name, ignored, err := normalizePath(hdr.Name, limits)
 		if err != nil {
-			_ = gz.Close()
-			return Manifest{}, err
+			return "", err
 		}
 		if ignored {
 			if _, err := io.Copy(io.Discard, tr); err != nil {
-				_ = gz.Close()
-				return Manifest{}, archiveErrorf(ErrInvalidArchive, "root entry: %w", err)
+				if ctxErr := ctx.Err(); ctxErr != nil {
+					return "", ctxErr
+				}
+				return "", archiveErrorf(ErrInvalidArchive, "root entry: %w", err)
 			}
 			continue
 		}
 		if strings.HasSuffix(hdr.Name, "/") && hdr.Typeflag != tar.TypeDir {
-			_ = gz.Close()
-			return Manifest{}, archiveErrorf(ErrArchiveEntry, "non-directory %q has a trailing slash", name)
+			return "", archiveErrorf(ErrArchiveEntry, "non-directory %q has a trailing slash", name)
 		}
 		if reservedPath(name) {
-			_ = gz.Close()
-			return Manifest{}, archiveErrorf(ErrArchivePath, "reserved platform path %q", name)
+			return "", archiveErrorf(ErrArchivePath, "reserved platform path %q", name)
 		}
 		key := canonicalPathKey(name)
 		if old, ok := folded[key]; ok {
-			_ = gz.Close()
-			return Manifest{}, archiveErrorf(ErrArchivePath, "path %q conflicts with %q", name, old)
+			return "", archiveErrorf(ErrArchivePath, "path %q conflicts with %q", name, old)
 		}
 		folded[key] = name
 		kind := entryRegular
 		switch hdr.Typeflag {
 		case tar.TypeReg:
-			regularFiles++
+			hasRegularFile = true
 			if hdr.Size < 0 || hdr.Size > limits.MaxFileBytes || siteBytes > limits.MaxSiteBytes-hdr.Size {
-				_ = gz.Close()
-				return Manifest{}, archiveErrorf(ErrArchiveTooLarge, "file %q exceeds content limits", name)
+				return "", archiveErrorf(ErrArchiveTooLarge, "file %q exceeds content limits", name)
 			}
 			siteBytes += hdr.Size
 		case tar.TypeDir:
 			kind = entryDirectory
 			if hdr.Size != 0 {
-				_ = gz.Close()
-				return Manifest{}, archiveErrorf(ErrArchiveEntry, "directory %q has data", name)
+				return "", archiveErrorf(ErrArchiveEntry, "directory %q has data", name)
 			}
 		case tar.TypeSymlink:
 			kind = entrySymlink
 			if hdr.Size != 0 {
-				_ = gz.Close()
-				return Manifest{}, archiveErrorf(ErrArchiveEntry, "symlink %q has data", name)
+				return "", archiveErrorf(ErrArchiveEntry, "symlink %q has data", name)
 			}
 			if err := validateLinkTarget(hdr.Linkname, name, limits); err != nil {
-				_ = gz.Close()
-				return Manifest{}, err
+				return "", err
 			}
 		default:
-			_ = gz.Close()
-			return Manifest{}, archiveErrorf(ErrArchiveEntry, "unsupported TAR type %d at %q", hdr.Typeflag, name)
+			return "", archiveErrorf(ErrArchiveEntry, "unsupported TAR type %d at %q", hdr.Typeflag, name)
 		}
 		if _, ok := entries[name]; ok {
-			_ = gz.Close()
-			return Manifest{}, archiveErrorf(ErrArchiveEntry, "duplicate path %q", name)
+			return "", archiveErrorf(ErrArchiveEntry, "duplicate path %q", name)
 		}
 		entries[name] = archiveEntry{kind: kind, target: hdr.Linkname}
 		if _, err := io.Copy(io.Discard, tr); err != nil {
-			_ = gz.Close()
-			if errors.Is(err, errReaderLimit) {
-				return Manifest{}, archiveErrorf(ErrArchiveTooLarge, "TAR data exceeds %d bytes", limits.MaxTarBytes)
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return "", ctxErr
 			}
-			return Manifest{}, archiveErrorf(ErrInvalidArchive, "TAR entry %q: %w", name, err)
+			if errors.Is(err, errReaderLimit) {
+				return "", archiveErrorf(ErrArchiveTooLarge, "TAR data exceeds %d bytes", limits.MaxTarBytes)
+			}
+			return "", archiveErrorf(ErrInvalidArchive, "TAR entry %q: %w", name, err)
 		}
 	}
-	if len(entries) == 0 || regularFiles == 0 {
-		_ = gz.Close()
-		return Manifest{}, archiveErrorf(ErrArchiveEntry, "archive has no website files")
+	if !hasRegularFile {
+		return "", archiveErrorf(ErrArchiveEntry, "archive has no website files")
 	}
 	if err := validateParentsAndLinks(entries, limits); err != nil {
-		_ = gz.Close()
-		return Manifest{}, err
+		return "", err
 	}
 	var tail [32 * 1024]byte
 	for {
 		n, readErr := tarBody.Read(tail[:])
 		for _, b := range tail[:n] {
 			if b != 0 {
-				_ = gz.Close()
-				return Manifest{}, archiveErrorf(ErrInvalidArchive, "non-zero data after TAR end")
+				return "", archiveErrorf(ErrInvalidArchive, "non-zero data after TAR end")
 			}
 		}
 		if readErr == io.EOF {
 			break
 		}
 		if readErr != nil {
-			_ = gz.Close()
-			return Manifest{}, archiveErrorf(ErrInvalidArchive, "gzip body: %w", readErr)
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return "", ctxErr
+			}
+			return "", archiveErrorf(ErrInvalidArchive, "gzip body: %w", readErr)
 		}
 	}
 	if tarBody.n > limits.MaxTarBytes {
-		return Manifest{}, archiveErrorf(ErrArchiveTooLarge, "TAR data exceeds %d bytes", limits.MaxTarBytes)
-	}
-	if err := gz.Close(); err != nil {
-		return Manifest{}, archiveErrorf(ErrInvalidArchive, "gzip close: %w", err)
+		return "", archiveErrorf(ErrArchiveTooLarge, "TAR data exceeds %d bytes", limits.MaxTarBytes)
 	}
 	if hashReader.n > limits.MaxCompressedBytes {
-		return Manifest{}, archiveErrorf(ErrArchiveTooLarge, "compressed data exceeds %d bytes", limits.MaxCompressedBytes)
+		return "", archiveErrorf(ErrArchiveTooLarge, "compressed data exceeds %d bytes", limits.MaxCompressedBytes)
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
 	}
 	var extra [1]byte
 	n, extraErr := hashReader.r.Read(extra[:])
 	if n != 0 || extraErr == nil {
-		return Manifest{}, archiveErrorf(ErrInvalidArchive, "data after gzip stream")
+		return "", archiveErrorf(ErrInvalidArchive, "data after gzip stream")
 	}
 	if !errors.Is(extraErr, io.EOF) {
-		return Manifest{}, archiveErrorf(ErrInvalidArchive, "reading after gzip stream: %w", extraErr)
+		return "", archiveErrorf(ErrInvalidArchive, "reading after gzip stream: %w", extraErr)
 	}
-	var digest [sha256.Size]byte
-	copy(digest[:], hashReader.hash.Sum(nil))
-	return Manifest{SHA256: digest, SHA256Hex: hex.EncodeToString(digest[:]), CompressedBytes: hashReader.n, TarBytes: tarBody.n, SiteBytes: siteBytes, Entries: len(entries)}, nil
+	return hex.EncodeToString(hashReader.hash.Sum(nil)), nil
 }
 
 type entryKind uint8
@@ -409,12 +398,16 @@ func resolveLink(name string, entries map[string]archiveEntry, limits Limits) er
 }
 
 type hashLimitReader struct {
+	ctx      context.Context
 	r        io.Reader
 	hash     hash.Hash
 	limit, n int64
 }
 
 func (r *hashLimitReader) Read(p []byte) (int, error) {
+	if err := r.ctx.Err(); err != nil {
+		return 0, err
+	}
 	if r.n >= r.limit {
 		return 0, errReaderLimit
 	}
@@ -441,11 +434,15 @@ func (r *hashLimitReader) ReadByte() (byte, error) {
 var errReaderLimit = errors.New("reader limit reached")
 
 type boundedReader struct {
+	ctx      context.Context
 	r        io.Reader
 	limit, n int64
 }
 
 func (r *boundedReader) Read(p []byte) (int, error) {
+	if err := r.ctx.Err(); err != nil {
+		return 0, err
+	}
 	if r.n >= r.limit {
 		return 0, errReaderLimit
 	}
@@ -473,7 +470,7 @@ func PackDirectory(ctx context.Context, root string, dst io.Writer, limits Limit
 	}
 	var source []sourceEntry
 	var siteBytes int64
-	regularFiles := 0
+	hasRegularFile := false
 	folded := make(map[string]string)
 	err = filepath.Walk(root, func(full string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
@@ -514,7 +511,7 @@ func PackDirectory(ctx context.Context, root string, dst io.Writer, limits Limit
 		}
 		folded[key] = name
 		if info.Mode().IsRegular() {
-			regularFiles++
+			hasRegularFile = true
 			if info.Size() < 0 || info.Size() > limits.MaxFileBytes || siteBytes > limits.MaxSiteBytes-info.Size() {
 				return archiveErrorf(ErrArchiveTooLarge, "file %q exceeds content limits", name)
 			}
@@ -543,7 +540,7 @@ func PackDirectory(ctx context.Context, root string, dst io.Writer, limits Limit
 		}
 		entries[item.name] = archiveEntry{kind: kind, target: item.link}
 	}
-	if len(entries) == 0 || regularFiles == 0 {
+	if !hasRegularFile {
 		return archiveErrorf(ErrArchiveSource, "source directory is empty")
 	}
 	if err := validateParentsAndLinks(entries, limits); err != nil {
