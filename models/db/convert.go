@@ -92,8 +92,9 @@ func UnmarshalFromDB(data []byte, v any) bool {
 	}
 	err := json.Unmarshal(data, v)
 	if err != nil {
-		// a corrupted value (e.g. manual DB edits) must not cause 500 errors, and the raw value is not logged because it may hold secrets
-		setting.PanicInDevOrTesting("UnmarshalFromDB %T failed: %v", v, err)
+		// Even if database value is corrupted, we should not let it cause unnecessary 500 error or block user's operation
+		// Corrupted database value is a really rare case, it should never happen unless site admin manually modified the database.
+		setting.PanicInDevOrTesting("UnmarshalFromDB %q failed: %v", string(data), err)
 		return false
 	}
 	return true

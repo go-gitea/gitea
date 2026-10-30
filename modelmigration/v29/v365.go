@@ -15,6 +15,12 @@ import (
 // unmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
 // possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
 func unmarshalHandleDoubleEncode(bs []byte, v any) error {
+	if len(bs) == 0 {
+		// json.Unmarshal will report errors if input is empty (nil or zero-length)
+		// It seems that XORM ignores the nil but still passes zero-length string into this function
+		// To be consistent, we should treat all empty inputs as success
+		return nil
+	}
 	err := json.Unmarshal(bs, v)
 	if err != nil {
 		ok := true
@@ -42,12 +48,19 @@ func unmarshalHandleDoubleEncode(bs []byte, v any) error {
 }
 
 func normalizeLegacyConfigJSON(config string) string {
-	bs := util.UnsafeStringToBytes(config)
-	var value json.Value
-	if config == "" || json.Valid(bs) || unmarshalHandleDoubleEncode(bs, &value) != nil {
+	if config == "" || json.Valid(util.UnsafeStringToBytes(config)) {
 		return config
 	}
-	return string(value)
+
+	m := map[any]any{}
+	err := unmarshalHandleDoubleEncode(util.UnsafeStringToBytes(config), &m)
+	if err != nil {
+		return config
+	}
+	if bs, err := json.Marshal(m); err == nil {
+		return string(bs)
+	}
+	return config
 }
 
 func NormalizeLegacyConfigJSON(ctx context.Context, x base.EngineMigration) error {
