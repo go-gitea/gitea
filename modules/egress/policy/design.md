@@ -143,7 +143,7 @@ the connection is direct and is always screened — including a direct request t
 
 1. **Dynamic updates** — reload policies without restart. Live reload isn't supported in Gitea currently; worth checking whether the design (policies built from setting strings at each use) can be adjusted to enable reloading.
 2. **Metrics** — telemetry for policy violations.
-3. **Audit logging** — log blocked connection attempts (currently only returns errors). Deferred to a next round.
+3. **Audit logging** — dial-time denials are logged at Warn (`egress denied: ...` from `NewDialContext`); name-level pre-checks (`CheckHost`/`CheckHostIPs`) are not logged yet.
 4. **Admin overrides** — exempt admins from scans. Would require the module to be user-aware, which is linked to per-repository/organization awareness (item 7).
 5. **Startup validation of `ALLOWED_INTERNAL_RANGES`** — currently the setting is parsed silently: invalid entries are dropped without a log line, and no warning fires when a range overlaps cloud metadata endpoints (AWS `169.254.169.254` / `fd00:ec2::254`, Alibaba `100.100.100.200`) or when hostname allow entries gain non-public coverage within the ranges. Future consideration: report dropped entries and warn on metadata overlap and widening at startup, and run the well-known metadata IPs against the actual policies to check whether they would be allowed.
 6. **Proxy configuration warning** — at startup, warn when a proxy is configured alongside egress policies that the policy does not IP-check proxied targets.

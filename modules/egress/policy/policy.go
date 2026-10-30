@@ -16,6 +16,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"gitea.dev/modules/log"
 )
 
 type Mode uint8
@@ -243,6 +245,7 @@ func (p *Policy) NewDialContext() func(ctx context.Context, network, addr string
 				return fmt.Errorf("%s can only call HTTP servers via TCP, deny '%s(%s)': %w", p.usage, host, ipAddr, err)
 			}
 			if err := p.checkAddr(host, addrPort); err != nil {
+				log.Warn("egress denied: %v", err) // audit trail for blocked connection attempts
 				return fmt.Errorf("%w: %w", ErrDenied, err)
 			}
 			return nil
