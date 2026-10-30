@@ -1380,7 +1380,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/add", repo.AddDependency)
 					m.Post("/delete", repo.RemoveDependency)
 				})
-				m.Combo("/comments").Post(repo.MustAllowUserComment, web.Bind[*forms.CreateCommentForm](), repo.NewComment)
+				m.Combo("/comments").Post(web.Bind[*forms.CreateCommentForm](), repo.NewComment)
 				m.Group("/times", func() {
 					m.Post("/add", web.Bind[*forms.AddTimeManuallyForm](), repo.AddTimeManually)
 					m.Post("/{timeid}/delete", repo.DeleteTime)

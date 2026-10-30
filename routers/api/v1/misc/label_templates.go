@@ -46,8 +46,8 @@ func GetLabelTemplate(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelTemplateInfo"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	name := util.PathJoinRelX(ctx.PathParam("name"))
 
 	labels, err := repo_module.LoadTemplateLabelsByDisplayName(name)
