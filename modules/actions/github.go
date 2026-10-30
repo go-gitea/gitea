@@ -23,7 +23,6 @@ const (
 	GithubEventPullRequestComment       = "pull_request_comment"
 	GithubEventGollum                   = "gollum"
 	GithubEventSchedule                 = "schedule"
-	GithubEventWorkflowDispatch         = "workflow_dispatch"
 )
 
 // IsDefaultBranchWorkflow returns true if the event only triggers workflows on the default branch

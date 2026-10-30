@@ -16,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	pull_service "gitea.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,6 +82,10 @@ jobs:
 		require.NoError(t, err)
 		require.Len(t, statuses, 1)
 		assert.Equal(t, "Test Inputs Context / build (workflow_dispatch)", statuses[0].Context)
+
+		pullStatuses, err := pull_service.GetLatestPullCommitStatuses(t.Context(), repo.ID, run.CommitSHA)
+		require.NoError(t, err)
+		assert.Empty(t, pullStatuses)
 	})
 }
 

@@ -169,8 +169,7 @@ func deriveScopedStatusContexts(prefix, displayName string, content []byte, even
 	}
 	eventNames := make([]string, 0, len(events))
 	for _, e := range events {
-		// only events whose runs post a commit status can be a required check; workflow_dispatch, schedule, etc. post none.
-		if actions_module.ShouldEventCreateCommitStatus(e.Name) {
+		if actions_module.IsPullRequestCheckEvent(e.Name) {
 			eventNames = append(eventNames, e.Name)
 		}
 	}

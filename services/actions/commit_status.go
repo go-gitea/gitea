@@ -131,7 +131,7 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 			return "", "", errors.New("head of pull request is missing in event payload")
 		}
 		commitID = payload.PullRequest.Head.Sha
-	case webhook_module.HookEventRelease, actions_module.GithubEventWorkflowDispatch:
+	case webhook_module.HookEventRelease, "workflow_dispatch":
 		event = string(run.Event)
 		commitID = run.CommitSHA
 	default: // do nothing, return empty
