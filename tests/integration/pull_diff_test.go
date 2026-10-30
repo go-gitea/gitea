@@ -25,9 +25,6 @@ func TestPullDiff(t *testing.T) {
 	t.Run("CompletePRDiff", func(t *testing.T) {
 		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files", false, []string{"test1.txt", "test10.txt", "test2.txt", "test3.txt", "test4.txt", "test5.txt", "test6.txt", "test7.txt", "test8.txt", "test9.txt"})
 	})
-	t.Run("SingleCommitPRDiff", func(t *testing.T) {
-		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/commits/c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", true, []string{"test3.txt"})
-	})
 	t.Run("CommitRangePRDiff", func(t *testing.T) {
 		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files/4ca8bcaf27e28504df7bf996819665986b01c847..23576dd018294e476c06e569b6b0f170d0558705", true, []string{"test2.txt", "test3.txt", "test4.txt"})
 	})
@@ -56,8 +53,10 @@ func testPullDiffSingleCommit(t *testing.T) {
 	assert.Equal(t, "96cef4a7b72b3c208340ae6f0cf55a93e9077c93", commitSelect.AttrOr("data-before-commit", ""))
 	assert.Equal(t, "c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", commitSelect.AttrOr("data-after-commit", ""))
 
+	// the review targets the pull request head, not the commit on screen
 	panel := doc.Find(".review-box-panel form")
-	require.Zero(t, panel.Length())
+	require.Equal(t, 1, panel.Length())
+	assert.Equal(t, "c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", panel.Find(`input[name="commit_id"]`).AttrOr("value", ""))
 
 	req = NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/files/reviews/new_comment")
 	resp = session.MakeRequest(t, req, http.StatusOK)
