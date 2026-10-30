@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -647,4 +648,24 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: []int64{2},
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
+}
+
+func TestAPIArchivedRepoMutations(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.NoError(t, repo_model.SetArchiveRepoState(t.Context(), repo, true))
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteRepository)
+	for route, status := range map[string]int{
+		"GET /issues/1/reactions":   http.StatusOK,
+		"POST /issues/1/reactions":  http.StatusLocked,
+		"DELETE /issues/comments/1": http.StatusLocked,
+		"DELETE /labels/1":          http.StatusLocked,
+		"GET /releases/1":           http.StatusOK,
+		"DELETE /releases/1":        http.StatusLocked,
+	} {
+		t.Run(route, func(t *testing.T) {
+			method, path, _ := strings.Cut(route, " ")
+			MakeRequest(t, NewRequest(t, method, "/api/v1/repos/user2/repo1"+path).AddTokenAuth(token), status)
+		})
+	}
 }

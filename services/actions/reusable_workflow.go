@@ -35,7 +35,7 @@ import (
 // MaxReusableCallLevels allows nine calls across ten workflows, including the top-level workflow.
 const MaxReusableCallLevels = 8
 
-// checkRunJobLimit rejects an expansion that would push the attempt over actions_model.MaxJobNumPerRun.
+// checkRunJobLimit rejects adding jobs that would push the attempt over actions_model.MaxJobNumPerRun.
 // checkCallerChain bounds nesting *depth*, but a reusable graph also fans out in *breadth*: without a
 // cumulative cap a tiny set of files can drive exponential job-row insertion and exhaust the database.
 func checkRunJobLimit(ctx context.Context, runID, attemptID int64, adding int) error {
@@ -44,9 +44,14 @@ func checkRunJobLimit(ctx context.Context, runID, attemptID int64, adding int) e
 		return fmt.Errorf("count existing jobs of run %d attempt %d: %w", runID, attemptID, err)
 	}
 	if existing+int64(adding) > actions_model.MaxJobNumPerRun {
-		return fmt.Errorf("workflow run exceeds the maximum of %d jobs", actions_model.MaxJobNumPerRun)
+		return runJobLimitError()
 	}
 	return nil
+}
+
+func runJobLimitError() error {
+	err := util.NewInvalidArgumentErrorf("workflow run exceeds the maximum of %d jobs", actions_model.MaxJobNumPerRun)
+	return util.ErrorWrapTranslatable(err, "actions.runs.invalid_workflow_helper", err.Error())
 }
 
 // loadReusableWorkflowSource resolves the workflow file referenced by a caller's `uses:` and returns its raw bytes,
