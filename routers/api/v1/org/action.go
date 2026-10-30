@@ -45,8 +45,8 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SecretList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := &secret_model.FindSecretsOptions{
 		BelongingScope: actions_model.BelongingScopeOwner(ctx.Org.Organization.ID),
@@ -102,12 +102,8 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	//     description: response when creating a secret
 	//   "204":
 	//     description: response when updating a secret
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/orgArchivedError"
 
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
@@ -153,12 +149,8 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: delete one secret of the organization
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/orgArchivedError"
 
 	s, err := secret_service.DeleteSecretByName(ctx, actions_model.BelongingScopeOwner(ctx.Org.Organization.ID), ctx.PathParam("secretname"))
 	if err != nil {
@@ -188,8 +180,6 @@ func (Action) CreateRegistrationToken(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RegistrationToken"
-	//   "423":
-	//     "$ref": "#/responses/orgArchivedError"
 
 	shared.GetRegistrationToken(ctx, ctx.Org.Organization.ID, 0)
 }
@@ -218,10 +208,8 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//		 "$ref": "#/responses/VariableList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	listOptions := utils.GetListOptions(ctx)
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
@@ -269,10 +257,8 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//		 "$ref": "#/responses/ActionVariable"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		BelongingScope: actions_model.BelongingScopeOwner(ctx.Org.Organization.ID),
@@ -319,12 +305,8 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	//     description: response when deleting a variable
 	//   "204":
 	//     description: response when deleting a variable
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/orgArchivedError"
 
 	if err := actions_service.DeleteVariableByName(ctx, actions_model.BelongingScopeOwner(ctx.Org.Organization.ID), ctx.PathParam("variablename")); err != nil {
 		ctx.APIErrorAuto(err)
@@ -361,14 +343,8 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     description: successfully created the org-level variable
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "409":
-	//     description: variable name already exists.
-	//   "500":
-	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/orgArchivedError"
 
 	opt := web.GetForm[*api.CreateVariableOption](ctx)
 
@@ -425,12 +401,8 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	//     description: response when updating an org-level variable
 	//   "204":
 	//     description: response when updating an org-level variable
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/orgArchivedError"
 
 	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
@@ -480,10 +452,8 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RunnerList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.ListRunners(ctx, ctx.Org.Organization.ID, 0)
 }
 
@@ -508,10 +478,8 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Runner"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.GetRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
@@ -536,12 +504,8 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: runner has been deleted
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/orgArchivedError"
 	shared.DeleteRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
@@ -572,14 +536,8 @@ func (Action) UpdateRunner(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Runner"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/orgArchivedError"
 	shared.UpdateRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
@@ -611,10 +569,8 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.ListJobs(ctx, ctx.Org.Organization.ID, 0, 0, nil)
 }
 
@@ -666,10 +622,8 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRunsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.ListRuns(ctx, ctx.Org.Organization.ID, 0, "")
 }
 

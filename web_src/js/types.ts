@@ -87,7 +87,7 @@ export type StopwatchData = {
   seconds: number,
 };
 
-// keep in sync with services/websocket/events.go
+// keep in sync with services/websocket
 export type ServerUserEventMessage =
   {eventType: 'notification-count', eventData: {count: number}} |
   {eventType: 'stopwatches', eventData: Array<StopwatchData>} |
@@ -97,7 +97,8 @@ export const serverUserEventTypes = ['notification-count', 'stopwatches', 'logou
 
 export type UserEventMessage = ServerUserEventMessage |
   {eventType: 'worker-unavailable'} |
-  {eventType: 'worker-connected'};
+  {eventType: 'worker-connected'} |
+  {eventType: 'worker-attached'}; // joined an open socket after its connect snapshot
 
 export type UserEventType = UserEventMessage['eventType'];
 

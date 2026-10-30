@@ -39,7 +39,7 @@ const (
 type Watch struct {
 	ID          int64              `xorm:"pk autoincr"`
 	UserID      int64              `xorm:"UNIQUE(watch)"`
-	RepoID      int64              `xorm:"UNIQUE(watch)"`
+	RepoID      int64              `xorm:"UNIQUE(watch) INDEX"`
 	Mode        WatchMode          `xorm:"SMALLINT NOT NULL DEFAULT 1"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -112,6 +112,9 @@ func IsWatchingRepo(ctx context.Context, userID, repoID int64) bool {
 }
 
 func watchRepoByMode(ctx context.Context, watch *Watch, mode WatchMode) (err error) {
+	if watch.UserID <= 0 {
+		return nil
+	}
 	if watch.Mode == mode {
 		return nil
 	}

@@ -52,8 +52,8 @@ func ListCollaborators(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	collaborators, total, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -99,10 +99,8 @@ func IsCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	user, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
@@ -155,12 +153,8 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.AddCollaboratorOption](ctx)
 
@@ -222,10 +216,8 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
@@ -270,10 +262,8 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoCollaboratorPermission"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	collaboratorUsername := ctx.PathParam("collaborator")
 	if !ctx.Doer.IsAdmin && !strings.EqualFold(ctx.Doer.LowerName, collaboratorUsername) && !ctx.IsUserRepoAdmin() {
@@ -321,8 +311,8 @@ func GetReviewers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	canChooseReviewer := issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, ctx.Repo.Repository, 0)
 	if !canChooseReviewer {
@@ -359,8 +349,8 @@ func GetAssignees(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	assignees, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
@@ -397,10 +387,8 @@ func CheckRepoIssueAssignee(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	if checkAssignableUser(ctx, ctx.PathParam("assignee"), ctx.Repo.Repository) {
 		ctx.Status(http.StatusNoContent)

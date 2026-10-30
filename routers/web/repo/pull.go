@@ -6,11 +6,13 @@
 package repo
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"html"
 	"html/template"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -370,8 +372,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 	pull := prInfo.issue.PullRequest
 	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
-		isKnownErrorForBroken := errors.Is(err, util.ErrNotExist) || gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath)
-		if !isKnownErrorForBroken {
+		if !errors.Is(err, util.ErrNotExist) && !gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) {
 			log.Error("GetCompareInfo: %v", err)
 		}
 		prInfo.IsPullRequestBroken = true
@@ -677,6 +678,26 @@ func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
 	return nil
 }
 
+// setSingleCommitNavContext exposes the reviewed commit and its neighbors.
+func setSingleCommitNavContext(ctx *context.Context, commits []*git.Commit, commit *git.Commit) {
+	idx := slices.IndexFunc(commits, func(c *git.Commit) bool { return bytes.Equal(c.ID.RawValue(), commit.ID.RawValue()) })
+	if idx < 0 {
+		return
+	}
+
+	ctx.Data["SingleCommit"] = commit
+	ctx.Data["SingleCommitIndex"] = len(commits) - idx
+	ctx.Data["SingleCommitCount"] = len(commits)
+
+	// The commit list is newest-first while a reviewer walks it oldest-first, so the indexes are mirrored.
+	if idx+1 < len(commits) {
+		ctx.Data["SingleCommitPrevID"] = commits[idx+1].ID.String()
+	}
+	if idx > 0 {
+		ctx.Data["SingleCommitNextID"] = commits[idx-1].ID.String()
+	}
+}
+
 // ViewPullFiles render pull request changed files list page
 func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	var err error
@@ -704,11 +725,17 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	headCommitID := prCompareInfo.HeadCommitID
-	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
-	// FIXME: when afterCommitID==headCommitID, isSingleCommit and isShowAllCommits can be both true, which doesn't seem right
-	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
+	// show all commits when:
+	// * both before and after commit IDs are empty (default view)
+	// * before commit ID is the PR's base commit and after commit ID is the PR's head commit (default view)
+	// * there is only one commit in the PR and after commit ID is the PR's head commit (single-commit view)
+	isShowAllCommits := (beforeCommitID == "" && afterCommitID == "") ||
+		(beforeCommitID == prCompareInfo.CompareBase && afterCommitID == headCommitID) ||
+		(beforeCommitID == "" && afterCommitID == headCommitID && len(prCompareInfo.Commits) == 1)
+	isSingleCommit := beforeCommitID == "" && afterCommitID != "" && !isShowAllCommits
 
-	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
+	// it's questionable why single commit review can be submitted, but the range commits review cannot be submitted
+	ctx.Data["CanSubmitReview"] = isShowAllCommits || isSingleCommit
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 
 	// "commits list" is half-open, half-closed: (base, head]
@@ -723,6 +750,10 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 			ctx.ServerError("GetCommit(afterCommitID)", err)
 			return
 		}
+	}
+	if afterCommit == nil && isSingleCommit {
+		ctx.Redirect(ctx.Repo.RepoLink + "/commit/" + afterCommitID) // timeline commits outlive force pushes
+		return
 	}
 	if afterCommit == nil {
 		ctx.NotFound(nil)
@@ -757,6 +788,11 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["CompareInfo"] = prCompareInfo
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
+	ctx.Data["ReviewCommitID"] = afterCommitID // the review happens on the "after commit" (the latest commit in the range)
+
+	if isSingleCommit {
+		setSingleCommitNavContext(ctx, prCompareInfo.Commits, afterCommit)
+	}
 
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
@@ -885,35 +921,39 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
-	currentReview, err := issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
-	if err != nil && !issues_model.IsErrReviewNotExist(err) {
-		ctx.ServerError("GetCurrentReview", err)
-		return
-	}
-	numPendingCodeComments := int64(0)
-	if currentReview != nil {
-		numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
-			Type:     issues_model.CommentTypeCode,
-			ReviewID: currentReview.ID,
-			IssueID:  issue.ID,
-		})
-		if err != nil {
-			ctx.ServerError("CountComments", err)
+	var numPendingCodeComments int64
+	var currentPendingReview *issues_model.Review
+	if ctx.Doer != nil {
+		currentPendingReview, err = issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
+		if err != nil && !issues_model.IsErrReviewNotExist(err) {
+			ctx.ServerError("GetCurrentReview", err)
 			return
 		}
+		if currentPendingReview != nil {
+			numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
+				Type:     issues_model.CommentTypeCode,
+				ReviewID: currentPendingReview.ID,
+				IssueID:  issue.ID,
+			})
+			if err != nil {
+				ctx.ServerError("CountComments", err)
+				return
+			}
+		}
 	}
-	ctx.Data["CurrentReview"] = currentReview
+	ctx.Data["CurrentReview"] = currentPendingReview
 	ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
 
 	ctx.Data["IsIssuePoster"] = ctx.Doer != nil && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	// For files changed page
 	PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
 	}
+
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {

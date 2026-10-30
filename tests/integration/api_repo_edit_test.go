@@ -531,7 +531,7 @@ func TestAPIRepoUnarchiveInArchivedOrg(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
 }
 
-func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
+func TestAPIRepoEditPullSettings(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -557,4 +557,14 @@ func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
 		DefaultUpdateStyle: &defaultUpdateStyle,
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
+
+	req = NewRequestWithJSON(t, "PATCH", repoURL, &api.EditRepoOption{
+		SquashMergeCommitMessage: new("invalid"),
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusBadRequest)
+
+	req = NewRequestWithJSON(t, "PATCH", repoURL, &api.EditRepoOption{
+		SquashMergeCommitMessage: new(string(repo_model.SquashMergeMessageBlank)),
+	}).AddTokenAuth(token)
+	assert.Equal(t, string(repo_model.SquashMergeMessageBlank), DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Repository{}).SquashMergeCommitMessage)
 }

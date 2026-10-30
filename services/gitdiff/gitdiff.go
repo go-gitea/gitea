@@ -522,13 +522,13 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	// * for "text" type: need to read up to "highlight limit size" to do full-file-highlighting
 	contentLimit := util.Iif(diffFile.IsBin, typesniffer.SniffContentSize, MaxFullFileHighlightSizeLimit)
 	var leftBlobType, rightBlobType typesniffer.SniffedType
-	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
+	if diffFile.Type != DiffFileAdd && leftCommit != nil {
 		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName, contentLimit)
 		diffFile.LeftBlob, diffFile.LeftBlobSize, ret.leftLineCount, ret.leftContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
 		leftBlobType = typesniffer.DetectContentType(ret.leftContent.buf.Bytes())
 	}
-	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
-		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName, contentLimit)
+	if diffFile.Type != DiffFileDel && rightCommit != nil {
+		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.Name, contentLimit)
 		diffFile.RightBlob, diffFile.RightBlobSize, ret.rightLineCount, ret.rightContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
 		rightBlobType = typesniffer.DetectContentType(ret.rightContent.buf.Bytes())
 	}
@@ -1594,6 +1594,22 @@ func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) 
 		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
 	}
 	return diff, nil
+}
+
+// GetCodeCommentPatch returns the code snippet stored with a code comment
+func GetCodeCommentPatch(ctx context.Context, gitRepo *git.Repository, mergeBase, headCommitID, treePath string, line int64) (string, error) {
+	patch, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, mergeBase, headCommitID, treePath,
+		int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
+	)
+	contextCommitID := util.Iif(line < 0, mergeBase, headCommitID)
+	if err != nil || patch != "" || contextCommitID == "" {
+		return patch, err
+	}
+	patch, err = GeneratePatchForUnchangedLine(ctx, gitRepo, contextCommitID, treePath, line, setting.UI.CodeCommentLines)
+	if err != nil {
+		log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, contextCommitID, err)
+	}
+	return patch, nil
 }
 
 // GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line

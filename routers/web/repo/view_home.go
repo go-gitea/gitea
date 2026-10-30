@@ -349,10 +349,12 @@ func handleRepoHomeFeed(ctx *context.Context) bool {
 	}
 	if ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType) {
 		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
-	} else if ctx.Repo.TreePath == "" {
-		feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+	} else if !ctx.Repo.Permission.CanRead(unit_model.TypeCode) && !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
+		// the branch and file feeds list commits, so gate them like RequireUnitReader(TypeCode) on "/rss/branch/*",
+		// which also admits maintainers of a PR allowing maintainer edits, who can push to its head branch without code read access
+		ctx.NotFound(nil)
 	} else {
-		feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+		feed.RenderBranchFeed(ctx, showFeedType)
 	}
 	return true
 }
@@ -433,7 +435,7 @@ func Home(ctx *context.Context) {
 
 	// a scoped or public-only API token authenticating this web request must still satisfy
 	// the repository read scope before private repo content is served
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	if ctx.Written() {
 		return
 	}
@@ -477,6 +479,7 @@ func Home(ctx *context.Context) {
 	prepareFuncs := []func(*context.Context){
 		prepareClonePanel,
 		prepareHomeSidebarRepoTopics,
+		SetEditorconfigIfExists,
 		prepareToRenderDirOrFile(entry),
 		prepareRecentlyPushedNewBranches,
 	}

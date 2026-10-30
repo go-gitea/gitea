@@ -123,7 +123,7 @@ func testPrivateActivityHelperHasHeatmapContentFromPublic(t *testing.T) bool {
 }
 
 func testPrivateActivityHelperHasHeatmapContentFromSession(t *testing.T, session *TestSession) bool {
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/heatmap", privateActivityTestUser).
 		AddTokenAuth(token)
@@ -134,282 +134,129 @@ func testPrivateActivityHelperHasHeatmapContentFromSession(t *testing.T, session
 	return len(items) != 0
 }
 
-// check activity visibility if the visibility is enabled
+func TestPrivateActivityVisibility(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		private bool
+		user    string
+		visible bool
+	}{
+		// check activity visibility if the visibility is enabled
+		{"NoVisibleForPublic", false, "", true},
+		{"NoVisibleForUserItself", false, privateActivityTestUser, true},
+		{"NoVisibleForOtherUser", false, privateActivityTestOtherUser, true},
+		{"NoVisibleForAdmin", false, privateActivityTestAdmin, true},
+		// check activity visibility if the visibility is disabled
+		{"YesInvisibleForPublic", true, "", false},
+		{"YesVisibleForUserItself", true, privateActivityTestUser, true},
+		{"YesInvisibleForOtherUser", true, privateActivityTestOtherUser, false},
+		{"YesVisibleForAdmin", true, privateActivityTestAdmin, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			defer tests.PrepareTestEnv(t)()
+			testPrivateActivityDoSomethingForActionEntries(t)
+			if test.private {
+				testPrivateActivityHelperEnablePrivateActivity(t)
+			}
 
-func TestPrivateActivityNoVisibleForPublic(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	visible := testPrivateActivityHelperHasVisibleActivitiesFromPublic(t)
-
-	assert.True(t, visible, "user should have visible activities")
+			var visible bool
+			if test.user == "" {
+				visible = testPrivateActivityHelperHasVisibleActivitiesFromPublic(t)
+			} else {
+				visible = testPrivateActivityHelperHasVisibleActivitiesFromSession(t, loginUser(t, test.user))
+			}
+			if test.visible {
+				assert.True(t, visible, "user should have visible activities")
+			} else {
+				assert.False(t, visible, "user should have no visible activities")
+			}
+		})
+	}
 }
 
-func TestPrivateActivityNoVisibleForUserItself(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
+func TestPrivateActivityHeatmapVisibility(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		private   bool
+		user      string
+		dashboard bool
+		visible   bool
+	}{
+		// check heatmap visibility if the visibility is enabled
+		{"NoHeatmapVisibleForPublic", false, "", false, true},
+		{"NoHeatmapVisibleForUserItselfAtProfile", false, privateActivityTestUser, false, true},
+		{"NoHeatmapVisibleForUserItselfAtDashboard", false, privateActivityTestUser, true, true},
+		{"NoHeatmapVisibleForOtherUser", false, privateActivityTestOtherUser, false, true},
+		{"NoHeatmapVisibleForAdmin", false, privateActivityTestAdmin, false, true},
+		// check heatmap visibility if the visibility is disabled
+		{"YesHeatmapInvisibleForPublic", true, "", false, false},
+		{"YesHeatmapVisibleForUserItselfAtProfile", true, privateActivityTestUser, false, true},
+		{"YesHeatmapVisibleForUserItselfAtDashboard", true, privateActivityTestUser, true, true},
+		{"YesHeatmapInvisibleForOtherUser", true, privateActivityTestOtherUser, false, false},
+		{"YesHeatmapVisibleForAdmin", true, privateActivityTestAdmin, false, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			defer tests.PrepareTestEnv(t)()
+			testPrivateActivityDoSomethingForActionEntries(t)
+			if test.private {
+				testPrivateActivityHelperEnablePrivateActivity(t)
+			}
 
-	session := loginUser(t, privateActivityTestUser)
-	visible := testPrivateActivityHelperHasVisibleActivitiesFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible activities")
+			var visible bool
+			if test.user == "" {
+				visible = testPrivateActivityHelperHasVisibleHeatmapFromPublic(t)
+			} else if test.dashboard {
+				visible = testPrivateActivityHelperHasVisibleDashboardHeatmapFromSession(t, loginUser(t, test.user))
+			} else {
+				visible = testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t, loginUser(t, test.user))
+			}
+			if test.visible {
+				assert.True(t, visible, "user should have visible heatmap")
+			} else {
+				assert.False(t, visible, "user should have no visible heatmap")
+			}
+		})
+	}
 }
 
-func TestPrivateActivityNoVisibleForOtherUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	session := loginUser(t, privateActivityTestOtherUser)
-	visible := testPrivateActivityHelperHasVisibleActivitiesFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible activities")
-}
-
-func TestPrivateActivityNoVisibleForAdmin(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	session := loginUser(t, privateActivityTestAdmin)
-	visible := testPrivateActivityHelperHasVisibleActivitiesFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible activities")
-}
-
-// check activity visibility if the visibility is disabled
-
-func TestPrivateActivityYesInvisibleForPublic(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	visible := testPrivateActivityHelperHasVisibleActivitiesFromPublic(t)
-
-	assert.False(t, visible, "user should have no visible activities")
-}
-
-func TestPrivateActivityYesVisibleForUserItself(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	session := loginUser(t, privateActivityTestUser)
-	visible := testPrivateActivityHelperHasVisibleActivitiesFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible activities")
-}
-
-func TestPrivateActivityYesInvisibleForOtherUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	session := loginUser(t, privateActivityTestOtherUser)
-	visible := testPrivateActivityHelperHasVisibleActivitiesFromSession(t, session)
-
-	assert.False(t, visible, "user should have no visible activities")
-}
-
-func TestPrivateActivityYesVisibleForAdmin(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	session := loginUser(t, privateActivityTestAdmin)
-	visible := testPrivateActivityHelperHasVisibleActivitiesFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible activities")
-}
-
-// check heatmap visibility if the visibility is enabled
-
-func TestPrivateActivityNoHeatmapVisibleForPublic(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	visible := testPrivateActivityHelperHasVisibleHeatmapFromPublic(t)
-
-	assert.True(t, visible, "user should have visible heatmap")
-}
-
-func TestPrivateActivityNoHeatmapVisibleForUserItselfAtProfile(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	session := loginUser(t, privateActivityTestUser)
-	visible := testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible heatmap")
-}
-
-func TestPrivateActivityNoHeatmapVisibleForUserItselfAtDashboard(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	session := loginUser(t, privateActivityTestUser)
-	visible := testPrivateActivityHelperHasVisibleDashboardHeatmapFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible heatmap")
-}
-
-func TestPrivateActivityNoHeatmapVisibleForOtherUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	session := loginUser(t, privateActivityTestOtherUser)
-	visible := testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible heatmap")
-}
-
-func TestPrivateActivityNoHeatmapVisibleForAdmin(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	session := loginUser(t, privateActivityTestAdmin)
-	visible := testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible heatmap")
-}
-
-// check heatmap visibility if the visibility is disabled
-
-func TestPrivateActivityYesHeatmapInvisibleForPublic(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	visible := testPrivateActivityHelperHasVisibleHeatmapFromPublic(t)
-
-	assert.False(t, visible, "user should have no visible heatmap")
-}
-
-func TestPrivateActivityYesHeatmapVisibleForUserItselfAtProfile(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	session := loginUser(t, privateActivityTestUser)
-	visible := testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible heatmap")
-}
-
-func TestPrivateActivityYesHeatmapVisibleForUserItselfAtDashboard(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	session := loginUser(t, privateActivityTestUser)
-	visible := testPrivateActivityHelperHasVisibleDashboardHeatmapFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible heatmap")
-}
-
-func TestPrivateActivityYesHeatmapInvisibleForOtherUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	session := loginUser(t, privateActivityTestOtherUser)
-	visible := testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t, session)
-
-	assert.False(t, visible, "user should have no visible heatmap")
-}
-
-func TestPrivateActivityYesHeatmapVisibleForAdmin(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	session := loginUser(t, privateActivityTestAdmin)
-	visible := testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t, session)
-
-	assert.True(t, visible, "user should have visible heatmap")
-}
-
-// check heatmap api provides content if the visibility is enabled
-
-func TestPrivateActivityNoHeatmapHasContentForPublic(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	hasContent := testPrivateActivityHelperHasHeatmapContentFromPublic(t)
-
-	assert.True(t, hasContent, "user should have heatmap content")
-}
-
-func TestPrivateActivityNoHeatmapHasContentForUserItself(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	session := loginUser(t, privateActivityTestUser)
-	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
-
-	assert.True(t, hasContent, "user should have heatmap content")
-}
-
-func TestPrivateActivityNoHeatmapHasContentForOtherUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	session := loginUser(t, privateActivityTestOtherUser)
-	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
-
-	assert.True(t, hasContent, "user should have heatmap content")
-}
-
-func TestPrivateActivityNoHeatmapHasContentForAdmin(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-
-	session := loginUser(t, privateActivityTestAdmin)
-	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
-
-	assert.True(t, hasContent, "user should have heatmap content")
-}
-
-// check heatmap api provides no content if the visibility is disabled
-// this should be equal to the hidden heatmap at the UI
-
-func TestPrivateActivityYesHeatmapHasNoContentForPublic(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	hasContent := testPrivateActivityHelperHasHeatmapContentFromPublic(t)
-
-	assert.False(t, hasContent, "user should have no heatmap content")
-}
-
-func TestPrivateActivityYesHeatmapHasNoContentForUserItself(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	session := loginUser(t, privateActivityTestUser)
-	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
-
-	assert.True(t, hasContent, "user should see their own heatmap content")
-}
-
-func TestPrivateActivityYesHeatmapHasNoContentForOtherUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	session := loginUser(t, privateActivityTestOtherUser)
-	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
-
-	assert.False(t, hasContent, "other user should not see heatmap content")
-}
-
-func TestPrivateActivityYesHeatmapHasNoContentForAdmin(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
-	testPrivateActivityHelperEnablePrivateActivity(t)
-
-	session := loginUser(t, privateActivityTestAdmin)
-	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
-
-	assert.True(t, hasContent, "heatmap should show content for admin")
+func TestPrivateActivityHeatmapContent(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		private    bool
+		user       string
+		hasContent bool
+		message    string
+	}{
+		// check heatmap api provides content if the visibility is enabled
+		{"NoHeatmapHasContentForPublic", false, "", true, "user should have heatmap content"},
+		{"NoHeatmapHasContentForUserItself", false, privateActivityTestUser, true, "user should have heatmap content"},
+		{"NoHeatmapHasContentForOtherUser", false, privateActivityTestOtherUser, true, "user should have heatmap content"},
+		{"NoHeatmapHasContentForAdmin", false, privateActivityTestAdmin, true, "user should have heatmap content"},
+		// check heatmap api provides no content if the visibility is disabled
+		// this should be equal to the hidden heatmap at the UI
+		{"YesHeatmapHasNoContentForPublic", true, "", false, "user should have no heatmap content"},
+		{"YesHeatmapHasNoContentForUserItself", true, privateActivityTestUser, true, "user should see their own heatmap content"},
+		{"YesHeatmapHasNoContentForOtherUser", true, privateActivityTestOtherUser, false, "other user should not see heatmap content"},
+		{"YesHeatmapHasNoContentForAdmin", true, privateActivityTestAdmin, true, "heatmap should show content for admin"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			defer tests.PrepareTestEnv(t)()
+			testPrivateActivityDoSomethingForActionEntries(t)
+			if test.private {
+				testPrivateActivityHelperEnablePrivateActivity(t)
+			}
+
+			var hasContent bool
+			if test.user == "" {
+				hasContent = testPrivateActivityHelperHasHeatmapContentFromPublic(t)
+			} else {
+				hasContent = testPrivateActivityHelperHasHeatmapContentFromSession(t, loginUser(t, test.user))
+			}
+			if test.hasContent {
+				assert.True(t, hasContent, test.message)
+			} else {
+				assert.False(t, hasContent, test.message)
+			}
+		})
+	}
 }

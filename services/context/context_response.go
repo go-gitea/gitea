@@ -37,7 +37,7 @@ func RedirectToUser(ctx *Base, doer *user_model.User, userName string, redirectU
 	}
 
 	// Handle Visibility
-	if user.Visibility != structs.VisibleTypePublic && doer == nil {
+	if user.Visibility != structs.VisibleTypePublic && !user_model.DoerCanViewPrivate(doer) {
 		// We must be signed in to see limited or private organizations
 		ctx.HTTPError(http.StatusNotFound, "user does not exist")
 		return
@@ -166,9 +166,14 @@ func (ctx *Context) buildUserErrorMessage(msg string, err error) (userErrorMsg s
 
 // ServerError displays a 500 (Internal Server Error) page and prints the given error, if any.
 // If the error is controlled by our error system, a related 404 page can be displayed instead.
+// TODO: refactor this function like APIErrorAuto in the future, and handle more error types and http codes.
 func (ctx *Context) ServerError(logMsg string, logErr error) {
 	if errors.Is(logErr, util.ErrNotExist) {
 		ctx.notFoundInternal(1, logMsg, logErr)
+		return
+	}
+	if errMsg, httpCode := util.ErrorUnwrapForUser(logErr); errMsg != "" {
+		ctx.HTTPError(httpCode, errMsg)
 		return
 	}
 	ctx.serverErrorInternal(1, logMsg, logErr)
