@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/timeutil"
+	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -460,4 +461,19 @@ func findCommitStatusesForContext(t *testing.T, repoID int64, sha, context strin
 		Find(&statuses)
 	require.NoError(t, err)
 	return statuses
+}
+
+func TestReviewRunStatusTargetKeepsPayloadHeadForOlderRuns(t *testing.T) {
+	for ref, want := range map[string]string{"refs/pull/1/head": "run-commit", "reviewed-commit": "payload-head"} {
+		event, commitID, err := getCommitStatusEventNameAndCommitID(&actions_model.ActionRun{
+			Event:        webhook_module.HookEventPullRequestReviewApproved,
+			TriggerEvent: "pull_request_review",
+			Ref:          ref,
+			CommitSHA:    "run-commit",
+			EventPayload: `{"pull_request":{"head":{"sha":"payload-head"}}}`,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "pull_request_review", event)
+		assert.Equal(t, want, commitID, ref)
+	}
 }
