@@ -120,6 +120,66 @@ func TestGithubIssuePagination(t *testing.T) {
 	}
 }
 
+func TestGithubGetAllCommentsWaitsForRateLimitReset(t *testing.T) {
+	var attempts int
+	var rateLimitedAt, retriedAt time.Time
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v3/repos/o/r/issues/comments", r.URL.Path)
+		attempts++
+		if attempts == 1 {
+			rateLimitedAt = time.Now()
+			w.Header().Set("X-RateLimit-Limit", "5000")
+			w.Header().Set("X-RateLimit-Remaining", "0")
+			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(1100*time.Millisecond).Unix(), 10))
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(`{"message":"API rate limit exceeded"}`))
+			return
+		}
+
+		retriedAt = time.Now()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer server.Close()
+
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+	require.NoError(t, err)
+
+	comments, isEnd, err := downloader.GetAllComments(t.Context(), 1, 100)
+	require.NoError(t, err)
+	assert.Empty(t, comments)
+	assert.True(t, isEnd)
+	assert.Equal(t, 2, attempts)
+	assert.GreaterOrEqual(t, retriedAt.Sub(rateLimitedAt), time.Second)
+}
+
+func TestGithubGetAllCommentsSkipsEmptyReactions(t *testing.T) {
+	var reactionRequests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v3/repos/o/r/issues/comments":
+			assert.Equal(t, "100", r.URL.Query().Get("per_page"))
+			_, _ = w.Write([]byte(`[{"id":1,"issue_url":"https://api.github.com/repos/o/r/issues/7","user":{"id":2,"login":"user"},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","body":"comment","reactions":{"total_count":0}}]`))
+		case "/api/v3/repos/o/r/issues/comments/1/reactions":
+			reactionRequests++
+			_, _ = w.Write([]byte(`[]`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+	require.NoError(t, err)
+
+	comments, isEnd, err := downloader.GetAllComments(t.Context(), 1, 100)
+	require.NoError(t, err)
+	require.Len(t, comments, 1)
+	assert.True(t, isEnd)
+	assert.Zero(t, reactionRequests)
+}
+
 func TestGitHubDownloadRepo(t *testing.T) {
 	token := os.Getenv("GITHUB_READ_TOKEN")
 	liveMode := token != ""
