@@ -46,10 +46,8 @@ func GetNote(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Note"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
