@@ -81,7 +81,7 @@ func Bind(ctx interface {
 	if err != nil {
 		return nil, err
 	}
-	if !has {
+	if !has || usage.Updated == 0 {
 		err = quota_model.ErrUncertain
 		return nil, err
 	}
@@ -231,11 +231,11 @@ func Begin(ctx context.Context, repo *repo_model.Repository) (context.Context, *
 			return ctx, nil, err
 		}
 		for _, ownedRepo := range repos {
-			_, found, readErr := quota_model.GetUsage(ctx, ownedRepo.ID)
+			cached, found, readErr := quota_model.GetUsage(ctx, ownedRepo.ID)
 			if readErr != nil {
 				return ctx, nil, readErr
 			}
-			if !found {
+			if !found || cached.Updated == 0 {
 				if _, err = Reconcile(ctx, ownedRepo); err != nil {
 					return ctx, nil, err
 				}

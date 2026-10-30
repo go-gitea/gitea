@@ -40,7 +40,7 @@ func resolveSubject(ctx context.Context, subject quota_model.Subject, id int64) 
 	}
 	err = db.GetEngine(ctx).Table("repository").
 		Join("LEFT", "quota_usage", "repository.id=quota_usage.repo_id").
-		Where("repository.owner_id=? AND quota_usage.repo_id IS NULL", id).
+		Where("repository.owner_id=? AND (quota_usage.repo_id IS NULL OR quota_usage.updated=0)", id).
 		Select("repository.*").Find(&repos)
 	return id, user.Name, repos, err
 }
@@ -69,7 +69,7 @@ func Status(ctx context.Context, subject quota_model.Subject, id int64) (*api.St
 		if err != nil {
 			return nil, err
 		}
-		if !found {
+		if !found || usage.Updated == 0 {
 			usage, err = Measure(ctx, repo)
 			if err != nil {
 				return nil, err

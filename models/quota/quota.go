@@ -273,12 +273,12 @@ func OwnerUsage(ctx context.Context, ownerID int64) (int64, error) {
 	var result struct{ Total int64 }
 	_, err := db.GetEngine(ctx).Table("quota_usage").
 		Join("INNER", "repository", "repository.id=quota_usage.repo_id").
-		Where("repository.owner_id=?", ownerID).
+		Where("repository.owner_id=? AND quota_usage.updated<>0", ownerID).
 		Select("COALESCE(SUM(quota_usage.git_bytes + quota_usage.lfs_bytes), 0) AS total").Get(&result)
 	return result.Total, err
 }
 
 func InvalidateUsage(ctx context.Context, repoID int64) error {
-	_, err := db.GetEngine(ctx).ID(repoID).Delete(new(Usage))
+	_, err := db.GetEngine(ctx).ID(repoID).NoAutoTime().Cols("updated").Update(&Usage{Updated: 0})
 	return err
 }

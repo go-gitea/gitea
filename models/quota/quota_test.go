@@ -8,9 +8,11 @@ import (
 	"math"
 	"testing"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -87,4 +89,33 @@ func TestQuotaPolicyLimits(t *testing.T) {
 	assert.EqualValues(t, 123, git)
 	git, _, _ = (&Policy{Subject: Repository, GitLimit: new(int64(-1))}).Limits()
 	assert.EqualValues(t, -1, git)
+}
+
+func TestQuotaUsageInvalidationPreservesCooldown(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	require.NoError(t, InvalidateUsage(ctx, 99999))
+	_, found, err := GetUsage(ctx, 99999)
+	require.NoError(t, err)
+	require.False(t, found)
+	require.NoError(t, StoreUsage(ctx, &Usage{RepoID: 1, OwnerID: 2, GitBytes: 10, LFSBytes: 20}))
+	allowed, err := RequestGC(ctx, 1)
+	require.NoError(t, err)
+	require.True(t, allowed)
+	require.NoError(t, InvalidateUsage(ctx, 1))
+	usage, found, err := GetUsage(ctx, 1)
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Zero(t, usage.Updated)
+	require.EqualValues(t, 10, usage.GitBytes)
+	require.EqualValues(t, 20, usage.LFSBytes)
+	allowed, err = RequestGC(ctx, 1)
+	require.NoError(t, err)
+	require.False(t, allowed)
+	_, err = db.GetEngine(ctx).ID(1).NoAutoTime().Cols("gc_requested").Update(&Usage{GCRequested: timeutil.TimeStampNow() - 3601})
+	require.NoError(t, err)
+	require.NoError(t, StoreUsage(ctx, &Usage{RepoID: 1, OwnerID: 2, GitBytes: 10}))
+	allowed, err = RequestGC(ctx, 1)
+	require.NoError(t, err)
+	require.True(t, allowed)
 }
