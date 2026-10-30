@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -18,44 +17,27 @@ import (
 func TestReplaceScheduleTasksByRepo(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	// no fixture covers these tables, so leave them as they were found
 	const repoID = 4711
-	t.Cleanup(func() {
-		require.NoError(t, DeleteScheduleTaskByRepo(context.Background(), repoID))
-	})
-
-	registered := func(spec string) []*ActionSchedule {
-		return []*ActionSchedule{{
-			RepoID:     repoID,
-			OwnerID:    5,
-			WorkflowID: "nightly.yml",
-			Specs:      []string{spec},
-		}}
+	register := func(commitSHA, spec string) {
+		require.NoError(t, ReplaceScheduleTasksByRepo(t.Context(), repoID, []*ActionSchedule{
+			{RepoID: repoID, WorkflowID: "nightly.yml", CommitSHA: commitSHA, Specs: []string{spec}},
+		}))
 	}
 
-	require.NoError(t, ReplaceScheduleTasksByRepo(t.Context(), repoID, registered("17 */6 * * *")))
-	scheduleID := unittest.AssertExistsAndLoadBean(t, &ActionSchedule{RepoID: repoID}).ID
-
-	// the occurrence came due while the scheduler had not made its pass yet
-	due := timeutil.TimeStamp(time.Now().Add(-time.Minute).Unix())
+	register("c1", "17 */6 * * *")
 	spec := unittest.AssertExistsAndLoadBean(t, &ActionScheduleSpec{RepoID: repoID})
-	spec.Next = due
+	spec.Next = timeutil.TimeStamp(time.Now().Add(-time.Minute).Unix())
 	require.NoError(t, UpdateScheduleSpec(t.Context(), spec, "next"))
 
-	// an unrelated push re-registers the unchanged workflow, which must not consume that occurrence
-	require.NoError(t, ReplaceScheduleTasksByRepo(t.Context(), repoID, registered("17 */6 * * *")))
-	assert.Equal(t, 1, unittest.GetCount(t, &ActionScheduleSpec{RepoID: repoID}))
-	kept := unittest.AssertExistsAndLoadBean(t, &ActionScheduleSpec{RepoID: repoID})
-	assert.Equal(t, spec.ID, kept.ID, "the scheduler's own row should survive the replacement")
-	assert.Equal(t, due, kept.Next)
+	register("c2", "17 */6 * * *")
+	unittest.AssertExistsAndLoadBean(t, &ActionSchedule{ID: spec.ScheduleID, CommitSHA: "c2"})
+	unittest.AssertExistsAndLoadBean(t, &ActionScheduleSpec{ID: spec.ID, ScheduleID: spec.ScheduleID, Next: spec.Next})
 
-	// and it must follow the new schedule row, so the run picks up the pushed commit and content
-	reregistered := unittest.AssertExistsAndLoadBean(t, &ActionSchedule{RepoID: repoID})
-	assert.NotEqual(t, scheduleID, reregistered.ID)
-	assert.Equal(t, reregistered.ID, kept.ScheduleID)
+	register("c3", "23 */6 * * *")
+	unittest.AssertNotExistsBean(t, &ActionScheduleSpec{ID: spec.ID})
+	assert.Greater(t, unittest.AssertExistsAndLoadBean(t, &ActionScheduleSpec{RepoID: repoID}).Next, spec.Next)
 
-	// a cron that is no longer registered has no row to keep, so it starts from the push
-	require.NoError(t, ReplaceScheduleTasksByRepo(t.Context(), repoID, registered("23 */6 * * *")))
-	assert.Equal(t, 1, unittest.GetCount(t, &ActionScheduleSpec{RepoID: repoID}))
-	assert.Greater(t, unittest.AssertExistsAndLoadBean(t, &ActionScheduleSpec{RepoID: repoID}).Next, due)
+	require.NoError(t, ReplaceScheduleTasksByRepo(t.Context(), repoID, nil))
+	unittest.AssertNotExistsBean(t, &ActionSchedule{RepoID: repoID})
+	unittest.AssertNotExistsBean(t, &ActionScheduleSpec{RepoID: repoID})
 }

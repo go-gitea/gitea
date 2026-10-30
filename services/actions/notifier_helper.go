@@ -677,9 +677,6 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	if err != nil {
 		return fmt.Errorf("detect schedule workflows: %w", err)
 	}
-	if len(scheduleWorkflows) == 0 {
-		return nil
-	}
 
 	// We need a notifyInput to call handleSchedules
 	// if repo is a mirror, commit author maybe an external user,

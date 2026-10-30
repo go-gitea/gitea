@@ -128,3 +128,12 @@ func TestFilteredWorkflowCommitStatusForForkPullRequest(t *testing.T) {
 		TriggerEvent: &jobparser.Event{Name: actions_module.GithubEventPullRequest},
 	}))
 }
+
+func TestDetectAndHandleSchedulesDropsRemovedWorkflows(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, actions_model.ReplaceScheduleTasksByRepo(t.Context(), repo.ID, []*actions_model.ActionSchedule{{RepoID: repo.ID, WorkflowID: "removed.yml"}}))
+
+	require.NoError(t, DetectAndHandleSchedules(t.Context(), repo))
+	unittest.AssertNotExistsBean(t, &actions_model.ActionSchedule{RepoID: repo.ID})
+}
