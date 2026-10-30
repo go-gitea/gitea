@@ -199,7 +199,6 @@ func RunnersEdit(ctx *context.Context) {
 			Page:     page,
 			PageSize: 30,
 		},
-		Status:   actions_model.StatusUnknown, // Unknown means all
 		RunnerID: runner.ID,
 	}
 
