@@ -54,7 +54,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 	oldUserName := u.Name
 
 	if onlyCapitalization {
-		releasePagesState, err := pages_service.LockLifecycleState(ctx)
+		pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
 		if err != nil {
 			return err
 		}
@@ -68,7 +68,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 			if err := repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName); err != nil {
 				return err
 			}
-			return pages_service.TouchOwnerRepositoriesInTransaction(ctx, u.ID)
+			return pages_service.TouchOwnerRepositoriesInTransaction(ctx, u.ID, pagesUpdated)
 		})
 		if err != nil {
 			u.Name = oldUserName
@@ -80,7 +80,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 		return nil
 	}
 
-	releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 	if err = repo_model.UpdateRepositoryOwnerName(ctx, oldUserName, newUserName); err != nil {
 		return err
 	}
-	if err := pages_service.TouchOwnerRepositoriesInTransaction(ctx, u.ID); err != nil {
+	if err := pages_service.TouchOwnerRepositoriesInTransaction(ctx, u.ID, pagesUpdated); err != nil {
 		return err
 	}
 

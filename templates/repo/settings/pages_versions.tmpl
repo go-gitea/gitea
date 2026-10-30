@@ -1,0 +1,49 @@
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings pages versions")}}
+<div class="repo-setting-content" data-global-init="initRepoPagesVersions">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "repo.settings.pages.versions.title"}} ({{ctx.Locale.Tr "admin.total" .Total}})
+		{{if not .Repository.IsArchived}}
+			<div class="ui right">
+				<form method="post" data-pages-upload>
+					<input type="hidden" name="action" value="upload">
+					{{template "repo/upload" dict "UploadOptions" $.UploadOptions}}
+				</form>
+			</div>
+		{{end}}
+	</h4>
+	<table class="ui attached segment single line table">
+		<thead>
+			<tr>
+				<th>{{ctx.Locale.Tr "repo.settings.pages.versions.version"}}</th>
+				<th>{{ctx.Locale.Tr "repo.settings.pages.versions.origin"}}</th>
+				<th>{{ctx.Locale.Tr "repo.settings.pages.versions.created"}}</th>
+				<th class="collapsing">{{ctx.Locale.Tr "admin.notices.op"}}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range $version := .PagesVersions}}
+				<tr>
+					<td>
+						<code>{{$version.ShortDigest}}</code>
+						<button type="button" class="btn interact-fg tw-px-1" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{$version.Digest}}" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
+						{{if $version.Current}}<span class="ui small primary label">{{ctx.Locale.Tr "repo.settings.pages.versions.current"}}</span>{{end}}
+					</td>
+					<td>{{if $version.OriginURL}}<a href="{{$version.OriginURL}}">{{$version.Origin}}</a>{{else}}{{$version.Origin}}{{end}}</td>
+					<td>{{DateUtils.FullTime $version.CreatedUnix}}</td>
+					<td class="collapsing">
+						{{if and (not $version.Current) (not $.Repository.IsArchived)}}
+							<div class="tw-flex tw-gap-2">
+								<button type="button" class="btn muted link-action" aria-label="{{ctx.Locale.Tr "repo.settings.pages.versions.restore"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.pages.versions.restore"}}" data-url="{{$.RepoLink}}/settings/pages/versions?action=restore-version&amp;version_id={{$version.ID}}" data-fetch-sync="$body" data-modal-confirm-header="{{ctx.Locale.Tr "repo.settings.pages.versions.restore_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "repo.settings.pages.versions.restore_confirm_desc" $version.ShortDigest}}">{{svg "octicon-reply"}}</button>
+								<button type="button" class="btn tw-text-red link-action negative" aria-label="{{ctx.Locale.Tr "repo.settings.pages.versions.delete"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.pages.versions.delete"}}" data-url="{{$.RepoLink}}/settings/pages/versions?action=delete-version&amp;version_id={{$version.ID}}" data-fetch-sync="$body" data-modal-confirm-header="{{ctx.Locale.Tr "repo.settings.pages.versions.delete_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "repo.settings.pages.versions.delete_confirm_desc" $version.ShortDigest}}">{{svg "octicon-trash"}}</button>
+							</div>
+						{{end}}
+					</td>
+				</tr>
+			{{else}}
+				<tr><td colspan="4">{{ctx.Locale.Tr "repo.settings.pages.versions.empty"}}</td></tr>
+			{{end}}
+		</tbody>
+	</table>
+	{{template "base/paginate" .}}
+</div>
+{{template "repo/settings/layout_footer" .}}

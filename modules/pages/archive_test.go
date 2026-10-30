@@ -8,117 +8,217 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+type testArchiveEntry struct {
+	header *tar.Header
+	body   []byte
+}
 
 func testLimits() Limits {
 	return Limits{MaxCompressedBytes: 1024 * 1024, MaxTarBytes: 1024 * 1024, MaxSiteBytes: 64 * 1024, MaxFileBytes: 32 * 1024, MaxEntries: 32, MaxPathBytes: 128, MaxPathDepth: 8, MaxSymlinkDepth: 4}
 }
 
-func testArchive(t *testing.T, entries ...*tar.Header) []byte {
+func testArchive(t *testing.T, entries ...testArchiveEntry) []byte {
 	t.Helper()
 	var data bytes.Buffer
 	gz := gzip.NewWriter(&data)
 	tw := tar.NewWriter(gz)
-	for _, hdr := range entries {
-		if err := tw.WriteHeader(hdr); err != nil {
-			t.Fatal(err)
-		}
-		if hdr.Typeflag == tar.TypeReg {
-			if _, err := io.WriteString(tw, "page"); err != nil {
-				t.Fatal(err)
-			}
+	for _, entry := range entries {
+		require.NoError(t, tw.WriteHeader(entry.header))
+		if entry.header.Typeflag == tar.TypeReg {
+			require.Len(t, entry.body, int(entry.header.Size))
+			_, err := tw.Write(entry.body)
+			require.NoError(t, err)
 		}
 	}
-	if err := tw.Close(); err != nil {
-		t.Fatal(err)
-	}
-	if err := gz.Close(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, tw.Close())
+	require.NoError(t, gz.Close())
 	return data.Bytes()
+}
+
+func testFile(name, body string) testArchiveEntry {
+	return testArchiveEntry{header: &tar.Header{Name: name, Typeflag: tar.TypeReg, Size: int64(len(body))}, body: []byte(body)}
+}
+
+func testHeader(header *tar.Header) testArchiveEntry {
+	return testArchiveEntry{header: header}
 }
 
 func TestValidateAcceptsMissingInRootSymlink(t *testing.T) {
 	data := testArchive(t,
-		&tar.Header{Name: "index.html", Typeflag: tar.TypeReg, Size: 4},
-		&tar.Header{Name: "latest", Typeflag: tar.TypeSymlink, Linkname: "releases/current"},
+		testFile("index.html", "page"),
+		testHeader(&tar.Header{Name: "latest", Typeflag: tar.TypeSymlink, Linkname: "releases/current"}),
 	)
 	manifest, err := ValidateArchive(t.Context(), bytes.NewReader(data), testLimits())
-	if err != nil {
-		t.Fatalf("ValidateArchive() error = %v", err)
-	}
-	if manifest.SiteBytes != 4 || manifest.Entries != 2 || manifest.SHA256Hex == "" {
-		t.Fatalf("unexpected manifest: %+v", manifest)
-	}
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, manifest.SiteBytes)
+	assert.Equal(t, 2, manifest.Entries)
+	assert.NotEmpty(t, manifest.SHA256Hex)
 }
 
 func TestValidateRejectsUnsafePathsAndTypes(t *testing.T) {
 	tests := []struct {
-		name string
-		hdr  *tar.Header
-		want error
+		name  string
+		entry testArchiveEntry
+		want  error
 	}{
-		{"traversal", &tar.Header{Name: "../index.html", Typeflag: tar.TypeReg, Size: 4}, ErrArchivePath},
-		{"absolute", &tar.Header{Name: "/index.html", Typeflag: tar.TypeReg, Size: 4}, ErrArchivePath},
-		{"absolute root", &tar.Header{Name: "/", Typeflag: tar.TypeDir}, ErrArchivePath},
-		{"escaping symlink", &tar.Header{Name: "asset", Typeflag: tar.TypeSymlink, Linkname: "../../secret"}, ErrArchiveSymlink},
-		{"device", &tar.Header{Name: "device", Typeflag: tar.TypeBlock}, ErrArchiveEntry},
+		{"traversal", testFile("../index.html", "page"), ErrArchivePath},
+		{"absolute", testFile("/index.html", "page"), ErrArchivePath},
+		{"absolute root", testHeader(&tar.Header{Name: "/", Typeflag: tar.TypeDir}), ErrArchivePath},
+		{"escaping symlink", testHeader(&tar.Header{Name: "asset", Typeflag: tar.TypeSymlink, Linkname: "../../secret"}), ErrArchiveSymlink},
+		{"device", testHeader(&tar.Header{Name: "device", Typeflag: tar.TypeBlock}), ErrArchiveEntry},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := ValidateArchive(t.Context(), bytes.NewReader(testArchive(t, tt.hdr, &tar.Header{Name: "index.html", Typeflag: tar.TypeReg, Size: 4})), testLimits())
-			if !errors.Is(err, tt.want) {
-				t.Fatalf("ValidateArchive() error = %v, want %v", err, tt.want)
-			}
+			_, err := ValidateArchive(t.Context(), bytes.NewReader(testArchive(t, tt.entry, testFile("index.html", "page"))), testLimits())
+			require.ErrorIs(t, err, tt.want)
 		})
 	}
 }
 
+func TestValidateRejectsFilesystemPathCollisions(t *testing.T) {
+	for _, names := range [][2]string{
+		{"asset.js", "asset.js"},
+		{"README", "readme"},
+		{"\u00e9.html", "e\u0301.html"},
+	} {
+		t.Run(names[0]+"_"+names[1], func(t *testing.T) {
+			_, err := ValidateArchive(t.Context(), bytes.NewReader(testArchive(t,
+				testFile(names[0], "first"),
+				testFile(names[1], "second"),
+			)), testLimits())
+			require.ErrorIs(t, err, ErrArchivePath)
+		})
+	}
+}
+
+func TestValidateRejectsSymlinkParentLoopAndDepth(t *testing.T) {
+	t.Run("symlink parent", func(t *testing.T) {
+		_, err := ValidateArchive(t.Context(), bytes.NewReader(testArchive(t,
+			testHeader(&tar.Header{Name: "assets", Typeflag: tar.TypeSymlink, Linkname: "static"}),
+			testFile("assets/app.js", "page"),
+		)), testLimits())
+		require.ErrorIs(t, err, ErrArchiveEntry)
+	})
+
+	t.Run("loop", func(t *testing.T) {
+		_, err := ValidateArchive(t.Context(), bytes.NewReader(testArchive(t,
+			testFile("index.html", "page"),
+			testHeader(&tar.Header{Name: "a", Typeflag: tar.TypeSymlink, Linkname: "b"}),
+			testHeader(&tar.Header{Name: "b", Typeflag: tar.TypeSymlink, Linkname: "a"}),
+		)), testLimits())
+		require.ErrorIs(t, err, ErrArchiveSymlink)
+	})
+
+	t.Run("depth", func(t *testing.T) {
+		limits := testLimits()
+		limits.MaxSymlinkDepth = 1
+		_, err := ValidateArchive(t.Context(), bytes.NewReader(testArchive(t,
+			testFile("index.html", "page"),
+			testHeader(&tar.Header{Name: "a", Typeflag: tar.TypeSymlink, Linkname: "b"}),
+			testHeader(&tar.Header{Name: "b", Typeflag: tar.TypeSymlink, Linkname: "c"}),
+			testHeader(&tar.Header{Name: "c", Typeflag: tar.TypeSymlink, Linkname: "missing"}),
+		)), limits)
+		require.ErrorIs(t, err, ErrArchiveSymlink)
+	})
+}
+
+func TestValidateRejectsArchiveTrailingData(t *testing.T) {
+	valid := testArchive(t, testFile("index.html", "page"))
+
+	t.Run("concatenated gzip member", func(t *testing.T) {
+		_, err := ValidateArchive(t.Context(), bytes.NewReader(append(append([]byte{}, valid...), valid...)), testLimits())
+		require.ErrorIs(t, err, ErrInvalidArchive)
+	})
+
+	t.Run("data after gzip", func(t *testing.T) {
+		_, err := ValidateArchive(t.Context(), bytes.NewReader(append(append([]byte{}, valid...), 1)), testLimits())
+		require.ErrorIs(t, err, ErrInvalidArchive)
+	})
+
+	t.Run("non-zero data after TAR", func(t *testing.T) {
+		var tarData bytes.Buffer
+		tw := tar.NewWriter(&tarData)
+		entry := testFile("index.html", "page")
+		require.NoError(t, tw.WriteHeader(entry.header))
+		_, err := tw.Write(entry.body)
+		require.NoError(t, err)
+		require.NoError(t, tw.Close())
+		tarData.WriteByte(1)
+
+		var compressed bytes.Buffer
+		gz := gzip.NewWriter(&compressed)
+		_, err = gz.Write(tarData.Bytes())
+		require.NoError(t, err)
+		require.NoError(t, gz.Close())
+
+		_, err = ValidateArchive(t.Context(), bytes.NewReader(compressed.Bytes()), testLimits())
+		require.ErrorIs(t, err, ErrInvalidArchive)
+	})
+}
+
+func TestValidateArchiveLimitsIncludeBoundary(t *testing.T) {
+	t.Run("file size", func(t *testing.T) {
+		limits := testLimits()
+		limits.MaxFileBytes = 4
+		limits.MaxSiteBytes = 4
+		_, err := ValidateArchive(t.Context(), bytes.NewReader(testArchive(t, testFile("index.html", "page"))), limits)
+		require.NoError(t, err)
+
+		_, err = ValidateArchive(t.Context(), bytes.NewReader(testArchive(t, testFile("index.html", "pages"))), limits)
+		require.ErrorIs(t, err, ErrArchiveTooLarge)
+	})
+
+	t.Run("entry count", func(t *testing.T) {
+		limits := testLimits()
+		limits.MaxEntries = 2
+		_, err := ValidateArchive(t.Context(), bytes.NewReader(testArchive(t,
+			testHeader(&tar.Header{Name: "assets", Typeflag: tar.TypeDir}),
+			testFile("index.html", "page"),
+		)), limits)
+		require.NoError(t, err)
+
+		_, err = ValidateArchive(t.Context(), bytes.NewReader(testArchive(t,
+			testHeader(&tar.Header{Name: "assets", Typeflag: tar.TypeDir}),
+			testFile("index.html", "page"),
+			testFile("404.html", "page"),
+		)), limits)
+		require.ErrorIs(t, err, ErrArchiveTooLarge)
+	})
+}
+
 func TestPackDirectoryProducesSafeDeterministicArchive(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("page"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink("missing/page", filepath.Join(root, "latest")); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(filepath.Join(root, "index.html"), []byte("page"), 0o755))
+	require.NoError(t, os.Symlink("missing/page", filepath.Join(root, "latest")))
 	var first, second bytes.Buffer
-	if err := PackDirectory(context.Background(), root, &first, testLimits()); err != nil {
-		t.Fatal(err)
-	}
-	if err := PackDirectory(context.Background(), root, &second, testLimits()); err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(first.Bytes(), second.Bytes()) {
-		t.Fatal("PackDirectory output is not deterministic")
-	}
+	require.NoError(t, PackDirectory(context.Background(), root, &first, testLimits()))
+	require.NoError(t, PackDirectory(context.Background(), root, &second, testLimits()))
+	assert.Equal(t, first.Bytes(), second.Bytes())
+
 	manifest, err := ValidateArchive(t.Context(), bytes.NewReader(first.Bytes()), testLimits())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if manifest.SiteBytes != 4 {
-		t.Fatalf("SiteBytes = %d, want 4", manifest.SiteBytes)
-	}
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, manifest.SiteBytes)
+
 	gz, err := gzip.NewReader(bytes.NewReader(first.Bytes()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	tr := tar.NewReader(gz)
 	for {
 		hdr, err := tr.Next()
-		if errors.Is(err, io.EOF) {
+		if err == io.EOF {
 			break
 		}
-		if err != nil {
-			t.Fatal(err)
-		}
-		if hdr.Typeflag == tar.TypeReg && hdr.Name == "index.html" && hdr.Mode&0o111 != 0 {
-			t.Fatalf("regular file retained execute bits: %#o", hdr.Mode)
+		require.NoError(t, err)
+		if hdr.Typeflag == tar.TypeReg && hdr.Name == "index.html" {
+			assert.Zero(t, hdr.Mode&0o111, "regular file retained execute bits")
 		}
 	}
 }

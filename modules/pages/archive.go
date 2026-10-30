@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -28,20 +29,13 @@ import (
 )
 
 const (
-	// DefaultMaxCompressedSize is the maximum stored gzip size.
 	DefaultMaxCompressedSize int64 = 100 * 1024 * 1024
-	// DefaultMaxSiteSize is the maximum total size of regular files.
-	DefaultMaxSiteSize int64 = 512 * 1024 * 1024
-	// DefaultMaxFileSize is the maximum size of one regular file.
-	DefaultMaxFileSize int64 = 100 * 1024 * 1024
-	// DefaultMaxEntries is the maximum number of archive entries.
-	DefaultMaxEntries = 10_000
-	// DefaultMaxPathBytes is the maximum path or link target length.
-	DefaultMaxPathBytes = 1024
-	// DefaultMaxPathDepth is the maximum path depth.
-	DefaultMaxPathDepth = 32
-	// DefaultMaxSymlinkDepth is the maximum link chain depth.
-	DefaultMaxSymlinkDepth = 32
+	DefaultMaxSiteSize       int64 = 512 * 1024 * 1024
+	DefaultMaxFileSize       int64 = 100 * 1024 * 1024
+	DefaultMaxEntries              = 10_000
+	DefaultMaxPathBytes            = 1024
+	DefaultMaxPathDepth            = 32
+	DefaultMaxSymlinkDepth         = 32
 )
 
 var (
@@ -59,7 +53,7 @@ var (
 	ErrArchiveSource = errors.New("invalid pages source directory")
 )
 
-// Limits contains the resource bounds shared by Gitea and Pages.
+// Limits contains the resource and path safety bounds for Pages content.
 type Limits struct {
 	MaxCompressedBytes int64
 	MaxTarBytes        int64
@@ -71,15 +65,35 @@ type Limits struct {
 	MaxSymlinkDepth    int
 }
 
-// DefaultLimits returns the Pages archive limits from the design.
+// DefaultLimits returns the default Pages archive limits.
 func DefaultLimits() Limits {
-	l := Limits{MaxCompressedBytes: DefaultMaxCompressedSize, MaxSiteBytes: DefaultMaxSiteSize, MaxFileBytes: DefaultMaxFileSize, MaxEntries: DefaultMaxEntries, MaxPathBytes: DefaultMaxPathBytes, MaxPathDepth: DefaultMaxPathDepth, MaxSymlinkDepth: DefaultMaxSymlinkDepth}
-	l.MaxTarBytes = l.MaxSiteBytes + int64(l.MaxEntries)*4096 + 1024*1024
-	return l
+	limits, _ := NewLimits(DefaultMaxCompressedSize, DefaultMaxSiteSize, DefaultMaxFileSize, DefaultMaxEntries)
+	return limits
+}
+
+// NewLimits combines configurable content limits with fixed archive safety rules.
+func NewLimits(maxCompressedBytes, maxSiteBytes, maxFileBytes int64, maxEntries int) (Limits, error) {
+	const archiveOverhead = int64(1024 * 1024)
+	if maxCompressedBytes <= 0 || maxCompressedBytes > math.MaxInt64-archiveOverhead ||
+		maxSiteBytes <= 0 || maxFileBytes <= 0 || maxFileBytes > maxSiteBytes || maxEntries <= 0 ||
+		maxSiteBytes > math.MaxInt64-archiveOverhead || int64(maxEntries) > (math.MaxInt64-maxSiteBytes-archiveOverhead)/4096 {
+		return Limits{}, errors.New("invalid Pages archive limits")
+	}
+	return Limits{
+		MaxCompressedBytes: maxCompressedBytes,
+		MaxTarBytes:        maxSiteBytes + int64(maxEntries)*4096 + archiveOverhead,
+		MaxSiteBytes:       maxSiteBytes,
+		MaxFileBytes:       maxFileBytes,
+		MaxEntries:         maxEntries,
+		MaxPathBytes:       DefaultMaxPathBytes,
+		MaxPathDepth:       DefaultMaxPathDepth,
+		MaxSymlinkDepth:    DefaultMaxSymlinkDepth,
+	}, nil
 }
 
 func (l Limits) valid() bool {
-	return l.MaxCompressedBytes > 0 && l.MaxTarBytes > 0 && l.MaxSiteBytes > 0 && l.MaxFileBytes > 0 && l.MaxEntries > 0 && l.MaxPathBytes > 0 && l.MaxPathDepth > 0 && l.MaxSymlinkDepth > 0
+	return l.MaxCompressedBytes > 0 && l.MaxTarBytes > 0 && l.MaxSiteBytes > 0 && l.MaxFileBytes > 0 &&
+		l.MaxEntries > 0 && l.MaxPathBytes > 0 && l.MaxPathDepth > 0 && l.MaxSymlinkDepth > 0
 }
 
 type Manifest struct {

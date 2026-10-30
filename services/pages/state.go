@@ -11,19 +11,17 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"gitea.dev/models/db"
 	pages_model "gitea.dev/models/pages"
-	"gitea.dev/models/system"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	"golang.org/x/net/idna"
 	"xorm.io/builder"
 )
 
@@ -40,6 +38,8 @@ var stateClock struct {
 	initialized bool
 }
 
+const instanceCommunicationWriteInterval = time.Minute
+
 func withDomainLock(ctx context.Context, change func(context.Context) error) error {
 	return globallock.LockAndDo(ctx, "pages_domain_state", change)
 }
@@ -54,12 +54,7 @@ func nextStateTime(ctx context.Context) (int64, error) {
 		if _, err := db.GetEngine(ctx).Desc("root_updated_unix_nano").Get(instance); err != nil {
 			return 0, fmt.Errorf("nextStateTime: read instances: %w", err)
 		}
-		_, settings, err := system.GetAllSettings(ctx)
-		if err != nil {
-			return 0, fmt.Errorf("nextStateTime: read settings: %w", err)
-		}
-		policyTime, _ := strconv.ParseInt(settings["pages.txt_verification.updated_unix_nano"], 10, 64)
-		stateClock.last = max(site.PagesUpdatedUnixNano, instance.RootUpdatedUnixNano, policyTime)
+		stateClock.last = max(site.PagesUpdatedUnixNano, instance.RootUpdatedUnixNano)
 		stateClock.initialized = true
 	}
 	now := int64(timeutil.TimeStampNanoNow())
@@ -90,16 +85,20 @@ func latestSiteUpdateTime(ctx context.Context) (int64, error) {
 }
 
 func generateTokenAndHash() (string, string) {
-	raw := base64.RawURLEncoding.EncodeToString(util.CryptoRandomBytes(32))
+	raw := generateToken()
 	digest := sha256.Sum256([]byte(raw))
 	return raw, hex.EncodeToString(digest[:])
+}
+
+func generateToken() string {
+	return base64.RawURLEncoding.EncodeToString(util.CryptoRandomBytes(32))
 }
 
 // CreateInstance returns the one-time communication credential to the administrator.
 func CreateInstance(ctx context.Context) (*pages_model.Instance, string, error) {
 	raw, digest := generateTokenAndHash()
 	instance := &pages_model.Instance{TokenHash: digest}
-	if err := pages_model.UpsertInstance(ctx, instance); err != nil {
+	if err := pages_model.InsertInstance(ctx, instance); err != nil {
 		return nil, "", fmt.Errorf("CreateInstance: %w", err)
 	}
 	return instance, raw, nil
@@ -119,7 +118,8 @@ func ResetInstanceCredential(ctx context.Context, instanceID int64) (string, err
 			}
 			instance.TokenHash = digest
 			instance.RootUpdatedUnixNano = updated
-			if err := pages_model.UpsertInstance(ctx, instance); err != nil {
+			instance.LastCommunicationUnix = 0
+			if err := pages_model.UpdateInstance(ctx, instance); err != nil {
 				return err
 			}
 			_, err = db.GetEngine(ctx).Where("instance_id = ?", instanceID).Delete(new(pages_model.InstanceResult))
@@ -179,49 +179,25 @@ func AuthenticateInstance(ctx context.Context, authorization string) (*pages_mod
 	return instance, nil
 }
 
-func normalizeDNSHost(raw string) (string, error) {
-	if raw == "" || strings.HasSuffix(raw, ".") {
-		return "", ErrInvalidAddress
+// RecordInstanceCommunication records an authenticated request at most once per minute.
+func RecordInstanceCommunication(ctx context.Context, instance *pages_model.Instance) error {
+	now := timeutil.TimeStampNow()
+	cutoff := now.AddDuration(-instanceCommunicationWriteInterval)
+	if instance.LastCommunicationUnix > cutoff {
+		return nil
 	}
-	host, err := idna.Lookup.ToASCII(strings.ToLower(raw))
-	if err != nil || len(host) > 253 || len(host) < 3 {
-		return "", ErrInvalidAddress
+	updated, err := db.GetEngine(ctx).
+		ID(instance.ID).
+		Where("token_hash = ? AND last_communication_unix <= ?", instance.TokenHash, cutoff).
+		Cols("last_communication_unix").
+		Update(&pages_model.Instance{LastCommunicationUnix: now})
+	if err != nil {
+		return fmt.Errorf("RecordInstanceCommunication: %w", err)
 	}
-	labels := strings.Split(host, ".")
-	if len(labels) < 2 {
-		return "", ErrInvalidAddress
+	if updated > 0 {
+		instance.LastCommunicationUnix = now
 	}
-	for _, label := range labels {
-		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
-			return "", ErrInvalidAddress
-		}
-		for _, c := range label {
-			if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-') {
-				return "", ErrInvalidAddress
-			}
-		}
-	}
-	return host, nil
-}
-
-func normalizeRootURL(raw string) (string, string, error) {
-	u, err := url.Parse(raw)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil ||
-		u.Port() != "" || u.Path != "" && u.Path != "/" || u.RawQuery != "" || u.Fragment != "" {
-		return "", "", ErrInvalidAddress
-	}
-	host, err := normalizeDNSHost(u.Hostname())
-	if err != nil || u.Host != u.Hostname() {
-		return "", "", ErrInvalidAddress
-	}
-	if len("_acme-challenge."+host) > 253 || len("*."+host) > 253 {
-		return "", "", ErrInvalidAddress
-	}
-	return u.Scheme + "://" + host, host, nil
-}
-
-func dnsNamespacesOverlap(a, b string) bool {
-	return a == b || strings.HasSuffix(a, "."+b) || strings.HasSuffix(b, "."+a)
+	return nil
 }
 
 // RegisterInstanceRootURL accepts the address advertised by the Pages process.
@@ -274,7 +250,7 @@ func RegisterInstanceRootURL(ctx context.Context, instanceID int64, tokenHash, r
 			}
 			instance.RootURL = normalized
 			instance.RootUpdatedUnixNano = updated
-			if err := pages_model.UpsertInstance(ctx, instance); err != nil {
+			if err := pages_model.UpdateInstance(ctx, instance); err != nil {
 				return err
 			}
 			registered = instance
@@ -285,32 +261,4 @@ func RegisterInstanceRootURL(ctx context.Context, instanceID int64, tokenHash, r
 		return nil, fmt.Errorf("RegisterInstanceRootURL: %w", err)
 	}
 	return registered, nil
-}
-
-// GetTXTVerificationPolicy returns the current global business-domain verification setting.
-func GetTXTVerificationPolicy(ctx context.Context) (bool, int64, error) {
-	_, settings, err := system.GetAllSettings(ctx)
-	if err != nil {
-		return false, 0, fmt.Errorf("GetTXTVerificationPolicy: %w", err)
-	}
-	enabled := settings["pages.txt_verification.enabled"] != "false"
-	updated, err := strconv.ParseInt(settings["pages.txt_verification.updated_unix_nano"], 10, 64)
-	if err != nil && settings["pages.txt_verification.updated_unix_nano"] != "" {
-		return false, 0, fmt.Errorf("GetTXTVerificationPolicy: invalid saved policy time: %w", err)
-	}
-	return enabled, updated, nil
-}
-
-// SetTXTVerificationPolicy updates the policy once; site rows are unchanged.
-func SetTXTVerificationPolicy(ctx context.Context, enabled bool) error {
-	return withStateChange(ctx, func(ctx context.Context, updated int64) error {
-		current, _, err := GetTXTVerificationPolicy(ctx)
-		if err != nil || current == enabled {
-			return err
-		}
-		return system.SetSettings(ctx, map[string]string{
-			"pages.txt_verification.enabled":           strconv.FormatBool(enabled),
-			"pages.txt_verification.updated_unix_nano": strconv.FormatInt(updated, 10),
-		})
-	})
 }

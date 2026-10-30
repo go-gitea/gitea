@@ -51,7 +51,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	repo.IsPrivate = true
 
 	// Update it
-	err = UpdateRepository(t.Context(), repo, true)
+	err = UpdateRepository(t.Context(), repo, UpdateRepositoryOptions{VisibilityChanged: true})
 	assert.NoError(t, err)
 
 	// Check visibility of action has become private
@@ -64,8 +64,8 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 
 func TestSetArchiveRepoStateDisablesPages(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	require.NoError(t, pages_model.UpsertSite(t.Context(), &pages_model.Site{
-		RepoID: 1, Enabled: true, SourceType: "upload", PagesUpdatedUnixNano: 1,
+	require.NoError(t, pages_model.InsertSite(t.Context(), &pages_model.Site{
+		RepoID: 1, Enabled: true, SourceType: pages_model.PublishSourceArtifact, PagesUpdatedUnixNano: 1,
 	}))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
@@ -108,7 +108,7 @@ func TestMakeRepoPrivateClearsWatches(t *testing.T) {
 				assert.NoError(t, MakeRepoPrivate(t.Context(), repo, true))
 			} else {
 				repo.IsPrivate = true
-				require.NoError(t, UpdateRepository(t.Context(), repo, true))
+				require.NoError(t, UpdateRepository(t.Context(), repo, UpdateRepositoryOptions{VisibilityChanged: true}))
 			}
 
 			watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})

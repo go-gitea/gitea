@@ -11,26 +11,26 @@ import (
 	"gitea.dev/models/db"
 	pages_model "gitea.dev/models/pages"
 	pages_content "gitea.dev/modules/pages"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
 var ErrInvalidResult = util.NewInvalidArgumentErrorf("invalid Pages instance result")
 
 type ResultRequest struct {
-	RepoID                          int64                         `json:"repo_id"`
-	AppliedPagesUpdatedUnixNano     int64                         `json:"applied_pages_updated_unix_nano"`
-	AppliedRootUpdatedUnixNano      int64                         `json:"applied_root_updated_unix_nano"`
-	AppliedTXTPolicyUpdatedUnixNano int64                         `json:"applied_txt_policy_updated_unix_nano"`
-	ConfigApplied                   bool                          `json:"config_applied"`
-	ActualTarGzSHA256               string                        `json:"actual_tar_gz_sha256"`
-	DefaultPublished                bool                          `json:"default_published"`
-	CustomPublished                 bool                          `json:"custom_published"`
-	ErrorCode                       pages_model.InstanceErrorCode `json:"error_code"`
+	RepoID                       int64                         `json:"repo_id"`
+	AppliedPagesUpdatedUnixNano  int64                         `json:"applied_pages_updated_unix_nano"`
+	AppliedRootUpdatedUnixNano   int64                         `json:"applied_root_updated_unix_nano"`
+	AppliedRequireGiteaTXTRecord bool                          `json:"applied_require_gitea_txt_record"`
+	ConfigApplied                bool                          `json:"config_applied"`
+	ActualTarGzSHA256            string                        `json:"actual_tar_gz_sha256"`
+	DefaultPublished             bool                          `json:"default_published"`
+	CustomPublished              bool                          `json:"custom_published"`
+	ErrorCode                    pages_model.InstanceErrorCode `json:"error_code"`
 }
 
-func validResult(result ResultRequest) bool {
-	if result.RepoID <= 0 || result.AppliedPagesUpdatedUnixNano <= 0 || result.AppliedRootUpdatedUnixNano <= 0 ||
-		result.AppliedTXTPolicyUpdatedUnixNano < 0 || len(result.ErrorCode) > 64 {
+func isValidInstanceResult(result ResultRequest) bool {
+	if result.RepoID <= 0 || result.AppliedPagesUpdatedUnixNano <= 0 || result.AppliedRootUpdatedUnixNano <= 0 || len(result.ErrorCode) > 64 {
 		return false
 	}
 	if !result.ConfigApplied && (result.DefaultPublished || result.CustomPublished) {
@@ -53,7 +53,7 @@ func validResult(result ResultRequest) bool {
 
 // AcceptInstanceResult stores only an instance result that still matches current Gitea facts.
 func AcceptInstanceResult(ctx context.Context, instanceID int64, tokenHash string, result ResultRequest) error {
-	if !validResult(result) {
+	if !isValidInstanceResult(result) {
 		return ErrInvalidResult
 	}
 	var release bool
@@ -80,9 +80,13 @@ func AcceptInstanceResult(ctx context.Context, instanceID int64, tokenHash strin
 		if !has || site.PagesUpdatedUnixNano != result.AppliedPagesUpdatedUnixNano {
 			return ErrStateChanged
 		}
+		currentVersion, hasCurrentVersion, err := pages_model.GetCurrentVersion(ctx, site)
+		if err != nil {
+			return err
+		}
 		if (result.DefaultPublished || result.CustomPublished) &&
-			(site.Deleted || !site.Enabled || site.TarGzSHA256 == "" || result.ActualTarGzSHA256 != site.TarGzSHA256) {
-			return fmt.Errorf("%w: published content does not match current content", ErrInvalidResult)
+			(site.Deleted || !site.Enabled || !hasCurrentVersion || result.ActualTarGzSHA256 != currentVersion.TarGzSHA256) {
+			return fmt.Errorf("AcceptInstanceResult: %w: published content does not match current content", ErrInvalidResult)
 		}
 		domains, err := pages_model.ListDomainsByRepoID(ctx, result.RepoID)
 		if err != nil {
@@ -94,34 +98,34 @@ func AcceptInstanceResult(ctx context.Context, instanceID int64, tokenHash strin
 			releasing = releasing || domain.State == pages_model.DomainStateReleasing
 		}
 		if site.Deleted {
-			if result.AppliedTXTPolicyUpdatedUnixNano != 0 {
-				return ErrStateChanged
-			}
 			if !releasing {
 				return nil
 			}
-		} else if active {
-			_, policyTime, err := GetTXTVerificationPolicy(ctx)
-			if err != nil {
-				return err
-			}
-			if policyTime != result.AppliedTXTPolicyUpdatedUnixNano {
-				return ErrStateChanged
-			}
-		} else if result.AppliedTXTPolicyUpdatedUnixNano != 0 {
+		}
+		if (active || releasing) && result.AppliedRequireGiteaTXTRecord != setting.Pages.RequireGiteaTXTRecord {
 			return ErrStateChanged
 		}
-		if err := pages_model.UpsertInstanceResult(ctx, &pages_model.InstanceResult{
+		_, hasResult, err := pages_model.GetInstanceResult(ctx, instanceID, result.RepoID)
+		if err != nil {
+			return err
+		}
+		currentResult := &pages_model.InstanceResult{
 			InstanceID: instanceID, RepoID: result.RepoID,
-			AppliedPagesUpdatedUnixNano:     result.AppliedPagesUpdatedUnixNano,
-			AppliedRootUpdatedUnixNano:      result.AppliedRootUpdatedUnixNano,
-			AppliedTXTPolicyUpdatedUnixNano: result.AppliedTXTPolicyUpdatedUnixNano,
-			ConfigApplied:                   result.ConfigApplied,
-			ActualTarGzSHA256:               result.ActualTarGzSHA256,
-			DefaultPublished:                result.DefaultPublished,
-			CustomPublished:                 result.CustomPublished,
-			ErrorCode:                       result.ErrorCode,
-		}); err != nil {
+			AppliedPagesUpdatedUnixNano:  result.AppliedPagesUpdatedUnixNano,
+			AppliedRootUpdatedUnixNano:   result.AppliedRootUpdatedUnixNano,
+			AppliedRequireGiteaTXTRecord: result.AppliedRequireGiteaTXTRecord,
+			ConfigApplied:                result.ConfigApplied,
+			ActualTarGzSHA256:            result.ActualTarGzSHA256,
+			DefaultPublished:             result.DefaultPublished,
+			CustomPublished:              result.CustomPublished,
+			ErrorCode:                    result.ErrorCode,
+		}
+		if hasResult {
+			err = pages_model.UpdateInstanceResult(ctx, currentResult)
+		} else {
+			err = pages_model.InsertInstanceResult(ctx, currentResult)
+		}
+		if err != nil {
 			return err
 		}
 		release = releasing
@@ -172,16 +176,22 @@ func ReleaseConfirmedDomains(ctx context.Context, repoID int64) error {
 			if err != nil {
 				return err
 			}
+			results, err := pages_model.ListInstanceResultsByRepoID(ctx, repoID)
+			if err != nil {
+				return err
+			}
+			resultByInstance := make(map[int64]*pages_model.InstanceResult, len(results))
+			for _, result := range results {
+				resultByInstance[result.InstanceID] = result
+			}
 			for _, instance := range instances {
 				if instance.RootURL == "" {
 					continue
 				}
-				report, has, err := pages_model.GetInstanceResult(ctx, instance.ID, repoID)
-				if err != nil {
-					return err
-				}
-				if !has || !report.ConfigApplied || report.AppliedPagesUpdatedUnixNano != site.PagesUpdatedUnixNano ||
-					report.AppliedRootUpdatedUnixNano != instance.RootUpdatedUnixNano {
+				report := resultByInstance[instance.ID]
+				if report == nil || !report.ConfigApplied || report.AppliedPagesUpdatedUnixNano != site.PagesUpdatedUnixNano ||
+					report.AppliedRootUpdatedUnixNano != instance.RootUpdatedUnixNano ||
+					report.AppliedRequireGiteaTXTRecord != setting.Pages.RequireGiteaTXTRecord {
 					return nil
 				}
 			}
@@ -194,7 +204,7 @@ func ReleaseConfirmedDomains(ctx context.Context, repoID int64) error {
 				updated, err := nextStateTime(ctx)
 				if err == nil {
 					site.PagesUpdatedUnixNano = updated
-					err = pages_model.UpsertSite(ctx, site)
+					err = pages_model.UpdateSite(ctx, site)
 				}
 				if err != nil {
 					return err

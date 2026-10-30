@@ -5,6 +5,8 @@ package setting
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -12,8 +14,13 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
 	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/organization"
 	pages_model "gitea.dev/models/pages"
@@ -23,26 +30,25 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
 	pages_content "gitea.dev/modules/pages"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
 	mirror_service "gitea.dev/services/mirror"
+	pages_service "gitea.dev/services/pages"
 	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestPagesUploadInitializesUploadSource(t *testing.T) {
+func TestPagesUploadArchiveStagesAndCommits(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/pages")
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadRepo(t, ctx, 1)
-
 	root := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(root, "index.html"), []byte("Pages upload"), 0o600))
 	var archive bytes.Buffer
@@ -50,25 +56,253 @@ func TestPagesUploadInitializesUploadSource(t *testing.T) {
 
 	var body bytes.Buffer
 	form := multipart.NewWriter(&body)
-	require.NoError(t, form.WriteField("action", "upload"))
-	file, err := form.CreateFormFile("archive", "site.tar.gz")
+	file, err := form.CreateFormFile("file", "site.tar.gz")
 	require.NoError(t, err)
 	_, err = io.Copy(file, &archive)
 	require.NoError(t, err)
 	require.NoError(t, form.Close())
 
-	request := httptest.NewRequest(http.MethodPost, "/user2/repo1/settings/pages", &body).WithContext(ctx.Req.Context())
+	stageCtx, stageResp := contexttest.MockContext(t, "POST /user2/repo1/settings/pages/versions/upload")
+	request := httptest.NewRequest(http.MethodPost, "/user2/repo1/settings/pages/versions/upload", &body).WithContext(stageCtx.Req.Context())
 	request.Header.Set("Content-Type", form.FormDataContentType())
-	ctx.Req = request
-	PagesPost(ctx)
+	stageCtx.Req = request
+	PagesUploadArchive(stageCtx)
+	require.Equal(t, http.StatusOK, stageResp.Code)
+	var staged struct {
+		UUID string `json:"uuid"`
+	}
+	require.NoError(t, json.Unmarshal(stageResp.Body.Bytes(), &staged))
+	require.NotEmpty(t, staged.UUID)
+
+	ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/pages/versions")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.MockRequestPostForm(ctx.Req, url.Values{"action": {"upload"}, "files": {staged.UUID}})
+	PagesVersionsPost(ctx)
 
 	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	site, has, err := pages_model.GetSiteByRepoID(t.Context(), 1)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.Equal(t, pages_model.SourceTypeUpload, site.SourceType)
+	assert.Equal(t, pages_model.PublishSourceArtifact, site.SourceType)
 	assert.False(t, site.Enabled)
-	assert.NotEmpty(t, site.TarGzSHA256)
+	assert.NotZero(t, site.CurrentVersionID)
+	_, err = repo_model.GetUploadByUUID(t.Context(), staged.UUID)
+	assert.True(t, repo_model.IsErrUploadNotExist(err))
+}
+
+func TestPagesPostRestoresVersion(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	versions := make([]*pages_model.Version, 0, 2)
+	for _, content := range [][]byte{[]byte("old version"), []byte("current version")} {
+		digest := sha256.Sum256(content)
+		version := &pages_model.Version{RepoID: 1, TarGzSHA256: hex.EncodeToString(digest[:]), OriginType: pages_model.VersionOriginUpload}
+		require.NoError(t, pages_model.InsertVersion(t.Context(), version))
+		require.NoError(t, pages_content.NewContentStore().Save(1, version.TarGzSHA256, bytes.NewReader(content), int64(len(content))))
+		versions = append(versions, version)
+	}
+	require.NoError(t, pages_model.InsertSite(t.Context(), &pages_model.Site{
+		RepoID: 1, Enabled: true, SourceType: pages_model.PublishSourceArtifact,
+		CurrentVersionID: versions[1].ID, PagesUpdatedUnixNano: 1,
+	}))
+
+	ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/pages/versions")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.MockRequestPostForm(ctx.Req, url.Values{
+		"action": {"restore-version"}, "version_id": {strconv.FormatInt(versions[0].ID, 10)},
+	})
+	PagesVersionsPost(ctx)
+	require.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	site, has, err := pages_model.GetSiteByRepoID(t.Context(), 1)
+	require.NoError(t, err)
+	require.True(t, has)
+	require.Equal(t, versions[0].ID, site.CurrentVersionID)
+}
+
+func TestPagesVersionsPostDeletesHistoricalVersion(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	versions := make([]*pages_model.Version, 0, 2)
+	for _, content := range [][]byte{[]byte("history"), []byte("current")} {
+		digest := sha256.Sum256(content)
+		version := &pages_model.Version{RepoID: 1, TarGzSHA256: hex.EncodeToString(digest[:]), OriginType: pages_model.VersionOriginUpload}
+		require.NoError(t, pages_model.InsertVersion(t.Context(), version))
+		require.NoError(t, pages_content.NewContentStore().Save(1, version.TarGzSHA256, bytes.NewReader(content), int64(len(content))))
+		versions = append(versions, version)
+	}
+	require.NoError(t, pages_model.InsertSite(t.Context(), &pages_model.Site{
+		RepoID: 1, SourceType: pages_model.PublishSourceArtifact, CurrentVersionID: versions[1].ID, PagesUpdatedUnixNano: 1,
+	}))
+
+	ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/pages/versions")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.MockRequestPostForm(ctx.Req, url.Values{
+		"action": {"delete-version"}, "version_id": {strconv.FormatInt(versions[0].ID, 10)},
+	})
+	PagesVersionsPost(ctx)
+	require.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	_, has, err := pages_model.GetVersionByID(t.Context(), versions[0].ID)
+	require.NoError(t, err)
+	require.False(t, has)
+}
+
+func TestClassifyPagesPublication(t *testing.T) {
+	const (
+		pagesUpdated = int64(10)
+		rootUpdated  = int64(20)
+	)
+	current := func() *pages_model.InstanceResult {
+		return &pages_model.InstanceResult{
+			AppliedPagesUpdatedUnixNano:  pagesUpdated,
+			AppliedRootUpdatedUnixNano:   rootUpdated,
+			AppliedRequireGiteaTXTRecord: true,
+		}
+	}
+
+	tests := []struct {
+		name       string
+		result     *pages_model.InstanceResult
+		custom     bool
+		requireTXT bool
+		state      pagesPublicationState
+		errorCode  pages_model.InstanceErrorCode
+	}{
+		{name: "no result", state: pagesPublicationPublishing},
+		{name: "stale result", result: &pages_model.InstanceResult{}, state: pagesPublicationPublishing},
+		{name: "default published", result: func() *pages_model.InstanceResult {
+			result := current()
+			result.DefaultPublished = true
+			result.ErrorCode = pages_model.InstanceErrorACMEFailed
+			return result
+		}(), state: pagesPublicationPublished},
+		{name: "default failed", result: func() *pages_model.InstanceResult {
+			result := current()
+			result.ErrorCode = pages_model.InstanceErrorContentInstallFailed
+			return result
+		}(), state: pagesPublicationFailed, errorCode: pages_model.InstanceErrorContentInstallFailed},
+		{name: "certificate pending", result: func() *pages_model.InstanceResult {
+			result := current()
+			result.ErrorCode = pages_model.InstanceErrorCertificatePending
+			return result
+		}(), state: pagesPublicationPublishing},
+		{name: "custom published", result: func() *pages_model.InstanceResult {
+			result := current()
+			result.CustomPublished = true
+			return result
+		}(), custom: true, requireTXT: true, state: pagesPublicationPublished},
+		{name: "custom TXT requirement changed", result: func() *pages_model.InstanceResult {
+			result := current()
+			result.CustomPublished = true
+			return result
+		}(), custom: true, requireTXT: false, state: pagesPublicationPublishing},
+		{name: "custom failed", result: func() *pages_model.InstanceResult {
+			result := current()
+			result.ErrorCode = pages_model.InstanceErrorTXTInvalid
+			return result
+		}(), custom: true, requireTXT: true, state: pagesPublicationFailed, errorCode: pages_model.InstanceErrorTXTInvalid},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			state, errorCode := classifyPagesPublication(testCase.result, pagesUpdated, rootUpdated, testCase.requireTXT, testCase.custom)
+			assert.Equal(t, testCase.state, state)
+			assert.Equal(t, testCase.errorCode, errorCode)
+		})
+	}
+}
+
+func TestLoadPagesSettingsDataIncludesDisplayTimes(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	site, err := pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{Enabled: true, SourceType: pages_model.PublishSourceArtifact})
+	require.NoError(t, err)
+	current := &pages_model.Version{RepoID: 1, TarGzSHA256: strings.Repeat("b", 64), OriginType: pages_model.VersionOriginUpload}
+	require.NoError(t, db.Insert(t.Context(), current))
+	site.CurrentVersionID = current.ID
+	require.NoError(t, pages_model.UpdateSite(t.Context(), site))
+	require.NoError(t, pages_model.InsertDomain(t.Context(), &pages_model.Domain{
+		RepoID: 1, Host: "pages.example.test", TXTToken: "token", State: pages_model.DomainStateActive,
+		TXTResult: pages_model.TXTResultInvalid, TXTLastSuccessUnixNano: 1_700_000_100 * int64(time.Second),
+		TXTLastCheckUnix: 1_700_000_000, CreatedUnixNano: 1,
+	}))
+
+	ctx, _ := contexttest.MockContext(t, "GET /user2/repo1/settings/pages")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	require.True(t, loadPagesSettingsData(ctx))
+	loadedSite, ok := ctx.Data["PagesSite"].(*pages_model.Site)
+	require.True(t, ok)
+	require.Equal(t, timeutil.TimeStamp(loadedSite.PagesUpdatedUnixNano/int64(time.Second)), ctx.Data["PagesLastChangeUnix"])
+	domain, ok := ctx.Data["PagesActiveDomain"].(*pagesDomainView)
+	require.True(t, ok)
+	require.Equal(t, timeutil.TimeStamp(1_700_000_000), domain.TXTLastCheckUnix)
+	require.Equal(t, timeutil.TimeStamp(1_700_000_100), domain.TXTLastSuccessUnix)
+	require.Equal(t, true, ctx.Data["PagesHasContent"])
+	require.Equal(t, true, ctx.Data["PageIsSettingsPagesSettings"])
+}
+
+func TestLoadPagesVersionsDataUsesStablePagination(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.UI.ExplorePagingNum, 1)()
+	site, err := pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{Enabled: true, SourceType: pages_model.PublishSourceArtifact})
+	require.NoError(t, err)
+	run := &actions_model.ActionRun{RepoID: 1, Index: 1001, WorkflowID: "pages.yaml", Status: actions_model.StatusSuccess}
+	require.NoError(t, db.Insert(t.Context(), run))
+	history := &pages_model.Version{RepoID: 1, TarGzSHA256: strings.Repeat("a", 64), OriginType: pages_model.VersionOriginActions, OriginActionRunID: run.ID}
+	current := &pages_model.Version{RepoID: 1, TarGzSHA256: strings.Repeat("b", 64), OriginType: pages_model.VersionOriginUpload}
+	require.NoError(t, db.Insert(t.Context(), history, current))
+	site.CurrentVersionID = current.ID
+	require.NoError(t, pages_model.UpdateSite(t.Context(), site))
+
+	ctx, _ := contexttest.MockContext(t, "GET /user2/repo1/settings/pages/versions?page=1")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	require.True(t, loadPagesVersionsData(ctx))
+	versionViews, ok := ctx.Data["PagesVersions"].([]*pagesVersionView)
+	require.True(t, ok)
+	require.Len(t, versionViews, 1)
+	require.True(t, versionViews[0].Current)
+	require.Equal(t, current.ID, versionViews[0].ID)
+	require.EqualValues(t, 2, ctx.Data["Total"])
+	require.Equal(t, true, ctx.Data["PageIsSettingsPagesVersions"])
+
+	ctx, _ = contexttest.MockContext(t, "GET /user2/repo1/settings/pages/versions")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	ctx.Req.Form.Set("page", "2")
+	require.True(t, loadPagesVersionsData(ctx))
+	versionViews, ok = ctx.Data["PagesVersions"].([]*pagesVersionView)
+	require.True(t, ok)
+	require.Len(t, versionViews, 1)
+	require.False(t, versionViews[0].Current)
+	require.Equal(t, history.ID, versionViews[0].ID)
+	require.Equal(t, "/user2/repo1/actions/runs/"+strconv.FormatInt(run.ID, 10), versionViews[0].OriginURL)
+}
+
+func TestPagesPublicationStatus(t *testing.T) {
+	tests := []struct {
+		name      string
+		addresses []pagesPublicationState
+		state     pagesPublicationState
+		partial   bool
+	}{
+		{name: "empty"},
+		{name: "published", addresses: []pagesPublicationState{pagesPublicationPublished, pagesPublicationPublished}, state: pagesPublicationPublished},
+		{name: "publishing", addresses: []pagesPublicationState{pagesPublicationPublished, pagesPublicationPublishing}, state: pagesPublicationPublishing},
+		{name: "failed", addresses: []pagesPublicationState{pagesPublicationFailed, pagesPublicationFailed}, state: pagesPublicationFailed},
+		{name: "partial failure", addresses: []pagesPublicationState{pagesPublicationPublished, pagesPublicationFailed}, state: pagesPublicationFailed, partial: true},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			view := &pagesPublicationView{}
+			for _, state := range testCase.addresses {
+				view.Addresses = append(view.Addresses, &pagesAddressView{State: state})
+			}
+			view.finalizeStatus()
+			assert.Equal(t, testCase.state, view.State)
+			assert.Equal(t, testCase.partial, view.Partial)
+		})
+	}
 }
 
 func TestAddDeployKey(t *testing.T) {

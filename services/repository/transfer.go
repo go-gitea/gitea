@@ -58,7 +58,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	}
 
 	oldOwnerName := repo.OwnerName
-	releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 			}
 		}
 
-		return transferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient.Name, repo, repoTransfer.Teams)
+		return transferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient.Name, repo, repoTransfer.Teams, pagesUpdated)
 	}); err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func isRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoNa
 }
 
 // transferOwnership transfers all corresponding repository items from old user to new one.
-func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName string, repo *repo_model.Repository, teams []*organization.Team) (err error) {
+func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName string, repo *repo_model.Repository, teams []*organization.Team, pagesUpdated int64) (err error) {
 	repoRenamed := false
 	wikiRenamed := false
 	oldOwnerName := doer.Name
@@ -184,7 +184,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "owner_id", "owner_name"); err != nil {
 		return fmt.Errorf("update owner: %w", err)
 	}
-	if err := pages_service.TouchRepositoryInTransaction(ctx, repo.ID); err != nil {
+	if err := pages_service.TouchRepositoryInTransaction(ctx, repo.ID, pagesUpdated); err != nil {
 		return err
 	}
 
@@ -461,7 +461,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 
 	var isDirectTransfer bool
 	oldOwnerName := repo.OwnerName
-	releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
 	if err != nil {
 		return err
 	}
@@ -472,7 +472,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		// then it will transfer directly without acceptance.
 		if doer.IsAdmin || doer.ID == newOwner.ID {
 			isDirectTransfer = true
-			return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
+			return transferOwnership(ctx, doer, newOwner.Name, repo, teams, pagesUpdated)
 		}
 
 		if user_model.IsUserBlockedBy(ctx, doer, newOwner.ID) || user_model.IsUserBlockedBy(ctx, newOwner, repo.OwnerID) {
@@ -487,7 +487,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 			}
 			if allowed {
 				isDirectTransfer = true
-				return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
+				return transferOwnership(ctx, doer, newOwner.Name, repo, teams, pagesUpdated)
 			}
 		}
 

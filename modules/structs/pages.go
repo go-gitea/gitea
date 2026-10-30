@@ -27,8 +27,18 @@ type PagesDeploymentStatus struct {
 	Status string `json:"status"`
 }
 
-// PagesContentCommit describes the current prepared Pages artifact.
+// PagesVersion describes one retained Pages artifact.
+type PagesVersion struct {
+	ID                int64  `json:"id"`
+	TarGzSHA256       string `json:"tar_gz_sha256"`
+	OriginType        string `json:"origin_type"`
+	OriginActionRunID int64  `json:"origin_action_run_id"`
+	CreatedUnix       int64  `json:"created_unix"`
+	Current           bool   `json:"current"`
+}
+
+// PagesContentCommit describes the prepared Pages version and current state.
 type PagesContentCommit struct {
-	TarGzSHA256          string `json:"tar_gz_sha256"`
-	PagesUpdatedUnixNano int64  `json:"pages_updated_unix_nano"`
+	Version              *PagesVersion `json:"version"`
+	PagesUpdatedUnixNano int64         `json:"pages_updated_unix_nano"`
 }

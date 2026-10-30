@@ -60,6 +60,8 @@ type ActionRun struct {
 
 	IsScopedRun bool `xorm:"NOT NULL DEFAULT false"` // IsScopedRun explicitly classifies scoped runs.
 
+	HasPagesArtifact bool `xorm:"NOT NULL DEFAULT false"`
+
 	// Started and Stopped are identical to the latest attempt after ActionRunAttempt was introduced.
 	// When a rerun creates a new latest attempt, they are reset until the new attempt starts and stops.
 	Started timeutil.TimeStamp
@@ -294,6 +296,24 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 	}
 
 	return &run, nil
+}
+
+// SetRunHasPagesArtifact records that a run submitted a Pages artifact.
+func SetRunHasPagesArtifact(ctx context.Context, repoID, runID int64) error {
+	updated, err := db.GetEngine(ctx).Table("action_run").
+		Where("repo_id = ? AND id = ?", repoID, runID).
+		Update(map[string]any{"has_pages_artifact": true})
+	if err != nil || updated > 0 {
+		return err
+	}
+	run, err := GetRunByRepoAndID(ctx, repoID, runID)
+	if err != nil {
+		return err
+	}
+	if !run.HasPagesArtifact {
+		return fmt.Errorf("SetRunHasPagesArtifact: run with ID %d was not updated", runID)
+	}
+	return nil
 }
 
 func GetRunsByRepoAndID(ctx context.Context, repoID int64, runIDs []int64) (runs []*ActionRun, err error) {

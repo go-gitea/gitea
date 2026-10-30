@@ -164,10 +164,10 @@ func registerSyncRepoLicenses() {
 
 func initBasicTasks() {
 	registerPagesTask("update_pages_branch_sources", func(ctx context.Context) error {
-		return pages_service.UpdateDueBranchSources(ctx, 50)
+		return pages_service.UpdateDueBranchSources(ctx, setting.Pages.BranchSourceBatchSize)
 	})
 	registerPagesTask("verify_pages_domains", func(ctx context.Context) error {
-		return pages_service.VerifyDueDomains(ctx, 100)
+		return pages_service.VerifyDueDomains(ctx, setting.Pages.DomainVerificationBatchSize)
 	})
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()

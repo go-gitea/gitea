@@ -33,7 +33,7 @@ func UpdateDueBranchSources(ctx context.Context, limit int) error {
 	}
 	due := make([]*pages_model.Site, 0, limit)
 	if err := db.GetEngine(ctx).
-		Where("source_type = ? AND deleted = ? AND enabled = ? AND source_next_check_unix <= ?", pages_model.SourceTypeBranch, false, true, timeutil.TimeStampNow()).
+		Where("source_type = ? AND deleted = ? AND enabled = ? AND source_next_check_unix <= ?", pages_model.PublishSourceBranch, false, true, timeutil.TimeStampNow()).
 		Asc("source_next_check_unix", "repo_id").Limit(limit).Find(&due); err != nil {
 		return fmt.Errorf("UpdateDueBranchSources: query: %w", err)
 	}
@@ -46,6 +46,7 @@ func UpdateDueBranchSources(ctx context.Context, limit int) error {
 }
 
 func updateBranchSource(ctx context.Context, initial *pages_model.Site) error {
+	limits := archiveLimits()
 	repo, err := repo_model.GetRepositoryByID(ctx, initial.RepoID)
 	if err != nil {
 		return setBranchCheckResult(ctx, initial, initial.SourceCommitID, pages_model.SourceErrorRepositoryMissing, 5*time.Minute)
@@ -62,8 +63,12 @@ func updateBranchSource(ctx context.Context, initial *pages_model.Site) error {
 	if err != nil {
 		return setBranchCheckResult(ctx, initial, initial.SourceCommitID, pages_model.SourceErrorBranchMissing, 5*time.Minute)
 	}
-	if commitID == initial.SourceCommitID && initial.TarGzSHA256 != "" {
-		if _, err := pages_content.NewContentStore().Stat(initial.RepoID, initial.TarGzSHA256); err == nil {
+	currentVersion, hasCurrentVersion, err := pages_model.GetCurrentVersion(ctx, initial)
+	if err != nil {
+		return fmt.Errorf("updateBranchSource: current version: %w", err)
+	}
+	if commitID == initial.SourceCommitID && hasCurrentVersion {
+		if _, err := pages_content.NewContentStore().Stat(initial.RepoID, currentVersion.TarGzSHA256); err == nil {
 			return setBranchCheckResult(ctx, initial, commitID, "", time.Minute)
 		}
 	}
@@ -82,14 +87,14 @@ func updateBranchSource(ctx context.Context, initial *pages_model.Site) error {
 	if initial.SourcePath != "" {
 		command.AddDynamicArguments(initial.SourcePath)
 	}
-	err = command.WithStdoutCopy(&byteLimitWriter{writer: tarFile, remaining: pages_content.DefaultLimits().MaxTarBytes}).WithRepo(repo).RunWithStderr(ctx)
+	err = command.WithStdoutCopy(&byteLimitWriter{writer: tarFile, remaining: limits.MaxTarBytes}).WithRepo(repo).RunWithStderr(ctx)
 	closeErr := tarFile.Close()
 	if err != nil || closeErr != nil {
 		_ = setBranchCheckResult(ctx, initial, initial.SourceCommitID, pages_model.SourceErrorArchiveFailed, 5*time.Minute)
 		return fmt.Errorf("updateBranchSource: git archive: %w", errors.Join(err, closeErr))
 	}
 	sourceRoot := filepath.Join(work, "source")
-	if err := extractGitArchive(tarPath, sourceRoot, initial.SourcePath); err != nil {
+	if err := extractGitArchive(tarPath, sourceRoot, initial.SourcePath, limits); err != nil {
 		_ = setBranchCheckResult(ctx, initial, initial.SourceCommitID, pages_model.SourceErrorArchiveInvalid, 5*time.Minute)
 		return fmt.Errorf("updateBranchSource: extract archive: %w", err)
 	}
@@ -98,7 +103,7 @@ func updateBranchSource(ctx context.Context, initial *pages_model.Site) error {
 	if err != nil {
 		return fmt.Errorf("updateBranchSource: candidate: %w", err)
 	}
-	err = pages_content.PackDirectory(ctx, sourceRoot, candidate, pages_content.DefaultLimits())
+	err = pages_content.PackDirectory(ctx, sourceRoot, candidate, limits)
 	closeErr = candidate.Close()
 	if err != nil || closeErr != nil {
 		_ = setBranchCheckResult(ctx, initial, initial.SourceCommitID, pages_model.SourceErrorArchiveInvalid, 5*time.Minute)
@@ -108,15 +113,19 @@ func updateBranchSource(ctx context.Context, initial *pages_model.Site) error {
 	if err != nil {
 		return fmt.Errorf("updateBranchSource: open candidate: %w", err)
 	}
-	_, err = CommitContent(ctx, initial.RepoID, pages_model.SourceTypeBranch, input, func(ctx context.Context, site *pages_model.Site) error {
-		if site.SourceBranch != initial.SourceBranch || site.SourcePath != initial.SourcePath {
-			return ErrSourceChanged
-		}
-		current, err := gitRepo.GetBranchCommitID(ctx, site.SourceBranch)
-		if err != nil || current != commitID {
-			return ErrSourceChanged
-		}
-		return nil
+	_, err = commitContent(ctx, initial.RepoID, input, contentCommitOptions{
+		Origin:         pages_model.VersionOriginBranch,
+		RequiredSource: pages_model.PublishSourceBranch,
+		ValidateSource: func(ctx context.Context, site *pages_model.Site) error {
+			if site.SourceBranch != initial.SourceBranch || site.SourcePath != initial.SourcePath {
+				return ErrSourceChanged
+			}
+			current, err := gitRepo.GetBranchCommitID(ctx, site.SourceBranch)
+			if err != nil || current != commitID {
+				return ErrSourceChanged
+			}
+			return nil
+		},
 	})
 	_ = input.Close()
 	if err != nil {
@@ -138,14 +147,14 @@ func setBranchCheckResult(ctx context.Context, initial *pages_model.Site, commit
 	if err != nil {
 		return fmt.Errorf("setBranchCheckResult: %w", err)
 	}
-	if !has || site.Deleted || site.SourceType != pages_model.SourceTypeBranch ||
+	if !has || site.Deleted || site.SourceType != pages_model.PublishSourceBranch ||
 		site.SourceBranch != initial.SourceBranch || site.SourcePath != initial.SourcePath {
 		return nil
 	}
 	site.SourceCommitID = commitID
 	site.SourceErrorCode = errorCode
 	site.SourceNextCheckUnix = int64(timeutil.TimeStampNow().AddDuration(retry))
-	if err := pages_model.UpsertSite(ctx, site); err != nil {
+	if err := pages_model.UpdateSite(ctx, site); err != nil {
 		return fmt.Errorf("setBranchCheckResult: %w", err)
 	}
 	return nil
@@ -165,7 +174,7 @@ func (w *byteLimitWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-func extractGitArchive(tarPath, root, sourcePath string) error {
+func extractGitArchive(tarPath, root, sourcePath string, limits pages_content.Limits) error {
 	input, err := os.Open(tarPath)
 	if err != nil {
 		return err
@@ -190,7 +199,7 @@ func extractGitArchive(tarPath, root, sourcePath string) error {
 			return err
 		}
 		entries++
-		if entries > pages_content.DefaultMaxEntries {
+		if entries > limits.MaxEntries {
 			return pages_content.ErrArchiveTooLarge
 		}
 		if h.Typeflag == tar.TypeXGlobalHeader {
@@ -240,7 +249,7 @@ func extractGitArchive(tarPath, root, sourcePath string) error {
 			if existingErr == nil {
 				return pages_content.ErrArchiveEntry
 			}
-			if h.Size < 0 || h.Size > pages_content.DefaultMaxFileSize {
+			if h.Size < 0 || h.Size > limits.MaxFileBytes {
 				return pages_content.ErrArchiveTooLarge
 			}
 			output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
@@ -260,7 +269,7 @@ func extractGitArchive(tarPath, root, sourcePath string) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("%w: unsupported Git archive entry %q type %d", pages_content.ErrArchiveEntry, name, h.Typeflag)
+			return fmt.Errorf("extractGitArchive: %w: unsupported Git archive entry %q type %d", pages_content.ErrArchiveEntry, name, h.Typeflag)
 		}
 	}
 	return nil

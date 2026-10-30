@@ -174,7 +174,7 @@ func TestRenameUser(t *testing.T) {
 		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 		caps := strings.ToUpper(user.Name)
-		require.NoError(t, pages_model.UpsertSite(t.Context(), &pages_model.Site{
+		require.NoError(t, pages_model.InsertSite(t.Context(), &pages_model.Site{
 			RepoID:               34,
 			Enabled:              true,
 			PagesUpdatedUnixNano: 1,

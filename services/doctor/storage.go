@@ -217,7 +217,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 	}
 }
 
-// checkPagesStorage checks both sides of the current digest relationship.
+// checkPagesStorage checks both sides of the retained version relationship.
 // Fixing orphaned objects is intended for the documented offline doctor run;
 // recent objects are retained because a publishing request may still be active.
 func checkPagesStorage(ctx context.Context, logger log.Logger, autofix bool) error {
@@ -241,11 +241,11 @@ func checkPagesStorage(ctx context.Context, logger log.Logger, autofix bool) err
 		repoID, digest, ok := pages_content.ParseContentRelativePath(objectPath)
 		isOrphaned := !ok
 		if ok {
-			site, has, err := pages_model.GetSiteByRepoID(ctx, repoID)
+			_, has, err := pages_model.GetVersionByRepoIDAndDigest(ctx, repoID, digest)
 			if err != nil {
 				return err
 			}
-			isOrphaned = !has || site.TarGzSHA256 != digest
+			isOrphaned = !has
 		}
 		if !isOrphaned {
 			return nil
@@ -263,12 +263,12 @@ func checkPagesStorage(ctx context.Context, logger log.Logger, autofix bool) err
 	for _, candidate := range toRemove {
 		if candidate.canonical {
 			// The command can race with an accidental online publisher. Re-read
-			// the current fact immediately before removing an old object.
-			site, has, err := pages_model.GetSiteByRepoID(ctx, candidate.repoID)
+			// the version reference immediately before removing an old object.
+			_, has, err := pages_model.GetVersionByRepoIDAndDigest(ctx, candidate.repoID, candidate.digest)
 			if err != nil {
 				return err
 			}
-			if has && site.TarGzSHA256 == candidate.digest {
+			if has {
 				continue
 			}
 		}
@@ -278,21 +278,26 @@ func checkPagesStorage(ctx context.Context, logger log.Logger, autofix bool) err
 		}
 		removed++
 	}
-	if err := db.Iterate(ctx, nil, func(ctx context.Context, site *pages_model.Site) error {
-		if site.TarGzSHA256 == "" {
-			return nil
-		}
-		_, err := pages_content.NewContentStore().Stat(site.RepoID, site.TarGzSHA256)
+	if err := db.Iterate(ctx, nil, func(ctx context.Context, version *pages_model.Version) error {
+		_, err := pages_content.NewContentStore().Stat(version.RepoID, version.TarGzSHA256)
 		if errors.Is(err, os.ErrNotExist) {
 			missing++
-			logger.Warn("Current Pages object is missing for repository %d digest %s", site.RepoID, site.TarGzSHA256)
+			site, has, lookupErr := pages_model.GetSiteByRepoID(ctx, version.RepoID)
+			if lookupErr != nil {
+				return lookupErr
+			}
+			kind := "Historical"
+			if has && site.CurrentVersionID == version.ID {
+				kind = "Current"
+			}
+			logger.Warn("%s Pages object is missing for repository %d digest %s", kind, version.RepoID, version.TarGzSHA256)
 			return nil
 		}
 		return err
 	}); err != nil {
 		return err
 	}
-	logger.Info("Checked %d Pages objects: %d unreferenced, %d removed, %d current objects missing", checked, orphaned, removed, missing)
+	logger.Info("Checked %d Pages objects: %d unreferenced, %d removed, %d version objects missing", checked, orphaned, removed, missing)
 	return nil
 }
 

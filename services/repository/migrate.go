@@ -284,5 +284,5 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	return repo, UpdateRepository(ctx, repo, false)
+	return repo, UpdateRepository(ctx, repo, UpdateRepositoryOptions{})
 }

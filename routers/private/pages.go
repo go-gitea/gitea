@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -45,6 +46,9 @@ func authPagesInstance(next http.Handler) http.Handler {
 			ctx := gitea_context.GetPrivateContext(req)
 			writePagesError(ctx, http.StatusForbidden, "invalid_instance_token")
 			return
+		}
+		if err := pages_service.RecordInstanceCommunication(req.Context(), instance); err != nil {
+			log.Error("Record Pages instance communication: %v", err)
 		}
 		ctx := gitea_context.GetPrivateContext(req)
 		ctx.SetContextValue(pagesInstanceContextKey{}, instance)
@@ -107,19 +111,19 @@ func registerPagesInstance(ctx *gitea_context.PrivateContext) {
 	}{RootURL: registered.RootURL, RootUpdatedUnixNano: registered.RootUpdatedUnixNano})
 }
 
-func parsePagesInt(query map[string][]string, name string, fallback int64) (int64, error) {
+func parsePagesQueryInt(query url.Values, name string, defaultValue int64) (int64, bool) {
 	values := query[name]
 	if len(values) == 0 {
-		return fallback, nil
+		return defaultValue, true
 	}
 	if len(values) != 1 || values[0] == "" {
-		return 0, pages_service.ErrInvalidAddress
+		return 0, false
 	}
 	value, err := strconv.ParseInt(values[0], 10, 64)
 	if err != nil || value < 0 {
-		return 0, pages_service.ErrInvalidAddress
+		return 0, false
 	}
-	return value, nil
+	return value, true
 }
 
 func listPagesSites(ctx *gitea_context.PrivateContext) {
@@ -136,28 +140,28 @@ func listPages(ctx *gitea_context.PrivateContext, full bool) {
 		writePagesError(ctx, http.StatusBadRequest, "invalid_since")
 		return
 	}
-	since, err := parsePagesInt(query, "since", 0)
-	if err != nil {
+	since, valid := parsePagesQueryInt(query, "since", 0)
+	if !valid {
 		writePagesError(ctx, http.StatusBadRequest, "invalid_since")
 		return
 	}
-	until, err := parsePagesInt(query, "until", 0)
-	if err != nil {
+	until, valid := parsePagesQueryInt(query, "until", 0)
+	if !valid {
 		writePagesError(ctx, http.StatusBadRequest, "invalid_until")
 		return
 	}
-	afterTime, err := parsePagesInt(query, "after_time", 0)
-	if err != nil {
+	afterTime, valid := parsePagesQueryInt(query, "after_time", 0)
+	if !valid {
 		writePagesError(ctx, http.StatusBadRequest, "invalid_cursor")
 		return
 	}
-	afterRepo, err := parsePagesInt(query, "after_repo_id", 0)
-	if err != nil || afterTime == 0 && afterRepo != 0 || afterTime > 0 && afterRepo == 0 {
+	afterRepo, valid := parsePagesQueryInt(query, "after_repo_id", 0)
+	if !valid || afterTime == 0 && afterRepo != 0 || afterTime > 0 && afterRepo == 0 {
 		writePagesError(ctx, http.StatusBadRequest, "invalid_cursor")
 		return
 	}
-	limit, err := parsePagesInt(query, "limit", 100)
-	if err != nil || limit == 0 || limit > pages_service.MaxSyncPageSize {
+	limit, valid := parsePagesQueryInt(query, "limit", 100)
+	if !valid || limit == 0 || limit > pages_service.MaxSyncPageSize {
 		writePagesError(ctx, http.StatusBadRequest, "invalid_limit")
 		return
 	}
@@ -188,7 +192,7 @@ func downloadPagesContent(ctx *gitea_context.PrivateContext) {
 		writePagesError(ctx, http.StatusBadRequest, "invalid_content_key")
 		return
 	}
-	object, err := pages_service.OpenCurrentContent(ctx, repoID, digest)
+	object, size, err := pages_service.OpenCurrentContent(ctx, repoID, digest)
 	if err != nil {
 		switch {
 		case errors.Is(err, util.ErrNotExist):
@@ -203,6 +207,7 @@ func downloadPagesContent(ctx *gitea_context.PrivateContext) {
 	}
 	defer object.Close()
 	ctx.Resp.Header().Set("Content-Type", "application/gzip")
+	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 	ctx.Resp.Header().Set("Cache-Control", "no-store")
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	if _, err := io.Copy(ctx.Resp, object); err != nil {

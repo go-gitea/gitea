@@ -56,7 +56,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	if db.InTransaction(ctx) {
 		return errors.New("DeleteRepositoryDirectly must not be called within a transaction, it deletes storage once its own transaction commits")
 	}
-	releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	// Keep the Pages row as a tombstone before removing the repository row.
 	// Both changes are part of this transaction, so a rollback leaves the
 	// repository and its published-site state consistent.
-	pagesDigest, err := pages_service.MarkRepositoryDeletedInTransaction(ctx, repoID)
+	pagesDigests, err := pages_service.MarkRepositoryDeletedInTransaction(ctx, repoID, pagesUpdated)
 	if err != nil {
 		return err
 	}
@@ -412,9 +412,9 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		}
 	}
 
-	if pagesDigest != "" {
-		if err := pages_content.NewContentStore().Delete(repoID, pagesDigest); err != nil {
-			log.Error("remove Pages content for repo %d: %v", repoID, err)
+	for _, digest := range pagesDigests {
+		if err := pages_content.NewContentStore().Delete(repoID, digest); err != nil {
+			log.Error("remove Pages content %s for repo %d: %v", digest, repoID, err)
 		}
 	}
 	if err := pages_service.ReleaseConfirmedDomains(ctx, repoID); err != nil {

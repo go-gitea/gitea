@@ -4,17 +4,19 @@
 package pages
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"sort"
+	"slices"
 
 	"gitea.dev/models/db"
 	pages_model "gitea.dev/models/pages"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	pages_content "gitea.dev/modules/pages"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
 	"gitea.dev/modules/util"
 )
 
@@ -26,34 +28,39 @@ type Cursor struct {
 }
 
 type DomainRecord struct {
-	ID                     int64                   `json:"id"`
-	Host                   string                  `json:"host"`
-	TXTToken               string                  `json:"txt_token"`
-	TXTResult              pages_model.TXTResult   `json:"txt_result"`
-	TXTLastSuccessUnixNano int64                   `json:"txt_last_success_unix_nano"`
-	State                  pages_model.DomainState `json:"state"`
+	ID                     int64                 `json:"id"`
+	Host                   string                `json:"host"`
+	TXTToken               string                `json:"txt_token"`
+	TXTResult              pages_model.TXTResult `json:"txt_result"`
+	TXTLastSuccessUnixNano int64                 `json:"txt_last_success_unix_nano"`
 }
 
 type SiteRecord struct {
-	RepoID               int64          `json:"repo_id"`
-	Deleted              bool           `json:"deleted"`
-	Enabled              bool           `json:"enabled"`
-	Owner                string         `json:"owner,omitempty"`
-	Repository           string         `json:"repository,omitempty"`
-	TarGzSHA256          string         `json:"tar_gz_sha256,omitempty"`
-	PagesUpdatedUnixNano int64          `json:"pages_updated_unix_nano"`
-	CustomDomains        []DomainRecord `json:"custom_domains,omitempty"`
+	RepoID               int64         `json:"repo_id"`
+	Deleted              bool          `json:"deleted"`
+	Enabled              bool          `json:"enabled"`
+	Owner                string        `json:"owner,omitempty"`
+	Repository           string        `json:"repository,omitempty"`
+	TarGzSHA256          string        `json:"tar_gz_sha256,omitempty"`
+	PagesUpdatedUnixNano int64         `json:"pages_updated_unix_nano"`
+	CustomDomain         *DomainRecord `json:"custom_domain,omitempty"`
+}
+
+type ArchiveLimits struct {
+	MaxTarGzBytes int64 `json:"max_tar_gz_bytes"`
+	MaxSiteBytes  int64 `json:"max_site_bytes"`
+	MaxFileBytes  int64 `json:"max_file_bytes"`
+	MaxEntries    int   `json:"max_entries"`
 }
 
 type SyncResponse struct {
-	RootURL                  string       `json:"root_url"`
-	RootUpdatedUnixNano      int64        `json:"root_updated_unix_nano"`
-	TXTVerificationEnabled   bool         `json:"txt_verification_enabled"`
-	TXTPolicyUpdatedUnixNano int64        `json:"txt_policy_updated_unix_nano"`
-	Until                    int64        `json:"until"`
-	NextSince                int64        `json:"next_since"`
-	Sites                    []SiteRecord `json:"sites"`
-	NextCursor               *Cursor      `json:"next_cursor,omitempty"`
+	RootURL               string        `json:"root_url"`
+	RootUpdatedUnixNano   int64         `json:"root_updated_unix_nano"`
+	ArchiveLimits         ArchiveLimits `json:"archive_limits"`
+	RequireGiteaTXTRecord bool          `json:"require_gitea_txt_record"`
+	Until                 int64         `json:"until"`
+	Sites                 []SiteRecord  `json:"sites"`
+	NextCursor            *Cursor       `json:"next_cursor,omitempty"`
 }
 
 type SyncOptions struct {
@@ -109,11 +116,11 @@ func ListSitesForSync(ctx context.Context, instance *pages_model.Instance, opts 
 			return nil, fmt.Errorf("ListSitesForSync: deleting sites: %w", err)
 		}
 		rows = append(rows, deleting...)
-		sort.Slice(rows, func(i, j int) bool {
-			if rows[i].PagesUpdatedUnixNano != rows[j].PagesUpdatedUnixNano {
-				return rows[i].PagesUpdatedUnixNano < rows[j].PagesUpdatedUnixNano
+		slices.SortFunc(rows, func(a, b *pages_model.Site) int {
+			if a.PagesUpdatedUnixNano != b.PagesUpdatedUnixNano {
+				return cmp.Compare(a.PagesUpdatedUnixNano, b.PagesUpdatedUnixNano)
 			}
-			return rows[i].RepoID < rows[j].RepoID
+			return cmp.Compare(a.RepoID, b.RepoID)
 		})
 	} else {
 		query := db.GetEngine(ctx).Where("pages_updated_unix_nano > ? AND pages_updated_unix_nano <= ?", opts.Since, until)
@@ -143,13 +150,9 @@ func ListSitesForSync(ctx context.Context, instance *pages_model.Instance, opts 
 	for _, repo := range repos {
 		ownerIDs = append(ownerIDs, repo.OwnerID)
 	}
-	owners, err := user_model.GetUserByIDs(ctx, ownerIDs)
+	owners, err := user_model.GetUsersMapByIDs(ctx, ownerIDs)
 	if err != nil {
 		return nil, fmt.Errorf("ListSitesForSync: owners: %w", err)
-	}
-	ownerNames := make(map[int64]string, len(owners))
-	for _, owner := range owners {
-		ownerNames[owner.ID] = owner.LowerName
 	}
 	domains := make([]*pages_model.Domain, 0)
 	if len(ids) > 0 {
@@ -159,38 +162,65 @@ func ListSitesForSync(ctx context.Context, instance *pages_model.Instance, opts 
 	}
 	domainByRepo := make(map[int64]*pages_model.Domain, len(domains))
 	for _, domain := range domains {
+		if domainByRepo[domain.RepoID] != nil {
+			return nil, fmt.Errorf("ListSitesForSync: repository %d has multiple active domains", domain.RepoID)
+		}
 		domainByRepo[domain.RepoID] = domain
+	}
+	versionIDs := make([]int64, 0, len(rows))
+	for _, site := range rows {
+		if site.CurrentVersionID != 0 {
+			versionIDs = append(versionIDs, site.CurrentVersionID)
+		}
+	}
+	versions, err := pages_model.GetVersionsByIDs(ctx, versionIDs)
+	if err != nil {
+		return nil, fmt.Errorf("ListSitesForSync: current versions: %w", err)
+	}
+	versionByID := make(map[int64]*pages_model.Version, len(versions))
+	for _, version := range versions {
+		versionByID[version.ID] = version
 	}
 	records := make([]SiteRecord, 0, len(rows))
 	for _, site := range rows {
 		record := SiteRecord{
 			RepoID: site.RepoID, Deleted: site.Deleted, Enabled: site.Enabled,
-			TarGzSHA256: site.TarGzSHA256, PagesUpdatedUnixNano: site.PagesUpdatedUnixNano,
+			PagesUpdatedUnixNano: site.PagesUpdatedUnixNano,
+		}
+		if site.CurrentVersionID != 0 {
+			version := versionByID[site.CurrentVersionID]
+			if version == nil || version.RepoID != site.RepoID {
+				return nil, fmt.Errorf("ListSitesForSync: current version for repository %d is missing", site.RepoID)
+			}
+			record.TarGzSHA256 = version.TarGzSHA256
 		}
 		if !site.Deleted {
 			repo, ok := repos[site.RepoID]
-			if !ok || ownerNames[repo.OwnerID] == "" {
+			if !ok || repo == nil {
 				return nil, fmt.Errorf("ListSitesForSync: repository or owner %d missing", site.RepoID)
 			}
-			record.Owner, record.Repository = ownerNames[repo.OwnerID], repo.LowerName
+			owner := owners[repo.OwnerID]
+			if owner == nil {
+				return nil, fmt.Errorf("ListSitesForSync: repository or owner %d missing", site.RepoID)
+			}
+			record.Owner, record.Repository = owner.LowerName, repo.LowerName
 			if domain := domainByRepo[site.RepoID]; domain != nil {
-				record.CustomDomains = []DomainRecord{{
+				record.CustomDomain = &DomainRecord{
 					ID: domain.ID, Host: domain.Host, TXTToken: domain.TXTToken,
 					TXTResult: domain.TXTResult, TXTLastSuccessUnixNano: domain.TXTLastSuccessUnixNano,
-					State: domain.State,
-				}}
+				}
 			}
 		}
 		records = append(records, record)
 	}
-	policyEnabled, policyTime, err := GetTXTVerificationPolicy(ctx)
-	if err != nil {
-		return nil, err
-	}
 	response := &SyncResponse{
 		RootURL: instance.RootURL, RootUpdatedUnixNano: instance.RootUpdatedUnixNano,
-		TXTVerificationEnabled: policyEnabled, TXTPolicyUpdatedUnixNano: policyTime,
-		Until: until, NextSince: until, Sites: records,
+		ArchiveLimits: ArchiveLimits{
+			MaxTarGzBytes: setting.Pages.MaxTarGzSize, MaxSiteBytes: setting.Pages.MaxSiteSize,
+			MaxFileBytes: setting.Pages.MaxFileSize, MaxEntries: setting.Pages.MaxEntries,
+		},
+		RequireGiteaTXTRecord: setting.Pages.RequireGiteaTXTRecord,
+		Until:                 until, Sites: records,
 	}
 	if hasMore {
 		last := rows[len(rows)-1]
@@ -200,20 +230,32 @@ func ListSitesForSync(ctx context.Context, instance *pages_model.Instance, opts 
 }
 
 // OpenCurrentContent verifies the requested digest against the current site.
-func OpenCurrentContent(ctx context.Context, repoID int64, digest string) (io.ReadCloser, error) {
+func OpenCurrentContent(ctx context.Context, repoID int64, digest string) (storage.Object, int64, error) {
 	site, has, err := pages_model.GetSiteByRepoID(ctx, repoID)
 	if err != nil {
-		return nil, fmt.Errorf("OpenCurrentContent: %w", err)
+		return nil, 0, fmt.Errorf("OpenCurrentContent: %w", err)
 	}
-	if !has || site.Deleted || !site.Enabled || site.TarGzSHA256 == "" {
-		return nil, util.ErrNotExist
+	if !has || site.Deleted || !site.Enabled {
+		return nil, 0, util.ErrNotExist
 	}
-	if site.TarGzSHA256 != digest {
-		return nil, ErrStateChanged
+	version, has, err := pages_model.GetCurrentVersion(ctx, site)
+	if err != nil {
+		return nil, 0, fmt.Errorf("OpenCurrentContent: current version: %w", err)
+	}
+	if !has {
+		return nil, 0, util.ErrNotExist
+	}
+	if version.TarGzSHA256 != digest {
+		return nil, 0, ErrStateChanged
 	}
 	object, err := pages_content.NewContentStore().Open(repoID, digest)
 	if err != nil {
-		return nil, fmt.Errorf("OpenCurrentContent: %w", err)
+		return nil, 0, fmt.Errorf("OpenCurrentContent: %w", err)
 	}
-	return object, nil
+	info, err := object.Stat()
+	if err != nil {
+		_ = object.Close()
+		return nil, 0, fmt.Errorf("OpenCurrentContent: stat: %w", err)
+	}
+	return object, info.Size(), nil
 }

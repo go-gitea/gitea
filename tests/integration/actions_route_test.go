@@ -17,6 +17,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	actions_web "gitea.dev/routers/web/repo/actions"
+	pages_service "gitea.dev/services/pages"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -98,6 +99,19 @@ jobs:
 	require.Len(t, viewResp.State.Run.JobSummaries, 2)
 	assertJob1Summary(t, findSummary(viewResp, job1.ID))
 	assert.Contains(t, string(findSummary(viewResp, otherJobID).SummaryHTML), "Other job summary")
+	assert.False(t, viewResp.State.Run.HasPagesArtifact)
+	assert.Empty(t, viewResp.State.Run.PagesURL)
+
+	instance, _, err := pages_service.CreateInstance(t.Context())
+	require.NoError(t, err)
+	_, err = pages_service.RegisterInstanceRootURL(t.Context(), instance.ID, instance.TokenHash, "https://actions-pages.example.test")
+	require.NoError(t, err)
+	require.NoError(t, actions_model.SetRunHasPagesArtifact(t.Context(), repo1.ID, run1.ID))
+	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, run1.ID))
+	resp = user2Session.MakeRequest(t, req, http.StatusOK)
+	viewResp = DecodeJSON(t, resp, &actions_web.ViewResponse{})
+	assert.True(t, viewResp.State.Run.HasPagesArtifact)
+	assert.Equal(t, "https://user2.actions-pages.example.test/actions-route-id-url-1/", viewResp.State.Run.PagesURL)
 
 	// Job view: scoped server-side to the requested job, the other job's summary excluded.
 	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID))

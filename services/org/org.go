@@ -109,7 +109,7 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	return nil
 }
 
-func updateRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Repository, makePrivate bool) error {
+func updateRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Repository, makePrivate bool, pagesUpdated int64) error {
 	if err := repo.LoadOwner(ctx); err != nil {
 		return fmt.Errorf("LoadOwner: %w", err)
 	}
@@ -120,7 +120,7 @@ func updateRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Reposi
 	}
 
 	if makePrivate {
-		if err := pages_service.DisableRepositoryInTransaction(ctx, repo.ID); err != nil {
+		if err := pages_service.DisableRepositoryInTransaction(ctx, repo.ID, pagesUpdated); err != nil {
 			return err
 		}
 		if _, err := db.GetEngine(ctx).Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{
@@ -154,7 +154,7 @@ func updateRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Reposi
 		return fmt.Errorf("getRepositoriesByForkID: %w", err)
 	}
 	for i := range forkRepos {
-		if err := updateRepoForVisibilityChanged(ctx, forkRepos[i], makePrivate); err != nil {
+		if err := updateRepoForVisibilityChanged(ctx, forkRepos[i], makePrivate, pagesUpdated); err != nil {
 			return fmt.Errorf("updateRepoForVisibilityChanged[%s]: %w", forkRepos[i].FullName(), err)
 		}
 	}
@@ -168,11 +168,16 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 
 	oldVisibility := org.Visibility
 	org.Visibility = visibility
-	releasePagesState, err := pages_service.LockLifecycleState(ctx)
-	if err != nil {
-		return err
+	var pagesUpdated int64
+	var releasePagesState func()
+	var err error
+	if visibility == structs.VisibleTypePrivate {
+		pagesUpdated, releasePagesState, err = pages_service.LockLifecycleState(ctx)
+		if err != nil {
+			return err
+		}
+		defer releasePagesState()
 	}
-	defer releasePagesState()
 	// FIXME: If it's a big forks network(forks and sub forks), the database transaction will be too long to fail.
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := user_model.UpdateUserColsNoAutoTime(ctx, org.AsUser(), "visibility"); err != nil {
@@ -186,7 +191,7 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 			return err
 		}
 		for _, repo := range repos {
-			if err := updateRepoForVisibilityChanged(ctx, repo, visibility == structs.VisibleTypePrivate); err != nil {
+			if err := updateRepoForVisibilityChanged(ctx, repo, visibility == structs.VisibleTypePrivate, pagesUpdated); err != nil {
 				return fmt.Errorf("updateRepoForVisibilityChanged: %w", err)
 			}
 		}

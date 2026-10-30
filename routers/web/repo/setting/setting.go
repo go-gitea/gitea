@@ -219,6 +219,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	}
 
 	newRepoName := form.RepoName
+	pathChanged := !strings.EqualFold(repo.LowerName, newRepoName)
 	// Check if repository name has been changed.
 	if !strings.EqualFold(repo.LowerName, newRepoName) {
 		// Close the GitRepo if open
@@ -264,7 +265,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
 
-	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
+	if err := repo_service.UpdateRepository(ctx, repo, repo_service.UpdateRepositoryOptions{PathChanged: pathChanged}); err != nil {
 		ctx.ServerError("UpdateRepository", err)
 		return
 	}
@@ -707,7 +708,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		return
 	}
 	if repoChanged {
-		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, repo_service.UpdateRepositoryOptions{}); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}

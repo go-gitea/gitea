@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"time"
@@ -73,32 +74,43 @@ type actionsOIDCClaims struct {
 
 // CommitActionsArtifact validates the authenticated Actions task and converts
 // its single artifact.tar ZIP member to the common Pages TAR.GZ object.
-func CommitActionsArtifact(ctx context.Context, repoID, taskID int64, req ActionsDeploymentRequest) (*ActionsDeploymentResult, error) {
-	if repoID <= 0 || taskID <= 0 || req.ArtifactID <= 0 || req.PagesBuildVersion == "" || req.OIDCToken == "" {
+func CommitActionsArtifact(ctx context.Context, repoID int64, task *actions_model.ActionTask, req ActionsDeploymentRequest) (*ActionsDeploymentResult, error) {
+	if repoID <= 0 || task == nil || task.ID <= 0 || req.ArtifactID <= 0 || req.PagesBuildVersion == "" || req.OIDCToken == "" {
 		return nil, ErrActionsDeploymentRequest
 	}
 	if req.Preview {
 		return nil, ErrActionsPreview
 	}
-	task, err := actions_model.GetTaskByID(ctx, taskID)
-	if err != nil || task.RepoID != repoID || task.Status != actions_model.StatusRunning {
+	if task.RepoID != repoID || task.Status != actions_model.StatusRunning {
 		return nil, ErrActionsDeploymentAuth
 	}
-	if err := task.LoadJob(ctx); err != nil || task.Job == nil || task.Job.RepoID != repoID {
+	if err := task.LoadJob(ctx); err != nil {
+		return nil, fmt.Errorf("CommitActionsArtifact: load job: %w", err)
+	}
+	if task.Job == nil || task.Job.RepoID != repoID {
 		return nil, ErrActionsDeploymentAuth
 	}
 	if err := task.Job.LoadAttributes(ctx); err != nil {
-		return nil, ErrActionsDeploymentAuth
+		return nil, fmt.Errorf("CommitActionsArtifact: load job attributes: %w", err)
 	}
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil || repo.IsArchived || repo.IsEmpty {
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			return nil, ErrActionsDeploymentAuth
+		}
+		return nil, fmt.Errorf("CommitActionsArtifact: load repository: %w", err)
+	}
+	if repo.IsArchived || repo.IsEmpty {
 		return nil, ErrActionsDeploymentAuth
 	}
 	if err := repo.LoadOwner(ctx); err != nil {
-		return nil, ErrActionsDeploymentAuth
+		return nil, fmt.Errorf("CommitActionsArtifact: load repository owner: %w", err)
 	}
 	perms, err := actions_model.ComputeTaskTokenPermissions(ctx, task, repo)
-	if err != nil || !perms.Pages || !perms.IDToken {
+	if err != nil {
+		return nil, fmt.Errorf("CommitActionsArtifact: compute task permissions: %w", err)
+	}
+	if !perms.Pages || !perms.IDToken {
 		return nil, ErrActionsDeploymentAuth
 	}
 	claims, err := verifyActionsOIDC(ctx, req.OIDCToken, repo, task)
@@ -112,36 +124,43 @@ func CommitActionsArtifact(ctx context.Context, repoID, taskID int64, req Action
 	if err != nil {
 		return nil, err
 	}
-	if !has || site.Deleted || site.SourceType != pages_model.SourceTypeActions {
+	if !has || site.Deleted || site.SourceType != pages_model.PublishSourceArtifact {
 		return nil, ErrSourceChanged
 	}
 	if !actionsRefAllowed(site, claims) {
 		return nil, ErrActionsDeploymentAuth
 	}
 	artifact, err := getPagesArtifactForTask(ctx, task, req.ArtifactID)
-	if err != nil || artifact.CommitSHA != req.PagesBuildVersion {
+	if err != nil {
+		return nil, err
+	}
+	if artifact.CommitSHA != req.PagesBuildVersion {
 		return nil, ErrActionsArtifact
 	}
-	candidate, digest, cleanup, err := convertPagesArtifact(ctx, artifact)
+	candidate, cleanup, err := convertPagesArtifact(artifact)
 	if err != nil {
 		return nil, err
 	}
 	defer cleanup()
 	defer candidate.Close()
-	result, err := CommitContent(ctx, repoID, pages_model.SourceTypeActions, candidate, func(_ context.Context, site *pages_model.Site) error {
-		if !actionsRefAllowed(site, claims) {
-			return ErrActionsDeploymentAuth
-		}
-		return nil
+	result, err := commitContent(ctx, repoID, candidate, contentCommitOptions{
+		Origin: pages_model.VersionOriginActions, RequiredSource: pages_model.PublishSourceArtifact,
+		ActionRunID: task.Job.RunID,
+		ValidateSource: func(_ context.Context, site *pages_model.Site) error {
+			if !actionsRefAllowed(site, claims) {
+				return ErrActionsDeploymentAuth
+			}
+			return nil
+		},
+		AcceptVersion: func(ctx context.Context, _ *pages_model.Version) error {
+			return actions_model.SetRunHasPagesArtifact(ctx, repoID, task.Job.RunID)
+		},
 	})
 	if err != nil {
 		return nil, err
 	}
-	if result.TarGzSHA256 != digest {
-		return nil, errors.New("converted Pages artifact digest changed")
-	}
 	return &ActionsDeploymentResult{
-		Digest: result.TarGzSHA256, PageURL: firstDefaultSiteURL(ctx, repo),
+		Digest: result.Version.TarGzSHA256, PageURL: FirstDefaultSiteURL(ctx, repo),
 	}, nil
 }
 
@@ -158,7 +177,10 @@ func getPagesArtifactForTask(ctx context.Context, task *actions_model.ActionTask
 		return nil, err
 	}
 	artifact, has, err := db.GetByID[actions_model.ActionArtifact](ctx, artifactID)
-	if err != nil || !has {
+	if err != nil {
+		return nil, fmt.Errorf("getPagesArtifactForTask: load artifact: %w", err)
+	}
+	if !has {
 		return nil, ErrActionsArtifact
 	}
 	if artifact.RepoID != task.RepoID || artifact.RunID != task.Job.RunID ||
@@ -174,19 +196,21 @@ func getPagesArtifactForTask(ctx context.Context, task *actions_model.ActionTask
 	return artifact, nil
 }
 
-func convertPagesArtifact(ctx context.Context, artifact *actions_model.ActionArtifact) (*os.File, string, func(), error) {
+func convertPagesArtifact(artifact *actions_model.ActionArtifact) (*os.File, func(), error) {
+	limits := archiveLimits()
+	maxArtifactZipSize := limits.MaxCompressedBytes + 1024*1024
 	object, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("convertPagesArtifact: open Actions artifact: %w", err)
+		return nil, nil, fmt.Errorf("convertPagesArtifact: open Actions artifact: %w", err)
 	}
 	defer object.Close()
 	info, err := storage.ActionsArtifacts.Stat(artifact.StoragePath)
-	if err != nil || info.Size() < 0 || info.Size() > pages_content.DefaultMaxCompressedSize+1024*1024 {
-		return nil, "", nil, ErrActionsArtifact
+	if err != nil || info.Size() < 0 || info.Size() > maxArtifactZipSize {
+		return nil, nil, ErrActionsArtifact
 	}
 	work, cleanup, err := setting.AppDataTempDir("pages").MkdirTempRandom("actions-*")
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, err
 	}
 	complete := false
 	defer func() {
@@ -194,45 +218,44 @@ func convertPagesArtifact(ctx context.Context, artifact *actions_model.ActionArt
 			cleanup()
 		}
 	}()
-	zipPath := work + "/artifact.zip"
+	zipPath := filepath.Join(work, "artifact.zip")
 	zipFile, err := os.OpenFile(zipPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, err
 	}
-	_, copyErr := io.Copy(zipFile, io.LimitReader(object, pages_content.DefaultMaxCompressedSize+1024*1024+1))
+	_, copyErr := io.Copy(zipFile, io.LimitReader(object, maxArtifactZipSize+1))
 	closeErr := zipFile.Close()
 	if copyErr != nil || closeErr != nil {
-		return nil, "", nil, errors.Join(copyErr, closeErr)
+		return nil, nil, errors.Join(copyErr, closeErr)
 	}
 	zipStat, err := os.Stat(zipPath)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, err
 	}
-	if zipStat.Size() > pages_content.DefaultMaxCompressedSize+1024*1024 {
-		return nil, "", nil, pages_content.ErrArchiveTooLarge
+	if zipStat.Size() > maxArtifactZipSize {
+		return nil, nil, pages_content.ErrArchiveTooLarge
 	}
 	zipReader, err := zip.OpenReader(zipPath)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("convertPagesArtifact: read Actions artifact ZIP: %w", err)
+		return nil, nil, fmt.Errorf("convertPagesArtifact: read Actions artifact ZIP: %w", err)
 	}
 	defer zipReader.Close()
 	if len(zipReader.File) != 1 || zipReader.File[0].Name != "artifact.tar" || !zipReader.File[0].FileInfo().Mode().IsRegular() {
-		return nil, "", nil, ErrActionsArtifact
+		return nil, nil, ErrActionsArtifact
 	}
 	entry := zipReader.File[0]
-	limits := pages_content.DefaultLimits()
 	if entry.UncompressedSize64 > uint64(limits.MaxTarBytes) {
-		return nil, "", nil, pages_content.ErrArchiveTooLarge
+		return nil, nil, pages_content.ErrArchiveTooLarge
 	}
 	in, err := entry.Open()
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, err
 	}
 	defer in.Close()
-	candidatePath := work + "/pages.tar.gz"
+	candidatePath := filepath.Join(work, "pages.tar.gz")
 	candidate, err := os.OpenFile(candidatePath, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, err
 	}
 	gz := gzip.NewWriter(candidate)
 	gz.Header.ModTime = time.Unix(0, 0)
@@ -240,27 +263,18 @@ func convertPagesArtifact(ctx context.Context, artifact *actions_model.ActionArt
 	gzCloseErr := gz.Close()
 	if copyErr != nil || gzCloseErr != nil {
 		_ = candidate.Close()
-		return nil, "", nil, errors.Join(copyErr, gzCloseErr)
+		return nil, nil, errors.Join(copyErr, gzCloseErr)
 	}
 	if written != int64(entry.UncompressedSize64) || written > limits.MaxTarBytes {
 		_ = candidate.Close()
-		return nil, "", nil, pages_content.ErrArchiveTooLarge
+		return nil, nil, pages_content.ErrArchiveTooLarge
 	}
 	if _, err := candidate.Seek(0, io.SeekStart); err != nil {
 		_ = candidate.Close()
-		return nil, "", nil, err
-	}
-	manifest, err := pages_content.ValidateArchive(ctx, candidate, limits)
-	if err != nil {
-		_ = candidate.Close()
-		return nil, "", nil, err
-	}
-	if _, err := candidate.Seek(0, io.SeekStart); err != nil {
-		_ = candidate.Close()
-		return nil, "", nil, err
+		return nil, nil, err
 	}
 	complete = true
-	return candidate, manifest.SHA256Hex, cleanup, nil
+	return candidate, cleanup, nil
 }
 
 func verifyActionsOIDC(ctx context.Context, raw string, repo *repo_model.Repository, task *actions_model.ActionTask) (*actionsOIDCClaims, error) {
@@ -292,23 +306,6 @@ func verifyActionsOIDC(ctx context.Context, raw string, repo *repo_model.Reposit
 	return claims, nil
 }
 
-func firstDefaultSiteURL(ctx context.Context, repo *repo_model.Repository) string {
-	instances, err := pages_model.ListInstances(ctx)
-	if err != nil {
-		return ""
-	}
-	for _, instance := range instances {
-		if instance.RootURL == "" {
-			continue
-		}
-		address, err := DefaultSiteURL(instance.RootURL, repo.OwnerName, repo.LowerName)
-		if err == nil {
-			return address
-		}
-	}
-	return ""
-}
-
 // GetActionsDeploymentStatus reports the flat current-content status used by
 // actions/deploy-pages polling. It intentionally has no deployment history.
 func GetActionsDeploymentStatus(ctx context.Context, repoID int64, digest string) (ActionsDeploymentStatus, error) {
@@ -322,7 +319,11 @@ func GetActionsDeploymentStatus(ctx context.Context, repoID int64, digest string
 	if !has || site.Deleted {
 		return "", util.ErrNotExist
 	}
-	if !site.Enabled || site.TarGzSHA256 != digest {
+	version, has, err := pages_model.GetCurrentVersion(ctx, site)
+	if err != nil {
+		return "", err
+	}
+	if !site.Enabled || !has || version.TarGzSHA256 != digest {
 		return ActionsDeploymentStatusCancelled, nil
 	}
 	instances, err := pages_model.ListInstances(ctx)
@@ -331,16 +332,21 @@ func GetActionsDeploymentStatus(ctx context.Context, repoID int64, digest string
 	}
 	serviceCount := 0
 	allPublished := true
+	results, err := pages_model.ListInstanceResultsByRepoID(ctx, repoID)
+	if err != nil {
+		return "", err
+	}
+	resultByInstance := make(map[int64]*pages_model.InstanceResult, len(results))
+	for _, result := range results {
+		resultByInstance[result.InstanceID] = result
+	}
 	for _, instance := range instances {
 		if instance.RootURL == "" {
 			continue
 		}
 		serviceCount++
-		result, has, err := pages_model.GetInstanceResult(ctx, instance.ID, repoID)
-		if err != nil {
-			return "", err
-		}
-		if !has || result.AppliedPagesUpdatedUnixNano != site.PagesUpdatedUnixNano ||
+		result := resultByInstance[instance.ID]
+		if result == nil || result.AppliedPagesUpdatedUnixNano != site.PagesUpdatedUnixNano ||
 			result.AppliedRootUpdatedUnixNano != instance.RootUpdatedUnixNano {
 			allPublished = false
 			continue

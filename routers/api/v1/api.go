@@ -1247,6 +1247,9 @@ func Routes() *web.Router {
 					m.Post("/{digest}/cancel", reqToken(), repo.CancelPagesDeployment)
 				})
 				m.Post("/pages/content", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), repo.UploadPagesContent)
+				m.Get("/pages/versions", reqRepoReader(unit.TypeCode), repo.ListPagesVersions)
+				m.Post("/pages/versions/{id}/restore", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), repo.RestorePagesVersion)
+				m.Delete("/pages/versions/{id}", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), repo.DeletePagesVersion)
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).

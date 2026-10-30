@@ -7,12 +7,12 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
 type pagesSite struct {
-	RepoID               int64  `xorm:"pk"`
 	Deleted              bool   `xorm:"NOT NULL DEFAULT false INDEX(deleted_updated)"`
 	Enabled              bool   `xorm:"NOT NULL DEFAULT false"`
 	SourceType           string `xorm:"VARCHAR(16) NOT NULL DEFAULT '' INDEX(source_type_next)"`
@@ -21,17 +21,30 @@ type pagesSite struct {
 	SourceCommitID       string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 	SourceNextCheckUnix  int64  `xorm:"NOT NULL DEFAULT 0 INDEX(source_type_next)"`
 	SourceErrorCode      string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	TarGzSHA256          string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	CurrentVersionID     int64  `xorm:"NOT NULL DEFAULT 0"`
 	PagesUpdatedUnixNano int64  `xorm:"NOT NULL INDEX(updated_repo) INDEX(deleted_updated)"`
+	RepoID               int64  `xorm:"pk INDEX(updated_repo) INDEX(deleted_updated)"`
 }
 
 func (pagesSite) TableName() string { return "pages_site" }
 
+type pagesVersion struct {
+	ID                int64              `xorm:"pk autoincr"`
+	RepoID            int64              `xorm:"NOT NULL UNIQUE(repo_digest) INDEX"`
+	TarGzSHA256       string             `xorm:"'tar_gz_sha256' CHAR(64) NOT NULL UNIQUE(repo_digest)"`
+	OriginType        string             `xorm:"VARCHAR(16) NOT NULL"`
+	OriginActionRunID int64              `xorm:"NOT NULL DEFAULT 0"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created NOT NULL"`
+}
+
+func (pagesVersion) TableName() string { return "pages_version" }
+
 type pagesInstance struct {
-	ID                  int64  `xorm:"pk autoincr"`
-	RootURL             string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
-	RootUpdatedUnixNano int64  `xorm:"NOT NULL DEFAULT 0"`
-	TokenHash           string `xorm:"VARCHAR(64) NOT NULL UNIQUE"`
+	ID                    int64              `xorm:"pk autoincr"`
+	RootURL               string             `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
+	RootUpdatedUnixNano   int64              `xorm:"NOT NULL DEFAULT 0"`
+	LastCommunicationUnix timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
+	TokenHash             string             `xorm:"VARCHAR(64) NOT NULL UNIQUE"`
 }
 
 func (pagesInstance) TableName() string { return "pages_instance" }
@@ -44,37 +57,45 @@ type pagesDomain struct {
 	State                  string `xorm:"VARCHAR(16) NOT NULL INDEX(repo_state) INDEX(state_repo)"`
 	TXTResult              string `xorm:"VARCHAR(32) NOT NULL"`
 	TXTLastSuccessUnixNano int64  `xorm:"NOT NULL DEFAULT 0"`
-	TXTNextCheckUnix       int64  `xorm:"NOT NULL DEFAULT 0 INDEX(txt_next_check)"`
+	TXTLastCheckUnix       int64  `xorm:"NOT NULL DEFAULT 0 INDEX(txt_last_check)"`
 	CreatedUnixNano        int64  `xorm:"NOT NULL"`
 }
 
 func (pagesDomain) TableName() string { return "pages_domain" }
 
 type pagesInstanceSite struct {
-	InstanceID                      int64  `xorm:"pk INDEX(repo_instance)"`
-	RepoID                          int64  `xorm:"pk INDEX(repo_instance)"`
-	AppliedPagesUpdatedUnixNano     int64  `xorm:"NOT NULL DEFAULT 0"`
-	AppliedRootUpdatedUnixNano      int64  `xorm:"NOT NULL DEFAULT 0"`
-	AppliedTXTPolicyUpdatedUnixNano int64  `xorm:"NOT NULL DEFAULT 0"`
-	ConfigApplied                   bool   `xorm:"NOT NULL DEFAULT false"`
-	ActualTarGzSHA256               string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	DefaultPublished                bool   `xorm:"NOT NULL DEFAULT false"`
-	CustomPublished                 bool   `xorm:"NOT NULL DEFAULT false"`
-	ErrorCode                       string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	InstanceID                   int64  `xorm:"pk INDEX(repo_instance)"`
+	RepoID                       int64  `xorm:"pk INDEX(repo_instance)"`
+	AppliedPagesUpdatedUnixNano  int64  `xorm:"NOT NULL DEFAULT 0"`
+	AppliedRootUpdatedUnixNano   int64  `xorm:"NOT NULL DEFAULT 0"`
+	AppliedRequireGiteaTXTRecord bool   `xorm:"NOT NULL DEFAULT false"`
+	ConfigApplied                bool   `xorm:"NOT NULL DEFAULT false"`
+	ActualTarGzSHA256            string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	DefaultPublished             bool   `xorm:"NOT NULL DEFAULT false"`
+	CustomPublished              bool   `xorm:"NOT NULL DEFAULT false"`
+	ErrorCode                    string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 }
 
 func (pagesInstanceSite) TableName() string { return "pages_instance_site" }
 
-// AddPagesTables creates the four Pages configuration and result tables.
+type actionRun struct {
+	HasPagesArtifact bool `xorm:"NOT NULL DEFAULT false"`
+}
+
+func (actionRun) TableName() string { return "action_run" }
+
+// AddPagesTables creates the Pages tables and Actions run marker.
 func AddPagesTables(_ context.Context, x base.EngineMigration) error {
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
 	},
 		new(pagesSite),
+		new(pagesVersion),
 		new(pagesInstance),
 		new(pagesDomain),
 		new(pagesInstanceSite),
+		new(actionRun),
 	)
 	return err
 }

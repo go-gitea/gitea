@@ -31,7 +31,7 @@ func AddDomain(ctx context.Context, repoID int64, rawHost string) (*pages_model.
 	if dnsNamespacesOverlap(host, setting.AppDomain) {
 		return nil, ErrDomainConflict
 	}
-	token, _ := generateTokenAndHash()
+	token := generateToken()
 	var created *pages_model.Domain
 	err = withDomainLock(ctx, func(ctx context.Context) error {
 		return withStateChange(ctx, func(ctx context.Context, updated int64) error {
@@ -76,17 +76,13 @@ func AddDomain(ctx context.Context, repoID int64, rawHost string) (*pages_model.
 					return ErrDomainBusy
 				}
 			}
-			policyEnabled, _, err := GetTXTVerificationPolicy(ctx)
-			if err != nil {
-				return err
-			}
 			state := pages_model.DomainStatePending
-			if !policyEnabled {
+			if !setting.Pages.RequireGiteaTXTRecord {
 				state = pages_model.DomainStateActive
 				for _, existing := range domains {
 					if existing.State == pages_model.DomainStateActive {
 						existing.State = pages_model.DomainStateReleasing
-						if err := pages_model.UpsertDomain(ctx, existing); err != nil {
+						if err := pages_model.UpdateDomain(ctx, existing); err != nil {
 							return err
 						}
 					}
@@ -94,15 +90,15 @@ func AddDomain(ctx context.Context, repoID int64, rawHost string) (*pages_model.
 			}
 			created = &pages_model.Domain{
 				RepoID: repoID, Host: host, TXTToken: token,
-				State: state, TXTResult: pages_model.TXTResultPending, TXTNextCheckUnix: int64(timeutil.TimeStampNow()),
+				State: state, TXTResult: pages_model.TXTResultPending,
 				CreatedUnixNano: updated,
 			}
-			if err := pages_model.UpsertDomain(ctx, created); err != nil {
+			if err := pages_model.InsertDomain(ctx, created); err != nil {
 				return err
 			}
 			if state == pages_model.DomainStateActive {
 				site.PagesUpdatedUnixNano = updated
-				return pages_model.UpsertSite(ctx, site)
+				return pages_model.UpdateSite(ctx, site)
 			}
 			return nil
 		})
@@ -136,7 +132,7 @@ func RemoveDomain(ctx context.Context, repoID, domainID int64) error {
 				return nil
 			}
 			domain.State = pages_model.DomainStateReleasing
-			if err := pages_model.UpsertDomain(ctx, domain); err != nil {
+			if err := pages_model.UpdateDomain(ctx, domain); err != nil {
 				return err
 			}
 			site, has, err := pages_model.GetSiteByRepoID(ctx, repoID)
@@ -145,7 +141,7 @@ func RemoveDomain(ctx context.Context, repoID, domainID int64) error {
 			}
 			if has {
 				site.PagesUpdatedUnixNano = updated
-				return pages_model.UpsertSite(ctx, site)
+				return pages_model.UpdateSite(ctx, site)
 			}
 			return nil
 		})
@@ -156,19 +152,19 @@ func RemoveDomain(ctx context.Context, repoID, domainID int64) error {
 	return ReleaseConfirmedDomains(ctx, repoID)
 }
 
-// VerifyDueDomains verifies a bounded batch against Gitea's current TXT policy.
+// VerifyDueDomains verifies a bounded batch using the configured TXT requirement.
 func VerifyDueDomains(ctx context.Context, limit int) error {
 	if limit <= 0 || limit > 500 {
 		return errors.New("VerifyDueDomains: invalid batch size")
 	}
-	domains := make([]*pages_model.Domain, 0, limit)
-	if err := db.GetEngine(ctx).Where("state != ? AND txt_next_check_unix <= ?", pages_model.DomainStateReleasing, timeutil.TimeStampNow()).
-		Asc("txt_next_check_unix", "id").Limit(limit).Find(&domains); err != nil {
+	domains, err := listDomainsDueForVerification(ctx, limit)
+	if err != nil {
 		return fmt.Errorf("VerifyDueDomains: query: %w", err)
 	}
+	resolver := pagesTXTResolver()
 	var allErrors error
 	for _, domain := range domains {
-		if err := verifyDomain(ctx, domain.ID); err != nil {
+		if err := verifyDomain(ctx, domain.ID, resolver.LookupTXT); err != nil {
 			log.Warn("Pages TXT check for domain %d: %v", domain.ID, err)
 			allErrors = errors.Join(allErrors, fmt.Errorf("VerifyDueDomains: domain %d: %w", domain.ID, err))
 		}
@@ -176,20 +172,45 @@ func VerifyDueDomains(ctx context.Context, limit int) error {
 	return allErrors
 }
 
-func verifyDomain(ctx context.Context, domainID int64) error {
+func listDomainsDueForVerification(ctx context.Context, limit int) ([]*pages_model.Domain, error) {
+	domains := make([]*pages_model.Domain, 0, limit)
+	query := db.GetEngine(ctx)
+	if setting.Pages.RequireGiteaTXTRecord {
+		cutoff := timeutil.TimeStampNow().AddDuration(-setting.Pages.DomainVerificationInterval)
+		query = query.Where("state != ? AND txt_last_check_unix <= ?", pages_model.DomainStateReleasing, cutoff).Asc("txt_last_check_unix", "id")
+	} else {
+		query = query.Where("state = ?", pages_model.DomainStatePending).Asc("id")
+	}
+	if err := query.Limit(limit).Find(&domains); err != nil {
+		return nil, err
+	}
+	return domains, nil
+}
+
+func pagesTXTResolver() *net.Resolver {
+	if setting.Pages.DNSResolver != "" {
+		dialer := &net.Dialer{Timeout: 5 * time.Second}
+		return &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
+				return dialer.DialContext(ctx, network, setting.Pages.DNSResolver)
+			},
+		}
+	}
+	return net.DefaultResolver
+}
+
+func verifyDomain(ctx context.Context, domainID int64, lookupTXT func(context.Context, string) ([]string, error)) error {
 	domain, has, err := pages_model.GetDomainByID(ctx, domainID)
 	if err != nil || !has || domain.State == pages_model.DomainStateReleasing {
 		return err
 	}
-	enabled, _, err := GetTXTVerificationPolicy(ctx)
-	if err != nil {
-		return err
-	}
+	requireTXT := setting.Pages.RequireGiteaTXTRecord
 	matched, lookupErr := false, error(nil)
-	if enabled {
+	if requireTXT {
 		var records []string
 		lookupCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		records, lookupErr = net.DefaultResolver.LookupTXT(lookupCtx, "_gitea-pages."+domain.Host)
+		records, lookupErr = lookupTXT(lookupCtx, "_gitea-pages."+domain.Host)
 		cancel()
 		matched = slices.Contains(records, domain.TXTToken)
 	}
@@ -204,27 +225,23 @@ func verifyDomain(ctx context.Context, domainID int64) error {
 			if err != nil || !has || site.Deleted {
 				return err
 			}
-			policyNow, policyTime, err := GetTXTVerificationPolicy(ctx)
-			if err != nil {
-				return err
+			oldResult := current.TXTResult
+			oldEffective := domainPublishingEligible(current, requireTXT, updated)
+			wasPending := current.State == pages_model.DomainStatePending
+			if requireTXT {
+				current.TXTLastCheckUnix = int64(timeutil.TimeStampNow())
 			}
-			if policyNow != enabled {
-				current.TXTNextCheckUnix = int64(timeutil.TimeStampNow())
-				return pages_model.UpsertDomain(ctx, current)
-			}
-			oldEffective := domainPublishingEligible(current, enabled, policyTime, updated)
 			switch {
-			case !enabled || matched:
+			case !requireTXT:
+			case matched:
 				current.TXTResult = pages_model.TXTResultValid
 				current.TXTLastSuccessUnixNano = updated
 			case lookupErr != nil && !isTXTRecordAbsent(lookupErr):
 				current.TXTResult = pages_model.TXTResultTemporaryError
 			default:
 				current.TXTResult = pages_model.TXTResultInvalid
-				current.TXTLastSuccessUnixNano = 0
 			}
-			current.TXTNextCheckUnix = int64(timeutil.TimeStampNow().AddDuration(15 * time.Minute))
-			if current.State == pages_model.DomainStatePending && (!enabled || matched) {
+			if current.State == pages_model.DomainStatePending && (!requireTXT || matched) {
 				existing, err := pages_model.ListDomainsByRepoID(ctx, current.RepoID)
 				if err != nil {
 					return err
@@ -232,7 +249,7 @@ func verifyDomain(ctx context.Context, domainID int64) error {
 				for _, old := range existing {
 					if old.ID != current.ID && old.State == pages_model.DomainStateActive {
 						old.State = pages_model.DomainStateReleasing
-						if err := pages_model.UpsertDomain(ctx, old); err != nil {
+						if err := pages_model.UpdateDomain(ctx, old); err != nil {
 							return err
 						}
 					}
@@ -243,12 +260,12 @@ func verifyDomain(ctx context.Context, domainID int64) error {
 			if current.State == pages_model.DomainStatePending && updated-current.CreatedUnixNano >= int64(24*time.Hour) {
 				return pages_model.DeleteDomainByID(ctx, current.ID)
 			}
-			if err := pages_model.UpsertDomain(ctx, current); err != nil {
+			if err := pages_model.UpdateDomain(ctx, current); err != nil {
 				return err
 			}
-			if current.State == pages_model.DomainStateActive && (oldEffective != domainPublishingEligible(current, enabled, policyTime, updated) || domain.State == pages_model.DomainStatePending) {
+			if current.State == pages_model.DomainStateActive && (oldResult != current.TXTResult || oldEffective != domainPublishingEligible(current, requireTXT, updated) || wasPending) {
 				site.PagesUpdatedUnixNano = updated
-				return pages_model.UpsertSite(ctx, site)
+				return pages_model.UpdateSite(ctx, site)
 			}
 			return nil
 		})
@@ -267,18 +284,15 @@ func isTXTRecordAbsent(err error) bool {
 	return errors.As(err, &dnsErr) && dnsErr.IsNotFound
 }
 
-func domainPublishingEligible(domain *pages_model.Domain, enabled bool, policyTime, now int64) bool {
+func domainPublishingEligible(domain *pages_model.Domain, requireTXT bool, now int64) bool {
 	if domain.State != pages_model.DomainStateActive {
 		return false
 	}
-	if !enabled {
+	if !requireTXT {
 		return true
 	}
-	if domain.TXTLastSuccessUnixNano == 0 || domain.TXTLastSuccessUnixNano < policyTime {
+	if domain.TXTLastSuccessUnixNano == 0 || domain.TXTLastSuccessUnixNano > now {
 		return false
 	}
-	if domain.TXTResult == pages_model.TXTResultValid {
-		return true
-	}
-	return domain.TXTResult == pages_model.TXTResultTemporaryError && now-domain.TXTLastSuccessUnixNano < int64(24*time.Hour)
+	return domain.TXTResult == pages_model.TXTResultValid || now-domain.TXTLastSuccessUnixNano < int64(24*time.Hour)
 }

@@ -26,7 +26,15 @@ func getPagesActionsTask(ctx *context.APIContext) (*actions_model.ActionTask, bo
 		return nil, false
 	}
 	task, err := actions_model.GetTaskByID(ctx, taskID)
-	if err != nil || task.RepoID != ctx.Repo.Repository.ID {
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIError(http.StatusUnauthorized, "Pages deployment task does not exist")
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil, false
+	}
+	if task.RepoID != ctx.Repo.Repository.ID {
 		ctx.APIError(http.StatusUnauthorized, "Pages deployment task does not belong to this repository")
 		return nil, false
 	}
@@ -36,12 +44,39 @@ func getPagesActionsTask(ctx *context.APIContext) (*actions_model.ActionTask, bo
 // CreatePagesDeployment accepts the small Actions deploy-pages compatibility
 // request and only returns after the artifact is validated and current.
 func CreatePagesDeployment(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pages/deployments repository repoCreatePagesDeployment
+	// ---
+	// summary: Create a Pages deployment from an Actions artifact
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repository
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/PagesDeploymentOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PagesDeploymentResponse"
+	//   default:
+	//     "$ref": "#/responses/error"
 	task, ok := getPagesActionsTask(ctx)
 	if !ok {
 		return
 	}
 	opt := web.GetForm[*api.PagesDeploymentOption](ctx)
-	result, err := pages_service.CommitActionsArtifact(ctx, ctx.Repo.Repository.ID, task.ID, pages_service.ActionsDeploymentRequest{
+	result, err := pages_service.CommitActionsArtifact(ctx, ctx.Repo.Repository.ID, task, pages_service.ActionsDeploymentRequest{
 		ArtifactID: opt.ArtifactID, PagesBuildVersion: opt.PagesBuildVersion, OIDCToken: opt.OIDCToken, Preview: opt.Preview,
 	})
 	if err != nil {
@@ -71,6 +106,32 @@ func CreatePagesDeployment(ctx *context.APIContext) {
 // GetPagesDeployment reports the actual default-address publication status for
 // the requested digest across all registered Pages instances.
 func GetPagesDeployment(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pages/deployments/{digest} repository repoGetPagesDeployment
+	// ---
+	// summary: Get the publication status of a Pages deployment
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repository
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: digest
+	//   in: path
+	//   description: SHA-256 digest returned when the deployment was created
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PagesDeploymentStatus"
+	//   default:
+	//     "$ref": "#/responses/error"
 	if _, ok := getPagesActionsTask(ctx); !ok {
 		return
 	}
@@ -94,6 +155,30 @@ func GetPagesDeployment(ctx *context.APIContext) {
 // CancelPagesDeployment acknowledges cancellation and never rolls back the
 // current content, because Pages keeps only one flat current state.
 func CancelPagesDeployment(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pages/deployments/{digest}/cancel repository repoCancelPagesDeployment
+	// ---
+	// summary: Stop polling a Pages deployment
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repository
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: digest
+	//   in: path
+	//   description: SHA-256 digest returned when the deployment was created
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: Deployment polling was cancelled
+	//   default:
+	//     "$ref": "#/responses/error"
 	if _, ok := getPagesActionsTask(ctx); !ok {
 		return
 	}

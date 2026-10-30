@@ -622,6 +622,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.Name != nil {
 		newRepoName = *opts.Name
 	}
+	pathChanged := !strings.EqualFold(repo.LowerName, newRepoName)
 	// Check if repository name has been changed and not just a case change
 	if !strings.EqualFold(repo.LowerName, newRepoName) {
 		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
@@ -702,7 +703,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		}
 	}
 
-	if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
+	if err := repo_service.UpdateRepository(ctx, repo, repo_service.UpdateRepositoryOptions{
+		VisibilityChanged: visibilityChanged,
+		PathChanged:       pathChanged,
+	}); err != nil {
 		ctx.APIErrorInternal(err)
 		return err
 	}
