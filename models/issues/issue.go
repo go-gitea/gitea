@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 
 	"gitea.dev/models/db"
 	project_model "gitea.dev/models/project"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // ErrIssueNotExist represents a "IssueNotExist" kind of error.
@@ -121,6 +123,27 @@ type IssueIndex db.ResourceIndex
 func init() {
 	db.RegisterModel(new(Issue))
 	db.RegisterModel(new(IssueIndex))
+}
+
+func sanitizeDatabaseStringContent(s *string) {
+	// postgresql doesn't like "\x00"
+	// this is only a simple workaround for issues like https://github.com/go-gitea/gitea/issues/28890 and https://github.com/go-gitea/gitea/issues/40003
+	*s = strings.ReplaceAll(*s, "\x00", " ")
+}
+
+var (
+	_ xorm.BeforeInsertProcessor = (*Issue)(nil)
+	_ xorm.BeforeUpdateProcessor = (*Issue)(nil)
+)
+
+func (issue *Issue) BeforeInsert() {
+	sanitizeDatabaseStringContent(&issue.Title)
+	sanitizeDatabaseStringContent(&issue.Content)
+}
+
+func (issue *Issue) BeforeUpdate() {
+	sanitizeDatabaseStringContent(&issue.Title)
+	sanitizeDatabaseStringContent(&issue.Content)
 }
 
 // LoadTotalTimes load total tracked time

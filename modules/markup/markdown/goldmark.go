@@ -146,7 +146,6 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
 	reg.Register(KindAttention, r.renderAttention)
-	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 	reg.Register(KindRawHTML, r.renderRawHTML)
 }

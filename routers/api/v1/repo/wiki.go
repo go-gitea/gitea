@@ -45,14 +45,8 @@ func NewWikiPage(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/WikiPage"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
 	wikiName := wiki_service.UserTitleToWebPath("", form.Title)
@@ -117,14 +111,8 @@ func EditWikiPage(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WikiPage"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
 
@@ -227,12 +215,8 @@ func DeleteWikiPage(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 
@@ -275,8 +259,8 @@ func ListWikiPages(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WikiPageList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	wikiRepo, commit := findWikiRepoCommit(ctx)
 	if wikiRepo != nil {
@@ -352,8 +336,8 @@ func GetWikiPage(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WikiPage"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// get requested pagename
 	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
@@ -394,8 +378,8 @@ func ListPageRevisions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WikiCommitList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	wikiRepo, commit := findWikiRepoCommit(ctx)
 	if wikiRepo != nil {
