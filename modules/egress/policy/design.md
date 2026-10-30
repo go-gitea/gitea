@@ -131,7 +131,7 @@ the connection is direct and is always screened — including a direct request t
 
 **Positive**: SSRF protection by default; per-component policies; blocklist override; dial-time DNS rebinding protection; hostname entries never cover restricted targets without an explicit range (`ALLOWED_INTERNAL_RANGES`); IPv6 support; port-level control.
 
-**Negative**: matching logic is complex; operators must understand modes and per-component settings; minor DNS/classification overhead. Cloud metadata endpoints (AWS IMDS, Alibaba) are reachable when a range covering them is configured explicitly (`cgnat`, `169.254.0.0/16`, `fc00::/7`); a startup warning fires when `ALLOWED_INTERNAL_RANGES` overlaps metadata-bearing ranges, and targeted block entries can deny specific metadata IPs (migrations and git only).
+**Negative**: matching logic is complex; operators must understand modes and per-component settings; minor DNS/classification overhead. Cloud metadata endpoints (AWS IMDS, Alibaba) are reachable when a range covering them is configured explicitly (`cgnat`, `169.254.0.0/16`, `fc00::/7`); targeted block entries can deny specific metadata IPs (migrations and git only). Startup validation of `ALLOWED_INTERNAL_RANGES` is a future consideration (item 5).
 
 **Proxy caveat**: when a proxy is configured, the egress policy does not check the target — the dial goes to the proxy and the proxy is expected to enforce restrictions. This is a trust delegation, not enforcement. Direct requests are still screened, so the proxy's own listener is not reachable through a direct request.
 
@@ -145,7 +145,7 @@ the connection is direct and is always screened — including a direct request t
 2. **Metrics** — telemetry for policy violations.
 3. **Audit logging** — log blocked connection attempts (currently only returns errors). Deferred to a next round.
 4. **Admin overrides** — exempt admins from scans. Would require the module to be user-aware, which is linked to per-repository/organization awareness (item 7).
-5. **Cloud metadata spot-check warnings** — at startup, run the well-known metadata IPs (AWS `169.254.169.254` / `fd00:ec2::254`, Alibaba `100.100.100.200`) against the actual policies to check whether they would be allowed; warn if so. (A range-overlap warning is done for `ALLOWED_INTERNAL_RANGES`; probing the policies themselves, and the allowlists, is pending.)
+5. **Startup validation of `ALLOWED_INTERNAL_RANGES`** — currently the setting is parsed silently: invalid entries are dropped without a log line, and no warning fires when a range overlaps cloud metadata endpoints (AWS `169.254.169.254` / `fd00:ec2::254`, Alibaba `100.100.100.200`) or when hostname allow entries gain non-public coverage within the ranges. Future consideration: report dropped entries and warn on metadata overlap and widening at startup, and run the well-known metadata IPs against the actual policies to check whether they would be allowed.
 6. **Proxy configuration warning** — at startup, warn when a proxy is configured alongside egress policies that the policy does not IP-check proxied targets.
 7. **Per-repository/organization overrides** — policies are instance-wide; per-repo/org overrides would be a future extension and would also enable user-aware features (admin exemption, item 4).
 8. **IDN/Unicode entries** — hostname entries must be given as punycode; supporting Unicode entries is a future extension if there's a request for it.

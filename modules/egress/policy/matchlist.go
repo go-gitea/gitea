@@ -434,12 +434,6 @@ func (m *matchList) matchHostEntry(host string) (domainRule, bool) {
 	return domainRule{}, false
 }
 
-// HostnameCount returns the number of hostname entries, all of which may cover non-public
-// targets within the internal ranges
-func (m *matchList) HostnameCount() int {
-	return len(m.patterns)
-}
-
 // matchDomain matches a hostname entry, like CSP source lists, CORS origins and TLS
 // wildcards: a bare entry matches the exact host only, a "*." or "." prefixed entry
 // matches subdomains only, the apex excluded — the two spellings are equivalent.
