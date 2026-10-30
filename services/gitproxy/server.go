@@ -44,9 +44,6 @@ const (
 	halfCloseIdle = 30 * time.Second
 )
 
-// proxyDialer reaches the operator's proxies, which are configuration rather than user input
-var proxyDialer = &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
-
 // copyBuffers beats the reverse proxy's 32 KiB default as it flushes every write, the transport's ReadBufferSize lets a read span chunks
 type copyBuffers struct{}
 
@@ -258,7 +255,7 @@ func (s *server) dialUpstream(ctx context.Context, target string) (net.Conn, err
 	case proxyURL == nil:
 		return s.dial(ctx, "tcp", target)
 	case proxyURL.Scheme == "socks5" || proxyURL.Scheme == "socks5h":
-		dialer, err := proxy.FromURL(proxyURL, proxyDialer)
+		dialer, err := proxy.FromURL(proxyURL, policy.ProxyDialer())
 		if err != nil {
 			return nil, err
 		}
@@ -273,7 +270,7 @@ func (s *server) dialUpstream(ctx context.Context, target string) (net.Conn, err
 }
 
 func (s *server) connectVia(ctx context.Context, proxyURL *url.URL, target string) (net.Conn, error) {
-	conn, err := proxyDialer.DialContext(ctx, "tcp", policy.ProxyDialAddr(proxyURL))
+	conn, err := policy.ProxyDialer().DialContext(ctx, "tcp", policy.ProxyDialAddr(proxyURL))
 	if err != nil {
 		return nil, err
 	}

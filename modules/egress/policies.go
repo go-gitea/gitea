@@ -90,7 +90,7 @@ func NewWebhookPolicy() *policy.Policy {
 		next := selectProxy
 		selectProxy = func(req *http.Request) (*url.URL, error) {
 			u, err := next(req)
-			if err == nil && u == webhookProxy {
+			if err == nil && u != nil && u.String() == webhookProxy.String() { // by value: the env fallback may return an equal URL
 				err = p.CheckHost(req.URL) // the webhook proxy resolves the target, so only its name can be checked
 			}
 			return u, err
