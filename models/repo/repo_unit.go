@@ -223,7 +223,6 @@ type ProjectsConfig struct {
 }
 
 func (cfg *ProjectsConfig) FromDB(bs []byte) error {
-	cfg.ProjectsMode = ProjectsModeAll
 	db.UnmarshalFromDB(bs, cfg)
 	cfg.ProjectsMode = util.IfZero(cfg.ProjectsMode, ProjectsModeAll)
 	return nil
