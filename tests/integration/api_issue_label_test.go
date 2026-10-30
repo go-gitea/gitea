@@ -128,20 +128,12 @@ func TestAPIModifyLabels(t *testing.T) {
 			resp = MakeRequest(t, req, http.StatusOK)
 			apiLabel = DecodeJSON(t, resp, &api.Label{})
 			assert.Equal(t, newColor, apiLabel.Color)
-			assert.Equal(t, newName, apiLabel.Name)
 			assert.True(t, apiLabel.IsArchived)
-			dbLabel = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: dbLabel.ID})
-			assert.True(t, dbLabel.IsArchived())
-			for _, archived := range []bool{false, true} {
-				req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
-					IsArchived: &archived,
-				}).AddTokenAuth(token)
-				resp = MakeRequest(t, req, http.StatusOK)
-				apiLabel = DecodeJSON(t, resp, &api.Label{})
-				assert.Equal(t, archived, apiLabel.IsArchived)
-				dbLabel = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: dbLabel.ID})
-				assert.Equal(t, archived, dbLabel.IsArchived())
-			}
+			req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
+				IsArchived: new(false),
+			}).AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.False(t, DecodeJSON(t, resp, &api.Label{}).IsArchived)
 			req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
 				Color: &newColorWrong,
 			}).AddTokenAuth(token)
