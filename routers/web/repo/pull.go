@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"html"
@@ -680,11 +681,11 @@ func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
 // setSingleCommitNavContext exposes the reviewed commit and its neighbours.
 // The commit list is newest-first while a reviewer walks it oldest-first, so the indexes are mirrored.
 func setSingleCommitNavContext(ctx *context.Context, commits []*git.Commit, commit *git.Commit) {
-	commitID := commit.ID.String()
-	idx := slices.IndexFunc(commits, func(c *git.Commit) bool { return c.ID.String() == commitID })
+	idx := slices.IndexFunc(commits, func(c *git.Commit) bool { return bytes.Equal(c.ID.RawValue(), commit.ID.RawValue()) })
 	if idx < 0 {
 		return
 	}
+
 	ctx.Data["SingleCommit"] = commit
 	ctx.Data["SingleCommitIndex"] = len(commits) - idx
 	ctx.Data["SingleCommitCount"] = len(commits)
@@ -723,13 +724,11 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	headCommitID := prCompareInfo.HeadCommitID
-	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
-	// FIXME: when afterCommitID==headCommitID, isSingleCommit and isShowAllCommits can be both true, which doesn't seem right
 	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
+	isSingleCommit := beforeCommitID == "" && afterCommitID != "" && !isShowAllCommits
 
-	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
-	ctx.Data["CanSubmitReview"] = isShowAllCommits || isSingleCommit // a range has no commit to anchor the review to
+	ctx.Data["CanSubmitReview"] = isShowAllCommits
 
 	// "commits list" is half-open, half-closed: (base, head]
 	// * base commit is not in the list

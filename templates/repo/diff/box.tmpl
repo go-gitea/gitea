@@ -36,7 +36,7 @@
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
 				<div id="diff-commit-select" data-global-init="initDiffCommitSelect" data-merge-base="{{$.CompareInfo.CompareBase}}" data-issuelink="{{$.Issue.Link}}"
-					{{if or $.IsShowingOnlySingleCommit (not $.IsShowingAllCommits)}}data-before-commit="{{$.BeforeCommitID}}" data-after-commit="{{$.AfterCommitID}}"{{end}}
+					{{if not $.IsShowingAllCommits}}data-before-commit="{{$.BeforeCommitID}}" data-after-commit="{{$.AfterCommitID}}"{{end}}
 					data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}"
 					data-text-filter-changes-by-commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
 					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
@@ -51,7 +51,7 @@
 		</div>
 	</div>
 	{{if not .DiffNotAvailable}}
-		{{if and .IsShowingOnlySingleCommit .PageIsPullFiles .SingleCommit}}
+		{{if and .PageIsPullFiles .SingleCommit}}
 			{{template "repo/diff/single_commit_bar" .}}
 		{{else if and (not .IsShowingAllCommits) .PageIsPullFiles}}
 			<div class="ui info message">
