@@ -62,14 +62,14 @@ func TestFindTasksPage(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	page, hasMore, err := FindTasksPage(t.Context(), FindTaskOptions{RunnerID: 987654, ListOptions: db.ListOptions{Page: 1, PageSize: 2}})
+	page, hasMore, err := FindTasksPage(t.Context(), &FindTaskByRunnerOptions{RunnerID: 987654, ListOptions: db.ListOptions{Page: 1, PageSize: 2}})
 	require.NoError(t, err)
 	assert.True(t, hasMore)
 	require.Len(t, page, 2)
 	assert.Equal(t, []int64{tasks[2].ID, tasks[0].ID}, []int64{page[0].ID, page[1].ID})
 	assert.Empty(t, page[1].LogIndexes)
 
-	page, hasMore, err = FindTasksPage(t.Context(), FindTaskOptions{RunnerID: 987654, ListOptions: db.ListOptions{Page: 2, PageSize: 2}})
+	page, hasMore, err = FindTasksPage(t.Context(), &FindTaskByRunnerOptions{RunnerID: 987654, ListOptions: db.ListOptions{Page: 2, PageSize: 2}})
 	require.NoError(t, err)
 	assert.False(t, hasMore)
 	require.Len(t, page, 1)
