@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -184,19 +183,7 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 }
 
 func getActionIssues(ctx *context.Context, accessMode perm.AccessMode) issues_model.IssueList {
-	commaSeparatedIssueIDs := ctx.FormString("issue_ids")
-	if len(commaSeparatedIssueIDs) == 0 {
-		return nil
-	}
-	issueIDs := make([]int64, 0, 10)
-	for stringIssueID := range strings.SplitSeq(commaSeparatedIssueIDs, ",") {
-		issueID, err := strconv.ParseInt(stringIssueID, 10, 64)
-		if err != nil {
-			ctx.ServerError("ParseInt", err)
-			return nil
-		}
-		issueIDs = append(issueIDs, issueID)
-	}
+	issueIDs := ctx.FormStringInt64s("issue_ids")
 	issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
 		ctx.ServerError("GetIssuesByIDs", err)
@@ -207,6 +194,7 @@ func getActionIssues(ctx *context.Context, accessMode perm.AccessMode) issues_mo
 			ctx.NotFound(errors.New("some issue's RepoID is incorrect"))
 			return nil
 		}
+		issue.Repo = ctx.Repo.Repository
 		if !ctx.Repo.Permission.CanAccess(accessMode, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues)) {
 			ctx.NotFound(nil)
 			return nil
