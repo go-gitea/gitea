@@ -30,3 +30,4 @@ jobs:
           RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
           RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg|generate-codemirror-languages)$"]'
           RENOVATE_REPOSITORIES: '["go-gitea/gitea"]'
+          RENOVATE_DOCKER_MAX_PAGES: 10 # https://github.com/renovatebot/renovate/issues/46925
