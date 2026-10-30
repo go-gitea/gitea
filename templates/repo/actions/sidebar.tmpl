@@ -29,6 +29,9 @@
 							{{if .ErrMsg}}
 								<span class="flex-text-inline tw-shrink-0" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
 							{{end}}
+							{{if $.ActionsConfig.IsWorkflowDisabled .EntryName}}
+								<div class="ui red label tw-shrink-0">{{ctx.Locale.Tr "disabled"}}</div>
+							{{end}}
 						</a>
 					{{end}}
 				</div>
