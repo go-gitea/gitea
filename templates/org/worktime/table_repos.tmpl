@@ -8,7 +8,7 @@
 	<tbody>
 		{{range $.WorktimeSumResult}}
 		<tr>
-			<td>{{svg "octicon-repo"}} <a href="{{$.Org.HomeLink}}/{{PathEscape .RepoName}}/issues">{{.RepoName}}</a></td>
+			<td class="tw-break-anywhere">{{svg "octicon-repo"}} <a href="{{$.Org.HomeLink}}/{{PathEscape .RepoName}}/issues">{{.RepoName}}</a></td>
 			<td>{{svg "octicon-clock"}} {{.SumTime | Sec2Hour}}</td>
 		</tr>
 		{{else}}

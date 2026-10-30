@@ -185,6 +185,22 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 }
 
 func TestRepository_parseTagRef(t *testing.T) {
+	signature := `-----BEGIN PGP SIGNATURE-----
+
+aBCGzBAABCgAdFiEEyWRwv/q1Q6IjSv+D4IPOwzt33PoFAmI8jbIACgkQ4IPOwzt3
+3PoRuAv9FVSbPBXvzECubls9KQd7urwEvcfG20Uf79iBwifQJUv+egNQojrs6APT
+T4CdIXeGRpwJZaGTUX9RWnoDO1SLXAWnc82CypWraNwrHq8Go2YeoVu0Iy3vb0EU
+REdob/tXYZecMuP8AjhUR0XfdYaERYAvJ2dYsH/UkFrqDjM3V4kPXWG+R5DCaZiE
+slB5U01i4Dwb/zm/ckzhUGEcOgcnpOKX8SnY5kYRVDY47dl/yJZ1u2XWir3mu60G
+1geIitH7StBddHi/8rz+sJwTfcVaLjn2p59p/Dr9aGbk17GIaKq1j0pZA2lKT0Xt
+f9jDqU+9vCxnKgjSDhrwN69LF2jT47ZFjEMGV/wFPOa1EBxVWpgQ/CfEolBlbUqx
+yVpbxi/6AOK2lmG130e9jEZJcu+WeZUeq851WgKSEkf2d5f/JpwtSTEOlOedu6V6
+kl845zu5oE2nKM4zMQ7XrYQn538I31ps+VGQ0H8R07WrZP8WKUWugL2cU8KmXFwg
+qbHDASXl
+=2yGi
+-----END PGP SIGNATURE-----
+
+`
 	tests := []struct {
 		name string
 
@@ -273,38 +289,8 @@ func TestRepository_parseTagRef(t *testing.T) {
 * add changelog of v1.9.1
 * Update CHANGELOG.md
 
------BEGIN PGP SIGNATURE-----
-
-aBCGzBAABCgAdFiEEyWRwv/q1Q6IjSv+D4IPOwzt33PoFAmI8jbIACgkQ4IPOwzt3
-3PoRuAv9FVSbPBXvzECubls9KQd7urwEvcfG20Uf79iBwifQJUv+egNQojrs6APT
-T4CdIXeGRpwJZaGTUX9RWnoDO1SLXAWnc82CypWraNwrHq8Go2YeoVu0Iy3vb0EU
-REdob/tXYZecMuP8AjhUR0XfdYaERYAvJ2dYsH/UkFrqDjM3V4kPXWG+R5DCaZiE
-slB5U01i4Dwb/zm/ckzhUGEcOgcnpOKX8SnY5kYRVDY47dl/yJZ1u2XWir3mu60G
-1geIitH7StBddHi/8rz+sJwTfcVaLjn2p59p/Dr9aGbk17GIaKq1j0pZA2lKT0Xt
-f9jDqU+9vCxnKgjSDhrwN69LF2jT47ZFjEMGV/wFPOa1EBxVWpgQ/CfEolBlbUqx
-yVpbxi/6AOK2lmG130e9jEZJcu+WeZUeq851WgKSEkf2d5f/JpwtSTEOlOedu6V6
-kl845zu5oE2nKM4zMQ7XrYQn538I31ps+VGQ0H8R07WrZP8WKUWugL2cU8KmXFwg
-qbHDASXl
-=2yGi
------END PGP SIGNATURE-----
-
-`,
-				"contents:signature": `-----BEGIN PGP SIGNATURE-----
-
-aBCGzBAABCgAdFiEEyWRwv/q1Q6IjSv+D4IPOwzt33PoFAmI8jbIACgkQ4IPOwzt3
-3PoRuAv9FVSbPBXvzECubls9KQd7urwEvcfG20Uf79iBwifQJUv+egNQojrs6APT
-T4CdIXeGRpwJZaGTUX9RWnoDO1SLXAWnc82CypWraNwrHq8Go2YeoVu0Iy3vb0EU
-REdob/tXYZecMuP8AjhUR0XfdYaERYAvJ2dYsH/UkFrqDjM3V4kPXWG+R5DCaZiE
-slB5U01i4Dwb/zm/ckzhUGEcOgcnpOKX8SnY5kYRVDY47dl/yJZ1u2XWir3mu60G
-1geIitH7StBddHi/8rz+sJwTfcVaLjn2p59p/Dr9aGbk17GIaKq1j0pZA2lKT0Xt
-f9jDqU+9vCxnKgjSDhrwN69LF2jT47ZFjEMGV/wFPOa1EBxVWpgQ/CfEolBlbUqx
-yVpbxi/6AOK2lmG130e9jEZJcu+WeZUeq851WgKSEkf2d5f/JpwtSTEOlOedu6V6
-kl845zu5oE2nKM4zMQ7XrYQn538I31ps+VGQ0H8R07WrZP8WKUWugL2cU8KmXFwg
-qbHDASXl
-=2yGi
------END PGP SIGNATURE-----
-
-`,
+` + signature,
+				"contents:signature": signature,
 			},
 
 			want: &Tag{
@@ -315,22 +301,7 @@ qbHDASXl
 				Tagger:        parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				CommitMessage: CommitMessage{MessageRaw: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n"},
 				Signature: &CommitSignature{
-					Signature: `-----BEGIN PGP SIGNATURE-----
-
-aBCGzBAABCgAdFiEEyWRwv/q1Q6IjSv+D4IPOwzt33PoFAmI8jbIACgkQ4IPOwzt3
-3PoRuAv9FVSbPBXvzECubls9KQd7urwEvcfG20Uf79iBwifQJUv+egNQojrs6APT
-T4CdIXeGRpwJZaGTUX9RWnoDO1SLXAWnc82CypWraNwrHq8Go2YeoVu0Iy3vb0EU
-REdob/tXYZecMuP8AjhUR0XfdYaERYAvJ2dYsH/UkFrqDjM3V4kPXWG+R5DCaZiE
-slB5U01i4Dwb/zm/ckzhUGEcOgcnpOKX8SnY5kYRVDY47dl/yJZ1u2XWir3mu60G
-1geIitH7StBddHi/8rz+sJwTfcVaLjn2p59p/Dr9aGbk17GIaKq1j0pZA2lKT0Xt
-f9jDqU+9vCxnKgjSDhrwN69LF2jT47ZFjEMGV/wFPOa1EBxVWpgQ/CfEolBlbUqx
-yVpbxi/6AOK2lmG130e9jEZJcu+WeZUeq851WgKSEkf2d5f/JpwtSTEOlOedu6V6
-kl845zu5oE2nKM4zMQ7XrYQn538I31ps+VGQ0H8R07WrZP8WKUWugL2cU8KmXFwg
-qbHDASXl
-=2yGi
------END PGP SIGNATURE-----
-
-`,
+					Signature: signature,
 					Payload: `object 3325fd8a973321fd59455492976c042dde3fd1ca
 type commit
 tag v0.0.1

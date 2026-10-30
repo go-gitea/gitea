@@ -44,19 +44,14 @@ func TestIssueMultipleProjects(t *testing.T) {
 		require.Empty(t, issue1.Projects)
 
 		// assign issue to both projects (each project uses its own default column)
-		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project1.ID})
-		require.NoError(t, err)
-		assert.Nilf(t, issue1.Projects, "Issue's Projects should be nil after IssueAssignOrRemoveProject to ensure it reloads fresh data")
-		err = issue1.LoadProjects(t.Context())
-		require.NoError(t, err)
-		require.Len(t, issue1.Projects, 1)
-
-		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project1.ID, project2.ID})
-		require.NoError(t, err)
-		assert.Nilf(t, issue1.Projects, "Issue's Projects should be nil after IssueAssignOrRemoveProject to ensure it reloads fresh data")
-		err = issue1.LoadProjects(t.Context())
-		require.NoError(t, err)
-		require.Len(t, issue1.Projects, 2)
+		for _, projectIDs := range [][]int64{{project1.ID}, {project1.ID, project2.ID}} {
+			_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, projectIDs)
+			require.NoError(t, err)
+			assert.Nilf(t, issue1.Projects, "Issue's Projects should be nil after IssueAssignOrRemoveProject to ensure it reloads fresh data")
+			err = issue1.LoadProjects(t.Context())
+			require.NoError(t, err)
+			require.Len(t, issue1.Projects, len(projectIDs))
+		}
 		assert.ElementsMatch(t, []int64{project1.ID, project2.ID}, []int64{issue1.Projects[0].ID, issue1.Projects[1].ID}, "Issue should be in both projects")
 
 		// test issue's project column map

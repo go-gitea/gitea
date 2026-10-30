@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/convert"
 )
@@ -432,6 +434,10 @@ func buildApproveAndInsertRun(
 	}
 
 	if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) && !isScopedRun {
+			insertInvalidWorkflowRun(ctx, run, err)
+			return nil
+		}
 		return fmt.Errorf("PrepareRunAndInsert: %w", err)
 	}
 	return nil

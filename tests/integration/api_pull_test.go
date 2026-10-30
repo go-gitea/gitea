@@ -144,6 +144,52 @@ func TestAPIViewPulls(t *testing.T) {
 			}))
 	}
 
+	t.Run("DefaultState", func(t *testing.T) {
+		writeToken := getTokenForLoggedInUser(t, ctx.Session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/3", owner.Name, repo.Name), &api.EditPullRequestOption{
+			State: new(string(api.StateClosed)),
+		}).AddTokenAuth(writeToken)
+		MakeRequest(t, req, http.StatusCreated)
+
+		for query, want := range map[string][]int64{
+			"":             {2, 5},
+			"state=closed": {3},
+			"state=all":    {2, 3, 5},
+		} {
+			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?%s", owner.Name, repo.Name, query).AddTokenAuth(ctx.Token)
+			listed := DecodeJSON(t, ctx.Session.MakeRequest(t, req, http.StatusOK), []*api.PullRequest{})
+			indexes := make([]int64, 0, len(listed))
+			for _, pr := range listed {
+				indexes = append(indexes, pr.Index)
+			}
+			assert.ElementsMatch(t, want, indexes, query)
+		}
+	})
+
+	t.Run("APIViewPullsByBaseHead", func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch2", owner.Name, repo.Name).
+			AddTokenAuth(ctx.Token)
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+
+		pull := DecodeJSON(t, resp, &api.PullRequest{})
+		assert.EqualValues(t, 3, pull.Index)
+		assert.EqualValues(t, 2, pull.ID)
+
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch-not-exist", owner.Name, repo.Name).
+			AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("APICommitPullRequest", func(t *testing.T) {
+		mergedCommitSHA := "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3"
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/commits/%s/pull", owner.Name, repo.Name, mergedCommitSHA).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
+
+		invalidCommitSHA := "abcd1234abcd1234abcd1234abcd1234abcd1234"
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/commits/%s/pull", owner.Name, repo.Name, invalidCommitSHA).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, req, http.StatusNotFound)
+	})
+
 	t.Run("HeadRepoHiddenWhenInaccessible", func(t *testing.T) {
 		session := loginUser(t, "user31")
 		forkToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -171,26 +217,6 @@ func TestAPIViewPulls(t *testing.T) {
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Index: visible.Index})
 		assert.NotNil(t, convert.ToPayloadPullRequest(t.Context(), pr, nil).Head.Repository)
 	})
-}
-
-func TestAPIViewPullsByBaseHead(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-	ctx := NewAPITestContext(t, "user2", repo.Name, auth_model.AccessTokenScopeReadRepository)
-
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch2", owner.Name, repo.Name).
-		AddTokenAuth(ctx.Token)
-	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-
-	pull := DecodeJSON(t, resp, &api.PullRequest{})
-	assert.EqualValues(t, 3, pull.Index)
-	assert.EqualValues(t, 2, pull.ID)
-
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch-not-exist", owner.Name, repo.Name).
-		AddTokenAuth(ctx.Token)
-	ctx.Session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 // TestAPIMergePullWIP ensures that we can't merge a WIP pull request
@@ -609,22 +635,6 @@ func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*t
 			callback(t, files)
 		}
 	}
-}
-
-func TestAPICommitPullRequest(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-	ctx := NewAPITestContext(t, "user2", repo.Name, auth_model.AccessTokenScopeReadRepository)
-
-	mergedCommitSHA := "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3"
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/commits/%s/pull", owner.Name, repo.Name, mergedCommitSHA).AddTokenAuth(ctx.Token)
-	ctx.Session.MakeRequest(t, req, http.StatusOK)
-
-	invalidCommitSHA := "abcd1234abcd1234abcd1234abcd1234abcd1234"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/commits/%s/pull", owner.Name, repo.Name, invalidCommitSHA).AddTokenAuth(ctx.Token)
-	ctx.Session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {

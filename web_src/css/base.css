@@ -108,6 +108,11 @@ samp,
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
+mark {
+  background: var(--color-highlight-bg);
+  color: inherit;
+}
+
 @font-face {
   font-family: gitea-math-book; /* the Book weight shares its family name with the thinner Regular */
   src: local("NewComputerModernMath-Book"), local("NewCMMath-Book");
@@ -454,53 +459,6 @@ a.label,
 
 .ui .migrate a:hover {
   color: var(--color-text) !important;
-}
-
-.color-preview {
-  display: inline-block;
-  margin-left: 0.4em;
-  height: 0.67em;
-  width: 0.67em;
-  border-radius: var(--border-radius);
-}
-
-.attention-icon {
-  margin: 2px 6px 0 0;
-}
-
-blockquote.attention-note {
-  border-left-color: var(--color-info-text);
-}
-strong.attention-note, svg.attention-note {
-  color: var(--color-info-text);
-}
-
-blockquote.attention-tip {
-  border-left-color: var(--color-success-text);
-}
-strong.attention-tip, svg.attention-tip {
-  color: var(--color-success-text);
-}
-
-blockquote.attention-important {
-  border-left-color: var(--color-priority-text);
-}
-strong.attention-important, svg.attention-important {
-  color: var(--color-priority-text);
-}
-
-blockquote.attention-warning {
-  border-left-color: var(--color-warning-text);
-}
-strong.attention-warning, svg.attention-warning {
-  color: var(--color-warning-text);
-}
-
-blockquote.attention-caution {
-  border-left-color: var(--color-error-text);
-}
-strong.attention-caution, svg.attention-caution {
-  color: var(--color-error-text);
 }
 
 /* FIXME: this is a longstanding dirty patch since 2015, it only makes the pages more messy and shouldn't be used */

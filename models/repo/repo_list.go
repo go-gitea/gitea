@@ -760,7 +760,8 @@ func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user
 func PublicRepoUnderPublicOwnerCond() builder.Cond {
 	return builder.And(
 		builder.Eq{"`repository`.is_private": false},
-		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePublic})),
+		builder.Exists(builder.Select("1").From("`user` repo_owner").
+			Where(builder.Expr("repo_owner.id = `repository`.owner_id").And(builder.Eq{"repo_owner.visibility": structs.VisibleTypePublic}))),
 	)
 }
 

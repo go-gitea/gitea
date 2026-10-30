@@ -2872,6 +2872,8 @@
   "projects.type-1.display_name": "Индивидуальный проект",
   "projects.type-2.display_name": "Проект репозитория",
   "projects.type-3.display_name": "Проект организации",
+  "projects.workflows.actions": "Действия",
+  "projects.workflows.none": "Нет",
   "git.filemode.directory": "Каталог",
   "git.filemode.submodule": "Подмодуль",
   "actions.general.token_permissions.mode.restricted": "Ограничено"
