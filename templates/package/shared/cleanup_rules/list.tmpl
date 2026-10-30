@@ -15,9 +15,7 @@
 				</div>
 				<div class="item-main">
 					<div class="item-title">
-						{{if not $.IsOrgArchived}}
 						<a class="item" href="{{$.Link}}/rules/{{.ID}}">{{.Type.Name}}</a>
-						{{end}}
 					</div>
 					<div class="item-body">
 						<i>{{if .Enabled}}{{ctx.Locale.Tr "enabled"}}{{else}}{{ctx.Locale.Tr "disabled"}}{{end}}</i>

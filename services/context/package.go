@@ -61,6 +61,9 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 		errCb(http.StatusInternalServerError, fmt.Sprintf("determineAccessMode: %v", err))
 		return nil
 	}
+	if pkgOwner.IsArchived {
+		accessMode = min(accessMode, perm.AccessModeRead)
+	}
 
 	pkg := &Package{
 		Owner:      pkgOwner,
@@ -154,9 +157,6 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 		}
 		if accessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, pkgOwner, doer) {
 			// 2. If user is unauthorized or no org member, check if org is visible
-			accessMode = perm.AccessModeRead
-		}
-		if pkgOwner.IsArchived && accessMode > perm.AccessModeRead {
 			accessMode = perm.AccessModeRead
 		}
 	} else {

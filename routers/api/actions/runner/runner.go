@@ -59,8 +59,10 @@ func (s *Service) Register(
 	}
 
 	if runnerToken.OwnerID > 0 {
-		if _, err := user_model.GetUserByID(ctx, runnerToken.OwnerID); err != nil {
+		if owner, err := user_model.GetUserByID(ctx, runnerToken.OwnerID); err != nil {
 			return nil, errors.New("owner of the token not found")
+		} else if owner.IsArchived {
+			return nil, errors.New("owner of the token is archived")
 		}
 	}
 

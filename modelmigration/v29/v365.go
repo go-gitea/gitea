@@ -11,7 +11,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddIsArchivedToUser(_ context.Context, x base.EngineMigration) error {
+func AddIsArchivedToUser(_ctx context.Context, x base.EngineMigration) error {
 	type User struct {
 		IsArchived bool `xorm:"NOT NULL DEFAULT false"`
 	}

@@ -57,6 +57,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	}
 
 	oldOwnerName := repo.OwnerName
+	wasArchived := repo.IsArchived
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
@@ -86,6 +87,9 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	}
 	releaser()
 
+	if !wasArchived && repo.IsArchived {
+		AfterRepoArchived(ctx, repo)
+	}
 	notify_service.TransferRepository(ctx, doer, repo, oldOwnerName)
 
 	return nil
@@ -270,17 +274,15 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	// read after the count update locked the new owner row, see createRepositoryInDB
-	archiveRepo := false
 	if newOwner.IsOrganization() && !repo.IsArchived {
-		if archiveRepo, err = user_model.IsUserArchived(ctx, newOwner.ID); err != nil {
+		if archived, err := user_model.IsUserArchived(ctx, newOwner.ID); err != nil {
 			return err
-		}
-	}
-	if archiveRepo && repo.IsMirror {
-		return ErrOrgArchived
-	} else if archiveRepo {
-		if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
-			return fmt.Errorf("archive repo: %w", err)
+		} else if archived && repo.IsMirror {
+			return ErrOrgArchived
+		} else if archived {
+			if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
+				return fmt.Errorf("archive repo: %w", err)
+			}
 		}
 	}
 
@@ -375,9 +377,6 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 
 	for _, team := range teams {
 		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, newRepo, "team", team.Name)
-	}
-	if archiveRepo {
-		AfterRepoArchived(ctx, newRepo)
 	}
 
 	return nil
@@ -474,6 +473,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 
 	var isDirectTransfer bool
 	oldOwnerName := repo.OwnerName
+	wasArchived := repo.IsArchived
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Admin is always allowed to transfer || user transfer repo back to his account,
@@ -522,6 +522,9 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	if isDirectTransfer {
+		if !wasArchived && repo.IsArchived {
+			AfterRepoArchived(ctx, repo)
+		}
 		notify_service.TransferRepository(ctx, doer, repo, oldOwnerName)
 	} else {
 		// notify users who are able to accept / reject transfer

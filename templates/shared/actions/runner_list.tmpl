@@ -42,7 +42,7 @@
 			{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.runner_kind")}}
 		</form>
 	</div>
-	{{if and .AllowBulkActions (not $.IsOrgArchived)}}
+	{{if .AllowBulkActions}}
 	<div class="ui attached segment tw-hidden" data-global-init="initRunnerBulkToolbar">
 		<form action="{{$.Link}}/bulk" method="post" class="form-fetch-action">
 			<input type="hidden" name="ids">
@@ -61,7 +61,7 @@
 		<table class="ui very basic table unstackable">
 			<thead>
 				<tr>
-					{{if and .AllowBulkActions (not $.IsOrgArchived)}}
+					{{if .AllowBulkActions}}
 					<th class="tw-w-8"><div class="ui checkbox tw-flex"><input type="checkbox" class="runner-bulk-select-all" aria-label="{{ctx.Locale.Tr "admin.notices.select_all"}}"></div></th>
 					{{end}}
 					<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
@@ -86,7 +86,7 @@
 			<tbody>
 				{{range .Runners}}
 					<tr>
-						{{if and $.AllowBulkActions (not $.IsOrgArchived)}}
+						{{if $.AllowBulkActions}}
 						<td><div class="ui checkbox tw-flex"><input type="checkbox" class="runner-bulk-select" data-runner-id="{{.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{.Name}}"></div></td>
 						{{end}}
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
@@ -102,7 +102,7 @@
 						</td>
 						<td>{{if .LastOnline}}{{DateUtils.TimeSince .LastOnline}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 						<td>
-							{{if and (.EditableInContext $.RunnerOwnerID $.RunnerRepoID) (not $.IsOrgArchived)}}
+							{{if .EditableInContext $.RunnerOwnerID $.RunnerRepoID}}
 								<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
 							{{end}}
 						</td>

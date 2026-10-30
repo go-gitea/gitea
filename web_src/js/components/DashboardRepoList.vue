@@ -68,7 +68,6 @@ const pageDataDefaults = {
   organizations: [] as Array<{name: string, full_name: string, num_repos: number, org_visibility: string, is_archived: boolean}>,
   isOrganization: true,
   canCreateOrganization: false,
-  canCreateRepo: true,
   organizationsTotalCount: 0,
   organizationId: 0,
   isOrgArchived: false,
@@ -112,7 +111,7 @@ const pageDataDefaults = {
 };
 
 const {
-  subUrl, organizations, isOrganization, canCreateOrganization, canCreateRepo, organizationsTotalCount, organizationId, isOrgArchived,
+  subUrl, organizations, isOrganization, canCreateOrganization, organizationsTotalCount, organizationId, isOrgArchived,
   searchLimit, uid, teamId, isMirrorsEnabled,
   textNoOrg, textNoRepo, textRepository, textOrganization, textMyRepos, textNewRepo, textSearchRepos,
   textFilter, textShowArchived, textShowPrivate,
@@ -431,7 +430,7 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
           {{ textMyRepos }}
           <span v-if="reposTotalCount" class="ui grey label tw-ml-2">{{ reposTotalCount }}</span>
         </div>
-        <a v-if="canCreateRepo" class="tw-flex tw-items-center muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
+        <a v-if="!isOrgArchived" class="tw-flex tw-items-center muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>

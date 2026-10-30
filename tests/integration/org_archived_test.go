@@ -54,7 +54,7 @@ func TestArchivedOrg(t *testing.T) {
 	require.NoError(t, err)
 	session.MakeRequest(t, NewRequest(t, "POST", "/org/org3/settings/archive?archive=true"), http.StatusOK)
 	assert.True(t, unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).IsArchived)
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).IsArchived)
 
 	t.Run("CreateAndTransferIn", func(t *testing.T) {
 		req := NewRequestWithValues(t, "POST", "/user27/template1/fork", map[string]string{"uid": "3", "repo_name": "forked"})
@@ -68,14 +68,14 @@ func TestArchivedOrg(t *testing.T) {
 
 		req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/transfer", &api.TransferRepoOption{NewOwner: "org3"}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusAccepted)
-		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, OwnerID: 3, IsArchived: true})
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, OwnerID: 3}).IsArchived)
 	})
 
 	t.Run("RepoUnarchiveBlocked", func(t *testing.T) {
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org3/repo3", &api.EditRepoOption{Archived: new(false)}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/org3/repo3/settings", map[string]string{"action": "unarchive"}), http.StatusSeeOther)
-		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).IsArchived)
 
 		resp := session.MakeRequest(t, NewRequest(t, "GET", "/org3/repo3/settings"), http.StatusOK)
 		assert.True(t, NewHTMLParser(t, resp.Body).Find(`button[data-modal="#archive-repo-modal"]`).HasClass("disabled"))
@@ -108,6 +108,7 @@ func TestArchivedOrg(t *testing.T) {
 
 		MakeRequest(t, NewRequestWithBody(t, "PUT", "/api/packages/org3/generic/pkg/1.0.1/file.bin", strings.NewReader("b")).AddBasicAuth("user2"), http.StatusUnauthorized)
 		MakeRequest(t, NewRequest(t, "DELETE", pkgURL).AddBasicAuth("user2"), http.StatusUnauthorized)
+		MakeRequest(t, NewRequest(t, "DELETE", pkgURL).AddBasicAuth("user1"), http.StatusUnauthorized)
 		MakeRequest(t, NewRequest(t, "GET", pkgURL).AddBasicAuth("user2"), http.StatusOK)
 
 		resp := session.MakeRequest(t, NewRequest(t, "GET", "/org/org3/settings"), http.StatusOK)
@@ -139,5 +140,5 @@ func TestArchivedOrg(t *testing.T) {
 	req = NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &api.EditOrgOption{Archived: new(false)}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 	assert.False(t, unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).IsArchived)
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).IsArchived)
 }
