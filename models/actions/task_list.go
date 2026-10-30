@@ -71,10 +71,8 @@ func (tasks TaskList) LoadAttributes(ctx context.Context) error {
 
 type FindTaskOptions struct {
 	db.ListOptions
-	RepoID        int64
-	JobID         int64
-	OwnerID       int64
-	CommitSHA     string
+	RepoID int64
+
 	Status        Status
 	UpdatedBefore timeutil.TimeStamp
 	StartedBefore timeutil.TimeStamp
@@ -85,15 +83,6 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
-	if opts.JobID > 0 {
-		cond = cond.And(builder.Eq{"job_id": opts.JobID})
-	}
-	if opts.OwnerID > 0 {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
-	}
-	if opts.CommitSHA != "" {
-		cond = cond.And(builder.Eq{"commit_sha": opts.CommitSHA})
 	}
 	if opts.Status > StatusUnknown {
 		cond = cond.And(builder.Eq{"status": opts.Status})
