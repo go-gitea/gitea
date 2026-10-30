@@ -4,8 +4,8 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -18,192 +18,37 @@ import (
 func TestPermissionsAPI(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	t.Run("TokenNeeded", testTokenNeeded)
-	t.Run("WithOwnerUser", testWithOwnerUser)
-	t.Run("CanWriteUser", testCanWriteUser)
-	t.Run("AdminUser", testAdminUser)
-	t.Run("AdminCanNotCreateRepo", testAdminCanNotCreateRepo)
-	t.Run("CanReadUser", testCanReadUser)
-	t.Run("UnknownUser", testUnknownUser)
-	t.Run("UnknownOrganization", testUnknownOrganization)
-	t.Run("HiddenMemberPermissionsForbidden", testHiddenMemberPermissionsForbidden)
-	t.Run("PrivateOrgPermissionsNotFound", testPrivateOrgPermissionsNotFound)
-	t.Run("ConcealedMemberPermissionsHidden", testConcealedMemberPermissionsHidden)
-}
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/user1/orgs/org6/permissions"), http.StatusUnauthorized)
 
-type apiUserOrgPermTestCase struct {
-	LoginUser                       string
-	User                            string
-	Organization                    string
-	ExpectedOrganizationPermissions api.OrganizationPermissions
-}
+	requestPermissions := func(t *testing.T, doer, username, orgName string, expectedStatus int) *httptest.ResponseRecorder {
+		token := getUserToken(t, doer, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
+		req := NewRequestf(t, "GET", "/api/v1/users/%s/orgs/%s/permissions", username, orgName).AddTokenAuth(token)
+		return MakeRequest(t, req, expectedStatus)
+	}
 
-func testTokenNeeded(t *testing.T) {
-	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/org6/permissions")
-	MakeRequest(t, req, http.StatusUnauthorized)
-}
+	resp := requestPermissions(t, "user1", "unknown", "org25", http.StatusNotFound)
+	assert.Equal(t, "user redirect does not exist [name: unknown]", DecodeJSON(t, resp, &api.APIError{}).Message)
+	requestPermissions(t, "user1", "user1", "unknown", http.StatusNotFound)
+	requestPermissions(t, "user8", "user5", "privated_org", http.StatusNotFound)
 
-func sampleTest(t *testing.T, auoptc apiUserOrgPermTestCase) {
-	session := loginUser(t, auoptc.LoginUser)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
-
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/orgs/%s/permissions", auoptc.User, auoptc.Organization)).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	apiOP := DecodeJSON(t, resp, &api.OrganizationPermissions{})
-	assert.Equal(t, auoptc.ExpectedOrganizationPermissions.IsOwner, apiOP.IsOwner)
-	assert.Equal(t, auoptc.ExpectedOrganizationPermissions.IsAdmin, apiOP.IsAdmin)
-	assert.Equal(t, auoptc.ExpectedOrganizationPermissions.CanWrite, apiOP.CanWrite)
-	assert.Equal(t, auoptc.ExpectedOrganizationPermissions.CanRead, apiOP.CanRead)
-	assert.Equal(t, auoptc.ExpectedOrganizationPermissions.CanCreateRepository, apiOP.CanCreateRepository)
-}
-
-func testWithOwnerUser(t *testing.T) {
-	sampleTest(t, apiUserOrgPermTestCase{
-		LoginUser:    "user2",
-		User:         "user2",
-		Organization: "org3",
-		ExpectedOrganizationPermissions: api.OrganizationPermissions{
-			IsOwner:             true,
-			IsAdmin:             true,
-			CanWrite:            true,
-			CanRead:             true,
-			CanCreateRepository: true,
-		},
-	})
-}
-
-func testCanWriteUser(t *testing.T) {
-	sampleTest(t, apiUserOrgPermTestCase{
-		LoginUser:    "user4",
-		User:         "user4",
-		Organization: "org3",
-		ExpectedOrganizationPermissions: api.OrganizationPermissions{
-			IsOwner:             false,
-			IsAdmin:             false,
-			CanWrite:            true,
-			CanRead:             true,
-			CanCreateRepository: false,
-		},
-	})
-}
-
-func testAdminUser(t *testing.T) {
-	sampleTest(t, apiUserOrgPermTestCase{
-		LoginUser:    "user1",
-		User:         "user28",
-		Organization: "org3",
-		ExpectedOrganizationPermissions: api.OrganizationPermissions{
-			IsOwner:             false,
-			IsAdmin:             true,
-			CanWrite:            true,
-			CanRead:             true,
-			CanCreateRepository: true,
-		},
-	})
-}
-
-func testAdminCanNotCreateRepo(t *testing.T) {
-	sampleTest(t, apiUserOrgPermTestCase{
-		LoginUser:    "user1",
-		User:         "user28",
-		Organization: "org6",
-		ExpectedOrganizationPermissions: api.OrganizationPermissions{
-			IsOwner:             false,
-			IsAdmin:             true,
-			CanWrite:            true,
-			CanRead:             true,
-			CanCreateRepository: false,
-		},
-	})
-}
-
-func testCanReadUser(t *testing.T) {
-	sampleTest(t, apiUserOrgPermTestCase{
-		LoginUser:    "user1",
-		User:         "user24",
-		Organization: "org25",
-		ExpectedOrganizationPermissions: api.OrganizationPermissions{
-			IsOwner:             false,
-			IsAdmin:             false,
-			CanWrite:            false,
-			CanRead:             true,
-			CanCreateRepository: false,
-		},
-	})
-}
-
-func testUnknownUser(t *testing.T) {
-	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
-
-	req := NewRequest(t, "GET", "/api/v1/users/unknown/orgs/org25/permissions").
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusNotFound)
-
-	apiError := DecodeJSON(t, resp, &api.APIError{})
-	assert.Equal(t, "user redirect does not exist [name: unknown]", apiError.Message)
-}
-
-func testUnknownOrganization(t *testing.T) {
-	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
-
-	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/unknown/permissions").
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-}
-
-func testHiddenMemberPermissionsForbidden(t *testing.T) {
-	session := loginUser(t, "user8")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
-
-	req := NewRequest(t, "GET", "/api/v1/users/user5/orgs/privated_org/permissions").
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-
-	adminSession := loginUser(t, "user1")
-	adminToken := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
-
-	adminReq := NewRequest(t, "GET", "/api/v1/users/user5/orgs/privated_org/permissions").
-		AddTokenAuth(adminToken)
-	resp := MakeRequest(t, adminReq, http.StatusOK)
-
-	apiOP := DecodeJSON(t, resp, &api.OrganizationPermissions{})
-	assert.Equal(t, &api.OrganizationPermissions{
-		IsOwner:             false,
-		IsAdmin:             false,
-		CanWrite:            true,
-		CanRead:             true,
-		CanCreateRepository: true,
-	}, apiOP)
-}
-
-func testPrivateOrgPermissionsNotFound(t *testing.T) {
-	session := loginUser(t, "user8")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
-
-	req := NewRequest(t, "GET", "/api/v1/users/user5/orgs/privated_org/permissions").
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-}
-
-func testConcealedMemberPermissionsHidden(t *testing.T) {
-	// user4 is a concealed member of the public org3, user8 is not a member
-	sampleTest(t, apiUserOrgPermTestCase{
-		LoginUser:                       "user8",
-		User:                            "user4",
-		Organization:                    "org3",
-		ExpectedOrganizationPermissions: api.OrganizationPermissions{},
-	})
-	sampleTest(t, apiUserOrgPermTestCase{
-		LoginUser:    "user2",
-		User:         "user4",
-		Organization: "org3",
-		ExpectedOrganizationPermissions: api.OrganizationPermissions{
-			CanWrite: true,
-			CanRead:  true,
-		},
-	})
+	for _, testCase := range []struct {
+		name, doer, username, orgName string
+		expected                      api.OrganizationPermissions
+	}{
+		{"Owner", "user2", "user2", "org3", api.OrganizationPermissions{IsOwner: true, IsAdmin: true, CanWrite: true, CanRead: true, CanCreateRepository: true}},
+		{"SelfConcealed", "user4", "user4", "org3", api.OrganizationPermissions{CanWrite: true, CanRead: true}},
+		{"MemberSeesConcealed", "user2", "user4", "org3", api.OrganizationPermissions{CanWrite: true, CanRead: true}},
+		{"OutsiderConcealed", "user8", "user4", "org3", api.OrganizationPermissions{}},
+		{"OutsiderPublic", "user8", "user28", "org3", api.OrganizationPermissions{}},
+		{"RestrictedMemberConcealedNonTeammate", "user29", "user18", "org17", api.OrganizationPermissions{}},
+		{"SiteAdmin", "user1", "user28", "org3", api.OrganizationPermissions{IsAdmin: true, CanWrite: true, CanRead: true, CanCreateRepository: true}},
+		{"SiteAdminCanNotCreateRepo", "user1", "user28", "org6", api.OrganizationPermissions{IsAdmin: true, CanWrite: true, CanRead: true}},
+		{"SiteAdminCanRead", "user1", "user24", "org25", api.OrganizationPermissions{CanRead: true}},
+		{"SiteAdminPrivateOrgConcealed", "user1", "user5", "privated_org", api.OrganizationPermissions{CanWrite: true, CanRead: true, CanCreateRepository: true}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			resp := requestPermissions(t, testCase.doer, testCase.username, testCase.orgName, http.StatusOK)
+			assert.Equal(t, testCase.expected, *DecodeJSON(t, resp, &api.OrganizationPermissions{}))
+		})
+	}
 }
