@@ -42,13 +42,13 @@ func testPullDiffSingleCommitBar(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 
-	bar := doc.Find(".single-commit-bar")
+	bar := doc.Find("[data-commit-single-index]")
 	require.Equal(t, 1, bar.Length())
 	barText := bar.Text()
 	assert.Contains(t, barText, "test 3")          // commit message
 	assert.Contains(t, barText, "Sebastian Sauer") // author
-	assert.Equal(t, "3", bar.AttrOr("data-commit-index", ""))
-	assert.Equal(t, "10", bar.AttrOr("data-commit-count", ""))
+	assert.Equal(t, "3", bar.AttrOr("data-commit-single-index", ""))
+	assert.Equal(t, "10", bar.AttrOr("data-commit-total-count", ""))
 
 	assert.Contains(t, bar.Find(".js-previous-commit-link").AttrOr("href", ""), "/pulls/1/commits/96cef4a7b72b3c208340ae6f0cf55a93e9077c93")
 	assert.Contains(t, bar.Find(".js-next-commit-link").AttrOr("href", ""), "/pulls/1/commits/23576dd018294e476c06e569b6b0f170d0558705")
@@ -68,8 +68,8 @@ func testPullDiffSingleCommitBar(t *testing.T) {
 	// the oldest commit has nothing before it
 	req = NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/4ca8bcaf27e28504df7bf996819665986b01c847")
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	bar = NewHTMLParser(t, resp.Body).Find(".single-commit-bar")
-	assert.Equal(t, "1", bar.AttrOr("data-commit-index", ""))
+	bar = NewHTMLParser(t, resp.Body).Find("[data-commit-single-index]")
+	assert.Equal(t, "1", bar.AttrOr("data-commit-single-index", ""))
 	assert.True(t, bar.Find(".js-previous-commit-link").HasClass("disabled"))
 	assert.False(t, bar.Find(".js-next-commit-link").HasClass("disabled"))
 }
