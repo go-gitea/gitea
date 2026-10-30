@@ -107,6 +107,7 @@ type bitbucketPullRequest struct {
 	Participants []bitbucketParticipant `json:"participants"`
 	Created      time.Time              `json:"created_on"`
 	Updated      time.Time              `json:"updated_on"`
+	ClosedOn     time.Time              `json:"closed_on"` // zero while open; updated_on also moves on later activity
 }
 
 type bitbucketComment struct {
@@ -341,6 +342,7 @@ func (b *BitbucketDownloader) GetPullRequests(ctx context.Context, page, perPage
 	for _, pr := range resp.Values {
 		state := util.Iif(pr.State == "OPEN", "open", "closed")
 		merged := pr.State == "MERGED"
+		closedTime := cmp.Or(pr.ClosedOn, pr.Updated)
 		headOwner, headRepo, _ := strings.Cut(pr.Source.Repository.FullName, "/")
 		baseOwner, baseRepo, _ := strings.Cut(pr.Destination.Repository.FullName, "/")
 		pullRequests = append(pullRequests, &base.PullRequest{
@@ -353,9 +355,9 @@ func (b *BitbucketDownloader) GetPullRequests(ctx context.Context, page, perPage
 			Created:        pr.Created,
 			Updated:        pr.Updated,
 			IsDraft:        pr.Draft,
-			Closed:         util.Iif(state == "closed", &pr.Updated, nil),
+			Closed:         util.Iif(state == "closed", &closedTime, nil),
 			Merged:         merged,
-			MergedTime:     util.Iif(merged, &pr.Updated, nil),
+			MergedTime:     util.Iif(merged, &closedTime, nil),
 			MergeCommitSHA: pr.MergeCommit.Hash,
 			Head: base.PullRequestBranch{
 				CloneURL:  util.Iif(headOwner != "" && headRepo != "", bitbucketCloneURL(headOwner, headRepo), ""),

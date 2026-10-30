@@ -144,3 +144,18 @@ func TestBitbucketDownloader(t *testing.T) {
 	_, err = (&BitbucketDownloaderFactory{}).New(t.Context(), base.MigrateOptions{CloneAddr: "https://git.example.com/w/r.git"})
 	assert.ErrorContains(t, err, "invalid Bitbucket Cloud URL")
 }
+
+func TestBitbucketPullRequestClosedTime(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"values":[{"id":1,"state":"MERGED","created_on":"2024-01-01T00:00:00Z","updated_on":"2024-02-01T00:00:00Z","closed_on":"2024-01-05T00:00:00Z"},
+			{"id":2,"state":"DECLINED","created_on":"2024-01-01T00:00:00Z","updated_on":"2024-02-01T00:00:00Z"}]}`))
+	}))
+	defer server.Close()
+
+	prs, _, err := NewBitbucketDownloader(server.URL+"/2.0", "w", "r", "").GetPullRequests(t.Context(), 1, 10)
+	require.NoError(t, err)
+	require.Len(t, prs, 2)
+	assert.Equal(t, time.Date(2024, 1, 5, 0, 0, 0, 0, time.UTC), *prs[0].MergedTime)
+	assert.Equal(t, *prs[0].MergedTime, *prs[0].Closed)
+	assert.Equal(t, time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC), *prs[1].Closed) // falls back to updated_on
+}
