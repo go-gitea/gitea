@@ -904,46 +904,26 @@ func EditBranchProtection(ctx *context.APIContext) {
 	pushDeployKeys := protectBranch.HasDeployKeyPush()
 	forcePushDeployKeys := protectBranch.HasDeployKeyForcePush()
 	if form.EnablePush != nil {
-		if !*form.EnablePush {
-			protectBranch.CanPush = false
-			protectBranch.EnableWhitelist = false
-			pushDeployKeys = false
-		} else {
-			protectBranch.CanPush = true
-			if form.EnablePushWhitelist != nil {
-				if !*form.EnablePushWhitelist {
-					protectBranch.EnableWhitelist = false
-					pushDeployKeys = false
-				} else {
-					protectBranch.EnableWhitelist = true
-					if form.PushWhitelistDeployKeys != nil {
-						pushDeployKeys = *form.PushWhitelistDeployKeys
-					}
-				}
-			}
-		}
+		protectBranch.CanPush = *form.EnablePush
 	}
+	if form.EnablePushWhitelist != nil {
+		protectBranch.EnableWhitelist = *form.EnablePushWhitelist
+	}
+	if form.PushWhitelistDeployKeys != nil {
+		pushDeployKeys = *form.PushWhitelistDeployKeys
+	}
+	protectBranch.EnableWhitelist = protectBranch.CanPush && protectBranch.EnableWhitelist
 
 	if form.EnableForcePush != nil {
-		if !*form.EnableForcePush {
-			protectBranch.CanForcePush = false
-			protectBranch.EnableForcePushAllowlist = false
-			forcePushDeployKeys = false
-		} else {
-			protectBranch.CanForcePush = true
-			if form.EnableForcePushAllowlist != nil {
-				if !*form.EnableForcePushAllowlist {
-					protectBranch.EnableForcePushAllowlist = false
-					forcePushDeployKeys = false
-				} else {
-					protectBranch.EnableForcePushAllowlist = true
-					if form.ForcePushAllowlistDeployKeys != nil {
-						forcePushDeployKeys = *form.ForcePushAllowlistDeployKeys
-					}
-				}
-			}
-		}
+		protectBranch.CanForcePush = *form.EnableForcePush
 	}
+	if form.EnableForcePushAllowlist != nil {
+		protectBranch.EnableForcePushAllowlist = *form.EnableForcePushAllowlist
+	}
+	if form.ForcePushAllowlistDeployKeys != nil {
+		forcePushDeployKeys = *form.ForcePushAllowlistDeployKeys
+	}
+	protectBranch.EnableForcePushAllowlist = protectBranch.CanForcePush && protectBranch.EnableForcePushAllowlist
 
 	if form.EnableDeletion != nil {
 		protectBranch.CanDelete = *form.EnableDeletion
@@ -1038,8 +1018,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	if form.ForcePushAllowlistUsernames != nil && form.ForcePushAllowlistDeployKeys == nil && slices.Contains(forcePushAllowlistUsers, user_model.DeployKeyUserID) {
 		forcePushDeployKeys = true
 	}
-	whitelistUsers = legacySetDeployKeyAllowlist(whitelistUsers, pushDeployKeys)
-	forcePushAllowlistUsers = legacySetDeployKeyAllowlist(forcePushAllowlistUsers, forcePushDeployKeys)
+	whitelistUsers = legacySetDeployKeyAllowlist(whitelistUsers, protectBranch.EnableWhitelist && pushDeployKeys)
+	forcePushAllowlistUsers = legacySetDeployKeyAllowlist(forcePushAllowlistUsers, protectBranch.EnableForcePushAllowlist && forcePushDeployKeys)
 
 	var whitelistTeams, forcePushAllowlistTeams, deletionAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
 	if repo.Owner.IsOrganization() {

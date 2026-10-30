@@ -517,8 +517,7 @@ func TestAPIBranchProtectionDeployKeyAllowlists(t *testing.T) {
 	t.Run("LegacyFlagsDisableDeployKeys", func(t *testing.T) {
 		createProtection(t, "disable-deploy-keys", true)
 		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/disable-deploy-keys", map[string]any{
-			"enable_push": true, "enable_push_whitelist": true, "push_whitelist_deploy_keys": false,
-			"enable_force_push": true, "enable_force_push_allowlist": true, "force_push_allowlist_deploy_keys": false,
+			"push_whitelist_deploy_keys": false, "force_push_allowlist_deploy_keys": false,
 			"push_whitelist_usernames": []string{"user2", "gitea:deploy-key"}, "force_push_allowlist_usernames": []string{"gitea:deploy-key"},
 		}).AddTokenAuth(token), http.StatusOK)
 		bp := DecodeJSON(t, resp, &api.BranchProtection{})
@@ -544,30 +543,39 @@ func TestAPIBranchProtectionDeployKeyAllowlists(t *testing.T) {
 		assert.Equal(t, []string{"gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
 	})
 
-	t.Run("CreateForcePushWithoutPush", func(t *testing.T) {
-		create := func(opts *api.CreateBranchProtectionOption) *api.BranchProtection {
-			resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, opts).AddTokenAuth(token), http.StatusCreated)
+	t.Run("ChildFieldsFollowEffectiveParents", func(t *testing.T) {
+		protectionFlags := func(resp *httptest.ResponseRecorder) api.BranchProtection {
 			bp := DecodeJSON(t, resp, &api.BranchProtection{})
-			assert.False(t, bp.EnablePush)
-			return bp
+			return api.BranchProtection{
+				EnablePush: bp.EnablePush, EnablePushWhitelist: bp.EnablePushWhitelist, PushWhitelistDeployKeys: bp.PushWhitelistDeployKeys,
+				EnableForcePush: bp.EnableForcePush, EnableForcePushAllowlist: bp.EnableForcePushAllowlist, ForcePushAllowlistDeployKeys: bp.ForcePushAllowlistDeployKeys,
+			}
 		}
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", path, &api.CreateBranchProtectionOption{
+			RuleName: "child-fields", EnablePushWhitelist: true, PushWhitelistDeployKeys: true,
+			EnableForcePush: true, EnableForcePushAllowlist: true, ForcePushAllowlistDeployKeys: true,
+		}).AddTokenAuth(token), http.StatusCreated)
+		assert.Equal(t, api.BranchProtection{EnableForcePush: true, EnableForcePushAllowlist: true, ForcePushAllowlistDeployKeys: true}, protectionFlags(resp))
 
-		bp := create(&api.CreateBranchProtectionOption{
-			RuleName: "force-push-allowlist", EnableForcePush: true, EnableForcePushAllowlist: true,
-			ForcePushAllowlistUsernames: []string{"user2"}, ForcePushAllowlistDeployKeys: true,
-		})
-		assert.True(t, bp.EnableForcePush)
-		assert.True(t, bp.EnableForcePushAllowlist)
-		assert.True(t, bp.ForcePushAllowlistDeployKeys)
-		assert.Equal(t, []string{"user2", "gitea:deploy-key"}, bp.ForcePushAllowlistUsernames)
-
-		bp = create(&api.CreateBranchProtectionOption{RuleName: "force-push-all", EnableForcePush: true})
-		assert.True(t, bp.EnableForcePush)
-		assert.False(t, bp.EnableForcePushAllowlist)
-
-		bp = create(&api.CreateBranchProtectionOption{RuleName: "force-push-allowlist-only", EnableForcePushAllowlist: true})
-		assert.False(t, bp.EnableForcePush)
-		assert.False(t, bp.EnableForcePushAllowlist)
+		children := map[string]any{
+			"enable_push_whitelist": true, "push_whitelist_deploy_keys": true,
+			"enable_force_push_allowlist": true, "force_push_allowlist_deploy_keys": true,
+		}
+		for _, testCase := range []struct {
+			body     map[string]any
+			expected api.BranchProtection
+		}{
+			{map[string]any{"enable_push": true, "enable_force_push_allowlist": false}, api.BranchProtection{EnablePush: true, EnableForcePush: true}},
+			{children, api.BranchProtection{
+				EnablePush: true, EnablePushWhitelist: true, PushWhitelistDeployKeys: true,
+				EnableForcePush: true, EnableForcePushAllowlist: true, ForcePushAllowlistDeployKeys: true,
+			}},
+			{map[string]any{"enable_push": false, "enable_force_push": false}, api.BranchProtection{}},
+			{children, api.BranchProtection{}},
+		} {
+			resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", path+"/child-fields", testCase.body).AddTokenAuth(token), http.StatusOK)
+			assert.Equal(t, testCase.expected, protectionFlags(resp))
+		}
 	})
 
 	t.Run("CreateWithDeployKeyUsernames", func(t *testing.T) {
