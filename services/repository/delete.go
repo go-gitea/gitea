@@ -152,12 +152,15 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		return fmt.Errorf("cleanupEphemeralRunners: %w", err)
 	}
 
+	if err := issues_model.DeleteCommitCommentsByRepoID(ctx, repoID); err != nil {
+		return err
+	}
+
 	if err := db.DeleteBeans(ctx,
 		&access_model.Access{RepoID: repo.ID},
 		&activities_model.Action{RepoID: repo.ID},
 		&repo_model.Collaboration{RepoID: repoID},
 		&issues_model.Comment{RefRepoID: repoID},
-		&repo_model.CommitComment{RepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
 		&git_model.CommitStatusIndex{RepoID: repoID},
 		&git_model.CommitStatusSummary{RepoID: repoID},

@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"sort"
 	"strings"
 	"unicode"
 
@@ -677,28 +676,6 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 	ctx.Data["AllowMaintainerEdit"] = prConfig.DefaultAllowMaintainerEdit
 }
 
-// attachCommentsToLines attaches comments to their corresponding diff lines
-func attachCommentsToLines(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
-	for _, line := range section.Lines {
-		if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
-			line.Comments = append(line.Comments, comments...)
-		}
-		if comments, ok := lineComments[int64(line.RightIdx)]; ok {
-			line.Comments = append(line.Comments, comments...)
-		}
-		sort.SliceStable(line.Comments, func(i, j int) bool {
-			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
-		})
-	}
-}
-
-// attachHiddenCommentIDs calculates and attaches hidden comment IDs to expand buttons
-func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
-	for _, line := range section.Lines {
-		gitdiff.FillHiddenCommentIDsForDiffLine(line, lineComments)
-	}
-}
-
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
@@ -760,6 +737,7 @@ func ExcerptBlob(ctx *context.Context) {
 			ctx.NotFound(nil)
 			return
 		}
+		diffBlobExcerptData.CanAddComment = ctx.Doer != nil
 
 		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, diffBlobExcerptData.PullIssueIndex)
 		if err != nil {
@@ -779,24 +757,20 @@ func ExcerptBlob(ctx *context.Context) {
 				log.Error("FetchCodeComments error: %v", err)
 			} else {
 				if lineComments, ok := allComments[filePath]; ok {
-					attachCommentsToLines(section, lineComments)
-					attachHiddenCommentIDs(section, lineComments)
+					gitdiff.AttachSectionComments(section, lineComments)
 				}
 			}
 		}
 	} else if ctx.FormBool("commit_diff") && ctx.Data["PageIsWiki"] != true {
-		// Commit diff excerpt: expose the same commit-comment data the commit
-		// page renders, so expanded rows keep their buttons and conversations.
 		diffBlobExcerptData.IsCommitDiff = true
-		fullSHA := commit.ID.String()
-		ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
-		ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, fullSHA)
+		diffBlobExcerptData.CanAddComment = canCommentOnCommit(ctx)
+		prepareCommitCommentsData(ctx, commit.ID.String())
 
-		fileComments, err := repo_model.FindCommitCommentsForFile(ctx, ctx.Repo.Repository.ID, fullSHA, filePath)
+		allComments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, commit.ID.String(), filePath)
 		if err != nil {
-			log.Error("FindCommitCommentsForFile error: %v", err)
-		} else {
-			prepareCommitComments(ctx, gitdiff.AttachCommitCommentsToLines(section.Lines, fileComments))
+			log.Error("FetchCommitCodeComments error: %v", err)
+		} else if lineComments, ok := allComments[filePath]; ok {
+			gitdiff.AttachSectionComments(section, lineComments)
 		}
 	}
 

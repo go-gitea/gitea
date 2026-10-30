@@ -12,7 +12,6 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -1149,12 +1148,18 @@ func TestGetDiffShortStatWithOptions(t *testing.T) {
 	})
 }
 
-func TestDiffLineCanCommentUnified(t *testing.T) {
-	line := &DiffLine{LeftIdx: 3, RightIdx: 3, Type: DiffLinePlain}
-	assert.True(t, line.CanCommentUnified())
+func TestAttachSectionComments(t *testing.T) {
+	section := &DiffSection{Lines: []*DiffLine{{LeftIdx: 5, RightIdx: 10}, {LeftIdx: 6, RightIdx: 11}}}
 
-	// the unified row holds the threads of both sides, and the add button only
-	// opens a form in a row that has none yet
-	line.CommitCommentsLeft = repo_model.CommitCommentList{{ID: 1}}
-	assert.False(t, line.CanCommentUnified())
+	AttachSectionComments(section, map[int64][]*issues_model.Comment{
+		-5: {{ID: 100, CreatedUnix: 1000}},                               // left side comment
+		10: {{ID: 200, CreatedUnix: 2000}},                               // right side comment
+		11: {{ID: 300, CreatedUnix: 1500}, {ID: 301, CreatedUnix: 2500}}, // multiple comments
+	})
+
+	// First line should have left and right comments
+	assert.Equal(t, issues_model.CommentList{{ID: 100, CreatedUnix: 1000}, {ID: 200, CreatedUnix: 2000}}, section.Lines[0].Comments)
+
+	// Second line should have two comments, sorted by creation time
+	assert.Equal(t, issues_model.CommentList{{ID: 300, CreatedUnix: 1500}, {ID: 301, CreatedUnix: 2500}}, section.Lines[1].Comments)
 }

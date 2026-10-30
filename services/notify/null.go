@@ -31,6 +31,11 @@ func (*NullNotifier) CreateIssueComment(ctx context.Context, doer *user_model.Us
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User) {
 }
 
+// CreateCommitComment places a place holder function
+func (*NullNotifier) CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
+	commit *git.Commit, comment *issues_model.Comment, mentions []*user_model.User) {
+}
+
 // NewIssue places a place holder function
 func (*NullNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
 }

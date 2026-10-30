@@ -57,6 +57,8 @@ type Notifier interface {
 
 	CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 		issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User)
+	CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
+		commit *git.Commit, comment *issues_model.Comment, mentions []*user_model.User)
 	UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string)
 	DeleteComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment)
 

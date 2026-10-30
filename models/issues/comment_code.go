@@ -24,7 +24,6 @@ func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_mode
 }
 
 func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *user_model.User, review *Review, showOutdatedComments bool) (CodeComments, error) {
-	pathToLineToComment := make(CodeComments)
 	if review == nil {
 		review = &Review{ID: 0}
 	}
@@ -38,14 +37,18 @@ func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *u
 	if err != nil {
 		return nil, err
 	}
+	return groupCodeComments(comments), nil
+}
 
+func groupCodeComments(comments []*Comment) CodeComments {
+	pathToLineToComment := make(CodeComments)
 	for _, comment := range comments {
 		if pathToLineToComment[comment.TreePath] == nil {
 			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
 		}
 		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
 	}
-	return pathToLineToComment, nil
+	return pathToLineToComment
 }
 
 func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issue, currentUser *user_model.User, review *Review, showOutdatedComments bool) ([]*Comment, error) {

@@ -32,6 +32,8 @@
 					<div class="tw-self-start tw-mt-[2px]">
 						{{if $one.Issue}}
 							{{template "shared/issueicon" $one.Issue}}
+						{{else if $one.CommitID}}
+							{{svg "octicon-git-commit" 16 "tw-text-text-light"}}
 						{{else}}
 							{{svg "octicon-repo" 16 "tw-text-text-light"}}
 						{{end}}
@@ -46,6 +48,8 @@
 						<div class="tw-text-16 tw-py-0.5">
 							{{if $one.Issue}}
 								{{$one.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
+							{{else if $one.CommitID}}
+								<span class="tw-font-mono">{{ShortSha $one.CommitID}}</span>
 							{{else}}
 								{{$one.Repository.FullName}}
 							{{end}}

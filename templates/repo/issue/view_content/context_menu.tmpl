@@ -2,26 +2,16 @@
 {{$item := $.ConvContentItem -}}
 {{$page := $.ConvContentPage -}}
 
-{{$isCommitComment := eq $type "commit_comment" -}}
+{{$supportDelete := eq $type "issue_comment" -}}
+{{$isCommitComment := and $supportDelete $item.IsCommitComment -}}
 {{$isPagePrFiles := eq $page "pr-files" -}}
 {{$isCommentPoster := and ctx.RootData.IsSigned (eq ctx.RootData.SignedUserID $item.PosterID) -}}
 
-{{$referenceHTMLURL := "" -}}
-{{$deleteURL := "" -}}
-{{$canEditContent := false -}}
-{{$canDelete := false -}}
-{{if $isCommitComment -}}
-	{{/* commit comments live on the commit page, have no edit endpoint and carry their own delete permission */}}
-	{{$referenceHTMLURL = printf "%s/commit/%s#%s" (ctx.RootData.Repository.HTMLURL ctx) $item.CommitSHA $item.HashTag -}}
-	{{$deleteURL = printf "%s/commit/%s/comment/%d/delete" ctx.RootData.RepoLink $item.CommitSHA $item.ID -}}
-	{{$canDelete = $item.CanDelete -}}
-{{else -}}
+{{$referenceHTMLURL := printf "%s/commit/%s#%s" (ctx.RootData.Repository.HTMLURL ctx) ctx.RootData.CommitID $item.HashTag -}}
+{{$deleteURL := printf "%s/%d/delete" ctx.RootData.DiffNewCommentURL $item.ID -}}
+{{if not $isCommitComment -}}
 	{{$referenceHTMLURL = printf "%s%s#%s" (ctx.RootData.Issue.HTMLURL ctx) (Iif $isPagePrFiles "/files" "") $item.HashTag -}}
-	{{$canEditContent = or ctx.RootData.Permission.IsAdmin ctx.RootData.HasIssuesOrPullsWritePermission $isCommentPoster -}}
-	{{if eq $type "issue_comment" -}}
-		{{$deleteURL = printf "%s/comments/%d/delete" ctx.RootData.RepoLink $item.ID -}}
-		{{$canDelete = $canEditContent -}}
-	{{end -}}
+	{{$deleteURL = printf "%s/comments/%d/delete" ctx.RootData.RepoLink $item.ID -}}
 {{end -}}
 
 <div class="item action ui dropdown jump pointing top right">
@@ -36,12 +26,12 @@
 				{{if and (not $isCommitComment) (not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled)}}
 					<div class="item js-aria-clickable reference-issue" data-target="{{$item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{$item.Poster.GetDisplayName}}" data-poster-username="{{$item.Poster.Name}}" data-reference="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
 				{{end}}
-				{{if or $canEditContent $canDelete}}
+				{{if or ctx.RootData.Permission.IsAdmin $isCommentPoster (and (not $isCommitComment) ctx.RootData.HasIssuesOrPullsWritePermission)}}
 					<div class="divider"></div>
-					{{if $canEditContent}}
+					{{if not $isCommitComment}}
 						<div class="item js-aria-clickable" data-global-click="onConvContentEdit">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
 					{{end}}
-					{{if $canDelete}}
+					{{if $supportDelete}}
 						<div class="item js-aria-clickable" data-global-click="onConvContentDelete" data-comment-hash-tag={{$item.HashTag}} data-url="{{$deleteURL}}" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
 					{{end}}
 				{{end}}

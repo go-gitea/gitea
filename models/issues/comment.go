@@ -121,6 +121,8 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypeCommitComment // 39 inline comment on a commit diff, it has no issue
 )
 
 var commentStrings = []string{
@@ -163,6 +165,7 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"commit_comment",
 }
 
 func (t CommentType) String() string {
@@ -790,6 +793,10 @@ func (c *Comment) DiffSide() string {
 	return "proposed"
 }
 
+func (c *Comment) IsCommitComment() bool {
+	return c.Type == CommentTypeCommitComment
+}
+
 // UnsignedLine returns the LOC of the code comment without + or -
 func (c *Comment) UnsignedLine() uint64 {
 	if c.Line < 0 {
@@ -1226,6 +1233,12 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		CommentID: comment.ID,
 	}); err != nil {
 		return err
+	}
+
+	if comment.IsCommitComment() {
+		if _, err := db.DeleteByID[CommitComment](ctx, comment.ID); err != nil {
+			return err
+		}
 	}
 
 	if comment.Type.CountedAsConversation() {

@@ -24,7 +24,6 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
-	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/analyze"
 	"gitea.dev/modules/base"
@@ -82,11 +81,6 @@ type DiffLine struct {
 	Comments    issues_model.CommentList // related PR code comments
 	SectionInfo *DiffLineSectionInfo
 	IsTruncated bool
-
-	// the two sides are kept apart because a context line carries both an old
-	// and a new index, and either may hold its own standalone commit thread
-	CommitCommentsLeft  repo_model.CommitCommentList
-	CommitCommentsRight repo_model.CommitCommentList
 
 	cachedDiffInline *DiffInlineComputed
 }
@@ -173,22 +167,6 @@ func (d *DiffLine) CanComment() bool {
 	return len(d.Comments) == 0 && d.Type != DiffLineSection
 }
 
-// CanCommentLeft returns whether the old side of the line can get commented
-func (d *DiffLine) CanCommentLeft() bool {
-	return d.CanComment() && len(d.CommitCommentsLeft) == 0
-}
-
-// CanCommentRight returns whether the new side of the line can get commented
-func (d *DiffLine) CanCommentRight() bool {
-	return d.CanComment() && len(d.CommitCommentsRight) == 0
-}
-
-// CanCommentUnified answers for the single button of the unified view. Its row
-// holds the threads of both sides, and the form only opens in a row without one.
-func (d *DiffLine) CanCommentUnified() bool {
-	return d.CanCommentLeft() && d.CanCommentRight()
-}
-
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
 func (d *DiffLine) GetCommentSide() string {
 	if len(d.Comments) == 0 {
@@ -244,10 +222,8 @@ type DiffBlobExcerptData struct {
 	PullIssueIndex int64
 	DiffStyle      string
 	AfterCommitID  string
-	// IsCommitDiff marks excerpts of a single commit's diff, which carry
-	// standalone inline comments. Compare views share this endpoint and must
-	// not, so it cannot be inferred from the absence of PullIssueIndex.
-	IsCommitDiff bool
+	IsCommitDiff   bool // a single commit's diff, compare pages share the excerpt endpoint without its comments
+	CanAddComment  bool
 }
 
 const (
@@ -704,87 +680,32 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 	if err != nil {
 		return err
 	}
-	for _, file := range diff.Files {
-		if lineCommits, ok := allComments[file.Name]; ok {
-			for _, section := range file.Sections {
-				for _, line := range section.Lines {
-					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					sort.SliceStable(line.Comments, func(i, j int) bool {
-						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
-					})
-					// Mark expand buttons that have comments in hidden lines
-					FillHiddenCommentIDsForDiffLine(line, lineCommits)
-				}
-			}
-		}
-	}
+	diff.AttachComments(allComments)
 	return nil
 }
 
-// LoadCommitComments attaches the commit's standalone inline comments to each
-// diff line and returns the ones that landed on a rendered line, so the caller
-// only renders the markdown that is actually displayed. Comments anchored on
-// lines outside the rendered hunks are reachable through the excerpt endpoint.
-func (diff *Diff) LoadCommitComments(ctx context.Context, repoID int64, commitSHA string) (repo_model.CommitCommentList, error) {
-	comments, err := repo_model.FindCommitCommentsByCommitSHA(ctx, repoID, commitSHA)
-	if err != nil {
-		return nil, err
-	}
-	byPath := make(map[string]repo_model.CommitCommentList, len(comments))
-	for _, c := range comments {
-		byPath[c.TreePath] = append(byPath[c.TreePath], c)
-	}
-	attached := make(repo_model.CommitCommentList, 0, len(comments))
+// AttachComments attaches comments to their corresponding diff lines
+func (diff *Diff) AttachComments(allComments issues_model.CodeComments) {
 	for _, file := range diff.Files {
-		fileComments, ok := byPath[file.Name]
-		if !ok {
-			continue
-		}
-		byLine := commitCommentsByLine(fileComments)
-		for _, section := range file.Sections {
-			attached = append(attached, attachCommitCommentsToLines(section.Lines, byLine)...)
+		if lineComments, ok := allComments[file.Name]; ok {
+			for _, section := range file.Sections {
+				AttachSectionComments(section, lineComments)
+			}
 		}
 	}
-	return attached, nil
 }
 
-// AttachCommitCommentsToLines anchors one file's commit comments on the diff
-// lines they were written against and returns the ones that found a line.
-func AttachCommitCommentsToLines(lines []*DiffLine, comments repo_model.CommitCommentList) repo_model.CommitCommentList {
-	if len(comments) == 0 {
-		return nil
+// AttachSectionComments attaches the comments of a file to the lines of one of its sections
+func AttachSectionComments(section *DiffSection, lineComments map[int64][]*issues_model.Comment) {
+	for _, line := range section.Lines {
+		line.Comments = append(line.Comments, lineComments[int64(line.LeftIdx*-1)]...)
+		line.Comments = append(line.Comments, lineComments[int64(line.RightIdx)]...)
+		sort.SliceStable(line.Comments, func(i, j int) bool {
+			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+		})
+		// Mark expand buttons that have comments in hidden lines
+		FillHiddenCommentIDsForDiffLine(line, lineComments)
 	}
-	return attachCommitCommentsToLines(lines, commitCommentsByLine(comments))
-}
-
-// commitCommentsByLine indexes comments by their signed diff coordinate:
-// negative for the old side, positive for the new one.
-func commitCommentsByLine(comments repo_model.CommitCommentList) map[int64]repo_model.CommitCommentList {
-	byLine := make(map[int64]repo_model.CommitCommentList, len(comments))
-	for _, c := range comments {
-		byLine[c.Line] = append(byLine[c.Line], c)
-	}
-	return byLine
-}
-
-func attachCommitCommentsToLines(lines []*DiffLine, byLine map[int64]repo_model.CommitCommentList) repo_model.CommitCommentList {
-	var attached repo_model.CommitCommentList
-	for _, line := range lines {
-		if line.LeftIdx > 0 {
-			line.CommitCommentsLeft = byLine[int64(-line.LeftIdx)]
-			attached = append(attached, line.CommitCommentsLeft...)
-		}
-		if line.RightIdx > 0 {
-			line.CommitCommentsRight = byLine[int64(line.RightIdx)]
-			attached = append(attached, line.CommitCommentsRight...)
-		}
-	}
-	return attached
 }
 
 const cmdDiffHead = "diff --git "

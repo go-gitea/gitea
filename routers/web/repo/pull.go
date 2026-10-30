@@ -867,6 +867,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		PullIssueIndex: pull.Index,
 		DiffStyle:      GetDiffViewStyle(ctx),
 		AfterCommitID:  afterCommitID,
+		CanAddComment:  ctx.Doer != nil,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0

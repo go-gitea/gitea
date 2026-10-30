@@ -12,11 +12,8 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
-	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 
@@ -60,10 +57,9 @@ type Notification struct {
 	Status NotificationStatus `xorm:"SMALLINT NOT NULL"`
 	Source NotificationSource `xorm:"SMALLINT NOT NULL"`
 
-	IssueID         int64 `xorm:"NOT NULL"`
-	CommitID        string
-	CommentID       int64
-	CommitCommentID int64
+	IssueID   int64 `xorm:"NOT NULL"`
+	CommitID  string
+	CommentID int64
 
 	UpdatedBy int64 `xorm:"NOT NULL"`
 
@@ -119,131 +115,6 @@ func init() {
 	db.RegisterModel(new(Notification))
 }
 
-// CreateCommitCommentNotification creates notifications for a commit comment.
-// It notifies the commit author (if they're a Gitea user), everyone already
-// participating in the commit's conversation, and any @mentioned users.
-// Recipients are filtered to those with code read access on the repository so
-// private repos do not leak.
-func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitSHA string, commitCommentID int64, commitAuthorEmail string, mentionedUsernames []string) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		receiverIDs := make(container.Set[int64])
-
-		// Notify everyone who already commented on this commit, otherwise a
-		// reply never reaches the person it replies to.
-		participantIDs, err := repo_model.GetCommitCommentPosterIDs(ctx, repo.ID, commitSHA)
-		if err != nil {
-			return fmt.Errorf("GetCommitCommentPosterIDs: %w", err)
-		}
-		receiverIDs.AddMultiple(participantIDs...)
-
-		// Notify the commit author if they map to a Gitea user. A missing
-		// user is expected (commit author may not have a Gitea account); any
-		// other error is a real DB failure and should surface.
-		if commitAuthorEmail != "" {
-			author, err := user_model.GetUserByEmail(ctx, commitAuthorEmail)
-			switch {
-			case err == nil:
-				receiverIDs.Add(author.ID)
-			case user_model.IsErrUserNotExist(err):
-				// commit author isn't a gitea user, skip silently
-			default:
-				return fmt.Errorf("GetUserByEmail: %w", err)
-			}
-		}
-
-		// Notify @mentioned users. GetRealDoerUserIDsByNames still returns the found IDs
-		// when some names don't exist, so only an error other than ErrUserNotExist is a failure.
-		if len(mentionedUsernames) > 0 {
-			mentionedIDs, err := user_model.GetRealDoerUserIDsByNames(ctx, mentionedUsernames)
-			if err != nil && !user_model.IsErrUserNotExist(err) {
-				return fmt.Errorf("GetRealDoerUserIDsByNames: %w", err)
-			}
-			receiverIDs.AddMultiple(mentionedIDs...)
-		}
-
-		receiverIDs.Remove(doer.ID)
-		// muting the repository outranks every other source, including mentions
-		ignorerIDs, err := repo_model.GetRepoIgnorersIDs(ctx, repo.ID)
-		if err != nil {
-			return fmt.Errorf("GetRepoIgnorersIDs: %w", err)
-		}
-		receiverIDs.RemoveFromSlice(ignorerIDs)
-		if len(receiverIDs) == 0 {
-			return nil
-		}
-
-		userIDs := receiverIDs.Values()
-		// users deleted between mention-resolution and now drop out of the map here
-		recipients, err := user_model.GetUsersMapByIDs(ctx, userIDs)
-		if err != nil {
-			return fmt.Errorf("GetUsersMapByIDs: %w", err)
-		}
-		existing, err := getCommitNotifications(ctx, repo.ID, commitSHA, userIDs)
-		if err != nil {
-			return err
-		}
-
-		for uid, recipient := range recipients {
-			// without the unit check, commit-author or @mention notifications
-			// would reach users with no visibility into a private repo
-			if !access.CheckRepoUnitUser(ctx, repo, recipient, unit.TypeCode) {
-				continue
-			}
-			if err := createOrUpdateCommitNotification(ctx, existing[uid], uid, repo.ID, commitSHA, commitCommentID, doer.ID); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}
-
-// getCommitNotifications returns the existing notification of each given user
-// for one commit, keyed by user id.
-func getCommitNotifications(ctx context.Context, repoID int64, commitSHA string, userIDs []int64) (map[int64]*Notification, error) {
-	var notifications []*Notification
-	if err := db.GetEngine(ctx).
-		Where("repo_id = ? AND source = ? AND commit_id = ?", repoID, NotificationSourceCommit, commitSHA).
-		In("user_id", userIDs).
-		Find(&notifications); err != nil {
-		return nil, fmt.Errorf("get commit notifications [%s]: %w", commitSHA, err)
-	}
-	byUser := make(map[int64]*Notification, len(notifications))
-	for _, n := range notifications {
-		byUser[n.UserID] = n
-	}
-	return byUser, nil
-}
-
-// createOrUpdateCommitNotification keeps a single notification row per user and
-// commit, so a long conversation doesn't flood the list with one entry per
-// comment.
-func createOrUpdateCommitNotification(ctx context.Context, existing *Notification, userID, repoID int64, commitSHA string, commitCommentID, updatedByID int64) error {
-	if existing == nil {
-		return db.Insert(ctx, &Notification{
-			UserID:          userID,
-			RepoID:          repoID,
-			Status:          NotificationStatusUnread,
-			Source:          NotificationSourceCommit,
-			CommitID:        commitSHA,
-			CommitCommentID: commitCommentID,
-			UpdatedBy:       updatedByID,
-		})
-	}
-
-	// Only re-point an already-read notification at the newest comment; moving
-	// an unread one forward would skip the comments not seen yet.
-	existing.UpdatedBy = updatedByID
-	cols := []string{"updated_by", "updated_unix"}
-	if existing.Status == NotificationStatusRead {
-		existing.Status = NotificationStatusUnread
-		existing.CommitCommentID = commitCommentID
-		cols = append(cols, "status", "commit_comment_id")
-	}
-
-	_, err := db.GetEngine(ctx).ID(existing.ID).Cols(cols...).Update(existing)
-	return err
-}
-
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -283,44 +154,20 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 	})
 }
 
-func createIssueNotification(ctx context.Context, userID int64, issue *issues_model.Issue, commentID, updatedByID int64) error {
-	notification := &Notification{
-		UserID:    userID,
-		RepoID:    issue.RepoID,
-		Status:    NotificationStatusUnread,
-		IssueID:   issue.ID,
-		CommentID: commentID,
-		UpdatedBy: updatedByID,
-	}
-
-	if issue.IsPull {
-		notification.Source = NotificationSourcePullRequest
-	} else {
-		notification.Source = NotificationSourceIssue
-	}
-
-	return db.Insert(ctx, notification)
-}
-
-func updateIssueNotification(ctx context.Context, userID, issueID, commentID, updatedByID int64) error {
-	notification, err := GetIssueNotification(ctx, userID, issueID)
-	if err != nil {
-		return err
-	}
-
+func updateNotification(ctx context.Context, notification, target *Notification) error {
 	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
 	// But we need update update_by so that the notification will be reorder
 	var cols []string
 	if notification.Status == NotificationStatusRead {
 		notification.Status = NotificationStatusUnread
-		notification.CommentID = commentID
+		notification.CommentID = target.CommentID
 		cols = []string{"status", "update_by", "comment_id"}
 	} else {
-		notification.UpdatedBy = updatedByID
+		notification.UpdatedBy = target.UpdatedBy
 		cols = []string{"update_by"}
 	}
 
-	_, err = db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)
+	_, err := db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)
 	return err
 }
 
@@ -346,9 +193,6 @@ func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 	if err = n.loadComment(ctx); err != nil {
-		return err
-	}
-	if err = (NotificationList{n}).LoadCommitComments(ctx); err != nil {
 		return err
 	}
 	return err
@@ -411,13 +255,11 @@ func (n *Notification) GetIssue(ctx context.Context) (*issues_model.Issue, error
 	return n.Issue, n.loadIssue(ctx)
 }
 
-// commitCommentAnchor returns the fragment pointing at the commit comment that
-// triggered the notification, or "" when it has been deleted since.
-func (n *Notification) commitCommentAnchor() string {
-	if n.CommitCommentID == 0 {
+func (n *Notification) commentAnchor() string {
+	if n.Comment == nil {
 		return ""
 	}
-	return "#" + repo_model.CommitCommentHashTag(n.CommitCommentID)
+	return "#" + n.Comment.HashTag()
 }
 
 // HTMLURL formats a URL-string to the notification
@@ -429,7 +271,7 @@ func (n *Notification) HTMLURL(ctx context.Context) string {
 		}
 		return n.Issue.HTMLURL(ctx)
 	case NotificationSourceCommit:
-		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID) + n.commitCommentAnchor()
+		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID) + n.commentAnchor()
 	case NotificationSourceRepository:
 		return n.Repository.HTMLURL(ctx)
 	}
@@ -445,7 +287,7 @@ func (n *Notification) Link(ctx context.Context) string {
 		}
 		return n.Issue.Link()
 	case NotificationSourceCommit:
-		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID) + n.commitCommentAnchor()
+		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID) + n.commentAnchor()
 	case NotificationSourceRepository:
 		return n.Repository.Link()
 	}
@@ -455,16 +297,6 @@ func (n *Notification) Link(ctx context.Context) string {
 // APIURL formats a URL-string to the notification
 func (n *Notification) APIURL() string {
 	return setting.AppURL + "api/v1/notifications/threads/" + strconv.FormatInt(n.ID, 10)
-}
-
-func notificationExists(notifications []*Notification, issueID, userID int64) bool {
-	for _, notification := range notifications {
-		if notification.IssueID == issueID && notification.UserID == userID {
-			return true
-		}
-	}
-
-	return false
 }
 
 // UserIDCount is a simple coalition of UserID and Count

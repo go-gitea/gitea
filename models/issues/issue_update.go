@@ -572,22 +572,30 @@ func FindAndUpdateIssueMentions(ctx context.Context, issue *Issue, doer *user_mo
 
 // ResolveIssueMentionsByVisibility returns the users mentioned in an issue, removing those that
 // don't have access to reading it. Teams are expanded into their users, but organizations are ignored.
-func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *user_model.User, mentions []string) (users []*user_model.User, err error) {
+func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *user_model.User, mentions []string) ([]*user_model.User, error) {
 	if len(mentions) == 0 {
 		return nil, nil
 	}
-	if err = issue.LoadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
+	}
+	return ResolveRepoMentionsByVisibility(ctx, issue.Repo, doer, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues), mentions)
+}
+
+// ResolveRepoMentionsByVisibility returns the users mentioned in a unit of a repository, removing those that can't read it
+func ResolveRepoMentionsByVisibility(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, unitType unit.Type, mentions []string) (users []*user_model.User, err error) {
+	if len(mentions) == 0 {
+		return nil, nil
 	}
 
 	resolved := make(map[string]bool, 10)
 	var mentionTeams []string
 
-	if err := issue.Repo.LoadOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
-	repoOwnerIsOrg := issue.Repo.Owner.IsOrganization()
+	repoOwnerIsOrg := repo.Owner.IsOrganization()
 	if repoOwnerIsOrg {
 		mentionTeams = make([]string, 0, 5)
 	}
@@ -600,7 +608,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 		}
 		if repoOwnerIsOrg && strings.Contains(name, "/") {
 			names := strings.Split(name, "/")
-			if len(names) < 2 || names[0] != issue.Repo.Owner.LowerName {
+			if len(names) < 2 || names[0] != repo.Owner.LowerName {
 				continue
 			}
 			mentionTeams = append(mentionTeams, names[1])
@@ -610,25 +618,21 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 		}
 	}
 
-	if issue.Repo.Owner.IsOrganization() && len(mentionTeams) > 0 {
+	if repo.Owner.IsOrganization() && len(mentionTeams) > 0 {
 		teams := make([]*organization.Team, 0, len(mentionTeams))
 		if err := db.GetEngine(ctx).
 			Join("INNER", "team_repo", "team_repo.team_id = team.id").
-			Where("team_repo.repo_id=?", issue.Repo.ID).
+			Where("team_repo.repo_id=?", repo.ID).
 			In("team.lower_name", mentionTeams).
 			Find(&teams); err != nil {
 			return nil, fmt.Errorf("find mentioned teams: %w", err)
 		}
 		if len(teams) != 0 {
 			checked := make([]int64, 0, len(teams))
-			unittype := unit.TypeIssues
-			if issue.IsPull {
-				unittype = unit.TypePullRequests
-			}
 			for _, team := range teams {
-				if team.UnitEnabled(ctx, unittype) {
+				if team.UnitEnabled(ctx, unitType) {
 					checked = append(checked, team.ID)
-					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
+					resolved[repo.Owner.LowerName+"/"+team.LowerName] = true
 				}
 			}
 			if len(checked) != 0 {
@@ -681,12 +685,12 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 		if already := resolved[user.LowerName]; already || user.IsOrganization() {
 			continue
 		}
-		// Normal users must have read access to the referencing issue
-		perm, err := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, user)
+		// Normal users must have read access to the unit
+		perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)
 		if err != nil {
 			return nil, fmt.Errorf("GetIndividualUserRepoPermission [%d]: %w", user.ID, err)
 		}
-		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+		if !perm.CanRead(unitType) {
 			continue
 		}
 		users = append(users, user)

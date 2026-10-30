@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	activities_model "gitea.dev/models/activities"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -32,6 +33,7 @@ import (
 	"gitea.dev/services/context"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	"gitea.dev/services/notifications"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/services/repository/gitgraph"
 )
@@ -287,6 +289,7 @@ func Diff(ctx *context.Context) {
 		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
 		IsCommitDiff:  !isWiki,
+		CanAddComment: !isWiki && canCommentOnCommit(ctx),
 	}
 	gitRepo := ctx.Repo.GitRepo // don't access ctx.Repo.GitRepo anymore, because it might not be right for wiki repo
 
@@ -425,16 +428,31 @@ func Diff(ctx *context.Context) {
 		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
 
-	// Inline commit comments belong to the code unit; this handler also serves
-	// the wiki commit view, whose SHAs and permissions are unrelated to it.
 	if !isWiki {
-		commitComments, err := diff.LoadCommitComments(ctx, ctx.Repo.Repository.ID, commitID)
+		comments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, commitID)
 		if err != nil {
-			log.Error("LoadCommitComments: %v", err)
+			ctx.ServerError("FetchCommitCodeComments", err)
+			return
 		}
-		prepareCommitComments(ctx, commitComments)
-		ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
-		ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, commitID)
+		diff.AttachComments(comments)
+		if ctx.IsSigned {
+			unread, err := db.Find[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+				UserID:   ctx.Doer.ID,
+				RepoID:   ctx.Repo.Repository.ID,
+				CommitID: commitID,
+				Source:   []activities_model.NotificationSource{activities_model.NotificationSourceCommit},
+				Status:   []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
+			})
+			if err != nil {
+				ctx.ServerError("FindCommitNotifications", err)
+				return
+			}
+			if _, err := notifications.SetManyNotificationStatuses(ctx, unread, ctx.Doer, activities_model.NotificationStatusRead); err != nil {
+				ctx.ServerError("SetManyNotificationStatuses", err)
+				return
+			}
+		}
+		prepareCommitCommentsData(ctx, commitID)
 	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)

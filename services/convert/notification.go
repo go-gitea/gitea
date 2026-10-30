@@ -5,6 +5,7 @@ package convert
 
 import (
 	"context"
+	"net/url"
 
 	activities_model "gitea.dev/models/activities"
 	access_model "gitea.dev/models/perm/access"
@@ -76,14 +77,12 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 			}
 		}
 	case activities_model.NotificationSourceCommit:
-		// Use the model helpers so commit-comment notifications include the
-		// `#commitcomment-<id>` anchor in the API subject URLs as well.
-		htmlURL := n.HTMLURL(ctx)
+		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,
 			Title:   n.CommitID,
-			URL:     htmlURL,
-			HTMLURL: htmlURL,
+			URL:     url,
+			HTMLURL: url,
 		}
 	case activities_model.NotificationSourceRepository:
 		result.Subject = &api.NotificationSubject{

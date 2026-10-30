@@ -5,6 +5,7 @@ package activities
 
 import (
 	"context"
+	"slices"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -25,6 +26,7 @@ type FindNotificationOptions struct {
 	UserID            int64
 	RepoID            int64
 	IssueID           int64
+	CommitID          string
 	Status            []NotificationStatus
 	Source            []NotificationSource
 	UpdatedAfterUnix  int64
@@ -42,6 +44,9 @@ func (opts FindNotificationOptions) ToConds() builder.Cond {
 	}
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
+	}
+	if opts.CommitID != "" {
+		cond = cond.And(builder.Eq{"notification.commit_id": opts.CommitID})
 	}
 	if len(opts.Status) > 0 {
 		if len(opts.Status) == 1 {
@@ -143,8 +148,54 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		}
 	}
 
+	return createOrUpdateNotifications(ctx, &Notification{
+		RepoID:    issue.RepoID,
+		IssueID:   issue.ID,
+		CommentID: commentID,
+		UpdatedBy: notificationAuthorID,
+		Source:    util.Iif(issue.IsPull, NotificationSourcePullRequest, NotificationSourceIssue),
+	}, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues), notifications, toNotify)
+}
+
+// CreateOrUpdateCommitNotifications creates or updates the notification of a commit comment for the
+// commenters of the commit, or only for the receiver if receiverID > 0, and returns the notified user IDs.
+func CreateOrUpdateCommitNotifications(ctx context.Context, repoID int64, commitSHA string, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
+	return db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
+		toNotify := make(container.Set[int64])
+		if receiverID > 0 {
+			toNotify.Add(receiverID)
+		} else {
+			posterIDs, err := issues_model.GetCommitCommentPosterIDs(ctx, repoID, commitSHA)
+			if err != nil {
+				return nil, err
+			}
+			toNotify.AddMultiple(posterIDs...)
+			toNotify.Remove(notificationAuthorID)
+		}
+
+		notifications, err := db.Find[Notification](ctx, FindNotificationOptions{
+			RepoID:   repoID,
+			CommitID: commitSHA,
+			Source:   []NotificationSource{NotificationSourceCommit},
+		})
+		if err != nil {
+			return nil, err
+		}
+		return createOrUpdateNotifications(ctx, &Notification{
+			RepoID:    repoID,
+			CommitID:  commitSHA,
+			CommentID: commentID,
+			UpdatedBy: notificationAuthorID,
+			Source:    NotificationSourceCommit,
+		}, unit.TypeCode, notifications, toNotify)
+	})
+}
+
+// createOrUpdateNotifications creates the target notification for each receiver who can read the unit,
+// or updates the receiver's existing one
+func createOrUpdateNotifications(ctx context.Context, target *Notification, unitType unit.Type, existing []*Notification, toNotify container.Set[int64]) ([]int64, error) {
 	// muting the repository outranks every other source, including mentions
-	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, issue.RepoID)
+	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, target.RepoID)
 	if err != nil {
 		return nil, err
 	}
@@ -152,14 +203,13 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		toNotify.Remove(id)
 	}
 
-	if err := issue.LoadRepo(ctx); err != nil {
+	if err := target.loadRepo(ctx); err != nil {
 		return nil, err
 	}
 
-	// notify
 	notifiedIDs := make([]int64, 0, len(toNotify))
 	for userID := range toNotify {
-		issue.Repo.Units = nil
+		target.Repository.Units = nil
 		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -168,20 +218,17 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 
 			return nil, err
 		}
-		if user.IsTypeBot() {
-			continue
-		}
-		if issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypePullRequests) {
-			continue
-		}
-		if !issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypeIssues) {
+		if user.IsTypeBot() || !access_model.CheckRepoUnitUser(ctx, target.Repository, user, unitType) {
 			continue
 		}
 
-		if notificationExists(notifications, issue.ID, userID) {
-			err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID)
+		if idx := slices.IndexFunc(existing, func(n *Notification) bool { return n.UserID == userID }); idx >= 0 {
+			err = updateNotification(ctx, existing[idx], target)
 		} else {
-			err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID)
+			notification := *target
+			notification.UserID = userID
+			notification.Status = NotificationStatusUnread
+			err = db.Insert(ctx, &notification)
 		}
 		if err != nil {
 			return nil, err
@@ -208,7 +255,7 @@ func (nl NotificationList) LoadAttributes(ctx context.Context) error {
 	if _, err := nl.LoadComments(ctx); err != nil {
 		return err
 	}
-	return nl.LoadCommitComments(ctx)
+	return nil
 }
 
 func (nl NotificationList) getPendingRepoIDs() []int64 {
@@ -418,38 +465,6 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 		}
 	}
 	return failures, nil
-}
-
-// LoadCommitComments clears the CommitCommentID of SourceCommit notifications
-// whose commit comment has since been deleted, so list pages and the API don't
-// render dangling anchors.
-func (nl NotificationList) LoadCommitComments(ctx context.Context) error {
-	pending := make(container.Set[int64])
-	for _, n := range nl {
-		if n.Source == NotificationSourceCommit && n.CommitCommentID != 0 {
-			pending.Add(n.CommitCommentID)
-		}
-	}
-	if len(pending) == 0 {
-		return nil
-	}
-
-	repoIDs, err := repo_model.FindCommitCommentRepoIDs(ctx, pending.Values())
-	if err != nil {
-		return err
-	}
-
-	for _, n := range nl {
-		if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 {
-			continue
-		}
-		// Match on repo id too: the single-row helper GetCommitCommentByID
-		// enforces that pairing and the list path should stay consistent.
-		if repoIDs[n.CommitCommentID] != n.RepoID {
-			n.CommitCommentID = 0
-		}
-	}
-	return nil
 }
 
 // LoadIssuePullRequests loads all issues' pull requests if possible

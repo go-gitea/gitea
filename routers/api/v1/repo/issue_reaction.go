@@ -57,7 +57,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	}
 
 	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
