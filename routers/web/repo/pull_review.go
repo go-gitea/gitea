@@ -10,6 +10,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
@@ -345,7 +346,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 
 // UpdatePullReviewRequest add or remove review request
 func UpdatePullReviewRequest(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeRead)
 	if ctx.Written() {
 		return
 	}
