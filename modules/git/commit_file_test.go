@@ -12,7 +12,7 @@ import (
 
 func TestParseCommitFileStatus(t *testing.T) {
 	type testcase struct {
-		output   string
+		outputs  []string
 		added    []string
 		removed  []string
 		modified []string
@@ -21,7 +21,11 @@ func TestParseCommitFileStatus(t *testing.T) {
 	kases := []testcase{
 		{
 			// Merge commit
-			output: "MM\x00options/locale/locale_en-US.ini\x00",
+			outputs: []string{
+				"MM\x00options/locale/locale_en-US.ini\x00",
+				// git 1.7.2 adds an unnecessary \x00 on merge commit
+				"\x00MM\x00options/locale/locale_en-US.ini\x00",
+			},
 			modified: []string{
 				"options/locale/locale_en-US.ini",
 			},
@@ -30,7 +34,11 @@ func TestParseCommitFileStatus(t *testing.T) {
 		},
 		{
 			// Spaces commit
-			output: "D\x00b\x00D\x00b b/b\x00A\x00b b/b b/b b/b\x00A\x00b b/b b/b b/b b/b\x00",
+			outputs: []string{
+				"D\x00b\x00D\x00b b/b\x00A\x00b b/b b/b b/b\x00A\x00b b/b b/b b/b b/b\x00",
+				// git 1.7.2 adds an unnecessary \n on normal commit
+				"\nD\x00b\x00D\x00b b/b\x00A\x00b b/b b/b b/b\x00A\x00b b/b b/b b/b b/b\x00",
+			},
 			removed: []string{
 				"b",
 				"b b/b",
@@ -43,7 +51,7 @@ func TestParseCommitFileStatus(t *testing.T) {
 		},
 		{
 			// larger commit
-			output: "M\x00go.mod\x00M\x00go.sum\x00M\x00modules/ssh/ssh.go\x00M\x00vendor/github.com/gliderlabs/ssh/circle.yml\x00M\x00vendor/github.com/gliderlabs/ssh/context.go\x00A\x00vendor/github.com/gliderlabs/ssh/go.mod\x00A\x00vendor/github.com/gliderlabs/ssh/go.sum\x00M\x00vendor/github.com/gliderlabs/ssh/server.go\x00M\x00vendor/github.com/gliderlabs/ssh/session.go\x00M\x00vendor/github.com/gliderlabs/ssh/ssh.go\x00M\x00vendor/golang.org/x/sys/unix/mkerrors.sh\x00M\x00vendor/golang.org/x/sys/unix/syscall_darwin.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_darwin_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_darwin_arm64.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_freebsd_386.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_freebsd_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_freebsd_arm.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_freebsd_arm64.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_linux.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_darwin_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_darwin_arm64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_dragonfly_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_freebsd_386.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_freebsd_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_freebsd_arm.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_freebsd_arm64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_netbsd_386.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_netbsd_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_netbsd_arm.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_netbsd_arm64.go\x00M\x00vendor/modules.txt\x00",
+			outputs: []string{"M\x00go.mod\x00M\x00go.sum\x00M\x00modules/ssh/ssh.go\x00M\x00vendor/github.com/gliderlabs/ssh/circle.yml\x00M\x00vendor/github.com/gliderlabs/ssh/context.go\x00A\x00vendor/github.com/gliderlabs/ssh/go.mod\x00A\x00vendor/github.com/gliderlabs/ssh/go.sum\x00M\x00vendor/github.com/gliderlabs/ssh/server.go\x00M\x00vendor/github.com/gliderlabs/ssh/session.go\x00M\x00vendor/github.com/gliderlabs/ssh/ssh.go\x00M\x00vendor/golang.org/x/sys/unix/mkerrors.sh\x00M\x00vendor/golang.org/x/sys/unix/syscall_darwin.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_darwin_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_darwin_arm64.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_freebsd_386.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_freebsd_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_freebsd_arm.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_freebsd_arm64.go\x00M\x00vendor/golang.org/x/sys/unix/zerrors_linux.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_darwin_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_darwin_arm64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_dragonfly_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_freebsd_386.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_freebsd_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_freebsd_arm.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_freebsd_arm64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_netbsd_386.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_netbsd_amd64.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_netbsd_arm.go\x00M\x00vendor/golang.org/x/sys/unix/ztypes_netbsd_arm64.go\x00M\x00vendor/modules.txt\x00"},
 			modified: []string{
 				"go.mod",
 				"go.sum",
@@ -81,37 +89,17 @@ func TestParseCommitFileStatus(t *testing.T) {
 			},
 			removed: []string{},
 		},
-		{
-			// git 1.7.2 adds an unnecessary \x00 on merge commit
-			output: "\x00MM\x00options/locale/locale_en-US.ini\x00",
-			modified: []string{
-				"options/locale/locale_en-US.ini",
-			},
-			added:   []string{},
-			removed: []string{},
-		},
-		{
-			// git 1.7.2 adds an unnecessary \n on normal commit
-			output: "\nD\x00b\x00D\x00b b/b\x00A\x00b b/b b/b b/b\x00A\x00b b/b b/b b/b b/b\x00",
-			removed: []string{
-				"b",
-				"b b/b",
-			},
-			modified: []string{},
-			added: []string{
-				"b b/b b/b b/b",
-				"b b/b b/b b/b b/b",
-			},
-		},
 	}
 
 	for _, kase := range kases {
-		fileStatus := NewCommitFileStatus()
-		parseCommitFileStatus(fileStatus, strings.NewReader(kase.output))
+		for _, output := range kase.outputs {
+			fileStatus := NewCommitFileStatus()
+			parseCommitFileStatus(fileStatus, strings.NewReader(output))
 
-		assert.Equal(t, kase.added, fileStatus.Added)
-		assert.Equal(t, kase.removed, fileStatus.Removed)
-		assert.Equal(t, kase.modified, fileStatus.Modified)
+			assert.Equal(t, kase.added, fileStatus.Added)
+			assert.Equal(t, kase.removed, fileStatus.Removed)
+			assert.Equal(t, kase.modified, fileStatus.Modified)
+		}
 	}
 }
 
@@ -141,35 +129,23 @@ func TestGetCommitFileStatusMerges(t *testing.T) {
 func TestGetCommitFileStatusMergesSha256(t *testing.T) {
 	bareRepo6Sha256 := mockRepository("repo6_merge_sha256")
 
-	commitFileStatus, err := GetCommitFileStatus(t.Context(), bareRepo6Sha256, "d2e5609f630dd8db500f5298d05d16def282412e3e66ed68cc7d0833b29129a1")
-	assert.NoError(t, err)
-
-	expected := CommitFileStatus{
-		[]string{
-			"add_file.txt",
+	for _, tc := range []struct {
+		commitID string
+		expected CommitFileStatus
+	}{
+		{
+			"d2e5609f630dd8db500f5298d05d16def282412e3e66ed68cc7d0833b29129a1",
+			CommitFileStatus{[]string{"add_file.txt"}, []string{}, []string{"to_modify.txt"}},
 		},
-		[]string{},
-		[]string{
-			"to_modify.txt",
+		{
+			"da1ded40dc8e5b7c564171f4bf2fc8370487decfb1cb6a99ef28f3ed73d09172",
+			CommitFileStatus{[]string{}, []string{"to_remove.txt"}, []string{}},
 		},
+	} {
+		commitFileStatus, err := GetCommitFileStatus(t.Context(), bareRepo6Sha256, tc.commitID)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.expected.Added, commitFileStatus.Added)
+		assert.Equal(t, tc.expected.Removed, commitFileStatus.Removed)
+		assert.Equal(t, tc.expected.Modified, commitFileStatus.Modified)
 	}
-
-	assert.Equal(t, expected.Added, commitFileStatus.Added)
-	assert.Equal(t, expected.Removed, commitFileStatus.Removed)
-	assert.Equal(t, expected.Modified, commitFileStatus.Modified)
-
-	expected = CommitFileStatus{
-		[]string{},
-		[]string{
-			"to_remove.txt",
-		},
-		[]string{},
-	}
-
-	commitFileStatus, err = GetCommitFileStatus(t.Context(), bareRepo6Sha256, "da1ded40dc8e5b7c564171f4bf2fc8370487decfb1cb6a99ef28f3ed73d09172")
-	assert.NoError(t, err)
-
-	assert.Equal(t, expected.Added, commitFileStatus.Added)
-	assert.Equal(t, expected.Removed, commitFileStatus.Removed)
-	assert.Equal(t, expected.Modified, commitFileStatus.Modified)
 }

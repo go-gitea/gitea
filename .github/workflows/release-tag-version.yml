@@ -68,10 +68,6 @@ jobs:
           BRANCH: ${{ steps.clean_name.outputs.branch }}
         run: |
           aws s3 sync dist/release "s3://$CLOUDFLARE_R2_BUCKET/gitea/$BRANCH" --endpoint-url "https://$CLOUDFLARE_R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
-      - name: Install GH CLI
-        uses: dev-hanz-ops/install-gh-cli-action@6089bdde54118ad7ca3d22053eb2d69387fd2779 # v0.3.0
-        with:
-          gh-cli-version: 2.39.1
       - id: range
         run: |
           previous=$(git tag --list --sort=-v:refname | grep -xE 'v[0-9]+\.[0-9]+\.[0-9]+' | grep -A1 -xF "$GITHUB_REF_NAME" | tail -1) # highest stable version below this one
@@ -85,10 +81,12 @@ jobs:
           args: --tag ${{ github.ref_name }} ${{ steps.range.outputs.range }}
       - name: create github release
         env:
+          GH_CLI_VERSION: 2.103.2 # renovate: datasource=github-releases depName=cli/cli extractVersion=^v(?<version>.+)$
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" --title "$TAG" --notes-file git-cliff/CHANGELOG.md dist/release/*
+          curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_CLI_VERSION}/gh_${GH_CLI_VERSION}_linux_amd64.tar.gz" | tar xz --strip-components=2 "gh_${GH_CLI_VERSION}_linux_amd64/bin/gh"
+          ./gh release create "$TAG" --title "$TAG" --notes-file git-cliff/CHANGELOG.md dist/release/*
 
   container:
     runs-on: namespace-profile-gitea-release-docker

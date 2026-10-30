@@ -51,8 +51,8 @@ func ListHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := &webhook.ListWebhookOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -105,8 +105,8 @@ func GetHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo
 	hookID := ctx.PathParamInt64("id")
@@ -156,8 +156,8 @@ func ListDeliveries(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookDeliveryList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	hookID := ctx.PathParamInt64("id")
 	if _, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID); err != nil {
@@ -224,8 +224,8 @@ func GetDelivery(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookDelivery"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	hookID := ctx.PathParamInt64("id")
 	if _, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID); err != nil {
@@ -276,8 +276,8 @@ func TestHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if ctx.Repo.Commit == nil {
 		// if repo does not have any commits, then don't send a webhook
@@ -345,8 +345,8 @@ func CreateHook(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Hook"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	utils.AddRepoHook(ctx, web.GetForm[*api.CreateHookOption](ctx))
 }
@@ -382,8 +382,8 @@ func EditHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.EditHookOption](ctx)
 	hookID := ctx.PathParamInt64("id")
 	utils.EditRepoHook(ctx, form, hookID)
@@ -416,8 +416,8 @@ func DeleteHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id")); err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.APIErrorNotFound()

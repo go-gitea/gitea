@@ -85,3 +85,7 @@ func (s Specialization) RenderSetupManual(ctx context.Context, pkg *packages_mod
 	w.WriteHTML(`</div>`)
 	return w.HTMLString()
 }
+
+func (s Specialization) PublicPropertyNames() []string {
+	return []string{debian_module.PropertyDistribution, debian_module.PropertyComponent, debian_module.PropertyArchitecture}
+}
