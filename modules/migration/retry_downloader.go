@@ -154,7 +154,6 @@ func (d *RetryDownloader) GetComments(ctx context.Context, commentable Commentab
 	return comments, isEnd, err
 }
 
-// GetAllComments returns a page of a repository's comments with retry
 func (d *RetryDownloader) GetAllComments(ctx context.Context, page, perPage int) ([]*Comment, bool, error) {
 	var (
 		comments []*Comment

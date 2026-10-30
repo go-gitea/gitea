@@ -461,9 +461,8 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 
 	if opts.Comments && supportAllComments {
 		log.Trace("migrating comments")
-		commentPageSize := max(commentBatchSize, 100)
 		for i := 1; ; i++ {
-			comments, isEnd, err := downloader.GetAllComments(ctx, i, commentPageSize)
+			comments, isEnd, err := downloader.GetAllComments(ctx, i, commentBatchSize)
 			if err != nil {
 				return err
 			}
@@ -471,12 +470,8 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 				return !mapInsertedIssueIndexes.Contains(comment.IssueIndex) && !mapInsertedPRIndexes.Contains(comment.IssueIndex)
 			})
 
-			for len(comments) > 0 {
-				batchSize := min(len(comments), commentBatchSize)
-				if err := uploader.CreateComments(ctx, comments[:batchSize]...); err != nil {
-					return err
-				}
-				comments = comments[batchSize:]
+			if err := uploader.CreateComments(ctx, comments...); err != nil {
+				return err
 			}
 
 			if isEnd {

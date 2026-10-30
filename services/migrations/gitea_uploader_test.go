@@ -7,7 +7,6 @@ package migrations
 import (
 	"errors"
 	"io"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -326,14 +325,14 @@ func TestGiteaUploadForkPullRequestHeadInRepository(t *testing.T) {
 	headCommitID, err := uploader.gitRepo.GetBranchCommitID(ctx, repo.DefaultBranch)
 	require.NoError(t, err)
 
-	// the fork and the patch cannot be reached, but the head commit is already in the repository
+	// the fork cannot be reached, but its head commit is already in the repository
 	pr := &base.PullRequest{
-		Number:   99,
-		State:    "open",
-		PatchURL: "file://" + filepath.Join(t.TempDir(), "missing.patch"),
-		Head:     base.PullRequestBranch{OwnerName: "fork-owner", RepoName: "repo", Ref: "feature", SHA: headCommitID, CloneURL: "https://fork.invalid/fork-owner/repo.git"},
-		Base:     base.PullRequestBranch{OwnerName: repo.OwnerName, RepoName: repo.Name, Ref: repo.DefaultBranch},
+		Number: 99,
+		State:  "open",
+		Head:   base.PullRequestBranch{OwnerName: "fork-owner", RepoName: "repo", Ref: "feature", SHA: headCommitID, CloneURL: "https://fork.invalid/fork-owner/repo.git"},
+		Base:   base.PullRequestBranch{OwnerName: repo.OwnerName, RepoName: repo.Name, Ref: repo.DefaultBranch},
 	}
+	pr.PatchURL = "file:///nonexistent.patch"
 	pr.EnsuredSafe = true
 	require.True(t, pr.IsForkPullRequest())
 

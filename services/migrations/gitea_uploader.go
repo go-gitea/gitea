@@ -608,7 +608,6 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		return "", fmt.Errorf("the PR[%d] was not checked for safety", pr.Number)
 	}
 
-	patchPath := fmt.Sprintf("pulls/%d.patch", pr.Number)
 	// Anonymous function to download the patch file (allows us to use defer)
 	if err := func() error {
 		// if the patchURL is empty there is nothing to download
@@ -626,7 +625,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		}
 		defer ret.Close()
 
-		f, err := git.CreateRepoFile(ctx, g.repo, patchPath)
+		f, err := git.CreateRepoFile(ctx, g.repo, fmt.Sprintf("pulls/%d.patch", pr.Number))
 		if err != nil {
 			return err
 		}
@@ -636,10 +635,8 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		_, err = io.Copy(f, ret)
 
 		return err
-	}(); err != nil {
-		// the patch is only a fallback for display, GitHub refuses it for very large pull requests
+	}(); err != nil { // the patch is only a fallback for a missing head ref
 		log.Warn("PR #%d in %s/%s: unable to download patch: %v", pr.Number, g.repoOwner, g.repoName, err)
-		_ = git.RemoveRepoFileOrDir(ctx, g.repo, patchPath) // a truncated patch would be read as valid
 	}
 
 	head = "unknown repository"
