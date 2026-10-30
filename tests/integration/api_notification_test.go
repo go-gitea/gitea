@@ -361,7 +361,7 @@ func TestAPIReleaseNotificationWatcherWithoutAccess(t *testing.T) {
 		require.True(t, repo2.IsPrivate)
 
 		// user4 watches the repo even though they cannot read it
-		require.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user4, repo2, repo_model.WatchOptions{Mode: repo_model.WatchModeNormal, WatchReleases: true}))
+		require.NoError(t, repo_model.WatchRepoAuto(t.Context(), user4, repo2, true))
 
 		session2 := loginUser(t, user2.Name)
 		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository)
