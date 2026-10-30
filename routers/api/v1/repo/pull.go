@@ -131,7 +131,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 	prs, maxResults, err := issues_model.PullRequests(ctx, ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
 		ListOptions: listOptions,
-		State:       ctx.FormTrim("state"),
+		IsClosed:    common.ParseIssueFilterStateIsClosed(ctx.FormTrim("state")),
 		SortType:    ctx.FormTrim("sort"),
 		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
