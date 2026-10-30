@@ -6,13 +6,16 @@ package actions
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -147,5 +150,66 @@ func TestCleanupRetentionZeroKeepsForever(t *testing.T) {
 		ids := container.FilterSlice(expiring, func(a *actions_model.ActionArtifact) (int64, bool) { return a.ID, true })
 		assert.NotContains(t, ids, art.ID)
 		assert.Contains(t, ids, past.ID)
+	})
+}
+
+func TestClearCommitStatusLinksOfDeletedRuns(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	deleteAllRuns(t)
+
+	const sha = "c2d72f548424103f01ee1dc02889c1e2bff816b0"
+	insertStatus := func(index, runID int64) *git_model.CommitStatus {
+		status := &git_model.CommitStatus{
+			RepoID: 1, SHA: sha, Index: 9000 + index, State: commitstatus.CommitStatusSuccess,
+			ContextHash: git_model.HashCommitStatusContext("ctx"), Context: "ctx",
+			TargetURL: fmt.Sprintf("/user2/repo1/actions/runs/%d/jobs/%d", runID, index),
+		}
+		require.NoError(t, db.Insert(t.Context(), status))
+		return status
+	}
+	reload := func(s *git_model.CommitStatus) *git_model.CommitStatus {
+		return unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatus{ID: s.ID})
+	}
+
+	deletedRun := insertCleanupRun(t, 4001, actions_model.StatusSuccess, timeutil.TimeStampNow())
+	keptRun := insertCleanupRun(t, 4002, actions_model.StatusSuccess, timeutil.TimeStampNow())
+	ofDeleted := insertStatus(1, deletedRun.ID)
+	ofKept := insertStatus(2, keptRun.ID)
+	external := insertStatus(3, deletedRun.ID)
+	external.TargetURL = "https://ci.example.com/build/1"
+	_, err := db.GetEngine(t.Context()).ID(external.ID).Cols("target_url").Update(external)
+	require.NoError(t, err)
+	require.NoError(t, db.Insert(t.Context(), &git_model.CommitStatusSummary{
+		RepoID: 1, SHA: sha, State: commitstatus.CommitStatusSuccess, TargetURL: ofDeleted.TargetURL,
+	}))
+
+	t.Run("DeleteRun clears the links and keeps the states", func(t *testing.T) {
+		require.NoError(t, DeleteRun(t.Context(), deletedRun))
+
+		assert.Empty(t, reload(ofDeleted).TargetURL)
+		assert.Equal(t, commitstatus.CommitStatusSuccess, reload(ofDeleted).State)
+		assert.Equal(t, ofKept.TargetURL, reload(ofKept).TargetURL)
+		assert.Equal(t, external.TargetURL, reload(external).TargetURL)
+		summary := unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusSummary{RepoID: 1, SHA: sha})
+		assert.Empty(t, summary.TargetURL)
+	})
+
+	t.Run("doctor clears the links which are already broken", func(t *testing.T) {
+		// simulate a run deleted before the links were cleared on run deletion
+		_, err := db.DeleteByID[actions_model.ActionRun](t.Context(), keptRun.ID)
+		require.NoError(t, err)
+		count, err := CountCommitStatusesOfDeletedRuns(t.Context())
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, count)
+
+		fixed, err := ClearCommitStatusesOfDeletedRuns(t.Context())
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, fixed)
+		assert.Empty(t, reload(ofKept).TargetURL)
+		assert.Equal(t, external.TargetURL, reload(external).TargetURL)
+
+		count, err = CountCommitStatusesOfDeletedRuns(t.Context())
+		require.NoError(t, err)
+		assert.Zero(t, count)
 	})
 }

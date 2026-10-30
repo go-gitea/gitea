@@ -241,6 +241,24 @@ func (status *CommitStatus) cutTargetURLGiteaActionsPrefix(ctx context.Context) 
 	return strings.CutPrefix(status.TargetURL, prefix)
 }
 
+// actionsRunTargetURLPattern matches the target URLs of Gitea Actions jobs: "{RepoLink}/actions/runs/{runID}/jobs/{jobID}"
+func actionsRunTargetURLPattern(runID int64) string {
+	return fmt.Sprintf("%%/actions/runs/%d/jobs/%%", runID)
+}
+
+// ClearActionsRunTargetURLs empties the target URL of the commit statuses (and their summaries) pointing to a deleted Actions run.
+// The states are kept, so that required status checks are not affected.
+func ClearActionsRunTargetURLs(ctx context.Context, repoID, runID int64) error {
+	pattern := actionsRunTargetURLPattern(runID)
+	for _, bean := range []any{&CommitStatus{}, &CommitStatusSummary{}} {
+		if _, err := db.GetEngine(ctx).Where("repo_id = ? AND target_url LIKE ?", repoID, pattern).
+			Cols("target_url").Update(bean); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ParseGiteaActionsTargetURL parses the commit status target URL as Gitea Actions link
 func (status *CommitStatus) ParseGiteaActionsTargetURL(ctx context.Context) (runID, jobID int64, ok bool) {
 	s, ok := status.cutTargetURLGiteaActionsPrefix(ctx)

@@ -6,10 +6,14 @@ package actions
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"slices"
+	"strconv"
 	"time"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
@@ -243,7 +247,10 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		if err := CleanupEphemeralRunners(ctx); err != nil {
 			return err
 		}
-		return db.DeleteBeans(ctx, recordsToDelete...)
+		if err := db.DeleteBeans(ctx, recordsToDelete...); err != nil {
+			return err
+		}
+		return git_model.ClearActionsRunTargetURLs(ctx, repoID, run.ID)
 	}); err != nil {
 		return err
 	}
@@ -322,4 +329,84 @@ func cleanupOldRuns(ctx context.Context, olderThan timeutil.TimeStamp, doneStatu
 		}
 	}
 	return total, nil
+}
+
+var reActionsRunTargetURL = regexp.MustCompile(`/actions/runs/(\d+)/jobs/\d+$`)
+
+type repoRunID struct{ repoID, runID int64 }
+
+// findDeletedRunLinks finds the commit statuses linking to Actions runs which no longer exist (e.g.: deleted before statuses were cleared on run deletion).
+// It returns the number of such statuses and the deleted (repo, run) pairs they link to.
+func findDeletedRunLinks(ctx context.Context) (count int64, deletedRuns []repoRunID, _ error) {
+	var lastID int64
+	for {
+		var statuses []*git_model.CommitStatus
+		if err := db.GetEngine(ctx).Cols("id", "repo_id", "target_url").
+			Where("id > ? AND target_url LIKE ?", lastID, "%/actions/runs/%/jobs/%").
+			OrderBy("id").Limit(1000).Find(&statuses); err != nil {
+			return 0, nil, err
+		}
+		if len(statuses) == 0 {
+			return count, deletedRuns, nil
+		}
+		lastID = statuses[len(statuses)-1].ID
+
+		linked := make([]repoRunID, 0, len(statuses)) // one entry per status
+		runIDsByRepo := map[int64]container.Set[int64]{}
+		for _, status := range statuses {
+			m := reActionsRunTargetURL.FindStringSubmatch(status.TargetURL)
+			if m == nil {
+				continue
+			}
+			runID, err := strconv.ParseInt(m[1], 10, 64)
+			if err != nil {
+				continue
+			}
+			linked = append(linked, repoRunID{status.RepoID, runID})
+			if runIDsByRepo[status.RepoID] == nil {
+				runIDsByRepo[status.RepoID] = container.Set[int64]{}
+			}
+			runIDsByRepo[status.RepoID].Add(runID)
+		}
+
+		existing := container.Set[repoRunID]{}
+		for repoID, runIDs := range runIDsByRepo {
+			runs, err := actions_model.GetRunsByRepoAndID(ctx, repoID, runIDs.Values())
+			if err != nil {
+				return 0, nil, err
+			}
+			for _, run := range runs {
+				existing.Add(repoRunID{repoID, run.ID})
+			}
+		}
+
+		for _, l := range linked {
+			if !existing.Contains(l) {
+				count++
+				if !slices.Contains(deletedRuns, l) {
+					deletedRuns = append(deletedRuns, l)
+				}
+			}
+		}
+	}
+}
+
+// CountCommitStatusesOfDeletedRuns counts the commit statuses which link to deleted Actions runs
+func CountCommitStatusesOfDeletedRuns(ctx context.Context) (int64, error) {
+	count, _, err := findDeletedRunLinks(ctx)
+	return count, err
+}
+
+// ClearCommitStatusesOfDeletedRuns clears the links of the commit statuses which link to deleted Actions runs
+func ClearCommitStatusesOfDeletedRuns(ctx context.Context) (int64, error) {
+	count, deletedRuns, err := findDeletedRunLinks(ctx)
+	if err != nil {
+		return 0, err
+	}
+	for _, r := range deletedRuns {
+		if err := git_model.ClearActionsRunTargetURLs(ctx, r.repoID, r.runID); err != nil {
+			return 0, err
+		}
+	}
+	return count, nil
 }
