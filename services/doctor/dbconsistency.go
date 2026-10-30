@@ -15,7 +15,6 @@ import (
 	secret_model "gitea.dev/models/secret"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	actions_service "gitea.dev/services/actions"
 	issue_service "gitea.dev/services/issue"
 )
 
@@ -156,12 +155,6 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 			Counter:      actions_model.CountWrongRepoLevelVariables,
 			Fixer:        actions_model.UpdateWrongRepoLevelVariables,
 			FixedMessage: "Corrected",
-		},
-		{
-			Name:         "Commit statuses linking to deleted Actions runs",
-			Counter:      actions_service.CountCommitStatusesOfDeletedRuns,
-			Fixer:        actions_service.ClearCommitStatusesOfDeletedRuns,
-			FixedMessage: "Cleared the links of",
 		},
 		{
 			Name:         "Repository level Secrets with non-zero owner_id",
