@@ -52,21 +52,28 @@ func TestGetTaskRunnerNames(t *testing.T) {
 
 func TestFindTasksPage(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	for _, tokenHash := range []string{"page-task-1", "page-task-2", "page-task-3"} {
-		require.NoError(t, db.Insert(t.Context(), &ActionTask{RunnerID: 987654, TokenHash: tokenHash, LogIndexes: LogIndexes{1}}))
+	tasks := []*ActionTask{
+		{RunnerID: 987654, TokenHash: "page-task-1", Created: 300, LogIndexes: LogIndexes{1}},
+		{RunnerID: 987654, TokenHash: "page-task-2", Created: 100},
+		{RunnerID: 987654, TokenHash: "page-task-3", Created: 300},
+	}
+	for _, task := range tasks {
+		_, err := db.GetEngine(t.Context()).NoAutoTime().Insert(task)
+		require.NoError(t, err)
 	}
 
-	tasks, hasMore, err := FindTasksPage(t.Context(), FindTaskOptions{RunnerID: 987654, ListOptions: db.ListOptions{Page: 1, PageSize: 2}})
+	page, hasMore, err := FindTasksPage(t.Context(), FindTaskOptions{RunnerID: 987654, ListOptions: db.ListOptions{Page: 1, PageSize: 2}})
 	require.NoError(t, err)
 	assert.True(t, hasMore)
-	require.Len(t, tasks, 2)
-	assert.Greater(t, tasks[0].ID, tasks[1].ID)
-	assert.Empty(t, tasks[0].LogIndexes)
+	require.Len(t, page, 2)
+	assert.Equal(t, []int64{tasks[2].ID, tasks[0].ID}, []int64{page[0].ID, page[1].ID})
+	assert.Empty(t, page[1].LogIndexes)
 
-	tasks, hasMore, err = FindTasksPage(t.Context(), FindTaskOptions{RunnerID: 987654, ListOptions: db.ListOptions{Page: 2, PageSize: 2}})
+	page, hasMore, err = FindTasksPage(t.Context(), FindTaskOptions{RunnerID: 987654, ListOptions: db.ListOptions{Page: 2, PageSize: 2}})
 	require.NoError(t, err)
 	assert.False(t, hasMore)
-	assert.Len(t, tasks, 1)
+	require.Len(t, page, 1)
+	assert.Equal(t, tasks[1].ID, page[0].ID)
 }
 
 func TestMakeTaskStepDisplayName(t *testing.T) {

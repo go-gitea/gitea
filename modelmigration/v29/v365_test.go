@@ -12,11 +12,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddActionTaskRunnerIDIDIndex(t *testing.T) {
+func TestAddActionTaskRunnerIDCreatedIndex(t *testing.T) {
 	type ActionTask struct {
 		ID       int64 `xorm:"pk autoincr"`
 		RunnerID int64 `xorm:"index"`
 		Status   int   `xorm:"index"`
+		Created  int64
 	}
 
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ActionTask))
@@ -25,11 +26,11 @@ func TestAddActionTaskRunnerIDIDIndex(t *testing.T) {
 		return
 	}
 
-	require.NoError(t, AddActionTaskRunnerIDIDIndex(t.Context(), x))
+	require.NoError(t, AddActionTaskRunnerIDCreatedIndex(t.Context(), x))
 
 	indexes := migrationtest.LoadTableSchemasMap(t, x)["action_task"].Indexes
-	require.Contains(t, indexes, "runner_id_id")
-	assert.Equal(t, []string{"runner_id", "id"}, indexes["runner_id_id"].Cols)
+	require.Contains(t, indexes, "runner_id_created")
+	assert.Equal(t, []string{"runner_id", "created"}, indexes["runner_id_created"].Cols)
 	assert.NotContains(t, indexes, "runner_id")
 	assert.Contains(t, indexes, "status")
 }

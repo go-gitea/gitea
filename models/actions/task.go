@@ -23,7 +23,6 @@ import (
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm/schemas"
 )
 
 // ActionTask represents a distribution of job
@@ -33,7 +32,7 @@ type ActionTask struct {
 	Job      *ActionRunJob     `xorm:"-"`
 	Steps    []*ActionTaskStep `xorm:"-"`
 	Attempt  int64
-	RunnerID int64
+	RunnerID int64              `xorm:"index(runner_id_created)"`
 	Status   Status             `xorm:"index"`
 	Started  timeutil.TimeStamp `xorm:"index"`
 	Stopped  timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
@@ -55,7 +54,7 @@ type ActionTask struct {
 	LogIndexes   LogIndexes `xorm:"LONGBLOB"`                   // line number to offset
 	LogExpired   bool       `xorm:"index(stopped_log_expired)"` // files that are too old will be deleted
 
-	Created timeutil.TimeStamp `xorm:"created"`
+	Created timeutil.TimeStamp `xorm:"created index(runner_id_created)"`
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
@@ -67,13 +66,6 @@ const taskReportTimeout = time.Minute
 
 func init() {
 	db.RegisterModel(new(ActionTask))
-}
-
-// TableIndices declares (runner_id, id), which xorm tags can't since they order composite columns by field order
-func (*ActionTask) TableIndices() []*schemas.Index {
-	runnerIDIndex := schemas.NewIndex("runner_id_id", schemas.IndexType)
-	runnerIDIndex.AddColumn("runner_id", "id")
-	return []*schemas.Index{runnerIDIndex}
 }
 
 func (task *ActionTask) IsStopped() bool {

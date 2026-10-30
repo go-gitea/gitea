@@ -7,31 +7,20 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
 )
 
-type actionTaskRunnerIDID struct {
-	ID       int64 `xorm:"pk autoincr"`
-	RunnerID int64
-}
-
-func (*actionTaskRunnerIDID) TableName() string {
-	return "action_task"
-}
-
-func (*actionTaskRunnerIDID) TableIndices() []*schemas.Index {
-	runnerIDIndex := schemas.NewIndex("runner_id_id", schemas.IndexType)
-	runnerIDIndex.AddColumn("runner_id", "id")
-	return []*schemas.Index{runnerIDIndex}
-}
-
-func AddActionTaskRunnerIDIDIndex(ctx context.Context, x base.EngineMigration) error {
+func AddActionTaskRunnerIDCreatedIndex(ctx context.Context, x base.EngineMigration) error {
+	type ActionTask struct {
+		RunnerID int64              `xorm:"index(runner_id_created)"`
+		Created  timeutil.TimeStamp `xorm:"created index(runner_id_created)"`
+	}
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
-	}, new(actionTaskRunnerIDID)); err != nil {
+	}, new(ActionTask)); err != nil {
 		return err
 	}
 	indexes, err := x.Dialect().GetIndexes(x.DB(), ctx, "action_task")

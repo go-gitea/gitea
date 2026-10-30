@@ -111,6 +111,9 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 }
 
 func (opts FindTaskOptions) ToOrders() string {
+	if opts.RunnerID > 0 {
+		return "`created` DESC, `id` DESC" // runner_id_created index serves it, id keeps pages stable within a second
+	}
 	return "`id` DESC"
 }
 
