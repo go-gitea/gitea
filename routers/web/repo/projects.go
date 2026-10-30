@@ -12,6 +12,7 @@ import (
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
@@ -446,7 +447,7 @@ func ProjectWorkflows(ctx *context.Context) {
 
 // UpdateIssueProject change an issue's project
 func UpdateIssueProject(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}
@@ -487,7 +488,7 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		ctx.ServerError("GetIssueByID", err)
 		return
 	}
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.NotFound(nil)
 		return
 	}
