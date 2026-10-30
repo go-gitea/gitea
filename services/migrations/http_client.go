@@ -19,7 +19,7 @@ import (
 
 // getMigrationHTTPClient returns the shared migration client, so downloads from one host reuse its connections
 var getMigrationHTTPClient = sync.OnceValue(func() *http.Client {
-	return &http.Client{Transport: retryAfterTransport{getMigrationTransport()}}
+	return &http.Client{Transport: retryAfterTransport{RoundTripper: getMigrationTransport()}}
 })
 
 var getMigrationTransport = sync.OnceValue(newMigrationTransport)
@@ -30,7 +30,7 @@ func newMigrationHTTPClient(baseURL, authorization string) *http.Client {
 
 // NewMigrationHTTPTransport returns a HTTP transport for migration, enforcing the migration policy on its direct dials.
 func NewMigrationHTTPTransport() http.RoundTripper {
-	return retryAfterTransport{newMigrationTransport()}
+	return retryAfterTransport{RoundTripper: newMigrationTransport()}
 }
 
 func newMigrationTransport() *http.Transport {
@@ -41,6 +41,7 @@ func newMigrationTransport() *http.Transport {
 
 type retryAfterTransport struct {
 	http.RoundTripper
+	backoff time.Duration // first wait for a 429 without Retry-After, doubled per retry, zero gives up
 }
 
 func (t retryAfterTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -54,8 +55,8 @@ func (t retryAfterTransport) RoundTrip(req *http.Request) (*http.Response, error
 			return resp, nil
 		}
 		delay, ok := parseRetryAfter(resp.Header.Get("Retry-After"))
-		if !ok && resp.StatusCode == http.StatusTooManyRequests {
-			delay, ok = parseRetryAfter(resp.Header.Get("X-RateLimit-Reset")) // Bitbucket Cloud sends seconds until the reset, epoch values exceed the budget
+		if !ok && t.backoff > 0 && resp.StatusCode == http.StatusTooManyRequests {
+			delay, ok = t.backoff<<retries, true
 		}
 		if !ok || delay > time.Hour-waited {
 			return resp, nil

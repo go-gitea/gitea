@@ -16,7 +16,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName string) *httptest.ResponseRecorder {
@@ -57,19 +56,13 @@ func TestRepoMigrate(t *testing.T) {
 	})
 
 	t.Run("BitbucketVariants", func(t *testing.T) {
-		variants := structs.BitbucketService.Variants()
-		for _, service := range variants {
+		for _, service := range structs.BitbucketService.Variants() {
 			resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", service)), http.StatusOK)
 			htmlDoc := NewHTMLParser(t, resp.Body)
-			serviceValue, _ := htmlDoc.Find(`input[name="service"]`).Attr("value")
-			assert.Equal(t, fmt.Sprintf("%d", service), serviceValue)
-			items := htmlDoc.Find(".ui.compact.menu a.item")
-			require.Equal(t, 2, items.Length())
-			for i, variant := range variants {
-				href, _ := items.Eq(i).Attr("href")
-				assert.Contains(t, href, fmt.Sprintf("service_type=%d&", variant))
-				assert.Equal(t, variant == service, items.Eq(i).HasClass("active"))
-			}
+			assert.Equal(t, fmt.Sprint(service), htmlDoc.GetInputValueByName("service"))
+			assert.Equal(t, 2, htmlDoc.Find(".ui.compact.menu a.item").Length())
+			assert.Contains(t, htmlDoc.Find(".ui.compact.menu a.item.active").AttrOr("href", ""), fmt.Sprintf("service_type=%d&", service))
+			assert.Equal(t, service == structs.BitbucketServerService, htmlDoc.Find(`input[name="auth_username"]`).Length() == 1)
 		}
 	})
 }

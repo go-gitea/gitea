@@ -27,7 +27,6 @@ func TestMigrationHTTPTransportRetryAfter(t *testing.T) {
 			w.Header().Set("Retry-After", time.Now().UTC().Format(http.TimeFormat))
 			w.WriteHeader(http.StatusForbidden)
 		case 3:
-			w.Header().Set("X-RateLimit-Reset", "0")
 			w.WriteHeader(http.StatusTooManyRequests)
 		default:
 			_, _ = io.Copy(w, r.Body)
@@ -35,7 +34,8 @@ func TestMigrationHTTPTransportRetryAfter(t *testing.T) {
 	}))
 	defer server.Close()
 
-	resp, err := getMigrationHTTPClient().Post(server.URL, "text/plain", strings.NewReader("payload"))
+	client := &http.Client{Transport: retryAfterTransport{RoundTripper: getMigrationTransport(), backoff: time.Nanosecond}}
+	resp, err := client.Post(server.URL, "text/plain", strings.NewReader("payload"))
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)

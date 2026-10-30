@@ -12,18 +12,7 @@
 
 				{{template "repo/migrate/common-clone-addr"}}
 
-				{{if eq .service.Name "bitbucket"}}
-				<div class="inline field">
-					<label>{{ctx.Locale.Tr "email"}}</label>
-					<input name="auth_username">
-				</div>
-				<div class="inline field">
-					<label>{{ctx.Locale.Tr "repo.migrate.bitbucket.api_token"}}</label>
-					<input name="auth_password" type="password" autocomplete="new-password">
-					<a target="_blank" href="https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/">{{svg "octicon-question"}}</a>
-					<span class="help">{{ctx.Locale.Tr "repo.migrate.bitbucket.token_desc"}}</span>
-				</div>
-				{{else}}
+				{{if ne .service.Name "bitbucket"}}
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "username"}}</label>
 					<input name="auth_username">
@@ -32,12 +21,12 @@
 					<label>{{ctx.Locale.Tr "password"}}</label>
 					<input name="auth_password" type="password">
 				</div>
+				{{end}}
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "access_token"}}</label>
 					<input name="auth_token" type="password" autocomplete="new-password">
-					<span class="help">{{ctx.Locale.Tr "repo.migrate.bitbucketserver.token_desc"}}</span>
+					<span class="help">{{ctx.Locale.Tr (printf "repo.migrate.%s.token_desc" .service.Name)}}</span>
 				</div>
-				{{end}}
 
 				{{template "repo/migrate/common-options" .}}
 

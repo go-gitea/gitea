@@ -17,7 +17,6 @@ import (
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -28,35 +27,26 @@ var (
 	_ base.DownloaderFactory = &BitbucketDownloaderFactory{}
 )
 
-const (
-	bitbucketWebURL      = "https://bitbucket.org"
-	bitbucketMaxPageSize = 100
-)
+const bitbucketWebURL = "https://bitbucket.org"
 
 func init() {
 	RegisterDownloaderFactory(&BitbucketDownloaderFactory{})
 }
 
-// BitbucketDownloaderFactory defines a bitbucket.org downloader factory.
 type BitbucketDownloaderFactory struct{}
 
-// New returns a Downloader related to this factory according MigrateOptions.
 func (f *BitbucketDownloaderFactory) New(_ context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	u, err := url.Parse(opts.CloneAddr)
+	cloneURL, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
-	if !strings.EqualFold(u.Hostname(), "bitbucket.org") { // the credentials go to api.bitbucket.org, so another host must not get them
-		return nil, fmt.Errorf("invalid Bitbucket Cloud clone URL, the host must be bitbucket.org: %s", opts.CloneAddr)
+	fields := strings.Split(strings.Trim(cloneURL.Path, "/"), "/")
+	if !strings.EqualFold(cloneURL.Hostname(), "bitbucket.org") || len(fields) < 2 { // the token goes to api.bitbucket.org, so no other host's URL is accepted
+		return nil, fmt.Errorf("invalid Bitbucket Cloud URL %q, expected https://bitbucket.org/<workspace>/<repo>", cloneURL.Redacted())
 	}
-	fields := strings.Split(strings.Trim(u.Path, "/"), "/")
-	if len(fields) < 2 {
-		return nil, fmt.Errorf("invalid Bitbucket clone URL: %s", opts.CloneAddr)
-	}
-	return NewBitbucketDownloader("https://api.bitbucket.org/2.0", fields[0], strings.TrimSuffix(fields[1], ".git"), opts.AuthUsername, opts.AuthPassword, opts.AuthToken), nil
+	return NewBitbucketDownloader("https://api.bitbucket.org/2.0", fields[0], strings.TrimSuffix(fields[1], ".git"), cmp.Or(opts.AuthToken, opts.AuthPassword)), nil
 }
 
-// GitServiceType returns the type of git service.
 func (f *BitbucketDownloaderFactory) GitServiceType() structs.GitServiceType {
 	return structs.BitbucketService
 }
@@ -71,7 +61,6 @@ type bitbucketUser struct {
 	AccountID   string `json:"account_id"`
 	Nickname    string `json:"nickname"`
 	DisplayName string `json:"display_name"`
-	Username    string `json:"username"`
 }
 
 type bitbucketBranch struct {
@@ -109,6 +98,8 @@ type bitbucketPullRequest struct {
 	Title        string                 `json:"title"`
 	Description  string                 `json:"description"`
 	State        string                 `json:"state"`
+	Draft        bool                   `json:"draft"`
+	CommentCount int                    `json:"comment_count"`
 	Author       bitbucketUser          `json:"author"`
 	Source       bitbucketPRSide        `json:"source"`
 	Destination  bitbucketPRSide        `json:"destination"`
@@ -119,7 +110,6 @@ type bitbucketPullRequest struct {
 }
 
 type bitbucketComment struct {
-	ID      int64 `json:"id"`
 	Content struct {
 		Raw string `json:"raw"`
 	} `json:"content"`
@@ -136,36 +126,35 @@ type bitbucketComment struct {
 	Resolution *struct{} `json:"resolution"`
 }
 
-// bitbucketPRContext carries what GetComments and GetReviews share, so each pull request is fetched once
+// isLineComment is false for file comments, which carry neither line
+func (c *bitbucketComment) isLineComment() bool {
+	return c.Inline != nil && (c.Inline.From > 0 || c.Inline.To > 0)
+}
+
+// bitbucketPRContext carries what GetComments and GetReviews share, so the comments of each pull request are fetched once
 type bitbucketPRContext struct {
 	pr       bitbucketPullRequest
-	headSHA  string
 	comments []bitbucketComment
 }
 
-// BitbucketDownloader implements a Downloader interface to get repository information from bitbucket.org.
 type BitbucketDownloader struct {
 	base.NullDownloader
 	client     *http.Client
-	apiBaseURL string
+	apiRepoURL string
 	workspace  string
 	repoSlug   string
-	commitSHAs map[string]string
 }
 
-// NewBitbucketDownloader creates a bitbucket.org Downloader via API v2.
-func NewBitbucketDownloader(apiBaseURL, workspace, repoSlug, userName, password, token string) *BitbucketDownloader {
-	authorization := util.Iif(token != "", "Bearer "+token, basicAuthorization(userName, password))
+func NewBitbucketDownloader(apiBaseURL, workspace, repoSlug, token string) *BitbucketDownloader {
 	return &BitbucketDownloader{
-		client:     newMigrationHTTPClient(apiBaseURL, authorization),
-		apiBaseURL: apiBaseURL,
+		// Bitbucket Cloud answers 429 without Retry-After and refills its limits over a rolling hour
+		client:     &http.Client{Transport: authTransport(retryAfterTransport{RoundTripper: getMigrationTransport(), backoff: time.Minute}, apiBaseURL, util.Iif(token != "", "Bearer "+token, ""))},
+		apiRepoURL: apiBaseURL + "/repositories/" + url.PathEscape(workspace) + "/" + url.PathEscape(repoSlug),
 		workspace:  workspace,
 		repoSlug:   repoSlug,
-		commitSHAs: map[string]string{},
 	}
 }
 
-// String implements Stringer.
 func (b *BitbucketDownloader) String() string {
 	return fmt.Sprintf("migration from bitbucket cloud %s/%s", b.workspace, b.repoSlug)
 }
@@ -177,29 +166,20 @@ func (b *BitbucketDownloader) LogString() string {
 	return fmt.Sprintf("<BitbucketDownloader %s/%s>", b.workspace, b.repoSlug)
 }
 
-// FormatCloneURL adds authentication into the clone URL, with the fixed git usernames Bitbucket Cloud requires for tokens
+// FormatCloneURL adds the token into the clone URL, git accepts API and access tokens with the static user name
 func (b *BitbucketDownloader) FormatCloneURL(opts base.MigrateOptions, remoteAddr string) (string, error) {
-	if opts.AuthToken != "" {
-		opts.AuthUsername, opts.AuthPassword, opts.AuthToken = "x-token-auth", opts.AuthToken, ""
-	} else if strings.Contains(opts.AuthUsername, "@") && opts.AuthPassword != "" {
-		opts.AuthUsername = "x-bitbucket-api-token-auth"
+	if token := cmp.Or(opts.AuthToken, opts.AuthPassword); token != "" {
+		opts.AuthUsername, opts.AuthPassword, opts.AuthToken = "x-token-auth", token, ""
 	}
 	return b.NullDownloader.FormatCloneURL(opts, remoteAddr)
 }
 
-func (b *BitbucketDownloader) apiPath(format string, args ...any) string {
-	return fmt.Sprintf("/repositories/%s/%s"+format, append([]any{url.PathEscape(b.workspace), url.PathEscape(b.repoSlug)}, args...)...)
-}
-
 func (b *BitbucketDownloader) doAPI(ctx context.Context, path string, query url.Values, out any) error {
-	reqURL := b.apiBaseURL + path
-	if len(query) > 0 {
-		reqURL += "?" + query.Encode()
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, b.apiRepoURL+path, nil)
 	if err != nil {
 		return err
 	}
+	req.URL.RawQuery = query.Encode()
 	req.Header.Set("Accept", "application/json")
 	resp, err := b.client.Do(req)
 	if err != nil {
@@ -207,37 +187,31 @@ func (b *BitbucketDownloader) doAPI(ctx context.Context, path string, query url.
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return &bbsStatusError{Status: resp.StatusCode, URL: reqURL}
+		return &bbsStatusError{Status: resp.StatusCode, URL: req.URL.String()}
 	}
 	return json.NewDecoder(resp.Body).Decode(out)
 }
 
 func bitbucketUserID(user bitbucketUser) int64 {
-	h := fnv.New64a()
-	_, _ = h.Write([]byte(cmp.Or(user.AccountID, user.UUID, bitbucketUserName(user))))
-	return int64(h.Sum64() & 0x7fffffffffffffff)
+	hasher := fnv.New64a()
+	_, _ = hasher.Write([]byte(cmp.Or(user.AccountID, user.UUID, bitbucketUserName(user))))
+	return int64(hasher.Sum64() & 0x7fffffffffffffff)
 }
 
 func bitbucketUserName(user bitbucketUser) string {
-	return cmp.Or(user.Nickname, user.Username, user.DisplayName, user.AccountID, user.UUID, user_model.GhostUserName)
+	return cmp.Or(user.Nickname, user.DisplayName, user_model.GhostUserName)
 }
 
 func bitbucketCloneURL(owner, repo string) string {
 	return fmt.Sprintf("%s/%s/%s.git", bitbucketWebURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
-func bitbucketOwnerAndRepo(repo bitbucketRepository) (string, string) {
-	owner, name, _ := strings.Cut(repo.FullName, "/")
-	return owner, name
-}
-
-// GetRepoInfo returns a repository information.
 func (b *BitbucketDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, error) {
 	var repo bitbucketRepository
-	if err := b.doAPI(ctx, b.apiPath(""), nil, &repo); err != nil {
+	if err := b.doAPI(ctx, "", nil, &repo); err != nil {
 		return nil, err
 	}
-	owner, name := bitbucketOwnerAndRepo(repo)
+	owner, name, _ := strings.Cut(repo.FullName, "/")
 	return &base.Repository{
 		Owner:         owner,
 		Name:          repo.Slug,
@@ -250,91 +224,80 @@ func (b *BitbucketDownloader) GetRepoInfo(ctx context.Context) (*base.Repository
 	}, nil
 }
 
-func (b *BitbucketDownloader) pullRequestComments(ctx context.Context, reviewable base.Reviewable) ([]bitbucketComment, error) {
-	prCtx, _ := reviewable.GetContext().(*bitbucketPRContext)
-	if prCtx != nil && prCtx.comments != nil {
-		return prCtx.comments, nil
+func (b *BitbucketDownloader) pullRequestComments(ctx context.Context, reviewable base.Reviewable) (*bitbucketPRContext, error) {
+	prCtx, ok := reviewable.GetContext().(*bitbucketPRContext)
+	if !ok {
+		return nil, fmt.Errorf("pullRequestComments: unexpected context %+v", reviewable.GetContext())
 	}
-	all := []bitbucketComment{}
+	if prCtx.comments != nil || prCtx.pr.CommentCount == 0 {
+		return prCtx, nil
+	}
+	comments := make([]bitbucketComment, 0, prCtx.pr.CommentCount)
 	for page := 1; ; page++ {
 		var resp bitbucketPage[bitbucketComment]
-		query := url.Values{"pagelen": {strconv.Itoa(bitbucketMaxPageSize)}, "page": {strconv.Itoa(page)}}
-		if err := b.doAPI(ctx, b.apiPath("/pullrequests/%d/comments", reviewable.GetForeignIndex()), query, &resp); err != nil {
+		query := url.Values{"pagelen": {"100"}, "page": {strconv.Itoa(page)}}
+		if err := b.doAPI(ctx, fmt.Sprintf("/pullrequests/%d/comments", prCtx.pr.ID), query, &resp); err != nil {
 			return nil, err
 		}
-		all = append(all, resp.Values...)
+		comments = append(comments, resp.Values...)
 		if resp.Next == "" {
-			break
+			prCtx.comments = comments
+			return prCtx, nil
 		}
 	}
-	if prCtx != nil {
-		prCtx.comments = all
-	}
-	return all, nil
 }
 
-// GetComments returns comments of a pull request; inline comments are returned by GetReviews.
 func (b *BitbucketDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
-	all, err := b.pullRequestComments(ctx, commentable)
+	prCtx, err := b.pullRequestComments(ctx, commentable)
 	if err != nil {
 		return nil, false, err
 	}
-	comments := make([]*base.Comment, 0, len(all))
-	for _, comment := range all {
-		if comment.Deleted || comment.Inline != nil {
+	comments := make([]*base.Comment, 0, len(prCtx.comments))
+	for _, comment := range prCtx.comments {
+		if comment.Deleted || comment.isLineComment() {
 			continue
+		}
+		content := comment.Content.Raw
+		if comment.Inline != nil {
+			content = fmt.Sprintf("Comment on `%s`:\n\n%s", comment.Inline.Path, content)
 		}
 		comments = append(comments, &base.Comment{
 			IssueIndex: commentable.GetLocalIndex(),
-			Index:      comment.ID,
 			PosterID:   bitbucketUserID(comment.User),
 			PosterName: bitbucketUserName(comment.User),
 			Created:    comment.Created,
 			Updated:    comment.Updated,
-			Content:    comment.Content.Raw,
+			Content:    content,
 		})
 	}
 	return comments, true, nil
 }
 
-// GetReviews returns the approvals, change requests and inline code comments of a pull request.
 func (b *BitbucketDownloader) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
-	all, err := b.pullRequestComments(ctx, reviewable)
+	prCtx, err := b.pullRequestComments(ctx, reviewable)
 	if err != nil {
 		return nil, err
 	}
-	prCtx, _ := reviewable.GetContext().(*bitbucketPRContext)
-	if prCtx == nil {
-		prCtx = &bitbucketPRContext{}
-	}
 
 	var reviews []*base.Review
-	for _, c := range all {
-		if c.Deleted || c.Inline == nil {
+	for _, comment := range prCtx.comments {
+		if comment.Deleted || !comment.isLineComment() {
 			continue
-		}
-		line := c.Inline.To
-		if line == 0 {
-			line = -c.Inline.From // a negative line addresses the old side of the diff
 		}
 		// every comment becomes its own review so that replies keep their author
 		reviews = append(reviews, &base.Review{
 			IssueIndex:   reviewable.GetLocalIndex(),
-			ReviewerID:   bitbucketUserID(c.User),
-			ReviewerName: bitbucketUserName(c.User),
-			CreatedAt:    c.Created,
+			ReviewerID:   bitbucketUserID(comment.User),
+			ReviewerName: bitbucketUserName(comment.User),
+			CreatedAt:    comment.Created,
 			State:        base.ReviewStateCommented,
-			CommitID:     prCtx.headSHA,
 			Comments: []*base.ReviewComment{{
-				ID:        c.ID,
-				Content:   c.Content.Raw,
-				TreePath:  c.Inline.Path,
-				Line:      line,
-				CommitID:  prCtx.headSHA,
-				PosterID:  bitbucketUserID(c.User),
-				CreatedAt: c.Created,
-				UpdatedAt: cmp.Or(c.Updated, c.Created),
-				Resolved:  c.Parent == nil && c.Resolution != nil,
+				Content:   comment.Content.Raw,
+				TreePath:  comment.Inline.Path,
+				Line:      cmp.Or(comment.Inline.To, -comment.Inline.From), // a negative line addresses the old side of the diff
+				CommitID:  prCtx.pr.Source.Commit.Hash,
+				UpdatedAt: comment.Updated,
+				Resolved:  comment.Parent == nil && comment.Resolution != nil,
 			}},
 		})
 	}
@@ -355,66 +318,31 @@ func (b *BitbucketDownloader) GetReviews(ctx context.Context, reviewable base.Re
 			ReviewerName: bitbucketUserName(participant.User),
 			CreatedAt:    cmp.Or(participant.ParticipatedOn, prCtx.pr.Updated),
 			State:        state,
-			CommitID:     prCtx.headSHA,
 		})
 	}
 	slices.SortStableFunc(reviews, func(a, b *base.Review) int { return a.CreatedAt.Compare(b.CreatedAt) })
 	return reviews, nil
 }
 
-// fullCommitSHA expands the 12-char hashes the API returns, "" lets the uploader recover the SHA from the branch
-func (b *BitbucketDownloader) fullCommitSHA(ctx context.Context, repo bitbucketRepository, hash string) string {
-	if len(hash) >= 40 {
-		return hash
-	}
-	owner, name := bitbucketOwnerAndRepo(repo)
-	if hash == "" || owner == "" || name == "" {
-		return ""
-	}
-	path := fmt.Sprintf("/repositories/%s/%s/commit/%s", url.PathEscape(owner), url.PathEscape(name), url.PathEscape(hash))
-	if sha, ok := b.commitSHAs[path]; ok {
-		return sha
-	}
-	var commit bitbucketCommit
-	if err := b.doAPI(ctx, path, nil, &commit); err != nil {
-		log.Warn("Bitbucket: unable to resolve commit %s in %s/%s: %v", hash, owner, name, err)
-	}
-	b.commitSHAs[path] = commit.Hash
-	return commit.Hash
-}
-
-// GetPullRequests returns pull requests according page and perPage.
 func (b *BitbucketDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	var resp bitbucketPage[bitbucketPullRequest]
 	query := url.Values{
-		"fields":  {"+values.participants"},
+		"fields":  {"+values.participants,+values.*.commit.date,+values.merge_commit.date"}, // expanding the commits gives full instead of 12-char hashes
 		"pagelen": {strconv.Itoa(perPage)},
 		"page":    {strconv.Itoa(page)},
 		"sort":    {"created_on"},
 		"state":   {"OPEN", "MERGED", "DECLINED", "SUPERSEDED"},
 	}
-	if err := b.doAPI(ctx, b.apiPath("/pullrequests"), query, &resp); err != nil {
+	if err := b.doAPI(ctx, "/pullrequests", query, &resp); err != nil {
 		return nil, false, err
 	}
 
 	pullRequests := make([]*base.PullRequest, 0, len(resp.Values))
 	for _, pr := range resp.Values {
-		state := util.Iif(strings.EqualFold(pr.State, "open"), "open", "closed")
-		merged := strings.EqualFold(pr.State, "merged")
-		var closed, mergedTime *time.Time
-		if state == "closed" {
-			closed = &pr.Updated
-		}
-		if merged {
-			mergedTime = &pr.Updated
-		}
-		headOwner, headRepo := bitbucketOwnerAndRepo(pr.Source.Repository)
-		baseOwner, baseRepo := bitbucketOwnerAndRepo(pr.Destination.Repository)
-		headSHA := b.fullCommitSHA(ctx, pr.Source.Repository, pr.Source.Commit.Hash)
-		var headCloneURL string
-		if headOwner != "" && headRepo != "" {
-			headCloneURL = bitbucketCloneURL(headOwner, headRepo)
-		}
+		state := util.Iif(pr.State == "OPEN", "open", "closed")
+		merged := pr.State == "MERGED"
+		headOwner, headRepo, _ := strings.Cut(pr.Source.Repository.FullName, "/")
+		baseOwner, baseRepo, _ := strings.Cut(pr.Destination.Repository.FullName, "/")
 		pullRequests = append(pullRequests, &base.PullRequest{
 			Number:         pr.ID,
 			Title:          pr.Title,
@@ -424,25 +352,26 @@ func (b *BitbucketDownloader) GetPullRequests(ctx context.Context, page, perPage
 			State:          state,
 			Created:        pr.Created,
 			Updated:        pr.Updated,
-			Closed:         closed,
+			IsDraft:        pr.Draft,
+			Closed:         util.Iif(state == "closed", &pr.Updated, nil),
 			Merged:         merged,
-			MergedTime:     mergedTime,
-			MergeCommitSHA: b.fullCommitSHA(ctx, pr.Destination.Repository, pr.MergeCommit.Hash),
+			MergedTime:     util.Iif(merged, &pr.Updated, nil),
+			MergeCommitSHA: pr.MergeCommit.Hash,
 			Head: base.PullRequestBranch{
-				CloneURL:  headCloneURL,
+				CloneURL:  util.Iif(headOwner != "" && headRepo != "", bitbucketCloneURL(headOwner, headRepo), ""),
 				Ref:       pr.Source.Branch.Name,
-				SHA:       headSHA,
+				SHA:       pr.Source.Commit.Hash,
 				OwnerName: headOwner,
 				RepoName:  headRepo,
 			},
 			Base: base.PullRequestBranch{
 				Ref:       pr.Destination.Branch.Name,
-				SHA:       b.fullCommitSHA(ctx, pr.Destination.Repository, pr.Destination.Commit.Hash),
+				SHA:       pr.Destination.Commit.Hash,
 				OwnerName: baseOwner,
 				RepoName:  baseRepo,
 			},
 			ForeignIndex: pr.ID,
-			Context:      &bitbucketPRContext{pr: pr, headSHA: headSHA},
+			Context:      &bitbucketPRContext{pr: pr},
 		})
 
 		_ = CheckAndEnsureSafePR(pullRequests[len(pullRequests)-1], bitbucketWebURL, b)
