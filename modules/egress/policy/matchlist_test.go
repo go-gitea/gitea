@@ -207,11 +207,6 @@ func TestMatchHostnameInRanges(t *testing.T) {
 	assert.False(t, scoped.MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 80), ranges))
 }
 
-func TestHostnameCount(t *testing.T) {
-	assert.Equal(t, 4, NewAllowList("example.com, other.com, *.wild.com, .dot.com, 10.0.0.0/8", Strict).HostnameCount())
-	assert.Equal(t, 0, NewAllowList("", Strict).HostnameCount())
-}
-
 func TestNeverMatching(t *testing.T) {
 	list := NewAllowList("::ffff:10.0.0.0/104, 224.0.0.0/4, 2001::/32, 10.0.0.0/8, example.com, 192.168.1.1", Strict)
 	never := list.NeverMatching()

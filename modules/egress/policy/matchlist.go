@@ -434,12 +434,6 @@ func (m *matchList) matchHostEntry(host string) (domainRule, bool) {
 	return domainRule{}, false
 }
 
-// HostnameCount returns the number of hostname entries, all of which may cover non-public
-// targets within the internal ranges
-func (m *matchList) HostnameCount() int {
-	return len(m.patterns)
-}
-
 // matchDomain implements the domain-matching model of x/net/http/httpproxy
 // (dot-anchored suffix), like curl's and Go's NO_PROXY:
 //   - "example.com" matches that host and any subdomain, dot-anchored so
