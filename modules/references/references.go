@@ -5,12 +5,14 @@ package references
 
 import (
 	"bytes"
+	"fmt"
 	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 	"unicode/utf8"
 
 	"gitea.dev/modules/log"
@@ -19,8 +21,33 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// cjkPunctuation is full-width punctuation that may directly surround an issue reference, e.g. "修复 #1。"
-const cjkPunctuation = `\x{3000}、。，．：；！？（）［］【】「」『』《》〈〉`
+// nonASCIIPunctuation is a regexp character class body matching the ideographic space and all non-ASCII
+// Unicode punctuation (\p{P}), e.g. full-width "。", "，" or "（）", which may directly surround an issue reference: "修复 #1。".
+// ASCII punctuation is left out so that the existing rules for it still apply, e.g. "/home/gitea/#1234" is not a reference.
+var nonASCIIPunctuation = func() string {
+	var sb strings.Builder
+	sb.WriteString(`\x{3000}`)
+	appendRange := func(lo, hi, stride rune) {
+		if stride == 1 {
+			if lo = max(lo, utf8.RuneSelf); lo <= hi {
+				fmt.Fprintf(&sb, `\x{%x}-\x{%x}`, lo, hi)
+			}
+			return
+		}
+		for r := lo; r <= hi; r += stride {
+			if r >= utf8.RuneSelf {
+				fmt.Fprintf(&sb, `\x{%x}`, r)
+			}
+		}
+	}
+	for _, r := range unicode.P.R16 {
+		appendRange(rune(r.Lo), rune(r.Hi), rune(r.Stride))
+	}
+	for _, r := range unicode.P.R32 {
+		appendRange(rune(r.Lo), rune(r.Hi), rune(r.Stride))
+	}
+	return sb.String()
+}()
 
 var (
 	// validNamePattern performs only the most basic validation for user or repository names
@@ -35,12 +62,12 @@ var (
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[-\w][-.\w]*?|@[-\w][-.\w]*?/[-\w][-.\w]*?)(?:\s|$|[:,;.?!](\s|$)|'|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\"|[` + cjkPunctuation + `])([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$|[` + cjkPunctuation + `])`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\"|[` + nonASCIIPunctuation + `])([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$|[` + nonASCIIPunctuation + `])`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\'|,)`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. org/repo#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|[` + cjkPunctuation + `])([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$|[` + cjkPunctuation + `])`)
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|[` + nonASCIIPunctuation + `])([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$|[` + nonASCIIPunctuation + `])`)
 	// crossReferenceCommitPattern matches a string that references a commit in a different repository
 	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
 	crossReferenceCommitPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)@([0-9a-f]{7,64})(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
