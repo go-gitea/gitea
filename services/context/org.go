@@ -69,7 +69,6 @@ type OrgAssignmentOptions struct {
 	RequireTeamMember bool
 }
 
-// OrgMustNotBeArchived rejects write requests when the context user is an archived organization
 func OrgMustNotBeArchived() func(ctx *Context) {
 	return func(ctx *Context) {
 		if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() && ctx.ContextUser.IsArchived &&

@@ -441,7 +441,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(362, "Add reusable_workflow_ref column to action_run_job", v29.AddReusableWorkflowRefToActionRunJob),
 		newMigration(363, "Add release_id to reaction table", v29.AddReleaseIDToReaction),
 		newMigration(364, "Add new table project_workflow", v29.AddProjectWorkflow),
-		newMigration(365, "Add archived columns to user table for organizations", v29.AddOrgArchivedColumns),
+		newMigration(365, "Add is_archived column to user table", v29.AddIsArchivedToUser),
 	}
 	return preparedMigrations
 }

@@ -83,7 +83,7 @@ type EditOrgOption struct {
 	Visibility *VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
 	// Whether repository administrators can change team access
 	RepoAdminChangeTeamAccess *bool `json:"repo_admin_change_team_access"`
-	// Archive or unarchive the organization and its repositories
+	// Whether the organization is archived, archiving also archives its repositories
 	Archived *bool `json:"archived"`
 }
 

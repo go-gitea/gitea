@@ -249,7 +249,6 @@ func SettingsRenamePost(ctx *context.Context) {
 	ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(newOrgName) + "/settings")
 }
 
-// SettingsArchivePost archives or unarchives the organization
 func SettingsArchivePost(ctx *context.Context) {
 	if err := org_service.SetOrganizationArchived(ctx, ctx.Org.Organization, ctx.FormBool("archive")); err != nil {
 		if errHasMirrors, ok := errors.AsType[org_service.ErrOrgHasMirrors](err); ok {

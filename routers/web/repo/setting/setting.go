@@ -909,7 +909,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 			ctx.JSONError(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit))
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.settings.transfer.blocked_user"))
-		} else if errors.Is(err, util.ErrPermissionDenied) {
+		} else if errors.Is(err, repo_service.ErrOrgArchived) {
 			ctx.JSONError(ctx.Tr("repo.settings.transfer.archived_org_mirror"))
 		} else {
 			ctx.ServerError("TransferOwnership", err)
@@ -1022,14 +1022,7 @@ func handleSettingsPostArchive(ctx *context.Context) {
 		return
 	}
 
-	if err := actions_service.CleanRepoScheduleTasks(ctx, repo); err != nil {
-		log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
-	}
-
-	// update issue indexer
-	issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
-
-	audit.Record(ctx, audit_model.RepositoryArchive, repo)
+	repo_service.AfterRepoArchived(ctx, repo)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 

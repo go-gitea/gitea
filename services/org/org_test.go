@@ -5,6 +5,7 @@ package org
 
 import (
 	"errors"
+	"slices"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -102,7 +103,7 @@ func TestSetOrganizationArchived(t *testing.T) {
 	require.NoError(t, err)
 
 	err = SetOrganizationArchived(ctx, org, true)
-	assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	assert.ErrorIs(t, err, util.ErrUnprocessableContent)
 	errHasMirrors, ok := errors.AsType[ErrOrgHasMirrors](err)
 	require.True(t, ok)
 	assert.Equal(t, []string{"repo5"}, errHasMirrors.Mirrors)
@@ -119,7 +120,10 @@ func TestSetOrganizationArchived(t *testing.T) {
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	_, err = repo_service.CreateRepositoryDirectly(ctx, doer, org.AsUser(), repo_service.CreateRepoOptions{Name: "new-repo"}, false)
-	assert.ErrorIs(t, err, util.ErrPermissionDenied)
+	assert.ErrorIs(t, err, repo_service.ErrOrgArchived)
+	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx, 2)
+	require.NoError(t, err)
+	assert.False(t, slices.ContainsFunc(orgs, func(o *organization.Organization) bool { return o.ID == 3 }))
 
 	require.NoError(t, SetOrganizationArchived(ctx, org, false))
 	assert.False(t, unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).IsArchived)

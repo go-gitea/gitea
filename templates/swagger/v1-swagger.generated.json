@@ -28204,7 +28204,7 @@
       "type": "object",
       "properties": {
         "archived": {
-          "description": "Archive or unarchive the organization and its repositories",
+          "description": "Whether the organization is archived, archiving also archives its repositories",
           "type": "boolean",
           "x-go-name": "Archived"
         },

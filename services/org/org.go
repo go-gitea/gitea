@@ -22,6 +22,7 @@ import (
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
@@ -195,7 +196,6 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 	return nil
 }
 
-// ErrOrgHasMirrors is returned when archiving an organization that still owns pull mirrors
 type ErrOrgHasMirrors struct {
 	Mirrors []string
 }
@@ -205,47 +205,45 @@ func (e ErrOrgHasMirrors) Error() string {
 }
 
 func (e ErrOrgHasMirrors) Unwrap() error {
-	return util.ErrInvalidArgument
+	return util.ErrUnprocessableContent
 }
 
-// GetMirrorNames returns the names of the pull mirrors owned by the organization
 func GetMirrorNames(ctx context.Context, orgID int64) ([]string, error) {
 	var names []string
 	return names, db.GetEngine(ctx).Table("repository").Where(builder.Eq{"owner_id": orgID, "is_mirror": true}).
 		Asc("lower_name").Cols("name").Find(&names)
 }
 
-// SetOrganizationArchived archives the organization and its repositories; unarchiving leaves the repositories archived
+// SetOrganizationArchived also archives the repositories, unarchiving leaves them archived like GitHub does
 func SetOrganizationArchived(ctx context.Context, org *org_model.Organization, archived bool) error {
+	if org.IsArchived == archived {
+		return nil
+	}
 	var repos []*repo_model.Repository
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if archived {
-			mirrors, err := GetMirrorNames(ctx, org.ID)
-			if err != nil {
-				return err
-			}
-			if len(mirrors) > 0 {
-				return ErrOrgHasMirrors{Mirrors: mirrors}
-			}
-		}
-		if err := org_model.SetArchiveOrgState(ctx, org, archived); err != nil {
+		// update the org row first, its lock orders this against repo creations and transfers into the org
+		if err := user_model.UpdateUserColsNoAutoTime(ctx, &user_model.User{ID: org.ID, IsArchived: archived}, "is_archived"); err != nil {
 			return err
 		}
 		if !archived {
 			return nil
 		}
-		if err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": org.ID, "is_archived": false}).Find(&repos); err != nil {
+		if mirrors, err := GetMirrorNames(ctx, org.ID); err != nil {
+			return err
+		} else if len(mirrors) > 0 {
+			return ErrOrgHasMirrors{Mirrors: mirrors}
+		}
+		cond := builder.Eq{"owner_id": org.ID, "is_archived": false}
+		if err := db.GetEngine(ctx).Where(cond).Find(&repos); err != nil {
 			return err
 		}
-		for _, repo := range repos {
-			if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
-				return err
-			}
-		}
-		return nil
+		_, err := db.GetEngine(ctx).Where(cond).Cols("is_archived", "archived_unix").NoAutoTime().
+			Update(&repo_model.Repository{IsArchived: true, ArchivedUnix: timeutil.TimeStampNow()})
+		return err
 	}); err != nil {
 		return err
 	}
+	org.IsArchived = archived
 
 	if !archived {
 		audit.Record(ctx, audit_model.OrganizationUnarchive, org.AsUser())
@@ -253,8 +251,7 @@ func SetOrganizationArchived(ctx context.Context, org *org_model.Organization, a
 	}
 	audit.Record(ctx, audit_model.OrganizationArchive, org.AsUser())
 	for _, repo := range repos {
-		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
-		audit.Record(ctx, audit_model.RepositoryArchive, repo)
+		repo_service.AfterRepoArchived(ctx, repo)
 	}
 	return nil
 }

@@ -62,15 +62,11 @@
 		</div>
 		<div class="field">
 			{{if .IsEditRule}}
-			{{if not $.IsOrgArchived}}
 			<button type="submit" class="ui primary button" name="action" value="save">{{ctx.Locale.Tr "save"}}</button>
 			<button type="submit" class="ui red button" name="action" value="remove">{{ctx.Locale.Tr "remove"}}</button>
-			{{end}}
 			<a class="ui button" href="{{.Link}}/preview">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.preview"}}</a>
 			{{else}}
-			{{if not $.IsOrgArchived}}
 			<button type="submit" class="ui primary button" name="action" value="save">{{ctx.Locale.Tr "add"}}</button>
-			{{end}}
 			{{end}}
 		</div>
 		</fieldset>

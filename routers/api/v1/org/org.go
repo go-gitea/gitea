@@ -388,21 +388,18 @@ func Edit(ctx *context.APIContext) {
 
 	form := web.GetForm[*api.EditOrgOption](ctx)
 
-	unarchiving := form.Archived != nil && !*form.Archived
-	if ctx.Org.Organization.IsArchived && !unarchiving && (form.FullName != nil || form.Description != nil ||
+	if ctx.Org.Organization.IsArchived && (form.Archived == nil || *form.Archived) && (form.FullName != nil || form.Description != nil ||
 		form.Website != nil || form.Location != nil || form.Email != nil || form.RepoAdminChangeTeamAccess != nil) {
 		ctx.APIError(http.StatusLocked, "organization is archived")
 		return
 	}
 
 	if form.Archived != nil && *form.Archived && !ctx.Org.Organization.IsArchived {
-		mirrors, err := org.GetMirrorNames(ctx, ctx.Org.Organization.ID)
-		if err != nil {
+		if mirrors, err := org.GetMirrorNames(ctx, ctx.Org.Organization.ID); err != nil {
 			ctx.APIErrorInternal(err)
 			return
-		}
-		if len(mirrors) > 0 {
-			ctx.APIError(http.StatusUnprocessableEntity, org.ErrOrgHasMirrors{Mirrors: mirrors}.Error())
+		} else if len(mirrors) > 0 {
+			ctx.APIErrorAuto(org.ErrOrgHasMirrors{Mirrors: mirrors})
 			return
 		}
 	}
@@ -431,11 +428,7 @@ func Edit(ctx *context.APIContext) {
 
 	if form.Archived != nil {
 		if err := org.SetOrganizationArchived(ctx, ctx.Org.Organization, *form.Archived); err != nil {
-			if errors.Is(err, util.ErrInvalidArgument) {
-				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-				return
-			}
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 	}

@@ -275,11 +275,9 @@ function toggleArchivedFilter() {
   searchRepos();
 }
 
-// reload so the server-rendered context switcher picks up the same filter
 function toggleShowArchivedOrgs() {
   showArchivedOrgs.value = !showArchivedOrgs.value;
   updateHistory();
-  window.location.reload();
 }
 
 function togglePrivateFilter() {

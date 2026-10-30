@@ -155,10 +155,6 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 	newOwnerName = newOwner.Name // ensure capitalisation matches
 
-	if err := checkTransferIntoArchivedOrg(newOwner, repo); err != nil {
-		return err
-	}
-
 	// Check if new owner has repository with same name.
 	if has, err := isRepositoryModelOrDirExist(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
@@ -181,12 +177,6 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	// Update repository.
 	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "owner_id", "owner_name"); err != nil {
 		return fmt.Errorf("update owner: %w", err)
-	}
-
-	if newOwner.IsOrganization() && newOwner.IsArchived && !repo.IsArchived {
-		if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
-			return fmt.Errorf("archive repo: %w", err)
-		}
 	}
 
 	// Remove redundant collaborators.
@@ -277,6 +267,21 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("increase new owner repository count: %w", err)
 	} else if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
 		return fmt.Errorf("decrease old owner repository count: %w", err)
+	}
+
+	// read after the count update locked the new owner row, see createRepositoryInDB
+	archiveRepo := false
+	if newOwner.IsOrganization() && !repo.IsArchived {
+		if archiveRepo, err = user_model.IsUserArchived(ctx, newOwner.ID); err != nil {
+			return err
+		}
+	}
+	if archiveRepo && repo.IsMirror {
+		return ErrOrgArchived
+	} else if archiveRepo {
+		if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
+			return fmt.Errorf("archive repo: %w", err)
+		}
 	}
 
 	if err := repo_model.WatchRepoAuto(ctx, doer, repo, true); err != nil {
@@ -371,6 +376,9 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	for _, team := range teams {
 		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, newRepo, "team", team.Name)
 	}
+	if archiveRepo {
+		AfterRepoArchived(ctx, newRepo)
+	}
 
 	return nil
 }
@@ -443,13 +451,6 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	return nil
 }
 
-func checkTransferIntoArchivedOrg(newOwner *user_model.User, repo *repo_model.Repository) error {
-	if newOwner.IsOrganization() && newOwner.IsArchived && repo.IsMirror {
-		return util.NewPermissionDeniedErrorf("cannot transfer a mirror into archived organization %s", newOwner.Name)
-	}
-	return nil
-}
-
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
 // it make repository into pending transfer state, if doer can not create repo for new owner.
 func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
@@ -467,8 +468,8 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return LimitReachedError{Limit: newOwner.MaxCreationLimit()}
 	}
 
-	if err := checkTransferIntoArchivedOrg(newOwner, repo); err != nil {
-		return err
+	if newOwner.IsOrganization() && newOwner.IsArchived && repo.IsMirror {
+		return ErrOrgArchived
 	}
 
 	var isDirectTransfer bool

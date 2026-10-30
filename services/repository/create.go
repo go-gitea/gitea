@@ -330,14 +330,12 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	return repo, nil
 }
 
+var ErrOrgArchived = util.ErrorWrap(util.ErrPermissionDenied, "organization is archived")
+
 // createRepositoryInDB creates a repository for the user/organization.
 func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, isFork bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
 		return err
-	}
-
-	if u.IsOrganization() && u.IsArchived {
-		return util.NewPermissionDeniedErrorf("organization %s is archived", u.Name)
 	}
 
 	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name)
@@ -410,6 +408,15 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		return fmt.Errorf("IncrUserRepoNum: %w", err)
 	}
 	u.NumRepos++
+
+	// read after IncrUserRepoNum locked the owner row, so a concurrent SetOrganizationArchived can't be missed
+	if u.IsOrganization() {
+		if archived, err := user_model.IsUserArchived(ctx, u.ID); err != nil {
+			return err
+		} else if archived {
+			return ErrOrgArchived
+		}
+	}
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
