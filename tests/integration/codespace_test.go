@@ -283,6 +283,12 @@ func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(token), http.StatusForbidden)
 
 		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/actions/artifacts/999999/zip/raw", repo.OwnerName, repo.Name).AddTokenAuth("gcs_invalid"), http.StatusNotFound)
+
+		require.NoError(t, repo_model.SetArchiveRepoState(t.Context(), repo, true))
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/issues/1/reactions").AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, http.MethodDelete, "/api/v1/repos/user2/repo1/issues/comments/1").AddTokenAuth(token), http.StatusLocked)
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/releases/1").AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, http.MethodDelete, "/api/v1/repos/user2/repo1/releases/1").AddTokenAuth(token), http.StatusLocked)
 	})
 }
 
