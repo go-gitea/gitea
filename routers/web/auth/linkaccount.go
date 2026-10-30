@@ -224,6 +224,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 		if len(strings.TrimSpace(form.Password)) > 0 && len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
+			// TODO: use TrPlural for the count
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplLinkAccount, &form)
 			return
 		}

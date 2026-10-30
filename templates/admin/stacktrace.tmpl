@@ -5,7 +5,7 @@
 
 	<h4 class="ui top attached header">
 		{{printf "%d Goroutines" .GoroutineCount}}{{/* Goroutine is non-translatable*/}}
-		{{- if .ProcessCount -}}, {{ctx.Locale.Tr "admin.monitor.processes_count" .ProcessCount}}{{- end -}}
+		{{- if .ProcessCount -}}, {{/* TODO: use TrPlural for the count */}}{{ctx.Locale.Tr "admin.monitor.processes_count" .ProcessCount}}{{- end -}}
 	</h4>
 
 	{{if .ProcessStacks}}

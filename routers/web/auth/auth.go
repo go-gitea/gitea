@@ -579,6 +579,7 @@ func SignUpPost(ctx *context.Context) {
 	}
 	if len(form.Password) < setting.MinPasswordLength {
 		ctx.Data["Err_Password"] = true
+		// TODO: use TrPlural for the count
 		ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplSignUp, &form)
 		return
 	}

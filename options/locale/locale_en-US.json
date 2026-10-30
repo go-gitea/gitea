@@ -469,8 +469,10 @@
   "mail.issue_assigned.issue": "%[1]s assigned you to issue %[2]s in repository %[3]s.",
   "mail.issue.x_mentioned_you": "<b>%s</b> mentioned you:",
   "mail.issue.action.force_push": "<b>%[1]s</b> force-pushed the <b>%[2]s</b> from %[3]s to %[4]s.",
-  "mail.issue.action.push_1": "<b>%[1]s</b> pushed %[3]d commit to %[2]s",
-  "mail.issue.action.push_n": "<b>%[1]s</b> pushed %[3]d commits to %[2]s",
+  "mail.issue.action.push": {
+    "one": "<b>%[1]s</b> pushed %[3]d commit to %[2]s",
+    "other": "<b>%[1]s</b> pushed %[3]d commits to %[2]s"
+  },
   "mail.issue.action.close": "<b>%[1]s</b> closed #%[2]d.",
   "mail.issue.action.reopen": "<b>%[1]s</b> reopened #%[2]d.",
   "mail.issue.action.merge": "<b>%[1]s</b> merged #%[2]d into %[3]s.",
@@ -1075,8 +1077,10 @@
   "repo.archive.title_date": "This repository has been archived on %s. You can view files and clone it. You cannot open issues or pull requests or push a commit.",
   "repo.archive.issue.nocomment": "This repo is archived. You cannot comment on issues.",
   "repo.archive.pull.nocomment": "This repo is archived. You cannot comment on pull requests.",
-  "repo.form.reach_limit_of_creation_1": "The owner has already reached the limit of %d repository.",
-  "repo.form.reach_limit_of_creation_n": "The owner has already reached the limit of %d repositories.",
+  "repo.form.reach_limit_of_creation": {
+    "one": "The owner has already reached the limit of %d repository.",
+    "other": "The owner has already reached the limit of %d repositories."
+  },
   "repo.form.name_reserved": "The repository name \"%s\" is reserved.",
   "repo.form.name_pattern_not_allowed": "The pattern \"%s\" is not allowed in a repository name.",
   "repo.need_auth": "Authorization",
@@ -1535,8 +1539,10 @@
   "repo.issues.open_title": "Open",
   "repo.issues.closed_title": "Closed",
   "repo.issues.draft_title": "Draft",
-  "repo.issues.num_comments_1": "%d comment",
-  "repo.issues.num_comments": "%d comments",
+  "repo.issues.num_comments": {
+    "one": "%d comment",
+    "other": "%d comments"
+  },
   "repo.issues.commented_at": "commented <a href=\"#%s\">%s</a>",
   "repo.issues.delete_comment_confirm": "Are you sure you want to delete this comment?",
   "repo.issues.context.copy_source": "Copy source",
@@ -1673,8 +1679,10 @@
   "repo.issues.invalid_due_date_format": "Due date format must be 'yyyy-mm-dd'.",
   "repo.issues.error_modifying_due_date": "Failed to modify the due date.",
   "repo.issues.error_removing_due_date": "Failed to remove the due date.",
-  "repo.issues.push_commit_1": "added %d commit %s",
-  "repo.issues.push_commits_n": "added %d commits %s",
+  "repo.issues.push_commit": {
+    "one": "added %d commit %s",
+    "other": "added %d commits %s"
+  },
   "repo.issues.force_push_codes": "force-pushed %[1]s from <a class=\"ui sha\" href=\"%[3]s\"><code>%[2]s</code></a> to <a class=\"ui sha\" href=\"%[5]s\"><code>%[4]s</code></a> %[6]s",
   "repo.issues.force_push_compare": "Compare",
   "repo.issues.due_date_form": "yyyy-mm-dd",
@@ -1691,8 +1699,10 @@
   "repo.issues.dependency.title": "Dependencies",
   "repo.issues.dependency.issue_no_dependencies": "No dependencies set.",
   "repo.issues.dependency.pr_no_dependencies": "No dependencies set.",
-  "repo.issues.dependency.no_permission_1": "You do not have permission to read %d dependency",
-  "repo.issues.dependency.no_permission_n": "You do not have permission to read %d dependencies",
+  "repo.issues.dependency.no_permission": {
+    "one": "You do not have permission to read %d dependency",
+    "other": "You do not have permission to read %d dependencies"
+  },
   "repo.issues.dependency.no_permission.can_remove": "You do not have permission to read this dependency but can remove this dependency",
   "repo.issues.dependency.add": "Add dependency…",
   "repo.issues.dependency.cancel": "Cancel",
@@ -1844,14 +1854,22 @@
   "repo.pulls.can_auto_merge_desc": "This pull request can be merged automatically.",
   "repo.pulls.cannot_auto_merge_desc": "This pull request cannot be merged automatically due to conflicts.",
   "repo.pulls.cannot_auto_merge_helper": "Merge manually to resolve the conflicts.",
-  "repo.pulls.num_conflicting_files_1": "%d conflicting file",
-  "repo.pulls.num_conflicting_files_n": "%d conflicting files",
-  "repo.pulls.approve_count_1": "%d approval",
-  "repo.pulls.approve_count_n": "%d approvals",
-  "repo.pulls.reject_count_1": "%d change request",
-  "repo.pulls.reject_count_n": "%d change requests",
-  "repo.pulls.waiting_count_1": "%d waiting review",
-  "repo.pulls.waiting_count_n": "%d waiting reviews",
+  "repo.pulls.num_conflicting_files": {
+    "one": "%d conflicting file",
+    "other": "%d conflicting files"
+  },
+  "repo.pulls.approve_count": {
+    "one": "%d approval",
+    "other": "%d approvals"
+  },
+  "repo.pulls.reject_count": {
+    "one": "%d change request",
+    "other": "%d change requests"
+  },
+  "repo.pulls.waiting_count": {
+    "one": "%d waiting review",
+    "other": "%d waiting reviews"
+  },
   "repo.pulls.wrong_commit_id": "commit ID must be a commit ID on the target branch",
   "repo.pulls.no_merge_desc": "This pull request cannot be merged because all repository merge options are disabled.",
   "repo.pulls.no_merge_helper": "Enable merge options in the repository settings or merge the pull request manually.",
@@ -1922,8 +1940,10 @@
   "repo.pulls.delete.title": "Delete this pull request?",
   "repo.pulls.delete.text": "Do you really want to delete this pull request? (This will permanently remove all content. Consider closing it instead, if you intend to keep it archived)",
   "repo.pulls.recently_pushed_new_branches": "You pushed on branch <strong>%[1]s</strong> %[2]s",
-  "repo.pulls.upstream_diverging_prompt_behind_1": "This branch is %[1]d commit behind %[2]s",
-  "repo.pulls.upstream_diverging_prompt_behind_n": "This branch is %[1]d commits behind %[2]s",
+  "repo.pulls.upstream_diverging_prompt_behind": {
+    "one": "This branch is %[1]d commit behind %[2]s",
+    "other": "This branch is %[1]d commits behind %[2]s"
+  },
   "repo.pulls.upstream_diverging_prompt_base_newer": "The base branch %s has new changes",
   "repo.pulls.upstream_diverging_merge": "Sync fork",
   "repo.pulls.upstream_diverging_merge_confirm": "Would you like to merge \"%[1]s\" onto \"%[2]s\"?",
@@ -2014,61 +2034,85 @@
   "repo.activity.period.semiyearly": "6 months",
   "repo.activity.period.yearly": "1 year",
   "repo.activity.overview": "Overview",
-  "repo.activity.active_prs_count_1": "<strong>%d</strong> Active Pull Request",
-  "repo.activity.active_prs_count_n": "<strong>%d</strong> Active Pull Requests",
+  "repo.activity.active_prs_count": {
+    "one": "<strong>%d</strong> Active Pull Request",
+    "other": "<strong>%d</strong> Active Pull Requests"
+  },
   "repo.activity.merged_prs_count_1": "Merged Pull Request",
   "repo.activity.merged_prs_count_n": "Merged Pull Requests",
   "repo.activity.opened_prs_count_1": "Proposed Pull Request",
   "repo.activity.opened_prs_count_n": "Proposed Pull Requests",
-  "repo.activity.title.user_1": "%d user",
-  "repo.activity.title.user_n": "%d users",
-  "repo.activity.title.prs_1": "%d Pull request",
-  "repo.activity.title.prs_n": "%d Pull requests",
+  "repo.activity.title.user": {
+    "one": "%d user",
+    "other": "%d users"
+  },
+  "repo.activity.title.prs": {
+    "one": "%d Pull request",
+    "other": "%d Pull requests"
+  },
   "repo.activity.title.prs_merged_by": "%s merged by %s",
   "repo.activity.title.prs_opened_by": "%s proposed by %s",
   "repo.activity.merged_prs_label": "Merged",
   "repo.activity.opened_prs_label": "Proposed",
-  "repo.activity.active_issues_count_1": "<strong>%d</strong> Active Issue",
-  "repo.activity.active_issues_count_n": "<strong>%d</strong> Active Issues",
+  "repo.activity.active_issues_count": {
+    "one": "<strong>%d</strong> Active Issue",
+    "other": "<strong>%d</strong> Active Issues"
+  },
   "repo.activity.closed_issues_count_1": "Closed Issue",
   "repo.activity.closed_issues_count_n": "Closed Issues",
-  "repo.activity.title.issues_1": "%d Issue",
-  "repo.activity.title.issues_n": "%d Issues",
+  "repo.activity.title.issues": {
+    "one": "%d Issue",
+    "other": "%d Issues"
+  },
   "repo.activity.title.issues_closed_from": "%s closed from %s",
   "repo.activity.title.issues_created_by": "%s created by %s",
   "repo.activity.closed_issue_label": "Closed",
   "repo.activity.new_issues_count_1": "New Issue",
   "repo.activity.new_issues_count_n": "New Issues",
   "repo.activity.new_issue_label": "Opened",
-  "repo.activity.title.unresolved_conv_1": "%d Unresolved Conversation",
-  "repo.activity.title.unresolved_conv_n": "%d Unresolved Conversations",
+  "repo.activity.title.unresolved_conv": {
+    "one": "%d Unresolved Conversation",
+    "other": "%d Unresolved Conversations"
+  },
   "repo.activity.unresolved_conv_desc": "These recently changed issues and pull requests have not been resolved yet.",
   "repo.activity.unresolved_conv_label": "Open",
-  "repo.activity.title.releases_1": "%d Release",
-  "repo.activity.title.releases_n": "%d Releases",
+  "repo.activity.title.releases": {
+    "one": "%d Release",
+    "other": "%d Releases"
+  },
   "repo.activity.title.releases_published_by": "%s published by %s",
   "repo.activity.published_release_label": "Published",
   "repo.activity.no_git_activity": "There has been no commit activity in this period.",
   "repo.activity.git_stats_exclude_merges": "Excluding merges,",
-  "repo.activity.git_stats_author_1": "%d author",
-  "repo.activity.git_stats_author_n": "%d authors",
+  "repo.activity.git_stats_author": {
+    "one": "%d author",
+    "other": "%d authors"
+  },
   "repo.activity.git_stats_pushed_1": "has pushed",
   "repo.activity.git_stats_pushed_n": "have pushed",
-  "repo.activity.git_stats_commit_1": "%d commit",
-  "repo.activity.git_stats_commit_n": "%d commits",
+  "repo.activity.git_stats_commit": {
+    "one": "%d commit",
+    "other": "%d commits"
+  },
   "repo.activity.git_stats_push_to_branch": "to %s and",
   "repo.activity.git_stats_push_to_all_branches": "to all branches.",
   "repo.activity.git_stats_on_default_branch": "On %s,",
-  "repo.activity.git_stats_file_1": "%d file",
-  "repo.activity.git_stats_file_n": "%d files",
+  "repo.activity.git_stats_file": {
+    "one": "%d file",
+    "other": "%d files"
+  },
   "repo.activity.git_stats_files_changed_1": "has changed",
   "repo.activity.git_stats_files_changed_n": "have changed",
   "repo.activity.git_stats_additions": "and there have been",
-  "repo.activity.git_stats_addition_1": "%d addition",
-  "repo.activity.git_stats_addition_n": "%d additions",
+  "repo.activity.git_stats_addition": {
+    "one": "%d addition",
+    "other": "%d additions"
+  },
   "repo.activity.git_stats_and_deletions": "and",
-  "repo.activity.git_stats_deletion_1": "%d deletion",
-  "repo.activity.git_stats_deletion_n": "%d deletions",
+  "repo.activity.git_stats_deletion": {
+    "one": "%d deletion",
+    "other": "%d deletions"
+  },
   "repo.contributors.contribution_type.filter_label": "Contribution type:",
   "repo.contributors.contribution_type.commits": "Commits",
   "repo.contributors.contribution_type.additions": "Additions",
@@ -2599,8 +2643,10 @@
   "repo.diff.whitespace_ignore_at_eol": "Ignore changes in whitespace at EOL",
   "repo.diff.stats_desc": "<strong> %d changed files</strong> with <strong>%d additions</strong> and <strong>%d deletions</strong>",
   "repo.diff.stats_desc_file": "%d changes: %d additions and %d deletions",
-  "repo.diff.num_files_changed_1": "%d file changed",
-  "repo.diff.num_files_changed_n": "%d files changed",
+  "repo.diff.num_files_changed": {
+    "one": "%d file changed",
+    "other": "%d files changed"
+  },
   "repo.diff.bin": "BIN",
   "repo.diff.bin_not_shown": "Binary file not shown.",
   "repo.diff.file_renamed_no_changes": "File renamed without changes.",
@@ -3537,13 +3583,34 @@
   "tool.1w": "1 week",
   "tool.1mon": "1 month",
   "tool.1y": "1 year",
-  "tool.seconds": "%d seconds",
-  "tool.minutes": "%d minutes",
-  "tool.hours": "%d hours",
-  "tool.days": "%d days",
-  "tool.weeks": "%d weeks",
-  "tool.months": "%d months",
-  "tool.years": "%d years",
+  "tool.seconds": {
+    "one": "%d second",
+    "other": "%d seconds"
+  },
+  "tool.minutes": {
+    "one": "%d minute",
+    "other": "%d minutes"
+  },
+  "tool.hours": {
+    "one": "%d hour",
+    "other": "%d hours"
+  },
+  "tool.days": {
+    "one": "%d day",
+    "other": "%d days"
+  },
+  "tool.weeks": {
+    "one": "%d week",
+    "other": "%d weeks"
+  },
+  "tool.months": {
+    "one": "%d month",
+    "other": "%d months"
+  },
+  "tool.years": {
+    "one": "%d year",
+    "other": "%d years"
+  },
   "tool.raw_seconds": "seconds",
   "tool.raw_minutes": "minutes",
   "dropzone.default_message": "Drop files or click here to upload.",
@@ -3852,8 +3919,10 @@
   "actions.runs.all_workflows": "All Workflows",
   "actions.runs.other_workflows": "Other workflows",
   "actions.runs.other_workflows_tooltip": "Workflows that were executed in this repository but do not exist on the default branch.",
-  "actions.runs.workflow_run_count_1": "%d workflow run",
-  "actions.runs.workflow_run_count_n": "%d workflow runs",
+  "actions.runs.workflow_run_count": {
+    "one": "%d workflow run",
+    "other": "%d workflow runs"
+  },
   "actions.runs.commit": "Commit",
   "actions.runs.run_details": "Run Details",
   "actions.runs.workflow_file": "Workflow file",
@@ -3901,10 +3970,14 @@
   "actions.runs.back_to_workflow": "Back to workflow",
   "actions.runs.total_duration": "Total duration",
   "actions.runs.workflow_dependencies": "Workflow Dependencies",
-  "actions.runs.graph_jobs_count_1": "%d job",
-  "actions.runs.graph_jobs_count_n": "%d jobs",
-  "actions.runs.graph_dependencies_count_1": "%d dependency",
-  "actions.runs.graph_dependencies_count_n": "%d dependencies",
+  "actions.runs.graph_jobs_count": {
+    "one": "%d job",
+    "other": "%d jobs"
+  },
+  "actions.runs.graph_dependencies_count": {
+    "one": "%d dependency",
+    "other": "%d dependencies"
+  },
   "actions.runs.graph_success_rate": "%s success",
   "actions.runs.graph_zoom_in": "Zoom in (Ctrl/Cmd + scroll on graph)",
   "actions.runs.graph_zoom_max": "Already at 100% zoom",

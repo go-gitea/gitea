@@ -100,7 +100,7 @@
 						{{end}}
 					</div>
 					{{if and (gt $push.Len 1) $push.CompareURL}}
-						<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{ctx.Locale.Tr "action.compare_commits" $push.Len}} »</a>
+						<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{/* TODO: use TrPlural for the count */}}{{ctx.Locale.Tr "action.compare_commits" $push.Len}} »</a>
 					{{end}}
 				{{else if .GetOpType.InActions "create_issue"}}
 					<span class="tw-inline-block tw-truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>

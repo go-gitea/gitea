@@ -845,7 +845,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 
 	if !ctx.Doer.CanForkRepoIn(ctx.Repo.Owner) {
 		maxCreationLimit := ctx.Repo.Owner.MaxCreationLimit()
-		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+		msg := ctx.TrPlural("repo.form.reach_limit_of_creation", maxCreationLimit, maxCreationLimit)
 		ctx.Flash.Error(msg)
 		ctx.JSONRedirect(repo.Link() + "/settings")
 		return
@@ -906,7 +906,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.settings.transfer_in_progress"))
 		} else if errLimitReached, ok := err.(repo_service.LimitReachedError); ok {
 			limit := errLimitReached.Limit
-			ctx.JSONError(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit))
+			ctx.JSONError(ctx.TrPlural("repo.form.reach_limit_of_creation", limit, limit))
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.settings.transfer.blocked_user"))
 		} else {

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/options"
 	"gitea.dev/modules/setting"
@@ -220,30 +221,85 @@ func (l *locale) Tr(s string, args ...any) template.HTML {
 	return l.TrHTML(s, args...)
 }
 
-// TrN returns translated message for plural text translation
-func (l *locale) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
-	var c int64
-	if t, ok := cnt.(int); ok {
-		c = int64(t)
-	} else if t, ok := cnt.(int16); ok {
-		c = int64(t)
-	} else if t, ok := cnt.(int32); ok {
-		c = int64(t)
-	} else if t, ok := cnt.(int64); ok {
-		c = t
-	} else {
-		return l.Tr(keyN, args...)
-	}
-
+func (l *locale) trNRuleIdx(cnt int64) int {
 	ruleFunc, ok := trNLangRules[l.Lang]
 	if !ok {
 		ruleFunc = trNLangRules["en-US"]
 	}
+	return ruleFunc(cnt)
+}
 
-	if ruleFunc(c) == 0 {
-		return l.Tr(key1, args...)
+// TrN returns translated message for plural text translation
+func (l *locale) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
+	c, err := util.ToInt64(cnt)
+	if err != nil || l.trNRuleIdx(c) != 0 {
+		return l.Tr(keyN, args...)
 	}
-	return l.Tr(keyN, args...)
+	return l.Tr(key1, args...)
+}
+
+// legacyPluralKeys lists the old "one"/"many" key pairs whose names are not "<key>_1"/"<key>_n"
+var legacyPluralKeys = map[string][2]string{
+	"repo.issues.num_comments": {"repo.issues.num_comments_1", "repo.issues.num_comments"},
+	"repo.issues.push_commit":  {"repo.issues.push_commit_1", "repo.issues.push_commits_n"},
+}
+
+func oldPluralKeys(key string) [2]string {
+	if keys, ok := legacyPluralKeys[key]; ok {
+		return keys
+	}
+	return [2]string{key + "_1", key + "_n"}
+}
+
+// legacyPluralKey returns the old-style key for cnt if this locale hasn't been migrated to CLDR plural forms of the key yet
+func (l *locale) legacyPluralKey(key string, cnt any) (string, bool) {
+	if l.HasPluralKey(key) {
+		return "", false
+	}
+	keys := oldPluralKeys(key)
+	if !l.HasOwnKey(keys[1]) {
+		return "", false
+	}
+	if c, err := util.ToInt64(cnt); err == nil && l.trNRuleIdx(c) == 0 {
+		return keys[0], true
+	}
+	return keys[1], true
+}
+
+func toPluralCount(cnt any) int64 {
+	c, err := util.ToInt64(cnt)
+	if err != nil {
+		log.Error("toPluralCount: unsupported count type %T", cnt)
+	}
+	return c
+}
+
+// TrPlural translates a key by the CLDR plural category of cnt, see i18n.Locale.TrPluralString.
+// Locales which still only have the old "<key>_1"/"<key>_n" strings keep working with the old rules.
+func (l *locale) TrPlural(key string, cnt any, args ...any) template.HTML {
+	if legacyKey, ok := l.legacyPluralKey(key, cnt); ok {
+		return l.Tr(legacyKey, args...)
+	}
+	return l.TrPluralHTML(key, toPluralCount(cnt), args...)
+}
+
+func (l *locale) TrPluralString(key string, cnt any, args ...any) string {
+	if legacyKey, ok := l.legacyPluralKey(key, cnt); ok {
+		return l.TrString(legacyKey, args...)
+	}
+	return l.Locale.TrPluralString(key, toPluralCount(cnt), args...)
+}
+
+// TrPluralForms returns a JSON object of the plural forms for the frontend, see i18n.Locale.PluralForms
+func (l *locale) TrPluralForms(key string) string {
+	forms := map[string]string{}
+	if keys := oldPluralKeys(key); !l.HasPluralKey(key) && l.HasOwnKey(keys[1]) {
+		forms["one"], forms["other"] = l.TrString(keys[0]), l.TrString(keys[1])
+	} else {
+		forms = l.PluralForms(key)
+	}
+	b, _ := json.Marshal(forms)
+	return string(b)
 }
 
 func (l *locale) PrettyNumber(v any) string {

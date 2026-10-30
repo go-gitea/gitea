@@ -5,6 +5,7 @@ package timeutil
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -80,4 +81,25 @@ func TestMinutesToFriendly(t *testing.T) {
 	test("1 hour, 1 minute", 61)
 	test("1 hour, 2 minutes", 62)
 	test("2 hours", 120)
+}
+
+// legacyLocale mimics a locale that has not been migrated to CLDR plural forms yet
+type legacyLocale struct {
+	translation.MockLocale
+}
+
+func (legacyLocale) HasPluralKey(string) bool { return false }
+
+func (legacyLocale) TrPluralString(key string, cnt any, args ...any) string {
+	return fmt.Sprintf("%s(plain)%v", key, cnt)
+}
+
+func TestTrUnit(t *testing.T) {
+	en := translation.NewLocale("en-US")
+	assert.Equal(t, "1 day", trUnit(en, 1, "tool.days", "tool.1d"))
+	assert.Equal(t, "5 days", trUnit(en, 5, "tool.days", "tool.1d"))
+
+	// non-migrated locales keep using the legacy singular key for 1
+	assert.Equal(t, "tool.1d", trUnit(legacyLocale{}, 1, "tool.days", "tool.1d"))
+	assert.Equal(t, "tool.days(plain)5", trUnit(legacyLocale{}, 5, "tool.days", "tool.1d"))
 }
