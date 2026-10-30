@@ -15,13 +15,13 @@
 	<div class="flex-text-block tw-flex-shrink-0">
 		<span class="tw-whitespace-nowrap">{{ctx.Locale.Tr "repo.pulls.commit_position" $.SingleCommitNumber $.SingleCommitCount}}</span>
 		<div class="ui compact icon buttons">
-			<a class="ui tiny basic button js-previous-commit-link{{if not $.PreviousCommitID}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.previous_commit"}}"
+			<a class="ui tiny basic button hover-opaque js-previous-commit-link{{if not $.PreviousCommitID}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.previous_commit"}}"
 				{{if $.PreviousCommitID}}href="{{$.Issue.Link}}/commits/{{PathEscape $.PreviousCommitID}}{{$queryParams}}"{{end}}
 			>{{svg "octicon-chevron-left"}}</a>
-			<a class="ui tiny basic button js-next-commit-link{{if not $.NextCommitID}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.next_commit"}}"
+			<a class="ui tiny basic button hover-opaque js-next-commit-link{{if not $.NextCommitID}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.next_commit"}}"
 				{{if $.NextCommitID}}href="{{$.Issue.Link}}/commits/{{PathEscape $.NextCommitID}}{{$queryParams}}"{{end}}
 			>{{svg "octicon-chevron-right"}}</a>
 		</div>
-		<a class="ui tiny basic button" href="{{$.Issue.Link}}/files{{$queryParams}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a>
+		<a class="ui tiny basic button hover-opaque" href="{{$.Issue.Link}}/files{{$queryParams}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a>
 	</div>
 </div>
