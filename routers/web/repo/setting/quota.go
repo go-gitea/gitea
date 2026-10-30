@@ -4,16 +4,32 @@
 package setting
 
 import (
+	"net/http"
 	"time"
 
 	quota_model "gitea.dev/models/quota"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
 	"gitea.dev/services/context"
 	"gitea.dev/services/quota"
 	repo_service "gitea.dev/services/repository"
 )
+
+func Storage(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings.storage")
+	ctx.Data["PageIsSettingsStorage"] = true
+	storageQuota, limited, err := quota.StatusIfLimited(ctx, quota_model.Repository, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("Storage", err)
+		return
+	}
+	if limited {
+		ctx.Data["StorageQuota"] = storageQuota
+	}
+	ctx.HTML(http.StatusOK, templates.TplName("repo/settings/storage"))
+}
 
 func QuotaGC(ctx *context.Context) {
 	quotaCtx, op, err := quota.Begin(ctx, ctx.Repo.Repository)
@@ -49,5 +65,5 @@ func QuotaGC(ctx *context.Context) {
 			return
 		}
 	}
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/storage")
 }

@@ -4061,6 +4061,7 @@
   "actions.general.cross_repo_target_repos": "Target Repositories",
   "actions.general.cross_repo_add": "Add Target Repository",
   "packages.owner.settings.cleanuprules.type.already_exists": "A cleanup rule for this package type already exists.",
+  "repo.settings.storage": "Storage",
   "quota.title": "Storage quota",
   "quota.git": "Git and wiki storage",
   "quota.lfs": "Git LFS storage",

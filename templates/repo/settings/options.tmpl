@@ -1,13 +1,5 @@
 {{template "repo/settings/layout_head" (dict "pageClass" "repository settings options")}}
 	<div class="user-main-content twelve wide column">
-		{{if .StorageQuota}}{{template "quota/summary" .StorageQuota}}{{end}}
-		{{if .StorageQuota}}
-			{{if or (ge .StorageQuota.Git.Limit 0) (ge .StorageQuota.LFS.Limit 0) (and .StorageQuota.Account (ge .StorageQuota.Account.Limit 0))}}
-				<form class="ui form form-fetch-action tw-mb-4" action="{{.Repository.Link}}/settings/quota/gc" method="post">
-					<button type="submit" class="ui button">{{ctx.Locale.Tr "quota.gc"}}</button>
-				</form>
-			{{end}}
-		{{end}}
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "repo.settings.basic_settings"}}
 		</h4>
@@ -746,7 +738,6 @@
 		</div>
 
 		{{if .IsAdmin}}
-		<p><a href="{{AppSubUrl}}/-/admin/quotas/repository/{{.Repository.ID}}">{{ctx.Locale.Tr "quota.manage"}}</a></p>
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "repo.settings.admin_settings"}}
 		</h4>
