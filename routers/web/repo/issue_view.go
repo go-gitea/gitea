@@ -22,6 +22,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -421,9 +422,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 	ctx.Data["Tags"] = tags
 
-	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-	}
+	ctx.Data["CanBlockUser"] = newCachedCanBlockUser(ctx)
 
 	if !setting.IsProd && issue.PullRequest != nil && prViewInfo.MergeBoxData != nil && prViewInfo.MergeBoxData.ReloadingInterval == 0 {
 		prViewInfo.MergeBoxData.ReloadingInterval = 1 // in dev env, force using the reloading logic to make sure it won't break
@@ -643,6 +642,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		comment              *issues_model.Comment
 		participants         = make([]*user_model.User, 1, 10)
 		latestCloseCommentID int64
+		pushCommitStatuses   []*git_model.CommitStatus
 		err                  error
 	)
 
@@ -795,6 +795,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				return
 			}
 			git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, comment.Commits)
+			for _, commit := range comment.Commits {
+				pushCommitStatuses = append(pushCommitStatuses, commit.Statuses...)
+			}
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {
@@ -822,6 +825,8 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 	}
 
 	ctx.Data["LatestCloseCommentID"] = latestCloseCommentID
+	// resolve the live Actions status of all push-commit statuses in one go, the templates reuse it
+	actions_module.PreloadCommitActionsStatuses(ctx, ctx.Data, pushCommitStatuses)
 
 	// Combine multiple label assignments into a single comment
 	combineLabelComments(issue)
@@ -1096,5 +1101,21 @@ func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 	if issue.ShowRole, err = roleDescriptor(ctx, issue.Repo, issue.Poster, nil, issue, issue.HasOriginalAuthor()); err != nil {
 		ctx.ServerError("roleDescriptor", err)
 		return
+	}
+}
+
+// newCachedCanBlockUser returns a CanBlockUser template func which caches results per request,
+// because the comment context menu calls it for every comment and each call hits the database.
+func newCachedCanBlockUser(ctx *context.Context) func(blocker, blockee *user_model.User) bool {
+	type pair struct{ blocker, blockee int64 }
+	cache := map[pair]bool{}
+	return func(blocker, blockee *user_model.User) bool {
+		key := pair{blocker.ID, blockee.ID}
+		if v, ok := cache[key]; ok {
+			return v
+		}
+		v := user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+		cache[key] = v
+		return v
 	}
 }
