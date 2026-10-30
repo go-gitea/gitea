@@ -191,10 +191,10 @@ func TestMatchHostnameInRanges(t *testing.T) {
 	// the host and its subdomains, a wildcard covers subdomains only
 	assert.True(t, match("ci.internal.example.com", "10.1.2.3", 80))
 	assert.True(t, match("ci.internal.example.com", "100.100.100.200", 80))
-	assert.True(t, match("CI.INTERNAL.EXAMPLE.COM.", "10.1.2.3", 80))     // case and trailing dot
-	assert.True(t, match("sub.wild.example.com", "10.1.2.3", 80))         // wildcard covers subdomains
+	assert.True(t, match("CI.INTERNAL.EXAMPLE.COM.", "10.1.2.3", 80))    // case and trailing dot
+	assert.True(t, match("sub.wild.example.com", "10.1.2.3", 80))        // wildcard covers subdomains
 	assert.True(t, match("www.ci.internal.example.com", "10.1.2.3", 80)) // a bare entry covers subdomains (dot-anchored suffix, as for public targets)
-	assert.False(t, match("wild.example.com", "10.1.2.3", 80))            // a wildcard never covers the apex
+	assert.False(t, match("wild.example.com", "10.1.2.3", 80))           // a wildcard never covers the apex
 	assert.False(t, match("ci.internal.example.com", "11.0.0.1", 80))
 	assert.False(t, match("ci.internal.example.com", "169.254.169.254", 80))
 	assert.False(t, match("unlisted.com", "10.1.2.3", 80))

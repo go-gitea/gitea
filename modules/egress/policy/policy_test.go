@@ -285,9 +285,9 @@ func TestInternalRanges(t *testing.T) {
 	assert.Error(t, lax.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80)))       // restricted, outside the ranges
 	assert.Error(t, lax.checkAddr("ci.internal.example.com", addr("169.254.169.254", 80)))
 	assert.NoError(t, lax.checkAddr("www.ci.internal.example.com", addr("10.1.2.3", 80))) // subdomain of a bare entry is covered (dot-anchored suffix matching)
-	assert.Error(t, lax.checkAddr("other.com", addr("10.1.2.3", 80)))                   // unlisted host
-	assert.Error(t, lax.checkAddr("", addr("10.1.2.3", 80)))                            // direct IP dial
-	assert.Error(t, lax.checkAddr("", addr("::ffff:10.1.2.3", 80)))                     // direct IP dial, mapped form
+	assert.Error(t, lax.checkAddr("other.com", addr("10.1.2.3", 80)))                     // unlisted host
+	assert.Error(t, lax.checkAddr("", addr("10.1.2.3", 80)))                              // direct IP dial
+	assert.Error(t, lax.checkAddr("", addr("::ffff:10.1.2.3", 80)))                       // direct IP dial, mapped form
 
 	// a wildcard entry covers subdomains within the ranges, never the apex
 	wildcard := newPolicy(Lax, "*.internal.example.com", "10.0.0.0/8")
