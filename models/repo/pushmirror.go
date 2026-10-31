@@ -65,14 +65,15 @@ func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
 	return err
 }
 
-func GetRepoPushMirrorByName(ctx context.Context, repoID int64, name string) (m *PushMirror, _ error) {
+func GetRepoPushMirrorByName(ctx context.Context, repoID int64, name string) (*PushMirror, error) {
+	var m PushMirror
 	has, err := db.GetEngine(ctx).Where(builder.Eq{"repo_id": repoID, "remote_name": name}).Get(&m)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, util.NewNotExistErrorf("PushMirror does not exist [repo_id: %d, mirror: %s]", repoID, name)
 	}
-	return m, nil
+	return &m, nil
 }
 
 func DeletePushMirrorByID(ctx context.Context, repoID, mirrorID int64) error {
@@ -109,14 +110,15 @@ func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.Li
 	})
 }
 
-func GetPushMirrorByRepoID(ctx context.Context, repoID, id int64) (pushMirror *PushMirror, _ error) {
+func GetPushMirrorByRepoID(ctx context.Context, repoID, id int64) (*PushMirror, error) {
+	var pushMirror PushMirror
 	has, err := db.GetEngine(ctx).Where("id = ?", id).And("repo_id = ?", repoID).Get(&pushMirror)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, util.NewNotExistErrorf("PushMirror does not exist [repo_id: %d, mirror: %d]", repoID, id)
 	}
-	return pushMirror, nil
+	return &pushMirror, nil
 }
 
 // GetPushMirrorsSyncedOnCommit returns push-mirrors for this repo that should be updated by new commits
