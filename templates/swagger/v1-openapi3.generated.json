@@ -983,6 +983,19 @@
         },
         "description": "PackageList"
       },
+      "PerfTraceRouteList": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/PerfTraceRoute"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "description": "PerfTraceRouteList"
+      },
       "Project": {
         "content": {
           "application/json": {
@@ -8654,6 +8667,126 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "PerfTraceRecord": {
+        "description": "PerfTraceRecord is a slow request with its summary counters",
+        "properties": {
+          "duration_ms": {
+            "format": "double",
+            "type": "number",
+            "x-go-name": "DurationMs"
+          },
+          "git_count": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "GitCount"
+          },
+          "git_duration_ms": {
+            "format": "double",
+            "type": "number",
+            "x-go-name": "GitDurationMs"
+          },
+          "long_running": {
+            "type": "boolean",
+            "x-go-name": "LongRunning"
+          },
+          "root": {
+            "$ref": "#/components/schemas/PerfTraceSpan"
+          },
+          "route": {
+            "type": "string",
+            "x-go-name": "Route"
+          },
+          "sql_count": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "SQLCount"
+          },
+          "sql_duration_ms": {
+            "format": "double",
+            "type": "number",
+            "x-go-name": "SQLDurationMs"
+          },
+          "time": {
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "Time"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PerfTraceRoute": {
+        "description": "PerfTraceRoute is the aggregation of the slow requests of one route",
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Count"
+          },
+          "last_time": {
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "LastTime"
+          },
+          "long_running": {
+            "type": "boolean",
+            "x-go-name": "LongRunning"
+          },
+          "max_duration_ms": {
+            "format": "double",
+            "type": "number",
+            "x-go-name": "MaxDurationMs"
+          },
+          "p95_duration_ms": {
+            "format": "double",
+            "type": "number",
+            "x-go-name": "P95DurationMs"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/PerfTraceRecord"
+            },
+            "type": "array",
+            "x-go-name": "Records"
+          },
+          "route": {
+            "type": "string",
+            "x-go-name": "Route"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PerfTraceSpan": {
+        "description": "PerfTraceSpan is a finished span of a slow request",
+        "properties": {
+          "attributes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "x-go-name": "Attributes"
+          },
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/PerfTraceSpan"
+            },
+            "type": "array",
+            "x-go-name": "Children"
+          },
+          "duration_ms": {
+            "format": "double",
+            "type": "number",
+            "x-go-name": "DurationMs"
+          },
+          "name": {
+            "type": "string",
+            "x-go-name": "Name"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "Permission": {
         "description": "Permission represents a set of permissions",
         "properties": {
@@ -12028,6 +12161,77 @@
           }
         },
         "summary": "List all packages",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/perf/traces": {
+      "get": {
+        "operationId": "adminListPerfTraces",
+        "parameters": [
+          {
+            "description": "only include traces whose duration is at least this many milliseconds",
+            "in": "query",
+            "name": "min_duration",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "only include routes containing this text",
+            "in": "query",
+            "name": "route",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "exclude streams, git transfers and downloads which are slow by design",
+            "in": "query",
+            "name": "exclude_long_running",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "only include traces after this time (RFC 3339)",
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PerfTraceRouteList"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "List slow request traces aggregated by route",
         "tags": [
           "admin"
         ]
