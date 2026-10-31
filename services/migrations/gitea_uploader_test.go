@@ -160,44 +160,63 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	// call remapLocalUser
 	uploader.sameApp = true
 
-	externalID := int64(1234567)
-	externalName := "username"
-	source := base.Release{
-		PublisherID:   externalID,
-		PublisherName: externalName,
+	for _, tc := range []struct {
+		source         base.Release
+		expectedUserID int64
+	}{
+		//
+		// The externalID does not match any existing user, everything
+		// belongs to the doer
+		//
+		{base.Release{PublisherID: 1234567, PublisherName: "username"}, doer.ID},
+		//
+		// The externalID matches a known user but the name does not match,
+		// everything belongs to the doer
+		//
+		{base.Release{PublisherID: user.ID, PublisherName: "username"}, doer.ID},
+		//
+		// The externalID and externalName match an existing user, everything
+		// belongs to the existing user
+		//
+		{base.Release{PublisherID: user.ID, PublisherName: user.Name}, user.ID},
+	} {
+		target := repo_model.Release{}
+		uploader.userMap = make(map[int64]int64)
+		err := uploader.remapUser(ctx, &tc.source, &target)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.expectedUserID, target.GetUserID())
 	}
 
-	//
-	// The externalID does not match any existing user, everything
-	// belongs to the doer
-	//
-	target := repo_model.Release{}
-	uploader.userMap = make(map[int64]int64)
-	err := uploader.remapUser(ctx, &source, &target)
-	assert.NoError(t, err)
-	assert.Equal(t, doer.ID, target.GetUserID())
+	t.Run("TimelineLabelAndMilestoneComments", func(t *testing.T) {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
+		milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
 
-	//
-	// The externalID matches a known user but the name does not match,
-	// everything belongs to the doer
-	//
-	source.PublisherID = user.ID
-	target = repo_model.Release{}
-	uploader.userMap = make(map[int64]int64)
-	err = uploader.remapUser(ctx, &source, &target)
-	assert.NoError(t, err)
-	assert.Equal(t, doer.ID, target.GetUserID())
+		uploader := NewGiteaLocalUploader(ctx, doer, doer.Name, "migrated")
+		uploader.issues[issue.Index] = issue
+		uploader.labels[label.Name] = label
+		uploader.milestones[milestone.Name] = milestone.ID
 
-	//
-	// The externalID and externalName match an existing user, everything
-	// belongs to the existing user
-	//
-	source.PublisherName = user.Name
-	target = repo_model.Release{}
-	uploader.userMap = make(map[int64]int64)
-	err = uploader.remapUser(ctx, &source, &target)
-	assert.NoError(t, err)
-	assert.Equal(t, user.ID, target.GetUserID())
+		require.NoError(t, uploader.CreateComments(ctx,
+			&base.Comment{IssueIndex: issue.Index, CommentType: "label", Content: "1", Meta: map[string]any{"LabelName": label.Name}},
+			&base.Comment{IssueIndex: issue.Index, CommentType: "label", Meta: map[string]any{"LabelName": "deleted-upstream"}},
+			&base.Comment{IssueIndex: issue.Index, CommentType: "milestone", Meta: map[string]any{"MilestoneTitle": milestone.Name}},
+			&base.Comment{IssueIndex: issue.Index, CommentType: "milestone", Meta: map[string]any{"MilestoneTitle": milestone.Name, "Removed": true}},
+			&base.Comment{IssueIndex: issue.Index, CommentType: "delete_branch", Content: "feature"},
+			&base.Comment{IssueIndex: issue.Index, CommentType: "delete_branch", Content: strings.Repeat("a", 256)},
+		))
+
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeLabel, LabelID: label.ID, Content: "1"})
+		unittest.AssertCountByCond(t, "comment", builder.Eq{
+			"issue_id": issue.ID,
+			"type":     issues_model.CommentTypeLabel,
+			"label_id": 0,
+		}, 0)
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, MilestoneID: milestone.ID})
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, OldMilestoneID: milestone.ID})
+		assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeDeleteBranch, OldRef: "feature"}).Content)
+		assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeDeleteBranch, OldRef: strings.Repeat("a", 255)}).Content)
+	})
 }
 
 func TestGiteaUploadRemapExternalUser(t *testing.T) {
@@ -315,6 +334,7 @@ func TestGiteaUploadForkPullRequestHeadInRepository(t *testing.T) {
 		Head:   base.PullRequestBranch{OwnerName: "fork-owner", RepoName: "repo", Ref: "feature", SHA: headCommitID, CloneURL: "https://fork.invalid/fork-owner/repo.git"},
 		Base:   base.PullRequestBranch{OwnerName: repo.OwnerName, RepoName: repo.Name, Ref: repo.DefaultBranch},
 	}
+	pr.PatchURL = "file:///nonexistent.patch"
 	pr.EnsuredSafe = true
 	require.True(t, pr.IsForkPullRequest())
 
@@ -333,34 +353,42 @@ func TestGiteaUploadForkPullRequestHeadInRepository(t *testing.T) {
 	assert.Empty(t, strings.TrimSpace(remotes), "no remote is added for a local head")
 }
 
-func TestGiteaUploadTimelineLabelAndMilestoneComments(t *testing.T) {
+func TestGiteaUploadReviewCommentsWithoutHead(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
-	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
-
 	ctx := t.Context()
-	uploader := NewGiteaLocalUploader(ctx, doer, doer.Name, "migrated")
-	uploader.issues[issue.Index] = issue
-	uploader.labels[label.Name] = label
-	uploader.milestones[milestone.Name] = milestone.ID
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	require.NoError(t, pull.LoadIssue(ctx))
 
-	require.NoError(t, uploader.CreateComments(ctx,
-		&base.Comment{IssueIndex: issue.Index, CommentType: "label", Content: "1", Meta: map[string]any{"LabelName": label.Name}},
-		&base.Comment{IssueIndex: issue.Index, CommentType: "label", Meta: map[string]any{"LabelName": "deleted-upstream"}},
-		&base.Comment{IssueIndex: issue.Index, CommentType: "milestone", Meta: map[string]any{"MilestoneTitle": milestone.Name}},
-		&base.Comment{IssueIndex: issue.Index, CommentType: "milestone", Meta: map[string]any{"MilestoneTitle": milestone.Name, "Removed": true}},
-		&base.Comment{IssueIndex: issue.Index, CommentType: "delete_branch", Content: "feature"},
-	))
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
+	var err error
+	uploader.repo = repo
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer uploader.Close()
+	uploader.issues[pull.Issue.Index] = pull.Issue
+	require.NoError(t, git.RemoveRef(ctx, repo, pull.GetGitHeadRefName()))
 
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeLabel, LabelID: label.ID, Content: "1"})
-	unittest.AssertCountByCond(t, "comment", builder.Eq{
-		"issue_id": issue.ID,
-		"type":     issues_model.CommentTypeLabel,
-		"label_id": 0,
-	}, 0)
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, MilestoneID: milestone.ID})
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMilestone, OldMilestoneID: milestone.ID})
-	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeDeleteBranch, OldRef: "feature"}).Content)
+	opts := issues_model.FindReviewOptions{IssueID: pull.Issue.ID}
+	reviewsBefore, err := issues_model.CountReviews(ctx, opts)
+	require.NoError(t, err)
+
+	require.NoError(t, uploader.CreateReviews(ctx, &base.Review{
+		IssueIndex: pull.Issue.Index,
+		ReviewerID: doer.ID,
+		State:      base.ReviewStateCommented,
+		Comments:   []*base.ReviewComment{{Content: "lost anchor", TreePath: "README.md", Line: -3}},
+	}))
+
+	comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{IssueID: pull.Issue.ID, Type: issues_model.CommentTypeComment})
+	require.NoError(t, err)
+	var contents []string
+	for _, c := range comments {
+		contents = append(contents, c.Content)
+	}
+	assert.Contains(t, contents, "Comment on `README.md` line 3:\n\nlost anchor")
+	reviewsAfter, err := issues_model.CountReviews(ctx, opts)
+	require.NoError(t, err)
+	assert.Equal(t, reviewsBefore, reviewsAfter) // no empty review is left behind
 }
