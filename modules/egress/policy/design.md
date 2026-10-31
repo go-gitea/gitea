@@ -124,7 +124,7 @@ request → selector (`Policy.Proxy`) ── proxy chosen ──→ proxy dialer
                              └─ no proxy ───────→ policy dialer (`NewDialContext`, checked) → dial
 ```
 
-When a proxy isn't configured, the address is from the localhost rangec or the host is somehow exempt from proxying,
+When a proxy isn't configured, the address is from the localhost range or the host is somehow exempt from proxying,
 the connection is direct and is always screened — including a direct request to the proxy's own address.
 
 ## Consequences
