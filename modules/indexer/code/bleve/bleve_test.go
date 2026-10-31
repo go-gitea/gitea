@@ -4,12 +4,15 @@
 package bleve
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
 	"gitea.dev/models/db"
+	indexer_module "gitea.dev/modules/indexer"
 	"gitea.dev/modules/indexer/code/internal"
 	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,7 +35,7 @@ func TestBleveIndexerTokenFilter(t *testing.T) {
 		expectedIDs []int64
 	}{
 		{keyword: "12345", expectedIDs: []int64{2}},
-		{keyword: "DNS", expectedIDs: []int64{}},
+		{keyword: "DNS", expectedIDs: []int64{2}},
 		{keyword: "mdns", expectedIDs: []int64{2}},
 		{keyword: "port", expectedIDs: []int64{2}},
 		{keyword: "port2", expectedIDs: []int64{2}},
@@ -52,6 +55,38 @@ func TestBleveIndexerTokenFilter(t *testing.T) {
 			assert.ElementsMatch(t, testCase.expectedIDs, searchResultIDs(results))
 		})
 	}
+}
+
+func TestBleveIndexerPagesVerifiedCandidates(t *testing.T) {
+	indexer := NewIndexer(t.TempDir())
+	defer indexer.Close()
+	_, err := indexer.Init(t.Context())
+	require.NoError(t, err)
+
+	batch := inner_bleve.NewFlushingBatch(indexer.inner.Indexer, maxBatchSize)
+	for i, content := range []string{"abc bcd cde def", "abcdef", "abc bcd cde def", "abcdef", "abc bcd cde def"} {
+		filename := strconv.Itoa(i)
+		require.NoError(t, batch.Index(internal.FilenameIndexerID(1, filename), &RepoIndexerData{RepoID: 1, Filename: filename, Content: content, UpdatedAt: time.Now()}))
+	}
+	require.NoError(t, batch.Flush())
+
+	var filenames []string
+	for page := 1; page <= 3; page++ {
+		total, results, _, err := indexer.Search(t.Context(), &internal.SearchOptions{
+			Paginator:  &db.ListOptions{Page: page, PageSize: 1},
+			Keyword:    "abcdef",
+			SearchMode: indexer_module.SearchModeExact,
+		})
+		require.NoError(t, err)
+		require.Len(t, results, util.Iif(page < 3, 1, 0))
+		if page == 3 {
+			assert.EqualValues(t, 2, total)
+		}
+		for _, result := range results {
+			filenames = append(filenames, result.Filename)
+		}
+	}
+	assert.ElementsMatch(t, []string{"1", "3"}, filenames)
 }
 
 func searchResultIDs(result []*internal.SearchResult) []int64 {

@@ -45,44 +45,37 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 
 	// user1: keep_email_private = false, user2: keep_email_private = true
 
-	setting.UI.ShowUserEmail = true
-
-	// user1 can see own visible email
-	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/user1")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
-
-	// user1 can not see user2's hidden email
-	req = NewRequest(t, "GET", "/user2")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-	// Should only contain if the user visits their own profile page
-	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@example.com")
-
-	// user2 can see user1's visible email
-	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/user1")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
-
-	// user2 can see own hidden email
-	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/user2")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@example.com")
-
-	setting.UI.ShowUserEmail = false
-
-	// user1 can see own (now hidden) email
-	session = loginUser(t, "user1")
-	req = NewRequest(t, "GET", "/user1")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
+	var session *TestSession
+	for _, profile := range []struct {
+		login, name string
+		showEmail   bool
+		visible     bool
+	}{
+		// user1 can see own visible email
+		{"user1", "user1", true, true},
+		// user1 can not see user2's hidden email
+		// Should only contain if the user visits their own profile page
+		{"", "user2", true, false},
+		// user2 can see user1's visible email
+		{"user2", "user1", true, true},
+		// user2 can see own hidden email
+		{"user2", "user2", true, true},
+		// user1 can see own (now hidden) email
+		{"user1", "user1", false, true},
+	} {
+		setting.UI.ShowUserEmail = profile.showEmail
+		if profile.login != "" {
+			session = loginUser(t, profile.login)
+		}
+		req := NewRequest(t, "GET", "/"+profile.name)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		if profile.visible {
+			assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), profile.name+"@example.com")
+		} else {
+			assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), profile.name+"@example.com")
+		}
+	}
 
 	setting.UI.ShowUserEmail = showUserEmail
 }

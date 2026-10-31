@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 
 	"gitea.dev/models/db"
 	project_model "gitea.dev/models/project"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // ErrIssueNotExist represents a "IssueNotExist" kind of error.
@@ -121,6 +123,27 @@ type IssueIndex db.ResourceIndex
 func init() {
 	db.RegisterModel(new(Issue))
 	db.RegisterModel(new(IssueIndex))
+}
+
+func sanitizeDatabaseStringContent(s *string) {
+	// postgresql doesn't like "\x00"
+	// this is only a simple workaround for issues like https://github.com/go-gitea/gitea/issues/28890 and https://github.com/go-gitea/gitea/issues/40003
+	*s = strings.ReplaceAll(*s, "\x00", " ")
+}
+
+var (
+	_ xorm.BeforeInsertProcessor = (*Issue)(nil)
+	_ xorm.BeforeUpdateProcessor = (*Issue)(nil)
+)
+
+func (issue *Issue) BeforeInsert() {
+	sanitizeDatabaseStringContent(&issue.Title)
+	sanitizeDatabaseStringContent(&issue.Content)
+}
+
+func (issue *Issue) BeforeUpdate() {
+	sanitizeDatabaseStringContent(&issue.Title)
+	sanitizeDatabaseStringContent(&issue.Content)
 }
 
 // LoadTotalTimes load total tracked time
@@ -225,13 +248,11 @@ func (issue *Issue) loadCommentsByType(ctx context.Context, tp CommentType) (err
 	return err
 }
 
-func (issue *Issue) loadReactions(ctx context.Context) (err error) {
+func (issue *Issue) loadAllReactions(ctx context.Context) (err error) {
 	if issue.Reactions != nil {
 		return nil
 	}
-	reactions, _, err := FindReactions(ctx, FindReactionsOptions{
-		IssueID: issue.ID,
-	})
+	reactions, _, err := FindReactions(ctx, FindReactionsOptions{IssueIDWithComments: issue.ID})
 	if err != nil {
 		return err
 	}
@@ -340,7 +361,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		}
 	}
 
-	return issue.loadReactions(ctx)
+	return issue.loadAllReactions(ctx)
 }
 
 // IsPinned returns if a Issue is pinned
