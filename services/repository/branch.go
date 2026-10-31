@@ -317,6 +317,8 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 	// For the first batch, it will hit optimization 3.
 	// For other batches, it will hit optimization 4.
 
+	// In case there are concurrent pushes, we need to lock the sync operation for the same repository
+	// and always use the latest branch information in the database.
 	releaser, err := globallock.Lock(ctx, fmt.Sprintf("repo_branch_sync_%d", repoID))
 	if err != nil {
 		return err
