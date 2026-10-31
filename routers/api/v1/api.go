@@ -1632,6 +1632,8 @@ func Routes() *web.Router {
 								Delete(reqToken(), repo.ClearIssueLabels)
 							m.Delete("/{id}", reqToken(), repo.DeleteIssueLabel)
 						})
+						m.Post("/move", reqToken(), reqAdmin(), mustNotBeArchived, bind(api.MoveIssueOption{}), repo.MoveIssue)
+						m.Post("/copy", reqToken(), reqAdmin(), mustNotBeArchived, bind(api.CopyIssueOption{}), repo.CopyIssue)
 						m.Group("/times", func() {
 							m.Combo("").
 								Get(repo.ListTrackedTimes).

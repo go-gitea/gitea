@@ -231,6 +231,8 @@ func FilterReadableComments(ctx context.Context, doer *user_model.User, perm acc
 			if c.DependentIssue != nil {
 				refRepoID, refIsPull = c.DependentIssue.RepoID, c.DependentIssue.IsPull
 			}
+		case issues_model.CommentTypeIsMoveOrCopy(c.Type):
+			refRepoID = c.RefRepoID
 		}
 		if refRepoID != 0 {
 			target, err := getRepoPerm(refRepoID)

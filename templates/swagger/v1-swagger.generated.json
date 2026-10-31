@@ -12381,6 +12381,60 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/copy": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Copy an issue to another repository",
+        "operationId": "issueCopy",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to copy",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CopyIssueOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Issue"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{index}/deadline": {
       "post": {
         "consumes": [
@@ -12920,6 +12974,60 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/move": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Move an issue to another repository",
+        "operationId": "issueMove",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to move",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/MoveIssueOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Issue"
           },
           "default": {
             "$ref": "#/responses/error"
@@ -26104,6 +26212,55 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "CopyIssueOption": {
+      "description": "CopyIssueOption options for copying an issue to another repository",
+      "type": "object",
+      "required": [
+        "target_repo"
+      ],
+      "properties": {
+        "copy_assignees": {
+          "description": "keep the assignees who can access the target repository",
+          "type": "boolean",
+          "x-go-name": "CopyAssignees"
+        },
+        "copy_attachments": {
+          "description": "duplicate the attachments of the issue body",
+          "type": "boolean",
+          "x-go-name": "CopyAttachments"
+        },
+        "dependency": {
+          "description": "dependency between the original issue and the copy",
+          "type": "string",
+          "enum": [
+            "original_blocks_copy",
+            "copy_blocks_original"
+          ],
+          "x-go-name": "Dependency"
+        },
+        "keep_labels": {
+          "description": "find or create labels with the same names in the target repository",
+          "type": "boolean",
+          "x-go-name": "KeepLabels"
+        },
+        "keep_milestone": {
+          "description": "find or create a milestone with the same name in the target repository",
+          "type": "boolean",
+          "x-go-name": "KeepMilestone"
+        },
+        "keep_projects": {
+          "description": "find or create projects with the same titles in the target repository",
+          "type": "boolean",
+          "x-go-name": "KeepProjects"
+        },
+        "target_repo": {
+          "description": "target repository in \"owner/repo\" format",
+          "type": "string",
+          "x-go-name": "TargetRepo"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "CreateAccessTokenOption": {
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
@@ -30551,6 +30708,36 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "MoveIssueOption": {
+      "description": "MoveIssueOption options for moving an issue to another repository",
+      "type": "object",
+      "required": [
+        "target_repo"
+      ],
+      "properties": {
+        "keep_labels": {
+          "description": "find or create labels with the same names in the target repository",
+          "type": "boolean",
+          "x-go-name": "KeepLabels"
+        },
+        "keep_milestone": {
+          "description": "find or create a milestone with the same name in the target repository",
+          "type": "boolean",
+          "x-go-name": "KeepMilestone"
+        },
+        "keep_projects": {
+          "description": "find or create projects with the same titles in the target repository",
+          "type": "boolean",
+          "x-go-name": "KeepProjects"
+        },
+        "target_repo": {
+          "description": "target repository in \"owner/repo\" format",
+          "type": "string",
+          "x-go-name": "TargetRepo"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
