@@ -1123,6 +1123,7 @@ jobs:
 		// closed
 		err = issue_service.CloseIssue(t.Context(), pullIssue, user2, "")
 		assert.NoError(t, err)
+		assert.False(t, git.IsReferenceExist(t.Context(), repo, git.MergeRefNameFromPullIndex(pullRequest.Index).String()))
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// reopened
@@ -1190,6 +1191,10 @@ jobs:
 		assert.NotEmpty(t, addFileResp)
 		sha = addFileResp.Commit.SHA
 		waitCommitStatusAndInsertFakeStatus(t, repo, sha)
+		mergeCommitSHA := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, Event: webhook_module.HookEventPullRequestSync}).MergeCommitSHA
+		parents, _, err := gitcmd.NewCommand("rev-parse").AddDynamicArguments(mergeCommitSHA+"^1", mergeCommitSHA+"^2").WithRepo(repo).RunStdString(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, addWorkflow.Commit.SHA+"\n"+sha+"\n", parents)
 
 		// milestoned
 		milestone := &issues_model.Milestone{
@@ -1771,6 +1776,11 @@ jobs:
 		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
 		assert.Equal(t, actions_module.GithubEventPullRequest, actionRun.TriggerEvent)
 		assert.Equal(t, pullRequest.MergedCommitID, actionRun.CommitSHA)
+		assert.Empty(t, actionRun.MergeCommitSHA)
+		mergedCommitID, err := git.GetFullCommitID(t.Context(), baseRepo, git.MergedRefNameFromPullIndex(pullRequest.Index).String())
+		require.NoError(t, err)
+		assert.Equal(t, pullRequest.MergedCommitID, mergedCommitID)
+		assert.False(t, git.IsReferenceExist(t.Context(), baseRepo, git.MergeRefNameFromPullIndex(pullRequest.Index).String()))
 	})
 }
 

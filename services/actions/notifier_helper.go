@@ -29,6 +29,7 @@ import (
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/convert"
+	pull_service "gitea.dev/services/pull"
 )
 
 type methodCtxKeyType struct{}
@@ -70,7 +71,8 @@ type notifyInput struct {
 	Payload     api.Payloader
 	PullRequest *issues_model.PullRequest
 
-	encodedPayload string // cached by EncodedPayload
+	encodedPayload string  // cached by EncodedPayload
+	mergeCommitID  *string // UpdateMergeRef result shared by the event's runs
 }
 
 func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event webhook_module.HookEventType) *notifyInput {
@@ -408,6 +410,17 @@ func buildApproveAndInsertRun(
 		WorkflowRepoID:    workflowRepoID,
 		WorkflowCommitSHA: dwf.SourceCommitSHA,
 		IsScopedRun:       isScopedRun,
+	}
+
+	if dwf.TriggerEvent.Name == actions_module.GithubEventPullRequest && input.PullRequest != nil {
+		if input.mergeCommitID == nil {
+			mergeCommitID, err := pull_service.UpdateMergeRef(ctx, input.PullRequest, commit.ID.String())
+			if err != nil {
+				log.Error("UpdateMergeRef for %-v: %v", input.PullRequest, err)
+			}
+			input.mergeCommitID = &mergeCommitID
+		}
+		run.MergeCommitSHA = *input.mergeCommitID
 	}
 
 	if err := validateCalledWorkflows(ctx, run, dwf.Content); err != nil {
