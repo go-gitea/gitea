@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateBranch, apiCreateRepo, randomString} from './utils.ts';
+import {login, apiCreateBranch, apiCreateFiles, apiCreateRepo, randomString} from './utils.ts';
 
 test('create a repository', async ({page}) => {
   const repoName = `e2e-repo-${randomString(8)}`;
@@ -27,4 +27,26 @@ test('delete a branch via its modal', async ({page, request}) => {
   await expect(modal).toContainText('feature');
   await modal.getByRole('button', {name: 'Yes'}).click();
   await expect(page.locator('.flash-message')).toContainText('Branch "feature" has been deleted.');
+});
+
+test('search code', async ({page, request}) => {
+  const repoName = `e2e-search-${randomString(8)}`;
+  const owner = env.GITEA_TEST_E2E_USER;
+  await Promise.all([
+    (async () => {
+      await apiCreateRepo(request, {name: repoName});
+      await apiCreateFiles(request, owner, repoName, [{path: 'src/main.go', content: 'package main\n\nfunc alphaTerm() {}\n\nvar betaTerm = 1\n'}]);
+    })(),
+    login(page),
+  ]);
+  await page.goto(`/${owner}/${repoName}/search`);
+  const input = page.getByPlaceholder('Search code…');
+  await input.fill('alphaterm "betaTerm = 1"');
+  await input.press('Enter');
+  await page.waitForURL(/[?&]q=alphaterm/);
+  await expect(page.locator('.repo-search-result')).toContainText('src/main.go');
+  await input.fill('"unterminated');
+  await input.press('Enter');
+  await page.waitForURL(/[?&]q=%22unterminated/);
+  await expect(page.locator('.ui.error.message')).toContainText('Invalid search query');
 });

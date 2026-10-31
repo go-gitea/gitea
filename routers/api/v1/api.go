@@ -334,6 +334,21 @@ func reqUsersExploreEnabled() func(ctx *context.APIContext) {
 	}
 }
 
+func reqCodeSearchEnabled() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage || unit.TypeCode.UnitGlobalDisabled() {
+			ctx.APIErrorNotFound()
+			return
+		}
+		needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+		} else if needTwoFactor {
+			ctx.APIError(http.StatusForbidden, "two-factor authentication is required")
+		}
+	}
+}
+
 func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.IsSigned && setting.Service.EnableReverseProxyAuthAPI && ctx.Data["AuthedMethod"] == auth.ReverseProxyMethodName {
@@ -1320,6 +1335,7 @@ func Routes() *web.Router {
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
 				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
+				m.Get("/code/search", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.SearchRepoCode)
 				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
 				m.Methods("HEAD,GET", "/archive/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
@@ -1881,6 +1897,8 @@ func Routes() *web.Router {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		m.Get("/search/code", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqToken(), reqCodeSearchEnabled(), repo.SearchCode)
 	}, sudo())
 
 	return m
