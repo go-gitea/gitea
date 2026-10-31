@@ -7,10 +7,12 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	feed_service "gitea.dev/services/feed"
 
@@ -31,6 +33,10 @@ func ShowUserFeedAtom(ctx *context.Context) {
 func showUserFeed(ctx *context.Context, formatType string) {
 	if !setting.Other.EnableFeed {
 		ctx.NotFound(nil)
+		return
+	}
+	context.CheckTokenScopes(ctx, util.Iif(ctx.ContextUser.IsOrganization(), auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser))
+	if ctx.Written() {
 		return
 	}
 

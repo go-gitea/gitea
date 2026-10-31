@@ -86,12 +86,6 @@ func newNotifyInputForSchedules(repo *repo_model.Repository) *notifyInput {
 	return newNotifyInput(repo, user_model.NewActionsUser(), webhook_module.HookEventSchedule)
 }
 
-func newPullRequestReviewNotifyInput(repo *repo_model.Repository, reviewer *user_model.User, event webhook_module.HookEventType, commitID string, pr *issues_model.PullRequest) *notifyInput {
-	return newNotifyInput(repo, reviewer, event).
-		WithRef(commitID).
-		WithPullRequest(pr)
-}
-
 func (input *notifyInput) WithDoer(doer *user_model.User) *notifyInput {
 	input.Doer = doer
 	return input
