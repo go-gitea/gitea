@@ -459,7 +459,8 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 		return
 	}
 
-	newPullRequestReviewNotifyInput(review.Issue.Repo, review.Reviewer, reviewHookType, review.CommitID, pr).
+	newNotifyInput(review.Issue.Repo, review.Reviewer, reviewHookType).
+		WithPullRequest(pr).
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueReviewed,
 			Index:       review.Issue.Index,
