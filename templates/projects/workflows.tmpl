@@ -15,7 +15,7 @@
 		</div>
 		<div class="field">
 			<select class="ui dropdown" name="column_{{$event}}" aria-label="{{ctx.Locale.Tr "repo.projects.workflows.column"}}">
-				<option value="0">{{ctx.Locale.Tr "repo.projects.workflows.column"}}</option>
+				<option value="0">{{ctx.Locale.Tr "repo.projects.workflows.select_column"}}</option>
 				{{range $column := $.Columns}}
 					<option value="{{$column.ID}}" {{if and $item.Workflow (eq $item.Workflow.ColumnID $column.ID)}}selected{{end}}>{{$column.Title}}</option>
 				{{end}}

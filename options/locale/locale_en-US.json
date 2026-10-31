@@ -1379,6 +1379,7 @@
   "repo.projects.workflows.desc": "Move cards automatically when something happens to an issue or pull request.",
   "repo.projects.workflows.enabled": "Enabled",
   "repo.projects.workflows.column": "Column",
+  "repo.projects.workflows.select_column": "-- select a column --",
   "repo.projects.workflows.save": "Save Workflows",
   "repo.projects.workflows.saved": "The workflows have been saved.",
   "repo.projects.workflows.column_required": "Select a column for every enabled workflow.",
