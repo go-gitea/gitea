@@ -13,6 +13,7 @@ import (
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/timeutil"
@@ -313,6 +314,7 @@ func TestReleaseTaskForRunner(t *testing.T) {
 			}
 			runner.GenerateAndFillToken()
 			require.NoError(t, db.Insert(t.Context(), runner))
+			require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: run.RepoID, Type: unit.TypeActions}))
 
 			task, ok, err := CreateTaskForRunner(t.Context(), runner)
 			require.NoError(t, err)

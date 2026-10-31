@@ -14,7 +14,6 @@ import (
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
-	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
@@ -266,17 +265,6 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if db.InTransaction(ctx) {
 		return nil, false, errors.New("CreateTaskForRunner must not be called within a database transaction")
 	}
-	e := db.GetEngine(ctx)
-
-	jobCond := builder.NewCond()
-	if runner.RepoID != 0 {
-		jobCond = builder.Eq{"repo_id": runner.RepoID}
-	} else if runner.OwnerID != 0 {
-		jobCond = builder.In("repo_id", builder.Select("`repository`.id").From("repository").
-			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
-			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
-	}
-	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond)
 
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
@@ -287,16 +275,16 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	var cursorUpdated timeutil.TimeStamp
 	var cursorID int64
 	for {
-		cond := baseCond
+		sess := JobQueueOptions{RepoID: runner.RepoID, OwnerID: runner.OwnerID, Status: StatusWaiting}.session(ctx)
 		if cursorID > 0 {
-			cond = cond.And(builder.Or(
-				builder.Gt{"updated": cursorUpdated},
-				builder.And(builder.Eq{"updated": cursorUpdated}, builder.Gt{"id": cursorID}),
+			sess.And(builder.Or(
+				builder.Gt{"`action_run_job`.updated": cursorUpdated},
+				builder.And(builder.Eq{"`action_run_job`.updated": cursorUpdated}, builder.Gt{"`action_run_job`.id": cursorID}),
 			))
 		}
 
 		var jobs []*ActionRunJob
-		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
+		if err := sess.Asc("action_run_job.updated", "action_run_job.id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
 			return nil, false, err
 		}
 		// A short page means no waiting jobs remain beyond it.
