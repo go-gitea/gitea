@@ -34,7 +34,7 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) (retErr error) {
 	defer func() {
 		if retErr != nil {
-			if err := repo_model.DeletePushMirrorByID(ctx, m.RepoID, m.ID); err != nil {
+			if err := repo_model.DeleteRepoPushMirrorByID(ctx, m.RepoID, m.ID); err != nil {
 				log.Error("DeletePushMirrorByID %v", err)
 			}
 		}
@@ -93,7 +93,7 @@ func DeleteRepoPushMirrorByID(ctx context.Context, repoID, pushMirrorID int64) e
 		return fmt.Errorf("RemovePushMirrorRemote: %w", err)
 	}
 
-	if err := repo_model.DeletePushMirrorByID(ctx, pushMirror.RepoID, pushMirror.ID); err != nil {
+	if err := repo_model.DeleteRepoPushMirrorByID(ctx, pushMirror.RepoID, pushMirror.ID); err != nil {
 		return fmt.Errorf("DeletePushMirrors: %w", err)
 	}
 

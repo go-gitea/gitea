@@ -231,7 +231,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 	}
 
 	mirrorName := ctx.PathParam("name")
-	pushMirror, err := repo_model.GetRepoPushMirrorByName(ctx, ctx.Repo.Repository.ID, mirrorName)
+	pushMirror, err := repo_model.GetRepoPushMirrorByRemoteName(ctx, ctx.Repo.Repository.ID, mirrorName)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -328,7 +328,7 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 		return
 	}
 
-	pushMirror, err := repo_model.GetRepoPushMirrorByName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("name"))
+	pushMirror, err := repo_model.GetRepoPushMirrorByRemoteName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("name"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
