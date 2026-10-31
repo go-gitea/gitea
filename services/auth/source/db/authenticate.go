@@ -6,18 +6,11 @@ package db
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/password/hash"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
-
-var dummyHash = sync.OnceValue(func() string {
-	h, _ := hash.Parse(setting.PasswordHashAlgo).Hash("dummy-timing-equalization", "dummy-salt-value0000")
-	return h
-})
 
 // ErrUserPasswordNotSet represents a "ErrUserPasswordNotSet" kind of error.
 type ErrUserPasswordNotSet struct {
@@ -52,8 +45,6 @@ func (err ErrUserPasswordInvalid) Unwrap() error {
 // Authenticate authenticates the provided user against the DB
 func Authenticate(ctx context.Context, user *user_model.User, login, password string) (*user_model.User, error) {
 	if user == nil {
-		// Perform a dummy hash verification to prevent timing-based username enumeration.
-		hash.Parse(setting.PasswordHashAlgo).VerifyPassword(password, dummyHash(), "dummy-salt-value0000")
 		return nil, user_model.ErrUserNotExist{Name: login}
 	}
 

@@ -6,23 +6,19 @@ package auth
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
-)
-
-const (
-	maxTwoFactorAttempts = 5
-	twoFactorLockoutDur  = 15 * time.Minute
 )
 
 var (
@@ -59,11 +55,6 @@ func TwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	if locked, _ := ctx.Session.Get("twofaLockedUntil").(int64); locked > 0 && time.Now().Unix() < locked {
-		ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_too_many_attempts"), tplTwofa, forms.TwoFactorAuthForm{})
-		return
-	}
-
 	twofa, err := auth.GetTwoFactorByUID(ctx, id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
@@ -72,13 +63,13 @@ func TwoFactorPost(ctx *context.Context) {
 
 	// Validate the passcode and atomically consume it to prevent reuse/replay.
 	ok, err := twofa.ValidateAndConsumeTOTP(ctx, form.Passcode)
-	if err != nil {
+	tooManyAttempts := errors.Is(err, auth.ErrTwoFactorTooManyAttempts)
+	if err != nil && !tooManyAttempts {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
 	if ok {
-		_ = ctx.Session.Set("twofaFailedAttempts", 0)
 		remember := ctx.Session.Get("twofaRemember").(bool) //nolint:forcetypeassert // must exist
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
@@ -98,19 +89,10 @@ func TwoFactorPost(ctx *context.Context) {
 
 	if u, err := user_model.GetUserByID(ctx, id); err == nil {
 		audit.RecordAs(ctx, u, audit_model.UserAuthenticationFailTwoFactor, u)
+		log.Warn("Failed authentication attempt for %s from %s: invalid two-factor passcode", u.Name, ctx.RemoteAddr())
 	}
 
-	attempts, _ := ctx.Session.Get("twofaFailedAttempts").(int)
-	attempts++
-	_ = ctx.Session.Set("twofaFailedAttempts", attempts)
-	if attempts >= maxTwoFactorAttempts {
-		_ = ctx.Session.Set("twofaLockedUntil", time.Now().Add(twoFactorLockoutDur).Unix())
-		_ = ctx.Session.Delete("twofaUid")
-		ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_too_many_attempts"), tplTwofa, forms.TwoFactorAuthForm{})
-		return
-	}
-
-	ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_passcode_incorrect"), tplTwofa, forms.TwoFactorAuthForm{})
+	ctx.RenderWithErrDeprecated(ctx.Tr(util.Iif(tooManyAttempts, "auth.twofa_too_many_attempts", "auth.twofa_passcode_incorrect")), tplTwofa, forms.TwoFactorAuthForm{})
 }
 
 // TwoFactorScratch shows the scratch code form for two-factor authentication.
@@ -142,11 +124,6 @@ func TwoFactorScratchPost(ctx *context.Context) {
 		return
 	}
 
-	if locked, _ := ctx.Session.Get("twofaLockedUntil").(int64); locked > 0 && time.Now().Unix() < locked {
-		ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_too_many_attempts"), tplTwofaScratch, forms.TwoFactorScratchAuthForm{})
-		return
-	}
-
 	twofa, err := auth.GetTwoFactorByUID(ctx, id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
@@ -155,7 +132,6 @@ func TwoFactorScratchPost(ctx *context.Context) {
 
 	// Validate the passcode with the stored TOTP secret.
 	if twofa.VerifyScratchToken(form.Token) {
-		_ = ctx.Session.Set("twofaFailedAttempts", 0)
 		// Invalidate the scratch token.
 		_, err = twofa.GenerateScratchToken()
 		if err != nil {
@@ -185,16 +161,6 @@ func TwoFactorScratchPost(ctx *context.Context) {
 		}
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
-		return
-	}
-
-	attempts, _ := ctx.Session.Get("twofaFailedAttempts").(int)
-	attempts++
-	_ = ctx.Session.Set("twofaFailedAttempts", attempts)
-	if attempts >= maxTwoFactorAttempts {
-		_ = ctx.Session.Set("twofaLockedUntil", time.Now().Add(twoFactorLockoutDur).Unix())
-		_ = ctx.Session.Delete("twofaUid")
-		ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_too_many_attempts"), tplTwofaScratch, forms.TwoFactorScratchAuthForm{})
 		return
 	}
 

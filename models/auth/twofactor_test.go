@@ -8,6 +8,7 @@ import (
 	"time"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -42,10 +43,22 @@ func TestTwoFactorLifecycle(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, ok)
 
-		// an invalid passcode is rejected without consuming anything
-		ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), "000000")
+		for range 4 {
+			ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), "0000000")
+			require.NoError(t, err)
+			assert.False(t, ok)
+		}
+		nextPasscode, err := totp.GenerateCode(key.Secret(), time.Now().Add(30*time.Second))
 		require.NoError(t, err)
+		ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), nextPasscode)
+		require.ErrorIs(t, err, auth_model.ErrTwoFactorTooManyAttempts)
 		assert.False(t, ok)
+
+		_, err = db.GetEngine(t.Context()).ID(tfa.ID).Cols("failure_window_until").Update(&auth_model.TwoFactor{})
+		require.NoError(t, err)
+		ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), nextPasscode)
+		require.NoError(t, err)
+		assert.True(t, ok)
 	})
 
 	t.Run("DisableTwoFactor", func(t *testing.T) {

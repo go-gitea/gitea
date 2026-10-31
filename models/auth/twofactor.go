@@ -11,7 +11,9 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"time"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/secret"
@@ -48,16 +50,26 @@ func (err ErrTwoFactorNotEnrolled) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// ErrTwoFactorTooManyAttempts is returned while an account has used up its TOTP attempts.
+var ErrTwoFactorTooManyAttempts = errors.New("too many failed two-factor attempts")
+
+const (
+	totpMaxAttempts   = 5
+	totpAttemptWindow = 15 * time.Minute
+)
+
 // TwoFactor represents a two-factor authentication token.
 type TwoFactor struct {
-	ID               int64 `xorm:"pk autoincr"`
-	UID              int64 `xorm:"UNIQUE"`
-	Secret           string
-	ScratchSalt      string
-	ScratchHash      string
-	LastUsedPasscode string             `xorm:"VARCHAR(10)"`
-	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix      timeutil.TimeStamp `xorm:"INDEX updated"`
+	ID                 int64 `xorm:"pk autoincr"`
+	UID                int64 `xorm:"UNIQUE"`
+	Secret             string
+	ScratchSalt        string
+	ScratchHash        string
+	LastUsedPasscode   string             `xorm:"VARCHAR(10)"`
+	FailedAttempts     int                `xorm:"NOT NULL DEFAULT 0"`
+	FailureWindowUntil timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
+	CreatedUnix        timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix        timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func init() {
@@ -123,8 +135,27 @@ func (t *TwoFactor) validateTOTP(passcode string) (bool, error) {
 // ValidateAndConsumeTOTP validates the passcode and atomically records it as used so that the
 // same passcode cannot be redeemed more than once (RFC 6238 §5.2). It returns false for an
 // invalid passcode as well as for a replay, including the case where a concurrent request with
-// the same passcode won the race first. All TOTP login surfaces must go through this helper.
+// the same passcode won the race first, and ErrTwoFactorTooManyAttempts once the account has used
+// up its attempts. All TOTP login surfaces must go through this helper.
 func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string) (bool, error) {
+	if passcode == "" {
+		return false, nil // password-only Basic auth clients must not use up the attempts
+	}
+	now := timeutil.TimeStampNow()
+	if _, err := db.GetEngine(ctx).ID(t.ID).Where("failure_window_until <= ?", now).
+		Cols("failed_attempts", "failure_window_until").
+		Update(&TwoFactor{FailureWindowUntil: now.AddDuration(totpAttemptWindow)}); err != nil {
+		return false, err
+	}
+	// claim an attempt before validating so that concurrent requests cannot exceed the limit
+	n, err := db.GetEngine(ctx).ID(t.ID).Where("failed_attempts < ?", totpMaxAttempts).
+		Incr("failed_attempts").Update(new(TwoFactor))
+	if err != nil {
+		return false, err
+	} else if n == 0 {
+		return false, ErrTwoFactorTooManyAttempts
+	}
+
 	ok, err := t.validateTOTP(passcode)
 	if err != nil || !ok {
 		return false, err
@@ -133,9 +164,10 @@ func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string)
 	// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
 	// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
 	t.LastUsedPasscode = passcode
-	n, err := db.GetEngine(ctx).ID(t.ID).
+	t.FailedAttempts = 0
+	n, err = db.GetEngine(ctx).ID(t.ID).
 		Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
-		Cols("last_used_passcode").Update(t)
+		Cols("last_used_passcode", "failed_attempts").Update(t)
 	if err != nil {
 		return false, err
 	}
@@ -148,9 +180,10 @@ func NewTwoFactor(ctx context.Context, t *TwoFactor) error {
 	return err
 }
 
-// UpdateTwoFactor updates a two-factor authentication token.
+// UpdateTwoFactor saves a regenerated scratch token, which also lifts a TOTP lockout.
 func UpdateTwoFactor(ctx context.Context, t *TwoFactor) error {
-	_, err := db.GetEngine(ctx).ID(t.ID).AllCols().Update(t)
+	t.FailedAttempts = 0
+	_, err := db.GetEngine(ctx).ID(t.ID).Cols("scratch_salt", "scratch_hash", "failed_attempts").Update(t)
 	return err
 }
 
