@@ -124,7 +124,7 @@ API credentials, makes it record from the live API instead. To re-record, delete
 
 ## End-to-end tests
 
-End-to-end tests drive a running Gitea instance with [Playwright](https://playwright.dev/):
+End-to-end tests drive a running Gitea instance with [Playwright](https://playwright.dev/) in Chromium and Firefox, plus WebKit on macOS:
 
 ```bash
 make test-e2e

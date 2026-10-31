@@ -17,7 +17,7 @@ jobs:
   test-e2e:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.e2e == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup

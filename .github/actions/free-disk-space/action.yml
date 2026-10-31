@@ -5,7 +5,8 @@ description: Free space on / before large cache restores
 runs:
   using: composite
   steps:
-    - shell: bash
+    - if: runner.os == 'Linux'
+      shell: bash
       run: |
         avail=$(df --output=avail -BG / | tr -dc '0-9')
         if [ "$avail" -ge 50 ]; then
