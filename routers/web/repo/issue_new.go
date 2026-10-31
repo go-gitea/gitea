@@ -16,6 +16,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -97,6 +98,17 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 
 // NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
+	restriction := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeIssues).IssuesConfig().GetCreationRestriction()
+	result, err := access_model.CheckCreationRestriction(ctx, ctx.Repo.Repository, ctx.Doer, unit.TypeIssues, restriction)
+	if err != nil {
+		ctx.ServerError("CheckCreationRestriction", err)
+		return
+	}
+	if result != access_model.CreationAllowed {
+		ctx.NotFound(nil)
+		return
+	}
+
 	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	hasTemplates := issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 
@@ -374,6 +386,10 @@ func NewIssuePost(ctx *context.Context) {
 			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.new.blocked_user"))
+		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
+			ctx.JSONError(ctx.Tr("repo.issues.new.must_collaborator"))
+		} else if errors.Is(err, issues_model.ErrCreationRequiresWriteAccess) {
+			ctx.JSONError(ctx.Tr("repo.issues.new.must_write_access"))
 		} else {
 			ctx.ServerError("NewIssue", err)
 		}

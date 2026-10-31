@@ -34,6 +34,20 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 		return user_model.ErrBlockedUser
 	}
 
+	restriction := repo.MustGetUnit(ctx, unit.TypeIssues).IssuesConfig().GetCreationRestriction()
+	if restriction != repo_model.CreationRestrictionReader {
+		result, err := access_model.CheckCreationRestriction(ctx, repo, issue.Poster, unit.TypeIssues, restriction)
+		if err != nil {
+			return err
+		}
+		switch result {
+		case access_model.CreationDeniedNotCollaborator:
+			return issues_model.ErrMustCollaborator
+		case access_model.CreationDeniedNeedsWriteAccess:
+			return issues_model.ErrCreationRequiresWriteAccess
+		}
+	}
+
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 	assignees := make(map[int64]*user_model.User)
 	var addedProjectIDs []int64

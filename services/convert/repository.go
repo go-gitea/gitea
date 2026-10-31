@@ -60,11 +60,13 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 
 	// check enabled/disabled units
 	hasIssues := false
+	issuesCreationRestriction := string(repo_model.CreationRestrictionReader)
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
 	if unit, err := repo.GetUnit(ctx, unit_model.TypeIssues); err == nil {
 		config := unit.IssuesConfig()
 		hasIssues = true
+		issuesCreationRestriction = string(config.GetCreationRestriction())
 		internalTracker = &api.InternalTracker{
 			EnableTimeTracker:                config.EnableTimetracker,
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
@@ -108,6 +110,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	defaultSquashMergeMessage := repo_model.DefaultPullRequestsConfig().DefaultSquashMergeMessage
 	defaultAllowMaintainerEdit := false
 	defaultTargetBranch := ""
+	pullRequestsCreationRestriction := string(repo_model.CreationRestrictionReader)
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
@@ -127,6 +130,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		defaultSquashMergeMessage = config.DefaultSquashMergeMessage
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
 		defaultTargetBranch = config.DefaultTargetBranch
+		pullRequestsCreationRestriction = string(config.GetCreationRestriction())
 	}
 	hasProjects := false
 	projectsMode := repo_model.ProjectsModeAll
@@ -195,76 +199,78 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	repoAPIURL := repo.APIURL()
 
 	return &api.Repository{
-		ID:                            repo.ID,
-		Owner:                         ToUserWithAccessMode(ctx, repo.Owner, permissionInRepo.AccessMode),
-		Name:                          repo.Name,
-		FullName:                      repo.FullName(),
-		Description:                   repo.Description,
-		Private:                       repo.IsPrivate,
-		Template:                      repo.IsTemplate,
-		Empty:                         repo.IsEmpty,
-		Archived:                      repo.IsArchived,
-		Size:                          int(repo.Size / 1024),
-		Fork:                          repo.IsFork,
-		Parent:                        parent,
-		Mirror:                        repo.IsMirror,
-		HTMLURL:                       repo.HTMLURL(ctx),
-		URL:                           repoAPIURL,
-		SSHURL:                        cloneLink.SSH,
-		CloneURL:                      cloneLink.HTTPS,
-		OriginalURL:                   repo.SanitizedOriginalURL(),
-		Website:                       repo.Website,
-		Language:                      language,
-		LanguagesURL:                  repoAPIURL + "/languages",
-		Stars:                         repo.NumStars,
-		Forks:                         repo.NumForks,
-		Watchers:                      repo.NumWatches,
-		BranchCount:                   int(branchCount),
-		OpenIssues:                    repo.NumOpenIssues,
-		OpenPulls:                     repo.NumOpenPulls,
-		Releases:                      int(numReleases),
-		DefaultBranch:                 repo.DefaultBranch,
-		Created:                       repo.CreatedUnix.AsTime(),
-		Updated:                       repo.UpdatedUnix.AsTime(),
-		ArchivedAt:                    repo.ArchivedUnix.AsTime(),
-		Permissions:                   permission,
-		HasCode:                       hasCode,
-		HasIssues:                     hasIssues,
-		ExternalTracker:               externalTracker,
-		InternalTracker:               internalTracker,
-		HasWiki:                       hasWiki,
-		HasProjects:                   hasProjects,
-		ProjectsMode:                  string(projectsMode),
-		HasReleases:                   hasReleases,
-		HasPackages:                   hasPackages,
-		HasActions:                    hasActions,
-		ExternalWiki:                  externalWiki,
-		HasPullRequests:               hasPullRequests,
-		IgnoreWhitespaceConflicts:     ignoreWhitespaceConflicts,
-		AllowMerge:                    allowMerge,
-		AllowRebase:                   allowRebase,
-		AllowRebaseMerge:              allowRebaseMerge,
-		AllowSquash:                   allowSquash,
-		AllowFastForwardOnly:          allowFastForwardOnly,
-		AllowMergeUpdate:              allowMergeUpdate,
-		AllowRebaseUpdate:             allowRebaseUpdate,
-		AllowManualMerge:              allowManualMerge,
-		AutodetectManualMerge:         autodetectManualMerge,
-		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
-		DefaultMergeStyle:             string(defaultMergeStyle),
-		DefaultUpdateStyle:            string(defaultUpdateStyle),
-		SquashMergeCommitMessage:      string(defaultSquashMergeMessage),
-		DefaultAllowMaintainerEdit:    defaultAllowMaintainerEdit,
-		DefaultTargetBranch:           defaultTargetBranch,
-		AvatarURL:                     repo.AvatarLink(ctx),
-		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
-		MirrorLastSyncAt:              lastSync,
-		MirrorInterval:                mirrorInterval,
-		MirrorUpdated:                 mirrorUpdated,
-		RepoTransfer:                  transfer,
-		Topics:                        util.SliceNilAsEmpty(repo.Topics),
-		ObjectFormatName:              api.ObjectFormatName(repo.ObjectFormatName),
-		Licenses:                      util.SliceNilAsEmpty(repoLicenses.StringList()),
+		ID:                              repo.ID,
+		Owner:                           ToUserWithAccessMode(ctx, repo.Owner, permissionInRepo.AccessMode),
+		Name:                            repo.Name,
+		FullName:                        repo.FullName(),
+		Description:                     repo.Description,
+		Private:                         repo.IsPrivate,
+		Template:                        repo.IsTemplate,
+		Empty:                           repo.IsEmpty,
+		Archived:                        repo.IsArchived,
+		Size:                            int(repo.Size / 1024),
+		Fork:                            repo.IsFork,
+		Parent:                          parent,
+		Mirror:                          repo.IsMirror,
+		HTMLURL:                         repo.HTMLURL(ctx),
+		URL:                             repoAPIURL,
+		SSHURL:                          cloneLink.SSH,
+		CloneURL:                        cloneLink.HTTPS,
+		OriginalURL:                     repo.SanitizedOriginalURL(),
+		Website:                         repo.Website,
+		Language:                        language,
+		LanguagesURL:                    repoAPIURL + "/languages",
+		Stars:                           repo.NumStars,
+		Forks:                           repo.NumForks,
+		Watchers:                        repo.NumWatches,
+		BranchCount:                     int(branchCount),
+		OpenIssues:                      repo.NumOpenIssues,
+		OpenPulls:                       repo.NumOpenPulls,
+		Releases:                        int(numReleases),
+		DefaultBranch:                   repo.DefaultBranch,
+		Created:                         repo.CreatedUnix.AsTime(),
+		Updated:                         repo.UpdatedUnix.AsTime(),
+		ArchivedAt:                      repo.ArchivedUnix.AsTime(),
+		Permissions:                     permission,
+		HasCode:                         hasCode,
+		HasIssues:                       hasIssues,
+		IssuesCreationRestriction:       issuesCreationRestriction,
+		ExternalTracker:                 externalTracker,
+		InternalTracker:                 internalTracker,
+		HasWiki:                         hasWiki,
+		HasProjects:                     hasProjects,
+		ProjectsMode:                    string(projectsMode),
+		HasReleases:                     hasReleases,
+		HasPackages:                     hasPackages,
+		HasActions:                      hasActions,
+		ExternalWiki:                    externalWiki,
+		HasPullRequests:                 hasPullRequests,
+		IgnoreWhitespaceConflicts:       ignoreWhitespaceConflicts,
+		AllowMerge:                      allowMerge,
+		AllowRebase:                     allowRebase,
+		AllowRebaseMerge:                allowRebaseMerge,
+		AllowSquash:                     allowSquash,
+		AllowFastForwardOnly:            allowFastForwardOnly,
+		AllowMergeUpdate:                allowMergeUpdate,
+		AllowRebaseUpdate:               allowRebaseUpdate,
+		AllowManualMerge:                allowManualMerge,
+		AutodetectManualMerge:           autodetectManualMerge,
+		DefaultDeleteBranchAfterMerge:   defaultDeleteBranchAfterMerge,
+		DefaultMergeStyle:               string(defaultMergeStyle),
+		DefaultUpdateStyle:              string(defaultUpdateStyle),
+		SquashMergeCommitMessage:        string(defaultSquashMergeMessage),
+		DefaultAllowMaintainerEdit:      defaultAllowMaintainerEdit,
+		DefaultTargetBranch:             defaultTargetBranch,
+		PullRequestsCreationRestriction: pullRequestsCreationRestriction,
+		AvatarURL:                       repo.AvatarLink(ctx),
+		Internal:                        !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+		MirrorLastSyncAt:                lastSync,
+		MirrorInterval:                  mirrorInterval,
+		MirrorUpdated:                   mirrorUpdated,
+		RepoTransfer:                    transfer,
+		Topics:                          util.SliceNilAsEmpty(repo.Topics),
+		ObjectFormatName:                api.ObjectFormatName(repo.ObjectFormatName),
+		Licenses:                        util.SliceNilAsEmpty(repoLicenses.StringList()),
 	}
 }
 
