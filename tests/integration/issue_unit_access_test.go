@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	activities_model "gitea.dev/models/activities"
@@ -42,8 +43,9 @@ func TestIssueUnitAccess(t *testing.T) {
 	require.NoError(t, issues_model.NewMilestone(t.Context(), milestone))
 	_, err = db.Exec(t.Context(), "UPDATE issue SET milestone_id = ? WHERE repo_id = 3", milestone.ID)
 	require.NoError(t, err)
-	require.NoError(t, db.Insert(t.Context(), &activities_model.Action{
-		UserID: 2, ActUserID: 2, OpType: activities_model.ActionCreateIssue, RepoID: 3, IsPrivate: true, Content: "1|issue6",
+	require.NoError(t, db.Insert(t.Context(), []*activities_model.Action{
+		{UserID: 2, ActUserID: 2, OpType: activities_model.ActionCreateIssue, RepoID: 3, IsPrivate: true, Content: "1|issue6"},
+		{UserID: 2, ActUserID: 2, OpType: activities_model.ActionCommitRepo, RepoID: 3, IsPrivate: true, RefName: "refs/heads/master"},
 	}))
 
 	session := loginUser(t, "user4")
@@ -54,6 +56,13 @@ func TestIssueUnitAccess(t *testing.T) {
 			titles = append(titles, issue.Title)
 		}
 		return titles
+	}
+	feedOpTypes := func(t *testing.T) (opTypes []string) {
+		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/org3/repo3/activities/feeds").AddTokenAuth(token), http.StatusOK)
+		for _, activity := range *DecodeJSON(t, resp, &[]*api.Activity{}) {
+			opTypes = append(opTypes, activity.OpType)
+		}
+		return opTypes
 	}
 	pageBody := func(t *testing.T, url string) string {
 		return session.MakeRequest(t, NewRequest(t, "GET", url), http.StatusOK).Body.String()
@@ -66,15 +75,13 @@ func TestIssueUnitAccess(t *testing.T) {
 		assert.NotContains(t, pageBody(t, "/org/org3/issues"), "issue6")
 		assert.NotContains(t, pageBody(t, "/milestones"), milestone.Name)
 
-		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/org3/repo3/activities/feeds").AddTokenAuth(token), http.StatusOK)
-		for _, activity := range *DecodeJSON(t, resp, &[]*api.Activity{}) {
-			assert.NotEqual(t, "create_issue", activity.OpType)
-		}
-		assert.NotContains(t, pageBody(t, "/org3/repo3.rss"), "<item>")
+		assert.Equal(t, []string{"commit_repo"}, feedOpTypes(t))
+		assert.Equal(t, 1, strings.Count(pageBody(t, "/org3/repo3.rss"), "<item>"), "only the commit event")
 	})
 
 	t.Run("IssuesOnly", func(t *testing.T) {
 		setTeamUnits(t, unit.TypeIssues)
+		assert.Equal(t, []string{"create_issue"}, feedOpTypes(t))
 		assert.Contains(t, searchTitles(t, "&type=issues"), "issue6")
 		assert.NotContains(t, searchTitles(t, ""), "pull6")
 
