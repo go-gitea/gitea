@@ -24,30 +24,26 @@ import (
 
 // StopZombieTasks stops tasks in running/cancelling status that haven't been updated for a long time
 func StopZombieTasks(ctx context.Context) error {
-	return stopTasksByStatuses(ctx, actions_model.FindTaskOptions{
+	opt := actions_model.FindTaskByStatusUpdatedOptions{
 		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.ZombieTaskTimeout).Unix()),
-	}, actions_model.StatusRunning, actions_model.StatusCancelling)
+	}
+	opt.Status = actions_model.StatusRunning
+	if err := stopTasks(ctx, opt); err != nil {
+		return err
+	}
+	opt.Status = actions_model.StatusCancelling
+	return stopTasks(ctx, opt)
 }
 
 // StopEndlessTasks stops running tasks with continuous updates that don't end for a long time.
 // StatusRunning only: the threshold is the task's *start* time, so including StatusCancelling would kill a
 // task mid post-cancel cleanup. StopZombieTasks covers a stalled one, keying off the last update instead.
 func StopEndlessTasks(ctx context.Context) error {
-	return stopTasksByStatuses(ctx, actions_model.FindTaskOptions{
+	opt := actions_model.FindTaskByStatusStartedOptions{
 		StartedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.EndlessTaskTimeout).Unix()),
-	}, actions_model.StatusRunning)
-}
-
-func stopTasksByStatuses(ctx context.Context, opts actions_model.FindTaskOptions, statuses ...actions_model.Status) error {
-	for _, status := range statuses {
-		optsByStatus := opts
-		optsByStatus.Status = status
-		if err := stopTasks(ctx, optsByStatus); err != nil {
-			return err
-		}
+		Status:        actions_model.StatusRunning,
 	}
-
-	return nil
+	return stopTasks(ctx, opt)
 }
 
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
@@ -148,7 +144,7 @@ func PrepareToStartRunWithConcurrency(ctx context.Context, attempt *actions_mode
 	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), jobs, nil
 }
 
-func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
+func stopTasks(ctx context.Context, opts db.FindOptions) error {
 	tasks, err := db.Find[actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		return fmt.Errorf("find tasks: %w", err)

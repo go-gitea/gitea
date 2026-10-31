@@ -194,18 +194,17 @@ func RunnersEdit(ctx *context.Context) {
 
 	ctx.Data["Runner"] = runner
 
-	opts := actions_model.FindTaskOptions{
+	opts := actions_model.FindTaskByRunnerOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: 30,
 		},
-		Status:   actions_model.StatusUnknown, // Unknown means all
 		RunnerID: runner.ID,
 	}
 
-	tasks, count, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)
+	tasks, hasMore, err := actions_model.FindTasksPage(ctx, &opts)
 	if err != nil {
-		ctx.ServerError("CountTasks", err)
+		ctx.ServerError("FindTasksPage", err)
 		return
 	}
 
@@ -215,7 +214,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	ctx.Data["Tasks"] = tasks
-	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(-1).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build().WithUnlimitedPaging(len(tasks), hasMore)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
