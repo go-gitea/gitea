@@ -67,6 +67,7 @@ function initAdminUser() {
     const isBot = elUserType?.value === 'Bot';
     const isLocal = !isBot && elLoginType.value.startsWith('0'); // login type 0 is a local account without auth source
     toggleElem('.js-non-bot', !isBot);
+    toggleElem('.js-bot', isBot);
     if (!isBot) {
       toggleElem('.js-local', isLocal);
       toggleElem('.js-non-local', !isLocal);
