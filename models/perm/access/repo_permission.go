@@ -150,8 +150,11 @@ func (p *Permission) CanReadIssuesOrPulls(isPull bool) bool {
 	return p.CanRead(unit.TypeIssues)
 }
 
-// ReadableIssuesOrPullsFilter returns the is_pull filter limiting results to the readable units, ok is false when neither is readable
-func (p *Permission) ReadableIssuesOrPullsFilter() (isPull optional.Option[bool], ok bool) {
+// ReadableIssuesOrPullsFilter narrows the requested is_pull filter to the readable units, ok is false when nothing requested is readable
+func (p *Permission) ReadableIssuesOrPullsFilter(requested optional.Option[bool]) (isPull optional.Option[bool], ok bool) {
+	if requested.Has() {
+		return requested, p.CanReadIssuesOrPulls(requested.Value())
+	}
 	canReadIssues, canReadPulls := p.CanRead(unit.TypeIssues), p.CanRead(unit.TypePullRequests)
 	switch {
 	case canReadIssues && canReadPulls:

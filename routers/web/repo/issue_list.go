@@ -167,7 +167,7 @@ func SearchIssues(ctx *context.Context) {
 		ctx.ServerError("FindIssuesByIDs", err)
 		return
 	}
-	issues, err = common.FilterReadableIssues(ctx, ctx.Doer, issues)
+	issues, err = common.FilterReadableIssues(ctx, ctx.Doer, issues, repoIDs)
 	if err != nil {
 		ctx.ServerError("FilterReadableIssues", err)
 		return
@@ -240,19 +240,11 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		}
 	}
 
-	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 	// the route only requires one of the issues or pulls units
-	if isPull.Has() {
-		if !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull.Value()) {
-			ctx.NotFound(nil)
-			return
-		}
-	} else {
-		var ok bool
-		if isPull, ok = ctx.Repo.Permission.ReadableIssuesOrPullsFilter(); !ok {
-			ctx.NotFound(nil)
-			return
-		}
+	isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(common.ParseIssueFilterTypeIsPull(ctx.FormString("type")))
+	if !ok {
+		ctx.NotFound(nil)
+		return
 	}
 
 	// FIXME: we should be more efficient here

@@ -166,11 +166,14 @@ func Milestones(ctx *context.Context) {
 		repoOpts.TeamID = ctx.Org.Team.ID
 	}
 
-	// milestones belong to the tracker, so a repository only qualifies through its issues or pulls unit
-	repoOpts.UnitType = unit.TypeIssues
-	userRepoCond := repo_model.SearchRepositoryCondition(repoOpts)
-	repoOpts.UnitType = unit.TypePullRequests
-	userRepoCond = builder.Or(userRepoCond, repo_model.SearchRepositoryCondition(repoOpts))
+	userRepoCond := repo_model.SearchRepositoryCondition(repoOpts) // all repo condition user could visit
+	if !ctx.Doer.IsAdmin {
+		// milestones belong to the tracker, so a repository only qualifies through its issues or pulls unit
+		userRepoCond = userRepoCond.And(builder.Or(
+			repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypeIssues),
+			repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypePullRequests),
+		))
+	}
 
 	var (
 		repoCond = userRepoCond

@@ -1600,7 +1600,7 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	}
 	if scope.Repo != nil {
 		// Projects read alone must not expose issues or pulls whose unit the doer cannot read
-		isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter()
+		isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(optional.None[bool]())
 		if !ok {
 			ctx.SetTotalCountHeader(0)
 			ctx.JSON(http.StatusOK, []*api.Issue{})

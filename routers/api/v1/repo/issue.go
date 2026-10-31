@@ -240,7 +240,7 @@ func SearchIssues(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	issues, err = common.FilterReadableIssues(ctx, ctx.Doer, issues)
+	issues, err = common.FilterReadableIssues(ctx, ctx.Doer, issues, repoIDs)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -378,24 +378,10 @@ func ListIssues(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
-
-	if isPull.Has() && !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull.Value()) {
+	isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(common.ParseIssueFilterTypeIsPull(ctx.FormString("type")))
+	if !ok {
 		ctx.APIErrorNotFound()
 		return
-	}
-
-	if !isPull.Has() {
-		canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
-		canReadPulls := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
-		if !canReadIssues && !canReadPulls {
-			ctx.APIErrorNotFound()
-			return
-		} else if !canReadIssues {
-			isPull = optional.Some(true)
-		} else if !canReadPulls {
-			isPull = optional.Some(false)
-		}
 	}
 
 	// FIXME: we should be more efficient here

@@ -323,7 +323,7 @@ func ViewProject(ctx *context.Context) {
 
 	var issuesMap map[int64]issues_model.IssueList
 	// Projects read alone must not expose issues or pulls whose unit the doer cannot read
-	if isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(); ok {
+	if isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(optional.None[bool]()); ok {
 		issuesMap, err = project_service.LoadIssuesFromProject(ctx, project, &issues_model.IssuesOptions{
 			RepoIDs:      []int64{ctx.Repo.Repository.ID},
 			IsPull:       isPull,
