@@ -13,14 +13,7 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-// .____     ________      _____ __________
-// |    |    \______ \    /  _  \\______   \
-// |    |     |    |  \  /  /_\  \|     ___/
-// |    |___  |    `   \/    |    \    |
-// |_______ \/_______  /\____|__  /____|
-//         \/        \/         \/
-
-// Package ldap provide functions & structure to query a LDAP ldap directory
+// Package ldap provide functions & structure to query an LDAP directory
 // For now, it's mainly tested again an MS Active Directory service, see README.md for more information
 
 // Source Basic LDAP authentication service
@@ -60,12 +53,8 @@ type Source struct {
 	UserUID               string // User Attribute listed in Group
 }
 
-// FromDB fills up a LDAPConfig from serialized format.
-func (source *Source) FromDB(bs []byte) error {
-	err := json.UnmarshalHandleDoubleEncode(bs, &source)
-	if err != nil {
-		return err
-	}
+func (source *Source) FromDB(bs []byte) (err error) {
+	auth.UnmarshalAuthSourceConfig(bs, source)
 	if source.BindPasswordEncrypt != "" {
 		source.BindPassword, err = secret.DecryptSecret(setting.SecretKey, source.BindPasswordEncrypt)
 		if err != nil {
@@ -76,7 +65,6 @@ func (source *Source) FromDB(bs []byte) error {
 	return nil
 }
 
-// ToDB exports a LDAPConfig to a serialized format.
 func (source *Source) ToDB() ([]byte, error) {
 	var err error
 	source.BindPasswordEncrypt, err = secret.EncryptSecret(setting.SecretKey, source.BindPassword)

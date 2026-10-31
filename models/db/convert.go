@@ -6,6 +6,7 @@ package db
 import (
 	"fmt"
 
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 
 	"xorm.io/xorm"
@@ -83,4 +84,18 @@ func CellToInt[T ~int | int64](cell xorm.Cell, def T) (ret T, has bool, err erro
 		return def, false, err
 	}
 	return T(val), true, err
+}
+
+func UnmarshalFromDB(data []byte, v any) bool {
+	if len(data) == 0 {
+		return true
+	}
+	err := json.Unmarshal(data, v)
+	if err != nil {
+		// Even if database value is corrupted, we should not let it cause unnecessary 500 error or block user's operation
+		// Corrupted database value is a really rare case, it should never happen unless site admin manually modified the database.
+		setting.PanicInDevOrTesting("UnmarshalFromDB %q failed: %v", string(data), err)
+		return false
+	}
+	return true
 }

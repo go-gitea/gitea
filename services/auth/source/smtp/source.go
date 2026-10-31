@@ -8,13 +8,6 @@ import (
 	"gitea.dev/modules/json"
 )
 
-//   _________   __________________________
-//  /   _____/  /     \__    ___/\______   \
-//  \_____  \  /  \ /  \|    |    |     ___/
-//  /        \/    Y    \    |    |    |
-// /_______  /\____|__  /____|    |____|
-//         \/         \/
-
 // Source holds configuration for the SMTP login source.
 type Source struct {
 	auth.ConfigBase `json:"-"`
@@ -29,12 +22,11 @@ type Source struct {
 	DisableHelo    bool
 }
 
-// FromDB fills up an SMTPConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &source)
+	auth.UnmarshalAuthSourceConfig(bs, source)
+	return nil
 }
 
-// ToDB exports an SMTPConfig to a serialized format.
 func (source *Source) ToDB() ([]byte, error) {
 	return json.Marshal(source)
 }
