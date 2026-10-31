@@ -92,7 +92,6 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		if hasCodeAccess {
-			canCreate = true
 			canAssignProject = true
 		} else {
 			// or user should have write permission in the head repo
