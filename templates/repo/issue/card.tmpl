@@ -4,7 +4,7 @@
 		{{if $attachments}}
 		<div class="card-attachment-images">
 			{{range $att := $attachments}}
-				<img loading="lazy" src="{{$att.DownloadURL ctx}}" alt="{{$att.Name}}" />
+				<img loading="lazy" src="{{$att.DownloadURL ctx}}" alt="{{$att.Name}}">
 			{{end}}
 		</div>
 		{{end}}

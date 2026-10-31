@@ -14,7 +14,7 @@ async function signInWithPassword(page: Page, username: string) {
   await page.goto('/user/login');
   await page.getByLabel('Username or Email Address').fill(username);
   await page.getByLabel('Password').fill(testUserPassword);
-  await page.getByRole('button', {name: 'Sign In'}).click();
+  await page.getByRole('button', {name: 'Sign In', exact: true}).click();
 }
 
 // regression: credProtect level 3 hid the credential from the second-factor login
