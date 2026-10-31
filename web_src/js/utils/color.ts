@@ -23,16 +23,14 @@ export function contrastColor(backgroundColor: AnyColor): string {
   return useLightText(backgroundColor) ? '#fff' : '#000';
 }
 
-function resolveColors(obj: Record<string, string>): Record<string, string> {
-  const styles = window.getComputedStyle(document.documentElement);
-  const getColor = (name: string) => styles.getPropertyValue(name).trim();
-  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, getColor(value)]));
-}
+const styles = window.getComputedStyle(document.documentElement);
+const getColor = (name: string) => styles.getPropertyValue(name).trim();
 
-export const chartJsColors = resolveColors({
-  text: '--color-text',
-  border: '--color-secondary-alpha-60',
-  commits: '--color-primary-alpha-60',
-  additions: '--color-green',
-  deletions: '--color-red',
-});
+// chart.js can't parse color-mix(), so derive alpha colors from their opaque base
+export const chartJsColors = {
+  text: getColor('--color-text'),
+  border: colord(getColor('--color-secondary')).alpha(0.6).toHex(),
+  commits: colord(getColor('--color-primary')).alpha(0.6).toHex(),
+  additions: getColor('--color-green'),
+  deletions: getColor('--color-red'),
+};
