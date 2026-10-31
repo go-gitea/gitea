@@ -256,6 +256,32 @@ func TestPullCreatePrFromBaseToFork(t *testing.T) {
 	})
 }
 
+// testPullCreateRestrictedFailure checks that, when pull request creation is restricted,
+// the compare page doesn't render the "create pull request" form, and that the server
+// also rejects a direct POST to the compare page even if a client bypasses the UI.
+func testPullCreateRestrictedFailure(t *testing.T, session *TestSession, baseRepoOwner, baseRepoName, baseBranch, headRepoOwner, headRepoName, headBranch, title string) {
+	headCompare := headBranch
+	if headRepoOwner != "" {
+		if headRepoName != "" {
+			headCompare = fmt.Sprintf("%s/%s:%s", headRepoOwner, headRepoName, headBranch)
+		} else {
+			headCompare = fmt.Sprintf("%s:%s", headRepoOwner, headBranch)
+		}
+	}
+	link := fmt.Sprintf("/%s/%s/compare/%s...%s", baseRepoOwner, baseRepoName, baseBranch, headCompare)
+	req := NewRequest(t, "GET", link)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	_, exists := htmlDoc.doc.Find("form#new-issue").Attr("action")
+	assert.False(t, exists, "the create pull request form should not be rendered when creation is restricted")
+
+	req = NewRequestWithValues(t, "POST", link, map[string]string{
+		"title": title,
+	})
+	session.MakeRequest(t, req, http.StatusBadRequest)
+}
+
 // Test checks that a non-collaborator fork owner cannot create a pull request
 // when the base repository restricts pull request creation to collaborators,
 // and that creation succeeds again once the restriction is lifted.
@@ -267,11 +293,11 @@ func TestPullCreateRestrictToCollaborators(t *testing.T) {
 		testEditFileToNewBranch(t, sessionFork, "user4", "repo1", "master", "restrict-branch", "README.md", "Hello, World (Edited)\n")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
-		updateRepoPullRequestConfig(t, repo1.ID, func(c *repo_model.PullRequestsConfig) { c.RestrictToCollaborators = true })
+		updateRepoPullRequestConfig(t, repo1.ID, func(c *repo_model.PullRequestsConfig) { c.CreationRestriction = repo_model.CreationRestrictionMember })
 
-		testPullCreateFailure(t, sessionFork, "user2", "repo1", "master", "user4", "repo1", "restrict-branch", "This should be blocked")
+		testPullCreateRestrictedFailure(t, sessionFork, "user2", "repo1", "master", "user4", "repo1", "restrict-branch", "This should be blocked")
 
-		updateRepoPullRequestConfig(t, repo1.ID, func(c *repo_model.PullRequestsConfig) { c.RestrictToCollaborators = false })
+		updateRepoPullRequestConfig(t, repo1.ID, func(c *repo_model.PullRequestsConfig) { c.CreationRestriction = repo_model.CreationRestrictionReader })
 
 		resp := testPullCreateDirectly(t, sessionFork, createPullRequestOptions{
 			BaseRepoOwner: "user2",
