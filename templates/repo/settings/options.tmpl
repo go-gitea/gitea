@@ -244,6 +244,32 @@
 									</form>
 								</td>
 							</tr>
+							{{if .History}}
+							<tr>
+								<td colspan="4">
+									<details>
+										<summary>{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.history"}}</summary>
+										<table class="ui very basic compact table">
+											{{range .History}}
+											<tr>
+												<td>{{DateUtils.FullTime .CreatedUnix}}</td>
+												<td>
+													{{if eq .Status "success"}}<span class="ui green label">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.status_success"}}</span>
+													{{else if eq .Status "partial"}}<span class="ui orange label">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.status_partial"}}</span>
+													{{else}}<span class="ui red label">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.status_failed"}}</span>{{end}}
+												</td>
+												<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.history_summary" .Result.Pushed .Result.Deleted .Result.FailedTotal .DurationMs}}</td>
+												<td class="tw-break-anywhere">
+													{{range .Result.Failed}}<div>{{.Ref}}: {{.Reason}}</div>{{end}}
+													{{if .Result.Error}}{{.Result.Error}}{{end}}
+												</td>
+											</tr>
+											{{end}}
+										</table>
+									</details>
+								</td>
+							</tr>
+							{{end}}
 							{{else}}
 							<tr>
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.none"}}</td>
@@ -279,6 +305,29 @@
 												<div class="ui checkbox">
 													<input id="push_mirror_sync_on_commit" name="push_mirror_sync_on_commit" type="checkbox" {{if .push_mirror_sync_on_commit}}checked{{end}}>
 													<label for="push_mirror_sync_on_commit">{{ctx.Locale.Tr "repo.mirror_sync_on_commit"}}</label>
+												</div>
+											</div>
+											<div class="field {{if .Err_PushMirrorBranchFilters}}error{{end}}">
+												<label for="push_mirror_branch_filters">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.branch_filters"}}</label>
+												<input id="push_mirror_branch_filters" name="push_mirror_branch_filters" value="{{.push_mirror_branch_filters}}">
+												<p class="help">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.branch_filters_desc"}}</p>
+											</div>
+											<div class="field">
+												<div class="ui checkbox">
+													<input id="push_mirror_keep_remote_branches" name="push_mirror_keep_remote_branches" type="checkbox" {{if .push_mirror_keep_remote_branches}}checked{{end}}>
+													<label for="push_mirror_keep_remote_branches">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.keep_remote_branches"}}</label>
+												</div>
+											</div>
+											<div class="field">
+												<div class="ui checkbox">
+													<input id="push_mirror_no_push_tags" name="push_mirror_no_push_tags" type="checkbox" {{if .push_mirror_no_push_tags}}checked{{end}}>
+													<label for="push_mirror_no_push_tags">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.no_push_tags"}}</label>
+												</div>
+											</div>
+											<div class="field">
+												<div class="ui checkbox">
+													<input id="push_mirror_keep_remote_tags" name="push_mirror_keep_remote_tags" type="checkbox" {{if .push_mirror_keep_remote_tags}}checked{{end}}>
+													<label for="push_mirror_keep_remote_tags">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.keep_remote_tags"}}</label>
 												</div>
 											</div>
 											<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
