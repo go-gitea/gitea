@@ -238,14 +238,16 @@ type ActionRunner struct {
 	Busy      bool                 `json:"busy"`
 	Disabled  bool                 `json:"disabled"`
 	Ephemeral bool                 `json:"ephemeral"`
+	Priority  int64                `json:"priority"`
 	Labels    []*ActionRunnerLabel `json:"labels"`
 }
 
 // EditActionRunnerOption represents the editable fields for a runner.
 // swagger:model
 type EditActionRunnerOption struct {
-	// required: true
 	Disabled *bool `json:"disabled"`
+	// higher is preferred, see PREFERRED_RUNNER_GRACE
+	Priority *int64 `json:"priority"`
 }
 
 // ActionRunnersResponse returns Runners
