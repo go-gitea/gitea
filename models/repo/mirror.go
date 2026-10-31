@@ -117,9 +117,9 @@ func TouchMirror(ctx context.Context, m *Mirror) error {
 	return err
 }
 
-// DeleteMirrorByRepoID deletes a mirror by repoID
-func DeleteMirrorByRepoID(ctx context.Context, repoID int64) error {
-	_, err := db.GetEngine(ctx).Delete(&Mirror{RepoID: repoID})
+// DeleteRepoPullMirror deletes the repo's mirror (pull mirror)
+func DeleteRepoPullMirror(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Delete(&Mirror{})
 	return err
 }
 

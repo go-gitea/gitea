@@ -494,10 +494,9 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 		repo.MustOwner(ctx)
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
-			_ = db.GetEngine(ctx).Table("team_repo").
+			_ = db.GetEngine(ctx).Select("team.lower_name").Table("team_repo").
 				Join("INNER", "team", "team.id = team_repo.team_id").
 				Where("team_repo.repo_id = ?", repo.ID).
-				Select("team.lower_name").
 				OrderBy("team.lower_name").
 				Find(&teams)
 			metas["teams"] = "," + strings.Join(teams, ",") + ","
