@@ -1824,6 +1824,8 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken())
 
 		m.Group("/admin", func() {
+			m.Combo("/quotas/{subject_type}/{id}").Get(admin.GetStorageQuota).
+				Put(bind(api.StorageQuotaOptions{}), admin.SetStorageQuota)
 			m.Group("/cron", func() {
 				m.Get("", admin.ListCronTasks)
 				m.Post("/{task}", admin.PostCronTask)

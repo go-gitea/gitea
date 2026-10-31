@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
+	"gitea.dev/services/quota"
 )
 
 type LimitReachedError struct{ Limit int }
@@ -153,6 +154,11 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	if err != nil {
 		return fmt.Errorf("get new owner '%s': %w", newOwnerName, err)
 	}
+	quotaRelease, quotaErr := quota.BeginTransfer(ctx, repo, newOwner)
+	if quotaErr != nil {
+		return quotaErr
+	}
+	defer quotaRelease()
 	newOwnerName = newOwner.Name // ensure capitalisation matches
 
 	// Check if new owner has repository with same name.

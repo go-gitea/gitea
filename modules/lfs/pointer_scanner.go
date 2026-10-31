@@ -34,7 +34,7 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 	// 4. Take the output of cat-file --batch and check if each file in turn
 	// to see if they're pointers to files in the LFS store
 	wg.Go(func() error {
-		return createPointerResultsFromCatFileBatch(cmd3BatchContentOut, pointerChan)
+		return createPointerResultsFromCatFileBatch(ctx, cmd3BatchContentOut, pointerChan)
 	})
 
 	// 3. Take the shas of the blobs and batch read them
@@ -56,7 +56,7 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 	return err
 }
 
-func createPointerResultsFromCatFileBatch(catFileBatchReader io.ReadCloser, pointerChan chan<- PointerBlob) error {
+func createPointerResultsFromCatFileBatch(ctx context.Context, catFileBatchReader io.ReadCloser, pointerChan chan<- PointerBlob) error {
 	defer catFileBatchReader.Close()
 
 	bufferedReader := bufio.NewReader(catFileBatchReader)
@@ -91,6 +91,10 @@ func createPointerResultsFromCatFileBatch(catFileBatchReader io.ReadCloser, poin
 		if !pointer.IsValid() {
 			continue
 		}
-		pointerChan <- PointerBlob{Hash: sha, Pointer: pointer}
+		select {
+		case pointerChan <- PointerBlob{Hash: sha, Pointer: pointer}:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }

@@ -31,6 +31,7 @@ import (
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
+	"gitea.dev/services/quota"
 	user_service "gitea.dev/services/user"
 	"gitea.dev/services/webtheme"
 )
@@ -221,6 +222,15 @@ func Organization(ctx *context.Context) {
 
 // Repos display a list of all repositories of the user
 func Repos(ctx *context.Context) {
+	storageQuota, limited, quotaErr := quota.StatusIfLimited(ctx, quota.Subject(ctx.Doer), ctx.Doer.ID)
+	if quotaErr != nil {
+		ctx.ServerError("StorageQuota", quotaErr)
+		return
+	}
+	if limited {
+		ctx.Data["StorageQuota"] = storageQuota
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings.repos")
 	ctx.Data["PageIsSettingsRepos"] = true
 	ctx.Data["allowAdopt"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories

@@ -674,6 +674,116 @@
         }
       }
     },
+    "/admin/quotas/{subject_type}/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get storage quota policy, usage and reservations",
+        "operationId": "adminGetStorageQuota",
+        "parameters": [
+          {
+            "enum": [
+              "repository",
+              "user",
+              "organization"
+            ],
+            "type": "string",
+            "description": "Type of the quota subject",
+            "name": "subject_type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the repository, user, or organization",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StorageQuota"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Replace storage quota overrides (null or omitted limits inherit defaults)",
+        "operationId": "adminSetStorageQuota",
+        "parameters": [
+          {
+            "enum": [
+              "repository",
+              "user",
+              "organization"
+            ],
+            "type": "string",
+            "description": "Type of the quota subject",
+            "name": "subject_type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the repository, user, or organization",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/StorageQuotaOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StorageQuota"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/admin/unadopted": {
       "get": {
         "produces": [
@@ -32701,6 +32811,87 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "StorageQuota": {
+      "type": "object",
+      "properties": {
+        "account": {
+          "$ref": "#/definitions/StorageQuotaResource"
+        },
+        "git": {
+          "$ref": "#/definitions/StorageQuotaResource"
+        },
+        "lfs": {
+          "$ref": "#/definitions/StorageQuotaResource"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "overrides": {
+          "$ref": "#/definitions/StorageQuotaOptions"
+        },
+        "subject": {
+          "type": "string",
+          "x-go-name": "Subject"
+        },
+        "subject_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SubjectID"
+        },
+        "total": {
+          "$ref": "#/definitions/StorageQuotaResource"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "StorageQuotaOptions": {
+      "type": "object",
+      "title": "StorageQuotaOptions replaces a subject's overrides. Null or omitted limits inherit the configured defaults.",
+      "properties": {
+        "git_limit": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "GitLimit"
+        },
+        "lfs_limit": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LFSLimit"
+        },
+        "total_limit": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalLimit"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "StorageQuotaResource": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Limit"
+        },
+        "reserved": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Reserved"
+        },
+        "used": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Used"
+        },
+        "warning": {
+          "type": "boolean",
+          "x-go-name": "Warning"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "SubmitPullReviewOptions": {
       "description": "SubmitPullReviewOptions are options to submit a pending pull request review",
       "type": "object",
@@ -34632,6 +34823,12 @@
         "items": {
           "$ref": "#/definitions/StopWatch"
         }
+      }
+    },
+    "StorageQuota": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/StorageQuota"
       }
     },
     "StringSlice": {

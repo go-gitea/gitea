@@ -71,10 +71,19 @@ func (repo *Repository) hashObjectBytes(ctx context.Context, buf []byte, save bo
 	} else {
 		cmd = gitcmd.NewCommand("hash-object", "--stdin")
 	}
-	stdout, _, err := cmd.
-		WithRepo(repo).
-		WithStdinBytes(buf).
-		RunStdString(ctx)
+	var stdout string
+	run := func(ctx context.Context, target RepositoryFacade, env []string) error {
+		var runErr error
+		stdout, _, runErr = cmd.WithRepo(target).WithEnv(env).WithStdinBytes(buf).RunStdString(ctx)
+		return runErr
+	}
+	var err error
+	if save {
+		err = GuardStorageMutation(ctx, repo, StorageFetch, run)
+	} else {
+		err = run(ctx, repo, nil)
+	}
+
 	if err != nil {
 		return "", err
 	}

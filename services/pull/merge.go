@@ -39,6 +39,7 @@ import (
 	"gitea.dev/modules/util"
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
+	"gitea.dev/services/quota"
 )
 
 // getMergeMessage composes the message used when merging a pull request.
@@ -449,6 +450,15 @@ type mergeAndPushOptions struct {
 
 // doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
 func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, message string, opts mergeAndPushOptions) (string, error) { //nolint:unparam // non-error result is never used
+	quotaRepo, quotaErr := repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
+	if quotaErr != nil {
+		return "", quotaErr
+	}
+	ctx, quotaOp, quotaErr := quota.Begin(ctx, quotaRepo)
+	if quotaErr != nil {
+		return "", quotaErr
+	}
+	defer quotaOp.Finish()
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, opts.expectedHeadCommitID)
 	if err != nil {
@@ -528,6 +538,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.ID,
 		pr.Index,
 	)
+	mergeCtx.env = quotaOp.Environment(mergeCtx.env)
 	pushCmd := gitcmd.NewCommand("push", "origin").AddDynamicArguments(tmpRepoBaseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.

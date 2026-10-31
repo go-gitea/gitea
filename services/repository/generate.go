@@ -17,7 +17,6 @@ import (
 	"sync"
 	"time"
 
-	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/glob"
@@ -26,6 +25,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates/vars"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/quota"
 
 	"github.com/huandu/xstrings"
 )
@@ -296,7 +296,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 		return fmt.Errorf("failed to update size for repository: %w", err)
 	}
 
-	if err := git_model.CopyLFS(ctx, generateRepo, templateRepo); err != nil {
+	if err := quota.CopyLFS(ctx, generateRepo, templateRepo); err != nil {
 		return fmt.Errorf("failed to copy LFS: %w", err)
 	}
 

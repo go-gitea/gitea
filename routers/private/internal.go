@@ -86,6 +86,7 @@ func Routes() *web.Router {
 	r.Post("/hook/proc-receive/{owner}/{repo}", context.OverrideContext(), RepoAssignment, bind(private.HookOptions{}), HookProcReceive)
 	r.Get("/serv/none/{keyid}", ServNoCommand)
 	r.Get("/serv/command/{keyid}/{owner}/{repo}", ServCommand)
+	r.Post("/quota/{id}/complete", bind(quotaCompletion{}), completeQuota)
 	r.Post("/manager/shutdown", Shutdown)
 	r.Post("/manager/restart", Restart)
 	r.Post("/manager/reload-templates", ReloadTemplates)

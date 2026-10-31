@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/services/quota"
 
 	"xorm.io/builder"
 )
@@ -84,11 +85,17 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args gitcmd.TrustedC
 
 // GitGcRepo calls 'git gc' to remove unnecessary files and optimize the local repository
 func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args gitcmd.TrustedCmdArgs) error {
+	ctx, quotaOp, quotaErr := quota.Begin(ctx, repo)
+	if quotaErr != nil {
+		return quotaErr
+	}
+	defer quotaOp.Finish()
+
 	log.Trace("Running git gc on %-v", repo)
 	command := gitcmd.NewCommand("gc").AddArguments(args...)
 	var stdout string
 	var err error
-	stdout, _, err = command.WithRepo(repo).RunStdString(ctx)
+	stdout, _, err = command.WithRepo(repo).WithTimeout(timeout).RunStdString(ctx)
 	if err != nil {
 		log.Error("Repository garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
 		desc := fmt.Sprintf("Repository garbage collection failed (%s). Stdout: %s\nError: %v", repo.FullName(), stdout, err)

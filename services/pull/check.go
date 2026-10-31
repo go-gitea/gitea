@@ -16,6 +16,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/models/pull"
+	quota_model "gitea.dev/models/quota"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -468,7 +469,7 @@ func restoreInterruptedMerge(ctx context.Context, pr *issues_model.PullRequest) 
 	return MarkAsMerged(ctx, pr, pr.MergedCommitID, pr.MergedUnix, pr.Merger, pr.Status)
 }
 
-func checkPullRequestMergeable(prID int64) {
+func checkPullRequestMergeable(prID int64) error {
 	ctx := graceful.GetManager().HammerContext()
 
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Test PR[%d] from patch checking queue", prID))
@@ -497,6 +498,13 @@ func checkPullRequestMergeable(prID int64) {
 		}
 
 		if err := checkPullRequestBranchMergeable(ctx, pr); err != nil {
+			if errors.Is(err, quota_model.ErrBusy) {
+				pr.Status = issues_model.PullRequestStatusChecking
+				if updateErr := pr.UpdateCols(ctx, "status"); updateErr != nil {
+					return updateErr
+				}
+				return err
+			}
 			log.Error("checkPullRequestBranchMergeable[%-v]: %v", pr, err)
 			pr.Status = issues_model.PullRequestStatusError
 			if err := pr.UpdateCols(ctx, "status"); err != nil {
@@ -507,9 +515,10 @@ func checkPullRequestMergeable(prID int64) {
 
 		return markPullRequestAsMergeable(ctx, pr)
 	})
-	if err != nil {
+	if err != nil && !errors.Is(err, quota_model.ErrBusy) {
 		log.Error("Unable to checkPullRequestMergeable[%d]: %v", prID, err)
 	}
+	return err
 }
 
 // CheckPRsForBaseBranch check all pulls with base branch
@@ -526,13 +535,7 @@ func CheckPRsForBaseBranch(ctx context.Context, baseRepo *repo_model.Repository,
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() error {
-	prPatchCheckerQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_patch_checker", func(items ...string) []string {
-		for _, s := range items {
-			id, _ := strconv.ParseInt(s, 10, 64)
-			checkPullRequestMergeable(id)
-		}
-		return nil
-	})
+	prPatchCheckerQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_patch_checker", handlePullRequestChecks)
 
 	if prPatchCheckerQueue == nil {
 		return errors.New("unable to create pr_patch_checker queue")
@@ -541,4 +544,14 @@ func Init() error {
 	go graceful.GetManager().RunWithCancel(prPatchCheckerQueue)
 	go graceful.GetManager().RunWithShutdownContext(InitializePullRequests)
 	return nil
+}
+
+func handlePullRequestChecks(items ...string) (unhandled []string) {
+	for _, item := range items {
+		id, _ := strconv.ParseInt(item, 10, 64)
+		if errors.Is(checkPullRequestMergeable(id), quota_model.ErrBusy) {
+			unhandled = append(unhandled, item)
+		}
+	}
+	return unhandled
 }

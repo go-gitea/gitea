@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
+	quota_model "gitea.dev/models/quota"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
@@ -28,6 +29,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	org_service "gitea.dev/services/org"
+	"gitea.dev/services/quota"
 	user_service "gitea.dev/services/user"
 )
 
@@ -42,6 +44,15 @@ const (
 
 // Settings render the main settings page
 func Settings(ctx *context.Context) {
+	storageQuota, limited, quotaErr := quota.StatusIfLimited(ctx, quota_model.Organization, ctx.Org.Organization.ID)
+	if quotaErr != nil {
+		ctx.ServerError("StorageQuota", quotaErr)
+		return
+	}
+	if limited {
+		ctx.Data["StorageQuota"] = storageQuota
+	}
+
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
