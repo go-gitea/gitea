@@ -1,7 +1,7 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package issue
+package pull
 
 import (
 	"context"
@@ -16,28 +16,16 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 )
-
-type ReviewRequestNotifier struct {
-	Comment    *issues_model.Comment
-	IsAdd      bool
-	Reviewer   *user_model.User
-	ReviewTeam *org_model.Team
-}
-
-var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
 
 // codeOwnerMatchBudget caps the total wall-clock time spent evaluating all
 // CODEOWNERS rules against all changed files for a single PR.
 const codeOwnerMatchBudget = 2 * time.Second
 
-func IsCodeOwnerFile(f string) bool {
-	return slices.Contains(codeOwnerFiles, f)
-}
-
 // Get all code owner rules for a given pr + repo combination.
-func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_model.PullRequest) ([]*issues_model.CodeOwnerRule, error) {
+func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_model.PullRequest) ([]*repo_module.CodeOwnerRule, error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -59,7 +47,7 @@ func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_mod
 
 	var data string
 
-	for _, file := range codeOwnerFiles {
+	for _, file := range repo_module.GetCodeOwnerFiles() {
 		blob, err := commit.GetBlobByPath(ctx, repo, file)
 		if err != nil {
 			continue // no CODEOWNERS at this path, try the next candidate
@@ -83,7 +71,7 @@ func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_mod
 		return nil, nil
 	}
 
-	rules, warnings := issues_model.GetCodeOwnersFromContent(ctx, data)
+	rules, warnings := repo_module.GetCodeOwnersFromContent(ctx, data)
 	for _, w := range warnings {
 		log.Warn("CODEOWNERS parsing for PR %s#%d: %s", pr.BaseRepo.FullName(), pr.ID, w)
 	}
@@ -97,7 +85,7 @@ func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_mod
 // Get the matching code owner rules for a given pr + repo combination. The returned
 // complete flag is false when rule matching was cut short by the match budget, so
 // the returned slice is only a partial set of the matching rules.
-func getMatchingCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_model.PullRequest) (matchingRules []*issues_model.CodeOwnerRule, complete bool, err error) {
+func getMatchingCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_model.PullRequest) (matchingRules []*repo_module.CodeOwnerRule, complete bool, err error) {
 	rules, err := getCodeOwnerRules(ctx, repo, pr)
 	if err != nil {
 		return nil, false, err
@@ -119,7 +107,7 @@ func getMatchingCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *is
 		return nil, false, err
 	}
 
-	matchingRules = make([]*issues_model.CodeOwnerRule, 0)
+	matchingRules = make([]*repo_module.CodeOwnerRule, 0)
 	complete = true
 
 	// Bound the total time spent matching rules×files. The per-rule MatchTimeout
@@ -250,7 +238,7 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 	return true
 }
 
-func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
+func RequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}

@@ -18,7 +18,6 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
-	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 )
@@ -314,7 +313,7 @@ func GetReviewers(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	canChooseReviewer := issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, ctx.Repo.Repository, 0)
+	canChooseReviewer := pull_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, ctx.Repo.Repository, 0)
 	if !canChooseReviewer {
 		ctx.APIError(http.StatusForbidden, "doer has no permission to get reviewers")
 		return
