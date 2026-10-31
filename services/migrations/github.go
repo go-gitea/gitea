@@ -524,7 +524,6 @@ func (g *GithubDownloaderV3) convertGithubIssue(ctx context.Context, issue *gith
 
 // GetIssue recovers an issue omitted from the repository listing.
 func (g *GithubDownloaderV3) GetIssue(ctx context.Context, number int64) (*base.Issue, error) {
-	ctx = withGithubRateLimitWait(ctx)
 	g.waitAndPickClient(ctx)
 	issue, resp, err := g.getClient().Issues.Get(ctx, g.repoOwner, g.repoName, int(number))
 	g.setRateFromResponse(resp)
