@@ -360,12 +360,13 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 			if git.IsErrNotExist(err) {
 				if exist && !branch.IsDeleted {
 					if err := git_model.MarkBranchAsDeleted(ctx, repoID, branchName, pusherID); err != nil {
-						return fmt.Errorf("SyncBranchesToDB: mark branch %d:%s deleted: %w", repoID, branchName, err)
+						log.Error("SyncBranchesToDB: mark branch %d:%s deleted: %v", repoID, branchName, err)
 					}
 				}
 				continue
 			} else if err != nil {
-				return fmt.Errorf("SyncBranchesToDB: get commit id of %s: %w", branchName, err)
+				log.Error("SyncBranchesToDB: get commit id of %s: %v", branchName, err)
+				continue
 			}
 			if exist && branch.CommitID == commitID && !branch.IsDeleted {
 				continue
