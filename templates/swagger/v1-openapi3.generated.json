@@ -8506,6 +8506,14 @@
             "type": "string",
             "x-go-name": "Name"
           },
+          "properties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The type specific properties locating the package file, e.g. the distribution and component of a Debian package",
+            "type": "object",
+            "x-go-name": "Properties"
+          },
           "sha1": {
             "description": "The SHA1 hash of the package file",
             "type": "string",
@@ -14495,13 +14503,12 @@
             }
           },
           {
-            "description": "id of the label to delete",
+            "description": "id of the label to delete, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -14531,13 +14538,12 @@
             }
           },
           {
-            "description": "id of the label to get",
+            "description": "id of the label to get, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -14567,13 +14573,12 @@
             }
           },
           {
-            "description": "id of the label to edit",
+            "description": "id of the label to edit, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -26668,13 +26673,12 @@
             }
           },
           {
-            "description": "id of the label to delete",
+            "description": "id of the label to delete, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -26713,13 +26717,12 @@
             }
           },
           {
-            "description": "id of the label to get",
+            "description": "id of the label to get, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -26758,13 +26761,12 @@
             }
           },
           {
-            "description": "id of the label to edit",
+            "description": "id of the label to edit, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],

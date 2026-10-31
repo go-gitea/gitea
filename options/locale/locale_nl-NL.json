@@ -1477,7 +1477,6 @@
   "repo.diff.comment.add_review_comment": "Voeg commentaar toe",
   "repo.diff.comment.start_review": "Review starten",
   "repo.diff.comment.reply": "Reageer",
-  "repo.diff.review.header": "Review versturen",
   "repo.diff.review.placeholder": "Commentaar controleren",
   "repo.diff.review.comment": "Opmerking",
   "repo.diff.review.approve": "Goedkeuren",
