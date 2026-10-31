@@ -2157,6 +2157,7 @@
   "repo.settings.pulls.enable_autodetect_manual_merge": "Enable autodetect manual merge (Note: In some special cases, misjudgments can occur)",
   "repo.settings.pulls.allow_merge_update": "Enable updating pull request branch by merge",
   "repo.settings.pulls.allow_rebase_update": "Enable updating pull request branch by rebase",
+  "repo.settings.pulls.allow_agit": "Allow creating pull requests via refs/for (AGit)",
   "repo.settings.pulls.default_update_style": "Default branch update style",
   "repo.settings.pulls.default_squash_merge_message": "Default squash merge commit message",
   "repo.settings.pulls.default_squash_merge_message.title": "Pull request title",

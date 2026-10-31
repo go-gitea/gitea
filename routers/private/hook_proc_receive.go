@@ -22,6 +22,11 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
+	if !ctx.Repo.Repository.AllowsAgitPullRequests(ctx) {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Pull requests via refs/for are disabled for this repository.")
+		return
+	}
+
 	results, err := agit.ProcReceive(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, &agit.ProcReceiveOptions{
 		OldCommitIDs:   opts.OldCommitIDs,
 		NewCommitIDs:   opts.NewCommitIDs,
