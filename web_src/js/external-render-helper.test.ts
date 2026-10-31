@@ -16,7 +16,6 @@ test('isValidCssColor', () => {
   // examples from MDN: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/color_value/rgb
   expect(isValidCssColor('rgb(255 255 255 / 50%)')).toBe(true);
   expect(isValidCssColor('rgb(from #123456 hwb(120deg 10% 20%) calc(g + 40) b / 0.5)')).toBe(true);
-  expect(isValidCssColor('color(srgb 0.086 0.09 0.094)')).toBe(true);
 
   expect(isValidCssColor('#123 ; other')).toBe(false);
   expect(isValidCssColor('#123 : other')).toBe(false);

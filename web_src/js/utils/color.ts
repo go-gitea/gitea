@@ -23,14 +23,24 @@ export function contrastColor(backgroundColor: AnyColor): string {
   return useLightText(backgroundColor) ? '#fff' : '#000';
 }
 
-const styles = window.getComputedStyle(document.documentElement);
-const getColor = (name: string) => styles.getPropertyValue(name).trim();
+/** Resolves any CSS color, including color-mix(), to "#rrggbbaa" for consumers that only parse hex or rgb(). */
+export function resolveCssColor(color: string): string {
+  const ctx = document.createElement('canvas').getContext('2d')!;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 1, 1);
+  return `#${Array.from(ctx.getImageData(0, 0, 1, 1).data, (channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+}
 
-// chart.js can't parse color-mix(), so derive alpha colors from their opaque base
-export const chartJsColors = {
-  text: getColor('--color-text'),
-  border: colord(getColor('--color-secondary')).alpha(0.6).toHex(),
-  commits: colord(getColor('--color-primary')).alpha(0.6).toHex(),
-  additions: getColor('--color-green'),
-  deletions: getColor('--color-red'),
-};
+function resolveColors(obj: Record<string, string>): Record<string, string> {
+  const styles = window.getComputedStyle(document.documentElement);
+  const getColor = (name: string) => resolveCssColor(styles.getPropertyValue(name).trim());
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, getColor(value)]));
+}
+
+export const chartJsColors = resolveColors({
+  text: '--color-text',
+  border: '--color-secondary-alpha-60',
+  commits: '--color-primary-alpha-60',
+  additions: '--color-green',
+  deletions: '--color-red',
+});

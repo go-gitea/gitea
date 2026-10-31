@@ -20,10 +20,10 @@ RENDER_COMMAND = `echo '<div style="width: 100%; height: 2000px; border: 10px so
 // and should not have any dependency to avoid potential conflicts.
 function isValidCssColor(s: string | null): boolean {
   if (!s) return false;
-  // it should only be in format "#hex", "rgb(...)" or "color(...)", because it comes from a computed style's color value
+  // it should only be in format "#hex" or "rgb(...)", because it comes from a computed style's color value
   const reHex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
-  const reColorFunc = /^(rgb|color)\([^{}'";:]+\)$/;
-  return reHex.test(s) || reColorFunc.test(s);
+  const reRgb = /^rgb\([^{}'";:]+\)$/;
+  return reHex.test(s) || reRgb.test(s);
 }
 
 const thisScriptElem = document.querySelector('script#gitea-external-render-helper');

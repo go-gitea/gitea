@@ -1,4 +1,4 @@
-import {contrastColor} from './color.ts';
+import {contrastColor, resolveCssColor} from './color.ts';
 
 test('contrastColor', () => {
   expect(contrastColor('#d73a4a')).toBe('#fff');
@@ -21,4 +21,11 @@ test('contrastColor', () => {
   expect(contrastColor('#81706d')).toBe('#fff');
   expect(contrastColor('#807070')).toBe('#fff');
   expect(contrastColor('#84b6eb')).toBe('#000');
+});
+
+test('resolveCssColor', () => {
+  expect(resolveCssColor('#4183c4')).toBe('#4183c4ff');
+  expect(resolveCssColor('color-mix(in srgb, #ff0000 20%, black)')).toBe('#330000ff');
+  expect(resolveCssColor('color-mix(in srgb, #ffffff 40%, transparent)')).toBe('#ffffff66');
+  expect(resolveCssColor('color(srgb 0 0.2 1)')).toBe('#0033ffff');
 });
