@@ -58,8 +58,7 @@ Contributions made with the assistance of AI tools are welcome, but contributors
 2. Manually test the changes and add appropriate automated tests where feasible.
 3. Only use AI to assist in contributions that you understand well enough to explain, defend, and revise yourself during review.
 4. Disclose AI-assisted content clearly.
-5. Do not use AI to reply to questions about your issue or pull request. The questions are for you, not an AI model.
-6. AI may be used to help draft issues and pull requests, but contributors remain responsible for the accuracy, completeness, and intent of what they submit.
+5. AI may be used to help draft issues and pull requests, but contributors remain responsible for the accuracy, completeness, and intent of what they submit.
 
 Maintainers reserve the right to close pull requests and issues that do not disclose AI assistance, that appear to be low-quality AI-generated content, or where the contributor cannot explain or defend the proposed changes themselves.
 
