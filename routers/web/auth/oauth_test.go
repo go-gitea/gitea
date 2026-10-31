@@ -53,7 +53,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider
 func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	grants, err := auth.GetOAuth2GrantsByUserID(t.Context(), 3)
+	grants, err := auth.GetOAuth2GrantsByUserID(t.Context(), 14)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)
 

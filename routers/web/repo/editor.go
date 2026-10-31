@@ -134,6 +134,10 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 
 	// check commit behavior
 	fromBaseBranch := ctx.FormString("from_base_branch")
+	if fromBaseBranch != "" && ctx.Repo.Repository.BaseRepo == nil {
+		ctx.NotFound(nil)
+		return nil
+	}
 	commitToNewBranch := commonForm.CommitChoice == editorCommitChoiceNewBranch || fromBaseBranch != ""
 	targetBranchName := util.Iif(commitToNewBranch, commonForm.NewBranchName, ctx.Repo.BranchName)
 	if targetBranchName == ctx.Repo.BranchName && !commitFormOptions.CanCommitToBranch {

@@ -730,6 +730,10 @@ func testRefreshTokenInvalidation(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
 	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
 	assert.Equal(t, "token was already used", parsedError.ErrorDescription)
+
+	req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{"token": parsed.RefreshToken})
+	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpKaUE9")
+	assert.JSONEq(t, `{"active":false}`, MakeRequest(t, req, http.StatusOK).Body.String())
 }
 
 func testRefreshTokenCrossClientUsage(t *testing.T) {

@@ -112,6 +112,14 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("ReplyToOtherUsersPendingReview", func(t *testing.T) {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+		pendingReview, err := issues_model.GetCurrentReview(ctx, &user_model.User{ID: 2}, issue)
+		require.NoError(t, err)
+		_, err = pull_service.CreateCodeComment(ctx, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}), gitRepo, issue, 17, "test", treePath, false, pendingReview.ID, "", nil)
+		assert.True(t, issues_model.IsErrReviewNotExist(err), "got: %v", err)
+	})
 }
 
 func TestCreateCodeCommentUnknownCommitID(t *testing.T) {

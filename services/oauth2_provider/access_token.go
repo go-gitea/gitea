@@ -5,6 +5,7 @@ package oauth2_provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -152,6 +153,20 @@ func NewJwtRegisteredClaimsFromUser(clientID string, grantUserID int64, exp *jwt
 }
 
 func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, serverKey, clientKey JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
+	user, err := user_model.GetValidDoerUserByID(ctx, grant.UserID)
+	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrPermissionDenied) {
+		return nil, &AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "user is not allowed to sign in",
+		}
+	} else if err != nil {
+		log.Error("Error loading user: %v", err)
+		return nil, &AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+			ErrorDescription: "server error",
+		}
+	}
+
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(ctx); err != nil {
 			return nil, &AccessTokenError{
@@ -205,21 +220,6 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 				ErrorDescription: "cannot find application",
 			}
 		}
-		user, err := user_model.GetUserByID(ctx, grant.UserID)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				return nil, &AccessTokenError{
-					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-					ErrorDescription: "cannot find user",
-				}
-			}
-			log.Error("Error loading user: %v", err)
-			return nil, &AccessTokenError{
-				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-				ErrorDescription: "server error",
-			}
-		}
-
 		idToken := &OIDCToken{
 			RegisteredClaims: NewJwtRegisteredClaimsFromUser(app.ClientID, grant.UserID, jwt.NewNumericDate(expirationDate.AsTime())),
 			Nonce:            grant.Nonce,

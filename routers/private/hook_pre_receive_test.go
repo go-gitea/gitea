@@ -18,6 +18,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/private"
+	"gitea.dev/modules/web"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -29,6 +30,23 @@ func TestPreReceive(t *testing.T) {
 	t.Run("Branch", testPreReceiveActionsBranch)
 	t.Run("Tag", testPreReceiveSystemUserTag)
 	t.Run("CanWrite", testPreReceiveCanWriteCodePerBranch)
+	t.Run("ProcReceiveNeedsPullRequests", func(t *testing.T) {
+		ctx, resp := contexttest.MockPrivateContext(t, "/")
+		ctx.SetPathParam("owner", "user2")
+		ctx.SetPathParam("repo", "repo2")
+		RepoAssignment(ctx)
+		require.False(t, ctx.Written())
+		defer ctx.Repo.GitRepo.Close()
+
+		web.SetForm(ctx, &private.HookOptions{
+			UserID:       2,
+			OldCommitIDs: []string{"205ac761f3326a7ebe416e8673760016450b5cec"},
+			NewCommitIDs: []string{"1032bbf17fbc0d9c95bb5418dabe8f8c99278700"},
+			RefFullNames: []git.RefName{"refs/for/master"},
+		})
+		HookProcReceive(ctx)
+		assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+	})
 }
 
 func testPreReceiveActionsBranch(t *testing.T) {
