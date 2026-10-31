@@ -142,7 +142,7 @@ func TestParseInternalRanges(t *testing.T) {
 	prefixes, rejected := ParseInternalRanges("10.0.0.0/8, private, loopback, cgnat, 192.168.1.1, 2001:db8::/32, ,")
 	assert.Empty(t, rejected)
 	contains := func(ip string) bool {
-		return containsPrefix(prefixes, netip.MustParseAddr(ip))
+		return inRange(prefixes, netip.MustParseAddr(ip))
 	}
 	assert.True(t, contains("10.1.2.3"))
 	assert.True(t, contains("172.16.0.1"))      // private
@@ -156,9 +156,9 @@ func TestParseInternalRanges(t *testing.T) {
 	// IPv4-mapped forms are normalized to the IPv4 form, like in the allow and block lists
 	prefixes, rejected = ParseInternalRanges("::ffff:10.0.0.0/104, ::ffff:192.168.1.1")
 	assert.Empty(t, rejected)
-	assert.True(t, containsPrefix(prefixes, netip.MustParseAddr("10.1.2.3")))     // ::ffff:10.0.0.0/104 -> 10.0.0.0/8
-	assert.True(t, containsPrefix(prefixes, netip.MustParseAddr("192.168.1.1")))  // ::ffff:192.168.1.1 -> 192.168.1.1/32
-	assert.False(t, containsPrefix(prefixes, netip.MustParseAddr("192.168.1.2"))) // the bare address is a /32
+	assert.True(t, inRange(prefixes, netip.MustParseAddr("10.1.2.3")))     // ::ffff:10.0.0.0/104 -> 10.0.0.0/8
+	assert.True(t, inRange(prefixes, netip.MustParseAddr("192.168.1.1")))  // ::ffff:192.168.1.1 -> 192.168.1.1/32
+	assert.False(t, inRange(prefixes, netip.MustParseAddr("192.168.1.2"))) // the bare address is a /32
 
 	// invalid entries are rejected and match nothing
 	prefixes, rejected = ParseInternalRanges("example.com, *.example.com, 0.0.0.0/0, 10.0.0.5/8, fe80::1%eth0, 999.1.1.1")
