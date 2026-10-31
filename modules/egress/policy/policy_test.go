@@ -34,7 +34,8 @@ func TestCheckAddr(t *testing.T) {
 		{name: "block host", block: "evil.example.com", host: "evil.example.com", ip: "8.8.8.8"},
 		{name: "block cidr", block: "127.0.0.0/8", ip: "127.0.0.1"},
 		{name: "block ipv4-mapped", block: "loopback", ip: "::ffff:127.0.0.1"},
-		{name: "block nat64 by cidr", block: "10.0.0.0/8", ip: "64:ff9b::a00:1"},
+		{name: "block nat64 by embedded ipv4 cidr", block: "10.0.0.0/8", ip: "64:ff9b::a00:1"},
+		{name: "nat64 wkp decoded and allowed by embedded cidr", allow: "169.254.0.0/16", ip: "64:ff9b::a9fe:a9fe", want: true},
 		{name: "allow loopback", allow: "loopback", ip: "127.0.0.1", want: true},
 		{name: "allow host", allow: "example.com", host: "example.com", ip: "8.8.8.8", want: true},
 		{name: "allow cidr", allow: "10.0.0.0/8", ip: "10.0.0.5", want: true},
@@ -46,7 +47,7 @@ func TestCheckAddr(t *testing.T) {
 		{name: "ula metadata allowed by private", allow: "private", ip: "fd00:ec2::254", want: true},
 		{name: "reserved denied despite allow", allow: "168.63.129.16/32", ip: "168.63.129.16"},
 		{name: "reserved denied ipv4-mapped", allow: "168.63.129.16/32", ip: "::ffff:168.63.129.16"},
-		{name: "nat64 reserved denied despite allow", allow: "64:ff9b::/96", ip: "64:ff9b::a9fe:a9fe"},
+		{name: "nat64 wkp decoded, denied as restricted despite wkp allow", allow: "64:ff9b::/96", ip: "64:ff9b::a9fe:a9fe"},
 		{name: "teredo reserved denied despite allow", allow: "2001::/23", ip: "2001::1"},
 		{name: "protocol assignment allowed by cidr", allow: "2001::/23", ip: "2001:3::1", want: true},
 		{name: "local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5"},
@@ -141,8 +142,11 @@ func TestDenialReasons(t *testing.T) {
 
 	// reserved names the matching range, zoned addresses say so
 	lax := NewPolicy("test", Lax)
-	err := lax.checkAddr("", addr("64:ff9b::a00:1", 80))
-	assert.EqualError(t, err, "test can not call reserved addresses (64:ff9b::/96), deny '64:ff9b::a00:1'")
+	err := lax.checkAddr("", addr("2001::1", 80))
+	assert.EqualError(t, err, "test can not call reserved addresses (2001::/32), deny '2001::1'")
+	// a NAT64 well-known-prefix address is decoded to the embedded IPv4 for scanning
+	err = lax.checkAddr("", addr("64:ff9b::a9fe:a9fe", 80))
+	assert.EqualError(t, err, "test can not call non-public addresses without an allow entry (check your  setting), deny '169.254.169.254'")
 	err = lax.checkAddr("", addr("fe80::1%eth0", 80))
 	assert.EqualError(t, err, "test can not call reserved addresses (zoned address), deny 'fe80::1%eth0'")
 
@@ -215,7 +219,7 @@ func TestCheckHostIPs(t *testing.T) {
 	assert.NoError(t, cgnat.checkHostIPs(hostURL(t, "http://example.com"), ips("100.100.100.200"))) // cloud metadata is opt-in with its containing range
 	for _, ip := range []string{
 		"0.1.2.3", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
-		"198.51.100.1", "203.0.113.1", "100.100.100.200", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "64:ff9b::808:808", "2001::1", "2001:db8::1",
+		"198.51.100.1", "203.0.113.1", "100.100.100.200", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "2001::1", "2001:db8::1",
 		"2002::1", "fe80::1",
 	} {
 		assert.Error(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips(ip)), ip)
@@ -234,11 +238,11 @@ func TestCheckHostIPs(t *testing.T) {
 
 	t.Run("MultipleAddresses", func(t *testing.T) {
 		// the dialer tries the resolved addresses in turn, so one passing address is enough:
-		// a DNS64-synthesized NAT64 address (reserved, never dialable) mixed with a regular IPv4
+		// a DNS64-synthesized NAT64 address decodes to its embedded IPv4 (here 10.0.0.5, restricted)
 		lax := NewPolicy("test", Lax)
-		assert.NoError(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822", "93.184.216.34")))
-		assert.Error(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822")))             // only the NAT64 address
-		assert.Error(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822", "10.0.0.5"))) // reserved + restricted, none passes
+		assert.NoError(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::a00:5", "93.184.216.34")))
+		assert.Error(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::a00:5")))             // only the NAT64 address
+		assert.Error(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::a00:5", "10.0.0.5"))) // decoded NAT64 + restricted, none passes
 		// all addresses denied reports the first denial
 		strict := NewPolicy("test", Strict, WithAllow("example.com", ""))
 		err := strict.checkHostIPs(hostURL(t, "http://example.com"), ips("10.0.0.5", "192.168.0.1"))

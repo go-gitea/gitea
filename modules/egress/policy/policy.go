@@ -115,7 +115,7 @@ func (p *Policy) notAllowedError(target string) error {
 }
 
 func (p *Policy) checkAddr(host string, ip netip.AddrPort) error {
-	ip = netip.AddrPortFrom(ip.Addr().Unmap(), ip.Port())
+	ip = netip.AddrPortFrom(decodeNAT64(ip.Addr()).Unmap(), ip.Port()) // NAT64 well-known prefix decodes to the embedded IPv4
 	class, reserved := classifyAddr(ip.Addr())
 	if class == classReserved {
 		if reserved.IsValid() {

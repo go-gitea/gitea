@@ -28,8 +28,7 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 		"240.0.0.0/4",      // reserved, incl. limited broadcast
 		"::/96",            // IPv4-compatible, embeds IPv4
 		"::ffff:0:0:0/96",  // IPv4-translated, embeds IPv4
-		"64:ff9b::/96",     // wkp NAT64
-		"64:ff9b:1::/48",   // local-use NAT64
+		"64:ff9b:1::/48",   // local-use NAT64, no well-known meaning
 		"2001::/32",        // Teredo, embeds IPv4
 		"2002::/16",        // 6to4, embeds IPv4
 		"ff00::/8",         // multicast
@@ -38,6 +37,20 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 	}
 	return ranges
 }()
+
+// nat64WKP is the well-known NAT64 prefix (RFC 6052); its addresses embed an IPv4
+// address in the last 32 bits, which is what the policy actually scans
+var nat64WKP = netip.MustParsePrefix("64:ff9b::/96")
+
+// decodeNAT64 returns the embedded IPv4 address of a well-known-prefix NAT64 address,
+// so the policy scans the real target instead of the translation prefix
+func decodeNAT64(ip netip.Addr) netip.Addr {
+	if nat64WKP.Contains(ip) {
+		b := ip.As16()
+		return netip.AddrFrom4([4]byte{b[12], b[13], b[14], b[15]})
+	}
+	return ip
+}
 
 // restrictedRanges are dialable if they have been explicitly allowed.
 var restrictedRanges = func() (ranges []netip.Prefix) {
