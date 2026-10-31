@@ -36,6 +36,21 @@ type CreateUserOption struct {
 	Created *time.Time `json:"created_at"`
 }
 
+// LinkExternalLoginOption options to link a user to an account on an external
+// service, so that content migrated from that service is attributed to the user
+type LinkExternalLoginOption struct {
+	// The name of the external service, e.g. "bitbucketserver". Migrations look
+	// users up by the service name of the migration source.
+	// required: true
+	Provider string `json:"provider" binding:"Required;MaxSize(25)"`
+	// The user's ID on the external service
+	// required: true
+	ExternalID string `json:"external_id" binding:"Required;MaxSize(255)"`
+	// The authentication source the link belongs to, 0 when there is none.
+	// A non-zero value must be an existing authentication source.
+	LoginSourceID int64 `json:"login_source_id"`
+}
+
 // EditUserOption edit user options
 type EditUserOption struct {
 	// required: true

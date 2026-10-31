@@ -103,6 +103,9 @@ func loadSecurityData(ctx *context.Context) {
 	// map the provider display name with the AuthSource
 	sources := make(map[*auth_model.Source]string)
 	for _, externalAccount := range accountLinks {
+		if externalAccount.LoginSourceID == 0 {
+			continue // not a login link, e.g. an author mapping for migrations
+		}
 		if authSource, err := auth_model.GetSourceByID(ctx, externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
 

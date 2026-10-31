@@ -53,18 +53,17 @@ func LinkAccountToUser(ctx context.Context, authSourceID int64, user *user_model
 
 	externalID := externalLoginUser.ExternalID
 
-	var tp structs.GitServiceType
+	return UpdateMigrationsByProvider(ctx, gothUser.Provider, externalID, user.ID)
+}
+
+// UpdateMigrationsByProvider attributes migrated content of the external user to the local user,
+// if the provider is a supported git service.
+func UpdateMigrationsByProvider(ctx context.Context, provider, externalID string, userID int64) error {
 	for _, s := range structs.SupportedFullGitService {
-		if strings.EqualFold(s.Name(), gothUser.Provider) {
-			tp = s
-			break
+		if strings.EqualFold(s.Name(), provider) {
+			return UpdateMigrationsByType(ctx, s, externalID, userID)
 		}
 	}
-
-	if tp.Name() != "" {
-		return UpdateMigrationsByType(ctx, tp, externalID, user.ID)
-	}
-
 	return nil
 }
 
