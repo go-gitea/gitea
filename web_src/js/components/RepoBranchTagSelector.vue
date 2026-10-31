@@ -58,6 +58,7 @@ const currentRefShortName = shallowRef(props.elRoot.getAttribute('data-current-r
 
 const refLinkTemplate = props.elRoot.getAttribute('data-ref-link-template')!;
 const refFormActionTemplate = props.elRoot.getAttribute('data-ref-form-action-template')!;
+const refInputId = props.elRoot.getAttribute('data-ref-input-id')!;
 const dropdownFixedText = props.elRoot.getAttribute('data-dropdown-fixed-text')!;
 const showTabTags = props.elRoot.getAttribute('data-show-tab-tags') === 'true';
 const allowCreateNewRef = props.elRoot.getAttribute('data-allow-create-new-ref') === 'true';
@@ -123,7 +124,13 @@ onBeforeUnmount(() => { // template refs are null by onUnmounted
 
 function selectItem(item: ListItem) {
   menuVisible.value = false;
-  if (refFormActionTemplate) {
+  if (refInputId) {
+    currentRefType.value = item.refType;
+    currentRefShortName.value = item.refShortName;
+    const input = document.querySelector<HTMLInputElement>(`#${CSS.escape(refInputId)}`)!;
+    input.value = item.refShortName;
+    input.dispatchEvent(new Event('change', {bubbles: true}));
+  } else if (refFormActionTemplate) {
     currentRefType.value = item.refType;
     currentRefShortName.value = item.refShortName;
     elDropdown.value.closest('form')!.action = refFormActionTemplate

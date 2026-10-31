@@ -14974,6 +14974,317 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pages/content": {
+      "post": {
+        "consumes": [
+          "application/gzip"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Upload a Pages TAR.GZ artifact",
+        "operationId": "repoUploadPagesContent",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "complete TAR.GZ bytes",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PagesContentCommit"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pages/deployments": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a Pages deployment from an Actions artifact",
+        "operationId": "repoCreatePagesDeployment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/PagesDeploymentOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PagesDeploymentResponse"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pages/deployments/{digest}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the publication status of a Pages deployment",
+        "operationId": "repoGetPagesDeployment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "SHA-256 digest returned when the deployment was created",
+            "name": "digest",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PagesDeploymentStatus"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pages/deployments/{digest}/cancel": {
+      "post": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Stop polling a Pages deployment",
+        "operationId": "repoCancelPagesDeployment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "SHA-256 digest returned when the deployment was created",
+            "name": "digest",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deployment polling was cancelled"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pages/versions": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List Pages versions",
+        "operationId": "repoListPagesVersions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PagesVersionList"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pages/versions/{id}": {
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a Pages version",
+        "operationId": "repoDeletePagesVersion",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the Pages version",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Pages version deleted"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pages/versions/{id}/restore": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Restore a Pages version",
+        "operationId": "repoRestorePagesVersion",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the Pages version",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PagesContentCommit"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/projects": {
       "get": {
         "produces": [
@@ -31017,6 +31328,109 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "PagesContentCommit": {
+      "type": "object",
+      "title": "PagesContentCommit describes the prepared Pages version and current state.",
+      "properties": {
+        "pages_updated_unix_nano": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PagesUpdatedUnixNano"
+        },
+        "version": {
+          "$ref": "#/definitions/PagesVersion"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PagesDeploymentOption": {
+      "description": "PagesDeploymentOption is the request accepted by the Actions Pages\ncompatibility endpoint. The values identify the current Actions run and\nare checked against the authenticated task before the artifact is read.",
+      "type": "object",
+      "properties": {
+        "artifact_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ArtifactID"
+        },
+        "oidc_token": {
+          "type": "string",
+          "x-go-name": "OIDCToken"
+        },
+        "pages_build_version": {
+          "type": "string",
+          "x-go-name": "PagesBuildVersion"
+        },
+        "preview": {
+          "type": "boolean",
+          "x-go-name": "Preview"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PagesDeploymentResponse": {
+      "description": "PagesDeploymentResponse is returned after the artifact has been checked and\nmade the repository's current Pages content.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "page_url": {
+          "type": "string",
+          "x-go-name": "PageURL"
+        },
+        "status_url": {
+          "type": "string",
+          "x-go-name": "StatusURL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PagesDeploymentStatus": {
+      "description": "PagesDeploymentStatus describes whether every registered Pages instance has\npublished the submitted digest at its default address.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PagesVersion": {
+      "type": "object",
+      "title": "PagesVersion describes one retained Pages artifact.",
+      "properties": {
+        "created_unix": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CreatedUnix"
+        },
+        "current": {
+          "type": "boolean",
+          "x-go-name": "Current"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "origin_action_run_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OriginActionRunID"
+        },
+        "origin_type": {
+          "type": "string",
+          "x-go-name": "OriginType"
+        },
+        "tar_gz_sha256": {
+          "type": "string",
+          "x-go-name": "TarGzSHA256"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "PayloadCommit": {
       "description": "PayloadCommit represents a commit",
       "type": "object",
@@ -34377,6 +34791,33 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Package"
+        }
+      }
+    },
+    "PagesContentCommit": {
+      "description": "PagesContentCommit",
+      "schema": {
+        "$ref": "#/definitions/PagesContentCommit"
+      }
+    },
+    "PagesDeploymentResponse": {
+      "description": "PagesDeploymentResponse",
+      "schema": {
+        "$ref": "#/definitions/PagesDeploymentResponse"
+      }
+    },
+    "PagesDeploymentStatus": {
+      "description": "PagesDeploymentStatus",
+      "schema": {
+        "$ref": "#/definitions/PagesDeploymentStatus"
+      }
+    },
+    "PagesVersionList": {
+      "description": "PagesVersionList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/PagesVersion"
         }
       }
     },

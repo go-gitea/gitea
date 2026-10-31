@@ -81,6 +81,10 @@ func newDumpCommand() *cli.Command {
 				Usage: "Skip package data",
 			},
 			&cli.BoolFlag{
+				Name:  "skip-pages-data",
+				Usage: "Skip Pages content data",
+			},
+			&cli.BoolFlag{
 				Name:  "skip-index",
 				Usage: "Skip bleve index data",
 			},
@@ -260,6 +264,7 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		excludes = append(excludes, setting.LFS.Storage.Path)
 		excludes = append(excludes, setting.Attachment.Storage.Path)
 		excludes = append(excludes, setting.Packages.Storage.Path)
+		excludes = append(excludes, setting.Pages.Storage.Path)
 		excludes = append(excludes, setting.RepoArchive.Storage.Path)
 		excludes = append(excludes, setting.Log.RootPath)
 		if err := dumper.AddRecursiveExclude("data", setting.AppDataPath, excludes); err != nil {
@@ -291,6 +296,18 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		return dumper.AddFileByReader(object, info, path.Join("data", "packages", objPath))
 	}); err != nil {
 		fatal("Failed to dump packages: %v", err)
+	}
+
+	if cmd.IsSet("skip-pages-data") && cmd.Bool("skip-pages-data") {
+		log.Info("Skip dumping Pages content data")
+	} else if err := storage.Pages.IterateObjects("", func(objPath string, object storage.Object) error {
+		info, err := object.Stat()
+		if err != nil {
+			return err
+		}
+		return dumper.AddFileByReader(object, info, path.Join("data", "pages", objPath))
+	}); err != nil {
+		fatal("Failed to dump Pages content: %v", err)
 	}
 
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,

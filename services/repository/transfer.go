@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
+	pages_service "gitea.dev/services/pages"
 )
 
 type LimitReachedError struct{ Limit int }
@@ -57,6 +58,11 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	}
 
 	oldOwnerName := repo.OwnerName
+	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	if err != nil {
+		return err
+	}
+	defer releasePagesState()
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
@@ -80,7 +86,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 			}
 		}
 
-		return transferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient.Name, repo, repoTransfer.Teams)
+		return transferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient.Name, repo, repoTransfer.Teams, pagesUpdated)
 	}); err != nil {
 		return err
 	}
@@ -103,7 +109,7 @@ func isRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoNa
 }
 
 // transferOwnership transfers all corresponding repository items from old user to new one.
-func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName string, repo *repo_model.Repository, teams []*organization.Team) (err error) {
+func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName string, repo *repo_model.Repository, teams []*organization.Team, pagesUpdated int64) (err error) {
 	repoRenamed := false
 	wikiRenamed := false
 	oldOwnerName := doer.Name
@@ -177,6 +183,9 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	// Update repository.
 	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "owner_id", "owner_name"); err != nil {
 		return fmt.Errorf("update owner: %w", err)
+	}
+	if err := pages_service.TouchRepositoryInTransaction(ctx, repo.ID, pagesUpdated); err != nil {
+		return err
 	}
 
 	// Remove redundant collaborators.
@@ -452,13 +461,18 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 
 	var isDirectTransfer bool
 	oldOwnerName := repo.OwnerName
+	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	if err != nil {
+		return err
+	}
+	defer releasePagesState()
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Admin is always allowed to transfer || user transfer repo back to his account,
 		// then it will transfer directly without acceptance.
 		if doer.IsAdmin || doer.ID == newOwner.ID {
 			isDirectTransfer = true
-			return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
+			return transferOwnership(ctx, doer, newOwner.Name, repo, teams, pagesUpdated)
 		}
 
 		if user_model.IsUserBlockedBy(ctx, doer, newOwner.ID) || user_model.IsUserBlockedBy(ctx, newOwner, repo.OwnerID) {
@@ -473,7 +487,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 			}
 			if allowed {
 				isDirectTransfer = true
-				return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
+				return transferOwnership(ctx, doer, newOwner.Name, repo, teams, pagesUpdated)
 			}
 		}
 

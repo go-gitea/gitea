@@ -30,6 +30,7 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
+	pages_service "gitea.dev/services/pages"
 	pull_service "gitea.dev/services/pull"
 )
 
@@ -124,10 +125,49 @@ func Init(ctx context.Context) error {
 	return initBranchSyncQueue(graceful.GetManager().ShutdownContext())
 }
 
-// UpdateRepository updates a repository
-func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
+// SetArchiveRepoState updates the repository and closes its Pages site in one transaction.
+func SetArchiveRepoState(ctx context.Context, repo *repo_model.Repository, isArchived bool) error {
+	if !isArchived {
+		return repo_model.SetArchiveRepoState(ctx, repo, false)
+	}
+	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	if err != nil {
+		return fmt.Errorf("SetArchiveRepoState: lock Pages state: %w", err)
+	}
+	defer releasePagesState()
+
+	wasArchived, archivedUnix := repo.IsArchived, repo.ArchivedUnix
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		if err := pages_service.DisableRepositoryInTransaction(ctx, repo.ID, pagesUpdated); err != nil {
+			return err
+		}
+		return repo_model.SetArchiveRepoState(ctx, repo, true)
+	})
+	if err != nil {
+		repo.IsArchived, repo.ArchivedUnix = wasArchived, archivedUnix
+		return fmt.Errorf("SetArchiveRepoState: %w", err)
+	}
+	return nil
+}
+
+type UpdateRepositoryOptions struct {
+	VisibilityChanged bool
+	PathChanged       bool
+}
+
+// UpdateRepository updates a repository and its related Pages state.
+func UpdateRepository(ctx context.Context, repo *repo_model.Repository, opts UpdateRepositoryOptions) (err error) {
+	var pagesUpdated int64
+	if opts.PathChanged || opts.VisibilityChanged && repo.IsPrivate {
+		var releasePagesState func()
+		pagesUpdated, releasePagesState, err = pages_service.LockLifecycleState(ctx)
+		if err != nil {
+			return err
+		}
+		defer releasePagesState()
+	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err = updateRepository(ctx, repo, visibilityChanged); err != nil {
+		if err = updateRepository(ctx, repo, opts, pagesUpdated); err != nil {
 			return fmt.Errorf("updateRepository: %w", err)
 		}
 		return nil
@@ -145,63 +185,82 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository, private b
 }
 
 func setRepoVisibility(ctx context.Context, repo *repo_model.Repository, private bool) (err error) {
+	if !private {
+		return db.WithTx(ctx, func(ctx context.Context) error {
+			return setRepoVisibilityInTransaction(ctx, repo, private, 0)
+		})
+	}
+	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
+	if err != nil {
+		return err
+	}
+	defer releasePagesState()
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		repo.IsPrivate = private
-		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
-			return err
-		}
-
-		if err = repo.LoadOwner(ctx); err != nil {
-			return fmt.Errorf("LoadOwner: %w", err)
-		}
-		if repo.Owner.IsOrganization() {
-			// Organization repository need to recalculate access table when visibility is changed.
-			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
-				return fmt.Errorf("recalculateTeamAccesses: %w", err)
-			}
-		}
-
-		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := CheckDaemonExportOK(ctx, repo); err != nil {
-			return err
-		}
-
-		// If repo has become private, we need to set its actions to private, and clear stars and watches.
-		if private {
-			_, err = db.GetEngine(ctx).
-				Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{IsPrivate: true})
-			if err != nil {
-				return err
-			}
-			if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
-				return err
-			}
-			if err = repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
-				return err
-			}
-		}
-
-		shouldUpdateForks := private
-		if !private && repo.Owner.Visibility != structs.VisibleTypePrivate {
-			shouldUpdateForks = true
-		}
-		if shouldUpdateForks {
-			forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
-			if err != nil {
-				return fmt.Errorf("getRepositoriesByForkID: %w", err)
-			}
-			for _, forkRepo := range forkRepos {
-				if err = setRepoVisibility(ctx, forkRepo, private); err != nil {
-					return fmt.Errorf("setRepoVisibility[%d]: %w", forkRepo.ID, err)
-				}
-			}
-		}
-
-		// If visibility is changed, we need to update the issue indexer.
-		// Since the data in the issue indexer have field to indicate if the repo is public or not.
-		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
-		return nil
+		return setRepoVisibilityInTransaction(ctx, repo, private, pagesUpdated)
 	})
+}
+
+func setRepoVisibilityInTransaction(ctx context.Context, repo *repo_model.Repository, private bool, pagesUpdated int64) (err error) {
+	repo.IsPrivate = private
+	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
+		return err
+	}
+	if private {
+		if err := pages_service.DisableRepositoryInTransaction(ctx, repo.ID, pagesUpdated); err != nil {
+			return err
+		}
+	}
+
+	if err = repo.LoadOwner(ctx); err != nil {
+		return fmt.Errorf("LoadOwner: %w", err)
+	}
+	if repo.Owner.IsOrganization() {
+		// Organization repository need to recalculate access table when visibility is changed.
+		if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
+			return fmt.Errorf("recalculateTeamAccesses: %w", err)
+		}
+	}
+
+	// Create/Remove git-daemon-export-ok for git-daemon...
+	if err := CheckDaemonExportOK(ctx, repo); err != nil {
+		return err
+	}
+
+	// If repo has become private, we need to set its actions to private, and clear stars and watches.
+	if private {
+		_, err = db.GetEngine(ctx).
+			Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{IsPrivate: true})
+		if err != nil {
+			return err
+		}
+		if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
+			return err
+		}
+		if err = repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
+			return err
+		}
+	}
+
+	shouldUpdateForks := private
+	if !private && repo.Owner.Visibility != structs.VisibleTypePrivate {
+		shouldUpdateForks = true
+	}
+	if shouldUpdateForks {
+		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
+		if err != nil {
+			return fmt.Errorf("getRepositoriesByForkID: %w", err)
+		}
+		for _, forkRepo := range forkRepos {
+			if err = setRepoVisibilityInTransaction(ctx, forkRepo, private, pagesUpdated); err != nil {
+				return fmt.Errorf("setRepoVisibilityInTransaction[%d]: %w", forkRepo.ID, err)
+			}
+		}
+	}
+
+	// If visibility is changed, we need to update the issue indexer.
+	// Since the data in the issue indexer have field to indicate if the repo is public or not.
+	issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+	return nil
 }
 
 // GetAttachmentLinkedTypeAndRepoID returns the linked type and repository id of attachment if any
@@ -259,7 +318,7 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 }
 
 // updateRepository updates a repository with db context
-func updateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
+func updateRepository(ctx context.Context, repo *repo_model.Repository, opts UpdateRepositoryOptions, pagesUpdated int64) (err error) {
 	repo.LowerName = strings.ToLower(repo.Name)
 
 	e := db.GetEngine(ctx)
@@ -267,12 +326,22 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	if _, err = e.ID(repo.ID).NoAutoTime().AllCols().Update(repo); err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
+	if opts.PathChanged {
+		if err := pages_service.TouchRepositoryInTransaction(ctx, repo.ID, pagesUpdated); err != nil {
+			return err
+		}
+	}
+	if opts.VisibilityChanged && repo.IsPrivate {
+		if err := pages_service.DisableRepositoryInTransaction(ctx, repo.ID, pagesUpdated); err != nil {
+			return err
+		}
+	}
 
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
-	if visibilityChanged {
+	if opts.VisibilityChanged {
 		if err = repo.LoadOwner(ctx); err != nil {
 			return fmt.Errorf("LoadOwner: %w", err)
 		}
@@ -313,7 +382,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 		}
 		for i := range forkRepos {
 			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == structs.VisibleTypePrivate
-			if err = updateRepository(ctx, forkRepos[i], true); err != nil {
+			if err = updateRepository(ctx, forkRepos[i], UpdateRepositoryOptions{VisibilityChanged: true}, pagesUpdated); err != nil {
 				return fmt.Errorf("updateRepository[%d]: %w", forkRepos[i].ID, err)
 			}
 		}
