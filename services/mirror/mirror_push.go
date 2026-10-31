@@ -31,7 +31,14 @@ import (
 var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
 // AddPushMirrorRemote registers the push mirror remote.
-func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
+func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			if err := repo_model.DeletePushMirrorByID(ctx, m.RepoID, m.ID); err != nil {
+				log.Error("DeletePushMirrorByID %v", err)
+			}
+		}
+	}()
 	addRemoteAndConfig := func(storageRepo git.RepositoryFacade, addr string) error {
 		if err := git.ManagedRemoteAdd(ctx, storageRepo, m.RemoteName, addr, git.RemoteOptionMirrorPush); err != nil {
 			return err
@@ -75,18 +82,22 @@ func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error
 	return nil
 }
 
-// DeletePushMirror removes the push mirror's git remotes, deletes the push mirror record
+// DeleteRepoPushMirrorByID removes the push mirror's git remotes, deletes the push mirror record
 // and records the audit event. The web UI and the API share it.
-func DeletePushMirror(ctx context.Context, m *repo_model.PushMirror) error {
-	if err := RemovePushMirrorRemote(ctx, m); err != nil {
+func DeleteRepoPushMirrorByID(ctx context.Context, repoID, pushMirrorID int64) error {
+	pushMirror, err := repo_model.GetPushMirrorByRepoID(ctx, repoID, pushMirrorID)
+	if err != nil {
+		return err
+	}
+	if err := RemovePushMirrorRemote(ctx, pushMirror); err != nil {
 		return fmt.Errorf("RemovePushMirrorRemote: %w", err)
 	}
 
-	if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
+	if err := repo_model.DeletePushMirrorByID(ctx, pushMirror.RepoID, pushMirror.ID); err != nil {
 		return fmt.Errorf("DeletePushMirrors: %w", err)
 	}
 
-	audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, m.Repo, "mirror_id", m.ID, "remote_address", m.RemoteAddress)
+	audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, pushMirror.GetRepository(ctx), "mirror_id", pushMirror.ID, "remote_address", pushMirror.RemoteAddress)
 	return nil
 }
 

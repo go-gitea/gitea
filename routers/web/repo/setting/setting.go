@@ -398,9 +398,9 @@ func handleSettingsPostPushMirrorSync(ctx *context.Context) {
 		return
 	}
 
-	m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
-	if m == nil {
-		ctx.NotFound(nil)
+	m, err := repo_model.GetPushMirrorByRepoID(ctx, repo.ID, form.PushMirrorID)
+	if err != nil {
+		ctx.ServerError("GetPushMirrorByRepoID", err)
 		return
 	}
 
@@ -429,9 +429,9 @@ func handleSettingsPostPushMirrorUpdate(ctx *context.Context) {
 		return
 	}
 
-	m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
-	if m == nil {
-		ctx.NotFound(nil)
+	m, err := repo_model.GetPushMirrorByRepoID(ctx, repo.ID, form.PushMirrorID)
+	if err != nil {
+		ctx.ServerError("GetPushMirrorByRepoID", err)
 		return
 	}
 
@@ -461,19 +461,14 @@ func handleSettingsPostPushMirrorRemove(ctx *context.Context) {
 		return
 	}
 
-	// This section doesn't require repo_name/RepoName to be set in the form, don't show it
-	// as an error on the UI for this action
-	ctx.Data["Err_RepoName"] = nil
-
-	m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
-	if m == nil {
-		ctx.NotFound(nil)
+	m, err := repo_model.GetPushMirrorByRepoID(ctx, repo.ID, form.PushMirrorID)
+	if err != nil {
+		ctx.ServerError("GetPushMirrorByRepoID", err)
 		return
 	}
 
-	m.Repo = repo
-	if err := mirror_service.DeletePushMirror(ctx, m); err != nil {
-		ctx.ServerError("DeletePushMirror", err)
+	if err := mirror_service.DeleteRepoPushMirrorByID(ctx, repo.ID, m.ID); err != nil {
+		ctx.ServerError("DeleteRepoPushMirrorByID", err)
 		return
 	}
 
@@ -534,9 +529,6 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 	}
 
 	if err := mirror_service.AddPushMirrorRemote(ctx, m, address); err != nil {
-		if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
-			log.Error("DeletePushMirrors %v", err)
-		}
 		ctx.ServerError("AddPushMirrorRemote", err)
 		return
 	}
@@ -804,7 +796,7 @@ func handleSettingsPostConvert(ctx *context.Context) {
 	if _, err := repo_service.CleanUpMigrateInfo(ctx, repo); err != nil {
 		ctx.ServerError("CleanUpMigrateInfo", err)
 		return
-	} else if err = repo_model.DeleteMirrorByRepoID(ctx, ctx.Repo.Repository.ID); err != nil {
+	} else if err = repo_model.DeleteRepoPullMirror(ctx, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("DeleteMirrorByRepoID", err)
 		return
 	}

@@ -31,31 +31,6 @@ type PushMirror struct {
 	LastError      string             `xorm:"text"`
 }
 
-type PushMirrorOptions struct {
-	db.ListOptions
-	ID         int64
-	RepoID     int64
-	RemoteName string
-}
-
-func (opts PushMirrorOptions) ToOrders() string {
-	return "id"
-}
-
-func (opts PushMirrorOptions) ToConds() builder.Cond {
-	cond := builder.NewCond()
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
-	if opts.RemoteName != "" {
-		cond = cond.And(builder.Eq{"remote_name": opts.RemoteName})
-	}
-	if opts.ID > 0 {
-		cond = cond.And(builder.Eq{"id": opts.ID})
-	}
-	return cond
-}
-
 func init() {
 	db.RegisterModel(new(PushMirror))
 }
@@ -90,12 +65,19 @@ func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
 	return err
 }
 
-func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
-	if opts.RepoID > 0 {
-		_, err := db.Delete[PushMirror](ctx, opts)
-		return err
+func GetRepoPushMirrorByName(ctx context.Context, repoID int64, name string) (m *PushMirror, _ error) {
+	has, err := db.GetEngine(ctx).Where(builder.Eq{"repo_id": repoID, "remote_name": name}).Get(&m)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("PushMirror does not exist [repo_id: %d, mirror: %s]", repoID, name)
 	}
-	return util.NewInvalidArgumentErrorf("repoID required and must be set")
+	return m, nil
+}
+
+func DeletePushMirrorByID(ctx context.Context, repoID, mirrorID int64) error {
+	_, err := db.GetEngine(ctx).Where("id = ?", mirrorID).And("repo_id = ?", repoID).Delete(new(PushMirror))
+	return err
 }
 
 type findPushMirrorOptions struct {
@@ -127,13 +109,14 @@ func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.Li
 	})
 }
 
-func GetPushMirrorByIDAndRepoID(ctx context.Context, id, repoID int64) (*PushMirror, bool, error) {
-	var pushMirror PushMirror
+func GetPushMirrorByRepoID(ctx context.Context, repoID, id int64) (pushMirror *PushMirror, _ error) {
 	has, err := db.GetEngine(ctx).Where("id = ?", id).And("repo_id = ?", repoID).Get(&pushMirror)
-	if !has || err != nil {
-		return nil, has, err
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("PushMirror does not exist [repo_id: %d, mirror: %d]", repoID, id)
 	}
-	return &pushMirror, true, nil
+	return pushMirror, nil
 }
 
 // GetPushMirrorsSyncedOnCommit returns push-mirrors for this repo that should be updated by new commits
