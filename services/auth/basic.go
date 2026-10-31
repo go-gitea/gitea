@@ -176,11 +176,16 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 		return err
 	}
 	// Consume the passcode atomically so a captured OTP cannot be replayed within its validity window.
-	if ok, err := twofa.ValidateAndConsumeTOTP(req.Context(), req.Header.Get("X-Gitea-OTP")); err != nil {
+	ok, err := twofa.ValidateAndConsumeTOTP(req.Context(), req.Header.Get("X-Gitea-OTP"))
+	tooManyAttempts := errors.Is(err, auth_model.ErrTwoFactorTooManyAttempts)
+	if err != nil && !tooManyAttempts {
 		return err
 	} else if !ok {
 		audit.RecordAs(req.Context(), u, audit_model.UserAuthenticationFailTwoFactor, u)
-
+		log.Warn("Failed authentication attempt for %s from %s: invalid provided OTP", u.Name, req.RemoteAddr)
+		if tooManyAttempts {
+			return ErrUserAuthMessage("too many failed OTP attempts, try again later")
+		}
 		return util.NewInvalidArgumentErrorf("invalid provided OTP")
 	}
 	return nil

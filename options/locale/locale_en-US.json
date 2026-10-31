@@ -407,6 +407,7 @@
   "auth.twofa_scratch_used": "You have used your scratch code. You have been redirected to the two-factor settings page so you may remove your device enrollment or generate a new scratch code.",
   "auth.twofa_passcode_incorrect": "Your passcode is incorrect. If you misplaced your device, use your scratch code to sign in.",
   "auth.twofa_scratch_token_incorrect": "Your scratch code is incorrect.",
+  "auth.twofa_too_many_attempts": "Too many incorrect passcodes. Try again later or use your scratch code.",
   "auth.twofa_required": "You must set up two-factor authentication to get access to repositories, or try to log in again.",
   "auth.login_userpass": "Sign In",
   "auth.login_openid": "OpenID",
