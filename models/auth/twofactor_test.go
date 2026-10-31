@@ -4,12 +4,16 @@
 package auth_test
 
 import (
+	"errors"
+	"fmt"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/cache"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/pquerna/otp/totp"
@@ -43,19 +47,24 @@ func TestTwoFactorLifecycle(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, ok)
 
-		for range 4 {
-			ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), "0000000")
-			require.NoError(t, err)
-			assert.False(t, ok)
+		var limited atomic.Int32
+		var wg sync.WaitGroup
+		for range 10 {
+			wg.Go(func() {
+				if _, err := reloaded.ValidateAndConsumeTOTP(t.Context(), "0000000"); errors.Is(err, auth_model.ErrTwoFactorTooManyAttempts) {
+					limited.Add(1)
+				}
+			})
 		}
+		wg.Wait()
+		assert.EqualValues(t, 6, limited.Load())
 		nextPasscode, err := totp.GenerateCode(key.Secret(), time.Now().Add(30*time.Second))
 		require.NoError(t, err)
 		ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), nextPasscode)
 		require.ErrorIs(t, err, auth_model.ErrTwoFactorTooManyAttempts)
 		assert.False(t, ok)
 
-		_, err = db.GetEngine(t.Context()).ID(tfa.ID).Cols("failure_window_until").Update(&auth_model.TwoFactor{})
-		require.NoError(t, err)
+		require.NoError(t, cache.GetCache().Delete(fmt.Sprintf("twofa_attempts_%d", tfa.UID)))
 		ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), nextPasscode)
 		require.NoError(t, err)
 		assert.True(t, ok)
