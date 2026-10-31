@@ -471,17 +471,11 @@ func handleSettingsPostPushMirrorRemove(ctx *context.Context) {
 		return
 	}
 
-	if err := mirror_service.RemovePushMirrorRemote(ctx, m); err != nil {
-		ctx.ServerError("RemovePushMirrorRemote", err)
+	m.Repo = repo
+	if err := mirror_service.DeletePushMirror(ctx, m); err != nil {
+		ctx.ServerError("DeletePushMirror", err)
 		return
 	}
-
-	if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
-		ctx.ServerError("DeletePushMirrorByID", err)
-		return
-	}
-
-	audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, repo, "mirror_id", m.ID, "remote_address", m.RemoteAddress)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(repo.Link() + "/settings")

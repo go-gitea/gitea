@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -22,6 +23,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/migrations"
 	repo_service "gitea.dev/services/repository"
 )
@@ -70,6 +72,21 @@ func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error
 		}
 	}
 
+	return nil
+}
+
+// DeletePushMirror removes the push mirror's git remotes, deletes the push mirror record
+// and records the audit event. The web UI and the API share it.
+func DeletePushMirror(ctx context.Context, m *repo_model.PushMirror) error {
+	if err := RemovePushMirrorRemote(ctx, m); err != nil {
+		return fmt.Errorf("RemovePushMirrorRemote: %w", err)
+	}
+
+	if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
+		return fmt.Errorf("DeletePushMirrors: %w", err)
+	}
+
+	audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, m.Repo, "mirror_id", m.ID, "remote_address", m.RemoteAddress)
 	return nil
 }
 

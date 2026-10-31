@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -20,7 +19,6 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
-	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/migrations"
@@ -352,17 +350,10 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 	}
 
 	pushMirror.Repo = ctx.Repo.Repository
-	if err := mirror_service.RemovePushMirrorRemote(ctx, pushMirror); err != nil {
+	if err := mirror_service.DeletePushMirror(ctx, pushMirror); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-
-	if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: pushMirror.ID, RepoID: pushMirror.RepoID}); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, ctx.Repo.Repository, "mirror_id", pushMirror.ID, "remote_address", pushMirror.RemoteAddress)
 
 	ctx.Status(http.StatusNoContent)
 }
