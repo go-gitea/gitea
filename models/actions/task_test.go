@@ -326,6 +326,7 @@ func TestReleaseTaskForRunner(t *testing.T) {
 			} else {
 				require.Equal(t, StatusRunning, claimed.Status)
 				require.Equal(t, task.ID, claimed.TaskID)
+				assert.Equal(t, runner.Name, unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID}).RunnerName)
 
 				require.NoError(t, ReleaseTaskForRunner(t.Context(), task))
 

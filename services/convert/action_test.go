@@ -143,11 +143,12 @@ func TestToActionWorkflowJob_StepStatusAndBatchParity(t *testing.T) {
 	require.NoError(t, db.Insert(ctx, run))
 
 	task := &actions_model.ActionTask{
-		ID:       900102,
-		JobID:    9001,
-		RepoID:   2,
-		RunnerID: 34346,
-		Status:   actions_model.StatusFailure,
+		ID:         900102,
+		JobID:      9001,
+		RepoID:     2,
+		RunnerID:   987654321,
+		RunnerName: "removed-runner",
+		Status:     actions_model.StatusFailure,
 	}
 	require.NoError(t, db.Insert(ctx, task))
 
@@ -174,7 +175,8 @@ func TestToActionWorkflowJob_StepStatusAndBatchParity(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, apiJob.Steps, 2)
 
-	assert.Equal(t, "runner_to_be_deleted-user", apiJob.RunnerName)
+	assert.EqualValues(t, 987654321, apiJob.RunnerID)
+	assert.Equal(t, "removed-runner", apiJob.RunnerName)
 	assert.Equal(t, "completed", apiJob.Steps[0].Status, "step 0 status")
 	assert.Equal(t, "success", apiJob.Steps[0].Conclusion, "step 0 conclusion (succeeded before the failure)")
 	assert.Equal(t, "completed", apiJob.Steps[1].Status, "step 1 status")
