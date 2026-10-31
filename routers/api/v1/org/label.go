@@ -100,6 +100,7 @@ func CreateLabel(ctx *context.APIContext) {
 		OrgID:       ctx.Org.Organization.ID,
 		Description: form.Description,
 	}
+	label.SetArchived(form.IsArchived)
 	if err := issues_model.NewLabel(ctx, label); err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -202,7 +203,9 @@ func EditLabel(ctx *context.APIContext) {
 	if form.Description != nil {
 		l.Description = *form.Description
 	}
-	l.SetArchived(form.IsArchived != nil && *form.IsArchived)
+	if form.IsArchived != nil {
+		l.SetArchived(*form.IsArchived)
+	}
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
 		ctx.APIErrorInternal(err)
 		return

@@ -11,8 +11,6 @@ import (
 	"slices"
 
 	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -54,26 +52,20 @@ func hookPostReceiveCollectPushUpdates(opts *private.HookOptions, repo *repo_mod
 }
 
 func hookPostReceiveSyncBranches(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) {
-	hasBranch := false
 	branchNames := make([]string, 0, len(updates))
-	commitIDs := make([]string, 0, len(updates))
+	firstPushedBranch := ""
 	for _, update := range updates {
 		if !update.RefFullName.IsBranch() {
 			continue
 		}
-		hasBranch = true
-		if update.IsDelRef() {
-			if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
-				log.Error("failed to mark branch %s as deleted: %v", update.RefFullName, err)
-			}
-			continue
-		}
 		branchNames = append(branchNames, update.RefFullName.BranchName())
-		commitIDs = append(commitIDs, update.NewCommitID)
-		// TODO: should we return the error and return the error when pushing? Currently it will log the error and not prevent the pushing
-		pull_service.UpdatePullsRefs(ctx, repo, update)
+		if !update.IsDelRef() {
+			firstPushedBranch = util.IfZero(firstPushedBranch, update.RefFullName.BranchName())
+			pull_service.UpdatePullsRefs(ctx, repo, update)
+		}
 	}
-	if !hasBranch {
+
+	if len(branchNames) == 0 {
 		return
 	}
 
@@ -93,26 +85,24 @@ func hookPostReceiveSyncBranches(ctx *gitea_context.PrivateContext, opts *privat
 	}
 
 	wasEmpty := repo.IsEmpty
-	if len(branchNames) > 0 {
-		if wasEmpty {
-			defaultBranch = util.IfZero(defaultBranch, branchNames[0])
-		}
-		// in one transaction, so readers never see an empty repo with branches or a non-empty repo without
-		err = db.WithTx(ctx, func(ctx context.Context) (err error) {
-			if err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames, commitIDs); err != nil {
-				return err
-			}
-			if wasEmpty {
-				if defaultBranch, err = hookPostReceiveMarkRepoNotEmpty(ctx, gitRepo, repo.ID, defaultBranch); err != nil {
-					return fmt.Errorf("mark repo as not empty: %w", err)
-				}
-			}
+	if wasEmpty {
+		defaultBranch = util.IfZero(defaultBranch, firstPushedBranch)
+	}
+	// mark the repo as not empty in the same transaction, so readers never see an empty repo with branches or a non-empty repo without
+	err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames, func(ctx context.Context) (err error) {
+		if !wasEmpty || defaultBranch == "" {
 			return nil
-		})
-		if err != nil {
-			log.Error("failed to sync branch to DB: %v", err)
-			return
 		}
+		if defaultBranch, err = hookPostReceiveMarkRepoNotEmpty(ctx, gitRepo, repo.ID, defaultBranch); err != nil {
+			return fmt.Errorf("mark repo as not empty: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error("failed to sync branch to DB: %v", err)
+		return
+	}
+	if wasEmpty && defaultBranch != "" {
 		repo.IsEmpty = false
 	}
 	if repo.IsEmpty {
