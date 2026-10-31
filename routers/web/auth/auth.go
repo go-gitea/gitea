@@ -449,6 +449,16 @@ func extractUserNameFromOAuth2(gothUser *goth.User) (string, error) {
 	}
 }
 
+// oauth2IdentityMatchesUser reports whether the external identity names the given user,
+// either by the user name derived from it or by its email
+func oauth2IdentityMatchesUser(gothUser *goth.User, u *user_model.User) bool {
+	if gothUser.Email != "" && strings.EqualFold(gothUser.Email, u.Email) {
+		return true
+	}
+	uname, err := extractUserNameFromOAuth2(gothUser)
+	return err == nil && uname != "" && strings.EqualFold(uname, u.Name)
+}
+
 // HandleSignOut resets the session and sets the cookies
 func HandleSignOut(ctx *context.Context) {
 	_ = ctx.Session.Flush()
@@ -648,6 +658,11 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 						}
 						return false
 					}
+				}
+				// the name and email may come from the sign-up form, so only link the account the external identity points to
+				if !oauth2IdentityMatchesUser(&possibleLinkAccountData.GothUser, user) {
+					showLinkingLogin(ctx, possibleLinkAccountData.AuthSourceID, possibleLinkAccountData.GothUser)
+					return false
 				}
 				// TODO: probably we should respect 'remember' user's choice...
 				oauth2LinkAccount(ctx, user, possibleLinkAccountData, true)
