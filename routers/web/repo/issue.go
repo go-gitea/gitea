@@ -73,22 +73,6 @@ var IssueTemplateCandidates = []string{
 	".github/issue_template.yml",
 }
 
-// MustAllowUserComment checks to make sure if an issue is locked.
-// If locked and user has permissions to write to the repository,
-// then the comment is allowed, else it is blocked
-func MustAllowUserComment(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
-		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.Link())
-		return
-	}
-}
-
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
 	if !ctx.Repo.Permission.CanRead(unit.TypeIssues) &&
