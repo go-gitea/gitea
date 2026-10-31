@@ -449,8 +449,6 @@ func extractUserNameFromOAuth2(gothUser *goth.User) (string, error) {
 	}
 }
 
-// oauth2IdentityMatchesUser reports whether the external identity names the given user,
-// either by the user name derived from it or by its email
 func oauth2IdentityMatchesUser(gothUser *goth.User, u *user_model.User) bool {
 	if gothUser.Email != "" && strings.EqualFold(gothUser.Email, u.Email) {
 		return true
@@ -659,10 +657,8 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 						return false
 					}
 				}
-				// the name and email may come from the sign-up form, so only link the account the external identity points to
 				if !oauth2IdentityMatchesUser(&possibleLinkAccountData.GothUser, user) {
-					showLinkingLogin(ctx, possibleLinkAccountData.AuthSourceID, possibleLinkAccountData.GothUser)
-					return false
+					break // name or email came from the sign-up form, report the conflict instead of linking
 				}
 				// TODO: probably we should respect 'remember' user's choice...
 				oauth2LinkAccount(ctx, user, possibleLinkAccountData, true)
