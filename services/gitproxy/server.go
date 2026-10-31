@@ -37,12 +37,17 @@ import (
 const (
 	proxyURLEnv  = "GITEA_GIT_PROXY" // tells this binary it runs as git's GIT_PROXY_COMMAND
 	directHeader = "X-Gitea-Direct"  // asks for a CONNECT tunnel that skips the operator's proxy, as git:// remotes never used one
-
-	// halfCloseIdle bounds how long a git:// tunnel may stay silent once git has closed its side:
-	// receive-pack sends a keep-alive every few seconds while it works, so a remote that sends
-	// nothing for this long is reaped instead of holding the tunnel open forever
-	halfCloseIdle = 30 * time.Second
 )
+
+// directIdle bounds how long a git:// tunnel may stay silent once git has half-closed its side.
+// Protocol v2 closes the write side before receiving the pack (fetch-pack.c close(fd[1])), so a
+// live clone may be silent for a long pack build. The bound must exceed every [git.timeout], so
+// the reap can only fire after git itself was killed — a remote that ignores the half-close then
+// cannot hold the tunnel's sockets, splice pipe and goroutine open forever.
+func directIdle() time.Duration {
+	t := max(setting.Git.Timeout.Migrate, setting.Git.Timeout.Mirror, setting.Git.Timeout.GC)
+	return time.Duration(t)*time.Second + 30*time.Second
+}
 
 // copyBuffers beats the reverse proxy's 32 KiB default as it flushes every write, the transport's ReadBufferSize lets a read span chunks
 type copyBuffers struct{}
@@ -209,7 +214,7 @@ func (s *server) handleConnect(w http.ResponseWriter, r *http.Request) {
 	idle := time.Duration(0) // curl never half-closes, it is done with a tunnel it closes
 	if direct {
 		dial = func(ctx context.Context, target string) (net.Conn, error) { return s.dial(ctx, "tcp", target) }
-		idle = halfCloseIdle // the git:// helper half-closes and waits for the remote's answer
+		idle = directIdle() // the git:// helper half-closes and waits for the remote's pack
 	}
 	upstream, err := dial(ctx, r.URL.Host)
 	if err != nil {

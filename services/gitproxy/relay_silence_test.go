@@ -9,6 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,4 +61,81 @@ func TestRelaySilentRemoteWhileClientOpen(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("relay held the tunnel open after the client half-closed and the remote went silent")
 	}
+}
+
+// TestDirectIdleOverGitTimeout: the direct-tunnel reap bound must exceed every
+// [git.timeout], so it can only fire after git itself was killed — protocol v2
+// half-closes before receiving the pack (fetch-pack.c close(fd[1])), and a live
+// clone may be silent for a long pack build.
+func TestDirectIdleOverGitTimeout(t *testing.T) {
+	defer test.MockVariableValue(&setting.Git.Timeout.Migrate, 600)()
+	defer test.MockVariableValue(&setting.Git.Timeout.Mirror, 300)()
+	defer test.MockVariableValue(&setting.Git.Timeout.GC, 60)()
+	assert.Greater(t, directIdle(), 600*time.Second)
+
+	defer test.MockVariableValue(&setting.Git.Timeout.Migrate, 5)()
+	defer test.MockVariableValue(&setting.Git.Timeout.Mirror, 4)()
+	defer test.MockVariableValue(&setting.Git.Timeout.GC, 3)()
+	assert.Equal(t, 35*time.Second, directIdle())
+}
+
+// TestRelayV2HalfCloseSlowPack: a half-closed client (protocol v2 close(fd[1]))
+// waiting out a silent pack build must get the pack as long as the silence is
+// within the idle bound; only a silent window past the bound reaps the tunnel.
+func TestRelayV2HalfCloseSlowPack(t *testing.T) {
+	t.Parallel()
+	slowPack := func(silence time.Duration) (client net.Conn, git *net.TCPConn, done chan struct{}) {
+		upstreamAddr := serveConns(t, func(conn net.Conn) {
+			_, _ = bufio.NewReader(conn).ReadString('\n') // the fetch request
+			time.Sleep(silence)                           // silent pack build, keepAlive=0
+			_, _ = conn.Write([]byte("PACK"))
+		})
+		client, git = connPair(t)
+		upstream, err := net.Dial("tcp", upstreamAddr)
+		require.NoError(t, err)
+		done = make(chan struct{})
+		go func() {
+			relay(client, upstream, time.Hour) // directIdle() is hours, not 30s
+			close(done)
+		}()
+		_, err = git.Write([]byte("fetch-request\n"))
+		require.NoError(t, err)
+		require.NoError(t, git.CloseWrite()) // protocol v2 half-close before the pack
+		return client, git, done
+	}
+
+	t.Run("PackWithinIdleDelivered", func(t *testing.T) {
+		t.Parallel()
+		_, git, done := slowPack(300 * time.Millisecond)
+		_ = git.SetReadDeadline(time.Now().Add(5 * time.Second))
+		buf := make([]byte, 4)
+		n, err := git.Read(buf)
+		require.NoError(t, err, "tunnel was reaped during a silent pack build within the idle bound")
+		assert.Equal(t, "PACK", string(buf[:n]))
+		<-done
+	})
+
+	t.Run("SilentPastIdleReaped", func(t *testing.T) {
+		t.Parallel()
+		upstreamAddr := serveConns(t, func(conn net.Conn) {
+			_, _ = bufio.NewReader(conn).ReadString('\n')
+			<-make(chan struct{}) // silent forever
+		})
+		client, git := connPair(t)
+		upstream, err := net.Dial("tcp", upstreamAddr)
+		require.NoError(t, err)
+		done := make(chan struct{})
+		go func() {
+			relay(client, upstream, 100*time.Millisecond)
+			close(done)
+		}()
+		_, err = git.Write([]byte("fetch-request\n"))
+		require.NoError(t, err)
+		require.NoError(t, git.CloseWrite())
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("tunnel held open past the idle bound after the half-close")
+		}
+	})
 }
