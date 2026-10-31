@@ -336,6 +336,11 @@ button:focus-visible,
   outline-offset: -2px;
 }
 
+.ui:is(.primary, .red, .green).button:focus-visible,
+.ui:is(.primary, .red, .green).buttons .button:focus-visible {
+  outline-color: var(--color-text-dark);
+}
+
 a.silenced:hover {
   text-decoration-line: none;
 }
