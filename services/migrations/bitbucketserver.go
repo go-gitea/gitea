@@ -286,7 +286,7 @@ func (e *bbsStatusError) isAuthError() bool {
 }
 
 func (e *bbsStatusError) Error() string {
-	msg := fmt.Sprintf("bitbucket server API %s returned status %d", e.URL, e.Status)
+	msg := fmt.Sprintf("bitbucket API %s returned status %d", e.URL, e.Status)
 	if e.isAuthError() {
 		msg += ", check the credentials and the permission to read the repository"
 	}
