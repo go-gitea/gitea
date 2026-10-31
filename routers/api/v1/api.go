@@ -830,6 +830,13 @@ func mustNotBeArchived(ctx *context.APIContext) {
 	}
 }
 
+func orgMustNotBeArchived(ctx *context.APIContext) {
+	if ctx.Org.Organization.IsArchived && ctx.Req.Method != http.MethodGet && ctx.Req.Method != http.MethodHead {
+		ctx.APIError(http.StatusLocked, "organization is archived")
+		return
+	}
+}
+
 func mustEnableEditor(ctx *context.APIContext) {
 	if !ctx.Repo.Repository.CanContentChange() {
 		ctx.APIError(http.StatusLocked, "repo is not allowed to edit")
@@ -1750,7 +1757,12 @@ func Routes() *web.Router {
 			addActionsRoutes(
 				m,
 				reqOrgMembership(),
-				reqOrgOwnership(),
+				func(ctx *context.APIContext) { // archive check after the owner check, so non-owners can't probe the archive state
+					reqOrgOwnership()(ctx)
+					if !ctx.Written() {
+						orgMustNotBeArchived(ctx)
+					}
+				},
 				org.NewAction(),
 			)
 			m.Group("/public_members", func() {
@@ -1765,7 +1777,7 @@ func Routes() *web.Router {
 				m.Get("/search", org.SearchTeam)
 			}, reqToken(), reqOrgMembership())
 			m.Group("/projects", func() {
-				addProjectRoutes(m, reqToken(), reqProjectsUnitAccess(perm.AccessModeWrite))
+				addProjectRoutes(m, reqToken(), reqProjectsUnitAccess(perm.AccessModeWrite), orgMustNotBeArchived)
 			}, reqProjectsUnitAccess(perm.AccessModeRead), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 			m.Group("/labels", func() {
 				m.Get("", org.ListLabels)
@@ -1773,18 +1785,18 @@ func Routes() *web.Router {
 				m.Combo("/{id}").Get(reqToken(), org.GetLabel).
 					Patch(reqToken(), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteLabel)
-			}, reqOrgVisible())
+			}, reqOrgVisible(), orgMustNotBeArchived)
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
 				m.Combo("/{id}").Get(org.GetHook).
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
-			}, reqToken(), reqOrgOwnership(), reqWebhooksEnabled())
+			}, reqToken(), reqOrgOwnership(), reqWebhooksEnabled(), orgMustNotBeArchived)
 			m.Group("/avatar", func() {
 				m.Post("", bind(api.UpdateUserAvatarOption{}), org.UpdateAvatar)
 				m.Delete("", org.DeleteAvatar)
-			}, reqToken(), reqOrgOwnership())
+			}, reqToken(), reqOrgOwnership(), orgMustNotBeArchived)
 			m.Get("/activities/feeds", org.ListOrgActivityFeeds)
 
 			m.Group("/blocks", func() {

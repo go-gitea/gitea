@@ -228,6 +228,8 @@ func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_serv
 			ctx.JSONError(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern))
 		case errors.Is(err, user_model.ErrBlockedUser):
 			ctx.JSONError(ctx.Tr("repo.fork.blocked_user"))
+		case errors.Is(err, repo_service.ErrOrgArchived):
+			ctx.JSONError(ctx.Tr("org.settings.archived_create_repo_not_allowed"))
 		default:
 			ctx.ServerError("ForkPost", err)
 		}

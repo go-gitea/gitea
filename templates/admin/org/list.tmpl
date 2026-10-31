@@ -56,6 +56,9 @@
 									<a href="{{$org.HomeLink}}">{{$org.Name}}</a>
 									{{if $org.FullName}}<span class="username-fullname">({{$org.FullName}})</span>{{end}}
 								</span>
+								{{if .IsArchived}}
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+								{{end}}
 								{{if .Visibility.IsPrivate}}
 									<span class="tw-text-gold">{{svg "octicon-lock"}}</span>
 								{{end}}

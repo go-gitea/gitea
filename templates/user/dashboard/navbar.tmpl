@@ -6,6 +6,7 @@
 					{{ctx.AvatarUtils.Avatar .ContextUser 24 "tw-mr-1"}}
 					<span class="gt-ellipsis">{{.ContextUser.ShortName 40}}</span>
 					<span class="org-visibility">
+						{{if .ContextUser.IsArchived}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "repo.desc.archived"}}</div>{{end}}
 						{{if .ContextUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 						{{if .ContextUser.Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 					</span>
@@ -29,6 +30,7 @@
 								{{ctx.AvatarUtils.Avatar .}}
 								<span class="gt-ellipsis">{{.ShortName 40}}</span>
 								<span class="org-visibility">
+									{{if .IsArchived}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "repo.desc.archived"}}</div>{{end}}
 									{{if .Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 									{{if .Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 								</span>
