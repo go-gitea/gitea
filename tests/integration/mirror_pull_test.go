@@ -121,6 +121,27 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, initCount, count)
 
+	t.Run("default branch follows upstream", func(t *testing.T) {
+		require.NoError(t, git.CreateBranch(ctx, repo, "new-default", "master"))
+		require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+		require.NoError(t, git.SetDefaultBranch(ctx, repo, "new-default"))
+		require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+		updated := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
+		assert.Equal(t, "new-default", updated.DefaultBranch)
+		branch, err := git.GetDefaultBranch(ctx, updated)
+		require.NoError(t, err)
+		assert.Equal(t, "new-default", branch)
+
+		require.NoError(t, git.SetDefaultBranch(ctx, repo, "master"))
+		require.NoError(t, git.DeleteBranch(ctx, repo, "new-default", true))
+		require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+		updated = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
+		assert.Equal(t, "master", updated.DefaultBranch)
+		branch, err = git.GetDefaultBranch(ctx, updated)
+		require.NoError(t, err)
+		assert.Equal(t, "master", branch)
+	})
+
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	lastMirrorSync := mirror.LastSyncUnix
 	assert.NoError(t, mirror_service.UpdateAddress(ctx, mirror, repoPath+"-missing"))
