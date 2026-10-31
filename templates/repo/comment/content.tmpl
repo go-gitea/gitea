@@ -1,0 +1,18 @@
+{{$root := ctx.RootData -}}
+{{$item := .item -}}
+<div class="render-content markup" {{if or $root.CommentContext.CanModerate (and $root.IsSigned (eq $root.SignedUserID $item.PosterID))}}data-can-edit="true"{{end}}>
+	{{if $item.RenderedContent}}
+		{{$item.RenderedContent}}
+	{{else}}
+		<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
+	{{end}}
+</div>
+<div id="{{$item.HashTag}}-raw" class="raw-content tw-hidden">{{$item.Content}}</div>
+{{if .IsIssue}}
+	<div class="edit-content-zone tw-hidden" data-update-url="{{$root.RepoLink}}/issues/{{$item.Index}}/content" data-content-version="{{$item.ContentVersion}}" data-context="{{$root.RepoLink}}" data-attachment-url="{{$root.RepoLink}}/issues/{{$item.Index}}/attachments" data-view-attachment-url="{{$root.RepoLink}}/issues/{{$item.Index}}/view-attachments"></div>
+{{else}}
+	<div class="edit-content-zone tw-hidden" data-update-url="{{$root.RepoLink}}/comments/{{$item.ID}}" data-content-version="{{$item.ContentVersion}}" data-context="{{$root.RepoLink}}" data-attachment-url="{{$root.RepoLink}}/comments/{{$item.ID}}/attachments"></div>
+{{end}}
+{{if $item.Attachments}}
+	{{template "repo/issue/view_content/attachments" dict "Attachments" $item.Attachments "RenderedContent" $item.RenderedContent}}
+{{end}}

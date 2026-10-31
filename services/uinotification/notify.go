@@ -5,6 +5,7 @@ package uinotification
 
 import (
 	"context"
+	"slices"
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
@@ -12,6 +13,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/queue"
@@ -29,6 +31,8 @@ type (
 		CommentID            int64
 		NotificationAuthorID int64
 		ReceiverID           int64 // 0 -- ALL Watcher
+		RepoID               int64
+		CommitSHA            string
 	}
 )
 
@@ -53,11 +57,17 @@ func NewNotifier() notify_service.Notifier {
 func handler(items ...issueNotificationOpts) []issueNotificationOpts {
 	ctx := graceful.GetManager().ShutdownContext()
 	for _, opts := range items {
-		notifiedIDs, err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID)
+		var notifiedIDs []int64
+		var err error
+		if opts.CommitSHA != "" {
+			notifiedIDs, err = activities_model.CreateOrUpdateCommitNotifications(ctx, opts.RepoID, opts.CommitSHA, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID)
+		} else {
+			notifiedIDs, err = activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID)
+		}
 		if err != nil {
 			// the issue can be gone by now, e.g. its repository was deleted
 			if !issues_model.IsErrIssueNotExist(err) {
-				log.Error("Unable to create issue notification: %v", err)
+				log.Error("Unable to create notification: %v", err)
 			}
 			continue
 		}
@@ -82,32 +92,36 @@ func (ns *notificationService) CreateIssueComment(ctx context.Context, doer *use
 	if comment != nil {
 		opts.CommentID = comment.ID
 	}
+	ns.pushWithReceivers(opts, mentions)
+}
+
+func (ns *notificationService) CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
+	commit *git.Commit, comment *issues_model.Comment, mentions []*user_model.User,
+) {
+	if author := user_model.GetUserByGitAuthor(ctx, commit); author != nil && author.ID != doer.ID && !slices.ContainsFunc(mentions, func(receiver *user_model.User) bool { return receiver.ID == author.ID }) {
+		mentions = append(slices.Clip(mentions), author)
+	}
+	ns.pushWithReceivers(issueNotificationOpts{
+		RepoID:               repo.ID,
+		CommitSHA:            commit.ID.String(),
+		CommentID:            comment.ID,
+		NotificationAuthorID: doer.ID,
+	}, mentions)
+}
+
+func (ns *notificationService) pushWithReceivers(opts issueNotificationOpts, receivers []*user_model.User) {
 	_ = ns.issueQueue.Push(opts)
-	for _, mention := range mentions {
-		opts := issueNotificationOpts{
-			IssueID:              issue.ID,
-			NotificationAuthorID: doer.ID,
-			ReceiverID:           mention.ID,
-		}
-		if comment != nil {
-			opts.CommentID = comment.ID
-		}
+	for _, receiver := range receivers {
+		opts.ReceiverID = receiver.ID
 		_ = ns.issueQueue.Push(opts)
 	}
 }
 
 func (ns *notificationService) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
-	_ = ns.issueQueue.Push(issueNotificationOpts{
+	ns.pushWithReceivers(issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: issue.Poster.ID,
-	})
-	for _, mention := range mentions {
-		_ = ns.issueQueue.Push(issueNotificationOpts{
-			IssueID:              issue.ID,
-			NotificationAuthorID: issue.Poster.ID,
-			ReceiverID:           mention.ID,
-		})
-	}
+	}, mentions)
 }
 
 func (ns *notificationService) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {

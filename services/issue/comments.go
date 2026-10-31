@@ -96,18 +96,13 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion int, doer *user_model.User, oldContent string) error {
-	if err := c.LoadIssue(ctx); err != nil {
+func UpdateComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, c *issues_model.Comment, contentVersion int, oldContent string) error {
+	blockerIDs, err := commentBlockerIDs(ctx, repo, c)
+	if err != nil {
 		return err
 	}
-	if err := c.Issue.LoadRepo(ctx); err != nil {
-		return err
-	}
-
-	if user_model.IsUserBlockedBy(ctx, doer, c.Issue.PosterID, c.Issue.Repo.OwnerID) {
-		if !access_model.IsUserRepoAdmin(ctx, c.Issue.Repo, doer) {
-			return user_model.ErrBlockedUser
-		}
+	if user_model.IsUserBlockedBy(ctx, doer, blockerIDs...) && !access_model.IsUserRepoAdmin(ctx, repo, doer) {
+		return user_model.ErrBlockedUser
 	}
 
 	needsContentHistory := c.Content != oldContent && c.Type.HasContentSupport()
@@ -135,13 +130,20 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 		}
 	}
 
-	notify_service.UpdateComment(ctx, doer, c, oldContent)
+	if !c.IsCommitComment() { // the comment change notifiers all serve issues
+		notify_service.UpdateComment(ctx, doer, c, oldContent)
+	}
 
 	return nil
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
+func DeleteComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, comment *issues_model.Comment) error {
+	if comment.IsCommitComment() {
+		if err := comment.LoadCommitComment(ctx); err != nil { // notifiers need the commit after its row is gone
+			return err
+		}
+	}
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		return issues_model.DeleteComment(ctx, comment)
 	})
@@ -149,7 +151,11 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_m
 		return err
 	}
 
-	notify_service.DeleteComment(ctx, doer, comment)
+	if comment.IsCommitComment() {
+		notify_service.DeleteCommitComment(ctx, doer, repo, comment)
+	} else {
+		notify_service.DeleteComment(ctx, doer, comment)
+	}
 
 	return nil
 }

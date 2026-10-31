@@ -34,6 +34,7 @@ func TestRenderConversation(t *testing.T) {
 			ctx, resp := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 			contexttest.LoadUser(t, ctx, pr.Issue.PosterID)
 			contexttest.LoadRepo(t, ctx, pr.BaseRepoID)
+			ctx.Data["Repository"] = ctx.Repo.Repository
 			contexttest.LoadGitRepo(t, ctx)
 			defer ctx.Repo.GitRepo.Close()
 			cb(t, ctx, resp)

@@ -263,30 +263,42 @@ func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *
 	return err
 }
 
-// validateAttachmentForIssue rejects a foreign or already-linked attachment before it is linked to
-// issue: a known UUID could otherwise re-link (and expose) another repo's private attachment. A
-// legacy attachment predating repo_id-on-upload is adopted into the issue's repo.
-func validateAttachmentForIssue(ctx context.Context, issue *Issue, attachment *repo_model.Attachment) error {
-	if attachment.RepoID == 0 && attachment.CreatedUnix < repo_model.LegacyAttachmentMissingRepoIDCutoff {
-		attachment.RepoID = issue.RepoID
-		if err := repo_model.UpdateAttachmentByUUID(ctx, attachment, "repo_id"); err != nil {
-			return fmt.Errorf("update attachment repo_id [id: %d]: %w", attachment.ID, err)
+// linkAttachments prevents UUIDs from exposing foreign attachments and adopts legacy uploads.
+func linkAttachments(ctx context.Context, repoID, issueID, commentID int64, uuids []string) ([]*repo_model.Attachment, error) {
+	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
+	if err != nil {
+		return nil, fmt.Errorf("linkAttachments [uuids: %v]: %w", uuids, err)
+	}
+	for _, attachment := range attachments {
+		if attachment.RepoID == 0 && attachment.CreatedUnix < repo_model.LegacyAttachmentMissingRepoIDCutoff {
+			attachment.RepoID = repoID
+			if err := repo_model.UpdateAttachmentByUUID(ctx, attachment, "repo_id"); err != nil {
+				return nil, fmt.Errorf("linkAttachments [attachment_id: %d]: %w", attachment.ID, err)
+			}
+		}
+		if attachment.RepoID != repoID {
+			return nil, util.NewPermissionDeniedErrorf("attachment belongs to a different repository")
+		}
+		if attachment.IssueID != 0 && attachment.IssueID != issueID {
+			return nil, util.NewPermissionDeniedErrorf("attachment is already linked to another issue")
+		}
+		if attachment.CommentID != 0 && attachment.CommentID != commentID {
+			return nil, util.NewPermissionDeniedErrorf("attachment is already linked to another comment")
+		}
+		if attachment.ReleaseID != 0 {
+			return nil, util.NewPermissionDeniedErrorf("attachment is already linked to a release")
+		}
+		attachment.IssueID = issueID
+		attachment.CommentID = commentID
+		if err := repo_model.UpdateAttachment(ctx, attachment); err != nil {
+			return nil, fmt.Errorf("linkAttachments [attachment_id: %d]: %w", attachment.ID, err)
 		}
 	}
-	if attachment.RepoID != issue.RepoID {
-		return util.NewPermissionDeniedErrorf("attachment belongs to a different repository")
-	}
-	if attachment.IssueID != 0 && attachment.IssueID != issue.ID {
-		return util.NewPermissionDeniedErrorf("attachment is already linked to another issue")
-	}
-	if attachment.ReleaseID != 0 {
-		return util.NewPermissionDeniedErrorf("attachment is already linked to a release")
-	}
-	return nil
+	return attachments, nil
 }
 
 // UpdateIssueAttachments update attachments by UUIDs for the issue
-func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) (err error) {
+func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) error {
 	if len(uuids) == 0 {
 		return nil
 	}
@@ -295,20 +307,8 @@ func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) 
 		if err != nil {
 			return err
 		}
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
-		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
-		}
-		for i := range attachments {
-			if err := validateAttachmentForIssue(ctx, issue, attachments[i]); err != nil {
-				return err
-			}
-			attachments[i].IssueID = issueID
-			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
-			}
-		}
-		return nil
+		_, err = linkAttachments(ctx, issue.RepoID, issue.ID, 0, uuids)
+		return err
 	})
 }
 
@@ -572,22 +572,29 @@ func FindAndUpdateIssueMentions(ctx context.Context, issue *Issue, doer *user_mo
 
 // ResolveIssueMentionsByVisibility returns the users mentioned in an issue, removing those that
 // don't have access to reading it. Teams are expanded into their users, but organizations are ignored.
-func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *user_model.User, mentions []string) (users []*user_model.User, err error) {
+func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *user_model.User, mentions []string) ([]*user_model.User, error) {
 	if len(mentions) == 0 {
 		return nil, nil
 	}
-	if err = issue.LoadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
+	}
+	return ResolveRepoMentionsByVisibility(ctx, issue.Repo, doer, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues), mentions)
+}
+
+func ResolveRepoMentionsByVisibility(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, unitType unit.Type, mentions []string) (users []*user_model.User, err error) {
+	if len(mentions) == 0 {
+		return nil, nil
 	}
 
 	resolved := make(map[string]bool, 10)
 	var mentionTeams []string
 
-	if err := issue.Repo.LoadOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
-	repoOwnerIsOrg := issue.Repo.Owner.IsOrganization()
+	repoOwnerIsOrg := repo.Owner.IsOrganization()
 	if repoOwnerIsOrg {
 		mentionTeams = make([]string, 0, 5)
 	}
@@ -600,7 +607,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 		}
 		if repoOwnerIsOrg && strings.Contains(name, "/") {
 			names := strings.Split(name, "/")
-			if len(names) < 2 || names[0] != issue.Repo.Owner.LowerName {
+			if len(names) < 2 || names[0] != repo.Owner.LowerName {
 				continue
 			}
 			mentionTeams = append(mentionTeams, names[1])
@@ -610,25 +617,21 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 		}
 	}
 
-	if issue.Repo.Owner.IsOrganization() && len(mentionTeams) > 0 {
+	if repo.Owner.IsOrganization() && len(mentionTeams) > 0 {
 		teams := make([]*organization.Team, 0, len(mentionTeams))
 		if err := db.GetEngine(ctx).
 			Join("INNER", "team_repo", "team_repo.team_id = team.id").
-			Where("team_repo.repo_id=?", issue.Repo.ID).
+			Where("team_repo.repo_id=?", repo.ID).
 			In("team.lower_name", mentionTeams).
 			Find(&teams); err != nil {
 			return nil, fmt.Errorf("find mentioned teams: %w", err)
 		}
 		if len(teams) != 0 {
 			checked := make([]int64, 0, len(teams))
-			unittype := unit.TypeIssues
-			if issue.IsPull {
-				unittype = unit.TypePullRequests
-			}
 			for _, team := range teams {
-				if team.UnitEnabled(ctx, unittype) {
+				if team.UnitEnabled(ctx, unitType) {
 					checked = append(checked, team.ID)
-					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
+					resolved[repo.Owner.LowerName+"/"+team.LowerName] = true
 				}
 			}
 			if len(checked) != 0 {
@@ -681,12 +684,12 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 		if already := resolved[user.LowerName]; already || user.IsOrganization() {
 			continue
 		}
-		// Normal users must have read access to the referencing issue
-		perm, err := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, user)
+		// Normal users must have read access to the unit
+		perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)
 		if err != nil {
 			return nil, fmt.Errorf("GetIndividualUserRepoPermission [%d]: %w", user.ID, err)
 		}
-		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+		if !perm.CanRead(unitType) {
 			continue
 		}
 		users = append(users, user)

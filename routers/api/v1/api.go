@@ -1484,7 +1484,23 @@ func Routes() *web.Router {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
 						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
+				m.Group("/comments", func() {
+					m.Get("", repo.ListRepoCommitComments)
+					m.Group("/{id}", func() {
+						m.Combo("").
+							Get(repo.GetCommitComment).
+							Patch(reqToken(), bind(api.EditCommitCommentOption{}), repo.EditCommitComment).
+							Delete(reqToken(), repo.DeleteCommitComment)
+						m.Combo("/reactions").
+							Get(repo.GetCommitCommentReactions).
+							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostCommitCommentReaction).
+							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteCommitCommentReaction)
+					})
+				}, reqRepoReader(unit.TypeCode), mustNotBeArchived)
 				m.Group("/commits", func() {
+					m.Combo("/{sha}/comments", context.ReferencesGitRepo(), mustNotBeArchived).
+						Get(repo.ListCommitComments).
+						Post(reqToken(), bind(api.CreateCommitCommentOption{}), repo.CreateCommitComment)
 					m.Group("", func() {
 						m.Get("", repo.GetAllCommits)
 						m.Get("/{sha}", repo.GetSingleCommit) // GitHub-compatible endpoint

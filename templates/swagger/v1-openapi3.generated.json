@@ -271,6 +271,29 @@
         },
         "description": "Commit"
       },
+      "CommitComment": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CommitComment"
+            }
+          }
+        },
+        "description": ""
+      },
+      "CommitCommentList": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/CommitComment"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "description": ""
+      },
       "CommitList": {
         "content": {
           "application/json": {
@@ -3341,6 +3364,73 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "CommitComment": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            },
+            "type": "array",
+            "x-go-name": "Attachments"
+          },
+          "body": {
+            "type": "string",
+            "x-go-name": "Body"
+          },
+          "commit_id": {
+            "type": "string",
+            "x-go-name": "CommitID"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "Created"
+          },
+          "html_url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "HTMLURL"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "line": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Line"
+          },
+          "path": {
+            "type": "string",
+            "x-go-name": "Path"
+          },
+          "position": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Position"
+          },
+          "side": {
+            "type": "string",
+            "x-go-name": "Side"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "Updated"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "CommitDateOptions": {
         "description": "CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE",
         "properties": {
@@ -3936,6 +4026,38 @@
         },
         "required": [
           "new_branch_name"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CreateCommitCommentOption": {
+        "properties": {
+          "body": {
+            "type": "string",
+            "x-go-name": "Body"
+          },
+          "line": {
+            "description": "Line is a file line number, not GitHub's diff position, and is required with path.",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Line"
+          },
+          "path": {
+            "type": "string",
+            "x-go-name": "Path"
+          },
+          "side": {
+            "description": "Side defaults to new.",
+            "enum": [
+              "old",
+              "new"
+            ],
+            "type": "string",
+            "x-go-name": "Side"
+          }
+        },
+        "required": [
+          "body"
         ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
@@ -5504,6 +5626,16 @@
           "unprotected_file_patterns": {
             "type": "string",
             "x-go-name": "UnprotectedFilePatterns"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "EditCommitCommentOption": {
+        "properties": {
+          "body": {
+            "type": "string",
+            "x-go-name": "Body"
           }
         },
         "type": "object",
@@ -20520,6 +20652,382 @@
         ]
       }
     },
+    "/repos/{owner}/{repo}/comments": {
+      "get": {
+        "operationId": "listRepoCommitComments",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CommitCommentList"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "List commit comments in a repository",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/comments/{id}": {
+      "delete": {
+        "operationId": "deleteCommitComment",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "comment ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Delete a commit comment",
+        "tags": [
+          "repository"
+        ]
+      },
+      "get": {
+        "operationId": "getCommitComment",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "comment ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CommitComment"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get a commit comment",
+        "tags": [
+          "repository"
+        ]
+      },
+      "patch": {
+        "operationId": "editCommitComment",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "comment ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditCommitCommentOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CommitComment"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Edit a commit comment",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/comments/{id}/reactions": {
+      "delete": {
+        "operationId": "deleteCommitCommentReaction",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "comment ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditReactionOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Remove your reaction from a commit comment",
+        "tags": [
+          "repository"
+        ]
+      },
+      "get": {
+        "operationId": "getCommitCommentReactions",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "comment ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ReactionList"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "List reactions on a commit comment",
+        "tags": [
+          "repository"
+        ]
+      },
+      "post": {
+        "operationId": "postCommitCommentReaction",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "comment ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditReactionOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Reaction"
+          },
+          "201": {
+            "$ref": "#/components/responses/Reaction"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Add a reaction to a commit comment",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
     "/repos/{owner}/{repo}/commits": {
       "get": {
         "operationId": "repoGetAllCommits",
@@ -20788,6 +21296,122 @@
           }
         },
         "summary": "Get a commit's statuses, by branch/tag/commit reference",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/commits/{sha}/comments": {
+      "get": {
+        "operationId": "listCommitComments",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "commit SHA",
+            "in": "path",
+            "name": "sha",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CommitCommentList"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "List comments on a commit",
+        "tags": [
+          "repository"
+        ]
+      },
+      "post": {
+        "operationId": "createCommitComment",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "commit SHA",
+            "in": "path",
+            "name": "sha",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommitCommentOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/CommitComment"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Create a commit comment using a file line number rather than a diff position",
         "tags": [
           "repository"
         ]

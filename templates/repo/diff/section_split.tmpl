@@ -1,6 +1,6 @@
 {{$file := $.file -}}
 {{$diffBlobExcerptData := ctx.RootData.DiffBlobExcerptData -}}
-{{$canAddComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex -}}
+{{$canAddComment := and $diffBlobExcerptData ctx.RootData.CommentContext.CanAddComment -}}
 <colgroup>
 	<col width="50">
 	<col width="10">
@@ -94,27 +94,19 @@
 				{{if or $line.Comments $match.Comments}}
 					<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
 						<td class="add-comment-left" colspan="4">
-							{{if $line.Comments}}
-								{{if eq $line.GetCommentSide "previous"}}
-									{{template "repo/diff/conversation" dict "comments" $line.Comments}}
-								{{end}}
+							{{if and $line.Comments (eq $line.GetCommentSide "previous")}}
+								{{template "repo/comment/conversation" dict "comments" $line.Comments}}
 							{{end}}
-							{{if $match.Comments}}
-								{{if eq $match.GetCommentSide "previous"}}
-									{{template "repo/diff/conversation" dict "comments" $match.Comments}}
-								{{end}}
+							{{if and $match.Comments (eq $match.GetCommentSide "previous")}}
+								{{template "repo/comment/conversation" dict "comments" $match.Comments}}
 							{{end}}
 						</td>
 						<td class="add-comment-right" colspan="4">
-							{{if $line.Comments}}
-								{{if eq $line.GetCommentSide "proposed"}}
-									{{template "repo/diff/conversation" dict "comments" $line.Comments}}
-								{{end}}
+							{{if and $line.Comments (eq $line.GetCommentSide "proposed")}}
+								{{template "repo/comment/conversation" dict "comments" $line.Comments}}
 							{{end}}
-							{{if $match.Comments}}
-								{{if eq $match.GetCommentSide "proposed"}}
-									{{template "repo/diff/conversation" dict "comments" $match.Comments}}
-								{{end}}
+							{{if and $match.Comments (eq $match.GetCommentSide "proposed")}}
+								{{template "repo/comment/conversation" dict "comments" $match.Comments}}
 							{{end}}
 						</td>
 					</tr>
@@ -123,12 +115,12 @@
 				<tr class="add-comment" data-line-type="{{$line.GetHTMLDiffLineType}}">
 					<td class="add-comment-left" colspan="4">
 						{{if eq $line.GetCommentSide "previous"}}
-							{{template "repo/diff/conversation" dict "comments" $line.Comments}}
+							{{template "repo/comment/conversation" dict "comments" $line.Comments}}
 						{{end}}
 					</td>
 					<td class="add-comment-right" colspan="4">
 						{{if eq $line.GetCommentSide "proposed"}}
-							{{template "repo/diff/conversation" dict "comments" $line.Comments}}
+							{{template "repo/comment/conversation" dict "comments" $line.Comments}}
 						{{end}}
 					</td>
 				</tr>
