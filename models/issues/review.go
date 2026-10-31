@@ -890,25 +890,6 @@ func RemoveTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organi
 			return nil, err
 		}
 
-		official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
-		if err != nil {
-			return nil, fmt.Errorf("isOfficialReviewerTeam(): %w", err)
-		}
-
-		if official {
-			// recalculate which is the latest official review from that team
-			review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, -reviewer.ID)
-			if err != nil && !IsErrReviewNotExist(err) {
-				return nil, err
-			}
-
-			if review != nil {
-				if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
-					return nil, err
-				}
-			}
-		}
-
 		if doer == nil {
 			return nil, nil
 		}

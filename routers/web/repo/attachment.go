@@ -97,7 +97,7 @@ func DeleteAttachment(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Doer.ID != attach.UploaderID {
+	if ctx.Doer.ID != attach.UploaderID || attach.ReleaseID > 0 {
 		if attach.IssueID > 0 {
 			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
 			if err != nil {

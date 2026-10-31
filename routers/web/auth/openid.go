@@ -159,6 +159,12 @@ func signInOpenIDVerify(ctx *context.Context) {
 	log.Trace("Full URL: %s", fullURL)
 
 	id, err := openid.Verify(fullURL)
+	if err == nil {
+		id, err = openid.Normalize(id)
+	}
+	if err == nil {
+		err = allowedOpenIDURI(id)
+	}
 	if err != nil {
 		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 			Openid: id,
