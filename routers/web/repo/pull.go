@@ -413,9 +413,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	statusCheckData := &pullCommitStatusCheckData{}
 	data.StatusCheckData = statusCheckData
 
-	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID, db.ListOptionsAll)
+	commitStatuses, err := pull_service.GetLatestPullCommitStatuses(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID)
 	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
+		log.Error("GetLatestPullCommitStatuses: %v", err)
 	}
 
 	// Effective required contexts = branch-protection contexts + required scoped workflow checks.
