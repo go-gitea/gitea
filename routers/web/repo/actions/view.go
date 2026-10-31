@@ -43,7 +43,6 @@ import (
 	"gitea.dev/routers/common"
 	actions_service "gitea.dev/services/actions"
 	context_module "gitea.dev/services/context"
-	pages_service "gitea.dev/services/pages"
 )
 
 func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) (job *actions_model.ActionRunJob, hasPathParam bool) {
@@ -294,9 +293,7 @@ type ViewResponse struct {
 
 	State struct {
 		Run struct {
-			RepoID           int64  `json:"repoId"`
-			HasPagesArtifact bool   `json:"hasPagesArtifact"`
-			PagesURL         string `json:"pagesURL"`
+			RepoID int64 `json:"repoId"`
 			// Link is the canonical HTML URL of the run, e.g. "/owner/repo/actions/runs/123".
 			// Used as the base for composing sub-resource URLs (cancel, rerun, artifacts, jobs) that are not attempt-scoped.
 			Link string `json:"link"`
@@ -565,10 +562,6 @@ func ViewPost(ctx *context_module.Context) {
 
 func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, jobs []*actions_model.ActionRunJob) {
 	resp.State.Run.RepoID = ctx.Repo.Repository.ID
-	resp.State.Run.HasPagesArtifact = run.HasPagesArtifact
-	if run.HasPagesArtifact {
-		resp.State.Run.PagesURL = pages_service.FirstDefaultSiteURL(ctx, run.Repo)
-	}
 	resp.State.Run.Index = run.Index
 	// the title for the "run" is from the commit message
 	resp.State.Run.Title = run.Title

@@ -7,7 +7,6 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bytes"
-	"context"
 	"io"
 	"net/url"
 	"os"
@@ -44,13 +43,13 @@ func TestActionsDeploymentRejectsIncompleteRequest(t *testing.T) {
 	require.ErrorIs(t, err, ErrActionsPreview)
 }
 
-func TestActionsRestrictedBranch(t *testing.T) {
+func TestActionsRefMatchesSite(t *testing.T) {
 	site := &pages_model.Site{SourceBranch: "main"}
-	assert.True(t, actionsRefAllowed(site, &actionsOIDCClaims{Ref: "refs/heads/main", RefType: "branch"}))
-	assert.False(t, actionsRefAllowed(site, &actionsOIDCClaims{Ref: "refs/tags/main", RefType: "tag"}))
-	assert.False(t, actionsRefAllowed(site, &actionsOIDCClaims{Ref: "refs/heads/other", RefType: "branch"}))
+	assert.True(t, isActionsRefAllowed(site, &actionsOIDCClaims{Ref: "refs/heads/main", RefType: "branch"}))
+	assert.False(t, isActionsRefAllowed(site, &actionsOIDCClaims{Ref: "refs/tags/main", RefType: "tag"}))
+	assert.False(t, isActionsRefAllowed(site, &actionsOIDCClaims{Ref: "refs/heads/other", RefType: "branch"}))
 	site.SourceBranch = ""
-	assert.True(t, actionsRefAllowed(site, &actionsOIDCClaims{Ref: "refs/tags/main", RefType: "tag"}))
+	assert.True(t, isActionsRefAllowed(site, &actionsOIDCClaims{Ref: "refs/tags/main", RefType: "tag"}))
 }
 
 func TestPagesDeploymentRequestJSONContract(t *testing.T) {
@@ -162,16 +161,10 @@ func TestCommitActionsArtifactPublishesValidatedContent(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, repo.LoadOwner(t.Context()))
 	oidcToken := signPagesOIDCToken(t, repo, task, attempt.Attempt)
-	run, err := actions_model.GetRunByRepoAndID(t.Context(), task.RepoID, task.Job.RunID)
-	require.NoError(t, err)
-	require.False(t, run.HasPagesArtifact)
 	_, err = CommitActionsArtifact(t.Context(), task.RepoID, task, ActionsDeploymentRequest{
 		ArtifactID: artifact.ID, PagesBuildVersion: "wrong-commit-sha", OIDCToken: oidcToken,
 	})
 	require.ErrorIs(t, err, ErrActionsDeploymentRequest)
-	run, err = actions_model.GetRunByRepoAndID(t.Context(), task.RepoID, task.Job.RunID)
-	require.NoError(t, err)
-	require.False(t, run.HasPagesArtifact)
 
 	result, err := CommitActionsArtifact(t.Context(), task.RepoID, task, ActionsDeploymentRequest{
 		ArtifactID: artifact.ID, PagesBuildVersion: task.Job.CommitSHA, OIDCToken: oidcToken,
@@ -187,26 +180,27 @@ func TestCommitActionsArtifactPublishesValidatedContent(t *testing.T) {
 	require.True(t, has)
 	assert.Equal(t, result.Digest, version.TarGzSHA256)
 	assert.Equal(t, pages_model.PublishSourceArtifact, site.SourceType)
-	run, err = actions_model.GetRunByRepoAndID(t.Context(), task.RepoID, task.Job.RunID)
-	require.NoError(t, err)
-	assert.True(t, run.HasPagesArtifact)
+	assert.Equal(t, pages_model.VersionOriginActions, version.OriginType)
+	assert.Equal(t, task.Job.RunID, version.OriginActionRunID)
 
 	repeated, err := CommitActionsArtifact(t.Context(), task.RepoID, task, ActionsDeploymentRequest{
 		ArtifactID: artifact.ID, PagesBuildVersion: task.Job.CommitSHA, OIDCToken: oidcToken,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, result.Digest, repeated.Digest)
+
+	_, err = SaveSiteSettings(t.Context(), task.RepoID, SiteSettings{SourceType: pages_model.PublishSourceArtifact})
+	require.NoError(t, err)
+	_, err = CommitActionsArtifact(t.Context(), task.RepoID, task, ActionsDeploymentRequest{
+		ArtifactID: artifact.ID, PagesBuildVersion: task.Job.CommitSHA, OIDCToken: oidcToken,
+	})
+	require.ErrorIs(t, err, ErrSourceChanged)
 }
 
-func TestActionsVersionAndRunMarkerCommitAtomically(t *testing.T) {
+func TestActionsVersionReusePreservesFirstOrigin(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	_, err := SaveSiteSettings(t.Context(), 1, SiteSettings{Enabled: true, SourceType: pages_model.PublishSourceArtifact})
 	require.NoError(t, err)
-	runs := []*actions_model.ActionRun{
-		{RepoID: 1, Index: 1001, WorkflowID: "pages.yaml", Status: actions_model.StatusSuccess},
-		{RepoID: 1, Index: 1002, WorkflowID: "pages.yaml", Status: actions_model.StatusSuccess},
-	}
-	require.NoError(t, db.Insert(t.Context(), runs[0], runs[1]))
 
 	archive := func(content string) []byte {
 		t.Helper()
@@ -220,42 +214,19 @@ func TestActionsVersionAndRunMarkerCommitAtomically(t *testing.T) {
 		return commitContent(t.Context(), 1, bytes.NewReader(input), contentCommitOptions{
 			Origin: pages_model.VersionOriginActions, RequiredSource: pages_model.PublishSourceArtifact,
 			ActionRunID: runID,
-			AcceptVersion: func(ctx context.Context, _ *pages_model.Version) error {
-				return actions_model.SetRunHasPagesArtifact(ctx, 1, runID)
-			},
 		})
 	}
 
 	content := archive("same content")
-	first, err := commit(runs[0].ID, content)
+	first, err := commit(1001, content)
 	require.NoError(t, err)
-	second, err := commit(runs[1].ID, content)
+	second, err := commit(1002, content)
 	require.NoError(t, err)
 	require.Equal(t, first.Version.ID, second.Version.ID)
 	versions, total, err := pages_model.FindVersions(t.Context(), &pages_model.FindVersionOptions{ListOptions: db.ListOptionsAll, RepoID: 1})
 	require.NoError(t, err)
 	require.EqualValues(t, 1, total)
-	require.Equal(t, runs[0].ID, versions[0].OriginActionRunID)
-	for _, run := range runs {
-		stored, err := actions_model.GetRunByRepoAndID(t.Context(), 1, run.ID)
-		require.NoError(t, err)
-		require.True(t, stored.HasPagesArtifact)
-	}
-
-	_, err = commit(unittest.NonexistentID, archive("must roll back"))
-	require.Error(t, err)
-	versions, total, err = pages_model.FindVersions(t.Context(), &pages_model.FindVersionOptions{ListOptions: db.ListOptionsAll, RepoID: 1})
-	require.NoError(t, err)
-	require.EqualValues(t, 1, total)
-	require.Len(t, versions, 1)
-
-	_, err = SaveSiteSettings(t.Context(), 1, SiteSettings{SourceType: pages_model.PublishSourceArtifact})
-	require.NoError(t, err)
-	_, err = commit(runs[0].ID, archive("closed site"))
-	require.ErrorIs(t, err, ErrSourceChanged)
-	_, total, err = pages_model.FindVersions(t.Context(), &pages_model.FindVersionOptions{ListOptions: db.ListOptionsAll, RepoID: 1})
-	require.NoError(t, err)
-	require.EqualValues(t, 1, total)
+	require.EqualValues(t, 1001, versions[0].OriginActionRunID)
 }
 
 type archiveTestEntry struct {

@@ -14,9 +14,6 @@ export type ActionRunSummaryViewLocale = WorkflowGraphLocale & {
   statusLabel: string,
   totalDuration: string,
   artifactsTitle: string,
-  pagesTitle: string,
-  pagesArtifactSubmitted: string,
-  pagesViewCurrentSite: string,
   triggeredVia: string,
   rerunTriggered: string,
 };
@@ -125,18 +122,6 @@ onBeforeUnmount(() => {
       <div class="action-run-summary-stat">
         <span class="action-run-summary-label">{{ locale.artifactsTitle }}</span>
         <span class="action-run-summary-stat-value">{{ artifactsDisplay }}</span>
-      </div>
-
-      <div v-if="run.hasPagesArtifact" class="action-run-summary-stat action-run-summary-pages">
-        <span class="action-run-summary-label">{{ locale.pagesTitle }}</span>
-        <a
-          v-if="run.pagesURL"
-          class="action-run-summary-stat-value"
-          :href="run.pagesURL"
-          target="_blank"
-          rel="noopener noreferrer"
-        >{{ locale.pagesViewCurrentSite }}</a>
-        <span v-else class="action-run-summary-stat-value">{{ locale.pagesArtifactSubmitted }}</span>
       </div>
     </div>
     <WorkflowGraph

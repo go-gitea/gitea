@@ -78,13 +78,7 @@ type pagesInstanceSite struct {
 
 func (pagesInstanceSite) TableName() string { return "pages_instance_site" }
 
-type actionRun struct {
-	HasPagesArtifact bool `xorm:"NOT NULL DEFAULT false"`
-}
-
-func (actionRun) TableName() string { return "action_run" }
-
-// AddPagesTables creates the Pages tables and Actions run marker.
+// AddPagesTables creates the Pages tables.
 func AddPagesTables(_ context.Context, x base.EngineMigration) error {
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
@@ -95,7 +89,6 @@ func AddPagesTables(_ context.Context, x base.EngineMigration) error {
 		new(pagesInstance),
 		new(pagesDomain),
 		new(pagesInstanceSite),
-		new(actionRun),
 	)
 	return err
 }

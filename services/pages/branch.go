@@ -46,7 +46,7 @@ func UpdateDueBranchSources(ctx context.Context, limit int) error {
 }
 
 func updateBranchSource(ctx context.Context, initial *pages_model.Site) error {
-	limits := archiveLimits()
+	limits := configuredArchiveLimits()
 	repo, err := repo_model.GetRepositoryByID(ctx, initial.RepoID)
 	if err != nil {
 		return setBranchCheckResult(ctx, initial, initial.SourceCommitID, pages_model.SourceErrorRepositoryMissing, 5*time.Minute)

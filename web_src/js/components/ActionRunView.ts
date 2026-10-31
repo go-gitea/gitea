@@ -117,8 +117,6 @@ export function buildJobsByParentJobID(jobs: ActionsJob[]): Map<number, ActionsJ
 export function createEmptyActionsRun(): ActionsRun {
   return {
     repoId: 0,
-    hasPagesArtifact: false,
-    pagesURL: '',
     index: 0,
     link: '',
     viewLink: '',

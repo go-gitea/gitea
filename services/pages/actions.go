@@ -38,8 +38,8 @@ var (
 	ErrActionsPreview           = errors.New("Pages preview deployments are not supported")
 )
 
-// ActionsDeploymentRequest is kept in the service package so callers cannot
-// bypass the checks performed before an artifact is converted.
+// ActionsDeploymentRequest contains the inputs required to authenticate and
+// convert an Actions Pages artifact.
 type ActionsDeploymentRequest struct {
 	ArtifactID        int64
 	PagesBuildVersion string
@@ -127,7 +127,7 @@ func CommitActionsArtifact(ctx context.Context, repoID int64, task *actions_mode
 	if !has || site.Deleted || !site.Enabled || site.SourceType != pages_model.PublishSourceArtifact {
 		return nil, ErrSourceChanged
 	}
-	if !actionsRefAllowed(site, claims) {
+	if !isActionsRefAllowed(site, claims) {
 		return nil, ErrActionsDeploymentAuth
 	}
 	artifact, err := getPagesArtifactForTask(ctx, task, req.ArtifactID)
@@ -147,13 +147,10 @@ func CommitActionsArtifact(ctx context.Context, repoID int64, task *actions_mode
 		Origin: pages_model.VersionOriginActions, RequiredSource: pages_model.PublishSourceArtifact,
 		ActionRunID: task.Job.RunID,
 		ValidateSource: func(_ context.Context, site *pages_model.Site) error {
-			if !actionsRefAllowed(site, claims) {
+			if !isActionsRefAllowed(site, claims) {
 				return ErrActionsDeploymentAuth
 			}
 			return nil
-		},
-		AcceptVersion: func(ctx context.Context, _ *pages_model.Version) error {
-			return actions_model.SetRunHasPagesArtifact(ctx, repoID, task.Job.RunID)
 		},
 	})
 	if err != nil {
@@ -164,7 +161,7 @@ func CommitActionsArtifact(ctx context.Context, repoID int64, task *actions_mode
 	}, nil
 }
 
-func actionsRefAllowed(site *pages_model.Site, claims *actionsOIDCClaims) bool {
+func isActionsRefAllowed(site *pages_model.Site, claims *actionsOIDCClaims) bool {
 	return site.SourceBranch == "" || (claims.RefType == "branch" && claims.Ref == "refs/heads/"+site.SourceBranch)
 }
 
@@ -197,14 +194,14 @@ func getPagesArtifactForTask(ctx context.Context, task *actions_model.ActionTask
 }
 
 func convertPagesArtifact(artifact *actions_model.ActionArtifact) (*os.File, func(), error) {
-	limits := archiveLimits()
+	limits := configuredArchiveLimits()
 	maxArtifactZipSize := limits.MaxCompressedBytes + 1024*1024
 	object, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("convertPagesArtifact: open Actions artifact: %w", err)
 	}
 	defer object.Close()
-	info, err := storage.ActionsArtifacts.Stat(artifact.StoragePath)
+	info, err := object.Stat()
 	if err != nil || info.Size() < 0 || info.Size() > maxArtifactZipSize {
 		return nil, nil, ErrActionsArtifact
 	}
@@ -223,16 +220,12 @@ func convertPagesArtifact(artifact *actions_model.ActionArtifact) (*os.File, fun
 	if err != nil {
 		return nil, nil, err
 	}
-	_, copyErr := io.Copy(zipFile, io.LimitReader(object, maxArtifactZipSize+1))
+	zipBytes, copyErr := io.Copy(zipFile, io.LimitReader(object, maxArtifactZipSize+1))
 	closeErr := zipFile.Close()
 	if copyErr != nil || closeErr != nil {
 		return nil, nil, errors.Join(copyErr, closeErr)
 	}
-	zipStat, err := os.Stat(zipPath)
-	if err != nil {
-		return nil, nil, err
-	}
-	if zipStat.Size() > maxArtifactZipSize {
+	if zipBytes > maxArtifactZipSize {
 		return nil, nil, pages_content.ErrArchiveTooLarge
 	}
 	zipReader, err := zip.OpenReader(zipPath)
@@ -306,8 +299,8 @@ func verifyActionsOIDC(ctx context.Context, raw string, repo *repo_model.Reposit
 	return claims, nil
 }
 
-// GetActionsDeploymentStatus reports the flat current-content status used by
-// actions/deploy-pages polling. It intentionally has no deployment history.
+// GetActionsDeploymentStatus reports the current content status polled by
+// actions/deploy-pages.
 func GetActionsDeploymentStatus(ctx context.Context, repoID int64, digest string) (ActionsDeploymentStatus, error) {
 	if _, err := pages_content.ContentRelativePath(repoID, digest); err != nil {
 		return "", ErrActionsDeploymentRequest

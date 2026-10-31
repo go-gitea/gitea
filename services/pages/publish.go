@@ -35,10 +35,9 @@ type contentCommitOptions struct {
 	InitialSource  pages_model.PublishSource
 	ActionRunID    int64
 	ValidateSource func(context.Context, *pages_model.Site) error
-	AcceptVersion  func(context.Context, *pages_model.Version) error
 }
 
-func archiveLimits() pages_content.Limits {
+func configuredArchiveLimits() pages_content.Limits {
 	limits, err := pages_content.NewLimits(
 		setting.Pages.MaxTarGzSize,
 		setting.Pages.MaxSiteSize,
@@ -55,6 +54,29 @@ func lockSiteState(ctx context.Context, repoID int64) (globallock.ReleaseFunc, e
 	return globallock.Lock(ctx, "pages_site_"+strconv.FormatInt(repoID, 10))
 }
 
+// loadPublishableSite checks the repository facts shared by every content
+// source. Callers run it before storing content and again in the transaction
+// that selects the current version.
+func loadPublishableSite(ctx context.Context, repoID int64, opts contentCommitOptions) (*pages_model.Site, bool, error) {
+	site, has, err := pages_model.GetSiteByRepoID(ctx, repoID)
+	if err != nil {
+		return nil, false, err
+	}
+	if !has {
+		if opts.InitialSource == "" {
+			return nil, false, ErrSourceChanged
+		}
+		site = &pages_model.Site{RepoID: repoID, SourceType: opts.InitialSource}
+	} else if site.Deleted || opts.RequiredSource != "" && (!site.Enabled || site.SourceType != opts.RequiredSource) {
+		return nil, false, ErrSourceChanged
+	}
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil || repo.IsArchived {
+		return nil, false, ErrSourceChanged
+	}
+	return site, has, nil
+}
+
 // commitContent validates and records a TAR.GZ as the repository's current
 // Pages version. Source-specific facts are rechecked while the repository
 // publish lock is held.
@@ -67,7 +89,7 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 		return nil, fmt.Errorf("commitContent: candidate: %w", err)
 	}
 	defer cleanup()
-	limits := archiveLimits()
+	limits := configuredArchiveLimits()
 	n, err := io.Copy(candidate, io.LimitReader(input, limits.MaxCompressedBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("commitContent: receive: %w", err)
@@ -88,24 +110,9 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 		return nil, fmt.Errorf("commitContent: lock site: %w", err)
 	}
 	defer release()
-	site, has, err := pages_model.GetSiteByRepoID(ctx, repoID)
+	site, _, err := loadPublishableSite(ctx, repoID, opts)
 	if err != nil {
-		return nil, fmt.Errorf("commitContent: site: %w", err)
-	}
-	if !has {
-		if opts.InitialSource == "" {
-			return nil, ErrSourceChanged
-		}
-		site = &pages_model.Site{RepoID: repoID, SourceType: opts.InitialSource}
-	} else if site.Deleted || opts.RequiredSource != "" && (!site.Enabled || site.SourceType != opts.RequiredSource) {
-		return nil, ErrSourceChanged
-	}
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil {
-		return nil, ErrSourceChanged
-	}
-	if repo.IsArchived {
-		return nil, ErrSourceChanged
+		return nil, fmt.Errorf("commitContent: target: %w", err)
 	}
 	if opts.ValidateSource != nil {
 		if err := opts.ValidateSource(ctx, site); err != nil {
@@ -122,21 +129,9 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 	var version *pages_model.Version
 	var pruned []*pages_model.Version
 	err = withStateChange(ctx, func(ctx context.Context, updated int64) error {
-		current, hasSite, err := pages_model.GetSiteByRepoID(ctx, repoID)
+		current, hasSite, err := loadPublishableSite(ctx, repoID, opts)
 		if err != nil {
 			return err
-		}
-		if !hasSite {
-			if opts.InitialSource == "" {
-				return ErrSourceChanged
-			}
-			current = &pages_model.Site{RepoID: repoID, SourceType: opts.InitialSource}
-		} else if current.Deleted || opts.RequiredSource != "" && (!current.Enabled || current.SourceType != opts.RequiredSource) {
-			return ErrSourceChanged
-		}
-		currentRepo, err := repo_model.GetRepositoryByID(ctx, repoID)
-		if err != nil || currentRepo.IsArchived {
-			return ErrSourceChanged
 		}
 		var hasVersion bool
 		version, hasVersion, err = pages_model.GetVersionByRepoIDAndDigest(ctx, repoID, digest)
@@ -161,11 +156,6 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 				err = pages_model.InsertSite(ctx, current)
 			}
 			if err != nil {
-				return err
-			}
-		}
-		if opts.AcceptVersion != nil {
-			if err := opts.AcceptVersion(ctx, version); err != nil {
 				return err
 			}
 		}
