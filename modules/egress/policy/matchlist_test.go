@@ -182,31 +182,7 @@ func TestParseInternalRanges(t *testing.T) {
 	assert.Empty(t, rejected)
 }
 
-func TestMatchHostnameInRanges(t *testing.T) {
-	ranges := []netip.Prefix{netip.MustParsePrefix("10.0.0.0/8"), netip.MustParsePrefix("100.64.0.0/10")}
-	list := NewAllowList("ci.internal.example.com, *.wild.example.com, other.com", Lax)
-	match := func(host, ip string, port uint16) bool {
-		return list.MatchHostnameInRanges(host, netip.AddrPortFrom(netip.MustParseAddr(ip), port), ranges)
-	}
-	// hostname entries match like for public targets, within the ranges: a bare entry is
-	// exact, a wildcard covers subdomains
-	assert.True(t, match("ci.internal.example.com", "10.1.2.3", 80))
-	assert.True(t, match("ci.internal.example.com", "100.100.100.200", 80))
-	assert.True(t, match("CI.INTERNAL.EXAMPLE.COM.", "10.1.2.3", 80))     // case and trailing dot
-	assert.True(t, match("sub.wild.example.com", "10.1.2.3", 80))         // wildcard covers subdomains
-	assert.False(t, match("www.ci.internal.example.com", "10.1.2.3", 80)) // a bare entry is exact
-	assert.False(t, match("wild.example.com", "10.1.2.3", 80))            // a wildcard never covers the apex
-	assert.False(t, match("ci.internal.example.com", "11.0.0.1", 80))
-	assert.False(t, match("ci.internal.example.com", "169.254.169.254", 80))
-	assert.False(t, match("unlisted.com", "10.1.2.3", 80))
-	assert.False(t, match("", "10.1.2.3", 80)) // IP literal dials never match
-
-	// a portless entry covers every port in lax mode, a port-scoped entry only its ports
-	assert.True(t, NewAllowList("ci.internal.example.com", Lax).MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 8080), ranges))
-	scoped := NewAllowList("ci.internal.example.com:8080", Strict)
-	assert.True(t, scoped.MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 8080), ranges))
-	assert.False(t, scoped.MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 80), ranges))
-}
+// MatchHostnameInRanges behavior is covered by the ranges rows in TestCheckAddr (policy_test.go).
 
 func TestNeverMatching(t *testing.T) {
 	list := NewAllowList("::ffff:10.0.0.0/104, 224.0.0.0/4, 2001::/32, 10.0.0.0/8, example.com, 192.168.1.1", Strict)
