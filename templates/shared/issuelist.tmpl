@@ -11,7 +11,7 @@
 					{{if $root.CanWriteIssuesOrPulls}}
 						<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-[14px]" data-issue-id="{{$issue.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{$issue.Title}}">
 					{{end}}
-					{{template "shared/issueicon" $issue}}
+					{{$issue.IconHTML ctx}}
 				</div>
 			</div>
 

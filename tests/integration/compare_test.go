@@ -144,6 +144,15 @@ func TestCompare(t *testing.T) {
 		assert.Equal(t, "0 "+translation.NewLocale("en-US").TrString("repo.commits.commits"), commitsHeader)
 	})
 
+	t.Run("CompareWithExistingPullRequest", func(t *testing.T) {
+		// an existing pull request renders its issue icon on the compare page
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "GET", "/user2/repo1/compare/master...branch2")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, "#3", strings.TrimSpace(htmlDoc.doc.Find(".issue-title .index").Text()))
+	})
+
 	t.Run("CompareWithRefSuffix", func(t *testing.T) {
 		session := loginUser(t, "user2")
 

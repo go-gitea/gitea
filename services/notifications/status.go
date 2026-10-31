@@ -24,6 +24,42 @@ func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
 	return nil
 }
 
+// SetRepoReadBy marks a repository notification read when the user visits the repository.
+func SetRepoReadBy(ctx context.Context, userID, repoID int64) error {
+	changed, err := activities_model.SetRepoReadBy(ctx, userID, repoID)
+	if err != nil {
+		return err
+	}
+	if changed {
+		notify_service.NotificationCountChange(ctx, userID)
+	}
+	return nil
+}
+
+// SetCommitReadBy marks a commit notification read when the user visits the commit.
+func SetCommitReadBy(ctx context.Context, repoID, userID int64, commitID string) error {
+	changed, err := activities_model.SetCommitReadBy(ctx, repoID, userID, commitID)
+	if err != nil {
+		return err
+	}
+	if changed {
+		notify_service.NotificationCountChange(ctx, userID)
+	}
+	return nil
+}
+
+// SetReleaseReadBy marks a release notification read when the user visits the release.
+func SetReleaseReadBy(ctx context.Context, releaseID, userID int64) error {
+	changed, err := activities_model.SetReleaseReadBy(ctx, releaseID, userID)
+	if err != nil {
+		return err
+	}
+	if changed {
+		notify_service.NotificationCountChange(ctx, userID)
+	}
+	return nil
+}
+
 func SetNotificationStatus(ctx context.Context, notificationID int64, user *user_model.User, status activities_model.NotificationStatus) (*activities_model.Notification, error) {
 	notif, err := activities_model.SetNotificationStatus(ctx, notificationID, user, status)
 	if err != nil {
