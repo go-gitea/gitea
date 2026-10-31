@@ -69,27 +69,32 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
 	canAssignProject := canCreate
 	if !canCreate {
-		canCreate, err := repo_model.HasAccessToRepoCodeUnit(ctx, repo, issue.Poster.ID)
+		hasCodeAccess, err := repo_model.HasAccessToRepoCodeUnit(ctx, repo, issue.Poster.ID)
 		if err != nil {
 			return err
 		}
-		canAssignProject = canCreate
 
-		if !canCreate {
-			restriction := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().GetCreationRestriction()
-			if restriction != repo_model.CreationRestrictionAnyone {
-				result, err := access_model.CheckCreationRestriction(ctx, repo, issue.Poster, unit.TypePullRequests, restriction)
-				if err != nil {
-					return err
-				}
-				switch result {
-				case access_model.CreationDeniedNotCollaborator:
-					return issues_model.ErrMustCollaborator
-				case access_model.CreationDeniedNeedsWriteAccess:
-					return issues_model.ErrMustHaveWriteAccess
-				}
+		// the creation restriction must be enforced regardless of whether the doer already
+		// has some access to the base repo's code unit (e.g. a read-only collaborator must
+		// still be denied when the restriction requires write access)
+		restriction := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().GetCreationRestriction()
+		if restriction != repo_model.CreationRestrictionReader {
+			result, err := access_model.CheckCreationRestriction(ctx, repo, issue.Poster, unit.TypePullRequests, restriction)
+			if err != nil {
+				return err
 			}
+			switch result {
+			case access_model.CreationDeniedNotCollaborator:
+				return issues_model.ErrMustCollaborator
+			case access_model.CreationDeniedNeedsWriteAccess:
+				return issues_model.ErrCreationRequiresWriteAccess
+			}
+		}
 
+		if hasCodeAccess {
+			canCreate = true
+			canAssignProject = true
+		} else {
 			// or user should have write permission in the head repo
 			if err := pr.LoadHeadRepo(ctx); err != nil {
 				return err

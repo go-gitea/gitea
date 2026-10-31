@@ -6132,7 +6132,7 @@
             "$ref": "#/components/schemas/InternalTracker"
           },
           "issues_creation_restriction": {
-            "description": "who is allowed to create issues: \"anyone\", \"collaborator_read\" (must be a collaborator with read access) or \"collaborator_write\" (must be a collaborator with write access).",
+            "description": "who is allowed to create issues: \"reader\" (any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
             "type": "string",
             "x-go-name": "IssuesCreationRestriction"
           },
@@ -6173,7 +6173,7 @@
             "x-go-name": "ProjectsMode"
           },
           "pull_requests_creation_restriction": {
-            "description": "who is allowed to create pull requests: \"anyone\", \"collaborator_read\" (must be a collaborator with read access) or \"collaborator_write\" (must be a collaborator with write access).",
+            "description": "who is allowed to create pull requests: \"reader\" (any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
             "type": "string",
             "x-go-name": "PullRequestsCreationRestriction"
           },
@@ -9797,7 +9797,7 @@
             "$ref": "#/components/schemas/InternalTracker"
           },
           "issues_creation_restriction": {
-            "description": "who is allowed to create issues: \"anyone\", \"collaborator_read\" or \"collaborator_write\"",
+            "description": "who is allowed to create issues: \"reader\", \"member\" or \"writer\"",
             "type": "string",
             "x-go-name": "IssuesCreationRestriction"
           },
@@ -9884,7 +9884,7 @@
             "x-go-name": "ProjectsMode"
           },
           "pull_requests_creation_restriction": {
-            "description": "who is allowed to create pull requests: \"anyone\", \"collaborator_read\" or \"collaborator_write\"",
+            "description": "who is allowed to create pull requests: \"reader\", \"member\" or \"writer\"",
             "type": "string",
             "x-go-name": "PullRequestsCreationRestriction"
           },

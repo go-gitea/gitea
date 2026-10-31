@@ -35,7 +35,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 	}
 
 	restriction := repo.MustGetUnit(ctx, unit.TypeIssues).IssuesConfig().GetCreationRestriction()
-	if restriction != repo_model.CreationRestrictionAnyone {
+	if restriction != repo_model.CreationRestrictionReader {
 		result, err := access_model.CheckCreationRestriction(ctx, repo, issue.Poster, unit.TypeIssues, restriction)
 		if err != nil {
 			return err
@@ -44,7 +44,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 		case access_model.CreationDeniedNotCollaborator:
 			return issues_model.ErrMustCollaborator
 		case access_model.CreationDeniedNeedsWriteAccess:
-			return issues_model.ErrMustHaveWriteAccess
+			return issues_model.ErrCreationRequiresWriteAccess
 		}
 	}
 

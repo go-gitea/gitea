@@ -103,12 +103,12 @@ func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 type CreationRestriction string
 
 const (
-	// CreationRestrictionAnyone allows any user with read access to the unit to create issues/pull requests (default, legacy behavior)
-	CreationRestrictionAnyone CreationRestriction = "anyone"
-	// CreationRestrictionCollaboratorRead restricts creation to effective collaborators (owner, team members, explicit collaborators) with at least read access
-	CreationRestrictionCollaboratorRead CreationRestriction = "collaborator_read"
-	// CreationRestrictionCollaboratorWrite restricts creation to effective collaborators with at least write access
-	CreationRestrictionCollaboratorWrite CreationRestriction = "collaborator_write"
+	// CreationRestrictionReader allows any user with read access to the unit to create issues/pull requests (default, legacy behavior)
+	CreationRestrictionReader CreationRestriction = "reader"
+	// CreationRestrictionMember restricts creation to effective collaborators (owner, team members, explicit collaborators) with at least read access
+	CreationRestrictionMember CreationRestriction = "member"
+	// CreationRestrictionWriter restricts creation to effective collaborators with at least write access
+	CreationRestrictionWriter CreationRestriction = "writer"
 )
 
 // String returns the string representation of the restriction value.
@@ -119,7 +119,7 @@ func (r CreationRestriction) String() string {
 // IsValid reports whether the restriction value is one of the known constants
 func (r CreationRestriction) IsValid() bool {
 	switch r {
-	case CreationRestrictionAnyone, CreationRestrictionCollaboratorRead, CreationRestrictionCollaboratorWrite:
+	case CreationRestrictionReader, CreationRestrictionMember, CreationRestrictionWriter:
 		return true
 	default:
 		return false
@@ -134,18 +134,17 @@ type IssuesConfig struct {
 	CreationRestriction              CreationRestriction
 }
 
-// GetCreationRestriction returns the configured creation restriction, defaulting to "anyone"
+// GetCreationRestriction returns the configured creation restriction, defaulting to "reader"
 func (cfg *IssuesConfig) GetCreationRestriction() CreationRestriction {
 	if cfg.CreationRestriction.IsValid() {
 		return cfg.CreationRestriction
 	}
-	return CreationRestrictionAnyone
+	return CreationRestrictionReader
 }
 
 // FromDB fills up a IssuesConfig from serialized format.
 func (cfg *IssuesConfig) FromDB(bs []byte) error {
-	_ = json.UnmarshalHandleDoubleEncode(bs, &cfg)
-	return nil
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a IssuesConfig to a serialized format.
@@ -174,19 +173,19 @@ type PullRequestsConfig struct {
 	CreationRestriction           CreationRestriction
 
 	// Deprecated: use CreationRestriction instead. Kept so that old serialized values
-	// (RestrictToCollaborators: true) can still be migrated to CreationRestrictionCollaboratorRead.
+	// (RestrictToCollaborators: true) can still be migrated to CreationRestrictionMember.
 	RestrictToCollaborators bool `json:"RestrictToCollaborators,omitempty"`
 }
 
-// GetCreationRestriction returns the configured creation restriction, defaulting to "anyone"
+// GetCreationRestriction returns the configured creation restriction, defaulting to "reader"
 func (cfg *PullRequestsConfig) GetCreationRestriction() CreationRestriction {
 	if cfg.CreationRestriction.IsValid() {
 		return cfg.CreationRestriction
 	}
 	if cfg.RestrictToCollaborators {
-		return CreationRestrictionCollaboratorRead
+		return CreationRestrictionMember
 	}
-	return CreationRestrictionAnyone
+	return CreationRestrictionReader
 }
 
 func DefaultPullRequestsConfig() *PullRequestsConfig {

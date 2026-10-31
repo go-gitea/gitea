@@ -60,7 +60,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 
 	// check enabled/disabled units
 	hasIssues := false
-	issuesCreationRestriction := string(repo_model.CreationRestrictionAnyone)
+	issuesCreationRestriction := string(repo_model.CreationRestrictionReader)
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
 	if unit, err := repo.GetUnit(ctx, unit_model.TypeIssues); err == nil {
@@ -110,7 +110,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	defaultSquashMergeMessage := repo_model.DefaultPullRequestsConfig().DefaultSquashMergeMessage
 	defaultAllowMaintainerEdit := false
 	defaultTargetBranch := ""
-	pullRequestsCreationRestriction := string(repo_model.CreationRestrictionAnyone)
+	pullRequestsCreationRestriction := string(repo_model.CreationRestrictionReader)
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true

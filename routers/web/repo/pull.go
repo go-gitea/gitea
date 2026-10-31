@@ -1439,16 +1439,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 				return
 			}
 			ctx.JSONError(flashError)
-		case errors.Is(err, issues_model.ErrMustHaveWriteAccess):
-			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.pulls.push_rejected"),
-				"Summary": ctx.Tr("repo.pulls.new.must_write_access"),
-			})
-			if err != nil {
-				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
-				return
-			}
-			ctx.JSONError(flashError)
+		case errors.Is(err, issues_model.ErrCreationRequiresWriteAccess):
+			ctx.JSONError(ctx.Tr("repo.pulls.new.must_write_access"))
 		default:
 			// It's an unexpected error.
 			// If it happens, we should add another case to handle it.

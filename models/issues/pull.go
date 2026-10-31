@@ -30,8 +30,8 @@ import (
 
 var ErrMustCollaborator = util.NewPermissionDeniedErrorf("user must be a collaborator")
 
-// ErrMustHaveWriteAccess is returned when a repository's creation restriction requires write access to the unit
-var ErrMustHaveWriteAccess = util.NewPermissionDeniedErrorf("user must have write access")
+// ErrCreationRequiresWriteAccess is returned when a repository's creation restriction requires write access to the unit
+var ErrCreationRequiresWriteAccess = util.NewPermissionDeniedErrorf("user must have write access")
 
 const reviewedBy = "Reviewed-by: "
 

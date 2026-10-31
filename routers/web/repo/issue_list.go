@@ -15,7 +15,9 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	db_indexer "gitea.dev/modules/indexer/issues/db"
@@ -670,6 +672,10 @@ func Issues(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("repo.issues")
 		ctx.Data["PageIsIssueList"] = true
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+
+		restriction := ctx.Repo.Repository.MustGetUnit(ctx, unit_model.TypeIssues).IssuesConfig().GetCreationRestriction()
+		result, err := access_model.CheckCreationRestriction(ctx, ctx.Repo.Repository, ctx.Doer, unit_model.TypeIssues, restriction)
+		ctx.Data["CanCreateIssue"] = err == nil && result == access_model.CreationAllowed
 	}
 
 	projectIDs := parseProjectIDsFromQuery(ctx)

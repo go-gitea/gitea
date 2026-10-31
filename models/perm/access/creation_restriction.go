@@ -17,10 +17,10 @@ type CreationCheckResult int
 const (
 	// CreationAllowed means the doer is allowed to create the issue/pull request
 	CreationAllowed CreationCheckResult = iota
-	// CreationDeniedNotCollaborator means the repo unit requires at least CreationRestrictionCollaboratorRead
+	// CreationDeniedNotCollaborator means the repo unit requires at least CreationRestrictionMember
 	// and the doer is not an effective collaborator (owner, team member, or explicit collaborator)
 	CreationDeniedNotCollaborator
-	// CreationDeniedNeedsWriteAccess means the repo unit requires CreationRestrictionCollaboratorWrite
+	// CreationDeniedNeedsWriteAccess means the repo unit requires CreationRestrictionWriter
 	// and the doer, while an effective collaborator, does not have write access to the unit
 	CreationDeniedNeedsWriteAccess
 )
@@ -36,7 +36,7 @@ func IsEffectiveCollaborator(ctx context.Context, repo *repo_model.Repository, u
 // pull requests) against the doer. It never performs a visibility/read check itself: callers are
 // expected to have already verified the doer can see the repository and unit.
 func CheckCreationRestriction(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, unitType unit.Type, restriction repo_model.CreationRestriction) (CreationCheckResult, error) {
-	if restriction == repo_model.CreationRestrictionAnyone {
+	if restriction == repo_model.CreationRestrictionReader {
 		return CreationAllowed, nil
 	}
 	if doer == nil {
@@ -53,11 +53,11 @@ func CheckCreationRestriction(ctx context.Context, repo *repo_model.Repository, 
 	if !isCollaborator {
 		return CreationDeniedNotCollaborator, nil
 	}
-	if restriction == repo_model.CreationRestrictionCollaboratorRead {
+	if restriction == repo_model.CreationRestrictionMember {
 		return CreationAllowed, nil
 	}
 
-	// CreationRestrictionCollaboratorWrite: the doer must have write access to the unit
+	// CreationRestrictionWriter: the doer must have write access to the unit
 	perm, err := GetDoerRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return CreationAllowed, err
