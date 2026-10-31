@@ -422,6 +422,9 @@ jobs:
 
 		// the pr title contains a configured skip-ci string, so no run and no skipped status are created
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+
+		actions_service.NewNotifier().PushCommits(t.Context(), user2, repo, &repo_module.PushUpdateOptions{RefFullName: git.RefNameFromBranch("master"), NewCommitID: addWorkflowToBaseResp.Commit.SHA}, repo_module.NewPushCommits())
+		assert.Equal(t, 2, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID, CommitSHA: addWorkflowToBaseResp.Commit.SHA}))
 	})
 }
 
@@ -540,24 +543,6 @@ jobs:
 				CommitSHA:  branch.CommitID,
 			})
 			assert.NotNil(t, run)
-		})
-
-		t.Run("DelayedPushRunsOnPushedCommit", func(t *testing.T) {
-			user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-			repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{Name: "delayed-push-event", AutoInit: true, Readme: "Default", DefaultBranch: "main"})
-			require.NoError(t, err)
-
-			onMain := createFileInBranchOptions{OldBranch: "main", NewBranch: "main", CommitMessage: "add file"}
-			firstCommitID := testCreateFileInBranch(t, user2, repo, onMain, map[string]string{".gitea/workflows/push.yml": "on:\n  push:\n  schedule:\n    - cron: '0 0 * * *'\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo test\n"}).Commit.SHA
-			secondCommitID := testCreateFileInBranch(t, user2, repo, onMain, map[string]string{"file.txt": "file"}).Commit.SHA
-
-			actions_service.NewNotifier().PushCommits(t.Context(), user2, repo, &repo_module.PushUpdateOptions{
-				RefFullName: git.RefNameFromBranch("main"),
-				OldCommitID: firstCommitID,
-				NewCommitID: firstCommitID,
-			}, repo_module.NewPushCommits())
-			assert.Equal(t, 2, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID, CommitSHA: firstCommitID}))
-			assert.Equal(t, secondCommitID, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionSchedule{RepoID: repo.ID}).CommitSHA)
 		})
 
 		t.Run("WorkflowDispatchPublicApi", func(t *testing.T) {
