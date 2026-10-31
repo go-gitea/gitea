@@ -57,7 +57,6 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 		}
 		branchNames = append(branchNames, update.RefFullName.BranchName())
 		if !update.IsDelRef() {
-			// TODO: should we return the error and return the error when pushing? Currently it will log the error and not prevent the pushing
 			pull_service.UpdatePullsRefs(ctx, repo, update)
 		}
 	}
