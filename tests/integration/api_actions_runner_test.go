@@ -311,6 +311,22 @@ func testActionsRunnerRepo(t *testing.T) {
 		assert.Equal(t, "linux", runner.Labels[1].Name)
 	})
 
+	t.Run("ListWithAvailable", func(t *testing.T) {
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadRepository)
+		listOwnerAndRepoIDs := func(url string) map[int64][2]int64 {
+			runnerList := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(token), http.StatusOK), &api.ActionRunnersResponse{})
+			ownerAndRepoIDs := map[int64][2]int64{}
+			for _, runner := range runnerList.Entries {
+				ownerAndRepoIDs[runner.ID] = [2]int64{runner.OwnerID, runner.RepoID}
+			}
+			return ownerAndRepoIDs
+		}
+		org3Available := map[int64][2]int64{34347: {3, 0}, 34349: {0, 0}, 34350: {3, 0}}
+		assert.Equal(t, org3Available, listOwnerAndRepoIDs("/api/v1/orgs/org3/actions/runners?with_available=true"))
+		assert.Equal(t, org3Available, listOwnerAndRepoIDs("/api/v1/repos/org3/repo3/actions/runners?with_available=true"))
+		assert.Equal(t, map[int64][2]int64{34348: {0, 1}, 34349: {0, 0}}, listOwnerAndRepoIDs("/api/v1/repos/user2/repo1/actions/runners?with_available=true"))
+	})
+
 	t.Run("Access", func(t *testing.T) {
 		userUsername := "user2"
 		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteRepository)
