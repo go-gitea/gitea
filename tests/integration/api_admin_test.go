@@ -23,6 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 func TestAPIAdminListPackages(t *testing.T) {
@@ -70,7 +71,7 @@ func TestAPIAdminAccessAndSSHKeys(t *testing.T) {
 		}
 		assert.Equal(t, api.UserTypeStringUser, userTypes[adminUsername])
 		assert.Equal(t, api.UserTypeStringBot, userTypes[bot.Name])
-		numberOfUsers := unittest.GetCount(t, &user_model.User{}, "type IN (0, 4)")
+		numberOfUsers := unittest.GetCount(t, &user_model.User{}, builder.In("type", user_model.AdminListedUserTypes))
 		assert.Len(t, users, numberOfUsers)
 	})
 

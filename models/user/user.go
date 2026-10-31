@@ -68,13 +68,20 @@ const (
 	UserTypeRemoteUser // 5
 )
 
+// AdminListedUserTypes HINT: USER-TYPE-GLOSSARY: administrators list every user type except organizations
+var AdminListedUserTypes = []UserType{UserTypeIndividual, UserTypeUserReserved, UserTypeBot, UserTypeRemoteUser}
+
 // DisplayName returns the English name of the user type for logs and the CLI, the UI translates "concept_user_*" instead
 func (t UserType) DisplayName() string {
 	switch t {
 	case UserTypeOrganization, UserTypeOrganizationReserved:
 		return "Organization"
+	case UserTypeUserReserved:
+		return "Reserved"
 	case UserTypeBot:
 		return "Bot"
+	case UserTypeRemoteUser:
+		return "Remote"
 	default:
 		return "User"
 	}
@@ -251,10 +258,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetAllUsers returns a slice of all individual and bot users found in DB.
+// GetAllUsers returns a slice of all users of AdminListedUserTypes found in DB.
 func GetAllUsers(ctx context.Context) ([]*User, error) {
 	users := make([]*User, 0)
-	return users, db.GetEngine(ctx).OrderBy("id").In("type", UserTypeIndividual, UserTypeBot).Find(&users)
+	return users, db.GetEngine(ctx).OrderBy("id").In("type", AdminListedUserTypes).Find(&users)
 }
 
 // IsLocal returns true if user login type is LoginPlain.
