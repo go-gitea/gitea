@@ -148,11 +148,11 @@ func (p *Policy) allowCheck(host string, ip netip.AddrPort, class addrClass) err
 // ranges
 func (p *Policy) allowRestricted(host string, ip netip.AddrPort) error {
 	if len(p.internalRanges) > 0 {
-		if p.allow.MatchHostnameInRanges(host, ip, p.internalRanges) {
+		if _, ok := p.allow.matchHostnameRule(host, ip.Port()); ok && inRange(p.internalRanges, ip.Addr()) {
 			return nil
 		}
 		if rule, ok := p.allow.matchHostEntry(host); ok {
-			if !containsPrefix(p.internalRanges, ip.Addr()) {
+			if !inRange(p.internalRanges, ip.Addr()) {
 				return fmt.Errorf("%s resolves outside the internal ranges allowed for hostnames (check your %s setting), deny '%s'", p.usage, p.internalRangesKey, denyTarget(host, ip))
 			}
 			return fmt.Errorf("%s port %d is not allowed for %q (check your %s setting), deny '%s'", p.usage, ip.Port(), rule.pattern, p.allowKey, denyTarget(host, ip))

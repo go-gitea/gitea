@@ -389,10 +389,6 @@ func ParseInternalRanges(hostList string) (prefixes []netip.Prefix, rejected []s
 	return prefixes, rejected
 }
 
-func containsPrefix(prefixes []netip.Prefix, ip netip.Addr) bool {
-	return slices.ContainsFunc(prefixes, func(p netip.Prefix) bool { return p.Contains(ip) })
-}
-
 // normalizeHost lowercases a host, strips a port suffix and a trailing dot
 func normalizeHost(host string) string {
 	host = strings.ToLower(strings.TrimSpace(host))
@@ -402,6 +398,18 @@ func normalizeHost(host string) string {
 	return strings.TrimSuffix(host, ".")
 }
 
+// matchEntry returns the first hostname entry for which pred matches, scanning the
+// patterns once — the single matching loop behind all hostname matchers.
+func (m *matchList) matchEntry(host string, pred func(rule domainRule, host string) bool) (domainRule, bool) {
+	host = normalizeHost(host)
+	for _, rule := range m.patterns {
+		if pred(rule, host) {
+			return rule, true
+		}
+	}
+	return domainRule{}, false
+}
+
 func (m *matchList) MatchHostname(host string, port uint16) bool {
 	_, ok := m.MatchHostnameEntry(host, port)
 	return ok
@@ -409,33 +417,18 @@ func (m *matchList) MatchHostname(host string, port uint16) bool {
 
 // MatchHostnameEntry returns the hostname entry matching host, if any
 func (m *matchList) MatchHostnameEntry(host string, port uint16) (string, bool) {
-	host = normalizeHost(host)
-	for _, pattern := range m.patterns {
-		if pattern.Contains(host, port) {
-			return pattern.pattern, true
-		}
-	}
-	return "", false
+	rule, ok := m.matchHostnameRule(host, port)
+	return rule.pattern, ok
 }
 
-// MatchHostnameInRanges matches a non-public target: a hostname entry matches the host
-// (same matching as for public targets) and the IP is within one of the given ranges,
-// on the entry's ports.
-func (m *matchList) MatchHostnameInRanges(host string, ip netip.AddrPort, ranges []netip.Prefix) bool {
-	return slices.ContainsFunc(m.patterns, func(rule domainRule) bool {
-		return rule.Contains(normalizeHost(host), ip.Port()) && containsPrefix(ranges, ip.Addr())
-	})
+// matchHostnameRule returns the first hostname entry matching host on the given port
+func (m *matchList) matchHostnameRule(host string, port uint16) (domainRule, bool) {
+	return m.matchEntry(host, func(r domainRule, h string) bool { return r.Contains(h, port) })
 }
 
 // matchHostEntry returns the first hostname entry matching host, ignoring ports
 func (m *matchList) matchHostEntry(host string) (domainRule, bool) {
-	host = normalizeHost(host)
-	for _, rule := range m.patterns {
-		if matchDomain(rule.pattern, host) {
-			return rule, true
-		}
-	}
-	return domainRule{}, false
+	return m.matchEntry(host, func(r domainRule, h string) bool { return matchDomain(r.pattern, h) })
 }
 
 // matchDomain matches a hostname entry, like CSP source lists, CORS origins and TLS
