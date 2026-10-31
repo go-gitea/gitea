@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	module_auth "gitea.dev/modules/auth"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/routers/common"
@@ -45,7 +45,7 @@ func TestSudoRejectsCodespaceToken(t *testing.T) {
 			}
 			ctx.IsSigned = true
 			ctx.Doer = &user_model.User{ID: 1, Name: "admin", IsAdmin: true}
-			ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
+			ctx.GetData()[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
 
 			sudo()(ctx)
 
@@ -80,7 +80,7 @@ func TestCodespaceTokenRouteGuard(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, _ := contexttest.MockAPIContext(t, "GET /api/v1/repos/user2/repo1")
-			ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
+			ctx.GetData()[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
 			if tc.policy != "" {
 				ctx.GetData()[codespaceTokenRoutePolicyDataKey] = tc.policy
 			}
@@ -93,7 +93,7 @@ func TestCodespaceTokenRouteGuard(t *testing.T) {
 
 	t.Run("repository-route", func(t *testing.T) {
 		ctx, _ := contexttest.MockAPIContext(t, "GET /api/v1/repos/user2/repo1")
-		ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
+		ctx.GetData()[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
 		ctx.GetData()[codespaceTokenRepositoryRouteDataKey] = true
 		codespaceTokenRouteGuard(ctx)
 		assert.Equal(t, 0, ctx.Resp.WrittenStatus())

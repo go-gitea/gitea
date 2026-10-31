@@ -97,7 +97,7 @@ func TestGatewayAndRuntimeRPCsRejectDisabledCodespace(t *testing.T) {
 		MetadataGeneration: 1,
 	})
 	require.ErrorIs(t, err, ErrRuntimeMetadataStateUnavailable)
-	hasReady, err := HasReadyRuntimeMetadata(t.Context(), creatingUUID, 92)
+	hasReady, err := hasReadyRuntimeMetadataForTest(creatingUUID, 92)
 	require.NoError(t, err)
 	assert.False(t, hasReady)
 

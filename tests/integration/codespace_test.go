@@ -351,10 +351,14 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, strings.HasPrefix(tokenResponse.GetAccess().GetGiteaToken(), "gcs_"))
 
-		_, err = client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceUUID, 1, codespacev1.OperationType_OPERATION_TYPE_CREATE, codespacev1.FinalStatus_FINAL_STATUS_DONE))
-		require.Error(t, err)
-		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
-		assert.Equal(t, "metadata_required", integrationFailureDetailCategory(t, err))
+		finalCreate, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceUUID, 1, codespacev1.OperationType_OPERATION_TYPE_CREATE, codespacev1.FinalStatus_FINAL_STATUS_DONE))
+		require.NoError(t, err)
+		assert.False(t, finalCreate.GetResourceAbsent())
+		row = loadIntegrationCodespace(t, codespaceUUID)
+		assert.Equal(t, codespace_model.StatusRunning, row.Status)
+		assert.EqualValues(t, 1, row.RuntimeOperationRVersion)
+		assert.Empty(t, codespace_model.ActiveOperationType(row))
+		assertIntegrationExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 
 		readyMetadata := integrationRuntimeMetadata(1)
 		readyMetadata.ResourceUsage = nil
@@ -365,14 +369,6 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 			Metadata:           readyMetadata,
 		})
 		require.NoError(t, err)
-
-		finalCreate, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceUUID, 1, codespacev1.OperationType_OPERATION_TYPE_CREATE, codespacev1.FinalStatus_FINAL_STATUS_DONE))
-		require.NoError(t, err)
-		assert.False(t, finalCreate.GetResourceAbsent())
-		row = loadIntegrationCodespace(t, codespaceUUID)
-		assert.Equal(t, codespace_model.StatusRunning, row.Status)
-		assert.Empty(t, codespace_model.ActiveOperationType(row))
-		assertIntegrationExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 
 		autoStopResponse := user2Session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, codespacePath+"/auto-stop", map[string]string{
 			"mode":          "custom",
@@ -636,19 +632,20 @@ func createRunningCodespaceTokenForRepo(t *testing.T, repo *repo_model.Repositor
 	require.NoError(t, db.Insert(t.Context(), manager))
 
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
-		UUID:              codespaceUUID,
-		UserID:            user.ID,
-		RepoID:            repo.ID,
-		RefType:           "branch",
-		RefName:           repo.DefaultBranch,
-		EnvironmentTag:    "default",
-		CommitSHA:         "0123456789abcdef0123456789abcdef01234567",
-		ManagerID:         manager.ID,
-		Status:            codespace_model.StatusRunning,
-		OperationRVersion: 1,
-		AutoStopMode:      codespace_model.AutoStopModeDefault,
-		CreatedUnix:       time.Now().Unix(),
-		UpdatedUnix:       time.Now().Unix(),
+		UUID:                     codespaceUUID,
+		UserID:                   user.ID,
+		RepoID:                   repo.ID,
+		RefType:                  "branch",
+		RefName:                  repo.DefaultBranch,
+		EnvironmentTag:           "default",
+		CommitSHA:                "0123456789abcdef0123456789abcdef01234567",
+		ManagerID:                manager.ID,
+		Status:                   codespace_model.StatusRunning,
+		OperationRVersion:        1,
+		RuntimeOperationRVersion: 1,
+		AutoStopMode:             codespace_model.AutoStopModeDefault,
+		CreatedUnix:              time.Now().Unix(),
+		UpdatedUnix:              time.Now().Unix(),
 	}))
 
 	result, err := codespace_service.RequestRuntimeAccess(t.Context(), manager, codespace_service.RequestRuntimeAccessOptions{
@@ -690,6 +687,9 @@ func insertIntegrationCodespace(t *testing.T, managerID int64, codespace *codesp
 		codespace.DevContainerPath = ".devcontainer/devcontainer.json"
 	}
 	codespace.ManagerID = managerID
+	if codespace.Status == codespace_model.StatusRunning && codespace.RuntimeOperationRVersion == 0 {
+		codespace.RuntimeOperationRVersion = codespace.OperationRVersion
+	}
 	if codespace.AutoStopMode == "" {
 		codespace.AutoStopMode = codespace_model.AutoStopModeDefault
 	}

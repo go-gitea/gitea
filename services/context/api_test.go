@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"testing"
 
-	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	module_auth "gitea.dev/modules/auth"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 
@@ -59,14 +59,14 @@ func TestGenAPILinks(t *testing.T) {
 func TestCodespaceTokenCanAccessRepo(t *testing.T) {
 	ctx := &APIContext{Base: &Base{RequestContext: reqctx.NewRequestContextForTest(t)}}
 	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/repos/user5/repo4", nil)
-	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 2}
+	ctx.GetData()[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 2}
 
 	assert.True(t, ctx.CodespaceTokenCanAccessRepo(&repo_model.Repository{ID: 2}))
 	assert.False(t, ctx.CodespaceTokenCanAccessRepo(&repo_model.Repository{ID: 3, IsPrivate: false}))
 	assert.False(t, ctx.CodespaceTokenCanAccessRepo(&repo_model.Repository{ID: 4, IsPrivate: true}))
 	assert.False(t, ctx.CodespaceTokenCanAccessRepo(nil))
 
-	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 0}
+	ctx.GetData()[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 0}
 	assert.False(t, ctx.CodespaceTokenCanAccessRepo(&repo_model.Repository{ID: 2, IsPrivate: false}))
 
 	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodPost, "/api/v1/repos/user5/repo4", nil)
@@ -78,7 +78,7 @@ func TestUsePublicPermissionForCodespaceRead(t *testing.T) {
 	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/repos/public/repo", nil)
 	ctx.Doer = &user_model.User{ID: 2}
 	ctx.IsSigned = true
-	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
+	ctx.GetData()[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
 	ctx.GetData()["IsApiToken"] = true
 
 	assert.True(t, ctx.UsePublicPermissionForCodespaceRead(&repo_model.Repository{ID: 2, Owner: &user_model.User{}}))

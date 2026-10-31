@@ -9,11 +9,11 @@ import (
 	"slices"
 
 	auth_model "gitea.dev/models/auth"
-	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	module_auth "gitea.dev/modules/auth"
 	"gitea.dev/modules/reqctx"
 )
 
@@ -29,7 +29,7 @@ type codespaceTokenRepoSnapshot interface {
 }
 
 func codespaceTokenSnapshotFromData(data reqctx.ContextData) (codespaceTokenRepoSnapshot, bool) {
-	snapshot, ok := data[codespace_model.GiteaTokenAuthDataKey].(codespaceTokenRepoSnapshot)
+	snapshot, ok := data[module_auth.CodespaceTokenAuthDataKey].(codespaceTokenRepoSnapshot)
 	if !ok {
 		return nil, false
 	}

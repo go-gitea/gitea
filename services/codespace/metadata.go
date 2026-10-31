@@ -103,7 +103,7 @@ func (m runtimeMetadata) endpointByID(endpointID string) (runtimeMetadataEndpoin
 
 func runtimeMetadataReadyForRunning(codespace *codespace_model.Codespace, metadata runtimeMetadata) bool {
 	return metadata.Boot.Stage == bootStageReady &&
-		metadata.Boot.OperationRVersion <= codespace.OperationRVersion
+		metadata.Boot.OperationRVersion == codespace.RuntimeOperationRVersion
 }
 
 type runtimeMetadataBoot struct {
@@ -212,16 +212,6 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 			ContentHash: contentHash,
 		})
 	})
-}
-
-// HasReadyRuntimeMetadata reports whether Gitea cache contains current operation ready metadata.
-func HasReadyRuntimeMetadata(_ context.Context, codespaceUUID string, operationRVersion int64) (bool, error) {
-	entry, has, err := getRuntimeMetadataEntry(codespaceUUID)
-	if err != nil || !has {
-		return false, err
-	}
-	return entry.Metadata.Boot.Stage == bootStageReady &&
-		entry.Metadata.Boot.OperationRVersion == operationRVersion, nil
 }
 
 func deleteRuntimeMetadata(codespaceUUID string) {
@@ -432,7 +422,7 @@ func validateRuntimeMetadataState(codespace *codespace_model.Codespace, metadata
 			return ErrRuntimeMetadataStaleOperation
 		}
 	case codespace_model.StatusRunning:
-		if metadata.Boot.Stage != bootStageReady || metadata.Boot.OperationRVersion > codespace.OperationRVersion {
+		if metadata.Boot.Stage != bootStageReady || metadata.Boot.OperationRVersion != codespace.RuntimeOperationRVersion {
 			return ErrRuntimeMetadataStaleOperation
 		}
 	default:

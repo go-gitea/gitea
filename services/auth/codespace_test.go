@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	module_auth "gitea.dev/modules/auth"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	codespace_service "gitea.dev/services/codespace"
@@ -44,7 +45,7 @@ func TestCodespaceTokenBasicAuth(t *testing.T) {
 	scope, ok := user_model.GetDoerTokenScope(u)
 	require.True(t, ok)
 	assertContainsCodespaceScopes(t, scope)
-	snapshot, ok := store.GetData()[codespace_model.GiteaTokenAuthDataKey].(*codespace_service.GiteaTokenAuthSnapshot)
+	snapshot, ok := store.GetData()[module_auth.CodespaceTokenAuthDataKey].(*codespace_service.GiteaTokenAuthSnapshot)
 	require.True(t, ok)
 	assert.Equal(t, codespaceUUID, snapshot.CodespaceUUID)
 	assert.EqualValues(t, 2, snapshot.RepoID)

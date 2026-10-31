@@ -267,27 +267,27 @@
   text-transform: none;
 }
 
-.codespace-state-online,
-.codespace-state-running {
-  color: var(--color-success-text) !important;
-  background: var(--color-success-bg) !important;
+.ui.label.codespace-state-online,
+.ui.label.codespace-state-running {
+  color: var(--color-success-text);
+  background: var(--color-success-bg);
 }
 
-.codespace-state-failed,
-.codespace-state-offline,
-.codespace-state-deleting {
-  color: var(--color-error-text) !important;
-  background: var(--color-error-bg) !important;
+.ui.label.codespace-state-failed,
+.ui.label.codespace-state-offline,
+.ui.label.codespace-state-deleting {
+  color: var(--color-error-text);
+  background: var(--color-error-bg);
 }
 
-.codespace-state-queued,
-.codespace-state-booting,
-.codespace-state-stopping,
-.codespace-state-resuming,
-.codespace-state-metadata_rebuilding,
-.codespace-state-recovering {
-  color: var(--color-warning-text) !important;
-  background: var(--color-warning-bg) !important;
+.ui.label.codespace-state-queued,
+.ui.label.codespace-state-booting,
+.ui.label.codespace-state-stopping,
+.ui.label.codespace-state-resuming,
+.ui.label.codespace-state-metadata_rebuilding,
+.ui.label.codespace-state-recovering {
+  color: var(--color-warning-text);
+  background: var(--color-warning-bg);
 }
 
 .codespace-manager-container {
@@ -337,7 +337,7 @@
     padding: 1rem;
   }
   .modal-dialog.codespace-modal > form > .actions {
-    padding: 1rem !important;
+    padding: 1rem;
   }
 }
 
@@ -550,8 +550,8 @@
   color: var(--color-text-light-1);
 }
 
-.codespace-create-recommended-secret-heading {
-  margin-top: 20px !important;
+.ui.header.codespace-create-recommended-secret-heading {
+  margin-top: 20px;
 }
 
 .codespace-create-secret-footer {
@@ -646,8 +646,8 @@
     width: 100%;
   }
 
-  .codespace-action-bar .codespace-detail-more {
-    margin-left: auto !important;
+  .codespace-action-bar .ui.button.codespace-detail-more {
+    margin-left: auto;
   }
 
   .codespace-ports-table.ui.table thead {

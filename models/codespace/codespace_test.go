@@ -59,6 +59,9 @@ func TestValidateCodespace(t *testing.T) {
 		t.Run("status/"+status, func(t *testing.T) {
 			row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
 			row.Status = status
+			if status == StatusRunning {
+				row.RuntimeOperationRVersion = row.OperationRVersion
+			}
 			require.NoError(t, ValidateCodespace(row))
 		})
 	}
@@ -74,6 +77,11 @@ func TestValidateCodespace(t *testing.T) {
 			row.OperationTrigger = OperationTriggerUser
 			row.OperationCreatedUnix = 1
 			row.Status = status
+			if status == StatusRunning {
+				row.RuntimeOperationRVersion = row.OperationRVersion
+			} else {
+				row.RuntimeOperationRVersion = 0
+			}
 			require.NoError(t, ValidateCodespace(row))
 			assert.Equal(t, operationType, ActiveOperationType(row))
 			assert.True(t, IsOperationQueued(row))
@@ -86,6 +94,7 @@ func TestValidateCodespace(t *testing.T) {
 			row.OperationTrigger = trigger
 			row.OperationCreatedUnix = 1
 			row.Status = StatusRunning
+			row.RuntimeOperationRVersion = row.OperationRVersion
 			require.NoError(t, ValidateCodespace(row))
 		})
 	}
@@ -100,6 +109,14 @@ func TestValidateCodespace(t *testing.T) {
 
 	row := validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
 	row.Status = "invalid"
+	assert.Error(t, ValidateCodespace(row))
+
+	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row.Status = StatusRunning
+	assert.Error(t, ValidateCodespace(row))
+
+	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row.RuntimeOperationRVersion = row.OperationRVersion
 	assert.Error(t, ValidateCodespace(row))
 
 	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")

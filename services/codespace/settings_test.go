@@ -168,6 +168,9 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 	})
 	require.ErrorIs(t, err, ErrManagerSettingsConfirmRequired)
 
+	unbound := &codespace_model.Codespace{ManagerID: userManager.ID, UserID: 1, Status: codespace_model.StatusCreating}
+	_, err = db.GetEngine(t.Context()).Table(unbound).Omit("uuid").Insert(unbound)
+	require.NoError(t, err)
 	require.NoError(t, DeleteManager(t.Context(), DeleteManagerOptions{
 		Scope:     ManagerSettingsScopeUser,
 		UserID:    1,
@@ -175,6 +178,7 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 		Confirm:   true,
 	}))
 	assertServiceNotExists(t, new(codespace_model.Manager), "id = ?", userManager.ID)
+	assertServiceNotExists(t, new(codespace_model.Codespace), "id = ?", unbound.ID)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
 	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)

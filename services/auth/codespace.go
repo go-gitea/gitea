@@ -7,8 +7,8 @@ import (
 	"errors"
 	"net/http"
 
-	codespace_model "gitea.dev/models/codespace"
 	user_model "gitea.dev/models/user"
+	module_auth "gitea.dev/modules/auth"
 	"gitea.dev/modules/auth/httpauth"
 	codespace_service "gitea.dev/services/codespace"
 )
@@ -90,7 +90,7 @@ func parseCodespaceAuthHeaderToken(req *http.Request) string {
 func storeCodespaceTokenAuth(store DataStore, codespaceToken *codespace_service.GiteaTokenAuthSnapshot) {
 	store.GetData()["LoginMethod"] = CodespaceTokenMethodName
 	store.GetData()["IsApiToken"] = true
-	store.GetData()[codespace_model.GiteaTokenAuthDataKey] = codespaceToken
+	store.GetData()[module_auth.CodespaceTokenAuthDataKey] = codespaceToken
 }
 
 var _ Method = &CodespaceToken{}

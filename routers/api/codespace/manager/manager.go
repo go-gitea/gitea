@@ -150,7 +150,6 @@ func (s *Service) FinalizeOperation(
 	if err != nil {
 		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
 			{target: codespace_service.ErrFinalizeGiteaTokenRequired, code: connect.CodeFailedPrecondition, category: "gitea_token_required"},
-			{target: codespace_service.ErrFinalizeMetadataRequired, code: connect.CodeFailedPrecondition, category: "metadata_required"},
 		})
 	}
 	return response, nil

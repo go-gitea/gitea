@@ -15,9 +15,6 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// ErrFinalizeMetadataRequired is returned until current-version ready metadata is available.
-var ErrFinalizeMetadataRequired = errors.New("current ready runtime metadata is required")
-
 // ErrFinalizeGiteaTokenRequired is returned when final done lacks a Codespace token.
 var ErrFinalizeGiteaTokenRequired = errors.New("codespace gitea token is required")
 
@@ -81,8 +78,12 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 		}
 		if opts.FinalStatus == codespacev1.FinalStatus_FINAL_STATUS_DONE &&
 			(opts.OperationType == codespacev1.OperationType_OPERATION_TYPE_CREATE || opts.OperationType == codespacev1.OperationType_OPERATION_TYPE_RESUME) {
-			if err := requireFinalizeReadyPrerequisites(ctx, codespace, opts.OperationRVersion); err != nil {
+			hasToken, err := hasValidCurrentGiteaToken(ctx, codespace.ID)
+			if err != nil {
 				return err
+			}
+			if !hasToken {
+				return ErrFinalizeGiteaTokenRequired
 			}
 		}
 		return applyFinalOperation(ctx, codespace, opts, now)
@@ -105,24 +106,6 @@ func isCurrentRunningOperation(codespace *codespace_model.Codespace, managerID, 
 
 func hasActiveOperation(codespace *codespace_model.Codespace) bool {
 	return codespace_model.ActiveOperationType(codespace) != ""
-}
-
-func requireFinalizeReadyPrerequisites(ctx context.Context, codespace *codespace_model.Codespace, operationRVersion int64) error {
-	hasToken, err := hasValidCurrentGiteaToken(ctx, codespace.ID)
-	if err != nil {
-		return err
-	}
-	if !hasToken {
-		return ErrFinalizeGiteaTokenRequired
-	}
-	hasMetadata, err := HasReadyRuntimeMetadata(ctx, codespace.UUID, operationRVersion)
-	if err != nil {
-		return err
-	}
-	if !hasMetadata {
-		return ErrFinalizeMetadataRequired
-	}
-	return nil
 }
 
 func applyFinalOperation(ctx context.Context, codespace *codespace_model.Codespace, opts FinalizeOperationOptions, now int64) error {
@@ -203,6 +186,11 @@ func finalOperationType(operationType codespacev1.OperationType) string {
 func applyFinalState(ctx context.Context, codespace *codespace_model.Codespace, status string, now int64) error {
 	expected := snapshotCodespaceState(codespace)
 	codespace.Status = status
+	if status == codespace_model.StatusRunning {
+		codespace.RuntimeOperationRVersion = codespace.OperationRVersion
+	} else {
+		codespace.RuntimeOperationRVersion = 0
+	}
 	codespace.UpdatedUnix = now
 	clearActiveOperation(codespace)
 	if err := cleanupCredentialsForStatus(ctx, codespace, status); err != nil {
@@ -210,6 +198,7 @@ func applyFinalState(ctx context.Context, codespace *codespace_model.Codespace, 
 	}
 	err := updateCodespaceIfCurrent(ctx, expected, codespace,
 		"status",
+		"runtime_operation_r_version",
 		"operation_trigger",
 		"operation_created_unix",
 		"operation_started_unix",
@@ -249,8 +238,8 @@ func cleanupCredentialsForStatus(ctx context.Context, codespace *codespace_model
 func deleteCodespaceRowForFinal(ctx context.Context, codespace *codespace_model.Codespace) error {
 	expected := snapshotCodespaceState(codespace)
 	query := db.GetEngine(ctx).Where(
-		"id = ? AND manager_id = ? AND status = ? AND operation_r_version = ? AND operation_trigger = ? AND operation_created_unix = ? AND operation_started_unix = ? AND operation_deadline_unix = ?",
-		expected.id, expected.managerID, expected.status, expected.operationRVersion, expected.operationTrigger,
+		"id = ? AND manager_id = ? AND status = ? AND operation_r_version = ? AND runtime_operation_r_version = ? AND operation_trigger = ? AND operation_created_unix = ? AND operation_started_unix = ? AND operation_deadline_unix = ?",
+		expected.id, expected.managerID, expected.status, expected.operationRVersion, expected.runtimeOperationRVersion, expected.operationTrigger,
 		expected.operationCreatedUnix, expected.operationStartedUnix, expected.operationDeadlineUnix,
 	)
 	if expected.uuid == "" {

@@ -124,19 +124,20 @@ func insertWebOpenManager(t *testing.T, gatewayURL string) *codespace_model.Mana
 func insertWebOpenCodespace(t *testing.T, managerID int64, codespaceUUID string, operationRVersion int64) {
 	t.Helper()
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
-		UUID:              codespaceUUID,
-		UserID:            1,
-		RepoID:            2,
-		RefType:           "branch",
-		RefName:           "main",
-		EnvironmentTag:    "default",
-		CommitSHA:         "0123456789abcdef0123456789abcdef01234567",
-		ManagerID:         managerID,
-		Status:            codespace_model.StatusRunning,
-		OperationRVersion: operationRVersion,
-		AutoStopMode:      codespace_model.AutoStopModeDefault,
-		CreatedUnix:       1,
-		UpdatedUnix:       1,
+		UUID:                     codespaceUUID,
+		UserID:                   1,
+		RepoID:                   2,
+		RefType:                  "branch",
+		RefName:                  "main",
+		EnvironmentTag:           "default",
+		CommitSHA:                "0123456789abcdef0123456789abcdef01234567",
+		ManagerID:                managerID,
+		Status:                   codespace_model.StatusRunning,
+		OperationRVersion:        operationRVersion,
+		RuntimeOperationRVersion: operationRVersion,
+		AutoStopMode:             codespace_model.AutoStopModeDefault,
+		CreatedUnix:              1,
+		UpdatedUnix:              1,
 	}))
 }
 

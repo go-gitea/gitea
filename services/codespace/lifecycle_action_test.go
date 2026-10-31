@@ -33,6 +33,7 @@ func TestStopCodespaceQueuesUserStopAndTakesQueuedIdleStop(t *testing.T) {
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.True(t, codespace_model.IsOperationQueued(row))
 	assert.Equal(t, codespace_model.OperationTriggerUser, row.OperationTrigger)
+	assert.EqualValues(t, 15, row.RuntimeOperationRVersion)
 
 	idleUUID := "68686868-6868-4686-8686-686868686868"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
@@ -48,6 +49,7 @@ func TestStopCodespaceQueuesUserStopAndTakesQueuedIdleStop(t *testing.T) {
 	assert.EqualValues(t, 17, result.OperationRVersion)
 	row = loadServiceCodespace(t, idleUUID)
 	assert.Equal(t, codespace_model.OperationTriggerUser, row.OperationTrigger)
+	assert.EqualValues(t, 17, row.RuntimeOperationRVersion)
 	assert.Equal(t, updatedUnix, row.UpdatedUnix)
 }
 

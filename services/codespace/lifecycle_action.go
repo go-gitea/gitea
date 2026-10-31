@@ -175,6 +175,10 @@ func queueLifecycleOperation(ctx context.Context, codespace *codespace_model.Cod
 		cols = append(cols, "interaction_generation", "last_active_unix")
 	}
 	codespace.Status = status
+	if status != codespace_model.StatusRunning {
+		codespace.RuntimeOperationRVersion = 0
+		cols = append(cols, "runtime_operation_r_version")
+	}
 	codespace.OperationRVersion = nextVersion
 	codespace.OperationTrigger = codespace_model.OperationTriggerUser
 	codespace.OperationCreatedUnix = now

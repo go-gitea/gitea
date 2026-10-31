@@ -3139,7 +3139,7 @@
   "codespace.manager": "Manager",
   "codespace.manager_id": "ID",
   "codespace.manager_delete_confirm": "Delete Manager %s? The Manager identity and all Gitea Codespace records bound to it will be removed.",
-  "codespace.manager_delete_notice": "Deleting this Manager removes its identity and %d bound Codespace records from Gitea. Runtime resources are reconciled separately.",
+  "codespace.manager_delete_notice": "Deleting this Manager revokes its credentials and removes %d bound Codespace records from Gitea. To remove retained runtime data, disable the site and clean up its environments in the Manager administration panel.",
   "codespace.manager_delete_title": "Delete Codespace Manager",
   "codespace.manager_ownership_conflict": "This Manager has a Codespace outside your account and cannot be deleted.",
   "codespace.manager_status.offline": "Offline",

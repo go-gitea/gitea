@@ -59,19 +59,19 @@ func reconcileQueuedOperationTimeouts(ctx context.Context, now int64, result *Re
 
 	var errs []error
 	for _, row := range rows {
-		if err := reconcileQueuedOperationTimeout(ctx, row.UUID, now, result); err != nil {
-			log.Error("Failed to reconcile queued Codespace operation %s: %v", row.UUID, err)
-			errs = append(errs, fmt.Errorf("queued operation %s: %w", row.UUID, err))
+		if err := reconcileQueuedOperationTimeout(ctx, row.ID, now, result); err != nil {
+			log.Error("Failed to reconcile queued Codespace operation %d: %v", row.ID, err)
+			errs = append(errs, fmt.Errorf("queued operation %d: %w", row.ID, err))
 		}
 	}
 	return errors.Join(errs...)
 }
 
-func reconcileQueuedOperationTimeout(ctx context.Context, codespaceUUID string, now int64, result *ReconcileCodespacesResult) error {
+func reconcileQueuedOperationTimeout(ctx context.Context, codespaceID, now int64, result *ReconcileCodespacesResult) error {
 	var summary *internalStateSummary
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+		has, err := db.GetEngine(ctx).ID(codespaceID).Get(codespace)
 		if err != nil || !has {
 			return err
 		}
@@ -108,19 +108,19 @@ func reconcileRunningOperationTimeouts(ctx context.Context, now int64, result *R
 
 	var errs []error
 	for _, row := range rows {
-		if err := reconcileRunningOperationTimeout(ctx, row.UUID, now, result); err != nil {
-			log.Error("Failed to reconcile running Codespace operation %s: %v", row.UUID, err)
-			errs = append(errs, fmt.Errorf("running operation %s: %w", row.UUID, err))
+		if err := reconcileRunningOperationTimeout(ctx, row.ID, now, result); err != nil {
+			log.Error("Failed to reconcile running Codespace operation %d: %v", row.ID, err)
+			errs = append(errs, fmt.Errorf("running operation %d: %w", row.ID, err))
 		}
 	}
 	return errors.Join(errs...)
 }
 
-func reconcileRunningOperationTimeout(ctx context.Context, codespaceUUID string, now int64, result *ReconcileCodespacesResult) error {
+func reconcileRunningOperationTimeout(ctx context.Context, codespaceID, now int64, result *ReconcileCodespacesResult) error {
 	var summary *internalStateSummary
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+		has, err := db.GetEngine(ctx).ID(codespaceID).Get(codespace)
 		if err != nil || !has {
 			return err
 		}

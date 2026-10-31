@@ -70,12 +70,34 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 	require.NoError(t, err)
 	_, err = db.GetEngine(t.Context()).ID(unboundFailed.ID).Cols("updated_unix").Update(&codespace_model.Codespace{UpdatedUnix: unboundFailed.UpdatedUnix})
 	require.NoError(t, err)
+	unboundQueued := *unboundFailed
+	unboundQueued.ID = 0
+	unboundQueued.Status = codespace_model.StatusCreating
+	unboundQueued.OperationCreatedUnix = now - int64(setting.Codespace.QueueTimeout/time.Second) - 1
+	unboundQueued.OperationTrigger = codespace_model.OperationTriggerUser
+	_, err = db.GetEngine(t.Context()).Table(&unboundQueued).Omit("uuid").Insert(&unboundQueued)
+	require.NoError(t, err)
+	unboundRunning := unboundQueued
+	unboundRunning.ID = 0
+	unboundRunning.ManagerID = manager.ID
+	unboundRunning.OperationStartedUnix = now - 60
+	unboundRunning.OperationDeadlineUnix = now - 1
+	_, err = db.GetEngine(t.Context()).Table(&unboundRunning).Omit("uuid").Insert(&unboundRunning)
+	require.NoError(t, err)
 
 	result, err := ReconcileCodespaces(t.Context(), ReconcileCodespacesOptions{FailedOlderThan: time.Hour})
 	require.NoError(t, err)
-	assert.Zero(t, result.QueuedTimedOut)
-	assert.Equal(t, 2, result.RunningTimedOut)
+	assert.Equal(t, 1, result.QueuedTimedOut)
+	assert.Equal(t, 3, result.RunningTimedOut)
 	assert.Equal(t, 1, result.FailedDeleted)
+	for _, id := range []int64{unboundQueued.ID, unboundRunning.ID} {
+		var row codespace_model.Codespace
+		has, err := db.GetEngine(t.Context()).ID(id).Get(&row)
+		require.NoError(t, err)
+		require.True(t, has)
+		assert.Equal(t, codespace_model.StatusFailed, row.Status)
+		assert.False(t, hasActiveOperation(&row))
+	}
 
 	queued := loadServiceCodespace(t, queuedUUID)
 	assert.Equal(t, codespace_model.StatusRunning, queued.Status)

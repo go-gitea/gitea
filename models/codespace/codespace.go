@@ -61,9 +61,6 @@ const (
 	ManagerRuntimeStateRecovering = "recovering"
 )
 
-// GiteaTokenAuthDataKey stores the Codespace Token auth snapshot in request data.
-const GiteaTokenAuthDataKey = "CodespaceToken"
-
 // Codespace stores Gitea-owned lifecycle state for one remote development environment.
 type Codespace struct {
 	ID                        int64
@@ -80,6 +77,7 @@ type Codespace struct {
 	ManagerID                 int64  `xorm:"NOT NULL DEFAULT 0"`
 	Status                    string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
 	OperationRVersion         int64  `xorm:"NOT NULL DEFAULT 0"`
+	RuntimeOperationRVersion  int64  `xorm:"NOT NULL DEFAULT 0"`
 	OperationTrigger          string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
 	OperationCreatedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
 	OperationStartedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
@@ -153,6 +151,9 @@ func (*Manager) TableName() string {
 
 // TableIndices returns Codespace indexes in the same order as their main queries.
 func (*Codespace) TableIndices() []*schemas.Index {
+	uuid := schemas.NewIndex("uuid", schemas.UniqueType)
+	uuid.AddColumn("uuid")
+
 	userUpdated := schemas.NewIndex("user_updated", schemas.IndexType)
 	userUpdated.AddColumn("user_id", "updated_unix", "created_unix", "id")
 
@@ -174,7 +175,7 @@ func (*Codespace) TableIndices() []*schemas.Index {
 	failedRetention := schemas.NewIndex("failed_retention", schemas.IndexType)
 	failedRetention.AddColumn("status", "updated_unix", "id")
 
-	return []*schemas.Index{userUpdated, repo, createClaim, managerActive, queuedTimeout, runningTimeout, failedRetention}
+	return []*schemas.Index{uuid, userUpdated, repo, createClaim, managerActive, queuedTimeout, runningTimeout, failedRetention}
 }
 
 // TableIndices returns Manager indexes in the same order as their main queries.
@@ -278,6 +279,16 @@ func ValidateCodespace(codespace *Codespace) error {
 	}
 	if codespace.OperationRVersion <= 0 {
 		return errors.New("operation_r_version must be positive")
+	}
+	if codespace.RuntimeOperationRVersion < 0 || codespace.RuntimeOperationRVersion > codespace.OperationRVersion {
+		return errors.New("runtime_operation_r_version must identify a completed operation")
+	}
+	if codespace.Status == StatusRunning {
+		if codespace.RuntimeOperationRVersion == 0 {
+			return errors.New("running codespace requires a runtime operation version")
+		}
+	} else if codespace.RuntimeOperationRVersion != 0 {
+		return errors.New("non-running codespace cannot retain a runtime operation version")
 	}
 	if codespace.UUID != "" && codespace.ManagerID <= 0 {
 		return errors.New("bound codespace requires a manager")

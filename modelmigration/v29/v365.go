@@ -27,6 +27,7 @@ type codespace struct {
 	ManagerID                 int64  `xorm:"NOT NULL DEFAULT 0"`
 	Status                    string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
 	OperationRVersion         int64  `xorm:"NOT NULL DEFAULT 0"`
+	RuntimeOperationRVersion  int64  `xorm:"NOT NULL DEFAULT 0"`
 	OperationTrigger          string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
 	OperationCreatedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
 	OperationStartedUnix      int64  `xorm:"NOT NULL DEFAULT 0"`
