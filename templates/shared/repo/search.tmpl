@@ -9,7 +9,7 @@
 			{{template "shared/search/button"}}
 		</div>
 		<!-- Filter -->
-		<div class="item ui small dropdown">
+		<div class="item ui small dropdown" aria-label="{{ctx.Locale.Tr "filter_title"}}">
 			<span>{{ctx.Locale.Tr "filter_title"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu flex-items-menu">
@@ -32,7 +32,7 @@
 			</div>
 		</div>
 		<!-- Sort -->
-		<div class="item ui small dropdown">
+		<div class="item ui small dropdown" aria-label="{{ctx.Locale.Tr "repo.issues.filter_sort"}}">
 			<span>{{ctx.Locale.Tr "repo.issues.filter_sort"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
