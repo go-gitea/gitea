@@ -321,26 +321,44 @@ func (prs PullRequestList) LoadReviewCommentsCounts(ctx context.Context) (map[in
 	return countsMap, nil
 }
 
-// LoadReviews returns the latest review per reviewer, then per team, oldest first. Joining the max(id) subquery, aliased "review" by xorm, avoids the full review scan MySQL does for "id IN (subquery)".
 func (prs PullRequestList) LoadReviews(ctx context.Context) (ReviewList, error) {
 	issueIDs := prs.GetIssueIDs()
-	findLatest := func(cond builder.Cond, groupBy string) (reviews ReviewList, err error) {
-		subQuery := builder.Select("max(id) as id").From("review").
-			Where(builder.In("issue_id", issueIDs).And(builder.Eq{"original_author_id": 0}, cond)).
-			GroupBy(groupBy)
-		err = db.GetEngine(ctx).Table("review").Alias("latest").Join("INNER", subQuery, "latest.id = review.id").OrderBy("latest.updated_unix ASC").Find(&reviews)
-		return reviews, err
-	}
-	reviews, err := findLatest(builder.In("`type`", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
-		And(builder.Eq{"dismissed": false, "reviewer_team_id": 0}), "issue_id, reviewer_id")
-	if err != nil {
+	reviews := make([]*Review, 0, len(issueIDs))
+
+	subQuery := builder.Select("max(id) as id").
+		From("review").
+		Where(builder.In("issue_id", issueIDs)).
+		And(builder.In("`type`", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest)).
+		And(builder.Eq{
+			"dismissed":          false,
+			"original_author_id": 0,
+			"reviewer_team_id":   0,
+		}).
+		GroupBy("issue_id, reviewer_id")
+	// Get latest review of each reviewer, sorted in order they were made. Joined because MySQL scans all reviews for "id IN (subquery)", xorm aliases the subquery "review".
+	if err := db.GetEngine(ctx).Table("review").Alias("latest").Join("INNER", subQuery, "latest.id = review.id").OrderBy("latest.updated_unix ASC").Find(&reviews); err != nil {
 		return nil, err
 	}
-	teamReviewRequests, err := findLatest(builder.Neq{"reviewer_team_id": 0}, "issue_id, reviewer_team_id")
-	if err != nil {
+
+	teamReviewRequests := make([]*Review, 0, 5)
+	subQueryTeam := builder.Select("max(id) as id").
+		From("review").
+		Where(builder.In("issue_id", issueIDs)).
+		And(builder.Eq{
+			"original_author_id": 0,
+		}).And(builder.Neq{
+		"reviewer_team_id": 0,
+	}).
+		GroupBy("issue_id, reviewer_team_id")
+	if err := db.GetEngine(ctx).Table("review").Alias("latest").Join("INNER", subQueryTeam, "latest.id = review.id").OrderBy("latest.updated_unix ASC").Find(&teamReviewRequests); err != nil {
 		return nil, err
 	}
-	return append(reviews, teamReviewRequests...), nil
+
+	if len(teamReviewRequests) > 0 {
+		reviews = append(reviews, teamReviewRequests...)
+	}
+
+	return reviews, nil
 }
 
 // HasMergedPullRequestInRepo returns whether the user(poster) has merged pull-request in the repo

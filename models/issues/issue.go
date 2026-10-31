@@ -55,7 +55,7 @@ var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already
 // Issue represents an issue or pull request of repository.
 type Issue struct {
 	ID                int64                  `xorm:"pk autoincr"`
-	RepoID            int64                  `xorm:"INDEX INDEX(repo_closed_pull) UNIQUE(repo_index)"`
+	RepoID            int64                  `xorm:"INDEX(repo_closed_pull) UNIQUE(repo_index)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	Index             int64                  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
 	PosterID          int64                  `xorm:"INDEX"`
