@@ -248,12 +248,12 @@ func TestRouter(t *testing.T) {
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/000", resultStruct{
 			method:       "GET",
 			pathParams:   map[string]string{"reponame": "the-repo", "username": "the-user", "*": "d1/d2/000"},
-			handlerMarks: []string{"s1", "not-found:/api/v1"},
+			handlerMarks: []string{"not-found:/api/v1"},
 		})
 
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/fn?stop=s1", resultStruct{
 			method:       "GET",
-			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn"},
+			pathParams:   map[string]string{"*": "d1/d2/fn", "dir": "d1/d2", "file": "fn", "reponame": "the-repo", "username": "the-user"},
 			handlerMarks: []string{"s1"},
 		})
 

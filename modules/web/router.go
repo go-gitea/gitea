@@ -313,6 +313,9 @@ func (r *Router) Combo(pattern string, h ...any) *Combo {
 // It is only designed to resolve some special cases which chi router can't handle.
 // For most cases, it shouldn't be used because it needs to iterate all rules to find the matched one (inefficient).
 func (r *Router) PathGroup(pattern string, fn func(g *RouterPathGroup), h ...any) {
+	// Since this RouterPathGroup is used as a fallback for all unhandled paths,
+	// the middlewares can only be executed when a path is matched (otherwise the middlewares will be executed for unrelated methods/paths).
+	// So the router shouldn't apply the middlewares, let the RouterPathGroup to handle them.
 	g := &RouterPathGroup{r: r, pathParam: "*", middlewares: h}
 	fn(g)
 	r.Any(pattern, g.ServeHTTP)

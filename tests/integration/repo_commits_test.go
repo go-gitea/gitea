@@ -231,6 +231,8 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 					MakeRequest(t, NewRequest(t, "GET", repoLink+link).AddTokenAuth(token.Token), test.getCode)
 				}
 				MakeRequest(t, NewRequestWithJSON(t, "POST", repoLink+"/statuses/"+commitID, api.CreateStatusOption{State: commitstatus.CommitStatusSuccess}).AddTokenAuth(token.Token), test.postCode)
+				// the commitstatus endpoints are in a PathGroup, and the pattern overlaps with the "/.../pull", so commitstatus middlewares should not be executed
+				MakeRequest(t, NewRequest(t, "POST", repoLink+"/commits/"+commitID+"/pull").AddTokenAuth(token.Token), http.StatusNotFound)
 			})
 		}
 	})
