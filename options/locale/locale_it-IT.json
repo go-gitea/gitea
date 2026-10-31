@@ -1571,7 +1571,6 @@
   "repo.diff.comment.start_review": "Inizio revisione",
   "repo.diff.comment.reply": "Rispondi",
   "repo.diff.review": "Revisiona",
-  "repo.diff.review.header": "Invia revisione",
   "repo.diff.review.placeholder": "Revisione commento",
   "repo.diff.review.comment": "Commentare",
   "repo.diff.review.approve": "Approva",
@@ -2283,5 +2282,6 @@
   "actions.workflow.scope_owner": "Proprietario",
   "actions.workflow.required": "Richiesto",
   "actions.job_queue.filter_repo_no_select": "Tutte le repository",
+  "projects.workflows.none": "Nessuno",
   "actions.general.token_permissions.mode.restricted": "Limitato"
 }

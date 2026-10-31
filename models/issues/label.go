@@ -331,14 +331,23 @@ func GetLabelInRepoByName(ctx context.Context, repoID int64, labelName string) (
 	if len(labelName) == 0 || repoID <= 0 {
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
+	return getUniqueLabel(ctx, builder.Eq{"name": labelName, "repo_id": repoID}, ErrRepoLabelNotExist{0, repoID})
+}
 
-	l, exist, err := db.Get[Label](ctx, builder.Eq{"name": labelName, "repo_id": repoID})
-	if err != nil {
+// getUniqueLabel rejects ambiguous matches because label names are not unique
+func getUniqueLabel(ctx context.Context, cond builder.Cond, errNotExist error) (*Label, error) {
+	labels := make([]*Label, 0, 2)
+	if err := db.GetEngine(ctx).Where(cond).Limit(2).Find(&labels); err != nil {
 		return nil, err
-	} else if !exist {
-		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
-	return l, nil
+	switch len(labels) {
+	case 0:
+		return nil, errNotExist
+	case 1:
+		return labels[0], nil
+	default:
+		return nil, util.NewInvalidArgumentErrorf("label name is ambiguous, use the label id")
+	}
 }
 
 // GetLabelInRepoOrOrgByID returns the label with labelID scoped to the repo, falling back to the
@@ -454,14 +463,7 @@ func GetLabelInOrgByName(ctx context.Context, orgID int64, labelName string) (*L
 	if len(labelName) == 0 || orgID <= 0 {
 		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
-
-	l, exist, err := db.Get[Label](ctx, builder.Eq{"name": labelName, "org_id": orgID})
-	if err != nil {
-		return nil, err
-	} else if !exist {
-		return nil, ErrOrgLabelNotExist{0, orgID}
-	}
-	return l, nil
+	return getUniqueLabel(ctx, builder.Eq{"name": labelName, "org_id": orgID}, ErrOrgLabelNotExist{0, orgID})
 }
 
 // GetLabelInOrgByID returns a label by ID in given organization.

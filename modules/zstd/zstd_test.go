@@ -21,47 +21,35 @@ func TestWriterReader(t *testing.T) {
 
 	result := bytes.NewBuffer(nil)
 
-	t.Run("regular", func(t *testing.T) {
-		result.Reset()
-		writer, err := NewWriter(result)
-		require.NoError(t, err)
+	for _, testCase := range []struct {
+		name          string
+		writerOptions []WriterOption
+		readerOptions []ReaderOption
+	}{
+		{"regular", nil, nil},
+		{"with options", []WriterOption{WithEncoderLevel(SpeedBestCompression)}, []ReaderOption{WithDecoderLowmem(true)}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			result.Reset()
+			writer, err := NewWriter(result, testCase.writerOptions...)
+			require.NoError(t, err)
 
-		_, err = io.Copy(writer, bytes.NewReader(testData))
-		require.NoError(t, err)
-		require.NoError(t, writer.Close())
+			_, err = io.Copy(writer, bytes.NewReader(testData))
+			require.NoError(t, err)
+			require.NoError(t, writer.Close())
 
-		t.Logf("original size: %d, compressed size: %d, rate: %.2f%%", len(testData), result.Len(), float64(result.Len())/float64(len(testData))*100)
+			t.Logf("original size: %d, compressed size: %d, rate: %.2f%%", len(testData), result.Len(), float64(result.Len())/float64(len(testData))*100)
 
-		reader, err := NewReader(result)
-		require.NoError(t, err)
+			reader, err := NewReader(result, testCase.readerOptions...)
+			require.NoError(t, err)
 
-		data, err := io.ReadAll(reader)
-		require.NoError(t, err)
-		require.NoError(t, reader.Close())
+			data, err := io.ReadAll(reader)
+			require.NoError(t, err)
+			require.NoError(t, reader.Close())
 
-		assert.Equal(t, testData, data)
-	})
-
-	t.Run("with options", func(t *testing.T) {
-		result.Reset()
-		writer, err := NewWriter(result, WithEncoderLevel(SpeedBestCompression))
-		require.NoError(t, err)
-
-		_, err = io.Copy(writer, bytes.NewReader(testData))
-		require.NoError(t, err)
-		require.NoError(t, writer.Close())
-
-		t.Logf("original size: %d, compressed size: %d, rate: %.2f%%", len(testData), result.Len(), float64(result.Len())/float64(len(testData))*100)
-
-		reader, err := NewReader(result, WithDecoderLowmem(true))
-		require.NoError(t, err)
-
-		data, err := io.ReadAll(reader)
-		require.NoError(t, err)
-		require.NoError(t, reader.Close())
-
-		assert.Equal(t, testData, data)
-	})
+			assert.Equal(t, testData, data)
+		})
+	}
 
 	t.Run("rejects window above 128 MiB", func(t *testing.T) {
 		frameWith256MiBWindow := []byte{0x28, 0xb5, 0x2f, 0xfd, 0x00, 0x90, 0x01, 0x00, 0x00}
@@ -77,10 +65,8 @@ func TestSeekableWriterReader(t *testing.T) {
 
 	result := bytes.NewBuffer(nil)
 
-	t.Run("regular", func(t *testing.T) {
+	write := func(t *testing.T, testData []byte, blockSize int) {
 		result.Reset()
-		blockSize := 10000
-
 		writer, err := NewSeekableWriter(result, blockSize)
 		require.NoError(t, err)
 
@@ -89,6 +75,10 @@ func TestSeekableWriterReader(t *testing.T) {
 		require.NoError(t, writer.Close())
 
 		t.Logf("original size: %d, compressed size: %d, rate: %.2f%%", len(testData), result.Len(), float64(result.Len())/float64(len(testData))*100)
+	}
+
+	t.Run("regular", func(t *testing.T) {
+		write(t, testData, 10000)
 
 		reader, err := NewSeekableReader(bytes.NewReader(result.Bytes()))
 		require.NoError(t, err)
@@ -101,17 +91,8 @@ func TestSeekableWriterReader(t *testing.T) {
 	})
 
 	t.Run("seek read", func(t *testing.T) {
-		result.Reset()
 		blockSize := 10000
-
-		writer, err := NewSeekableWriter(result, blockSize)
-		require.NoError(t, err)
-
-		_, err = io.Copy(writer, bytes.NewReader(testData))
-		require.NoError(t, err)
-		require.NoError(t, writer.Close())
-
-		t.Logf("original size: %d, compressed size: %d, rate: %.2f%%", len(testData), result.Len(), float64(result.Len())/float64(len(testData))*100)
+		write(t, testData, blockSize)
 
 		assertReader := &assertReadSeeker{r: bytes.NewReader(result.Bytes())}
 
@@ -141,18 +122,7 @@ func TestSeekableWriterReader(t *testing.T) {
 
 	t.Run("tidy data", func(t *testing.T) {
 		testData := prepareTestData(t, 1000) // data size is less than a block
-
-		result.Reset()
-		blockSize := 10000
-
-		writer, err := NewSeekableWriter(result, blockSize)
-		require.NoError(t, err)
-
-		_, err = io.Copy(writer, bytes.NewReader(testData))
-		require.NoError(t, err)
-		require.NoError(t, writer.Close())
-
-		t.Logf("original size: %d, compressed size: %d, rate: %.2f%%", len(testData), result.Len(), float64(result.Len())/float64(len(testData))*100)
+		write(t, testData, 10000)
 
 		reader, err := NewSeekableReader(bytes.NewReader(result.Bytes()))
 		require.NoError(t, err)
@@ -165,17 +135,7 @@ func TestSeekableWriterReader(t *testing.T) {
 	})
 
 	t.Run("tidy block", func(t *testing.T) {
-		result.Reset()
-		blockSize := 100
-
-		writer, err := NewSeekableWriter(result, blockSize)
-		require.NoError(t, err)
-
-		_, err = io.Copy(writer, bytes.NewReader(testData))
-		require.NoError(t, err)
-		require.NoError(t, writer.Close())
-
-		t.Logf("original size: %d, compressed size: %d, rate: %.2f%%", len(testData), result.Len(), float64(result.Len())/float64(len(testData))*100)
+		write(t, testData, 100)
 		// A too small block size will cause a bad compression rate,
 		// even the compressed data is larger than the original data.
 		assert.Greater(t, result.Len(), len(testData))
@@ -191,17 +151,7 @@ func TestSeekableWriterReader(t *testing.T) {
 	})
 
 	t.Run("compatible reader", func(t *testing.T) {
-		result.Reset()
-		blockSize := 10000
-
-		writer, err := NewSeekableWriter(result, blockSize)
-		require.NoError(t, err)
-
-		_, err = io.Copy(writer, bytes.NewReader(testData))
-		require.NoError(t, err)
-		require.NoError(t, writer.Close())
-
-		t.Logf("original size: %d, compressed size: %d, rate: %.2f%%", len(testData), result.Len(), float64(result.Len())/float64(len(testData))*100)
+		write(t, testData, 10000)
 
 		// It should be able to read the data with a regular reader.
 		reader, err := NewReader(bytes.NewReader(result.Bytes()))
