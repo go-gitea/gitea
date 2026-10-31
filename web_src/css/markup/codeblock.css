@@ -1,7 +1,19 @@
-.markup .ui.button.code-copy {
+.markup .ui.button.code-copy,
+.markup .ui.button.code-wrap {
   top: 8px;
-  right: 6px;
   margin: 0;
+}
+
+.markup .ui.button.code-copy {
+  right: 6px;
+}
+
+.markup .ui.button.code-wrap {
+  right: 44px;
+}
+
+.markup .ui.button.code-wrap[aria-pressed="false"] {
+  color: var(--color-text-light-3);
 }
 
 .markup .mermaid-block .view-controller {
