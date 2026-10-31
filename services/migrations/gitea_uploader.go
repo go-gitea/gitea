@@ -505,15 +505,15 @@ func (g *GiteaLocalUploader) CreateComments(ctx context.Context, comments ...*ba
 			}
 		case issues_model.CommentTypeChangeTitle:
 			if comment.Meta["OldTitle"] != nil {
-				cm.OldTitle = fmt.Sprint(comment.Meta["OldTitle"])
+				cm.OldTitle = util.TruncateRunes(fmt.Sprint(comment.Meta["OldTitle"]), 255)
 			}
 			if comment.Meta["NewTitle"] != nil {
-				cm.NewTitle = fmt.Sprint(comment.Meta["NewTitle"])
+				cm.NewTitle = util.TruncateRunes(fmt.Sprint(comment.Meta["NewTitle"]), 255)
 			}
 		case issues_model.CommentTypeChangeTargetBranch:
 			if comment.Meta["OldRef"] != nil && comment.Meta["NewRef"] != nil {
-				cm.OldRef = fmt.Sprint(comment.Meta["OldRef"])
-				cm.NewRef = fmt.Sprint(comment.Meta["NewRef"])
+				cm.OldRef = util.TruncateRunes(fmt.Sprint(comment.Meta["OldRef"]), 255)
+				cm.NewRef = util.TruncateRunes(fmt.Sprint(comment.Meta["NewRef"]), 255)
 				cm.Content = ""
 			}
 		case issues_model.CommentTypeLabel:
@@ -537,7 +537,7 @@ func (g *GiteaLocalUploader) CreateComments(ctx context.Context, comments ...*ba
 				continue
 			}
 		case issues_model.CommentTypeDeleteBranch:
-			cm.OldRef = comment.Content
+			cm.OldRef = util.TruncateRunes(comment.Content, 255)
 			cm.Content = ""
 		case issues_model.CommentTypeMergePull:
 			cm.Content = ""
