@@ -123,7 +123,7 @@ func TestMirrorPull(t *testing.T) {
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	lastMirrorSync := mirror.LastSyncUnix
-	assert.NoError(t, mirror_service.UpdateAddress(ctx, mirror, repoPath+"-missing"))
+	assert.NoError(t, mirror_service.UpdateAddress(ctx, user, mirror, repoPath+"-missing"))
 
 	ok = mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
 	assert.False(t, ok)
@@ -144,7 +144,8 @@ func TestMirrorPull(t *testing.T) {
 		defer server.Close()
 
 		mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
-		require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, server.URL+"/repo.git"))
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		require.NoError(t, mirror_service.UpdateAddress(ctx, user2, mirror, server.URL+"/repo.git"))
 		assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
 		assert.EqualValues(t, 1, requests.Load(), "the git proxy must deny the redirect to a reserved address")
 

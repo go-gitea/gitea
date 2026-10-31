@@ -1,0 +1,5 @@
+{{template "org/settings/layout_head" (dict "pageClass" "organization settings ssh-keys")}}
+<div class="org-setting-content">
+	{{template "user/settings/keys_managed_ssh" (dict "ManagedSSHKey" .ManagedSSHKey "Link" (print .OrgLink "/settings/ssh_keys/regenerate"))}}
+</div>
+{{template "org/settings/layout_footer" .}}

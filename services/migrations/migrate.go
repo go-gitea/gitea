@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/egress"
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
@@ -49,11 +50,12 @@ func IsMigrateURLAllowedForService(remoteURL string, serviceType structs.GitServ
 
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
 func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
-	// Remote address can be HTTP/HTTPS/Git URL or local path.
-	u, err := url.Parse(remoteURL)
+	// Remote address can be HTTP/HTTPS/Git/SSH URL, SCP syntax or local path.
+	gitURL, err := giturl.ParseGitURL(remoteURL)
 	if err != nil {
 		return &git.ErrInvalidCloneAddr{IsURLError: true, Host: remoteURL}
 	}
+	u := gitURL.URL
 
 	if u.Scheme == "file" || u.Scheme == "" {
 		if !doer.CanImportLocal() {
@@ -79,7 +81,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 		return &git.ErrInvalidCloneAddr{Host: u.Host, IsURLError: true}
 	}
 
-	if u.Opaque != "" || u.Scheme != "" && u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "git" {
+	if u.Opaque != "" || u.Scheme != "" && u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "git" && u.Scheme != "ssh" {
 		return &git.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 
@@ -189,13 +191,18 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 
 		// SECURITY: Ensure that we haven't been redirected from an external to a local filesystem
 		// Now we know all of these must parse
-		cloneAddrURL, _ := url.Parse(opts.CloneAddr)
-		cloneURL, _ := url.Parse(repo.CloneURL)
+		cloneAddrURL, _ := giturl.ParseGitURL(opts.CloneAddr)
+		cloneURL, _ := giturl.ParseGitURL(repo.CloneURL)
 
 		if cloneURL.Scheme == "file" || cloneURL.Scheme == "" {
 			if cloneAddrURL.Scheme != "file" && cloneAddrURL.Scheme != "" {
 				return errors.New("repo info has changed from external to local filesystem")
 			}
+		}
+
+		// SECURITY: an SSH clone authenticates with a managed key, so it must be the address the doer chose it for
+		if cloneURL.Scheme == "ssh" && repo.CloneURL != opts.CloneAddr {
+			return errors.New("repo info has changed to an SSH address")
 		}
 
 		// We don't actually need to check the OriginalURL as it isn't used anywhere

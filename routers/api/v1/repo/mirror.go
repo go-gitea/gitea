@@ -23,6 +23,7 @@ import (
 	"gitea.dev/services/convert"
 	"gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
+	repo_service "gitea.dev/services/repository"
 )
 
 // MirrorSync adds a mirrored repository to the sync queue
@@ -348,19 +349,26 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 
 	remoteSuffix := util.CryptoRandomString(10)
 
-	remoteAddress, err := util.SanitizeURL(mirrorOption.RemoteAddress)
+	remoteAddress, err := util.SanitizeURL(address)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
+	useOwnerSSHKey, err := repo_service.UseOwnerSSHKey(ctx, ctx.Doer, ctx.Repo.Owner, address)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
 	pushMirror := &repo_model.PushMirror{
-		RepoID:        repo.ID,
-		Repo:          repo,
-		RemoteName:    "remote_mirror_" + remoteSuffix,
-		Interval:      interval,
-		SyncOnCommit:  mirrorOption.SyncOnCommit,
-		RemoteAddress: remoteAddress,
+		RepoID:         repo.ID,
+		Repo:           repo,
+		RemoteName:     "remote_mirror_" + remoteSuffix,
+		Interval:       interval,
+		SyncOnCommit:   mirrorOption.SyncOnCommit,
+		RemoteAddress:  remoteAddress,
+		UseOwnerSSHKey: useOwnerSSHKey,
 	}
 
 	if err = db.Insert(ctx, pushMirror); err != nil {
@@ -390,6 +398,8 @@ func HandleRemoteAddressError(ctx *context.APIContext, err error) {
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.APIError(http.StatusBadRequest, "Invalid mirror protocol")
+		case addrErr.IsAuthNotSupported:
+			ctx.APIError(http.StatusBadRequest, "Username and password are not supported for SSH addresses, authentication uses the managed SSH key.")
 		case addrErr.IsURLError:
 			ctx.APIError(http.StatusBadRequest, "Invalid Url ")
 		case addrErr.IsPermissionDenied:

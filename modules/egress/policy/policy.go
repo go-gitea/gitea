@@ -83,7 +83,7 @@ func NewPolicy(usage string, mode Mode, opts ...Option) *Policy {
 var proxyPorts = map[string]string{"http": "80", "https": "443", "socks5": "1080", "socks5h": "1080"}
 
 // targetPorts maps target schemes to their default dial port, http and anything else dials 80
-var targetPorts = map[string]uint16{"https": 443, "git": 9418}
+var targetPorts = map[string]uint16{"https": 443, "git": 9418, "ssh": 22}
 
 // dialPort resolves the port a target URL is dialed on, empty port means the scheme default
 func dialPort(u *url.URL) uint16 {

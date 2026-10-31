@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/util"
 )
 
@@ -34,6 +35,7 @@ type ErrInvalidCloneAddr struct {
 	IsInvalidPath      bool
 	IsProtocolInvalid  bool
 	IsPermissionDenied bool
+	IsAuthNotSupported bool
 	LocalPath          bool
 }
 
@@ -52,6 +54,9 @@ func (err *ErrInvalidCloneAddr) Error() string {
 	}
 	if err.IsPermissionDenied {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed.", err.Host)
+	}
+	if err.IsAuthNotSupported {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: username and password are not supported for SSH addresses", err.Host)
 	}
 	if err.IsURLError {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided url is invalid", err.Host)
@@ -73,19 +78,30 @@ func IsRemoteNotExistError(err error) bool {
 // and returns composed URL with needed username and password.
 func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, error) {
 	remoteAddr = strings.TrimSpace(remoteAddr)
-	// Remote address can be HTTP/HTTPS/Git URL or local path.
-	if strings.HasPrefix(remoteAddr, "http://") ||
-		strings.HasPrefix(remoteAddr, "https://") ||
-		strings.HasPrefix(remoteAddr, "git://") {
-		u, err := url.Parse(remoteAddr)
-		if err != nil {
-			return "", &ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
-		}
+
+	u, err := giturl.ParseGitURL(remoteAddr)
+	if err != nil {
+		return "", &ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
+	}
+
+	switch u.Scheme {
+	case "http", "https", "git":
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
 		}
-		remoteAddr = u.String()
+		return u.URL.String(), nil
+	case "ssh":
+		// managed keys authenticate SSH, a password would be stored in the remote
+		_, urlHasPassword := u.User.Password()
+		if len(authUsername)+len(authPassword) > 0 || urlHasPassword {
+			return "", &ErrInvalidCloneAddr{IsAuthNotSupported: true, Host: remoteAddr}
+		}
+		// git decodes the user and ends the host only at "/", so a decoded separator, "?" or "#" would connect elsewhere than checked
+		if strings.ContainsAny(u.User.Username(), "@:/") || strings.ContainsAny(remoteAddr, "?#") {
+			return "", &ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
+		}
+		return remoteAddr, nil
+	default:
+		return remoteAddr, nil
 	}
-
-	return remoteAddr, nil
 }

@@ -170,9 +170,8 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 	mirrorRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
 	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
 
-	require.NoError(t, mirror_service.UpdateAddress(t.Context(), mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
-
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	require.NoError(t, mirror_service.UpdateAddress(t.Context(), user, mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
 
 	ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
 	contexttest.LoadUser(t, ctx, user.ID)
@@ -201,4 +200,37 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 	password, ok := remoteURL.User.Password()
 	require.True(t, ok)
 	assert.Equal(t, "updated-password", password)
+}
+
+func TestHandleSettingsPostMirrorKeepsSSHAddress(t *testing.T) {
+	defer test.MockVariableValue(&setting.Mirror.Enabled, true)()
+
+	unittest.PrepareTestEnv(t)
+
+	mirrorRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	const sshAddr = "git@example.com:user2/repo1.git"
+	_, err := user_model.CreateSSHKeypair(t.Context(), 3)
+	require.NoError(t, err)
+	require.NoError(t, mirror_service.UpdateAddress(t.Context(), user, mirror, sshAddr))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5}).UseOwnerSSHKey)
+	require.NoError(t, repo_model.UnbindOwnerSSHKey(t.Context(), 5)) // as after a transfer, saving binds it again
+
+	ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
+	contexttest.LoadUser(t, ctx, user.ID)
+	contexttest.LoadRepo(t, ctx, mirrorRepo.ID)
+	web.SetForm(ctx, &forms.RepoSettingForm{
+		Interval:      "8h",
+		MirrorAddress: sshAddr,
+	})
+	handleSettingsPostMirror(ctx)
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+
+	updatedMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.Equal(t, sshAddr, updatedMirror.RemoteAddress)
+	assert.True(t, updatedMirror.UseOwnerSSHKey)
+	remoteAddr, err := git.GetRemoteAddress(t.Context(), mirrorRepo, updatedMirror.GetRemoteName())
+	require.NoError(t, err)
+	assert.Equal(t, sshAddr, remoteAddr)
 }

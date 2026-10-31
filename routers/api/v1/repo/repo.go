@@ -1075,8 +1075,8 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 			return err
 		}
 
-		if err := mirror_service.UpdateAddress(ctx, mirror, composedAddress); err != nil {
-			ctx.APIErrorInternal(err)
+		if err := mirror_service.UpdateAddress(ctx, ctx.Doer, mirror, composedAddress); err != nil {
+			ctx.APIErrorAuto(err)
 			return err
 		}
 

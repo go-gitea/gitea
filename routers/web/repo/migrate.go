@@ -16,6 +16,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -110,6 +111,8 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, field string)
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.JSONErrorWithField(ctx.Tr("repo.mirror_address_protocol_invalid"), field)
+		case addrErr.IsAuthNotSupported:
+			ctx.JSONErrorWithField(ctx.Tr("repo.migrate.ssh_auth_not_supported"), field)
 		case addrErr.IsURLError:
 			ctx.JSONErrorWithField(ctx.Tr("form.url_error", addrErr.Host), field)
 		case addrErr.IsPermissionDenied:
@@ -160,6 +163,24 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
+	// forge migrations authenticate with a token, which must not end up in an SSH remote
+	if giturl.IsSSH(remoteAddr) {
+		if form.Service != structs.PlainGitService {
+			ctx.JSONErrorWithField(ctx.Tr("repo.migrate.ssh_not_supported_for_forge"), "clone_addr")
+			return
+		}
+		if form.AuthToken != "" {
+			ctx.JSONError(ctx.Tr("repo.migrate.ssh_token_not_supported"))
+			return
+		}
+	}
+
+	useOwnerSSHKey, err := repo_service.UseOwnerSSHKey(ctx, ctx.Doer, ctxUser, remoteAddr)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+
 	form.LFS = form.LFS && setting.LFS.StartServer
 
 	if form.LFS && len(form.LFSEndpoint) > 0 {
@@ -188,6 +209,7 @@ func MigratePost(ctx *context.Context) {
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
+		UseOwnerSSHKey: useOwnerSSHKey,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,

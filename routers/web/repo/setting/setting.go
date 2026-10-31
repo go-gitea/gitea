@@ -19,6 +19,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/indexer/code"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/indexer/stats"
@@ -316,7 +317,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		handleSettingRemoteAddrError(ctx, err, form)
 		return
 	}
-	if u.User != nil {
+	if u.User != nil && u.Scheme != "ssh" && !giturl.IsSSH(form.MirrorAddress) {
 		if form.MirrorUsername == "" {
 			form.MirrorUsername = u.User.Username()
 		}
@@ -335,12 +336,16 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		return
 	}
 
-	if err := mirror_service.UpdateAddress(ctx, pullMirror, address); err != nil {
+	if err := mirror_service.UpdateAddress(ctx, ctx.Doer, pullMirror, address); util.ErrorAsTranslatable(err) != nil {
+		ctx.Data["Err_MirrorAddress"] = true
+		ctx.RenderWithErrDeprecated(util.ErrorAsTranslatable(err).Translate(ctx.Locale), tplSettingsOptions, &form)
+		return
+	} else if err != nil {
 		ctx.ServerError("UpdateAddress", err)
 		return
 	}
 
-	remoteAddress, err := util.SanitizeURL(form.MirrorAddress)
+	remoteAddress, err := util.SanitizeURL(address)
 	if err != nil {
 		ctx.Data["Err_MirrorAddress"] = true
 		handleSettingRemoteAddrError(ctx, err, form)
@@ -519,20 +524,31 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 
 	remoteSuffix := util.CryptoRandomString(10)
 
-	remoteAddress, err := util.SanitizeURL(form.PushMirrorAddress)
+	remoteAddress, err := util.SanitizeURL(address)
 	if err != nil {
 		ctx.Data["Err_PushMirrorAddress"] = true
 		handleSettingRemoteAddrError(ctx, err, form)
 		return
 	}
 
+	useOwnerSSHKey, err := repo_service.UseOwnerSSHKey(ctx, ctx.Doer, ctx.Repo.Owner, address)
+	if util.ErrorAsTranslatable(err) != nil {
+		ctx.Data["Err_PushMirrorAddress"] = true
+		ctx.RenderWithErrDeprecated(util.ErrorAsTranslatable(err).Translate(ctx.Locale), tplSettingsOptions, &form)
+		return
+	} else if err != nil {
+		ctx.ServerError("UseOwnerSSHKey", err)
+		return
+	}
+
 	m := &repo_model.PushMirror{
-		RepoID:        repo.ID,
-		Repo:          repo,
-		RemoteName:    "remote_mirror_" + remoteSuffix,
-		SyncOnCommit:  form.PushMirrorSyncOnCommit,
-		Interval:      interval,
-		RemoteAddress: remoteAddress,
+		RepoID:         repo.ID,
+		Repo:           repo,
+		RemoteName:     "remote_mirror_" + remoteSuffix,
+		SyncOnCommit:   form.PushMirrorSyncOnCommit,
+		Interval:       interval,
+		RemoteAddress:  remoteAddress,
+		UseOwnerSSHKey: useOwnerSSHKey,
 	}
 	if err := db.Insert(ctx, m); err != nil {
 		ctx.ServerError("InsertPushMirror", err)
@@ -1104,6 +1120,8 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, form)
+		case addrErr.IsAuthNotSupported:
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.ssh_auth_not_supported"), tplSettingsOptions, form)
 		case addrErr.IsURLError:
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.url_error", addrErr.Host), tplSettingsOptions, form)
 		case addrErr.IsPermissionDenied:
