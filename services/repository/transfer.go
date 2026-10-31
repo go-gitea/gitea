@@ -262,6 +262,10 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("GetOwnerActionsConfig: %w", err)
 	}
 
+	if err := actions_model.RemoveScopedWorkflowSource(ctx, oldOwner.ID, repo.ID); err != nil {
+		return fmt.Errorf("transferOwnership: %w", err)
+	}
+
 	// Update repository count.
 	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
 		return fmt.Errorf("increase new owner repository count: %w", err)

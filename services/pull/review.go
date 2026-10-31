@@ -107,7 +107,11 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	// Comments that are replies don't require a review header to show up in the issue view
 	// Add the code comment to existing submitted review
 	if replyToSubmittedReview {
-		if err = issue.LoadRepo(ctx); err != nil {
+		if replyReview, err := issues_model.GetReviewByID(ctx, replyReviewID); err != nil {
+			return nil, err
+		} else if replyReview.IssueID != issue.ID || (replyReview.Type == issues_model.ReviewTypePending && replyReview.ReviewerID != doer.ID) {
+			return nil, issues_model.ErrReviewNotExist{ID: replyReviewID}
+		} else if err = issue.LoadRepo(ctx); err != nil {
 			return nil, err
 		}
 

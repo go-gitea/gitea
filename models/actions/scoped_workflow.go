@@ -65,26 +65,22 @@ func (opts FindScopedWorkflowSourceOpts) ToConds() builder.Cond {
 	if opts.SourceRepoID != 0 {
 		cond = cond.And(builder.Eq{"source_repo_id": opts.SourceRepoID})
 	}
-	return cond
+	return cond.And(scopedWorkflowSourceOwnedCond())
+}
+
+func scopedWorkflowSourceOwnedCond() builder.Cond {
+	return builder.Eq{"owner_id": 0}.Or(builder.Expr("EXISTS (SELECT 1 FROM repository WHERE repository.id = action_scoped_workflow_source.source_repo_id AND repository.owner_id = action_scoped_workflow_source.owner_id)"))
 }
 
 // GetEffectiveScopedWorkflowSources returns the scoped-workflow sources effective for a repo owned by repoOwnerID:
 // the owner's own sources plus instance-level (owner_id=0) sources.
 func GetEffectiveScopedWorkflowSources(ctx context.Context, repoOwnerID int64) ([]*ActionScopedWorkflowSource, error) {
-	owners := []int64{0}
-	if repoOwnerID != 0 {
-		owners = append(owners, repoOwnerID)
-	}
-	return db.Find[ActionScopedWorkflowSource](ctx, FindScopedWorkflowSourceOpts{OwnerIDs: owners})
+	return db.Find[ActionScopedWorkflowSource](ctx, FindScopedWorkflowSourceOpts{OwnerIDs: []int64{0, repoOwnerID}})
 }
 
 // IsScopedWorkflowSourceEffective reports whether sourceRepoID is a scoped-workflow source effective for a repo owned by repoOwnerID.
 func IsScopedWorkflowSourceEffective(ctx context.Context, repoOwnerID, sourceRepoID int64) (bool, error) {
-	owners := []int64{0}
-	if repoOwnerID != 0 {
-		owners = append(owners, repoOwnerID)
-	}
-	return db.Exist[ActionScopedWorkflowSource](ctx, FindScopedWorkflowSourceOpts{OwnerIDs: owners, SourceRepoID: sourceRepoID}.ToConds())
+	return db.Exist[ActionScopedWorkflowSource](ctx, FindScopedWorkflowSourceOpts{OwnerIDs: []int64{0, repoOwnerID}, SourceRepoID: sourceRepoID}.ToConds())
 }
 
 // IsWorkflowRequiredInSources reports whether workflowID from sourceRepoID is required by any of the given sources.
@@ -138,12 +134,10 @@ func GetScopedWorkflowSourcesByOwner(ctx context.Context, ownerID int64) ([]*Act
 
 // GetScopedWorkflowSource returns the (owner, repo) source registration or a NotExist error.
 func GetScopedWorkflowSource(ctx context.Context, ownerID, repoID int64) (*ActionScopedWorkflowSource, error) {
-	src := &ActionScopedWorkflowSource{}
-	has, err := db.GetEngine(ctx).Where("owner_id = ? AND source_repo_id = ?", ownerID, repoID).Get(src)
+	src, has, err := db.Get[ActionScopedWorkflowSource](ctx, builder.Eq{"owner_id": ownerID, "source_repo_id": repoID}.And(scopedWorkflowSourceOwnedCond()))
 	if err != nil {
 		return nil, err
-	}
-	if !has {
+	} else if !has {
 		return nil, util.NewNotExistErrorf("scoped workflow source (owner %d, repo %d) does not exist", ownerID, repoID)
 	}
 	return src, nil
