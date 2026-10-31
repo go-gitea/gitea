@@ -12,6 +12,8 @@ import (
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/tests"
@@ -134,6 +136,7 @@ func testAPIWorkflowRunsByWorkflowID(t *testing.T, owner, repo, workflowID, user
 
 func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runID int64, scope ...auth_model.AccessTokenScope) {
 	defer tests.PrepareTestEnv(t)()
+	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 2, Type: unit.TypeActions, Config: &repo_model.ActionsConfig{}}))
 	token := getUserToken(t, userUsername, scope...)
 
 	apiRunsURL := fmt.Sprintf("%s/%s", apiRootURL, "runs")
