@@ -455,8 +455,9 @@ func repoAssignmentLegacy(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 			return
 		}
 	}
-	// publish it so code resolving the same permission later in this request reuses it
+	// publish them so code resolving the same repository or permission later in this request reuses them
 	if c := cache.GetContextCache(ctx); c != nil {
+		c.Put(cachegroup.Repository, repo.ID, repo)
 		c.Put(cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(repo.ID, ctx.Doer), ctx.Repo.Permission)
 	}
 
