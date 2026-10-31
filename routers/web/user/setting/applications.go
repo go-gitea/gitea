@@ -179,6 +179,8 @@ func RegenerateAccessToken(ctx *context.Context, owner *user_model.User) {
 		ctx.ServerError("RegenerateAccessToken", err)
 		return
 	}
+	audit.Record(ctx, audit_model.UserAccessTokenRegenerate, owner, "token", t.Name)
+
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Token)
 	ctx.JSONRedirect("")

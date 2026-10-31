@@ -110,14 +110,12 @@
 	{{template "base/modal_actions_confirm"}}
 </dialog>
 
-{{if not .IsBot}}
-	<dialog class="modal-dialog" id="regenerate-token">
-		<div class="header">
-			{{ctx.Locale.Tr "settings.access_token_regeneration"}}
-		</div>
-		<div class="content">
-			<p>{{ctx.Locale.Tr "settings.access_token_regeneration_desc"}}</p>
-		</div>
-		{{template "base/modal_actions_confirm"}}
-	</dialog>
-{{end}}
+<dialog class="modal-dialog" id="regenerate-token">
+	<div class="header">
+		{{ctx.Locale.Tr "settings.access_token_regeneration"}}
+	</div>
+	<div class="content">
+		<p>{{ctx.Locale.Tr "settings.access_token_regeneration_desc"}}</p>
+	</div>
+	{{template "base/modal_actions_confirm"}}
+</dialog>
