@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
 	audit_model "gitea.dev/models/audit"
@@ -23,6 +24,7 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/api/v1/utils"
@@ -30,6 +32,7 @@ import (
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
+	"gitea.dev/services/externalaccount"
 	"gitea.dev/services/mailer"
 	user_service "gitea.dev/services/user"
 )
@@ -539,6 +542,116 @@ func RenameUser(ctx *context.APIContext) {
 		} else {
 			ctx.APIErrorInternal(err)
 		}
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
+// LinkExternalLogin links a user to an account on an external service
+func LinkExternalLogin(ctx *context.APIContext) {
+	// swagger:operation POST /admin/users/{username}/external-logins admin adminLinkExternalLogin
+	// ---
+	// summary: Link a user to an account on an external service
+	// description: Migrations attribute issues, pull requests and comments to the local user linked to the
+	//   original author. Linking again an account that is already linked to the same user succeeds.
+	//   A login_source_id of 0 means the account does not belong to an authentication source; the
+	//   external_id must then be unique among all providers using 0, otherwise 409 is returned.
+	//   A non-zero login_source_id must be an existing authentication source.
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user to link
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/LinkExternalLoginOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "409":
+	//     description: the external account is already linked to another user
+	//   default:
+	//     "$ref": "#/responses/error"
+
+	if ctx.ContextUser.IsOrganization() {
+		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization but not user")
+		return
+	}
+	opt := web.GetForm[*api.LinkExternalLoginOption](ctx)
+
+	if opt.LoginSourceID != 0 {
+		source, err := auth.GetSourceByID(ctx, opt.LoginSourceID)
+		if err != nil {
+			if auth.IsErrSourceNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, "authentication source does not exist")
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+		if !source.IsOAuth2() {
+			ctx.APIError(http.StatusUnprocessableEntity, "authentication source is not an OAuth2 source")
+			return
+		}
+	}
+
+	for _, tp := range api.SupportedFullGitService {
+		if strings.EqualFold(tp.Name(), opt.Provider) {
+			opt.Provider = tp.Name()
+			break
+		}
+	}
+
+	linkedUserID, err := user_model.GetUserIDByExternalUserID(ctx, opt.Provider, opt.ExternalID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if linkedUserID != 0 && linkedUserID != ctx.ContextUser.ID {
+		ctx.APIError(http.StatusConflict, "the external account is already linked to another user")
+		return
+	}
+
+	existing, has, err := user_model.GetExternalLogin(ctx, opt.LoginSourceID, opt.ExternalID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if has && existing.UserID == ctx.ContextUser.ID && existing.Provider == opt.Provider {
+		if err := externalaccount.UpdateMigrationsByProvider(ctx, opt.Provider, opt.ExternalID, ctx.ContextUser.ID); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+
+	err = user_model.LinkExternalToUser(ctx, ctx.ContextUser, &user_model.ExternalLoginUser{
+		ExternalID:    opt.ExternalID,
+		UserID:        ctx.ContextUser.ID,
+		LoginSourceID: opt.LoginSourceID,
+		Provider:      opt.Provider,
+	})
+	if err != nil {
+		if errors.Is(err, util.ErrAlreadyExist) {
+			// the id is taken by an account of another provider in the same scope
+			ctx.APIError(http.StatusConflict, err.Error())
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	audit.Record(ctx, audit_model.UserExternalLoginAdd, ctx.ContextUser,
+		"external_id", opt.ExternalID, "provider", opt.Provider)
+	if err := externalaccount.UpdateMigrationsByProvider(ctx, opt.Provider, opt.ExternalID, ctx.ContextUser.ID); err != nil {
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
