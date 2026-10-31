@@ -20,8 +20,10 @@ import (
 
 func TestCheckAddr(t *testing.T) {
 	for _, tc := range []struct {
-		name, allow, block, host, ip string
-		strict, want                 bool
+		name, allow, block, ranges, host, ip string
+		port                                 uint16
+		strict, want                         bool
+		wantErr                              string // substring of the expected denial error
 	}{
 		// lax mode exempts public and unresolved targets, restricted ones need an allow entry
 		{name: "empty lists allow public", host: "github.com", ip: "8.8.8.8", want: true},
@@ -63,8 +65,36 @@ func TestCheckAddr(t *testing.T) {
 		{name: "strict link-local allowed by cidr", allow: "169.254.0.0/16", ip: "169.254.169.254", strict: true, want: true},
 		{name: "strict local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5", strict: true},
 		{name: "strict local gate accepts builtin", allow: "cgnat", ip: "100.64.0.1", strict: true, want: true},
+		// hostname entries cover non-public targets only within ALLOWED_INTERNAL_RANGES
+		{name: "ranges allow host in range", allow: "ci.internal.example.com", ranges: "10.0.0.0/8, 100.64.0.0/10", host: "ci.internal.example.com", ip: "10.1.2.3", want: true},
+		{name: "ranges allow cgnat in range", allow: "ci.internal.example.com", ranges: "10.0.0.0/8, 100.64.0.0/10", host: "ci.internal.example.com", ip: "100.100.100.200", port: 443, want: true},
+		{name: "ranges allow mapped form", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", host: "ci.internal.example.com", ip: "::ffff:10.1.2.3", want: true},
+		{name: "ranges allow case and trailing dot", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", host: "CI.INTERNAL.EXAMPLE.COM.", ip: "10.1.2.3", want: true},
+		{name: "ranges deny outside", allow: "ci.internal.example.com", ranges: "10.0.0.0/8, 100.64.0.0/10", host: "ci.internal.example.com", ip: "192.168.5.5", wantErr: "resolves outside the internal ranges"},
+		{name: "ranges deny link-local", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", host: "ci.internal.example.com", ip: "169.254.169.254", wantErr: "resolves outside the internal ranges"},
+		{name: "ranges allow subdomain of bare entry (v28 suffix matching)", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", host: "www.ci.internal.example.com", ip: "10.1.2.3", want: true},
+		{name: "ranges deny unlisted host", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", host: "other.com", ip: "10.1.2.3", wantErr: "can not call non-public addresses without an allow entry"},
+		{name: "ranges deny direct ip dial", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", ip: "10.1.2.3", wantErr: "can not call non-public addresses without an allow entry"},
+		{name: "ranges deny direct mapped ip dial", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", ip: "::ffff:10.1.2.3", wantErr: "can not call non-public addresses without an allow entry"},
+		{name: "ranges wildcard covers subdomains", allow: "*.internal.example.com", ranges: "10.0.0.0/8", host: "ci.internal.example.com", ip: "10.1.2.3", want: true},
+		{name: "ranges wildcard never covers apex", allow: "*.internal.example.com", ranges: "10.0.0.0/8", host: "internal.example.com", ip: "10.1.2.3"},
+		{name: "ranges wildcard deny out of range", allow: "*.internal.example.com", ranges: "10.0.0.0/8", host: "ci.internal.example.com", ip: "192.168.5.5", wantErr: "resolves outside the internal ranges"},
+		{name: "ranges port-scoped allows its port", allow: "ci.internal.example.com:8080", ranges: "10.0.0.0/8", host: "ci.internal.example.com", ip: "10.1.2.3", port: 8080, want: true},
+		{name: "ranges port-scoped denies other port", allow: "ci.internal.example.com:8080", ranges: "10.0.0.0/8", host: "ci.internal.example.com", ip: "10.1.2.3", wantErr: "port 80 is not allowed"},
+		{name: "ranges portless lax covers every port", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", host: "ci.internal.example.com", ip: "10.1.2.3", port: 8080, want: true},
+		{name: "no ranges: hostname entry never covers non-public", allow: "ci.internal.example.com", host: "ci.internal.example.com", ip: "10.1.2.3"},
+		{name: "strict ranges allow in range on 443", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", host: "ci.internal.example.com", ip: "10.1.2.3", port: 443, strict: true, want: true},
+		{name: "strict ranges allow public by name", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", host: "ci.internal.example.com", ip: "8.8.8.8", port: 443, strict: true, want: true},
+		{name: "strict ranges deny other port", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", host: "ci.internal.example.com", ip: "10.1.2.3", port: 8080, strict: true},
+		{name: "strict ranges deny unlisted host", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", host: "other.com", ip: "10.1.2.3", port: 443, strict: true},
+		{name: "reserved denied even inside ranges", allow: "ci.internal.example.com", ranges: "224.0.0.0/4", host: "ci.internal.example.com", ip: "224.0.0.1", wantErr: "reserved"},
+		{name: "block wins over ranges", allow: "ci.internal.example.com", ranges: "10.0.0.0/8", block: "10.0.0.0/8", host: "ci.internal.example.com", ip: "10.1.2.3", wantErr: "blocked"},
 	} {
-		opts := []Option{WithAllow(tc.allow, "test.ALLOWED"), WithBlock(tc.block, "test.BLOCKED")}
+		opts := []Option{
+			WithAllow(tc.allow, "test.ALLOWED"),
+			WithBlock(tc.block, "test.BLOCKED"),
+			WithInternalRanges(tc.ranges, "test.ALLOWED_INTERNAL_RANGES"),
+		}
 		var addr netip.Addr
 		if tc.ip != "" {
 			addr = netip.MustParseAddr(tc.ip)
@@ -73,8 +103,16 @@ func TestCheckAddr(t *testing.T) {
 		if tc.strict {
 			mode = Strict
 		}
-		err := NewPolicy("test", mode, opts...).checkAddr(tc.host, netip.AddrPortFrom(addr, 80))
-		assert.Equal(t, tc.want, err == nil, "%s (%s): %v", tc.name, tc.ip, err)
+		port := tc.port
+		if port == 0 {
+			port = 80
+		}
+		err := NewPolicy("test", mode, opts...).checkAddr(tc.host, netip.AddrPortFrom(addr, port))
+		if tc.wantErr != "" {
+			assert.ErrorContains(t, err, tc.wantErr, "%s (%s)", tc.name, tc.ip)
+		} else {
+			assert.Equal(t, tc.want, err == nil, "%s (%s): %v", tc.name, tc.ip, err)
+		}
 	}
 }
 
@@ -126,6 +164,14 @@ func TestDenialReasons(t *testing.T) {
 	strict := NewPolicy("test", Strict, WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"), WithInternalRanges("", "test.ALLOWED_INTERNAL_RANGES"))
 	err = strict.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80))
 	assert.EqualError(t, err, "test can not call non-public addresses without an allow entry (check your test.ALLOWED_HOST_LIST setting), deny 'ci.internal.example.com(10.1.2.3)' — set test.ALLOWED_INTERNAL_RANGES to let hostname entries cover non-public targets")
+
+	// a hostname entry with ranges gives the specific reason: out of range, or port not allowed
+	ranged := NewPolicy("test", Lax, WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"), WithInternalRanges("10.0.0.0/8", "test.ALLOWED_INTERNAL_RANGES"))
+	err = ranged.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80))
+	assert.EqualError(t, err, "test resolves outside the internal ranges allowed for hostnames (check your test.ALLOWED_INTERNAL_RANGES setting), deny 'ci.internal.example.com(192.168.5.5)'")
+	scoped := NewPolicy("test", Lax, WithAllow("ci.internal.example.com:8080", "test.ALLOWED_HOST_LIST"), WithInternalRanges("10.0.0.0/8", "test.ALLOWED_INTERNAL_RANGES"))
+	err = scoped.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80))
+	assert.EqualError(t, err, `test port 80 is not allowed for "ci.internal.example.com" (check your test.ALLOWED_HOST_LIST setting), deny 'ci.internal.example.com(10.1.2.3)'`)
 }
 
 func hostURL(t *testing.T, raw string) *url.URL {
@@ -212,6 +258,16 @@ func TestNewDialContext(t *testing.T) {
 	assert.ErrorIs(t, dial(NewPolicy("test", Lax, WithBlock("loopback", ""))), ErrDenied)
 	assert.ErrorIs(t, dial(NewPolicy("test", Lax, WithBlock("loopback", ""), WithProxy(http.ProxyURL(&url.URL{Scheme: "http", Host: addr})))), ErrDenied)
 	assert.NoError(t, dial(NewPolicy("test", Lax, WithAllow("loopback", ""))))
+
+	// a hostname within the internal ranges is allowed by name, a direct IP dial is not
+	ranged := NewPolicy("test", Lax, WithAllow("localhost", "test.ALLOWED_HOST_LIST"), WithInternalRanges("loopback", "test.ALLOWED_INTERNAL_RANGES"))
+	_, port, _ := net.SplitHostPort(addr)
+	conn, err := ranged.NewDialContext()(t.Context(), "tcp", net.JoinHostPort("localhost", port))
+	if err == nil {
+		_ = conn.Close()
+	}
+	assert.NoError(t, err, "the exact host within the internal ranges is allowed")
+	assert.ErrorIs(t, dial(ranged), ErrDenied, "a direct IP dial is denied even though the IP is in the ranges")
 }
 
 func TestProxy(t *testing.T) {
@@ -322,86 +378,4 @@ func TestProxiedTargetNeedsNoDNS(t *testing.T) {
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t, "proxied", string(body))
-}
-
-func TestInternalRanges(t *testing.T) {
-	newPolicy := func(mode Mode, allow, ranges string) *Policy {
-		return NewPolicy("test", mode,
-			WithAllow(allow, "test.ALLOWED_HOST_LIST"),
-			WithInternalRanges(ranges, "test.ALLOWED_INTERNAL_RANGES"))
-	}
-	addr := func(ip string, port uint16) netip.AddrPort {
-		return netip.AddrPortFrom(netip.MustParseAddr(ip), port)
-	}
-
-	// a hostname entry covers the non-public targets it resolves into, the exact host only
-	lax := newPolicy(Lax, "ci.internal.example.com", "10.0.0.0/8, 100.64.0.0/10")
-	assert.NoError(t, lax.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80)))
-	assert.NoError(t, lax.checkAddr("ci.internal.example.com", addr("100.100.100.200", 443)))
-	assert.NoError(t, lax.checkAddr("ci.internal.example.com", addr("::ffff:10.1.2.3", 80))) // mapped form is unmapped, still via the domain
-	assert.Error(t, lax.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80)))       // restricted, outside the ranges
-	assert.Error(t, lax.checkAddr("ci.internal.example.com", addr("169.254.169.254", 80)))
-	assert.NoError(t, lax.checkAddr("www.ci.internal.example.com", addr("10.1.2.3", 80))) // subdomain of a bare entry is covered (dot-anchored suffix matching)
-	assert.Error(t, lax.checkAddr("other.com", addr("10.1.2.3", 80)))                     // unlisted host
-	assert.Error(t, lax.checkAddr("", addr("10.1.2.3", 80)))                              // direct IP dial
-	assert.Error(t, lax.checkAddr("", addr("::ffff:10.1.2.3", 80)))                       // direct IP dial, mapped form
-
-	// a wildcard entry covers subdomains within the ranges, never the apex
-	wildcard := newPolicy(Lax, "*.internal.example.com", "10.0.0.0/8")
-	assert.NoError(t, wildcard.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80)))
-	assert.Error(t, wildcard.checkAddr("internal.example.com", addr("10.1.2.3", 80)))       // apex
-	assert.Error(t, wildcard.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80))) // out of range
-
-	// the denial names the ranges setting when the host matches but the IP is outside
-	err := lax.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80))
-	assert.EqualError(t, err, "test resolves outside the internal ranges allowed for hostnames (check your test.ALLOWED_INTERNAL_RANGES setting), deny 'ci.internal.example.com(192.168.5.5)'")
-
-	// a port-scoped entry covers only its ports
-	scoped := newPolicy(Lax, "ci.internal.example.com:8080", "10.0.0.0/8")
-	assert.NoError(t, scoped.checkAddr("ci.internal.example.com", addr("10.1.2.3", 8080)))
-	err = scoped.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80))
-	assert.EqualError(t, err, `test port 80 is not allowed for "ci.internal.example.com" (check your test.ALLOWED_HOST_LIST setting), deny 'ci.internal.example.com(10.1.2.3)'`)
-
-	// without the ranges setting a hostname entry never covers non-public targets
-	plain := newPolicy(Lax, "ci.internal.example.com", "")
-	assert.Error(t, plain.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80)))
-
-	// strict mode: the conjunction works, the domain's public IPs still match by name, portless entries cover 80/443 only
-	strict := newPolicy(Strict, "ci.internal.example.com", "10.0.0.0/8")
-	assert.NoError(t, strict.checkAddr("ci.internal.example.com", addr("10.1.2.3", 443)))
-	assert.NoError(t, strict.checkAddr("ci.internal.example.com", addr("8.8.8.8", 443)))
-	assert.Error(t, strict.checkAddr("ci.internal.example.com", addr("10.1.2.3", 8080)))
-	assert.Error(t, strict.checkAddr("other.com", addr("10.1.2.3", 443)))
-
-	// reserved is denied even inside the ranges
-	reserved := newPolicy(Lax, "ci.internal.example.com", "224.0.0.0/4")
-	assert.Error(t, reserved.checkAddr("ci.internal.example.com", addr("224.0.0.1", 80)))
-
-	// the block list still wins
-	blocked := NewPolicy("test", Lax,
-		WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"),
-		WithInternalRanges("10.0.0.0/8", "test.ALLOWED_INTERNAL_RANGES"),
-		WithBlock("10.0.0.0/8", "test.BLOCKED_HOST_LIST"))
-	assert.Error(t, blocked.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80)))
-}
-
-func TestDialContextInternalRanges(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = ln.Close() })
-	_, port, _ := net.SplitHostPort(ln.Addr().String())
-
-	policy := NewPolicy("test", Lax,
-		WithAllow("localhost", "test.ALLOWED_HOST_LIST"),
-		WithInternalRanges("loopback", "test.ALLOWED_INTERNAL_RANGES"))
-	dial := policy.NewDialContext()
-
-	conn, err := dial(t.Context(), "tcp", net.JoinHostPort("localhost", port))
-	if err == nil {
-		_ = conn.Close()
-	}
-	assert.NoError(t, err, "the exact host within the internal ranges is allowed")
-
-	_, err = dial(t.Context(), "tcp", ln.Addr().String())
-	assert.ErrorIs(t, err, ErrDenied, "a direct IP dial is denied even though the IP is in the ranges")
 }
