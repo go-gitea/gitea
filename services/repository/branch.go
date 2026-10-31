@@ -18,6 +18,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -304,7 +305,7 @@ func checkBranchName(ctx context.Context, gitRepo *git.Repository, name string) 
 // It will check whether the branches of the repository have never been synced before.
 // If so, it will sync all branches of the repository.
 // Otherwise, it will sync the branches that need to be updated.
-func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.Repository, branchNames, commitIDs []string) error {
+func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.Repository, branchNames []string) error {
 	// Some designs that make the code look strange but are made for performance optimization purposes:
 	// 1. Sync branches in a batch to reduce the number of DB queries.
 	// 2. Lazy load commit information since it may be not necessary.
@@ -316,9 +317,11 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 	// For the first batch, it will hit optimization 3.
 	// For other batches, it will hit optimization 4.
 
-	if len(branchNames) != len(commitIDs) {
-		return errors.New("branchNames and commitIDs length not match")
+	releaser, err := globallock.Lock(ctx, fmt.Sprintf("repo_branch_sync_%d", repoID))
+	if err != nil {
+		return err
 	}
+	defer releaser()
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		branches, err := git_model.GetBranches(ctx, repoID, branchNames, true)
@@ -351,9 +354,19 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 
 		newBranches := make([]*git_model.Branch, 0, len(branchNames))
 
-		for i, branchName := range branchNames {
-			commitID := commitIDs[i]
+		for _, branchName := range branchNames {
 			branch, exist := branchMap[branchName]
+			commitID, err := gitRepo.GetBranchCommitID(ctx, branchName)
+			if git.IsErrNotExist(err) {
+				if exist && !branch.IsDeleted {
+					if err := git_model.MarkBranchAsDeleted(ctx, repoID, branchName, pusherID); err != nil {
+						return fmt.Errorf("SyncBranchesToDB: mark branch %d:%s deleted: %w", repoID, branchName, err)
+					}
+				}
+				continue
+			} else if err != nil {
+				return fmt.Errorf("SyncBranchesToDB: get commit id of %s: %w", branchName, err)
+			}
 			if exist && branch.CommitID == commitID && !branch.IsDeleted {
 				continue
 			}

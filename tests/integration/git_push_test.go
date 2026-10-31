@@ -16,6 +16,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	repo_service "gitea.dev/services/repository"
@@ -189,7 +191,7 @@ func testGitPush(t *testing.T, u *url.URL) {
 		})
 	})
 
-	t.Run("Push to deleted branch", func(t *testing.T) {
+	t.Run("Push to deleted branch, then post-receive of older pushes", func(t *testing.T) {
 		runTestGitPush(t, u, func(t *testing.T, gitPath string) (pushed, deleted []string) {
 			doGitPushTestRepository(gitPath, "origin", "master")(t) // make sure master is the default branch instead of a branch we are going to delete
 			pushed = append(pushed, "master")
@@ -202,6 +204,20 @@ func testGitPush(t *testing.T, u *url.URL) {
 			doGitPushTestRepository(gitPath, "origin", "--delete", "branch-1")(t)
 			doGitPushTestRepository(gitPath, "origin", "branch-1")(t)
 
+			oldCommitID, err := git.GetFullCommitID(t.Context(), gitrepo.RepositoryUnmanaged(gitPath), "master")
+			require.NoError(t, err)
+			emptyCommitID := git.Sha1ObjectFormat.EmptyObjectID().String()
+			doGitCheckoutWriteFileCommit(localGitAddCommitOptions{LocalRepoPath: gitPath, CheckoutBranch: "master", TreeFilePath: "new.txt", TreeFileContent: "new"})(t)
+			doGitPushTestRepository(gitPath, "origin", "master")(t)
+
+			_, extra := private.HookPostReceive(t.Context(), "user2", "repo-to-push", private.HookOptions{
+				OldCommitIDs: []string{emptyCommitID, oldCommitID},
+				NewCommitIDs: []string{oldCommitID, emptyCommitID},
+				RefFullNames: []git.RefName{git.RefNameFromBranch("master"), git.RefNameFromBranch("branch-1")},
+				UserID:       2,
+				UserName:     "user2",
+			})
+			require.NoError(t, extra.Error)
 			return pushed, deleted
 		})
 	})
