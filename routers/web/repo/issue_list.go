@@ -15,6 +15,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
@@ -311,7 +312,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 }
 
 func BatchDeleteIssues(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}
@@ -326,7 +327,7 @@ func BatchDeleteIssues(ctx *context.Context) {
 
 // UpdateIssueStatus change issue's status
 func UpdateIssueStatus(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}
