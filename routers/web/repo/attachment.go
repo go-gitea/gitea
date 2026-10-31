@@ -202,6 +202,24 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 			}
 		}
 
+		if attach.CommentID != 0 {
+			comment, err := issues_model.GetCommentByID(ctx, attach.CommentID)
+			if issues_model.IsErrCommentNotExist(err) {
+				ctx.HTTPError(http.StatusNotFound)
+				return
+			} else if err != nil {
+				ctx.ServerError("GetCommentByID", err)
+				return
+			}
+			if hidden, err := comment.IsPendingReviewHiddenFrom(ctx, ctx.Doer); err != nil {
+				ctx.ServerError("IsPendingReviewHiddenFrom", err)
+				return
+			} else if hidden {
+				ctx.HTTPError(http.StatusNotFound)
+				return
+			}
+		}
+
 		if requiredScope, ok := attachmentReadScope(unitType); ok {
 			context.CheckTokenScopes(ctx, requiredScope)
 			if ctx.Written() {

@@ -140,8 +140,12 @@ func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment,
 	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
 }
 
-// GetAttachmentsByIssueIDImagesLatest returns the latest image attachments of an issue.
+// GetAttachmentsByIssueIDImagesLatest returns the latest image attachments of an issue and its comments,
+// leaving out the drafts of pending reviews which only their reviewer may see
 func GetAttachmentsByIssueIDImagesLatest(ctx context.Context, issueID int64) ([]*Attachment, error) {
+	pendingReviewComments := builder.Select("`comment`.id").From("`comment`").
+		InnerJoin("review", "review.id = `comment`.review_id").
+		Where(builder.Eq{"`comment`.issue_id": issueID, "review.type": 0}) // issues_model.ReviewTypePending, models/repo cannot import it
 	attachments := make([]*Attachment, 0, 5)
 	return attachments, db.GetEngine(ctx).Where(`issue_id = ? AND (name like '%.apng'
 		OR name like '%.avif'
@@ -152,7 +156,9 @@ func GetAttachmentsByIssueIDImagesLatest(ctx context.Context, issueID int64) ([]
 		OR name like '%.jxl'
 		OR name like '%.png'
 		OR name like '%.svg'
-		OR name like '%.webp')`, issueID).Desc("comment_id").Limit(5).Find(&attachments)
+		OR name like '%.webp')`, issueID).
+		And(builder.NotIn("comment_id", pendingReviewComments)).
+		Desc("comment_id").Limit(5).Find(&attachments)
 }
 
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.
