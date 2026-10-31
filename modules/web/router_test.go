@@ -102,7 +102,7 @@ func TestPathProcessor(t *testing.T) {
 	testProcess := func(pattern, uri string, expectedPathParams map[string]string) {
 		chiCtx := chi.NewRouteContext()
 		chiCtx.RouteMethod = "GET"
-		p := newRouterPathMatcher("GET", patternRegexp(pattern), http.NotFound)
+		p := newRouterPathMatcher("GET", patternRegexp(pattern), nil, http.NotFound)
 		shouldProcess := expectedPathParams != nil
 		if unescape {
 			uri, _ = url.PathUnescape(uri)

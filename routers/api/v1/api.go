@@ -1601,15 +1601,24 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
 		m.Group("/repos/{username}/{reponame}", func() { // outside "/repos" so tokens need only the commitstatus scope
-			m.Combo("/statuses/{sha}").Get(repo.GetCommitStatuses).
-				Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus) // "/statuses/{sha}" only accepts commit ID
+			// tokenRequiresScopes should only be applied to each MatchPath handler but not on outer group
+			// otherwise, "POST /.../commits/{sha}/pull" will respond "require commitstatus" because POST is not handled and falls back to the PathGroup
+			middlewares := []any{
+				tokenRequiresScopes(auth_model.AccessTokenScopeCategoryCommitStatus),
+				repoAssignment(), reqRepoReader(unit.TypeCode),
+			}
+			// "/.../statuses/{sha}" only accepts commit ID
+			m.Combo("/statuses/{sha}", middlewares...).
+				Get(repo.GetCommitStatuses).
+				Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+
+			// Mis-configured reverse proxy might decode the `%2F` to slash ahead, so we need to support both formats (escaped, unescaped) here.
+			// It also matches GitHub's behavior
 			m.PathGroup("/commits/*", func(g *web.RouterPathGroup) {
-				// Mis-configured reverse proxy might decode the `%2F` to slash ahead, so we need to support both formats (escaped, unescaped) here.
-				// It also matches GitHub's behavior
 				g.MatchPath("GET", "/<ref:*>/status", repo.GetCombinedCommitStatusByRef)
 				g.MatchPath("GET", "/<ref:*>/statuses", repo.GetCommitStatusesByRef)
-			})
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryCommitStatus), repoAssignment(), reqRepoReader(unit.TypeCode))
+			}, middlewares...)
+		})
 
 		// Artifacts direct download endpoint authenticates via signed url
 		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
