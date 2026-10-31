@@ -1,8 +1,9 @@
 name: release-nightly
 
 on:
-  push:
-    branches: [main, release/v*]
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,13 +12,42 @@ concurrency:
 permissions: {}
 
 jobs:
+  branches:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      branches: ${{ steps.changed.outputs.branches }}
+    steps:
+      - id: changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          since=$(gh run list --workflow release-nightly.yml --status success --limit 1 --json createdAt -q '.[0].createdAt')
+          branches=$(gh api --paginate "repos/$GH_REPO/branches" -q '.[].name | select(. == "main" or startswith("release/v"))' |
+            while read -r branch; do
+              if [ -z "$since" ] || [ -n "$(gh api "repos/$GH_REPO/commits?sha=$branch&since=$since&per_page=1" -q '.[].sha')" ]; then
+                echo "$branch"
+              fi
+            done | jq -Rnc '[inputs]')
+          echo "branches=$branches" >> "$GITHUB_OUTPUT"
+
   nightly-binary:
+    needs: branches
+    if: needs.branches.outputs.branches != '[]'
+    strategy:
+      matrix:
+        branch: ${{ fromJSON(needs.branches.outputs.branches) }}
     runs-on: namespace-profile-gitea-release-binary
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ matrix.branch }}
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
@@ -28,7 +58,9 @@ jobs:
           cache: false
       - uses: ./.github/actions/node-setup
       - run: make deps-frontend deps-backend
-      - run: make release
+      - run: make release GITHUB_REF_NAME="$BRANCH"
+        env:
+          BRANCH: ${{ matrix.branch }}
       - name: Install Cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: import gpg key
@@ -50,7 +82,7 @@ jobs:
       - name: Get cleaned branch name
         id: clean_name
         env:
-          REF: ${{ github.ref }}
+          REF: ${{ matrix.branch }}
         run: |
           REF_NAME=$(echo "$REF" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "Cleaned name is ${REF_NAME}"
@@ -67,12 +99,19 @@ jobs:
           aws s3 sync dist/release "s3://$CLOUDFLARE_R2_BUCKET/gitea/$BRANCH" --endpoint-url "https://$CLOUDFLARE_R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
 
   nightly-container:
+    needs: branches
+    if: needs.branches.outputs.branches != '[]'
+    strategy:
+      matrix:
+        branch: ${{ fromJSON(needs.branches.outputs.branches) }}
     runs-on: namespace-profile-gitea-release-docker
     permissions:
       contents: read
       packages: write # to publish to ghcr.io
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ matrix.branch }}
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
@@ -83,13 +122,14 @@ jobs:
       - name: Get cleaned branch name
         id: clean_name
         env:
-          REF: ${{ github.ref }}
+          REF: ${{ matrix.branch }}
         run: |
           REF_NAME=$(echo "$REF" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         id: meta
         with:
+          context: git
           images: |-
             gitea/gitea
             ghcr.io/go-gitea/gitea
@@ -100,6 +140,7 @@ jobs:
       - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         id: meta_rootless
         with:
+          context: git
           images: |-
             gitea/gitea
             ghcr.io/go-gitea/gitea
