@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -43,6 +44,7 @@ type GiteaLocalUploader struct {
 	doer           *user_model.User
 	repoOwner      string
 	repoName       string
+	cloneURL       string // clone address of the source, may carry credentials
 	repo           *repo_model.Repository
 	labels         map[string]*issues_model.Label
 	milestones     map[string]int64
@@ -118,6 +120,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	r.Description = repo.Description
 	r.Website = repo.Website
 
+	g.cloneURL = repo.CloneURL
 	r, err = repo_service.MigrateRepositoryGitData(ctx, owner, r, base.MigrateOptions{
 		RepoName:       g.repoName,
 		Description:    repo.Description,
@@ -601,6 +604,24 @@ func (g *GiteaLocalUploader) commitExists(ctx context.Context, sha string) bool 
 	return err == nil
 }
 
+// fetchCommit tries to get a missing head commit of a closed pull request by its SHA from the head repository,
+// e.g. a squash-merged pull request whose source branch is gone and which the host does not expose as a ref
+func (g *GiteaLocalUploader) fetchCommit(ctx context.Context, pr *base.PullRequest) bool {
+	remote := pr.Head.CloneURL
+	if !pr.IsForkPullRequest() && g.cloneURL != "" {
+		remote = g.cloneURL // the source repository itself, with the migration credentials
+	}
+	if remote == "" {
+		return false
+	}
+	_, _, err := gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, pr.Head.SHA).WithRepo(g.repo).RunStdString(ctx)
+	if err != nil {
+		log.Warn("PR #%d fetching head commit %s failed: %v", pr.Number, pr.Head.SHA, util.SanitizeCredentialURLs(err.Error()))
+		return false
+	}
+	return g.commitExists(ctx, pr.Head.SHA)
+}
+
 func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *base.PullRequest) (head string, err error) {
 	// SECURITY: this pr must have been must have been ensured safe
 	if !pr.EnsuredSafe {
@@ -739,7 +760,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 	if pr.Head.SHA == "" {
 		// The SHA is empty
 		log.Warn("Empty reference, no pull head for PR #%d in %s/%s", pr.Number, g.repoOwner, g.repoName)
-	} else if !g.commitExists(ctx, pr.Head.SHA) {
+	} else if !g.commitExists(ctx, pr.Head.SHA) && !g.fetchCommit(ctx, pr) {
 		// Git update-ref remove bad references with a relative path
 		log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
 	} else if err = git.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
@@ -874,6 +895,7 @@ func convertReviewState(state string) issues_model.ReviewType {
 // CreateReviews create pull request reviews of currently migrated issues
 func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base.Review) error {
 	cms := make([]*issues_model.Review, 0, len(reviews))
+	var fallbackComments []*issues_model.Comment
 	for _, review := range reviews {
 		var issue *issues_model.Issue
 		issue, ok := g.issues[review.IssueIndex]
@@ -910,15 +932,33 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			}
 			g.prCache[issue.ID] = pr
 		}
+		headCommitID := ""
 		if pr.MergeBase == "" {
-			// No mergebase -> no basis for any patches
-			log.Warn("PR #%d in %s/%s: does not have a merge base, all review comments will be ignored", pr.Index, g.repoOwner, g.repoName)
-			continue
+			log.Warn("PR #%d in %s/%s: does not have a merge base, review comments will be added as plain comments", pr.Index, g.repoOwner, g.repoName)
+		} else if id, err := g.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName()); err != nil {
+			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, review comments will be added as plain comments", pr.Index, pr.GetGitHeadRefName(), g.repoOwner, g.repoName, err)
+		} else {
+			headCommitID = id
 		}
 
-		headCommitID, err := g.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
-		if err != nil {
-			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, all review comments will be ignored", pr.Index, pr.GetGitHeadRefName(), g.repoOwner, g.repoName, err)
+		if headCommitID == "" {
+			// without a diff to anchor to, keep the text as plain comments instead of an empty review
+			for _, comment := range review.Comments {
+				c := issues_model.Comment{
+					Type:        issues_model.CommentTypeComment,
+					IssueID:     issue.ID,
+					Content:     fmt.Sprintf("Comment on `%s` line %d:\n\n%s", util.PathJoinRel(comment.TreePath), max(comment.Line, -comment.Line), comment.Content),
+					CreatedUnix: timeutil.TimeStamp(cmp.Or(comment.CreatedAt, review.CreatedAt).Unix()),
+					UpdatedUnix: timeutil.TimeStamp(cmp.Or(comment.UpdatedAt, comment.CreatedAt, review.CreatedAt).Unix()),
+				}
+				if err := g.remapUser(ctx, review, &c); err != nil {
+					return err
+				}
+				fallbackComments = append(fallbackComments, &c)
+			}
+			if len(review.Comments) > 0 && cm.Type == issues_model.ReviewTypeComment && cm.Content == "" {
+				cms = cms[:len(cms)-1]
+			}
 			continue
 		}
 
@@ -972,7 +1012,10 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 		}
 	}
 
-	return issues_model.InsertReviews(ctx, cms)
+	if err := issues_model.InsertReviews(ctx, cms); err != nil {
+		return err
+	}
+	return issues_model.InsertIssueComments(ctx, fallbackComments)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.

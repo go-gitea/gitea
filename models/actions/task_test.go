@@ -13,6 +13,7 @@ import (
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/timeutil"
@@ -273,9 +274,13 @@ func TestReleaseTaskForRunner(t *testing.T) {
 			}
 			require.NoError(t, db.Insert(t.Context(), run))
 
+			disabledRun := &ActionRun{RepoID: 2, TriggerUserID: 2}
+			require.NoError(t, db.Insert(t.Context(), disabledRun))
+			disabledJob := &ActionRunJob{RunID: disabledRun.ID, RepoID: 2, Status: StatusWaiting, RunsOn: []string{"ubuntu-latest"}}
+			require.NoError(t, db.Insert(t.Context(), disabledJob))
+
 			if tt.batchSize != 0 {
 				// Five waiting jobs the runner cannot run, then one it can.
-				// With a page size of 2 the matching job only appears on the third page.
 				for i := range 5 {
 					mismatch := &ActionRunJob{
 						RunID:     run.ID,
@@ -313,11 +318,13 @@ func TestReleaseTaskForRunner(t *testing.T) {
 			}
 			runner.GenerateAndFillToken()
 			require.NoError(t, db.Insert(t.Context(), runner))
+			require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: run.RepoID, Type: unit.TypeActions}))
 
-			task, ok, err := CreateTaskForRunner(t.Context(), runner)
+			task, cancelledJobs, err := CreateTaskForRunner(t.Context(), runner)
 			require.NoError(t, err)
-			require.True(t, ok)
 			require.NotNil(t, task)
+			require.Len(t, cancelledJobs, 1)
+			assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: disabledJob.ID}).Status)
 
 			claimed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
 			if tt.batchSize != 0 {

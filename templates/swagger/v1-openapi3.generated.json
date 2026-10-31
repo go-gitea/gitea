@@ -7977,7 +7977,8 @@
               "codebase",
               "codecommit",
               "bitbucketserver",
-              "forgejo"
+              "forgejo",
+              "bitbucket"
             ],
             "type": "string",
             "x-go-name": "Service"

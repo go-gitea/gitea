@@ -64,9 +64,6 @@ func sessionHandler(session *sshSession) int {
 	args := []string{"--config=" + setting.CustomConf, "serv", "key-" + keyID}
 	log.Trace("SSH: Arguments: %v", args)
 
-	ctx, cancel := context.WithCancel(session.ctx)
-	defer cancel()
-
 	gitProtocol := ""
 	for _, env := range session.env {
 		if strings.HasPrefix(env, "GIT_PROTOCOL=") {
@@ -75,7 +72,7 @@ func sessionHandler(session *sshSession) int {
 		}
 	}
 
-	cmd := process.CommandContext(ctx, setting.AppPath, args...)
+	cmd := process.CommandContext(graceful.GetManager().HammerContext(), setting.AppPath, args...)
 	cmd.Env = append(
 		os.Environ(),
 		"SSH_ORIGINAL_COMMAND="+session.rawCmd,

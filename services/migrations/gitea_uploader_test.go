@@ -349,3 +349,43 @@ func TestGiteaUploadForkPullRequestHeadInRepository(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, strings.TrimSpace(remotes), "no remote is added for a local head")
 }
+
+func TestGiteaUploadReviewCommentsWithoutHead(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	require.NoError(t, pull.LoadIssue(ctx))
+
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
+	var err error
+	uploader.repo = repo
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer uploader.Close()
+	uploader.issues[pull.Issue.Index] = pull.Issue
+	require.NoError(t, git.RemoveRef(ctx, repo, pull.GetGitHeadRefName()))
+
+	opts := issues_model.FindReviewOptions{IssueID: pull.Issue.ID}
+	reviewsBefore, err := issues_model.CountReviews(ctx, opts)
+	require.NoError(t, err)
+
+	require.NoError(t, uploader.CreateReviews(ctx, &base.Review{
+		IssueIndex: pull.Issue.Index,
+		ReviewerID: doer.ID,
+		State:      base.ReviewStateCommented,
+		Comments:   []*base.ReviewComment{{Content: "lost anchor", TreePath: "README.md", Line: -3}},
+	}))
+
+	comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{IssueID: pull.Issue.ID, Type: issues_model.CommentTypeComment})
+	require.NoError(t, err)
+	var contents []string
+	for _, c := range comments {
+		contents = append(contents, c.Content)
+	}
+	assert.Contains(t, contents, "Comment on `README.md` line 3:\n\nlost anchor")
+	reviewsAfter, err := issues_model.CountReviews(ctx, opts)
+	require.NoError(t, err)
+	assert.Equal(t, reviewsBefore, reviewsAfter) // no empty review is left behind
+}
