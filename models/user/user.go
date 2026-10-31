@@ -360,7 +360,8 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 		Join("LEFT", "follow", "`user`.id=follow.user_id").
 		Where("follow.follow_id=?", u.ID).
 		And("`user`.type=?", UserTypeIndividual).
-		And(isUserVisibleToViewerCond(viewer))
+		And(isUserVisibleToViewerCond(viewer)).
+		Asc("`user`.id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)
@@ -382,7 +383,8 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		Join("LEFT", "follow", "`user`.id=follow.follow_id").
 		Where("follow.user_id=?", u.ID).
 		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
-		And(isUserVisibleToViewerCond(viewer))
+		And(isUserVisibleToViewerCond(viewer)).
+		Asc("`user`.id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)
