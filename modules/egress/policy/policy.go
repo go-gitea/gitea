@@ -279,23 +279,29 @@ func ProxyDialer() *net.Dialer {
 // target is a proxy's address is still checked.
 type proxyTransport struct {
 	transport *http.Transport // direct requests: no proxy, the policy-checked dialer
+	selector  func(*http.Request) (*url.URL, error)
 	mu        sync.Mutex
 	proxied   map[string]*http.Transport // proxy URL -> transport that only dials that proxy
 }
 
 // NewHTTPTransport returns a RoundTripper that enforces the policy on direct dials and
 // lets proxy dials through. The base transport is configured for the policy: DialContext
-// becomes the policy's dialer, Proxy defaults to the policy's selector, and unset
-// transport settings get their defaults; nil builds a default transport.
+// becomes the policy's dialer, DialTLSContext is reset so TLS dials go through the same
+// policy-checked dialer, the proxy selector is captured for the proxyTransport (and cleared
+// on the base transport, which must never run it again), and unset transport settings get
+// their defaults; nil builds a default transport.
 func (p *Policy) NewHTTPTransport(base *http.Transport) http.RoundTripper {
 	if base == nil {
 		base = &http.Transport{}
 	}
 
-	if base.Proxy == nil {
-		base.Proxy = p.Proxy
+	selector := base.Proxy
+	if selector == nil {
+		selector = p.Proxy
 	}
+	base.Proxy = nil // the proxyTransport runs the selector once per request; the direct transport must dial directly
 	base.DialContext = p.NewDialContext()
+	base.DialTLSContext = nil // a custom TLS dialer would bypass the policy's dial-time check
 	if !base.ForceAttemptHTTP2 {
 		base.ForceAttemptHTTP2 = true
 	}
@@ -303,16 +309,12 @@ func (p *Policy) NewHTTPTransport(base *http.Transport) http.RoundTripper {
 	base.IdleConnTimeout = cmp.Or(base.IdleConnTimeout, 90*time.Second)
 	base.TLSHandshakeTimeout = cmp.Or(base.TLSHandshakeTimeout, 10*time.Second)
 	base.ExpectContinueTimeout = cmp.Or(base.ExpectContinueTimeout, 1*time.Second)
-	return &proxyTransport{transport: base, proxied: map[string]*http.Transport{}}
+	return &proxyTransport{transport: base, selector: selector, proxied: map[string]*http.Transport{}}
 }
 
 // RoundTrip sends req through the proxy the selector picks, or dials it directly with the policy check.
 func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	selector := t.transport.Proxy
-	if selector == nil {
-		return t.transport.RoundTrip(req) // no selector: every request is direct
-	}
-	proxyURL, err := selector(req)
+	proxyURL, err := t.selector(req)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,8 @@
 package policy
 
 import (
+	"context"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -239,6 +241,37 @@ func TestDirectTargetAtProxyAddress(t *testing.T) {
 	origin := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	t.Cleanup(origin.Close)
 	assert.NoError(t, get(NewPolicy("test", Lax, WithAllow("loopback", ""), WithProxy(selectProxy)), origin.URL))
+}
+
+func TestNewHTTPTransportConfiguresBase(t *testing.T) {
+	// a base transport with its own Proxy selector and a DialTLSContext: the selector must be
+	// captured for the proxyTransport and cleared on the direct transport (so it runs once per
+	// request, not again inside the base transport), and DialTLSContext must be reset so TLS
+	// dials go through the policy-checked DialContext instead of bypassing it
+	origin := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	t.Cleanup(origin.Close)
+
+	calls := 0
+	base := &http.Transport{
+		Proxy: func(*http.Request) (*url.URL, error) { calls++; return nil, nil },
+		DialTLSContext: func(context.Context, string, string) (net.Conn, error) {
+			return nil, errors.New("DialTLSContext bypass")
+		},
+	}
+	rt := NewPolicy("test", Lax, WithAllow("loopback", "test.ALLOWED_HOST_LIST")).NewHTTPTransport(base)
+	pt, ok := rt.(*proxyTransport)
+	require.True(t, ok)
+	assert.Nil(t, base.Proxy, "the direct transport must not keep the selector")
+	assert.Nil(t, base.DialTLSContext, "a custom TLS dialer would bypass the policy check")
+	assert.NotNil(t, base.DialContext)
+	assert.NotNil(t, pt.selector)
+
+	req, err := http.NewRequest(http.MethodGet, origin.URL, nil)
+	require.NoError(t, err)
+	resp, err := rt.RoundTrip(req)
+	require.NoError(t, err)
+	_ = resp.Body.Close()
+	assert.Equal(t, 1, calls, "the selector must run exactly once per request")
 }
 
 func TestProxiedTargetNeedsNoDNS(t *testing.T) {
