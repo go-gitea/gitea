@@ -24,10 +24,10 @@ test('contrastColor', () => {
 });
 
 test('resolveCssColor', () => {
-  expect(resolveCssColor('#4183c4')).toBe('#4183c4ff');
-  expect(resolveCssColor('color-mix(in srgb, #ff0000 20%, black)')).toBe('#330000ff');
+  expect(resolveCssColor('#4183c4')).toBe('#4183c4');
+  expect(resolveCssColor('color-mix(in srgb, #ff0000 20%, black)')).toBe('#330000');
   expect(resolveCssColor('color-mix(in srgb, #ffffff 40%, transparent)')).toBe('#ffffff66');
-  expect(resolveCssColor('color(srgb 0 0.2 1)')).toBe('#0033ffff');
+  expect(resolveCssColor('color(srgb 0 0.2 1)')).toBe('#0033ff');
   expect(resolveCssColor('#4183c499')).toBe('#4183c499');
-  expect(resolveCssColor('oklab(1 0 0)')).toBe('#ffffffff');
+  expect(resolveCssColor('oklab(1 0 0)')).toBe('#ffffff');
 });
