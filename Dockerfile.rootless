@@ -8,7 +8,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --froze
 COPY --exclude=.git/ . .
 RUN make frontend
 
-# Cross-compile backend on the native platform to avoid slow QEMU emulation
+# Cross-compile backend on the native platform
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27-alpine3.24 AS build-env
 
 ARG GITEA_VERSION
