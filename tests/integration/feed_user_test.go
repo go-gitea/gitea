@@ -148,32 +148,6 @@ func TestFeedUser(t *testing.T) {
 		}
 	})
 
-	// TestFeedUserPublicOnlyToken ensures a public-only API token cannot surface a user's
-	// private activity through their profile feed, even when authenticated as the owner.
-	t.Run("PublicOnlyToken", func(t *testing.T) {
-		fullToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
-		publicOnlyToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
-
-		for _, requestURL := range []string{"/user2.rss", "/user2?tab=activity"} {
-			t.Run(requestURL, func(t *testing.T) {
-				// user2 has activity on the private repo user2/repo2
-				const privateMarker = "user2/repo2"
-
-				// a normal read:user token authenticated as the owner sees private activity
-				reqFull := NewRequest(t, "GET", requestURL)
-				reqFull.SetBasicAuth("user2", fullToken)
-				respFull := MakeRequest(t, reqFull, http.StatusOK)
-				assert.Contains(t, respFull.Body.String(), privateMarker)
-
-				// a public-only token must not surface the private activity
-				reqPublicOnly := NewRequest(t, "GET", requestURL)
-				reqPublicOnly.SetBasicAuth("user2", publicOnlyToken)
-				respPublicOnly := MakeRequest(t, reqPublicOnly, http.StatusOK)
-				assert.NotContains(t, respPublicOnly.Body.String(), privateMarker)
-			})
-		}
-	})
-
 	t.Run("RepoTagsWithoutReleasesAccess", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeReleases}))

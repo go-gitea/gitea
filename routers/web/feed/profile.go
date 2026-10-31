@@ -35,7 +35,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		ctx.NotFound(nil)
 		return
 	}
-	context.CheckTokenScopes(ctx, util.Iif(isOrganisation, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser))
+	context.CheckTokenScopes(ctx, util.Iif(ctx.ContextUser.IsOrganization(), auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser))
 	if ctx.Written() {
 		return
 	}
