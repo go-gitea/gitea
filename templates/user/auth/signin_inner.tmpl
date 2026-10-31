@@ -63,9 +63,11 @@
 <div class="ui container fluid">
 	<div class="ui segment flex-relaxed-list tw-items-center">
 		{{if .EnablePasskeyAuth}}
-		<div class="item">
-			{{template "user/auth/webauthn_error" .}}
-			<button type="button" class="btn interact-link signin-passkey tw-p-1">{{ctx.Locale.Tr "auth.signin_passkey"}}</button>
+		<div class="item signin-passkey-container">
+			<div class="tw-flex tw-flex-col tw-items-center">
+				{{template "user/auth/webauthn_error" .}}
+				<button type="button" class="btn interact-link signin-passkey tw-p-1">{{ctx.Locale.Tr "auth.signin_passkey"}}</button>
+			</div>
 		</div>
 		{{end}}
 

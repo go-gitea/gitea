@@ -17,7 +17,8 @@ export function initUserAuthWebAuthn() {
 
   const errorType = detectWebAuthnSupport();
   if (errorType) {
-    if (elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn.closest('.item')!);
+    // no webauthn support, completely hide the passkey related UI elements, including the error message
+    if (elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn.closest('.signin-passkey-container')!);
     return;
   }
 
