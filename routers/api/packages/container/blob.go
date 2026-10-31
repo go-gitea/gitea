@@ -36,7 +36,7 @@ func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader
 }
 
 func saveAsPackageBlobInternal(ctx context.Context, hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo, pb *packages_model.PackageBlob) (*packages_model.PackageBlob, error) {
-	exists := false
+	exists := true
 
 	contentStore := packages_module.NewContentStore()
 
