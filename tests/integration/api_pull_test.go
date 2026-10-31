@@ -271,7 +271,7 @@ func TestAPIMergePull(t *testing.T) {
 			newBranch := "test-pull-1"
 			prDTO := createTestBranchPR(t, newBranch)
 			performMerge(t, prDTO.Index, map[string]any{"do": "merge"})
-			checkBranchExists(t, newBranch, http.StatusOK)
+			checkBranchExists(t, newBranch, http.StatusNotFound)
 			// try to merge again, make sure we cannot perform a merge on the same PR
 			performMerge(t, prDTO.Index, map[string]any{"do": "merge"}, http.StatusMethodNotAllowed)
 		})
