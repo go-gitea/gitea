@@ -388,6 +388,12 @@ func DeleteBotToken(ctx *context.Context) {
 	}
 }
 
+func RegenerateBotToken(ctx *context.Context) {
+	if u := getTargetBot(ctx); u != nil {
+		user_setting.RegenerateAccessToken(ctx, u)
+	}
+}
+
 func editUserCommon(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdminUsers"] = true

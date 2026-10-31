@@ -215,7 +215,6 @@ jobs:
         run: GITEA_TEST_DATABASE=mysql make test-integration
         env:
           TAGS: bindata
-          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true'
