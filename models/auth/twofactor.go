@@ -52,12 +52,11 @@ func (err ErrTwoFactorNotEnrolled) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrTwoFactorTooManyAttempts is returned while an account has used up its TOTP attempts.
 var ErrTwoFactorTooManyAttempts = errors.New("too many failed two-factor attempts")
 
 const (
 	totpMaxAttempts = 5
-	totpAttemptsTTL = 15 * 60 // seconds, renewed by every counted attempt
+	totpAttemptsTTL = 15 * 60 // seconds, renewed by every failed attempt
 )
 
 // TwoFactor represents a two-factor authentication token.
@@ -141,34 +140,40 @@ func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string)
 	if passcode == "" {
 		return false, nil // password-only Basic auth clients must not use up the attempts
 	}
-	// count the attempt before validating so that concurrent requests cannot exceed the limit
+	// the lock spans check, validation and counting so that concurrent requests cannot exceed the limit
 	attemptsKey := fmt.Sprintf("twofa_attempts_%d", t.UID)
-	if err := globallock.LockAndDo(ctx, attemptsKey, func(context.Context) error {
-		value, _ := cache.GetCache().Get(attemptsKey)
-		attempts, _ := strconv.Atoi(value)
-		if attempts >= totpMaxAttempts {
-			return ErrTwoFactorTooManyAttempts
-		}
-		return cache.GetCache().Put(attemptsKey, strconv.Itoa(attempts+1), totpAttemptsTTL)
-	}); err != nil {
+	release, err := globallock.Lock(ctx, attemptsKey)
+	if err != nil {
 		return false, err
+	}
+	defer release()
+	value, _ := cache.GetCache().Get(attemptsKey)
+	attempts, _ := strconv.Atoi(value)
+	if attempts >= totpMaxAttempts {
+		return false, ErrTwoFactorTooManyAttempts
 	}
 
 	ok, err := t.validateTOTP(passcode)
-	if err != nil || !ok {
+	if err != nil {
 		return false, err
 	}
-	// Conditional update: only a row whose stored passcode differs from this one is updated, so a
-	// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
-	// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
-	t.LastUsedPasscode = passcode
-	n, err := db.GetEngine(ctx).ID(t.ID).
-		Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
-		Cols("last_used_passcode").Update(t)
-	if err != nil || n != 1 {
-		return false, err
+	if ok {
+		// Conditional update: only a row whose stored passcode differs from this one is updated, so a
+		// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
+		// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
+		t.LastUsedPasscode = passcode
+		n, err := db.GetEngine(ctx).ID(t.ID).
+			Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
+			Cols("last_used_passcode").Update(t)
+		if err != nil {
+			return false, err
+		}
+		ok = n == 1
 	}
-	_ = cache.GetCache().Delete(attemptsKey)
+	if !ok {
+		return false, cache.GetCache().Put(attemptsKey, strconv.Itoa(attempts+1), totpAttemptsTTL)
+	}
+	cache.Remove(attemptsKey)
 	return true, nil
 }
 

@@ -64,7 +64,7 @@ func TestTwoFactorLifecycle(t *testing.T) {
 		require.ErrorIs(t, err, auth_model.ErrTwoFactorTooManyAttempts)
 		assert.False(t, ok)
 
-		require.NoError(t, cache.GetCache().Delete(fmt.Sprintf("twofa_attempts_%d", tfa.UID)))
+		cache.Remove(fmt.Sprintf("twofa_attempts_%d", tfa.UID))
 		ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), nextPasscode)
 		require.NoError(t, err)
 		assert.True(t, ok)
