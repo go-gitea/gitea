@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"gitea.dev/models/db"
-	"gitea.dev/models/unit"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -34,8 +33,7 @@ func (opts JobQueueOptions) session(ctx context.Context) *xorm.Session {
 }
 
 var (
-	queuedJobsCond = builder.Eq{"`action_run_job`.status": StatusWaiting, "`action_run_job`.task_id": 0}.And(builder.Exists(builder.Select("id").
-			From("repo_unit").Where(builder.Expr("`repo_unit`.repo_id = `action_run_job`.repo_id AND `repo_unit`.type = ?", unit.TypeActions))))
+	queuedJobsCond = builder.Eq{"`action_run_job`.status": StatusWaiting, "`action_run_job`.task_id": 0}
 	// a cancelling job still occupies its runner
 	runningJobsCond = builder.In("`action_run_job`.status", StatusRunning, StatusCancelling)
 )

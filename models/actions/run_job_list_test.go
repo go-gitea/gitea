@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/timeutil"
 
@@ -94,10 +92,6 @@ func TestFindJobQueueJobs(t *testing.T) {
 		}
 		return ids, total
 	}
-
-	ids, _ := find(StatusUnknown, 1, 10)
-	assert.Equal(t, []int64{running, cancelling}, ids)
-	require.NoError(t, db.Insert(ctx, &repo_model.RepoUnit{RepoID: repoID, Type: unit.TypeActions}))
 
 	ids, total := find(StatusUnknown, 1, 10)
 	assert.EqualValues(t, 5, total)
