@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	redisPingTimeout    = 3 * time.Second
-	redisPingRetries    = 10
-	redisPingRetryDelay = time.Second
-	redisPublishTimeout = 2 * time.Second
+	redisPingTimeout      = 3 * time.Second
+	redisPingRetries      = 10
+	redisPingRetryDelay   = time.Second
+	redisPublishTimeout   = 2 * time.Second
+	redisSubscribeTimeout = 2 * time.Second
 )
 
 // RedisBroker fans out across processes via Redis pub/sub. Each topic is
@@ -94,12 +95,15 @@ func (b *RedisBroker) Subscribe(topic string) (<-chan []byte, func()) {
 	// other Subscribe/cancel calls aren't blocked on the network round-trip.
 	// graceful.ShutdownContext so the reader loop dies cleanly on Gitea
 	// shutdown even if every local subscriber has already cancelled.
-	// readLoop consumes the SUBSCRIBE ack; don't wait for it here, that would put
-	// a Redis round-trip in the WebSocket handshake to close a sub-millisecond
-	// window in which a publish is missed - harmless, since a client receives
-	// nothing at all until its handshake completes.
 	ctx, cancelCtx := context.WithCancel(graceful.GetManager().ShutdownContext())
 	ps := b.client.Subscribe(ctx, redisChannelForTopic(topic))
+	if _, err := ps.ReceiveTimeout(ctx, redisSubscribeTimeout); err != nil { // the ack, so state read afterwards misses no publish
+		log.Error("pubsub redis: subscribe to %q: %v", topic, err)
+		cancelCtx()
+		_ = ps.Close()
+		sub.close()
+		return sub.ch, func() {}
+	}
 	b.mu.Lock()
 	if existing, exists := b.topics[topic]; exists {
 		// Another goroutine won the create race; merge into theirs and discard ours.

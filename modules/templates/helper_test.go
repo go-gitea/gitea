@@ -15,47 +15,29 @@ import (
 )
 
 func TestSubjectBodySeparator(t *testing.T) {
-	test := func(input, subject, body string) {
-		loc := mailSubjectSplit.FindStringIndex(input)
+	for _, testCase := range []struct {
+		input, subject, body string
+	}{
+		{"Simple\n---------------\nCase", "Simple\n", "\nCase"},
+		{"Only\nBody", "", "Only\nBody"},
+		{"Minimal\n---\nseparator", "Minimal\n", "\nseparator"},
+		{"False --- separator", "", "False --- separator"},
+		{"False\n--- separator", "", "False\n--- separator"},
+		{"False ---\nseparator", "", "False ---\nseparator"},
+		{"With extra spaces\n-----   \t   \nBody", "With extra spaces\n", "\nBody"},
+		{"With leading spaces\n   -------\nOnly body", "", "With leading spaces\n   -------\nOnly body"},
+		{"Multiple\n---\n-------\n---\nSeparators", "Multiple\n", "\n-------\n---\nSeparators"},
+		{"Insufficient\n--\nSeparators", "", "Insufficient\n--\nSeparators"},
+	} {
+		loc := mailSubjectSplit.FindStringIndex(testCase.input)
 		if loc == nil {
-			assert.Empty(t, subject, "no subject found, but one expected")
-			assert.Equal(t, body, input)
+			assert.Empty(t, testCase.subject, "no subject found, but one expected")
+			assert.Equal(t, testCase.body, testCase.input)
 		} else {
-			assert.Equal(t, subject, input[0:loc[0]])
-			assert.Equal(t, body, input[loc[1]:])
+			assert.Equal(t, testCase.subject, testCase.input[0:loc[0]])
+			assert.Equal(t, testCase.body, testCase.input[loc[1]:])
 		}
 	}
-
-	test("Simple\n---------------\nCase",
-		"Simple\n",
-		"\nCase")
-	test("Only\nBody",
-		"",
-		"Only\nBody")
-	test("Minimal\n---\nseparator",
-		"Minimal\n",
-		"\nseparator")
-	test("False --- separator",
-		"",
-		"False --- separator")
-	test("False\n--- separator",
-		"",
-		"False\n--- separator")
-	test("False ---\nseparator",
-		"",
-		"False ---\nseparator")
-	test("With extra spaces\n-----   \t   \nBody",
-		"With extra spaces\n",
-		"\nBody")
-	test("With leading spaces\n   -------\nOnly body",
-		"",
-		"With leading spaces\n   -------\nOnly body")
-	test("Multiple\n---\n-------\n---\nSeparators",
-		"Multiple\n",
-		"\n-------\n---\nSeparators")
-	test("Insufficient\n--\nSeparators",
-		"",
-		"Insufficient\n--\nSeparators")
 }
 
 func TestSanitizeHTML(t *testing.T) {
@@ -148,33 +130,20 @@ func TestQueryBuild(t *testing.T) {
 		assert.Equal(t, "a=1&b=2&", string(QueryBuild("a=1&", "b", 2)))
 	})
 
-	t.Run("replace", func(t *testing.T) {
-		assert.Equal(t, "a=1&c=d&e=f", string(QueryBuild("a=b&c=d&e=f", "a", 1)))
-		assert.Equal(t, "a=b&c=1&e=f", string(QueryBuild("a=b&c=d&e=f", "c", 1)))
-		assert.Equal(t, "a=b&c=d&e=1", string(QueryBuild("a=b&c=d&e=f", "e", 1)))
-		assert.Equal(t, "a=b&c=d&e=f&k=1", string(QueryBuild("a=b&c=d&e=f", "k", 1)))
-	})
-
-	t.Run("replace-&", func(t *testing.T) {
-		assert.Equal(t, "&a=1&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "a", 1)))
-		assert.Equal(t, "&a=b&c=1&e=f", string(QueryBuild("&a=b&c=d&e=f", "c", 1)))
-		assert.Equal(t, "&a=b&c=d&e=1", string(QueryBuild("&a=b&c=d&e=f", "e", 1)))
-		assert.Equal(t, "&a=b&c=d&e=f&k=1", string(QueryBuild("&a=b&c=d&e=f", "k", 1)))
-	})
-
-	t.Run("delete", func(t *testing.T) {
-		assert.Equal(t, "c=d&e=f", string(QueryBuild("a=b&c=d&e=f", "a", "")))
-		assert.Equal(t, "a=b&e=f", string(QueryBuild("a=b&c=d&e=f", "c", "")))
-		assert.Equal(t, "a=b&c=d", string(QueryBuild("a=b&c=d&e=f", "e", "")))
-		assert.Equal(t, "a=b&c=d&e=f", string(QueryBuild("a=b&c=d&e=f", "k", "")))
-	})
-
-	t.Run("delete-&", func(t *testing.T) {
-		assert.Equal(t, "&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "a", "")))
-		assert.Equal(t, "&a=b&e=f", string(QueryBuild("&a=b&c=d&e=f", "c", "")))
-		assert.Equal(t, "&a=b&c=d", string(QueryBuild("&a=b&c=d&e=f", "e", "")))
-		assert.Equal(t, "&a=b&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "k", "")))
-	})
+	for _, prefix := range []string{"", "&"} {
+		t.Run("replace"+prefix, func(t *testing.T) {
+			assert.Equal(t, prefix+"a=1&c=d&e=f", string(QueryBuild(prefix+"a=b&c=d&e=f", "a", 1)))
+			assert.Equal(t, prefix+"a=b&c=1&e=f", string(QueryBuild(prefix+"a=b&c=d&e=f", "c", 1)))
+			assert.Equal(t, prefix+"a=b&c=d&e=1", string(QueryBuild(prefix+"a=b&c=d&e=f", "e", 1)))
+			assert.Equal(t, prefix+"a=b&c=d&e=f&k=1", string(QueryBuild(prefix+"a=b&c=d&e=f", "k", 1)))
+		})
+		t.Run("delete"+prefix, func(t *testing.T) {
+			assert.Equal(t, prefix+"c=d&e=f", string(QueryBuild(prefix+"a=b&c=d&e=f", "a", "")))
+			assert.Equal(t, prefix+"a=b&e=f", string(QueryBuild(prefix+"a=b&c=d&e=f", "c", "")))
+			assert.Equal(t, prefix+"a=b&c=d", string(QueryBuild(prefix+"a=b&c=d&e=f", "e", "")))
+			assert.Equal(t, prefix+"a=b&c=d&e=f", string(QueryBuild(prefix+"a=b&c=d&e=f", "k", "")))
+		})
+	}
 }
 
 const queryNonASCII = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~" // all non-letter & non-number chars

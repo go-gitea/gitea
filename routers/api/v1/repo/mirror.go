@@ -46,10 +46,8 @@ func MirrorSync(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo.Repository
 
@@ -97,14 +95,8 @@ func PushMirrorSync(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	if !setting.Mirror.Enabled {
 		ctx.APIError(http.StatusBadRequest, "Mirror feature is disabled")
@@ -160,12 +152,8 @@ func ListPushMirrors(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PushMirrorList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	if !setting.Mirror.Enabled {
 		ctx.APIError(http.StatusBadRequest, "Mirror feature is disabled")
@@ -218,12 +206,8 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PushMirror"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	if !setting.Mirror.Enabled {
 		ctx.APIError(http.StatusBadRequest, "Mirror feature is disabled")
@@ -279,12 +263,8 @@ func AddPushMirror(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PushMirror"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	if !setting.Mirror.Enabled {
 		ctx.APIError(http.StatusBadRequest, "Mirror feature is disabled")
@@ -326,9 +306,7 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	if !setting.Mirror.Enabled {
