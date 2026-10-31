@@ -335,8 +335,8 @@ func (prs PullRequestList) LoadReviews(ctx context.Context) (ReviewList, error) 
 			"reviewer_team_id":   0,
 		}).
 		GroupBy("issue_id, reviewer_id")
-	// Get latest review of each reviewer, sorted in order they were made
-	if err := db.GetEngine(ctx).In("id", subQuery).OrderBy("review.updated_unix ASC").Find(&reviews); err != nil {
+	// Get latest review of each reviewer, sorted in order they were made. Joined because MySQL scans all reviews for "id IN (subquery)", xorm aliases the subquery "review".
+	if err := db.GetEngine(ctx).Table("review").Alias("latest").Join("INNER", subQuery, "latest.id = review.id").OrderBy("latest.updated_unix ASC").Find(&reviews); err != nil {
 		return nil, err
 	}
 
@@ -350,7 +350,7 @@ func (prs PullRequestList) LoadReviews(ctx context.Context) (ReviewList, error) 
 		"reviewer_team_id": 0,
 	}).
 		GroupBy("issue_id, reviewer_team_id")
-	if err := db.GetEngine(ctx).In("id", subQueryTeam).OrderBy("review.updated_unix ASC").Find(&teamReviewRequests); err != nil {
+	if err := db.GetEngine(ctx).Table("review").Alias("latest").Join("INNER", subQueryTeam, "latest.id = review.id").OrderBy("latest.updated_unix ASC").Find(&teamReviewRequests); err != nil {
 		return nil, err
 	}
 
