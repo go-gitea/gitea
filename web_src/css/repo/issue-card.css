@@ -11,9 +11,16 @@
 }
 
 .issue-card-icon,
-.issue-card-unpin {
+.issue-card-unpin,
+.issue-card-remove {
   margin-top: 1px;
   flex-shrink: 0;
+}
+
+@media (hover: hover) {
+  .issue-card:not(:hover, :focus-within) .issue-card-remove {
+    visibility: hidden;
+  }
 }
 
 .issue-card-title {
