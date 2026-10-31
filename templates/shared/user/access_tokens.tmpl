@@ -48,12 +48,10 @@
 						</div>
 					</div>
 					<div class="item-trailing">
-						{{if not $.IsBot}}
-							<button type="button" class="ui tiny button link-action" data-modal-confirm="#regenerate-token" data-url="{{$.Link}}/regenerate?id={{$token.ID}}">
-								{{svg "octicon-sync"}}
-								{{ctx.Locale.Tr "settings.regenerate_token"}}
-							</button>
-						{{end}}
+						<button type="button" class="ui tiny button link-action" data-modal-confirm="#regenerate-token" data-url="{{$.Link}}/regenerate?id={{$token.ID}}">
+							{{svg "octicon-sync"}}
+							{{ctx.Locale.Tr "settings.regenerate_token"}}
+						</button>
 						<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-token" data-url="{{$.Link}}/delete?id={{$token.ID}}">
 							{{svg "octicon-trash"}}
 							{{ctx.Locale.Tr "settings.delete_token"}}

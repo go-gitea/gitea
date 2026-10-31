@@ -695,7 +695,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("").Get(user_setting.Applications).
 				Post(user_setting.ApplicationsPost)
 			m.Post("/delete", user_setting.DeleteApplication)
-			m.Post("/regenerate", user_setting.RegenerateAccessToken)
+			m.Post("/regenerate", user_setting.ApplicationsRegenerateToken)
 		})
 
 		m.Combo("/keys").Get(user_setting.Keys).
@@ -824,6 +824,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
 			m.Post("/{userid}/access_tokens", admin.NewBotTokenPost)
 			m.Post("/{userid}/access_tokens/delete", admin.DeleteBotToken)
+			m.Post("/{userid}/access_tokens/regenerate", admin.RegenerateBotToken)
 			m.Post("/{userid}/orgs/{org_id}/remove", admin.RemoveUserFromOrg)
 			m.Post("/{userid}/orgs/remove-all", admin.RemoveUserFromAllOrgs)
 		})
