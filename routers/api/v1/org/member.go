@@ -74,8 +74,8 @@ func ListMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	var (
 		isMember bool
@@ -116,8 +116,8 @@ func ListPublicMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listMembers(ctx, false)
 }
@@ -143,8 +143,8 @@ func IsMember(ctx *context.APIContext) {
 	//     description: user is a member
 	//   "303":
 	//     description: redirection to /orgs/{org}/public_members/{username}
-	//   "404":
-	//     description: user is not a member
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
@@ -194,8 +194,8 @@ func IsPublicMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: user is a public member
-	//   "404":
-	//     description: user is not a public member
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
@@ -248,10 +248,8 @@ func PublicizeMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: membership publicized
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	userToPublicize := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
@@ -290,10 +288,8 @@ func ConcealMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	userToConceal := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
@@ -332,8 +328,8 @@ func DeleteMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: member removed
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	member := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {

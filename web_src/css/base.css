@@ -47,7 +47,6 @@
   --gap-block: 0.5rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
 
   --background-view-image: repeating-conic-gradient(var(--color-transparency-grid-dark) 0 25%, var(--color-transparency-grid-light) 0 50%) 0 0 / 18px 18px;
-  --box-shadow-kbd: inset 0 -1px 0 var(--color-secondary);
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -107,6 +106,11 @@ code,
 samp,
 .tw-font-mono {
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
+}
+
+mark {
+  background: var(--color-highlight-bg);
+  color: inherit;
 }
 
 @font-face {
@@ -457,53 +461,6 @@ a.label,
   color: var(--color-text) !important;
 }
 
-.color-preview {
-  display: inline-block;
-  margin-left: 0.4em;
-  height: 0.67em;
-  width: 0.67em;
-  border-radius: var(--border-radius);
-}
-
-.attention-icon {
-  margin: 2px 6px 0 0;
-}
-
-blockquote.attention-note {
-  border-left-color: var(--color-info-text);
-}
-strong.attention-note, svg.attention-note {
-  color: var(--color-info-text);
-}
-
-blockquote.attention-tip {
-  border-left-color: var(--color-success-text);
-}
-strong.attention-tip, svg.attention-tip {
-  color: var(--color-success-text);
-}
-
-blockquote.attention-important {
-  border-left-color: var(--color-priority-text);
-}
-strong.attention-important, svg.attention-important {
-  color: var(--color-priority-text);
-}
-
-blockquote.attention-warning {
-  border-left-color: var(--color-warning-text);
-}
-strong.attention-warning, svg.attention-warning {
-  color: var(--color-warning-text);
-}
-
-blockquote.attention-caution {
-  border-left-color: var(--color-error-text);
-}
-strong.attention-caution, svg.attention-caution {
-  color: var(--color-error-text);
-}
-
 /* FIXME: this is a longstanding dirty patch since 2015, it only makes the pages more messy and shouldn't be used */
 .center {
   text-align: center;
@@ -845,7 +802,7 @@ table th[data-sortt-desc] .svg {
 }
 
 /* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
-.ui.modal .header.flex-left-right,
+.modal-dialog .header.flex-left-right,
 .flex-left-right {
   display: flex;
   flex-wrap: wrap;

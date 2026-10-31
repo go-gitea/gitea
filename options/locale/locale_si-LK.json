@@ -1478,7 +1478,6 @@
   "repo.diff.comment.start_review": "සමාලෝචනය ආරම්භ කරන්න",
   "repo.diff.comment.reply": "පිළිතුර",
   "repo.diff.review": "සමාලෝචනය",
-  "repo.diff.review.header": "සමාලෝචනය ඉදිරිපත් කරන්න",
   "repo.diff.review.placeholder": "සමාලෝචන අදහස්",
   "repo.diff.review.comment": "අදහස",
   "repo.diff.review.approve": "අනුමත",
@@ -2095,5 +2094,6 @@
   "actions.workflow.scope_owner": "හිමිකරු",
   "actions.workflow.required": "ඇවැසිය",
   "actions.job_queue.filter_repo_no_select": "සියළුම කෝෂ්ඨ",
+  "projects.workflows.none": "කිසිවක් නැත",
   "actions.general.token_permissions.mode.restricted": "සීමා"
 }

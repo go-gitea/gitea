@@ -439,6 +439,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(360, "Move branch protection settings to JSON", v29.MoveBranchProtectionConfigToJSON),
 		newMigration(361, "Drop legacy commit_id column from comment", v29.DropCommentCommitID),
 		newMigration(362, "Add reusable_workflow_ref column to action_run_job", v29.AddReusableWorkflowRefToActionRunJob),
+		newMigration(363, "Add release_id to reaction table", v29.AddReleaseIDToReaction),
+		newMigration(364, "Add new table project_workflow", v29.AddProjectWorkflow),
 	}
 	return preparedMigrations
 }

@@ -52,8 +52,8 @@ func GetIssueDependencies(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// If this issue's repository does not enable dependencies then there can be no dependencies by default
 	if !ctx.Repo.Repository.IsDependenciesEnabled(ctx) {
@@ -61,15 +61,8 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	// 1. We must be able to read this issue
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIErrorNotFound()
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return
 	}
 
@@ -79,7 +72,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 
 	blockerIssues := make([]*issues_model.Issue, 0, min(listOptions.PageSize, setting.API.MaxResponseItems))
 
-	// 2. Get the issues this issue depends on, i.e. the `<#b>`: `<issue> <- <#b>`
+	// Get the issues this issue depends on, i.e. the `<#b>`: `<issue> <- <#b>`
 	blockersInfo, total, err := issue.BlockedByDependencies(ctx, listOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -171,13 +164,11 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//   "404":
-	//     description: the issue does not exist
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
-	target := getParamsIssue(ctx)
+	target := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if ctx.Written() {
 		return
 	}
@@ -232,13 +223,11 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
-	target := getParamsIssue(ctx)
+	target := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if ctx.Written() {
 		return
 	}
@@ -297,19 +286,14 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// We need to list the issues that DEPEND on this issue not the other way round
 	// Therefore whether dependencies are enabled or not in this repository is potentially irrelevant.
 
-	issue := getParamsIssue(ctx)
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if ctx.Written() {
-		return
-	}
-
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -396,10 +380,10 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//   "404":
-	//     description: the issue does not exist
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	dependency := getParamsIssue(ctx)
+	dependency := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if ctx.Written() {
 		return
 	}
@@ -453,10 +437,10 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	dependency := getParamsIssue(ctx)
+	dependency := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if ctx.Written() {
 		return
 	}
@@ -478,16 +462,6 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, dependency))
-}
-
-func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return nil
-	}
-	issue.Repo = ctx.Repo.Repository
-	return issue
 }
 
 func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Issue {
