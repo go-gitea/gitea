@@ -5,6 +5,7 @@ package gitproxy
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -215,71 +216,87 @@ func connPair(t *testing.T) (net.Conn, *net.TCPConn) {
 	return conn, tcpPeer
 }
 
+// scriptStep is one scripted Read result: data, or an error such as os.ErrDeadlineExceeded.
+type scriptStep struct {
+	data []byte
+	err  error
+}
+
+// scriptedConn is a net.Conn whose Read replays scripted steps and which records deadline
+// re-arms, so relay() can be driven deterministically without wall-clock timing.
+type scriptedConn struct {
+	steps      []scriptStep
+	pos        int
+	reArms     int
+	written    bytes.Buffer
+	halfClosed bool
+}
+
+func (c *scriptedConn) Read(p []byte) (int, error) {
+	if c.pos >= len(c.steps) {
+		return 0, io.EOF
+	}
+	s := c.steps[c.pos]
+	c.pos++
+	if s.err != nil {
+		return 0, s.err
+	}
+	return copy(p, s.data), nil
+}
+
+func (c *scriptedConn) Write(p []byte) (int, error)      { return c.written.Write(p) }
+func (c *scriptedConn) Close() error                     { return nil }
+func (c *scriptedConn) CloseWrite() error                { c.halfClosed = true; return nil }
+func (c *scriptedConn) SetReadDeadline(time.Time) error  { c.reArms++; return nil }
+func (c *scriptedConn) SetDeadline(time.Time) error      { return nil }
+func (c *scriptedConn) SetWriteDeadline(time.Time) error { return nil }
+func (c *scriptedConn) LocalAddr() net.Addr              { return nil }
+func (c *scriptedConn) RemoteAddr() net.Addr             { return nil }
+
+var deadlineStep = scriptStep{err: os.ErrDeadlineExceeded}
+
 func TestRelayIdle(t *testing.T) {
 	t.Parallel()
 
-	t.Run("ClientGoneReapedAtOnce", func(t *testing.T) {
-		t.Parallel()
-		// git's http transport closes the socket: a remote that then stays silent is reaped at once
-		hold := make(chan struct{})
-		t.Cleanup(func() { close(hold) })
-		upstreamAddr := serveConns(t, func(net.Conn) { <-hold })
-
-		client, git := connPair(t)
-		upstream, err := net.Dial("tcp", upstreamAddr)
-		require.NoError(t, err)
-		done := make(chan struct{})
-		go func() {
-			relay(client, upstream, 0)
-			close(done)
-		}()
-		require.NoError(t, git.Close()) // git is gone: the remote only sees a FIN
-		select {
-		case <-done:
-		case <-time.After(5 * time.Second):
-			t.Fatal("relay held the tunnel open for a silent remote")
-		}
-	})
-
-	t.Run("HalfClosedSilentReaped", func(t *testing.T) {
-		t.Parallel()
-		// the git:// helper half-closes and waits: a remote silent for the whole idle is reaped
-		hold := make(chan struct{})
-		t.Cleanup(func() { close(hold) })
-		upstreamAddr := serveConns(t, func(net.Conn) { <-hold })
-
-		client, git := connPair(t)
-		upstream, err := net.Dial("tcp", upstreamAddr)
-		require.NoError(t, err)
-		done := make(chan struct{})
-		go func() {
-			relay(client, upstream, 100*time.Millisecond)
-			close(done)
-		}()
-		require.NoError(t, git.CloseWrite())
-		select {
-		case <-done:
-		case <-time.After(5 * time.Second):
-			t.Fatal("relay held the tunnel open for a silent remote")
-		}
-	})
+	// a remote that goes silent once the client has closed its side is reaped: at once for a
+	// full close (curl never half-closes), after the idle window for a half-close (git:// v2)
+	for _, tc := range []struct {
+		name        string
+		idle        time.Duration
+		closeClient func(*net.TCPConn) error
+	}{
+		{"ClientGoneReapedAtOnce", 0, (*net.TCPConn).Close},
+		{"HalfClosedSilentReaped", 100 * time.Millisecond, (*net.TCPConn).CloseWrite},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			upstream := &scriptedConn{steps: []scriptStep{deadlineStep, deadlineStep}}
+			client, git := connPair(t)
+			done := make(chan struct{})
+			go func() {
+				relay(client, upstream, tc.idle)
+				close(done)
+			}()
+			require.NoError(t, tc.closeClient(git))
+			select {
+			case <-done:
+			case <-time.After(5 * time.Second):
+				t.Fatal("relay held the tunnel open for a silent remote")
+			}
+		})
+	}
 
 	t.Run("HalfCloseAnswered", func(t *testing.T) {
 		t.Parallel()
 		// the git:// helper half-closes and waits for the pack: a prompt answer must get through
-		upstreamAddr := serveConns(t, func(conn net.Conn) {
-			_, _ = io.Copy(io.Discard, conn) // until the half-close
-			_, _ = conn.Write([]byte("pong\n"))
-		})
+		upstream := &scriptedConn{steps: []scriptStep{{data: []byte("pong\n")}}}
 		client, git := connPair(t)
-		upstream, err := net.Dial("tcp", upstreamAddr)
-		require.NoError(t, err)
 		done := make(chan struct{})
 		go func() {
 			relay(client, upstream, 5*time.Second)
 			close(done)
 		}()
-		_, err = git.Write([]byte("ping\n"))
+		_, err := git.Write([]byte("ping\n"))
 		require.NoError(t, err)
 		require.NoError(t, git.CloseWrite())
 		reply, err := bufio.NewReader(git).ReadString('\n')
@@ -290,29 +307,27 @@ func TestRelayIdle(t *testing.T) {
 
 	t.Run("KeepAlivesWithinIdleDelivered", func(t *testing.T) {
 		t.Parallel()
-		// receive-pack sends a keep-alive every few seconds while it works: they must get through,
-		// so the trickle outlasts the idle and only the re-arm on activity keeps the tunnel alive
-		upstreamAddr := serveConns(t, func(conn net.Conn) {
-			_, _ = io.Copy(io.Discard, conn) // until the half-close
-			for range 5 {
-				time.Sleep(300 * time.Millisecond)
-				_, _ = conn.Write([]byte("x"))
-			}
-		})
+		// receive-pack sends a keep-alive every few seconds while it works: each window with
+		// data re-arms the deadline, so the trickle keeps the tunnel alive indefinitely
+		steps := make([]scriptStep, 0, 11)
+		for range 5 {
+			steps = append(steps, scriptStep{data: []byte("x")}, deadlineStep)
+		}
+		upstream := &scriptedConn{steps: steps}
 		client, git := connPair(t)
-		upstream, err := net.Dial("tcp", upstreamAddr)
-		require.NoError(t, err)
 		done := make(chan struct{})
 		go func() {
-			relay(client, upstream, time.Second)
+			relay(client, upstream, time.Hour) // any idle: the fake conn fires deadlines on script
 			close(done)
 		}()
-		_, err = git.Write([]byte("ping\n"))
+		_, err := git.Write([]byte("ping\n"))
 		require.NoError(t, err)
 		require.NoError(t, git.CloseWrite())
 		answer, err := io.ReadAll(git)
 		require.NoError(t, err)
 		assert.Equal(t, "xxxxx", string(answer))
+		assert.Equal(t, 6, upstream.reArms) // the wake-up deadline plus one re-arm per window with data
+		assert.True(t, upstream.halfClosed)
 		<-done
 	})
 }
