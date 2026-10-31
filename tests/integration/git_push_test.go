@@ -104,6 +104,10 @@ func testGitPush(t *testing.T, u *url.URL) {
 			}
 			pushed = append(pushed, "master")
 			doGitPushTestRepository(gitPath, "origin", "--all")(t)
+
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 2, LowerName: "repo-to-push"})
+			assert.False(t, repo.IsEmpty)
+			assert.Equal(t, "master", repo.DefaultBranch) // preferred over branch-0
 			return pushed, deleted
 		})
 	})

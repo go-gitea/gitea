@@ -45,6 +45,12 @@ func UpdateRepositoryColsNoAutoTime(ctx context.Context, repo *Repository, colNa
 	return err
 }
 
+// MarkRepositoryNotEmpty sets the default branch and clears is_empty, it returns false if the repository is no longer empty
+func MarkRepositoryNotEmpty(ctx context.Context, repoID int64, defaultBranch string) (bool, error) {
+	n, err := db.GetEngine(ctx).ID(repoID).Where("is_empty = ?", true).Cols("is_empty", "default_branch").Update(&Repository{DefaultBranch: defaultBranch})
+	return n > 0, err
+}
+
 // ErrReachLimitOfRepo represents a "ReachLimitOfRepo" kind of error.
 type ErrReachLimitOfRepo struct {
 	Limit int

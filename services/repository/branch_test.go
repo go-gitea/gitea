@@ -59,7 +59,7 @@ func TestSyncBranchesToDBUsesGitState(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, git_model.MarkBranchAsDeleted(ctx, repo.ID, "develop", 1))
 
-	require.NoError(t, SyncBranchesToDB(ctx, repo.ID, 2, gitRepo, []string{"master", "foo", "develop", "pr-to-update"}))
+	require.NoError(t, SyncBranchesToDB(ctx, repo.ID, 2, gitRepo, []string{"master", "foo", "develop", "pr-to-update"}, nil))
 
 	loadBranch := func(name string) *git_model.Branch {
 		return unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: name})
