@@ -165,6 +165,11 @@ func TestDenialReasons(t *testing.T) {
 	err = strict.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80))
 	assert.EqualError(t, err, "test can not call non-public addresses without an allow entry (check your test.ALLOWED_HOST_LIST setting), deny 'ci.internal.example.com(10.1.2.3)' — set test.ALLOWED_INTERNAL_RANGES to let hostname entries cover non-public targets")
 
+	// set but nothing valid parsed (e.g. a typo): the hint says so instead of asking to set it again
+	invalid := NewPolicy("test", Lax, WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"), WithInternalRanges("10.0.0.5/8", "test.ALLOWED_INTERNAL_RANGES"))
+	err = invalid.checkAddr("ci.internal.example.com", addr("10.1.2.3", 80))
+	assert.EqualError(t, err, "test can not call non-public addresses without an allow entry (check your test.ALLOWED_HOST_LIST setting), deny 'ci.internal.example.com(10.1.2.3)' — test.ALLOWED_INTERNAL_RANGES is set but none of its entries are valid, check them")
+
 	// a hostname entry with ranges gives the specific reason: out of range, or port not allowed
 	ranged := NewPolicy("test", Lax, WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"), WithInternalRanges("10.0.0.0/8", "test.ALLOWED_INTERNAL_RANGES"))
 	err = ranged.checkAddr("ci.internal.example.com", addr("192.168.5.5", 80))
