@@ -63,8 +63,7 @@ func Users(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort", UserSearchDefaultAdminSort)
 
-	// unfiltered, an administrator needs to list every account kind
-	types := []user_model.UserType{user_model.UserTypeIndividual, user_model.UserTypeUserReserved, user_model.UserTypeBot, user_model.UserTypeRemoteUser}
+	types := user_model.AdminListedUserTypes
 	userTypeFilter := api.UserTypeString(ctx.FormString("user_type"))
 	ctx.Data["UserTypeFilter"] = ""
 	if t, err := convert.UserTypeFromString(userTypeFilter); err == nil {
