@@ -166,10 +166,18 @@ func Milestones(ctx *context.Context) {
 		repoOpts.TeamID = ctx.Org.Team.ID
 	}
 
+	userRepoCond := repo_model.SearchRepositoryCondition(repoOpts) // all repo condition user could visit
+	if !ctx.Doer.IsAdmin {
+		// milestones belong to the tracker, so a repository only qualifies through its issues or pulls unit
+		userRepoCond = userRepoCond.And(builder.Or(
+			repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypeIssues),
+			repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypePullRequests),
+		))
+	}
+
 	var (
-		userRepoCond = repo_model.SearchRepositoryCondition(repoOpts) // all repo condition user could visit
-		repoCond     = userRepoCond
-		repoIDs      []int64
+		repoCond = userRepoCond
+		repoIDs  []int64
 
 		reposQuery   = ctx.FormString("repos")
 		isShowClosed = ctx.FormString("state") == "closed"

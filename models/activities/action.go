@@ -18,6 +18,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -127,6 +128,34 @@ func (at ActionType) String() string {
 
 func (at ActionType) InActions(actions ...string) bool {
 	return slices.Contains(actions, at.String())
+}
+
+// UnitType returns the repository unit guarding the action's content, TypeInvalid for repository-level events
+func (at ActionType) UnitType() unit.Type {
+	switch at {
+	case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionDeleteBranch,
+		ActionMirrorSyncPush, ActionMirrorSyncCreate, ActionMirrorSyncDelete:
+		return unit.TypeCode
+	case ActionCreateIssue, ActionCommentIssue, ActionCloseIssue, ActionReopenIssue:
+		return unit.TypeIssues
+	case ActionCreatePullRequest, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest,
+		ActionApprovePullRequest, ActionRejectPullRequest, ActionCommentPull, ActionPullReviewDismissed,
+		ActionPullRequestReadyForReview, ActionAutoMergePullRequest:
+		return unit.TypePullRequests
+	case ActionPublishRelease:
+		return unit.TypeReleases
+	}
+	return unit.TypeInvalid
+}
+
+// UnreadableActionTypes returns the action types whose unit canRead rejects
+func UnreadableActionTypes(canRead func(unit.Type) bool) (types []ActionType) {
+	for at := ActionCreateRepo; at <= ActionAutoMergePullRequest; at++ {
+		if u := at.UnitType(); u != unit.TypeInvalid && !canRead(u) {
+			types = append(types, at)
+		}
+	}
+	return types
 }
 
 // Action represents user operation type and other information to
@@ -434,6 +463,7 @@ type GetFeedsOptions struct {
 	IncludeDeleted  bool                   // include deleted actions
 	Date            string                 // the day we want activity for: YYYY-MM-DD
 	DontCount       bool                   // do counting in GetFeeds
+	ExcludedOpTypes []ActionType           // action types the actor cannot read, see UnreadableActionTypes
 }
 
 // ActivityReadable return whether doer can read activities of user
@@ -514,6 +544,10 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 			builder.Eq{"`action`.repo_id": opts.RequestedRepo.ID},
 			builder.Expr("`action`.user_id = `action`.act_user_id"),
 		)
+	}
+
+	if len(opts.ExcludedOpTypes) > 0 {
+		cond = cond.And(builder.NotIn("`action`.op_type", opts.ExcludedOpTypes))
 	}
 
 	if opts.RequestedTeam != nil {

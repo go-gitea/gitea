@@ -10,7 +10,6 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
-	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	api "gitea.dev/modules/structs"
@@ -251,16 +250,8 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	var isPull optional.Option[bool]
-	canReadIssue := ctx.Repo.Permission.CanRead(unit.TypeIssues)
-	canReadPull := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
-	if canReadIssue && canReadPull {
-		isPull = optional.None[bool]()
-	} else if canReadIssue {
-		isPull = optional.Some(false)
-	} else if canReadPull {
-		isPull = optional.Some(true)
-	} else {
+	isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(optional.None[bool]())
+	if !ok {
 		ctx.APIErrorNotFound()
 		return
 	}

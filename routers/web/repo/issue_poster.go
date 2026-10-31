@@ -16,6 +16,11 @@ import (
 
 func IssuePullPosters(ctx *context.Context) {
 	isPullList := ctx.PathParam("type") == "pulls"
+	// the issues routes also admit pull request readers
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(isPullList) {
+		ctx.NotFound(nil)
+		return
+	}
 	issuePosters(ctx, isPullList)
 }
 

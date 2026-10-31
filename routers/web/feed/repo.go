@@ -20,10 +20,11 @@ func ShowRepoFeed(ctx *context.Context, repo *repo_model.Repository, formatType 
 		return
 	}
 	actions, _, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
-		RequestedRepo:  repo,
-		Actor:          ctx.Doer,
-		IncludePrivate: true,
-		Date:           ctx.FormString("date"),
+		RequestedRepo:   repo,
+		Actor:           ctx.Doer,
+		IncludePrivate:  true,
+		Date:            ctx.FormString("date"),
+		ExcludedOpTypes: activities_model.UnreadableActionTypes(ctx.Repo.Permission.CanRead),
 	})
 	if err != nil {
 		ctx.ServerError("GetFeeds", err)

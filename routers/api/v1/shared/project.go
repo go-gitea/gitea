@@ -1599,8 +1599,15 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 		SortType:   "project-column-sorting",
 	}
 	if scope.Repo != nil {
-		// the route already established repo read access, and every issue here is that repo's
+		// Projects read alone must not expose issues or pulls whose unit the doer cannot read
+		isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(optional.None[bool]())
+		if !ok {
+			ctx.SetTotalCountHeader(0)
+			ctx.JSON(http.StatusOK, []*api.Issue{})
+			return
+		}
 		issuesOpts.RepoIDs = []int64{scope.Repo.ID}
+		issuesOpts.IsPull = isPull
 	} else {
 		// an owner-level board spans repositories, so filter to what this doer may see
 		issuesOpts.Owner = scope.Owner

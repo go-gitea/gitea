@@ -6,7 +6,6 @@ package repo
 import (
 	"net/http"
 
-	"gitea.dev/models/unit"
 	"gitea.dev/modules/optional"
 	"gitea.dev/services/context"
 	issue_service "gitea.dev/services/issue"
@@ -16,15 +15,7 @@ import (
 func IssueSuggestions(ctx *context.Context) {
 	keyword := ctx.Req.FormValue("q")
 
-	canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
-	canReadPulls := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
-
-	var isPull optional.Option[bool]
-	if canReadPulls && !canReadIssues {
-		isPull = optional.Some(true)
-	} else if canReadIssues && !canReadPulls {
-		isPull = optional.Some(false)
-	}
+	isPull, _ := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(optional.None[bool]())
 
 	suggestions, err := issue_service.GetSuggestion(ctx, ctx.Repo.Repository, isPull, keyword)
 	if err != nil {

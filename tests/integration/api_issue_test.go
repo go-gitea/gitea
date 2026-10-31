@@ -323,7 +323,7 @@ func testAPIEditIssue(t *testing.T) {
 
 func testAPISearchIssues(t *testing.T) {
 	defer test.MockVariableValue(&setting.API.DefaultPagingNum, 20)()
-	expectedIssueCount := 20 // 20 is from the fixtures
+	expectedIssueCount := 17 // 20 open in the fixtures, 3 of them in a disabled unit
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
@@ -340,7 +340,7 @@ func testAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(publicOnlyToken)
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
-	assert.Len(t, apiIssues, 15) // 15 public issues
+	assert.Len(t, apiIssues, 13) // 13 readable public issues
 
 	since := "2000-01-01T00:50:01+00:00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
@@ -350,7 +350,7 @@ func testAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
-	assert.Len(t, apiIssues, 11)
+	assert.Len(t, apiIssues, 8)
 	query.Del("since")
 	query.Del("before")
 
@@ -366,16 +366,16 @@ func testAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
-	assert.Equal(t, "22", resp.Header().Get("X-Total-Count"))
-	assert.Len(t, apiIssues, 20)
+	assert.Equal(t, "21", resp.Header().Get("X-Total-Count"))
+	assert.Len(t, apiIssues, 18)
 
 	query.Add("limit", "10")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
-	assert.Equal(t, "22", resp.Header().Get("X-Total-Count"))
-	assert.Len(t, apiIssues, 10)
+	assert.Equal(t, "21", resp.Header().Get("X-Total-Count"))
+	assert.Len(t, apiIssues, 9)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
@@ -403,7 +403,7 @@ func testAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
-	assert.Len(t, apiIssues, 8)
+	assert.Len(t, apiIssues, 7)
 
 	query = url.Values{"owner": {"org3"}} // organization
 	link.RawQuery = query.Encode()
@@ -438,19 +438,19 @@ func testAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
-	assert.Len(t, apiIssues, 9)
+	assert.Len(t, apiIssues, 7)
 
 	query = url.Values{"created_by": {"user2"}, "type": {"pulls"}} // prs created by user2
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
-	assert.Len(t, apiIssues, 3)
+	assert.Len(t, apiIssues, 2)
 }
 
 func testAPISearchIssuesWithLabels(t *testing.T) {
 	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
+	expectedIssueCount := min(17, setting.UI.IssuePagingNum) // 20 open in the fixtures, 3 of them in a disabled unit
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
