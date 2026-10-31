@@ -26,7 +26,7 @@ func TestRelaySilentRemoteWhileClientOpen(t *testing.T) {
 	t.Cleanup(func() { close(hold) })
 	upstreamAddr := serveConns(t, func(conn net.Conn) {
 		_, _ = bufio.NewReader(conn).ReadString('\n') // consume the request line
-		time.Sleep(500 * time.Millisecond)            // then stay silent, longer than the idle window below
+		time.Sleep(200 * time.Millisecond)            // then stay silent, longer than the idle window below
 		_, _ = conn.Write([]byte("pack\n"))
 		<-hold // then stay silent forever
 	})
@@ -36,7 +36,7 @@ func TestRelaySilentRemoteWhileClientOpen(t *testing.T) {
 	require.NoError(t, err)
 	done := make(chan struct{})
 	go func() {
-		relay(client, upstream, 100*time.Millisecond)
+		relay(client, upstream, 50*time.Millisecond)
 		close(done)
 	}()
 
@@ -126,7 +126,7 @@ func TestRelayV2HalfCloseSlowPack(t *testing.T) {
 		require.NoError(t, err)
 		done := make(chan struct{})
 		go func() {
-			relay(client, upstream, 100*time.Millisecond)
+			relay(client, upstream, 50*time.Millisecond)
 			close(done)
 		}()
 		_, err = git.Write([]byte("fetch-request\n"))
