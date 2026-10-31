@@ -1,0 +1,15 @@
+name: merge-group-lgtm
+
+# giteabot only posts giteabot/lgtm on PR heads, which already passed it before entering the queue
+on:
+  merge_group:
+
+permissions: {}
+
+jobs:
+  lgtm:
+    name: giteabot/lgtm
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - run: "true"
