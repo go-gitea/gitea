@@ -207,6 +207,33 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 		assert.NotEmpty(t, statuses)
 		assert.NotEmpty(t, status.Statuses)
 	})
+	t.Run("TokenScopes", func(t *testing.T) {
+		commitIDs := map[string]string{"repo1": "65f1bf27bc3bf70f64657658635e66094edbcb4d", "repo2": "1032bbf17fbc0d9c95bb5418dabe8f8c99278700"}
+		for _, test := range []struct {
+			name              string
+			userID            int64
+			reponame          string
+			scope             auth_model.AccessTokenScope
+			getCode, postCode int
+		}{
+			{"WriteCommitStatus", 2, "repo1", auth_model.AccessTokenScopeWriteCommitStatus, http.StatusOK, http.StatusCreated},
+			{"ReadCommitStatus", 2, "repo1", auth_model.AccessTokenScopeReadCommitStatus, http.StatusOK, http.StatusForbidden},
+			{"ReadRepository", 2, "repo1", auth_model.AccessTokenScopeReadRepository, http.StatusOK, http.StatusForbidden},
+			{"UnrelatedScope", 2, "repo1", auth_model.AccessTokenScopeWriteIssue, http.StatusForbidden, http.StatusForbidden},
+			{"NonWriter", 4, "repo1", auth_model.AccessTokenScopeWriteCommitStatus, http.StatusOK, http.StatusForbidden},
+			{"PublicOnlyPrivateRepo", 2, "repo2", "public-only,write:commitstatus", http.StatusNotFound, http.StatusNotFound},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				token := &auth_model.AccessToken{UID: test.userID, Name: test.name, Scope: test.scope}
+				require.NoError(t, auth_model.NewAccessToken(t.Context(), token))
+				repoLink, commitID := "/api/v1/repos/user2/"+test.reponame, commitIDs[test.reponame]
+				for _, link := range []string{"/statuses/" + commitID, "/commits/master/status", "/commits/master/statuses"} {
+					MakeRequest(t, NewRequest(t, "GET", repoLink+link).AddTokenAuth(token.Token), test.getCode)
+				}
+				MakeRequest(t, NewRequestWithJSON(t, "POST", repoLink+"/statuses/"+commitID, api.CreateStatusOption{State: commitstatus.CommitStatusSuccess}).AddTokenAuth(token.Token), test.postCode)
+			})
+		}
+	})
 }
 
 func TestRepoCommitsStatusParallel(t *testing.T) {
@@ -262,86 +289,4 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	// Check that the data-global-init="initCommitStatuses" (for trigger) and commit-status (svg) are present
 	sel := doc.doc.Find(`#commits-table .message [data-global-init="initCommitStatuses"] .commit-status`)
 	assert.Equal(t, 1, sel.Length())
-}
-
-func TestRepoCommitsStatusTokenScopes(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-
-	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	commitURL, exists := NewHTMLParser(t, resp.Body).doc.Find("#commits-table .commit-id-short").Attr("href")
-	require.True(t, exists)
-	commitID := path.Base(commitURL)
-
-	statusOption := api.CreateStatusOption{
-		State:     commitstatus.CommitStatusSuccess,
-		TargetURL: "http://test.ci/",
-		Context:   "token-scopes",
-	}
-
-	createCases := []struct {
-		scopes []auth_model.AccessTokenScope
-		code   int
-	}{
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeWriteCommitStatus}, http.StatusCreated},
-		// write:repository includes write:commitstatus, so existing repository-scoped tokens keep working
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeWriteRepository}, http.StatusCreated},
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeAll}, http.StatusCreated},
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadCommitStatus}, http.StatusForbidden},
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadRepository}, http.StatusForbidden},
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeWriteIssue}, http.StatusForbidden},
-	}
-	t.Run("CreateStatus", func(t *testing.T) {
-		link := "/api/v1/repos/user2/repo1/statuses/" + commitID
-		for _, c := range createCases {
-			t.Run(string(c.scopes[0]), func(t *testing.T) {
-				ctx := NewAPITestContext(t, "user2", "repo1", c.scopes...)
-				req := NewRequestWithJSON(t, http.MethodPost, link, statusOption).AddTokenAuth(ctx.Token)
-				ctx.Session.MakeRequest(t, req, c.code)
-			})
-		}
-	})
-
-	// token scopes only apply to token auth, other auth is governed by repository permissions
-	t.Run("CreateStatusBasicAuth", func(t *testing.T) {
-		req := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user2/repo1/statuses/"+commitID, statusOption).AddBasicAuth("user2")
-		session.MakeRequest(t, req, http.StatusCreated)
-	})
-
-	// a signed-in user with read-only access can list but not create statuses
-	t.Run("CreateStatusReadOnlyUser", func(t *testing.T) {
-		readOnlySession := loginUser(t, "user4")
-		listReq := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/statuses/"+commitID)
-		readOnlySession.MakeRequest(t, listReq, http.StatusOK)
-		createReq := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user2/repo1/statuses/"+commitID, statusOption).AddBasicAuth("user4")
-		readOnlySession.MakeRequest(t, createReq, http.StatusForbidden)
-	})
-
-	// the commitstatus scope alone does not grant access to a repository the user cannot see
-	t.Run("CreateStatusWithoutRepoAccess", func(t *testing.T) {
-		ctx := NewAPITestContext(t, "user4", "repo2", auth_model.AccessTokenScopeWriteCommitStatus)
-		req := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user2/repo2/statuses/"+commitID, statusOption).AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	listCases := []struct {
-		scopes []auth_model.AccessTokenScope
-		code   int
-	}{
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadCommitStatus}, http.StatusOK},
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeReadRepository}, http.StatusOK},
-		{[]auth_model.AccessTokenScope{auth_model.AccessTokenScopeWriteIssue}, http.StatusForbidden},
-	}
-	t.Run("ListStatuses", func(t *testing.T) {
-		link := "/api/v1/repos/user2/repo1/statuses/" + commitID
-		for _, c := range listCases {
-			t.Run(string(c.scopes[0]), func(t *testing.T) {
-				ctx := NewAPITestContext(t, "user2", "repo1", c.scopes...)
-				req := NewRequest(t, "GET", link).AddTokenAuth(ctx.Token)
-				ctx.Session.MakeRequest(t, req, c.code)
-			})
-		}
-	})
 }

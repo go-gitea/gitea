@@ -99,7 +99,7 @@ const (
 	accessTokenScopeAllBits accessTokenScopeBitmap = accessTokenScopeWriteActivityPubBits |
 		accessTokenScopeWriteAdminBits | accessTokenScopeWriteMiscBits | accessTokenScopeWriteNotificationBits |
 		accessTokenScopeWriteOrganizationBits | accessTokenScopeWritePackageBits | accessTokenScopeWriteIssueBits |
-		accessTokenScopeWriteRepositoryBits | accessTokenScopeWriteUserBits | accessTokenScopeWriteCommitStatusBits
+		accessTokenScopeWriteRepositoryBits | accessTokenScopeWriteUserBits
 
 	accessTokenScopePublicOnlyBits accessTokenScopeBitmap = 1 << iota
 

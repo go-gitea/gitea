@@ -853,7 +853,7 @@
   "settings.permission_anonymous_read": "Anonymous Read",
   "settings.permission_everyone_read": "Everyone Read",
   "settings.permission_everyone_write": "Everyone Write",
-  "settings.access_token_desc": "Selected token permissions limit authorization only to the corresponding <a %s>API</a> routes. Read the <a %s>documentation</a> for more information.",
+  "settings.access_token_desc": "Selected token permissions limit authorization only to the corresponding <a %s>API</a> routes. Repository permissions include commit status permissions. Read the <a %s>documentation</a> for more information.",
   "settings.at_least_one_permission": "You must select at least one permission to create a token",
   "settings.permissions_list": "Permissions:",
   "settings.manage_oauth2_applications": "Manage OAuth2 Applications",
