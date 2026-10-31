@@ -10,8 +10,11 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"mime"
 	"net/http"
 	"net/url"
+	"path"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -49,7 +52,9 @@ func (f *BitbucketServerDownloaderFactory) New(ctx context.Context, opts base.Mi
 		return nil, err
 	}
 	log.Trace("Create Bitbucket Server downloader. BaseURL: %s Project: %s Repo: %s", baseURL, projectKey, repoSlug)
-	return NewBitbucketServerDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, projectKey, repoSlug), nil
+	d := NewBitbucketServerDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, projectKey, repoSlug)
+	d.migrateAttachments = opts.Attachments
+	return d, nil
 }
 
 // GitServiceType returns the type of git service
@@ -108,6 +113,12 @@ type BitbucketServerDownloader struct {
 
 	// activities of the PRs on the last fetched page, shared by comments, reviews and merge info
 	activities map[int64][]*bbsActivity
+	// reviewers of the PRs on the last fetched page
+	reviewers map[int64][]bbsReviewer
+	// migrateAttachments copies the files of attachments, otherwise their references point to the source server
+	migrateAttachments bool
+	// id of the repository, 0 until known; attachments of other repositories cannot be resolved
+	repoID int64
 }
 
 // NewBitbucketServerDownloader creates a Bitbucket Server downloader
@@ -122,6 +133,7 @@ func NewBitbucketServerDownloader(_ context.Context, baseURL, username, password
 		password:   password,
 		token:      token,
 		activities: map[int64][]*bbsActivity{},
+		reviewers:  map[int64][]bbsReviewer{},
 	}
 }
 
@@ -166,6 +178,7 @@ func (u bbsUser) login() string {
 }
 
 type bbsRepository struct {
+	ID          int64  `json:"id"`
 	Slug        string `json:"slug"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -181,17 +194,24 @@ type bbsRef struct {
 	Repository   *bbsRepository `json:"repository"`
 }
 
+// bbsReviewer is a user added as reviewer of a pull request, Status is UNAPPROVED until the user votes
+type bbsReviewer struct {
+	User   bbsUser `json:"user"`
+	Status string  `json:"status"` // UNAPPROVED, NEEDS_WORK, APPROVED
+}
+
 type bbsPullRequest struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	State       string `json:"state"` // OPEN, MERGED, DECLINED
-	Draft       bool   `json:"draft"`
-	CreatedDate int64  `json:"createdDate"`
-	UpdatedDate int64  `json:"updatedDate"`
-	ClosedDate  int64  `json:"closedDate"`
-	FromRef     bbsRef `json:"fromRef"`
-	ToRef       bbsRef `json:"toRef"`
+	Reviewers   []bbsReviewer `json:"reviewers"`
+	ID          int64         `json:"id"`
+	Title       string        `json:"title"`
+	Description string        `json:"description"`
+	State       string        `json:"state"` // OPEN, MERGED, DECLINED
+	Draft       bool          `json:"draft"`
+	CreatedDate int64         `json:"createdDate"`
+	UpdatedDate int64         `json:"updatedDate"`
+	ClosedDate  int64         `json:"closedDate"`
+	FromRef     bbsRef        `json:"fromRef"`
+	ToRef       bbsRef        `json:"toRef"`
 	Author      struct {
 		User bbsUser `json:"user"`
 	} `json:"author"`
@@ -243,6 +263,50 @@ type bbsComment struct {
 	Comments    []*bbsComment `json:"comments"` // replies
 
 	ThreadResolved bool `json:"threadResolved"`
+
+	Properties struct {
+		Reactions []struct {
+			Emoticon struct {
+				Shortcut string `json:"shortcut"`
+			} `json:"emoticon"`
+			Users []bbsUser `json:"users"`
+		} `json:"reactions"`
+	} `json:"properties"`
+}
+
+// bbsReactions maps the emoticon shortcuts of Bitbucket to the reactions of Gitea, other emoticons are dropped
+var bbsReactions = map[string]string{
+	"thumbsup":   "+1",
+	"+1":         "+1",
+	"thumbsdown": "-1",
+	"-1":         "-1",
+	"smile":      "laugh",
+	"smiley":     "laugh",
+	"laughing":   "laugh",
+	"grinning":   "laugh",
+	"tada":       "hooray",
+	"confused":   "confused",
+	"heart":      "heart",
+	"rocket":     "rocket",
+	"eyes":       "eyes",
+}
+
+func (c *bbsComment) reactions() []*base.Reaction {
+	var reactions []*base.Reaction
+	for _, r := range c.Properties.Reactions {
+		content, ok := bbsReactions[r.Emoticon.Shortcut]
+		if !ok {
+			continue
+		}
+		for _, u := range r.Users {
+			reaction := &base.Reaction{UserID: u.ID, UserName: u.login(), Content: content}
+			// several emoticons map to one reaction, a user can only have it once
+			if !slices.ContainsFunc(reactions, func(o *base.Reaction) bool { return *o == *reaction }) {
+				reactions = append(reactions, reaction)
+			}
+		}
+	}
+	return reactions
 }
 
 func (c *bbsComment) updated() time.Time {
@@ -317,7 +381,7 @@ func (d *BitbucketServerDownloader) callAPI(ctx context.Context, path string, qu
 		apiURL += "?" + query.Encode()
 	}
 
-	resp, err := d.doRequest(ctx, apiURL)
+	resp, err := d.doRequest(ctx, http.MethodGet, apiURL, "application/json")
 	for attempt := 1; err == nil && resp.StatusCode == http.StatusTooManyRequests && attempt < bitbucketServerMaxAttempts; attempt++ {
 		wait := bitbucketServerRetryAfter(resp.Header.Get("Retry-After"), attempt)
 		resp.Body.Close()
@@ -325,7 +389,7 @@ func (d *BitbucketServerDownloader) callAPI(ctx context.Context, path string, qu
 		if err := d.sleep(ctx, wait); err != nil {
 			return nil, err
 		}
-		resp, err = d.doRequest(ctx, apiURL)
+		resp, err = d.doRequest(ctx, http.MethodGet, apiURL, "application/json")
 	}
 	if err != nil {
 		return nil, err
@@ -345,12 +409,12 @@ func (d *BitbucketServerDownloader) callAPI(ctx context.Context, path string, qu
 	return resp.Header, json.Unmarshal(data, result)
 }
 
-func (d *BitbucketServerDownloader) doRequest(ctx context.Context, apiURL string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+func (d *BitbucketServerDownloader) doRequest(ctx context.Context, method, apiURL, accept string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, apiURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", accept)
 	if d.token != "" {
 		req.Header.Set("Authorization", "Bearer "+d.token)
 	} else if d.username != "" || d.password != "" {
@@ -429,6 +493,7 @@ func (d *BitbucketServerDownloader) GetRepoInfo(ctx context.Context) (*base.Repo
 	if err != nil {
 		return nil, err
 	}
+	d.repoID = repo.ID
 	if d.token != "" {
 		d.tokenUser = bitbucketServerGitUser(header.Get("X-AUSERNAME"))
 	}
@@ -473,6 +538,7 @@ func (d *BitbucketServerDownloader) GetPullRequests(ctx context.Context, page, p
 	d.prNextStart = result.NextPageStart
 
 	clear(d.activities)
+	clear(d.reviewers)
 	prs := make([]*base.PullRequest, 0, len(result.Values))
 	for i := range result.Values {
 		prs = append(prs, d.convertPullRequest(ctx, &result.Values[i]))
@@ -481,11 +547,17 @@ func (d *BitbucketServerDownloader) GetPullRequests(ctx context.Context, page, p
 }
 
 func (d *BitbucketServerDownloader) convertPullRequest(ctx context.Context, orig *bbsPullRequest) *base.PullRequest {
+	if d.repoID == 0 && orig.ToRef.Repository != nil {
+		d.repoID = orig.ToRef.Repository.ID
+	}
+	d.reviewers[orig.ID] = orig.Reviewers
+	content, attachments := d.rewriteAttachments(ctx, orig.Description)
 	pr := &base.PullRequest{
 		Number:       orig.ID,
 		ForeignIndex: orig.ID,
 		Title:        orig.Title,
-		Content:      orig.Description,
+		Content:      content,
+		Attachments:  attachments,
 		PosterID:     orig.Author.User.ID,
 		PosterName:   orig.Author.User.login(),
 		PosterEmail:  orig.Author.User.EmailAddress,
@@ -565,6 +637,63 @@ func (d *BitbucketServerDownloader) getActivities(ctx context.Context, prID int6
 	return activities, nil
 }
 
+var bbsAttachmentLink = regexp.MustCompile(`(\[([^\]]*)\]\()?attachment:(\d+)/(\d+)`)
+
+// rewriteAttachments turns the attachment references of a markdown text, which only Bitbucket can resolve, into
+// URLs of the REST API and returns the files they refer to, so that they are copied by the migration.
+func (d *BitbucketServerDownloader) rewriteAttachments(ctx context.Context, text string) (string, []*base.Attachment) {
+	if !strings.Contains(text, "attachment:") {
+		return text, nil
+	}
+	var attachments []*base.Attachment
+	seen := map[string]bool{}
+	text = bbsAttachmentLink.ReplaceAllStringFunc(text, func(m string) string {
+		parts := bbsAttachmentLink.FindStringSubmatch(m)
+		label, repoID, id := parts[2], parts[3], parts[4]
+		if n, _ := strconv.ParseInt(repoID, 10, 64); d.repoID != 0 && n != d.repoID {
+			return m // belongs to another repository
+		}
+		link := d.baseURL + "/rest/api/1.0" + d.repoPath() + "/attachments/" + id
+		if d.migrateAttachments && !seen[id] {
+			seen[id] = true
+			attachments = append(attachments, &base.Attachment{
+				Name:         d.attachmentName(ctx, link, label, id),
+				Link:         link,
+				DownloadFunc: func() (io.ReadCloser, error) { return d.download(ctx, link) },
+			})
+		}
+		if parts[1] != "" {
+			return parts[1] + link // keep the label of the markdown link
+		}
+		return link
+	})
+	return text, attachments
+}
+
+// attachmentName returns the file name the server reports for an attachment, or the best alternative
+func (d *BitbucketServerDownloader) attachmentName(ctx context.Context, link, label, id string) string {
+	if resp, err := d.doRequest(ctx, http.MethodHead, link, "*/*"); err == nil {
+		_ = resp.Body.Close()
+		if _, params, err := mime.ParseMediaType(resp.Header.Get("Content-Disposition")); err == nil && params["filename"] != "" {
+			return path.Base(params["filename"])
+		}
+	}
+	return cmp.Or(label, "attachment-"+id)
+}
+
+// download returns the content of an attachment
+func (d *BitbucketServerDownloader) download(ctx context.Context, link string) (io.ReadCloser, error) {
+	resp, err := d.doRequest(ctx, http.MethodGet, link, "*/*")
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		_ = resp.Body.Close()
+		return nil, &bbsStatusError{Status: resp.StatusCode, URL: link}
+	}
+	return resp.Body, nil
+}
+
 // walkBitbucketServerComments visits each non-empty comment once, with the anchor of its thread.
 // Deleted comments are skipped, also in the activity that added them.
 func walkBitbucketServerComments(activities []*bbsActivity, visit func(c *bbsComment, anchor *bbsAnchor, isRoot bool)) {
@@ -606,9 +735,9 @@ func (d *BitbucketServerDownloader) GetComments(ctx context.Context, commentable
 		if anchor.isInline() {
 			return
 		}
-		content := c.Text
+		content, attachments := d.rewriteAttachments(ctx, c.Text)
 		if anchor != nil && anchor.Path != "" {
-			content = fmt.Sprintf("Comment on `%s`:\n\n%s", anchor.Path, c.Text)
+			content = fmt.Sprintf("Comment on `%s`:\n\n%s", anchor.Path, content)
 		}
 		comments = append(comments, &base.Comment{
 			IssueIndex:  commentable.GetLocalIndex(),
@@ -619,6 +748,8 @@ func (d *BitbucketServerDownloader) GetComments(ctx context.Context, commentable
 			Created:     time.UnixMilli(c.CreatedDate),
 			Updated:     c.updated(),
 			Content:     content,
+			Reactions:   c.reactions(),
+			Attachments: attachments,
 		})
 	})
 	for _, activity := range activities {
@@ -658,13 +789,17 @@ func (d *BitbucketServerDownloader) GetReviews(ctx context.Context, reviewable b
 			return
 		}
 		// every comment becomes its own review so that replies keep their author
+		rc := c.toReviewComment(anchor, isRoot)
+		var attachments []*base.Attachment
+		rc.Content, attachments = d.rewriteAttachments(ctx, rc.Content)
+		rc.Attachments = attachments
 		reviews = append(reviews, &base.Review{
 			IssueIndex:   reviewable.GetLocalIndex(),
 			ReviewerID:   c.Author.ID,
 			ReviewerName: c.Author.login(),
 			CreatedAt:    time.UnixMilli(c.CreatedDate),
 			State:        base.ReviewStateCommented,
-			Comments:     []*base.ReviewComment{c.toReviewComment(anchor, isRoot)},
+			Comments:     []*base.ReviewComment{rc},
 		})
 	})
 
@@ -691,6 +826,18 @@ func (d *BitbucketServerDownloader) GetReviews(ctx context.Context, reviewable b
 			State:        state,
 		})
 	}
+	// reviewers who have not voted (or withdrew the vote) are still requested to review
+	for _, reviewer := range d.reviewers[reviewable.GetForeignIndex()] {
+		if reviewer.Status != "UNAPPROVED" {
+			continue
+		}
+		reviews = append(reviews, &base.Review{
+			IssueIndex:   reviewable.GetLocalIndex(),
+			ReviewerID:   reviewer.User.ID,
+			ReviewerName: reviewer.User.login(),
+			State:        base.ReviewStateRequestReview,
+		})
+	}
 	slices.SortStableFunc(reviews, func(a, b *base.Review) int { return a.CreatedAt.Compare(b.CreatedAt) })
 	return reviews, nil
 }
@@ -707,6 +854,7 @@ func (c *bbsComment) toReviewComment(anchor *bbsAnchor, isRoot bool) *base.Revie
 		CreatedAt: time.UnixMilli(c.CreatedDate),
 		UpdatedAt: c.updated(),
 		Resolved:  isRoot && c.ThreadResolved,
+		Reactions: c.reactions(),
 	}
 	side := ""
 	if anchor.FileType == "FROM" {

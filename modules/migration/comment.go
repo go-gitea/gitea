@@ -23,6 +23,7 @@ type Comment struct {
 	Updated     time.Time
 	Content     string
 	Reactions   []*Reaction
+	Attachments []*Attachment  `yaml:"attachments,omitempty"`
 	Meta        map[string]any `yaml:"meta,omitempty"` // see models/issues/comment.go for fields in Comment struct
 }
 

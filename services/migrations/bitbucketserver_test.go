@@ -6,9 +6,11 @@ package migrations
 import (
 	"cmp"
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -318,6 +320,115 @@ func TestBitbucketServerCommentsAndReviews(t *testing.T) {
 	assert.Equal(t, "fffffffffffffffffffffffffffffffffffffff0", reviews[3].Comments[0].CommitID)
 	assert.Equal(t, "inline reply", reviews[2].Comments[0].Content)
 	assert.EqualValues(t, 4, reviews[0].IssueIndex)
+}
+
+func TestBitbucketServerReviewRequestsAndAttachments(t *testing.T) {
+	const api = "/rest/api/1.0/projects/PROJ/repos/repo"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case api + "/pull-requests":
+			_, _ = w.Write([]byte(`{"isLastPage":true,"values":[{"id":3,"title":"t","description":"see [a.png](attachment:5/11) and ![](attachment:99/12)","state":"OPEN",
+"author":{"user":{"id":7,"name":"alice"}},
+"fromRef":{"displayId":"f","latestCommit":"` + strings.Repeat("1", 40) + `","repository":{"id":5,"slug":"repo","project":{"key":"PROJ"}}},
+"toRef":{"displayId":"main","latestCommit":"` + strings.Repeat("2", 40) + `","repository":{"id":5,"slug":"repo","project":{"key":"PROJ"}}},
+"reviewers":[
+ {"user":{"id":8,"name":"bob"},"status":"UNAPPROVED"},
+ {"user":{"id":9,"name":"carol"},"status":"APPROVED"},
+ {"user":{"id":10,"name":"dave"},"status":"NEEDS_WORK"},
+ {"user":{"id":11,"name":"erin"},"status":"UNAPPROVED"}]}]}`))
+		case api + "/pull-requests/3/activities":
+			_, _ = w.Write([]byte(`{"isLastPage":true,"values":[
+{"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000300000,"user":{"id":7,"name":"alice"},
+ "commentAnchor":{"line":2,"lineType":"ADDED","fileType":"TO","path":"a.go","toHash":"` + strings.Repeat("e", 40) + `"},
+ "comment":{"id":3,"text":"inline ![](attachment:5/14)","author":{"id":7,"name":"alice"},"createdDate":1700000300000,
+ "properties":{"reactions":[{"emoticon":{"shortcut":"heart"},"users":[{"id":9,"name":"carol"}]}]}}},
+{"action":"COMMENTED","commentAction":"ADDED","createdDate":1700000200000,"user":{"id":7,"name":"alice"},
+ "comment":{"id":2,"text":"file [b](attachment:5/13)","author":{"id":7,"name":"alice"},"createdDate":1700000200000,
+ "properties":{"reactions":[{"emoticon":{"shortcut":"thumbsup"},"users":[{"id":8,"name":"bob"},{"id":9,"name":"carol"}]},
+  {"emoticon":{"shortcut":"+1"},"users":[{"id":8,"name":"bob"}]},{"emoticon":{"shortcut":"tada"},"users":[{"id":8,"name":"bob"}]},{"emoticon":{"shortcut":"banana"},"users":[{"id":8,"name":"bob"}]}]}}},
+{"action":"APPROVED","createdDate":1700000100000,"user":{"id":9,"name":"carol"}},
+{"action":"REVIEWED","createdDate":1700000100000,"user":{"id":10,"name":"dave"}}
+]}`))
+		case api + "/attachments/11", api + "/attachments/13", api + "/attachments/14":
+			id := path.Base(r.URL.Path)
+			w.Header().Set("Content-Disposition", `inline; filename="file-`+id+`.txt"`)
+			if r.Method == http.MethodGet {
+				_, _ = w.Write([]byte("content " + id))
+			}
+		default:
+			assert.Failf(t, "unexpected request", "%s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	// without the option the files are not copied, the links point to the source server
+	d := NewBitbucketServerDownloader(t.Context(), srv.URL, "", "", "", "PROJ", "repo")
+	prs, _, err := d.GetPullRequests(t.Context(), 1, 50)
+	require.NoError(t, err)
+	require.Len(t, prs, 1)
+	assert.Empty(t, prs[0].Attachments)
+	assert.Contains(t, prs[0].Content, "/rest/api/1.0/projects/PROJ/repos/repo/attachments/11")
+
+	factory := &BitbucketServerDownloaderFactory{}
+	downloader, err := factory.New(t.Context(), base.MigrateOptions{CloneAddr: srv.URL + "/projects/PROJ/repos/repo", Attachments: true})
+	require.NoError(t, err)
+	var ok bool
+	d, ok = downloader.(*BitbucketServerDownloader)
+	require.True(t, ok)
+	assert.True(t, d.migrateAttachments)
+	prs, _, err = d.GetPullRequests(t.Context(), 1, 50)
+	require.NoError(t, err)
+	require.Len(t, prs, 1)
+	attachment := func(id string) string { return srv.URL + "/rest/api/1.0/projects/PROJ/repos/repo/attachments/" + id }
+	assert.Equal(t, "see [a.png]("+attachment("11")+") and ![](attachment:99/12)", prs[0].Content,
+		"the attachment of the repository is linked, the one of another repository is kept")
+
+	readAttachments := func(attachments []*base.Attachment) map[string]string {
+		got := map[string]string{}
+		for _, a := range attachments {
+			rc, err := a.DownloadFunc()
+			require.NoError(t, err)
+			data, err := io.ReadAll(rc)
+			require.NoError(t, err)
+			require.NoError(t, rc.Close())
+			assert.Contains(t, a.Link, "/attachments/")
+			got[a.Name] = string(data)
+		}
+		return got
+	}
+	assert.Equal(t, map[string]string{"file-11.txt": "content 11"}, readAttachments(prs[0].Attachments),
+		"the file of the other repository is not an attachment")
+
+	comments, _, err := d.GetComments(t.Context(), prs[0])
+	require.NoError(t, err)
+	require.Len(t, comments, 1, "the inline comment belongs to the reviews")
+	assert.Equal(t, "file [b]("+attachment("13")+")", comments[0].Content)
+	assert.Equal(t, []*base.Reaction{
+		{UserID: 8, UserName: "bob", Content: "+1"},
+		{UserID: 9, UserName: "carol", Content: "+1"},
+		{UserID: 8, UserName: "bob", Content: "hooray"},
+	}, comments[0].Reactions, "unknown emoticons are dropped, emoticons of one reaction are merged")
+	assert.Equal(t, map[string]string{"file-13.txt": "content 13"}, readAttachments(comments[0].Attachments))
+
+	reviews, err := d.GetReviews(t.Context(), prs[0])
+	require.NoError(t, err)
+	type summary struct{ reviewer, state string }
+	var got []summary
+	for _, r := range reviews {
+		got = append(got, summary{r.ReviewerName, r.State})
+		if len(r.Comments) > 0 {
+			assert.Equal(t, "inline ![]("+attachment("14")+")", r.Comments[0].Content)
+			assert.Equal(t, []*base.Reaction{{UserID: 9, UserName: "carol", Content: "heart"}}, r.Comments[0].Reactions)
+			assert.Equal(t, map[string]string{"file-14.txt": "content 14"}, readAttachments(r.Comments[0].Attachments))
+		}
+	}
+	assert.ElementsMatch(t, []summary{
+		{"alice", base.ReviewStateCommented},
+		{"carol", base.ReviewStateApproved},
+		{"dave", base.ReviewStateChangesRequested},
+		{"bob", base.ReviewStateRequestReview},
+		{"erin", base.ReviewStateRequestReview},
+	}, got, "only reviewers who have not voted are requested to review")
 }
 
 // TestBitbucketServerDownloadRepo replays responses recorded from a Bitbucket Server 10.5.1 instance.

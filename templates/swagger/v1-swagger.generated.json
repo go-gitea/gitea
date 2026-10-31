@@ -30382,6 +30382,11 @@
         "repo_name"
       ],
       "properties": {
+        "attachments": {
+          "description": "migrate the attachments of pull requests and comments, only supported when migrating from bitbucketserver",
+          "type": "boolean",
+          "x-go-name": "Attachments"
+        },
         "auth_password": {
           "type": "string",
           "x-go-name": "AuthPassword"

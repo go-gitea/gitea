@@ -1096,6 +1096,8 @@
   "repo.migrate_items_pullrequests": "Pull Requests",
   "repo.migrate_items_merge_requests": "Merge Requests",
   "repo.migrate_items_releases": "Releases",
+  "repo.migrate_items_attachments": "Attachments",
+  "repo.migrate_items_attachments_desc": "Copy the files attached to pull requests and comments",
   "repo.migrate_repo": "Migrate Repository",
   "repo.migrate.clone_address": "Migrate / Clone From URL",
   "repo.migrate.clone_address_desc": "The HTTP(S) or Git 'clone' URL of an existing repository",

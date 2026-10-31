@@ -349,3 +349,78 @@ func TestGiteaUploadForkPullRequestHeadInRepository(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, strings.TrimSpace(remotes), "no remote is added for a local head")
 }
+
+func TestGiteaUploadAttachments(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	require.NoError(t, pull.LoadIssue(ctx))
+
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
+	var err error
+	uploader.repo = repo
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer uploader.Close()
+	uploader.issues[pull.Issue.Index] = pull.Issue
+
+	headCommitID, err := uploader.gitRepo.GetBranchCommitID(ctx, repo.DefaultBranch)
+	require.NoError(t, err)
+	require.NoError(t, git.UpdateRef(ctx, repo, pull.GetGitHeadRefName(), headCommitID))
+
+	file := func(name, link, data string) *base.Attachment {
+		return &base.Attachment{Name: name, Link: link, DownloadFunc: func() (io.ReadCloser, error) { return io.NopCloser(strings.NewReader(data)), nil }}
+	}
+	gone := &base.Attachment{Name: "gone.txt", Link: "https://old/a3", DownloadFunc: func() (io.ReadCloser, error) { return nil, errors.New("gone") }}
+
+	require.NoError(t, uploader.CreateComments(ctx, &base.Comment{
+		IssueIndex:  pull.Issue.Index,
+		PosterID:    doer.ID,
+		Created:     time.Now(),
+		Content:     "see [a.txt](https://old/a) and [gone](https://old/a3) and [a2](https://old/a2)",
+		Attachments: []*base.Attachment{file("a.txt", "https://old/a", "aaa"), gone, file("a2.txt", "https://old/a2", "22")},
+	}))
+	require.NoError(t, uploader.CreateReviews(ctx, &base.Review{
+		IssueIndex: pull.Issue.Index,
+		ReviewerID: doer.ID,
+		State:      base.ReviewStateCommented,
+		Comments: []*base.ReviewComment{{
+			Content: "inline ![b](https://old/b)", TreePath: "README.md", Line: 1,
+			Attachments: []*base.Attachment{file("b.png", "https://old/b", "bbbb")},
+		}},
+	}))
+
+	findComment := func(commentType issues_model.CommentType, prefix string) *issues_model.Comment {
+		comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{IssueID: pull.Issue.ID, Type: commentType})
+		require.NoError(t, err)
+		for _, c := range comments {
+			if strings.HasPrefix(c.Content, prefix) {
+				return c
+			}
+		}
+		require.Failf(t, "comment not found", "%s", prefix)
+		return nil
+	}
+
+	comment := findComment(issues_model.CommentTypeComment, "see ")
+	a := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{CommentID: comment.ID, Name: "a.txt", Size: 3})
+	assert.Equal(t, pull.Issue.ID, a.IssueID)
+	assert.Equal(t, repo.ID, a.RepoID)
+	a2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{CommentID: comment.ID, Name: "a2.txt"})
+	assert.Equal(t, "see [a.txt](/attachments/"+a.UUID+") and [gone](https://old/a3) and [a2](/attachments/"+a2.UUID+")", comment.Content,
+		"the reference of a skipped file is kept, a link that is the prefix of another one does not corrupt it")
+	unittest.AssertNotExistsBean(t, &repo_model.Attachment{CommentID: comment.ID, Name: "gone.txt"})
+
+	code := findComment(issues_model.CommentTypeCode, "inline ")
+	b := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{CommentID: code.ID, Name: "b.png", Size: 4})
+	assert.Equal(t, "inline ![b](/attachments/"+b.UUID+")", code.Content)
+
+	// attachments of a pull request
+	issue := &issues_model.Issue{Content: "pr https://old/c"}
+	issue.Attachments, err = uploader.saveAttachments(ctx, &issue.Content, []*base.Attachment{file("c.txt", "https://old/c", "c")}, doer.ID, time.Now())
+	require.NoError(t, err)
+	require.Len(t, issue.Attachments, 1)
+	assert.Equal(t, "pr /attachments/"+issue.Attachments[0].UUID, issue.Content)
+}

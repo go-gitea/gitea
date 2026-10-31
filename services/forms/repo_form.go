@@ -70,6 +70,7 @@ type MigrateRepoForm struct {
 	Issues         bool   `json:"issues"`
 	PullRequests   bool   `json:"pull_requests"`
 	Releases       bool   `json:"releases"`
+	Attachments    bool   `json:"attachments"`
 	MirrorInterval string `json:"mirror_interval"`
 
 	AWSAccessKeyID     string `json:"aws_access_key_id"`
