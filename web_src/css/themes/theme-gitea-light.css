@@ -72,7 +72,7 @@ gitea-theme-meta-info {
   /* named colors */
   --color-red: #db2828;
   --color-orange: #e36501;
-  --color-yellow: #ebb108;
+  --color-yellow: #fbbd08;
   --color-olive: #a9bf04;
   --color-green: #01ad39;
   --color-teal: #01a7a0;
@@ -85,7 +85,7 @@ gitea-theme-meta-info {
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: color-mix(in srgb, var(--color-red) 71%, white);
   --color-orange-light: color-mix(in srgb, var(--color-orange) 70%, white);
-  --color-yellow-light: color-mix(in srgb, var(--color-yellow) 53%, white);
+  --color-yellow-light: color-mix(in srgb, var(--color-yellow) 41%, white);
   --color-olive-light: color-mix(in srgb, var(--color-olive) 60%, white);
   --color-green-light: color-mix(in srgb, var(--color-green) 69%, white);
   --color-teal-light: color-mix(in srgb, var(--color-teal) 69%, white);
@@ -98,7 +98,7 @@ gitea-theme-meta-info {
   /* dark 1 variants - produced via Sass scale-color(color, $lightness: -10%) */
   --color-red-dark-1: color-mix(in srgb, var(--color-red) 89%, black);
   --color-orange-dark-1: color-mix(in srgb, var(--color-orange) 91%, black);
-  --color-yellow-dark-1: color-mix(in srgb, var(--color-yellow) 92%, black);
+  --color-yellow-dark-1: color-mix(in srgb, var(--color-yellow) 93%, black);
   --color-olive-dark-1: color-mix(in srgb, var(--color-olive) 92%, black);
   --color-green-dark-1: color-mix(in srgb, var(--color-green) 91%, black);
   --color-teal-dark-1: color-mix(in srgb, var(--color-teal) 91%, black);
@@ -111,7 +111,7 @@ gitea-theme-meta-info {
   /* dark 2 variants - produced via Sass scale-color(color, $lightness: -20%) */
   --color-red-dark-2: color-mix(in srgb, var(--color-red) 79%, black);
   --color-orange-dark-2: color-mix(in srgb, var(--color-orange) 82%, black);
-  --color-yellow-dark-2: color-mix(in srgb, var(--color-yellow) 85%, black);
+  --color-yellow-dark-2: color-mix(in srgb, var(--color-yellow) 86%, black);
   --color-olive-dark-2: color-mix(in srgb, var(--color-olive) 84%, black);
   --color-green-dark-2: color-mix(in srgb, var(--color-green) 82%, black);
   --color-teal-dark-2: color-mix(in srgb, var(--color-teal) 82%, black);
