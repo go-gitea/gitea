@@ -80,9 +80,9 @@
 				</div>
 
 				<div class="field">
-					<div class="ui checkbox" id="keep-activity-private">
+					<div class="ui checkbox {{if ($.UserDisabledFeatures.Contains "change_activity_visibility")}}disabled{{end}}" id="keep-activity-private">
 						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{ctx.Locale.Tr "settings.keep_activity_private"}}</strong></label>
-						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
+						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}} {{if ($.UserDisabledFeatures.Contains "change_activity_visibility")}}disabled{{end}}>
 					</div>
 				</div>
 
