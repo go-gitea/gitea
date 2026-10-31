@@ -1,4 +1,4 @@
-import {env} from 'node:process';
+import {env, platform} from 'node:process';
 import {defineConfig, devices} from '@playwright/test';
 
 const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
@@ -41,5 +41,12 @@ export default defineConfig({
         },
       },
     },
+    ...(platform === 'darwin' ? [{ // webkit on linux is unstable
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
+        permissions: ['clipboard-read'],
+      },
+    }] : []),
   ],
 });
