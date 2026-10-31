@@ -59,6 +59,31 @@
 			</form>
 		</div>
 
+		<!-- Dashboard -->
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "settings.dashboard_tab"}}
+		</h4>
+		<div class="ui attached segment">
+			<p class="help">{{ctx.Locale.Tr "settings.dashboard_tab_desc"}}</p>
+			<form class="ui form" action="{{.Link}}/dashboard_tab" method="post">
+				<div class="inline field">
+					<div class="ui radio checkbox">
+						<input name="dashboard_tab" value="overview" type="radio" {{if eq .DashboardDefaultTab "overview"}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "home.dashboard_tab_overview"}} <span class="help">{{ctx.Locale.Tr "settings.dashboard_tab_overview_desc"}}</span></label>
+					</div>
+				</div>
+				<div class="inline field">
+					<div class="ui radio checkbox">
+						<input name="dashboard_tab" value="activity" type="radio" {{if eq .DashboardDefaultTab "activity"}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "home.dashboard_tab_activity"}} <span class="help">{{ctx.Locale.Tr "settings.dashboard_tab_activity_desc"}}</span></label>
+					</div>
+				</div>
+				<div class="field">
+					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.update_dashboard_tab"}}</button>
+				</div>
+			</form>
+		</div>
+
 		<!-- Shown comment event types -->
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "settings.hidden_comment_types"}}

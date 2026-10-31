@@ -75,8 +75,9 @@ var UI = struct {
 		OrgPagingNum    int
 	} `ini:"ui.admin"`
 	User struct {
-		RepoPagingNum int
-		OrgPagingNum  int
+		RepoPagingNum       int
+		OrgPagingNum        int
+		DefaultDashboardTab string
 	} `ini:"ui.user"`
 	Meta struct {
 		Author      string
@@ -141,11 +142,13 @@ var UI = struct {
 		OrgPagingNum:    50,
 	},
 	User: struct {
-		RepoPagingNum int
-		OrgPagingNum  int
+		RepoPagingNum       int
+		OrgPagingNum        int
+		DefaultDashboardTab string
 	}{
-		RepoPagingNum: 15,
-		OrgPagingNum:  15,
+		RepoPagingNum:       15,
+		OrgPagingNum:        15,
+		DefaultDashboardTab: DashboardTabActivity,
 	},
 	Meta: struct {
 		Author      string
@@ -158,6 +161,15 @@ var UI = struct {
 	},
 }
 
+const (
+	DashboardTabOverview = "overview"
+	DashboardTabActivity = "activity"
+)
+
+func IsValidDashboardTab(tab string) bool {
+	return tab == DashboardTabOverview || tab == DashboardTabActivity
+}
+
 func loadUIFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "ui", &UI)
 	sec := rootCfg.Section("ui")
@@ -167,6 +179,9 @@ func loadUIFrom(rootCfg ConfigProvider) {
 
 	if UI.PreferredTimestampTense != "mixed" && UI.PreferredTimestampTense != "absolute" {
 		log.Fatal("ui.PREFERRED_TIMESTAMP_TENSE must be either 'mixed' or 'absolute'")
+	}
+	if !IsValidDashboardTab(UI.User.DefaultDashboardTab) {
+		log.Fatal("ui.user.DEFAULT_DASHBOARD_TAB must be either 'activity' or 'overview'")
 	}
 
 	// OnlyShowRelevantRepos=false is important for many private/enterprise instances,

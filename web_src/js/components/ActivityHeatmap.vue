@@ -168,6 +168,7 @@ function handleDayClick(date: Date) {
   }
 
   params.delete('page');
+  params.set('tab', 'activity'); // the heatmap is only shown on the activity tab of the dashboard and the profile
 
   const newSearch = params.toString();
   window.location.search = newSearch.length ? `?${newSearch}` : '';
