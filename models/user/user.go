@@ -259,8 +259,9 @@ func (u *User) GetEmail() string {
 }
 
 // GetAllUsersForAdminListing returns a slice of all users of AdminListedUserTypes found in DB.
-func GetAllUsersForAdminListing(ctx context.Context) (users []*User, _ error) {
-	return users, db.GetEngine(ctx).OrderBy("id").In("type", AdminListedUserTypes).Find(&users)
+func GetAllUsersForAdminListing(ctx context.Context) (users []*User, err error) {
+	err = db.GetEngine(ctx).OrderBy("id").In("type", AdminListedUserTypes).Find(&users)
+	return users, err
 }
 
 // IsLocal returns true if user login type is LoginPlain.
