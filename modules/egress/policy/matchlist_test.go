@@ -223,4 +223,8 @@ func TestNeverMatching(t *testing.T) {
 	assert.Empty(t, NewAllowList("0.0.0.0/7, 2001::/16, 10.0.0.0/8", Strict).NeverMatching())
 	// fully reserved prefixes are flagged, including subnets of a reserved range
 	assert.Len(t, NewAllowList("0.0.0.0/8, 224.0.0.0/5, 2001::/32, 64:ff9b::/96", Strict).NeverMatching(), 4)
+	// loopback is exempt from the reserved pool in classifyAddr, so the loopback alias
+	// (127.0.0.0/8, ::1/128) is dialable and must not be flagged
+	assert.Empty(t, NewAllowList("loopback", Strict).NeverMatching())
+	assert.Empty(t, NewAllowList("127.0.0.0/8, ::1/128, ::/96", Strict).NeverMatching())
 }
