@@ -259,7 +259,9 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool]())
+	// the route only requires one of the issues or pulls units, so only list the readable kind
+	isPull, _ := ctx.Repo.Permission.ReadableIssuesOrPullsFilter()
+	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, isPull)
 
 	ret := issue.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret.IssueTemplates) > 0

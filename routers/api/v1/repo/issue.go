@@ -133,10 +133,12 @@ func SearchIssues(ctx *context.APIContext) {
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
+	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 	repoIDs, allPublic, err := common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
 		Doer:      ctx.Doer,
 		OwnerName: ctx.FormString("owner"),
 		TeamName:  ctx.FormString("team"),
+		IsPull:    isPull,
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
@@ -148,7 +150,6 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	keyword := ctx.FormTrim("q")
-	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	var includedAnyLabels []int64
 	{
@@ -235,6 +236,11 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	issues, err = common.FilterReadableIssues(ctx, ctx.Doer, issues)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

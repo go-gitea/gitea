@@ -54,10 +54,12 @@ func SearchIssues(ctx *context.Context) {
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
+	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 	repoIDs, allPublic, err := common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
 		Doer:      ctx.Doer,
 		OwnerName: ctx.FormString("owner"),
 		TeamName:  ctx.FormString("team"),
+		IsPull:    isPull,
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
@@ -69,7 +71,6 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	keyword := ctx.FormTrim("q")
-	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	var includedAnyLabels []int64
 	{
@@ -166,6 +167,11 @@ func SearchIssues(ctx *context.Context) {
 		ctx.ServerError("FindIssuesByIDs", err)
 		return
 	}
+	issues, err = common.FilterReadableIssues(ctx, ctx.Doer, issues)
+	if err != nil {
+		ctx.ServerError("FilterReadableIssues", err)
+		return
+	}
 
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, issues))
@@ -235,6 +241,19 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 	}
 
 	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
+	// the route only requires one of the issues or pulls units
+	if isPull.Has() {
+		if !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull.Value()) {
+			ctx.NotFound(nil)
+			return
+		}
+	} else {
+		var ok bool
+		if isPull, ok = ctx.Repo.Permission.ReadableIssuesOrPullsFilter(); !ok {
+			ctx.NotFound(nil)
+			return
+		}
+	}
 
 	// FIXME: we should be more efficient here
 	createdByID := getUserIDForFilter(ctx, "created_by")

@@ -6,11 +6,16 @@ package common
 import (
 	"context"
 
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 func ParseIssueFilterStateIsClosed(state string) optional.Option[bool] {
@@ -34,6 +39,7 @@ type SearchIssuesRepoIDsOptions struct {
 	Doer      *user_model.User
 	OwnerName string
 	TeamName  string
+	IsPull    optional.Option[bool] // None searches both issues and pull requests
 }
 
 // SearchIssuesRepoIDs resolves the repository filter of an issue search. allPublic makes the indexer
@@ -66,6 +72,20 @@ func SearchIssuesRepoIDs(ctx context.Context, opts SearchIssuesRepoIDsOptions) (
 	// SearchRepoOptions.AllPublic and AllLimited only apply under an owner filter, so the indexer covers them
 	allPublic = opts.OwnerName == ""
 	cond := repo_model.SearchRepositoryCondition(searchOpts)
+	enabledUnits := []unit.Type{unit.TypeIssues, unit.TypePullRequests}
+	if opts.IsPull.Has() {
+		enabledUnits = []unit.Type{util.Iif(opts.IsPull.Value(), unit.TypePullRequests, unit.TypeIssues)}
+	}
+	cond = cond.And(builder.In("`repository`.id", builder.Select("repo_id").From("repo_unit").Where(builder.In("type", enabledUnits))))
+	if opts.Doer != nil && !opts.Doer.IsAdmin {
+		// the indexer takes one repository filter for both kinds, so an untyped search needs both units readable
+		if !opts.IsPull.ValueOrDefault(false) {
+			cond = cond.And(repo_model.AccessibleRepositoryCondition(opts.Doer, unit.TypeIssues))
+		}
+		if opts.IsPull.ValueOrDefault(true) {
+			cond = cond.And(repo_model.AccessibleRepositoryCondition(opts.Doer, unit.TypePullRequests))
+		}
+	}
 	if allPublic {
 		if !user_model.DoerCanViewPrivate(opts.Doer) {
 			return []int64{0}, allPublic, nil // sees nothing beyond is_public, so skip the query
@@ -82,4 +102,27 @@ func SearchIssuesRepoIDs(ctx context.Context, opts SearchIssuesRepoIDsOptions) (
 	}
 
 	return repoIDs, allPublic, nil
+}
+
+// FilterReadableIssues drops the issues and pulls whose unit the doer cannot read, for the public repositories the indexer matches by itself
+func FilterReadableIssues(ctx context.Context, doer *user_model.User, issues issues_model.IssueList) (issues_model.IssueList, error) {
+	if _, err := issues.LoadRepositories(ctx); err != nil {
+		return nil, err
+	}
+	perms := make(map[int64]access_model.Permission)
+	readable := make(issues_model.IssueList, 0, len(issues))
+	for _, issue := range issues {
+		perm, ok := perms[issue.RepoID]
+		if !ok {
+			var err error
+			if perm, err = access_model.GetDoerRepoPermission(ctx, issue.Repo, doer); err != nil {
+				return nil, err
+			}
+			perms[issue.RepoID] = perm
+		}
+		if perm.CanReadIssuesOrPulls(issue.IsPull) {
+			readable = append(readable, issue)
+		}
+	}
+	return readable, nil
 }
