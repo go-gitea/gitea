@@ -84,17 +84,17 @@ gitea-theme-meta-info {
   --color-black: #1d2328;
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: color-mix(in srgb, var(--color-red) 71%, white);
-  --color-orange-light: color-mix(in srgb, var(--color-orange) 70%, white);
-  --color-yellow-light: color-mix(in srgb, var(--color-yellow) 41%, white);
-  --color-olive-light: color-mix(in srgb, var(--color-olive) 60%, white);
-  --color-green-light: color-mix(in srgb, var(--color-green) 69%, white);
-  --color-teal-light: color-mix(in srgb, var(--color-teal) 69%, white);
+  --color-orange-light: color-mix(in srgb, var(--color-orange) 75%, white);
+  --color-yellow-light: color-mix(in srgb, var(--color-yellow) 75%, white);
+  --color-olive-light: color-mix(in srgb, var(--color-olive) 77%, white);
+  --color-green-light: color-mix(in srgb, var(--color-green) 74%, white);
+  --color-teal-light: color-mix(in srgb, var(--color-teal) 75%, white);
   --color-blue-light: color-mix(in srgb, var(--color-blue) 77%, white);
-  --color-violet-light: color-mix(in srgb, var(--color-violet) 80%, white);
+  --color-violet-light: color-mix(in srgb, var(--color-violet) 77%, white);
   --color-purple-light: color-mix(in srgb, var(--color-purple) 76%, white);
-  --color-pink-light: color-mix(in srgb, var(--color-pink) 72%, white);
+  --color-pink-light: color-mix(in srgb, var(--color-pink) 73%, white);
   --color-brown-light: color-mix(in srgb, var(--color-brown) 79%, white);
-  --color-black-light: color-mix(in srgb, var(--color-black) 90%, white);
+  --color-black-light: color-mix(in srgb, var(--color-black) 82%, white);
   /* dark 1 variants - produced via Sass scale-color(color, $lightness: -10%) */
   --color-red-dark-1: color-mix(in srgb, var(--color-red) 89%, black);
   --color-orange-dark-1: color-mix(in srgb, var(--color-orange) 91%, black);
