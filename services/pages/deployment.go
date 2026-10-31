@@ -9,6 +9,7 @@ import (
 
 	pages_model "gitea.dev/models/pages"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
@@ -138,10 +139,16 @@ func GetCurrentDeploymentStatus(ctx context.Context, repo *repo_model.Repository
 			result.AppliedPagesUpdatedUnixNano == site.PagesUpdatedUnixNano &&
 			result.AppliedRootUpdatedUnixNano == instance.RootUpdatedUnixNano
 		if currentResult {
-			status.ErrorCode = result.ErrorCode
 			status.DefaultStatus = deploymentTargetStatus(result, version.TarGzSHA256, result.DefaultPublished)
 			if status.CustomURL != "" {
-				status.CustomStatus = deploymentTargetStatus(result, version.TarGzSHA256, result.CustomPublished)
+				if result.AppliedRequireGiteaTXTRecord == setting.Pages.RequireGiteaTXTRecord {
+					status.CustomStatus = deploymentTargetStatus(result, version.TarGzSHA256, result.CustomPublished)
+					status.ErrorCode = result.ErrorCode
+				} else if status.DefaultStatus == DeploymentStatusFailed {
+					status.ErrorCode = result.ErrorCode
+				}
+			} else {
+				status.ErrorCode = result.ErrorCode
 			}
 		}
 		if status.DefaultStatus == DeploymentStatusFailed {

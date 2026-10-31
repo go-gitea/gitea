@@ -10,6 +10,8 @@ import (
 	pages_model "gitea.dev/models/pages"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	pages_service "gitea.dev/services/pages"
 
 	"github.com/stretchr/testify/require"
@@ -134,6 +136,33 @@ func TestGetCurrentDeploymentStatusFiltersStaleResults(t *testing.T) {
 	require.Equal(t, "http://site.example.test/", deployment.Instances[1].CustomURL)
 }
 
+func TestGetCurrentDeploymentStatusWaitsForCurrentTXTPolicy(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Pages.RequireGiteaTXTRecord, true)()
+
+	site := currentActionsSite(t)
+	instance := currentActionsInstance(t, "https://pages.example.test")
+	require.NoError(t, pages_model.InsertDomain(t.Context(), &pages_model.Domain{
+		RepoID: site.RepoID, Host: "site.example.test", TXTToken: "token",
+		State: pages_model.DomainStateActive, TXTResult: pages_model.TXTResultValid, CreatedUnixNano: 1,
+	}))
+	currentActionsResult(t, instance, site, true, true, "")
+	result, has, err := pages_model.GetInstanceResult(t.Context(), instance.ID, site.RepoID)
+	require.NoError(t, err)
+	require.True(t, has)
+	result.AppliedRequireGiteaTXTRecord = false
+	require.NoError(t, pages_model.UpdateInstanceResult(t.Context(), result))
+
+	repo, err := repo_model.GetRepositoryByID(t.Context(), site.RepoID)
+	require.NoError(t, err)
+	deployment, err := pages_service.GetCurrentDeploymentStatus(t.Context(), repo)
+	require.NoError(t, err)
+	require.Equal(t, pages_service.DeploymentStatusPublished, deployment.Status)
+	require.Len(t, deployment.Instances, 1)
+	require.Equal(t, pages_service.DeploymentStatusPublished, deployment.Instances[0].DefaultStatus)
+	require.Equal(t, pages_service.DeploymentStatusPublishing, deployment.Instances[0].CustomStatus)
+}
+
 func currentActionsSite(t *testing.T) *pages_model.Site {
 	t.Helper()
 	site, err := pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{
@@ -167,14 +196,15 @@ func currentActionsInstance(t *testing.T, rootURL string) *pages_model.Instance 
 func currentActionsResult(t *testing.T, instance *pages_model.Instance, site *pages_model.Site, defaultPublished, customPublished bool, errorCode pages_model.InstanceErrorCode) {
 	t.Helper()
 	require.NoError(t, pages_model.InsertInstanceResult(t.Context(), &pages_model.InstanceResult{
-		InstanceID:                  instance.ID,
-		RepoID:                      site.RepoID,
-		AppliedPagesUpdatedUnixNano: site.PagesUpdatedUnixNano,
-		AppliedRootUpdatedUnixNano:  instance.RootUpdatedUnixNano,
-		ConfigApplied:               true,
-		ActualTarGzSHA256:           currentActionsVersion(t, site).TarGzSHA256,
-		DefaultPublished:            defaultPublished,
-		CustomPublished:             customPublished,
-		ErrorCode:                   errorCode,
+		InstanceID:                   instance.ID,
+		RepoID:                       site.RepoID,
+		AppliedPagesUpdatedUnixNano:  site.PagesUpdatedUnixNano,
+		AppliedRootUpdatedUnixNano:   instance.RootUpdatedUnixNano,
+		AppliedRequireGiteaTXTRecord: setting.Pages.RequireGiteaTXTRecord,
+		ConfigApplied:                true,
+		ActualTarGzSHA256:            currentActionsVersion(t, site).TarGzSHA256,
+		DefaultPublished:             defaultPublished,
+		CustomPublished:              customPublished,
+		ErrorCode:                    errorCode,
 	}))
 }

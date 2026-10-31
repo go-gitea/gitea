@@ -18,6 +18,7 @@ import (
 	setting_module "gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
 	pages_service "gitea.dev/services/pages"
@@ -125,12 +126,8 @@ func loadPagesVersionsData(ctx *context.Context) bool {
 	versionViews := make([]*pagesVersionView, 0, len(versions))
 	currentVersionOnPage := false
 	for _, version := range versions {
-		shortDigest := version.TarGzSHA256
-		if len(shortDigest) > 12 {
-			shortDigest = shortDigest[:12]
-		}
 		view := &pagesVersionView{
-			ID: version.ID, Digest: version.TarGzSHA256, ShortDigest: shortDigest,
+			ID: version.ID, Digest: version.TarGzSHA256, ShortDigest: util.TruncateStringBytes(version.TarGzSHA256, 12),
 			Origin:      ctx.Locale.TrString("repo.settings.pages.versions.origin." + string(version.OriginType)),
 			CreatedUnix: version.CreatedUnix, Current: version.ID == site.CurrentVersionID,
 		}

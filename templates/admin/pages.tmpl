@@ -14,8 +14,8 @@
 			<div class="header">{{ctx.Locale.Tr "admin.pages.token"}}</div>
 			<p>{{ctx.Locale.Tr "admin.pages.token.warning"}}</p>
 			<div class="ui fluid action input">
-				<input type="text" value="GITEA_PAGES_TOKEN={{.PagesOneTimeToken}}" readonly aria-label="{{ctx.Locale.Tr "admin.pages.token"}}">
-				<button type="button" class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="GITEA_PAGES_TOKEN={{.PagesOneTimeToken}}">{{svg "octicon-copy" 14}}</button>
+				<input type="text" value="{{.PagesOneTimeToken}}" readonly aria-label="{{ctx.Locale.Tr "admin.pages.token"}}">
+				<button type="button" class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.PagesOneTimeToken}}">{{svg "octicon-copy" 14}}</button>
 			</div>
 		</div>
 	{{end}}

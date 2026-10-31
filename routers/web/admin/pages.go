@@ -68,35 +68,30 @@ func PagesPost(ctx *context.Context) {
 		_, token, err := pages_service.CreateInstance(ctx)
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.pages.create_error"))
-			ctx.Redirect(ctx.Link)
-			return
+			break
 		}
 		if err := ctx.Session.Set(pagesOneTimeTokenSessionKey, token); err != nil {
 			ctx.ServerError("Session.Set", err)
 			return
 		}
-		ctx.Redirect(ctx.Link)
 	case "reset":
 		token, err := pages_service.ResetInstanceCredential(ctx, ctx.FormInt64("instance_id"))
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.pages.reset_error"))
-			ctx.Redirect(ctx.Link)
-			return
+			break
 		}
 		if err := ctx.Session.Set(pagesOneTimeTokenSessionKey, token); err != nil {
 			ctx.ServerError("Session.Set", err)
 			return
 		}
-		ctx.Redirect(ctx.Link)
 	case "remove":
 		if err := pages_service.RemoveInstance(ctx, ctx.FormInt64("instance_id")); err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.pages.remove_error"))
 		} else {
 			ctx.Flash.Success(ctx.Tr("admin.pages.remove_success"))
 		}
-		ctx.Redirect(ctx.Link)
 	default:
 		ctx.Flash.Error(ctx.Tr("admin.pages.invalid_action"))
-		ctx.Redirect(ctx.Link)
 	}
+	ctx.Redirect(ctx.Link)
 }
