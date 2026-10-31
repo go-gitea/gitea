@@ -23,6 +23,10 @@ func (b *BaseProvider) SupportSSHPublicKey() bool {
 	return b.supportSSHPublicKey
 }
 
+func (b *BaseProvider) SupportsPKCE() bool {
+	return false
+}
+
 // Name provides the technical name for this provider
 func (b *BaseProvider) Name() string {
 	return b.name

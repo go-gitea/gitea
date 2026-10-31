@@ -21,6 +21,10 @@ func (o *OpenIDProvider) SupportSSHPublicKey() bool {
 	return true
 }
 
+func (o *OpenIDProvider) SupportsPKCE() bool {
+	return true
+}
+
 // Name provides the technical name for this provider
 func (o *OpenIDProvider) Name() string {
 	return "openidConnect"
