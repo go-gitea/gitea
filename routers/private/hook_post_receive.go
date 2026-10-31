@@ -53,25 +53,27 @@ func hookPostReceiveCollectPushUpdates(opts *private.HookOptions, repo *repo_mod
 	return updates
 }
 
-func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) {
-	branchesToSync := make([]*repo_module.PushUpdateOptions, 0, len(updates))
+func hookPostReceiveSyncBranches(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) {
+	hasBranch := false
+	branchNames := make([]string, 0, len(updates))
+	commitIDs := make([]string, 0, len(updates))
 	for _, update := range updates {
 		if !update.RefFullName.IsBranch() {
 			continue
 		}
+		hasBranch = true
 		if update.IsDelRef() {
 			if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
 				log.Error("failed to mark branch %s as deleted: %v", update.RefFullName, err)
-				continue
 			}
-		} else {
-			branchesToSync = append(branchesToSync, update)
-			// TODO: should we return the error and return the error when pushing? Currently it will log the error and not prevent the pushing
-			pull_service.UpdatePullsRefs(ctx, repo, update)
+			continue
 		}
+		branchNames = append(branchNames, update.RefFullName.BranchName())
+		commitIDs = append(commitIDs, update.NewCommitID)
+		// TODO: should we return the error and return the error when pushing? Currently it will log the error and not prevent the pushing
+		pull_service.UpdatePullsRefs(ctx, repo, update)
 	}
-
-	if len(branchesToSync) == 0 {
+	if !hasBranch {
 		return
 	}
 
@@ -81,46 +83,65 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 		return
 	}
 
-	branchNames := make([]string, 0, len(branchesToSync))
-	commitIDs := make([]string, 0, len(branchesToSync))
-	for _, update := range branchesToSync {
-		branchNames = append(branchNames, update.RefFullName.BranchName())
-		commitIDs = append(commitIDs, update.NewCommitID)
-	}
-	var defaultBranch string
-	// in one transaction, so readers never see an empty repo with branches or a non-empty repo without
-	err = db.WithTx(ctx, func(ctx context.Context) (err error) {
-		if err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames, commitIDs); err != nil {
-			return err
-		}
-		if repo.IsEmpty {
-			if defaultBranch, err = hookPostReceiveMarkRepoNotEmpty(ctx, gitRepo, repo, branchNames[0]); err != nil {
-				return fmt.Errorf("mark repo as not empty: %w", err)
-			}
-		}
-		return nil
-	})
+	// if default branch doesn't exist, try to guess one from existing git repo
+	defaultBranch, err := hookPostReceiveFindDefaultBranch(ctx, gitRepo, repo.DefaultBranch)
 	if err != nil {
-		log.Error("failed to sync branch to DB: %v", err)
-		return
+		log.Error("failed to find default branch: %v", err)
+		if repo.IsEmpty {
+			return // keep the repo consistently empty, the next push will retry
+		}
+	}
+
+	wasEmpty := repo.IsEmpty
+	if len(branchNames) > 0 {
+		if wasEmpty {
+			defaultBranch = util.IfZero(defaultBranch, branchNames[0])
+		}
+		// in one transaction, so readers never see an empty repo with branches or a non-empty repo without
+		err = db.WithTx(ctx, func(ctx context.Context) (err error) {
+			if err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames, commitIDs); err != nil {
+				return err
+			}
+			if wasEmpty {
+				if defaultBranch, err = hookPostReceiveMarkRepoNotEmpty(ctx, gitRepo, repo.ID, defaultBranch); err != nil {
+					return fmt.Errorf("mark repo as not empty: %w", err)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			log.Error("failed to sync branch to DB: %v", err)
+			return
+		}
+		repo.IsEmpty = false
 	}
 	if repo.IsEmpty {
-		repo.IsEmpty, repo.DefaultBranch = false, defaultBranch
-		// the default branch might not be in this push, so sync HEAD here
-		if err = git.SetDefaultBranch(ctx, repo, defaultBranch); err != nil {
-			log.Error("failed to set default branch: %v", err)
+		return
+	}
+
+	defaultBranchChanged := true
+	switch {
+	case wasEmpty:
+		repo.DefaultBranch = defaultBranch // updated in the transaction
+	case defaultBranch != "" && defaultBranch != repo.DefaultBranch:
+		repo.DefaultBranch = defaultBranch
+		if err = repo_model.UpdateDefaultBranch(ctx, repo); err != nil {
+			log.Error("failed to update default branch: %v", err)
+			return
 		}
+	default:
+		defaultBranchChanged = false
+	}
+
+	// if default branch was changed or pushed, always keep the HEAD ref in sync
+	if defaultBranchChanged || slices.Contains(opts.RefFullNames, git.RefNameFromBranch(repo.DefaultBranch)) {
+		_ = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
 	}
 }
 
 // hookPostReceiveMarkRepoNotEmpty returns the default branch of the repo after marking it as not empty
-func hookPostReceiveMarkRepoNotEmpty(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, firstPushedBranch string) (string, error) {
-	defaultBranch, err := hookPostReceiveFindDefaultBranch(ctx, gitRepo, repo.DefaultBranch)
-	if err != nil {
-		return "", err
-	}
-	defaultBranch = util.IfZero(defaultBranch, firstPushedBranch)
-	marked, err := repo_model.MarkRepositoryNotEmpty(ctx, repo.ID, defaultBranch)
+func hookPostReceiveMarkRepoNotEmpty(ctx context.Context, gitRepo *git.Repository, repoID int64, defaultBranch string) (string, error) {
+	marked, err := repo_model.MarkRepositoryNotEmpty(ctx, repoID, defaultBranch)
 	if err != nil {
 		return "", err
 	}
@@ -128,7 +149,7 @@ func hookPostReceiveMarkRepoNotEmpty(ctx context.Context, gitRepo *git.Repositor
 		return defaultBranch, nil
 	}
 	// marked by others, keep the default branch if it exists in git
-	freshRepo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
+	freshRepo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		return "", err
 	}
@@ -152,8 +173,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	repo := ctx.Repo.Repository
 	updates := hookPostReceiveCollectPushUpdates(opts, repo)
 	hookPostReceiveUpdateRepoByOptions(ctx, opts, repo) // push options are only honored while the repo is still empty
-	hookPostReceiveSyncDatabaseBranches(ctx, opts, repo, updates)
-	hookPostReceiveSyncRepoDefaultBranch(ctx, opts, repo)
+	hookPostReceiveSyncBranches(ctx, opts, repo, updates)
 
 	// handle async updates (e.g.: notification, cache management, repo update time, etc.)
 	if err := repo_service.PushUpdates(updates...); err != nil {
@@ -263,36 +283,6 @@ func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *
 		}
 	}
 	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{Results: results})
-}
-
-func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {
-	if repo.IsEmpty || !slices.ContainsFunc(opts.RefFullNames, git.RefName.IsBranch) {
-		return
-	}
-	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
-	if err != nil {
-		log.Error("failed to open git repo: %v", err)
-		return
-	}
-
-	// if default branch doesn't exist, try to guess one from existing git repo
-	defaultBranch, err := hookPostReceiveFindDefaultBranch(ctx, gitRepo, repo.DefaultBranch)
-	if err != nil {
-		log.Error("failed to find default branch: %v", err)
-	}
-	defaultBranchChanged := defaultBranch != "" && defaultBranch != repo.DefaultBranch
-	if defaultBranchChanged {
-		repo.DefaultBranch = defaultBranch
-		if err = repo_model.UpdateDefaultBranch(ctx, repo); err != nil {
-			log.Error("failed to update default branch: %v", err)
-			return
-		}
-	}
-
-	// if default branch was changed or pushed, always keep the HEAD ref in sync
-	if defaultBranchChanged || slices.Contains(opts.RefFullNames, git.RefNameFromBranch(repo.DefaultBranch)) {
-		_ = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
-	}
 }
 
 // hookPostReceiveFindDefaultBranch returns the first one of the default branch, main and master that exists in git

@@ -53,8 +53,7 @@ func TestHookPostReceiveSyncBranches(t *testing.T) {
 	}
 	syncBranches := func(t *testing.T, repo *repo_model.Repository, opts *private.HookOptions) {
 		ctx, _ := contexttest.MockPrivateContext(t, "/")
-		hookPostReceiveSyncDatabaseBranches(ctx, opts, repo, hookPostReceiveCollectPushUpdates(opts, repo))
-		hookPostReceiveSyncRepoDefaultBranch(ctx, opts, repo)
+		hookPostReceiveSyncBranches(ctx, opts, repo, hookPostReceiveCollectPushUpdates(opts, repo))
 	}
 	assertRepo := func(t *testing.T, repo *repo_model.Repository, isEmpty bool, defaultBranch string) {
 		dbRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
