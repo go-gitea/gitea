@@ -21,6 +21,7 @@ type IssueStats struct {
 	MentionCount           int64
 	ReviewRequestedCount   int64
 	ReviewedCount          int64
+	TimerTrackerCount      int64
 }
 
 // Filter modes.
@@ -32,6 +33,7 @@ const (
 	FilterModeReviewRequested
 	FilterModeReviewed
 	FilterModeYourRepositories
+	FilterModeTimer
 )
 
 // MaxQueryParameters represents the max query parameters
