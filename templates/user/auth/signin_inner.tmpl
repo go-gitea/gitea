@@ -61,14 +61,16 @@
 
 {{if or .EnablePasskeyAuth .ShowRegistrationButton}}
 <div class="ui container fluid">
-	<div class="ui attached segment header top tw-max-w-2xl tw-m-auto tw-flex tw-flex-col tw-items-center">
+	<div class="ui segment flex-relaxed-list tw-items-center">
 		{{if .EnablePasskeyAuth}}
+		<div class="item">
 			{{template "user/auth/webauthn_error" .}}
-			<a class="signin-passkey">{{ctx.Locale.Tr "auth.signin_passkey"}}</a>
+			<button class="btn interact-link signin-passkey tw-p-1">{{ctx.Locale.Tr "auth.signin_passkey"}}</button>
+		</div>
 		{{end}}
 
 		{{if .ShowRegistrationButton}}
-			<div class="field">
+			<div class="item">
 				<span>{{ctx.Locale.Tr "auth.need_account"}}</span>
 				<a href="{{AppSubUrl}}/user/sign_up">{{ctx.Locale.Tr "auth.sign_up_now"}}</a>
 			</div>
