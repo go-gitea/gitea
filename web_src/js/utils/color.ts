@@ -25,10 +25,15 @@ export function contrastColor(backgroundColor: AnyColor): string {
 
 /** Resolves any CSS color, including color-mix(), to "#rrggbbaa" for consumers that only parse hex or rgb(). */
 export function resolveCssColor(color: string): string {
-  const ctx = document.createElement('canvas').getContext('2d')!;
-  ctx.fillStyle = color;
-  ctx.fillRect(0, 0, 1, 1);
-  return `#${Array.from(ctx.getImageData(0, 0, 1, 1).data, (channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+  const probe = document.createElement('div');
+  probe.style.color = `color-mix(in srgb, ${color} 100%, transparent)`;
+  document.documentElement.append(probe);
+  const computed = getComputedStyle(probe).color; // "color(srgb r g b / a)" with 0..1 channels, or "rgb()" in some engines
+  probe.remove();
+  const values = computed.match(/-?[\d.]+(?:e-?\d+)?/g)!.map(Number);
+  const scale = computed.startsWith('color(') ? 255 : 1;
+  const channels = [...values.slice(0, 3).map((value) => value * scale), (values[3] ?? 1) * 255];
+  return `#${channels.map((value) => Math.round(Math.min(Math.max(value, 0), 255)).toString(16).padStart(2, '0')).join('')}`;
 }
 
 function resolveColors(obj: Record<string, string>): Record<string, string> {
