@@ -65,7 +65,7 @@
 		{{if .EnablePasskeyAuth}}
 		<div class="item">
 			{{template "user/auth/webauthn_error" .}}
-			<button class="btn interact-link signin-passkey tw-p-1">{{ctx.Locale.Tr "auth.signin_passkey"}}</button>
+			<button type="button" class="btn interact-link signin-passkey tw-p-1">{{ctx.Locale.Tr "auth.signin_passkey"}}</button>
 		</div>
 		{{end}}
 

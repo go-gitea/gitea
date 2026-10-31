@@ -331,7 +331,7 @@ a.suppressed:hover {
 a:focus-visible,
 button:focus-visible,
 .ui.button:focus-visible,
-.ui.dropdown:focus-visible,
+.ui.dropdown:not(.selection):focus-visible, /* selection dropdowns use a border color like inputs */
 [role="button"]:focus-visible {
   outline: 2px solid var(--color-primary);
 }

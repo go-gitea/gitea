@@ -17,7 +17,7 @@ test('login form in tab order and logout', async ({page}) => {
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Remember This Device')).toBeFocused();
   await page.keyboard.press('Tab');
-  const signIn = page.getByRole('button', {name: 'Sign In'});
+  const signIn = page.getByRole('button', {name: 'Sign In', exact: true});
   await expect(signIn).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', {name: 'Forgot password?'})).toBeFocused();

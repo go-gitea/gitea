@@ -17,7 +17,7 @@ export function initUserAuthWebAuthn() {
 
   const errorType = detectWebAuthnSupport();
   if (errorType) {
-    if (elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn);
+    if (elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn.closest('.item')!);
     return;
   }
 
