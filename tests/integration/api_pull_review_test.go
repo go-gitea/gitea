@@ -130,6 +130,12 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	assert.EqualValues(t, "APPROVED", review.State)
 	assert.Equal(t, 3, review.CodeCommentsCount)
 
+	reviewComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview})
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d", repo.OwnerName, repo.Name, reviewComment.ID), &api.EditIssueCommentOption{Body: "just one nit"}).AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue))
+	MakeRequest(t, req, http.StatusOK)
+	req = NewRequest(t, http.MethodGet, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, review.ID)).AddTokenAuth(token)
+	assert.Equal(t, "just one nit", DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{}).Body)
+
 	// test dismiss review
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/dismissals", repo.OwnerName, repo.Name, pullIssue.Index, review.ID), &api.DismissPullReviewOptions{
 		Message: "test",
