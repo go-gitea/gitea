@@ -53,8 +53,8 @@ func AddIssueSubscription(ctx *context.APIContext) {
 	//     description: Successfully Subscribed
 	//   "304":
 	//     description: User can only subscribe itself if he is no admin
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	setIssueSubscription(ctx, true)
 }
@@ -97,8 +97,8 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//     description: Successfully Unsubscribed
 	//   "304":
 	//     description: User can only subscribe itself if he is no admin
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	setIssueSubscription(ctx, false)
 }
@@ -176,8 +176,8 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
@@ -236,8 +236,8 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {

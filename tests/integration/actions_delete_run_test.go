@@ -14,8 +14,11 @@ import (
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/json"
 	"gitea.dev/routers/web/repo/actions"
 
@@ -91,6 +94,7 @@ jobs:
 		createWorkflowFile(t, token, user2.Name, apiRepo.Name, testCase.treePath, opts)
 
 		var runID int64
+		var commitID string
 		for i := 0; i < len(testCase.outcomes); i++ {
 			task := runner.fetchTask(t)
 			jobName := getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, task.Id)
@@ -102,6 +106,7 @@ jobs:
 			assert.NoError(t, err)
 			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: apiRepo.ID, Index: parsedRunIndex})
 			runID = run.ID
+			commitID = run.CommitSHA
 		}
 
 		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(t.Context(), apiRepo.ID, runID)
@@ -126,6 +131,15 @@ jobs:
 
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/delete", user2.Name, apiRepo.Name, runID))
 		session.MakeRequest(t, req, http.StatusOK)
+
+		statuses, err := git_model.GetLatestCommitStatus(t.Context(), apiRepo.ID, commitID, db.ListOptionsAll)
+		assert.NoError(t, err)
+		assert.Len(t, statuses, 3)
+		for _, status := range statuses {
+			assert.Equal(t, commitstatus.CommitStatusSuccess, status.State)
+			assert.Empty(t, status.TargetURL)
+		}
+		assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusSummary{RepoID: apiRepo.ID, SHA: commitID}).TargetURL)
 
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/delete", user2.Name, apiRepo.Name, runID))
 		session.MakeRequest(t, req, http.StatusNotFound)

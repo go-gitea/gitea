@@ -999,7 +999,6 @@
   "repo.diff.comment.add_review_comment": "Lisää kommentti",
   "repo.diff.comment.start_review": "Aloita tarkistus",
   "repo.diff.comment.reply": "Vastaa",
-  "repo.diff.review.header": "Lähetä arvio",
   "repo.diff.review.placeholder": "Tarkistuksen kommentti",
   "repo.diff.review.comment": "Kommentoi",
   "repo.diff.review.approve": "Hyväksy",

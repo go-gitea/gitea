@@ -1,7 +1,7 @@
 <div class="flex-container-nav">
 	<div class="ui fluid vertical menu">
 		<a class="item {{if and (not $.CurWorkflow) (not $.PageIsActionsJobQueue)}}active{{end}}" href="{{$.RepoLink}}/actions?actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
-		{{range .workflows}}
+		{{range .workflows}}{{if not .Reusable}}
 			<a class="item flex-text-block {{if and (eq .EntryName $.CurWorkflow) (not $.CurWorkflowScopedRepoID)}}active{{end}}" href="{{$.RepoLink}}/actions?workflow={{.EntryName}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
 				<span class="gt-ellipsis" data-tooltip-content="{{.DisplayName}}">{{.DisplayName}}</span>
 
@@ -13,6 +13,29 @@
 					<div class="ui red label tw-shrink-0">{{ctx.Locale.Tr "disabled"}}</div>
 				{{end}}
 			</a>
+		{{end}}{{end}}
+		{{if .ReusableWorkflows}}
+			<details class="item"{{if $.CurWorkflowIsReusable}} open{{end}}>
+				<summary data-tooltip-content="{{ctx.Locale.Tr "actions.runs.reusable_workflows_tooltip"}}">
+					<span class="flex-text-block">
+						{{ctx.Locale.Tr "actions.runs.reusable_workflows"}}
+						<span class="ui label">{{len .ReusableWorkflows}}</span>
+					</span>
+				</summary>
+				<div class="menu items-full-width">
+					{{range .ReusableWorkflows}}
+						<a class="item flex-text-block {{if and (eq .EntryName $.CurWorkflow) (not $.CurWorkflowScopedRepoID)}}active{{end}}" href="{{$.RepoLink}}/actions?workflow={{.EntryName}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
+							<span class="gt-ellipsis" data-tooltip-content="{{.DisplayName}}">{{.DisplayName}}</span>
+							{{if .ErrMsg}}
+								<span class="flex-text-inline tw-shrink-0" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
+							{{end}}
+							{{if $.ActionsConfig.IsWorkflowDisabled .EntryName}}
+								<div class="ui red label tw-shrink-0">{{ctx.Locale.Tr "disabled"}}</div>
+							{{end}}
+						</a>
+					{{end}}
+				</div>
+			</details>
 		{{end}}
 		{{range .ScopedWorkflowGroups}}
 			<details class="item scoped-workflow-group"{{if .IsActive}} open{{end}}>

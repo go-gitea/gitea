@@ -19,9 +19,9 @@ func checkRepoFeedTokenScope(ctx *context.Context) bool {
 // RenderBranchFeed render format for branch or file
 func RenderBranchFeed(ctx *context.Context, feedType string) {
 	if ctx.Repo.TreePath == "" {
-		ShowBranchFeed(ctx, ctx.Repo.Repository, feedType)
+		showBranchFeed(ctx, ctx.Repo.Repository, feedType)
 	} else {
-		ShowFileFeed(ctx, ctx.Repo.Repository, feedType)
+		showFileFeed(ctx, ctx.Repo.Repository, feedType)
 	}
 }
 
