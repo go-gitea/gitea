@@ -6,7 +6,7 @@ package charset
 import (
 	"html/template"
 	"io"
-	"strings"
+	"sync"
 
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
@@ -28,14 +28,33 @@ func EscapeOptionsForView() EscapeOptions {
 	}
 }
 
+var asciiSafeBytes = sync.OnceValue(func() (ret [256]bool) {
+	for c := range ret {
+		ret[c] = (c >= 0x20 && c < 0x7f) || c == '\t' || c == '\n'
+	}
+	return ret
+})
+
+func isStringAsciiSafe(str string) bool {
+	safeBytes := asciiSafeBytes()
+	for i := range len(str) {
+		if !safeBytes[str[i]] {
+			return false
+		}
+	}
+	return true
+}
+
 // EscapeControlHTML escapes the Unicode control sequences in a provided html document
 func EscapeControlHTML(html template.HTML, locale translation.Locale, opts ...EscapeOptions) (escaped *EscapeStatus, output template.HTML) {
-	if !setting.UI.AmbiguousUnicodeDetection {
+	if !setting.UI.AmbiguousUnicodeDetection || isStringAsciiSafe(string(html)) { // most code lines, nothing in them can need escaping
 		return &EscapeStatus{}, html
 	}
-	w := &htmlutil.HTMLBuilder{}
-	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), w, locale, opts...)
-	return escaped, w.HTMLString()
+	escaper := &htmlEscaper{escaped: &EscapeStatus{}, locale: locale, ambiguousTables: AmbiguousTablesForLocale(locale)}
+	if len(opts) > 0 {
+		escaper.allowed = opts[0].Allowed
+	}
+	return escaper.escaped, template.HTML(escaper.escape(string(html)))
 }
 
 // EscapeControlReader escapes the Unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
@@ -44,5 +63,11 @@ func EscapeControlReader(reader io.Reader, writer htmlutil.HTMLWriter, locale tr
 		_, err := io.Copy(writer.OriginWriter(), reader)
 		return &EscapeStatus{}, err
 	}
-	return escapeStream(locale, reader, writer.OriginWriter(), opts...)
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	escaped, output := EscapeControlHTML(template.HTML(buf), locale, opts...)
+	_, err = io.WriteString(writer.OriginWriter(), string(output))
+	return escaped, err
 }

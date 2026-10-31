@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	activities_model "gitea.dev/models/activities"
@@ -28,7 +29,6 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
@@ -152,27 +152,16 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	return true
 }
 
-func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, renderer markup.Renderer, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
-	markupRd, markupWr := io.Pipe()
-	defer markupWr.Close()
-
-	done := make(chan struct{})
-	go func() {
-		sb := &htmlutil.HTMLBuilder{}
-		if markup.RendererNeedPostProcess(renderer) {
-			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.EscapeOptionsForView())
-		} else {
-			escaped = &charset.EscapeStatus{}
-			_, _ = io.Copy(sb.OriginWriter(), markupRd)
-		}
-		output = sb.HTMLString()
-		close(done)
-	}()
-
-	err = markup.RenderWithRenderer(renderCtx, renderer, input, markupWr)
-	_ = markupWr.CloseWithError(err)
-	<-done
-	return escaped, output, err
+func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, renderer markup.Renderer, input io.Reader) (*charset.EscapeStatus, template.HTML, error) {
+	sb := &strings.Builder{}
+	if err := markup.RenderWithRenderer(renderCtx, renderer, input, sb); err != nil {
+		return nil, "", err
+	}
+	if !markup.RendererNeedPostProcess(renderer) {
+		return &charset.EscapeStatus{}, template.HTML(sb.String()), nil
+	}
+	escaped, output := charset.EscapeControlHTML(template.HTML(sb.String()), ctx.Locale, charset.EscapeOptionsForView())
+	return escaped, output, nil
 }
 
 func checkHomeCodeViewable(ctx *context.Context) {
