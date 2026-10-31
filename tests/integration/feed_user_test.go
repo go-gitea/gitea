@@ -6,6 +6,7 @@ package integration
 import (
 	"encoding/xml"
 	"net/http"
+	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -37,6 +38,36 @@ type RSS struct {
 
 func TestFeedUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	resp := MakeRequest(t, NewRequest(t, "GET", "/user2.atom"), http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `<feed xmlns="http://www.w3.org/2005/Atom"`)
+
+	resp = MakeRequest(t, NewRequest(t, "GET", "/user2.rss"), http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `<rss version="2.0"`)
+	var rss RSS
+	assert.NoError(t, xml.Unmarshal(resp.Body.Bytes(), &rss))
+	assert.Contains(t, rss.Channel.Link, "/user2")
+	assert.NotEmpty(t, rss.Channel.PubDate)
+
+	session := loginUser(t, "user2")
+	readUser := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
+	for _, tc := range []struct {
+		link, accept, token, privateMarker string
+		visible                            bool
+	}{
+		{"/user2.rss", "", readUser, "user2/repo2", true},
+		{"/user2", "application/rss+xml", readUser, "user2/repo2", true},
+		{"/user2.rss", "", getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly), "user2/repo2", false},
+		{"/org3.rss", "", getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization), "org3/repo3", true},
+		{"/user2?tab=activity", "", getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll), "user2/repo2", false},
+	} {
+		req := NewRequest(t, "GET", tc.link).SetHeader("Accept", tc.accept).AddBasicAuth("user2", tc.token)
+		assert.Equal(t, tc.visible, strings.Contains(MakeRequest(t, req, http.StatusOK).Body.String(), tc.privateMarker), tc.link)
+	}
+	readPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+	for _, link := range []string{"/user2.rss", "/org3.rss"} {
+		MakeRequest(t, NewRequest(t, "GET", link).AddBasicAuth("user2", readPackage), http.StatusForbidden)
+	}
 
 	t.Run("Repo", func(t *testing.T) {
 		t.Run("RSS", func(t *testing.T) {
@@ -117,32 +148,6 @@ func TestFeedUser(t *testing.T) {
 		}
 	})
 
-	// TestFeedUserPublicOnlyToken ensures a public-only API token cannot surface a user's
-	// private activity through their profile feed, even when authenticated as the owner.
-	t.Run("PublicOnlyToken", func(t *testing.T) {
-		fullToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
-		publicOnlyToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
-
-		for _, requestURL := range []string{"/user2.rss", "/user2?tab=activity"} {
-			t.Run(requestURL, func(t *testing.T) {
-				// user2 has activity on the private repo user2/repo2
-				const privateMarker = "user2/repo2"
-
-				// a normal read:user token authenticated as the owner sees private activity
-				reqFull := NewRequest(t, "GET", requestURL)
-				reqFull.SetBasicAuth("user2", fullToken)
-				respFull := MakeRequest(t, reqFull, http.StatusOK)
-				assert.Contains(t, respFull.Body.String(), privateMarker)
-
-				// a public-only token must not surface the private activity
-				reqPublicOnly := NewRequest(t, "GET", requestURL)
-				reqPublicOnly.SetBasicAuth("user2", publicOnlyToken)
-				respPublicOnly := MakeRequest(t, reqPublicOnly, http.StatusOK)
-				assert.NotContains(t, respPublicOnly.Body.String(), privateMarker)
-			})
-		}
-	})
-
 	t.Run("RepoTagsWithoutReleasesAccess", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeReleases}))
@@ -152,5 +157,13 @@ func TestFeedUser(t *testing.T) {
 		assert.Contains(t, data, "/user2/repo1/src/tag/v1.0")
 		assert.NotContains(t, data, "pre-release")
 		assert.NotContains(t, data, "some text for a pre release")
+	})
+
+	t.Run("RepoBranchFeedWithoutCodeAccess", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeCode}))
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1").SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1").SetHeader("Accept", "application/atom+xml"), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1.rss"), http.StatusOK)
 	})
 }

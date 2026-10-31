@@ -140,8 +140,8 @@ breaking v1.
 
 ### Adding and maintaining API routes
 
-- All possible results (errors, success, and failure messages) must be documented in
-  the swagger comments on the route.
+- Document success responses in the swagger comments on the route. Replace explicit
+  error responses with a `default` response referencing `#/responses/error`.
 - Every JSON request body must be defined as a struct in `modules/structs/` and
   registered in [`routers/api/v1/swagger/options.go`](../routers/api/v1/swagger/options.go).
 - Every JSON response must be defined as a struct in `modules/structs/` and

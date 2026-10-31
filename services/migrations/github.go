@@ -20,7 +20,7 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 )
 
 var (

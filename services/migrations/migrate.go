@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 )
 
@@ -33,6 +34,17 @@ var factories []base.DownloaderFactory
 // RegisterDownloaderFactory registers a downloader factory
 func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 	factories = append(factories, factory)
+}
+
+// IsMigrateURLAllowedForService checks the URL like IsMigrateURLAllowed, and additionally rejects local paths
+// unless it is a plain git migration, because other services are accessed by their remote API.
+func IsMigrateURLAllowedForService(remoteURL string, serviceType structs.GitServiceType, doer *user_model.User) error {
+	if serviceType != structs.PlainGitService {
+		if u, err := url.Parse(remoteURL); err == nil && (u.Scheme == "file" || u.Scheme == "") {
+			return &git.ErrInvalidCloneAddr{Host: remoteURL, IsProtocolInvalid: true}
+		}
+	}
+	return IsMigrateURLAllowed(remoteURL, doer)
 }
 
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
@@ -79,7 +91,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 
 // MigrateRepository migrate repository according MigrateOptions
 func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName string, opts base.MigrateOptions, messenger base.Messenger) (*repo_model.Repository, error) {
-	err := IsMigrateURLAllowed(opts.CloneAddr, doer)
+	err := IsMigrateURLAllowedForService(opts.CloneAddr, opts.GitServiceType, doer)
 	if err != nil {
 		return nil, err
 	}
