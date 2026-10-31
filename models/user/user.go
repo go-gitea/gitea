@@ -258,9 +258,8 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetAllUsers returns a slice of all users of AdminListedUserTypes found in DB.
-func GetAllUsers(ctx context.Context) ([]*User, error) {
-	users := make([]*User, 0)
+// GetAllUsersForAdminListing returns a slice of all users of AdminListedUserTypes found in DB.
+func GetAllUsersForAdminListing(ctx context.Context) (users []*User, _ error) {
 	return users, db.GetEngine(ctx).OrderBy("id").In("type", AdminListedUserTypes).Find(&users)
 }
 

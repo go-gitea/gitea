@@ -33,7 +33,7 @@ func runListUsers(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	users, err := user_model.GetAllUsers(ctx)
+	users, err := user_model.GetAllUsersForAdminListing(ctx)
 	if err != nil {
 		return err
 	}
