@@ -418,7 +418,6 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 		"240.0.0.0/4",      // reserved, incl. limited broadcast
 		"::/96",            // IPv4-compatible, embeds IPv4
 		"::ffff:0:0:0/96",  // IPv4-translated, embeds IPv4
-		"64:ff9b::/96",     // wkp NAT64
 		"64:ff9b:1::/48",   // local-use NAT64
 		"2001::/32",        // Teredo, embeds IPv4
 		"2002::/16",        // 6to4, embeds IPv4
@@ -454,8 +453,21 @@ var restrictedRanges = func() (ranges []netip.Prefix) {
 	return ranges
 }()
 
+var nat64Ranges = func() (ranges []netip.Prefix) {
+	for _, cidr := range []string{
+		"64:ff9b::/96", // wkp NAT64
+	} {
+		ranges = append(ranges, netip.MustParsePrefix(cidr))
+	}
+	return ranges
+}()
+
 // classifyAddr reports the class of a canonical address.
 func classifyAddr(ip netip.Addr) addrClass {
+	if inRange(nat64Ranges, ip) {
+		b := ip.As16()
+		ip = netip.AddrFrom4([4]byte{b[12], b[13], b[14], b[15]})
+	}
 	switch {
 	case ip.Zone() != "" || !ip.IsLoopback() && inRange(reservedRanges, ip):
 		return classReserved
