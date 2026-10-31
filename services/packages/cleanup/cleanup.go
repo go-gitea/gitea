@@ -32,6 +32,26 @@ func CleanupTask(ctx context.Context, olderThan time.Duration) error {
 	return CleanupExpiredData(ctx, olderThan)
 }
 
+// excludeKeptVersions removes the newest pcr.KeepCount versions from pvs (sorted newest first).
+// Untagged container manifests (e.g. the per-platform manifests of a multi-arch image) are stored as versions
+// named by their digest. They don't count towards KeepCount, otherwise they would fill the keep window and
+// push out the tagged versions. Whether they get removed is decided by container_service.ShouldBeSkipped.
+func excludeKeptVersions(pcr *packages_model.PackageCleanupRule, pvs []*packages_model.PackageVersion) []*packages_model.PackageVersion {
+	if pcr.KeepCount <= 0 {
+		return pvs
+	}
+	kept := 0
+	remaining := make([]*packages_model.PackageVersion, 0, len(pvs))
+	for _, pv := range pvs {
+		if kept < pcr.KeepCount && !(pcr.Type == packages_model.TypeContainer && container_service.IsDigestVersion(pv)) {
+			kept++
+			continue
+		}
+		remaining = append(remaining, pv)
+	}
+	return remaining
+}
+
 func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.PackageCleanupRule, p *packages_model.Package) (versionDeleted bool, err error) {
 	olderThan := time.Now().AddDate(0, 0, -pcr.RemoveDays)
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
@@ -42,13 +62,7 @@ func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.Packa
 	if err != nil {
 		return false, fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
 	}
-	if pcr.KeepCount > 0 {
-		if pcr.KeepCount < len(pvs) {
-			pvs = pvs[pcr.KeepCount:]
-		} else {
-			pvs = nil
-		}
-	}
+	pvs = excludeKeptVersions(pcr, pvs)
 	for _, pv := range pvs {
 		if pcr.Type == packages_model.TypeContainer {
 			if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
