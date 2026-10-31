@@ -35,7 +35,13 @@ export function resolveCssColor(color: string): string {
   return colord({r: r * scale, g: g * scale, b: b * scale, a}).toHex();
 }
 
-const chartColorVars = {text: 'text', border: 'secondary-alpha-60', commits: 'primary-alpha-60', additions: 'green', deletions: 'red'};
+const chartColorVars = {
+  text: 'text',
+  border: 'secondary-alpha-60',
+  commits: 'primary-alpha-60',
+  additions: 'green',
+  deletions: 'red',
+};
 
 export function chartJsColor(name: keyof typeof chartColorVars): string {
   return resolveCssColor(`var(--color-${chartColorVars[name]})`);
