@@ -36,7 +36,7 @@ ARG TARGETVARIANT
 # Build gitea, .git mount is required for version data
 RUN --mount=type=cache,target="/root/.cache/go-build" \
     --mount=type=bind,source=".git/",target=".git/" \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH GOARM=${TARGETVARIANT#v} make gitea
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} make gitea
 
 COPY docker/root /tmp/local
 
