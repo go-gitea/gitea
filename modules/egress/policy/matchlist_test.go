@@ -75,6 +75,7 @@ func TestMatchIPAddr(t *testing.T) {
 		{pattern: "cgnat", ip: "100.64.0.1", port: 80, want: true},
 		{pattern: "cgnat", ip: "100.100.100.200", port: 80, want: true},
 		{pattern: "cgnat", ip: "10.1.2.3", port: 80},
+		{pattern: "::ffff:10.0.0.0/104", ip: "10.1.2.3", port: 80, want: true}, // IPv4-mapped CIDR normalized to 10.0.0.0/8
 		{pattern: "private", ip: "8.8.8.8", port: 80},
 		{pattern: "private:22", ip: "fd00::1", port: 22, want: true},
 		{pattern: "private:22", ip: "fd00::1", port: 80},
@@ -98,8 +99,8 @@ func TestRejectedEntries(t *testing.T) {
 	for _, tc := range []struct{ entry, wantErr string }{
 		{entry: "*", wantErr: `catch-all host pattern "*" matches every host and is not allowed`},
 		{entry: "external", wantErr: "EGRESS_MODE"},
-		{entry: "0.0.0.0/0", wantErr: `catch-all CIDR "0.0.0.0/0" covers every address and is not allowed`},
-		{entry: "::/0", wantErr: `catch-all CIDR "::/0" covers every address and is not allowed`},
+		{entry: "0.0.0.0/0", wantErr: `invalid CIDR "0.0.0.0/0": catch-all CIDR covers every address and is not allowed`},
+		{entry: "::/0", wantErr: `invalid CIDR "::/0": catch-all CIDR covers every address and is not allowed`},
 		{entry: "10.0.0.5/8", wantErr: `host bits must be zero, use "10.0.0.0/8"`},
 		{entry: "fe80::/64:80", wantErr: "unbracketed IPv6 with port"},
 		{entry: "[2001:db8::]/64", wantErr: `unexpected "/64" after bracketed target`},
@@ -210,11 +211,11 @@ func TestMatchHostnameInRanges(t *testing.T) {
 func TestNeverMatching(t *testing.T) {
 	list := NewAllowList("::ffff:10.0.0.0/104, 224.0.0.0/4, 2001::/32, 10.0.0.0/8, example.com, 192.168.1.1", Strict)
 	never := list.NeverMatching()
-	assert.Len(t, never, 3)
+	assert.Len(t, never, 2) // the IPv4-mapped CIDR is normalized to 10.0.0.0/8 at parse time and matches
 	joined := strings.Join(never, "\n")
 	assert.Contains(t, joined, "224.0.0.0/4")
-	assert.Contains(t, joined, "::ffff:10.0.0.0/104")
 	assert.Contains(t, joined, "2001::/32")
+	assert.True(t, list.MatchIPAddr(netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 80)), "::ffff:10.0.0.0/104 must block/match 10.1.2.3")
 
 	assert.Empty(t, NewAllowList("10.0.0.0/8, example.com, 192.168.1.1", Strict).NeverMatching())
 	assert.Len(t, NewBlockList("224.0.0.0/4").NeverMatching(), 1)

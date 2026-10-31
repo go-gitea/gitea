@@ -185,7 +185,10 @@ func classifyTarget(target string, ranges []portRange) (listEntry, error) {
 	return newDomainRule(target, ranges)
 }
 
-var errNotIP = errors.New("not an IP address")
+var (
+	errNotIP    = errors.New("not an IP address")
+	errCatchAll = errors.New("catch-all CIDR covers every address and is not allowed")
+)
 
 func newPrefixRule(target string, ranges []portRange) (prefixRule, error) {
 	if strings.ContainsRune(target, '/') {
@@ -197,10 +200,18 @@ func newPrefixRule(target string, ranges []portRange) (prefixRule, error) {
 			return prefixRule{}, fmt.Errorf("invalid CIDR %q: %w", target, err)
 		}
 		if prefix.Bits() == 0 {
-			return prefixRule{}, fmt.Errorf("catch-all CIDR %q covers every address and is not allowed", target)
+			return prefixRule{}, fmt.Errorf("invalid CIDR %q: %w", target, errCatchAll)
 		}
 		if masked := prefix.Masked(); masked != prefix {
 			return prefixRule{}, fmt.Errorf("invalid CIDR %q: host bits must be zero, use %q", target, masked)
+		}
+		if prefix.Addr().Is4In6() {
+			// normalize to the IPv4 form, like the bare addresses below: ::ffff:10.0.0.0/104 -> 10.0.0.0/8
+			if bits := prefix.Bits() - 96; bits > 0 {
+				prefix = netip.PrefixFrom(prefix.Addr().Unmap(), bits)
+			} else {
+				return prefixRule{}, fmt.Errorf("invalid CIDR %q: unmaps to 0.0.0.0/0: %w", target, errCatchAll)
+			}
 		}
 		return prefixRule{prefix: prefix, portRanges: ranges}, nil
 	}
@@ -364,6 +375,8 @@ func ParseInternalRanges(hostList string) (prefixes []netip.Prefix, rejected []s
 			switch {
 			case errors.Is(err, errNotIP):
 				rejected = append(rejected, fmt.Sprintf("invalid range %q: not an IP, CIDR, or named range", entry))
+			case errors.Is(err, errCatchAll):
+				rejected = append(rejected, fmt.Sprintf("invalid range %q: %v", entry, err))
 			case strings.Contains(target, "/") && strings.Contains(target, ":"):
 				rejectPorts(entry) // an unbracketed IPv6 CIDR with a port
 			default:
@@ -371,16 +384,7 @@ func ParseInternalRanges(hostList string) (prefixes []netip.Prefix, rejected []s
 			}
 			continue
 		}
-		if rule.prefix.Addr().Is4In6() {
-			// normalize like the bare addresses newPrefixRule unmaps
-			if bits := rule.prefix.Bits() - 96; bits > 0 {
-				rule.prefix = netip.PrefixFrom(rule.prefix.Addr().Unmap(), bits)
-			} else {
-				rejected = append(rejected, fmt.Sprintf("invalid range %q: unmaps to the catch-all CIDR 0.0.0.0/0, which covers every address and is not allowed", entry))
-				continue
-			}
-		}
-		prefixes = append(prefixes, rule.prefix)
+		prefixes = append(prefixes, rule.prefix) // newPrefixRule already normalized IPv4-mapped CIDRs
 	}
 	return prefixes, rejected
 }
@@ -469,13 +473,11 @@ func (m *matchList) Rejected() []string {
 }
 
 // NeverMatching returns the IP entries that can never match a target, so callers can warn about them at startup.
+// IPv4-mapped CIDRs are normalized to the IPv4 form at parse time, so they always match.
 func (m *matchList) NeverMatching() []string {
 	var out []string
 	for _, rule := range slices.Concat(m.ipv4List, m.ipv6List) {
-		switch {
-		case rule.prefix.Addr().Is4In6():
-			out = append(out, fmt.Sprintf("%s is an IPv4-mapped CIDR and never matches, use the IPv4 form", rule.prefix))
-		case fullyReserved(rule.prefix):
+		if fullyReserved(rule.prefix) {
 			out = append(out, fmt.Sprintf("%s is a reserved range and is never dialable", rule.prefix))
 		}
 	}
