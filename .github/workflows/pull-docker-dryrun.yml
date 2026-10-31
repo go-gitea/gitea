@@ -14,34 +14,26 @@ jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
 
-  # QEMU-based build is slow (40-50 minutes), so run arm64 and riscv64 when dockerfile changes.
-  # Run amd64 when any docker-related files change, which is fast (4 minutes).
-  container-amd64:
+  container:
     if: needs.files-changed.outputs.docker == 'true'
     needs: [files-changed]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/docker-dryrun
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
-          platform: linux/amd64
-
-  container-arm64:
-    if: needs.files-changed.outputs.dockerfile == 'true'
-    needs: [files-changed]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/docker-dryrun
+          cache-image: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build regular image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          platform: linux/arm64
-
-  container-riscv64:
-    if: needs.files-changed.outputs.dockerfile == 'true'
-    needs: [files-changed]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/docker-dryrun
+          context: .
+          platforms: linux/amd64,linux/arm64,linux/riscv64
+          cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootful
+      - name: Build rootless image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          platform: linux/riscv64
+          context: .
+          platforms: linux/amd64,linux/arm64,linux/riscv64
+          file: Dockerfile.rootless
+          cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootless
