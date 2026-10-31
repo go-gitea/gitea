@@ -22,6 +22,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/git/gitcmd"
@@ -192,13 +193,128 @@ func TestRelay(t *testing.T) {
 	upstreamEnd, upstream := net.Pipe()
 	done := make(chan struct{})
 	go func() {
-		relay(clientEnd, upstreamEnd)
+		relay(clientEnd, upstreamEnd, 0)
 		close(done)
 	}()
 	require.NoError(t, upstream.Close())
 	_, err := client.Read(make([]byte, 1))
 	assert.ErrorIs(t, err, io.EOF)
 	<-done
+}
+
+// connPair returns a TCP connection and the peer the test plays (as git or the remote)
+func connPair(t *testing.T) (net.Conn, *net.TCPConn) {
+	ln := listen(t)
+	conn, err := net.Dial("tcp", ln.Addr().String())
+	require.NoError(t, err)
+	peer, err := ln.Accept()
+	require.NoError(t, err)
+	tcpPeer, ok := peer.(*net.TCPConn)
+	require.True(t, ok)
+	t.Cleanup(func() { _ = conn.Close(); _ = tcpPeer.Close() })
+	return conn, tcpPeer
+}
+
+func TestRelayIdle(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ClientGoneReapedAtOnce", func(t *testing.T) {
+		t.Parallel()
+		// git's http transport closes the socket: a remote that then stays silent is reaped at once
+		hold := make(chan struct{})
+		t.Cleanup(func() { close(hold) })
+		upstreamAddr := serveConns(t, func(net.Conn) { <-hold })
+
+		client, git := connPair(t)
+		upstream, err := net.Dial("tcp", upstreamAddr)
+		require.NoError(t, err)
+		done := make(chan struct{})
+		go func() {
+			relay(client, upstream, 0)
+			close(done)
+		}()
+		require.NoError(t, git.Close()) // git is gone: the remote only sees a FIN
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("relay held the tunnel open for a silent remote")
+		}
+	})
+
+	t.Run("HalfClosedSilentReaped", func(t *testing.T) {
+		t.Parallel()
+		// the git:// helper half-closes and waits: a remote silent for the whole idle is reaped
+		hold := make(chan struct{})
+		t.Cleanup(func() { close(hold) })
+		upstreamAddr := serveConns(t, func(net.Conn) { <-hold })
+
+		client, git := connPair(t)
+		upstream, err := net.Dial("tcp", upstreamAddr)
+		require.NoError(t, err)
+		done := make(chan struct{})
+		go func() {
+			relay(client, upstream, 100*time.Millisecond)
+			close(done)
+		}()
+		require.NoError(t, git.CloseWrite())
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("relay held the tunnel open for a silent remote")
+		}
+	})
+
+	t.Run("HalfCloseAnswered", func(t *testing.T) {
+		t.Parallel()
+		// the git:// helper half-closes and waits for the pack: a prompt answer must get through
+		upstreamAddr := serveConns(t, func(conn net.Conn) {
+			_, _ = io.Copy(io.Discard, conn) // until the half-close
+			_, _ = conn.Write([]byte("pong\n"))
+		})
+		client, git := connPair(t)
+		upstream, err := net.Dial("tcp", upstreamAddr)
+		require.NoError(t, err)
+		done := make(chan struct{})
+		go func() {
+			relay(client, upstream, 5*time.Second)
+			close(done)
+		}()
+		_, err = git.Write([]byte("ping\n"))
+		require.NoError(t, err)
+		require.NoError(t, git.CloseWrite())
+		reply, err := bufio.NewReader(git).ReadString('\n')
+		require.NoError(t, err)
+		assert.Equal(t, "pong\n", reply)
+		<-done
+	})
+
+	t.Run("KeepAlivesWithinIdleDelivered", func(t *testing.T) {
+		t.Parallel()
+		// receive-pack sends a keep-alive every few seconds while it works: they must get through,
+		// so the trickle outlasts the idle and only the re-arm on activity keeps the tunnel alive
+		upstreamAddr := serveConns(t, func(conn net.Conn) {
+			_, _ = io.Copy(io.Discard, conn) // until the half-close
+			for range 5 {
+				time.Sleep(300 * time.Millisecond)
+				_, _ = conn.Write([]byte("x"))
+			}
+		})
+		client, git := connPair(t)
+		upstream, err := net.Dial("tcp", upstreamAddr)
+		require.NoError(t, err)
+		done := make(chan struct{})
+		go func() {
+			relay(client, upstream, time.Second)
+			close(done)
+		}()
+		_, err = git.Write([]byte("ping\n"))
+		require.NoError(t, err)
+		require.NoError(t, git.CloseWrite())
+		answer, err := io.ReadAll(git)
+		require.NoError(t, err)
+		assert.Equal(t, "xxxxx", string(answer))
+		<-done
+	})
 }
 
 func TestProxyCONNECT(t *testing.T) {
@@ -393,6 +509,22 @@ func TestProxyHTTP(t *testing.T) {
 
 		rec := serve(newServer(viaProxy(opURL), "", nil), http.MethodGet, "http://git.example.com/repo.git", "")
 		assert.Equal(t, "http://git.example.com/repo.git", rec.Body.String())
+	})
+
+	t.Run("OperatorAsTarget", func(t *testing.T) {
+		t.Parallel()
+		// the operator's proxy must not be reachable as an origin server, not even after
+		// a request through it has primed the dialer's proxy exemption
+		operator := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.True(t, r.URL.IsAbs(), "the operator's proxy must not be reached as an origin server")
+		}))
+		t.Cleanup(operator.Close)
+		opURL, err := url.Parse(operator.URL)
+		require.NoError(t, err)
+
+		srv := newServer(policy.NewPolicy("test", policy.Lax, policy.WithProxy(http.ProxyURL(opURL))), "", nil)
+		assert.Equal(t, http.StatusOK, serve(srv, http.MethodGet, "http://git.example.com/repo.git", "").Code)
+		assert.Equal(t, http.StatusForbidden, serve(srv, http.MethodGet, operator.URL+"/status", "").Code)
 	})
 
 	t.Run("Denied", func(t *testing.T) {
