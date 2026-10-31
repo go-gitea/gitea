@@ -81,16 +81,12 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 	// as GetContributorStats is resource intensive we cache the result
 	cacheKey := fmt.Sprintf(contributorStatsCacheKey, repo.FullName(), revision)
 	if !cache.IsExist(cacheKey) {
-		genReady := make(chan struct{})
-
 		// don't start multiple async generations
-		_, run := generateLock.Load(cacheKey)
-		if run {
+		if _, running := generateLock.LoadOrStore(cacheKey, struct{}{}); running {
 			return nil, ErrAwaitGeneration
 		}
 
-		generateLock.Store(cacheKey, struct{}{})
-		// run generation async
+		genReady := make(chan struct{})
 		go generateContributorStats(genReady, cache, cacheKey, repo, revision)
 
 		select {
@@ -103,8 +99,10 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 	}
 	// TODO: renew timeout of cache cache.UpdateTimeout(cacheKey, contributorStatsCacheTimeout)
 	var res map[string]*ContributorData
-	if _, cacheErr := cache.GetJSON(cacheKey, &res); cacheErr != nil {
+	if exist, cacheErr := cache.GetJSON(cacheKey, &res); cacheErr != nil {
 		return nil, fmt.Errorf("cached error: %w", cacheErr.ToError())
+	} else if !exist {
+		return nil, ErrAwaitGeneration
 	}
 	return res, nil
 }
@@ -188,6 +186,8 @@ func getExtendedCommitStats(ctx context.Context, repo *git.Repository, revision 
 }
 
 func generateContributorStats(genDone chan struct{}, cache cache.StringCache, cacheKey string, repo *repo_model.Repository, revision string) {
+	defer close(genDone)
+	defer generateLock.Delete(cacheKey)
 	ctx := graceful.GetManager().HammerContext()
 
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
@@ -289,8 +289,4 @@ func generateContributorStats(genDone chan struct{}, cache cache.StringCache, ca
 	}
 
 	_ = cache.PutJSON(cacheKey, contributorsCommitStats, contributorStatsCacheTimeout)
-	generateLock.Delete(cacheKey)
-	if genDone != nil {
-		genDone <- struct{}{}
-	}
 }
