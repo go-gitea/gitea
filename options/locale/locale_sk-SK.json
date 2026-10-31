@@ -949,7 +949,6 @@
   "repo.settings.lfs_lfs_file_no_commits": "Pre tento súbor LFS sa nenašli žiadne commity",
   "repo.diff.comment.start_review": "Začať revíziu",
   "repo.diff.review": "Revízia",
-  "repo.diff.review.header": "Odoslať revíziu",
   "repo.diff.review.placeholder": "Revízna poznámka",
   "repo.release.tags": "Tagy",
   "repo.release.ahead.commits": "<strong>%d</strong> commitov",

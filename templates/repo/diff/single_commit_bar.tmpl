@@ -1,0 +1,33 @@
+{{$queryParams := QueryBuild "?" "style" (Iif $.IsSplitStyle "split" "unified") "whitespace" $.WhitespaceBehavior "show-outdated" (Iif $.ShowOutdatedComments "true" "false")}}
+{{$commit := $.SingleCommit}}{{$commitID := $commit.ID.String}}
+{{$prevID := $.SingleCommitPrevID}}{{$nextID := $.SingleCommitNextID}}
+{{$repoLink := $.RepoLink}}
+{{$prLink := $.Issue.Link}}
+<div class="ui info message flex-left-right" data-commit-single-index="{{$.SingleCommitIndex}}" data-commit-total-count="{{$.SingleCommitCount}}">
+	<div class="flex-relaxed-list">
+		<div class="flex-text-block tw-flex-wrap">
+			{{svg "octicon-git-commit"}}
+			<a class="tw-font-mono muted" href="{{$repoLink}}/commit/{{PathEscape $commitID}}">{{ShortSha $commitID}}</a>
+			<strong class="gt-ellipsis">{{$commit.MessageTitle | ctx.RenderUtils.RenderEmoji}}</strong>
+		</div>
+		<div class="flex-text-block tw-flex-wrap tw-text-text-light-2">
+			<div class="flex-text-block">
+				{{ctx.AvatarUtils.AvatarByEmail $commit.Author.Email $commit.Author.Name 16}}
+				<span class="gt-ellipsis">{{$commit.Author.Name}}</span>
+			</div>
+			{{DateUtils.TimeSince $commit.Author.When}}
+		</div>
+	</div>
+	<div class="flex-text-block tw-flex-wrap">
+		<span>{{ctx.Locale.Tr "repo.pulls.commit_position" $.SingleCommitIndex $.SingleCommitCount}}</span>
+		<div class="ui compact icon buttons hover-opaque">
+			<a class="ui tiny basic button js-previous-commit-link {{if not $.SingleCommitPrevID}}disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.previous_commit"}}"
+				{{if $prevID}}href="{{$prLink}}/commits/{{PathEscape $prevID}}{{$queryParams}}"{{end}}
+			>{{svg "octicon-chevron-left"}}</a>
+			<a class="ui tiny basic button js-next-commit-link {{if not $nextID}}disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.next_commit"}}"
+				{{if $nextID}}href="{{$prLink}}/commits/{{PathEscape $nextID}}{{$queryParams}}"{{end}}
+			>{{svg "octicon-chevron-right"}}</a>
+		</div>
+		<a class="ui tiny basic button hover-opaque" href="{{$prLink}}/files{{$queryParams}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a>
+	</div>
+</div>

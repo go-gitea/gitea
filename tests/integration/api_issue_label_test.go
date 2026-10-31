@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -118,7 +119,7 @@ func TestAPIModifyLabels(t *testing.T) {
 			assert.Equal(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
 
 			// EditLabel
-			newName := "LabelNewName"
+			newName := "scope/new name"
 			newColor := "09876a"
 			newColorWrong := "09g76a"
 			req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
@@ -138,11 +139,16 @@ func TestAPIModifyLabels(t *testing.T) {
 				Color: &newColorWrong,
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusUnprocessableEntity)
+			nameURLStr := urlStr + "/" + url.PathEscape(newName)
+			req = NewRequestWithJSON(t, "PATCH", nameURLStr, &api.EditLabelOption{}).AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, dbLabel.ID, DecodeJSON(t, resp, &api.Label{}).ID)
 
 			// DeleteLabel
-			req = NewRequest(t, "DELETE", singleURLStr).
-				AddTokenAuth(token)
+			req = NewRequest(t, "DELETE", nameURLStr).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusNoContent)
+			req = NewRequest(t, "DELETE", singleURLStr).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNotFound)
 		})
 	}
 }
