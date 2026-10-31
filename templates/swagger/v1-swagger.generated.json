@@ -30476,6 +30476,15 @@
           ],
           "x-go-name": "Service"
         },
+        "sync_issues": {
+          "description": "only used when mirror is true: sync issues and pull requests on each mirror update, read-only",
+          "type": "boolean",
+          "x-go-name": "SyncIssues"
+        },
+        "sync_pull_requests": {
+          "type": "boolean",
+          "x-go-name": "SyncPullRequests"
+        },
         "uid": {
           "description": "deprecated (only for backwards compatibility, use repo_owner instead)",
           "type": "integer",

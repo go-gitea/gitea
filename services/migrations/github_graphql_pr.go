@@ -97,7 +97,12 @@ func (g *GithubGraphQLDownloader) getPullRequestsGraphQL(ctx context.Context, pa
 	conn := resp.Repository.PullRequests
 	prefetched := map[string]*gqlPrefetched{}
 	prs := make([]*base.PullRequest, 0, len(conn.Nodes))
+	hitWatermark := false
 	for i := range conn.Nodes {
+		if !g.since.IsZero() && conn.Nodes[i].UpdatedAt.Before(g.since) {
+			hitWatermark = true
+			break
+		}
 		pr, err := g.convertGraphQLPullRequest(ctx, &conn.Nodes[i], prefetched)
 		if err != nil {
 			return nil, false, err
@@ -109,7 +114,7 @@ func (g *GithubGraphQLDownloader) getPullRequestsGraphQL(ctx context.Context, pa
 		return nil, false, err
 	}
 	g.prCursor = conn.PageInfo.EndCursor // only now, a failed page is retried from the same cursor
-	return prs, !conn.PageInfo.HasNextPage, nil
+	return prs, hitWatermark || !conn.PageInfo.HasNextPage, nil
 }
 
 func (g *GithubGraphQLDownloader) convertGraphQLPullRequest(ctx context.Context, node *gqlPullRequest, prefetchedByNodeID map[string]*gqlPrefetched) (*base.PullRequest, error) {
