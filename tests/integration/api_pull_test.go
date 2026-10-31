@@ -144,6 +144,28 @@ func TestAPIViewPulls(t *testing.T) {
 			}))
 	}
 
+	t.Run("DefaultState", func(t *testing.T) {
+		writeToken := getTokenForLoggedInUser(t, ctx.Session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/3", owner.Name, repo.Name), &api.EditPullRequestOption{
+			State: new(string(api.StateClosed)),
+		}).AddTokenAuth(writeToken)
+		MakeRequest(t, req, http.StatusCreated)
+
+		for query, want := range map[string][]int64{
+			"":             {2, 5},
+			"state=closed": {3},
+			"state=all":    {2, 3, 5},
+		} {
+			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?%s", owner.Name, repo.Name, query).AddTokenAuth(ctx.Token)
+			listed := DecodeJSON(t, ctx.Session.MakeRequest(t, req, http.StatusOK), []*api.PullRequest{})
+			indexes := make([]int64, 0, len(listed))
+			for _, pr := range listed {
+				indexes = append(indexes, pr.Index)
+			}
+			assert.ElementsMatch(t, want, indexes, query)
+		}
+	})
+
 	t.Run("APIViewPullsByBaseHead", func(t *testing.T) {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch2", owner.Name, repo.Name).
 			AddTokenAuth(ctx.Token)

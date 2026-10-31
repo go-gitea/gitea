@@ -227,7 +227,7 @@ func ListPackageFiles(ctx *context.APIContext) {
 
 	apiPackageFiles := make([]*api.PackageFile, 0, len(ctx.Package.Descriptor.Files))
 	for _, pfd := range ctx.Package.Descriptor.Files {
-		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(pfd))
+		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(ctx.Package.Descriptor.Package.Type, pfd))
 	}
 
 	ctx.JSON(http.StatusOK, apiPackageFiles)
