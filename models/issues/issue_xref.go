@@ -243,7 +243,7 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 
 // AddCrossReferences add cross references
 func (c *Comment) AddCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
-	if !c.Type.HasContentSupport() {
+	if !c.Type.HasContentSupport() || c.IsCommitComment() {
 		return nil
 	}
 	if err := c.LoadIssue(stdCtx); err != nil {

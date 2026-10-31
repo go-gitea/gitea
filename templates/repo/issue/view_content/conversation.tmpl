@@ -92,7 +92,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 								<div class="comment-header-right">
 									{{template "repo/issue/view_content/show_role" dict "ShowRole" $comment.ShowRole}}
 									{{if not $repo.IsArchived}}
-										{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
+										{{template "repo/comment/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
 									{{end}}
 								</div>
 							</div>
@@ -146,9 +146,9 @@ The variables in "ctx.Data" are different in each case, making this template fra
 					{{end}}
 				</div>
 			</div>
-			{{template "repo/diff/comment_form" dict "ReplyReviewComment" $firstComment}}
+			{{template "repo/comment/form" dict "ReplyReviewComment" $firstComment}}
 		</div>
 	</div>
 {{else}}
-	{{template "repo/diff/conversation_outdated"}}
+	{{template "repo/comment/conversation_outdated"}}
 {{end}}

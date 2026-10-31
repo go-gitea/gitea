@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateOrUpdateIssueNotifications(t *testing.T) {
+func TestCreateOrUpdateIssueAndCommitNotifications(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
@@ -32,14 +32,11 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 
 	notf = unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, IssueID: issue.ID})
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
-}
 
-func TestCreateOrUpdateCommitNotifications(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	const sha = "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	const sha = "sha"
 	createComment := func(posterID int64) int64 {
-		comment := &issues_model.Comment{PosterID: posterID, TreePath: "README.md", Line: 1}
-		require.NoError(t, issues_model.CreateCommitComment(t.Context(), 1, sha, comment))
+		comment := &issues_model.Comment{PosterID: posterID}
+		require.NoError(t, issues_model.CreateCommitComment(t.Context(), 1, sha, comment, nil))
 		return comment.ID
 	}
 	notify := func(commentID, receiverID int64) []int64 {
@@ -49,13 +46,13 @@ func TestCreateOrUpdateCommitNotifications(t *testing.T) {
 	}
 
 	createComment(4)
-	first := createComment(2)
-	assert.Equal(t, []int64{4}, notify(first, 0))
+	firstCommentID := createComment(2)
+	assert.Equal(t, []int64{4}, notify(firstCommentID, 0))
 	assert.Equal(t, []int64{4}, notify(createComment(2), 0))
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, RepoID: 1, CommitID: sha, CommentID: first, Status: activities_model.NotificationStatusUnread})
-	assert.Equal(t, 1, unittest.GetCount(t, &activities_model.Notification{UserID: 4, CommitID: sha}))
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, RepoID: 1, CommitID: sha, CommentID: firstCommentID, Status: activities_model.NotificationStatusUnread})
+	unittest.AssertCount(t, &activities_model.Notification{UserID: 4, CommitID: sha}, 1)
 
-	assert.Equal(t, []int64{5}, notify(first, 5))
+	assert.Equal(t, []int64{5}, notify(firstCommentID, 5))
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 5, CommitID: sha, Source: activities_model.NotificationSourceCommit})
 }
 

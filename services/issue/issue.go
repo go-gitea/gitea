@@ -335,6 +335,13 @@ func CanSelfChangeOrAccessContent(doer *user_model.User, doerPerm access_model.P
 	return true
 }
 
+func CanSelfChangeOrAccessComment(doer *user_model.User, doerPerm access_model.Permission, comment *issues_model.Comment, accessMode perm.AccessMode) bool {
+	if comment.IsCommitComment() {
+		return doer != nil && doerPerm.CanAccess(perm.AccessModeRead, unit.TypeCode) && (doer.ID == comment.PosterID || doerPerm.CanAccess(accessMode, unit.TypeCode))
+	}
+	return CanSelfChangeOrAccessContent(doer, doerPerm, comment.Issue, comment.PosterID, accessMode)
+}
+
 // IsLockedForDoer returns whether the lock keeps a doer with perm from commenting
 func IsLockedForDoer(issue *issues_model.Issue, perm access_model.Permission) bool {
 	return issue.IsLocked && !perm.CanWriteIssuesOrPulls(issue.IsPull)

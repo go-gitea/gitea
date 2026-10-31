@@ -45,7 +45,6 @@ import (
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/automerge"
 	"gitea.dev/services/context"
-	"gitea.dev/services/context/upload"
 	"gitea.dev/services/forms"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
@@ -53,7 +52,6 @@ import (
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
-	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -709,7 +707,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	if !ok {
 		return
 	}
-	ctx.Data["DiffNewCommentURL"] = issue.Link() + "/files/reviews/new_comment"
 	pull := issue.PullRequest
 
 	gitRepo := ctx.Repo.GitRepo
@@ -955,12 +952,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 
-	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
-	upload.AddUploadContext(ctx, "comment")
-
-	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-	}
+	prepareIssueCommentTemplateData(ctx, issue, true)
 	if isShowAllCommits && pull.Flow == issues_model.PullRequestFlowGithub {
 		if err := pull.LoadHeadRepo(ctx); err != nil {
 			ctx.ServerError("LoadHeadRepo", err)

@@ -35,12 +35,10 @@ import (
 	"gitea.dev/modules/web/middleware"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/context"
-	"gitea.dev/services/context/upload"
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
-	user_service "gitea.dev/services/user"
 )
 
 // roleDescriptor returns the role descriptor for a comment in/with the given repo, poster and issue
@@ -343,8 +341,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanRead(unit.TypeProjects)
-	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
-	upload.AddUploadContext(ctx, "comment")
+	prepareIssueCommentTemplateData(ctx, issue, false)
 
 	if err := issue.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
@@ -420,10 +417,6 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Tags"] = tags
-
-	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-	}
 
 	if !setting.IsProd && issue.PullRequest != nil && prViewInfo.MergeBoxData != nil && prViewInfo.MergeBoxData.ReloadingInterval == 0 {
 		prViewInfo.MergeBoxData.ReloadingInterval = 1 // in dev env, force using the reloading logic to make sure it won't break

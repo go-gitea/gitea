@@ -684,7 +684,6 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 	return nil
 }
 
-// AttachComments attaches comments to their corresponding diff lines
 func (diff *Diff) AttachComments(allComments issues_model.CodeComments) {
 	for _, file := range diff.Files {
 		if lineComments, ok := allComments[file.Name]; ok {
@@ -695,7 +694,6 @@ func (diff *Diff) AttachComments(allComments issues_model.CodeComments) {
 	}
 }
 
-// AttachSectionComments attaches the comments of a file to the lines of one of its sections
 func AttachSectionComments(section *DiffSection, lineComments map[int64][]*issues_model.Comment) {
 	for _, line := range section.Lines {
 		line.Comments = append(line.Comments, lineComments[int64(line.LeftIdx*-1)]...)

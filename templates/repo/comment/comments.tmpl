@@ -1,8 +1,7 @@
 {{$root := ctx.RootData -}}
 {{$repo := $root.Repository -}}
 {{$repoLink := $root.RepoLink -}}
-{{$issue := $root.Issue -}}
-{{$canWrite := or $root.Permission.IsAdmin $root.HasIssuesOrPullsWritePermission -}}
+{{$canWrite := $root.CommentContext.CanModerate -}}
 {{$signedUserID := or $root.SignedUserID NIL -}}
 {{range $comment := $.comments}}
 {{$createdStr:= DateUtils.TimeSince $comment.CreatedUnix}}
@@ -39,8 +38,7 @@
 			</div>
 			<div class="comment-header-right">
 				{{if $comment.Invalidated}}
-					{{$referenceUrl := printf "%s#%s" $issue.Link $comment.HashTag}}
-					<a href="{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+					<a href="{{$root.CommentContext.ConversationURL}}#{{$comment.HashTag}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 					</a>
 				{{end}}
@@ -55,12 +53,12 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentPage" "pr-files" "ConvContentItem" $comment}}
+				{{template "repo/comment/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
 			{{$doerIsPoster := eq $signedUserID $comment.PosterID}}
-			<div class="render-content markup" {{if and (not $comment.IsCommitComment) (or $canWrite $doerIsPoster)}}data-can-edit="true"{{end}}>
+			<div class="render-content markup" {{if or $canWrite $doerIsPoster}}data-can-edit="true"{{end}}>
 			{{if $comment.RenderedContent}}
 				{{$comment.RenderedContent}}
 			{{else}}

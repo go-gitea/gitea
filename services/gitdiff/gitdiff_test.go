@@ -468,6 +468,13 @@ func TestDiff_LoadComments(t *testing.T) {
 			assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, test.comments)
 		})
 	}
+
+	section := &DiffSection{Lines: []*DiffLine{{LeftIdx: 5, RightIdx: 10}}}
+	AttachSectionComments(section, map[int64][]*issues_model.Comment{
+		-5: {{ID: 100, CreatedUnix: 2000}},
+		10: {{ID: 200, CreatedUnix: 1000}, {ID: 201, CreatedUnix: 2000}},
+	})
+	assert.Equal(t, issues_model.CommentList{{ID: 200, CreatedUnix: 1000}, {ID: 100, CreatedUnix: 2000}, {ID: 201, CreatedUnix: 2000}}, section.Lines[0].Comments)
 }
 
 func TestDiffLine_CanComment(t *testing.T) {
@@ -1146,20 +1153,4 @@ func TestGetDiffShortStatWithOptions(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, &DiffShortStat{NumFiles: 1, TotalAddition: 3, TotalDeletion: 2}, stat)
 	})
-}
-
-func TestAttachSectionComments(t *testing.T) {
-	section := &DiffSection{Lines: []*DiffLine{{LeftIdx: 5, RightIdx: 10}, {LeftIdx: 6, RightIdx: 11}}}
-
-	AttachSectionComments(section, map[int64][]*issues_model.Comment{
-		-5: {{ID: 100, CreatedUnix: 1000}},                               // left side comment
-		10: {{ID: 200, CreatedUnix: 2000}},                               // right side comment
-		11: {{ID: 300, CreatedUnix: 1500}, {ID: 301, CreatedUnix: 2500}}, // multiple comments
-	})
-
-	// First line should have left and right comments
-	assert.Equal(t, issues_model.CommentList{{ID: 100, CreatedUnix: 1000}, {ID: 200, CreatedUnix: 2000}}, section.Lines[0].Comments)
-
-	// Second line should have two comments, sorted by creation time
-	assert.Equal(t, issues_model.CommentList{{ID: 300, CreatedUnix: 1500}, {ID: 301, CreatedUnix: 2500}}, section.Lines[1].Comments)
 }

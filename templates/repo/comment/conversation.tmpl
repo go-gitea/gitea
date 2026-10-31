@@ -21,7 +21,7 @@
 						We only handle the case $resolved=true and $invalid=true in this template because if the comment is not resolved it has the outdated label in the comments area (not the header above).
 						The case $resolved=false and $invalid=true is handled in repo/diff/comments.tmpl
 						-->
-						<a href="{{$root.Issue.Link}}#{{$firstComment.HashTag}}" class="ui label basic small tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+						<a href="{{$root.CommentContext.ConversationURL}}#{{$firstComment.HashTag}}" class="ui label basic small tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 							{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 						</a>
 					{{end}}
@@ -39,7 +39,7 @@
 		<div id="code-comments-{{$firstComment.ID}}" class="field comment-code-cloud {{if $resolved}}tw-hidden{{end}}">
 			<div class="comment-list">
 				<div class="ui comments">
-					{{template "repo/diff/comments" dict "comments" $comments}}
+					{{template "repo/comment/comments" dict "comments" $comments}}
 				</div>
 			</div>
 			<div class="flex-text-block tw-mt-2 tw-flex-wrap tw-justify-end">
@@ -66,9 +66,9 @@
 					</button>
 				{{end}}
 			</div>
-			{{template "repo/diff/comment_form" dict "ReplyReviewComment" $firstComment}}
+			{{template "repo/comment/form" dict "ReplyReviewComment" $firstComment}}
 		</div>
 	</div>
 {{else}}
-	{{template "repo/diff/conversation_outdated"}}
+	{{template "repo/comment/conversation_outdated"}}
 {{end}}

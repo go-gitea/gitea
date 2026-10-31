@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/markup/markdown"
 
@@ -74,19 +75,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := comments.LoadPosters(ctx); err != nil {
-		return nil, err
-	}
-
-	if err := comments.LoadAttachments(ctx); err != nil {
-		return nil, err
-	}
-
 	if err := comments.loadResolveDoers(ctx); err != nil {
-		return nil, err
-	}
-
-	if err := comments.loadReactions(ctx, issue.Repo); err != nil {
 		return nil, err
 	}
 
@@ -117,16 +106,31 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		}
 		comments[n] = comment
 		n++
+	}
+	comments = comments[:n]
+	return comments, comments.loadCodeCommentContent(ctx, issue.Repo)
+}
 
+func (comments CommentList) loadCodeCommentContent(ctx context.Context, repo *repo_model.Repository) error {
+	if err := comments.LoadPosters(ctx); err != nil {
+		return err
+	}
+	if err := comments.LoadAttachments(ctx); err != nil {
+		return err
+	}
+	if err := comments.loadReactions(ctx, repo); err != nil {
+		return err
+	}
+	for _, comment := range comments {
 		var err error
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, repo, renderhelper.RepoCommentOptions{
 			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
 		})
 		if comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content); err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return comments[:n], nil
+	return nil
 }
 
 // FetchCodeCommentsByLine fetches the code comments for a given treePath and line number

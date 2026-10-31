@@ -5,17 +5,15 @@ package issues
 
 import (
 	"context"
-	"strconv"
 
 	"gitea.dev/models/db"
-	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
 
-// CommitComment scopes a comment of type CommentTypeCommitComment, which has no issue, to its commit
 type CommitComment struct {
 	CommentID int64  `xorm:"pk"`
 	RepoID    int64  `xorm:"INDEX(s) NOT NULL"`
@@ -26,13 +24,16 @@ func init() {
 	db.RegisterModel(new(CommitComment))
 }
 
-func CreateCommitComment(ctx context.Context, repoID int64, commitSHA string, comment *Comment) error {
+func CreateCommitComment(ctx context.Context, repoID int64, commitSHA string, comment *Comment, attachmentUUIDs []string) error {
 	comment.Type = CommentTypeCommitComment
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := db.Insert(ctx, comment); err != nil {
 			return err
 		}
-		return db.Insert(ctx, &CommitComment{CommentID: comment.ID, RepoID: repoID, CommitSHA: commitSHA})
+		if err := db.Insert(ctx, &CommitComment{CommentID: comment.ID, RepoID: repoID, CommitSHA: commitSHA}); err != nil {
+			return err
+		}
+		return UpdateCommentAttachments(ctx, comment, attachmentUUIDs)
 	})
 }
 
@@ -45,18 +46,7 @@ func findCommitComments(ctx context.Context, repo *repo_model.Repository, commit
 		Find(&comments); err != nil {
 		return nil, err
 	}
-	if err := comments.LoadPosters(ctx); err != nil {
-		return nil, err
-	}
-	for _, comment := range comments {
-		var err error
-		if comment.RenderedContent, err = markdown.RenderString(renderhelper.NewRenderContextRepoComment(ctx, repo, renderhelper.RepoCommentOptions{
-			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
-		}), comment.Content); err != nil {
-			return nil, err
-		}
-	}
-	return comments, nil
+	return comments, comments.loadCodeCommentContent(ctx, repo)
 }
 
 func FetchCommitCodeComments(ctx context.Context, repo *repo_model.Repository, commitSHA string, treePaths ...string) (CodeComments, error) {
@@ -81,17 +71,64 @@ func GetCommitCommentPosterIDs(ctx context.Context, repoID int64, commitSHA stri
 	return posterIDs, err
 }
 
-func GetCommitCommentByID(ctx context.Context, repoID int64, commitSHA string, commentID int64) (*Comment, error) {
-	comment, has, err := db.Get[Comment](ctx, builder.In("id", builder.Select("comment_id").From("commit_comment").
-		Where(builder.Eq{"comment_id": commentID, "repo_id": repoID, "commit_sha": commitSHA})))
-	if err == nil && !has {
-		err = ErrCommentNotExist{commentID, 0}
+func GetRepoCommentByID(ctx context.Context, repoID, commentID int64) (*Comment, error) {
+	comment, err := GetCommentByID(ctx, commentID)
+	if err != nil {
+		return nil, err
 	}
-	return comment, err
+	commentRepoID, err := comment.getRepoID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if commentRepoID != repoID {
+		return nil, ErrCommentNotExist{commentID, 0}
+	}
+	return comment, nil
+}
+
+func (c *Comment) getRepoID(ctx context.Context) (int64, error) {
+	if !c.IsCommitComment() {
+		if err := c.LoadIssue(ctx); err != nil {
+			return 0, err
+		}
+		return c.Issue.RepoID, nil
+	}
+	if err := c.LoadCommitComment(ctx); err != nil {
+		return 0, err
+	}
+	return c.CommitComment.RepoID, nil
+}
+
+func (c *Comment) LoadCommitComment(ctx context.Context) error {
+	if c.CommitComment != nil {
+		return nil
+	}
+	commitComment, has, err := db.GetByID[CommitComment](ctx, c.ID)
+	if err != nil {
+		return err
+	}
+	if !has {
+		return ErrCommentNotExist{c.ID, 0}
+	}
+	c.CommitComment = commitComment
+	return nil
+}
+
+func (c *Comment) UnitType() unit.Type {
+	if c.IsCommitComment() {
+		return unit.TypeCode
+	}
+	return util.Iif(c.Issue.IsPull, unit.TypePullRequests, unit.TypeIssues)
 }
 
 func DeleteCommitCommentsByRepoID(ctx context.Context, repoID int64) error {
-	if _, err := db.GetEngine(ctx).In("id", builder.Select("comment_id").From("commit_comment").Where(builder.Eq{"repo_id": repoID})).Delete(&Comment{}); err != nil {
+	commentIDs := builder.Select("comment_id").From("commit_comment").Where(builder.Eq{"repo_id": repoID})
+	for _, bean := range []any{&Reaction{}, &ContentHistory{}} {
+		if _, err := db.GetEngine(ctx).In("comment_id", commentIDs).Delete(bean); err != nil {
+			return err
+		}
+	}
+	if _, err := db.GetEngine(ctx).In("id", commentIDs).Delete(&Comment{}); err != nil {
 		return err
 	}
 	return db.DeleteBeans(ctx, &CommitComment{RepoID: repoID})

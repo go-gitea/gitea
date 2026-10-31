@@ -85,7 +85,6 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 	}
 }
 
-// CreateCommitComment notifies commit comment related message to notifiers
 func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	commit *git.Commit, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
@@ -93,6 +92,14 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_
 
 	for _, notifier := range notifiers {
 		notifier.CreateCommitComment(ctx, doer, repo, commit, comment, mentions)
+	}
+}
+
+func DeleteCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, comment *issues_model.Comment) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.DeleteCommitComment(ctx, doer, repo, comment)
 	}
 }
 

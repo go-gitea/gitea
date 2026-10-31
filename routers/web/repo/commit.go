@@ -289,7 +289,7 @@ func Diff(ctx *context.Context) {
 		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
 		IsCommitDiff:  !isWiki,
-		CanAddComment: !isWiki && canCommentOnCommit(ctx),
+		CanAddComment: !isWiki && ctx.Doer != nil && !ctx.Repo.Repository.IsArchived,
 	}
 	gitRepo := ctx.Repo.GitRepo // don't access ctx.Repo.GitRepo anymore, because it might not be right for wiki repo
 
@@ -429,7 +429,9 @@ func Diff(ctx *context.Context) {
 	}
 
 	if !isWiki {
-		comments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, commitID)
+		comments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, commitID, container.FilterSlice(diff.Files, func(file *gitdiff.DiffFile) (string, bool) {
+			return file.Name, true
+		})...)
 		if err != nil {
 			ctx.ServerError("FetchCommitCodeComments", err)
 			return
@@ -452,7 +454,7 @@ func Diff(ctx *context.Context) {
 				return
 			}
 		}
-		prepareCommitCommentsData(ctx, commitID)
+		prepareCommitCommentTemplateData(ctx, commitID)
 	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)

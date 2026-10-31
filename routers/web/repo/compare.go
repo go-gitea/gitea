@@ -19,7 +19,6 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/charset"
 	csv_module "gitea.dev/modules/csv"
@@ -38,7 +37,6 @@ import (
 	"gitea.dev/services/context/upload"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
-	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -744,13 +742,9 @@ func ExcerptBlob(ctx *context.Context) {
 			log.Error("GetIssueByIndex error: %v", err)
 		} else if issue.IsPull {
 			// FIXME: DIFF-CONVERSATION-DATA: the following data assignment is fragile
-			ctx.Data["Issue"] = issue
-			ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-				return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-			}
+			issue.Repo = ctx.Repo.Repository
 			// and "diff/comment_form.tmpl" (reply comment) needs them
-			ctx.Data["PageIsPullFiles"] = true
-			ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
+			prepareIssueCommentTemplateData(ctx, issue, true)
 
 			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
 			if err != nil {
@@ -763,8 +757,8 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	} else if ctx.FormBool("commit_diff") && ctx.Data["PageIsWiki"] != true {
 		diffBlobExcerptData.IsCommitDiff = true
-		diffBlobExcerptData.CanAddComment = canCommentOnCommit(ctx)
-		prepareCommitCommentsData(ctx, commit.ID.String())
+		diffBlobExcerptData.CanAddComment = ctx.Doer != nil && !ctx.Repo.Repository.IsArchived
+		prepareCommitCommentTemplateData(ctx, commit.ID.String())
 
 		allComments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, commit.ID.String(), filePath)
 		if err != nil {

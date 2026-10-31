@@ -6,6 +6,7 @@ package mailer
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	activities_model "gitea.dev/models/activities"
 	issues_model "gitea.dev/models/issues"
@@ -17,6 +18,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+	sender_service "gitea.dev/services/mailer/sender"
 )
 
 const MailBatchSize = 100 // batch size used in mailIssueCommentBatch
@@ -124,47 +126,43 @@ func mailIssueCommentBatch(ctx context.Context, comment *mailComment, users []*u
 	if comment.Issue.IsPull {
 		checkUnit = unit.TypePullRequests
 	}
+	return mailCommentBatch(ctx, comment.Issue.Repo, checkUnit, users, visited, fromMention, customWatchers,
+		func(lang string, recipients []*user_model.User) ([]*sender_service.Message, error) {
+			return composeIssueCommentMessages(ctx, comment, lang, recipients, fromMention, "issue comments")
+		})
+}
 
+func mailCommentBatch(ctx context.Context, repo *repo_model.Repository, checkUnit unit.Type, users []*user_model.User,
+	visited container.Set[int64], fromMention bool, customWatchers container.Set[int64],
+	compose func(lang string, recipients []*user_model.User) ([]*sender_service.Message, error),
+) error {
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range users {
 		if !user.IsMailable() {
 			continue
 		}
-		// At this point we exclude:
-		// user that don't have all mails enabled or users only get mail on mention or custom watch and this is neither ...
 		if !(user.EmailNotificationsPreference == user_model.EmailNotificationsEnabled ||
 			user.EmailNotificationsPreference == user_model.EmailNotificationsAndYourOwn ||
 			user.EmailNotificationsPreference == user_model.EmailNotificationsOnMention && (fromMention || customWatchers.Contains(user.ID))) {
 			continue
 		}
-
-		// if we have already visited this user we exclude them
 		if !visited.Add(user.ID) {
 			continue
 		}
-
-		// test if this user is allowed to see the issue/pull
-		if !access_model.CheckRepoUnitUser(ctx, comment.Issue.Repo, user, checkUnit) {
+		if !access_model.CheckRepoUnitUser(ctx, repo, user, checkUnit) {
 			continue
 		}
-
 		langMap[user.Language] = append(langMap[user.Language], user)
 	}
-
 	for lang, receivers := range langMap {
-		// because we know that the len(receivers) > 0 and we don't care about the order particularly
-		// working backwards from the last (possibly) incomplete batch. If len(receivers) can be 0 this
-		// starting condition will need to be changed slightly
-		for i := ((len(receivers) - 1) / MailBatchSize) * MailBatchSize; i >= 0; i -= MailBatchSize {
-			msgs, err := composeIssueCommentMessages(ctx, comment, lang, receivers[i:], fromMention, "issue comments")
+		for batch := range slices.Chunk(receivers, MailBatchSize) {
+			msgs, err := compose(lang, batch)
 			if err != nil {
 				return err
 			}
 			SendAsync(msgs...)
-			receivers = receivers[:i]
 		}
 	}
-
 	return nil
 }
 

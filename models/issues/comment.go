@@ -183,7 +183,7 @@ func AsCommentType(typeName string) CommentType {
 
 func (t CommentType) HasContentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeCommitComment:
 		return true
 	}
 	return false
@@ -191,7 +191,7 @@ func (t CommentType) HasContentSupport() bool {
 
 func (t CommentType) HasAttachmentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeCommitComment:
 		return true
 	}
 	return false
@@ -284,8 +284,9 @@ type Comment struct {
 	OriginalAuthor   string
 	OriginalAuthorID int64
 
-	IssueID int64  `xorm:"INDEX"`
-	Issue   *Issue `xorm:"-"`
+	IssueID       int64          `xorm:"INDEX"`
+	Issue         *Issue         `xorm:"-"`
+	CommitComment *CommitComment `xorm:"-"`
 
 	LabelID       int64
 	Label         *Label   `xorm:"-"`
@@ -672,7 +673,7 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 		return nil
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		issue, err := GetIssueByID(ctx, c.IssueID)
+		repoID, err := c.getRepoID(ctx)
 		if err != nil {
 			return err
 		}
@@ -681,7 +682,7 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
 		for i := range attachments {
-			if err := validateAttachmentForIssue(ctx, issue, attachments[i]); err != nil {
+			if err := validateAttachmentLink(ctx, repoID, c.IssueID, c.ID, attachments[i]); err != nil {
 				return err
 			}
 			attachments[i].IssueID = c.IssueID
@@ -1214,9 +1215,6 @@ func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *us
 		}
 		if affected == 0 {
 			return ErrCommentAlreadyChanged
-		}
-		if err := c.LoadIssue(ctx); err != nil {
-			return err
 		}
 		return c.AddCrossReferences(ctx, doer, true)
 	})

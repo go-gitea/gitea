@@ -157,14 +157,12 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 func updateNotification(ctx context.Context, notification, target *Notification) error {
 	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
 	// But we need update update_by so that the notification will be reorder
-	var cols []string
+	notification.UpdatedBy = target.UpdatedBy
+	cols := []string{"update_by"}
 	if notification.Status == NotificationStatusRead {
 		notification.Status = NotificationStatusUnread
 		notification.CommentID = target.CommentID
-		cols = []string{"status", "update_by", "comment_id"}
-	} else {
-		notification.UpdatedBy = target.UpdatedBy
-		cols = []string{"update_by"}
+		cols = append(cols, "status", "comment_id")
 	}
 
 	_, err := db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)

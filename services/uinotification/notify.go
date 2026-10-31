@@ -110,7 +110,6 @@ func (ns *notificationService) CreateCommitComment(ctx context.Context, doer *us
 	}, receivers)
 }
 
-// pushWithReceivers queues the notification of all watchers and one for each explicit receiver
 func (ns *notificationService) pushWithReceivers(opts issueNotificationOpts, receivers []*user_model.User) {
 	_ = ns.issueQueue.Push(opts)
 	for _, receiver := range receivers {

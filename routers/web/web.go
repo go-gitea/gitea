@@ -1340,8 +1340,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/{type:issues}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests))
 	m.Group("/{username}/{reponame}/{type:pulls}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, reqUnitPullsReader)
 
+	m.Get("/{username}/{reponame}/comments/{id}/attachments", optSignIn, context.RepoAssignment, repo.GetCommentAttachments)
 	m.Group("/{username}/{reponame}", func() {
-		m.Get("/comments/{id}/attachments", repo.GetCommentAttachments)
 		m.Get("/labels", repo.RetrieveLabelsForList, repo.Labels)
 		m.Get("/milestones", repo.Milestones)
 		m.Get("/milestone/{id}", repo.MilestoneIssuesAndPulls)
@@ -1398,9 +1398,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/content-history/soft-delete", repo.SoftDeleteContentHistory)
 			})
 
-			m.Post("/attachments", repo.UploadIssueAttachment)
-			m.Post("/attachments/remove", repo.DeleteAttachment)
-
 			m.Post("/labels", repo.UpdateIssueLabel)
 			m.Post("/milestone", repo.UpdateIssueMilestone)
 			m.Post("/projects", reqRepoProjectsReader, repo.UpdateIssueProject)
@@ -1414,6 +1411,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		// FIXME: many "pulls" requests are sent to "issues" endpoints incorrectly, so the issue endpoints have to tolerate pull request permissions at the moment
 		m.Group("/{type:issues}", addIssuesPullsUpdateRoutes, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests), context.RepoMustNotBeArchived())
 		m.Group("/{type:pulls}", addIssuesPullsUpdateRoutes, reqUnitPullsReader, context.RepoMustNotBeArchived())
+
+		m.Group("/issues/attachments", func() {
+			m.Post("", repo.UploadIssueAttachment)
+			m.Post("/remove", repo.DeleteAttachment)
+		}, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests, unit.TypeCode)) // code readers attach files to commit comments
 
 		m.Group("/comments/{id}", func() {
 			m.Post("", repo.UpdateCommentContent)
@@ -1748,7 +1750,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("/commit/{sha:([a-f0-9]{7,64})$}/comment", reqSignIn).
 				Get(repo.RenderNewCommitCommentForm).
 				Post(context.RepoMustNotBeArchived(), repo.CreateCommitComment)
-			m.Post("/commit/{sha:([a-f0-9]{7,64})$}/comment/{id}/delete", reqSignIn, context.RepoMustNotBeArchived(), repo.DeleteCommitComment)
 
 			// FIXME: this route `/cherry-pick/{sha}` doesn't seem useful or right, the new code always uses `/_cherrypick/` which could handle branch name correctly
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, context.RepoRefByDefaultBranch(), repo.CherryPick)

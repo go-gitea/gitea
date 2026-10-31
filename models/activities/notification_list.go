@@ -157,8 +157,6 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 	}, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues), notifications, toNotify)
 }
 
-// CreateOrUpdateCommitNotifications creates or updates the notification of a commit comment for the
-// commenters of the commit, or only for the receiver if receiverID > 0, and returns the notified user IDs.
 func CreateOrUpdateCommitNotifications(ctx context.Context, repoID int64, commitSHA string, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
 		toNotify := make(container.Set[int64])
@@ -174,6 +172,7 @@ func CreateOrUpdateCommitNotifications(ctx context.Context, repoID int64, commit
 		}
 
 		notifications, err := db.Find[Notification](ctx, FindNotificationOptions{
+			UserID:   receiverID,
 			RepoID:   repoID,
 			CommitID: commitSHA,
 			Source:   []NotificationSource{NotificationSourceCommit},
@@ -191,8 +190,6 @@ func CreateOrUpdateCommitNotifications(ctx context.Context, repoID int64, commit
 	})
 }
 
-// createOrUpdateNotifications creates the target notification for each receiver who can read the unit,
-// or updates the receiver's existing one
 func createOrUpdateNotifications(ctx context.Context, target *Notification, unitType unit.Type, existing []*Notification, toNotify container.Set[int64]) ([]int64, error) {
 	// muting the repository outranks every other source, including mentions
 	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, target.RepoID)

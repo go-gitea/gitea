@@ -139,25 +139,26 @@ func NewComment(ctx *context.Context) {
 	ctx.JSONRedirect(redirect)
 }
 
-func getRepoIssueComment(ctx *context.Context, commentID int64) *issues_model.Comment {
-	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, commentID)
+func getRepoComment(ctx *context.Context, commentID int64) *issues_model.Comment {
+	comment, err := issues_model.GetRepoCommentByID(ctx, ctx.Repo.Repository.ID, commentID)
 	if err != nil {
-		ctx.ServerError("GetCommentWithRepoID", err)
+		ctx.ServerError("GetRepoCommentByID", err)
 		return nil
 	}
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+	if !ctx.Repo.Permission.CanRead(comment.UnitType()) {
 		ctx.NotFound(nil)
 		return nil
 	}
 	return comment
 }
 
-func getRepoIssueCommentForSelfWriteOrAccess(ctx *context.Context, commentID int64, accessMode perm.AccessMode) *issues_model.Comment {
-	comment := getRepoIssueComment(ctx, commentID)
+func getRepoCommentForSelfWriteOrAccess(ctx *context.Context, commentID int64, accessMode perm.AccessMode) *issues_model.Comment {
+	comment := getRepoComment(ctx, commentID)
 	if comment == nil {
 		return nil
 	}
-	if !canSelfChangeOrAccessContent(ctx, comment.Issue, comment.PosterID, accessMode) {
+	if !issue_service.CanSelfChangeOrAccessComment(ctx.Doer, ctx.Repo.Permission, comment, accessMode) {
+		ctx.HTTPError(http.StatusForbidden)
 		return nil
 	}
 	if !comment.Type.HasContentSupport() {
@@ -169,7 +170,7 @@ func getRepoIssueCommentForSelfWriteOrAccess(ctx *context.Context, commentID int
 
 // UpdateCommentContent change comment of issue's content
 func UpdateCommentContent(ctx *context.Context) {
-	comment := getRepoIssueCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeWrite)
+	comment := getRepoCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeWrite)
 	if comment == nil {
 		return
 	}
@@ -186,7 +187,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		oldContent := comment.Content
 		comment.Content = newContent
 
-		if err := issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
+		if err := issue_service.UpdateComment(ctx, ctx.Doer, ctx.Repo.Repository, comment, contentVersion, oldContent); err != nil {
 			if errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
 			} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
@@ -233,12 +234,12 @@ func UpdateCommentContent(ctx *context.Context) {
 
 // DeleteComment delete comment of issue
 func DeleteComment(ctx *context.Context) {
-	comment := getRepoIssueCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeWrite)
+	comment := getRepoCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeWrite)
 	if comment == nil {
 		return
 	}
 
-	if err := issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if err := issue_service.DeleteComment(ctx, ctx.Doer, ctx.Repo.Repository, comment); err != nil {
 		ctx.ServerError("DeleteComment", err)
 		return
 	}
@@ -248,7 +249,7 @@ func DeleteComment(ctx *context.Context) {
 
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
-	comment := getRepoIssueCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeRead)
+	comment := getRepoCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeRead)
 	if comment == nil {
 		return
 	}
@@ -256,7 +257,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 	form := web.GetForm[*forms.ReactionForm](ctx)
 	switch ctx.PathParam("action") {
 	case "react":
-		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Content)
+		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, ctx.Repo.Repository, comment, form.Content)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.ServerError("ChangeIssueReaction", err)
@@ -272,9 +273,9 @@ func ChangeCommentReaction(ctx *context.Context) {
 			break
 		}
 
-		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID, reaction.ID)
+		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.IssueID, comment.ID, reaction.ID)
 	case "unreact":
-		if err := issues_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content); err != nil {
+		if err := issues_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.IssueID, comment.ID, form.Content); err != nil {
 			ctx.ServerError("DeleteCommentReaction", err)
 			return
 		}
@@ -286,7 +287,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 			break
 		}
 
-		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID)
+		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, comment.IssueID, comment.ID)
 	default:
 		ctx.NotFound(nil)
 		return
@@ -297,7 +298,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 // GetCommentAttachments returns attachments for the comment
 func GetCommentAttachments(ctx *context.Context) {
-	comment := getRepoIssueComment(ctx, ctx.PathParamInt64("id"))
+	comment := getRepoComment(ctx, ctx.PathParamInt64("id"))
 	if comment == nil {
 		return
 	}
