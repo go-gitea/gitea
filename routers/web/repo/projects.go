@@ -321,15 +321,20 @@ func ViewProject(ctx *context.Context) {
 		milestoneIDs = []int64{db.NoConditionID}
 	}
 
-	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &issues_model.IssuesOptions{
-		RepoIDs:      []int64{ctx.Repo.Repository.ID},
-		LabelIDs:     preparedLabelFilter.SelectedLabelIDs,
-		AssigneeID:   assigneeID,
-		MilestoneIDs: milestoneIDs,
-	})
-	if err != nil {
-		ctx.ServerError("LoadIssuesOfColumns", err)
-		return
+	var issuesMap map[int64]issues_model.IssueList
+	// Projects read alone must not expose issues or pulls whose unit the doer cannot read
+	if isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(); ok {
+		issuesMap, err = project_service.LoadIssuesFromProject(ctx, project, &issues_model.IssuesOptions{
+			RepoIDs:      []int64{ctx.Repo.Repository.ID},
+			IsPull:       isPull,
+			LabelIDs:     preparedLabelFilter.SelectedLabelIDs,
+			AssigneeID:   assigneeID,
+			MilestoneIDs: milestoneIDs,
+		})
+		if err != nil {
+			ctx.ServerError("LoadIssuesOfColumns", err)
+			return
+		}
 	}
 	for _, column := range columns {
 		column.NumIssues = int64(len(issuesMap[column.ID]))
