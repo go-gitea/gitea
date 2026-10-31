@@ -50,6 +50,14 @@ func TestLabelQueries(t *testing.T) {
 		label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 9})
 		assert.Equal(t, "scope/subscope", label.ExclusiveScope())
 	})
+	t.Run("Label_Scope", func(t *testing.T) {
+		assert.Equal(t, "process", (&issues_model.Label{Name: "process/risk"}).Scope())
+		assert.Equal(t, "a/bc", (&issues_model.Label{Name: "a/bc/de"}).Scope())
+		assert.Equal(t, "N", (&issues_model.Label{Name: "N/A", Exclusive: true}).Scope())
+		for _, name := range []string{"N/A", "c/java", "foo / bar", "foo/", "foo"} {
+			assert.Empty(t, (&issues_model.Label{Name: name}).Scope(), name)
+		}
+	})
 	t.Run("GetLabelByID", func(t *testing.T) {
 		label, err := issues_model.GetLabelByID(t.Context(), 1)
 		assert.NoError(t, err)

@@ -13,6 +13,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/container"
@@ -186,8 +188,22 @@ func (l *Label) ExclusiveScope() string {
 	if !l.Exclusive {
 		return ""
 	}
+	return l.Scope()
+}
+
+// Scope returns the scope to display, non-exclusive names like "N/A" or "a / b" are not split
+func (l *Label) Scope() string {
 	scope, name, found := strings.CutLast(l.Name, "/")
 	if !found || scope == "" || name == "" {
+		return ""
+	}
+	if l.Exclusive {
+		return scope
+	}
+	lastScopeRune, lastScopeSize := utf8.DecodeLastRuneInString(scope)
+	firstNameRune, firstNameSize := utf8.DecodeRuneInString(name)
+	if len(scope) == lastScopeSize || len(name) == firstNameSize ||
+		unicode.IsSpace(lastScopeRune) || unicode.IsSpace(firstNameRune) {
 		return ""
 	}
 	return scope
