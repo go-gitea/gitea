@@ -41,7 +41,7 @@ export default defineConfig({
         },
       },
     },
-    ...(platform === 'darwin' && !env.PW_TEST_CONNECT_WS_ENDPOINT ? [{ // webkit on linux is unstable
+    ...(platform === 'darwin' ? [{ // webkit on linux is unstable
       name: 'webkit',
       use: {
         ...devices['Desktop Safari'],

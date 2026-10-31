@@ -189,9 +189,9 @@ export GITEA_TEST_E2E_USER
 export GITEA_TEST_E2E_PASSWORD
 export GITEA_TEST_E2E_EMAIL
 export GITEA_TEST_E2E_TIMEOUT_FACTOR
+export UV_THREADPOOL_SIZE=1 # serializes getaddrinfo, concurrent macOS lookups of localhost sporadically stall for 5s
 
 if [ "$PLAYWRIGHT_MODE" = "container" ]; then
   export PW_TEST_CONNECT_WS_ENDPOINT="ws://127.0.0.1:${PLAYWRIGHT_SERVER_PORT}/"
 fi
-# one libuv thread serializes getaddrinfo, concurrent macOS lookups of localhost sporadically stall for 5s
-UV_THREADPOOL_SIZE=1 pnpm exec playwright test "$@"
+pnpm exec playwright test "$@"
