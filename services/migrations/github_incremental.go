@@ -41,10 +41,10 @@ func (g *GithubDownloaderV3) GetNewPullRequests(ctx context.Context, page, perPa
 	}
 	g.waitAndPickClient(ctx)
 	prs, resp, err := g.getClient().PullRequests.List(ctx, g.repoOwner, g.repoName, opt)
+	g.setRateFromResponse(resp)
 	if err != nil {
 		return nil, false, fmt.Errorf("GetNewPullRequests: %w", err)
 	}
-	g.setRate(&resp.Rate)
 	allPRs := make([]*base.PullRequest, 0, len(prs))
 	for _, pr := range prs {
 		if pr.GetUpdatedAt().Before(updatedAfter) {
