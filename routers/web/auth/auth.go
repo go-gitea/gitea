@@ -352,6 +352,7 @@ func SignInPost(ctx *context.Context) {
 func handleTwoFactorRequired(ctx *context.Context, u *user_model.User, remember bool, extra map[string]any) {
 	updates := map[string]any{"twofaUid": u.ID, "twofaRemember": remember}
 	maps.Copy(updates, extra)
+	_ = ctx.Session.Delete(session.KeySignInMethod) // each 2FA challenge declares its own method via extra
 	if err := regenerateSession(ctx, updates); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
@@ -370,14 +371,24 @@ func handleTwoFactorRequired(ctx *context.Context, u *user_model.User, remember 
 
 // This handles the final part of the sign-in process of the user.
 func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
-	handleSignInFull(ctx, u, remember)
+	handleSignInWithMethod(ctx, u, remember, "")
+}
+
+func handleSignInWithMethod(ctx *context.Context, u *user_model.User, remember bool, signInMethod string) {
+	handleSignInFull(ctx, u, remember, signInMethod)
 	if ctx.Written() {
 		return
 	}
 	redirectAfterAuth(ctx)
 }
 
-func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
+// twoFactorSignInMethod returns the method recorded when the pending 2FA challenge was issued
+func twoFactorSignInMethod(ctx *context.Context) string {
+	signInMethod, _ := ctx.Session.Get(session.KeySignInMethod).(string)
+	return signInMethod
+}
+
+func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool, signInMethod string) {
 	if remember {
 		if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
 			log.Error("Failed to delete expired auth tokens: %v", err)
@@ -398,10 +409,14 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	}
 
 	auth_service.ClearSessionKeysForSignIn(ctx.Session)
-	if err := regenerateSession(ctx, map[string]any{
+	updates := map[string]any{
 		session.KeyUID:                  u.ID,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
-	}); err != nil {
+	}
+	if signInMethod != "" {
+		updates[session.KeySignInMethod] = signInMethod
+	}
+	if err := regenerateSession(ctx, updates); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
 	}
