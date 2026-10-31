@@ -290,7 +290,7 @@ func LFSFileGet(ctx *context.Context) {
 		escapeStatus, fileContentHTML := charset.EscapeControlHTML(fileContentHTML, ctx.Locale)
 
 		output := &htmlutil.HTMLBuilder{}
-		output.WriteHTML(`<table>`)
+		output.WriteHTML(`<table data-paste-markdown-skip>`)
 		writeLine := func(lineNum int, line template.HTML) {
 			output.WriteFormatf(`<tr><td class="lines-num">%d</td><td class="lines-code"><code class="code-inner">%s</code></td></tr>`, lineNum, line)
 		}
