@@ -16,6 +16,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"gitea.dev/modules/log"
 )
 
 type Mode uint8
@@ -36,33 +38,36 @@ type Policy struct {
 	allow              AllowList
 	block              BlockList
 	allowKey, blockKey string // the settings the lists were read from, named in rejections
-	localNeedsIPAllow  bool
+	internalRanges     []netip.Prefix
+	internalRangesKey  string // the setting the ranges were read from, named in rejections
 	proxyFunc          func(*http.Request) (*url.URL, error)
-	proxyAddrs         sync.Map // dial addresses proxyFunc returned, the operator's proxies are exempt from the lists
 }
 
 type Option func(*Policy)
 
-// WithAllow sets the allow list from the setting named by key
+// WithAllow sets the allow list and reference to key responsible for it
 func WithAllow(hostList, key string) Option {
 	return func(p *Policy) {
 		p.allow, p.allowKey = *NewAllowList(hostList, p.mode), key
 	}
 }
 
+// WithBlock sets the blocklist and reference to key responsible for it
 func WithBlock(hostList, key string) Option {
 	return func(p *Policy) {
 		p.block, p.blockKey = *NewBlockList(hostList), key
 	}
 }
 
-// WithLocalNeedsIPAllow requires non-public targets (private, loopback, link-local, CGNAT and special-use ranges) to match an IP allow entry (CIDR or named range), a host name match is not enough.
-func WithLocalNeedsIPAllow() Option {
+// WithInternalRanges sets the ranges hostname entries may resolve into for non-public targets
+func WithInternalRanges(hostList, key string) Option {
 	return func(p *Policy) {
-		p.localNeedsIPAllow = true
+		p.internalRanges, _ = ParseInternalRanges(hostList)
+		p.internalRangesKey = key
 	}
 }
 
+// WithProxy sets the proxyfunc in the policy
 func WithProxy(proxyFunc func(*http.Request) (*url.URL, error)) Option {
 	return func(p *Policy) {
 		p.proxyFunc = proxyFunc
@@ -98,19 +103,18 @@ func ProxyDialAddr(u *url.URL) string {
 	return net.JoinHostPort(u.Hostname(), cmp.Or(u.Port(), proxyPorts[u.Scheme]))
 }
 
-func (p *Policy) blockedError(target string) error {
-	return fmt.Errorf("%s can not call blocked HTTP servers (check your %s setting), deny '%s'", p.usage, p.blockKey, target)
-}
-
 func (p *Policy) notAllowedError(target string) error {
-	return fmt.Errorf("%s can only call allowed HTTP servers (check your %s setting), deny '%s'", p.usage, p.allowKey, target)
+	return fmt.Errorf("%s can only call allowed HTTP servers (no allow entry matches, check your %s setting), deny '%s'", p.usage, p.allowKey, target)
 }
 
 func (p *Policy) checkAddr(host string, ip netip.AddrPort) error {
 	ip = netip.AddrPortFrom(ip.Addr().Unmap(), ip.Port())
-	class := classifyAddr(ip.Addr())
+	class, reserved := classifyAddr(ip.Addr())
 	if class == classReserved {
-		return fmt.Errorf("%s can not call reserved addresses, deny '%s'", p.usage, denyTarget(host, ip))
+		if reserved.IsValid() {
+			return fmt.Errorf("%s can not call reserved addresses (%s), deny '%s'", p.usage, reserved, denyTarget(host, ip))
+		}
+		return fmt.Errorf("%s can not call reserved addresses (zoned address), deny '%s'", p.usage, denyTarget(host, ip))
 	}
 	return p.gate(host, ip, class)
 }
@@ -131,23 +135,42 @@ func (p *Policy) allowCheck(host string, ip netip.AddrPort, class addrClass) err
 	if p.allow.MatchIPAddr(ip) {
 		return nil
 	}
-	// with localNeedsIPAllow a restricted target needs an IP entry, a hostname match is not enough
-	hostnameOk := !p.localNeedsIPAllow || class != classRestricted
-	if hostnameOk && p.allow.MatchHostname(host, ip.Port()) {
+	if class == classRestricted {
+		return p.allowRestricted(host, ip)
+	}
+	if p.allow.MatchHostname(host, ip.Port()) {
 		return nil
 	}
-	if p.mode == Strict {
-		return p.notAllowedError(denyTarget(host, ip))
+	return p.notAllowedError(denyTarget(host, ip))
+}
+
+// allowRestricted allows a non-public target via a hostname entry within the internal
+// ranges
+func (p *Policy) allowRestricted(host string, ip netip.AddrPort) error {
+	if len(p.internalRanges) > 0 {
+		if p.allow.MatchHostnameInRanges(host, ip, p.internalRanges) {
+			return nil
+		}
+		if rule, ok := p.allow.matchHostEntry(host); ok {
+			if !containsPrefix(p.internalRanges, ip.Addr()) {
+				return fmt.Errorf("%s resolves outside the internal ranges allowed for hostnames (check your %s setting), deny '%s'", p.usage, p.internalRangesKey, denyTarget(host, ip))
+			}
+			return fmt.Errorf("%s port %d is not allowed for %q (check your %s setting), deny '%s'", p.usage, ip.Port(), rule.pattern, p.allowKey, denyTarget(host, ip))
+		}
 	}
-	if !hostnameOk {
-		return fmt.Errorf("%s needs an explicit IP allow entry (non-public address)", denyTarget(host, ip))
+	err := fmt.Errorf("%s can not call non-public addresses without an allow entry (check your %s setting), deny '%s'", p.usage, p.allowKey, denyTarget(host, ip))
+	if _, ok := p.allow.matchHostEntry(host); ok {
+		err = fmt.Errorf("%w — set %s to let hostname entries cover non-public targets", err, p.internalRangesKey)
 	}
-	return fmt.Errorf("%s needs an explicit allow entry (non-public address)", denyTarget(host, ip))
+	return err
 }
 
 func (p *Policy) blockReason(host string, ip netip.AddrPort) error {
-	if p.block.MatchHostname(host, ip.Port()) || p.block.MatchIPAddr(ip) {
-		return p.blockedError(denyTarget(host, ip))
+	if entry, ok := p.block.MatchHostnameEntry(host, ip.Port()); ok {
+		return fmt.Errorf("%s can not call blocked HTTP servers (matched hostname entry %q, check your %s setting), deny '%s'", p.usage, entry, p.blockKey, denyTarget(host, ip))
+	}
+	if entry, ok := p.block.MatchIPAddrEntry(ip); ok {
+		return fmt.Errorf("%s can not call blocked HTTP servers (matched IP entry %s, check your %s setting), deny '%s'", p.usage, entry, p.blockKey, denyTarget(host, ip))
 	}
 	return nil
 }
@@ -174,7 +197,8 @@ func (p *Policy) CheckHost(u *url.URL) error {
 	return p.checkAddr(host, addrPort) // invalid ip doesn't match anything
 }
 
-// CheckHostIPs reports whether u's host may be called, it resolves the host and every address must pass as the dialer may pick any.
+// CheckHostIPs reports whether u's host may be called, it resolves the host and at least one
+// address must pass, matching the dialer which tries the resolved addresses in turn.
 func (p *Policy) CheckHostIPs(u *url.URL) error {
 	// hosts behind a proxy may have no DNS resolver, the name-only CheckHost screen still applies
 	ips, _ := net.LookupIP(u.Hostname())
@@ -186,46 +210,51 @@ func (p *Policy) checkHostIPs(u *url.URL, ips []net.IP) error {
 		return p.CheckHost(u)
 	}
 	host, port := u.Hostname(), dialPort(u)
+	var firstErr error
 	for _, ip := range ips {
 		addr, _ := netip.AddrFromSlice(ip)
 		addrPort := netip.AddrPortFrom(addr, port)
-		if err := p.checkAddr(host, addrPort); err != nil {
-			return err
+		err := p.checkAddr(host, addrPort)
+		if err == nil {
+			return nil // the dialer falls back to the next address, one passing address is enough
+		}
+		if firstErr == nil {
+			firstErr = err
 		}
 	}
-	return nil
+	return firstErr
 }
+
+const (
+	// dialTimeout bounds a dial, dialKeepAlive probes idle connections — every egress dialer uses these
+	dialTimeout   = 30 * time.Second
+	dialKeepAlive = 30 * time.Second
+)
 
 // NewDialContext returns a dial function that checks the resolved address at connect time, so DNS rebinding can't bypass it.
 func (p *Policy) NewDialContext() func(ctx context.Context, network, addr string) (net.Conn, error) {
-	return p.dialContext(false)
-}
-
-// dialContext can let through the proxies the selector returned, for a transport dialing proxies and targets alike
-func (p *Policy) dialContext(allowProxies bool) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
-		dialer := net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
-		if _, isProxy := p.proxyAddrs.Load(addr); !allowProxies || !isProxy {
-			host, _, err := net.SplitHostPort(addr) // the requested host, also on redirects where the request's Host is empty
+		dialer := net.Dialer{Timeout: dialTimeout, KeepAlive: dialKeepAlive}
+		host, _, err := net.SplitHostPort(addr) // the requested host, also on redirects where the request's Host is empty
+		if err != nil {
+			return nil, err
+		}
+		dialer.Control = func(_, ipAddr string, _ syscall.RawConn) error {
+			addrPort, err := netip.ParseAddrPort(ipAddr)
 			if err != nil {
-				return nil, err
+				return fmt.Errorf("%s can only call HTTP servers via TCP, deny '%s(%s)': %w", p.usage, host, ipAddr, err)
 			}
-			dialer.Control = func(_, ipAddr string, _ syscall.RawConn) error {
-				addrPort, err := netip.ParseAddrPort(ipAddr)
-				if err != nil {
-					return fmt.Errorf("%s can only call HTTP servers via TCP, deny '%s(%s)': %w", p.usage, host, ipAddr, err)
-				}
-				if err := p.checkAddr(host, addrPort); err != nil {
-					return fmt.Errorf("%w: %w", ErrDenied, err)
-				}
-				return nil
+			if err := p.checkAddr(host, addrPort); err != nil {
+				log.Warn("egress denied: %v", err) // audit trail for blocked connection attempts
+				return fmt.Errorf("%w: %w", ErrDenied, err)
 			}
+			return nil
 		}
 		return dialer.DialContext(ctx, network, addr)
 	}
 }
 
-// Proxy selects the proxy for req and lets the dialer reach it.
+// Proxy selects the proxy for req.
 func (p *Policy) Proxy(req *http.Request) (proxyURL *url.URL, err error) {
 	if p.proxyFunc != nil {
 		proxyURL, err = p.proxyFunc(req)
@@ -234,19 +263,91 @@ func (p *Policy) Proxy(req *http.Request) (proxyURL *url.URL, err error) {
 		if _, ok := proxyPorts[proxyURL.Scheme]; !ok {
 			return nil, fmt.Errorf("unsupported proxy scheme %q, use http, https or socks5", proxyURL.Scheme)
 		}
-		p.proxyAddrs.LoadOrStore(ProxyDialAddr(proxyURL), struct{}{})
 	}
 	return proxyURL, err
 }
 
-func (p *Policy) NewHTTPTransport() *http.Transport {
-	return &http.Transport{
-		Proxy:                 p.Proxy,
-		DialContext:           p.dialContext(true),
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+// ProxyDialer returns a dialer for the operator's proxies, which are configuration rather than user input.
+func ProxyDialer() *net.Dialer {
+	return &net.Dialer{Timeout: dialTimeout, KeepAlive: dialKeepAlive}
+}
+
+// proxyTransport routes each request through the dialer its traffic deserves: a request
+// the selector sends to a proxy is dialed by a transport that only dials that proxy
+// (operator configuration, not user input, so unchecked), every other request is dialed
+// with the policy check. The split is by role, not by address: a direct request whose
+// target is a proxy's address is still checked.
+type proxyTransport struct {
+	transport *http.Transport // direct requests: no proxy, the policy-checked dialer
+	mu        sync.Mutex
+	proxied   map[string]*http.Transport // proxy URL -> transport that only dials that proxy
+}
+
+// NewHTTPTransport returns a RoundTripper that enforces the policy on direct dials and
+// lets proxy dials through. The base transport is configured for the policy: DialContext
+// becomes the policy's dialer, Proxy defaults to the policy's selector, and unset
+// transport settings get their defaults; nil builds a default transport.
+func (p *Policy) NewHTTPTransport(base *http.Transport) http.RoundTripper {
+	if base == nil {
+		base = &http.Transport{}
 	}
+
+	if base.Proxy == nil {
+		base.Proxy = p.Proxy
+	}
+	base.DialContext = p.NewDialContext()
+	if !base.ForceAttemptHTTP2 {
+		base.ForceAttemptHTTP2 = true
+	}
+	base.MaxIdleConns = cmp.Or(base.MaxIdleConns, 100)
+	base.IdleConnTimeout = cmp.Or(base.IdleConnTimeout, 90*time.Second)
+	base.TLSHandshakeTimeout = cmp.Or(base.TLSHandshakeTimeout, 10*time.Second)
+	base.ExpectContinueTimeout = cmp.Or(base.ExpectContinueTimeout, 1*time.Second)
+	return &proxyTransport{transport: base, proxied: map[string]*http.Transport{}}
+}
+
+// RoundTrip sends req through the proxy the selector picks, or dials it directly with the policy check.
+func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	selector := t.transport.Proxy
+	if selector == nil {
+		return t.transport.RoundTrip(req) // no selector: every request is direct
+	}
+	proxyURL, err := selector(req)
+	if err != nil {
+		return nil, err
+	}
+	if proxyURL == nil {
+		return t.transport.RoundTrip(req)
+	}
+	return t.proxiedTransport(proxyURL).RoundTrip(req)
+}
+
+// CloseIdleConnections closes the idle connections of the direct and all proxied transports.
+func (t *proxyTransport) CloseIdleConnections() {
+	t.transport.CloseIdleConnections()
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for _, tr := range t.proxied {
+		tr.CloseIdleConnections()
+	}
+}
+
+// proxiedTransport returns the transport that only dials proxyURL, creating it on first use.
+func (t *proxyTransport) proxiedTransport(proxyURL *url.URL) *http.Transport {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	tr, ok := t.proxied[proxyURL.String()]
+	if !ok {
+		tr = newProxiedTransport(proxyURL, t.transport)
+		t.proxied[proxyURL.String()] = tr
+	}
+	return tr
+}
+
+// newProxiedTransport returns a transport that only dials proxyURL, unchecked: the proxy is operator configuration.
+func newProxiedTransport(proxyURL *url.URL, base *http.Transport) *http.Transport {
+	tr := base.Clone() // carries over every setting of the direct transport
+	tr.Proxy = http.ProxyURL(proxyURL)
+	tr.DialContext = ProxyDialer().DialContext
+	return tr
 }

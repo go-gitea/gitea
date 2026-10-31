@@ -5,6 +5,7 @@ package policy
 
 import (
 	"net/netip"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -70,7 +71,10 @@ func TestMatchIPAddr(t *testing.T) {
 		{pattern: "loopback", ip: "127.0.0.1", port: 80, want: true},
 		{pattern: "loopback", ip: "::1", port: 80, want: true},
 		{pattern: "loopback", ip: "10.1.2.3", port: 80},
-		{pattern: "private", ip: "100.64.0.1", port: 80, want: true}, // CGNAT
+		{pattern: "private", ip: "100.64.0.1", port: 80}, // CGNAT is its own alias
+		{pattern: "cgnat", ip: "100.64.0.1", port: 80, want: true},
+		{pattern: "cgnat", ip: "100.100.100.200", port: 80, want: true},
+		{pattern: "cgnat", ip: "10.1.2.3", port: 80},
 		{pattern: "private", ip: "8.8.8.8", port: 80},
 		{pattern: "private:22", ip: "fd00::1", port: 22, want: true},
 		{pattern: "private:22", ip: "fd00::1", port: 80},
@@ -131,4 +135,92 @@ func TestRejectedEntries(t *testing.T) {
 	require.Len(t, list.Rejected(), 1)
 	assert.Contains(t, list.Rejected()[0], `use "10.0.0.0/8"`)
 	assert.Empty(t, NewAllowList("example.com", Strict).Rejected())
+}
+
+func TestParseInternalRanges(t *testing.T) {
+	prefixes, rejected := ParseInternalRanges("10.0.0.0/8, private, loopback, cgnat, 192.168.1.1, 2001:db8::/32, ,")
+	assert.Empty(t, rejected)
+	contains := func(ip string) bool {
+		return containsPrefix(prefixes, netip.MustParseAddr(ip))
+	}
+	assert.True(t, contains("10.1.2.3"))
+	assert.True(t, contains("172.16.0.1"))      // private
+	assert.True(t, contains("192.168.0.1"))     // private and the single IP
+	assert.True(t, contains("127.0.0.1"))       // loopback
+	assert.True(t, contains("100.100.100.200")) // cgnat
+	assert.True(t, contains("2001:db8::1"))
+	assert.False(t, contains("8.8.8.8"))
+	assert.False(t, contains("169.254.169.254"))
+
+	// IPv4-mapped forms are normalized to the IPv4 form, like in the allow and block lists
+	prefixes, rejected = ParseInternalRanges("::ffff:10.0.0.0/104, ::ffff:192.168.1.1")
+	assert.Empty(t, rejected)
+	assert.True(t, containsPrefix(prefixes, netip.MustParseAddr("10.1.2.3")))     // ::ffff:10.0.0.0/104 -> 10.0.0.0/8
+	assert.True(t, containsPrefix(prefixes, netip.MustParseAddr("192.168.1.1")))  // ::ffff:192.168.1.1 -> 192.168.1.1/32
+	assert.False(t, containsPrefix(prefixes, netip.MustParseAddr("192.168.1.2"))) // the bare address is a /32
+
+	// invalid entries are rejected and match nothing
+	prefixes, rejected = ParseInternalRanges("example.com, *.example.com, 0.0.0.0/0, 10.0.0.5/8, fe80::1%eth0, 999.1.1.1")
+	assert.Len(t, rejected, 6)
+	assert.Empty(t, prefixes)
+
+	// ports are not supported, a range covers every port
+	_, rejected = ParseInternalRanges("10.0.0.0/8:80, [2001:db8::/64]:9418, private:22, 2001:db8::/64:9418")
+	assert.Len(t, rejected, 4)
+	for _, reason := range rejected {
+		assert.Contains(t, reason, "ports are not supported")
+	}
+
+	// a mapped form that unmaps to the catch-all is rejected
+	_, rejected = ParseInternalRanges("::ffff:0:0/96")
+	assert.Len(t, rejected, 1)
+	assert.Contains(t, rejected[0], "catch-all")
+
+	prefixes, rejected = ParseInternalRanges("")
+	assert.Empty(t, prefixes)
+	assert.Empty(t, rejected)
+}
+
+func TestMatchHostnameInRanges(t *testing.T) {
+	ranges := []netip.Prefix{netip.MustParsePrefix("10.0.0.0/8"), netip.MustParsePrefix("100.64.0.0/10")}
+	list := NewAllowList("ci.internal.example.com, *.wild.example.com, other.com", Lax)
+	match := func(host, ip string, port uint16) bool {
+		return list.MatchHostnameInRanges(host, netip.AddrPortFrom(netip.MustParseAddr(ip), port), ranges)
+	}
+	// hostname entries match like for public targets, within the ranges: a bare entry covers
+	// the host and its subdomains, a wildcard covers subdomains only
+	assert.True(t, match("ci.internal.example.com", "10.1.2.3", 80))
+	assert.True(t, match("ci.internal.example.com", "100.100.100.200", 80))
+	assert.True(t, match("CI.INTERNAL.EXAMPLE.COM.", "10.1.2.3", 80))    // case and trailing dot
+	assert.True(t, match("sub.wild.example.com", "10.1.2.3", 80))        // wildcard covers subdomains
+	assert.True(t, match("www.ci.internal.example.com", "10.1.2.3", 80)) // a bare entry covers subdomains (dot-anchored suffix, as for public targets)
+	assert.False(t, match("wild.example.com", "10.1.2.3", 80))           // a wildcard never covers the apex
+	assert.False(t, match("ci.internal.example.com", "11.0.0.1", 80))
+	assert.False(t, match("ci.internal.example.com", "169.254.169.254", 80))
+	assert.False(t, match("unlisted.com", "10.1.2.3", 80))
+	assert.False(t, match("", "10.1.2.3", 80)) // IP literal dials never match
+
+	// a portless entry covers every port in lax mode, a port-scoped entry only its ports
+	assert.True(t, NewAllowList("ci.internal.example.com", Lax).MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 8080), ranges))
+	scoped := NewAllowList("ci.internal.example.com:8080", Strict)
+	assert.True(t, scoped.MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 8080), ranges))
+	assert.False(t, scoped.MatchHostnameInRanges("ci.internal.example.com", netip.AddrPortFrom(netip.MustParseAddr("10.1.2.3"), 80), ranges))
+}
+
+func TestNeverMatching(t *testing.T) {
+	list := NewAllowList("::ffff:10.0.0.0/104, 224.0.0.0/4, 2001::/32, 10.0.0.0/8, example.com, 192.168.1.1", Strict)
+	never := list.NeverMatching()
+	assert.Len(t, never, 3)
+	joined := strings.Join(never, "\n")
+	assert.Contains(t, joined, "224.0.0.0/4")
+	assert.Contains(t, joined, "::ffff:10.0.0.0/104")
+	assert.Contains(t, joined, "2001::/32")
+
+	assert.Empty(t, NewAllowList("10.0.0.0/8, example.com, 192.168.1.1", Strict).NeverMatching())
+	assert.Len(t, NewBlockList("224.0.0.0/4").NeverMatching(), 1)
+
+	// partially reserved prefixes still match dialable addresses and are not flagged
+	assert.Empty(t, NewAllowList("0.0.0.0/7, 2001::/16, 10.0.0.0/8", Strict).NeverMatching())
+	// fully reserved prefixes are flagged, including subnets of a reserved range
+	assert.Len(t, NewAllowList("0.0.0.0/8, 224.0.0.0/5, 2001::/32, 64:ff9b::/96", Strict).NeverMatching(), 4)
 }
