@@ -135,14 +135,14 @@ func hostURL(t *testing.T, raw string) *url.URL {
 	return u
 }
 
-func TestCheckHostIPs(t *testing.T) {
-	ips := func(addrs ...string) (ret []net.IP) {
-		for _, addr := range addrs {
-			ret = append(ret, net.ParseIP(addr))
-		}
-		return ret
+func ips(addrs ...string) (ret []net.IP) {
+	for _, addr := range addrs {
+		ret = append(ret, net.ParseIP(addr))
 	}
+	return ret
+}
 
+func TestCheckHostIPs(t *testing.T) {
 	blocked := NewPolicy("test", Lax, WithAllow("private", ""), WithBlock("blocked.example.com", ""))
 	assert.NoError(t, blocked.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "10.0.0.5")))
 	assert.NoError(t, blocked.checkHostIPs(hostURL(t, "http://example.com"), nil)) // unresolved name, the dialer re-checks the resolved address
@@ -169,6 +169,30 @@ func TestCheckHostIPs(t *testing.T) {
 	} {
 		assert.Error(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips(ip)), ip)
 	}
+
+	t.Run("InternalRanges", func(t *testing.T) {
+		p := NewPolicy("test", Lax,
+			WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"),
+			WithInternalRanges("10.0.0.0/8", "test.ALLOWED_INTERNAL_RANGES"))
+		assert.NoError(t, p.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("10.1.2.3")))
+		assert.NoError(t, p.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("10.1.2.3", "192.168.5.5"))) // one in-range address is enough
+		assert.Error(t, p.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("192.168.5.5", "172.16.0.1"))) // none in the ranges
+		assert.Error(t, p.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("169.254.169.254")))
+		assert.NoError(t, p.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), nil)) // unresolved, the dialer re-checks
+	})
+
+	t.Run("MultipleAddresses", func(t *testing.T) {
+		// the dialer tries the resolved addresses in turn, so one passing address is enough:
+		// a DNS64-synthesized NAT64 address (reserved, never dialable) mixed with a regular IPv4
+		lax := NewPolicy("test", Lax)
+		assert.NoError(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822", "93.184.216.34")))
+		assert.Error(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822")))             // only the NAT64 address
+		assert.Error(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822", "10.0.0.5"))) // reserved + restricted, none passes
+		// all addresses denied reports the first denial
+		strict := NewPolicy("test", Strict, WithAllow("example.com", ""))
+		err := strict.checkHostIPs(hostURL(t, "http://example.com"), ips("10.0.0.5", "192.168.0.1"))
+		assert.ErrorContains(t, err, "10.0.0.5")
+	})
 }
 
 func TestNewDialContext(t *testing.T) {
@@ -380,40 +404,4 @@ func TestDialContextInternalRanges(t *testing.T) {
 
 	_, err = dial(t.Context(), "tcp", ln.Addr().String())
 	assert.ErrorIs(t, err, ErrDenied, "a direct IP dial is denied even though the IP is in the ranges")
-}
-
-func TestCheckHostIPsInternalRanges(t *testing.T) {
-	policy := NewPolicy("test", Lax,
-		WithAllow("ci.internal.example.com", "test.ALLOWED_HOST_LIST"),
-		WithInternalRanges("10.0.0.0/8", "test.ALLOWED_INTERNAL_RANGES"))
-	ips := func(addrs ...string) (ret []net.IP) {
-		for _, addr := range addrs {
-			ret = append(ret, net.ParseIP(addr))
-		}
-		return ret
-	}
-	assert.NoError(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("10.1.2.3")))
-	assert.NoError(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("10.1.2.3", "192.168.5.5"))) // one in-range address is enough
-	assert.Error(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("192.168.5.5", "172.16.0.1"))) // none in the ranges
-	assert.Error(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), ips("169.254.169.254")))
-	assert.NoError(t, policy.checkHostIPs(hostURL(t, "http://ci.internal.example.com"), nil)) // unresolved, the dialer re-checks
-}
-
-func TestCheckHostIPsMultipleAddresses(t *testing.T) {
-	ips := func(addrs ...string) (ret []net.IP) {
-		for _, addr := range addrs {
-			ret = append(ret, net.ParseIP(addr))
-		}
-		return ret
-	}
-	// the dialer tries the resolved addresses in turn, so one passing address is enough:
-	// a DNS64-synthesized NAT64 address (reserved, never dialable) mixed with a regular IPv4
-	lax := NewPolicy("test", Lax)
-	assert.NoError(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822", "93.184.216.34")))
-	assert.Error(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822")))             // only the NAT64 address
-	assert.Error(t, lax.checkHostIPs(hostURL(t, "http://example.com"), ips("64:ff9b::5db8:d822", "10.0.0.5"))) // reserved + restricted, none passes
-	// all addresses denied reports the first denial
-	strict := NewPolicy("test", Strict, WithAllow("example.com", ""))
-	err := strict.checkHostIPs(hostURL(t, "http://example.com"), ips("10.0.0.5", "192.168.0.1"))
-	assert.ErrorContains(t, err, "10.0.0.5")
 }
