@@ -147,7 +147,7 @@ func (n *auditNotifier) CreateCommitComment(ctx context.Context, doer *user_mode
 }
 
 func (n *auditNotifier) DeleteCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, comment *issues_model.Comment) {
-	RecordAs(ctx, doer, audit_model.CommitCommentDelete, repo, "comment_id", comment.ID)
+	RecordAs(ctx, doer, audit_model.CommitCommentDelete, repo, "commit", comment.CommitComment.CommitSHA, "comment_id", comment.ID)
 }
 
 func (n *auditNotifier) NewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, _ string) {

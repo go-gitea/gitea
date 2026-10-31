@@ -30,7 +30,8 @@ func CreateCommitComment(ctx context.Context, repoID int64, commitSHA string, co
 		if err := db.Insert(ctx, comment); err != nil {
 			return err
 		}
-		if err := db.Insert(ctx, &CommitComment{CommentID: comment.ID, RepoID: repoID, CommitSHA: commitSHA}); err != nil {
+		comment.CommitComment = &CommitComment{CommentID: comment.ID, RepoID: repoID, CommitSHA: commitSHA}
+		if err := db.Insert(ctx, comment.CommitComment); err != nil {
 			return err
 		}
 		return UpdateCommentAttachments(ctx, comment, attachmentUUIDs)
@@ -121,6 +122,24 @@ func (c *Comment) UnitType() unit.Type {
 	return util.Iif(c.Issue.IsPull, unit.TypePullRequests, unit.TypeIssues)
 }
 
+func CountCommitComments(ctx context.Context, repoID int64, commitSHAs []string) (map[string]int64, error) {
+	counts := make(map[string]int64, len(commitSHAs))
+	if len(commitSHAs) == 0 {
+		return counts, nil
+	}
+	var rows []struct {
+		CommitSHA string
+		Count     int64
+	}
+	err := db.GetEngine(ctx).Table("commit_comment").Select("commit_sha, COUNT(*) AS count").
+		Where(builder.Eq{"repo_id": repoID}.And(builder.In("commit_sha", commitSHAs))).
+		GroupBy("commit_sha").Find(&rows)
+	for _, row := range rows {
+		counts[row.CommitSHA] = row.Count
+	}
+	return counts, err
+}
+
 func DeleteCommitCommentsByRepoID(ctx context.Context, repoID int64) error {
 	commentIDs := builder.Select("comment_id").From("commit_comment").Where(builder.Eq{"repo_id": repoID})
 	for _, bean := range []any{&Reaction{}, &ContentHistory{}} {
@@ -132,4 +151,30 @@ func DeleteCommitCommentsByRepoID(ctx context.Context, repoID int64) error {
 		return err
 	}
 	return db.DeleteBeans(ctx, &CommitComment{RepoID: repoID})
+}
+
+func FindCommitComments(ctx context.Context, repoID int64, commitSHA string, opts db.ListOptions) (CommentList, int64, error) {
+	cond := builder.Eq{"commit_comment.repo_id": repoID, "comment.type": CommentTypeCommitComment}
+	if commitSHA != "" {
+		cond["commit_comment.commit_sha"] = commitSHA
+	}
+	sess := db.GetEngine(ctx).Join("INNER", "commit_comment", "commit_comment.comment_id = comment.id").Where(cond).Asc("comment.id")
+	db.SetSessionPagination(sess, &opts)
+	comments := make(CommentList, 0, opts.PageSize)
+	count, err := sess.FindAndCount(&comments)
+	if err != nil || len(comments) == 0 {
+		return comments, count, err
+	}
+	commentIDs := make([]int64, len(comments))
+	for index, comment := range comments {
+		commentIDs[index] = comment.ID
+	}
+	commitComments := make(map[int64]*CommitComment, len(comments))
+	if err := db.GetEngine(ctx).In("comment_id", commentIDs).Find(&commitComments); err != nil {
+		return nil, 0, err
+	}
+	for _, comment := range comments {
+		comment.CommitComment = commitComments[comment.ID]
+	}
+	return comments, count, comments.LoadPosters(ctx)
 }

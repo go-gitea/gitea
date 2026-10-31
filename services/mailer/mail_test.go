@@ -170,7 +170,11 @@ func TestMailMentionsComment(t *testing.T) {
 }
 
 func TestMailCommitComment(t *testing.T) {
-	doer, repo, _, _ := prepareMailerTest(t)
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.MailService, &setting.Mailer{From: "test@gitea.com"})()
+	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/")()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer})
 	defer test.MockVariableValue(&setting.Langs, []string{"en-US"})()
 	defer test.MockVariableValue(&setting.Names, []string{"English"})()
 	translation.InitLocales(t.Context())
@@ -197,12 +201,12 @@ func TestMailCommitComment(t *testing.T) {
 		unmatchedAuthor bool
 		want            []int64
 	}{
-		{name: "duplicate mentions", mention: true, want: []int64{1, 4, 5}},
-		{name: "on mention participant and your own doer", preference: user_model.EmailNotificationsOnMention, doerPreference: user_model.EmailNotificationsAndYourOwn, want: []int64{1, 2, 4}},
-		{name: "disabled mentioned", preference: user_model.EmailNotificationsDisabled, mention: true, want: []int64{1, 4}},
+		{name: "duplicate mentions", mention: true, want: []int64{1, 4, 5, 11}},
+		{name: "on mention participant and your own doer", preference: user_model.EmailNotificationsOnMention, doerPreference: user_model.EmailNotificationsAndYourOwn, want: []int64{1, 2, 4, 11}},
+		{name: "disabled mentioned", preference: user_model.EmailNotificationsDisabled, mention: true, want: []int64{1, 4, 11}},
 		{name: "code access required", private: true, mention: true, want: []int64{1}},
-		{name: "unmatched author", unmatchedAuthor: true, want: []int64{4, 5}},
-		{name: "muted sources", doerPreference: user_model.EmailNotificationsAndYourOwn, mention: true, muted: true},
+		{name: "unmatched author", unmatchedAuthor: true, want: []int64{1, 4, 5, 11}},
+		{name: "muted sources", doerPreference: user_model.EmailNotificationsAndYourOwn, mention: true, muted: true, want: []int64{11}},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			doer.EmailNotificationsPreference = util.IfZero(testCase.doerPreference, user_model.EmailNotificationsEnabled)
@@ -244,7 +248,7 @@ func TestMailCommitComment(t *testing.T) {
 	commitURL := "https://try.gitea.io/user2/repo1/commit/" + commit.ID.String()
 	assert.Equal(t, "[user2/repo1] Comment on commit 0123456789", message.Subject)
 	assert.Contains(t, message.Body, "<b>user2</b> mentioned you:")
-	assert.Contains(t, message.Body, fmt.Sprintf(`<a href="%s#issuecomment-%d">file&lt;script&gt;.go:42</a>`, commitURL, comment.ID))
+	assert.Contains(t, message.Body, fmt.Sprintf(`<a href="%s#r%d">file&lt;script&gt;.go:42</a>`, commitURL, comment.ID))
 	assert.Contains(t, message.Body, `<a href="`+commitURL+`">0123456789</a>`)
 	assert.Contains(t, message.Body, "<strong>Comment body</strong>")
 	assert.Contains(t, message.Body, `href="https://try.gitea.io/user2/repo1/relative"`)

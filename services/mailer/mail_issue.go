@@ -122,11 +122,7 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 }
 
 func mailIssueCommentBatch(ctx context.Context, comment *mailComment, users []*user_model.User, visited container.Set[int64], fromMention bool, customWatchers container.Set[int64]) error {
-	checkUnit := unit.TypeIssues
-	if comment.Issue.IsPull {
-		checkUnit = unit.TypePullRequests
-	}
-	return mailCommentBatch(ctx, comment.Issue.Repo, checkUnit, users, visited, fromMention, customWatchers,
+	return mailCommentBatch(ctx, comment.Issue.Repo, util.Iif(comment.Issue.IsPull, unit.TypePullRequests, unit.TypeIssues), users, visited, fromMention, customWatchers,
 		func(lang string, recipients []*user_model.User) ([]*sender_service.Message, error) {
 			return composeIssueCommentMessages(ctx, comment, lang, recipients, fromMention, "issue comments")
 		})

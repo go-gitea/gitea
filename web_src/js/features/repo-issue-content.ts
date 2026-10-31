@@ -2,7 +2,6 @@ import {svgRaw} from '../svg.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {createElementFromHTML, showElem} from '../utils/dom.ts';
-import {parseIssuePageInfo} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {hideModal, showModal} from '../modules/modal.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
@@ -14,7 +13,7 @@ let i18nTextOptions: string;
 let i18nTextDeleteFromHistory: string;
 let i18nTextDeleteFromHistoryConfirm: string;
 
-function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
+function showContentHistoryDetail(historyBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
   const elDetailDialog = createElementFromHTML<HTMLDialogElement>(html`
     <dialog class="modal-dialog content-history-detail-dialog">
       <div class="header flex-left-right">
@@ -45,7 +44,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
             params.append('comment_id', commentId);
             params.append('history_id', historyId);
 
-            const response = await POST(`${issueBaseUrl}/content-history/soft-delete?${params.toString()}`);
+            const response = await POST(`${historyBaseUrl}/soft-delete?${params.toString()}`);
             const resp = await response.json();
 
             if (resp.ok) {
@@ -73,7 +72,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
         params.append('comment_id', commentId);
         params.append('history_id', historyId);
 
-        const url = `${issueBaseUrl}/content-history/detail?${params.toString()}`;
+        const url = `${historyBaseUrl}/detail?${params.toString()}`;
         const response = await GET(url);
         const resp = await response.json();
 
@@ -94,49 +93,45 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
   });
 }
 
-function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
+function showContentHistoryMenu(historyBaseUrl: string, elCommentItem: Element, commentId: string) {
   const elHeaderLeft = elCommentItem.querySelector('.comment-header-left')!;
-  const menuHtml = html`
-    <div class="ui dropdown interact-fg content-history-menu tw-flex-shrink-0" data-comment-id="${commentId}">
+  const elDropdown = createElementFromHTML(html`
+    <div class="ui dropdown interact-fg content-history-menu tw-flex-shrink-0">
       &bull; ${i18nTextEdited}${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
       </div>
     </div>
-  `;
+  `);
 
   elHeaderLeft.querySelector(`.ui.dropdown.content-history-menu`)?.remove(); // remove the old one if exists
-  elHeaderLeft.append(createElementFromHTML(menuHtml));
+  elHeaderLeft.append(elDropdown);
 
-  const elDropdown = elHeaderLeft.querySelector('.ui.dropdown.content-history-menu')!;
   const $fomanticDropdown = fomanticQuery(elDropdown);
   $fomanticDropdown.dropdown({
     action: 'hide',
     apiSettings: {
-      url: `${issueBaseUrl}/content-history/list?comment_id=${commentId}`,
+      url: `${historyBaseUrl}/list?comment_id=${commentId}`,
     },
     onHide() {
       $fomanticDropdown.dropdown('change values', null);
     },
     onChange(value: string, itemHtml: string, $item: JQueryElem) {
       if (value && !$item.find('[data-history-is-deleted=1]').length) {
-        showContentHistoryDetail(issueBaseUrl, commentId, value, itemHtml);
+        showContentHistoryDetail(historyBaseUrl, commentId, value, itemHtml);
       }
     },
   });
 }
 
 export async function initRepoIssueContentHistory() {
-  const issuePageInfo = parseIssuePageInfo();
-  if (!issuePageInfo.issueNumber) return;
+  const historyBaseUrl = document.querySelector('[data-content-history-url]')?.getAttribute('data-content-history-url');
+  if (!historyBaseUrl) return;
 
   const elIssueDescription = document.querySelector('.repository.issue .timeline-item.comment.issue-content-comment'); // issue(PR) main content
-  const elComments = document.querySelectorAll('.repository.issue .comment-list .comment'); // includes: issue(PR) comments, review comments, code comments
-  if (!elIssueDescription && !elComments.length) return;
-
-  const issueBaseUrl = `${issuePageInfo.repoLink}/issues/${issuePageInfo.issueNumber}`;
+  if (!elIssueDescription && !document.querySelector('.repository .comment-list .comment')) return;
 
   try {
-    const response = await GET(`${issueBaseUrl}/content-history/overview`);
+    const response = await GET(`${historyBaseUrl}/overview`);
     const resp = await response.json();
 
     i18nTextEdited = resp.i18n.textEdited;
@@ -145,12 +140,12 @@ export async function initRepoIssueContentHistory() {
     i18nTextOptions = resp.i18n.textOptions;
 
     if (resp.editedHistoryCountMap[0] && elIssueDescription) {
-      showContentHistoryMenu(issueBaseUrl, elIssueDescription, '0');
+      showContentHistoryMenu(historyBaseUrl, elIssueDescription, '0');
     }
     for (const commentId of Object.keys(resp.editedHistoryCountMap)) {
       if (commentId === '0') continue;
-      const elIssueComment = document.querySelector(`#issuecomment-${commentId}`);
-      if (elIssueComment) showContentHistoryMenu(issueBaseUrl, elIssueComment, commentId);
+      const elComment = document.querySelector(`#issuecomment-${commentId}, #r${commentId}, #commitcomment-${commentId}`);
+      if (elComment) showContentHistoryMenu(historyBaseUrl, elComment, commentId);
     }
   } catch (error) {
     console.error('Error:', error);

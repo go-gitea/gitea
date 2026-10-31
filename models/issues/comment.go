@@ -122,7 +122,7 @@ const (
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
 
-	CommentTypeCommitComment // 39 inline comment on a commit diff, it has no issue
+	CommentTypeCommitComment // 39 comment on a commit, it has no issue
 )
 
 var commentStrings = []string{
@@ -571,6 +571,9 @@ func CommentHashTag(id int64) string {
 
 // HashTag returns unique hash tag for comment.
 func (c *Comment) HashTag() string {
+	if c.IsCommitComment() {
+		return fmt.Sprintf(util.Iif(c.TreePath == "", "commitcomment-%d", "r%d"), c.ID)
+	}
 	return CommentHashTag(c.ID)
 }
 
@@ -677,19 +680,9 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 		if err != nil {
 			return err
 		}
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
+		attachments, err := linkAttachments(ctx, repoID, c.IssueID, c.ID, uuids)
 		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
-		}
-		for i := range attachments {
-			if err := validateAttachmentLink(ctx, repoID, c.IssueID, c.ID, attachments[i]); err != nil {
-				return err
-			}
-			attachments[i].IssueID = c.IssueID
-			attachments[i].CommentID = c.ID
-			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
-			}
+			return err
 		}
 		c.Attachments = attachments
 		return nil

@@ -139,6 +139,11 @@ func UpdateComment(ctx context.Context, doer *user_model.User, repo *repo_model.
 
 // DeleteComment deletes the comment
 func DeleteComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, comment *issues_model.Comment) error {
+	if comment.IsCommitComment() {
+		if err := comment.LoadCommitComment(ctx); err != nil { // notifiers need the commit after its row is gone
+			return err
+		}
+	}
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		return issues_model.DeleteComment(ctx, comment)
 	})

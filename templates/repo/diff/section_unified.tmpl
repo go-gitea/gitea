@@ -1,7 +1,7 @@
 {{$file := $.file}}
 {{/* this tmpl is also used by the PR Conversation page, so "DiffBlobExcerptData" may not exist */}}
 {{$diffBlobExcerptData := ctx.RootData.DiffBlobExcerptData}}
-{{$canAddComment := $diffBlobExcerptData.CanAddComment}}
+{{$canAddComment := and $diffBlobExcerptData ctx.RootData.CommentContext.CanAddComment}}
 <colgroup>
 	<col width="50">
 	<col width="50">

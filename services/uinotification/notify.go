@@ -32,7 +32,7 @@ type (
 		NotificationAuthorID int64
 		ReceiverID           int64 // 0 -- ALL Watcher
 		RepoID               int64
-		CommitSHA            string // set for commit comments, which have no issue
+		CommitSHA            string
 	}
 )
 
@@ -98,16 +98,15 @@ func (ns *notificationService) CreateIssueComment(ctx context.Context, doer *use
 func (ns *notificationService) CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	commit *git.Commit, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
-	receivers := mentions
-	if author := user_model.GetUserByGitAuthor(ctx, commit); author != nil && author.ID != doer.ID {
-		receivers = append(slices.Clip(receivers), author)
+	if author := user_model.GetUserByGitAuthor(ctx, commit); author != nil && author.ID != doer.ID && !slices.ContainsFunc(mentions, func(receiver *user_model.User) bool { return receiver.ID == author.ID }) {
+		mentions = append(slices.Clip(mentions), author)
 	}
 	ns.pushWithReceivers(issueNotificationOpts{
 		RepoID:               repo.ID,
 		CommitSHA:            commit.ID.String(),
 		CommentID:            comment.ID,
 		NotificationAuthorID: doer.ID,
-	}, receivers)
+	}, mentions)
 }
 
 func (ns *notificationService) pushWithReceivers(opts issueNotificationOpts, receivers []*user_model.User) {

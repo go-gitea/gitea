@@ -222,8 +222,7 @@ type DiffBlobExcerptData struct {
 	PullIssueIndex int64
 	DiffStyle      string
 	AfterCommitID  string
-	IsCommitDiff   bool // a single commit's diff, compare pages share the excerpt endpoint without its comments
-	CanAddComment  bool
+	IsCommitDiff   bool // compare pages share the excerpt endpoint but have no commit comments
 }
 
 const (

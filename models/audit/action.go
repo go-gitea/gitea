@@ -182,7 +182,7 @@ var (
 	PullRequestCommentDelete = define("pr:comment:delete", "Deleted comment {comment_id} from pull request {pull_request} in repository {scope}.")
 
 	CommitCommentCreate = define("commit:comment:create", "Added comment {comment_id} to commit {commit} in repository {scope}.")
-	CommitCommentDelete = define("commit:comment:delete", "Deleted commit comment {comment_id} from repository {scope}.")
+	CommitCommentDelete = define("commit:comment:delete", "Deleted comment {comment_id} from commit {commit} in repository {scope}.")
 
 	ProjectCreate = define("project:create", "Created project {project} in {scope}.")
 	ProjectUpdate = define("project:update", "Updated project {project} in {scope}.")

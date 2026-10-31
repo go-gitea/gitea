@@ -41,15 +41,17 @@ func commentBlockerIDs(ctx context.Context, repo *repo_model.Repository, comment
 	}
 	defer closer.Close()
 	commit, err := gitRepo.GetCommit(ctx, comment.CommitComment.CommitSHA)
-	if err != nil {
+	if git.IsErrNotExist(err) { // the commit can be gone after a force push, its comments stay editable
+		return []int64{repo.OwnerID}, nil
+	} else if err != nil {
 		return nil, err
 	}
 	return commitBlockerIDs(ctx, repo, commit), nil
 }
 
-func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit *git.Commit, treePath string, line int64, content string, attachmentUUIDs []string) error {
+func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit *git.Commit, treePath string, line int64, content string, attachmentUUIDs []string) (*issues_model.Comment, error) {
 	if user_model.IsUserBlockedBy(ctx, doer, commitBlockerIDs(ctx, repo, commit)...) && !access_model.IsUserRepoAdmin(ctx, repo, doer) {
-		return user_model.ErrBlockedUser
+		return nil, user_model.ErrBlockedUser
 	}
 
 	comment := &issues_model.Comment{
@@ -60,15 +62,15 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_
 		Content:  content,
 	}
 	if err := issues_model.CreateCommitComment(ctx, repo.ID, commit.ID.String(), comment, attachmentUUIDs); err != nil {
-		return err
+		return nil, err
 	}
 
 	mentions, err := issues_model.ResolveRepoMentionsByVisibility(ctx, repo, doer, unit.TypeCode, references.FindAllMentionsMarkdown(content))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	notify_service.CreateCommitComment(ctx, doer, repo, commit, comment, slices.DeleteFunc(mentions, func(user *user_model.User) bool {
 		return user_model.IsUserBlockedBy(ctx, doer, user.ID)
 	}))
-	return nil
+	return comment, nil
 }

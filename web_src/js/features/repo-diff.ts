@@ -1,17 +1,21 @@
 import {createApp} from 'vue';
 import DiffFileTree from '../components/DiffFileTree.vue';
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
-import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
+import {initComboMarkdownEditor, validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initExpandAndCollapseFilesButton, initDiffFileViewedForm} from './pull-view-file.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
+import {
+  queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems,
+} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import {handleFetchActionSuccessJson, performFetchActionRequest, performFetchActionTrigger} from '../modules/fetch-action.ts';
+import {
+  handleFetchActionSuccessJson, performFetchActionRequest, performFetchActionTrigger,
+} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
@@ -65,37 +69,31 @@ function initRepoDiffConversationForm() {
       const idx = newConversationHolder.getAttribute('data-idx');
 
       form.closest('.conversation-holder')!.replaceWith(newConversationHolder);
-      (form as any) = null; // prevent further usage of the form because it should have been replaced
+      queryElems(newConversationHolder, '.combo-markdown-editor:not(.custom-init)', (el) => initComboMarkdownEditor(el));
 
       if (trLineType) {
         // if there is a line-type for the "tr", it means the form is on the diff page
         // then hide the "add-code-comment" [+] button for current code line by adding "tw-invisible" because the conversation has been added
-        let selector;
-        if (trLineType === 'same') {
-          selector = `[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`;
-        } else {
-          selector = `[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`;
-        }
-        for (const el of document.querySelectorAll(selector)) {
-          el.classList.add('tw-invisible');
-        }
+        queryElems(document, trLineType === 'same' ?
+          `[data-path="${path}"] .add-code-comment[data-idx="${idx}"]` :
+          `[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`, (el) => el.classList.add('tw-invisible'));
       }
 
       // the default behavior is to add a pending review, so if no submitter, it also means "pending_review"
-      if (!submitter || submitter?.matches('button[name="pending_review"]')) {
-        const reviewBox = document.querySelector('.review-box-button')!;
+      if (!submitter || submitter.matches('button[name="pending_review"]')) {
+        const reviewBox = document.querySelector('.review-box-button');
         const counter = reviewBox?.querySelector('.review-comments-counter');
         if (!counter) return;
         const num = parseInt(counter.getAttribute('data-pending-comment-number')!) + 1 || 1;
         counter.setAttribute('data-pending-comment-number', String(num));
         counter.textContent = String(num);
-        animateOnce(reviewBox, 'pulse-1p5-200');
+        animateOnce(reviewBox!, 'pulse-1p5-200');
       }
     } catch (error) {
       console.error('Error:', error);
       showErrorToast(`Submit form failed: ${errorMessage(error)}`);
     } finally {
-      form?.classList.remove('is-loading');
+      form.classList.remove('is-loading');
     }
   });
 
@@ -129,7 +127,7 @@ function initRepoDiffConversationNav() {
     e.preventDefault();
     const isPrevious = el.matches('.previous-conversation');
     const elCurConversation = el.closest('.comment-code-cloud')!;
-    const elAllConversations = document.querySelectorAll('.comment-code-cloud:not(.tw-hidden)');
+    const elAllConversations = document.querySelectorAll('#diff-file-boxes .comment-code-cloud:not(.tw-hidden)');
     const index = Array.from(elAllConversations).indexOf(elCurConversation);
     const previousIndex = index > 0 ? index - 1 : elAllConversations.length - 1;
     const nextIndex = index < elAllConversations.length - 1 ? index + 1 : 0;
@@ -204,7 +202,7 @@ async function diffLoadFileBody(el: Element) {
 async function onLocationHashChange() {
   // try to scroll to the target element by the current hash
   const currentHash = window.location.hash;
-  if (!currentHash.startsWith('#diff-') && !currentHash.startsWith('#issuecomment-')) return;
+  if (!/^#(diff-|issuecomment-|commitcomment-|r\d)/.test(currentHash)) return;
 
   // avoid reentrance when we are changing the hash to scroll and trigger ":target" selection
   const attrAutoScrollRunning = 'data-auto-scroll-running';
@@ -224,9 +222,8 @@ async function onLocationHashChange() {
     }
 
     // If looking for a hidden comment, try to expand the section that contains it
-    const issueCommentPrefix = '#issuecomment-';
-    if (currentHash.startsWith(issueCommentPrefix)) {
-      const commentId = currentHash.substring(issueCommentPrefix.length);
+    const commentId = /^#(?:issuecomment-|commitcomment-|r)(\d+)$/.exec(currentHash)?.[1];
+    if (commentId) {
       const expandButton = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${CSS.escape(commentId)},"]`);
       if (expandButton) {
         // avoid infinite loop, do not re-click the button if already clicked

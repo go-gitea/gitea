@@ -289,7 +289,6 @@ func Diff(ctx *context.Context) {
 		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
 		IsCommitDiff:  !isWiki,
-		CanAddComment: !isWiki && ctx.Doer != nil && !ctx.Repo.Repository.IsArchived,
 	}
 	gitRepo := ctx.Repo.GitRepo // don't access ctx.Repo.GitRepo anymore, because it might not be right for wiki repo
 
@@ -429,14 +428,13 @@ func Diff(ctx *context.Context) {
 	}
 
 	if !isWiki {
-		comments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, commitID, container.FilterSlice(diff.Files, func(file *gitdiff.DiffFile) (string, bool) {
-			return file.Name, true
-		})...)
+		comments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, commitID)
 		if err != nil {
 			ctx.ServerError("FetchCommitCodeComments", err)
 			return
 		}
 		diff.AttachComments(comments)
+		ctx.Data["CommitComments"] = comments[""][0] // comments without a path are on the whole commit
 		if ctx.IsSigned {
 			unread, err := db.Find[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
 				UserID:   ctx.Doer.ID,
@@ -499,5 +497,12 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 		return nil, err
 	}
 	git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, commits)
+	commitIDs := make([]string, 0, len(gitCommits))
+	for _, gitCommit := range gitCommits {
+		commitIDs = append(commitIDs, gitCommit.ID.String())
+	}
+	if ctx.Data["CommitCommentCounts"], err = issues_model.CountCommitComments(ctx, ctx.Repo.Repository.ID, commitIDs); err != nil {
+		return nil, err
+	}
 	return commits, nil
 }

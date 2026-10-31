@@ -20,6 +20,7 @@ type commentContext struct {
 	CreateURL        string
 	PermalinkBaseURL string
 	ConversationURL  string
+	CanAddComment    bool
 	CanModerate      bool
 	SupportsReview   bool
 }
@@ -40,6 +41,7 @@ func prepareIssueCommentTemplateData(ctx *context.Context, issue *issues_model.I
 		CreateURL:        issue.Link() + "/files/reviews/comments",
 		PermalinkBaseURL: issue.HTMLURL(ctx) + util.Iif(pageIsPullFiles, "/files", ""),
 		ConversationURL:  issue.Link(),
+		CanAddComment:    ctx.Doer != nil && !ctx.Repo.Repository.IsArchived,
 		CanModerate:      ctx.Repo.Permission.IsAdmin() || ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull),
 		SupportsReview:   issue.IsPull,
 	})
@@ -52,6 +54,11 @@ func prepareCommitCommentTemplateData(ctx *context.Context, commitSHA string) {
 		CreateURL:        commitLink + "/comment",
 		PermalinkBaseURL: httplib.MakeAbsoluteURL(ctx, commitLink),
 		ConversationURL:  commitLink,
+		CanAddComment:    canAddCommitComment(ctx),
 		CanModerate:      ctx.Repo.Permission.IsAdmin() || ctx.Repo.Permission.CanWrite(unit.TypeCode),
 	})
+}
+
+func canAddCommitComment(ctx *context.Context) bool {
+	return ctx.Doer != nil && !ctx.Repo.Repository.IsArchived && !setting.Repository.DisableCommitComments
 }

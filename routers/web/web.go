@@ -1747,6 +1747,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
+			m.Group("/commit/{sha:([a-f0-9]{7,64})$}/content-history", func() {
+				m.Get("/overview", repo.GetContentHistoryOverview)
+				m.Get("/list", repo.GetContentHistoryList)
+				m.Get("/detail", repo.GetContentHistoryDetail)
+				m.Post("/soft-delete", reqSignIn, context.RepoMustNotBeArchived(), repo.SoftDeleteContentHistory)
+			})
 			m.Combo("/commit/{sha:([a-f0-9]{7,64})$}/comment", reqSignIn).
 				Get(repo.RenderNewCommitCommentForm).
 				Post(context.RepoMustNotBeArchived(), repo.CreateCommitComment)

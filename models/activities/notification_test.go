@@ -25,7 +25,6 @@ func TestCreateOrUpdateIssueAndCommitNotifications(t *testing.T) {
 	_, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0)
 	assert.NoError(t, err)
 
-	// User 9 is inactive, thus notifications for user 1 and 4 are created
 	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 1, IssueID: issue.ID})
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
 	unittest.CheckConsistencyFor(t, &issues_model.Issue{ID: issue.ID})
@@ -39,21 +38,20 @@ func TestCreateOrUpdateIssueAndCommitNotifications(t *testing.T) {
 		require.NoError(t, issues_model.CreateCommitComment(t.Context(), 1, sha, comment, nil))
 		return comment.ID
 	}
-	notify := func(commentID, receiverID int64) []int64 {
-		notifiedIDs, err := activities_model.CreateOrUpdateCommitNotifications(t.Context(), 1, sha, commentID, 2, receiverID)
+	notify := func(commentID, doerID, receiverID int64) []int64 {
+		notifiedIDs, err := activities_model.CreateOrUpdateCommitNotifications(t.Context(), 1, sha, commentID, doerID, receiverID)
 		require.NoError(t, err)
 		return notifiedIDs
 	}
 
-	createComment(4)
+	createComment(5)
 	firstCommentID := createComment(2)
-	assert.Equal(t, []int64{4}, notify(firstCommentID, 0))
-	assert.Equal(t, []int64{4}, notify(createComment(2), 0))
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, RepoID: 1, CommitID: sha, CommentID: firstCommentID, Status: activities_model.NotificationStatusUnread})
+	assert.ElementsMatch(t, []int64{1, 4, 5, 9, 11}, notify(firstCommentID, 2, 0))
+	assert.ElementsMatch(t, []int64{1, 2, 4, 5, 11}, notify(createComment(9), 9, 0))
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, RepoID: 1, CommitID: sha, CommentID: firstCommentID, UpdatedBy: 9, Status: activities_model.NotificationStatusUnread, Source: activities_model.NotificationSourceCommit})
 	unittest.AssertCount(t, &activities_model.Notification{UserID: 4, CommitID: sha}, 1)
 
-	assert.Equal(t, []int64{5}, notify(firstCommentID, 5))
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 5, CommitID: sha, Source: activities_model.NotificationSourceCommit})
+	assert.Equal(t, []int64{5}, notify(firstCommentID, 2, 5))
 }
 
 func TestCreateOrUpdateIssueNotificationsForAssigneeAndReviewer(t *testing.T) {

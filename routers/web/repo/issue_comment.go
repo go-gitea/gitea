@@ -139,8 +139,8 @@ func NewComment(ctx *context.Context) {
 	ctx.JSONRedirect(redirect)
 }
 
-func getRepoComment(ctx *context.Context, commentID int64) *issues_model.Comment {
-	comment, err := issues_model.GetRepoCommentByID(ctx, ctx.Repo.Repository.ID, commentID)
+func getRepoComment(ctx *context.Context) *issues_model.Comment {
+	comment, err := issues_model.GetRepoCommentByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetRepoCommentByID", err)
 		return nil
@@ -152,8 +152,8 @@ func getRepoComment(ctx *context.Context, commentID int64) *issues_model.Comment
 	return comment
 }
 
-func getRepoCommentForSelfWriteOrAccess(ctx *context.Context, commentID int64, accessMode perm.AccessMode) *issues_model.Comment {
-	comment := getRepoComment(ctx, commentID)
+func getRepoCommentForSelfWriteOrAccess(ctx *context.Context, accessMode perm.AccessMode) *issues_model.Comment {
+	comment := getRepoComment(ctx)
 	if comment == nil {
 		return nil
 	}
@@ -170,7 +170,7 @@ func getRepoCommentForSelfWriteOrAccess(ctx *context.Context, commentID int64, a
 
 // UpdateCommentContent change comment of issue's content
 func UpdateCommentContent(ctx *context.Context) {
-	comment := getRepoCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeWrite)
+	comment := getRepoCommentForSelfWriteOrAccess(ctx, perm.AccessModeWrite)
 	if comment == nil {
 		return
 	}
@@ -234,7 +234,7 @@ func UpdateCommentContent(ctx *context.Context) {
 
 // DeleteComment delete comment of issue
 func DeleteComment(ctx *context.Context) {
-	comment := getRepoCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeWrite)
+	comment := getRepoCommentForSelfWriteOrAccess(ctx, perm.AccessModeWrite)
 	if comment == nil {
 		return
 	}
@@ -249,7 +249,7 @@ func DeleteComment(ctx *context.Context) {
 
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
-	comment := getRepoCommentForSelfWriteOrAccess(ctx, ctx.PathParamInt64("id"), perm.AccessModeRead)
+	comment := getRepoCommentForSelfWriteOrAccess(ctx, perm.AccessModeRead)
 	if comment == nil {
 		return
 	}
@@ -298,7 +298,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 // GetCommentAttachments returns attachments for the comment
 func GetCommentAttachments(ctx *context.Context) {
-	comment := getRepoComment(ctx, ctx.PathParamInt64("id"))
+	comment := getRepoComment(ctx)
 	if comment == nil {
 		return
 	}

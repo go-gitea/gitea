@@ -29,6 +29,8 @@ func TestCommitComment(t *testing.T) {
 	require.Len(t, comments, 1)
 	require.Len(t, comments["README.md"][1], 1)
 	assert.Equal(t, comment.ID, comments["README.md"][1][0].ID)
+	assert.Equal(t, issues_model.CommentTypeCommitComment, comments["README.md"][1][0].Type)
+	assert.Zero(t, comments["README.md"][1][0].IssueID)
 	posterIDs, err := issues_model.GetCommitCommentPosterIDs(t.Context(), repo.ID, sha)
 	require.NoError(t, err)
 	assert.Equal(t, []int64{2}, posterIDs)

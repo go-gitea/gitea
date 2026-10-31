@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
 
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
@@ -35,6 +36,11 @@ func MailCommitComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	if author := user_model.GetUserByGitAuthor(ctx, commit); author != nil {
 		participantIDs = append(participantIDs, author.ID)
 	}
+	watcherIDs, err := repo_model.GetRepoAllActivityWatchersIDs(ctx, repo.ID)
+	if err != nil {
+		return err
+	}
+	participantIDs = append(participantIDs, watcherIDs...)
 	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, repo.ID)
 	if err != nil {
 		return err
@@ -46,7 +52,7 @@ func MailCommitComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	for _, fromMention := range []bool{true, false} {
 		recipients := mentions
 		if !fromMention {
-			recipients, err = user_model.GetMailableUsersByIDs(ctx, participantIDs, false)
+			recipients, err = user_model.GetMailableUsersByIDs(ctx, slices.DeleteFunc(participantIDs, func(id int64) bool { return visited.Contains(id) }), false)
 			if err != nil {
 				return err
 			}
@@ -80,27 +86,24 @@ func composeCommitCommentMessages(ctx context.Context, doer *user_model.User, re
 		"Doer":      doer,
 		"IsMention": fromMention,
 		"Link":      commitURL + "#" + comment.HashTag(),
-		"Location":  fmt.Sprintf("%s:%d", comment.TreePath, comment.UnsignedLine()),
+		"Location":  util.Iif(comment.TreePath == "", shortSHA, fmt.Sprintf("%s:%d", comment.TreePath, comment.UnsignedLine())),
 		"CommitURL": commitURL,
 		"ShortSHA":  shortSHA,
 	}); err != nil {
 		return nil, err
 	}
 	reference := fmt.Sprintf("<%s/commit/%s@%s>", repo.FullName(), commit.ID.String(), setting.AppDomain)
-	msgID := fmt.Sprintf("<%s/commit/%s/comment/%d@%s>", repo.FullName(), commit.ID.String(), comment.ID, setting.AppDomain)
 	headers := generateMetadataHeaders(repo)
 	maps.Copy(headers, generateReasonHeaders(util.Iif(fromMention, "mention", "commit")))
 	msgs := make([]*sender_service.Message, 0, len(recipients))
 	for _, recipient := range recipients {
 		msg := sender_service.NewMessageFrom(recipient.Email, fromDisplayName(doer), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, commit comments", subject)
-		msg.SetHeader("Message-ID", msgID)
+		msg.SetHeader("Message-ID", fmt.Sprintf("<%s/commit/%s/comment/%d@%s>", repo.FullName(), commit.ID.String(), comment.ID, setting.AppDomain))
 		msg.SetHeader("In-Reply-To", reference)
 		msg.SetHeader("References", reference)
+		maps.Copy(headers, generateSenderRecipientHeaders(doer, recipient))
 		for key, value := range headers {
-			msg.SetHeader(key, value)
-		}
-		for key, value := range generateSenderRecipientHeaders(doer, recipient) {
 			msg.SetHeader(key, value)
 		}
 		msgs = append(msgs, msg)

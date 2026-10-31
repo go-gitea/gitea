@@ -735,29 +735,23 @@ func ExcerptBlob(ctx *context.Context) {
 			ctx.NotFound(nil)
 			return
 		}
-		diffBlobExcerptData.CanAddComment = ctx.Doer != nil
 
 		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, diffBlobExcerptData.PullIssueIndex)
 		if err != nil {
 			log.Error("GetIssueByIndex error: %v", err)
 		} else if issue.IsPull {
-			// FIXME: DIFF-CONVERSATION-DATA: the following data assignment is fragile
 			issue.Repo = ctx.Repo.Repository
-			// and "diff/comment_form.tmpl" (reply comment) needs them
 			prepareIssueCommentTemplateData(ctx, issue, true)
 
 			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
 			if err != nil {
 				log.Error("FetchCodeComments error: %v", err)
-			} else {
-				if lineComments, ok := allComments[filePath]; ok {
-					gitdiff.AttachSectionComments(section, lineComments)
-				}
+			} else if lineComments, ok := allComments[filePath]; ok {
+				gitdiff.AttachSectionComments(section, lineComments)
 			}
 		}
 	} else if ctx.FormBool("commit_diff") && ctx.Data["PageIsWiki"] != true {
 		diffBlobExcerptData.IsCommitDiff = true
-		diffBlobExcerptData.CanAddComment = ctx.Doer != nil && !ctx.Repo.Repository.IsArchived
 		prepareCommitCommentTemplateData(ctx, commit.ID.String())
 
 		allComments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, commit.ID.String(), filePath)
