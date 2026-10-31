@@ -324,22 +324,22 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 	defer releaser()
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		branches, err := git_model.GetBranches(ctx, repoID, branchNames, true)
+		dbBranches, err := git_model.GetBranches(ctx, repoID, branchNames, true)
 		if err != nil {
 			return fmt.Errorf("git_model.GetBranches: %v", err)
 		}
 
-		if len(branches) == 0 {
-			// if user haven't visit UI but directly push to a branch after upgrading from 1.20 -> 1.21,
+		if len(dbBranches) == 0 {
+			// if user haven't visited UI but directly push to a branch after upgrading from 1.20 -> 1.21,
 			// we cannot simply insert the branch but need to check we have branches or not
-			hasBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
+			hasAnyActiveBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
 				RepoID:          repoID,
 				IsDeletedBranch: optional.Some(false),
 			}.ToConds())
 			if err != nil {
 				return err
 			}
-			if !hasBranch {
+			if !hasAnyActiveBranch {
 				if _, err = repo_module.SyncRepoBranches(ctx, repoID, pusherID); err != nil {
 					return fmt.Errorf("repo_module.SyncRepoBranches %d failed: %v", repoID, err)
 				}
@@ -347,18 +347,18 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 			}
 		}
 
-		branchMap := make(map[string]*git_model.Branch, len(branches))
-		for _, branch := range branches {
-			branchMap[branch.Name] = branch
+		dbBranchMap := make(map[string]*git_model.Branch, len(dbBranches))
+		for _, branch := range dbBranches {
+			dbBranchMap[branch.Name] = branch
 		}
 
 		newBranches := make([]*git_model.Branch, 0, len(branchNames))
 
 		for _, branchName := range branchNames {
-			branch, exist := branchMap[branchName]
-			commitID, err := gitRepo.GetBranchCommitID(ctx, branchName)
+			branch, existInDb := dbBranchMap[branchName]
+			commit, err := gitRepo.GetCommit(ctx, git.RefNameFromBranch(branchName).String())
 			if git.IsErrNotExist(err) {
-				if exist && !branch.IsDeleted {
+				if existInDb && !branch.IsDeleted {
 					if err := git_model.MarkBranchAsDeleted(ctx, repoID, branchName, pusherID); err != nil {
 						log.Error("SyncBranchesToDB: mark branch %d:%s deleted: %v", repoID, branchName, err)
 					}
@@ -368,16 +368,11 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 				log.Error("SyncBranchesToDB: get commit id of %s: %v", branchName, err)
 				continue
 			}
-			if exist && branch.CommitID == commitID && !branch.IsDeleted {
+			if existInDb && branch.CommitID == commit.ID.String() && !branch.IsDeleted {
 				continue
 			}
 
-			commit, err := gitRepo.GetCommit(ctx, commitID)
-			if err != nil {
-				return fmt.Errorf("get commit of %s failed: %v", branchName, err)
-			}
-
-			if exist {
+			if existInDb {
 				if _, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit); err != nil {
 					return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
 				}
