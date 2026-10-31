@@ -161,6 +161,8 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 	// should render next to CJK punctuation
 	test("修复 #1。见（#2）", "修复 %s。见（%s）", "#", 1, 2)
 	test("「#3」と“#4”、#5！", "「%s」と“%s”、%s！", "#", 3, 4, 5)
+	// but not next to a CJK letter
+	test("修复#6，见 #7", "修复#6，见 %s", "#", 7)
 }
 
 func TestRender_IssueIndexPattern3(t *testing.T) {
