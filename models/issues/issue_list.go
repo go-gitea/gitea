@@ -21,16 +21,15 @@ type IssueList []*Issue
 
 // get the repo IDs to be loaded later, these IDs are for issue.Repo and issue.PullRequest.HeadRepo
 func (issues IssueList) getRepoIDs() []int64 {
-	repoIDs := container.Set[int64]{}
-	for _, issue := range issues {
+	return container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
 		if issue.Repo == nil {
-			repoIDs.Add(issue.RepoID)
+			return issue.RepoID, true
 		}
-		if issue.PullRequest != nil && issue.PullRequest.HeadRepo == nil && !issue.PullRequest.isHeadRepoLoaded {
-			repoIDs.Add(issue.PullRequest.HeadRepoID)
+		if issue.PullRequest != nil && issue.PullRequest.HeadRepo == nil {
+			return issue.PullRequest.HeadRepoID, true
 		}
-	}
-	return repoIDs.Values()
+		return 0, false
+	})
 }
 
 // LoadRepositories loads issues' all repositories
@@ -62,7 +61,6 @@ func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.Reposi
 			issue.PullRequest.BaseRepo = issue.Repo
 			if issue.PullRequest.HeadRepo == nil {
 				issue.PullRequest.HeadRepo = repoMaps[issue.PullRequest.HeadRepoID]
-				issue.PullRequest.isHeadRepoLoaded = true
 			}
 		}
 	}

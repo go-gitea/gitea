@@ -26,17 +26,14 @@ func TestIssueList_LoadRepositories(t *testing.T) {
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}),
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}),
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}),
-			unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 8}),
 		}
 
-		require.NoError(t, issueList.LoadPullRequests(t.Context()))
 		repos, err := issueList.LoadRepositories(t.Context())
 		assert.NoError(t, err)
-		assert.Len(t, repos, 4)
+		assert.Len(t, repos, 2)
 		for _, issue := range issueList {
 			assert.Equal(t, issue.RepoID, issue.Repo.ID)
 		}
-		assert.EqualValues(t, 11, issueList[3].PullRequest.HeadRepo.ID)
 	})
 
 	t.Run("LoadIsRead", func(t *testing.T) {

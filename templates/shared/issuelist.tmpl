@@ -68,9 +68,7 @@
 								</a>
 							</div>
 							{{svg "gitea-double-chevron-left" 12}}
-							{{if $root.HiddenHeadRepoIssueIDs.Contains $issue.ID}}
-							<div class="branch"><span class="truncated-name">{{$issue.PullRequest.HeadBranch}}</span></div>
-							{{else if $issue.PullRequest.HeadRepo}}
+							{{if $issue.PullRequest.HeadRepo}}
 							<div class="branch">
 								<a href="{{$issue.PullRequest.HeadRepo.Link}}/src/branch/{{PathEscapeSegments $issue.PullRequest.HeadBranch}}">
 									{{/* inline to remove the spaces between spans */}}

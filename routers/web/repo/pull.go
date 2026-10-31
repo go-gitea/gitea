@@ -163,7 +163,7 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 
 func (prInfo *pullRequestViewInfo) setTemplateDataMergeTarget(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
-	if prInfo.headRepoHidden || ctx.Repo.Owner.Name == pull.OptionalHeadUserName(ctx) {
+	if ctx.Repo.Owner.Name == pull.OptionalHeadUserName(ctx) {
 		prInfo.headTarget = pull.HeadBranch
 	} else if pull.HeadRepo == nil {
 		prInfo.headTarget = ctx.Locale.TrString("repo.pull.deleted_branch", pull.HeadBranch)
@@ -173,13 +173,12 @@ func (prInfo *pullRequestViewInfo) setTemplateDataMergeTarget(ctx *context.Conte
 	ctx.Data["HeadTarget"] = prInfo.headTarget
 	ctx.Data["BaseTarget"] = pull.BaseBranch
 	headBranchLink := ""
-	if pull.Flow == issues_model.PullRequestFlowGithub && !prInfo.headRepoHidden {
+	if pull.Flow == issues_model.PullRequestFlowGithub {
 		headBranchExists, _ := git_model.IsBranchExist(ctx, pull.HeadRepoID, pull.HeadBranch)
 		if headBranchExists {
 			headBranchLink = pull.GetHeadBranchLink(ctx)
 		}
 	}
-	ctx.Data["HeadRepoHidden"] = prInfo.headRepoHidden
 	ctx.Data["HeadBranchLink"] = headBranchLink
 	ctx.Data["BaseBranchLink"] = pull.GetBaseBranchLink(ctx)
 }
@@ -328,8 +327,6 @@ type pullRequestViewInfo struct {
 	IsPullRequestBroken bool
 	HeadBranchCommitID  string
 	headTarget          string // for display purpose only
-	headRepoPerm        access_model.Permission
-	headRepoHidden      bool
 
 	CompareInfo         git_service.CompareInfo
 	ProtectedBranchRule *git_model.ProtectedBranch
@@ -355,17 +352,6 @@ func (prInfo *pullRequestViewInfo) prepareViewInfo(ctx *context.Context, issue *
 		ctx.ServerError("LoadBaseRepo", err)
 		return
 	}
-
-	pull := issue.PullRequest
-	prInfo.headRepoPerm = ctx.Repo.Permission
-	if pull.HeadRepo != nil && pull.HeadRepoID != pull.BaseRepoID {
-		var err error
-		if prInfo.headRepoPerm, err = access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer); err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
-			return
-		}
-	}
-	prInfo.headRepoHidden = pull.HeadRepo != nil && !prInfo.headRepoPerm.HasAnyUnitAccessOrPublicAccess()
 
 	if issue.PullRequest.HasMerged {
 		prInfo.prepareViewMergedPullInfo(ctx)
@@ -981,7 +967,13 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 		if pull.HeadRepo != nil {
 			if !pull.HasMerged && ctx.Doer != nil {
-				if issues_model.CanMaintainerWriteToBranch(ctx, prViewInfo.headRepoPerm, pull.HeadBranch, ctx.Doer) {
+				headPerm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+				if err != nil {
+					ctx.ServerError("GetDoerRepoPermission", err)
+					return
+				}
+
+				if issues_model.CanMaintainerWriteToBranch(ctx, headPerm, pull.HeadBranch, ctx.Doer) {
 					ctx.Data["CanEditFile"] = true
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 					ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
