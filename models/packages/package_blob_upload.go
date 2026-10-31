@@ -23,6 +23,7 @@ func init() {
 // PackageBlobUpload represents a package blob upload
 type PackageBlobUpload struct {
 	ID             string             `xorm:"pk"`
+	CreatorID      int64              `xorm:"INDEX NOT NULL DEFAULT 0"`
 	BytesReceived  int64              `xorm:"NOT NULL DEFAULT 0"`
 	HashStateBytes []byte             `xorm:"BLOB"`
 	CreatedUnix    timeutil.TimeStamp `xorm:"created NOT NULL"`
@@ -30,11 +31,12 @@ type PackageBlobUpload struct {
 }
 
 // CreateBlobUpload inserts a blob upload
-func CreateBlobUpload(ctx context.Context) (*PackageBlobUpload, error) {
+func CreateBlobUpload(ctx context.Context, creatorID int64) (*PackageBlobUpload, error) {
 	id := util.CryptoRandomString(25)
 
 	pbu := &PackageBlobUpload{
-		ID: strings.ToLower(id),
+		ID:        strings.ToLower(id),
+		CreatorID: creatorID,
 	}
 
 	_, err := db.GetEngine(ctx).Insert(pbu)
@@ -42,10 +44,10 @@ func CreateBlobUpload(ctx context.Context) (*PackageBlobUpload, error) {
 }
 
 // GetBlobUploadByID gets a blob upload by id
-func GetBlobUploadByID(ctx context.Context, id string) (*PackageBlobUpload, error) {
+func GetBlobUploadByID(ctx context.Context, id string, creatorID int64) (*PackageBlobUpload, error) {
 	pbu := &PackageBlobUpload{}
 
-	has, err := db.GetEngine(ctx).ID(id).Get(pbu)
+	has, err := db.GetEngine(ctx).Where("id = ? AND creator_id = ?", id, creatorID).Get(pbu)
 	if err != nil {
 		return nil, err
 	}
