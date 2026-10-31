@@ -8,12 +8,12 @@ gitea-theme-meta-info {
 
 /* red/green colorblind-friendly colors */
 :root {
-  --color-diff-added-fg: #58a6ff;
-  --color-diff-added-linenum-bg: #243d5d;
-  --color-diff-added-row-bg: #132339;
-  --color-diff-added-word-bg: #214d87;
-  --color-diff-removed-fg: #f0883e;
-  --color-diff-removed-linenum-bg: #5b361c;
-  --color-diff-removed-row-bg: #3c2419;
-  --color-diff-removed-word-bg: #824e1f;
+  --color-diff-added-fg: #509ef6;
+  --color-diff-added-linenum-bg: #274161;
+  --color-diff-added-row-bg: #18283e;
+  --color-diff-added-word-bg: #1c4882;
+  --color-diff-removed-fg: #e37c30;
+  --color-diff-removed-linenum-bg: #5a351b;
+  --color-diff-removed-row-bg: #382116;
+  --color-diff-removed-word-bg: #6c3a04;
 }

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {onMounted, onUnmounted, toRaw, useTemplateRef, watch, type ShallowRef} from 'vue';
 import {_adapters, BarController, Chart, LinearScale, LineController, TimeScale, type ChartData, type ChartOptions, type TimeUnit} from 'chart.js';
-import {chartJsColors} from '../utils/color.ts';
+import {chartJsColor} from '../utils/color.ts';
 import dayjs from 'dayjs';
 import advancedFormat from 'dayjs/plugin/advancedFormat.js';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
@@ -10,8 +10,8 @@ import type {ConfigType, ManipulateType} from 'dayjs';
 dayjs.extend(advancedFormat); // the quarter format needs the `Q` token
 dayjs.extend(quarterOfYear);
 
-Chart.defaults.color = chartJsColors.text;
-Chart.defaults.borderColor = chartJsColors.border;
+Chart.defaults.color = chartJsColor('text');
+Chart.defaults.borderColor = chartJsColor('border');
 Chart.register(BarController, LineController, LinearScale, TimeScale);
 
 // minimal port of chartjs-adapter-dayjs-4, MIT license, Copyright (c) 2022 bolstycjw
