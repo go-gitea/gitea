@@ -378,18 +378,18 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 func TestProjects(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("LoadIssuesAssigneesForProject", func(t *testing.T) {
-		_ = db.TruncateBeans(t.Context(), "project_issue", "issue_assignees")
-		_ = db.Insert(t.Context(),
+		require.NoError(t, db.TruncateBeans(t.Context(), &project_model.ProjectIssue{}, &issues_model.IssueAssignees{}))
+		require.NoError(t, db.Insert(t.Context(),
 			&project_model.ProjectIssue{ProjectID: 1, IssueID: 1},
 			&project_model.ProjectIssue{ProjectID: 1, IssueID: 6},
-		)
-		_ = db.Insert(t.Context(),
+		))
+		require.NoError(t, db.Insert(t.Context(),
 			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 1},
 			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 10},
 			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 2},
 			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 2},
 			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 4},
-		)
+		))
 		assignees, err := project.LoadIssuesAssigneesForProject(t.Context(), 1)
 		require.NoError(t, err)
 		require.Len(t, assignees, 4)
