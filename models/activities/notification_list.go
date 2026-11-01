@@ -5,6 +5,8 @@ package activities
 
 import (
 	"context"
+	"maps"
+	"slices"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -158,7 +160,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 
 	// notify
 	notifiedIDs := make([]int64, 0, len(toNotify))
-	for userID := range toNotify {
+	for _, userID := range slices.Sorted(maps.Keys(toNotify)) { // fixed order so concurrent transactions lock rows in the same order
 		issue.Repo.Units = nil
 		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
