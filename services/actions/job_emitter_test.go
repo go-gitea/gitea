@@ -92,6 +92,15 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			want: map[int64]actions_model.Status{3: actions_model.StatusWaiting},
 		},
 		{
+			name: "`if` reads the result of a need finished in an earlier round",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "a", Status: actions_model.StatusFailure},
+				{ID: 2, JobID: "b", Status: actions_model.StatusBlocked, Needs: []string{"a"}},
+				{ID: 3, JobID: "c", Status: actions_model.StatusBlocked, Needs: []string{"b"}, WorkflowPayload: []byte(`jobs: {c: {if: "${{ always() && needs.b.result == 'skipped' }}"}}`)},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped, 3: actions_model.StatusWaiting},
+		},
+		{
 			name: "loop need",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusPending, Needs: []string{"3"}},
