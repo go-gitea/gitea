@@ -61,24 +61,24 @@ function initRepoCloneButtonsCombo(parent: Element) {
 
   const tabHttps = parent.querySelector('.repo-clone-https');
   const tabSsh = parent.querySelector('.repo-clone-ssh');
-  const tabTea = parent.querySelector('.repo-clone-tea');
+  const tabCli = parent.querySelector('.repo-clone-cli');
   const listOpenWithEditorApps = parent.querySelector('.repo-clone-with-apps');
 
-  // not every tab exists in every panel, eg: the admin may disable HTTP/SSH, and the empty repo page has no Tea CLI tab
-  const tabByScheme: Record<string, Element | null> = {https: tabHttps, ssh: tabSsh, tea: tabTea};
+  // not every tab exists in every panel, eg: the admin may disable HTTP/SSH, and the empty repo page has no Gitea CLI tab
+  const tabByScheme: Record<string, Element | null> = {https: tabHttps, ssh: tabSsh, cli: tabCli};
   const updateClonePanelUi = function() {
     let scheme = localUserSettings.getString('repo-clone-protocol');
     // fall back to the first available tab when the preferred scheme's tab is absent (unset preference, or disabled protocol)
     if (!tabByScheme[scheme]) {
-      scheme = ['https', 'ssh', 'tea'].find((s) => tabByScheme[s]) ?? '';
+      scheme = ['https', 'ssh', 'cli'].find((s) => tabByScheme[s]) ?? '';
     }
 
     const isHttps = scheme === 'https';
     const isSsh = scheme === 'ssh';
-    const isTea = scheme === 'tea';
+    const isCli = scheme === 'cli';
 
     if (listOpenWithEditorApps) {
-      toggleElem(listOpenWithEditorApps, !isTea); // don't show the "Open with editor apps" list when "Tea" clone is selected
+      toggleElem(listOpenWithEditorApps, !isCli); // don't show the "Open with editor apps" list when "Gitea CLI" clone is selected
     }
 
     if (tabHttps) {
@@ -89,8 +89,8 @@ function initRepoCloneButtonsCombo(parent: Element) {
     if (tabSsh) {
       tabSsh.classList.toggle('active', isSsh);
     }
-    if (tabTea) {
-      tabTea.classList.toggle('active', isTea);
+    if (tabCli) {
+      tabCli.classList.toggle('active', isCli);
     }
 
     const tab = tabByScheme[scheme];
@@ -120,8 +120,8 @@ function initRepoCloneButtonsCombo(parent: Element) {
     localUserSettings.setString('repo-clone-protocol', 'ssh');
     updateClonePanelUi();
   });
-  tabTea?.addEventListener('click', () => {
-    localUserSettings.setString('repo-clone-protocol', 'tea');
+  tabCli?.addEventListener('click', () => {
+    localUserSettings.setString('repo-clone-protocol', 'cli');
     updateClonePanelUi();
   });
   elCloneUrlInput.addEventListener('focus', () => {

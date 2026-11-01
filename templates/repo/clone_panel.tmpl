@@ -24,7 +24,7 @@
 			{{if $showCloneLinks}}
 				<div class="flex-text-block clone-panel-field">{{svg "octicon-terminal"}} {{ctx.Locale.Tr "codespace.clone"}}</div>
 				<div class="clone-panel-tab">
-					<!-- tea clone also uses the git HTTPS/SSH transports, so the whole clone section is hidden when both are disabled -->
+					<!-- gt repo clone also uses the git HTTPS/SSH transports, so the whole clone section is hidden when both are disabled -->
 					{{if $cloneLink.SupportHTTPS}}
 						<button type="button" class="item repo-clone-https" data-link="{{$cloneLink.HTTPS}}">HTTPS</button>
 					{{end}}
@@ -32,7 +32,7 @@
 						<button type="button" class="item repo-clone-ssh" data-link="{{$cloneLink.SSH}}">SSH</button>
 					{{end}}
 					{{if not $cloneLink.IsWikiRepo}}
-						<button type="button" class="item repo-clone-tea" data-link="{{$cloneLink.Tea}}">Tea CLI</button>
+						<button type="button" class="item repo-clone-cli" data-link="{{$cloneLink.CLI}}">Gitea CLI</button>
 					{{end}}
 				</div>
 				<div class="divider"></div>

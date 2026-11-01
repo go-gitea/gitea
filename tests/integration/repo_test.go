@@ -186,9 +186,9 @@ func testViewRepo1CloneLinkAnonymous(t *testing.T) {
 	_, exists = htmlDoc.doc.Find(".repo-clone-ssh").Attr("data-link")
 	assert.False(t, exists)
 
-	link, exists = htmlDoc.doc.Find(".repo-clone-tea").Attr("data-link")
+	link, exists = htmlDoc.doc.Find(".repo-clone-cli").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
-	assert.Equal(t, "tea clone user2/repo1", link)
+	assert.Equal(t, "gt repo clone user2/repo1", link)
 }
 
 func testViewRepo1CloneLinkAuthorized(t *testing.T) {
@@ -209,9 +209,9 @@ func testViewRepo1CloneLinkAuthorized(t *testing.T) {
 	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.SSH.User, setting.SSH.Domain, setting.SSH.Port)
 	assert.Equal(t, sshURL, link)
 
-	link, exists = htmlDoc.doc.Find(".repo-clone-tea").Attr("data-link")
+	link, exists = htmlDoc.doc.Find(".repo-clone-cli").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
-	assert.Equal(t, "tea clone user2/repo1", link)
+	assert.Equal(t, "gt repo clone user2/repo1", link)
 }
 
 func testViewRepoWithSymlinks(t *testing.T) {
