@@ -199,19 +199,15 @@ func newPrefixRule(target string, ranges []portRange) (prefixRule, error) {
 			}
 			return prefixRule{}, fmt.Errorf("invalid CIDR %q: %w", target, err)
 		}
+		if prefix.Addr().Is4In6() {
+			// only ::ffff:0:0/96 is IPv4-mapped: normalize to the IPv4 form, ::ffff:10.0.0.0/104 -> 10.0.0.0/8
+			prefix = netip.PrefixFrom(prefix.Addr().Unmap(), max(prefix.Bits()-96, 0))
+		}
 		if prefix.Bits() == 0 {
 			return prefixRule{}, fmt.Errorf("invalid CIDR %q: %w", target, errCatchAll)
 		}
 		if masked := prefix.Masked(); masked != prefix {
 			return prefixRule{}, fmt.Errorf("invalid CIDR %q: host bits must be zero, use %q", target, masked)
-		}
-		if prefix.Addr().Is4In6() {
-			// normalize to the IPv4 form, like the bare addresses below: ::ffff:10.0.0.0/104 -> 10.0.0.0/8
-			if bits := prefix.Bits() - 96; bits > 0 {
-				prefix = netip.PrefixFrom(prefix.Addr().Unmap(), bits)
-			} else {
-				return prefixRule{}, fmt.Errorf("invalid CIDR %q: unmaps to 0.0.0.0/0: %w", target, errCatchAll)
-			}
 		}
 		return prefixRule{prefix: prefix, portRanges: ranges}, nil
 	}
