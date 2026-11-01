@@ -6,39 +6,29 @@ package elasticsearch
 import (
 	"context"
 	"fmt"
-	"io"
-	"strconv"
-	"strings"
 	"unicode/utf8"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/analyze"
-	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/indexer"
 	"gitea.dev/modules/indexer/code/internal"
 	es "gitea.dev/modules/indexer/internal/elasticsearch"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/typesniffer"
 
 	"github.com/go-enry/go-enry/v2"
+	"golang.org/x/text/unicode/norm"
 )
 
-const esRepoIndexerLatestVersion = 4
+const esRepoIndexerLatestVersion = 5
 
 var _ internal.Indexer = &Indexer{}
 
 // Indexer implements Indexer interface
 type Indexer struct {
 	*es.Indexer
-}
-
-func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
-	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new elasticsearch indexer
@@ -48,150 +38,104 @@ func NewIndexer(url, indexerName string) *Indexer {
 
 const (
 	defaultMapping = `{
-		"settings": {
-    		"analysis": {
-      			"analyzer": {
-					"content_analyzer": {
-						"tokenizer": "content_tokenizer",
-						"filter" : ["lowercase"]
-					},
-					"content_short_analyzer": {
-						"tokenizer": "content_short_tokenizer",
-						"filter" : ["lowercase"]
-					},
-        			"filename_path_analyzer": {
-          				"tokenizer": "path_tokenizer"
-        			},
-        			"reversed_filename_path_analyzer": {
-          				"tokenizer": "reversed_path_tokenizer"
-        			}
-      			},
-				"tokenizer": {
-					"content_tokenizer": {
-						"type": "ngram",
-						"min_gram": 3,
-						"max_gram": 3
-					},
-					"content_short_tokenizer": {
-						"type": "ngram",
-						"min_gram": 1,
-						"max_gram": 2
-					},
-					"path_tokenizer": {
-						"type": "path_hierarchy",
-						"delimiter": "/"
-					},
-					"reversed_path_tokenizer": {
-						"type": "path_hierarchy",
-						"delimiter": "/",
-						"reverse": true
-					}
+	"settings": {
+		"analysis": {
+			"analyzer": {
+				"content_analyzer": {
+					"tokenizer": "content_tokenizer",
+					"filter": [
+						"lowercase"
+					]
+				},
+				"content_short_analyzer": {
+					"tokenizer": "content_short_tokenizer",
+					"filter": [
+						"lowercase"
+					]
 				}
-			}
-  		},
-		"mappings": {
-			"properties": {
-				"repo_id": {
-					"type": "long",
-					"index": true
+			},
+			"tokenizer": {
+				"content_tokenizer": {
+					"type": "ngram",
+					"min_gram": 3,
+					"max_gram": 3
 				},
-				"filename": {
-					"type": "text",
-					"index": true,
-					"fields": {
-         		  		"path": {
-            				"type": "text",
-            				"analyzer": "reversed_filename_path_analyzer"
-						},
-          				"path_reversed": {
-            				"type": "text",
-            				"analyzer": "filename_path_analyzer"
-          				}
-        			}
-				},
-				"content": {
-					"type": "text",
-					"index": true,
-					"analyzer": "content_analyzer",
-					"fields": {
-						"short": {
-							"type": "text",
-							"analyzer": "content_short_analyzer",
-							"index_options": "docs",
-							"norms": false
-						}
-					}
-				},
-				"commit_id": {
-					"type": "keyword",
-					"index": true
-				},
-				"language": {
-					"type": "keyword",
-					"index": true
-				},
-				"updated_at": {
-					"type": "long",
-					"index": true
+				"content_short_tokenizer": {
+					"type": "ngram",
+					"min_gram": 1,
+					"max_gram": 2
 				}
 			}
 		}
-	}`
+	},
+	"mappings": {
+		"properties": {
+			"repo_id": {
+				"type": "long",
+				"index": true
+			},
+			"filename": {
+				"type": "text",
+				"index": true,
+				"analyzer": "content_analyzer",
+				"fields": {
+					"short": {
+						"type": "text",
+						"analyzer": "content_short_analyzer",
+						"index_options": "docs",
+						"norms": false
+					},
+					"path": {
+						"type": "keyword"
+					}
+				}
+			},
+			"content": {
+				"type": "text",
+				"index": true,
+				"analyzer": "content_analyzer",
+				"fields": {
+					"short": {
+						"type": "text",
+						"analyzer": "content_short_analyzer",
+						"index_options": "docs",
+						"norms": false
+					}
+				}
+			},
+			"commit_id": {
+				"type": "keyword",
+				"index": true
+			},
+			"language": {
+				"type": "keyword",
+				"index": true
+			},
+			"updated_at": {
+				"type": "long",
+				"index": true
+			}
+		}
+	}
+}`
 )
 
-func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]es.BulkOp, error) {
-	// Ignore vendored files in code search
-	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
-		return nil, nil
-	}
-
-	size := update.Size
-	var err error
-	if !update.Sized {
-		var stdout string
-		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).WithRepo(repo).RunStdString(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
-			return nil, fmt.Errorf("misformatted git cat-file output: %w", err)
-		}
-	}
-
-	id := internal.FilenameIndexerID(repo.ID, update.Filename)
-	if size > setting.Indexer.MaxIndexerFileSize {
-		return []es.BulkOp{es.DeleteOp(id)}, nil
-	}
-
-	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
+func (b *Indexer) addUpdate(catFileBatch git.CatFileBatch, sha string, update internal.FileUpdate, repo *repo_model.Repository) (es.BulkOp, error) {
+	fileContents, searchable, err := internal.ReadFile(catFileBatch, update)
 	if err != nil {
-		return nil, err
+		return es.BulkOp{}, err
 	}
-
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, info.Size))
-	if err != nil {
-		return nil, err
-	} else if !typesniffer.DetectContentType(fileContents).IsText() {
-		// FIXME: UTF-16 files will probably fail here
-		return nil, nil
+	if !searchable {
+		return es.DeleteOp(internal.FilenameIndexerID(repo.ID, update.Filename)), nil
 	}
-
-	if _, err = batchReader.Discard(1); err != nil {
-		return nil, err
-	}
-
-	return []es.BulkOp{es.IndexOp(id, map[string]any{
+	return es.IndexOp(internal.FilenameIndexerID(repo.ID, update.Filename), map[string]any{
 		"repo_id":    repo.ID,
-		"filename":   update.Filename,
-		"content":    string(charset.ToUTF8DropErrors(fileContents)),
+		"filename":   norm.NFC.String(update.Filename),
+		"content":    string(fileContents),
 		"commit_id":  sha,
 		"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
 		"updated_at": timeutil.TimeStampNow(),
-	})}, nil
-}
-
-func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) es.BulkOp {
-	return es.DeleteOp(internal.FilenameIndexerID(repo.ID, filename))
+	}), nil
 }
 
 // Index will save the index data
@@ -205,27 +149,22 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		defer batch.Close()
 
 		for _, update := range changes.Updates {
-			updateOps, err := b.addUpdate(ctx, batch, sha, update, repo)
+			operation, err := b.addUpdate(batch, sha, update, repo)
 			if err != nil {
 				return err
 			}
-			if len(updateOps) > 0 {
-				ops = append(ops, updateOps...)
-			}
+			ops = append(ops, operation)
 		}
 	}
 
 	for _, filename := range changes.RemovedFilenames {
-		ops = append(ops, b.addDelete(filename, repo))
+		ops = append(ops, es.DeleteOp(internal.FilenameIndexerID(repo.ID, filename)))
 	}
 
-	if len(ops) > 0 {
-		esBatchSize := 50
-
-		for i := 0; i < len(ops); i += esBatchSize {
-			if err := b.Bulk(ctx, ops[i:min(i+esBatchSize, len(ops))]); err != nil {
-				return err
-			}
+	const batchSize = 50
+	for i := 0; i < len(ops); i += batchSize {
+		if err := b.Bulk(ctx, ops[i:min(i+batchSize, len(ops))]); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -233,13 +172,13 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 
 // Delete entries by repoId
 func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
-	if err := b.doDelete(ctx, repoID); err != nil {
+	if err := b.DeleteByQuery(ctx, es.TermsQuery("repo_id", repoID)); err != nil {
 		// Maybe there is a conflict during the delete operation, so we should retry after a refresh
 		log.Warn("Deletion of entries of repo %v within index %v was erroneous: %v. Trying to refresh index before trying again", repoID, b.VersionedIndexName(), err)
 		if err := b.Refresh(ctx); err != nil {
 			return err
 		}
-		if err := b.doDelete(ctx, repoID); err != nil {
+		if err := b.DeleteByQuery(ctx, es.TermsQuery("repo_id", repoID)); err != nil {
 			log.Error("Could not delete entries of repo %v within index %v", repoID, b.VersionedIndexName())
 			return err
 		}
@@ -247,12 +186,8 @@ func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
 	return nil
 }
 
-// Delete entries by repoId
-func (b *Indexer) doDelete(ctx context.Context, repoID int64) error {
-	return b.DeleteByQuery(ctx, es.TermsQuery("repo_id", repoID))
-}
-
 func convertResult(searchResult *es.SearchResponse, terms []string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+	matcher := internal.LiteralMatcher(terms)
 	hits := make([]*internal.SearchResult, 0, pageSize)
 	for _, hit := range searchResult.Hits {
 		repoID, fileName := internal.ParseIndexerID(hit.ID)
@@ -270,22 +205,9 @@ func convertResult(searchResult *es.SearchResponse, terms []string, pageSize int
 			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
 		}
 
-		startIndex, endIndex := internal.ContentMatchIndexPos(content, terms)
-		if startIndex < 0 {
-			startIndex, endIndex = internal.FilenameMatchIndexPos(content)
-		}
-
-		hits = append(hits, &internal.SearchResult{
-			RepoID:      repoID,
-			Filename:    fileName,
-			CommitID:    commitID,
-			Content:     content,
-			UpdatedUnix: timeutil.TimeStamp(updatedAt),
-			Language:    language,
-			StartIndex:  startIndex,
-			EndIndex:    endIndex,
-			Color:       enry.GetColor(language),
-		})
+		result := &internal.SearchResult{RepoID: repoID, Filename: fileName, Content: content, CommitID: commitID, Language: language, UpdatedUnix: timeutil.TimeStamp(updatedAt)}
+		matcher.MatchResult(result)
+		hits = append(hits, result)
 	}
 
 	return searchResult.Total, hits, extractAggs(searchResult), nil
@@ -298,8 +220,6 @@ func extractAggs(searchResult *es.SearchResponse) []*internal.SearchResultLangua
 	}
 	searchResultLanguages := make([]*internal.SearchResultLanguages, 0, 10)
 	for _, bucket := range buckets {
-		// language is mapped as keyword so the key is always a string; if the
-		// mapping ever changes, skip rather than emit an empty-language bucket.
 		key, ok := bucket.Key.(string)
 		if !ok {
 			continue
@@ -313,28 +233,29 @@ func extractAggs(searchResult *es.SearchResponse) []*internal.SearchResultLangua
 	return searchResultLanguages
 }
 
+func gramQuery(term, field string) es.Query {
+	if utf8.RuneCountInString(term) < 3 {
+		return es.NewMultiMatchQuery(term, field+".short").Operator("and")
+	}
+	return es.MatchPhraseQuery(field, term)
+}
+
 // Search searches for codes and language stats by given conditions.
 func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
-	terms := internal.SearchTerms(opts)
+	terms := opts.Terms
 	if len(terms) == 0 {
 		return 0, nil, nil, nil
 	}
-	contentQuery := es.NewBoolQuery()
+	query := es.NewBoolQuery()
 	for _, term := range terms {
-		if utf8.RuneCountInString(term) < 3 {
-			contentQuery.Must(es.NewMultiMatchQuery(term, "content.short").Operator("and"))
-		} else {
-			contentQuery.Must(es.MatchPhraseQuery("content", term))
-		}
+		query.Must(es.NewBoolQuery().Should(gramQuery(term, "content"), gramQuery(norm.NFC.String(term), "filename")))
 	}
 
-	kwQuery := es.NewBoolQuery().Should(
-		contentQuery,
-		es.NewMultiMatchQuery(opts.Keyword, "filename^10").Type(es.MultiMatchTypePhrasePrefix),
-	)
-	query := es.NewBoolQuery().Must(kwQuery)
 	if len(opts.RepoIDs) > 0 {
 		query.Must(es.TermsQuery("repo_id", es.ToAnySlice(opts.RepoIDs)...))
+	}
+	if opts.Path != "" {
+		query.Must(es.PrefixQuery("filename.path", norm.NFC.String(opts.Path)+"/"))
 	}
 
 	start, pageSize := opts.GetSkipTake()
@@ -352,43 +273,25 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		{Field: "updated_at", Desc: false},
 	}
 
-	if len(opts.Language) == 0 {
-		resp, err := b.Indexer.Search(ctx, es.SearchRequest{
-			Query:        query,
-			Sort:         sort,
-			From:         start,
-			Size:         pageSize,
-			TrackTotal:   true,
-			Aggregations: languageAggs,
-		})
+	var languages []*internal.SearchResultLanguages
+	if opts.Language != "" {
+		countResp, err := b.Indexer.Search(ctx, es.SearchRequest{Query: query, Size: 0, TrackTotal: true, Aggregations: languageAggs})
 		if err != nil {
 			return 0, nil, nil, err
 		}
-		return convertResult(resp, terms, pageSize)
+		languages = extractAggs(countResp)
+		query.Must(es.MatchQuery("language", opts.Language))
+		languageAggs = nil
 	}
-
-	countResp, err := b.Indexer.Search(ctx, es.SearchRequest{
-		Query:        query,
-		Size:         0, // stats only
-		TrackTotal:   true,
-		Aggregations: languageAggs,
-	})
-	if err != nil {
-		return 0, nil, nil, err
-	}
-
-	query.Must(es.MatchQuery("language", opts.Language))
 	resp, err := b.Indexer.Search(ctx, es.SearchRequest{
-		Query:      query,
-		Sort:       sort,
-		From:       start,
-		Size:       pageSize,
-		TrackTotal: true,
+		Query: query, Sort: sort, From: start, Size: pageSize, TrackTotal: true, Aggregations: languageAggs,
 	})
 	if err != nil {
 		return 0, nil, nil, err
 	}
-
-	total, hits, _, err := convertResult(resp, terms, pageSize)
-	return total, hits, extractAggs(countResp), err
+	total, hits, resultLanguages, err := convertResult(resp, terms, pageSize)
+	if opts.Language != "" {
+		resultLanguages = languages
+	}
+	return total, hits, resultLanguages, err
 }
