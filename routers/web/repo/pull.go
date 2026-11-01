@@ -1362,7 +1362,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 	ci := comparePageInfo.compareInfo
-	if ci.CompareBase == "" {
+	if ci.CompareBase == "" || ci.DirectComparison() {
 		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
 		return
 	}
