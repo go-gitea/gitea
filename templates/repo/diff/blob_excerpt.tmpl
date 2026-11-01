@@ -1,5 +1,5 @@
 {{$diffBlobExcerptData := .DiffBlobExcerptData}}
-{{$canCreateComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex}}
+{{$canCreateComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex (not ctx.RootData.IsReadOnlyMirror)}}
 {{if $.IsSplitStyle}}
 	{{range $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">

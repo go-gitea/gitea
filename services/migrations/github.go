@@ -411,13 +411,18 @@ func (g *GithubDownloaderV3) GetReleases(ctx context.Context) ([]*base.Release, 
 
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
+	return g.getIssuesSince(ctx, page, perPage, "created", time.Time{})
+}
+
+func (g *GithubDownloaderV3) getIssuesSince(ctx context.Context, page, perPage int, sortField string, since time.Time) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
 	opt := &github.IssueListByRepoOptions{
-		Sort:      "created",
+		Sort:      sortField,
 		Direction: "asc",
 		State:     "all",
+		Since:     since,
 		ListOptions: github.ListOptions{
 			PerPage: perPage,
 			Page:    page,
@@ -551,6 +556,11 @@ func (g *GithubDownloaderV3) GetComments(ctx context.Context, commentable base.C
 }
 
 func (g *GithubDownloaderV3) getComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, error) {
+	return g.getCommentsSince(ctx, commentable, nil)
+}
+
+// a non-nil since returns only comments updated at or after it
+func (g *GithubDownloaderV3) getCommentsSince(ctx context.Context, commentable base.Commentable, since *time.Time) ([]*base.Comment, error) {
 	var (
 		allComments = make([]*base.Comment, 0, g.maxPerPage)
 		created     = "created"
@@ -559,6 +569,7 @@ func (g *GithubDownloaderV3) getComments(ctx context.Context, commentable base.C
 	opt := &github.IssueListCommentsOptions{
 		Sort:      &created,
 		Direction: &asc,
+		Since:     since,
 		ListOptions: github.ListOptions{
 			PerPage: g.maxPerPage,
 		},

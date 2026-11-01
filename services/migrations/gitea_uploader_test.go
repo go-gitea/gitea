@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"context"
 	"errors"
 	"io"
 	"strconv"
@@ -23,6 +24,7 @@ import (
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/structs"
+	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -391,4 +393,229 @@ func TestGiteaUploadReviewCommentsWithoutHead(t *testing.T) {
 	reviewsAfter, err := issues_model.CountReviews(ctx, opts)
 	require.NoError(t, err)
 	assert.Equal(t, reviewsBefore, reviewsAfter) // no empty review is left behind
+}
+
+type syncTestDownloader struct {
+	base.NullDownloader
+	issues   []*base.Issue
+	prs      []*base.PullRequest
+	comments []*base.Comment
+	reviews  []*base.Review
+	topics   []string
+}
+
+func (d *syncTestDownloader) SupportSyncing() bool { return true }
+
+func (d *syncTestDownloader) GetTopics(context.Context) ([]string, error) { return d.topics, nil }
+
+func (d *syncTestDownloader) GetNewIssues(_ context.Context, page, _ int, updatedAfter time.Time) ([]*base.Issue, bool, error) {
+	if page > 1 {
+		return nil, true, nil
+	}
+	issues := make([]*base.Issue, 0, len(d.issues))
+	for _, issue := range d.issues {
+		if !issue.Updated.Before(updatedAfter) {
+			issues = append(issues, issue)
+		}
+	}
+	return issues, true, nil
+}
+
+func (d *syncTestDownloader) GetNewPullRequests(_ context.Context, page, _ int, updatedAfter time.Time) ([]*base.PullRequest, bool, error) {
+	if page > 1 {
+		return nil, true, nil
+	}
+	prs := make([]*base.PullRequest, 0, len(d.prs))
+	for _, pr := range d.prs {
+		if !pr.Updated.Before(updatedAfter) {
+			prs = append(prs, pr)
+		}
+	}
+	return prs, true, nil
+}
+
+func (d *syncTestDownloader) GetNewComments(_ context.Context, commentable base.Commentable, updatedAfter time.Time) ([]*base.Comment, bool, error) {
+	comments := make([]*base.Comment, 0, len(d.comments))
+	for _, comment := range d.comments {
+		if comment.IssueIndex == commentable.GetForeignIndex() && !comment.Updated.Before(updatedAfter) {
+			comments = append(comments, comment)
+		}
+	}
+	return comments, false, nil
+}
+
+func (d *syncTestDownloader) GetNewReviews(_ context.Context, reviewable base.Reviewable, _ time.Time) ([]*base.Review, error) {
+	reviews := make([]*base.Review, 0, len(d.reviews))
+	for _, review := range d.reviews {
+		if review.IssueIndex == reviewable.GetForeignIndex() {
+			reviews = append(reviews, review)
+		}
+	}
+	return reviews, nil
+}
+
+func TestGiteaSyncRepository(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	// the patch-checker queue is not initialised in unit tests
+	originalAddToQueue := pull_service.AddPullRequestToCheckQueue
+	pull_service.AddPullRequestToCheckQueue = func(int64) {}
+	defer func() { pull_service.AddPullRequestToCheckQueue = originalAddToQueue }()
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	ctx := t.Context()
+	uploader := NewGiteaLocalUploader(ctx, doer, "user2", repo.Name)
+	uploader.gitServiceType = structs.GithubService
+	uploader.repo = repo
+	var err error
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer uploader.Close()
+	require.NoError(t, uploader.loadExistingLabelsAndMilestones(ctx))
+
+	marks, err := newSyncWatermarks(ctx, repo.ID)
+	require.NoError(t, err)
+	// after every stream's watermark, so issues, pulls and comments all include them
+	latest := marks.issues
+	if marks.pulls.After(latest) {
+		latest = marks.pulls
+	}
+	if marks.comments.After(latest) {
+		latest = marks.comments
+	}
+
+	updated := latest.Add(time.Hour)
+	downloader := &syncTestDownloader{
+		topics: []string{"mirror", "sync"},
+		issues: []*base.Issue{{
+			Number:       100,
+			Title:        "sync issue",
+			Content:      "created by sync",
+			PosterID:     9990,
+			PosterName:   "external-user",
+			State:        "open",
+			Created:      updated,
+			Updated:      updated,
+			ForeignIndex: 100,
+		}},
+		prs: []*base.PullRequest{{
+			Number:       101,
+			Title:        "sync pull request",
+			Content:      "created by sync",
+			PosterID:     9991,
+			PosterName:   "external-user",
+			State:        "open",
+			Created:      updated,
+			Updated:      updated,
+			ForeignIndex: 101,
+			EnsuredSafe:  true,
+			Head: base.PullRequestBranch{
+				Ref:       "unknown-branch",
+				SHA:       "e29fdd58dd8f8e6de2a44a5a1b18e196c43fd4b0",
+				RepoName:  repo.Name,
+				OwnerName: "deleted-user",
+			},
+			Base: base.PullRequestBranch{
+				Ref:       "master",
+				RepoName:  repo.Name,
+				OwnerName: "user2",
+			},
+		}},
+		comments: []*base.Comment{{
+			IssueIndex: 100,
+			Index:      770001, // the remote comment id, becomes the dedup key
+			PosterID:   9990,
+			PosterName: "external-user",
+			Content:    "first synced comment",
+			Created:    updated,
+			Updated:    updated,
+		}},
+		reviews: []*base.Review{{
+			ID:           660001, // the remote review id, becomes the dedup key
+			IssueIndex:   101,
+			ReviewerID:   9991,
+			ReviewerName: "external-user",
+			Content:      "please change this",
+			State:        base.ReviewStateChangesRequested,
+			CreatedAt:    updated,
+		}},
+	}
+
+	opts := base.MigrateOptions{Issues: true, PullRequests: true, Comments: true, SyncTopics: true}
+
+	issueCountBefore := unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID})
+
+	// the first sync inserts the new issue and pull request
+	require.NoError(t, syncRepository(ctx, downloader, uploader, opts, nil, marks))
+	assert.ElementsMatch(t, []string{"mirror", "sync"}, repoTopicNames(t, repo.ID))
+
+	createdIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 100})
+	assert.Equal(t, "sync issue", createdIssue.Title)
+	createdPRIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 101})
+	assert.True(t, createdPRIssue.IsPull)
+	createdPR := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: createdPRIssue.ID})
+	assert.Equal(t, issueCountBefore+2, unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}))
+
+	// the comment attached to the synced issue, and the review to the synced PR
+	createdComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: createdIssue.ID, OriginalID: 770001})
+	assert.Equal(t, "first synced comment", createdComment.Content)
+	createdReview := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: createdPRIssue.ID, OriginalID: 660001})
+	assert.Equal(t, issues_model.ReviewTypeReject, createdReview.Type)
+
+	// a second sync of the same entities, some updated meanwhile, updates them in place
+	downloader.issues[0].Title = "sync issue retitled"
+	downloader.issues[0].Updated = updated.Add(time.Hour)
+	downloader.prs[0].State = "closed"
+	closed := updated.Add(time.Hour)
+	downloader.prs[0].Closed = &closed
+	downloader.prs[0].Updated = closed
+	downloader.comments[0].Content = "edited synced comment"
+	downloader.comments[0].Updated = updated.Add(time.Hour)
+	downloader.reviews[0].Content = "looks good now"
+	downloader.reviews[0].State = base.ReviewStateApproved
+	downloader.topics = []string{"mirror"}
+
+	require.NoError(t, syncRepository(ctx, downloader, uploader, opts, nil, marks))
+	assert.Equal(t, []string{"mirror"}, repoTopicNames(t, repo.ID))
+
+	// topics are only synced when asked for
+	downloader.topics = []string{"other"}
+	noTopics := opts
+	noTopics.SyncTopics = false
+	require.NoError(t, syncRepository(ctx, downloader, uploader, noTopics, nil, marks))
+	assert.Equal(t, []string{"mirror"}, repoTopicNames(t, repo.ID))
+
+	assert.Equal(t, issueCountBefore+2, unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}))
+	afterIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 100})
+	assert.Equal(t, createdIssue.ID, afterIssue.ID)
+	assert.Equal(t, "sync issue retitled", afterIssue.Title)
+	afterPRIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 101})
+	assert.Equal(t, createdPRIssue.ID, afterPRIssue.ID)
+	assert.True(t, afterPRIssue.IsClosed)
+	afterPR := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: afterPRIssue.ID})
+	assert.Equal(t, createdPR.ID, afterPR.ID)
+
+	// the comment and review updated in place, no duplicate rows
+	assert.Equal(t, 1, unittest.GetCount(t, &issues_model.Comment{IssueID: createdIssue.ID, OriginalID: 770001}))
+	afterComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: createdIssue.ID, OriginalID: 770001})
+	assert.Equal(t, createdComment.ID, afterComment.ID)
+	assert.Equal(t, "edited synced comment", afterComment.Content)
+	assert.Equal(t, 1, unittest.GetCount(t, &issues_model.Review{IssueID: createdPRIssue.ID, OriginalID: 660001}))
+	afterReview := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: createdPRIssue.ID, OriginalID: 660001})
+	assert.Equal(t, createdReview.ID, afterReview.ID)
+	assert.Equal(t, issues_model.ReviewTypeApprove, afterReview.Type)
+
+	// no CheckConsistencyFor: it counts only plain comments while NumComments also counts reviews
+}
+
+func repoTopicNames(t *testing.T, repoID int64) []string {
+	topics, err := db.Find[repo_model.Topic](t.Context(), &repo_model.FindTopicOptions{RepoID: repoID})
+	require.NoError(t, err)
+	names := make([]string, 0, len(topics))
+	for _, topic := range topics {
+		names = append(names, topic.Name)
+	}
+	return names
 }

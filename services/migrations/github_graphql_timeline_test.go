@@ -46,6 +46,7 @@ func TestConvertTimelineItems(t *testing.T) {
 			want := []*base.Comment{}
 			if testcase.want != nil {
 				testcase.want.Created, testcase.want.Updated = item.CreatedAt, item.CreatedAt
+				testcase.want.Index = timelineEventID(item.ID)
 				want = append(want, testcase.want)
 			}
 			assert.Equal(t, want, convertTimelineItems([]gqlTimelineItem{item}))

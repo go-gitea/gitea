@@ -28,6 +28,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/migrations"
+	mirror_service "gitea.dev/services/mirror"
 	notify_service "gitea.dev/services/notify"
 	repo_service "gitea.dev/services/repository"
 )
@@ -159,6 +160,9 @@ func Migrate(ctx *context.APIContext) {
 		opts.Comments = false
 		opts.PullRequests = false
 		opts.Releases = false
+		opts.SyncIssues = form.SyncIssues
+		opts.SyncPullRequests = form.SyncPullRequests
+		opts.SyncTopics = form.SyncTopics
 	}
 	if gitServiceType == api.CodeCommitService {
 		opts.AWSAccessKeyID = form.AWSAccessKeyID
@@ -197,6 +201,10 @@ func Migrate(ctx *context.APIContext) {
 			return nil, err
 		}
 		notify_service.MigrateRepository(ctx, doer, repoOwner, migratedRepo)
+		if opts.Mirror && (opts.SyncIssues || opts.SyncPullRequests || opts.SyncTopics) {
+			log.Info("migrate: initiating immediate metadata sync for mirror [%d] %s/%s", migratedRepo.ID, repoOwner.Name, opts.RepoName)
+			mirror_service.AddPullMirrorToQueue(migratedRepo.ID)
+		}
 		return migratedRepo, nil
 	}
 
