@@ -4,13 +4,23 @@
 package repo
 
 import (
+	"net/http"
 	"testing"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/references"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCombineXRefComments(t *testing.T) {
@@ -164,4 +174,44 @@ func TestCombineLabelComments(t *testing.T) {
 			assert.EqualValues(t, kase.afterCombined, issue.Comments)
 		})
 	}
+}
+
+func TestIssueActionsRequireItemUnitWrite(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	// user4's team on org3/repo3 uses per-unit permissions: pull requests write, issues read
+	_, err := db.GetEngine(t.Context()).ID(2).Cols("authorize").Update(&organization.Team{AccessMode: perm.AccessModeNone})
+	require.NoError(t, err)
+	_, err = db.GetEngine(t.Context()).Where("team_id = ? AND `type` = ?", 2, unit.TypeIssues).Cols("access_mode").Update(&organization.TeamUnit{AccessMode: perm.AccessModeRead})
+	require.NoError(t, err)
+
+	closeIssues := func(issueIDs string) int {
+		ctx, resp := contexttest.MockContext(t, "org3/repo3/issues/status")
+		contexttest.LoadUser(t, ctx, 4)
+		contexttest.LoadRepo(t, ctx, 3)
+		ctx.Req.Form.Set("issue_ids", issueIDs)
+		ctx.Req.Form.Set("action", "close")
+		UpdateIssueStatus(ctx)
+		return resp.Code
+	}
+	assert.Equal(t, http.StatusNotFound, closeIssues("6,12"))
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6}).IsClosed)
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).IsClosed)
+
+	assert.Equal(t, http.StatusOK, closeIssues("12"))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).IsClosed)
+
+	lockIssue := func(index string) int {
+		ctx, resp := contexttest.MockContext(t, "org3/repo3/issues/"+index+"/lock")
+		contexttest.LoadUser(t, ctx, 4)
+		contexttest.LoadRepo(t, ctx, 3)
+		ctx.SetPathParam("index", index)
+		web.SetForm(ctx, &forms.IssueLockForm{Reason: "Spam"})
+		LockIssue(ctx)
+		return resp.Code
+	}
+	assert.Equal(t, http.StatusNotFound, lockIssue("1"))
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6}).IsLocked)
+
+	assert.Equal(t, http.StatusOK, lockIssue("2"))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).IsLocked)
 }

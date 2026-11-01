@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -358,6 +360,47 @@ jobs:
 				assert.Equal(t, actions_model.StatusSuccess, attempt2.Status)
 				run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
 				assert.Equal(t, actions_model.StatusSuccess, run.Status)
+			})
+
+			t.Run("Sidebar groups workflow_call-only workflows", func(t *testing.T) {
+				require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRun{
+					Title: "former push run", RepoID: repo.ID, OwnerID: repo.OwnerID, WorkflowID: "reusable2.yaml", Index: 9701,
+					TriggerUserID: user2.ID, Ref: "refs/heads/" + repo.DefaultBranch, Event: "push", TriggerEvent: "push",
+					Status: actions_model.StatusSuccess,
+				}))
+				job := "jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"
+				testCreateFileInBranch(t, user2, repo, createFileInBranchOptions{}, map[string]string{
+					".gitea/workflows/mixed.yaml":     "on: [workflow_call, workflow_dispatch]\n" + job,
+					".gitea/workflows/no-events.yaml": "on: []\n" + job,
+				})
+				MakeRequest(t, NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/reusable2.yaml/disable", repo.FullName())).
+					AddTokenAuth(user2Token), http.StatusNoContent)
+
+				doc := NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=reusable1.yaml"), http.StatusOK).Body)
+				listed := func(name string) int {
+					return doc.Find(fmt.Sprintf(`.flex-container-nav > .menu > a.item[href*="workflow=%s&"]`, name)).Length()
+				}
+				grouped := func(name string) int {
+					return doc.Find(fmt.Sprintf(`.flex-container-nav details .menu a.item[href*="workflow=%s&"]`, name)).Length()
+				}
+				assert.Equal(t, "2", doc.Find(".flex-container-nav details summary .ui.label").Text())
+				assert.Equal(t, 1, grouped("reusable1.yaml"))
+				assert.Equal(t, 1, grouped("reusable2.yaml"))
+				assert.Equal(t, 1, doc.Find(`.flex-container-nav details a.item[href*="workflow=reusable2.yaml&"] .ui.red.label`).Length())
+				assert.Zero(t, listed("reusable1.yaml"))
+				assert.Equal(t, 1, listed("caller.yaml"))
+				assert.Equal(t, 1, listed("mixed.yaml"))
+				assert.Equal(t, 1, listed("no-events.yaml"))
+				assert.Equal(t, "This workflow can only be called by other workflows.", strings.TrimSpace(doc.Find(".empty-placeholder h2").Text()))
+				assert.Zero(t, doc.Find(`[data-url*="/disable?workflow=reusable1.yaml"]`).Length())
+				assert.Zero(t, doc.Find(`[data-modal="#workflow-status-badge-modal"]`).Length())
+
+				doc = NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=reusable2.yaml"), http.StatusOK).Body)
+				assert.Equal(t, 1, doc.Find(`[data-url*="/enable?workflow=reusable2.yaml"]`).Length())
+
+				doc = NewHTMLParser(t, user2Session.MakeRequest(t, NewRequest(t, "GET", repo.Link()+"/actions?workflow=mixed.yaml"), http.StatusOK).Body)
+				assert.Equal(t, 1, doc.Find(`[data-url*="/disable?workflow=mixed.yaml"]`).Length())
+				assert.Equal(t, 1, doc.Find(`[data-modal="#workflow-status-badge-modal"]`).Length())
 			})
 		})
 
