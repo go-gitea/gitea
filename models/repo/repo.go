@@ -592,6 +592,16 @@ func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 	return repo.CanEnablePulls() && repo.UnitEnabled(ctx, unit.TypePullRequests)
 }
 
+// AllowsAgitPullRequests returns true if repository accepts AGit pull requests via refs/for.
+func (repo *Repository) AllowsAgitPullRequests(ctx context.Context) bool {
+	if !repo.AllowsPulls(ctx) {
+		return false
+	}
+
+	prUnit := repo.MustGetUnit(ctx, unit.TypePullRequests)
+	return prUnit.PullRequestsConfig().AllowAgitPullRequests
+}
+
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 	return markup.PostProcessDescriptionHTML(markup.NewRenderContext(ctx), htmlutil.EscapeString(repo.Description))
