@@ -42,6 +42,12 @@ type Specialization interface {
 	RenderSetupManual(ctx context.Context, pkg *packages_model.PackageDescriptor, viewData any) template.HTML
 }
 
+// PublicPropertyAliaser is implemented by a Specialization that also exposes
+// a stored public property under another name (stored name -> extra name).
+type PublicPropertyAliaser interface {
+	PublicPropertyAliases() map[string]string
+}
+
 // PackageInfo describes a package
 type PackageInfo struct {
 	Owner       *user_model.User
