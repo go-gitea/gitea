@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
@@ -166,6 +167,13 @@ func UpdateResolveConversation(ctx *context.Context) {
 	} else {
 		ctx.HTTPError(http.StatusBadRequest)
 		return
+	}
+
+	// let the frontend refresh the resolved/total summary of the pull request
+	if stats, err := issues_model.GetConversationStats(ctx, comment.IssueID); err == nil {
+		ctx.Resp.Header().Set("X-Conversation-Resolved", strconv.Itoa(stats.Resolved))
+		ctx.Resp.Header().Set("X-Conversation-Total", strconv.Itoa(stats.Total))
+		ctx.Resp.Header().Set("X-Conversation-Next", strconv.FormatInt(stats.NextOpenID, 10))
 	}
 
 	renderConversation(ctx, comment, origin)

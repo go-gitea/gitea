@@ -15,9 +15,12 @@
 			{{template "shared/misc/tabtitle" (ctx.Locale.Tr "repo.pulls.tab_files")}}
 			<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}-{{end}}</span>
 		</a>
-		{{if or .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
-			{{template "repo/diff/stats" dict "Addition" .DiffShortStat.TotalAddition "Deletion" .DiffShortStat.TotalDeletion "Classes" "tw-ml-auto tw-pl-3 tw-font-semibold"}}
-		{{end}}
+		<div class="flex-text-block tw-ml-auto tw-gap-3">
+			{{if .PullMergeBoxData}}{{template "repo/issue/view_content/pull_conversation_stats" .}}{{end}}
+			{{if or .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
+				{{template "repo/diff/stats" dict "Addition" .DiffShortStat.TotalAddition "Deletion" .DiffShortStat.TotalDeletion "Classes" "tw-font-semibold"}}
+			{{end}}
+		</div>
 	</div>
 	<div class="ui tabs divider"></div>
 </div>
