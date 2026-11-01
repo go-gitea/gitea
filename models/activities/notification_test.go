@@ -32,14 +32,13 @@ func TestCreateOrUpdateIssueAndCommitNotifications(t *testing.T) {
 	notf = unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, IssueID: issue.ID})
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
 
-	const sha = "sha"
 	createComment := func(posterID int64) int64 {
 		comment := &issues_model.Comment{PosterID: posterID}
-		require.NoError(t, issues_model.CreateCommitComment(t.Context(), 1, sha, comment, nil))
+		require.NoError(t, issues_model.CreateCommitComment(t.Context(), 1, "sha", comment, nil))
 		return comment.ID
 	}
 	notify := func(commentID, doerID, receiverID int64) []int64 {
-		notifiedIDs, err := activities_model.CreateOrUpdateCommitNotifications(t.Context(), 1, sha, commentID, doerID, receiverID)
+		notifiedIDs, err := activities_model.CreateOrUpdateCommitNotifications(t.Context(), 1, "sha", commentID, doerID, receiverID)
 		require.NoError(t, err)
 		return notifiedIDs
 	}
@@ -48,8 +47,8 @@ func TestCreateOrUpdateIssueAndCommitNotifications(t *testing.T) {
 	firstCommentID := createComment(2)
 	assert.ElementsMatch(t, []int64{1, 4, 5, 9, 11}, notify(firstCommentID, 2, 0))
 	assert.ElementsMatch(t, []int64{1, 2, 4, 5, 11}, notify(createComment(9), 9, 0))
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, RepoID: 1, CommitID: sha, CommentID: firstCommentID, UpdatedBy: 9, Status: activities_model.NotificationStatusUnread, Source: activities_model.NotificationSourceCommit})
-	unittest.AssertCount(t, &activities_model.Notification{UserID: 4, CommitID: sha}, 1)
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, RepoID: 1, CommitID: "sha", CommentID: firstCommentID, UpdatedBy: 9, Status: activities_model.NotificationStatusUnread, Source: activities_model.NotificationSourceCommit})
+	unittest.AssertCount(t, &activities_model.Notification{UserID: 4, CommitID: "sha"}, 1)
 
 	assert.Equal(t, []int64{5}, notify(firstCommentID, 2, 5))
 }
