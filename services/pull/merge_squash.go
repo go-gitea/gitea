@@ -58,14 +58,17 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return fmt.Errorf("getAuthorSignatureSquash: %w", err)
 	}
 
+	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
+		message = AddCommitMessageTailer(message, git.CoAuthoredByTrailer, sig.String())
+	}
+	if git.DefaultFeatures().SupportGitMergeTree {
+		return commitMergeTree(ctx, repo_model.MergeStyleSquash, message, sig)
+	}
+
 	cmdMerge := gitcmd.NewCommand("merge", "--squash").AddDynamicArguments(tmpRepoTrackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleSquash, cmdMerge); err != nil {
 		log.Error("%-v Unable to merge --squash tracking into base: %v", ctx.pr, err)
 		return err
-	}
-
-	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
-		message = AddCommitMessageTailer(message, git.CoAuthoredByTrailer, sig.String())
 	}
 	cmdCommit := gitcmd.NewCommand("commit", "--allow-empty").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email)

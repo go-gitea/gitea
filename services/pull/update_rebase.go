@@ -26,6 +26,9 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		return err
 	}
 	defer cancel()
+	if err := prepareTemporaryRepoForMerge(mergeCtx); err != nil {
+		return err
+	}
 
 	// Determine the old merge-base before the rebase - we use this for LFS push later on
 	oldMergeBase, _, _ := gitcmd.NewCommand("merge-base").AddDashesAndList(tmpRepoBaseBranch, tmpRepoTrackingBranch).

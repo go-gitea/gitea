@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -456,6 +457,12 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	}
 	defer cancel()
 
+	if !git.DefaultFeatures().SupportGitMergeTree || (mergeStyle != repo_model.MergeStyleMerge && mergeStyle != repo_model.MergeStyleSquash) {
+		if err := prepareTemporaryRepoForMerge(mergeCtx); err != nil {
+			return "", err
+		}
+	}
+
 	// Merge commits.
 	switch mergeStyle {
 	case repo_model.MergeStyleMerge:
@@ -478,15 +485,6 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		return "", ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
-	// OK we should cache our current head and origin/headbranch
-	mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "HEAD")
-	if err != nil {
-		return "", fmt.Errorf("failed to get full commit id for HEAD: %w", err)
-	}
-	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "original_"+tmpRepoBaseBranch)
-	if err != nil {
-		return "", fmt.Errorf("failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
-	}
 	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch)
 	if err != nil {
 		return "", fmt.Errorf("failed to get full commit id for the new merge: %w", err)
@@ -496,6 +494,14 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	// I think in the interests of data safety - failures to push to the lfs should prevent
 	// the merge as you can always remerge.
 	if setting.LFS.StartServer {
+		mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "HEAD")
+		if err != nil {
+			return "", fmt.Errorf("failed to get full commit id for HEAD: %w", err)
+		}
+		mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "original_"+tmpRepoBaseBranch)
+		if err != nil {
+			return "", fmt.Errorf("failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
+		}
 		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
 			return "", err
 		}
@@ -565,6 +571,52 @@ func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
 		return fmt.Errorf("git commit %v: %w\n%s", ctx.pr, err, ctx.outbuf.String())
 	}
 	return nil
+}
+
+// commitMergeTree commits the merge of tracking into base without a worktree, tracking becomes the second parent for merge commits only
+func commitMergeTree(ctx *mergeContext, mergeStyle repo_model.MergeStyle, message string, author *git.Signature) error {
+	cmdMergeTree := gitcmd.NewCommand("merge-tree", "--write-tree", "--name-only").AddDynamicArguments(tmpRepoBaseBranch, tmpRepoTrackingBranch)
+	if err := ctx.PrepareGitCmd(cmdMergeTree).RunWithStderr(ctx); err != nil {
+		if gitcmd.IsErrorExitCode(err, 1) {
+			return ErrMergeConflicts{Style: mergeStyle, StdOut: ctx.outbuf.String(), StdErr: err.Stderr(), Err: err}
+		} else if strings.Contains(err.Stderr(), "refusing to merge unrelated histories") {
+			return ErrMergeUnrelatedHistories{Style: mergeStyle, StdOut: ctx.outbuf.String(), StdErr: err.Stderr(), Err: err}
+		}
+		return fmt.Errorf("git merge-tree %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
+	}
+	treeID, _, _ := strings.Cut(ctx.outbuf.String(), "\n")
+
+	message, _, err := gitcmd.NewCommand("stripspace").WithStdinBytes([]byte(message)).WithRepo(ctx.tmpRepo).RunStdString(ctx)
+	if err != nil {
+		return fmt.Errorf("git stripspace %v: %w", ctx.pr, err)
+	} else if message == "" {
+		return util.NewInvalidArgumentErrorf("empty commit message")
+	}
+	cmdCommit := gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeID).AddOptionValues("-p", tmpRepoBaseBranch)
+	if mergeStyle == repo_model.MergeStyleMerge {
+		err := gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(tmpRepoTrackingBranch, tmpRepoBaseBranch).WithRepo(ctx.tmpRepo).RunWithStderr(ctx)
+		if err == nil {
+			return fmt.Errorf("git merge %v: tracking is already merged into base", ctx.pr)
+		} else if !gitcmd.IsErrorExitCode(err, 1) {
+			return fmt.Errorf("git merge-base --is-ancestor %v: %w\n%s", ctx.pr, err, err.Stderr())
+		}
+		cmdCommit.AddOptionValues("-p", tmpRepoTrackingBranch)
+	}
+	if err := git.AddObjectMessageArgument(cmdCommit, git.ObjectCommit, message); err != nil {
+		return err
+	}
+	addCommitSigningOptions(cmdCommit, ctx.signKey)
+	ctx.PrepareGitCmd(cmdCommit)
+	if author != nil {
+		cmdCommit.WithEnv(append(slices.Clone(ctx.env), "GIT_AUTHOR_NAME="+author.Name, "GIT_AUTHOR_EMAIL="+author.Email))
+	}
+	if err := cmdCommit.RunWithStderr(ctx); err != nil {
+		return fmt.Errorf("git commit-tree %v: %w\n%s", ctx.pr, err, err.Stderr())
+	}
+	commitID := strings.TrimSpace(ctx.outbuf.String())
+
+	ctx.outbuf.Reset()
+	return git.UpdateRef(ctx, ctx.tmpRepo, git.BranchPrefix+tmpRepoBaseBranch, commitID)
 }
 
 func addCommitSigningOptions(cmd *gitcmd.Command, signKey *git.SigningKey) {

@@ -93,12 +93,6 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 		}
 	}
 
-	mergeCtx.outbuf.Reset()
-	if err := prepareTemporaryRepoForMerge(mergeCtx); err != nil {
-		defer cancel()
-		return nil, nil, err
-	}
-
 	mergeCtx.sig = doer.NewGitSig()
 	mergeCtx.committer = mergeCtx.sig
 
