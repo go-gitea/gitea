@@ -200,7 +200,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			}
 
 			if !isPull && repo.IsBeingCreated() {
-				ctx.PlainText(http.StatusForbidden, "Repository is being created, you could retry after it finished")
+				ctx.PlainText(http.StatusForbidden, "Repository is still being created, please retry later")
 				return nil
 			}
 
