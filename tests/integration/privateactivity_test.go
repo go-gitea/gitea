@@ -428,7 +428,9 @@ func TestPrivateActivityVisibilityLockedByAdmin(t *testing.T) {
 
 	session := loginUser(t, privateActivityTestUser)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
-	req := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(false)}).AddTokenAuth(token)
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(true)}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(false)}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.False(t, DecodeJSON(t, resp, &api.UserSettings{}).HideActivity)
 

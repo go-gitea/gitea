@@ -84,6 +84,9 @@
 						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{ctx.Locale.Tr "settings.keep_activity_private"}}</strong></label>
 						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.IsActivityPrivate}}checked{{end}} {{if ($.UserDisabledFeatures.Contains "change_activity_visibility")}}disabled{{end}}>
 					</div>
+					{{if ($.UserDisabledFeatures.Contains "change_activity_visibility")}}
+					<p class="help tw-text-blue">{{ctx.Locale.Tr "settings.keep_activity_private_disabled"}}</p>
+					{{end}}
 				</div>
 
 				<div class="divider"></div>

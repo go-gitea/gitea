@@ -1566,12 +1566,12 @@ func (u *User) IsActivityPrivate() bool {
 
 // ActivityPublicCond matches users whose activity is public, the SQL counterpart of IsActivityPrivate
 func ActivityPublicCond() builder.Cond {
-	cond := builder.Or(builder.Eq{"keep_activity_private": false})
-	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureChangeActivityVisibility) {
-		cond = cond.Or(builder.IsNull{"login_type"}, builder.Lte{"login_type": auth.Plain})
-	}
-	if setting.Admin.ExternalUserDisableFeatures.Contains(setting.UserFeatureChangeActivityVisibility) {
-		cond = cond.Or(builder.Gt{"login_type": auth.Plain})
+	cond := builder.Eq{"keep_activity_private": false}
+	switch {
+	case setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureChangeActivityVisibility):
+		return builder.NewCond() // ExternalUserDisableFeatures is a superset, so everyone is public
+	case setting.Admin.ExternalUserDisableFeatures.Contains(setting.UserFeatureChangeActivityVisibility):
+		return cond.Or(builder.Gt{"login_type": auth.Plain})
 	}
 	return cond
 }

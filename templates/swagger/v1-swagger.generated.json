@@ -23802,6 +23802,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/UserSettings"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
