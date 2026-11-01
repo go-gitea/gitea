@@ -18,6 +18,6 @@ test('merge box merges a pull request', async ({page, request}) => {
   await page.getByRole('button', {name: 'Create merge commit'}).click();
   await page.locator('form.form-fetch-action').getByRole('button', {name: 'Create merge commit'}).click();
 
-  await expect(page.getByText(/successfully merged/i)).toBeVisible();
+  await expect(page.getByText('Merged', {exact: true})).toBeVisible();
   await assertNoJsError(page);
 });
