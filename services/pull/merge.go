@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -606,17 +605,13 @@ func commitMergeTree(ctx *mergeContext, mergeStyle repo_model.MergeStyle, messag
 		return err
 	}
 	addCommitSigningOptions(cmdCommit, ctx.signKey)
-	ctx.PrepareGitCmd(cmdCommit)
 	if author != nil {
-		cmdCommit.WithEnv(append(slices.Clone(ctx.env), "GIT_AUTHOR_NAME="+author.Name, "GIT_AUTHOR_EMAIL="+author.Email))
+		ctx.env = append(ctx.env, "GIT_AUTHOR_NAME="+author.Name, "GIT_AUTHOR_EMAIL="+author.Email)
 	}
-	if err := cmdCommit.RunWithStderr(ctx); err != nil {
+	if err := ctx.PrepareGitCmd(cmdCommit).RunWithStderr(ctx); err != nil {
 		return fmt.Errorf("git commit-tree %v: %w\n%s", ctx.pr, err, err.Stderr())
 	}
-	commitID := strings.TrimSpace(ctx.outbuf.String())
-
-	ctx.outbuf.Reset()
-	return git.UpdateRef(ctx, ctx.tmpRepo, git.BranchPrefix+tmpRepoBaseBranch, commitID)
+	return git.UpdateRef(ctx, ctx.tmpRepo, git.BranchPrefix+tmpRepoBaseBranch, strings.TrimSpace(ctx.outbuf.String()))
 }
 
 func addCommitSigningOptions(cmd *gitcmd.Command, signKey *git.SigningKey) {
