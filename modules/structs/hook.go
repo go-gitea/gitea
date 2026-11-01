@@ -206,8 +206,10 @@ var (
 type CreatePayload struct {
 	// The SHA hash of the created reference
 	Sha string `json:"sha"`
-	// The full name of the created reference
+	// The name of the created reference
 	Ref string `json:"ref"`
+	// The full name of the created reference, e.g. refs/heads/main
+	RefRaw string `json:"ref_raw"`
 	// The type of reference created (branch or tag)
 	RefType string `json:"ref_type"`
 	// The repository where the reference was created
@@ -253,6 +255,8 @@ const (
 type DeletePayload struct {
 	// The name of the deleted reference
 	Ref string `json:"ref"`
+	// The full name of the deleted reference, e.g. refs/heads/main
+	RefRaw string `json:"ref_raw"`
 	// The type of reference deleted (branch or tag)
 	RefType string `json:"ref_type"`
 	// The type of entity that performed the deletion

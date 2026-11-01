@@ -167,6 +167,7 @@ func Test_WebhookCreate(t *testing.T) {
 		assert.Equal(t, "repo1", payloads[0].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
 		assert.Equal(t, "master2", payloads[0].Ref)
+		assert.Equal(t, "refs/heads/master2", payloads[0].RefRaw)
 		assert.Equal(t, "branch", payloads[0].RefType)
 	})
 }
@@ -200,6 +201,7 @@ func Test_WebhookDelete(t *testing.T) {
 		assert.Equal(t, "repo1", payloads[0].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
 		assert.Equal(t, "master2", payloads[0].Ref)
+		assert.Equal(t, "refs/heads/master2", payloads[0].RefRaw)
 		assert.Equal(t, "branch", payloads[0].RefType)
 	})
 }

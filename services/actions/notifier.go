@@ -581,6 +581,7 @@ func (n *actionsNotifier) CreateRef(ctx context.Context, pusher *user_model.User
 		WithRef(refFullName.String()).
 		WithPayload(&api.CreatePayload{
 			Ref:     refFullName.String(), // HINT: here is inconsistent with the Webhook's payload: webhook uses ShortName
+			RefRaw:  refFullName.String(),
 			Sha:     refID,
 			RefType: string(refFullName.RefType()),
 			Repo:    apiRepo,
@@ -598,6 +599,7 @@ func (n *actionsNotifier) DeleteRef(ctx context.Context, pusher *user_model.User
 	newNotifyInput(repo, pusher, webhook_module.HookEventDelete).
 		WithPayload(&api.DeletePayload{
 			Ref:        refFullName.String(), // HINT: here is inconsistent with the Webhook's payload: webhook uses ShortName
+			RefRaw:     refFullName.String(),
 			RefType:    string(refFullName.RefType()),
 			PusherType: api.PusherTypeUser,
 			Repo:       apiRepo,
