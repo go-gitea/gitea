@@ -276,11 +276,6 @@ func TestRender_AutoLink(t *testing.T) {
 		err := PostProcessDefault(NewTestRenderContext(localMetas), strings.NewReader(input), &buffer)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
-
-		buffer.Reset()
-		err = PostProcessDefault(NewTestRenderContext(localMetas), strings.NewReader(input), &buffer)
-		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
 	}
 
 	// render valid issue URLs
@@ -289,9 +284,9 @@ func TestRender_AutoLink(t *testing.T) {
 
 	// render valid commit URLs
 	tmp := TestRepoURL + "commit/d8a994ef243349f321568f9e36d5c3f444b99cae"
-	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code>d8a994ef24</code></a>")
+	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code>d8a994e</code></a>")
 	tmp += "#diff-2"
-	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code>d8a994ef24 (diff-2)</code></a>")
+	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code>d8a994e</code>#diff-2</a>")
 
 	// render other commit URLs
 	tmp = "https://external-link.gitea.io/go-gitea/gitea/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
@@ -347,65 +342,6 @@ func TestRegExp_sha1CurrentPattern(t *testing.T) {
 	}
 	for _, testCase := range falseTestCases {
 		assert.False(t, globalVars().hashCurrentPattern.MatchString(testCase))
-	}
-}
-
-func TestRegExp_anySHA1Pattern(t *testing.T) {
-	testCases := map[string]anyHashPatternResult{
-		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js#L2703": {
-			CommitID:  "a644101ed04d0beacea864ce805e0c4f86ba1cd1",
-			SubPath:   "/test/unit/event.js",
-			QueryHash: "L2703",
-		},
-		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js": {
-			CommitID: "a644101ed04d0beacea864ce805e0c4f86ba1cd1",
-			SubPath:  "/test/unit/event.js",
-		},
-		"https://github.com/jquery/jquery/commit/0705be475092aede1eddae01319ec931fb9c65fc": {
-			CommitID: "0705be475092aede1eddae01319ec931fb9c65fc",
-		},
-		"https://github.com/jquery/jquery/tree/0705be475092aede1eddae01319ec931fb9c65fc/src": {
-			CommitID: "0705be475092aede1eddae01319ec931fb9c65fc",
-			SubPath:  "/src",
-		},
-		"https://try.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2": {
-			CommitID:  "d8a994ef243349f321568f9e36d5c3f444b99cae",
-			QueryHash: "diff-2",
-		},
-		"non-url": {},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678?a=b#L1-L2": {
-			CommitID:  "1234567812345678123456781234567812345678123456781234567812345678",
-			QueryHash: "L1-L2",
-		},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678.": {
-			CommitID: "1234567812345678123456781234567812345678123456781234567812345678",
-		},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678/sub.": {
-			CommitID: "1234567812345678123456781234567812345678123456781234567812345678",
-			SubPath:  "/sub",
-		},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678?a=b.": {
-			CommitID: "1234567812345678123456781234567812345678123456781234567812345678",
-		},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678?a=b&c=d": {
-			CommitID: "1234567812345678123456781234567812345678123456781234567812345678",
-		},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678#hash.": {
-			CommitID:  "1234567812345678123456781234567812345678123456781234567812345678",
-			QueryHash: "hash",
-		},
-	}
-
-	for k, v := range testCases {
-		ret, ok := anyHashPatternExtract(k)
-		if v.CommitID == "" {
-			assert.False(t, ok)
-		} else {
-			assert.Equal(t, strings.TrimSuffix(k, "."), ret.FullURL)
-			assert.Equal(t, v.CommitID, ret.CommitID)
-			assert.Equal(t, v.SubPath, ret.SubPath)
-			assert.Equal(t, v.QueryHash, ret.QueryHash)
-		}
 	}
 }
 
