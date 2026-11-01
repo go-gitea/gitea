@@ -33,15 +33,14 @@ const (
 var ErrDenied = errors.New("denied by egress policy")
 
 type Policy struct {
-	usage                 string
-	mode                  Mode
-	allow                 AllowList
-	block                 BlockList
-	allowKey, blockKey    string // the settings the lists were read from, named in rejections
-	internalRanges        []netip.Prefix
-	internalRangesKey     string // the setting the ranges were read from, named in rejections
-	internalRangesInvalid bool   // the setting was given but no entry parsed, so the ranges are empty
-	proxyFunc             func(*http.Request) (*url.URL, error)
+	usage              string
+	mode               Mode
+	allow              AllowList
+	block              BlockList
+	allowKey, blockKey string // the settings the lists were read from, named in rejections
+	internalRanges     []netip.Prefix
+	internalRangesKey  string // the setting the ranges were read from, named in rejections
+	proxyFunc          func(*http.Request) (*url.URL, error)
 }
 
 type Option func(*Policy)
@@ -66,7 +65,6 @@ func WithInternalRanges(hostList, key string) Option {
 	return func(p *Policy) {
 		p.internalRanges, _ = ParseInternalRanges(hostList)
 		p.internalRangesKey = key
-		p.internalRangesInvalid = hostList != "" && len(p.internalRanges) == 0
 	}
 }
 
@@ -163,11 +161,8 @@ func (p *Policy) allowRestricted(host string, ip netip.AddrPort) error {
 	}
 	err := fmt.Errorf("%s can not call non-public addresses without an allow entry (check your %s setting), deny '%s'", p.usage, p.allowKey, denyTarget(host, ip))
 	if _, ok := p.allow.matchHostEntry(host); ok {
-		if p.internalRangesInvalid {
-			err = fmt.Errorf("%w — %s is set but none of its entries are valid, check them", err, p.internalRangesKey)
-		} else {
-			err = fmt.Errorf("%w — set %s to let hostname entries cover non-public targets", err, p.internalRangesKey)
-		}
+		// invalid entries are reported at startup by the settings loader, so one hint covers both cases
+		err = fmt.Errorf("%w — set or fix %s to let hostname entries cover non-public targets", err, p.internalRangesKey)
 	}
 	return err
 }
