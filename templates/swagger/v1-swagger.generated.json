@@ -16118,6 +16118,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "Filter by head branch of the pull request, as `branch`, `owner:branch` or `owner/repo:branch`",
+            "name": "head",
+            "in": "query"
+          },
+          {
             "enum": [
               "open",
               "closed",
@@ -16355,56 +16361,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PullRequestList"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/pulls/{base}/{head}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a pull request by base and head",
-        "operationId": "repoGetPullRequestByBaseHead",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "base of the pull request to get",
-            "name": "base",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "head of the pull request to get",
-            "name": "head",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/PullRequest"
           },
           "default": {
             "$ref": "#/responses/error"

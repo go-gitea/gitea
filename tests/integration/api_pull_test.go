@@ -144,6 +144,16 @@ func TestAPIViewPulls(t *testing.T) {
 			}))
 	}
 
+	pullIndexes := func(t *testing.T, query string) []int64 {
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?%s", owner.Name, repo.Name, query).AddTokenAuth(ctx.Token)
+		listed := DecodeJSON(t, ctx.Session.MakeRequest(t, req, http.StatusOK), []*api.PullRequest{})
+		indexes := make([]int64, 0, len(listed))
+		for _, pr := range listed {
+			indexes = append(indexes, pr.Index)
+		}
+		return indexes
+	}
+
 	t.Run("DefaultState", func(t *testing.T) {
 		writeToken := getTokenForLoggedInUser(t, ctx.Session, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/3", owner.Name, repo.Name), &api.EditPullRequestOption{
@@ -156,28 +166,25 @@ func TestAPIViewPulls(t *testing.T) {
 			"state=closed": {3},
 			"state=all":    {2, 3, 5},
 		} {
-			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?%s", owner.Name, repo.Name, query).AddTokenAuth(ctx.Token)
-			listed := DecodeJSON(t, ctx.Session.MakeRequest(t, req, http.StatusOK), []*api.PullRequest{})
-			indexes := make([]int64, 0, len(listed))
-			for _, pr := range listed {
-				indexes = append(indexes, pr.Index)
-			}
-			assert.ElementsMatch(t, want, indexes, query)
+			assert.ElementsMatch(t, want, pullIndexes(t, query), query)
 		}
 	})
 
-	t.Run("APIViewPullsByBaseHead", func(t *testing.T) {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch2", owner.Name, repo.Name).
-			AddTokenAuth(ctx.Token)
-		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-
-		pull := DecodeJSON(t, resp, &api.PullRequest{})
-		assert.EqualValues(t, 3, pull.Index)
-		assert.EqualValues(t, 2, pull.ID)
-
-		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/master/branch-not-exist", owner.Name, repo.Name).
-			AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, req, http.StatusNotFound)
+	t.Run("FilterByHead", func(t *testing.T) {
+		for head, want := range map[string][]int64{
+			"branch2":                      {3},
+			"user2:branch2":                {3},
+			"user2/repo1:branch2":          {3},
+			"branch-not-exist":             {},
+			"branch2^":                     {},
+			"master...branch2":             {},
+			"user5:branch2":                {}, // no fork of repo1
+			"user-not-exist:branch2":       {},
+			"user2/repo-not-exist:branch2": {},
+		} {
+			assert.ElementsMatch(t, want, pullIndexes(t, "state=all&head="+url.QueryEscape(head)), head)
+		}
+		assert.Equal(t, []int64{3}, pullIndexes(t, "state=all&base_branch=master&head=branch2"))
 	})
 
 	t.Run("APICommitPullRequest", func(t *testing.T) {
@@ -204,6 +211,12 @@ func TestAPIViewPulls(t *testing.T) {
 		var listed []*api.PullRequest
 		DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/pulls?poster=user31"), http.StatusOK), &listed)
 		require.Len(t, listed, 1)
+
+		byHead := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/pulls?head=user31:branch2"), http.StatusOK), []*api.PullRequest{})
+		assert.Empty(t, byHead)
+		byHead = DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/pulls?head=user31:branch2").AddTokenAuth(forkToken), http.StatusOK), []*api.PullRequest{})
+		require.Len(t, byHead, 1)
+		assert.Equal(t, visible.Index, byHead[0].Index)
 		for _, hidden := range []*api.PullRequest{
 			DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", prURL), http.StatusOK), &api.PullRequest{}),
 			listed[0],
