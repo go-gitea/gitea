@@ -589,3 +589,19 @@ func TestRun(t *testing.T) {
 	require.Error(t, runErr)
 	assert.Contains(t, stderr, "target denied by policy")
 }
+
+// TestDirectIdleOverGitTimeout: the direct-tunnel reap bound must exceed every
+// [git.timeout], so it can only fire after git itself was killed — protocol v2
+// half-closes before receiving the pack (fetch-pack.c close(fd[1])), and a live
+// clone may be silent for a long pack build.
+func TestDirectIdleOverGitTimeout(t *testing.T) {
+	defer test.MockVariableValue(&setting.Git.Timeout.Migrate, 600)()
+	defer test.MockVariableValue(&setting.Git.Timeout.Mirror, 300)()
+	defer test.MockVariableValue(&setting.Git.Timeout.GC, 60)()
+	assert.Greater(t, directIdle(), 600*time.Second)
+
+	defer test.MockVariableValue(&setting.Git.Timeout.Migrate, 5)()
+	defer test.MockVariableValue(&setting.Git.Timeout.Mirror, 4)()
+	defer test.MockVariableValue(&setting.Git.Timeout.GC, 3)()
+	assert.Equal(t, 35*time.Second, directIdle())
+}

@@ -66,6 +66,7 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	checkHostList(allowKey, Migrations.AllowedHostList, false)
 	checkHostList(blockKey, Migrations.BlockedHostList, true)
 	Migrations.AllowedInternalRanges = ConfigSectionKeyString(sec, "ALLOWED_INTERNAL_RANGES")
+	checkInternalRanges("[migrations] ALLOWED_INTERNAL_RANGES", Migrations.AllowedInternalRanges)
 
 	Migrations.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool(false)
 }
