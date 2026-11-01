@@ -41,12 +41,7 @@ concurrency:
 
 jobs:
   giteabot:
-    # skips label events giteabot ignores, see isRelevantLabel in go-gitea/giteabot
-    if: >-
-      github.repository == 'go-gitea/gitea' &&
-      (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'pull_request_review') &&
-      ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
-      startsWith(github.event.label.name, 'reviewed/') || startsWith(github.event.label.name, 'backport/') || startsWith(github.event.label.name, 'giteabot/'))
+    if: github.repository == 'go-gitea/gitea' && (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'pull_request_review')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
