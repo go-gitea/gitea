@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/references"
 
@@ -27,7 +28,7 @@ func setCommitLinkContent(anchor *html.Node, prefix, refs, rest string) {
 
 func createCommitLink(ctx *RenderContext, href, prefix, sha string) *html.Node {
 	anchor := createLink(ctx, href, "", "commit")
-	setCommitLinkContent(anchor, prefix, sha[:7], "")
+	setCommitLinkContent(anchor, prefix, base.ShortSha(sha), "")
 	return anchor
 }
 
@@ -41,7 +42,7 @@ func otherRepoPrefix(ctx *RenderContext, owner, repo string) string {
 // compare refs can also be branch or tag names, so only full SHAs are shortened
 func shortCompareRef(ref string) string {
 	if (len(ref) == 40 || len(ref) == 64) && strings.Trim(ref, "0123456789abcdef") == "" {
-		return ref[:7]
+		return base.ShortSha(ref)
 	}
 	return ref
 }
@@ -63,7 +64,7 @@ func shortenCommitLink(ctx *RenderContext, anchor *html.Node) {
 	if match := globalVars().compareURLPattern.FindStringSubmatch(siteURL.RepoSubPath); match != nil {
 		refs, rest, class = shortCompareRef(match[1])+match[2]+shortCompareRef(match[3]), match[4], "compare"
 	} else if match := globalVars().commitURLPattern.FindStringSubmatch(siteURL.RepoSubPath); match != nil {
-		refs, rest, class = match[1][:7], match[2], "commit"
+		refs, rest, class = base.ShortSha(match[1]), match[2], "commit"
 	} else {
 		return
 	}
