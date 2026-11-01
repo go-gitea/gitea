@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -44,6 +45,14 @@ func TestAPILockIssue(t *testing.T) {
 		token34 := getTokenForLoggedInUser(t, session34, auth_model.AccessTokenScopeAll)
 		req = NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token34)
 		MakeRequest(t, req, http.StatusForbidden)
+	})
+
+	t.Run("AuthorCannotEditLockedIssue", func(t *testing.T) {
+		session := loginUser(t, "user5")
+		urlStr := "/api/v1/repos/user2/repo1/issues/" + path.Base(testNewIssue(t, session, "user2", "repo1", "title", "content"))
+		editReq := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{Title: "edited"}).AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue))
+		MakeRequest(t, NewRequestWithJSON(t, "PUT", urlStr+"/lock", api.LockIssueOption{}).AddTokenAuth(getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue)), http.StatusNoContent)
+		MakeRequest(t, editReq, http.StatusForbidden)
 	})
 
 	t.Run("Unlock", func(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -97,18 +98,17 @@ func DeleteAttachment(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Doer.ID != attach.UploaderID {
-		if attach.IssueID > 0 {
-			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
-			if err != nil {
-				ctx.ServerError("GetIssueByID", err)
-				return
-			}
-			if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		} else if attach.ReleaseID > 0 {
+	if attach.IssueID > 0 {
+		issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
+		if err != nil {
+			ctx.ServerError("GetIssueByID", err)
+			return
+		}
+		if !canSelfChangeOrAccessContent(ctx, issue, attach.UploaderID, perm.AccessModeWrite) {
+			return
+		}
+	} else if ctx.Doer.ID != attach.UploaderID {
+		if attach.ReleaseID > 0 {
 			if !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
 				ctx.HTTPError(http.StatusForbidden)
 				return

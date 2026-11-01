@@ -20,6 +20,7 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
@@ -1545,8 +1546,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.HTTPError(http.StatusForbidden)
+	if !canSelfChangeOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeWrite) {
 		return
 	}
 

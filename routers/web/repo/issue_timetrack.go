@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -91,8 +92,7 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.HTTPError(http.StatusForbidden)
+	if !canSelfChangeOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeWrite) {
 		return
 	}
 

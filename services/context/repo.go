@@ -272,8 +272,8 @@ func (r *Repository) CanUseTimetracker(ctx context.Context, issue *issues_model.
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	isAssigned, _ := issues_model.IsUserAssignedToIssue(ctx, issue, user.ID)
-	return r.Repository.IsTimetrackerEnabled(ctx) && (!r.Repository.AllowOnlyContributorsToTrackTime(ctx) ||
-		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
+	return r.Repository.IsTimetrackerEnabled(ctx) && (r.Permission.CanWriteIssuesOrPulls(issue.IsPull) ||
+		!issue.IsLocked && (!r.Repository.AllowOnlyContributorsToTrackTime(ctx) || issue.IsPoster(user.ID) || isAssigned))
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.

@@ -13,6 +13,7 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
@@ -612,7 +613,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWrite(unit.TypePullRequests) {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, issue, issue.PosterID, perm.AccessModeWrite) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
