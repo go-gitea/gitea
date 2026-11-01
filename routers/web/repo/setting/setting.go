@@ -316,7 +316,10 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		handleSettingRemoteAddrError(ctx, err, form)
 		return
 	}
-	if u.User != nil {
+	storedAddr := *u.URL
+	storedAddr.User = nil
+	// the stored credentials are write-only, never let a changed address receive them
+	if u.User != nil && strings.TrimSpace(form.MirrorAddress) == storedAddr.String() {
 		if form.MirrorUsername == "" {
 			form.MirrorUsername = u.User.Username()
 		}
