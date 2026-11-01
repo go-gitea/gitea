@@ -28,7 +28,12 @@ func TestPackageTerraformModule(t *testing.T) {
 	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "privated_org"})
 	root := "/api/packages/-/terraform/modules/" + privateOrg.Name
 	base := root + "/vpc/aws"
-	archive := test.WriteTarCompression(gzip.NewWriter, map[string]string{"main.tf": `variable "region" {}`, "README.md": "# VPC module", "modules/net/main.tf": ""}).Bytes()
+	archive := test.WriteTarCompression(gzip.NewWriter, map[string]string{
+		"main.tf":               `variable "region" {}`,
+		"README.md":             "# VPC module",
+		"modules/net/main.tf":   "variable \"cidr\" {}\n",
+		"modules/net/README.md": "# Net submodule\n",
+	}).Bytes()
 
 	upload := func(t *testing.T, uploadURL string, body []byte, status int) {
 		MakeRequest(t, NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(body)).AddBasicAuth(admin.Name), status)
@@ -59,6 +64,17 @@ func TestPackageTerraformModule(t *testing.T) {
 		assert.Contains(t, content, "VPC module")
 		assert.Contains(t, content, "region")
 		assert.Contains(t, content, "/vpc/aws//modules/net")
+	})
+
+	t.Run("SubmoduleView", func(t *testing.T) {
+		page := "/" + privateOrg.Name + "/-/packages/terraform-module/vpc%2Faws/1.0.0"
+		resp := loginUser(t, admin.Name).MakeRequest(t, NewRequest(t, "GET", page+"/modules/net"), http.StatusOK)
+		content := NewHTMLParser(t, resp.Body).Find(".packages-content-left").Text()
+		appURL, _ := url.Parse(setting.AppURL)
+		assert.Contains(t, content, `source  = "`+appURL.Host+"/"+privateOrg.Name+`/vpc/aws//modules/net"`)
+		assert.Contains(t, content, "cidr")
+		assert.Contains(t, content, "Net submodule")
+		loginUser(t, admin.Name).MakeRequest(t, NewRequest(t, "GET", page+"/modules/unknown"), http.StatusNotFound)
 	})
 
 	t.Run("ListVersions", func(t *testing.T) {

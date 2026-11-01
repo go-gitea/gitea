@@ -15,8 +15,6 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/modules/container"
-
 	"github.com/hashicorp/go-version"
 )
 
@@ -73,7 +71,8 @@ func ParseModuleArchive(r io.Reader) (*Metadata, error) {
 func parseTar(tr *tar.Reader) (*Metadata, error) {
 	metadata := &Metadata{}
 	root := map[string][]byte{} // .tf.json content yields no HCL blocks
-	submodules := container.Set[string]{}
+	submodules := map[string]map[string][]byte{}
+	subReadmes := map[string]string{}
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {
@@ -90,19 +89,26 @@ func parseTar(tr *tar.Reader) (*Metadata, error) {
 		lowerBase := strings.ToLower(base)
 		isSource := strings.HasSuffix(lowerBase, ".tf") || strings.HasSuffix(lowerBase, ".tf.json")
 		isReadme := lowerBase == "readme.md" || lowerBase == "readme"
-		if name, ok := strings.CutPrefix(dir, "modules/"); ok && isSource && !strings.Contains(name, "/") { // standard module structure
-			submodules.Add(name)
-		}
-		if dir != "" || !isSource && !isReadme {
+		name, isSubmodule := strings.CutPrefix(dir, "modules/")
+		isSubmodule = isSubmodule && !strings.Contains(name, "/") // standard module structure, one level deep
+		if !isSource && !isReadme || dir != "" && !isSubmodule {
 			continue
 		}
 		data, err := io.ReadAll(tr)
 		if err != nil {
 			return nil, err
 		}
-		if isReadme {
+		switch {
+		case isSubmodule && isSource:
+			if submodules[name] == nil {
+				submodules[name] = map[string][]byte{}
+			}
+			submodules[name][base] = data
+		case isSubmodule:
+			subReadmes[name] = string(data)
+		case isReadme:
 			metadata.Readme = string(data)
-		} else {
+		default:
 			root[base] = data
 		}
 	}
@@ -112,7 +118,12 @@ func parseTar(tr *tar.Reader) (*Metadata, error) {
 	if len(root) > 0 {
 		metadata.Root = parseModule(root)
 	}
-	metadata.Submodules = slices.Sorted(maps.Keys(submodules))
+	if len(submodules) > 0 {
+		metadata.Submodules = make(map[string]*Submodule, len(submodules))
+		for name, files := range submodules {
+			metadata.Submodules[name] = &Submodule{Readme: subReadmes[name], Module: parseModule(files)}
+		}
+	}
 	return metadata, nil
 }
 

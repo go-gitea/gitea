@@ -4,9 +4,15 @@
 package terraform_module
 
 type Metadata struct {
-	Readme     string   `json:"readme,omitempty"`
-	Root       *Module  `json:"root,omitempty"`
-	Submodules []string `json:"submodules,omitempty"`
+	Readme     string                `json:"readme,omitempty"`
+	Root       *Module               `json:"root,omitempty"`
+	Submodules map[string]*Submodule `json:"submodules,omitempty"`
+}
+
+// Submodule is a module packaged in the archive's modules/<name> directory
+type Submodule struct {
+	Readme string  `json:"readme,omitempty"`
+	Module *Module `json:"module,omitempty"`
 }
 
 type Module struct {

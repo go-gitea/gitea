@@ -52,7 +52,9 @@ output "vpc_id" {
 		"README.md":                 "# vpc\n",
 		"._main.tf":                 `variable "ignored" {}`,
 		"examples/basic/main.tf":    `variable "ignored" {}`,
-		"modules/net/main.tf":       "",
+		"modules/net/main.tf":       "variable \"cidr\" {}\n",
+		"modules/net/README.md":     "# Net submodule\n",
+		"modules/net/LICENSE":       "must not become the readme",
 		"modules/net/deep/main.tf":  "",
 		"modules/json/main.tf.json": "",
 	})
@@ -71,12 +73,15 @@ output "vpc_id" {
 				{Name: "random", Version: "~> 3.0"},
 			},
 		},
-		Submodules: []string{"json", "net"},
+		Submodules: map[string]*Submodule{
+			"json": {Module: &Module{}},
+			"net":  {Readme: "# Net submodule\n", Module: &Module{Inputs: []*Input{{Name: "cidr", Required: true}}}},
+		},
 	}, metadata)
 
 	metadata, err = ParseModuleArchive(bytes.NewReader(buildArchive(map[string]string{"modules/net/main.tf": ""})))
 	require.NoError(t, err)
-	assert.Equal(t, &Metadata{Submodules: []string{"net"}}, metadata)
+	assert.Equal(t, &Metadata{Submodules: map[string]*Submodule{"net": {Module: &Module{}}}}, metadata)
 
 	_, err = ParseModuleArchive(bytes.NewReader(buildArchive(map[string]string{"mod-1.0.0/main.tf": ""})))
 	assert.ErrorIs(t, err, ErrNoRootModule)
