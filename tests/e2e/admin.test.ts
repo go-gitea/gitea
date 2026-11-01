@@ -15,9 +15,9 @@ test('create a bot and manage its access token', async ({page, request}) => {
   await page.getByLabel('Token Name').fill('e2e-token');
   await page.getByRole('row', {name: /^user /}).getByRole('radio', {name: 'Read', exact: true}).check();
   await page.getByRole('button', {name: 'Generate Token'}).click();
-  const token = await page.getByRole('code').textContent();
+  const token = (await page.getByRole('code').textContent())!;
   await page.getByRole('button', {name: 'Copy', exact: true}).click();
-  await assertClipboardText(page, token!);
+  await assertClipboardText(page, token);
   const response = await request.get('/api/v1/user', {headers: {Authorization: `token ${token}`}});
   expect(await response.json()).toMatchObject({login: botName, type: 'Bot'});
 
