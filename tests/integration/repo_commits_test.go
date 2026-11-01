@@ -218,6 +218,7 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 		}{
 			{"WriteCommitStatus", 2, "repo1", auth_model.AccessTokenScopeWriteCommitStatus, http.StatusOK, http.StatusCreated},
 			{"ReadCommitStatus", 2, "repo1", auth_model.AccessTokenScopeReadCommitStatus, http.StatusOK, http.StatusForbidden},
+			{"WriteRepository", 2, "repo1", auth_model.AccessTokenScopeWriteRepository, http.StatusOK, http.StatusCreated},
 			{"ReadRepository", 2, "repo1", auth_model.AccessTokenScopeReadRepository, http.StatusOK, http.StatusForbidden},
 			{"UnrelatedScope", 2, "repo1", auth_model.AccessTokenScopeWriteIssue, http.StatusForbidden, http.StatusForbidden},
 			{"NonWriter", 4, "repo1", auth_model.AccessTokenScopeWriteCommitStatus, http.StatusOK, http.StatusForbidden},
@@ -231,10 +232,13 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 					MakeRequest(t, NewRequest(t, "GET", repoLink+link).AddTokenAuth(token.Token), test.getCode)
 				}
 				MakeRequest(t, NewRequestWithJSON(t, "POST", repoLink+"/statuses/"+commitID, api.CreateStatusOption{State: commitstatus.CommitStatusSuccess}).AddTokenAuth(token.Token), test.postCode)
-				// the commitstatus endpoints are in a PathGroup, and the pattern overlaps with the "/.../pull", so commitstatus middlewares should not be executed
-				MakeRequest(t, NewRequest(t, "POST", repoLink+"/commits/"+commitID+"/pull").AddTokenAuth(token.Token), http.StatusNotFound)
 			})
 		}
+		t.Run("UnmatchedCommitPathSkipsCommitStatusScope", func(t *testing.T) {
+			token := &auth_model.AccessToken{UID: 2, Name: "UnmatchedCommitPath", Scope: auth_model.AccessTokenScopeWriteIssue}
+			require.NoError(t, auth_model.NewAccessToken(t.Context(), token))
+			MakeRequest(t, NewRequest(t, "POST", "/api/v1/repos/user2/repo1/commits/"+commitIDs["repo1"]+"/pull").AddTokenAuth(token.Token), http.StatusNotFound)
+		})
 	})
 }
 

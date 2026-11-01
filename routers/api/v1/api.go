@@ -1601,8 +1601,6 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
 		m.Group("/repos/{username}/{reponame}", func() { // outside "/repos" so tokens need only the commitstatus scope
-			// tokenRequiresScopes should only be applied to each MatchPath handler but not on outer group
-			// otherwise, "POST /.../commits/{sha}/pull" will respond "require commitstatus" because POST is not handled and falls back to the PathGroup
 			middlewares := []any{
 				tokenRequiresScopes(auth_model.AccessTokenScopeCategoryCommitStatus),
 				repoAssignment(), reqRepoReader(unit.TypeCode),
