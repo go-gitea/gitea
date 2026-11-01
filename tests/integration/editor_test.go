@@ -38,6 +38,10 @@ func TestEditor(t *testing.T) {
 		t.Run("EditFile", func(t *testing.T) {
 			testEditFile(t, sessionUser2, "user2", "repo1", "master", "README.md", "Hello, World (direct)\n")
 			testEditFileToNewBranch(t, sessionUser2, "user2", "repo1", "master", "feature/test", "README.md", "Hello, World (commit-to-new-branch)\n")
+			assert.Equal(t, http.StatusNotFound, testEditorActionPostRequest(t, sessionUser2, "/user2/repo1/_edit/master/README.md?from_base_branch=master", map[string]string{
+				"commit_choice":   "direct",
+				"new_branch_name": "from-base-on-non-fork",
+			}).Code)
 		})
 		t.Run("EditorconfigOfBranch", func(t *testing.T) {
 			testCreateFile(t, sessionUser2, "user2", "repo1", "master", "editorconfig", ".editorconfig", "[*]\nindent_size = 2\n")

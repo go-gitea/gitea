@@ -7,7 +7,7 @@
   updated_unix: 1546869730
 
 - id: 2
-  user_id: 3
+  user_id: 14
   application_id: 1
   counter: 1
   scope: "openid"
@@ -23,7 +23,7 @@
   updated_unix: 1546869730
 
 - id: 4
-  user_id: 99
+  user_id: 2
   application_id: 2
   counter: 1
   scope: "whatever"

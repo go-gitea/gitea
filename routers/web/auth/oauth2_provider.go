@@ -188,22 +188,22 @@ func IntrospectOAuth(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2GrantByID", err)
 		return
 	}
-	if grant == nil || grant.ApplicationID != introspectingApp.ID {
+	if grant == nil || grant.ApplicationID != introspectingApp.ID || (token.Kind == oauth2_provider.KindRefreshToken && setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0)) {
 		// RFC 7662 allows the server to reply inactive when the caller must not learn more.
 		// https://www.rfc-editor.org/rfc/rfc7662.html#section-2.2
 		ctx.JSON(http.StatusOK, response)
 		return
 	}
 
-	response.Active = true
-	response.Scope = oauth2_provider.NormalizeGrantScope(grant.Scope)
-	response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
-	user, err := user_model.GetUserByID(ctx, grant.UserID)
-	if err != nil {
-		ctx.ServerError("GetUserByID", err)
+	if user, err := user_model.GetValidDoerUserByID(ctx, grant.UserID); err == nil {
+		response.Active = true
+		response.Scope = oauth2_provider.NormalizeGrantScope(grant.Scope)
+		response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
+		response.Username = user.Name
+	} else if !errors.Is(err, util.ErrNotExist) && !errors.Is(err, util.ErrPermissionDenied) {
+		ctx.ServerError("GetValidDoerUserByID", err)
 		return
 	}
-	response.Username = user.Name
 
 	ctx.JSON(http.StatusOK, response)
 }

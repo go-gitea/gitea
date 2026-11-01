@@ -169,6 +169,11 @@ func TestRepoMergeUpstream(t *testing.T) {
 		t.Run("BasePrivateBlocksSync", func(t *testing.T) {
 			// add a new commit to the base repo, then make the base repo private
 			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "secret.txt", "master", "private-content"))
+			forkBranchLink := fmt.Sprintf("/%s/test-repo-fork/src/branch/fork-branch", forkUser.Name)
+			require.Eventually(t, func() bool {
+				resp := session.MakeRequest(t, NewRequest(t, "GET", forkBranchLink), http.StatusOK)
+				return queryMergeUpstreamButtonLink(NewHTMLParser(t, resp.Body)) != ""
+			}, 5*time.Second, 100*time.Millisecond)
 			baseRepo.IsPrivate = true
 			_, err := db.GetEngine(t.Context()).ID(baseRepo.ID).Cols("is_private").Update(baseRepo)
 			require.NoError(t, err)
@@ -177,6 +182,8 @@ func TestRepoMergeUpstream(t *testing.T) {
 				Branch: "fork-branch",
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusForbidden)
+			resp := session.MakeRequest(t, NewRequest(t, "GET", forkBranchLink), http.StatusOK)
+			assert.Empty(t, queryMergeUpstreamButtonLink(NewHTMLParser(t, resp.Body)))
 		})
 	})
 }
