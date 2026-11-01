@@ -88,7 +88,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 		defer gitRepo.Close()
 		commit, err := gitRepo.GetCommit(t.Context(), pull.MergedCommitID)
 		require.NoError(t, err)
-		assert.Contains(t, commit.CommitMessage.MessageRaw, mergeOptions.Message)
+		assert.Contains(t, commit.CommitMessage.MessageRaw, util.NormalizeStringEOL(mergeOptions.Message))
 	}
 
 	return resp
@@ -131,7 +131,7 @@ func TestPullMerge(t *testing.T) {
 		assert.Equal(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
 			Style:   repo_model.MergeStyleMerge,
-			Message: strings.Repeat("x", 200*1024),
+			Message: "body line 1\r\nbody line 2\r\n" + strings.Repeat("x", 200*1024),
 		})
 
 		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})

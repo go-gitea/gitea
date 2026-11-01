@@ -276,7 +276,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	)
 
 	messageBytes := new(bytes.Buffer)
-	_, _ = messageBytes.WriteString(opts.CommitMessage)
+	_, _ = messageBytes.WriteString(util.NormalizeStringEOL(opts.CommitMessage))
 	_, _ = messageBytes.WriteString("\n")
 
 	cmdCommitTree := gitcmd.NewCommand("commit-tree").AddDynamicArguments(opts.TreeHash)

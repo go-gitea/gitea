@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 // CommitTreeOpts represents the possible options to CommitTree
@@ -44,7 +45,7 @@ func (repo *Repository) CommitTree(ctx context.Context, author, committer *Signa
 	}
 
 	messageBytes := new(bytes.Buffer)
-	_, _ = messageBytes.WriteString(opts.Message)
+	_, _ = messageBytes.WriteString(util.NormalizeStringEOL(opts.Message))
 	_, _ = messageBytes.WriteString("\n")
 
 	if opts.Key != nil {
