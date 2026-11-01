@@ -348,16 +348,6 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 
-	for _, uuid := range delAttachmentUUIDs {
-		if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(uuid)); err != nil {
-			// Even delete files failed, but the attachments has been removed from database, so we
-			// should not return error but only record the error on logs.
-			// users have to delete this attachments manually or we should have a
-			// synchronize between database attachment table and attachment storage
-			log.Error("delete attachment[uuid: %s] failed: %v", uuid, err)
-		}
-	}
-
 	if !rel.IsDraft {
 		if !isTagCreated && !isConvertedFromTag {
 			notify_service.UpdateRelease(ctx, doer, rel)

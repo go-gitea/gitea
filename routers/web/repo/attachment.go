@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
-	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -97,28 +96,9 @@ func DeleteAttachment(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Doer.ID != attach.UploaderID {
-		if attach.IssueID > 0 {
-			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
-			if err != nil {
-				ctx.ServerError("GetIssueByID", err)
-				return
-			}
-			if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		} else if attach.ReleaseID > 0 {
-			if !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		} else {
-			if !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		}
+	if attach.UploaderID != ctx.Doer.ID || attach.IsLinked() { // linked attachments are removed by editing their content
+		ctx.HTTPError(http.StatusForbidden)
+		return
 	}
 
 	err = repo_model.DeleteAttachment(ctx, attach, true)
