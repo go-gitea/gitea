@@ -23,7 +23,8 @@ const (
 
 // HookOptions represents the options for the Hook calls
 type HookOptions struct {
-	IsWiki bool
+	IsWiki         bool
+	QuotaOperation string
 
 	OldCommitIDs []string
 	NewCommitIDs []string

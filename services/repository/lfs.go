@@ -17,6 +17,7 @@ import (
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/services/quota"
 )
 
 // GarbageCollectLFSMetaObjectsOptions provides options for GarbageCollectLFSMetaObjects function
@@ -61,6 +62,12 @@ func GarbageCollectLFSMetaObjects(ctx context.Context, opts GarbageCollectLFSMet
 
 // GarbageCollectLFSMetaObjectsForRepo garbage collects LFS objects for a specific repository
 func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.Repository, opts GarbageCollectLFSMetaObjectsOptions) error {
+	ctx, quotaOp, quotaErr := quota.Begin(ctx, repo)
+	if quotaErr != nil {
+		return quotaErr
+	}
+	defer quotaOp.Finish()
+
 	opts.LogDetail("Checking %-v", repo)
 	total, orphaned, collected, deleted := int64(0), 0, 0, 0
 	defer func() {

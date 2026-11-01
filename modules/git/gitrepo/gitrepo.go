@@ -27,6 +27,16 @@ type RepositoryFacade interface {
 	LogString() string
 }
 
+func ManagedID(repo RepositoryFacade) (string, bool) {
+	if wrapper, ok := repo.(interface{ GitRepoFacade() RepositoryFacade }); ok {
+		return ManagedID(wrapper.GitRepoFacade())
+	}
+	if _, unmanaged := repo.(*repositoryUnmanaged); unmanaged {
+		return "", false
+	}
+	return repo.GitRepoManagedID(), true
+}
+
 // RepoLocalPath returns an absolute path for a RepositoryFacade.
 // TODO: most of the calls to this function should be replaced with a "Repo FS" in the future
 // to handle file accesses in the git repo (e.g.: read, write, list, remove).

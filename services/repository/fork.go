@@ -11,7 +11,6 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -22,6 +21,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
+	"gitea.dev/services/quota"
 
 	"xorm.io/builder"
 )
@@ -114,7 +114,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 
 		// copy lfs files failure should not be ignored
-		return git_model.CopyLFS(ctx, repo, opts.BaseRepo)
+		return quota.CopyLFS(ctx, repo, opts.BaseRepo)
 	})
 	if err != nil {
 		return nil, err

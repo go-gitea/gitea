@@ -16,6 +16,8 @@ import (
 // swagger:parameters parameterBodies
 type swaggerParameterBodies struct {
 	// in:body
+	StorageQuotaOptions api.StorageQuotaOptions
+	// in:body
 	AddCollaboratorOption api.AddCollaboratorOption
 
 	// in:body

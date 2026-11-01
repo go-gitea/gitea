@@ -1,5 +1,6 @@
 {{template "admin/layout_head" (dict "pageClass" "admin edit user")}}
 	<div class="admin-setting-content">
+		<p><a href="{{AppSubUrl}}/-/admin/quotas/user/{{.User.ID}}">{{ctx.Locale.Tr "quota.manage"}}</a></p>
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.users.edit_account"}}
 		</h4>

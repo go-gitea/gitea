@@ -781,6 +781,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	// ***** START: Admin *****
 	m.Group("/-/admin", func() {
+		m.Combo("/quotas/{subject}/{id}").Get(admin.StorageQuota).Post(admin.StorageQuotaPost)
 		m.Get("", admin.Dashboard)
 		m.Get("/system_status", admin.SystemStatus)
 		m.Post("", web.Bind[*forms.AdminDashboardForm](), admin.DashboardPost)
@@ -1190,6 +1191,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// end "/{username}/{reponame}/-": mentions
 
 	m.Group("/{username}/{reponame}/settings", func() {
+		m.Get("/storage", repo_setting.Storage)
+		m.Post("/quota/gc", repo_setting.QuotaGC)
 		m.Group("", func() {
 			m.Combo("").Get(repo_setting.Settings).
 				Post(web.Bind[*forms.RepoSettingForm](), repo_setting.SettingsPost)

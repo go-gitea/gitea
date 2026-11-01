@@ -1,0 +1,12 @@
+<div class="tw-flex tw-flex-col tw-gap-2 tw-py-2">
+	<div class="flex-text-block tw-justify-between tw-flex-wrap">
+		<strong>{{.Label}}</strong>
+		<span>
+			{{FormatByteSize .Resource.Used}} / {{if lt .Resource.Limit 0}}{{ctx.Locale.Tr "quota.unlimited"}}{{else}}{{FormatByteSize .Resource.Limit}}{{end}}
+			{{if .Resource.Warning}}<span class="ui orange label">{{ctx.Locale.Tr "quota.warning"}}</span>{{end}}
+		</span>
+	</div>
+	{{if ge .Resource.Limit 0}}
+		<progress class="tw-w-full tw-h-2" aria-label="{{.Label}}" aria-valuetext="{{FormatByteSize .Resource.Used}} / {{FormatByteSize .Resource.Limit}}" value="{{if eq .Resource.Limit 0}}1{{else}}{{.Resource.Used}}{{end}}" max="{{if eq .Resource.Limit 0}}1{{else}}{{.Resource.Limit}}{{end}}"></progress>
+	{{end}}
+</div>
