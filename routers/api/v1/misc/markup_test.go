@@ -68,8 +68,8 @@ func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody
 
 func TestAPI_RenderGFM(t *testing.T) {
 	markup.Init(&markup.RenderHelperFuncs{
-		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
-			return username == "r-lyeh"
+		ResolveUserMention: func(ctx go_context.Context, username string) (bool, string) {
+			return username == "r-lyeh", ""
 		},
 	})
 
