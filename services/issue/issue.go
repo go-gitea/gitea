@@ -175,8 +175,10 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 		if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
 			return err
 		}
-		if err := git.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
-			return err
+		for _, ref := range []git.RefName{git.RefNameFromPullIndex(issue.Index), git.MergeRefNameFromPullIndex(issue.Index), git.MergedRefNameFromPullIndex(issue.Index)} {
+			if err := git.RemoveRef(ctx, issue.PullRequest.BaseRepo, ref.String()); err != nil {
+				return err
+			}
 		}
 	}
 

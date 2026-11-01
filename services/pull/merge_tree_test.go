@@ -10,6 +10,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
 
@@ -46,6 +47,7 @@ func TestPullRequestMergeable(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	t.Run("NoConflict-MergeTree", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusMergeable, nil, nil)
+		assert.True(t, git.IsReferenceExist(t.Context(), pr.BaseRepo, git.MergeRefNameFromPullIndex(pr.Index).String()))
 	})
 	t.Run("NoConflict-TmpRepo", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByTmpRepo, pr, issues_model.PullRequestStatusMergeable, nil, nil)
