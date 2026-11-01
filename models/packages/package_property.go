@@ -38,6 +38,9 @@ type PackageProperty struct {
 
 // InsertProperty creates a property
 func InsertProperty(ctx context.Context, refType PropertyType, refID int64, name, value string) (*PackageProperty, error) {
+	if err := checkActionsPropertyAccess(ctx, refType, refID); err != nil {
+		return nil, err
+	}
 	pp := &PackageProperty{
 		RefType: refType,
 		RefID:   refID,
@@ -63,11 +66,22 @@ func GetPropertiesByName(ctx context.Context, refType PropertyType, refID int64,
 
 // UpdateProperty updates a property
 func UpdateProperty(ctx context.Context, pp *PackageProperty) error {
+	if err := checkActionsPropertyIDAccess(ctx, pp.ID); err != nil {
+		return err
+	}
+	if pp.RefID != 0 {
+		if err := checkActionsPropertyAccess(ctx, pp.RefType, pp.RefID); err != nil {
+			return err
+		}
+	}
 	_, err := db.GetEngine(ctx).ID(pp.ID).Update(pp)
 	return err
 }
 
 func InsertOrUpdateProperty(ctx context.Context, refType PropertyType, refID int64, name, value string) error {
+	if err := checkActionsPropertyAccess(ctx, refType, refID); err != nil {
+		return err
+	}
 	pp, ok, err := db.Get[PackageProperty](ctx, builder.Eq{"ref_type": refType, "ref_id": refID, "`name`": name})
 	if err != nil {
 		return err
@@ -82,6 +96,9 @@ func InsertOrUpdateProperty(ctx context.Context, refType PropertyType, refID int
 
 // DeleteAllProperties deletes all properties of a ref
 func DeleteAllProperties(ctx context.Context, refType PropertyType, refID int64) error {
+	if err := checkActionsPropertyAccess(ctx, refType, refID); err != nil {
+		return err
+	}
 	_, err := db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ?", refType, refID).Delete(&PackageProperty{})
 	return err
 }
@@ -89,6 +106,9 @@ func DeleteAllProperties(ctx context.Context, refType PropertyType, refID int64)
 // DeletePropertiesByPackageID deletes properties of a typed linked to the package
 // Use to avoid for loops in mass deletion of properties
 func DeletePropertiesByPackageID(ctx context.Context, refType PropertyType, packageID int64) error {
+	if err := checkActionsPackageAccess(ctx, packageID); err != nil {
+		return err
+	}
 	var deleteStmt *builder.Builder
 
 	switch refType {
@@ -121,6 +141,9 @@ func DeletePropertiesByPackageID(ctx context.Context, refType PropertyType, pack
 
 // DeleteFilePropertiesByVersionID deletes all file properties linked to specific version
 func DeleteFilePropertiesByVersionID(ctx context.Context, versionID int64) error {
+	if err := checkActionsVersionAccess(ctx, versionID); err != nil {
+		return err
+	}
 	deleteStmt := builder.Delete(builder.Eq{"ref_type": PropertyTypeFile}, builder.In("ref_id", builder.Select("id").From("package_file").Where(builder.Eq{"version_id": versionID}))).From("package_property")
 	_, err := db.GetEngine(ctx).Exec(deleteStmt)
 	return err
@@ -128,12 +151,18 @@ func DeleteFilePropertiesByVersionID(ctx context.Context, versionID int64) error
 
 // DeletePropertyByID deletes a property
 func DeletePropertyByID(ctx context.Context, propertyID int64) error {
+	if err := checkActionsPropertyIDAccess(ctx, propertyID); err != nil {
+		return err
+	}
 	_, err := db.GetEngine(ctx).ID(propertyID).Delete(&PackageProperty{})
 	return err
 }
 
 // DeletePropertiesByName deletes properties by name
 func DeletePropertiesByName(ctx context.Context, refType PropertyType, refID int64, name string) error {
+	if err := checkActionsPropertyAccess(ctx, refType, refID); err != nil {
+		return err
+	}
 	_, err := db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).Delete(&PackageProperty{})
 	return err
 }
