@@ -1489,23 +1489,13 @@ func Routes() *web.Router {
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
-				m.Group("/statuses", func() { // "/statuses/{sha}" only accepts commit ID
-					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
-						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
-				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Group("", func() {
 						m.Get("", repo.GetAllCommits)
 						m.Get("/{sha}", repo.GetSingleCommit) // GitHub-compatible endpoint
 						m.Get("/{sha}.{diffType:diff|patch}", repo.DownloadCommitDiffOrPatch)
 					}, context.ReferencesGitRepo(true))
-					m.PathGroup("/*", func(g *web.RouterPathGroup) {
-						// Mis-configured reverse proxy might decode the `%2F` to slash ahead, so we need to support both formats (escaped, unescaped) here.
-						// It also matches GitHub's behavior
-						g.MatchPath("GET", "/<ref:*>/status", repo.GetCombinedCommitStatusByRef)
-						g.MatchPath("GET", "/<ref:*>/statuses", repo.GetCommitStatusesByRef)
-						g.MatchPath("GET", "/<sha>/pull", repo.GetCommitPullRequest)
-					})
+					m.Get("/{sha}/pull", repo.GetCommitPullRequest)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
@@ -1565,6 +1555,24 @@ func Routes() *web.Router {
 				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.DownloadArchive)
 			}, repoAssignment())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		m.Group("/repos/{username}/{reponame}", func() { // outside "/repos" so tokens need only the commitstatus scope
+			middlewares := []any{
+				tokenRequiresScopes(auth_model.AccessTokenScopeCategoryCommitStatus),
+				repoAssignment(), reqRepoReader(unit.TypeCode),
+			}
+			// "/.../statuses/{sha}" only accepts commit ID
+			m.Combo("/statuses/{sha}", middlewares...).
+				Get(repo.GetCommitStatuses).
+				Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+
+			// Mis-configured reverse proxy might decode the `%2F` to slash ahead, so we need to support both formats (escaped, unescaped) here.
+			// It also matches GitHub's behavior
+			m.PathGroup("/commits/*", func(g *web.RouterPathGroup) {
+				g.MatchPath("GET", "/<ref:*>/status", repo.GetCombinedCommitStatusByRef)
+				g.MatchPath("GET", "/<ref:*>/statuses", repo.GetCommitStatusesByRef)
+			}, middlewares...)
+		})
 
 		// Artifacts direct download endpoint authenticates via signed url
 		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares

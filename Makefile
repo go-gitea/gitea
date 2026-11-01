@@ -15,7 +15,7 @@ SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a
 
 CONTAINER_RUNTIME ?= $(shell hash docker >/dev/null 2>&1 && echo docker || echo podman)
 
-PLAYWRIGHT_BROWSERS ?= chromium firefox
+PLAYWRIGHT_BROWSERS ?= chromium firefox $(if $(filter Darwin,$(shell uname -s 2>/dev/null)),webkit)
 PLAYWRIGHT_FLAGS ?=
 
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)

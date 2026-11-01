@@ -115,6 +115,49 @@ func TestOAuth2AvatarFromPicture(t *testing.T) {
 	})
 }
 
+func TestOAuth2LinkAccountSignupAutoLinking(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.AccountLinking, setting.OAuth2AccountLinkingAuto)()
+	defer test.MockVariableValue(&setting.Service.RequireExternalRegistrationPassword, false)()
+
+	addOAuth2Source(t, "test-link-signup", oauth2.Source{})
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), "test-link-signup")
+	require.NoError(t, err)
+
+	signUp := func(t *testing.T, gothUser goth.User, userName, email string, expectedStatus int) (*TestSession, *httptest.ResponseRecorder) {
+		defer web.RouteMockReset()
+		web.RouteMock(web.MockAfterMiddlewares, func(ctx *context.Context) {
+			require.NoError(t, auth.Oauth2SetLinkAccountData(ctx, auth.LinkAccountData{AuthSourceID: authSource.ID, GothUser: gothUser}))
+		})
+		session := emptyTestSession(t)
+		req := NewRequestWithValues(t, "POST", "/user/link_account_signup", map[string]string{
+			"user_name": userName,
+			"email":     email,
+		})
+		return session, session.MakeRequest(t, req, expectedStatus)
+	}
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	for _, form := range []struct{ name, userName, email, errMsg string }{
+		{"FormNamesOtherUser", user2.Name, "new-user@example.com", "The username is already taken."},
+		{"FormUsesOtherUsersEmail", "new-user", user2.Email, "The email address is already used."},
+	} {
+		t.Run(form.name, func(t *testing.T) {
+			gothUser := goth.User{UserID: form.name, Email: "external@example.com"}
+			_, resp := signUp(t, gothUser, form.userName, form.email, http.StatusOK)
+			assert.Contains(t, resp.Body.String(), form.errMsg)
+			unittest.AssertNotExistsBean(t, &user_model.ExternalLoginUser{ExternalID: gothUser.UserID}, unittest.OrderBy("external_id"))
+		})
+	}
+
+	t.Run("ExternalIdentityMatchesUser", func(t *testing.T) {
+		gothUser := goth.User{UserID: "user2-sub", Email: user2.Email}
+		session, _ := signUp(t, gothUser, user2.Name, user2.Email, http.StatusSeeOther)
+		unittest.AssertExistsAndLoadBean(t, &user_model.ExternalLoginUser{ExternalID: gothUser.UserID, UserID: user2.ID}, unittest.OrderBy("external_id"))
+		session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+	})
+}
+
 func testOAuth2PrepareTestCode(t *testing.T) {
 	require.NoError(t, db.TruncateBeans(t.Context(), &auth_model.OAuth2AuthorizationCode{}))
 	err := db.Insert(t.Context(), &auth_model.OAuth2AuthorizationCode{

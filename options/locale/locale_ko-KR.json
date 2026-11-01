@@ -1125,7 +1125,6 @@
   "repo.migrate.onedev.description": "code.onedev.io 또는 다른 OneDev 인스턴스로부터 데이터를 마이그레이션합니다.",
   "repo.migrate.codebase.description": "codebasehq.com으로부터 데이터를 마이그레이션합니다.",
   "repo.migrate.gitbucket.description": "GitBucket 인스턴스로부터 데이터를 마이그레이션합니다.",
-  "repo.migrate.bitbucketserver.description": "Bitbucket 데이터 센터 또는 서버 인스턴스에서 데이터를 마이그레이션.",
   "repo.migrate.bitbucketserver.variant": "데이터 센터 / 서버",
   "repo.migrate.hosting": "호스팅",
   "repo.migrate.bitbucketserver.token_desc": "HTTP 액세스 토큰. 설정한 경우 위 비밀번호 대신 사용됩니다. 사용자명은 기본적으로 토큰 소유자로 설정됩니다.",
