@@ -27,68 +27,66 @@ import (
 func TestAdminViewUsers(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/-/admin/users")
-	session.MakeRequest(t, req, http.StatusOK)
+	t.Run("List", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		req := NewRequest(t, "GET", "/-/admin/users")
+		session.MakeRequest(t, req, http.StatusOK)
 
-	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/-/admin/users")
-	session.MakeRequest(t, req, http.StatusForbidden)
-}
+		session = loginUser(t, "user2")
+		req = NewRequest(t, "GET", "/-/admin/users")
+		session.MakeRequest(t, req, http.StatusForbidden)
+	})
 
-func TestAdminViewUsersFilterAuthSource(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	t.Run("ViewUser", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		req := NewRequest(t, "GET", "/-/admin/users/1")
+		session.MakeRequest(t, req, http.StatusOK)
 
-	source := &auth_model.Source{Type: auth_model.LDAP, Name: "test-user-list-filter", IsActive: false, Cfg: &ldap.Source{}} // users stay attached to a deactivated source
-	require.NoError(t, auth_model.CreateSource(t.Context(), source))
+		session = loginUser(t, "user2")
+		req = NewRequest(t, "GET", "/-/admin/users/1")
+		session.MakeRequest(t, req, http.StatusForbidden)
+	})
 
-	user2 := &user_model.User{ID: 2, LoginType: auth_model.LDAP, LoginSource: source.ID}
-	require.NoError(t, user_model.UpdateUserCols(t.Context(), user2, "login_type", "login_source"))
+	t.Run("FilterAuthSource", func(t *testing.T) {
+		source := &auth_model.Source{Type: auth_model.LDAP, Name: "test-user-list-filter", IsActive: false, Cfg: &ldap.Source{}} // users stay attached to a deactivated source
+		require.NoError(t, auth_model.CreateSource(t.Context(), source))
 
-	session := loginUser(t, "user1")
-	listUsers := func(query string) (*HTMLDoc, []string) {
-		req := NewRequest(t, "GET", "/-/admin/users?"+query)
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-		return doc, doc.Find("table tbody tr td:nth-child(2) a").Map(func(_ int, s *goquery.Selection) string {
-			return s.Text()
-		})
-	}
+		user2 := &user_model.User{ID: 2, LoginType: auth_model.LDAP, LoginSource: source.ID}
+		require.NoError(t, user_model.UpdateUserCols(t.Context(), user2, "login_type", "login_source"))
 
-	doc, users := listUsers("source_id=") // the "All" option submits an empty value
-	AssertHTMLElement(t, doc, `input[name="source_id"][value=""][checked]`, true)
-	assert.Subset(t, users, []string{"user1", "user2"})
+		session := loginUser(t, "user1")
+		listUsers := func(query string) (*HTMLDoc, []string) {
+			req := NewRequest(t, "GET", "/-/admin/users?"+query)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
+			return doc, doc.Find("table tbody tr td:nth-child(2) a").Map(func(_ int, s *goquery.Selection) string {
+				return s.Text()
+			})
+		}
 
-	doc, users = listUsers(fmt.Sprintf("source_id=%d", source.ID)) // the "test-user-list-filter" LDAP source
-	AssertHTMLElement(t, doc, fmt.Sprintf(`input[name="source_id"][value="%d"][checked]`, source.ID), true)
-	assert.Equal(t, []string{"user2"}, users)
-	assert.Equal(t, source.Name, doc.Find("table tbody tr td:nth-child(4)").Text())
+		doc, users := listUsers("source_id=") // the "All" option submits an empty value
+		AssertHTMLElement(t, doc, `input[name="source_id"][value=""][checked]`, true)
+		assert.Subset(t, users, []string{"user1", "user2"})
 
-	_, users = listUsers("source_id=0") // 0 means the "Local" source
-	assert.Contains(t, users, "user1")
-	assert.NotContains(t, users, "user2")
+		doc, users = listUsers(fmt.Sprintf("source_id=%d", source.ID)) // the "test-user-list-filter" LDAP source
+		AssertHTMLElement(t, doc, fmt.Sprintf(`input[name="source_id"][value="%d"][checked]`, source.ID), true)
+		assert.Equal(t, []string{"user2"}, users)
+		assert.Equal(t, source.Name, doc.Find("table tbody tr td:nth-child(4)").Text())
 
-	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadAdmin)
-	req := NewRequest(t, "GET", "/api/v1/admin/users?source_id=0").AddTokenAuth(token) // the API also treats 0 as local users
-	apiUsers := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []api.User{})
-	apiUserNames := make([]string, 0, len(apiUsers))
-	for _, u := range apiUsers {
-		apiUserNames = append(apiUserNames, u.UserName)
-	}
-	assert.Contains(t, apiUserNames, "user1")
-	assert.NotContains(t, apiUserNames, "user2")
-}
+		_, users = listUsers("source_id=0") // 0 means the "Local" source
+		assert.Contains(t, users, "user1")
+		assert.NotContains(t, users, "user2")
 
-func TestAdminViewUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/-/admin/users/1")
-	session.MakeRequest(t, req, http.StatusOK)
-
-	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/-/admin/users/1")
-	session.MakeRequest(t, req, http.StatusForbidden)
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadAdmin)
+		req := NewRequest(t, "GET", "/api/v1/admin/users?source_id=0").AddTokenAuth(token) // the API also treats 0 as local users
+		apiUsers := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []api.User{})
+		apiUserNames := make([]string, 0, len(apiUsers))
+		for _, u := range apiUsers {
+			apiUserNames = append(apiUserNames, u.UserName)
+		}
+		assert.Contains(t, apiUserNames, "user1")
+		assert.NotContains(t, apiUserNames, "user2")
+	})
 }
 
 func TestAdminEditUser(t *testing.T) {
@@ -222,6 +220,7 @@ func TestAdminBotUser(t *testing.T) {
 		assert.Empty(t, doc.Find("#password").Nodes)
 		doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d", bot.ID)), http.StatusOK).Body)
 		assert.NotEmpty(t, doc.Find(`form[action$="/access_tokens"]`).Nodes)
+		assert.NotEmpty(t, doc.Find("dialog#regenerate-token").Nodes)
 	})
 
 	t.Run("EditWithoutAuthSource", func(t *testing.T) {
@@ -266,12 +265,15 @@ func TestAdminBotUser(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &auth_model.AccessToken{UID: 2, Name: "not-a-bot"})
 
 		token := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{UID: bot.ID, Name: "ci"})
-		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL+"/delete", map[string]string{
-			"id": strconv.FormatInt(token.ID, 10),
-		}), http.StatusOK)
+		tokenID := map[string]string{"id": strconv.FormatInt(token.ID, 10)}
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL+"/regenerate", tokenID), http.StatusOK)
+		assert.NotEqual(t, token.TokenHash, unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: token.ID}).TokenHash)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/2/access_tokens/regenerate", map[string]string{"id": "3"}), http.StatusBadRequest)
+
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL+"/delete", tokenID), http.StatusOK)
 		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
 
-		for _, action := range []audit_model.Action{audit_model.UserAccessTokenAdd, audit_model.UserAccessTokenRemove} {
+		for _, action := range []audit_model.Action{audit_model.UserAccessTokenAdd, audit_model.UserAccessTokenRegenerate, audit_model.UserAccessTokenRemove} {
 			events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{Action: action, ScopeType: audit_model.ScopeUser, ScopeID: bot.ID})
 			require.NoError(t, err)
 			require.Len(t, events, 1, "audit events for %s", action)

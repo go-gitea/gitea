@@ -189,7 +189,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 		return errColumnIsDefault
 	}
 
-	// move all issues to the default column
+	// move all issues to the default column, bulk moves intentionally don't trigger project workflows
 	project, err := GetProjectByID(ctx, column.ProjectID)
 	if err != nil {
 		return err

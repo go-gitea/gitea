@@ -31,6 +31,9 @@ func getStarredRepos(ctx *context.APIContext, user *user_model.User, private boo
 	if err != nil {
 		return nil, err
 	}
+	if err := repo_model.RepositoryList(starredRepos).LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
 
 	repos := make([]*api.Repository, 0, len(starredRepos))
 	for _, starred := range starredRepos {
@@ -70,10 +73,8 @@ func GetStarredRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	private := ctx.ContextUser.ID == ctx.Doer.ID
 	repos, err := getStarredRepos(ctx, ctx.ContextUser, private)
@@ -106,12 +107,13 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repos, err := getStarredRepos(ctx, ctx.Doer, true)
 	if err != nil {
 		ctx.APIErrorInternal(err)
+		return
 	}
 
 	ctx.SetLinkHeader(int64(ctx.Doer.NumStars), utils.GetListOptions(ctx).PageSize)
@@ -138,10 +140,8 @@ func IsStarring(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(http.StatusNoContent)
@@ -169,10 +169,8 @@ func Star(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	if err != nil {
@@ -205,10 +203,8 @@ func Unstar(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	if err != nil {

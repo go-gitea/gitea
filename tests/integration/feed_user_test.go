@@ -6,12 +6,18 @@ package integration
 import (
 	"encoding/xml"
 	"net/http"
+	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // RSS is a struct to unmarshal RSS feeds test only
@@ -31,10 +37,59 @@ type RSS struct {
 }
 
 func TestFeedUser(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	resp := MakeRequest(t, NewRequest(t, "GET", "/user2.atom"), http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `<feed xmlns="http://www.w3.org/2005/Atom"`)
+
+	resp = MakeRequest(t, NewRequest(t, "GET", "/user2.rss"), http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `<rss version="2.0"`)
+	var rss RSS
+	assert.NoError(t, xml.Unmarshal(resp.Body.Bytes(), &rss))
+	assert.Contains(t, rss.Channel.Link, "/user2")
+	assert.NotEmpty(t, rss.Channel.PubDate)
+
+	session := loginUser(t, "user2")
+	readUser := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
+	for _, tc := range []struct {
+		link, accept, token, privateMarker string
+		visible                            bool
+	}{
+		{"/user2.rss", "", readUser, "user2/repo2", true},
+		{"/user2", "application/rss+xml", readUser, "user2/repo2", true},
+		{"/user2.rss", "", getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly), "user2/repo2", false},
+		{"/org3.rss", "", getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization), "org3/repo3", true},
+		{"/user2?tab=activity", "", getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll), "user2/repo2", false},
+	} {
+		req := NewRequest(t, "GET", tc.link).SetHeader("Accept", tc.accept).AddBasicAuth("user2", tc.token)
+		assert.Equal(t, tc.visible, strings.Contains(MakeRequest(t, req, http.StatusOK).Body.String(), tc.privateMarker), tc.link)
+	}
+	readPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+	for _, link := range []string{"/user2.rss", "/org3.rss"} {
+		MakeRequest(t, NewRequest(t, "GET", link).AddBasicAuth("user2", readPackage), http.StatusForbidden)
+	}
+
+	t.Run("Repo", func(t *testing.T) {
+		t.Run("RSS", func(t *testing.T) {
+			req := NewRequest(t, "GET", "/user2/repo1.rss")
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			data := resp.Body.String()
+			assert.Contains(t, data, `<rss version="2.0"`)
+
+			var rss RSS
+			err := xml.Unmarshal(resp.Body.Bytes(), &rss)
+			assert.NoError(t, err)
+			assert.Contains(t, rss.Channel.Link, "/user2/repo1")
+			assert.NotEmpty(t, rss.Channel.PubDate)
+			assert.Len(t, rss.Channel.Items, 1)
+			assert.Equal(t, "issue5", rss.Channel.Items[0].Description)
+			assert.NotEmpty(t, rss.Channel.Items[0].PubDate)
+		})
+	})
+
 	t.Run("User", func(t *testing.T) {
 		t.Run("Atom", func(t *testing.T) {
-			defer tests.PrepareTestEnv(t)()
-
 			req := NewRequest(t, "GET", "/user2.atom")
 			resp := MakeRequest(t, req, http.StatusOK)
 
@@ -43,8 +98,6 @@ func TestFeedUser(t *testing.T) {
 		})
 
 		t.Run("RSS", func(t *testing.T) {
-			defer tests.PrepareTestEnv(t)()
-
 			req := NewRequest(t, "GET", "/user2.rss")
 			resp := MakeRequest(t, req, http.StatusOK)
 
@@ -58,52 +111,59 @@ func TestFeedUser(t *testing.T) {
 			assert.NotEmpty(t, rss.Channel.PubDate)
 		})
 	})
-}
 
-// TestFeedUserPublicOnlyToken ensures a public-only API token cannot surface a user's
-// private activity through their profile feed, even when authenticated as the owner.
-func TestFeedUserPublicOnlyToken(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	// TestFeedRepoContentTokenScopes ensures repository feed endpoints enforce the
+	// repository token scope, so a PAT without repository scope cannot read private
+	// repository commit/activity data through RSS/Atom feeds.
+	t.Run("RepoContentTokenScopes", func(t *testing.T) {
+		// user2/repo2 is a private repository owned by user2
+		ownerReadToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+		miscToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadMisc)
 
-	// user2 has activity on the private repo user2/repo2
-	const privateMarker = "user2/repo2"
+		urls := []string{
+			"/user2/repo2.rss",
+			"/user2/repo2.atom",
+			"/user2/repo2/rss/branch/master",
+			"/user2/repo2/atom/branch/master",
+			"/user2/repo2/rss/branch/master/README.md",
+			"/user2/repo2/tags.rss",
+			"/user2/repo2/tags.atom",
+			"/user2/repo2/releases.rss",
+			"/user2/repo2/releases.atom",
+		}
 
-	// a normal read:user token authenticated as the owner sees private activity
-	fullToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
-	reqFull := NewRequest(t, "GET", "/user2.rss")
-	reqFull.SetBasicAuth("user2", fullToken)
-	respFull := MakeRequest(t, reqFull, http.StatusOK)
-	assert.Contains(t, respFull.Body.String(), privateMarker)
+		for _, url := range urls {
+			t.Run(url, func(t *testing.T) {
+				// feed routes only accept basic auth, so authenticate as the advisory PoC does (user:token)
+				reqDenied := NewRequest(t, "GET", url)
+				reqDenied.SetBasicAuth("user2", miscToken)
+				// a token without repository scope must be denied
+				MakeRequest(t, reqDenied, http.StatusForbidden)
 
-	// a public-only token must not surface the private activity
-	publicOnlyToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
-	reqPublicOnly := NewRequest(t, "GET", "/user2.rss")
-	reqPublicOnly.SetBasicAuth("user2", publicOnlyToken)
-	respPublicOnly := MakeRequest(t, reqPublicOnly, http.StatusOK)
-	assert.NotContains(t, respPublicOnly.Body.String(), privateMarker)
-}
+				reqAllowed := NewRequest(t, "GET", url)
+				reqAllowed.SetBasicAuth("user2", ownerReadToken)
+				// a token with repository read scope is allowed
+				MakeRequest(t, reqAllowed, http.StatusOK)
+			})
+		}
+	})
 
-// TestProfileActivityPublicOnlyToken ensures the HTML profile activity tab does not
-// surface a user's private activity to a public-only API token, mirroring the RSS/Atom
-// guard. The /{username} route is AllowBasic, so a public-only PAT used as the Basic
-// password must still be downgraded even for the feed owner.
-func TestProfileActivityPublicOnlyToken(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	t.Run("RepoTagsWithoutReleasesAccess", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeReleases}))
 
-	// user2 has activity on the private repo user2/repo2
-	const privateMarker = "user2/repo2"
+		resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/tags.rss"), http.StatusOK)
+		data := resp.Body.String()
+		assert.Contains(t, data, "/user2/repo1/src/tag/v1.0")
+		assert.NotContains(t, data, "pre-release")
+		assert.NotContains(t, data, "some text for a pre release")
+	})
 
-	// a normal read:user token authenticated as the owner sees private activity
-	fullToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
-	reqFull := NewRequest(t, "GET", "/user2?tab=activity")
-	reqFull.SetBasicAuth("user2", fullToken)
-	respFull := MakeRequest(t, reqFull, http.StatusOK)
-	assert.Contains(t, respFull.Body.String(), privateMarker)
-
-	// a public-only token must not surface the private activity
-	publicOnlyToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
-	reqPublicOnly := NewRequest(t, "GET", "/user2?tab=activity")
-	reqPublicOnly.SetBasicAuth("user2", publicOnlyToken)
-	respPublicOnly := MakeRequest(t, reqPublicOnly, http.StatusOK)
-	assert.NotContains(t, respPublicOnly.Body.String(), privateMarker)
+	t.Run("RepoBranchFeedWithoutCodeAccess", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeCode}))
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1").SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1").SetHeader("Accept", "application/atom+xml"), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1.rss"), http.StatusOK)
+	})
 }

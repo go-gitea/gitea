@@ -68,13 +68,20 @@ const (
 	UserTypeRemoteUser // 5
 )
 
+// AdminListedUserTypes HINT: USER-TYPE-GLOSSARY: administrators list every user type except organizations
+var AdminListedUserTypes = []UserType{UserTypeIndividual, UserTypeUserReserved, UserTypeBot, UserTypeRemoteUser}
+
 // DisplayName returns the English name of the user type for logs and the CLI, the UI translates "concept_user_*" instead
 func (t UserType) DisplayName() string {
 	switch t {
 	case UserTypeOrganization, UserTypeOrganizationReserved:
 		return "Organization"
+	case UserTypeUserReserved:
+		return "Reserved"
 	case UserTypeBot:
 		return "Bot"
+	case UserTypeRemoteUser:
+		return "Remote"
 	default:
 		return "User"
 	}
@@ -251,10 +258,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetAllUsers returns a slice of all individual users found in DB.
-func GetAllUsers(ctx context.Context) ([]*User, error) {
-	users := make([]*User, 0)
-	return users, db.GetEngine(ctx).OrderBy("id").Where("type = ?", UserTypeIndividual).Find(&users)
+// GetAllUsersForAdminListing returns a slice of all users of AdminListedUserTypes found in DB.
+func GetAllUsersForAdminListing(ctx context.Context) (users []*User, err error) {
+	err = db.GetEngine(ctx).OrderBy("id").In("type", AdminListedUserTypes).Find(&users)
+	return users, err
 }
 
 // IsLocal returns true if user login type is LoginPlain.
@@ -439,6 +446,18 @@ func (u *User) IsOrganization() bool {
 // IsIndividual returns true if user is actually an individual user.
 func (u *User) IsIndividual() bool {
 	return u.ID > 0 && u.Type == UserTypeIndividual
+}
+
+// IsFollowable returns whether other users can follow this user (individuals, bots and organizations)
+func (u *User) IsFollowable() bool {
+	if u.ID <= 0 {
+		return false
+	}
+	switch u.Type {
+	case UserTypeIndividual, UserTypeBot, UserTypeOrganization:
+		return true
+	}
+	return false
 }
 
 // IsTypeBot returns whether the user is of type bot
@@ -660,7 +679,7 @@ var (
 	}
 
 	// These names are reserved for user accounts: user's keys, user's rss feed, user's avatar, etc.
-	// DO NOT add any new stuff! The paths with these names are processed by `/{username}` handler (UsernameSubRoute) manually.
+	// HINT: OWNER-NAME-RESERVED-EXT: DO NOT add any new stuff! The paths with these names are processed by UsernamePreRoute handler manually.
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom", "*.png"}
 )
 
@@ -1053,11 +1072,12 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// Glossaries for XxxUser:
+// HINT: USER-TYPE-GLOSSARY: Glossaries for XxxUser:
 // * Possible: The user may or may not exist in the database, but we can still return a valid user object (e.g. Ghost user) for the given ID.
 // * Individual: The user is a real person, not an organization or a bot.
-// * Doer: The user is the one performing an action
-// * Valid: The user is an active user and not prohibited from signing in
+// * Doer: The user is the one performing an action (individual, bot or system)
+// * Valid: The user is an active and existing user and not prohibited from signing in
+// * Real: The user is an existing one and not a system user
 // * System: Negative ID (e.g. Ghost, Actions, DeployKey, etc.) and not a real person, Ghost is not included if there is no "Possible" keyword
 
 // GetPossibleUserByID returns the possible user and its ID. If the user doesn't exist, it returns Ghost user
@@ -1180,6 +1200,15 @@ func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]
 }
 
 func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]int64, error) {
+	users, err := getDoerUsersByNames(ctx, names, allowSystemDoer)
+	ids := make([]int64, 0, len(users))
+	for _, u := range users {
+		ids = append(ids, u.ID)
+	}
+	return ids, err
+}
+
+func getDoerUsersByNames(ctx context.Context, names []string, allowSystemDoer bool) ([]*User, error) {
 	namesLower := make([]string, 0, len(names))
 	namesMap := make(map[string]*User, len(names))
 	for _, name := range names {
@@ -1193,16 +1222,16 @@ func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer 
 		}
 	}
 
-	var users []*User
-	err := db.GetEngine(ctx).In("lower_name", namesLower).Where("`type` IN (?,?)", UserTypeIndividual, UserTypeBot).Find(&users)
+	var dbUsers []*User
+	err := db.GetEngine(ctx).In("lower_name", namesLower).Where("`type` IN (?,?)", UserTypeIndividual, UserTypeBot).Find(&dbUsers)
 	if err != nil {
 		return nil, err
 	}
-	for _, user := range users {
+	for _, user := range dbUsers {
 		namesMap[user.LowerName] = user
 	}
 
-	ids := make([]int64, 0, len(names))
+	users := make([]*User, 0, len(names))
 	var errFinal error
 	for _, nameLower := range namesLower {
 		u := namesMap[nameLower]
@@ -1210,18 +1239,22 @@ func getDoerUserIDsByNames(ctx context.Context, names []string, allowSystemDoer 
 			errFinal = ErrUserNotExist{Name: nameLower}
 			continue
 		}
-		ids = append(ids, u.ID)
+		users = append(users, u)
 	}
-	return ids, errFinal
+	return users, errFinal
+}
+
+func GetRealDoerUsersByNames(ctx context.Context, names []string) ([]*User, error) {
+	return getDoerUsersByNames(ctx, names, false)
 }
 
 func GetDoerUserIDsByNamesWithSystem(ctx context.Context, names []string) ([]int64, error) {
 	return getDoerUserIDsByNames(ctx, names, true)
 }
 
-// GetDoerUserIDsByNames returns a slice of ids corresponds to names.
+// GetRealDoerUserIDsByNames returns a slice of ids corresponds to names.
 // It always returns found user IDs even if some names are not found, but returns an error if any name is not found.
-func GetDoerUserIDsByNames(ctx context.Context, names []string) ([]int64, error) {
+func GetRealDoerUserIDsByNames(ctx context.Context, names []string) ([]int64, error) {
 	return getDoerUserIDsByNames(ctx, names, false)
 }
 

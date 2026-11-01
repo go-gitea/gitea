@@ -167,16 +167,23 @@ func DeleteAccessToken(ctx *context.Context, owner *user_model.User) {
 	ctx.JSONRedirect("")
 }
 
-// RegenerateAccessToken response for regenerating a user's access token
-func RegenerateAccessToken(ctx *context.Context) {
-	t, err := auth_model.RegenerateAccessToken(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
+// ApplicationsRegenerateToken response for regenerating the current user's access token
+func ApplicationsRegenerateToken(ctx *context.Context) {
+	RegenerateAccessToken(ctx, ctx.Doer)
+}
+
+// RegenerateAccessToken regenerates an access token belonging to owner
+func RegenerateAccessToken(ctx *context.Context, owner *user_model.User) {
+	t, err := auth_model.RegenerateAccessToken(ctx, ctx.FormInt64("id"), owner.ID)
 	if err != nil {
 		ctx.ServerError("RegenerateAccessToken", err)
 		return
 	}
+	audit.Record(ctx, audit_model.UserAccessTokenRegenerate, owner, "token", t.Name)
+
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Token)
-	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
+	ctx.JSONRedirect("")
 }
 
 func loadApplicationsData(ctx *context.Context) {
