@@ -62,7 +62,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		message = AddCommitMessageTailer(message, git.CoAuthoredByTrailer, sig.String())
 	}
 	if git.DefaultFeatures().SupportGitMergeTree {
-		return commitMergeTree(ctx, repo_model.MergeStyleSquash, message, sig)
+		return commitMergeTree(ctx, repo_model.MergeStyleSquash, message, sig, tmpRepoBaseBranch)
 	}
 
 	cmdMerge := gitcmd.NewCommand("merge", "--squash").AddDynamicArguments(tmpRepoTrackingBranch)

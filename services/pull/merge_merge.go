@@ -13,7 +13,7 @@ import (
 // doMergeStyleMerge merges the tracking branch into the current HEAD - which is assumed to be the staging branch (equal to the pr.BaseBranch)
 func doMergeStyleMerge(ctx *mergeContext, message string) error {
 	if git.DefaultFeatures().SupportGitMergeTree {
-		return commitMergeTree(ctx, repo_model.MergeStyleMerge, message, nil)
+		return commitMergeTree(ctx, repo_model.MergeStyleMerge, message, ctx.sig, tmpRepoBaseBranch, tmpRepoTrackingBranch)
 	}
 	cmd := gitcmd.NewCommand("merge", "--no-ff", "--no-commit").AddDynamicArguments(tmpRepoTrackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleMerge, cmd); err != nil {

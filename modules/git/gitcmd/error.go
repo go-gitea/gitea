@@ -94,6 +94,7 @@ const (
 	StderrBadRevision        StderrPrefix = "fatal: bad revision"
 	StderrNoSuchPath         StderrPrefix = "fatal: no such path"
 	StderrBadObject          StderrPrefix = "fatal: bad object "
+	StderrUnrelatedHistories StderrPrefix = "fatal: refusing to merge unrelated histories"
 
 	StderrAuthenticationFailed StderrPrefix = "fatal: Authentication failed for"
 	StderrCouldNotReadUsername StderrPrefix = "fatal: could not read Username"

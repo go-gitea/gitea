@@ -256,6 +256,6 @@ func AddObjectMessageArgument(cmd *gitcmd.Command, typ ObjectType, message strin
 		// If any real world user would complain about the limit, let them explain why, then make the limit configurable.
 		return util.NewInvalidArgumentErrorf("git %s message is too long", typ)
 	}
-	cmd.AddArguments("-F", "-").WithStdinBytes([]byte(message))
+	cmd.AddArguments("--file=-").WithStdinBytes([]byte(message))
 	return nil
 }
