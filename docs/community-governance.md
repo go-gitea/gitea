@@ -74,15 +74,13 @@ Changes to Gitea must be reviewed before they are accepted, including changes fr
 
 We require two maintainer approvals for every PR. When that is satisfied, your PR gets the `lgtm/done` label. After that, you mainly fix merge conflicts and respond to or implement maintainer requests; maintainers drive getting the PR merged.
 
-If a PR has `lgtm/done`, no open discussions, and no merge conflicts, any maintainer may add `reviewed/wait-merge`. That puts the PR in the merge queue. PRs are merged from the queue in the order of this list:
+If a PR has `lgtm/done`, no open discussions, and no merge conflicts, a merger rewrites its title and description into the final [commit message](#commit-messages) and clicks **Merge when ready**. That adds the PR to the [merge queue](https://github.com/go-gitea/gitea/queue/main), which tests it on top of the latest `main` and the PRs ahead of it, and merges it once CI passes. Edits to the title and description no longer reach the commit once the queue starts building the PR, so make them before queueing.
 
-<https://github.com/go-gitea/gitea/pulls?q=is%3Apr+label%3Areviewed%2Fwait-merge+sort%3Acreated-asc+is%3Aopen>
+Gitea uses its own tool, <https://github.com/go-gitea/gitea/blob/main/.github/workflows/giteabot.yml>, to automate parts of the review process. It:
 
-Gitea uses its own tool, <https://github.com/go-gitea/gitea/blob/main/.github/workflows/giteabot.yml>, to automate parts of the review process. The backporter:
-
+- Counts maintainer approvals and sets the `lgtm/*` labels and the `giteabot/lgtm` status.
+- Takes a PR out of the merge queue when it loses its approval.
 - Creates a backport PR when needed after the initial PR merges.
-- Removes the PR from the merge queue after it merges.
-- Keeps the oldest branch in the merge queue up to date with merges.
 
 ### Final call
 
@@ -164,7 +162,7 @@ Any account with write access (including bots and TOC members) **must** use [2FA
 
 Mergers are the maintainers who carry out the final merge of approved PRs. Their responsibilities, described throughout this guide, are:
 
-- Merging PRs from the [merge queue](#getting-prs-merged) in order, once a PR has `lgtm/done`, no open discussions, and no merge conflicts.
+- Adding PRs to the [merge queue](#getting-prs-merged) once a PR has `lgtm/done`, no open discussions, and no merge conflicts.
 - Rewriting the PR title and description prior to the merge, making the [commit message](#commit-messages) clear.\
   In particular, mergers should edit the PR description.\
   Mergers should **not** edit the actual commit message except to remove unnecessary information. Because of that, even if users are looking at the PR, they can understand what changed.
