@@ -57,9 +57,16 @@
 				{{end}}
 				</div>
 			{{else}}
-				{{if .NumTags}}
-					<p class="tw-p-4">{{ctx.Locale.Tr "no_results_found"}}</p>
-				{{end}}
+				<div class="empty-placeholder">
+					{{if .Keyword}}
+						{{svg "octicon-search" 48}}
+						<h2>{{ctx.Locale.Tr "no_results_found"}}</h2>
+					{{else}}
+						{{svg "octicon-tag" 48}}
+						<h2>{{ctx.Locale.Tr "repo.tag.no_tags"}}</h2>
+						<p>{{ctx.Locale.Tr "repo.tag.no_tags_desc"}}</p>
+					{{end}}
+				</div>
 			{{end}}
 		</div>
 		{{template "base/paginate" .}}
