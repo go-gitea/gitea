@@ -338,6 +338,13 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		ctx.APIErrorNotFound()
 		return nil
 	}
+	if hidden, err := comment.IsPendingReviewHiddenFrom(ctx, ctx.Doer); err != nil {
+		ctx.APIErrorInternal(err)
+		return nil
+	} else if hidden {
+		ctx.APIErrorNotFound()
+		return nil
+	}
 
 	comment.Issue.Repo = ctx.Repo.Repository
 

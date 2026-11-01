@@ -782,6 +782,21 @@ func (c *Comment) LoadReview(ctx context.Context) (err error) {
 	return nil
 }
 
+// IsPendingReviewHiddenFrom reports whether the comment belongs to a review which is not submitted yet,
+// only its reviewer and site admins can see such drafts
+func (c *Comment) IsPendingReviewHiddenFrom(ctx context.Context, doer *user_model.User) (bool, error) {
+	if c.ReviewID == 0 {
+		return false, nil
+	}
+	if err := c.LoadReview(ctx); err != nil {
+		if IsErrReviewNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return c.Review != nil && c.Review.Type == ReviewTypePending && (doer == nil || !doer.IsAdmin && doer.ID != c.Review.ReviewerID), nil
+}
+
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
 func (c *Comment) DiffSide() string {
 	if c.Line < 0 {
