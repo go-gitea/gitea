@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"time"
 
 	activities_model "gitea.dev/models/activities"
@@ -273,10 +274,6 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) (*git.Tre
 		return nil, nil
 	}
 
-	// TODO: LAST-COMMIT-ASYNC-LOADING: search this keyword to see more details
-	lastCommitLoaderURL := ctx.Repo.RepoLink + "/lastcommit/" + url.PathEscape(ctx.Repo.CommitID) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	ctx.Data["LastCommitLoaderURL"] = lastCommitLoaderURL + "?refSubUrl=" + url.QueryEscape(ctx.Repo.RefTypeNameSubURL())
-
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
@@ -295,6 +292,39 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) (*git.Tre
 		return nil, nil
 	}
 	subEntries.CustomSort(base.NaturalSortCompare)
+
+	allEntries := subEntries
+
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
+	pageSize := setting.UI.RepoFilesPagingNum
+	if pageSize > 0 && len(subEntries) > pageSize {
+		pager := context.NewPagerBuilder(ctx).
+			TotalCount(int64(len(subEntries))).
+			PerPageLimit(pageSize).
+			CurPage(page).
+			Build()
+		ctx.Data["Page"] = pager
+
+		startIndex := (pager.Paginator.Current() - 1) * pageSize
+		endIndex := min(startIndex+pageSize, len(subEntries))
+		if startIndex < len(subEntries) {
+			subEntries = subEntries[startIndex:endIndex]
+		} else {
+			subEntries = nil
+		}
+	}
+
+	// TODO: LAST-COMMIT-ASYNC-LOADING: search this keyword to see more details
+	lastCommitLoaderURL := ctx.Repo.RepoLink + "/lastcommit/" + url.PathEscape(ctx.Repo.CommitID) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	lastCommitQuery := url.Values{}
+	lastCommitQuery.Set("refSubUrl", ctx.Repo.RefTypeNameSubURL())
+	if page > 1 {
+		lastCommitQuery.Set("page", strconv.Itoa(page))
+	}
+	ctx.Data["LastCommitLoaderURL"] = lastCommitLoaderURL + "?" + lastCommitQuery.Encode()
 
 	files, latestCommit, err := subEntries.GetCommitsInfo(ctx, timeout, ctx.Repo.RepoLink, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
@@ -333,7 +363,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) (*git.Tre
 	if !loadLatestCommitData(ctx, latestCommit) {
 		return nil, nil
 	}
-	return entry, subEntries
+	return entry, allEntries
 }
 
 // RenderUserCards render a page show users according the input template
