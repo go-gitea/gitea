@@ -199,7 +199,7 @@ func SearchPrincipalKey(ctx context.Context, principalKey string) (*PublicKey, e
 	// In the future, the existing principal keys should be migrated to use the fingerprint ("principal:{name}") instead of the content
 	key := new(PublicKey)
 	has, err := db.GetEngine(ctx).
-		Where("content = ?", principalKey).
+		Where("content = ? AND type = ?", principalKey, KeyTypePrincipal).
 		Get(key)
 	if err != nil {
 		return nil, err
@@ -224,7 +224,7 @@ func (opts FindPublicKeyOptions) ToOrders() string {
 
 func (opts FindPublicKeyOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if opts.OwnerID > 0 {
+	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
 	if opts.Fingerprint != "" {

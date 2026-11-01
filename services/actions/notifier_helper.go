@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/convert"
 )
@@ -82,12 +84,6 @@ func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event we
 func newNotifyInputForSchedules(repo *repo_model.Repository) *notifyInput {
 	// the doer here will be ignored as we force using action user when handling schedules
 	return newNotifyInput(repo, user_model.NewActionsUser(), webhook_module.HookEventSchedule)
-}
-
-func newPullRequestReviewNotifyInput(repo *repo_model.Repository, reviewer *user_model.User, event webhook_module.HookEventType, commitID string, pr *issues_model.PullRequest) *notifyInput {
-	return newNotifyInput(repo, reviewer, event).
-		WithRef(commitID).
-		WithPullRequest(pr)
 }
 
 func (input *notifyInput) WithDoer(doer *user_model.User) *notifyInput {
@@ -432,6 +428,10 @@ func buildApproveAndInsertRun(
 	}
 
 	if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) && !isScopedRun {
+			insertInvalidWorkflowRun(ctx, run, err)
+			return nil
+		}
 		return fmt.Errorf("PrepareRunAndInsert: %w", err)
 	}
 	return nil
@@ -595,17 +595,17 @@ func handleSchedules(
 		return nil
 	}
 
-	if count, err := db.Count[actions_model.ActionSchedule](ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
-		log.Error("CountSchedules: %v", err)
-		return err
-	} else if count > 0 {
-		if err := CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
-			log.Error("CleanRepoScheduleTasks: %v", err)
-		}
-	}
-
 	if len(detectedWorkflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find schedules", input.Repo.FullName(), commit.ID)
+		if count, err := db.Count[actions_model.ActionSchedule](ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
+			log.Error("CountSchedules: %v", err)
+			return err
+		} else if count > 0 {
+			// dropping the schedules leaves their in-progress runs alone, as GitHub does
+			if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
+				log.Error("DeleteScheduleTaskByRepo: %v", err)
+			}
+		}
 		return nil
 	}
 
@@ -647,7 +647,7 @@ func handleSchedules(
 		crons = append(crons, run)
 	}
 
-	return actions_model.CreateScheduleTaskBySchedules(ctx, crons)
+	return actions_model.ReplaceScheduleTasksByRepo(ctx, input.Repo.ID, crons)
 }
 
 // DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks
@@ -670,9 +670,6 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	scheduleWorkflows, err := actions_module.DetectScheduledWorkflows(ctx, gitRepo, commit)
 	if err != nil {
 		return fmt.Errorf("detect schedule workflows: %w", err)
-	}
-	if len(scheduleWorkflows) == 0 {
-		return nil
 	}
 
 	// We need a notifyInput to call handleSchedules

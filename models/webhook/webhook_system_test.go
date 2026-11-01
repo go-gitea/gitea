@@ -14,6 +14,8 @@ import (
 )
 
 func TestListSystemWebhookOptions(t *testing.T) {
+	require.NoError(t, prepareWebhookTestData())
+
 	hookSystem := unittest.AssertExistsAndLoadBean(t, &Webhook{URL: "https://www.example.com/system"})
 	hookDefault := unittest.AssertExistsAndLoadBean(t, &Webhook{URL: "https://www.example.com/default"})
 	opts := ListSystemWebhookOptions{IsSystem: optional.None[bool]()}

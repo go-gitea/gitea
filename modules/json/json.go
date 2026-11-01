@@ -23,7 +23,7 @@ type Decoder interface {
 // Interface represents an interface to handle json data
 type Interface interface {
 	Marshal(v any) ([]byte, error)
-	MarshalWrite(w io.Writer, v any) error
+	MarshalWriteRelaxed(w io.Writer, v any) error
 	Unmarshal(data []byte, v any) error
 	NewEncoder(writer io.Writer) Encoder
 	NewDecoder(reader io.Reader) Decoder
@@ -37,9 +37,10 @@ func Marshal(v any) ([]byte, error) {
 	return DefaultJSONHandler.Marshal(v)
 }
 
-// MarshalWrite writes the JSON encoding of v to the given writer
-func MarshalWrite(w io.Writer, v any) error {
-	return DefaultJSONHandler.MarshalWrite(w, v)
+// MarshalWriteRelaxed writes the JSON encoding of v to the given writer
+// It tolerates invalid UTF-8 in strings and replaces them with the Unicode replacement character U+FFFD.
+func MarshalWriteRelaxed(w io.Writer, v any) error {
+	return DefaultJSONHandler.MarshalWriteRelaxed(w, v)
 }
 
 // Unmarshal decodes object from bytes

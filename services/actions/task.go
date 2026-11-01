@@ -94,11 +94,12 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		}
 	}
 
-	t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
+	t, cancelledJobs, err := actions_model.CreateTaskForRunner(ctx, runner)
+	notifyAndEmitFinishedJobs(context.WithoutCancel(ctx), cancelledJobs) // the cancellations are committed even if the runner went away
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
 	}
-	if !ok {
+	if t == nil {
 		return nil, false, nil
 	}
 
@@ -200,6 +201,16 @@ func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*str
 	}
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
+	if allowed, err := taskAllowsOIDCToken(ctx, t); err != nil {
+		return nil, err
+	} else if allowed {
+		requestToken, err := signActionsClaims(actionsClaims{Scp: idTokenRequestScope, TaskID: t.ID})
+		if err != nil {
+			return nil, err
+		}
+		gitCtx["actions_id_token_request_url"] = OIDCIssuer() + "/token?" // actions/core appends "&audience=..."
+		gitCtx["actions_id_token_request_token"] = requestToken
+	}
 
 	return structpb.NewStruct(gitCtx)
 }

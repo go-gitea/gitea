@@ -1,4 +1,4 @@
-import {env} from 'node:process';
+import {env, platform} from 'node:process';
 import {defineConfig, devices} from '@playwright/test';
 
 const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
@@ -34,7 +34,19 @@ export default defineConfig({
       name: 'firefox',
       use: {
         ...devices['Desktop Firefox'],
+        launchOptions: {
+          firefoxUserPrefs: {
+            'dom.events.testing.asyncClipboard': true, // disable paste prompt
+          },
+        },
       },
     },
+    ...(platform === 'darwin' ? [{ // webkit on linux is unstable
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
+        permissions: ['clipboard-read'],
+      },
+    }] : []),
   ],
 });

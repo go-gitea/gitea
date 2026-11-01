@@ -37,26 +37,21 @@ func TestIssueMultipleProjects(t *testing.T) {
 			_ = project_model.DeleteProjectByID(t.Context(), project2.ID)
 		}()
 
-		err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
 		require.NoError(t, err)
 		err = issue1.LoadProjects(t.Context())
 		require.NoError(t, err)
 		require.Empty(t, issue1.Projects)
 
 		// assign issue to both projects (each project uses its own default column)
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project1.ID})
-		require.NoError(t, err)
-		assert.Nilf(t, issue1.Projects, "Issue's Projects should be nil after IssueAssignOrRemoveProject to ensure it reloads fresh data")
-		err = issue1.LoadProjects(t.Context())
-		require.NoError(t, err)
-		require.Len(t, issue1.Projects, 1)
-
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project1.ID, project2.ID})
-		require.NoError(t, err)
-		assert.Nilf(t, issue1.Projects, "Issue's Projects should be nil after IssueAssignOrRemoveProject to ensure it reloads fresh data")
-		err = issue1.LoadProjects(t.Context())
-		require.NoError(t, err)
-		require.Len(t, issue1.Projects, 2)
+		for _, projectIDs := range [][]int64{{project1.ID}, {project1.ID, project2.ID}} {
+			_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, projectIDs)
+			require.NoError(t, err)
+			assert.Nilf(t, issue1.Projects, "Issue's Projects should be nil after IssueAssignOrRemoveProject to ensure it reloads fresh data")
+			err = issue1.LoadProjects(t.Context())
+			require.NoError(t, err)
+			require.Len(t, issue1.Projects, len(projectIDs))
+		}
 		assert.ElementsMatch(t, []int64{project1.ID, project2.ID}, []int64{issue1.Projects[0].ID, issue1.Projects[1].ID}, "Issue should be in both projects")
 
 		// test issue's project column map
@@ -68,7 +63,7 @@ func TestIssueMultipleProjects(t *testing.T) {
 		assert.Equal(t, p2Col.ID, projectColumnMap[project2.ID])
 
 		// only keep project2
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project2.ID})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project2.ID})
 		require.NoError(t, err)
 		err = issue1.LoadProjects(t.Context())
 		require.NoError(t, err)
@@ -84,7 +79,7 @@ func TestIssueMultipleProjects(t *testing.T) {
 		assert.Equal(t, project2.ID, issue1.Projects[0].ID)
 
 		// remove issue's projects
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
 		require.NoError(t, err)
 		err = issue1.LoadProjects(t.Context())
 		require.NoError(t, err)
@@ -114,11 +109,11 @@ func TestIssueMultipleProjects(t *testing.T) {
 		}
 
 		// Assign issue1 to projects 1 and 2
-		err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{projects[0].ID, projects[1].ID})
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{projects[0].ID, projects[1].ID})
 		require.NoError(t, err)
 
 		// Assign issue2 to project 3
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue2, user2, []int64{projects[2].ID})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue2, user2, []int64{projects[2].ID})
 		require.NoError(t, err)
 
 		// Query for issues in project 3 only (should find issue2)
@@ -141,9 +136,9 @@ func TestIssueMultipleProjects(t *testing.T) {
 
 		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet. Search logic is wrong. It should use "AND" but not "OR".
 		// Clean up
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
 		require.NoError(t, err)
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue2, user2, []int64{})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue2, user2, []int64{})
 		require.NoError(t, err)
 	})
 }

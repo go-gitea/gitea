@@ -25,7 +25,7 @@ import (
 type Access struct {
 	ID     int64 `xorm:"pk autoincr"`
 	UserID int64 `xorm:"UNIQUE(s)"`
-	RepoID int64 `xorm:"UNIQUE(s)"`
+	RepoID int64 `xorm:"UNIQUE(s) INDEX"`
 	Mode   perm.AccessMode
 }
 
