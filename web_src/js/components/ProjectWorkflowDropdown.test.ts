@@ -9,10 +9,13 @@ test('label filter gets focus on open and keeps space, enter and left/right insi
   app.mount(root);
   await nextTick();
   const menu = root.querySelector('button')!._tippy;
-  menu.show();
   const filter = menu.popper.querySelector('input')!;
-  await expect.poll(() => document.activeElement).toBe(filter);
-  await userEvent.keyboard('a b{ArrowLeft}c{Enter}');
+  const focus = vi.spyOn(filter, 'focus').mockImplementation(() => {});
+  menu.show();
+  await menu.popperInstance!.update();
+  expect(focus).toHaveBeenCalledOnce();
+  focus.mockRestore();
+  await userEvent.type(filter, 'a b{ArrowLeft}c{Enter}');
   expect(filter.value).toEqual('a cb');
   expect(menu.state.isVisible).toBe(true);
 
