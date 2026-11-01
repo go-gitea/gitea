@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 	"unicode/utf8"
 
 	"gitea.dev/modules/log"
@@ -32,12 +33,14 @@ var (
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[-\w][-.\w]*?|@[-\w][-.\w]*?/[-\w][-.\w]*?)(?:\s|$|[:,;.?!](\s|$)|'|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\")([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$)`)
+	// A non-ASCII character around the reference is checked by validReferenceBoundaries.
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\"|[^\x00-\x7f])([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$|[^\x00-\x7f])`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\'|,)`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. org/repo#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	// A non-ASCII character around the reference is checked by validReferenceBoundaries.
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|[^\x00-\x7f])([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$|[^\x00-\x7f])`)
 	// crossReferenceCommitPattern matches a string that references a commit in a different repository
 	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
 	crossReferenceCommitPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)@([0-9a-f]{7,64})(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
@@ -338,14 +341,45 @@ func FindAllIssueReferences(content string) []IssueReference {
 	return rawToIssueReferenceList(findAllIssueReferencesBytes(contentBytes, []string{}, nil))
 }
 
+// validReferenceBoundaries checks the characters that a pattern matched around a reference (match[2]:match[3]).
+// The patterns accept any non-ASCII character there, which must be punctuation or a space,
+// e.g. "修复 #1。" or "（#2）", but not a letter as in "修复#1".
+func validReferenceBoundaries(content []byte, match []int) bool {
+	for _, around := range [][]byte{content[match[0]:match[2]], content[match[3]:match[1]]} {
+		if r, size := utf8.DecodeRune(around); size > 0 && r >= utf8.RuneSelf && !unicode.IsPunct(r) && !unicode.IsSpace(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// findValidReferenceIndex returns the submatch indexes of the first match of pattern in content
+// that passes validReferenceBoundaries.
+func findValidReferenceIndex(pattern *regexp.Regexp, content string) []int {
+	for pos := 0; pos < len(content); {
+		match := pattern.FindStringSubmatchIndex(content[pos:])
+		if match == nil {
+			return nil
+		}
+		if validReferenceBoundaries(util.UnsafeStringToBytes(content[pos:]), match) {
+			for i := range match {
+				match[i] += pos
+			}
+			return match
+		}
+		pos += match[3]
+	}
+	return nil
+}
+
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
 func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool) *RenderizableReference {
 	var match []int
 	if !crossLinkOnly {
-		match = issueNumericPattern.FindStringSubmatchIndex(content)
+		match = findValidReferenceIndex(issueNumericPattern, content)
 	}
 	if match == nil {
-		if match = crossReferenceIssueNumericPattern.FindStringSubmatchIndex(content); match == nil {
+		if match = findValidReferenceIndex(crossReferenceIssueNumericPattern, content); match == nil {
 			return nil
 		}
 	}
@@ -443,8 +477,10 @@ func findAllIssueReferencesBytes(content []byte, links []string, originalContent
 		if match == nil {
 			break
 		}
-		if ref := getCrossReference(content, match[2]+pos, match[3]+pos, false, false); ref != nil {
-			ret = append(ret, ref)
+		if validReferenceBoundaries(content[pos:], match) {
+			if ref := getCrossReference(content, match[2]+pos, match[3]+pos, false, false); ref != nil {
+				ret = append(ret, ref)
+			}
 		}
 		notrail := spaceTrimmedPattern.FindSubmatchIndex(content[match[2]+pos : match[3]+pos])
 		if notrail == nil {
@@ -461,8 +497,10 @@ func findAllIssueReferencesBytes(content []byte, links []string, originalContent
 		if match == nil {
 			break
 		}
-		if ref := getCrossReference(content, match[2]+pos, match[3]+pos, false, false); ref != nil {
-			ret = append(ret, ref)
+		if validReferenceBoundaries(content[pos:], match) {
+			if ref := getCrossReference(content, match[2]+pos, match[3]+pos, false, false); ref != nil {
+				ret = append(ret, ref)
+			}
 		}
 		notrail := spaceTrimmedPattern.FindSubmatchIndex(content[match[2]+pos : match[3]+pos])
 		if notrail == nil {
