@@ -1,6 +1,7 @@
 <h4 class="ui top attached header">{{if .IsEditRule}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.edit"}}{{else}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.add"}}{{end}}</h4>
 <div class="ui attached segment">
 	<form class="ui form" action="{{.Link}}" method="post">
+		<fieldset class="tw-contents"{{if $.IsOrgArchived}} disabled{{end}}>
 		<input name="id" type="hidden" value="{{.CleanupRule.ID}}">
 		<div class="field">
 			<div class="ui checkbox">
@@ -68,5 +69,6 @@
 			<button type="submit" class="ui primary button" name="action" value="save">{{ctx.Locale.Tr "add"}}</button>
 			{{end}}
 		</div>
+		</fieldset>
 	</form>
 </div>

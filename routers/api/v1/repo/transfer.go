@@ -114,7 +114,7 @@ func Transfer(ctx *context.APIContext) {
 		case errors.Is(err, user_model.ErrBlockedUser):
 			ctx.APIError(http.StatusForbidden, err.Error())
 		default:
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}

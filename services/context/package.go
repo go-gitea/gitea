@@ -61,6 +61,9 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 		errCb(http.StatusInternalServerError, fmt.Sprintf("determineAccessMode: %v", err))
 		return nil
 	}
+	if pkgOwner.IsArchived {
+		accessMode = min(accessMode, perm.AccessModeRead)
+	}
 
 	pkg := &Package{
 		Owner:      pkgOwner,

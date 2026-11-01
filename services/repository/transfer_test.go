@@ -206,3 +206,20 @@ func TestRepositoryTransferRejection(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsRepositoryLimitReached(err))
 }
+
+func TestTransferMirrorIntoArchivedOrg(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	org.IsArchived = true
+	require.NoError(t, user_model.UpdateUserColsNoAutoTime(t.Context(), org.AsUser(), "is_archived"))
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, repo.LoadOwner(t.Context()))
+	repo.IsMirror = true
+
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.ErrorIs(t, StartRepositoryTransfer(t.Context(), admin, org.AsUser(), repo, nil), ErrOrgArchived)
+	assert.ErrorIs(t, transferOwnership(t.Context(), admin, org.Name, repo, nil), ErrOrgArchived)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, OwnerID: 2})
+}

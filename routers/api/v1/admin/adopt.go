@@ -111,7 +111,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		Name:      repoName,
 		IsPrivate: true,
 	}); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
