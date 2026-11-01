@@ -3038,7 +3038,7 @@
             "x-go-name": "Path"
           },
           "sha": {
-            "description": "the blob ID (SHA) for the file that already exists, required for changing existing files",
+            "description": "the blob ID (SHA) for the file that already exists, as returned in `sha` by \"Get contents\", required for changing existing files. For Git LFS files, this is the pointer blob's SHA, not `lfs_oid`.",
             "type": "string",
             "x-go-name": "SHA"
           }
@@ -3616,7 +3616,7 @@
             "x-go-name": "Path"
           },
           "sha": {
-            "description": "SHA is the Git blob or tree SHA",
+            "description": "SHA is the Git blob or tree SHA that the file APIs expect in `sha`. For Git LFS files, this is the pointer blob's SHA, not the LFS object's.",
             "type": "string",
             "x-go-name": "SHA"
           },
@@ -5190,7 +5190,7 @@
             "x-go-name": "NewBranchName"
           },
           "sha": {
-            "description": "the blob ID (SHA) for the file to delete",
+            "description": "the blob ID (SHA) for the file to delete, as returned in `sha` by \"Get contents\". For Git LFS files, this is the pointer blob's SHA, not `lfs_oid`.",
             "type": "string",
             "x-go-name": "SHA"
           },
@@ -10799,7 +10799,7 @@
             "x-go-name": "NewBranchName"
           },
           "sha": {
-            "description": "the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file",
+            "description": "the blob ID (SHA) for the file that already exists to update, as returned in `sha` by \"Get contents\", or leave it empty to create a new file. For Git LFS files, this is the pointer blob's SHA, not `lfs_oid`.",
             "type": "string",
             "x-go-name": "SHA"
           },
