@@ -32,6 +32,18 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 
 	notf = unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, IssueID: issue.ID})
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
+
+	// unread notification should get latest updated_unix when re-notified
+	_, err = db.GetEngine(t.Context()).ID(notf.ID).NoAutoTime().Cols("updated_unix").Update(&activities_model.Notification{UpdatedUnix: 123})
+	assert.NoError(t, err)
+	notf = unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: notf.ID})
+	assert.EqualValues(t, 123, notf.UpdatedUnix)
+
+	_, err = activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 3, 0)
+	assert.NoError(t, err)
+	notf = unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: notf.ID})
+	assert.NotEqualValues(t, 123, notf.UpdatedUnix)
+	assert.EqualValues(t, 3, notf.UpdatedBy)
 }
 
 func TestCreateOrUpdateIssueNotificationsForAssigneeAndReviewer(t *testing.T) {

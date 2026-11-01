@@ -180,15 +180,14 @@ func updateIssueNotification(ctx context.Context, userID, issueID, commentID, up
 	}
 
 	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
-	// But we need update update_by so that the notification will be reorder
-	var cols []string
+	// Always update so that updated_unix moves the notification to the top of the list
+	// Actually, it's unclear what UpdatedBy is used for, or maybe not used at all, or maybe it should just be dropped.
+	notification.UpdatedBy = updatedByID
+	cols := []string{"updated_by"}
 	if notification.Status == NotificationStatusRead {
 		notification.Status = NotificationStatusUnread
 		notification.CommentID = commentID
-		cols = []string{"status", "update_by", "comment_id"}
-	} else {
-		notification.UpdatedBy = updatedByID
-		cols = []string{"update_by"}
+		cols = append(cols, "status", "comment_id")
 	}
 
 	_, err = db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)
