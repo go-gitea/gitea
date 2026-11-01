@@ -8,6 +8,8 @@ import (
 
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -56,4 +58,23 @@ func TestSettings(t *testing.T) {
 	settings, err = user_model.GetUserAllSettings(t.Context(), 99)
 	assert.NoError(t, err)
 	assert.Empty(t, settings)
+}
+
+func TestGetUserDashboardTab(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.UI.User.DefaultDashboardTab, setting.DashboardTabOverview)()
+
+	tab, err := user_model.GetUserDashboardTab(t.Context(), 99)
+	assert.NoError(t, err)
+	assert.Equal(t, setting.DashboardTabOverview, tab)
+
+	assert.NoError(t, user_model.SetUserSetting(t.Context(), 99, user_model.SettingsKeyDashboardDefaultTab, setting.DashboardTabActivity))
+	tab, err = user_model.GetUserDashboardTab(t.Context(), 99)
+	assert.NoError(t, err)
+	assert.Equal(t, setting.DashboardTabActivity, tab)
+
+	assert.NoError(t, user_model.SetUserSetting(t.Context(), 99, user_model.SettingsKeyDashboardDefaultTab, "removed-tab"))
+	tab, err = user_model.GetUserDashboardTab(t.Context(), 99)
+	assert.NoError(t, err)
+	assert.Equal(t, setting.DashboardTabOverview, tab)
 }

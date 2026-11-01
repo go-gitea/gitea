@@ -18,6 +18,8 @@ const (
 
 	SettingsKeyCodeViewShowFileTree = "code_view.show_file_tree"
 
+	SettingsKeyDashboardDefaultTab = "dashboard.default_tab"
+
 	SettingsKeyEmailNotificationGiteaActions        = "email_notification.gitea_actions"
 	SettingEmailNotificationGiteaActionsAll         = "all"
 	SettingEmailNotificationGiteaActionsFailureOnly = "failure-only" // Default for actions email preference
