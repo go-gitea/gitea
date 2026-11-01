@@ -971,6 +971,34 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			assert.False(t, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 		})
+
+		t.Run("PushRefreshesCommitDivergence", func(t *testing.T) {
+			// the base branch of a pull request moves while it is open, which leaves it behind. Only
+			// a push of the head can put it back in front, so that push has to recompute the
+			// distance: otherwise the merge box keeps the outdated hint of the base branch push.
+			require.NoError(t, pr1.UpdateCommitDivergence(t.Context(), pr1.CommitsAhead, 42))
+
+			err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content \n ## test content 3"), 0o666)
+			require.NoError(t, err)
+			require.NoError(t, gitAddChangesDeprecated(t.Context(), dstPath, true))
+			require.NoError(t, gitCommitChangesDeprecated(t.Context(), dstPath, gitCommitChangesOptions{
+				Committer: &git.Signature{Email: "user2@example.com", Name: "user2", When: time.Now()},
+				Author:    &git.Signature{Email: "user2@example.com", Name: "user2", When: time.Now()},
+				Message:   "Testing commit 3",
+			}))
+
+			err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+				AddDynamicArguments("topic=" + headBranch).
+				WithDir(dstPath).
+				Run(t.Context())
+			require.NoError(t, err)
+
+			updated, err := issues_model.GetPullRequestByID(t.Context(), pr1.ID)
+			require.NoError(t, err)
+			assert.Equal(t, 0, updated.CommitsBehind)
+			assert.Positive(t, updated.CommitsAhead)
+		})
+
 		t.Run("Merge", doAPIMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
 		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
 	}
