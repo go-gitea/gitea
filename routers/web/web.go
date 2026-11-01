@@ -784,6 +784,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("", admin.Dashboard)
 		m.Get("/system_status", admin.SystemStatus)
 		m.Post("", web.Bind[*forms.AdminDashboardForm](), admin.DashboardPost)
+		m.Combo("/pages").Get(admin.Pages).Post(admin.PagesPost)
 
 		m.Get("/self_check", admin.SelfCheck)
 		m.Post("/self_check", admin.SelfCheckPost)
@@ -1198,6 +1199,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
 
 		m.Combo("/public_access").Get(repo_setting.PublicAccess).Post(repo_setting.PublicAccessPost)
+		m.Combo("/pages").Get(repo_setting.Pages).Post(repo_setting.PagesPost)
+		m.Combo("/pages/versions").Get(repo_setting.PagesVersions).Post(context.RepoMustNotBeArchived(), repo_setting.PagesVersionsPost)
+		m.Post("/pages/versions/upload", context.RepoMustNotBeArchived(), types.PreMiddlewareProvider(repo_setting.PagesUploadFormLimit), repo_setting.PagesUploadArchive)
+		m.Post("/pages/versions/upload/remove", context.RepoMustNotBeArchived(), repo_setting.PagesRemoveUpload)
 
 		m.Group("/collaboration", func() {
 			m.Combo("").Get(repo_setting.Collaboration).Post(repo_setting.CollaborationPost)

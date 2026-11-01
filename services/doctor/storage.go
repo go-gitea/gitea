@@ -7,14 +7,19 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"os"
 	"strings"
+	"time"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/git"
 	"gitea.dev/models/packages"
+	pages_model "gitea.dev/models/pages"
 	"gitea.dev/models/repo"
 	"gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	packages_module "gitea.dev/modules/packages"
+	pages_content "gitea.dev/modules/pages"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/util"
@@ -86,6 +91,7 @@ type checkStorageOptions struct {
 	RepoAvatars  bool
 	RepoArchives bool
 	Packages     bool
+	Pages        bool
 }
 
 // checkStorage will return a doctor check function to check the requested storage types for "orphaned" stored object/files and optionally delete them
@@ -180,9 +186,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 		if opts.Packages || opts.All {
 			if !setting.Packages.Enabled {
 				logger.Info("Packages isn't enabled (skipped)")
-				return nil
-			}
-			if err := commonCheckStorage(logger, autofix,
+			} else if err := commonCheckStorage(logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.Packages,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
@@ -203,8 +207,98 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 			}
 		}
 
+		if opts.Pages || opts.All {
+			if err := checkPagesStorage(ctx, logger, autofix); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}
+}
+
+// checkPagesStorage checks both sides of the retained version relationship.
+// Fixing orphaned objects is intended for the documented offline doctor run;
+// recent objects are retained because a publishing request may still be active.
+func checkPagesStorage(ctx context.Context, logger log.Logger, autofix bool) error {
+	const orphanGrace = 24 * time.Hour
+	checked, orphaned, removed, missing := 0, 0, 0, 0
+	now := time.Now()
+	type oldObject struct {
+		path      string
+		repoID    int64
+		digest    string
+		canonical bool
+	}
+	var toRemove []oldObject
+	if err := storage.Pages.IterateObjects("", func(objectPath string, object storage.Object) error {
+		defer object.Close()
+		checked++
+		info, err := object.Stat()
+		if err != nil {
+			return err
+		}
+		repoID, digest, ok := pages_content.ParseContentRelativePath(objectPath)
+		isOrphaned := !ok
+		if ok {
+			_, has, err := pages_model.GetVersionByRepoIDAndDigest(ctx, repoID, digest)
+			if err != nil {
+				return err
+			}
+			isOrphaned = !has
+		}
+		if !isOrphaned {
+			return nil
+		}
+		orphaned++
+		logger.Warn("Unreferenced Pages object: %s", objectPath)
+		if !autofix || info.ModTime().IsZero() || now.Sub(info.ModTime()) < orphanGrace {
+			return nil
+		}
+		toRemove = append(toRemove, oldObject{path: objectPath, repoID: repoID, digest: digest, canonical: ok})
+		return nil
+	}); err != nil {
+		return err
+	}
+	for _, candidate := range toRemove {
+		if candidate.canonical {
+			// The command can race with an accidental online publisher. Re-read
+			// the version reference immediately before removing an old object.
+			_, has, err := pages_model.GetVersionByRepoIDAndDigest(ctx, candidate.repoID, candidate.digest)
+			if err != nil {
+				return err
+			}
+			if has {
+				continue
+			}
+		}
+		if err := storage.Pages.Delete(candidate.path); err != nil {
+			logger.Error("Unable to remove Pages object %s: %v", candidate.path, err)
+			continue
+		}
+		removed++
+	}
+	if err := db.Iterate(ctx, nil, func(ctx context.Context, version *pages_model.Version) error {
+		_, err := pages_content.NewContentStore().Stat(version.RepoID, version.TarGzSHA256)
+		if errors.Is(err, os.ErrNotExist) {
+			missing++
+			site, has, lookupErr := pages_model.GetSiteByRepoID(ctx, version.RepoID)
+			if lookupErr != nil {
+				return lookupErr
+			}
+			kind := "Historical"
+			if has && site.CurrentVersionID == version.ID {
+				kind = "Current"
+			}
+			logger.Warn("%s Pages object is missing for repository %d digest %s", kind, version.RepoID, version.TarGzSHA256)
+			return nil
+		}
+		return err
+	}); err != nil {
+		return err
+	}
+	logger.Info("Checked %d Pages objects: %d unreferenced, %d removed, %d version objects missing", checked, orphaned, removed, missing)
+	return nil
 }
 
 func init() {
@@ -263,6 +357,16 @@ func init() {
 		Name:                       "storage-packages",
 		IsDefault:                  false,
 		Run:                        checkStorage(&checkStorageOptions{Packages: true}),
+		AbortIfFailed:              false,
+		SkipDatabaseInitialization: false,
+		Priority:                   1,
+	})
+
+	Register(&Check{
+		Title:                      "Check if there are orphaned Pages content objects",
+		Name:                       "storage-pages",
+		IsDefault:                  false,
+		Run:                        checkStorage(&checkStorageOptions{Pages: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
 		Priority:                   1,

@@ -1,6 +1,6 @@
 {{$opts := $.UploadOptions}}
 <div
-	class="dropzone"
+	class="dropzone{{if $opts.Compact}} dropzone-compact ui primary tiny button{{end}}"
 	data-link-url="{{$opts.UploadLinkUrl}}"
 	data-upload-url="{{$opts.UploadUrl}}"
 	data-remove-url="{{$opts.UploadRemoveUrl}}"
@@ -9,7 +9,7 @@
 	data-max-size="{{$opts.UploadMaxSize}}"
 	data-need-uuid-link="{{$opts.NeedUuidLink}}"
 
-	data-text-default-message="{{ctx.Locale.Tr "dropzone.default_message"}}"
+	data-text-default-message="{{if $opts.DefaultMessage}}{{$opts.DefaultMessage}}{{else}}{{ctx.Locale.Tr "dropzone.default_message"}}{{end}}"
 	data-text-invalid-input-type="{{ctx.Locale.Tr "dropzone.invalid_input_type"}}"
 	data-text-file-too-big="{{ctx.Locale.Tr "dropzone.file_too_big"}}"
 	data-text-remove-file="{{ctx.Locale.Tr "dropzone.remove_file"}}"

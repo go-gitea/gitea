@@ -264,4 +264,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	MergeUpstreamRequest api.MergeUpstreamRequest
+
+	// in:body
+	PagesDeploymentOption api.PagesDeploymentOption
+
+	// in:body
+	EditPagesVersionOption api.EditPagesVersionOption
 }

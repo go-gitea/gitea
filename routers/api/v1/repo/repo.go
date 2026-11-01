@@ -495,7 +495,18 @@ func Get(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission))
+	repository := convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission)
+	if ctx.Repo.Permission.CanRead(unit_model.TypeCode) || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin() {
+		currentVersion, hasCurrentVersion, err := getEnabledPagesCurrentVersion(ctx, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.APIErrorInternal(fmt.Errorf("Get: load Pages current version: %w", err))
+			return
+		}
+		if hasCurrentVersion {
+			repository.PagesCurrentVersion = &currentVersion
+		}
+	}
+	ctx.JSON(http.StatusOK, repository)
 }
 
 // GetByID returns a single Repository
@@ -535,7 +546,18 @@ func GetByID(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, permission))
+	repository := convert.ToRepo(ctx, repo, permission)
+	if permission.CanRead(unit_model.TypeCode) || permission.IsAdmin() || ctx.IsUserSiteAdmin() {
+		currentVersion, hasCurrentVersion, err := getEnabledPagesCurrentVersion(ctx, repo.ID)
+		if err != nil {
+			ctx.APIErrorInternal(fmt.Errorf("GetByID: load Pages current version: %w", err))
+			return
+		}
+		if hasCurrentVersion {
+			repository.PagesCurrentVersion = &currentVersion
+		}
+	}
+	ctx.JSON(http.StatusOK, repository)
 }
 
 // Edit edit repository properties
@@ -611,6 +633,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.Name != nil {
 		newRepoName = *opts.Name
 	}
+	pathChanged := !strings.EqualFold(repo.LowerName, newRepoName)
 	// Check if repository name has been changed and not just a case change
 	if !strings.EqualFold(repo.LowerName, newRepoName) {
 		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
@@ -691,7 +714,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		}
 	}
 
-	if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
+	if err := repo_service.UpdateRepository(ctx, repo, repo_service.UpdateRepositoryOptions{
+		VisibilityChanged: visibilityChanged,
+		PathChanged:       pathChanged,
+	}); err != nil {
 		ctx.APIErrorInternal(err)
 		return err
 	}
@@ -961,7 +987,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			return err
 		}
 		if *opts.Archived {
-			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
+			if err := repo_service.SetArchiveRepoState(ctx, repo, true); err != nil {
 				log.Error("Tried to archive a repo: %s", err)
 				ctx.APIErrorInternal(err)
 				return err
@@ -971,7 +997,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
-			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
+			if err := repo_service.SetArchiveRepoState(ctx, repo, false); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.APIErrorInternal(err)
 				return err

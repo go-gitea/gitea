@@ -983,6 +983,59 @@
         },
         "description": "PackageList"
       },
+      "PagesContentCommit": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PagesContentCommit"
+            }
+          }
+        },
+        "description": "PagesContentCommit"
+      },
+      "PagesDeploymentResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PagesDeploymentResponse"
+            }
+          }
+        },
+        "description": "PagesDeploymentResponse"
+      },
+      "PagesDeploymentStatus": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PagesDeploymentStatus"
+            }
+          }
+        },
+        "description": "PagesDeploymentStatus"
+      },
+      "PagesVersion": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PagesVersion"
+            }
+          }
+        },
+        "description": "PagesVersion"
+      },
+      "PagesVersionList": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/PagesVersion"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "description": "PagesVersionList"
+      },
       "Project": {
         "content": {
           "application/json": {
@@ -5767,6 +5820,21 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "EditPagesVersionOption": {
+        "properties": {
+          "comment": {
+            "type": "string",
+            "x-go-name": "Comment"
+          },
+          "keep_forever": {
+            "type": "boolean",
+            "x-go-name": "KeepForever"
+          }
+        },
+        "title": "EditPagesVersionOption changes mutable metadata for a retained Pages version.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "EditProjectColumnOption": {
         "description": "EditProjectColumnOption represents options for editing a project column",
         "properties": {
@@ -8541,6 +8609,119 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "PagesContentCommit": {
+        "properties": {
+          "pages_updated_unix_nano": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "PagesUpdatedUnixNano"
+          },
+          "version": {
+            "$ref": "#/components/schemas/PagesVersion"
+          }
+        },
+        "title": "PagesContentCommit describes the prepared Pages version and current state.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PagesDeploymentOption": {
+        "description": "PagesDeploymentOption is the request accepted by the Actions Pages\ncompatibility endpoint. The values identify the current Actions run and\nare checked against the authenticated task before the artifact is read.",
+        "properties": {
+          "artifact_id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ArtifactID"
+          },
+          "oidc_token": {
+            "type": "string",
+            "x-go-name": "OIDCToken"
+          },
+          "pages_build_version": {
+            "type": "string",
+            "x-go-name": "PagesBuildVersion"
+          },
+          "preview": {
+            "type": "boolean",
+            "x-go-name": "Preview"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PagesDeploymentResponse": {
+        "description": "PagesDeploymentResponse is returned after the artifact has been checked and\nmade the repository's current Pages content.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "x-go-name": "ID"
+          },
+          "page_url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "PageURL"
+          },
+          "status_url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "StatusURL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PagesDeploymentStatus": {
+        "description": "PagesDeploymentStatus describes whether every registered Pages instance has\npublished the submitted digest at its default address.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "x-go-name": "Status"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PagesVersion": {
+        "properties": {
+          "comment": {
+            "type": "string",
+            "x-go-name": "Comment"
+          },
+          "created_unix": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "CreatedUnix"
+          },
+          "current": {
+            "type": "boolean",
+            "x-go-name": "Current"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "keep_forever": {
+            "type": "boolean",
+            "x-go-name": "KeepForever"
+          },
+          "origin_action_run_id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "OriginActionRunID"
+          },
+          "origin_type": {
+            "type": "string",
+            "x-go-name": "OriginType"
+          },
+          "tar_gz_sha256": {
+            "type": "string",
+            "x-go-name": "TarGzSHA256"
+          }
+        },
+        "title": "PagesVersion describes one retained Pages artifact.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "PayloadCommit": {
         "description": "PayloadCommit represents a commit",
         "properties": {
@@ -10020,6 +10201,9 @@
           },
           "owner": {
             "$ref": "#/components/schemas/User"
+          },
+          "pages_current_version": {
+            "$ref": "#/components/schemas/PagesVersion"
           },
           "parent": {
             "$ref": "#/components/schemas/Repository"
@@ -27486,6 +27670,442 @@
         "summary": "Mark notification threads as read, pinned or unread on a specific repo",
         "tags": [
           "notification"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pages/content": {
+      "post": {
+        "operationId": "repoUploadPagesContent",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/gzip": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "description": "complete TAR.GZ bytes",
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PagesContentCommit"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Upload a Pages TAR.GZ artifact",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pages/deployments": {
+      "post": {
+        "operationId": "repoCreatePagesDeployment",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagesDeploymentOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PagesDeploymentResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Create a Pages deployment from an Actions artifact",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pages/deployments/{digest}": {
+      "get": {
+        "operationId": "repoGetPagesDeployment",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "SHA-256 digest returned when the deployment was created",
+            "in": "path",
+            "name": "digest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PagesDeploymentStatus"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get the publication status of a Pages deployment",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pages/deployments/{digest}/cancel": {
+      "post": {
+        "operationId": "repoCancelPagesDeployment",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "SHA-256 digest returned when the deployment was created",
+            "in": "path",
+            "name": "digest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deployment polling was cancelled"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Stop polling a Pages deployment",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pages/versions": {
+      "get": {
+        "operationId": "repoListPagesVersions",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PagesVersionList"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "List Pages versions",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pages/versions/{id}": {
+      "delete": {
+        "operationId": "repoDeletePagesVersion",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Pages version",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Pages version deleted"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Delete a Pages version",
+        "tags": [
+          "repository"
+        ]
+      },
+      "get": {
+        "operationId": "repoGetPagesVersion",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Pages version",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PagesVersion"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get a Pages version",
+        "tags": [
+          "repository"
+        ]
+      },
+      "patch": {
+        "operationId": "repoEditPagesVersion",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Pages version",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditPagesVersionOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PagesVersion"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Edit Pages version metadata",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pages/versions/{id}/restore": {
+      "post": {
+        "operationId": "repoRestorePagesVersion",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Pages version",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PagesContentCommit"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Make a retained Pages version current",
+        "tags": [
+          "repository"
         ]
       }
     },

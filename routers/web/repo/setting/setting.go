@@ -219,6 +219,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	}
 
 	newRepoName := form.RepoName
+	pathChanged := !strings.EqualFold(repo.LowerName, newRepoName)
 	// Check if repository name has been changed.
 	if !strings.EqualFold(repo.LowerName, newRepoName) {
 		// Close the GitRepo if open
@@ -264,7 +265,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
 
-	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
+	if err := repo_service.UpdateRepository(ctx, repo, repo_service.UpdateRepositoryOptions{PathChanged: pathChanged}); err != nil {
 		ctx.ServerError("UpdateRepository", err)
 		return
 	}
@@ -693,7 +694,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		return
 	}
 	if repoChanged {
-		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, repo_service.UpdateRepositoryOptions{}); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -999,7 +1000,7 @@ func handleSettingsPostArchive(ctx *context.Context) {
 		return
 	}
 
-	if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
+	if err := repo_service.SetArchiveRepoState(ctx, repo, true); err != nil {
 		log.Error("Tried to archive a repo: %s", err)
 		ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -1027,7 +1028,7 @@ func handleSettingsPostUnarchive(ctx *context.Context) {
 	}
 
 	repo := ctx.Repo.Repository
-	if err := repo_model.SetArchiveRepoState(ctx, repo, false); err != nil {
+	if err := repo_service.SetArchiveRepoState(ctx, repo, false); err != nil {
 		log.Error("Tried to unarchive a repo: %s", err)
 		ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
