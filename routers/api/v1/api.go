@@ -1422,6 +1422,7 @@ func Routes() *web.Router {
 					m.Combo("").Get(repo.ListReleases).
 						Post(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
 					m.Combo("/latest").Get(repo.GetLatestRelease)
+					m.Post("/generate-notes", reqToken(), context.ReferencesGitRepo(), bind(api.GenerateReleaseNotesOption{}), repo.GenerateReleaseNotes)
 					m.Group("/{id}", func() {
 						m.Combo("").Get(repo.GetRelease).
 							Patch(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
