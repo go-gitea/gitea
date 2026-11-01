@@ -17,6 +17,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/packages/pypi"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -98,6 +99,31 @@ func TestPackagePyPI(t *testing.T) {
 				metadata, ok := pd.Metadata.(*pypi.Metadata)
 				require.True(t, ok)
 				assert.Equal(t, projectURL, metadata.ProjectURL)
+
+				// the version endpoint publishes the metadata, the list does not
+				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/pypi/%s/%s", user.Name, packageName, packageVersion)).
+					AddBasicAuth(user.Name)
+				resp := MakeRequest(t, req, http.StatusOK)
+				var apiPackage api.Package
+				DecodeJSON(t, resp, &apiPackage)
+				require.NotNil(t, apiPackage.Metadata)
+				require.NotNil(t, apiPackage.Metadata.PyPI)
+				assert.Nil(t, apiPackage.Metadata.Cargo)
+				assert.Equal(t, api.PackagePyPIMetadata{
+					Author:          metadata.Author,
+					Description:     metadata.Description,
+					LongDescription: metadata.LongDescription,
+					Summary:         metadata.Summary,
+					ProjectURL:      metadata.ProjectURL,
+					License:         metadata.License,
+					RequiresPython:  metadata.RequiresPython,
+				}, *apiPackage.Metadata.PyPI)
+				assert.Equal(t, packageAuthor, apiPackage.Metadata.PyPI.Author)
+				assert.Equal(t, packageDescription, apiPackage.Metadata.PyPI.Summary)
+
+				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?type=pypi", user.Name)).AddBasicAuth(user.Name)
+				resp = MakeRequest(t, req, http.StatusOK)
+				assert.NotContains(t, resp.Body.String(), `"metadata"`)
 			} else {
 				assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
 			}
