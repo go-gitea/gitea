@@ -58,6 +58,14 @@ func checkHostList(key, hostList string, isBlockList bool) {
 	}
 }
 
+// checkInternalRanges reports the entries an internal-ranges list drops, so a typo is reported at startup, not silently ignored
+func checkInternalRanges(key, rangesList string) {
+	_, rejected := policy.ParseInternalRanges(rangesList)
+	for _, reason := range rejected {
+		LogStartupProblem(1, log.ERROR, "%s ignores an invalid entry: %s", key, reason)
+	}
+}
+
 var (
 	InstallLock                        bool
 	SecretKey                          string
@@ -195,6 +203,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	Security.EgressMode = normalizePolicyMode(sec.Key("EGRESS_MODE").String())
 	checkHostList("[security] ALLOWED_HOST_LIST", Security.AllowedHostList, false)
 	Security.AllowedInternalRanges = ConfigSectionKeyString(sec, "ALLOWED_INTERNAL_RANGES")
+	checkInternalRanges("[security] ALLOWED_INTERNAL_RANGES", Security.AllowedInternalRanges)
 	if Security.AllowedHostList != "" && !egressModeSet {
 		LogStartupProblem(1, log.WARN, "[security] ALLOWED_HOST_LIST only restricts private hosts in the default lax mode, set EGRESS_MODE = strict to allow only the listed hosts, or lax to keep this")
 	}

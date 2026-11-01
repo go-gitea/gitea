@@ -61,14 +61,10 @@ func WithBlock(hostList, key string) Option {
 }
 
 // WithInternalRanges sets the ranges hostname entries may resolve into for non-public targets.
-// Entries that fail to parse are reported, never silently dropped.
+// Invalid entries are reported at startup by the settings loader (checkInternalRanges).
 func WithInternalRanges(hostList, key string) Option {
 	return func(p *Policy) {
-		var rejected []string
-		p.internalRanges, rejected = ParseInternalRanges(hostList)
-		for _, reason := range rejected {
-			log.Warn("%s ignores an invalid entry: %s", key, reason)
-		}
+		p.internalRanges, _ = ParseInternalRanges(hostList)
 		p.internalRangesKey = key
 		p.internalRangesInvalid = hostList != "" && len(p.internalRanges) == 0
 	}
@@ -115,7 +111,7 @@ func (p *Policy) notAllowedError(target string) error {
 }
 
 func (p *Policy) checkAddr(host string, ip netip.AddrPort) error {
-	ip = netip.AddrPortFrom(decodeNAT64(ip.Addr()).Unmap(), ip.Port()) // NAT64 well-known prefix decodes to the embedded IPv4
+	ip = netip.AddrPortFrom(unmap(ip.Addr()), ip.Port())
 	class, reserved := classifyAddr(ip.Addr())
 	if class == classReserved {
 		if reserved.IsValid() {
