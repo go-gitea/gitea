@@ -13,7 +13,10 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -259,4 +262,25 @@ func TestPrivateActivityHeatmapContent(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPrivateActivityVisibilityLockedByAdmin(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	testPrivateActivityDoSomethingForActionEntries(t)
+	testPrivateActivityHelperEnablePrivateActivity(t)
+	defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureChangeActivityVisibility))()
+
+	assert.True(t, testPrivateActivityHelperHasVisibleActivitiesFromPublic(t), "previously hidden activity should be public once locked")
+	assert.True(t, testPrivateActivityHelperHasHeatmapContentFromPublic(t))
+
+	session := loginUser(t, privateActivityTestUser)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(true)}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+	req = NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(false)}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.False(t, DecodeJSON(t, resp, &api.UserSettings{}).HideActivity)
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: privateActivityTestUser})
+	assert.True(t, user.KeepActivityPrivate, "stored preference should be kept for when the lock is lifted")
 }

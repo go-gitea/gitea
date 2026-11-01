@@ -23159,6 +23159,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/UserSettings"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       }

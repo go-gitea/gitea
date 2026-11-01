@@ -1592,6 +1592,23 @@ func IsFeatureDisabledWithLoginType(user *User, features ...string) bool {
 	return setting.Admin.UserDisabledFeatures.Contains(features...)
 }
 
+// IsActivityPrivate reports whether the user's activity is hidden, ignoring the stored preference when admins forbid changing it
+func (u *User) IsActivityPrivate() bool {
+	return u.KeepActivityPrivate && !IsFeatureDisabledWithLoginType(u, setting.UserFeatureChangeActivityVisibility)
+}
+
+// ActivityPublicCond matches users whose activity is public, the SQL counterpart of IsActivityPrivate
+func ActivityPublicCond() builder.Cond {
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureChangeActivityVisibility) {
+		return builder.NewCond() // ExternalUserDisableFeatures is a superset, so everyone is public
+	}
+	cond := builder.Eq{"keep_activity_private": false}
+	if setting.Admin.ExternalUserDisableFeatures.Contains(setting.UserFeatureChangeActivityVisibility) {
+		return cond.Or(builder.Gt{"login_type": auth.Plain})
+	}
+	return cond
+}
+
 // DisabledFeaturesWithLoginType returns the set of user features disabled, taking into account the login type
 // of the user if applicable
 func DisabledFeaturesWithLoginType(user *User) *container.Set[string] {

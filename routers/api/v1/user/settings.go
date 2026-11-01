@@ -6,7 +6,9 @@ package user
 import (
 	"net/http"
 
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -42,8 +44,21 @@ func UpdateUserSettings(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserSettings"
+	//   "404":
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.UserSettingsOptions](ctx)
+	if form.FullName != nil && *form.FullName != ctx.Doer.FullName && user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
+		ctx.APIErrorNotFound("full name is not allowed to be changed")
+		return
+	}
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeActivityVisibility) {
+		if form.HideActivity != nil && *form.HideActivity {
+			ctx.APIErrorNotFound("activity visibility is not allowed to be changed")
+			return
+		}
+		form.HideActivity = nil // keep the stored preference for when the lock is lifted
+	}
 
 	opts := &user_service.UpdateOptions{
 		FullName:            optional.FromPtr(form.FullName),
