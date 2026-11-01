@@ -171,7 +171,11 @@ func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		if notificationExists(notifications, issue.ID, userID) {
 			err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID)
 		} else {
-			err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID)
+			if err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID); err != nil {
+				if errUpdate := updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID); errUpdate == nil {
+					err = nil
+				}
+			}
 		}
 		if err != nil {
 			return nil, err
