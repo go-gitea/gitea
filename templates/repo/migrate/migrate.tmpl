@@ -8,16 +8,14 @@
 					<a class="ui basic button migrate-entry" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
 						{{if eq .Name "github"}}
 							{{svg "octicon-mark-github" 184 "tw-p-4"}}
-						{{else if eq .Name "bitbucketserver"}}
-							{{svg "gitea-bitbucket" 184 "tw-p-4"}}
-						{{else if or (eq .Name "gitlab") (eq .Name "gitbucket") (eq .Name "forgejo")}}
+						{{else if or (eq .Name "gitlab") (eq .Name "gitbucket") (eq .Name "forgejo") (eq .Name "bitbucket")}}
 							{{svg (printf "gitea-%s" .Name) 184 "tw-p-4"}}
 						{{else}}
 							{{svg (printf "gitea-%s" .Name) 184}}
 						{{end}}
 						<div class="migrate-entry-content">
 							<div class="migrate-entry-title">
-								{{.ProviderTitle}}
+								{{.Title}}
 							</div>
 							<div class="tw-text-balance">
 								{{ctx.Locale.Tr (printf "repo.migrate.%s.description" .Name)}}
