@@ -16,176 +16,65 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-type anyHashPatternResult struct {
-	PosStart    int
-	PosEnd      int
-	FullURL     string
-	CommitID    string
-	CommitExt   string
-	SubPath     string
-	QueryParams string
-	QueryHash   string
+func setCommitLinkContent(anchor *html.Node, prefix, refs, rest string) {
+	anchor.FirstChild.Data = prefix
+	code := &html.Node{Type: html.ElementNode, Data: atom.Code.String()}
+	code.AppendChild(&html.Node{Type: html.TextNode, Data: refs})
+	anchor.AppendChild(code)
+	if rest != "" {
+		anchor.AppendChild(&html.Node{Type: html.TextNode, Data: rest})
+	}
 }
 
-func createCodeLink(href, content, class string) *html.Node {
-	a := &html.Node{
-		Type: html.ElementNode,
-		Data: atom.A.String(),
-		Attr: []html.Attribute{{Key: "href", Val: href}},
-	}
-
-	if class != "" {
-		a.Attr = append(a.Attr, html.Attribute{Key: "class", Val: class})
-	}
-
-	text := &html.Node{
-		Type: html.TextNode,
-		Data: content,
-	}
-
-	code := &html.Node{
-		Type: html.ElementNode,
-		Data: atom.Code.String(),
-	}
-
-	code.AppendChild(text)
-	a.AppendChild(code)
-	return a
+func createCommitLink(ctx *RenderContext, href, prefix, sha string) *html.Node {
+	anchor := createLink(ctx, href, "", "commit")
+	setCommitLinkContent(anchor, prefix, base.ShortSha(sha), "")
+	return anchor
 }
 
-func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
-	m := globalVars().anyHashPattern.FindStringSubmatchIndex(s)
-	if m == nil {
-		return ret, false
+func otherRepoPrefix(ctx *RenderContext, owner, repo string) string {
+	if strings.EqualFold(owner, ctx.RenderOptions.Metas["user"]) && strings.EqualFold(repo, ctx.RenderOptions.Metas["repo"]) {
+		return ""
 	}
-
-	pos := 0
-
-	ret.PosStart, ret.PosEnd = m[pos], m[pos+1]
-	pos += 2
-
-	ret.FullURL = s[ret.PosStart:ret.PosEnd]
-	if strings.HasSuffix(ret.FullURL, ".") {
-		// if url ends in '.', it's very likely that it is not part of the actual url but used to finish a sentence.
-		ret.PosEnd--
-		ret.FullURL = ret.FullURL[:len(ret.FullURL)-1]
-		for i := range m {
-			m[i] = min(m[i], ret.PosEnd)
-		}
-	}
-
-	ret.CommitID = s[m[pos]:m[pos+1]]
-	pos += 2
-
-	ret.CommitExt = s[m[pos]:m[pos+1]]
-	pos += 4
-
-	if m[pos] > 0 {
-		ret.SubPath = s[m[pos]:m[pos+1]]
-	}
-	pos += 2
-
-	if m[pos] > 0 {
-		ret.QueryParams = s[m[pos]:m[pos+1]]
-	}
-	pos += 2
-
-	if m[pos] > 0 {
-		ret.QueryHash = s[m[pos]:m[pos+1]][1:]
-	}
-	return ret, true
+	return owner + "/" + repo + "@"
 }
 
-// fullHashPatternProcessor renders SHA containing URLs
-func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.RenderOptions.Metas == nil {
+// compare refs can also be branch or tag names, so only full SHAs are shortened
+func shortCompareRef(ref string) string {
+	if (len(ref) == 40 || len(ref) == 64) && strings.Trim(ref, "0123456789abcdef") == "" {
+		return base.ShortSha(ref)
+	}
+	return ref
+}
+
+// shortenCommitLink shortens links whose text is their own commit or compare URL, like linkified URLs and "<url>" autolinks
+func shortenCommitLink(ctx *RenderContext, anchor *html.Node) {
+	text := anchor.FirstChild
+	if ctx.RenderOptions.Metas == nil || text == nil || text != anchor.LastChild || text.Type != html.TextNode || !strings.Contains(text.Data, "://") {
 		return
 	}
-	nodeStop := node.NextSibling
-	for node != nodeStop {
-		if node.Type != html.TextNode {
-			node = node.NextSibling
-			continue
-		}
-		ret, ok := anyHashPatternExtract(node.Data)
-		if !ok {
-			node = node.NextSibling
-			continue
-		}
-		text := base.ShortSha(ret.CommitID)
-		if ret.CommitExt != "" {
-			text += ret.CommitExt
-		}
-		if ret.SubPath != "" {
-			text += ret.SubPath
-		}
-		if ret.QueryHash != "" {
-			text += " (" + ret.QueryHash + ")"
-		}
-		// only turn commit links to the current instance into hash link
-		if !httplib.IsCurrentGiteaSiteURL(ctx, ret.FullURL) {
-			node = node.NextSibling
-			continue
-		}
-		replaceContent(node, ret.PosStart, ret.PosEnd, createCodeLink(ret.FullURL, text, "commit"))
-		node = node.NextSibling.NextSibling
-	}
-}
-
-func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.RenderOptions.Metas == nil {
+	if !slices.ContainsFunc(anchor.Attr, func(attr html.Attribute) bool { return attr.Key == "href" && attr.Val == text.Data }) {
 		return
 	}
-	nodeStop := node.NextSibling
-	for node != nodeStop {
-		if node.Type != html.TextNode {
-			node = node.NextSibling
-			continue
-		}
-		m := globalVars().comparePattern.FindStringSubmatchIndex(node.Data)
-		if m == nil || slices.Contains(m[:8], -1) { // ensure that every group (m[0]...m[7]) has a match
-			node = node.NextSibling
-			continue
-		}
-
-		urlFull := node.Data[m[0]:m[1]]
-		text1 := base.ShortSha(node.Data[m[2]:m[3]])
-		textDots := base.ShortSha(node.Data[m[4]:m[5]])
-		text2 := base.ShortSha(node.Data[m[6]:m[7]])
-
-		hash := ""
-		if m[9] > 0 {
-			hash = node.Data[m[8]:m[9]][1:]
-		}
-
-		start := m[0]
-		end := m[1]
-
-		// If url ends in '.', it's very likely that it is not part of the
-		// actual url but used to finish a sentence.
-		if strings.HasSuffix(urlFull, ".") {
-			end--
-			urlFull = urlFull[:len(urlFull)-1]
-			if hash != "" {
-				hash = hash[:len(hash)-1]
-			} else if text2 != "" {
-				text2 = text2[:len(text2)-1]
-			}
-		}
-
-		// only turn compare links to the current instance into hash link
-		if !httplib.IsCurrentGiteaSiteURL(ctx, urlFull) {
-			node = node.NextSibling
-			continue
-		}
-
-		text := text1 + textDots + text2
-		if hash != "" {
-			text += " (" + hash + ")"
-		}
-		replaceContent(node, start, end, createCodeLink(urlFull, text, "compare"))
-		node = node.NextSibling.NextSibling
+	siteURL := httplib.ParseGiteaSiteURL(ctx, text.Data)
+	if siteURL == nil {
+		return
 	}
+	var refs, rest, class string
+	if match := globalVars().compareURLPattern.FindStringSubmatch(siteURL.RepoSubPath); match != nil {
+		refs, rest, class = shortCompareRef(match[1])+match[2]+shortCompareRef(match[3]), match[4], "compare"
+	} else if match := globalVars().commitURLPattern.FindStringSubmatch(siteURL.RepoSubPath); match != nil {
+		refs, rest, class = base.ShortSha(match[1]), match[2], "commit"
+	} else {
+		return
+	}
+	if idx := strings.IndexAny(text.Data, "?#"); idx != -1 {
+		rest += text.Data[idx:]
+	}
+	// quoting the link keeps its URL instead of the short text
+	anchor.Attr = slices.DeleteFunc(anchor.Attr, func(attr html.Attribute) bool { return attr.Key == "data-markdown-generated-content" })
+	anchor.Attr = append(anchor.Attr, ctx.RenderInternal.NodeSafeAttr("class", class))
+	setCommitLinkContent(anchor, otherRepoPrefix(ctx, siteURL.OwnerName, siteURL.RepoName), refs, rest)
 }
 
 // hashCurrentPatternProcessor renders SHA1 strings to corresponding links that
@@ -220,7 +109,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		link := fmt.Sprintf("/:root/%s/%s/commit/%s", ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], hash)
-		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
+		replaceContent(node, m[2], m[3], createCommitLink(ctx, link, "", hash))
 		start = 0
 		node = node.NextSibling.NextSibling
 	}
@@ -235,9 +124,8 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 			return
 		}
 
-		refText := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
 		linkHref := fmt.Sprintf("/:root/%s/%s/commit/%s", ref.Owner, ref.Name, ref.CommitSha)
-		link := createLink(ctx, linkHref, refText, "commit")
+		link := createCommitLink(ctx, linkHref, otherRepoPrefix(ctx, ref.Owner, ref.Name), ref.CommitSha)
 
 		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		node = node.NextSibling.NextSibling

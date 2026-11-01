@@ -30,15 +30,14 @@ const (
 )
 
 type globalVarsType struct {
-	hashCurrentPattern      *regexp.Regexp
-	shortLinkPattern        *regexp.Regexp
-	anyHashPattern          *regexp.Regexp
-	comparePattern          *regexp.Regexp
-	emailRegex              *regexp.Regexp
-	emojiShortCodeRegex     *regexp.Regexp
-	issueFullPattern        *regexp.Regexp
-	filesChangedFullPattern *regexp.Regexp
-	codePreviewPattern      *regexp.Regexp
+	hashCurrentPattern  *regexp.Regexp
+	shortLinkPattern    *regexp.Regexp
+	compareURLPattern   *regexp.Regexp
+	commitURLPattern    *regexp.Regexp
+	emailRegex          *regexp.Regexp
+	emojiShortCodeRegex *regexp.Regexp
+	issueFullPattern    *regexp.Regexp
+	codePreviewPattern  *regexp.Regexp
 
 	tagCleaner *regexp.Regexp
 	nulCleaner *strings.Replacer
@@ -61,11 +60,9 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	v.shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
-	// anyHashPattern splits url containing SHA into parts
-	v.anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})((\.\w+)*)(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
-
-	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
-	v.comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
+	// repo sub-paths of the compare page and of the routes that take a commit SHA
+	v.compareURLPattern = regexp.MustCompile(`^/compare/(.+?)(\.\.\.?)(.+?)((?:\.diff|\.patch)?)$`)
+	v.commitURLPattern = regexp.MustCompile(`^/(?:(?:[a-z-]+/)?commit|blob|archive|pulls/[0-9]+/commits)/([0-9a-f]{7,64})((?:[./].*)?)$`)
 
 	// emailRegex is definitely not perfect with edge cases,
 	// it is still accepted by the CommonMark specification, as well as the HTML5 spec:
@@ -79,9 +76,6 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 
 	// example: https://domain/org/repo/pulls/27#hash
 	v.issueFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
-
-	// example: https://domain/org/repo/pulls/27/files#hash
-	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
 
 	// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
 	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
@@ -102,9 +96,7 @@ type processor func(ctx *RenderContext, node *html.Node)
 func PostProcessDefault(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	procs := []processor{
 		fullIssuePatternProcessor,
-		comparePatternProcessor,
 		codePreviewPatternProcessor,
-		fullHashPatternProcessor,
 		shortLinkProcessor,
 		linkProcessor,
 		mentionProcessor,
@@ -122,8 +114,6 @@ func PostProcessDefault(ctx *RenderContext, input io.Reader, output io.Writer) e
 func PostProcessCommitMessage(ctx *RenderContext, content template.HTML) template.HTML {
 	procs := []processor{
 		fullIssuePatternProcessor,
-		comparePatternProcessor,
-		fullHashPatternProcessor,
 		linkProcessor,
 		mentionProcessor,
 		issueIndexPatternProcessor,
@@ -147,8 +137,6 @@ var emojiProcessors = []processor{
 func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content string) template.HTML {
 	procs := []processor{
 		fullIssuePatternProcessor,
-		comparePatternProcessor,
-		fullHashPatternProcessor,
 		mentionProcessor,
 		issueIndexPatternProcessor,
 		commitCrossReferencePatternProcessor,
@@ -361,6 +349,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 	}
 
 	if node.Data == "a" {
+		shortenCommitLink(ctx, node)
 		processNodeA(ctx, node)
 		// only use emoji processors for the content in the "A" tag,
 		// because the content there is not processable, for example: the content is a commit id or a full URL.
