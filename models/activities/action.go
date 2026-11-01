@@ -438,7 +438,7 @@ type GetFeedsOptions struct {
 
 // ActivityReadable return whether doer can read activities of user
 func ActivityReadable(user, doer *user_model.User) bool {
-	return !user.KeepActivityPrivate ||
+	return !user.IsActivityPrivate() ||
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
@@ -475,12 +475,12 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	if !user_model.DoerCanViewPrivate(opts.Actor) {
 		cond = cond.And(builder.In("act_user_id",
 			builder.Select("`user`.id").Where(
-				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
+				user_model.ActivityPublicCond().And(builder.Eq{"visibility": structs.VisibleTypePublic}),
 			).From("`user`"),
 		))
 	} else if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) {
 		uidCond := builder.Select("`user`.id").From("`user`").Where(
-			builder.Eq{"keep_activity_private": false}.
+			user_model.ActivityPublicCond().
 				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
 			Or(builder.Eq{"id": opts.Actor.ID})
 

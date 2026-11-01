@@ -417,22 +417,21 @@ func TestPrivateActivityYesHeatmapHasNoContentForAdmin(t *testing.T) {
 	assert.True(t, hasContent, "heatmap should show content for admin")
 }
 
-func TestPrivateActivityVisibilityChangeIgnoredWhenFeatureDisabled(t *testing.T) {
+func TestPrivateActivityVisibilityLockedByAdmin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	testPrivateActivityDoSomethingForActionEntries(t)
+	testPrivateActivityHelperEnablePrivateActivity(t)
 	defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureChangeActivityVisibility))()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: privateActivityTestUser})
-	assert.False(t, user.KeepActivityPrivate)
+	assert.True(t, testPrivateActivityHelperHasVisibleActivitiesFromPublic(t), "previously hidden activity should be public once locked")
+	assert.True(t, testPrivateActivityHelperHasHeatmapContentFromPublic(t))
 
 	session := loginUser(t, privateActivityTestUser)
-	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"name":                  privateActivityTestUser,
-		"email":                 privateActivityTestUser + "@example.com",
-		"language":              "en-US",
-		"keep_activity_private": "1",
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(false)}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.False(t, DecodeJSON(t, resp, &api.UserSettings{}).HideActivity)
 
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: privateActivityTestUser})
-	assert.False(t, user.KeepActivityPrivate, "keep_activity_private should be ignored when the feature is disabled")
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: privateActivityTestUser})
+	assert.True(t, user.KeepActivityPrivate, "stored preference should be kept for when the lock is lifted")
 }
