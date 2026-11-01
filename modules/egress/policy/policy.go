@@ -162,7 +162,7 @@ func (p *Policy) allowRestricted(host string, ip netip.AddrPort) error {
 	err := fmt.Errorf("%s can not call non-public addresses without an allow entry (check your %s setting), deny '%s'", p.usage, p.allowKey, denyTarget(host, ip))
 	if _, ok := p.allow.matchHostEntry(host); ok {
 		// invalid entries are reported at startup by the settings loader, so one hint covers both cases
-		err = fmt.Errorf("%w — set or fix %s to let hostname entries cover non-public targets", err, p.internalRangesKey)
+		err = fmt.Errorf("%w - set or fix %s to let hostname entries cover non-public targets", err, p.internalRangesKey)
 	}
 	return err
 }

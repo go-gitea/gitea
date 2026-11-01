@@ -200,7 +200,6 @@ func newPrefixRule(target string, ranges []portRange) (prefixRule, error) {
 			return prefixRule{}, fmt.Errorf("invalid CIDR %q: %w", target, err)
 		}
 		if prefix.Addr().Is4In6() {
-			// only ::ffff:0:0/96 is IPv4-mapped: normalize to the IPv4 form, ::ffff:10.0.0.0/104 -> 10.0.0.0/8
 			prefix = netip.PrefixFrom(prefix.Addr().Unmap(), max(prefix.Bits()-96, 0))
 		}
 		if prefix.Bits() == 0 {
@@ -380,7 +379,7 @@ func ParseInternalRanges(hostList string) (prefixes []netip.Prefix, rejected []s
 			}
 			continue
 		}
-		prefixes = append(prefixes, rule.prefix) // newPrefixRule already normalized IPv4-mapped CIDRs
+		prefixes = append(prefixes, rule.prefix)
 	}
 	return prefixes, rejected
 }
