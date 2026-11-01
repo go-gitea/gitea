@@ -42,25 +42,30 @@ func List(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Orgs"] = orgs
-	ctx.Data["ContextUser"] = ctx.Doer
 
 	ownerName := strings.TrimSpace(ctx.FormString("owner"))
 	var repoOwnerID int64
 	if ownerName != "" {
-		var selectedOrg *organization.Organization
-		for _, org := range orgs {
-			if strings.EqualFold(org.Name, ownerName) {
-				selectedOrg = org
-				break
+		if strings.EqualFold(ctx.Doer.Name, ownerName) {
+			ownerName = ctx.Doer.Name
+			repoOwnerID = ctx.Doer.ID
+			ctx.Data["CodespaceRepositoryOwner"] = ctx.Doer
+		} else {
+			var selectedOrg *organization.Organization
+			for _, org := range orgs {
+				if strings.EqualFold(org.Name, ownerName) {
+					selectedOrg = org
+					break
+				}
 			}
+			if selectedOrg == nil {
+				ctx.NotFound(nil)
+				return
+			}
+			ownerName = selectedOrg.Name
+			repoOwnerID = selectedOrg.ID
+			ctx.Data["CodespaceRepositoryOwner"] = selectedOrg.AsUser()
 		}
-		if selectedOrg == nil {
-			ctx.NotFound(nil)
-			return
-		}
-		ownerName = selectedOrg.Name
-		repoOwnerID = selectedOrg.ID
-		ctx.Data["ContextUser"] = selectedOrg.AsUser()
 	}
 
 	page := max(ctx.FormInt("page"), 1)
@@ -84,7 +89,6 @@ func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("codespace.title")
 	ctx.Data["PageIsCodespaces"] = true
 	ctx.Data["Codespaces"] = result.Rows
-	ctx.Data["CodespaceOwner"] = ownerName
 	ctx.Data["CodespaceListReturnTo"] = setting.AppSubURL + codespaceListPath(ownerName, page)
 	stateURL, _ := url.Parse(setting.AppSubURL + codespaceListPath(ownerName, page))
 	query := stateURL.Query()

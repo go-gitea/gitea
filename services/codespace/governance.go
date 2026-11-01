@@ -77,23 +77,29 @@ type GovernanceView struct {
 	DisplayIdentifier   string
 }
 
+type governanceViewCache struct {
+	users        map[int64]*user_model.User
+	repositories map[int64]*repo_model.Repository
+	managers     map[int64]*codespace_model.Manager
+}
+
 // ListGovernanceCodespaces returns one scoped page without exposing creator-only runtime access data.
 func ListGovernanceCodespaces(ctx context.Context, opts GovernanceListOptions) (*GovernanceList, error) {
-	if opts.Page <= 0 || opts.PageSize <= 0 || opts.UserID < 0 || (opts.Unassigned == (opts.ManagerID > 0)) {
+	if opts.Page <= 0 || opts.PageSize <= 0 || opts.UserID < 0 ||
+		(opts.Unassigned && opts.ManagerID != 0) || (!opts.Unassigned && opts.ManagerID <= 0) {
 		return nil, errors.New("invalid Codespace governance list options")
 	}
-	condition := builder.Eq{"manager_id": opts.ManagerID}
-	if opts.Unassigned {
-		condition = nil
-	}
-	var queryCondition builder.Cond = condition
+	var queryCondition builder.Cond
 	if opts.Unassigned {
 		queryCondition = builder.Or(
 			builder.Eq{"manager_id": 0},
 			builder.NotIn("manager_id", builder.Select("id").From("codespace_manager")),
 		)
-	} else if opts.UserID > 0 {
-		queryCondition = builder.And(queryCondition, builder.Eq{"user_id": opts.UserID})
+	} else {
+		queryCondition = builder.Eq{"manager_id": opts.ManagerID}
+		if opts.UserID > 0 {
+			queryCondition = builder.And(queryCondition, builder.Eq{"user_id": opts.UserID})
+		}
 	}
 	var rows []*codespace_model.Codespace
 	total, err := db.GetEngine(ctx).
@@ -104,15 +110,13 @@ func ListGovernanceCodespaces(ctx context.Context, opts GovernanceListOptions) (
 	if err != nil {
 		return nil, err
 	}
+	cache, err := loadGovernanceViewCache(ctx, rows)
+	if err != nil {
+		return nil, err
+	}
 	result := &GovernanceList{Rows: make([]*GovernanceView, 0, len(rows)), Total: total}
-	users := make(map[int64]*user_model.User)
-	repositories := make(map[int64]*repo_model.Repository)
-	managers := make(map[int64]*codespace_model.Manager)
 	for _, row := range rows {
-		view, err := governanceCodespaceView(ctx, row, users, repositories, managers)
-		if err != nil {
-			return nil, err
-		}
+		view := governanceCodespaceView(row, cache)
 		if opts.Unassigned {
 			view.ActionIdentifier = strconv.FormatInt(row.ID, 10)
 		} else {
@@ -150,11 +154,8 @@ func ForceDeleteCodespace(ctx context.Context, opts GovernanceActionOptions) err
 	})
 }
 
-func governanceCodespaceView(ctx context.Context, codespace *codespace_model.Codespace, users map[int64]*user_model.User, repositories map[int64]*repo_model.Repository, managers map[int64]*codespace_model.Manager) (*GovernanceView, error) {
-	manager, managerFound, err := governanceManager(ctx, managers, codespace.ManagerID)
-	if err != nil {
-		return nil, err
-	}
+func governanceCodespaceView(codespace *codespace_model.Codespace, cache *governanceViewCache) *GovernanceView {
+	manager, managerFound := cache.managers[codespace.ManagerID]
 	view := &CreatorCodespaceView{
 		UUID:        codespace.UUID,
 		Status:      codespace.Status,
@@ -177,45 +178,41 @@ func governanceCodespaceView(ctx context.Context, codespace *codespace_model.Cod
 	if result.DisplayIdentifier == "" {
 		result.DisplayIdentifier = fmt.Sprintf("#%d", codespace.ID)
 	}
-	if displayName, err := governanceUserDisplayName(ctx, users, codespace.UserID); err != nil {
-		return nil, err
-	} else {
-		result.UserDisplayName = displayName
+	if user := cache.users[codespace.UserID]; user != nil {
+		result.UserDisplayName = user.DisplayName()
 	}
-	if fullName, err := governanceRepositoryFullName(ctx, repositories, codespace.RepoID); err != nil {
-		return nil, err
-	} else {
-		result.RepoFullName = fullName
+	if repo := cache.repositories[codespace.RepoID]; repo != nil {
+		result.RepoFullName = repo.FullName()
 	}
-	if managerFound {
-		applyGovernanceManagerFields(result, manager)
-	} else {
-		applyGovernanceManagerFields(result, nil)
-	}
+	applyGovernanceManagerFields(result, manager)
 	applyGovernanceActions(result, managerFound)
-	return result, nil
+	return result
 }
 
-func governanceRepositoryFullName(ctx context.Context, cache map[int64]*repo_model.Repository, repoID int64) (string, error) {
-	if repoID <= 0 {
-		return "", nil
-	}
-	if repo, ok := cache[repoID]; ok {
-		if repo == nil {
-			return "", nil
-		}
-		return repo.FullName(), nil
-	}
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if repo_model.IsErrRepoNotExist(err) {
-		cache[repoID] = nil
-		return "", nil
-	}
+func loadGovernanceViewCache(ctx context.Context, codespaces []*codespace_model.Codespace) (*governanceViewCache, error) {
+	viewCache, err := loadCodespaceViewCache(ctx, codespaces)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	cache[repoID] = repo
-	return repo.FullName(), nil
+	userIDs := make([]int64, 0, len(codespaces))
+	seenUsers := make(map[int64]struct{}, len(codespaces))
+	for _, codespace := range codespaces {
+		if codespace.UserID > 0 {
+			if _, seen := seenUsers[codespace.UserID]; !seen {
+				userIDs = append(userIDs, codespace.UserID)
+				seenUsers[codespace.UserID] = struct{}{}
+			}
+		}
+	}
+	users, err := user_model.GetUsersMapByIDs(ctx, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	return &governanceViewCache{
+		users:        users,
+		repositories: viewCache.repositories,
+		managers:     viewCache.managers,
+	}, nil
 }
 
 func applyGovernanceManagerFields(view *GovernanceView, manager *codespace_model.Manager) {
@@ -269,7 +266,7 @@ func applyGovernanceLifecycleAction(ctx context.Context, opts GovernanceActionOp
 		if err := validateGovernanceTarget(ctx, codespace, opts); err != nil {
 			return err
 		}
-		manager, _, err := governanceManager(ctx, make(map[int64]*codespace_model.Manager), codespace.ManagerID)
+		manager, _, err := governanceManager(ctx, codespace.ManagerID)
 		if err != nil {
 			return err
 		}
@@ -309,7 +306,7 @@ func validateGovernanceTarget(ctx context.Context, codespace *codespace_model.Co
 	if !opts.Unassigned {
 		return nil
 	}
-	_, found, err := governanceManager(ctx, make(map[int64]*codespace_model.Manager), codespace.ManagerID)
+	_, found, err := governanceManager(ctx, codespace.ManagerID)
 	if err != nil {
 		return err
 	}
@@ -350,34 +347,9 @@ func loadGovernanceCodespace(ctx context.Context, opts GovernanceActionOptions) 
 	return codespace, nil
 }
 
-func governanceUserDisplayName(ctx context.Context, cache map[int64]*user_model.User, userID int64) (string, error) {
-	if userID <= 0 {
-		return "", nil
-	}
-	if user, ok := cache[userID]; ok {
-		if user == nil {
-			return "", nil
-		}
-		return user.DisplayName(), nil
-	}
-	user, err := user_model.GetUserByID(ctx, userID)
-	if user_model.IsErrUserNotExist(err) {
-		cache[userID] = nil
-		return "", nil
-	}
-	if err != nil {
-		return "", err
-	}
-	cache[userID] = user
-	return user.DisplayName(), nil
-}
-
-func governanceManager(ctx context.Context, cache map[int64]*codespace_model.Manager, managerID int64) (*codespace_model.Manager, bool, error) {
+func governanceManager(ctx context.Context, managerID int64) (*codespace_model.Manager, bool, error) {
 	if managerID <= 0 {
 		return nil, false, nil
-	}
-	if manager, ok := cache[managerID]; ok {
-		return manager, manager != nil, nil
 	}
 	manager := new(codespace_model.Manager)
 	has, err := db.GetEngine(ctx).ID(managerID).Get(manager)
@@ -385,10 +357,8 @@ func governanceManager(ctx context.Context, cache map[int64]*codespace_model.Man
 		return nil, false, err
 	}
 	if !has {
-		cache[managerID] = nil
 		return nil, false, nil
 	}
-	cache[managerID] = manager
 	return manager, true, nil
 }
 

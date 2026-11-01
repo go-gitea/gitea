@@ -174,7 +174,7 @@ type CreatorResourceUsageView struct {
 	ObservedUnix int64
 }
 
-type creatorViewCache struct {
+type codespaceViewCache struct {
 	repositories map[int64]*repo_model.Repository
 	managers     map[int64]*codespace_model.Manager
 }
@@ -222,7 +222,7 @@ func ListCreatorCodespaces(ctx context.Context, opts CreatorListOptions) (*Creat
 	} else if err := query.Find(&rows); err != nil {
 		return nil, err
 	}
-	cache, err := loadCreatorViewCache(ctx, rows)
+	cache, err := loadCodespaceViewCache(ctx, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -252,14 +252,14 @@ func GetCreatorCodespace(ctx context.Context, opts CreatorDetailOptions) (*Creat
 	if codespace.UserID != opts.UserID {
 		return nil, ErrViewPermissionDenied
 	}
-	cache, err := loadCreatorViewCache(ctx, []*codespace_model.Codespace{codespace})
+	cache, err := loadCodespaceViewCache(ctx, []*codespace_model.Codespace{codespace})
 	if err != nil {
 		return nil, err
 	}
 	return creatorCodespaceView(codespace, cache, true), nil
 }
 
-func creatorCodespaceView(codespace *codespace_model.Codespace, cache *creatorViewCache, includeDetailData bool) *CreatorCodespaceView {
+func creatorCodespaceView(codespace *codespace_model.Codespace, cache *codespaceViewCache, includeDetailData bool) *CreatorCodespaceView {
 	refDisplayName := codespace.RefName
 	if codespace.RefType == "pull" {
 		if index, err := pullIndexFromCanonicalRef(codespace.RefName); err == nil {
@@ -312,7 +312,7 @@ func creatorCodespaceView(codespace *codespace_model.Codespace, cache *creatorVi
 	return view
 }
 
-func loadCreatorViewCache(ctx context.Context, codespaces []*codespace_model.Codespace) (*creatorViewCache, error) {
+func loadCodespaceViewCache(ctx context.Context, codespaces []*codespace_model.Codespace) (*codespaceViewCache, error) {
 	repoIDs := make([]int64, 0, len(codespaces))
 	managerIDs := make([]int64, 0, len(codespaces))
 	seenRepos := make(map[int64]struct{}, len(codespaces))
@@ -346,7 +346,7 @@ func loadCreatorViewCache(ctx context.Context, codespaces []*codespace_model.Cod
 			managers[manager.ID] = manager
 		}
 	}
-	return &creatorViewCache{repositories: repositories, managers: managers}, nil
+	return &codespaceViewCache{repositories: repositories, managers: managers}, nil
 }
 
 func creatorAutoStopView(codespace *codespace_model.Codespace) CreatorAutoStopView {

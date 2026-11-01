@@ -12,6 +12,7 @@ import (
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/templates"
 	codespace_service "gitea.dev/services/codespace"
@@ -22,52 +23,80 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestListRendersCreatorCodespaces(t *testing.T) {
+func TestListFiltersCurrentCreatorByRepositoryOwner(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	codespaceUUID := "22222222-2222-4222-8222-222222222222"
-	insertWebViewCodespace(t, &codespace_model.Codespace{
-		UUID:   codespaceUUID,
-		Status: codespace_model.StatusCreating,
-	})
+	otherCreatorUUID := "39393939-3939-4939-8939-393939393939"
+	insertWebViewCodespace(t, &codespace_model.Codespace{UUID: otherCreatorUUID, Status: codespace_model.StatusStopped})
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-list")})
-	contexttest.LoadUser(t, ctx, 1)
-	List(ctx)
-
-	require.Equal(t, http.StatusOK, resp.Code)
-	rows, ok := ctx.Data["Codespaces"].([]*codespace_service.CreatorCodespaceView)
-	require.True(t, ok)
-	require.Len(t, rows, 1)
-	assert.Equal(t, codespaceUUID, rows[0].UUID)
-	assert.Contains(t, resp.Body.String(), "codespace-row-"+strconv.FormatInt(rows[0].ID, 10))
-	assert.Contains(t, resp.Body.String(), "context-user-switch")
-	assert.NotNil(t, ctx.Data["Page"])
-}
-
-func TestListFiltersCurrentCreatorByOrganizationRepositories(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	codespaceUUID := "39393939-3939-4939-8939-393939393939"
-	insertWebViewCodespace(t, &codespace_model.Codespace{UUID: codespaceUUID, Status: codespace_model.StatusStopped})
-	_, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("user_id", "repo_id").Update(&codespace_model.Codespace{UserID: 2, RepoID: 3})
+	personalRepositoryUUID := "42424242-4242-4242-8242-424242424242"
+	insertWebViewCodespace(t, &codespace_model.Codespace{UUID: personalRepositoryUUID, Status: codespace_model.StatusStopped})
+	_, err := db.GetEngine(t.Context()).Where("uuid = ?", personalRepositoryUUID).Cols("user_id").Update(&codespace_model.Codespace{UserID: 2})
 	require.NoError(t, err)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces?owner=org3&partial=true", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-org-list")})
+	organizationRepositoryUUID := "43434343-4343-4343-8343-434343434343"
+	insertWebViewCodespace(t, &codespace_model.Codespace{UUID: organizationRepositoryUUID, Status: codespace_model.StatusStopped})
+	_, err = db.GetEngine(t.Context()).Where("uuid = ?", organizationRepositoryUUID).Cols("user_id", "repo_id").Update(&codespace_model.Codespace{UserID: 2, RepoID: 3})
+	require.NoError(t, err)
+
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-all-repositories")})
 	contexttest.LoadUser(t, ctx, 2)
 	List(ctx)
 
 	require.Equal(t, http.StatusOK, resp.Code)
 	rows, ok := ctx.Data["Codespaces"].([]*codespace_service.CreatorCodespaceView)
 	require.True(t, ok)
+	require.Len(t, rows, 2)
+	assert.ElementsMatch(t, []string{personalRepositoryUUID, organizationRepositoryUUID}, []string{rows[0].UUID, rows[1].UUID})
+	for _, row := range rows {
+		assert.Contains(t, resp.Body.String(), "codespace-row-"+strconv.FormatInt(row.ID, 10))
+	}
+	assert.Contains(t, resp.Body.String(), "codespace.all_repositories")
+	assert.Nil(t, ctx.Data["CodespaceRepositoryOwner"])
+	assert.NotNil(t, ctx.Data["Page"])
+
+	ctx, resp = contexttest.MockContext(t, "GET /-/codespaces?owner=USER2&partial=true", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-personal-repositories")})
+	contexttest.LoadUser(t, ctx, 2)
+	List(ctx)
+
+	require.Equal(t, http.StatusOK, resp.Code)
+	rows, ok = ctx.Data["Codespaces"].([]*codespace_service.CreatorCodespaceView)
+	require.True(t, ok)
 	require.Len(t, rows, 1)
-	assert.Equal(t, codespaceUUID, rows[0].UUID)
-	assert.Equal(t, "org3", ctx.Data["CodespaceOwner"])
+	assert.Equal(t, personalRepositoryUUID, rows[0].UUID)
+	repositoryOwner, ok := ctx.Data["CodespaceRepositoryOwner"].(*user_model.User)
+	require.True(t, ok)
+	assert.EqualValues(t, 2, repositoryOwner.ID)
+	assert.Equal(t, "/-/codespaces?owner=user2&partial=true", ctx.Data["CodespaceListStateURL"])
+
+	ctx, resp = contexttest.MockContext(t, "GET /-/codespaces?owner=org3&partial=true", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-org-list")})
+	contexttest.LoadUser(t, ctx, 2)
+	List(ctx)
+
+	require.Equal(t, http.StatusOK, resp.Code)
+	rows, ok = ctx.Data["Codespaces"].([]*codespace_service.CreatorCodespaceView)
+	require.True(t, ok)
+	require.Len(t, rows, 1)
+	assert.Equal(t, organizationRepositoryUUID, rows[0].UUID)
+	repositoryOwner, ok = ctx.Data["CodespaceRepositoryOwner"].(*user_model.User)
+	require.True(t, ok)
+	assert.EqualValues(t, 3, repositoryOwner.ID)
 	assert.Equal(t, "/-/codespaces?owner=org3&partial=true", ctx.Data["CodespaceListStateURL"])
 	pager, ok := ctx.Data["Page"].(*context.Pagination)
 	require.True(t, ok)
 	assert.Equal(t, "owner=org3", string(pager.GetParams()))
 	assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
+}
+
+func TestListRendersEmptyRepositoryOwner(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces?owner=org17", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-empty-owner")})
+	contexttest.LoadUser(t, ctx, 2)
+	List(ctx)
+
+	require.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, resp.Body.String(), "codespace.empty_repository_owner_desc:org17")
 }
 
 func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {

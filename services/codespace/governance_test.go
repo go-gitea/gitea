@@ -43,10 +43,15 @@ func TestListGovernanceCodespacesAndActions(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list.Rows, 1)
 	assert.EqualValues(t, 1, list.Total)
-	rows := governanceRowsByUUID(list.Rows)
+	rows := make(map[string]*GovernanceView, len(list.Rows))
+	for _, row := range list.Rows {
+		rows[row.UUID] = row
+	}
 	assert.True(t, rows[runningUUID].CanStop)
 	assert.True(t, rows[runningUUID].CanForceDelete)
+	assert.Equal(t, "User One", rows[runningUUID].UserDisplayName)
 	assert.Equal(t, "user2/repo2", rows[runningUUID].RepoFullName)
+	assert.Equal(t, "manager", rows[runningUUID].ManagerDisplayName)
 	assert.Equal(t, "main", rows[runningUUID].RefName)
 
 	unassigned, err := ListGovernanceCodespaces(t.Context(), GovernanceListOptions{
@@ -119,12 +124,4 @@ func TestForceDeleteCodespaceRemovesLocalState(t *testing.T) {
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
 	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
-}
-
-func governanceRowsByUUID(rows []*GovernanceView) map[string]*GovernanceView {
-	result := make(map[string]*GovernanceView, len(rows))
-	for _, row := range rows {
-		result[row.UUID] = row
-	}
-	return result
 }

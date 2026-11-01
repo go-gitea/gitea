@@ -91,6 +91,10 @@
 	<div class="empty-placeholder">
 		{{svg "octicon-codespaces" 48}}
 		<h2>{{ctx.Locale.Tr "codespace.empty"}}</h2>
-		<p>{{if .CodespaceOwner}}{{ctx.Locale.Tr "codespace.empty_org_desc" .ContextUser.ShortName}}{{else}}{{ctx.Locale.Tr "codespace.empty_desc"}}{{end}}</p>
+		{{with .CodespaceRepositoryOwner}}
+			<p>{{ctx.Locale.Tr "codespace.empty_repository_owner_desc" (.ShortName 40)}}</p>
+		{{else}}
+			<p>{{ctx.Locale.Tr "codespace.empty_desc"}}</p>
+		{{end}}
 	</div>
 {{end}}
