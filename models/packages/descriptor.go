@@ -184,7 +184,7 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 		metadata = &conan.Metadata{}
 	case TypeConda:
 		metadata = &conda.VersionMetadata{}
-	case TypeContainer:
+	case TypeContainer, TypeFlatpak:
 		metadata = &container.Metadata{}
 	case TypeCran:
 		metadata = &cran.Metadata{}

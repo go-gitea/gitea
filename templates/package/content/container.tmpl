@@ -1,7 +1,17 @@
-{{if eq .PackageDescriptor.Package.Type "container"}}
+{{if or (eq .PackageDescriptor.Package.Type "container") (eq .PackageDescriptor.Package.Type "flatpak")}}
 	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
+			{{if eq .PackageDescriptor.Package.Type "flatpak"}}
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.flatpak.registry"}}</label>
+				<div class="markup"><pre class="code-block"><code>flatpak remote-add --user {{.PackageDescriptor.Owner.LowerName}} oci+{{ctx.AppFullLink}}/api/packages/{{.PackageDescriptor.Owner.Name}}/flatpak</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.flatpak.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>flatpak install --user {{.PackageDescriptor.Owner.LowerName}} {{or (index .PackageDescriptor.Metadata.Labels "org.flatpak.ref") .PackageDescriptor.Package.Name}}</code></pre></div>
+			</div>
+			{{else}}
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.container.pull"}}</label>
 				{{if eq .PackageDescriptor.Metadata.Type "helm"}}
@@ -14,6 +24,7 @@
 					<div class="markup"><pre class="code-block"><code>docker pull {{.PackageRegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}}{{$separator}}{{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
 				{{end}}
 			</div>
+			{{end}}
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.container.digest"}}</label>
 				<div class="markup">
@@ -29,7 +40,11 @@
 				</div>
 			</div>
 			<div class="field">
+				{{if eq .PackageDescriptor.Package.Type "flatpak"}}
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Flatpak" "https://docs.gitea.com/usage/packages/flatpak/"}}</label>
+				{{else}}
 				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Container" "https://docs.gitea.com/usage/packages/container/"}}</label>
+				{{end}}
 			</div>
 		</div>
 	</div>

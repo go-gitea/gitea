@@ -735,7 +735,7 @@ func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor, 
 func GetTagsList(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
-	if _, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeContainer, image); err != nil {
+	if _, err := container_model.GetImagePackage(ctx, ctx.Package.Owner.ID, image); err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiErrorDefined(ctx, errNameUnknown)
 		} else {
