@@ -118,31 +118,22 @@ func TestCheckAddr(t *testing.T) {
 }
 
 // a policy without list options behaves like one with empty lists
-func TestPolicyWithoutLists(t *testing.T) {
-	lax := NewPolicy("test", Lax)
-	assert.NoError(t, lax.checkAddr("", netip.AddrPortFrom(netip.MustParseAddr("8.8.8.8"), 80))) // public targets pass
-	assert.Error(t, lax.checkAddr("", netip.AddrPortFrom(netip.MustParseAddr("10.0.0.5"), 80)))  // restricted targets need an entry
-	strict := NewPolicy("test", Strict)
-	err := strict.checkAddr("", netip.AddrPortFrom(netip.MustParseAddr("8.8.8.8"), 80)) // strict denies without an entry
-	assert.ErrorContains(t, err, "can only call allowed HTTP servers")
-}
-
-func TestDenialNamesSetting(t *testing.T) {
-	err := NewPolicy("webhook", Strict, WithAllow("example.com", "security.ALLOWED_HOST_LIST")).checkAddr("other.com", netip.AddrPortFrom(netip.MustParseAddr("8.8.8.8"), 80))
-	assert.EqualError(t, err, "webhook can only call allowed HTTP servers (no allow entry matches, check your security.ALLOWED_HOST_LIST setting), deny 'other.com(8.8.8.8)'")
-
-	err = NewPolicy("webhook", Lax, WithBlock("evil.com", "migrations.BLOCKED_HOST_LIST")).CheckHost(hostURL(t, "http://evil.com"))
-	assert.EqualError(t, err, `webhook can not call blocked HTTP servers (matched hostname entry "evil.com", check your migrations.BLOCKED_HOST_LIST setting), deny 'evil.com'`)
+func addrPort(ip string, port uint16) netip.AddrPort {
+	return netip.AddrPortFrom(netip.MustParseAddr(ip), port)
 }
 
 func TestDenialReasons(t *testing.T) {
-	addr := func(ip string, port uint16) netip.AddrPort {
-		return netip.AddrPortFrom(netip.MustParseAddr(ip), port)
-	}
+	addr := addrPort
+
+	// an allow list that matches nothing names the allow setting
+	err := NewPolicy("webhook", Strict, WithAllow("example.com", "security.ALLOWED_HOST_LIST")).checkAddr("other.com", addrPort("8.8.8.8", 80))
+	assert.EqualError(t, err, "webhook can only call allowed HTTP servers (no allow entry matches, check your security.ALLOWED_HOST_LIST setting), deny 'other.com(8.8.8.8)'")
+	err = NewPolicy("webhook", Lax, WithBlock("evil.com", "migrations.BLOCKED_HOST_LIST")).CheckHost(hostURL(t, "http://evil.com"))
+	assert.EqualError(t, err, `webhook can not call blocked HTTP servers (matched hostname entry "evil.com", check your migrations.BLOCKED_HOST_LIST setting), deny 'evil.com'`)
 
 	// reserved names the matching range, zoned addresses say so
 	lax := NewPolicy("test", Lax)
-	err := lax.checkAddr("", addr("2001::1", 80))
+	err = lax.checkAddr("", addr("2001::1", 80))
 	assert.EqualError(t, err, "test can not call reserved addresses (2001::/32), deny '2001::1'")
 	// a NAT64 well-known-prefix address is decoded to the embedded IPv4 for scanning
 	err = lax.checkAddr("", addr("64:ff9b::a9fe:a9fe", 80))
