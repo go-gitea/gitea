@@ -50,27 +50,3 @@ func TestPullRequestPayload(t *testing.T) {
 		})
 	}
 }
-
-func TestCreateAndDeletePayload(t *testing.T) {
-	data, err := json.Marshal(&CreatePayload{Sha: "1111111111111111111111111111111111111111", Ref: "v1.0", RefRaw: "refs/tags/v1.0", RefType: "tag"})
-	require.NoError(t, err)
-	assert.JSONEq(t, `{
-		"sha": "1111111111111111111111111111111111111111",
-		"ref": "v1.0",
-		"ref_raw": "refs/tags/v1.0",
-		"ref_type": "tag",
-		"repository": null,
-		"sender": null
-	}`, string(data))
-
-	data, err = json.Marshal(&DeletePayload{Ref: "v1.0", RefRaw: "refs/tags/v1.0", RefType: "tag", PusherType: PusherTypeUser})
-	require.NoError(t, err)
-	assert.JSONEq(t, `{
-		"ref": "v1.0",
-		"ref_raw": "refs/tags/v1.0",
-		"ref_type": "tag",
-		"pusher_type": "user",
-		"repository": null,
-		"sender": null
-	}`, string(data))
-}

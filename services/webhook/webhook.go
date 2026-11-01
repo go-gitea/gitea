@@ -49,19 +49,9 @@ var hookQueue *queue.WorkerPoolQueue[int64]
 func getPayloadRef(p api.Payloader) git.RefName {
 	switch pp := p.(type) {
 	case *api.CreatePayload:
-		switch pp.RefType {
-		case "branch":
-			return git.RefNameFromBranch(pp.Ref)
-		case "tag":
-			return git.RefNameFromTag(pp.Ref)
-		}
+		return git.RefName(pp.RefRaw)
 	case *api.DeletePayload:
-		switch pp.RefType {
-		case "branch":
-			return git.RefNameFromBranch(pp.Ref)
-		case "tag":
-			return git.RefNameFromTag(pp.Ref)
-		}
+		return git.RefName(pp.RefRaw)
 	case *api.PushPayload:
 		return git.RefName(pp.Ref)
 	}
