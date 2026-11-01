@@ -18,13 +18,12 @@ import (
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/perftrace"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/routers"
 	"gitea.dev/routers/install"
 	"gitea.dev/services/audit"
@@ -224,7 +223,7 @@ func serveInstalled(c *cli.Command) error {
 		}
 	}
 
-	gtprof.EnableBuiltinTracer(util.Iif(setting.IsProd, 2000*time.Millisecond, 100*time.Millisecond))
+	perftrace.Enable(setting.PerfTraceThreshold)
 
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()
