@@ -5,6 +5,7 @@ package gitproxy
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -21,7 +22,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/git/gitcmd"
@@ -192,13 +195,172 @@ func TestRelay(t *testing.T) {
 	upstreamEnd, upstream := net.Pipe()
 	done := make(chan struct{})
 	go func() {
-		relay(clientEnd, upstreamEnd)
+		relay(clientEnd, upstreamEnd, 0)
 		close(done)
 	}()
 	require.NoError(t, upstream.Close())
 	_, err := client.Read(make([]byte, 1))
 	assert.ErrorIs(t, err, io.EOF)
 	<-done
+}
+
+// connPair returns a TCP connection and the peer the test plays (as git or the remote)
+func connPair(t *testing.T) (net.Conn, *net.TCPConn) {
+	ln := listen(t)
+	conn, err := net.Dial("tcp", ln.Addr().String())
+	require.NoError(t, err)
+	peer, err := ln.Accept()
+	require.NoError(t, err)
+	tcpPeer, ok := peer.(*net.TCPConn)
+	require.True(t, ok)
+	t.Cleanup(func() { _ = conn.Close(); _ = tcpPeer.Close() })
+	return conn, tcpPeer
+}
+
+// scriptStep is one scripted Read result: data, or an error such as os.ErrDeadlineExceeded.
+type scriptStep struct {
+	data []byte
+	err  error
+}
+
+// scriptedConn is a net.Conn whose Read replays scripted steps and which records deadline
+// re-arms, so relay() can be driven deterministically without wall-clock timing.
+// relay calls SetReadDeadline from two goroutines, so like a real conn it needs a mutex.
+type scriptedConn struct {
+	steps      []scriptStep
+	mu         sync.Mutex
+	pos        int
+	reArms     int
+	written    bytes.Buffer
+	halfClosed bool
+}
+
+func (c *scriptedConn) Read(p []byte) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.pos >= len(c.steps) {
+		return 0, io.EOF
+	}
+	s := c.steps[c.pos]
+	c.pos++
+	if s.err != nil {
+		return 0, s.err
+	}
+	return copy(p, s.data), nil
+}
+
+func (c *scriptedConn) Write(p []byte) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.written.Write(p)
+}
+
+func (c *scriptedConn) Close() error { return nil }
+
+func (c *scriptedConn) CloseWrite() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.halfClosed = true
+	return nil
+}
+
+func (c *scriptedConn) SetReadDeadline(time.Time) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.reArms++
+	return nil
+}
+
+func (c *scriptedConn) SetDeadline(time.Time) error      { return nil }
+func (c *scriptedConn) SetWriteDeadline(time.Time) error { return nil }
+func (c *scriptedConn) LocalAddr() net.Addr              { return nil }
+func (c *scriptedConn) RemoteAddr() net.Addr             { return nil }
+
+// stats returns the recorded re-arm count and half-close state.
+func (c *scriptedConn) stats() (reArms int, halfClosed bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.reArms, c.halfClosed
+}
+
+var deadlineStep = scriptStep{err: os.ErrDeadlineExceeded}
+
+func TestRelayIdle(t *testing.T) {
+	t.Parallel()
+
+	// a remote that goes silent once the client has closed its side is reaped: at once for a
+	// full close (curl never half-closes), after the idle window for a half-close (git:// v2)
+	for _, tc := range []struct {
+		name        string
+		idle        time.Duration
+		closeClient func(*net.TCPConn) error
+	}{
+		{"ClientGoneReapedAtOnce", 0, (*net.TCPConn).Close},
+		{"HalfClosedSilentReaped", 100 * time.Millisecond, (*net.TCPConn).CloseWrite},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			upstream := &scriptedConn{steps: []scriptStep{deadlineStep, deadlineStep}}
+			client, git := connPair(t)
+			done := make(chan struct{})
+			go func() {
+				relay(client, upstream, tc.idle)
+				close(done)
+			}()
+			require.NoError(t, tc.closeClient(git))
+			select {
+			case <-done:
+			case <-time.After(5 * time.Second):
+				t.Fatal("relay held the tunnel open for a silent remote")
+			}
+		})
+	}
+
+	t.Run("HalfCloseAnswered", func(t *testing.T) {
+		t.Parallel()
+		// the git:// helper half-closes and waits for the pack: a prompt answer must get through
+		upstream := &scriptedConn{steps: []scriptStep{{data: []byte("pong\n")}}}
+		client, git := connPair(t)
+		done := make(chan struct{})
+		go func() {
+			relay(client, upstream, 5*time.Second)
+			close(done)
+		}()
+		_, err := git.Write([]byte("ping\n"))
+		require.NoError(t, err)
+		require.NoError(t, git.CloseWrite())
+		reply, err := bufio.NewReader(git).ReadString('\n')
+		require.NoError(t, err)
+		assert.Equal(t, "pong\n", reply)
+		<-done
+	})
+
+	t.Run("KeepAlivesWithinIdleDelivered", func(t *testing.T) {
+		t.Parallel()
+		// receive-pack sends a keep-alive every few seconds while it works: each window with
+		// data re-arms the deadline, so the trickle keeps the tunnel alive indefinitely
+		steps := make([]scriptStep, 0, 11)
+		for range 5 {
+			steps = append(steps, scriptStep{data: []byte("x")}, deadlineStep)
+		}
+		upstream := &scriptedConn{steps: steps}
+		client, git := connPair(t)
+		done := make(chan struct{})
+		go func() {
+			relay(client, upstream, time.Hour) // any idle: the fake conn fires deadlines on script
+			close(done)
+		}()
+		_, err := git.Write([]byte("ping\n"))
+		require.NoError(t, err)
+		require.NoError(t, git.CloseWrite())
+		answer, err := io.ReadAll(git)
+		require.NoError(t, err)
+		assert.Equal(t, "xxxxx", string(answer))
+		<-done // relay returns only after its goroutine finished, so the counts are final now
+		reArms, halfClosed := upstream.stats()
+		assert.Equal(t, 6, reArms) // the wake-up deadline plus one re-arm per window with data
+		assert.True(t, halfClosed)
+	})
 }
 
 func TestProxyCONNECT(t *testing.T) {
@@ -395,6 +557,22 @@ func TestProxyHTTP(t *testing.T) {
 		assert.Equal(t, "http://git.example.com/repo.git", rec.Body.String())
 	})
 
+	t.Run("OperatorAsTarget", func(t *testing.T) {
+		t.Parallel()
+		// the operator's proxy must not be reachable as an origin server, not even after
+		// a request through it has primed the dialer's proxy exemption
+		operator := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.True(t, r.URL.IsAbs(), "the operator's proxy must not be reached as an origin server")
+		}))
+		t.Cleanup(operator.Close)
+		opURL, err := url.Parse(operator.URL)
+		require.NoError(t, err)
+
+		srv := newServer(policy.NewPolicy("test", policy.Lax, policy.WithProxy(http.ProxyURL(opURL))), "", nil)
+		assert.Equal(t, http.StatusOK, serve(srv, http.MethodGet, "http://git.example.com/repo.git", "").Code)
+		assert.Equal(t, http.StatusForbidden, serve(srv, http.MethodGet, operator.URL+"/status", "").Code)
+	})
+
 	t.Run("Denied", func(t *testing.T) {
 		t.Parallel()
 		origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -441,4 +619,20 @@ func TestRun(t *testing.T) {
 	_, stderr, runErr := gitcmd.NewCommand("clone", "-q", "--bare").AddDynamicArguments("git://127.0.0.2:"+port+"/repo1_bare", filepath.Join(base, "denied")).RunStdString(t.Context())
 	require.Error(t, runErr)
 	assert.Contains(t, stderr, "target denied by policy")
+}
+
+// TestDirectIdleOverGitTimeout: the direct-tunnel reap bound must exceed every
+// [git.timeout], so it can only fire after git itself was killed — protocol v2
+// half-closes before receiving the pack (fetch-pack.c close(fd[1])), and a live
+// clone may be silent for a long pack build.
+func TestDirectIdleOverGitTimeout(t *testing.T) {
+	defer test.MockVariableValue(&setting.Git.Timeout.Migrate, 600)()
+	defer test.MockVariableValue(&setting.Git.Timeout.Mirror, 300)()
+	defer test.MockVariableValue(&setting.Git.Timeout.GC, 60)()
+	assert.Greater(t, directIdle(), 600*time.Second)
+
+	defer test.MockVariableValue(&setting.Git.Timeout.Migrate, 5)()
+	defer test.MockVariableValue(&setting.Git.Timeout.Mirror, 4)()
+	defer test.MockVariableValue(&setting.Git.Timeout.GC, 3)()
+	assert.Equal(t, 35*time.Second, directIdle())
 }

@@ -21,8 +21,7 @@ func newMigrationHTTPClient() *http.Client {
 }
 
 // NewMigrationHTTPTransport returns a HTTP transport for migration, enforcing the migration policy on its direct dials.
-func NewMigrationHTTPTransport() *http.Transport {
-	t := egress.NewMigrationPolicy().NewHTTPTransport()
-	t.TLSClientConfig = &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify}
-	return t
+func NewMigrationHTTPTransport() http.RoundTripper {
+	base := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify}}
+	return egress.NewMigrationPolicy().NewHTTPTransport(base)
 }
