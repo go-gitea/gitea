@@ -686,6 +686,23 @@
 					{{end}}
 				</span>
 			</div>
+		{{else if or (eq .Type 39) (eq .Type 40) (eq .Type 41) (eq .Type 42)}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg (Iif (or (eq .Type 39) (eq .Type 40)) "octicon-arrow-right" "octicon-copy")}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="comment-text-line">
+					{{template "shared/user/authorlink" .Poster}}
+					{{$ref := StringUtils.Cut .Content "#"}}
+					{{$refLink := HTMLFormat `<a href="%s/%s/issues/%s">%s</a>` AppSubUrl (index $ref 0) (index $ref 1) .Content}}
+					{{if or (eq .Type 39) (eq .Type 40)}}
+						{{ctx.Locale.Tr "repo.issues.moved_from_at" $refLink $createdStr}}
+					{{else if eq .Type 41}}
+						{{ctx.Locale.Tr "repo.issues.copied_to_at" $refLink $createdStr}}
+					{{else}}
+						{{ctx.Locale.Tr "repo.issues.copied_from_at" $refLink $createdStr}}
+					{{end}}
+				</span>
+			</div>
 		{{end}}
 	{{end}}
 {{end}}
