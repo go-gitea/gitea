@@ -5,8 +5,6 @@ package activities
 
 import (
 	"context"
-	"maps"
-	"slices"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -73,16 +71,6 @@ func (opts FindNotificationOptions) ToOrders() string {
 // receiverID > 0 just send to receiver, else send to all watcher
 // Returns the set of user IDs whose notification rows were created or updated.
 func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
-	var notifiedIDs []int64
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		var innerErr error
-		notifiedIDs, innerErr = createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID)
-		return innerErr
-	})
-	return notifiedIDs, err
-}
-
-func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
 	// init
 	var toNotify container.Set[int64]
 	notifications, err := db.Find[Notification](ctx, FindNotificationOptions{
@@ -160,7 +148,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 
 	// notify
 	notifiedIDs := make([]int64, 0, len(toNotify))
-	for _, userID := range slices.Sorted(maps.Keys(toNotify)) { // fixed order so concurrent transactions lock rows in the same order
+	for userID := range toNotify {
 		issue.Repo.Units = nil
 		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
