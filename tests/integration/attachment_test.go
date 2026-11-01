@@ -294,7 +294,8 @@ func testDeleteAttachmentPermissions(t *testing.T) {
 	testDeleteIssueAttachment(t, readonlySession, repoURL, issueFromOwner, http.StatusForbidden)
 
 	issueFromReader := testCreateIssueAttachment(t, readonlySession, repoURL, "reader-issue.png", testGeneratePngBytes(), http.StatusOK)
-	testDeleteIssueAttachment(t, ownerSession, repoURL, issueFromReader, http.StatusOK)
+	testDeleteIssueAttachment(t, ownerSession, repoURL, issueFromReader, http.StatusForbidden)
+	testDeleteIssueAttachment(t, readonlySession, repoURL, issueFromReader, http.StatusOK)
 
 	testCreateReleaseAttachment(t, readonlySession, repoURL, "reader-release.png", testGeneratePngBytes(), http.StatusNotFound)
 

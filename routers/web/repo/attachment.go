@@ -96,12 +96,7 @@ func DeleteAttachment(ctx *context.Context) {
 		return
 	}
 
-	if attach.IssueID > 0 || attach.ReleaseID > 0 { // linked attachments are removed by editing their issue, comment or release
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
-	if ctx.Doer.ID != attach.UploaderID && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
+	if attach.UploaderID != ctx.Doer.ID || attach.IssueID > 0 || attach.ReleaseID > 0 { // only the uploader's pending uploads, linked ones are removed by editing their content
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
