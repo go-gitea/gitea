@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"uuid"
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	"gitea.dev/codespace-proto-go/codespace/v1/codespacev1connect"
@@ -34,7 +35,6 @@ import (
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/connect/v2/connectproto"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -143,7 +143,7 @@ func TestCodespaceRuntimeUUIDDatabaseConstraint(t *testing.T) {
 			_, _ = db.GetEngine(t.Context()).In("id", first.ID, second.ID).Delete(new(codespace_model.Codespace))
 		}()
 
-		runtimeUUID := uuid.NewString()
+		runtimeUUID := uuid.NewV4().String()
 		updated, err := db.GetEngine(t.Context()).ID(first.ID).Cols("uuid").Update(&codespace_model.Codespace{UUID: runtimeUUID})
 		require.NoError(t, err)
 		require.EqualValues(t, 1, updated)
@@ -349,7 +349,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		require.Len(t, fetched.GetOperations(), 1)
 		operation := fetched.GetOperations()[0]
 		assert.NotNil(t, operation.GetCreate())
-		codespaceUUID := uuid.NewString()
+		codespaceUUID := uuid.NewV4().String()
 		bound, err := client.BindRuntimeIdentity(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.BindRuntimeIdentityRequest{
 			ProtocolVersion:   1,
 			CodespaceId:       operation.GetCodespaceId(),
@@ -576,7 +576,7 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 			strings.TrimRight(giteaURL.String(), "/")+"/api/codespace")),
 		)
 
-		runningUUID := uuid.NewString()
+		runningUUID := uuid.NewV4().String()
 		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
 			UUID:                  runningUUID,
 			Status:                codespace_model.StatusRunning,
@@ -642,7 +642,7 @@ func createCodespaceFromRepository(t *testing.T, session *TestSession, path, ref
 func createRunningCodespaceTokenForRepo(t *testing.T, repo *repo_model.Repository) (string, string) {
 	t.Helper()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	codespaceUUID := uuid.NewString()
+	codespaceUUID := uuid.NewV4().String()
 	manager := &codespace_model.Manager{
 		Name:           "codespace-token-manager-" + codespaceUUID[:8],
 		RuntimeState:   codespace_model.ManagerRuntimeStateOnline,

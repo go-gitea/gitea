@@ -6,14 +6,14 @@ package codespace
 import (
 	"math"
 	"testing"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestUUIDValidation(t *testing.T) {
-	generated := uuid.NewString()
+	generated := uuid.NewV4().String()
 	require.NoError(t, ValidateUUID(generated))
 
 	uuid32, err := UUID32(generated)

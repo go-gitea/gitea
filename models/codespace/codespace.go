@@ -12,11 +12,11 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"uuid"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/util"
 
-	"github.com/google/uuid"
 	"xorm.io/xorm/schemas"
 )
 
@@ -286,7 +286,7 @@ func ValidateUUID(codespaceUUID string) error {
 	if err != nil {
 		return fmt.Errorf("invalid codespace uuid: %w", err)
 	}
-	if parsed.Version() != 4 {
+	if parsed[6]>>4 != 4 {
 		return errors.New("codespace uuid must be version 4")
 	}
 	if parsed.String() != codespaceUUID {

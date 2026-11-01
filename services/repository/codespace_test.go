@@ -5,6 +5,7 @@ package repository
 
 import (
 	"testing"
+	"uuid"
 
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
@@ -14,7 +15,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +50,7 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 	sourceSecretRepository := &codespace_model.UserSecretRepository{SecretID: secret.ID, RepoID: repo.ID}
 	require.NoError(t, db.Insert(t.Context(), sourceSecretRepository))
 
-	codespaceUUID := uuid.NewString()
+	codespaceUUID := uuid.NewV4().String()
 	codespace := &codespace_model.Codespace{
 		UUID:                      codespaceUUID,
 		UserID:                    user.ID,

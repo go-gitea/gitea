@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"uuid"
 
 	"gitea.dev/modelmigration"
 	migrate_base "gitea.dev/modelmigration/base"
@@ -27,7 +28,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/testlogger"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -206,7 +206,7 @@ func assertCodespaceRuntimeUUIDConstraint(t *testing.T, x db.EngineMigration) {
 		_, _ = x.In("id", first.ID, second.ID).Delete(new(codespace_model.Codespace))
 	}()
 
-	runtimeUUID := uuid.NewString()
+	runtimeUUID := uuid.NewV4().String()
 	updated, err := x.ID(first.ID).Cols("uuid").Update(&codespace_model.Codespace{UUID: runtimeUUID})
 	require.NoError(t, err)
 	require.EqualValues(t, 1, updated)
