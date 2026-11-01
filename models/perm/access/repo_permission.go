@@ -21,6 +21,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
@@ -147,6 +148,23 @@ func (p *Permission) CanReadIssuesOrPulls(isPull bool) bool {
 		return p.CanRead(unit.TypePullRequests)
 	}
 	return p.CanRead(unit.TypeIssues)
+}
+
+// ReadableIssuesOrPullsFilter narrows the requested is_pull filter to the readable units, ok is false when nothing requested is readable
+func (p *Permission) ReadableIssuesOrPullsFilter(requested optional.Option[bool]) (isPull optional.Option[bool], ok bool) {
+	if requested.Has() {
+		return requested, p.CanReadIssuesOrPulls(requested.Value())
+	}
+	canReadIssues, canReadPulls := p.CanRead(unit.TypeIssues), p.CanRead(unit.TypePullRequests)
+	switch {
+	case canReadIssues && canReadPulls:
+		return optional.None[bool](), true
+	case canReadIssues:
+		return optional.Some(false), true
+	case canReadPulls:
+		return optional.Some(true), true
+	}
+	return optional.None[bool](), false
 }
 
 // CanWrite returns true if user could write to this unit

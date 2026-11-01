@@ -124,7 +124,7 @@ func TestIssueViews(t *testing.T) {
 	t.Run("SearchIssues", func(t *testing.T) {
 		session := loginUser(t, "user2")
 
-		expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
+		expectedIssueCount := min(17, setting.UI.IssuePagingNum) // 20 open in the fixtures, 3 of them in a disabled unit
 
 		link, _ := url.Parse("/issues/search")
 		checkIssues := func(expectedCount int, expectedTotal string) {
@@ -144,7 +144,7 @@ func TestIssueViews(t *testing.T) {
 		query.Add("since", since)
 		query.Add("before", before)
 		link.RawQuery = query.Encode()
-		checkIssues(11, "")
+		checkIssues(8, "")
 		query.Del("since")
 		query.Del("before")
 
@@ -154,11 +154,11 @@ func TestIssueViews(t *testing.T) {
 
 		query.Set("state", "all")
 		link.RawQuery = query.Encode()
-		checkIssues(20, "22")
+		checkIssues(18, "21")
 
 		query.Add("limit", "5")
 		link.RawQuery = query.Encode()
-		checkIssues(5, "22")
+		checkIssues(5, "21")
 
 		query = url.Values{"assigned": {"true"}, "state": {"all"}}
 		link.RawQuery = query.Encode()
@@ -174,7 +174,7 @@ func TestIssueViews(t *testing.T) {
 
 		query = url.Values{"owner": {"user2"}} // user
 		link.RawQuery = query.Encode()
-		checkIssues(8, "")
+		checkIssues(7, "")
 
 		query = url.Values{"owner": {"org3"}} // organization
 		link.RawQuery = query.Encode()
@@ -186,7 +186,7 @@ func TestIssueViews(t *testing.T) {
 	})
 
 	t.Run("SearchIssuesWithLabels", func(t *testing.T) {
-		expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
+		expectedIssueCount := min(17, setting.UI.IssuePagingNum) // 20 open in the fixtures, 3 of them in a disabled unit
 
 		session := loginUser(t, "user1")
 		link, _ := url.Parse("/issues/search")
