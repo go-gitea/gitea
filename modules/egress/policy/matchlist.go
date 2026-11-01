@@ -199,8 +199,10 @@ func newPrefixRule(target string, ranges []portRange) (prefixRule, error) {
 			}
 			return prefixRule{}, fmt.Errorf("invalid CIDR %q: %w", target, err)
 		}
-		if prefix.Addr().Is4In6() {
-			prefix = netip.PrefixFrom(prefix.Addr().Unmap(), max(prefix.Bits()-96, 0))
+		if prefix.Addr().Is4In6() && prefix.Bits() >= 96 {
+			// the prefix is inside the IPv4-mapped ::ffff:0:0/96 block: normalize to the IPv4
+			// form, ::ffff:10.0.0.0/104 -> 10.0.0.0/8 (bits==96 unmaps to the catch-all, caught below)
+			prefix = netip.PrefixFrom(prefix.Addr().Unmap(), prefix.Bits()-96)
 		}
 		if prefix.Bits() == 0 {
 			return prefixRule{}, fmt.Errorf("invalid CIDR %q: %w", target, errCatchAll)

@@ -101,8 +101,8 @@ func TestRejectedEntries(t *testing.T) {
 		{entry: "external", wantErr: "EGRESS_MODE"},
 		{entry: "0.0.0.0/0", wantErr: `invalid CIDR "0.0.0.0/0": catch-all CIDR covers every address and is not allowed`},
 		{entry: "::/0", wantErr: `invalid CIDR "::/0": catch-all CIDR covers every address and is not allowed`},
-		// a 4-in-6 address with a prefix shorter than /96: bits-96 is negative, clamped to the catch-all
-		{entry: "::ffff:0:0/80", wantErr: "catch-all"},
+		// the whole mapped block unmaps to the catch-all; a shorter 4-in-6 prefix is not in the block and stays IPv6
+		{entry: "::ffff:0:0/96", wantErr: "catch-all"},
 		{entry: "10.0.0.5/8", wantErr: `host bits must be zero, use "10.0.0.0/8"`},
 		{entry: "fe80::/64:80", wantErr: "unbracketed IPv6 with port"},
 		{entry: "[2001:db8::]/64", wantErr: `unexpected "/64" after bracketed target`},
