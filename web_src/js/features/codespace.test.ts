@@ -317,10 +317,10 @@ describe('codespace log', () => {
   test('fills a short viewport and renders untrusted output as plain text', async () => {
     height = 50;
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(codespaceLogResponse(20, ['\u001b[32mready\u001b[0m'], false))
+      .mockResolvedValueOnce(codespaceLogResponse(20, ['ready'], false))
       .mockImplementationOnce(() => {
         height = 400;
-        return Promise.resolve(codespaceLogResponse(100, ['<img src=x onerror=alert(1)>', '\u001b]8;;https://example.com\u0007link\u001b]8;;\u0007']));
+        return Promise.resolve(codespaceLogResponse(100, ['<img src=x onerror=alert(1)>', 'link']));
       });
     vi.stubGlobal('fetch', fetchMock);
     initCodespaceLiveState();

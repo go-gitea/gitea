@@ -2,7 +2,6 @@ import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {hideModal, showModal} from '../modules/modal.ts';
-import stripAnsi from 'strip-ansi';
 import {Idiomorph} from 'idiomorph';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 
@@ -306,7 +305,7 @@ function initCodespaceLog(logEl: HTMLElement) {
       if (result.lines.length > 0) {
         const followNewLines = following && atBottom();
         // One text node per page keeps large logs cheap without interpreting log commands or HTML.
-        content.append(result.lines.map((line) => `${stripAnsi(line.message)}\n`).join(''));
+        content.append(result.lines.map((line) => `${line.message}\n`).join(''));
         hideElem(empty);
         if (followNewLines) logEl.scrollTop = logEl.scrollHeight;
       }
