@@ -161,6 +161,10 @@ func (b *HTMLBuilder) Reset() {
 	b.sb.Reset()
 }
 
+func (b *HTMLBuilder) Grow(n int) {
+	b.sb.Grow(n)
+}
+
 func (b *HTMLBuilder) WriteString(s string) HTMLWriter {
 	b.sb.WriteString(template.HTMLEscapeString(s))
 	return b
