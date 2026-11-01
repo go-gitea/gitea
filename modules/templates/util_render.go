@@ -105,7 +105,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 	locale := ut.locale()
 	var extraCSSClasses string
 	textColor := util.ContrastColor(label.Color)
-	labelScope := label.ExclusiveScope()
+	labelScope := label.Scope()
 	descriptionText := emoji.ReplaceAliases(label.Description)
 
 	if label.IsArchived() {
