@@ -41,6 +41,9 @@ type CreateFileOptions struct {
 	// content must be base64 encoded
 	// required: true
 	ContentBase64 string `json:"content"`
+	// is_lfs_pointer commits the content as-is, as a Git-LFS pointer to an
+	// object the repository already holds.
+	IsLFSPointer bool `json:"is_lfs_pointer"`
 }
 
 // DeleteFileOptions options for deleting a file
@@ -63,6 +66,9 @@ type UpdateFileOptions struct {
 	ContentBase64 string `json:"content"`
 	// from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL
 	FromPath string `json:"from_path" binding:"MaxSize(500)"`
+	// is_lfs_pointer commits the content as-is, as a Git-LFS pointer to an
+	// object the repository already holds.
+	IsLFSPointer bool `json:"is_lfs_pointer"`
 }
 
 // FIXME: there is no LastCommitID in FileOptions, actually it should be an alternative to the SHA in ChangeFileOperation
@@ -83,6 +89,9 @@ type ChangeFileOperation struct {
 	SHA string `json:"sha"`
 	// old path of the file to move
 	FromPath string `json:"from_path"`
+	// is_lfs_pointer commits the content as-is, as a Git-LFS pointer to an
+	// object the repository already holds.
+	IsLFSPointer bool `json:"is_lfs_pointer"`
 }
 
 // ChangeFilesOptions options for creating, updating or deleting multiple files
