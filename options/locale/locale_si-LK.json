@@ -507,7 +507,6 @@
   "settings.delete_account_title": "පරිශීලක ගිණුම මකන්න",
   "settings.delete_account_desc": "ඔබට මෙම පරිශීලක ගිණුම ස්ථිරවම මකා දැමීමට අවශ්ය බව ඔබට විශ්වාසද?",
   "settings.email_notifications.enable": "වි-තැපැල් දැනුම්දීම් සබල කරන්න",
-  "settings.email_notifications.onmention": "සැඳහුම් සඳහා තැපැල් කරන්න",
   "settings.email_notifications.disable": "වි-තැපැල් දැනුම්දීම් අබල කරන්න",
   "settings.email_notifications.submit": "ඊ-තැපැල් මනාප සකසන්න",
   "settings.visibility": "පරිශීලක දෘශ්යතාව",
@@ -1479,7 +1478,6 @@
   "repo.diff.comment.start_review": "සමාලෝචනය ආරම්භ කරන්න",
   "repo.diff.comment.reply": "පිළිතුර",
   "repo.diff.review": "සමාලෝචනය",
-  "repo.diff.review.header": "සමාලෝචනය ඉදිරිපත් කරන්න",
   "repo.diff.review.placeholder": "සමාලෝචන අදහස්",
   "repo.diff.review.comment": "අදහස",
   "repo.diff.review.approve": "අනුමත",
@@ -2096,5 +2094,6 @@
   "actions.workflow.scope_owner": "හිමිකරු",
   "actions.workflow.required": "ඇවැසිය",
   "actions.job_queue.filter_repo_no_select": "සියළුම කෝෂ්ඨ",
+  "projects.workflows.none": "කිසිවක් නැත",
   "actions.general.token_permissions.mode.restricted": "සීමා"
 }

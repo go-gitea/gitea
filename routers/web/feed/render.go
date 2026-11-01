@@ -12,16 +12,16 @@ import (
 // feed serves private repository content, mirroring checkDownloadTokenScope for
 // downloads. Returns false (and writes the response) when the token is denied.
 func checkRepoFeedTokenScope(ctx *context.Context) bool {
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	return !ctx.Written()
 }
 
 // RenderBranchFeed render format for branch or file
 func RenderBranchFeed(ctx *context.Context, feedType string) {
 	if ctx.Repo.TreePath == "" {
-		ShowBranchFeed(ctx, ctx.Repo.Repository, feedType)
+		showBranchFeed(ctx, ctx.Repo.Repository, feedType)
 	} else {
-		ShowFileFeed(ctx, ctx.Repo.Repository, feedType)
+		showFileFeed(ctx, ctx.Repo.Repository, feedType)
 	}
 }
 

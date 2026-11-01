@@ -14,7 +14,7 @@ import (
 )
 
 func TestDiffViewStyle(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("AnonymousUser", func(t *testing.T) {
 		ctx, _ := contexttest.MockContext(t, "/any")
@@ -31,29 +31,19 @@ func TestDiffViewStyle(t *testing.T) {
 	})
 
 	t.Run("SignedInUser", func(t *testing.T) {
-		ctx, _ := contexttest.MockContext(t, "/any")
-		contexttest.LoadUser(t, ctx, 2)
-		SetDiffViewStyle(ctx)
-		assert.Equal(t, gitdiff.DiffStyleUnified, GetDiffViewStyle(ctx))
-
-		ctx, _ = contexttest.MockContext(t, "/any?style=split")
-		contexttest.LoadUser(t, ctx, 2)
-		SetDiffViewStyle(ctx)
-		assert.Equal(t, gitdiff.DiffStyleSplit, GetDiffViewStyle(ctx))
-
-		ctx, _ = contexttest.MockContext(t, "/any")
-		contexttest.LoadUser(t, ctx, 2)
-		SetDiffViewStyle(ctx)
-		assert.Equal(t, gitdiff.DiffStyleSplit, GetDiffViewStyle(ctx))
-
-		ctx, _ = contexttest.MockContext(t, "/any?style=unified")
-		contexttest.LoadUser(t, ctx, 2)
-		SetDiffViewStyle(ctx)
-		assert.Equal(t, gitdiff.DiffStyleUnified, GetDiffViewStyle(ctx))
-
-		ctx, _ = contexttest.MockContext(t, "/any")
-		contexttest.LoadUser(t, ctx, 2)
-		SetDiffViewStyle(ctx)
-		assert.Equal(t, gitdiff.DiffStyleUnified, GetDiffViewStyle(ctx))
+		for _, testCase := range []struct {
+			requestPath, expected string
+		}{
+			{"/any", gitdiff.DiffStyleUnified},
+			{"/any?style=split", gitdiff.DiffStyleSplit},
+			{"/any", gitdiff.DiffStyleSplit},
+			{"/any?style=unified", gitdiff.DiffStyleUnified},
+			{"/any", gitdiff.DiffStyleUnified},
+		} {
+			ctx, _ := contexttest.MockContext(t, testCase.requestPath)
+			contexttest.LoadUser(t, ctx, 2)
+			SetDiffViewStyle(ctx)
+			assert.Equal(t, testCase.expected, GetDiffViewStyle(ctx))
+		}
 	})
 }

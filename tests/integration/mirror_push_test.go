@@ -11,27 +11,92 @@ import (
 	"testing"
 	"time"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	mirror_service "gitea.dev/services/mirror"
 	repo_service "gitea.dev/services/repository"
 	wiki_service "gitea.dev/services/wiki"
-	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMirrorPush(t *testing.T) {
-	onGiteaRun(t, testMirrorPush)
+	onGiteaRun(t, func(t *testing.T, serverURL *url.URL) {
+		t.Run("SettingsUpdate", func(t *testing.T) {
+			session := loginUser(t, "user2")
+			repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+			testCreatePushMirror(t, session, "user2", "repo2", "https://127.0.0.1/user1/repo1.git", "", "", "24h")
+
+			pushMirrors, cnt, err := repo_model.GetPushMirrorsByRepoID(t.Context(), repo2.ID, db.ListOptions{})
+			assert.NoError(t, err)
+			assert.EqualValues(t, 1, cnt)
+			assert.Equal(t, 24*time.Hour, pushMirrors[0].Interval)
+			repo2PushMirrorID := pushMirrors[0].ID
+
+			// update repo2 push mirror
+			assert.True(t, doUpdatePushMirror(t, session, "user2", "repo2", repo2PushMirrorID, "10m0s"))
+			pushMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
+			assert.Equal(t, 10*time.Minute, pushMirror.Interval)
+
+			// avoid updating repo2 push mirror from repo1
+			assert.False(t, doUpdatePushMirror(t, session, "user2", "repo1", repo2PushMirrorID, "20m0s"))
+			pushMirror = unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
+			assert.Equal(t, 10*time.Minute, pushMirror.Interval) // not changed
+
+			// avoid deleting repo2 push mirror from repo1
+			assert.False(t, doRemovePushMirror(t, session, "user2", "repo1", repo2PushMirrorID))
+			unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
+
+			// delete repo2 push mirror
+			assert.True(t, doRemovePushMirror(t, session, "user2", "repo2", repo2PushMirrorID))
+			unittest.AssertNotExistsBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
+		})
+		t.Run("APIDelete", func(t *testing.T) {
+			testMirrorPushAPIDelete(t, serverURL)
+		})
+		t.Run("Push", func(t *testing.T) {
+			testMirrorPush(t, serverURL)
+		})
+		t.Run("WikiDefaultBranchMismatch", func(t *testing.T) {
+			testMirrorPushWikiDefaultBranchMismatch(t, serverURL)
+		})
+	})
 }
 
-func TestMirrorPushWikiDefaultBranchMismatch(t *testing.T) {
-	onGiteaRun(t, testMirrorPushWikiDefaultBranchMismatch)
+func testMirrorPushAPIDelete(t *testing.T, u *url.URL) {
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+	createPushMirror := func() string {
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/push_mirrors", &api.CreatePushMirrorOption{
+			RemoteAddress:  u.String() + "user2/repo1.git",
+			RemoteUsername: "user2",
+			RemotePassword: userPassword,
+			Interval:       "0",
+		}).AddTokenAuth(token)
+		return DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PushMirror{}).RemoteName
+	}
+
+	remoteName := createPushMirror()
+	MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/repos/user2/repo1/push_mirrors/"+remoteName).AddTokenAuth(token), http.StatusNoContent)
+	_, err := git.GetRemoteAddress(t.Context(), repo1, remoteName)
+	assert.True(t, git.IsRemoteNotExistError(err))
+	MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/repos/user2/repo1/push_mirrors/"+remoteName).AddTokenAuth(token), http.StatusNotFound)
+
+	remoteName = createPushMirror()
+	_, err = git.GetRemoteAddress(t.Context(), repo1.WikiStorageRepo(), remoteName)
+	require.NoError(t, err)
+	require.NoError(t, git.ManagedRemoteRemove(t.Context(), repo1, remoteName))
+	MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/repos/user2/repo1/push_mirrors/"+remoteName).AddTokenAuth(token), http.StatusNoContent)
+	_, err = git.GetRemoteAddress(t.Context(), repo1.WikiStorageRepo(), remoteName)
+	assert.True(t, git.IsRemoteNotExistError(err))
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {
@@ -149,36 +214,4 @@ func doUpdatePushMirror(t *testing.T, session *TestSession, owner, repo string, 
 	})
 	resp := session.MakeRequest(t, req, NoExpectedStatus)
 	return resp.Code == http.StatusSeeOther
-}
-
-func TestRepoSettingPushMirrorUpdate(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	testCreatePushMirror(t, session, "user2", "repo2", "https://127.0.0.1/user1/repo1.git", "", "", "24h")
-
-	pushMirrors, cnt, err := repo_model.GetPushMirrorsByRepoID(t.Context(), repo2.ID, db.ListOptions{})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, cnt)
-	assert.Equal(t, 24*time.Hour, pushMirrors[0].Interval)
-	repo2PushMirrorID := pushMirrors[0].ID
-
-	// update repo2 push mirror
-	assert.True(t, doUpdatePushMirror(t, session, "user2", "repo2", repo2PushMirrorID, "10m0s"))
-	pushMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
-	assert.Equal(t, 10*time.Minute, pushMirror.Interval)
-
-	// avoid updating repo2 push mirror from repo1
-	assert.False(t, doUpdatePushMirror(t, session, "user2", "repo1", repo2PushMirrorID, "20m0s"))
-	pushMirror = unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
-	assert.Equal(t, 10*time.Minute, pushMirror.Interval) // not changed
-
-	// avoid deleting repo2 push mirror from repo1
-	assert.False(t, doRemovePushMirror(t, session, "user2", "repo1", repo2PushMirrorID))
-	unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
-
-	// delete repo2 push mirror
-	assert.True(t, doRemovePushMirror(t, session, "user2", "repo2", repo2PushMirrorID))
-	unittest.AssertNotExistsBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
 }

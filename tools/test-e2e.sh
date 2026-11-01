@@ -103,6 +103,7 @@ PATH = $WORK_DIR/data/gitea.db
 HTTP_PORT = $FREE_PORT
 ROOT_URL = http://localhost:$FREE_PORT
 STATIC_ROOT_PATH = $(pwd)
+SSH_ROOT_PATH = $WORK_DIR/ssh
 
 [security]
 INSTALL_LOCK = true
@@ -188,6 +189,11 @@ export GITEA_TEST_E2E_USER
 export GITEA_TEST_E2E_PASSWORD
 export GITEA_TEST_E2E_EMAIL
 export GITEA_TEST_E2E_TIMEOUT_FACTOR
+
+# concurrent localhost lookups on macOS sporadically stall for 5s
+if [ "$(uname -s)" = "Darwin" ]; then
+  export UV_THREADPOOL_SIZE=1
+fi
 
 if [ "$PLAYWRIGHT_MODE" = "container" ]; then
   export PW_TEST_CONNECT_WS_ENDPOINT="ws://127.0.0.1:${PLAYWRIGHT_SERVER_PORT}/"
