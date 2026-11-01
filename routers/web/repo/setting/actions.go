@@ -18,7 +18,7 @@ import (
 	repo_service "gitea.dev/services/repository"
 )
 
-const tplRepoActionsGeneralSettings templates.TplName = "repo/settings/actions"
+const tplRepoActionsGeneralSettings templates.TplName = "repo/settings/actions/actions"
 
 func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.general")
