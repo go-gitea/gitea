@@ -100,10 +100,6 @@ func AddAllRepositoriesToTeam(ctx context.Context, t *organization.Team) error {
 
 // RemoveAllRepositoriesFromTeam removes all repositories from team and recalculates access
 func RemoveAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (err error) {
-	if t.IncludesAllRepositories {
-		return nil
-	}
-
 	var removed repo_model.RepositoryList
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		var err error
@@ -124,7 +120,6 @@ func RemoveAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 }
 
 // removeAllRepositoriesFromTeam removes all repositories from team and recalculates access
-// Note: Shall not be called if team includes all repositories
 func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (err error) {
 	e := db.GetEngine(ctx)
 	repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
