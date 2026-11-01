@@ -22,7 +22,6 @@ import (
 	"gitea.dev/modules/optional"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
-	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
 )
 
@@ -366,7 +365,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 		if d.Issue == nil {
 			data.CanChooseReviewer = true
 		} else {
-			data.CanChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, d.Issue.PosterID)
+			data.CanChooseReviewer = pull_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, d.Issue.PosterID)
 		}
 	}
 
