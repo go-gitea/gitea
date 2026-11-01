@@ -44,18 +44,20 @@ func UpdateUserSettings(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserSettings"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm[*api.UserSettingsOptions](ctx)
 	if form.FullName != nil && *form.FullName != ctx.Doer.FullName && user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
-		ctx.APIError(http.StatusForbidden, "full name is not allowed to be changed")
+		ctx.APIErrorNotFound("full name is not allowed to be changed")
 		return
 	}
-	activityLocked := user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeActivityVisibility)
-	if activityLocked && form.HideActivity != nil && *form.HideActivity {
-		ctx.APIError(http.StatusForbidden, "activity visibility is not allowed to be changed")
-		return
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeActivityVisibility) {
+		if form.HideActivity != nil && *form.HideActivity {
+			ctx.APIErrorNotFound("activity visibility is not allowed to be changed")
+			return
+		}
+		form.HideActivity = nil // keep the stored preference for when the lock is lifted
 	}
 
 	opts := &user_service.UpdateOptions{
@@ -68,9 +70,6 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		DiffViewStyle:       optional.FromPtr(form.DiffViewStyle),
 		KeepEmailPrivate:    optional.FromPtr(form.HideEmail),
 		KeepActivityPrivate: optional.FromPtr(form.HideActivity),
-	}
-	if activityLocked {
-		opts.KeepActivityPrivate = optional.None[bool]() // keep the stored preference for when the lock is lifted
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.APIErrorInternal(err)

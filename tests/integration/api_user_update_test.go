@@ -29,6 +29,6 @@ func TestAPIUpdateUser(t *testing.T) {
 	t.Run("FullNameLocked", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureChangeFullName))()
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", map[string]string{"full_name": "new name"}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusForbidden)
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 }

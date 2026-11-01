@@ -36612,8 +36612,8 @@
           "200": {
             "$ref": "#/components/responses/UserSettings"
           },
-          "403": {
-            "$ref": "#/components/responses/forbidden"
+          "404": {
+            "$ref": "#/components/responses/notFound"
           }
         },
         "summary": "Update user settings",
