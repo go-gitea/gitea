@@ -57,6 +57,11 @@
 					<p class="help">{{ctx.Locale.Tr "repo.settings.pages.path.help"}}</p>
 				</div>
 			</div>
+			<div class="field">
+				<label for="pages-version-retention-count">{{ctx.Locale.Tr "repo.settings.pages.retention"}}</label>
+				<input class="tw-w-auto" id="pages-version-retention-count" name="version_retention_count" type="number" min="{{.PagesMinVersionRetentionCount}}" max="{{.PagesMaxVersionRetentionCount}}" value="{{.PagesSite.VersionRetentionCount}}" required>
+				<p class="help">{{ctx.Locale.Tr "repo.settings.pages.retention.help"}}</p>
+			</div>
 			<button class="ui primary button" type="submit">{{ctx.Locale.Tr "repo.settings.pages.save"}}</button>
 		</form>
 	</div>

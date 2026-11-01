@@ -10,7 +10,6 @@ import (
 	"io"
 	"strconv"
 
-	"gitea.dev/models/db"
 	pages_model "gitea.dev/models/pages"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/globallock"
@@ -66,7 +65,10 @@ func loadPublishableSite(ctx context.Context, repoID int64, opts contentCommitOp
 		if opts.InitialSource == "" {
 			return nil, false, ErrSourceChanged
 		}
-		site = &pages_model.Site{RepoID: repoID, SourceType: opts.InitialSource}
+		site = &pages_model.Site{
+			RepoID: repoID, SourceType: opts.InitialSource,
+			VersionRetentionCount: pages_model.DefaultVersionRetentionCount,
+		}
 	} else if site.Deleted || opts.RequiredSource != "" && (!site.Enabled || site.SourceType != opts.RequiredSource) {
 		return nil, false, ErrSourceChanged
 	}
@@ -127,7 +129,6 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 		return nil, fmt.Errorf("commitContent: storage save: %w", err)
 	}
 	var version *pages_model.Version
-	var pruned []*pages_model.Version
 	err = withStateChange(ctx, func(ctx context.Context, updated int64) error {
 		current, hasSite, err := loadPublishableSite(ctx, repoID, opts)
 		if err != nil {
@@ -160,8 +161,7 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 			}
 		}
 		site = current
-		pruned, err = pruneVersions(ctx, repoID, current.CurrentVersionID)
-		return err
+		return nil
 	})
 	if err != nil {
 		if cleanupErr := deleteUnreferencedContent(ctx, store, repoID, digest); cleanupErr != nil {
@@ -169,50 +169,7 @@ func commitContent(ctx context.Context, repoID int64, input io.Reader, opts cont
 		}
 		return nil, fmt.Errorf("commitContent: record version: %w", err)
 	}
-	deleteVersionObjects(ctx, store, pruned)
 	return &ContentCommitResult{Version: version, PagesUpdatedUnixNano: site.PagesUpdatedUnixNano}, nil
-}
-
-func pruneVersions(ctx context.Context, repoID, currentVersionID int64) ([]*pages_model.Version, error) {
-	versions, _, err := pages_model.FindVersions(ctx, &pages_model.FindVersionOptions{
-		ListOptions: db.ListOptionsAll,
-		RepoID:      repoID,
-	})
-	if err != nil {
-		return nil, err
-	}
-	keep := setting.Pages.MaxVersionsPerSite
-	kept := map[int64]struct{}{currentVersionID: {}}
-	for _, version := range versions {
-		if len(kept) >= keep {
-			break
-		}
-		kept[version.ID] = struct{}{}
-	}
-	remove := make([]*pages_model.Version, 0, max(0, len(versions)-len(kept)))
-	for _, version := range versions {
-		if _, ok := kept[version.ID]; ok {
-			continue
-		}
-		remove = append(remove, version)
-	}
-	if len(remove) == 0 {
-		return remove, nil
-	}
-	ids := make([]int64, 0, len(remove))
-	for _, version := range remove {
-		ids = append(ids, version.ID)
-	}
-	_, err = db.GetEngine(ctx).In("id", ids).Delete(new(pages_model.Version))
-	return remove, err
-}
-
-func deleteVersionObjects(ctx context.Context, store *pages_content.ContentStore, versions []*pages_model.Version) {
-	for _, version := range versions {
-		if err := deleteUnreferencedContent(ctx, store, version.RepoID, version.TarGzSHA256); err != nil {
-			log.Warn("Unable to remove expired Pages object for repo %d: %v", version.RepoID, err)
-		}
-	}
 }
 
 func deleteUnreferencedContent(ctx context.Context, store *pages_content.ContentStore, repoID int64, digest string) error {
@@ -255,7 +212,6 @@ func RestoreVersion(ctx context.Context, repoID, versionID int64) (*ContentCommi
 	if _, err := store.Stat(repoID, version.TarGzSHA256); err != nil {
 		return nil, fmt.Errorf("RestoreVersion: content: %w", err)
 	}
-	var pruned []*pages_model.Version
 	err = withStateChange(ctx, func(ctx context.Context, updated int64) error {
 		current, has, err := pages_model.GetSiteByRepoID(ctx, repoID)
 		if err != nil || !has || current.Deleted {
@@ -273,13 +229,11 @@ func RestoreVersion(ctx context.Context, repoID, versionID int64) (*ContentCommi
 			}
 		}
 		site = current
-		pruned, err = pruneVersions(ctx, repoID, current.CurrentVersionID)
-		return err
+		return nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("RestoreVersion: %w", err)
 	}
-	deleteVersionObjects(ctx, store, pruned)
 	return &ContentCommitResult{Version: version, PagesUpdatedUnixNano: site.PagesUpdatedUnixNano}, nil
 }
 

@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	pages_service "gitea.dev/services/pages"
@@ -122,8 +123,64 @@ func DeletePagesVersion(ctx *context.APIContext) {
 func versionToAPI(version *pages_model.Version, current bool) *api.PagesVersion {
 	return &api.PagesVersion{
 		ID: version.ID, TarGzSHA256: version.TarGzSHA256, OriginType: string(version.OriginType),
-		OriginActionRunID: version.OriginActionRunID, CreatedUnix: int64(version.CreatedUnix), Current: current,
+		OriginActionRunID: version.OriginActionRunID, Comment: version.Comment, KeepForever: version.KeepForever,
+		CreatedUnix: int64(version.CreatedUnix), Current: current,
 	}
+}
+
+// EditPagesVersion changes mutable metadata for one retained version.
+func EditPagesVersion(ctx *context.APIContext) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/pages/versions/{id} repository repoEditPagesVersion
+	// ---
+	// summary: Edit Pages version metadata
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repository
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: ID of the Pages version
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditPagesVersionOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PagesVersion"
+	//   default:
+	//     "$ref": "#/responses/error"
+	option := web.GetForm[*api.EditPagesVersionOption](ctx)
+	version, err := pages_service.UpdateVersionMetadata(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"), pages_service.VersionMetadataUpdate{
+		Comment: option.Comment, KeepForever: option.KeepForever,
+	})
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound("PagesVersion")
+		} else {
+			ctx.APIErrorAuto(err)
+		}
+		return
+	}
+	site, has, err := pages_model.GetSiteByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, versionToAPI(version, has && site.CurrentVersionID == version.ID))
 }
 
 // ListPagesVersions lists retained Pages versions for a repository.

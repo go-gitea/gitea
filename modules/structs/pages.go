@@ -33,8 +33,16 @@ type PagesVersion struct {
 	TarGzSHA256       string `json:"tar_gz_sha256"`
 	OriginType        string `json:"origin_type"`
 	OriginActionRunID int64  `json:"origin_action_run_id"`
+	Comment           string `json:"comment"`
+	KeepForever       bool   `json:"keep_forever"`
 	CreatedUnix       int64  `json:"created_unix"`
 	Current           bool   `json:"current"`
+}
+
+// EditPagesVersionOption changes mutable metadata for a retained Pages version.
+type EditPagesVersionOption struct {
+	Comment     *string `json:"comment"`
+	KeepForever *bool   `json:"keep_forever"`
 }
 
 // PagesContentCommit describes the prepared Pages version and current state.

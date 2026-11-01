@@ -13,17 +13,18 @@ import (
 )
 
 type pagesSite struct {
-	Deleted              bool   `xorm:"NOT NULL DEFAULT false INDEX(deleted_updated)"`
-	Enabled              bool   `xorm:"NOT NULL DEFAULT false"`
-	SourceType           string `xorm:"VARCHAR(16) NOT NULL DEFAULT '' INDEX(source_type_next)"`
-	SourceBranch         string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	SourcePath           string `xorm:"VARCHAR(1024) NOT NULL DEFAULT ''"`
-	SourceCommitID       string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	SourceNextCheckUnix  int64  `xorm:"NOT NULL DEFAULT 0 INDEX(source_type_next)"`
-	SourceErrorCode      string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	CurrentVersionID     int64  `xorm:"NOT NULL DEFAULT 0"`
-	PagesUpdatedUnixNano int64  `xorm:"NOT NULL INDEX(updated_repo) INDEX(deleted_updated)"`
-	RepoID               int64  `xorm:"pk INDEX(updated_repo) INDEX(deleted_updated)"`
+	Deleted               bool   `xorm:"NOT NULL DEFAULT false INDEX(deleted_updated)"`
+	Enabled               bool   `xorm:"NOT NULL DEFAULT false"`
+	SourceType            string `xorm:"VARCHAR(16) NOT NULL DEFAULT '' INDEX(source_type_next)"`
+	SourceBranch          string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	SourcePath            string `xorm:"VARCHAR(1024) NOT NULL DEFAULT ''"`
+	SourceCommitID        string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	SourceNextCheckUnix   int64  `xorm:"NOT NULL DEFAULT 0 INDEX(source_type_next)"`
+	SourceErrorCode       string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	CurrentVersionID      int64  `xorm:"NOT NULL DEFAULT 0"`
+	VersionRetentionCount int    `xorm:"NOT NULL DEFAULT 10"`
+	PagesUpdatedUnixNano  int64  `xorm:"NOT NULL INDEX(updated_repo) INDEX(deleted_updated)"`
+	RepoID                int64  `xorm:"pk INDEX(updated_repo) INDEX(deleted_updated)"`
 }
 
 func (pagesSite) TableName() string { return "pages_site" }
@@ -34,6 +35,8 @@ type pagesVersion struct {
 	TarGzSHA256       string             `xorm:"'tar_gz_sha256' CHAR(64) NOT NULL UNIQUE(repo_digest)"`
 	OriginType        string             `xorm:"VARCHAR(16) NOT NULL"`
 	OriginActionRunID int64              `xorm:"NOT NULL DEFAULT 0"`
+	Comment           string             `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	KeepForever       bool               `xorm:"NOT NULL DEFAULT false"`
 	CreatedUnix       timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
 

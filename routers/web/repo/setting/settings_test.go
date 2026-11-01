@@ -147,6 +147,37 @@ func TestPagesVersionsPostDeletesHistoricalVersion(t *testing.T) {
 	require.False(t, has)
 }
 
+func TestPagesVersionsPostUpdatesMetadata(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	version := &pages_model.Version{
+		RepoID: 1, TarGzSHA256: strings.Repeat("c", 64), OriginType: pages_model.VersionOriginUpload,
+	}
+	require.NoError(t, pages_model.InsertVersion(t.Context(), version))
+	require.NoError(t, pages_model.InsertSite(t.Context(), &pages_model.Site{
+		RepoID: 1, SourceType: pages_model.PublishSourceArtifact,
+		CurrentVersionID: version.ID, PagesUpdatedUnixNano: 10,
+	}))
+
+	ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/pages/versions")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.MockRequestPostForm(ctx.Req, url.Values{
+		"action": {"update-version"}, "version_id": {strconv.FormatInt(version.ID, 10)},
+		"comment": {" release candidate "}, "keep_forever": {"true"},
+	})
+	PagesVersionsPost(ctx)
+	require.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	version, has, err := pages_model.GetVersionByID(t.Context(), version.ID)
+	require.NoError(t, err)
+	require.True(t, has)
+	require.Equal(t, "release candidate", version.Comment)
+	require.True(t, version.KeepForever)
+	site, has, err := pages_model.GetSiteByRepoID(t.Context(), 1)
+	require.NoError(t, err)
+	require.True(t, has)
+	require.Equal(t, int64(10), site.PagesUpdatedUnixNano)
+}
+
 func TestLoadPagesSettingsDataIncludesDomainTimes(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	_, err := pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{Enabled: true, SourceType: pages_model.PublishSourceArtifact})
@@ -176,7 +207,10 @@ func TestLoadPagesVersionsDataUsesStablePagination(t *testing.T) {
 	run := &actions_model.ActionRun{RepoID: 1, Index: 1001, WorkflowID: "pages.yaml", Status: actions_model.StatusSuccess}
 	require.NoError(t, db.Insert(t.Context(), run))
 	history := &pages_model.Version{RepoID: 1, TarGzSHA256: strings.Repeat("a", 64), OriginType: pages_model.VersionOriginActions, OriginActionRunID: run.ID}
-	current := &pages_model.Version{RepoID: 1, TarGzSHA256: strings.Repeat("b", 64), OriginType: pages_model.VersionOriginUpload}
+	current := &pages_model.Version{
+		RepoID: 1, TarGzSHA256: strings.Repeat("b", 64), OriginType: pages_model.VersionOriginUpload,
+		Comment: "current release", KeepForever: true,
+	}
 	require.NoError(t, db.Insert(t.Context(), history, current))
 	site.CurrentVersionID = current.ID
 	require.NoError(t, pages_model.UpdateSite(t.Context(), site))
@@ -190,6 +224,8 @@ func TestLoadPagesVersionsDataUsesStablePagination(t *testing.T) {
 	require.Len(t, versionViews, 1)
 	require.True(t, versionViews[0].Current)
 	require.Equal(t, current.ID, versionViews[0].ID)
+	require.Equal(t, current.Comment, versionViews[0].Comment)
+	require.True(t, versionViews[0].KeepForever)
 	require.EqualValues(t, 2, ctx.Data["Total"])
 	require.Equal(t, true, ctx.Data["PageIsSettingsPagesVersions"])
 

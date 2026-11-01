@@ -30,7 +30,6 @@ var Pages = struct {
 	MaxSiteSize                 int64
 	MaxFileSize                 int64
 	MaxEntries                  int
-	MaxVersionsPerSite          int
 	BranchSourceBatchSize       int
 	DomainVerificationBatchSize int
 	DomainVerificationInterval  time.Duration
@@ -41,7 +40,6 @@ var Pages = struct {
 	MaxSiteSize:                 defaultPagesMaxSiteSize,
 	MaxFileSize:                 defaultPagesMaxFileSize,
 	MaxEntries:                  defaultPagesMaxEntries,
-	MaxVersionsPerSite:          10,
 	BranchSourceBatchSize:       50,
 	DomainVerificationBatchSize: 100,
 	DomainVerificationInterval:  15 * time.Minute,
@@ -70,13 +68,6 @@ func loadPagesFrom(rootCfg ConfigProvider) error {
 	if maxTarGzSize > math.MaxInt64-archiveOverhead || maxFileSize > maxSiteSize ||
 		maxSiteSize > math.MaxInt64-archiveOverhead || maxEntries <= 0 || int64(maxEntries) > (math.MaxInt64-maxSiteSize-archiveOverhead)/4096 {
 		return errors.New("loadPagesFrom: invalid Pages archive limits")
-	}
-	maxVersionsPerSite, err := parsePagesInt(sec, "MAX_VERSIONS_PER_SITE", 10)
-	if err != nil {
-		return err
-	}
-	if maxVersionsPerSite < 1 || maxVersionsPerSite > 100 {
-		return errors.New("loadPagesFrom: MAX_VERSIONS_PER_SITE must be between 1 and 100")
 	}
 	branchBatchSize, err := parsePagesInt(sec, "BRANCH_SOURCE_BATCH_SIZE", 50)
 	if err != nil {
@@ -113,7 +104,6 @@ func loadPagesFrom(rootCfg ConfigProvider) error {
 	Pages.MaxSiteSize = maxSiteSize
 	Pages.MaxFileSize = maxFileSize
 	Pages.MaxEntries = maxEntries
-	Pages.MaxVersionsPerSite = maxVersionsPerSite
 	Pages.BranchSourceBatchSize = branchBatchSize
 	Pages.DomainVerificationBatchSize = domainBatchSize
 	Pages.DomainVerificationInterval = domainVerificationInterval

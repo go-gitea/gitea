@@ -62,6 +62,8 @@ type pagesVersionView struct {
 	ID          int64
 	Digest      string
 	ShortDigest string
+	Comment     string
+	KeepForever bool
 	Origin      string
 	OriginURL   string
 	CreatedUnix timeutil.TimeStamp
@@ -96,7 +98,7 @@ func loadPagesVersionsData(ctx *context.Context) bool {
 		return false
 	}
 	if !hasSite {
-		site = &pages_model.Site{RepoID: repoID}
+		site = &pages_model.Site{RepoID: repoID, VersionRetentionCount: pages_model.DefaultVersionRetentionCount}
 	}
 
 	page := max(ctx.FormInt("page"), 1)
@@ -128,6 +130,7 @@ func loadPagesVersionsData(ctx *context.Context) bool {
 	for _, version := range versions {
 		view := &pagesVersionView{
 			ID: version.ID, Digest: version.TarGzSHA256, ShortDigest: util.TruncateStringBytes(version.TarGzSHA256, 12),
+			Comment: version.Comment, KeepForever: version.KeepForever,
 			Origin:      ctx.Locale.TrString("repo.settings.pages.versions.origin." + string(version.OriginType)),
 			CreatedUnix: version.CreatedUnix, Current: version.ID == site.CurrentVersionID,
 		}
@@ -260,6 +263,16 @@ func PagesVersionsPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.pages.versions.delete_error"))
 		} else {
 			ctx.Flash.Success(ctx.Tr("repo.settings.pages.versions.delete_success"))
+		}
+	case "update-version":
+		comment := ctx.FormString("comment")
+		keepForever := ctx.FormBool("keep_forever")
+		if _, err := pages_service.UpdateVersionMetadata(ctx, repoID, ctx.FormInt64("version_id"), pages_service.VersionMetadataUpdate{
+			Comment: &comment, KeepForever: &keepForever,
+		}); err != nil {
+			ctx.Flash.Error(ctx.Tr("repo.settings.pages.versions.update_error"))
+		} else {
+			ctx.Flash.Success(ctx.Tr("repo.settings.pages.versions.update_success"))
 		}
 	default:
 		ctx.Flash.Error(ctx.Tr("repo.settings.pages.invalid_action"))

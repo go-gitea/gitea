@@ -1248,6 +1248,7 @@ func Routes() *web.Router {
 				})
 				m.Post("/pages/content", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), repo.UploadPagesContent)
 				m.Get("/pages/versions", reqRepoReader(unit.TypeCode), repo.ListPagesVersions)
+				m.Patch("/pages/versions/{id}", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), bind(api.EditPagesVersionOption{}), repo.EditPagesVersion)
 				m.Post("/pages/versions/{id}/restore", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), repo.RestorePagesVersion)
 				m.Delete("/pages/versions/{id}", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), repo.DeletePagesVersion)
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)

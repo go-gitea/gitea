@@ -15,12 +15,13 @@ import (
 	"gitea.dev/modules/git"
 )
 
-// SiteSettings contains the repository-controlled Pages publication settings.
+// SiteSettings contains repository-controlled Pages settings.
 type SiteSettings struct {
-	Enabled      bool
-	SourceType   pages_model.PublishSource
-	SourceBranch string
-	SourcePath   string
+	Enabled               bool
+	SourceType            pages_model.PublishSource
+	SourceBranch          string
+	SourcePath            string
+	VersionRetentionCount *int
 }
 
 // SaveSiteSettings creates the initially closed site or updates its automatic
@@ -48,6 +49,9 @@ func SaveSiteSettings(ctx context.Context, repoID int64, settings SiteSettings) 
 		settings.SourcePath == "..") {
 		return nil, errors.New("SaveSiteSettings: invalid source directory")
 	}
+	if settings.VersionRetentionCount != nil && !pages_model.IsValidVersionRetentionCount(*settings.VersionRetentionCount) {
+		return nil, errors.New("SaveSiteSettings: invalid version retention count")
+	}
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		return nil, fmt.Errorf("SaveSiteSettings: repository: %w", err)
@@ -67,7 +71,7 @@ func SaveSiteSettings(ctx context.Context, repoID int64, settings SiteSettings) 
 			return err
 		}
 		if !has {
-			current = &pages_model.Site{RepoID: repoID}
+			current = &pages_model.Site{RepoID: repoID, VersionRetentionCount: pages_model.DefaultVersionRetentionCount}
 		}
 		if current.Deleted {
 			return ErrStateChanged
@@ -76,6 +80,9 @@ func SaveSiteSettings(ctx context.Context, repoID int64, settings SiteSettings) 
 		targetChanged := !has || current.Enabled != settings.Enabled || sourceChanged
 		current.Enabled = settings.Enabled
 		current.SourceType, current.SourceBranch, current.SourcePath = settings.SourceType, settings.SourceBranch, settings.SourcePath
+		if settings.VersionRetentionCount != nil {
+			current.VersionRetentionCount = *settings.VersionRetentionCount
+		}
 		if sourceChanged {
 			current.SourceCommitID = ""
 			current.SourceNextCheckUnix = 0

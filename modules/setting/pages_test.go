@@ -28,7 +28,6 @@ func TestPagesDefaults(t *testing.T) {
 	assert.EqualValues(t, 512*1024*1024, Pages.MaxSiteSize)
 	assert.EqualValues(t, 100*1024*1024, Pages.MaxFileSize)
 	assert.Equal(t, 10000, Pages.MaxEntries)
-	assert.Equal(t, 10, Pages.MaxVersionsPerSite)
 	assert.Equal(t, 50, Pages.BranchSourceBatchSize)
 	assert.Equal(t, 100, Pages.DomainVerificationBatchSize)
 	assert.Equal(t, 15*time.Minute, Pages.DomainVerificationInterval)
@@ -42,7 +41,6 @@ MAX_TAR_GZ_SIZE = 200MiB
 MAX_SITE_SIZE = 1GiB
 MAX_FILE_SIZE = 150MiB
 MAX_ENTRIES = 20000
-MAX_VERSIONS_PER_SITE = 25
 BRANCH_SOURCE_BATCH_SIZE = 75
 DOMAIN_VERIFICATION_BATCH_SIZE = 125
 DOMAIN_VERIFICATION_INTERVAL = 20m
@@ -55,7 +53,6 @@ DNS_RESOLVER = [2001:db8::53]:5353
 	assert.EqualValues(t, 1024*1024*1024, Pages.MaxSiteSize)
 	assert.EqualValues(t, 150*1024*1024, Pages.MaxFileSize)
 	assert.Equal(t, 20000, Pages.MaxEntries)
-	assert.Equal(t, 25, Pages.MaxVersionsPerSite)
 	assert.Equal(t, 75, Pages.BranchSourceBatchSize)
 	assert.Equal(t, 125, Pages.DomainVerificationBatchSize)
 	assert.Equal(t, 20*time.Minute, Pages.DomainVerificationInterval)
@@ -89,9 +86,6 @@ func TestPagesRejectsInvalidConfiguration(t *testing.T) {
 		"MAX_SITE_SIZE = 10MiB\nMAX_FILE_SIZE = 11MiB",
 		"MAX_ENTRIES = 0",
 		"MAX_ENTRIES = invalid",
-		"MAX_VERSIONS_PER_SITE = 0",
-		"MAX_VERSIONS_PER_SITE = 101",
-		"MAX_VERSIONS_PER_SITE = invalid",
 		"BRANCH_SOURCE_BATCH_SIZE = 501",
 		"BRANCH_SOURCE_BATCH_SIZE = invalid",
 		"DOMAIN_VERIFICATION_BATCH_SIZE = 0",

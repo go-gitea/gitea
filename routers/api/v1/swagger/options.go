@@ -267,4 +267,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	PagesDeploymentOption api.PagesDeploymentOption
+
+	// in:body
+	EditPagesVersionOption api.EditPagesVersionOption
 }

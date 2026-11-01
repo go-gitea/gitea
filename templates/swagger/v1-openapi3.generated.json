@@ -1013,6 +1013,16 @@
         },
         "description": "PagesDeploymentStatus"
       },
+      "PagesVersion": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PagesVersion"
+            }
+          }
+        },
+        "description": "PagesVersion"
+      },
       "PagesVersionList": {
         "content": {
           "application/json": {
@@ -5809,6 +5819,21 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "EditPagesVersionOption": {
+        "properties": {
+          "comment": {
+            "type": "string",
+            "x-go-name": "Comment"
+          },
+          "keep_forever": {
+            "type": "boolean",
+            "x-go-name": "KeepForever"
+          }
+        },
+        "title": "EditPagesVersionOption changes mutable metadata for a retained Pages version.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "EditProjectColumnOption": {
         "description": "EditProjectColumnOption represents options for editing a project column",
         "properties": {
@@ -8655,6 +8680,10 @@
       },
       "PagesVersion": {
         "properties": {
+          "comment": {
+            "type": "string",
+            "x-go-name": "Comment"
+          },
           "created_unix": {
             "format": "int64",
             "type": "integer",
@@ -8668,6 +8697,10 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "ID"
+          },
+          "keep_forever": {
+            "type": "boolean",
+            "x-go-name": "KeepForever"
           },
           "origin_action_run_id": {
             "format": "int64",
@@ -27925,6 +27958,61 @@
           }
         },
         "summary": "Delete a Pages version",
+        "tags": [
+          "repository"
+        ]
+      },
+      "patch": {
+        "operationId": "repoEditPagesVersion",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Pages version",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditPagesVersionOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PagesVersion"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Edit Pages version metadata",
         "tags": [
           "repository"
         ]

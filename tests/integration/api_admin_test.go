@@ -145,7 +145,7 @@ func TestAPIAdminAccessAndSSHKeys(t *testing.T) {
 				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, "32", resp.Header().Get("X-Total-Count"))
+			assert.Equal(t, "33", resp.Header().Get("X-Total-Count"))
 
 			crons := DecodeJSON(t, resp, []api.Cron{})
 			assert.Len(t, crons, 30)

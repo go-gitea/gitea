@@ -26,6 +26,7 @@ func TestPagesModels(t *testing.T) {
 		PagesUpdatedUnixNano: 10,
 	}
 	require.NoError(t, pages_model.InsertSite(t.Context(), site))
+	require.Equal(t, pages_model.DefaultVersionRetentionCount, site.VersionRetentionCount)
 	version := &pages_model.Version{
 		RepoID: site.RepoID, TarGzSHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		OriginType: pages_model.VersionOriginUpload,

@@ -48,9 +48,19 @@ func TestAPIPagesVersions(t *testing.T) {
 	require.Equal(t, versions[1].ID, listed[0].ID)
 	require.True(t, listed[0].Current)
 
+	editURL := "/api/v1/repos/user2/repo1/pages/versions/" + strconv.FormatInt(versions[1].ID, 10)
+	MakeRequest(t, NewRequestWithJSON(t, "PATCH", editURL, map[string]any{"comment": "release", "keep_forever": true}).AddTokenAuth(readToken), http.StatusForbidden)
+	writeToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+	resp = MakeRequest(t, NewRequestWithJSON(t, "PATCH", editURL, map[string]any{"comment": " release ", "keep_forever": true}).AddTokenAuth(writeToken), http.StatusOK)
+	edited := DecodeJSON(t, resp, &api.PagesVersion{})
+	require.Equal(t, "release", edited.Comment)
+	require.True(t, edited.KeepForever)
+	require.True(t, edited.Current)
+	MakeRequest(t, NewRequestWithJSON(t, "PATCH", editURL, map[string]any{}).AddTokenAuth(writeToken), http.StatusBadRequest)
+	MakeRequest(t, NewRequestWithJSON(t, "PATCH", editURL, map[string]any{"comment": "first\nsecond"}).AddTokenAuth(writeToken), http.StatusBadRequest)
+
 	restoreURL := "/api/v1/repos/user2/repo1/pages/versions/" + strconv.FormatInt(versions[0].ID, 10) + "/restore"
 	MakeRequest(t, NewRequest(t, "POST", restoreURL).AddTokenAuth(readToken), http.StatusForbidden)
-	writeToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	resp = MakeRequest(t, NewRequest(t, "POST", restoreURL).AddTokenAuth(writeToken), http.StatusOK)
 	restored := DecodeJSON(t, resp, &api.PagesContentCommit{})
 	require.Equal(t, versions[0].ID, restored.Version.ID)

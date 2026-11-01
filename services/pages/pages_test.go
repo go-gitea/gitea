@@ -124,6 +124,9 @@ func TestDeletePagesVersion(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, pages_service.ActionsDeploymentStatusCancelled, status)
 
+	keepForever := true
+	_, err = pages_service.UpdateVersionMetadata(t.Context(), 1, first.Version.ID, pages_service.VersionMetadataUpdate{KeepForever: &keepForever})
+	require.NoError(t, err)
 	require.NoError(t, pages_service.DeleteVersion(t.Context(), 1, first.Version.ID))
 	_, has, err = pages_model.GetVersionByID(t.Context(), first.Version.ID)
 	require.NoError(t, err)
@@ -133,9 +136,8 @@ func TestDeletePagesVersion(t *testing.T) {
 	require.ErrorIs(t, pages_service.DeleteVersion(t.Context(), 1, first.Version.ID), util.ErrNotExist)
 }
 
-func TestPagesVersionRetentionAndRestore(t *testing.T) {
+func TestPagesVersionReuseAndRestore(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	defer test.MockVariableValue(&setting.Pages.MaxVersionsPerSite, 2)()
 
 	commit := func(content string) *pages_service.ContentCommitResult {
 		t.Helper()
@@ -159,10 +161,10 @@ func TestPagesVersionRetentionAndRestore(t *testing.T) {
 
 	versions, total, err := pages_model.FindVersions(t.Context(), &pages_model.FindVersionOptions{ListOptions: db.ListOptionsAll, RepoID: 1})
 	require.NoError(t, err)
-	require.EqualValues(t, 2, total)
-	require.Len(t, versions, 2)
+	require.EqualValues(t, 3, total)
+	require.Len(t, versions, 3)
 	_, err = pages_content.NewContentStore().Stat(1, first.Version.TarGzSHA256)
-	require.ErrorIs(t, err, os.ErrNotExist)
+	require.NoError(t, err)
 
 	_, err = pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{Enabled: false, SourceType: pages_model.PublishSourceArtifact})
 	require.NoError(t, err)
@@ -192,6 +194,31 @@ func TestPagesVersionRetentionAndRestore(t *testing.T) {
 	require.NoError(t, err)
 	_, err = pages_service.RestoreVersion(t.Context(), 1, second.Version.ID)
 	require.ErrorContains(t, err, "archived")
+}
+
+func TestPagesVersionRetentionSettingPreservesDeploymentState(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	site, err := pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{
+		Enabled: true, SourceType: pages_model.PublishSourceArtifact,
+	})
+	require.NoError(t, err)
+	require.Equal(t, pages_model.DefaultVersionRetentionCount, site.VersionRetentionCount)
+	previousUpdate := site.PagesUpdatedUnixNano
+
+	retentionCount := 2
+	site, err = pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{
+		Enabled: true, SourceType: pages_model.PublishSourceArtifact, VersionRetentionCount: &retentionCount,
+	})
+	require.NoError(t, err)
+	require.Equal(t, retentionCount, site.VersionRetentionCount)
+	require.Equal(t, previousUpdate, site.PagesUpdatedUnixNano)
+
+	for _, invalid := range []int{pages_model.MinVersionRetentionCount - 1, pages_model.MaxVersionRetentionCount + 1} {
+		_, err := pages_service.SaveSiteSettings(t.Context(), 1, pages_service.SiteSettings{
+			Enabled: true, SourceType: pages_model.PublishSourceArtifact, VersionRetentionCount: &invalid,
+		})
+		require.Error(t, err)
+	}
 }
 
 func TestPagesPrivateRepositoryCanExplicitlyPublishPublicSite(t *testing.T) {

@@ -163,12 +163,13 @@ func registerSyncRepoLicenses() {
 }
 
 func initBasicTasks() {
-	registerPagesTask("update_pages_branch_sources", func(ctx context.Context) error {
+	registerPagesTask("update_pages_branch_sources", "@every 1m", func(ctx context.Context) error {
 		return pages_service.UpdateDueBranchSources(ctx, setting.Pages.BranchSourceBatchSize)
 	})
-	registerPagesTask("verify_pages_domains", func(ctx context.Context) error {
+	registerPagesTask("verify_pages_domains", "@every 1m", func(ctx context.Context) error {
 		return pages_service.VerifyDueDomains(ctx, setting.Pages.DomainVerificationBatchSize)
 	})
+	registerPagesTask("cleanup_pages", "@midnight", pages_service.CleanupVersions)
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
 	}
@@ -187,8 +188,8 @@ func initBasicTasks() {
 	registerSyncRepoLicenses()
 }
 
-func registerPagesTask(name string, run func(context.Context) error) {
-	config := &BaseConfig{Enabled: true, RunAtStart: true, Schedule: "@every 1m"}
+func registerPagesTask(name, schedule string, run func(context.Context) error) {
+	config := &BaseConfig{Enabled: true, RunAtStart: true, Schedule: schedule}
 	if _, err := setting.GetCronSettings(name, config); err != nil {
 		log.Fatal("Unable to read Pages cron task %s: %v", name, err)
 	}

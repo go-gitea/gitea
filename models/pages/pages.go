@@ -31,6 +31,19 @@ const (
 	VersionOriginBranch  VersionOrigin = "branch"
 )
 
+const (
+	DefaultVersionRetentionCount = 10
+	MinVersionRetentionCount     = 1
+	MaxVersionRetentionCount     = 100
+	MaxVersionCommentLength      = 255
+)
+
+// IsValidVersionRetentionCount reports whether a repository retention setting
+// is within the supported range.
+func IsValidVersionRetentionCount(count int) bool {
+	return count >= MinVersionRetentionCount && count <= MaxVersionRetentionCount
+}
+
 type SourceErrorCode string
 
 const (
@@ -75,30 +88,33 @@ const (
 // Site stores the current Pages configuration for a repository. Its row
 // is retained after repository deletion so synchronization can observe it.
 type Site struct {
-	Deleted              bool            `xorm:"NOT NULL DEFAULT false INDEX(deleted_updated)"`
-	Enabled              bool            `xorm:"NOT NULL DEFAULT false"`
-	SourceType           PublishSource   `xorm:"VARCHAR(16) NOT NULL DEFAULT '' INDEX(source_type_next)"`
-	SourceBranch         string          `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	SourcePath           string          `xorm:"VARCHAR(1024) NOT NULL DEFAULT ''"`
-	SourceCommitID       string          `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	SourceNextCheckUnix  int64           `xorm:"NOT NULL DEFAULT 0 INDEX(source_type_next)"`
-	SourceErrorCode      SourceErrorCode `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	CurrentVersionID     int64           `xorm:"NOT NULL DEFAULT 0"`
-	PagesUpdatedUnixNano int64           `xorm:"NOT NULL INDEX(updated_repo) INDEX(deleted_updated)"`
-	RepoID               int64           `xorm:"pk INDEX(updated_repo) INDEX(deleted_updated)"`
+	Deleted               bool            `xorm:"NOT NULL DEFAULT false INDEX(deleted_updated)"`
+	Enabled               bool            `xorm:"NOT NULL DEFAULT false"`
+	SourceType            PublishSource   `xorm:"VARCHAR(16) NOT NULL DEFAULT '' INDEX(source_type_next)"`
+	SourceBranch          string          `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	SourcePath            string          `xorm:"VARCHAR(1024) NOT NULL DEFAULT ''"`
+	SourceCommitID        string          `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	SourceNextCheckUnix   int64           `xorm:"NOT NULL DEFAULT 0 INDEX(source_type_next)"`
+	SourceErrorCode       SourceErrorCode `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	CurrentVersionID      int64           `xorm:"NOT NULL DEFAULT 0"`
+	VersionRetentionCount int             `xorm:"NOT NULL DEFAULT 10"`
+	PagesUpdatedUnixNano  int64           `xorm:"NOT NULL INDEX(updated_repo) INDEX(deleted_updated)"`
+	RepoID                int64           `xorm:"pk INDEX(updated_repo) INDEX(deleted_updated)"`
 }
 
 // TableName returns the database table name.
 func (Site) TableName() string { return "pages_site" }
 
-// Version identifies one validated Pages archive. A retained digest has one
-// immutable record per repository.
+// Version identifies one validated Pages archive. Its content identity and
+// origin are immutable, while repository managers can edit its metadata.
 type Version struct {
 	ID                int64              `xorm:"pk autoincr"`
 	RepoID            int64              `xorm:"NOT NULL UNIQUE(repo_digest) INDEX"`
 	TarGzSHA256       string             `xorm:"'tar_gz_sha256' CHAR(64) NOT NULL UNIQUE(repo_digest)"`
 	OriginType        VersionOrigin      `xorm:"VARCHAR(16) NOT NULL"`
 	OriginActionRunID int64              `xorm:"NOT NULL DEFAULT 0"`
+	Comment           string             `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	KeepForever       bool               `xorm:"NOT NULL DEFAULT false"`
 	CreatedUnix       timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
 
@@ -212,7 +228,7 @@ func GetCurrentVersion(ctx context.Context, site *Site) (*Version, bool, error) 
 	return version, true, nil
 }
 
-// InsertVersion creates an immutable Pages version.
+// InsertVersion creates a Pages version with an immutable content identity.
 func InsertVersion(ctx context.Context, version *Version) error {
 	if version == nil || version.ID != 0 || version.RepoID <= 0 || len(version.TarGzSHA256) != 64 ||
 		version.OriginType != VersionOriginActions && version.OriginType != VersionOriginUpload && version.OriginType != VersionOriginBranch {
@@ -230,6 +246,24 @@ func DeleteVersionByID(ctx context.Context, id int64) error {
 	return err
 }
 
+// DeleteVersionsByIDs removes a batch of Pages version records.
+func DeleteVersionsByIDs(ctx context.Context, ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := db.GetEngine(ctx).In("id", ids).Delete(new(Version))
+	return err
+}
+
+// UpdateVersionMetadata changes repository-managed version metadata.
+func UpdateVersionMetadata(ctx context.Context, version *Version) error {
+	if version == nil || version.ID <= 0 || version.RepoID <= 0 {
+		return errors.New("Pages version ID and repository ID must be positive")
+	}
+	_, err := db.GetEngine(ctx).ID(version.ID).Cols("comment", "keep_forever").Update(version)
+	return err
+}
+
 // GetSiteByRepoID returns the retained Pages row for a repository.
 func GetSiteByRepoID(ctx context.Context, repoID int64) (*Site, bool, error) {
 	return db.Get[Site](ctx, builder.Eq{"repo_id": repoID})
@@ -240,6 +274,12 @@ func InsertSite(ctx context.Context, site *Site) error {
 	if site == nil || site.RepoID <= 0 {
 		return errors.New("pages site repository ID must be positive")
 	}
+	if site.VersionRetentionCount == 0 {
+		site.VersionRetentionCount = DefaultVersionRetentionCount
+	}
+	if !IsValidVersionRetentionCount(site.VersionRetentionCount) {
+		return errors.New("pages site version retention count is invalid")
+	}
 	return db.Insert(ctx, site)
 }
 
@@ -247,6 +287,9 @@ func InsertSite(ctx context.Context, site *Site) error {
 func UpdateSite(ctx context.Context, site *Site) error {
 	if site == nil || site.RepoID <= 0 {
 		return errors.New("pages site repository ID must be positive")
+	}
+	if !IsValidVersionRetentionCount(site.VersionRetentionCount) {
+		return errors.New("pages site version retention count is invalid")
 	}
 	_, err := db.GetEngine(ctx).ID(site.RepoID).NoAutoCondition().AllCols().Update(site)
 	return err

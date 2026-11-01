@@ -36,7 +36,7 @@ func loadPagesSettingsData(ctx *context.Context) bool {
 		return false
 	}
 	if !hasSite {
-		site = &pages_model.Site{RepoID: repoID}
+		site = &pages_model.Site{RepoID: repoID, VersionRetentionCount: pages_model.DefaultVersionRetentionCount}
 	}
 	domains, err := pages_model.ListDomainsByRepoID(ctx, repoID)
 	if err != nil {
@@ -67,6 +67,8 @@ func loadPagesSettingsData(ctx *context.Context) bool {
 	ctx.Data["PageIsSettingsPagesSettings"] = true
 	ctx.Data["PagesHasSite"] = hasSite
 	ctx.Data["PagesSite"] = site
+	ctx.Data["PagesMinVersionRetentionCount"] = pages_model.MinVersionRetentionCount
+	ctx.Data["PagesMaxVersionRetentionCount"] = pages_model.MaxVersionRetentionCount
 	ctx.Data["PagesActiveDomain"] = activeDomain
 	ctx.Data["PagesPendingDomain"] = pendingDomain
 	ctx.Data["PagesReleasingDomain"] = releasingDomain
@@ -90,11 +92,13 @@ func PagesPost(ctx *context.Context) {
 	repoID := ctx.Repo.Repository.ID
 	switch ctx.FormString("action") {
 	case "save":
+		versionRetentionCount := ctx.FormInt("version_retention_count")
 		_, err := pages_service.SaveSiteSettings(ctx, repoID, pages_service.SiteSettings{
-			Enabled:      ctx.FormBool("enabled"),
-			SourceType:   pages_model.PublishSource(ctx.FormTrim("source_type")),
-			SourceBranch: ctx.FormTrim("source_branch"),
-			SourcePath:   ctx.FormTrim("source_path"),
+			Enabled:               ctx.FormBool("enabled"),
+			SourceType:            pages_model.PublishSource(ctx.FormTrim("source_type")),
+			SourceBranch:          ctx.FormTrim("source_branch"),
+			SourcePath:            ctx.FormTrim("source_path"),
+			VersionRetentionCount: &versionRetentionCount,
 		})
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("repo.settings.pages.save_error"))

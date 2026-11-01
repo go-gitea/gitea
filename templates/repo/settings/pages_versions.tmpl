@@ -27,6 +27,8 @@
 						<span class="ui label commit-id-short tw-font-mono" title="{{$version.Digest}}">{{$version.ShortDigest}}</span>
 						<button type="button" class="btn interact-fg tw-px-1" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{$version.Digest}}" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
 						{{if $version.Current}}<span class="ui basic primary label">{{ctx.Locale.Tr "repo.settings.pages.versions.current"}}</span>{{end}}
+						{{if $version.KeepForever}}<span class="ui basic label" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.pages.versions.keep_forever.help"}}">{{ctx.Locale.Tr "repo.settings.pages.versions.keep_forever"}}</span>{{end}}
+						{{if $version.Comment}}<div class="tw-mt-1 tw-text-text-light tw-whitespace-normal tw-break-anywhere">{{$version.Comment}}</div>{{end}}
 					</td>
 					<td>{{if $version.OriginURL}}<a href="{{$version.OriginURL}}">{{$version.Origin}}</a>{{else}}{{$version.Origin}}{{end}}</td>
 					<td>{{DateUtils.TimeSince $version.CreatedUnix}}</td>
@@ -39,6 +41,7 @@
 									<button type="button" class="ui basic tiny compact icon button link-action" aria-label="{{ctx.Locale.Tr "repo.settings.pages.versions.restore"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.pages.versions.restore"}}" data-url="{{$.RepoLink}}/settings/pages/versions?action=restore-version&amp;version_id={{$version.ID}}" data-fetch-sync="$body" data-modal-confirm-header="{{ctx.Locale.Tr "repo.settings.pages.versions.restore_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "repo.settings.pages.versions.restore_confirm_desc" $version.ShortDigest}}">{{svg "octicon-reply"}}</button>
 								{{end}}
 								{{if not $.Repository.IsArchived}}
+									<button type="button" class="ui basic tiny compact icon button show-modal" aria-label="{{ctx.Locale.Tr "repo.settings.pages.versions.edit"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.pages.versions.edit"}}" data-modal="#pages-version-edit-modal" data-modal-pages-version-edit-id="{{$version.ID}}" data-modal-pages-version-edit-comment="{{$version.Comment}}" data-modal-pages-version-edit-keep-forever="{{$version.KeepForever}}">{{svg "octicon-pencil"}}</button>
 									<button type="button" class="ui basic tiny compact red icon button link-action negative" aria-label="{{ctx.Locale.Tr "repo.settings.pages.versions.delete"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.pages.versions.delete"}}" data-url="{{$.RepoLink}}/settings/pages/versions?action=delete-version&amp;version_id={{$version.ID}}" data-fetch-sync="$body" data-modal-confirm-header="{{ctx.Locale.Tr "repo.settings.pages.versions.delete_confirm"}}" data-modal-confirm-content="{{if $version.Current}}{{ctx.Locale.Tr "repo.settings.pages.versions.delete_current_confirm_desc" $version.ShortDigest}}{{else}}{{ctx.Locale.Tr "repo.settings.pages.versions.delete_confirm_desc" $version.ShortDigest}}{{end}}">{{svg "octicon-trash"}}</button>
 								{{end}}
 							</div>
@@ -52,6 +55,29 @@
 	</table>
 	{{template "base/paginate" .}}
 </div>
+{{if not .Repository.IsArchived}}
+	<dialog class="modal-dialog" id="pages-version-edit-modal">
+		<div class="header">{{ctx.Locale.Tr "repo.settings.pages.versions.edit"}}</div>
+		<form class="ui form" method="post">
+			<input type="hidden" name="action" value="update-version">
+			<input type="hidden" id="pages-version-edit-id" name="version_id">
+			<div class="content">
+				<div class="field">
+					<label for="pages-version-edit-comment">{{ctx.Locale.Tr "repo.settings.pages.versions.comment"}}</label>
+					<input id="pages-version-edit-comment" name="comment" maxlength="255">
+					<p class="help">{{ctx.Locale.Tr "repo.settings.pages.versions.comment.help"}}</p>
+				</div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<input id="pages-version-edit-keep-forever" type="checkbox" name="keep_forever" value="true">
+						<label>{{ctx.Locale.Tr "repo.settings.pages.versions.keep_forever.help"}}</label>
+					</div>
+				</div>
+			</div>
+			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+		</form>
+	</dialog>
+{{end}}
 {{if .PagesCurrentDeployment}}
 	<dialog class="modal-dialog" id="pages-current-deployment-modal">
 		<div class="header">{{ctx.Locale.Tr "repo.settings.pages.versions.deployment.title"}}</div>

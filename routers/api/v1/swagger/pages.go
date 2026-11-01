@@ -19,6 +19,13 @@ type swaggerResponsePagesVersionList struct {
 	Body []api.PagesVersion `json:"body"`
 }
 
+// PagesVersion
+// swagger:response PagesVersion
+type swaggerResponsePagesVersion struct {
+	// in:body
+	Body api.PagesVersion `json:"body"`
+}
+
 // PagesDeploymentResponse
 // swagger:response PagesDeploymentResponse
 type swaggerResponsePagesDeploymentResponse struct {
