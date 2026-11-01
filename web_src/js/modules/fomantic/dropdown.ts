@@ -167,6 +167,13 @@ function attachStaticElements(dropdown: AriaDropdownElement, focusable: HTMLElem
   if (tooltipContent && !dropdown.getAttribute('aria-label')) {
     dropdown.setAttribute('aria-label', tooltipContent);
   }
+  if (!focusable.getAttribute('aria-label') && !focusable.getAttribute('aria-labelledby')) {
+    const textElem = dropdown.querySelector<HTMLElement>(':scope > .text, :scope > span:not(.menu)');
+    if (textElem) {
+      if (!textElem.id) textElem.id = generateElemId('_aria_dropdown_text_');
+      focusable.setAttribute('aria-labelledby', textElem.id);
+    }
+  }
 }
 
 function attachInitElements(dropdown: AriaDropdownElement) {
