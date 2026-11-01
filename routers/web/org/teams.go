@@ -321,7 +321,7 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
-	ctx.Data["Team"] = &org_model.Team{}
+	ctx.Data["Team"] = &org_model.Team{Visibility: setting.Service.DefaultTeamVisibilityMode}
 	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }

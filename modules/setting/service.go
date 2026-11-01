@@ -28,6 +28,7 @@ var Service = struct {
 	DefaultUserVisibilityMode               structs.VisibleType `ini:"-"`
 	AllowedUserVisibilityModesSlice         AllowedVisibility   `ini:"-"`
 	DefaultOrgVisibilityMode                structs.VisibleType `ini:"-"`
+	DefaultTeamVisibilityMode               structs.VisibleType `ini:"-"`
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
@@ -242,6 +243,9 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	defaultOrgVisibility := structs.VisibilityString(sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.VisibilityModeKeys()))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[defaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
+
+	defaultTeamVisibility := structs.VisibilityString(sec.Key("DEFAULT_TEAM_VISIBILITY").In("private", structs.VisibilityModeKeys()))
+	Service.DefaultTeamVisibilityMode = structs.VisibilityModes[defaultTeamVisibility]
 
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
 	sec.Key("VALID_SITE_URL_SCHEMES").MustString("http,https") // FIXME: INI-MUST-SIDE-EFFECT
