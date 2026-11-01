@@ -17,7 +17,7 @@ type scopeTestNormalize struct {
 }
 
 func TestAccessTokenScope_Normalize(t *testing.T) {
-	assert.Equal(t, []string{"activitypub", "admin", "issue", "misc", "notification", "organization", "package", "repository", "user"}, GetAccessTokenCategories())
+	assert.Equal(t, []string{"activitypub", "admin", "commitstatus", "issue", "misc", "notification", "organization", "package", "repository", "user"}, GetAccessTokenCategories())
 	assert.False(t, AccessTokenScopeNone.HasPermissionScope())
 	tests := []scopeTestNormalize{
 		{"", "", nil},
@@ -30,6 +30,8 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 		{"all", "all", nil},
 		{"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user", "all", nil},
 		{"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user,public-only", "public-only,all", nil},
+		{"write:repository,write:commitstatus", "write:repository", nil},
+		{"read:repository,write:commitstatus", "read:repository,write:commitstatus", nil},
 	}
 
 	for _, scope := range GetAccessTokenCategories() {

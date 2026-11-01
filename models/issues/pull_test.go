@@ -15,6 +15,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -404,6 +405,10 @@ func testGetApprovers(t *testing.T) {
 	approvers := pr.GetApprovers(t.Context())
 	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: Org Six <org6@example.com>\n"
 	assert.Equal(t, expected, approvers)
+
+	defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageMaxApprovers, 1)()
+	approvers = pr.GetApprovers(t.Context())
+	assert.Equal(t, "Reviewed-by: User Five <user5@example.com>\n", approvers)
 }
 
 func testGetPullRequestByMergedCommit(t *testing.T) {
