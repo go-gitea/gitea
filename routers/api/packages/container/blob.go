@@ -36,7 +36,7 @@ func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader
 }
 
 func saveAsPackageBlobInternal(ctx context.Context, hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo, pb *packages_model.PackageBlob) (*packages_model.PackageBlob, error) {
-	exists := true
+	blobCreated := false
 
 	contentStore := packages_module.NewContentStore()
 
@@ -49,14 +49,16 @@ func saveAsPackageBlobInternal(ctx context.Context, hsr packages_module.HashedSi
 		if err := packages_service.CheckSizeQuotaExceeded(ctx, pci.Creator, pci.Owner, packages_model.TypeContainer, hsr.Size()); err != nil {
 			return err
 		}
+		var exists bool
 		pb, exists, err = packages_service.GetOrSavePackageBlob(ctx, contentStore, pb, hsr)
 		if err != nil {
 			return err
 		}
+		blobCreated = !exists
 		return createFileForBlob(ctx, uploadVersion, pb)
 	})
 	if err != nil {
-		if !exists && pb != nil { // pb can be nil if GetOrInsertBlob failed
+		if blobCreated {
 			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
 				log.Error("Error deleting package blob from content store: %v", err)
 			}

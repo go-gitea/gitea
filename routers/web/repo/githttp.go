@@ -199,16 +199,16 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 				return nil
 			}
 
-			if !isPull && repo.IsBeingCreated() {
-				ctx.PlainText(http.StatusForbidden, "Repository is still being created, please retry later")
-				return nil
-			}
-
 			if !isPull && repo.IsMirror {
 				ctx.PlainText(http.StatusForbidden, "mirror repository is read-only")
 				return nil
 			}
 		}
+	}
+
+	if repoExist && repo.IsBeingCreated() {
+		ctx.PlainText(http.StatusForbidden, "Repository is still being created, please retry later")
+		return nil
 	}
 
 	if !repoExist {
