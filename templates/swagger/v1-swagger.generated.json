@@ -1087,6 +1087,50 @@
         }
       }
     },
+    "/admin/users/{username}/external-logins": {
+      "post": {
+        "description": "Migrations attribute issues, pull requests and comments to the local user linked to the original author. Linking again an account that is already linked to the same user succeeds. A login_source_id of 0 means the account does not belong to an authentication source; the external_id must then be unique among all providers using 0, otherwise 409 is returned. A non-zero login_source_id must be an existing authentication source.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Link a user to an account on an external service",
+        "operationId": "adminLinkExternalLogin",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user to link",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LinkExternalLoginOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "409": {
+            "description": "the external account is already linked to another user"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/admin/users/{username}/keys": {
       "post": {
         "consumes": [
@@ -30233,6 +30277,33 @@
           "description": "URL is the reference URL for the license",
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "LinkExternalLoginOption": {
+      "description": "LinkExternalLoginOption options to link a user to an account on an external\nservice, so that content migrated from that service is attributed to the user",
+      "type": "object",
+      "required": [
+        "provider",
+        "external_id"
+      ],
+      "properties": {
+        "external_id": {
+          "description": "The user's ID on the external service",
+          "type": "string",
+          "x-go-name": "ExternalID"
+        },
+        "login_source_id": {
+          "description": "The authentication source the link belongs to, 0 when there is none.\nA non-zero value must be an existing authentication source.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LoginSourceID"
+        },
+        "provider": {
+          "description": "The name of the external service, e.g. \"bitbucketserver\". Migrations look\nusers up by the service name of the migration source.",
+          "type": "string",
+          "x-go-name": "Provider"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"

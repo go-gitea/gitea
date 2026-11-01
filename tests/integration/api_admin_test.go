@@ -366,3 +366,48 @@ func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{Email: new("user2@example.org")}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 }
+
+func TestAPIAdminLinkExternalLogin(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteAdmin)
+	opt := api.LinkExternalLoginOption{Provider: "bitbucketserver", ExternalID: "4242"}
+
+	req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/external-logins", opt).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	userID, err := user_model.GetUserIDByExternalUserID(t.Context(), "bitbucketserver", "4242")
+	require.NoError(t, err)
+	assert.Equal(t, user2.ID, userID)
+
+	// the Security page still renders for the linked user
+	session := loginUser(t, "user2")
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/settings/security"), http.StatusOK)
+
+	// linking again is idempotent
+	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/external-logins", opt).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// an account linked to a user cannot be linked to another one
+	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/external-logins", opt).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusConflict)
+
+	// the same id of another provider in the same scope is refused rather than overwritten
+	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/external-logins",
+		api.LinkExternalLoginOption{Provider: "github", ExternalID: "4242"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusConflict)
+
+	// the authentication source has to exist
+	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/external-logins",
+		api.LinkExternalLoginOption{Provider: "bitbucketserver", ExternalID: "1", LoginSourceID: 99999}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/external-logins", api.LinkExternalLoginOption{Provider: "bitbucketserver"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/no-such-user/external-logins", opt).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// not an admin
+	token2 := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteAdmin)
+	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/external-logins", api.LinkExternalLoginOption{Provider: "x", ExternalID: "1"}).AddTokenAuth(token2)
+	MakeRequest(t, req, http.StatusForbidden)
+}
