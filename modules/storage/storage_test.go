@@ -15,37 +15,22 @@ import (
 )
 
 func TestObjectStoragePath(t *testing.T) {
-	base := ""
-	assert.Empty(t, buildObjectStorePath(base, "/"))
-	assert.Empty(t, buildObjectStorePath(base, "."))
-	assert.Equal(t, "a", buildObjectStorePath(base, "/a"))
-	assert.Equal(t, "a/b", buildObjectStorePath(base, "/a/b/"))
-	assert.Empty(t, buildObjectStorePathPrefix(base, ""))
-	assert.Equal(t, "a/", buildObjectStorePathPrefix(base, "/a/"))
-
-	base = "/"
-	assert.Empty(t, buildObjectStorePath(base, "/"))
-	assert.Empty(t, buildObjectStorePath(base, "."))
-	assert.Equal(t, "a", buildObjectStorePath(base, "/a"))
-	assert.Equal(t, "a/b", buildObjectStorePath(base, "/a/b/"))
-	assert.Empty(t, buildObjectStorePathPrefix(base, ""))
-	assert.Equal(t, "a/", buildObjectStorePathPrefix(base, "/a/"))
-
-	base = "/base"
-	assert.Equal(t, "base", buildObjectStorePath(base, "/"))
-	assert.Equal(t, "base", buildObjectStorePath(base, "."))
-	assert.Equal(t, "base/a", buildObjectStorePath(base, "/a"))
-	assert.Equal(t, "base/a/b", buildObjectStorePath(base, "/a/b/"))
-	assert.Equal(t, "base/", buildObjectStorePathPrefix(base, ""))
-	assert.Equal(t, "base/a/", buildObjectStorePathPrefix(base, "/a/"))
-
-	base = "/base/"
-	assert.Equal(t, "base", buildObjectStorePath(base, "/"))
-	assert.Equal(t, "base", buildObjectStorePath(base, "."))
-	assert.Equal(t, "base/a", buildObjectStorePath(base, "/a"))
-	assert.Equal(t, "base/a/b", buildObjectStorePath(base, "/a/b/"))
-	assert.Equal(t, "base/", buildObjectStorePathPrefix(base, ""))
-	assert.Equal(t, "base/a/", buildObjectStorePathPrefix(base, "/a/"))
+	for _, base := range []string{"", "/"} {
+		assert.Empty(t, buildObjectStorePath(base, "/"))
+		assert.Empty(t, buildObjectStorePath(base, "."))
+		assert.Equal(t, "a", buildObjectStorePath(base, "/a"))
+		assert.Equal(t, "a/b", buildObjectStorePath(base, "/a/b/"))
+		assert.Empty(t, buildObjectStorePathPrefix(base, ""))
+		assert.Equal(t, "a/", buildObjectStorePathPrefix(base, "/a/"))
+	}
+	for _, base := range []string{"/base", "/base/"} {
+		assert.Equal(t, "base", buildObjectStorePath(base, "/"))
+		assert.Equal(t, "base", buildObjectStorePath(base, "."))
+		assert.Equal(t, "base/a", buildObjectStorePath(base, "/a"))
+		assert.Equal(t, "base/a/b", buildObjectStorePath(base, "/a/b/"))
+		assert.Equal(t, "base/", buildObjectStorePathPrefix(base, ""))
+		assert.Equal(t, "base/a/", buildObjectStorePathPrefix(base, "/a/"))
+	}
 }
 
 func testStorageAccess(t *testing.T, objStore ObjectStorage) {

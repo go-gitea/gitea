@@ -4,13 +4,13 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"path"
 	"testing"
 
 	"gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -21,6 +21,7 @@ import (
 )
 
 func assertLinkPageComplete(t *testing.T, session *TestSession, link string, containStrings ...string) {
+	t.Helper()
 	req := NewRequest(t, "GET", link)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "Page did not complete: "+link)
@@ -134,6 +135,7 @@ func testLinksNoLoginNotExist(t *testing.T) {
 }
 
 func testLinksAsUser(t *testing.T) {
+	// TOOD: it is questionable whether it's worth to keep these tests, these endpoints should have their own tests
 	session := loginUser(t, "user2")
 	links := []string{
 		"/explore/repos",
@@ -190,6 +192,11 @@ func testLinksAsUser(t *testing.T) {
 	reqAPI := NewRequestf(t, "GET", "/api/v1/users/user2/repos")
 	respAPI := MakeRequest(t, reqAPI, http.StatusOK)
 	apiRepos := DecodeJSON(t, respAPI, []*api.Repository{})
+	assert.NotEmpty(t, apiRepos)
+
+	defer test.MockVariableValue(&setting.DisableGitHooks, false)()
+	_, err := db.GetEngine(t.Context()).ID(2).Cols("allow_git_hook").Update(&user_model.User{AllowGitHook: true})
+	require.NoError(t, err)
 	repoLinks := []string{
 		"",
 		"/issues",
@@ -200,23 +207,21 @@ func testLinksAsUser(t *testing.T) {
 		"/settings/collaboration",
 		"/settings/branches",
 		"/settings/hooks",
-		// FIXME: below links should return 200 but 404 ??
-		//"/settings/hooks/git",
-		//"/settings/hooks/git/pre-receive",
-		//"/settings/hooks/git/update",
-		//"/settings/hooks/git/post-receive",
+
+		"/settings/hooks/git",
+		"/settings/hooks/git/pre-receive",
+		"/settings/hooks/git/update",
+		"/settings/hooks/git/post-receive",
+
 		"/settings/keys",
 		"/releases",
 		"/releases/new",
-		//"/wiki/_pages",
+		"/wiki/?action=_pages",
 		"/wiki/?action=_new",
 		"/activity",
 	}
-	for _, repo := range apiRepos {
-		for _, link := range repoLinks {
-			link = fmt.Sprintf("/user2/%s%s", repo.Name, link)
-			assertLinkPageComplete(t, session, link)
-		}
+	for _, link := range repoLinks {
+		assertLinkPageComplete(t, session, "/user2/repo1"+link)
 	}
 }
 

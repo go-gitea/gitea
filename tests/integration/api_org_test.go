@@ -4,8 +4,11 @@
 package integration
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -27,8 +30,127 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestAPIUpdateOrgAvatar(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
+
+	// Test what happens if you use a valid image
+	avatar, err := os.ReadFile(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/avatar.png"))
+	assert.NoError(t, err)
+	if err != nil {
+		assert.FailNow(t, "Unable to open avatar.png")
+	}
+
+	for _, testCase := range []struct {
+		image  string
+		status int
+	}{
+		{base64.StdEncoding.EncodeToString(avatar), http.StatusNoContent},
+		// Test what happens if you don't have a valid Base64 string
+		{"Invalid", http.StatusBadRequest},
+		// Test what happens if you use a file that is not an image
+		{base64.StdEncoding.EncodeToString([]byte("This is not an image")), http.StatusInternalServerError},
+	} {
+		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/avatar", &api.UpdateUserAvatarOption{
+			Image: testCase.image,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, testCase.status)
+	}
+}
+
+func TestAPIDeleteOrgAvatar(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
+
+	req := NewRequest(t, "DELETE", "/api/v1/orgs/org3/avatar").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+}
+
 func TestAPIOrg(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	// TestAPIOrgLabelsVisibility ensures the organization label read endpoints honor
+	// the organization visibility: labels of a private org must not be disclosed to
+	// users who cannot see the org (GHSA: unauthorized access to private org labels).
+	t.Run("LabelsVisibility", func(t *testing.T) {
+		// privated_org (id 23) is a private organization; user5 is its only member.
+		privateOrg := unittest.AssertExistsAndLoadBean(t, &org_model.Organization{ID: 23})
+		label := &issues_model.Label{OrgID: privateOrg.ID, Name: "internal-label", Color: "#aabbcc", Description: "private organization label"}
+		require.NoError(t, issues_model.NewLabel(t.Context(), label))
+
+		listURL := fmt.Sprintf("/api/v1/orgs/%s/labels", privateOrg.Name)
+		getURL := fmt.Sprintf("/api/v1/orgs/%s/labels/%d", privateOrg.Name, label.ID)
+
+		t.Run("NonMemberDenied", func(t *testing.T) {
+			// user2 is not a member of the private org and must not see its labels.
+			token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+			MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusNotFound)
+			MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusNotFound)
+		})
+
+		t.Run("AnonymousDenied", func(t *testing.T) {
+			MakeRequest(t, NewRequest(t, "GET", listURL), http.StatusNotFound)
+			MakeRequest(t, NewRequest(t, "GET", getURL), http.StatusNotFound)
+		})
+
+		t.Run("MemberAllowed", func(t *testing.T) {
+			token := getUserToken(t, "user5", auth_model.AccessTokenScopeReadOrganization)
+			resp := MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
+			labels := DecodeJSON(t, resp, &[]*api.Label{})
+			assert.Len(t, *labels, 1)
+			MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusOK)
+		})
+
+		t.Run("SiteAdminAllowed", func(t *testing.T) {
+			token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization)
+			MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
+			MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusOK)
+		})
+
+		t.Run("PublicOrgStillReadable", func(t *testing.T) {
+			// org3 (id 3) is a public org with labels; non-members may read them.
+			token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+			MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs/org3/labels").AddTokenAuth(token), http.StatusOK)
+		})
+	})
+
+	t.Run("PrivateMembersNotLeaked", func(t *testing.T) {
+		// privated_org (org 23) has private visibility and a single member, user5
+		const orgName = "privated_org"
+		const memberName = "user5"
+
+		// member publicizes their own membership inside the private org
+		memberSession := loginUser(t, memberName)
+		memberToken := getTokenForLoggedInUser(t, memberSession, auth_model.AccessTokenScopeWriteOrganization)
+		req := NewRequest(t, "PUT", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(memberToken)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		// an outsider must not be able to learn about the membership of a private org
+		outsiderSession := loginUser(t, "user2")
+		outsiderToken := getTokenForLoggedInUser(t, outsiderSession, auth_model.AccessTokenScopeReadOrganization)
+		req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(outsiderToken)
+		MakeRequest(t, req, http.StatusNotFound)
+		req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members").AddTokenAuth(outsiderToken)
+		MakeRequest(t, req, http.StatusNotFound)
+		// the full member list of a private org must not be enumerable by an outsider either
+		req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/members").AddTokenAuth(outsiderToken)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// the member can still see the public membership of their own org
+		req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(memberToken)
+		MakeRequest(t, req, http.StatusNoContent)
+		// and the member can still list the org's members
+		req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/members").AddTokenAuth(memberToken)
+		MakeRequest(t, req, http.StatusOK)
+	})
+
 	t.Run("General", testAPIOrgGeneral)
 	t.Run("CreateAndRename", testAPIOrgCreateRename)
 	t.Run("DeleteOrgRepos", testAPIDeleteOrgRepos)
@@ -275,38 +397,6 @@ func testAPIOrgGeneral(t *testing.T) {
 	})
 }
 
-func TestAPIOrgPrivateMembersNotLeaked(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	// privated_org (org 23) has private visibility and a single member, user5
-	const orgName = "privated_org"
-	const memberName = "user5"
-
-	// member publicizes their own membership inside the private org
-	memberSession := loginUser(t, memberName)
-	memberToken := getTokenForLoggedInUser(t, memberSession, auth_model.AccessTokenScopeWriteOrganization)
-	req := NewRequest(t, "PUT", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(memberToken)
-	MakeRequest(t, req, http.StatusNoContent)
-
-	// an outsider must not be able to learn about the membership of a private org
-	outsiderSession := loginUser(t, "user2")
-	outsiderToken := getTokenForLoggedInUser(t, outsiderSession, auth_model.AccessTokenScopeReadOrganization)
-	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(outsiderToken)
-	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members").AddTokenAuth(outsiderToken)
-	MakeRequest(t, req, http.StatusNotFound)
-	// the full member list of a private org must not be enumerable by an outsider either
-	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/members").AddTokenAuth(outsiderToken)
-	MakeRequest(t, req, http.StatusNotFound)
-
-	// the member can still see the public membership of their own org
-	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(memberToken)
-	MakeRequest(t, req, http.StatusNoContent)
-	// and the member can still list the org's members
-	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/members").AddTokenAuth(memberToken)
-	MakeRequest(t, req, http.StatusOK)
-}
-
 func testAPIDeleteOrgRepos(t *testing.T) {
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 	orgRepos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
@@ -334,52 +424,5 @@ func testAPIDeleteOrgRepos(t *testing.T) {
 
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent) // The org contains no repositories, so the API should return StatusNoContent
-	})
-}
-
-// TestAPIOrgLabelsVisibility ensures the organization label read endpoints honor
-// the organization visibility: labels of a private org must not be disclosed to
-// users who cannot see the org (GHSA: unauthorized access to private org labels).
-func TestAPIOrgLabelsVisibility(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	// privated_org (id 23) is a private organization; user5 is its only member.
-	privateOrg := unittest.AssertExistsAndLoadBean(t, &org_model.Organization{ID: 23})
-	label := &issues_model.Label{OrgID: privateOrg.ID, Name: "internal-label", Color: "#aabbcc", Description: "private organization label"}
-	require.NoError(t, issues_model.NewLabel(t.Context(), label))
-
-	listURL := fmt.Sprintf("/api/v1/orgs/%s/labels", privateOrg.Name)
-	getURL := fmt.Sprintf("/api/v1/orgs/%s/labels/%d", privateOrg.Name, label.ID)
-
-	t.Run("NonMemberDenied", func(t *testing.T) {
-		// user2 is not a member of the private org and must not see its labels.
-		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
-		MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusNotFound)
-		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusNotFound)
-	})
-
-	t.Run("AnonymousDenied", func(t *testing.T) {
-		MakeRequest(t, NewRequest(t, "GET", listURL), http.StatusNotFound)
-		MakeRequest(t, NewRequest(t, "GET", getURL), http.StatusNotFound)
-	})
-
-	t.Run("MemberAllowed", func(t *testing.T) {
-		token := getUserToken(t, "user5", auth_model.AccessTokenScopeReadOrganization)
-		resp := MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
-		labels := DecodeJSON(t, resp, &[]*api.Label{})
-		assert.Len(t, *labels, 1)
-		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusOK)
-	})
-
-	t.Run("SiteAdminAllowed", func(t *testing.T) {
-		token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization)
-		MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
-		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusOK)
-	})
-
-	t.Run("PublicOrgStillReadable", func(t *testing.T) {
-		// org3 (id 3) is a public org with labels; non-members may read them.
-		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
-		MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs/org3/labels").AddTokenAuth(token), http.StatusOK)
 	})
 }

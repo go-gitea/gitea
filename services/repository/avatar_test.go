@@ -17,48 +17,35 @@ import (
 )
 
 func TestUploadAvatar(t *testing.T) {
-	// Generate image
-	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
-	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
+	for _, testCase := range []struct {
+		width        int
+		deleteAvatar bool
+	}{
+		{1, false},
+		{5000, false},
+		{1, true},
+	} {
+		// Generate image
+		var buff bytes.Buffer
+		png.Encode(&buff, image.NewRGBA(image.Rect(0, 0, testCase.width, 1)))
 
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+		assert.NoError(t, unittest.PrepareTestDatabase())
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	err := UploadAvatar(t.Context(), repo, buff.Bytes())
-	assert.NoError(t, err)
-	assert.Equal(t, avatar.HashAvatar(10, buff.Bytes()), repo.Avatar)
-}
-
-func TestUploadBigAvatar(t *testing.T) {
-	// Generate BIG image
-	myImage := image.NewRGBA(image.Rect(0, 0, 5000, 1))
-	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
-
-	err := UploadAvatar(t.Context(), repo, buff.Bytes())
-	assert.Error(t, err)
-}
-
-func TestDeleteAvatar(t *testing.T) {
-	// Generate image
-	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
-	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
-
-	err := UploadAvatar(t.Context(), repo, buff.Bytes())
-	assert.NoError(t, err)
-
-	err = DeleteAvatar(t.Context(), repo)
-	assert.NoError(t, err)
-
-	assert.Empty(t, repo.Avatar)
+		err := UploadAvatar(t.Context(), repo, buff.Bytes())
+		if testCase.width == 5000 {
+			assert.Error(t, err)
+			continue
+		}
+		assert.NoError(t, err)
+		if testCase.deleteAvatar {
+			err = DeleteAvatar(t.Context(), repo)
+			assert.NoError(t, err)
+			assert.Empty(t, repo.Avatar)
+		} else {
+			assert.Equal(t, avatar.HashAvatar(10, buff.Bytes()), repo.Avatar)
+		}
+	}
 }
 
 func TestGenerateAvatar(t *testing.T) {
