@@ -38,6 +38,7 @@ type Mirror struct {
 
 	SyncIssues       bool `xorm:"NOT NULL DEFAULT false"`
 	SyncPullRequests bool `xorm:"NOT NULL DEFAULT false"`
+	SyncTopics       bool `xorm:"NOT NULL DEFAULT false"`
 
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
 	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
@@ -49,8 +50,13 @@ type Mirror struct {
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
 }
 
-// SyncsMetadata reports whether this mirror syncs issues or pull requests on top of git
+// SyncsMetadata reports whether this mirror syncs anything on top of git
 func (m *Mirror) SyncsMetadata() bool {
+	return m.SyncIssues || m.SyncPullRequests || m.SyncTopics
+}
+
+// SyncsIssuesOrPulls reports whether this mirror's issues and pull requests are read-only
+func (m *Mirror) SyncsIssuesOrPulls() bool {
 	return m.SyncIssues || m.SyncPullRequests
 }
 

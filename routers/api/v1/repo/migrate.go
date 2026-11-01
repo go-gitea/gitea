@@ -162,6 +162,7 @@ func Migrate(ctx *context.APIContext) {
 		opts.Releases = false
 		opts.SyncIssues = form.SyncIssues
 		opts.SyncPullRequests = form.SyncPullRequests
+		opts.SyncTopics = form.SyncTopics
 	}
 	if gitServiceType == api.CodeCommitService {
 		opts.AWSAccessKeyID = form.AWSAccessKeyID
@@ -200,7 +201,7 @@ func Migrate(ctx *context.APIContext) {
 			return nil, err
 		}
 		notify_service.MigrateRepository(ctx, doer, repoOwner, migratedRepo)
-		if opts.Mirror && (opts.SyncIssues || opts.SyncPullRequests) {
+		if opts.Mirror && (opts.SyncIssues || opts.SyncPullRequests || opts.SyncTopics) {
 			log.Info("migrate: initiating immediate metadata sync for mirror [%d] %s/%s", migratedRepo.ID, repoOwner.Name, opts.RepoName)
 			mirror_service.AddPullMirrorToQueue(migratedRepo.ID)
 		}

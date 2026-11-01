@@ -594,6 +594,11 @@ func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 
 // IsMirrorWithMetadata reports whether this pull mirror also syncs its issues or pull requests, read-only
 func (repo *Repository) IsMirrorWithMetadata(ctx context.Context) (bool, error) {
+	return repo.IsMirrorSyncing(ctx, (*Mirror).SyncsIssuesOrPulls)
+}
+
+// IsMirrorSyncing reports whether this is a pull mirror for which syncs returns true
+func (repo *Repository) IsMirrorSyncing(ctx context.Context, syncs func(*Mirror) bool) (bool, error) {
 	if !repo.IsMirror {
 		return false, nil
 	}
@@ -604,7 +609,7 @@ func (repo *Repository) IsMirrorWithMetadata(ctx context.Context) (bool, error) 
 		}
 		return false, err
 	}
-	return mirror.SyncIssues || mirror.SyncPullRequests, nil
+	return syncs(mirror), nil
 }
 
 // CanShowPulls is CanEnablePulls, plus metadata mirrors, which show their remote's pull requests without accepting new ones

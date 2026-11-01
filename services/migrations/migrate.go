@@ -596,14 +596,16 @@ func syncRepository(ctx context.Context, downloader base.Downloader, uploader ba
 		messenger = base.NilMessenger
 	}
 
-	// the full list every time: SaveTopics replaces the set, so removed topics go too
-	topics, err := downloader.GetTopics(ctx)
-	if err != nil {
-		if !base.IsErrNotSupported(err) {
+	if opts.SyncTopics {
+		// the full list every time: SaveTopics replaces the set, so removed topics go too
+		topics, err := downloader.GetTopics(ctx)
+		if err != nil {
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+		} else if err := uploader.CreateTopics(ctx, topics...); err != nil {
 			return err
 		}
-	} else if err := uploader.CreateTopics(ctx, topics...); err != nil {
-		return err
 	}
 
 	if opts.Issues {

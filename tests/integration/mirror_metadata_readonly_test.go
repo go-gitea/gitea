@@ -27,7 +27,7 @@ func TestReadOnlyMirrorRejectsIssueWrites(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	_, err := db.GetEngine(t.Context()).ID(repo.ID).Cols("is_mirror").Update(&repo_model.Repository{IsMirror: true})
 	require.NoError(t, err)
-	require.NoError(t, db.Insert(t.Context(), &repo_model.Mirror{RepoID: repo.ID, SyncIssues: true}))
+	require.NoError(t, db.Insert(t.Context(), &repo_model.Mirror{RepoID: repo.ID, SyncIssues: true, SyncTopics: true}))
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteRepository)
 	apiURL := func(format string, args ...any) string {
@@ -65,5 +65,15 @@ func TestReadOnlyMirrorRejectsIssueWrites(t *testing.T) {
 		home := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/%s/%s", owner.Name, repo.Name)), http.StatusOK).Body)
 		assert.Zero(t, home.doc.Find("#manage_topic").Length(), "synced topics are not editable")
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", issueURL+"/watch", map[string]string{"watch": "1"}), http.StatusOK)
+	})
+
+	t.Run("TopicsEditableWithoutSyncTopics", func(t *testing.T) {
+		_, err := db.GetEngine(t.Context()).Where("repo_id = ?", repo.ID).Cols("sync_topics").Update(&repo_model.Mirror{SyncTopics: false})
+		require.NoError(t, err)
+		MakeRequest(t, NewRequest(t, "PUT", apiURL("/topics/local")).AddTokenAuth(token), http.StatusNoContent)
+		MakeRequest(t, NewRequestWithJSON(t, "POST", apiURL("/issues"), &api.CreateIssueOption{Title: "local"}).AddTokenAuth(token), http.StatusLocked)
+		session := loginUser(t, owner.Name)
+		home := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/%s/%s", owner.Name, repo.Name)), http.StatusOK).Body)
+		assert.Equal(t, 1, home.doc.Find("#manage_topic").Length(), "unsynced topics stay editable")
 	})
 }

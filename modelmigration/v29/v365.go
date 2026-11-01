@@ -21,6 +21,7 @@ func AddMetadataMirrorSyncColumns(_ context.Context, x base.EngineMigration) err
 	type Mirror struct {
 		SyncIssues       bool `xorm:"NOT NULL DEFAULT false"`
 		SyncPullRequests bool `xorm:"NOT NULL DEFAULT false"`
+		SyncTopics       bool `xorm:"NOT NULL DEFAULT false"`
 	}
 	type PullRequest struct {
 		HeadRepoOwner string `xorm:"NOT NULL DEFAULT ''"`

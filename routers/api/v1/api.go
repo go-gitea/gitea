@@ -841,17 +841,21 @@ func mustNotBeArchived(ctx *context.APIContext) {
 }
 
 // mustNotBeReadOnlyMirror rejects writes to the issues and pull requests a mirror syncs from its remote
-func mustNotBeReadOnlyMirror(ctx *context.APIContext) {
-	if ctx.Req.Method == http.MethodGet || ctx.Req.Method == http.MethodHead || repo_model.IsPersonalIssueState(ctx.Req.URL.Path) {
-		return
-	}
-	readOnly, err := ctx.Repo.Repository.IsMirrorWithMetadata(ctx)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if readOnly {
-		ctx.APIError(http.StatusLocked, "repo is a read-only mirror")
+var mustNotBeReadOnlyMirror = mustNotBeSyncedByMirror((*repo_model.Mirror).SyncsIssuesOrPulls)
+
+func mustNotBeSyncedByMirror(syncs func(*repo_model.Mirror) bool) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.Req.Method == http.MethodGet || ctx.Req.Method == http.MethodHead || repo_model.IsPersonalIssueState(ctx.Req.URL.Path) {
+			return
+		}
+		readOnly, err := ctx.Repo.Repository.IsMirrorSyncing(ctx, syncs)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if readOnly {
+			ctx.APIError(http.StatusLocked, "repo is a read-only mirror")
+		}
 	}
 }
 
@@ -1574,7 +1578,7 @@ func Routes() *web.Router {
 						m.Combo("").Put(reqToken(), mustNotBeArchived, repo.AddTopic).
 							Delete(reqToken(), mustNotBeArchived, repo.DeleteTopic)
 					}, reqAdmin())
-				}, reqAnyRepoReader(), mustNotBeReadOnlyMirror)
+				}, reqAnyRepoReader(), mustNotBeSyncedByMirror(func(m *repo_model.Mirror) bool { return m.SyncTopics }))
 				m.Get("/issue_templates", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueTemplates)
 				m.Get("/issue_config", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueConfig)
 				m.Get("/issue_config/validate", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.ValidateIssueConfig)

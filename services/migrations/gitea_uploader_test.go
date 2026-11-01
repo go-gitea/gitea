@@ -543,7 +543,7 @@ func TestGiteaSyncRepository(t *testing.T) {
 		}},
 	}
 
-	opts := base.MigrateOptions{Issues: true, PullRequests: true, Comments: true}
+	opts := base.MigrateOptions{Issues: true, PullRequests: true, Comments: true, SyncTopics: true}
 
 	issueCountBefore := unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID})
 
@@ -578,6 +578,13 @@ func TestGiteaSyncRepository(t *testing.T) {
 	downloader.topics = []string{"mirror"}
 
 	require.NoError(t, syncRepository(ctx, downloader, uploader, opts, nil, marks))
+	assert.Equal(t, []string{"mirror"}, repoTopicNames(t, repo.ID))
+
+	// topics are only synced when asked for
+	downloader.topics = []string{"other"}
+	noTopics := opts
+	noTopics.SyncTopics = false
+	require.NoError(t, syncRepository(ctx, downloader, uploader, noTopics, nil, marks))
 	assert.Equal(t, []string{"mirror"}, repoTopicNames(t, repo.ID))
 
 	assert.Equal(t, issueCountBefore+2, unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}))

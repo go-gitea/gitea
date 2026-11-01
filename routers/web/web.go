@@ -10,6 +10,7 @@ import (
 	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git"
@@ -1542,7 +1543,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Post("/topics", repo.TopicsPost)
-	}, optSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived(), context.RepoMustNotBeReadOnlyMirror())
+	}, optSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived(), context.RepoMustNotBeSyncedByMirror(func(m *repo_model.Mirror) bool { return m.SyncTopics }))
 
 	m.Group("/{username}/{reponame}", func() {
 		if setting.Packages.Enabled {

@@ -273,8 +273,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 func runSyncMetadata(ctx context.Context, m *repo_model.Mirror) bool {
 	repo := m.GetRepository(ctx)
-	log.Info("metadata sync [%s]: starting (sync_issues=%v sync_prs=%v)",
-		repo.FullName(), m.SyncIssues, m.SyncPullRequests)
+	log.Info("metadata sync [%s]: starting (sync_issues=%v sync_prs=%v sync_topics=%v)",
+		repo.FullName(), m.SyncIssues, m.SyncPullRequests, m.SyncTopics)
 
 	remoteURL, err := git.ParseRemoteAddressURL(ctx, repo, m.GetRemoteName())
 	if err != nil {
@@ -297,6 +297,7 @@ func runSyncMetadata(ctx context.Context, m *repo_model.Mirror) bool {
 		Issues:          m.SyncIssues,
 		PullRequests:    m.SyncPullRequests,
 		Comments:        m.SyncIssues || m.SyncPullRequests,
+		SyncTopics:      m.SyncTopics,
 		MigrateToRepoID: repo.ID,
 		MirrorInterval:  m.Interval.String(),
 	}

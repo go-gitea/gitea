@@ -74,6 +74,7 @@ type MigrateRepoForm struct {
 
 	SyncIssues       bool `json:"sync_issues"`
 	SyncPullRequests bool `json:"sync_pull_requests"`
+	SyncTopics       bool `json:"sync_topics"`
 
 	AWSAccessKeyID     string `json:"aws_access_key_id"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`
@@ -99,10 +100,6 @@ type RepoSettingForm struct {
 	PushMirrorInterval     string
 	Template               bool
 	EnablePrune            bool
-
-	// pull mirror metadata sync; comments, reviews, labels and milestones come along
-	MirrorSyncIssues       bool `form:"mirror_sync_issues"`
-	MirrorSyncPullRequests bool `form:"mirror_sync_pull_requests"`
 
 	// Advanced settings
 	EnableCode bool
