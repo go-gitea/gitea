@@ -30,6 +30,7 @@ type Provider interface {
 	IconHTML(size int) template.HTML
 	CustomURLSettings() *CustomURLSettings
 	SupportSSHPublicKey() bool
+	SupportsPKCE() bool
 }
 
 // GothProviderCreator provides a function to create a goth.Provider
