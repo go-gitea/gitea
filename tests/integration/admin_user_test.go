@@ -220,6 +220,7 @@ func TestAdminBotUser(t *testing.T) {
 		assert.Empty(t, doc.Find("#password").Nodes)
 		doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d", bot.ID)), http.StatusOK).Body)
 		assert.NotEmpty(t, doc.Find(`form[action$="/access_tokens"]`).Nodes)
+		assert.NotEmpty(t, doc.Find("dialog#regenerate-token").Nodes)
 	})
 
 	t.Run("EditWithoutAuthSource", func(t *testing.T) {
@@ -264,12 +265,15 @@ func TestAdminBotUser(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &auth_model.AccessToken{UID: 2, Name: "not-a-bot"})
 
 		token := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{UID: bot.ID, Name: "ci"})
-		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL+"/delete", map[string]string{
-			"id": strconv.FormatInt(token.ID, 10),
-		}), http.StatusOK)
+		tokenID := map[string]string{"id": strconv.FormatInt(token.ID, 10)}
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL+"/regenerate", tokenID), http.StatusOK)
+		assert.NotEqual(t, token.TokenHash, unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: token.ID}).TokenHash)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/2/access_tokens/regenerate", map[string]string{"id": "3"}), http.StatusBadRequest)
+
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL+"/delete", tokenID), http.StatusOK)
 		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
 
-		for _, action := range []audit_model.Action{audit_model.UserAccessTokenAdd, audit_model.UserAccessTokenRemove} {
+		for _, action := range []audit_model.Action{audit_model.UserAccessTokenAdd, audit_model.UserAccessTokenRegenerate, audit_model.UserAccessTokenRemove} {
 			events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{Action: action, ScopeType: audit_model.ScopeUser, ScopeID: bot.ID})
 			require.NoError(t, err)
 			require.Len(t, events, 1, "audit events for %s", action)

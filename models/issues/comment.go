@@ -1209,6 +1209,11 @@ func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *us
 		if affected == 0 {
 			return ErrCommentAlreadyChanged
 		}
+		if c.Type == CommentTypeReview {
+			if _, err := db.GetEngine(ctx).ID(c.ReviewID).Cols("content").NoAutoTime().Update(&Review{Content: c.Content}); err != nil { // updated_unix picks a reviewer's latest review
+				return err
+			}
+		}
 		return c.AddCrossReferences(ctx, doer, true)
 	})
 }

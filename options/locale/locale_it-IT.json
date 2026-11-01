@@ -1571,7 +1571,6 @@
   "repo.diff.comment.start_review": "Inizio revisione",
   "repo.diff.comment.reply": "Rispondi",
   "repo.diff.review": "Revisiona",
-  "repo.diff.review.header": "Invia revisione",
   "repo.diff.review.placeholder": "Revisione commento",
   "repo.diff.review.comment": "Commentare",
   "repo.diff.review.approve": "Approva",
