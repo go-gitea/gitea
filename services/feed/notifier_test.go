@@ -13,6 +13,9 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	_ "gitea.dev/models"
 	_ "gitea.dev/models/actions"
@@ -51,6 +54,27 @@ func TestRenameRepoAction(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, actionBean)
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+}
+
+func TestTruncateCommitsForFeed(t *testing.T) {
+	defer test.MockVariableValue(&setting.UI.FeedMaxCommitNum, 2)()
+
+	full := &repository.PushCommits{
+		Commits: []*repository.PushCommit{{Sha1: "a"}, {Sha1: "b"}, {Sha1: "c"}},
+		Len:     3,
+	}
+
+	truncated := truncateCommitsForFeed(full)
+	assert.Len(t, truncated.Commits, 2)
+	assert.Equal(t, 3, truncated.Len) // Len stays the real total
+
+	assert.Len(t, full.Commits, 3) // original object must be untouched
+
+	short := &repository.PushCommits{
+		Commits: []*repository.PushCommit{{Sha1: "a"}},
+		Len:     1,
+	}
+	assert.Same(t, short, truncateCommitsForFeed(short))
 }
 
 func TestPullRequestReviewActionExcerpts(t *testing.T) {
