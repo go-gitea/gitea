@@ -1,8 +1,8 @@
 {{$disabledReviewTooltip := "" -}}
 {{if $.Repository.IsArchived -}}
 	{{$disabledReviewTooltip = ctx.Locale.Tr "repo.archive.pull.nocomment" -}}
-{{else if not $.IsShowingAllCommits -}}
-	{{$disabledReviewTooltip = ctx.Locale.Tr "repo.pulls.review_only_possible_for_full_diff" -}}
+{{else if not $.CanSubmitReview -}}
+	{{$disabledReviewTooltip = ctx.Locale.Tr "repo.pulls.review_not_possible_for_commit_range" -}}
 {{end -}}
 <div data-global-init="initPullReviewBox">
 <div {{if $disabledReviewTooltip}}data-tooltip-content="{{$disabledReviewTooltip}}"{{end}}>
@@ -12,13 +12,13 @@
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
 </div>
-{{if $.IsShowingAllCommits}}
+{{if $.CanSubmitReview}}
 <div class="review-box-panel tippy-target">
 	<div class="ui segment">
 		<form class="ui form form-fetch-action" action="{{.Issue.Link}}/files/reviews/submit" method="post">
-			<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
+			<input type="hidden" name="commit_id" value="{{.ReviewCommitID}}">
 			<div class="field flex-text-block">
-				<div class="tw-flex-1">{{ctx.Locale.Tr "repo.diff.review.header"}}</div>
+				<b class="tw-flex-1">{{ctx.Locale.Tr "repo.diff.review.header"}}</b>
 				<a class="muted close-review-panel">{{svg "octicon-x" 16}}</a>
 			</div>
 			<div class="field">

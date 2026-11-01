@@ -108,12 +108,12 @@ func TestGetApprovalUsersAddsForkPullRequestAuthorUnlessDefaultBranchWorkflow(t 
 }
 
 func TestFilteredWorkflowCommitStatusForForkPullRequest(t *testing.T) {
-	forkPR := &issues_model.PullRequest{
+	input := new(notifyInput).WithPullRequest(&issues_model.PullRequest{
 		Flow:       issues_model.PullRequestFlowGithub,
 		BaseRepoID: 1,
 		HeadRepoID: 2,
-	}
-	input := newPullRequestReviewNotifyInput(&repo_model.Repository{ID: 1}, &user_model.User{ID: 2}, actions_module.GithubEventPullRequest, "refs/pull/1/head", forkPR)
+		Index:      1,
+	})
 
 	assert.True(t, isForkPullRequestInput(input))
 	assert.Equal(t, "refs/pull/1/head", input.Ref.String())
@@ -127,4 +127,13 @@ func TestFilteredWorkflowCommitStatusForForkPullRequest(t *testing.T) {
 	assert.True(t, shouldCreateSkippedCommitStatusForFilteredWorkflow(newNotifyInput(&repo_model.Repository{ID: 1}, &user_model.User{ID: 2}, actions_module.GithubEventPullRequest), &actions_module.DetectedWorkflow{
 		TriggerEvent: &jobparser.Event{Name: actions_module.GithubEventPullRequest},
 	}))
+}
+
+func TestDetectAndHandleSchedulesDropsRemovedWorkflows(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, actions_model.ReplaceScheduleTasksByRepo(t.Context(), repo.ID, []*actions_model.ActionSchedule{{RepoID: repo.ID, WorkflowID: "removed.yml"}}))
+
+	require.NoError(t, DetectAndHandleSchedules(t.Context(), repo))
+	unittest.AssertNotExistsBean(t, &actions_model.ActionSchedule{RepoID: repo.ID})
 }

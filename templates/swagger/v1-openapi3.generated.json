@@ -3663,6 +3663,7 @@
             "example": [
               "all",
               "read:activitypub",
+              "write:commitstatus",
               "read:issue",
               "write:misc",
               "read:notification",
@@ -7977,7 +7978,8 @@
               "codebase",
               "codecommit",
               "bitbucketserver",
-              "forgejo"
+              "forgejo",
+              "bitbucket"
             ],
             "type": "string",
             "x-go-name": "Service"
@@ -14503,13 +14505,12 @@
             }
           },
           {
-            "description": "id of the label to delete",
+            "description": "id of the label to delete, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -14539,13 +14540,12 @@
             }
           },
           {
-            "description": "id of the label to get",
+            "description": "id of the label to get, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -14575,13 +14575,12 @@
             }
           },
           {
-            "description": "id of the label to edit",
+            "description": "id of the label to edit, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -26676,13 +26675,12 @@
             }
           },
           {
-            "description": "id of the label to delete",
+            "description": "id of the label to delete, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -26721,13 +26719,12 @@
             }
           },
           {
-            "description": "id of the label to get",
+            "description": "id of the label to get, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -26766,13 +26763,12 @@
             }
           },
           {
-            "description": "id of the label to edit",
+            "description": "id of the label to edit, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
