@@ -2,6 +2,7 @@ name: db-tests
 
 on:
   pull_request:
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
