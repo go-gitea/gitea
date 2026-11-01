@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {apiCreateRepo, apiCreateIssue, assertNoJsError, randomString} from './utils.ts';
+import {apiCreateRepo, apiCreateIssue, assertClipboardText, assertNoJsError, randomString} from './utils.ts';
 
 test('mermaid diagram in issue', async ({page, request}) => {
   const repoName = `e2e-mermaid-${randomString(8)}`;
@@ -22,7 +22,7 @@ test('mermaid diagram in issue', async ({page, request}) => {
 
   await svg.hover();
   await page.locator('.code-copy').click();
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(source);
+  await assertClipboardText(page, source);
 
   await assertNoJsError(page);
 });

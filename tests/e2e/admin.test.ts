@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {clickDropdownItem, login, randomString} from './utils.ts';
+import {assertClipboardText, clickDropdownItem, login, randomString} from './utils.ts';
 
 test('create a bot and manage its access token', async ({page, request}) => {
   const botName = `e2e-bot-${randomString(8)}`;
@@ -17,7 +17,7 @@ test('create a bot and manage its access token', async ({page, request}) => {
   await page.getByRole('button', {name: 'Generate Token'}).click();
   const token = await page.getByRole('code').textContent();
   await page.getByRole('button', {name: 'Copy', exact: true}).click();
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(token);
+  await assertClipboardText(page, token!);
   const response = await request.get('/api/v1/user', {headers: {Authorization: `token ${token}`}});
   expect(await response.json()).toMatchObject({login: botName, type: 'Bot'});
 
