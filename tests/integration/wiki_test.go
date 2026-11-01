@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/tests"
@@ -95,6 +97,21 @@ func testRepoWikiCloneSSH(t *testing.T, u *url.URL) {
 		assert.NoError(t, err)
 		assert.Equal(t, "# Home page\n\nThis is the home page!\n", string(content))
 	})
+}
+
+func TestRepoWikiBlobExcerpt(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo, err := repo_model.GetRepositoryByID(t.Context(), 1)
+	require.NoError(t, err)
+	wikiRepo, err := git.OpenRepository(t.Context(), repo.WikiStorageRepo())
+	require.NoError(t, err)
+	defer wikiRepo.Close()
+	commit, err := wikiRepo.GetBranchCommit(t.Context(), repo.DefaultWikiBranch)
+	require.NoError(t, err)
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/wiki/blob_excerpt/%s?last_left=0&last_right=0&left=2&right=2&left_hunk_size=2&right_hunk_size=2&path=Home.md&style=split&direction=up", commit.ID))
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestRepoWikiClonePush(t *testing.T) {
