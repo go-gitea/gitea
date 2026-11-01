@@ -1125,7 +1125,6 @@
   "repo.migrate.onedev.description": "Daten von code.onedev.io oder anderen OneDev Instanzen migrieren.",
   "repo.migrate.codebase.description": "Daten von codebasehq.com migrieren.",
   "repo.migrate.gitbucket.description": "Daten von GitBucket Instanzen migrieren.",
-  "repo.migrate.bitbucketserver.description": "Migrieren Sie Daten von Bitbucket Data Center oder Serverinstanzen.",
   "repo.migrate.bitbucketserver.variant": "Rechenzentrum / Server",
   "repo.migrate.hosting": "Hosting",
   "repo.migrate.bitbucketserver.token_desc": "HTTP-Zugangs-Token. Wenn gesetzt, wird es anstelle des Passworts oben verwendet. Der Benutzername ist standardmäßig der Besitzer des Tokens.",
