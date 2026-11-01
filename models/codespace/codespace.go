@@ -4,6 +4,7 @@
 package codespace
 
 import (
+	"context"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
@@ -151,9 +152,6 @@ func (*Manager) TableName() string {
 
 // TableIndices returns Codespace indexes in the same order as their main queries.
 func (*Codespace) TableIndices() []*schemas.Index {
-	uuid := schemas.NewIndex("uuid", schemas.UniqueType)
-	uuid.AddColumn("uuid")
-
 	userUpdated := schemas.NewIndex("user_updated", schemas.IndexType)
 	userUpdated.AddColumn("user_id", "updated_unix", "created_unix", "id")
 
@@ -175,7 +173,7 @@ func (*Codespace) TableIndices() []*schemas.Index {
 	failedRetention := schemas.NewIndex("failed_retention", schemas.IndexType)
 	failedRetention.AddColumn("status", "updated_unix", "id")
 
-	return []*schemas.Index{uuid, userUpdated, repo, createClaim, managerActive, queuedTimeout, runningTimeout, failedRetention}
+	return []*schemas.Index{userUpdated, repo, createClaim, managerActive, queuedTimeout, runningTimeout, failedRetention}
 }
 
 // TableIndices returns Manager indexes in the same order as their main queries.
@@ -202,12 +200,67 @@ func (*DevContainerTemplate) TableName() string {
 }
 
 func init() {
-	db.RegisterModel(new(Codespace))
+	db.RegisterModel(new(Codespace), ensureRuntimeUUIDIndex)
 	db.RegisterModel(new(Manager))
 	db.RegisterModel(new(GiteaToken))
 	db.RegisterModel(new(SSHKey))
 	db.RegisterModel(new(OpenToken))
 	db.RegisterModel(new(DevContainerTemplate))
+}
+
+func ensureRuntimeUUIDIndex(ctx context.Context, x db.EngineMigration) error {
+	index := schemas.NewIndex("uuid", schemas.UniqueType)
+	index.AddColumn("uuid")
+	indexName := index.XName("codespace")
+	hasIndex := false
+	createSQL := x.Dialect().CreateIndexSQL("codespace", index)
+	if x.Dialect().URI().DBType == schemas.MSSQL {
+		var state struct {
+			IsUnique         bool   `xorm:"is_unique"`
+			HasFilter        bool   `xorm:"has_filter"`
+			FilterDefinition string `xorm:"filter_definition"`
+		}
+		has, err := x.Context(ctx).SQL(`SELECT is_unique, has_filter, COALESCE(filter_definition, '') AS filter_definition
+			FROM sys.indexes WHERE object_id = OBJECT_ID('codespace') AND name = ?`, indexName).Get(&state)
+		if err != nil {
+			return fmt.Errorf("ensureRuntimeUUIDIndex: inspect index: %w", err)
+		}
+		filter := strings.ToLower(state.FilterDefinition)
+		if has && state.IsUnique && state.HasFilter && strings.Contains(filter, "uuid") && strings.Contains(filter, "is not null") {
+			return nil
+		}
+		hasIndex = has
+		createSQL += " WHERE [uuid] IS NOT NULL"
+	} else {
+		tables, err := x.DBMetas()
+		if err != nil {
+			return fmt.Errorf("ensureRuntimeUUIDIndex: inspect indexes: %w", err)
+		}
+		for _, table := range tables {
+			if table.Name != "codespace" {
+				continue
+			}
+			for _, current := range table.Indexes {
+				if strings.EqualFold(current.Name, indexName) {
+					if current.Type == schemas.UniqueType && len(current.Cols) == 1 && strings.EqualFold(current.Cols[0], "uuid") {
+						return nil
+					}
+					hasIndex = true
+					break
+				}
+			}
+			break
+		}
+	}
+	if hasIndex {
+		if _, err := x.Context(ctx).Exec(x.Dialect().DropIndexSQL("codespace", index)); err != nil {
+			return fmt.Errorf("ensureRuntimeUUIDIndex: drop index: %w", err)
+		}
+	}
+	if _, err := x.Context(ctx).Exec(createSQL); err != nil {
+		return fmt.Errorf("ensureRuntimeUUIDIndex: create index: %w", err)
+	}
+	return nil
 }
 
 // GenerateManagerSecret fills the salted Manager secret verifier and returns the plaintext secret.

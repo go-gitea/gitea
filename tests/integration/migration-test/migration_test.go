@@ -19,6 +19,7 @@ import (
 
 	"gitea.dev/modelmigration"
 	migrate_base "gitea.dev/modelmigration/base"
+	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
@@ -26,6 +27,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/testlogger"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -174,7 +176,8 @@ func doMigrationTest(t *testing.T, version string) {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	assertCodespaceRuntimeUUIDConstraint(t, currentEngine)
 	currentEngine.Close()
 
 	// We do this a second time to ensure that there is not a problem with retained indices
@@ -182,9 +185,33 @@ func doMigrationTest(t *testing.T, version string) {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	assertCodespaceRuntimeUUIDConstraint(t, currentEngine)
 
 	currentEngine.Close()
+}
+
+func assertCodespaceRuntimeUUIDConstraint(t *testing.T, x db.EngineMigration) {
+	t.Helper()
+	first := &codespace_model.Codespace{
+		UserID: 1, RepoID: 1, RefType: "branch", RefName: "main", EnvironmentTag: "migration-test",
+		DevContainerContent: `{}`, Status: codespace_model.StatusCreating, OperationRVersion: 1,
+	}
+	second := *first
+	_, err := x.Table(first).Omit("uuid").Insert(first)
+	require.NoError(t, err)
+	_, err = x.Table(&second).Omit("uuid").Insert(&second)
+	require.NoError(t, err)
+	defer func() {
+		_, _ = x.In("id", first.ID, second.ID).Delete(new(codespace_model.Codespace))
+	}()
+
+	runtimeUUID := uuid.NewString()
+	updated, err := x.ID(first.ID).Cols("uuid").Update(&codespace_model.Codespace{UUID: runtimeUUID})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, updated)
+	_, err = x.ID(second.ID).Cols("uuid").Update(&codespace_model.Codespace{UUID: runtimeUUID})
+	require.Error(t, err)
 }
 
 func TestMigrations(t *testing.T) {

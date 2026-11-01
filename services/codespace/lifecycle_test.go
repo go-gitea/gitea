@@ -83,31 +83,6 @@ func TestFinalizeOperationCreateUsesDurablePrerequisites(t *testing.T) {
 	assert.False(t, hasMetadata)
 }
 
-func TestCodespaceUUIDIsUniqueAfterBinding(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	for range 2 {
-		insertServiceCodespace(t, 0, &codespace_model.Codespace{
-			Status:               codespace_model.StatusCreating,
-			OperationRVersion:    1,
-			OperationTrigger:     codespace_model.OperationTriggerUser,
-			OperationCreatedUnix: 10,
-		})
-	}
-
-	manager := insertServiceManager(t)
-	codespaceUUID := "acacacac-acac-4cac-8cac-acacacacacac"
-	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:              codespaceUUID,
-		Status:            codespace_model.StatusStopped,
-		OperationRVersion: 1,
-	})
-	duplicate := *loadServiceCodespace(t, codespaceUUID)
-	duplicate.ID = 0
-	_, err := db.GetEngine(t.Context()).Insert(&duplicate)
-	require.Error(t, err)
-}
-
 func codespaceIDByUUID(t *testing.T, codespaceUUID string) int64 {
 	t.Helper()
 	return loadServiceCodespace(t, codespaceUUID).ID

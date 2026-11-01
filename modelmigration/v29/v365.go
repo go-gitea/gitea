@@ -123,9 +123,9 @@ func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
 
 	type codespacePermissionAuthorization struct {
 		ID           int64
-		UserID       int64  `xorm:"NOT NULL index(user_source_request)"`
-		SourceRepoID int64  `xorm:"NOT NULL index(user_source_request)"`
-		RequestHash  string `xorm:"CHAR(64) NOT NULL index(user_source_request)"`
+		UserID       int64  `xorm:"NOT NULL index(request)"`
+		SourceRepoID int64  `xorm:"NOT NULL index(request)"`
+		RequestHash  string `xorm:"CHAR(64) NOT NULL index(request)"`
 		RevokedUnix  int64  `xorm:"NOT NULL DEFAULT 0"`
 		CreatedUnix  int64  `xorm:"NOT NULL DEFAULT 0"`
 		UpdatedUnix  int64  `xorm:"NOT NULL DEFAULT 0"`
@@ -133,7 +133,7 @@ func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
 
 	type codespacePermissionRepository struct {
 		AuthorizationID int64 `xorm:"pk NOT NULL"`
-		TargetRepoID    int64 `xorm:"pk NOT NULL index"`
+		TargetRepoID    int64 `xorm:"pk NOT NULL index(target)"`
 		UnitType        int   `xorm:"pk NOT NULL"`
 		RequestedMode   int   `xorm:"NOT NULL"`
 		GrantedMode     int   `xorm:"NOT NULL"`

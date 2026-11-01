@@ -133,6 +133,26 @@ func TestCodespaceTemplateSettings(t *testing.T) {
 	})
 }
 
+func TestCodespaceRuntimeUUIDDatabaseConstraint(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		first := &codespace_model.Codespace{Status: codespace_model.StatusFailed, OperationRVersion: 1}
+		second := &codespace_model.Codespace{Status: codespace_model.StatusFailed, OperationRVersion: 1}
+		insertIntegrationCodespace(t, 0, first)
+		insertIntegrationCodespace(t, 0, second)
+		defer func() {
+			_, _ = db.GetEngine(t.Context()).In("id", first.ID, second.ID).Delete(new(codespace_model.Codespace))
+		}()
+
+		runtimeUUID := uuid.NewString()
+		updated, err := db.GetEngine(t.Context()).ID(first.ID).Cols("uuid").Update(&codespace_model.Codespace{UUID: runtimeUUID})
+		require.NoError(t, err)
+		require.EqualValues(t, 1, updated)
+
+		_, err = db.GetEngine(t.Context()).ID(second.ID).Cols("uuid").Update(&codespace_model.Codespace{UUID: runtimeUUID})
+		require.Error(t, err)
+	})
+}
+
 func TestCodespaceManagerSettings(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user2")
@@ -189,6 +209,7 @@ func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/signing-key.pub").AddTokenAuth(token), http.StatusNotFound)
 		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s", repo.OwnerName, repo.Name).AddTokenAuth(token), http.StatusOK)
 		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/branches", repo.OwnerName, repo.Name).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/commits/master/status", repo.OwnerName, repo.Name).AddTokenAuth(token), http.StatusOK)
 		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/forks", repo.OwnerName, repo.Name).AddTokenAuth(token), http.StatusOK)
 		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/actions/runs", repo.OwnerName, repo.Name).AddTokenAuth(token), http.StatusOK)
 		MakeRequest(t, NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/actions/workflows/missing/dispatches", repo.OwnerName, repo.Name), map[string]string{}).AddTokenAuth(token), http.StatusUnprocessableEntity)
@@ -198,6 +219,7 @@ func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/user2/repo1.git/info/lfs/locks").AddBasicAuth("codespace", token).SetHeader("Accept", lfs.MediaType), http.StatusOK)
 
 		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repositories/%d", repo.ID).AddTokenAuth(token), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/user/orgs").AddTokenAuth(token), http.StatusForbidden)
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/issues/search").AddTokenAuth(token), http.StatusForbidden)
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/users/user2/tokens").AddTokenAuth(token), http.StatusForbidden)
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(token), http.StatusForbidden)

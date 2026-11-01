@@ -226,7 +226,7 @@ func (opts FindPublicKeyOptions) ToOrders() string {
 
 func (opts FindPublicKeyOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if opts.OwnerID > 0 {
+	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
 	if opts.Fingerprint != "" {
