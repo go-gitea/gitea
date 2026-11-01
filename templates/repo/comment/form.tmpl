@@ -1,8 +1,7 @@
 {{$root := ctx.RootData -}}
 {{$replyReviewComment := $.ReplyReviewComment -}}{{/* can be nil */ -}}
-{{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived) -}}
-{{if $canAddComment}}
-	<form class="ui form {{if $replyReviewComment}}tw-hidden comment-form{{end}}" action="{{$root.Issue.Link}}/files/reviews/comments" method="post">
+{{if $root.CommentContext.CanAddComment}}
+	<form {{if $.TopLevel}}id="comment-form"{{end}} class="ui form {{if $replyReviewComment}}tw-hidden comment-form{{end}}" action="{{$root.CommentContext.CreateURL}}" method="post">
 		<input type="hidden" name="origin" value="{{if $root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$root.ReviewCommitID}}">
 		<input type="hidden" name="side" value="{{$replyReviewComment.DiffSide}}">
@@ -13,7 +12,7 @@
 		<input type="hidden" name="diff_base_cid">
 		<div class="field">
 		{{template "shared/combomarkdowneditor" (dict
-			"CustomInit" true
+			"CustomInit" (not $.TopLevel)
 			"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment $root.Repository)
 			"TextareaName" "content"
 			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
@@ -33,15 +32,19 @@
 					<button class="ui submit primary tiny button" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>
 					<input type="hidden" name="reply" value="{{$replyReviewComment.ReviewID}}">
 					<input type="hidden" name="single_review" value="true">
+				{{else if $root.CurrentReview}}
+					<button name="pending_review" type="submit" class="ui submit primary tiny button">{{ctx.Locale.Tr "repo.diff.comment.add_review_comment"}}</button>
+				{{else if $.TopLevel}}
+					<button class="ui submit primary tiny button" type="submit">{{ctx.Locale.Tr "repo.issues.create_comment"}}</button>
 				{{else}}
-					{{if $root.CurrentReview}}
-						<button name="pending_review" type="submit" class="ui submit primary tiny button">{{ctx.Locale.Tr "repo.diff.comment.add_review_comment"}}</button>
-					{{else}}
+					{{if $root.CommentContext.SupportsReview}}
 						<button name="pending_review" type="submit" class="ui submit primary tiny button">{{ctx.Locale.Tr "repo.diff.comment.start_review"}}</button>
-						<button name="single_review" value="true" type="submit" class="ui submit tiny basic button">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
 					{{end}}
+					<button name="single_review" value="true" type="submit" class="ui submit tiny basic button">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
 				{{end}}
-				<button type="button" class="ui submit tiny basic button" data-global-click="onCancelCodeComment">{{ctx.Locale.Tr "cancel"}}</button>
+				{{if not $.TopLevel}}
+					<button type="button" class="ui submit tiny basic button" data-global-click="onCancelCodeComment">{{ctx.Locale.Tr "cancel"}}</button>
+				{{end}}
 			</div>
 		</div>
 	</form>

@@ -41,6 +41,10 @@ type swaggerParameterBodies struct {
 	IssueAssigneesOption api.IssueAssigneesOption
 
 	// in:body
+	CreateCommitCommentOption api.CreateCommitCommentOption
+	// in:body
+	EditCommitCommentOption api.EditCommitCommentOption
+	// in:body
 	CreateIssueCommentOption api.CreateIssueCommentOption
 	// in:body
 	EditIssueCommentOption api.EditIssueCommentOption

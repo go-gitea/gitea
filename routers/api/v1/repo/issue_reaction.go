@@ -57,7 +57,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	}
 
 	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -71,23 +71,31 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	reactions, _, err := issues_model.FindCommentReactions(ctx, comment.ID)
+	listCommentReactions(ctx, issues_model.FindReactionsOptions{CommentID: comment.ID})
+}
+
+func listCommentReactions(ctx *context.APIContext, opts issues_model.FindReactionsOptions) {
+	reactions, count, err := issues_model.FindReactions(ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	_, err = reactions.LoadUsers(ctx, ctx.Repo.Repository)
-	if err != nil {
+	if _, err := reactions.LoadUsers(ctx, ctx.Repo.Repository); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
 	var result []api.Reaction
-	for _, r := range reactions {
+	if opts.PageSize > 0 {
+		result = make([]api.Reaction, 0, len(reactions))
+		ctx.SetLinkHeader(count, opts.PageSize)
+		ctx.SetTotalCountHeader(count)
+	}
+	for _, reaction := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToAuthor(ctx, r.User, r.OriginalAuthor, ctx.Doer),
-			Reaction: r.Type,
-			Created:  r.CreatedUnix.AsTime(),
+			User:     convert.ToAuthor(ctx, reaction.User, reaction.OriginalAuthor, ctx.Doer),
+			Reaction: reaction.Type,
+			Created:  reaction.CreatedUnix.AsTime(),
 		})
 	}
 
@@ -188,10 +196,13 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
 		return
 	}
+	changeCommentReaction(ctx, comment, form, isCreateType)
+}
 
+func changeCommentReaction(ctx *context.APIContext, comment *issues_model.Comment, form api.EditReactionOption, isCreateType bool) {
 	if isCreateType {
 		// PostIssueCommentReaction part
-		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Reaction)
+		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, ctx.Repo.Repository, comment, form.Reaction)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.APIError(http.StatusForbidden, err.Error())
@@ -214,7 +225,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		})
 	} else {
 		// DeleteIssueCommentReaction part
-		err = issues_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Reaction)
+		err := issues_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.IssueID, comment.ID, form.Reaction)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

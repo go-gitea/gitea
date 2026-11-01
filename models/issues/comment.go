@@ -121,6 +121,8 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypeCommitComment // 39 comment on a commit, it has no issue
 )
 
 var commentStrings = []string{
@@ -163,6 +165,7 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"commit_comment",
 }
 
 func (t CommentType) String() string {
@@ -180,7 +183,7 @@ func AsCommentType(typeName string) CommentType {
 
 func (t CommentType) HasContentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeCommitComment:
 		return true
 	}
 	return false
@@ -188,7 +191,7 @@ func (t CommentType) HasContentSupport() bool {
 
 func (t CommentType) HasAttachmentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeCommitComment:
 		return true
 	}
 	return false
@@ -281,8 +284,9 @@ type Comment struct {
 	OriginalAuthor   string
 	OriginalAuthorID int64
 
-	IssueID int64  `xorm:"INDEX"`
-	Issue   *Issue `xorm:"-"`
+	IssueID       int64          `xorm:"INDEX"`
+	Issue         *Issue         `xorm:"-"`
+	CommitComment *CommitComment `xorm:"-"`
 
 	LabelID       int64
 	Label         *Label   `xorm:"-"`
@@ -567,6 +571,9 @@ func CommentHashTag(id int64) string {
 
 // HashTag returns unique hash tag for comment.
 func (c *Comment) HashTag() string {
+	if c.IsCommitComment() {
+		return fmt.Sprintf(util.Iif(c.TreePath == "", "commitcomment-%d", "r%d"), c.ID)
+	}
 	return CommentHashTag(c.ID)
 }
 
@@ -669,23 +676,13 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 		return nil
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		issue, err := GetIssueByID(ctx, c.IssueID)
+		repoID, err := c.getRepoID(ctx)
 		if err != nil {
 			return err
 		}
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
+		attachments, err := linkAttachments(ctx, repoID, c.IssueID, c.ID, uuids)
 		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
-		}
-		for i := range attachments {
-			if err := validateAttachmentForIssue(ctx, issue, attachments[i]); err != nil {
-				return err
-			}
-			attachments[i].IssueID = c.IssueID
-			attachments[i].CommentID = c.ID
-			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
-			}
+			return err
 		}
 		c.Attachments = attachments
 		return nil
@@ -788,6 +785,10 @@ func (c *Comment) DiffSide() string {
 		return "previous"
 	}
 	return "proposed"
+}
+
+func (c *Comment) IsCommitComment() bool {
+	return c.Type == CommentTypeCommitComment
 }
 
 // UnsignedLine returns the LOC of the code comment without + or -
@@ -1213,9 +1214,6 @@ func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *us
 				return err
 			}
 		}
-		if err := c.LoadIssue(ctx); err != nil {
-			return err
-		}
 		return c.AddCrossReferences(ctx, doer, true)
 	})
 }
@@ -1231,6 +1229,12 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		CommentID: comment.ID,
 	}); err != nil {
 		return err
+	}
+
+	if comment.IsCommitComment() {
+		if _, err := db.DeleteByID[CommitComment](ctx, comment.ID); err != nil {
+			return err
+		}
 	}
 
 	if comment.Type.CountedAsConversation() {

@@ -21,7 +21,7 @@ func addReaction(t *testing.T, doer *user_model.User, issue *issues_model.Issue,
 	if comment == nil {
 		reaction, err = CreateIssueReaction(t.Context(), doer, issue, content)
 	} else {
-		reaction, err = CreateCommentReaction(t.Context(), doer, comment, content)
+		reaction, err = CreateCommentReaction(t.Context(), doer, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}), comment, content)
 	}
 	assert.NoError(t, err)
 	assert.NotNil(t, reaction)

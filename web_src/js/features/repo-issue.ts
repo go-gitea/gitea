@@ -126,7 +126,7 @@ export function initRepoIssueCommentDelete() {
     }
 
     // If the conversation holder has no more comments, remove it.
-    if (!conversationHolder.querySelector('.comment')) {
+    if (!conversationHolder.querySelector('.comment') && !conversationHolder.hasAttribute('data-keep-empty')) {
       // the conversation holder could appear either on the "Conversation" page, or the "Files Changed" page
       // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment" button
       const parentTr = conversationHolder.closest('tr[data-line-type]');

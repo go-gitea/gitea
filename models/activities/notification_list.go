@@ -5,6 +5,7 @@ package activities
 
 import (
 	"context"
+	"slices"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -25,6 +26,7 @@ type FindNotificationOptions struct {
 	UserID            int64
 	RepoID            int64
 	IssueID           int64
+	CommitID          string
 	Status            []NotificationStatus
 	Source            []NotificationSource
 	UpdatedAfterUnix  int64
@@ -42,6 +44,9 @@ func (opts FindNotificationOptions) ToConds() builder.Cond {
 	}
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
+	}
+	if opts.CommitID != "" {
+		cond = cond.And(builder.Eq{"notification.commit_id": opts.CommitID})
 	}
 	if len(opts.Status) > 0 {
 		if len(opts.Status) == 1 {
@@ -71,80 +76,120 @@ func (opts FindNotificationOptions) ToOrders() string {
 // receiverID > 0 just send to receiver, else send to all watcher
 // Returns the set of user IDs whose notification rows were created or updated.
 func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
-	var notifiedIDs []int64
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		var innerErr error
-		notifiedIDs, innerErr = createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID)
-		return innerErr
+	return db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
+		// init
+		var toNotify container.Set[int64]
+		notifications, err := db.Find[Notification](ctx, FindNotificationOptions{
+			IssueID: issueID,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		issue, err := issues_model.GetIssueByID(ctx, issueID)
+		if err != nil {
+			return nil, err
+		}
+
+		if receiverID > 0 {
+			toNotify = make(container.Set[int64], 1)
+			toNotify.Add(receiverID)
+		} else {
+			toNotify = make(container.Set[int64], 32)
+			issueWatches, err := issues_model.GetIssueWatchersIDs(ctx, issueID, true)
+			if err != nil {
+				return nil, err
+			}
+			toNotify.AddMultiple(issueWatches...)
+			if !(issue.IsPull && issues_model.HasWorkInProgressPrefix(issue.Title)) {
+				watchType := util.Iif(issue.IsPull, repo_model.WatchPullRequests, repo_model.WatchIssues)
+				repoWatches, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID, watchType)
+				if err != nil {
+					return nil, err
+				}
+				toNotify.AddMultiple(repoWatches...)
+			}
+			issueParticipants, err := issue.GetParticipantIDsByIssue(ctx)
+			if err != nil {
+				return nil, err
+			}
+			toNotify.AddMultiple(issueParticipants...)
+			issueAssignees, err := issues_model.GetAssigneeIDsByIssue(ctx, issueID)
+			if err != nil {
+				return nil, err
+			}
+			toNotify.AddMultiple(issueAssignees...)
+			if issue.IsPull {
+				issueReviewers, err := issues_model.GetPullRequestRequestedReviewerIDs(ctx, issueID)
+				if err != nil {
+					return nil, err
+				}
+				toNotify.AddMultiple(issueReviewers...)
+			}
+
+			// don't notify user who cause notification
+			delete(toNotify, notificationAuthorID)
+			// explicit unwatch on issue
+			issueUnWatches, err := issues_model.GetIssueWatchersIDs(ctx, issueID, false)
+			if err != nil {
+				return nil, err
+			}
+			for _, id := range issueUnWatches {
+				toNotify.Remove(id)
+			}
+		}
+
+		return createOrUpdateNotifications(ctx, &Notification{
+			RepoID:    issue.RepoID,
+			IssueID:   issue.ID,
+			CommentID: commentID,
+			UpdatedBy: notificationAuthorID,
+			Source:    util.Iif(issue.IsPull, NotificationSourcePullRequest, NotificationSourceIssue),
+		}, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues), notifications, toNotify)
 	})
-	return notifiedIDs, err
 }
 
-func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
-	// init
-	var toNotify container.Set[int64]
-	notifications, err := db.Find[Notification](ctx, FindNotificationOptions{
-		IssueID: issueID,
+func CreateOrUpdateCommitNotifications(ctx context.Context, repoID int64, commitSHA string, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
+	return db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
+		toNotify := make(container.Set[int64])
+		if receiverID > 0 {
+			toNotify.Add(receiverID)
+		} else {
+			posterIDs, err := issues_model.GetCommitCommentPosterIDs(ctx, repoID, commitSHA)
+			if err != nil {
+				return nil, err
+			}
+			watcherIDs, err := repo_model.GetRepoAllActivityWatchersIDs(ctx, repoID)
+			if err != nil {
+				return nil, err
+			}
+			toNotify.AddMultiple(posterIDs...)
+			toNotify.AddMultiple(watcherIDs...)
+			toNotify.Remove(notificationAuthorID)
+		}
+
+		notifications, err := db.Find[Notification](ctx, FindNotificationOptions{
+			UserID:   receiverID,
+			RepoID:   repoID,
+			CommitID: commitSHA,
+			Source:   []NotificationSource{NotificationSourceCommit},
+		})
+		if err != nil {
+			return nil, err
+		}
+		return createOrUpdateNotifications(ctx, &Notification{
+			RepoID:    repoID,
+			CommitID:  commitSHA,
+			CommentID: commentID,
+			UpdatedBy: notificationAuthorID,
+			Source:    NotificationSourceCommit,
+		}, unit.TypeCode, notifications, toNotify)
 	})
-	if err != nil {
-		return nil, err
-	}
+}
 
-	issue, err := issues_model.GetIssueByID(ctx, issueID)
-	if err != nil {
-		return nil, err
-	}
-
-	if receiverID > 0 {
-		toNotify = make(container.Set[int64], 1)
-		toNotify.Add(receiverID)
-	} else {
-		toNotify = make(container.Set[int64], 32)
-		issueWatches, err := issues_model.GetIssueWatchersIDs(ctx, issueID, true)
-		if err != nil {
-			return nil, err
-		}
-		toNotify.AddMultiple(issueWatches...)
-		if !(issue.IsPull && issues_model.HasWorkInProgressPrefix(issue.Title)) {
-			watchType := util.Iif(issue.IsPull, repo_model.WatchPullRequests, repo_model.WatchIssues)
-			repoWatches, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID, watchType)
-			if err != nil {
-				return nil, err
-			}
-			toNotify.AddMultiple(repoWatches...)
-		}
-		issueParticipants, err := issue.GetParticipantIDsByIssue(ctx)
-		if err != nil {
-			return nil, err
-		}
-		toNotify.AddMultiple(issueParticipants...)
-		issueAssignees, err := issues_model.GetAssigneeIDsByIssue(ctx, issueID)
-		if err != nil {
-			return nil, err
-		}
-		toNotify.AddMultiple(issueAssignees...)
-		if issue.IsPull {
-			issueReviewers, err := issues_model.GetPullRequestRequestedReviewerIDs(ctx, issueID)
-			if err != nil {
-				return nil, err
-			}
-			toNotify.AddMultiple(issueReviewers...)
-		}
-
-		// don't notify user who cause notification
-		delete(toNotify, notificationAuthorID)
-		// explicit unwatch on issue
-		issueUnWatches, err := issues_model.GetIssueWatchersIDs(ctx, issueID, false)
-		if err != nil {
-			return nil, err
-		}
-		for _, id := range issueUnWatches {
-			toNotify.Remove(id)
-		}
-	}
-
+func createOrUpdateNotifications(ctx context.Context, target *Notification, unitType unit.Type, existing []*Notification, toNotify container.Set[int64]) ([]int64, error) {
 	// muting the repository outranks every other source, including mentions
-	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, issue.RepoID)
+	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, target.RepoID)
 	if err != nil {
 		return nil, err
 	}
@@ -152,14 +197,13 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		toNotify.Remove(id)
 	}
 
-	if err := issue.LoadRepo(ctx); err != nil {
+	if err := target.loadRepo(ctx); err != nil {
 		return nil, err
 	}
 
-	// notify
 	notifiedIDs := make([]int64, 0, len(toNotify))
 	for userID := range toNotify {
-		issue.Repo.Units = nil
+		target.Repository.Units = nil
 		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -168,20 +212,27 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 
 			return nil, err
 		}
-		if user.IsTypeBot() {
-			continue
-		}
-		if issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypePullRequests) {
-			continue
-		}
-		if !issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypeIssues) {
+		if user.IsTypeBot() || !access_model.CheckRepoUnitUser(ctx, target.Repository, user, unitType) {
 			continue
 		}
 
-		if notificationExists(notifications, issue.ID, userID) {
-			err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID)
+		if idx := slices.IndexFunc(existing, func(notification *Notification) bool { return notification.UserID == userID }); idx >= 0 {
+			notification := existing[idx]
+			// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
+			// But we need update updated_by so that the notification will be reorder
+			notification.UpdatedBy = target.UpdatedBy
+			cols := []string{"updated_by"}
+			if notification.Status == NotificationStatusRead {
+				notification.Status = NotificationStatusUnread
+				notification.CommentID = target.CommentID
+				cols = append(cols, "status", "comment_id")
+			}
+			_, err = db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)
 		} else {
-			err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID)
+			notification := *target
+			notification.UserID = userID
+			notification.Status = NotificationStatusUnread
+			err = db.Insert(ctx, &notification)
 		}
 		if err != nil {
 			return nil, err

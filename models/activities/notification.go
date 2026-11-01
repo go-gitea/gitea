@@ -154,47 +154,6 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 	})
 }
 
-func createIssueNotification(ctx context.Context, userID int64, issue *issues_model.Issue, commentID, updatedByID int64) error {
-	notification := &Notification{
-		UserID:    userID,
-		RepoID:    issue.RepoID,
-		Status:    NotificationStatusUnread,
-		IssueID:   issue.ID,
-		CommentID: commentID,
-		UpdatedBy: updatedByID,
-	}
-
-	if issue.IsPull {
-		notification.Source = NotificationSourcePullRequest
-	} else {
-		notification.Source = NotificationSourceIssue
-	}
-
-	return db.Insert(ctx, notification)
-}
-
-func updateIssueNotification(ctx context.Context, userID, issueID, commentID, updatedByID int64) error {
-	notification, err := GetIssueNotification(ctx, userID, issueID)
-	if err != nil {
-		return err
-	}
-
-	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
-	// But we need update update_by so that the notification will be reorder
-	var cols []string
-	if notification.Status == NotificationStatusRead {
-		notification.Status = NotificationStatusUnread
-		notification.CommentID = commentID
-		cols = []string{"status", "update_by", "comment_id"}
-	} else {
-		notification.UpdatedBy = updatedByID
-		cols = []string{"update_by"}
-	}
-
-	_, err = db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)
-	return err
-}
-
 // GetIssueNotification return the notification about an issue
 func GetIssueNotification(ctx context.Context, userID, issueID int64) (*Notification, error) {
 	notification := new(Notification)
@@ -279,6 +238,13 @@ func (n *Notification) GetIssue(ctx context.Context) (*issues_model.Issue, error
 	return n.Issue, n.loadIssue(ctx)
 }
 
+func (n *Notification) commentAnchor() string {
+	if n.Comment == nil {
+		return ""
+	}
+	return "#" + n.Comment.HashTag()
+}
+
 // HTMLURL formats a URL-string to the notification
 func (n *Notification) HTMLURL(ctx context.Context) string {
 	switch n.Source {
@@ -288,7 +254,7 @@ func (n *Notification) HTMLURL(ctx context.Context) string {
 		}
 		return n.Issue.HTMLURL(ctx)
 	case NotificationSourceCommit:
-		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID)
+		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID) + n.commentAnchor()
 	case NotificationSourceRepository:
 		return n.Repository.HTMLURL(ctx)
 	}
@@ -304,7 +270,7 @@ func (n *Notification) Link(ctx context.Context) string {
 		}
 		return n.Issue.Link()
 	case NotificationSourceCommit:
-		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID)
+		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID) + n.commentAnchor()
 	case NotificationSourceRepository:
 		return n.Repository.Link()
 	}
@@ -314,16 +280,6 @@ func (n *Notification) Link(ctx context.Context) string {
 // APIURL formats a URL-string to the notification
 func (n *Notification) APIURL() string {
 	return setting.AppURL + "api/v1/notifications/threads/" + strconv.FormatInt(n.ID, 10)
-}
-
-func notificationExists(notifications []*Notification, issueID, userID int64) bool {
-	for _, notification := range notifications {
-		if notification.IssueID == issueID && notification.UserID == userID {
-			return true
-		}
-	}
-
-	return false
 }
 
 // UserIDCount is a simple coalition of UserID and Count

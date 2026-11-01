@@ -108,6 +108,15 @@ func KeepLimitedContentHistory(ctx context.Context, issueID, commentID int64, li
 // QueryIssueContentHistoryEditedCountMap query related history count of each comment (comment_id = 0 means the main issue)
 // only return the count map for "edited" (history revision count > 1) issues or comments.
 func QueryIssueContentHistoryEditedCountMap(dbCtx context.Context, issueID int64) (map[int64]int, error) {
+	return queryContentHistoryEditedCountMap(dbCtx, builder.Eq{"issue_id": issueID})
+}
+
+func QueryCommitContentHistoryEditedCountMap(dbCtx context.Context, repoID int64, commitSHA string) (map[int64]int, error) {
+	return queryContentHistoryEditedCountMap(dbCtx, builder.Eq{"issue_id": 0}.And(builder.In("comment_id",
+		builder.Select("comment_id").From("commit_comment").Where(builder.Eq{"repo_id": repoID, "commit_sha": commitSHA}))))
+}
+
+func queryContentHistoryEditedCountMap(dbCtx context.Context, cond builder.Cond) (map[int64]int, error) {
 	type HistoryCountRecord struct {
 		CommentID    int64
 		HistoryCount int
@@ -116,7 +125,7 @@ func QueryIssueContentHistoryEditedCountMap(dbCtx context.Context, issueID int64
 
 	err := db.GetEngine(dbCtx).Select("comment_id, COUNT(1) as history_count").
 		Table("issue_content_history").
-		Where(builder.Eq{"issue_id": issueID}).
+		Where(cond).
 		GroupBy("comment_id").
 		Having("count(1) > 1").
 		Find(&records)

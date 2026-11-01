@@ -10,23 +10,92 @@ import (
 
 	"gitea.dev/models/avatars"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
+	issue_service "gitea.dev/services/issue"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
+type contentHistoryScope struct {
+	issue     *issues_model.Issue
+	comment   *issues_model.Comment
+	commitSHA string
+}
+
+func getContentHistoryScope(ctx *context.Context) *contentHistoryScope {
+	if ctx.PathParam("sha") == "" {
+		issue := GetActionIssue(ctx)
+		if ctx.Written() {
+			return nil
+		}
+		return &contentHistoryScope{issue: issue}
+	}
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, ctx.PathParam("sha"))
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("GetCommit", err)
+		}
+		return nil
+	}
+	return &contentHistoryScope{commitSHA: commit.ID.String()}
+}
+
+func (scope *contentHistoryScope) issueID() int64 {
+	if scope.issue != nil {
+		return scope.issue.ID
+	}
+	return 0
+}
+
+func (scope *contentHistoryScope) loadComment(ctx *context.Context, commentID int64) error {
+	if commentID == 0 && scope.issue != nil {
+		return nil
+	}
+	comment, err := issues_model.GetCommentByID(ctx, commentID)
+	if err != nil {
+		return err
+	}
+	if comment.IssueID != scope.issueID() || scope.issue == nil && !comment.IsCommitComment() {
+		return issues_model.ErrCommentNotExist{ID: commentID}
+	}
+	if scope.issue == nil {
+		if err := comment.LoadCommitComment(ctx); err != nil {
+			return err
+		}
+		if comment.CommitComment.RepoID != ctx.Repo.Repository.ID || comment.CommitComment.CommitSHA != scope.commitSHA {
+			return issues_model.ErrCommentNotExist{ID: commentID}
+		}
+	}
+	scope.comment = comment
+	return nil
+}
+
 // GetContentHistoryOverview get overview
 func GetContentHistoryOverview(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
+	scope := getContentHistoryScope(ctx)
+	if scope == nil {
 		return
 	}
 
-	editedHistoryCountMap, _ := issues_model.QueryIssueContentHistoryEditedCountMap(ctx, issue.ID)
+	var editedHistoryCountMap map[int64]int
+	var err error
+	if scope.issue != nil {
+		editedHistoryCountMap, err = issues_model.QueryIssueContentHistoryEditedCountMap(ctx, scope.issue.ID)
+	} else {
+		editedHistoryCountMap, err = issues_model.QueryCommitContentHistoryEditedCountMap(ctx, ctx.Repo.Repository.ID, scope.commitSHA)
+	}
+	if err != nil {
+		ctx.ServerError("QueryContentHistoryEditedCountMap", err)
+		return
+	}
 	ctx.JSON(http.StatusOK, map[string]any{
 		"i18n": map[string]any{
 			"textEdited":                   ctx.Tr("repo.issues.content_history.edited"),
@@ -40,13 +109,21 @@ func GetContentHistoryOverview(ctx *context.Context) {
 
 // GetContentHistoryList  get list
 func GetContentHistoryList(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
+	scope := getContentHistoryScope(ctx)
+	if scope == nil {
 		return
 	}
 
 	commentID := ctx.FormInt64("comment_id")
-	items, _ := issues_model.FetchIssueContentHistoryList(ctx, issue.ID, commentID)
+	if err := scope.loadComment(ctx, commentID); err != nil {
+		ctx.NotFound(err)
+		return
+	}
+	items, err := issues_model.FetchIssueContentHistoryList(ctx, scope.issueID(), commentID)
+	if err != nil {
+		ctx.ServerError("FetchIssueContentHistoryList", err)
+		return
+	}
 
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
@@ -86,6 +163,9 @@ func GetContentHistoryList(ctx *context.Context) {
 func canSoftDeleteContentHistory(ctx *context.Context, issue *issues_model.Issue, comment *issues_model.Comment,
 	history *issues_model.ContentHistory,
 ) (canSoftDelete bool) {
+	if issue == nil {
+		return ctx.Doer != nil && (ctx.Doer.ID == history.PosterID || issue_service.CanSelfChangeOrAccessComment(ctx.Doer, ctx.Repo.Permission, comment, perm.AccessModeWrite))
+	}
 	// CanWrite means the doer can manage the issue/PR list
 	if ctx.Repo.Permission.IsOwner() || ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		canSoftDelete = true
@@ -139,13 +219,13 @@ func diffContentHistory(oldContent, newContent string) template.HTML {
 
 // GetContentHistoryDetail get detail
 func GetContentHistoryDetail(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
+	scope := getContentHistoryScope(ctx)
+	if scope == nil {
 		return
 	}
 
 	historyID := ctx.FormInt64("history_id")
-	history, prevHistory, err := issues_model.GetIssueContentHistoryAndPrev(ctx, issue.ID, historyID)
+	history, prevHistory, err := issues_model.GetIssueContentHistoryAndPrev(ctx, scope.issueID(), historyID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, map[string]any{
 			"message": "Can not find the content history",
@@ -154,13 +234,9 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 
 	// get the related comment if this history revision is for a comment, otherwise the history revision is for an issue.
-	var comment *issues_model.Comment
-	if history.CommentID != 0 {
-		var err error
-		if comment, err = issues_model.GetCommentByID(ctx, history.CommentID); err != nil {
-			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
-			return
-		}
+	if err := scope.loadComment(ctx, history.CommentID); err != nil {
+		ctx.NotFound(err)
+		return
 	}
 
 	// get the previous history revision (if exists)
@@ -172,7 +248,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"canSoftDelete": canSoftDeleteContentHistory(ctx, issue, comment, history),
+		"canSoftDelete": canSoftDeleteContentHistory(ctx, scope.issue, scope.comment, history),
 		"historyId":     historyID,
 		"prevHistoryId": prevHistoryID,
 		"diffHtml":      diffContentHistory(prevHistoryContentText, history.ContentText),
@@ -181,8 +257,8 @@ func GetContentHistoryDetail(ctx *context.Context) {
 
 // SoftDeleteContentHistory soft delete
 func SoftDeleteContentHistory(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
+	scope := getContentHistoryScope(ctx)
+	if scope == nil {
 		return
 	}
 	if ctx.Doer == nil {
@@ -193,35 +269,21 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 	commentID := ctx.FormInt64("comment_id")
 	historyID := ctx.FormInt64("history_id")
 
-	var comment *issues_model.Comment
-	var history *issues_model.ContentHistory
-	var err error
-
-	if history, err = issues_model.GetIssueContentHistoryByID(ctx, historyID); err != nil {
-		log.Error("can not get issue content history %v. err=%v", historyID, err)
+	history, err := issues_model.GetIssueContentHistoryByID(ctx, historyID)
+	if err != nil {
+		ctx.NotFound(err)
 		return
 	}
-	if history.IssueID != issue.ID {
+	if history.IssueID != scope.issueID() || history.CommentID != commentID {
 		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
-	if history.CommentID != commentID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
+	if err := scope.loadComment(ctx, commentID); err != nil {
+		ctx.NotFound(err)
 		return
 	}
-	if commentID != 0 {
-		if comment, err = issues_model.GetCommentByID(ctx, commentID); err != nil {
-			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
-			return
-		}
-		if comment.IssueID != issue.ID {
-			ctx.NotFound(issues_model.ErrCommentNotExist{})
-			return
-		}
-	}
 
-	canSoftDelete := canSoftDeleteContentHistory(ctx, issue, comment, history)
-	if !canSoftDelete {
+	if !canSoftDeleteContentHistory(ctx, scope.issue, scope.comment, history) {
 		ctx.JSON(http.StatusForbidden, map[string]any{
 			"message": "Can not delete the content history",
 		})
@@ -229,7 +291,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 	}
 
 	err = issues_model.SoftDeleteIssueContentHistory(ctx, historyID)
-	log.Debug("soft delete issue content history. issue=%d, comment=%d, history=%d", issue.ID, commentID, historyID)
+	log.Debug("soft delete content history. issue=%d, comment=%d, history=%d", scope.issueID(), commentID, historyID)
 	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": err == nil,
 	})
