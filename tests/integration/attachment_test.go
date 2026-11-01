@@ -313,6 +313,9 @@ func testDeleteAttachmentPermissions(t *testing.T) {
 	require.NoError(t, repo_model.UpdateAttachmentByUUID(t.Context(), linked, "release_id"))
 	testDeleteReleaseAttachment(t, ownerSession, repoURL, linkedUUID, http.StatusForbidden)
 	testDeleteIssueAttachment(t, ownerSession, repoURL, linkedUUID, http.StatusForbidden)
+	linked.ReleaseID, linked.CommentID = 0, 1
+	require.NoError(t, repo_model.UpdateAttachmentByUUID(t.Context(), linked, "release_id", "comment_id"))
+	testDeleteIssueAttachment(t, ownerSession, repoURL, linkedUUID, http.StatusForbidden)
 
 	// test deleting release attachment from another repo
 	testDeleteReleaseAttachment(t, ownerSession, "/user2/repo2", crossRepoUUID, http.StatusBadRequest)
