@@ -1,0 +1,65 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content dashboard codespace">
+	{{$repositoryOwner := .CodespaceRepositoryOwner}}
+	<div class="secondary-nav tw-border-b tw-border-b-secondary">
+		<div class="ui secondary stackable menu">
+			<div class="item">
+				<div class="ui floating dropdown jump">
+					<span class="text">
+						{{if $repositoryOwner}}
+							{{ctx.AvatarUtils.Avatar $repositoryOwner 24 "tw-mr-1"}}
+							<span class="gt-ellipsis">{{$repositoryOwner.ShortName 40}}</span>
+							<span class="org-visibility">
+								{{if $repositoryOwner.Visibility.IsLimited}}<span class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
+								{{if $repositoryOwner.Visibility.IsPrivate}}<span class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
+							</span>
+						{{else}}
+							{{svg "octicon-repo" 24 "tw-mr-1"}}
+							<span>{{ctx.Locale.Tr "codespace.all_repositories"}}</span>
+						{{end}}
+						{{svg "octicon-triangle-down" 14 "dropdown icon tw-ml-1"}}
+					</span>
+					<div class="menu context-user-switch">
+						<div class="header">{{ctx.Locale.Tr "codespace.filter_repository_owner"}}</div>
+						<div class="scrolling menu">
+							<a class="{{if not $repositoryOwner}}active selected{{end}} item" href="{{AppSubUrl}}/-/codespaces">
+								{{svg "octicon-repo" 16 "tw-mr-3"}}
+								<span>{{ctx.Locale.Tr "codespace.all_repositories"}}</span>
+							</a>
+							<a class="{{if $repositoryOwner}}{{if eq $repositoryOwner.ID .SignedUser.ID}}active selected{{end}}{{end}} item" href="{{AppSubUrl}}/-/codespaces{{QueryBuild "?" "owner" .SignedUser.Name}}">
+								{{ctx.AvatarUtils.Avatar .SignedUser}}
+								<span class="gt-ellipsis">{{.SignedUser.ShortName 40}}</span>
+								<span class="org-visibility">
+									{{if .SignedUser.Visibility.IsLimited}}<span class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
+									{{if .SignedUser.Visibility.IsPrivate}}<span class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
+								</span>
+							</a>
+							{{range $organization := .Orgs}}
+								<a class="{{if $repositoryOwner}}{{if eq $repositoryOwner.ID $organization.ID}}active selected{{end}}{{end}} item" title="{{$organization.Name}}" href="{{AppSubUrl}}/-/codespaces{{QueryBuild "?" "owner" $organization.Name}}">
+									{{ctx.AvatarUtils.Avatar $organization}}
+									<span class="gt-ellipsis">{{$organization.ShortName 40}}</span>
+									<span class="org-visibility">
+										{{if $organization.Visibility.IsLimited}}<span class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
+										{{if $organization.Visibility.IsPrivate}}<span class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
+									</span>
+								</a>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<div class="tw-mb-4">
+			<h2 class="ui header tw-m-0">{{ctx.Locale.Tr "codespace.title"}}</h2>
+			<div class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.list_desc"}}</div>
+		</div>
+		{{template "codespace/refresh_notice" .}}
+		{{template "codespace/list_state" .}}
+		{{template "codespace/open_modal" .}}
+		{{template "codespace/settings_modal" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

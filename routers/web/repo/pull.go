@@ -649,6 +649,9 @@ func ViewPullCommits(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
+	if !issue.IsClosed && !prViewInfo.IsPullRequestBroken {
+		prepareCodespaceSourcePanel(ctx, "pull", strconv.FormatInt(issue.Index, 10), issue.PullRequest.GetGitHeadRefName(), fmt.Sprintf("#%d", issue.Index))
+	}
 
 	commits, err := processGitCommits(ctx, prCompareInfo.Commits)
 	if err != nil {
@@ -722,6 +725,9 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	if prCompareInfo.HeadCommitID == "" {
 		ctx.NotFound(nil)
 		return
+	}
+	if !issue.IsClosed && !prViewInfo.IsPullRequestBroken {
+		prepareCodespaceSourcePanel(ctx, "pull", strconv.FormatInt(issue.Index, 10), issue.PullRequest.GetGitHeadRefName(), fmt.Sprintf("#%d", issue.Index))
 	}
 
 	headCommitID := prCompareInfo.HeadCommitID

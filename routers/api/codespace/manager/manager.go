@@ -1,0 +1,354 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package manager
+
+import (
+	"context"
+	"errors"
+	"net/http"
+
+	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
+	"gitea.dev/codespace-proto-go/codespace/v1/codespacev1connect"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
+	codespace_service "gitea.dev/services/codespace"
+
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
+)
+
+// NewManagerServiceHandler returns the Codespace ManagerService Connect handler.
+func NewManagerServiceHandler() (string, http.Handler) {
+	server := connect.NewServer(withManager)
+	codespacev1connect.RegisterManagerServiceHandler(server, &Service{})
+	mux := http.NewServeMux()
+	connecthttp.Mount(mux, server, connecthttp.WithCompressMinBytes(1024), connecthttp.WithReadMaxBytes(codespacev1.ManagerServiceMaxMessageBytes), connecthttp.WithSendMaxBytes(codespacev1.ManagerServiceMaxMessageBytes))
+	return "/" + codespacev1connect.ManagerServiceName + "/", mux
+}
+
+var _ codespacev1connect.ManagerServiceHandler = (*Service)(nil)
+
+// Service implements the Codespace ManagerService RPC entrypoint.
+type Service struct {
+	codespacev1connect.UnimplementedManagerServiceHandler
+}
+
+// CheckManager confirms the authenticated Manager identity without changing it.
+func (s *Service) CheckManager(
+	ctx context.Context,
+	_ *codespacev1.CheckManagerRequest,
+) (*codespacev1.CheckManagerResponse, error) {
+	manager := GetManager(ctx)
+	_, _, giteaWebURL := codespace_service.ManagerServiceTimings()
+	return &codespacev1.CheckManagerResponse{
+		GiteaWebUrl: giteaWebURL,
+		ManagerName: manager.Name,
+	}, nil
+}
+
+// DeclareManager stores the authenticated Manager's current declaration.
+func (s *Service) DeclareManager(
+	ctx context.Context,
+	req *codespacev1.DeclareManagerRequest,
+) (*codespacev1.DeclareManagerResponse, error) {
+	manager := GetManager(ctx)
+	if err := codespace_service.DeclareManager(ctx, manager, codespace_service.DeclareManagerOptions{
+		GatewayURL:                         req.GetGatewayUrl(),
+		GatewaySSHAddr:                     req.GetGatewaySshAddr(),
+		Environments:                       req.GetEnvironments(),
+		Version:                            req.GetVersion(),
+		RuntimeState:                       req.GetManagerRuntimeState(),
+		GatewaySSHHostKeyAlgorithm:         req.GetGatewaySshHostKeyAlgorithm(),
+		GatewaySSHHostKeyFingerprintSHA256: req.GetGatewaySshHostKeyFingerprintSha256(),
+	}); err != nil {
+		return nil, serviceFailureError(err, "invalid_declaration", nil)
+	}
+	heartbeatMillis, metadataRefreshMillis, giteaWebURL := codespace_service.ManagerServiceTimings()
+	return &codespacev1.DeclareManagerResponse{
+		HeartbeatIntervalMilliseconds:              heartbeatMillis,
+		RuntimeMetadataRefreshIntervalMilliseconds: metadataRefreshMillis,
+		GiteaWebUrl: giteaWebURL,
+	}, nil
+}
+
+// FetchOperations returns operation payloads and renewed leases for the authenticated Manager.
+func (s *Service) FetchOperations(
+	ctx context.Context,
+	req *codespacev1.FetchOperationsRequest,
+) (*codespacev1.FetchOperationsResponse, error) {
+	manager := GetManager(ctx)
+	result, err := codespace_service.FetchOperations(ctx, manager, codespace_service.FetchOperationsOptions{
+		StartupCapacityAvailable: req.GetStartupCapacityAvailable(),
+		AcceptedOperationTypes:   req.GetAcceptedOperationTypes(),
+		AcceptedCreateTags:       req.GetAcceptedCreateTags(),
+		ObservedOperations:       req.GetObservedOperations(),
+		CleanupCapacityAvailable: req.GetCleanupCapacityAvailable(),
+		WaitTimeoutMilliseconds:  req.GetWaitTimeoutMilliseconds(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrFetchStateHistoryConflict, code: connect.CodeFailedPrecondition, category: "state_history_conflict"},
+			{target: codespace_service.ErrFetchManagerUnavailable, code: connect.CodeUnavailable, category: "manager_offline"},
+		})
+	}
+	return result, nil
+}
+
+// BindRuntimeIdentity stores the Manager-allocated runtime UUID for an active create operation.
+func (s *Service) BindRuntimeIdentity(
+	ctx context.Context,
+	req *codespacev1.BindRuntimeIdentityRequest,
+) (*codespacev1.BindRuntimeIdentityResponse, error) {
+	manager := GetManager(ctx)
+	runtimeUUID, err := codespace_service.BindRuntimeIdentity(ctx, manager, codespace_service.BindRuntimeIdentityOptions{
+		CodespaceID:       req.GetCodespaceId(),
+		OperationRVersion: req.GetOperationRversion(),
+		RuntimeUUID:       req.GetRuntimeUuid(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrBindRuntimeIdentityNotFound, code: connect.CodeNotFound, category: "codespace_not_found"},
+			{target: codespace_service.ErrBindRuntimeIdentityStateConflict, code: connect.CodeFailedPrecondition, category: "state_conflict"},
+			{target: codespace_service.ErrBindRuntimeIdentityConflict, code: connect.CodeFailedPrecondition, category: "runtime_uuid_conflict"},
+		})
+	}
+	return &codespacev1.BindRuntimeIdentityResponse{RuntimeUuid: runtimeUUID}, nil
+}
+
+// ReportInstances accepts a complete Runtime inventory snapshot.
+func (s *Service) ReportInstances(
+	ctx context.Context,
+	req *codespacev1.ReportInstancesRequest,
+) (*codespacev1.ReportInstancesResponse, error) {
+	manager := GetManager(ctx)
+	result, err := codespace_service.ReportInstances(ctx, manager, codespace_service.ReportInstancesOptions{
+		InventoryGeneration: req.GetInventoryGeneration(),
+		Instances:           req.GetInstances(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrReportInstancesStateHistoryConflict, code: connect.CodeFailedPrecondition, category: "state_history_conflict"},
+			{target: codespace_service.ErrReportInstancesManagerUnavailable, code: connect.CodeUnavailable, category: "manager_offline"},
+		})
+	}
+	return result, nil
+}
+
+// FinalizeOperation reports the authenticated Manager's final operation result.
+func (s *Service) FinalizeOperation(
+	ctx context.Context,
+	req *codespacev1.FinalizeOperationRequest,
+) (*codespacev1.FinalizeOperationResponse, error) {
+	manager := GetManager(ctx)
+	response, err := codespace_service.FinalizeOperation(ctx, manager, codespace_service.FinalizeOperationOptions{
+		CodespaceUUID:     req.GetRuntimeUuid(),
+		OperationRVersion: req.GetOperationRversion(),
+		OperationType:     req.GetOperationType(),
+		FinalStatus:       req.GetStatus(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrFinalizeGiteaTokenRequired, code: connect.CodeFailedPrecondition, category: "gitea_token_required"},
+		})
+	}
+	return response, nil
+}
+
+// UpdateLog appends sanitized log lines for the authenticated Manager's active operation.
+func (s *Service) UpdateLog(
+	ctx context.Context,
+	req *codespacev1.UpdateLogRequest,
+) (*codespacev1.UpdateLogResponse, error) {
+	manager := GetManager(ctx)
+	result, err := codespace_service.UpdateLog(ctx, manager, codespace_service.UpdateLogOptions{
+		CodespaceUUID:     req.GetRuntimeUuid(),
+		OperationRVersion: req.GetOperationRversion(),
+		Offset:            req.GetOffset(),
+		Lines:             req.GetLines(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrUpdateLogOffsetConflict, code: connect.CodeAborted, category: "offset_conflict"},
+			{target: codespace_service.ErrUpdateLogOffsetGap, code: connect.CodeAborted, category: "offset_gap"},
+			{target: codespace_service.ErrUpdateLogNotFound, code: connect.CodeNotFound, category: "codespace_not_found"},
+			{target: codespace_service.ErrUpdateLogStaleOperation, code: connect.CodeFailedPrecondition, category: "stale_operation"},
+			{target: codespace_service.ErrUpdateLogSizeExceeded, code: connect.CodeResourceExhausted, category: "log_size_exceeded"},
+		})
+	}
+	return result, nil
+}
+
+// ReportRuntimeMetadata stores the authenticated Manager's current Runtime Metadata snapshot.
+func (s *Service) ReportRuntimeMetadata(
+	ctx context.Context,
+	req *codespacev1.ReportRuntimeMetadataRequest,
+) (*codespacev1.ReportRuntimeMetadataResponse, error) {
+	manager := GetManager(ctx)
+	err := codespace_service.ReportRuntimeMetadata(ctx, manager, codespace_service.ReportRuntimeMetadataOptions{
+		CodespaceUUID:      req.GetRuntimeUuid(),
+		Metadata:           req.GetMetadata(),
+		MetadataGeneration: req.GetMetadataGeneration(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrRuntimeMetadataGenerationConflict, code: connect.CodeFailedPrecondition, category: "generation_conflict"},
+			{target: codespace_service.ErrRuntimeMetadataVersionExhausted, code: connect.CodeFailedPrecondition, category: "version_exhausted"},
+			{target: codespace_service.ErrRuntimeMetadataManagerMismatch, code: connect.CodeFailedPrecondition, category: "manager_mismatch"},
+			{target: codespace_service.ErrRuntimeMetadataStaleOperation, code: connect.CodeFailedPrecondition, category: "stale_operation"},
+			{target: codespace_service.ErrRuntimeMetadataManagerOffline, code: connect.CodeUnavailable, category: "manager_offline"},
+			{target: codespace_service.ErrRuntimeMetadataStateUnavailable, code: connect.CodeFailedPrecondition, category: "state_unavailable"},
+		})
+	}
+	return &codespacev1.ReportRuntimeMetadataResponse{}, nil
+}
+
+type serviceErrorCase struct {
+	target   error
+	code     connect.Code
+	category string
+}
+
+func serviceFailureError(err error, fallbackCategory string, cases []serviceErrorCase) error {
+	for _, errCase := range cases {
+		if errors.Is(err, errCase.target) {
+			return failureError(errCase.code, errCase.category, err)
+		}
+	}
+	switch {
+	case errors.Is(err, context.Canceled):
+		return connect.NewError(connect.CodeCanceled, context.Canceled.Error()).WithCause(err)
+	case errors.Is(err, context.DeadlineExceeded):
+		return connect.NewError(connect.CodeDeadlineExceeded, context.DeadlineExceeded.Error()).WithCause(err)
+	case errors.Is(err, codespace_service.ErrManagerUnregistered):
+		return failureError(connect.CodeUnauthenticated, "manager_unregistered", err)
+	case errors.Is(err, util.ErrInvalidArgument):
+		return failureError(connect.CodeInvalidArgument, fallbackCategory, err)
+	}
+	if _, ok := errors.AsType[*codespace_service.StaleGenerationError](err); ok {
+		return failureError(connect.CodeFailedPrecondition, "stale_generation", err)
+	}
+	log.Error("Codespace ManagerService failed: %v", err)
+	return failureError(connect.CodeInternal, "internal_error", errors.New("internal server error"))
+}
+
+// RequestRuntimeAccess returns the authenticated Manager's current runtime access material.
+func (s *Service) RequestRuntimeAccess(
+	ctx context.Context,
+	req *codespacev1.RequestRuntimeAccessRequest,
+) (*codespacev1.RequestRuntimeAccessResponse, error) {
+	manager := GetManager(ctx)
+	result, err := codespace_service.RequestRuntimeAccess(ctx, manager, codespace_service.RequestRuntimeAccessOptions{
+		CodespaceUUID:     req.GetRuntimeUuid(),
+		OperationRVersion: req.GetOperationRversion(),
+		GitSSHPublicKey:   req.GetGitSshKey().GetPublicKey(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrRequestRuntimeAccessNotFound, code: connect.CodeNotFound, category: "codespace_not_found"},
+			{target: codespace_service.ErrRequestRuntimeAccessManagerMismatch, code: connect.CodeFailedPrecondition, category: "manager_mismatch"},
+			{target: codespace_service.ErrRequestRuntimeAccessStateUnavailable, code: connect.CodeFailedPrecondition, category: "state_unavailable"},
+			{target: codespace_service.ErrRequestRuntimeAccessManagerOffline, code: connect.CodeUnavailable, category: "manager_offline"},
+			{target: codespace_service.ErrRequestRuntimeAccessUserNotFound, code: connect.CodeFailedPrecondition, category: "user_not_found"},
+			{target: codespace_service.ErrRuntimeGitSSHKeyLoginRestricted, code: connect.CodeFailedPrecondition, category: "login_restricted"},
+			{target: codespace_service.ErrRuntimeGitSSHKeyInvalidPublicKey, code: connect.CodeInvalidArgument, category: "invalid_public_key"},
+			{target: codespace_service.ErrRuntimeGitSSHKeyConflict, code: connect.CodeFailedPrecondition, category: "key_conflict"},
+		})
+	}
+	secrets := make([]*codespacev1.RuntimeSecretEnvironmentVariable, 0, len(result.Secrets))
+	for _, secret := range result.Secrets {
+		secrets = append(secrets, &codespacev1.RuntimeSecretEnvironmentVariable{Name: secret.Name, Value: secret.Value})
+	}
+	return &codespacev1.RequestRuntimeAccessResponse{
+		Access: &codespacev1.RuntimeAccessBundle{
+			GiteaToken:     result.Token,
+			GiteaServerUrl: result.ServerURL,
+			Secrets:        secrets,
+			GitSshTrust:    &codespacev1.GitSSHTrust{KnownHostsLines: result.GitSSHKnownHosts},
+		},
+	}, nil
+}
+
+// RequestIdleStop authorizes an idle-triggered stop against current Gitea state.
+func (s *Service) RequestIdleStop(
+	ctx context.Context,
+	req *codespacev1.RequestIdleStopRequest,
+) (*codespacev1.RequestIdleStopResponse, error) {
+	manager := GetManager(ctx)
+	settings := req.GetObservedSettings()
+	result, err := codespace_service.RequestIdleStop(ctx, manager, codespace_service.RequestIdleStopOptions{
+		CodespaceUUID:                 req.GetRuntimeUuid(),
+		ObservedAutoStopEnabled:       settings.GetAutoStopEnabled(),
+		ObservedIdleTimeoutSeconds:    settings.GetIdleTimeoutSeconds(),
+		ObservedInteractionGeneration: settings.GetInteractionGeneration(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrRequestIdleStopNotFound, code: connect.CodeNotFound, category: "codespace_not_found"},
+			{target: codespace_service.ErrRequestIdleStopManagerMismatch, code: connect.CodeFailedPrecondition, category: "manager_mismatch"},
+			{target: codespace_service.ErrRequestIdleStopManagerUnavailable, code: connect.CodeUnavailable, category: "manager_offline"},
+			{target: codespace_service.ErrRequestIdleStopVersionExhausted, code: connect.CodeFailedPrecondition, category: "version_exhausted"},
+		})
+	}
+	return result, nil
+}
+
+// ValidatePublicEndpoint authorizes unauthenticated access to one public Endpoint.
+func (s *Service) ValidatePublicEndpoint(
+	ctx context.Context,
+	req *codespacev1.ValidatePublicEndpointRequest,
+) (*codespacev1.ValidatePublicEndpointResponse, error) {
+	manager := GetManager(ctx)
+	result, err := codespace_service.ValidatePublicEndpoint(ctx, manager, codespace_service.ValidatePublicEndpointOptions{
+		CodespaceUUID: req.GetRuntimeUuid(),
+		EndpointID:    req.GetEndpointId(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", nil)
+	}
+	return result, nil
+}
+
+// ValidateOpenToken authorizes one Gateway Open Token exchange.
+func (s *Service) ValidateOpenToken(
+	ctx context.Context,
+	req *codespacev1.ValidateOpenTokenRequest,
+) (*codespacev1.ValidateOpenTokenResponse, error) {
+	manager := GetManager(ctx)
+	result, err := codespace_service.ValidateOpenToken(ctx, manager, codespace_service.ValidateOpenTokenOptions{
+		Code: req.GetCode(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", nil)
+	}
+	return result, nil
+}
+
+// VerifySSHPublicKey authorizes one new Gateway SSH transport.
+func (s *Service) VerifySSHPublicKey(
+	ctx context.Context,
+	req *codespacev1.VerifySSHPublicKeyRequest,
+) (*codespacev1.VerifySSHPublicKeyResponse, error) {
+	manager := GetManager(ctx)
+	result, err := codespace_service.VerifySSHPublicKey(ctx, manager, codespace_service.VerifySSHPublicKeyOptions{
+		CodespaceUUID: req.GetRuntimeUuid(),
+		PublicKey:     req.GetPublicKey(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", nil)
+	}
+	return result, nil
+}
+
+// RevalidateGatewaySession checks whether an existing Gateway session remains authorized.
+func (s *Service) RevalidateGatewaySession(
+	ctx context.Context,
+	req *codespacev1.RevalidateGatewaySessionRequest,
+) (*codespacev1.RevalidateGatewaySessionResponse, error) {
+	manager := GetManager(ctx)
+	result, err := codespace_service.RevalidateGatewaySession(ctx, manager, req)
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", nil)
+	}
+	return result, nil
+}

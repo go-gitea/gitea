@@ -13,6 +13,7 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
@@ -875,6 +876,10 @@ func MergePullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	codespaceHeadPermission, ok := requireCodespacePullHeadPermission(ctx, ctx.Repo.Repository, pr.HeadRepo, perm.AccessModeRead)
+	if !ok {
+		return
+	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
 		ctx.APIErrorInternal(err)
@@ -966,6 +971,12 @@ func MergePullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	if deleteBranchAfterMerge && codespaceHeadPermission != nil {
+		if !ctx.CodespaceTokenAllowsRepositoryID(pr.HeadRepoID, unit.TypeCode, perm.AccessModeWrite) || !codespaceHeadPermission.CanWrite(unit.TypeCode) {
+			ctx.APIError(http.StatusForbidden, "codespace token does not have write access to delete the pull request head branch")
+			return
+		}
+	}
 
 	if form.MergeWhenChecksSucceed {
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
@@ -1038,10 +1049,17 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	}
 	// user should have permission to read headRepo's codes
 	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
-	permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
+	permHead, ok := requireCodespacePullHeadPermission(ctx, baseRepo, headRepo, perm.AccessModeRead)
+	if !ok {
 		return nil, nil
+	}
+	if permHead == nil {
+		permission, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return nil, nil
+		}
+		permHead = &permission
 	}
 	if !permHead.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v", ctx.Doer, headRepo, permHead)
@@ -1112,6 +1130,42 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	return &compareInfo, closer
 }
 
+func requireCodespacePullHeadPermission(ctx *context.APIContext, baseRepo, headRepo *repo_model.Repository, mode perm.AccessMode) (*access_model.Permission, bool) {
+	if baseRepo.ID == headRepo.ID {
+		return nil, true
+	}
+	if _, ok := ctx.CodespaceTokenRepoID(); !ok {
+		return nil, true
+	}
+	if !ctx.CodespaceTokenAllowsRepositoryID(headRepo.ID, unit.TypeCode, mode) {
+		ctx.APIError(http.StatusForbidden, "codespace token does not have access to the pull request head repository")
+		return nil, false
+	}
+	permission, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil, false
+	}
+	allowed := permission.CanRead(unit.TypeCode)
+	if mode == perm.AccessModeWrite {
+		allowed = permission.CanWrite(unit.TypeCode)
+	}
+	if !allowed {
+		ctx.APIError(http.StatusForbidden, "user does not have access to the pull request head repository")
+		return nil, false
+	}
+	related, err := repo_model.ShareForkTree(ctx, baseRepo, headRepo)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil, false
+	}
+	if !related {
+		ctx.APIError(http.StatusForbidden, "pull request repositories are not in the same fork tree")
+		return nil, false
+	}
+	return &permission, true
+}
+
 // UpdatePullRequest merge PR's baseBranch into headBranch
 func UpdatePullRequest(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/update repository repoUpdatePullRequest
@@ -1176,6 +1230,14 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	if err = pr.LoadHeadRepo(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if _, ok := requireCodespacePullHeadPermission(ctx, pr.BaseRepo, pr.HeadRepo, perm.AccessModeWrite); !ok {
+		return
+	}
+
 	// keep API back-compat: when no style is given, default to "merge" rather than the repo's DefaultUpdateStyle,
 	// so existing API clients keep getting a merge update.
 	rebase := repo_model.UpdateStyle(ctx.FormString("style", string(repo_model.UpdateStyleMerge))) == repo_model.UpdateStyleRebase
