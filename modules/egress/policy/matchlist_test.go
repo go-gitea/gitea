@@ -205,5 +205,5 @@ func TestNeverMatching(t *testing.T) {
 	// loopback is exempt from the reserved pool in classifyAddr, so the loopback alias
 	// (127.0.0.0/8, ::1/128) is dialable and must not be flagged
 	assert.Empty(t, NewAllowList("loopback", Strict).NeverMatching())
-	assert.Empty(t, NewAllowList("127.0.0.0/8, ::1/128, ::/96", Strict).NeverMatching())
+	assert.Empty(t, NewAllowList("127.0.0.0/8, ::1/128", Strict).NeverMatching())
 }

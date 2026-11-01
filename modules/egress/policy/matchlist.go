@@ -477,10 +477,8 @@ func (m *matchList) NeverMatching() []string {
 func fullyReserved(prefix netip.Prefix) bool {
 	// classifyAddr exempts loopback from the reserved pool, so a prefix overlapping loopback
 	// (e.g. the loopback alias: 127.0.0.0/8, ::1/128) still matches and is not flagged
-	for _, loopback := range []netip.Prefix{netip.MustParsePrefix("127.0.0.0/8"), netip.MustParsePrefix("::1/128")} {
-		if prefix.Overlaps(loopback) {
-			return false
-		}
+	for prefix.Addr().IsLoopback() {
+		return false
 	}
 	for _, reserved := range reservedRanges {
 		if reserved.Contains(prefix.Addr()) && prefix.Bits() >= reserved.Bits() {
