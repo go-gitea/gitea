@@ -36219,7 +36219,7 @@
             "$ref": "#/components/responses/UserSettings"
           },
           "404": {
-            "$ref": "#/components/responses/notFound"
+            "$ref": "#/components/responses/error"
           }
         },
         "summary": "Update user settings",

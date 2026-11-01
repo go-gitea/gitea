@@ -23161,7 +23161,7 @@
             "$ref": "#/responses/UserSettings"
           },
           "404": {
-            "$ref": "#/responses/notFound"
+            "$ref": "#/responses/error"
           }
         }
       }

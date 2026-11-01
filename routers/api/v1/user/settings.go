@@ -45,7 +45,7 @@ func UpdateUserSettings(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserSettings"
 	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.UserSettingsOptions](ctx)
 	if form.FullName != nil && *form.FullName != ctx.Doer.FullName && user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
