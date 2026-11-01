@@ -333,7 +333,7 @@ func TestNewHTTPTransportConfiguresBase(t *testing.T) {
 
 	calls := 0
 	base := &http.Transport{
-		Proxy: func(*http.Request) (*url.URL, error) { calls++; return nil, nil },
+		Proxy: func(*http.Request) (*url.URL, error) { calls++; return nil, nil }, //nolint:nilnil // no proxy for this request
 		DialTLSContext: func(context.Context, string, string) (net.Conn, error) {
 			return nil, errors.New("DialTLSContext bypass")
 		},
