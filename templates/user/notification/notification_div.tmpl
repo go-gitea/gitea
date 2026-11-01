@@ -49,7 +49,7 @@
 							{{if $one.Issue}}
 								{{$one.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
 							{{else if $one.CommitID}}
-								<span class="tw-font-mono">{{ShortSha $one.CommitID}}</span>
+								<span class="ui sha label">{{ShortSha $one.CommitID}}</span>
 							{{else}}
 								{{$one.Repository.FullName}}
 							{{end}}

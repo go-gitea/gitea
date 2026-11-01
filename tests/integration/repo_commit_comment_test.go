@@ -18,6 +18,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
@@ -151,6 +152,7 @@ func TestCommitInlineComment(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 5, CommitID: rootSHA, Source: activities_model.NotificationSourceCommit})
 	authorNotification := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, CommitID: sha, Status: activities_model.NotificationStatusUnread})
 	assert.Equal(t, commentID, strconv.FormatInt(authorNotification.CommentID, 10))
+	assert.Contains(t, getPage(session, "/notifications").Find(".ui.sha.label").Text(), base.ShortSha(sha))
 
 	assert.Contains(t, getPage(session, commitLink).Find("button.code-expander-button").First().AttrOr("data-hidden-comment-ids", ""), ","+commentID+",")
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: authorNotification.ID, Status: activities_model.NotificationStatusRead})
