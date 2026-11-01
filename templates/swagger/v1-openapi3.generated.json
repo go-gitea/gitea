@@ -36216,6 +36216,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/UserSettings"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
           }
         },
         "summary": "Update user settings",
