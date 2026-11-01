@@ -15207,6 +15207,48 @@
       }
     },
     "/repos/{owner}/{repo}/pages/versions/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a Pages version",
+        "operationId": "repoGetPagesVersion",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the Pages version",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PagesVersion"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
       "delete": {
         "tags": [
           "repository"
@@ -15307,7 +15349,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Restore a Pages version",
+        "summary": "Make a retained Pages version current",
         "operationId": "repoRestorePagesVersion",
         "parameters": [
           {
@@ -32980,6 +33022,9 @@
         },
         "owner": {
           "$ref": "#/definitions/User"
+        },
+        "pages_current_version": {
+          "$ref": "#/definitions/PagesVersion"
         },
         "parent": {
           "$ref": "#/definitions/Repository"

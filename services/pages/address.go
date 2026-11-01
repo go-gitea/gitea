@@ -127,7 +127,7 @@ func dnsNamespacesOverlap(a, b string) bool {
 	return a == b || strings.HasSuffix(a, "."+b) || strings.HasSuffix(b, "."+a)
 }
 
-func checkDNSNamespaceConflict(ctx context.Context, host string, excludedInstanceID int64) error {
+func checkManagedDNSNamespaceConflict(ctx context.Context, host string, excludedInstanceID int64) error {
 	if dnsNamespacesOverlap(host, setting.AppDomain) {
 		return ErrDomainConflict
 	}
@@ -146,6 +146,13 @@ func checkDNSNamespaceConflict(ctx context.Context, host string, excludedInstanc
 		if dnsNamespacesOverlap(host, root.Hostname()) {
 			return ErrDomainConflict
 		}
+	}
+	return nil
+}
+
+func checkInstanceRootConflict(ctx context.Context, host string, excludedInstanceID int64) error {
+	if err := checkManagedDNSNamespaceConflict(ctx, host, excludedInstanceID); err != nil {
+		return err
 	}
 	domains := make([]*pages_model.Domain, 0)
 	if err := db.GetEngine(ctx).Find(&domains); err != nil {

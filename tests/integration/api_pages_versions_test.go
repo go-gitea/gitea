@@ -48,6 +48,38 @@ func TestAPIPagesVersions(t *testing.T) {
 	require.Equal(t, versions[1].ID, listed[0].ID)
 	require.True(t, listed[0].Current)
 
+	versionURL := "/api/v1/repos/user2/repo1/pages/versions/" + strconv.FormatInt(versions[1].ID, 10)
+	resp = MakeRequest(t, NewRequest(t, "GET", versionURL).AddTokenAuth(readToken), http.StatusOK)
+	version := DecodeJSON(t, resp, &api.PagesVersion{})
+	require.Equal(t, versions[1].ID, version.ID)
+	require.True(t, version.Current)
+	userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
+	MakeRequest(t, NewRequest(t, "GET", versionURL).AddTokenAuth(userToken), http.StatusForbidden)
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/pages/versions/0").AddTokenAuth(readToken), http.StatusNotFound)
+	otherDigest := sha256.Sum256([]byte("another repository version"))
+	otherVersion := &pages_model.Version{
+		RepoID: 2, TarGzSHA256: hex.EncodeToString(otherDigest[:]), OriginType: pages_model.VersionOriginUpload,
+	}
+	require.NoError(t, pages_model.InsertVersion(t.Context(), otherVersion))
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/pages/versions/"+strconv.FormatInt(otherVersion.ID, 10)).AddTokenAuth(readToken), http.StatusNotFound)
+
+	for _, repoURL := range []string{"/api/v1/repos/user2/repo1", "/api/v1/repositories/1"} {
+		resp = MakeRequest(t, NewRequest(t, "GET", repoURL).AddTokenAuth(readToken), http.StatusOK)
+		repository := DecodeJSON(t, resp, &api.Repository{})
+		require.NotNil(t, repository.PagesCurrentVersion)
+		require.Equal(t, versions[1].ID, repository.PagesCurrentVersion.ID)
+		require.True(t, repository.PagesCurrentVersion.Current)
+	}
+	resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo2").AddTokenAuth(readToken), http.StatusOK)
+	require.Nil(t, DecodeJSON(t, resp, &api.Repository{}).PagesCurrentVersion)
+	listToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
+	resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/user/repos").AddTokenAuth(listToken), http.StatusOK)
+	repositories := *DecodeJSON(t, resp, &[]map[string]any{})
+	for _, repository := range repositories {
+		_, exists := repository["pages_current_version"]
+		require.False(t, exists)
+	}
+
 	editURL := "/api/v1/repos/user2/repo1/pages/versions/" + strconv.FormatInt(versions[1].ID, 10)
 	MakeRequest(t, NewRequestWithJSON(t, "PATCH", editURL, map[string]any{"comment": "release", "keep_forever": true}).AddTokenAuth(readToken), http.StatusForbidden)
 	writeToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
@@ -70,6 +102,23 @@ func TestAPIPagesVersions(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, has)
 	require.Equal(t, versions[0].ID, site.CurrentVersionID)
+	updated := site.PagesUpdatedUnixNano
+	resp = MakeRequest(t, NewRequest(t, "POST", restoreURL).AddTokenAuth(writeToken), http.StatusOK)
+	restored = DecodeJSON(t, resp, &api.PagesContentCommit{})
+	require.Equal(t, updated, restored.PagesUpdatedUnixNano)
+	site, has, err = pages_model.GetSiteByRepoID(t.Context(), 1)
+	require.NoError(t, err)
+	require.True(t, has)
+	require.Equal(t, updated, site.PagesUpdatedUnixNano)
+
+	resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1").AddTokenAuth(readToken), http.StatusOK)
+	require.Equal(t, versions[0].ID, DecodeJSON(t, resp, &api.Repository{}).PagesCurrentVersion.ID)
+	site.Enabled = false
+	require.NoError(t, pages_model.UpdateSite(t.Context(), site))
+	resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1").AddTokenAuth(readToken), http.StatusOK)
+	require.Nil(t, DecodeJSON(t, resp, &api.Repository{}).PagesCurrentVersion)
+	site.Enabled = true
+	require.NoError(t, pages_model.UpdateSite(t.Context(), site))
 
 	deleteURL := "/api/v1/repos/user2/repo1/pages/versions/" + strconv.FormatInt(versions[1].ID, 10)
 	MakeRequest(t, NewRequest(t, "DELETE", deleteURL).AddTokenAuth(readToken), http.StatusForbidden)

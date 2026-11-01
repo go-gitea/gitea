@@ -56,6 +56,22 @@ func AcceptInstanceResult(ctx context.Context, instanceID int64, tokenHash strin
 	if !isValidInstanceResult(result) {
 		return ErrInvalidResult
 	}
+	release, err := storeInstanceResult(ctx, instanceID, tokenHash, result)
+	if err != nil {
+		if errors.Is(err, ErrStateChanged) {
+			return err
+		}
+		return fmt.Errorf("AcceptInstanceResult: %w", err)
+	}
+	if release {
+		if err := ReleaseConfirmedDomains(ctx, result.RepoID); err != nil {
+			return fmt.Errorf("AcceptInstanceResult: release domains: %w", err)
+		}
+	}
+	return nil
+}
+
+func storeInstanceResult(ctx context.Context, instanceID int64, tokenHash string, result ResultRequest) (bool, error) {
 	var release bool
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		// These writes provide row locks on each supported database before the
@@ -131,18 +147,7 @@ func AcceptInstanceResult(ctx context.Context, instanceID int64, tokenHash strin
 		release = releasing
 		return nil
 	})
-	if err != nil {
-		if errors.Is(err, ErrStateChanged) {
-			return err
-		}
-		return fmt.Errorf("AcceptInstanceResult: %w", err)
-	}
-	if release {
-		if err := ReleaseConfirmedDomains(ctx, result.RepoID); err != nil {
-			return fmt.Errorf("AcceptInstanceResult: release domains: %w", err)
-		}
-	}
-	return nil
+	return release, err
 }
 
 // ReleaseConfirmedDomains removes old Host reservations after all registered instances

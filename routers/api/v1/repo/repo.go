@@ -506,7 +506,18 @@ func Get(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission))
+	repository := convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission)
+	if ctx.Repo.Permission.CanRead(unit_model.TypeCode) || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin() {
+		currentVersion, hasCurrentVersion, err := getEnabledPagesCurrentVersion(ctx, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.APIErrorInternal(fmt.Errorf("Get: load Pages current version: %w", err))
+			return
+		}
+		if hasCurrentVersion {
+			repository.PagesCurrentVersion = &currentVersion
+		}
+	}
+	ctx.JSON(http.StatusOK, repository)
 }
 
 // GetByID returns a single Repository
@@ -546,7 +557,18 @@ func GetByID(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, permission))
+	repository := convert.ToRepo(ctx, repo, permission)
+	if permission.CanRead(unit_model.TypeCode) || permission.IsAdmin() || ctx.IsUserSiteAdmin() {
+		currentVersion, hasCurrentVersion, err := getEnabledPagesCurrentVersion(ctx, repo.ID)
+		if err != nil {
+			ctx.APIErrorInternal(fmt.Errorf("GetByID: load Pages current version: %w", err))
+			return
+		}
+		if hasCurrentVersion {
+			repository.PagesCurrentVersion = &currentVersion
+		}
+	}
+	ctx.JSON(http.StatusOK, repository)
 }
 
 // Edit edit repository properties

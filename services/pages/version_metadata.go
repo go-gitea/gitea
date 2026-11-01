@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"gitea.dev/models/db"
 	pages_model "gitea.dev/models/pages"
@@ -31,7 +32,7 @@ func UpdateVersionMetadata(ctx context.Context, repoID, versionID int64, update 
 			return nil, util.NewInvalidArgumentErrorf("Pages version comment must be one line")
 		}
 		comment := strings.TrimSpace(*update.Comment)
-		if len(comment) > pages_model.MaxVersionCommentLength {
+		if utf8.RuneCountInString(comment) > pages_model.MaxVersionCommentLength {
 			return nil, util.NewInvalidArgumentErrorf("Pages version comment is too long")
 		}
 		update.Comment = &comment

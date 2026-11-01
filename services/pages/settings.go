@@ -27,30 +27,11 @@ type SiteSettings struct {
 // SaveSiteSettings creates the initially closed site or updates its automatic
 // source and enabled state in one serialized state change.
 func SaveSiteSettings(ctx context.Context, repoID int64, settings SiteSettings) (*pages_model.Site, error) {
-	if repoID <= 0 || settings.SourceType != pages_model.PublishSourceBranch && settings.SourceType != pages_model.PublishSourceArtifact {
-		return nil, errors.New("SaveSiteSettings: invalid source")
+	if repoID <= 0 {
+		return nil, errors.New("SaveSiteSettings: invalid repository")
 	}
-	if settings.SourceType != pages_model.PublishSourceBranch && settings.SourcePath != "" {
-		return nil, errors.New("SaveSiteSettings: path is only valid for a branch source")
-	}
-	if len(settings.SourceBranch) > 255 || len(settings.SourcePath) > 1024 {
-		return nil, errors.New("SaveSiteSettings: source name is too long")
-	}
-	if settings.SourceType == pages_model.PublishSourceBranch && (settings.SourceBranch == "" || !git.IsValidRefPattern(settings.SourceBranch)) {
-		return nil, errors.New("SaveSiteSettings: invalid branch")
-	}
-	if settings.SourceType == pages_model.PublishSourceArtifact && settings.SourceBranch != "" && !git.IsValidRefPattern(settings.SourceBranch) {
-		return nil, errors.New("SaveSiteSettings: invalid artifact source branch")
-	}
-	if settings.SourcePath != "" && (path.IsAbs(settings.SourcePath) ||
-		path.Clean(settings.SourcePath) != settings.SourcePath ||
-		strings.Contains(settings.SourcePath, "\\") ||
-		strings.HasPrefix(settings.SourcePath, "../") ||
-		settings.SourcePath == "..") {
-		return nil, errors.New("SaveSiteSettings: invalid source directory")
-	}
-	if settings.VersionRetentionCount != nil && !pages_model.IsValidVersionRetentionCount(*settings.VersionRetentionCount) {
-		return nil, errors.New("SaveSiteSettings: invalid version retention count")
+	if err := validateSiteSettings(settings); err != nil {
+		return nil, fmt.Errorf("SaveSiteSettings: %w", err)
 	}
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
@@ -101,4 +82,33 @@ func SaveSiteSettings(ctx context.Context, repoID int64, settings SiteSettings) 
 		return nil, fmt.Errorf("SaveSiteSettings: %w", err)
 	}
 	return updatedSite, nil
+}
+
+func validateSiteSettings(settings SiteSettings) error {
+	if settings.SourceType != pages_model.PublishSourceBranch && settings.SourceType != pages_model.PublishSourceArtifact {
+		return errors.New("invalid source")
+	}
+	if settings.SourceType != pages_model.PublishSourceBranch && settings.SourcePath != "" {
+		return errors.New("path is only valid for a branch source")
+	}
+	if len(settings.SourceBranch) > 255 || len(settings.SourcePath) > 1024 {
+		return errors.New("source name is too long")
+	}
+	if settings.SourceType == pages_model.PublishSourceBranch && (settings.SourceBranch == "" || !git.IsValidRefPattern(settings.SourceBranch)) {
+		return errors.New("invalid branch")
+	}
+	if settings.SourceType == pages_model.PublishSourceArtifact && settings.SourceBranch != "" && !git.IsValidRefPattern(settings.SourceBranch) {
+		return errors.New("invalid artifact source branch")
+	}
+	if settings.SourcePath != "" && (path.IsAbs(settings.SourcePath) ||
+		path.Clean(settings.SourcePath) != settings.SourcePath ||
+		strings.Contains(settings.SourcePath, "\\") ||
+		strings.HasPrefix(settings.SourcePath, "../") ||
+		settings.SourcePath == "..") {
+		return errors.New("invalid source directory")
+	}
+	if settings.VersionRetentionCount != nil && !pages_model.IsValidVersionRetentionCount(*settings.VersionRetentionCount) {
+		return errors.New("invalid version retention count")
+	}
+	return nil
 }

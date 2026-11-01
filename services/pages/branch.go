@@ -143,18 +143,15 @@ func setBranchCheckResult(ctx context.Context, initial *pages_model.Site, commit
 		return fmt.Errorf("setBranchCheckResult: lock site: %w", err)
 	}
 	defer release()
-	site, has, err := pages_model.GetSiteByRepoID(ctx, initial.RepoID)
+	_, err = db.GetEngine(ctx).
+		Where("repo_id = ? AND deleted = ? AND source_type = ? AND source_branch = ? AND source_path = ?", initial.RepoID, false, pages_model.PublishSourceBranch, initial.SourceBranch, initial.SourcePath).
+		Cols("source_commit_id", "source_error_code", "source_next_check_unix").
+		Update(&pages_model.Site{
+			SourceCommitID:      commitID,
+			SourceErrorCode:     errorCode,
+			SourceNextCheckUnix: int64(timeutil.TimeStampNow().AddDuration(retry)),
+		})
 	if err != nil {
-		return fmt.Errorf("setBranchCheckResult: %w", err)
-	}
-	if !has || site.Deleted || site.SourceType != pages_model.PublishSourceBranch ||
-		site.SourceBranch != initial.SourceBranch || site.SourcePath != initial.SourcePath {
-		return nil
-	}
-	site.SourceCommitID = commitID
-	site.SourceErrorCode = errorCode
-	site.SourceNextCheckUnix = int64(timeutil.TimeStampNow().AddDuration(retry))
-	if err := pages_model.UpdateSite(ctx, site); err != nil {
 		return fmt.Errorf("setBranchCheckResult: %w", err)
 	}
 	return nil
@@ -205,74 +202,73 @@ func extractGitArchive(tarPath, root, sourcePath string, limits pages_content.Li
 		if h.Typeflag == tar.TypeXGlobalHeader {
 			continue
 		}
-		name := strings.TrimSuffix(h.Name, "/")
-		if prefix != "" {
-			if name == prefix {
-				continue
-			}
-			name = strings.TrimPrefix(name, prefix+"/")
-			if name == h.Name {
-				return pages_content.ErrArchivePath
-			}
-		}
-		if name == "" || name == "." {
-			continue
-		}
-		if path.IsAbs(name) || path.Clean(name) != name || strings.HasPrefix(name, "../") ||
-			strings.Contains(name, "\\") || strings.ContainsRune(name, 0) {
-			return pages_content.ErrArchivePath
-		}
-		target := filepath.Join(root, filepath.FromSlash(name))
-		if err := createSafeParents(root, path.Dir(name)); err != nil {
+		if err := extractGitArchiveEntry(reader, h, root, prefix, seen, limits); err != nil {
 			return err
-		}
-		if _, exists := seen[name]; exists {
-			return pages_content.ErrArchiveEntry
-		}
-		seen[name] = struct{}{}
-		info, existingErr := os.Lstat(target)
-		if existingErr != nil && !os.IsNotExist(existingErr) {
-			return existingErr
-		}
-		switch h.Typeflag {
-		case tar.TypeDir:
-			if existingErr == nil && !info.IsDir() {
-				return pages_content.ErrArchiveEntry
-			}
-			if os.IsNotExist(existingErr) {
-				err = os.Mkdir(target, 0o755)
-			}
-			if err != nil {
-				return err
-			}
-		case tar.TypeReg, 0:
-			if existingErr == nil {
-				return pages_content.ErrArchiveEntry
-			}
-			if h.Size < 0 || h.Size > limits.MaxFileBytes {
-				return pages_content.ErrArchiveTooLarge
-			}
-			output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-			if err != nil {
-				return err
-			}
-			_, copyErr := io.CopyN(output, reader, h.Size)
-			closeErr := output.Close()
-			if copyErr != nil || closeErr != nil {
-				return errors.Join(copyErr, closeErr)
-			}
-		case tar.TypeSymlink:
-			if existingErr == nil {
-				return pages_content.ErrArchiveEntry
-			}
-			if err := os.Symlink(h.Linkname, target); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("extractGitArchive: %w: unsupported Git archive entry %q type %d", pages_content.ErrArchiveEntry, name, h.Typeflag)
 		}
 	}
 	return nil
+}
+
+func extractGitArchiveEntry(reader *tar.Reader, header *tar.Header, root, prefix string, seen map[string]struct{}, limits pages_content.Limits) error {
+	name := strings.TrimSuffix(header.Name, "/")
+	if prefix != "" {
+		if name == prefix {
+			return nil
+		}
+		name = strings.TrimPrefix(name, prefix+"/")
+		if name == header.Name {
+			return pages_content.ErrArchivePath
+		}
+	}
+	if name == "" || name == "." {
+		return nil
+	}
+	if path.IsAbs(name) || path.Clean(name) != name || strings.HasPrefix(name, "../") ||
+		strings.Contains(name, "\\") || strings.ContainsRune(name, 0) {
+		return pages_content.ErrArchivePath
+	}
+	target := filepath.Join(root, filepath.FromSlash(name))
+	if err := createSafeParents(root, path.Dir(name)); err != nil {
+		return err
+	}
+	if _, exists := seen[name]; exists {
+		return pages_content.ErrArchiveEntry
+	}
+	seen[name] = struct{}{}
+	info, existingErr := os.Lstat(target)
+	if existingErr != nil && !os.IsNotExist(existingErr) {
+		return existingErr
+	}
+	switch header.Typeflag {
+	case tar.TypeDir:
+		if existingErr == nil && !info.IsDir() {
+			return pages_content.ErrArchiveEntry
+		}
+		if os.IsNotExist(existingErr) {
+			return os.Mkdir(target, 0o755)
+		}
+		return nil
+	case tar.TypeReg, 0:
+		if existingErr == nil {
+			return pages_content.ErrArchiveEntry
+		}
+		if header.Size < 0 || header.Size > limits.MaxFileBytes {
+			return pages_content.ErrArchiveTooLarge
+		}
+		output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		if err != nil {
+			return err
+		}
+		_, copyErr := io.CopyN(output, reader, header.Size)
+		return errors.Join(copyErr, output.Close())
+	case tar.TypeSymlink:
+		if existingErr == nil {
+			return pages_content.ErrArchiveEntry
+		}
+		return os.Symlink(header.Linkname, target)
+	default:
+		return fmt.Errorf("extractGitArchiveEntry: %w: unsupported Git archive entry %q type %d", pages_content.ErrArchiveEntry, name, header.Typeflag)
+	}
 }
 
 func createSafeParents(root, relative string) error {

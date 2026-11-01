@@ -47,7 +47,7 @@ func AddDomain(ctx context.Context, repoID int64, rawHost string) (*pages_model.
 				}
 				return ErrDomainConflict
 			}
-			if err := checkDNSNamespaceConflict(ctx, host, 0); err != nil {
+			if err := checkManagedDNSNamespaceConflict(ctx, host, 0); err != nil {
 				return err
 			}
 			domains, err := pages_model.ListDomainsByRepoID(ctx, repoID)
@@ -197,8 +197,19 @@ func verifyDomain(ctx context.Context, domainID int64, lookupTXT func(context.Co
 		cancel()
 		matched = slices.Contains(records, domain.TXTToken)
 	}
-	var activated bool
-	err = withDomainLock(ctx, func(ctx context.Context) error {
+	activated, err := applyDomainVerification(ctx, domainID, requireTXT, matched, lookupErr)
+	if err != nil {
+		return err
+	}
+	if activated {
+		return ReleaseConfirmedDomains(ctx, domain.RepoID)
+	}
+	return nil
+}
+
+func applyDomainVerification(ctx context.Context, domainID int64, requireTXT, matched bool, lookupErr error) (bool, error) {
+	activated := false
+	err := withDomainLock(ctx, func(ctx context.Context) error {
 		return withStateChange(ctx, func(ctx context.Context, updated int64) error {
 			current, has, err := pages_model.GetDomainByID(ctx, domainID)
 			if err != nil || !has || current.State == pages_model.DomainStateReleasing {
@@ -254,12 +265,9 @@ func verifyDomain(ctx context.Context, domainID int64, lookupTXT func(context.Co
 		})
 	})
 	if err != nil {
-		return err
+		return false, fmt.Errorf("applyDomainVerification: %w", err)
 	}
-	if activated {
-		return ReleaseConfirmedDomains(ctx, domain.RepoID)
-	}
-	return nil
+	return activated, nil
 }
 
 func isTXTRecordAbsent(err error) bool {

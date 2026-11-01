@@ -81,54 +81,9 @@ func CommitActionsArtifact(ctx context.Context, repoID int64, task *actions_mode
 	if req.Preview {
 		return nil, ErrActionsPreview
 	}
-	if task.RepoID != repoID || task.Status != actions_model.StatusRunning {
-		return nil, ErrActionsDeploymentAuth
-	}
-	if err := task.LoadJob(ctx); err != nil {
-		return nil, fmt.Errorf("CommitActionsArtifact: load job: %w", err)
-	}
-	if task.Job == nil || task.Job.RepoID != repoID {
-		return nil, ErrActionsDeploymentAuth
-	}
-	if err := task.Job.LoadAttributes(ctx); err != nil {
-		return nil, fmt.Errorf("CommitActionsArtifact: load job attributes: %w", err)
-	}
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			return nil, ErrActionsDeploymentAuth
-		}
-		return nil, fmt.Errorf("CommitActionsArtifact: load repository: %w", err)
-	}
-	if repo.IsArchived || repo.IsEmpty {
-		return nil, ErrActionsDeploymentAuth
-	}
-	if err := repo.LoadOwner(ctx); err != nil {
-		return nil, fmt.Errorf("CommitActionsArtifact: load repository owner: %w", err)
-	}
-	perms, err := actions_model.ComputeTaskTokenPermissions(ctx, task, repo)
-	if err != nil {
-		return nil, fmt.Errorf("CommitActionsArtifact: compute task permissions: %w", err)
-	}
-	if !perms.Pages || !perms.IDToken {
-		return nil, ErrActionsDeploymentAuth
-	}
-	claims, err := verifyActionsOIDC(ctx, req.OIDCToken, repo, task)
-	if err != nil {
-		return nil, fmt.Errorf("CommitActionsArtifact: %w: %v", ErrActionsDeploymentAuth, err)
-	}
-	if req.PagesBuildVersion != task.Job.CommitSHA {
-		return nil, ErrActionsDeploymentRequest
-	}
-	site, has, err := pages_model.GetSiteByRepoID(ctx, repoID)
+	repo, claims, err := authorizeActionsDeployment(ctx, repoID, task, req)
 	if err != nil {
 		return nil, err
-	}
-	if !has || site.Deleted || !site.Enabled || site.SourceType != pages_model.PublishSourceArtifact {
-		return nil, ErrSourceChanged
-	}
-	if !isActionsRefAllowed(site, claims) {
-		return nil, ErrActionsDeploymentAuth
 	}
 	artifact, err := getPagesArtifactForTask(ctx, task, req.ArtifactID)
 	if err != nil {
@@ -159,6 +114,59 @@ func CommitActionsArtifact(ctx context.Context, repoID int64, task *actions_mode
 	return &ActionsDeploymentResult{
 		Digest: result.Version.TarGzSHA256, PageURL: FirstDefaultSiteURL(ctx, repo),
 	}, nil
+}
+
+func authorizeActionsDeployment(ctx context.Context, repoID int64, task *actions_model.ActionTask, req ActionsDeploymentRequest) (*repo_model.Repository, *actionsOIDCClaims, error) {
+	if task.RepoID != repoID || task.Status != actions_model.StatusRunning {
+		return nil, nil, ErrActionsDeploymentAuth
+	}
+	if err := task.LoadJob(ctx); err != nil {
+		return nil, nil, fmt.Errorf("authorizeActionsDeployment: load job: %w", err)
+	}
+	if task.Job == nil || task.Job.RepoID != repoID {
+		return nil, nil, ErrActionsDeploymentAuth
+	}
+	if err := task.Job.LoadAttributes(ctx); err != nil {
+		return nil, nil, fmt.Errorf("authorizeActionsDeployment: load job attributes: %w", err)
+	}
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			return nil, nil, ErrActionsDeploymentAuth
+		}
+		return nil, nil, fmt.Errorf("authorizeActionsDeployment: load repository: %w", err)
+	}
+	if repo.IsArchived || repo.IsEmpty {
+		return nil, nil, ErrActionsDeploymentAuth
+	}
+	if err := repo.LoadOwner(ctx); err != nil {
+		return nil, nil, fmt.Errorf("authorizeActionsDeployment: load repository owner: %w", err)
+	}
+	perms, err := actions_model.ComputeTaskTokenPermissions(ctx, task, repo)
+	if err != nil {
+		return nil, nil, fmt.Errorf("authorizeActionsDeployment: compute task permissions: %w", err)
+	}
+	if !perms.Pages || !perms.IDToken {
+		return nil, nil, ErrActionsDeploymentAuth
+	}
+	claims, err := verifyActionsOIDC(ctx, req.OIDCToken, repo, task)
+	if err != nil {
+		return nil, nil, fmt.Errorf("authorizeActionsDeployment: %w: %v", ErrActionsDeploymentAuth, err)
+	}
+	if req.PagesBuildVersion != task.Job.CommitSHA {
+		return nil, nil, ErrActionsDeploymentRequest
+	}
+	site, has, err := pages_model.GetSiteByRepoID(ctx, repoID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("authorizeActionsDeployment: load Pages site: %w", err)
+	}
+	if !has || site.Deleted || !site.Enabled || site.SourceType != pages_model.PublishSourceArtifact {
+		return nil, nil, ErrSourceChanged
+	}
+	if !isActionsRefAllowed(site, claims) {
+		return nil, nil, ErrActionsDeploymentAuth
+	}
+	return repo, claims, nil
 }
 
 func isActionsRefAllowed(site *pages_model.Site, claims *actionsOIDCClaims) bool {

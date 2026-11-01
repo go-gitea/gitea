@@ -11,11 +11,13 @@ import (
 	pages_model "gitea.dev/models/pages"
 	"gitea.dev/modules/log"
 	pages_content "gitea.dev/modules/pages"
+
+	"xorm.io/builder"
 )
 
 // CleanupVersions applies each repository's automatic Pages retention setting.
 func CleanupVersions(ctx context.Context) error {
-	return db.Iterate[pages_model.Site](ctx, nil, func(ctx context.Context, site *pages_model.Site) error {
+	return db.Iterate[pages_model.Site](ctx, builder.Eq{"deleted": false}, func(ctx context.Context, site *pages_model.Site) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}

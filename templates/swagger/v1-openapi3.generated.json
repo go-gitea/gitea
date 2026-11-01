@@ -10200,6 +10200,9 @@
           "owner": {
             "$ref": "#/components/schemas/User"
           },
+          "pages_current_version": {
+            "$ref": "#/components/schemas/PagesVersion"
+          },
           "parent": {
             "$ref": "#/components/schemas/Repository"
           },
@@ -27962,6 +27965,51 @@
           "repository"
         ]
       },
+      "get": {
+        "operationId": "repoGetPagesVersion",
+        "parameters": [
+          {
+            "description": "owner of the repository",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the Pages version",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PagesVersion"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get a Pages version",
+        "tags": [
+          "repository"
+        ]
+      },
       "patch": {
         "operationId": "repoEditPagesVersion",
         "parameters": [
@@ -28059,7 +28107,7 @@
             "$ref": "#/components/responses/error"
           }
         },
-        "summary": "Restore a Pages version",
+        "summary": "Make a retained Pages version current",
         "tags": [
           "repository"
         ]

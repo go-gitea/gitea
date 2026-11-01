@@ -5,6 +5,7 @@ package pages
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 
 	pages_model "gitea.dev/models/pages"
@@ -109,47 +110,9 @@ func GetCurrentDeploymentStatus(ctx context.Context, repo *repo_model.Repository
 		if instance.RootURL == "" {
 			continue
 		}
-		defaultURL, err := DefaultSiteURL(instance.RootURL, repo.OwnerName, repo.LowerName)
+		status, err := buildInstanceDeploymentStatus(repo, site, instance, resultByInstance[instance.ID], version.TarGzSHA256, customHost)
 		if err != nil {
 			return nil, err
-		}
-		status := &InstanceDeploymentStatus{
-			RootURL: instance.RootURL, DefaultURL: defaultURL,
-			DefaultStatus: DeploymentStatusPublishing,
-		}
-		if customHost != "" {
-			rootURL, err := url.Parse(instance.RootURL)
-			if err != nil {
-				return nil, err
-			}
-			status.CustomURL = rootURL.Scheme + "://" + customHost + "/"
-			status.CustomStatus = DeploymentStatusPublishing
-		}
-		if !site.Enabled {
-			status.DefaultStatus = DeploymentStatusDisabled
-			if status.CustomURL != "" {
-				status.CustomStatus = DeploymentStatusDisabled
-			}
-			deployment.Instances = append(deployment.Instances, status)
-			continue
-		}
-
-		result := resultByInstance[instance.ID]
-		currentResult := result != nil &&
-			result.AppliedPagesUpdatedUnixNano == site.PagesUpdatedUnixNano &&
-			result.AppliedRootUpdatedUnixNano == instance.RootUpdatedUnixNano
-		if currentResult {
-			status.DefaultStatus = deploymentTargetStatus(result, version.TarGzSHA256, result.DefaultPublished)
-			if status.CustomURL != "" {
-				if result.AppliedRequireGiteaTXTRecord == setting.Pages.RequireGiteaTXTRecord {
-					status.CustomStatus = deploymentTargetStatus(result, version.TarGzSHA256, result.CustomPublished)
-					status.ErrorCode = result.ErrorCode
-				} else if status.DefaultStatus == DeploymentStatusFailed {
-					status.ErrorCode = result.ErrorCode
-				}
-			} else {
-				status.ErrorCode = result.ErrorCode
-			}
 		}
 		if status.DefaultStatus == DeploymentStatusFailed {
 			deployment.Status = DeploymentStatusFailed
@@ -171,4 +134,45 @@ func GetCurrentDeploymentStatus(ctx context.Context, repo *repo_model.Repository
 		}
 	}
 	return deployment, nil
+}
+
+func buildInstanceDeploymentStatus(repo *repo_model.Repository, site *pages_model.Site, instance *pages_model.Instance, result *pages_model.InstanceResult, digest, customHost string) (*InstanceDeploymentStatus, error) {
+	defaultURL, err := DefaultSiteURL(instance.RootURL, repo.OwnerName, repo.LowerName)
+	if err != nil {
+		return nil, fmt.Errorf("buildInstanceDeploymentStatus: default URL: %w", err)
+	}
+	status := &InstanceDeploymentStatus{
+		RootURL: instance.RootURL, DefaultURL: defaultURL,
+		DefaultStatus: DeploymentStatusPublishing,
+	}
+	if customHost != "" {
+		rootURL, err := url.Parse(instance.RootURL)
+		if err != nil {
+			return nil, fmt.Errorf("buildInstanceDeploymentStatus: root URL: %w", err)
+		}
+		status.CustomURL = rootURL.Scheme + "://" + customHost + "/"
+		status.CustomStatus = DeploymentStatusPublishing
+	}
+	if !site.Enabled {
+		status.DefaultStatus = DeploymentStatusDisabled
+		if status.CustomURL != "" {
+			status.CustomStatus = DeploymentStatusDisabled
+		}
+		return status, nil
+	}
+	if result == nil || result.AppliedPagesUpdatedUnixNano != site.PagesUpdatedUnixNano || result.AppliedRootUpdatedUnixNano != instance.RootUpdatedUnixNano {
+		return status, nil
+	}
+	status.DefaultStatus = deploymentTargetStatus(result, digest, result.DefaultPublished)
+	if status.CustomURL == "" {
+		status.ErrorCode = result.ErrorCode
+		return status, nil
+	}
+	if result.AppliedRequireGiteaTXTRecord == setting.Pages.RequireGiteaTXTRecord {
+		status.CustomStatus = deploymentTargetStatus(result, digest, result.CustomPublished)
+		status.ErrorCode = result.ErrorCode
+	} else if status.DefaultStatus == DeploymentStatusFailed {
+		status.ErrorCode = result.ErrorCode
+	}
+	return status, nil
 }

@@ -216,7 +216,7 @@ func RegisterInstanceRootURL(ctx context.Context, instanceID int64, tokenHash, r
 				registered = instance
 				return nil
 			}
-			if err := checkDNSNamespaceConflict(ctx, host, instanceID); err != nil {
+			if err := checkInstanceRootConflict(ctx, host, instanceID); err != nil {
 				return err
 			}
 			instance.RootURL = normalized

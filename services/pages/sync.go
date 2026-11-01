@@ -93,125 +93,13 @@ func ListSitesForSync(ctx context.Context, instance *pages_model.Instance, opts 
 		return nil, errors.New("ListSitesForSync: invalid page cursor")
 	}
 
-	rows := make([]*pages_model.Site, 0, (opts.Limit+1)*2)
-	if opts.Full {
-		// Live rows and deletion rows have different useful indexes. Querying
-		// them separately avoids scanning every retained deleted repository.
-		live := make([]*pages_model.Site, 0, opts.Limit+1)
-		query := db.GetEngine(ctx).Where("deleted = ? AND pages_updated_unix_nano <= ?", false, until)
-		if opts.AfterTime > 0 {
-			query = query.And("(pages_updated_unix_nano > ? OR (pages_updated_unix_nano = ? AND repo_id > ?))", opts.AfterTime, opts.AfterTime, opts.AfterRepo)
-		}
-		if err := query.Asc("pages_updated_unix_nano", "repo_id").Limit(opts.Limit + 1).Find(&live); err != nil {
-			return nil, fmt.Errorf("ListSitesForSync: live sites: %w", err)
-		}
-		rows = append(rows, live...)
-
-		deleting := make([]*pages_model.Site, 0, opts.Limit+1)
-		query = db.GetEngine(ctx).Where("deleted = ? AND pages_updated_unix_nano <= ? AND EXISTS (SELECT 1 FROM pages_domain WHERE pages_domain.repo_id = pages_site.repo_id AND pages_domain.state = ?)", true, until, pages_model.DomainStateReleasing)
-		if opts.AfterTime > 0 {
-			query = query.And("(pages_updated_unix_nano > ? OR (pages_updated_unix_nano = ? AND repo_id > ?))", opts.AfterTime, opts.AfterTime, opts.AfterRepo)
-		}
-		if err := query.Asc("pages_updated_unix_nano", "repo_id").Limit(opts.Limit + 1).Find(&deleting); err != nil {
-			return nil, fmt.Errorf("ListSitesForSync: deleting sites: %w", err)
-		}
-		rows = append(rows, deleting...)
-		slices.SortFunc(rows, func(a, b *pages_model.Site) int {
-			if a.PagesUpdatedUnixNano != b.PagesUpdatedUnixNano {
-				return cmp.Compare(a.PagesUpdatedUnixNano, b.PagesUpdatedUnixNano)
-			}
-			return cmp.Compare(a.RepoID, b.RepoID)
-		})
-	} else {
-		query := db.GetEngine(ctx).Where("pages_updated_unix_nano > ? AND pages_updated_unix_nano <= ?", opts.Since, until)
-		if opts.AfterTime > 0 {
-			query = query.And("(pages_updated_unix_nano > ? OR (pages_updated_unix_nano = ? AND repo_id > ?))", opts.AfterTime, opts.AfterTime, opts.AfterRepo)
-		}
-		if err := query.Asc("pages_updated_unix_nano", "repo_id").Limit(opts.Limit + 1).Find(&rows); err != nil {
-			return nil, fmt.Errorf("ListSitesForSync: updated sites: %w", err)
-		}
-	}
-	hasMore := len(rows) > opts.Limit
-	if hasMore {
-		rows = rows[:opts.Limit]
-	}
-
-	ids := make([]int64, 0, len(rows))
-	for _, site := range rows {
-		if !site.Deleted {
-			ids = append(ids, site.RepoID)
-		}
-	}
-	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, ids)
+	rows, hasMore, err := listSyncSitePage(ctx, opts, until)
 	if err != nil {
-		return nil, fmt.Errorf("ListSitesForSync: repositories: %w", err)
+		return nil, err
 	}
-	ownerIDs := make([]int64, 0, len(repos))
-	for _, repo := range repos {
-		ownerIDs = append(ownerIDs, repo.OwnerID)
-	}
-	owners, err := user_model.GetUsersMapByIDs(ctx, ownerIDs)
+	records, err := buildSyncSiteRecords(ctx, rows)
 	if err != nil {
-		return nil, fmt.Errorf("ListSitesForSync: owners: %w", err)
-	}
-	domains := make([]*pages_model.Domain, 0)
-	if len(ids) > 0 {
-		if err := db.GetEngine(ctx).In("repo_id", ids).Where("state = ?", pages_model.DomainStateActive).Find(&domains); err != nil {
-			return nil, fmt.Errorf("ListSitesForSync: domains: %w", err)
-		}
-	}
-	domainByRepo := make(map[int64]*pages_model.Domain, len(domains))
-	for _, domain := range domains {
-		if domainByRepo[domain.RepoID] != nil {
-			return nil, fmt.Errorf("ListSitesForSync: repository %d has multiple active domains", domain.RepoID)
-		}
-		domainByRepo[domain.RepoID] = domain
-	}
-	versionIDs := make([]int64, 0, len(rows))
-	for _, site := range rows {
-		if site.CurrentVersionID != 0 {
-			versionIDs = append(versionIDs, site.CurrentVersionID)
-		}
-	}
-	versions, err := pages_model.GetVersionsByIDs(ctx, versionIDs)
-	if err != nil {
-		return nil, fmt.Errorf("ListSitesForSync: current versions: %w", err)
-	}
-	versionByID := make(map[int64]*pages_model.Version, len(versions))
-	for _, version := range versions {
-		versionByID[version.ID] = version
-	}
-	records := make([]SiteRecord, 0, len(rows))
-	for _, site := range rows {
-		record := SiteRecord{
-			RepoID: site.RepoID, Deleted: site.Deleted, Enabled: site.Enabled,
-			PagesUpdatedUnixNano: site.PagesUpdatedUnixNano,
-		}
-		if site.CurrentVersionID != 0 {
-			version := versionByID[site.CurrentVersionID]
-			if version == nil || version.RepoID != site.RepoID {
-				return nil, fmt.Errorf("ListSitesForSync: current version for repository %d is missing", site.RepoID)
-			}
-			record.TarGzSHA256 = version.TarGzSHA256
-		}
-		if !site.Deleted {
-			repo, ok := repos[site.RepoID]
-			if !ok || repo == nil {
-				return nil, fmt.Errorf("ListSitesForSync: repository or owner %d missing", site.RepoID)
-			}
-			owner := owners[repo.OwnerID]
-			if owner == nil {
-				return nil, fmt.Errorf("ListSitesForSync: repository or owner %d missing", site.RepoID)
-			}
-			record.Owner, record.Repository = owner.LowerName, repo.LowerName
-			if domain := domainByRepo[site.RepoID]; domain != nil {
-				record.CustomDomain = &DomainRecord{
-					ID: domain.ID, Host: domain.Host, TXTToken: domain.TXTToken,
-					TXTResult: domain.TXTResult, TXTLastSuccessUnixNano: domain.TXTLastSuccessUnixNano,
-				}
-			}
-		}
-		records = append(records, record)
+		return nil, err
 	}
 	response := &SyncResponse{
 		RootURL: instance.RootURL, RootUpdatedUnixNano: instance.RootUpdatedUnixNano,
@@ -227,6 +115,124 @@ func ListSitesForSync(ctx context.Context, instance *pages_model.Instance, opts 
 		response.NextCursor = &Cursor{PagesUpdatedUnixNano: last.PagesUpdatedUnixNano, RepoID: last.RepoID}
 	}
 	return response, nil
+}
+
+func listSyncSitePage(ctx context.Context, opts SyncOptions, until int64) ([]*pages_model.Site, bool, error) {
+	rows := make([]*pages_model.Site, 0, (opts.Limit+1)*2)
+	if opts.Full {
+		// Live rows and deletion rows use different indexes, so each query stays bounded.
+		live := make([]*pages_model.Site, 0, opts.Limit+1)
+		query := db.GetEngine(ctx).Where("deleted = ? AND pages_updated_unix_nano <= ?", false, until)
+		if opts.AfterTime > 0 {
+			query = query.And("(pages_updated_unix_nano > ? OR (pages_updated_unix_nano = ? AND repo_id > ?))", opts.AfterTime, opts.AfterTime, opts.AfterRepo)
+		}
+		if err := query.Asc("pages_updated_unix_nano", "repo_id").Limit(opts.Limit + 1).Find(&live); err != nil {
+			return nil, false, fmt.Errorf("listSyncSitePage: live sites: %w", err)
+		}
+		rows = append(rows, live...)
+
+		deleting := make([]*pages_model.Site, 0, opts.Limit+1)
+		query = db.GetEngine(ctx).Where("deleted = ? AND pages_updated_unix_nano <= ? AND EXISTS (SELECT 1 FROM pages_domain WHERE pages_domain.repo_id = pages_site.repo_id AND pages_domain.state = ?)", true, until, pages_model.DomainStateReleasing)
+		if opts.AfterTime > 0 {
+			query = query.And("(pages_updated_unix_nano > ? OR (pages_updated_unix_nano = ? AND repo_id > ?))", opts.AfterTime, opts.AfterTime, opts.AfterRepo)
+		}
+		if err := query.Asc("pages_updated_unix_nano", "repo_id").Limit(opts.Limit + 1).Find(&deleting); err != nil {
+			return nil, false, fmt.Errorf("listSyncSitePage: deleting sites: %w", err)
+		}
+		rows = append(rows, deleting...)
+		slices.SortFunc(rows, func(a, b *pages_model.Site) int {
+			if a.PagesUpdatedUnixNano != b.PagesUpdatedUnixNano {
+				return cmp.Compare(a.PagesUpdatedUnixNano, b.PagesUpdatedUnixNano)
+			}
+			return cmp.Compare(a.RepoID, b.RepoID)
+		})
+	} else {
+		query := db.GetEngine(ctx).Where("pages_updated_unix_nano > ? AND pages_updated_unix_nano <= ?", opts.Since, until)
+		if opts.AfterTime > 0 {
+			query = query.And("(pages_updated_unix_nano > ? OR (pages_updated_unix_nano = ? AND repo_id > ?))", opts.AfterTime, opts.AfterTime, opts.AfterRepo)
+		}
+		if err := query.Asc("pages_updated_unix_nano", "repo_id").Limit(opts.Limit + 1).Find(&rows); err != nil {
+			return nil, false, fmt.Errorf("listSyncSitePage: updated sites: %w", err)
+		}
+	}
+	hasMore := len(rows) > opts.Limit
+	if hasMore {
+		rows = rows[:opts.Limit]
+	}
+	return rows, hasMore, nil
+}
+
+func buildSyncSiteRecords(ctx context.Context, sites []*pages_model.Site) ([]SiteRecord, error) {
+	repoIDs := make([]int64, 0, len(sites))
+	versionIDs := make([]int64, 0, len(sites))
+	for _, site := range sites {
+		if !site.Deleted {
+			repoIDs = append(repoIDs, site.RepoID)
+		}
+		if site.CurrentVersionID != 0 {
+			versionIDs = append(versionIDs, site.CurrentVersionID)
+		}
+	}
+	repositories, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
+	if err != nil {
+		return nil, fmt.Errorf("buildSyncSiteRecords: repositories: %w", err)
+	}
+	ownerIDs := make([]int64, 0, len(repositories))
+	for _, repository := range repositories {
+		ownerIDs = append(ownerIDs, repository.OwnerID)
+	}
+	owners, err := user_model.GetUsersMapByIDs(ctx, ownerIDs)
+	if err != nil {
+		return nil, fmt.Errorf("buildSyncSiteRecords: owners: %w", err)
+	}
+	domains := make([]*pages_model.Domain, 0)
+	if len(repoIDs) > 0 {
+		if err := db.GetEngine(ctx).In("repo_id", repoIDs).Where("state = ?", pages_model.DomainStateActive).Find(&domains); err != nil {
+			return nil, fmt.Errorf("buildSyncSiteRecords: domains: %w", err)
+		}
+	}
+	domainByRepo := make(map[int64]*pages_model.Domain, len(domains))
+	for _, domain := range domains {
+		if domainByRepo[domain.RepoID] != nil {
+			return nil, fmt.Errorf("buildSyncSiteRecords: repository %d has multiple active domains", domain.RepoID)
+		}
+		domainByRepo[domain.RepoID] = domain
+	}
+	versions, err := pages_model.GetVersionsByIDs(ctx, versionIDs)
+	if err != nil {
+		return nil, fmt.Errorf("buildSyncSiteRecords: current versions: %w", err)
+	}
+	versionByID := make(map[int64]*pages_model.Version, len(versions))
+	for _, version := range versions {
+		versionByID[version.ID] = version
+	}
+
+	records := make([]SiteRecord, 0, len(sites))
+	for _, site := range sites {
+		record := SiteRecord{RepoID: site.RepoID, Deleted: site.Deleted, Enabled: site.Enabled, PagesUpdatedUnixNano: site.PagesUpdatedUnixNano}
+		if site.CurrentVersionID != 0 {
+			version := versionByID[site.CurrentVersionID]
+			if version == nil || version.RepoID != site.RepoID {
+				return nil, fmt.Errorf("buildSyncSiteRecords: current version for repository %d is missing", site.RepoID)
+			}
+			record.TarGzSHA256 = version.TarGzSHA256
+		}
+		if !site.Deleted {
+			repository := repositories[site.RepoID]
+			if repository == nil || owners[repository.OwnerID] == nil {
+				return nil, fmt.Errorf("buildSyncSiteRecords: repository or owner %d missing", site.RepoID)
+			}
+			record.Owner, record.Repository = owners[repository.OwnerID].LowerName, repository.LowerName
+			if domain := domainByRepo[site.RepoID]; domain != nil {
+				record.CustomDomain = &DomainRecord{
+					ID: domain.ID, Host: domain.Host, TXTToken: domain.TXTToken,
+					TXTResult: domain.TXTResult, TXTLastSuccessUnixNano: domain.TXTLastSuccessUnixNano,
+				}
+			}
+		}
+		records = append(records, record)
+	}
+	return records, nil
 }
 
 // OpenCurrentContent verifies the requested digest against the current site.

@@ -307,6 +307,15 @@ func TestPagesReservesManagementDNSNamespace(t *testing.T) {
 		_, err := pages_service.AddDomain(t.Context(), 1, host)
 		require.ErrorIs(t, err, pages_service.ErrDomainConflict, host)
 	}
+
+	_, err = pages_service.SaveSiteSettings(t.Context(), 2, pages_service.SiteSettings{SourceType: pages_model.PublishSourceArtifact})
+	require.NoError(t, err)
+	_, err = pages_service.AddDomain(t.Context(), 1, "docs.example.net")
+	require.NoError(t, err)
+	_, err = pages_service.AddDomain(t.Context(), 2, "preview.docs.example.net")
+	require.NoError(t, err)
+	_, err = pages_service.RegisterInstanceRootURL(t.Context(), instance.ID, instance.TokenHash, "https://example.net")
+	require.ErrorIs(t, err, pages_service.ErrDomainConflict)
 }
 
 func TestPagesDefaultSiteURL(t *testing.T) {
