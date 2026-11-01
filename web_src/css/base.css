@@ -331,9 +331,19 @@ a.suppressed:hover {
 a:focus-visible,
 button:focus-visible,
 .ui.button:focus-visible,
+.ui.dropdown:not(.selection):focus-visible,
 [role="button"]:focus-visible {
   outline: 2px solid var(--color-primary);
+}
+
+button:focus-visible,
+.ui.button:focus-visible {
   outline-offset: -2px;
+}
+
+.ui:is(.primary, .red, .green).button:focus-visible,
+.ui:is(.primary, .red, .green).buttons .button:focus-visible {
+  outline-color: var(--color-text-dark);
 }
 
 a.silenced:hover {
