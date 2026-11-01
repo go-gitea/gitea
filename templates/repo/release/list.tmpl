@@ -85,6 +85,12 @@
 										</a>
 										<div class="attachment-right-info flex-text-inline">
 											<span class="tw-pl-5">{{$att.Size | FormatByteSize}}</span>
+											{{if $att.HashSHA256}}
+												<span class="flex-text-inline" data-tooltip-content="sha256:{{$att.HashSHA256}}">
+													<code class="tw-text-12">sha256:{{ShortSha $att.HashSHA256}}…</code>
+													<button type="button" class="btn interact-fg tw-px-1" data-clipboard-text="sha256:{{$att.HashSHA256}}" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}">{{svg "octicon-copy" 14}}</button>
+												</span>
+											{{end}}
 											<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber $att.DownloadCount)}}">
 												{{svg "octicon-info"}}
 											</span>

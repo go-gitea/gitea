@@ -2679,6 +2679,11 @@
             "type": "string",
             "x-go-name": "Created"
           },
+          "digest": {
+            "description": "Digest is \"sha256:\u003chex\u003e\" of the content, omitted when not recorded at upload",
+            "type": "string",
+            "x-go-name": "Digest"
+          },
           "download_count": {
             "description": "DownloadCount is the number of times the attachment has been downloaded",
             "format": "int64",
