@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -224,8 +225,10 @@ type scriptStep struct {
 
 // scriptedConn is a net.Conn whose Read replays scripted steps and which records deadline
 // re-arms, so relay() can be driven deterministically without wall-clock timing.
+// relay calls SetReadDeadline from two goroutines, so like a real conn it needs a mutex.
 type scriptedConn struct {
 	steps      []scriptStep
+	mu         sync.Mutex
 	pos        int
 	reArms     int
 	written    bytes.Buffer
@@ -233,6 +236,8 @@ type scriptedConn struct {
 }
 
 func (c *scriptedConn) Read(p []byte) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.pos >= len(c.steps) {
 		return 0, io.EOF
 	}
@@ -244,14 +249,39 @@ func (c *scriptedConn) Read(p []byte) (int, error) {
 	return copy(p, s.data), nil
 }
 
-func (c *scriptedConn) Write(p []byte) (int, error)      { return c.written.Write(p) }
-func (c *scriptedConn) Close() error                     { return nil }
-func (c *scriptedConn) CloseWrite() error                { c.halfClosed = true; return nil }
-func (c *scriptedConn) SetReadDeadline(time.Time) error  { c.reArms++; return nil }
+func (c *scriptedConn) Write(p []byte) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.written.Write(p)
+}
+
+func (c *scriptedConn) Close() error { return nil }
+
+func (c *scriptedConn) CloseWrite() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.halfClosed = true
+	return nil
+}
+
+func (c *scriptedConn) SetReadDeadline(time.Time) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.reArms++
+	return nil
+}
+
 func (c *scriptedConn) SetDeadline(time.Time) error      { return nil }
 func (c *scriptedConn) SetWriteDeadline(time.Time) error { return nil }
 func (c *scriptedConn) LocalAddr() net.Addr              { return nil }
 func (c *scriptedConn) RemoteAddr() net.Addr             { return nil }
+
+// stats returns the recorded re-arm count and half-close state.
+func (c *scriptedConn) stats() (reArms int, halfClosed bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.reArms, c.halfClosed
+}
 
 var deadlineStep = scriptStep{err: os.ErrDeadlineExceeded}
 
@@ -326,9 +356,10 @@ func TestRelayIdle(t *testing.T) {
 		answer, err := io.ReadAll(git)
 		require.NoError(t, err)
 		assert.Equal(t, "xxxxx", string(answer))
-		assert.Equal(t, 6, upstream.reArms) // the wake-up deadline plus one re-arm per window with data
-		assert.True(t, upstream.halfClosed)
-		<-done
+		<-done // relay returns only after its goroutine finished, so the counts are final now
+		reArms, halfClosed := upstream.stats()
+		assert.Equal(t, 6, reArms) // the wake-up deadline plus one re-arm per window with data
+		assert.True(t, halfClosed)
 	})
 }
 
