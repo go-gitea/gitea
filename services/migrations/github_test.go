@@ -120,6 +120,57 @@ func TestGithubIssuePagination(t *testing.T) {
 	}
 }
 
+func TestGithubGetAllCommentsSkipsEmptyReactionsAndRecordsRateLimit(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v3/repos/o/r/issues/comments", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-RateLimit-Limit", "5000")
+		w.Header().Set("X-RateLimit-Reset", "4102444800")
+		if r.URL.Query().Get("page") == "1" {
+			w.Header().Set("X-RateLimit-Remaining", "100")
+			_, _ = w.Write([]byte(`[{"issue_url":"https://api.github.com/repos/o/r/issues/7","reactions":{"total_count":0}}]`))
+			return
+		}
+
+		w.Header().Set("X-RateLimit-Remaining", "0")
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+	require.NoError(t, err)
+	comments, _, err := downloader.GetAllComments(t.Context(), 1, 100)
+	require.NoError(t, err)
+	require.Len(t, comments, 1)
+
+	_, _, err = downloader.GetAllComments(t.Context(), 2, 100)
+	require.Error(t, err)
+	assert.Zero(t, downloader.rates[0].Remaining)
+}
+
+func TestGithubGetIssueRecoversIssueOmittedFromList(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v3/repos/o/r/issues/123":
+			_, _ = w.Write([]byte(`{"number":123,"title":"recovered issue","user":{"id":1,"login":"user"},"created_at":"2024-08-12T08:38:46Z","updated_at":"2025-01-21T10:05:11Z","state":"closed"}`))
+		case "/api/v3/repos/o/r/issues/123/reactions":
+			_, _ = w.Write([]byte(`[]`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+	require.NoError(t, err)
+
+	issue, err := downloader.GetIssue(t.Context(), 123)
+	require.NoError(t, err)
+	assert.EqualValues(t, 123, issue.Number)
+	assert.Equal(t, "recovered issue", issue.Title)
+}
+
 func TestGitHubDownloadRepo(t *testing.T) {
 	token := os.Getenv("GITHUB_READ_TOKEN")
 	liveMode := token != ""
