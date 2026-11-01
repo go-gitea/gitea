@@ -6,6 +6,7 @@ package repo
 import (
 	"slices"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/json"
@@ -173,14 +174,12 @@ func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) Action
 	return ClampActionsTokenPermissions(perms, maxPerms)
 }
 
-// FromDB fills up a ActionsConfig from serialized format.
 func (cfg *ActionsConfig) FromDB(bs []byte) error {
-	_ = json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	db.UnmarshalFromDB(bs, cfg)
 	cfg.TokenPermissionMode, _ = util.EnumValue(cfg.TokenPermissionMode)
 	return nil
 }
 
-// ToDB exports a ActionsConfig to a serialized format.
 func (cfg *ActionsConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }

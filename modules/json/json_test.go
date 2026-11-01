@@ -10,14 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGiteaDBJSONUnmarshal(t *testing.T) {
-	var m map[any]any
-	err := UnmarshalHandleDoubleEncode(nil, &m)
-	assert.NoError(t, err)
-	err = UnmarshalHandleDoubleEncode([]byte(""), &m)
-	assert.NoError(t, err)
-}
-
 func TestIndent(t *testing.T) {
 	buf := &bytes.Buffer{}
 	err := Indent(buf, []byte(`{"a":1}`), ">", "  ")
