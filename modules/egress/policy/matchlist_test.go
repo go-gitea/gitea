@@ -132,3 +132,15 @@ func TestRejectedEntries(t *testing.T) {
 	assert.Contains(t, list.Rejected()[0], `use "10.0.0.0/8"`)
 	assert.Empty(t, NewAllowList("example.com", Strict).Rejected())
 }
+
+func TestClassifyAddr(t *testing.T) {
+	for _, tc := range []struct{
+		entry netip.Addr
+		want addrClass
+	}{
+		{entry: netip.MustParseAddr("64:ff9b::192.31.196.1"), want: classRestricted },
+		{entry: netip.MustParseAddr("64:ff9b::1.1.1.1"), want: classPublic },
+	} {
+		assert.Equalf(t, tc.want, classifyAddr(tc.entry), "address %q class %q", tc.entry, tc.want)
+	}
+}
