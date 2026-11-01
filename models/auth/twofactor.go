@@ -11,9 +11,13 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"strconv"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/secret"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -47,6 +51,13 @@ func (err ErrTwoFactorNotEnrolled) Error() string {
 func (err ErrTwoFactorNotEnrolled) Unwrap() error {
 	return util.ErrNotExist
 }
+
+var ErrTwoFactorTooManyAttempts = errors.New("too many failed two-factor attempts")
+
+const (
+	totpMaxAttempts = 5
+	totpAttemptsTTL = 15 * 60 // seconds, renewed by every failed attempt
+)
 
 // TwoFactor represents a two-factor authentication token.
 type TwoFactor struct {
@@ -123,23 +134,47 @@ func (t *TwoFactor) validateTOTP(passcode string) (bool, error) {
 // ValidateAndConsumeTOTP validates the passcode and atomically records it as used so that the
 // same passcode cannot be redeemed more than once (RFC 6238 §5.2). It returns false for an
 // invalid passcode as well as for a replay, including the case where a concurrent request with
-// the same passcode won the race first. All TOTP login surfaces must go through this helper.
+// the same passcode won the race first, and ErrTwoFactorTooManyAttempts once the account has used
+// up its attempts. All TOTP login surfaces must go through this helper.
 func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string) (bool, error) {
-	ok, err := t.validateTOTP(passcode)
-	if err != nil || !ok {
-		return false, err
+	if passcode == "" {
+		return false, nil // password-only Basic auth clients must not use up the attempts
 	}
-	// Conditional update: only a row whose stored passcode differs from this one is updated, so a
-	// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
-	// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
-	t.LastUsedPasscode = passcode
-	n, err := db.GetEngine(ctx).ID(t.ID).
-		Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
-		Cols("last_used_passcode").Update(t)
+	// the lock spans check, validation and counting so that concurrent requests cannot exceed the limit
+	attemptsKey := fmt.Sprintf("twofa_attempts_%d", t.UID)
+	release, err := globallock.Lock(ctx, attemptsKey)
 	if err != nil {
 		return false, err
 	}
-	return n == 1, nil
+	defer release()
+	value, _ := cache.GetCache().Get(attemptsKey)
+	attempts, _ := strconv.Atoi(value)
+	if attempts >= totpMaxAttempts {
+		return false, ErrTwoFactorTooManyAttempts
+	}
+
+	ok, err := t.validateTOTP(passcode)
+	if err != nil {
+		return false, err
+	}
+	if ok {
+		// Conditional update: only a row whose stored passcode differs from this one is updated, so a
+		// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
+		// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
+		t.LastUsedPasscode = passcode
+		n, err := db.GetEngine(ctx).ID(t.ID).
+			Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
+			Cols("last_used_passcode").Update(t)
+		if err != nil {
+			return false, err
+		}
+		ok = n == 1
+	}
+	if !ok {
+		return false, cache.GetCache().Put(attemptsKey, strconv.Itoa(attempts+1), totpAttemptsTTL)
+	}
+	cache.Remove(attemptsKey)
+	return true, nil
 }
 
 // NewTwoFactor creates a new two-factor authentication token.

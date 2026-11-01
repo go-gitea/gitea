@@ -1,5 +1,5 @@
 import {test, expect, type Page} from '@playwright/test';
-import {apiCreateUser, loginUser, randomString, testUserPassword} from './utils.ts';
+import {apiCreateUser, loginUser, randomString, signInWithPassword} from './utils.ts';
 
 const signedIn = /^(?!.*\/user\/(login|webauthn))/; // the target of a finished login varies
 
@@ -7,14 +7,6 @@ async function registerKey(page: Page, nickname: string) {
   await page.goto('/user/settings/security');
   await page.getByRole('textbox', {name: 'Nickname'}).fill(nickname);
   await page.getByRole('button', {name: 'Add Security Key'}).click();
-}
-
-async function signInWithPassword(page: Page, username: string) {
-  await page.context().clearCookies();
-  await page.goto('/user/login');
-  await page.getByLabel('Username or Email Address').fill(username);
-  await page.getByLabel('Password').fill(testUserPassword);
-  await page.getByRole('button', {name: 'Sign In'}).click();
 }
 
 // regression: credProtect level 3 hid the credential from the second-factor login
