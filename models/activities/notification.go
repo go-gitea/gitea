@@ -180,6 +180,7 @@ func updateIssueNotification(ctx context.Context, userID, issueID, commentID, up
 	}
 
 	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
+	// Always update so that updated_unix moves the notification to the top of the list
 	notification.UpdatedBy = updatedByID
 	cols := []string{"updated_by"}
 	if notification.Status == NotificationStatusRead {
