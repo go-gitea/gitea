@@ -14,10 +14,6 @@ import (
 
 // ChangeContent changes issue content, as the given user.
 func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string, contentVersion int) error {
-	if issue.Content == content {
-		return nil
-	}
-
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
@@ -34,7 +30,9 @@ func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 		return err
 	}
 
-	notify_service.IssueChangeContent(ctx, doer, issue, oldContent)
+	if oldContent != content {
+		notify_service.IssueChangeContent(ctx, doer, issue, oldContent)
+	}
 
 	return nil
 }
