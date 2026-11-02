@@ -262,6 +262,11 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("GetOwnerActionsConfig: %w", err)
 	}
 
+	// owner-level scoped workflow sources must be the owner's own repositories
+	if _, err := db.DeleteByBean(ctx, &actions_model.ActionScopedWorkflowSource{OwnerID: oldOwner.ID, SourceRepoID: repo.ID}); err != nil {
+		return fmt.Errorf("delete scoped workflow source: %w", err)
+	}
+
 	// Update repository count.
 	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
 		return fmt.Errorf("increase new owner repository count: %w", err)

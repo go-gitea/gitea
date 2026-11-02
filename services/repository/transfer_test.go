@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -43,7 +44,9 @@ func TestTransferOwnership(t *testing.T) {
 	assert.NoError(t, sourceRepo.LoadOwner(t.Context()))
 	repoTransfer := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoTransfer{ID: 1})
 	assert.NoError(t, repoTransfer.LoadAttributes(t.Context()))
+	assert.NoError(t, actions_model.AddScopedWorkflowSource(t.Context(), sourceRepo.OwnerID, sourceRepo.ID))
 	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))
+	unittest.AssertNotExistsBean(t, &actions_model.ActionScopedWorkflowSource{OwnerID: sourceRepoBak.OwnerID, SourceRepoID: sourceRepo.ID})
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
