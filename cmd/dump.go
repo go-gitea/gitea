@@ -13,13 +13,11 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/dump"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/util"
 
-	"gitea.com/go-chi/session"
 	"github.com/urfave/cli/v3"
 )
 
@@ -249,12 +247,8 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		log.Info("Packing data directory...%s", setting.AppDataPath)
 
 		var excludes []string
-		if setting.SessionConfig.OriginalProvider == "file" {
-			var opts session.Options
-			if err = json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &opts); err != nil {
-				return err
-			}
-			excludes = append(excludes, opts.ProviderConfig)
+		if setting.SessionConfig.Provider == "file" {
+			excludes = append(excludes, setting.SessionConfig.ProviderConfig)
 		}
 
 		if cmd.IsSet("skip-index") && cmd.Bool("skip-index") {

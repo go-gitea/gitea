@@ -18,14 +18,12 @@ import (
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
-	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestExternalMarkupRenderer(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
 	if !setting.Database.Type.IsSQLite3() {
 		t.Skip("only SQLite3 test config supports external markup renderer")
 		return

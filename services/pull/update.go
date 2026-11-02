@@ -123,8 +123,8 @@ func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_
 	}
 	if pb != nil { // override previous results if there is a branch protection rule
 		pb.Repo = repo
-		pushAllowed = pb.CanUserPush(ctx, user)
-		forcePushAllowed = pb.CanUserForcePush(ctx, user)
+		pushAllowed = pb.CanUserPush(ctx, user, repoPerm)
+		forcePushAllowed = pb.CanUserForcePush(ctx, user, repoPerm)
 	}
 	return pushAllowed, forcePushAllowed, nil
 }
@@ -144,6 +144,9 @@ func CheckUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullReques
 	}
 	if err := pull.LoadHeadRepo(ctx); err != nil {
 		return ret, err
+	}
+	if !repo_model.DoerTokenAllowsRepo(ctx, user, pull.HeadRepo) { // whitelists and maintainer edits below skip the doer's repo permission
+		return ret, nil
 	}
 
 	// 1. check whether pull request enabled.

@@ -7,5 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: extract_tag
-        name: "\nExtract tag for variant"
-        run: "\necho Test\n"
+        name: |-
+
+          Extract tag for variant
+        run: |
+
+          echo Test

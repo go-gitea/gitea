@@ -41,10 +41,8 @@ func ListRunners(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RunnerList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.ListRunners(ctx, ctx.Doer.ID, 0)
 }
 
@@ -64,10 +62,8 @@ func GetRunner(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Runner"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.GetRunner(ctx, ctx.Doer.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
@@ -87,10 +83,8 @@ func DeleteRunner(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: runner has been deleted
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, ctx.Doer.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
@@ -116,11 +110,7 @@ func UpdateRunner(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Runner"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 	shared.UpdateRunner(ctx, ctx.Doer.ID, 0, ctx.PathParamInt64("runner_id"))
 }

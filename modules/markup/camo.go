@@ -36,7 +36,7 @@ func b64encode(data []byte) string {
 func camoHandleLink(link string) string {
 	if setting.Camo.Enabled {
 		lnkURL, err := url.Parse(link)
-		if err == nil && lnkURL.IsAbs() && !strings.HasPrefix(link, setting.AppURL) &&
+		if err == nil && (lnkURL.Scheme == "http" || lnkURL.Scheme == "https") && !strings.HasPrefix(link, setting.AppURL) &&
 			(setting.Camo.Always || lnkURL.Scheme != "https") {
 			return CamoEncode(link)
 		}

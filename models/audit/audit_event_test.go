@@ -17,35 +17,29 @@ import (
 func TestFindEventsScopeFilters(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	events := []*Event{
+	for _, event := range []*Event{
 		{Action: UserCreate, ScopeType: ScopeUser, ScopeID: 5, Origin: OriginUI, TimestampUnix: timeutil.TimeStamp(1)},
 		{Action: RepositoryCreate, ScopeType: ScopeRepository, ScopeID: 5, Origin: OriginAPI, TimestampUnix: timeutil.TimeStamp(1)},
 		{Action: RepositoryCreate, ScopeType: ScopeRepository, ScopeID: 6, Origin: OriginCLI, TimestampUnix: timeutil.TimeStamp(1)},
 		{Action: RepositoryCreate, ScopeType: ScopeRepository, ScopeID: 7, Origin: OriginSystem, TimestampUnix: timeutil.TimeStamp(1)},
-	}
-	for _, event := range events {
+	} {
 		require.NoError(t, InsertEvent(t.Context(), event))
 	}
 
-	byType, _, err := FindEvents(t.Context(), &EventSearchOptions{ScopeType: ScopeRepository})
-	require.NoError(t, err)
-	assert.Len(t, byType, 3)
-
-	byID, _, err := FindEvents(t.Context(), &EventSearchOptions{ScopeID: 5})
-	require.NoError(t, err)
-	assert.Len(t, byID, 2)
-
-	byScope, _, err := FindEvents(t.Context(), &EventSearchOptions{ScopeType: ScopeRepository, ScopeID: 5})
-	require.NoError(t, err)
-	assert.Len(t, byScope, 1)
-
-	byOrigin, _, err := FindEvents(t.Context(), &EventSearchOptions{Origin: OriginAPI})
-	require.NoError(t, err)
-	assert.Len(t, byOrigin, 1)
-
-	bySystemOrigin, _, err := FindEvents(t.Context(), &EventSearchOptions{Origin: OriginSystem})
-	require.NoError(t, err)
-	assert.Len(t, bySystemOrigin, 1)
+	for _, test := range []struct {
+		options EventSearchOptions
+		count   int
+	}{
+		{EventSearchOptions{ScopeType: ScopeRepository}, 3},
+		{EventSearchOptions{ScopeID: 5}, 2},
+		{EventSearchOptions{ScopeType: ScopeRepository, ScopeID: 5}, 1},
+		{EventSearchOptions{Origin: OriginAPI}, 1},
+		{EventSearchOptions{Origin: OriginSystem}, 1},
+	} {
+		events, _, err := FindEvents(t.Context(), &test.options)
+		require.NoError(t, err)
+		assert.Len(t, events, test.count)
+	}
 }
 
 func TestFindEventsActionPrefixFilter(t *testing.T) {

@@ -120,7 +120,7 @@ func RecordAs(ctx context.Context, doer *user_model.User, action audit_model.Act
 	writeEvent(ctx, RecordParams{
 		Action:          action,
 		Actor:           actorRef(doer),
-		ActorCredential: actorCredential(ctx, doer),
+		ActorCredential: user_model.GetDoerCredential(doer),
 		Impersonator:    impersonatorRef(ImpersonatorFromContext(ctx), doer),
 		Scope:           scopeRef(scope),
 		Metadata:        metaPairs(metadata...),

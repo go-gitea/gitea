@@ -17,41 +17,68 @@ import (
 
 func TestFeishuPayload(t *testing.T) {
 	fc := feishuConvertor{}
-	t.Run("Create", func(t *testing.T) {
-		p := createTestPayload()
-
-		pl, err := fc.Create(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, `[test/repo] branch test created`, pl.Content.Text)
-	})
-
-	t.Run("Delete", func(t *testing.T) {
-		p := deleteTestPayload()
-
-		pl, err := fc.Delete(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, `[test/repo] branch test deleted`, pl.Content.Text)
-	})
-
-	t.Run("Fork", func(t *testing.T) {
-		p := forkTestPayload()
-
-		pl, err := fc.Fork(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, `test/repo2 is forked to test/repo`, pl.Content.Text)
-	})
-
-	t.Run("Push", func(t *testing.T) {
-		p := pushTestPayload()
-
-		pl, err := fc.Push(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[test/repo:test] \r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1", pl.Content.Text)
-	})
+	for _, test := range []struct {
+		name    string
+		convert func() (FeishuPayload, error)
+		text    string
+	}{
+		{
+			"Create",
+			func() (FeishuPayload, error) { return fc.Create(createTestPayload()) },
+			`[test/repo] branch test created`,
+		},
+		{
+			"Delete",
+			func() (FeishuPayload, error) { return fc.Delete(deleteTestPayload()) },
+			`[test/repo] branch test deleted`,
+		},
+		{
+			"Fork",
+			func() (FeishuPayload, error) { return fc.Fork(forkTestPayload()) },
+			`test/repo2 is forked to test/repo`,
+		},
+		{
+			"Push",
+			func() (FeishuPayload, error) { return fc.Push(pushTestPayload()) },
+			"[test/repo:test] \r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1",
+		},
+		{
+			"IssueComment",
+			func() (FeishuPayload, error) { return fc.IssueComment(issueCommentTestPayload()) },
+			"[Comment-test/repo #2]: created\ncrash\nhttp://localhost:3000/test/repo/issues/2\nIssue by user1\nOperator: user1\n\nmore info needed",
+		},
+		{
+			"PullRequest",
+			func() (FeishuPayload, error) { return fc.PullRequest(pullRequestTestPayload()) },
+			"[PullRequest-test/repo #12]: opened\nFix bug\nhttp://localhost:3000/test/repo/pulls/12\nPullRequest by user1\nOperator: user1\nAssignees: user1\n\nfixes bug #2",
+		},
+		{
+			"PullRequestComment",
+			func() (FeishuPayload, error) { return fc.IssueComment(pullRequestCommentTestPayload()) },
+			"[Comment-test/repo #12]: created\nFix bug\nhttp://localhost:3000/test/repo/pulls/12\nPullRequest by user1\nOperator: user1\n\nchanges requested",
+		},
+		{
+			"Repository",
+			func() (FeishuPayload, error) { return fc.Repository(repositoryTestPayload()) },
+			"[test/repo] Repository created",
+		},
+		{
+			"Package",
+			func() (FeishuPayload, error) { return fc.Package(packageTestPayload()) },
+			"Package created: GiteaContainer:latest by user1",
+		},
+		{
+			"Release",
+			func() (FeishuPayload, error) { return fc.Release(pullReleaseTestPayload()) },
+			"[test/repo] Release created: v1.0 by user1",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			pl, err := test.convert()
+			require.NoError(t, err)
+			assert.Equal(t, test.text, pl.Content.Text)
+		})
+	}
 
 	t.Run("Issue", func(t *testing.T) {
 		p := issueTestPayload()
@@ -69,33 +96,6 @@ func TestFeishuPayload(t *testing.T) {
 		assert.Equal(t, "[Issue-test/repo #2]: closed\ncrash\nhttp://localhost:3000/test/repo/issues/2\nIssue by user1\nOperator: user1\nAssignees: user1\n\nissue body", pl.Content.Text)
 	})
 
-	t.Run("IssueComment", func(t *testing.T) {
-		p := issueCommentTestPayload()
-
-		pl, err := fc.IssueComment(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[Comment-test/repo #2]: created\ncrash\nhttp://localhost:3000/test/repo/issues/2\nIssue by user1\nOperator: user1\n\nmore info needed", pl.Content.Text)
-	})
-
-	t.Run("PullRequest", func(t *testing.T) {
-		p := pullRequestTestPayload()
-
-		pl, err := fc.PullRequest(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[PullRequest-test/repo #12]: opened\nFix bug\nhttp://localhost:3000/test/repo/pulls/12\nPullRequest by user1\nOperator: user1\nAssignees: user1\n\nfixes bug #2", pl.Content.Text)
-	})
-
-	t.Run("PullRequestComment", func(t *testing.T) {
-		p := pullRequestCommentTestPayload()
-
-		pl, err := fc.IssueComment(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[Comment-test/repo #12]: created\nFix bug\nhttp://localhost:3000/test/repo/pulls/12\nPullRequest by user1\nOperator: user1\n\nchanges requested", pl.Content.Text)
-	})
-
 	t.Run("Review", func(t *testing.T) {
 		p := pullRequestTestPayload()
 		p.Action = api.HookIssueReviewed
@@ -104,24 +104,6 @@ func TestFeishuPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[test/repo] Pull request review approved : #12 Fix bug\r\n\r\ngood job", pl.Content.Text)
-	})
-
-	t.Run("Repository", func(t *testing.T) {
-		p := repositoryTestPayload()
-
-		pl, err := fc.Repository(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[test/repo] Repository created", pl.Content.Text)
-	})
-
-	t.Run("Package", func(t *testing.T) {
-		p := packageTestPayload()
-
-		pl, err := fc.Package(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "Package created: GiteaContainer:latest by user1", pl.Content.Text)
 	})
 
 	t.Run("Wiki", func(t *testing.T) {
@@ -144,15 +126,6 @@ func TestFeishuPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[test/repo] Wiki page 'index' deleted by user1", pl.Content.Text)
-	})
-
-	t.Run("Release", func(t *testing.T) {
-		p := pullReleaseTestPayload()
-
-		pl, err := fc.Release(p)
-		require.NoError(t, err)
-
-		assert.Equal(t, "[test/repo] Release created: v1.0 by user1", pl.Content.Text)
 	})
 }
 

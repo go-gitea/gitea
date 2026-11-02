@@ -9,7 +9,9 @@ import (
 
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/text/cases"
@@ -22,6 +24,7 @@ func TestAttention(t *testing.T) {
 	defer svg.MockIcon("octicon-report")()
 	defer svg.MockIcon("octicon-alert")()
 	defer svg.MockIcon("octicon-stop")()
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{})()
 
 	test := func(input, expected string) {
 		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
@@ -47,8 +50,16 @@ func TestAttention(t *testing.T) {
 	test(`> [!warning]`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")
 	test(`> [!caution]`, renderAttention("caution", "octicon-stop")+"\n</blockquote>")
 
-	// escaped by mdformat
-	test(`> \[!NOTE\]`, renderAttention("note", "octicon-info")+"\n</blockquote>")
+	for _, parseInlineParentheses := range []bool{false, true} {
+		setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses = parseInlineParentheses
+		test("> \\[!NOTE\\]\n> text", renderAttention("note", "octicon-info")+"\n<p>text</p>\n</blockquote>")
+		test(`> \[!UNKNOWN\]`, "<blockquote>\n<p>[!UNKNOWN]</p>\n</blockquote>")
+		test(`> \[NOTE\]`, "<blockquote>\n<p>[NOTE]</p>\n</blockquote>")
+		test(`> \[!NOTE`, "<blockquote>\n<p>[!NOTE</p>\n</blockquote>")
+		test(`> [!NOTE\]`, "<blockquote>\n<p>[!NOTE]</p>\n</blockquote>")
+		test("> \\[!\n> NOTE\\]", "<blockquote>\n<p>[!\nNOTE]</p>\n</blockquote>")
+		test("> \\[\n> !NOTE\\]", "<blockquote>\n<p>[\n!NOTE]</p>\n</blockquote>")
+	}
 
 	// legacy GitHub style
 	test(`> **warning**`, renderAttention("warning", "octicon-alert")+"\n</blockquote>")

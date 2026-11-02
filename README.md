@@ -68,7 +68,7 @@ Get more information from [the translation section of our contributing guide](CO
 
 ## Official and Third-Party Projects
 
-We provide an official [go-sdk](https://gitea.com/gitea/go-sdk), a CLI tool called [tea](https://gitea.com/gitea/tea) and an [action runner](https://gitea.com/gitea/runner) for Gitea Action.
+We provide an official [go-sdk](https://gitea.com/gitea/go-sdk), a CLI tool called [gt](https://gitea.com/gitea/cli) and an [action runner](https://gitea.com/gitea/runner) for Gitea Action.
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea), where you can discover more third-party projects, including SDKs, plugins, themes, and more.
 
@@ -120,7 +120,7 @@ See [app.example.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/ap
 
 **Where can I find the security patches?**
 
-In the [release log](https://github.com/go-gitea/gitea/releases) or the [change log](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md), search for the keyword `SECURITY` to find the security patches.
+Check the [release notes](https://github.com/go-gitea/gitea/releases) and [security advisories](https://github.com/go-gitea/gitea/security/advisories) for security patches.
 
 (more FAQs are listed in [FAQ documentation](https://docs.gitea.com/help/faq))
 

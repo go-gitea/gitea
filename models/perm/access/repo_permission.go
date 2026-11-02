@@ -424,6 +424,9 @@ func GetDoerRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 // In most request paths, callers should use GetDoerRepoPermission instead.
 // Unlike GetDoerRepoPermission, this helper does not resolve Actions task users.
 func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
+	if !repo_model.DoerTokenAllowsRepo(ctx, user, repo) {
+		return PermissionNoAccess(), nil
+	}
 	defer func() {
 		if err == nil {
 			finalProcessRepoUnitPermission(user, &perm)
@@ -675,10 +678,14 @@ func PermissionNoAccess() Permission {
 // permission on a repository. Producers and consumers must agree on it, so it lives here.
 func RepoUserPermissionCacheKey(repoID int64, doer *user_model.User) string {
 	var doerID int64
+	var doerExtData string
 	if doer != nil {
 		doerID = doer.ID
+		if doer.ExtDoerData != nil {
+			doerExtData = doer.ExtDoerData.EncodeToString()
+		}
 	}
-	return fmt.Sprintf("%d-%d", repoID, doerID)
+	return fmt.Sprintf("%d-%d-%s", repoID, doerID, doerExtData)
 }
 
 // CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo.

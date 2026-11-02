@@ -148,8 +148,8 @@ const activeIndex = shallowRef(-1); // don't select anything at load, first curs
 const elSearch = useTemplateRef('elSearch') as Readonly<ShallowRef<HTMLInputElement>>;
 
 const countsKey = computed(() => `${reposFilter.value}:${archivedFilter.value}:${privateFilter.value}`);
-const showMoreReposLink = computed(() => repos.value.length > 0 && repos.value.length < repoTypeCount.value);
 const repoTypeCount = computed(() => counts.value[countsKey.value]);
+const showMoreReposLink = computed(() => repos.value.length > 0 && repos.value.length < repoTypeCount.value);
 const checkboxArchivedFilterTitle = computed(() => textArchivedFilterTitles.get(archivedFilter.value));
 const checkboxArchivedFilterProps = computed(() => ({checked: archivedFilter.value === 'archived', indeterminate: archivedFilter.value === 'both'}));
 const checkboxPrivateFilterTitle = computed(() => textPrivateFilterTitles.get(privateFilter.value));
@@ -218,7 +218,7 @@ function updateHistory() {
   if (page.value === 1) {
     params.delete('repo-search-page');
   } else {
-    params.set('repo-search-page', `${page.value}`);
+    params.set('repo-search-page', String(page.value));
   }
 
   const queryString = params.toString();
@@ -275,22 +275,23 @@ async function searchRepos() {
   let response: Response, json: {data: WebSearchRepo[]};
   try {
     const firstLoad = reposTotalCount.value === null;
+    const loadTotalCount = async () => {
+      if (reposTotalCount.value) return;
+      const totalCountResponse = await GET(`${subUrl}/repo/search?count_only=1&uid=${uid}&team_id=${teamId}&q=&page=1&mode=`);
+      reposTotalCount.value = parseInt(totalCountResponse.headers.get('X-Total-Count') ?? '0');
+      if (firstLoad && reposTotalCount.value) {
+        nextTick(() => {
+          // MDN: If there's no focused element, this is the Document.body or Document.documentElement.
+          if ((document.activeElement === document.body || document.activeElement === document.documentElement)) {
+            elSearch.value.focus({preventScroll: true});
+          }
+        });
+      }
+    };
     // independent of the search, so both requests go out together
-    const totalCountSearchURL = `${subUrl}/repo/search?count_only=1&uid=${uid}&team_id=${teamId}&q=&page=1&mode=`;
-    const totalCountRequest = reposTotalCount.value ? null : GET(totalCountSearchURL);
     const searchRequest = GET(searchedURL);
-    searchRequest.catch(() => {}); // awaited below, marked handled in case the count throws first
-    if (totalCountRequest) {
-      reposTotalCount.value = parseInt((await totalCountRequest).headers.get('X-Total-Count') ?? '0');
-    }
-    if (firstLoad && reposTotalCount.value) {
-      nextTick(() => {
-        // MDN: If there's no focused element, this is the Document.body or Document.documentElement.
-        if ((document.activeElement === document.body || document.activeElement === document.documentElement)) {
-          elSearch.value.focus({preventScroll: true});
-        }
-      });
-    }
+    const [totalCountResult] = await Promise.allSettled([loadTotalCount(), searchRequest]); // a failed search must not show the empty state before the count is known
+    if (totalCountResult.status === 'rejected') throw totalCountResult.reason;
     response = await searchRequest;
     json = await response.json();
   } catch {

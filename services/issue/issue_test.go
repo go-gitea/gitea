@@ -7,12 +7,55 @@ import (
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCanSelfChangeOrAccessContent(t *testing.T) {
+	doer := &user_model.User{ID: 1}
+	for _, u := range []struct {
+		name     string
+		unitType unit.Type
+	}{
+		{"issues", unit.TypeIssues},
+		{"pulls", unit.TypePullRequests},
+	} {
+		t.Run(u.name, func(t *testing.T) {
+			for _, tc := range []struct {
+				name         string
+				doer         *user_model.User
+				posterID     int64
+				mode         perm.AccessMode
+				requiredMode perm.AccessMode
+				locked       bool
+				allowed      bool
+			}{
+				{"anonymous", nil, 1, perm.AccessModeWrite, perm.AccessModeWrite, false, false},
+				{"author without read access", doer, 1, perm.AccessModeNone, perm.AccessModeWrite, false, false},
+				{"author with read access", doer, 1, perm.AccessModeRead, perm.AccessModeWrite, false, true},
+				{"reader cannot edit others", doer, 2, perm.AccessModeRead, perm.AccessModeWrite, false, false},
+				{"reader can access others", doer, 2, perm.AccessModeRead, perm.AccessModeRead, false, true},
+				{"writer can edit others", doer, 2, perm.AccessModeWrite, perm.AccessModeWrite, false, true},
+				{"locked author needs write access", doer, 1, perm.AccessModeRead, perm.AccessModeWrite, true, false},
+				{"locked reader needs write access", doer, 2, perm.AccessModeRead, perm.AccessModeRead, true, false},
+				{"locked writer can edit", doer, 2, perm.AccessModeWrite, perm.AccessModeWrite, true, true},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					var permission access_model.Permission
+					permission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: u.unitType}}, tc.mode)
+					issue := &issues_model.Issue{IsPull: u.unitType == unit.TypePullRequests, IsLocked: tc.locked}
+					assert.Equal(t, tc.allowed, CanSelfChangeOrAccessContent(tc.doer, permission, issue, tc.posterID, tc.requiredMode))
+				})
+			}
+		})
+	}
+}
 
 func TestGetRefEndNamesAndURLs(t *testing.T) {
 	issues := []*issues_model.Issue{

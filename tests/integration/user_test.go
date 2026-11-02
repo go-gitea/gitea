@@ -22,11 +22,13 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("ViewUser", testViewUser)
+	t.Run("FollowUser", testUserFollow)
 	t.Run("RenameInvalidUsername", testRenameInvalidUsername)
 	t.Run("RenameReservedUsername", testRenameReservedUsername)
 	t.Run("ViewLimitedAndPrivateUserAndRename", testViewLimitedAndPrivateUserAndRename)
@@ -40,6 +42,9 @@ func TestUser(t *testing.T) {
 func testViewUser(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2")
 	MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequest(t, "GET", "/user2/-/repositories")
+	MakeRequest(t, req, http.StatusNotFound)
 
 	req = NewRequest(t, "GET", "/user2.keys")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -131,6 +136,7 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	req = NewRequest(t, "GET", "/"+user31.Name)
 	MakeRequest(t, req, http.StatusNotFound)
 	MakeRequest(t, NewRequest(t, "GET", "/"+user31.Name).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/"+user31.Name+".keys"), http.StatusNotFound)
 	strangerSession.MakeRequest(t, NewRequest(t, "POST", "/"+user31.Name+"?action=follow"), http.StatusNotFound)
 
 	oldName = user31.Name
@@ -234,6 +240,7 @@ func testRenameReservedUsername(t *testing.T) {
 
 func testExportUserGPGKeys(t *testing.T) {
 	testExportUserGPGKeys := func(t *testing.T, user, expected string) {
+		t.Helper()
 		session := loginUser(t, user)
 		t.Logf("Testing username %s export gpg keys", user)
 		req := NewRequest(t, "GET", "/"+user+".gpg")
@@ -321,7 +328,7 @@ func testGetUserRss(t *testing.T) {
 	user34 := "the_34-user.with.all.allowedChars"
 	req := NewRequestf(t, "GET", "/%s.rss", user34)
 	resp := MakeRequest(t, req, http.StatusOK)
-	if assert.Equal(t, "application/rss+xml;charset=utf-8", resp.Header().Get("Content-Type")) {
+	if assert.Equal(t, "application/rss+xml; charset=utf-8", resp.Header().Get("Content-Type")) {
 		rssDoc := NewHTMLParser(t, resp.Body).Find("channel")
 		title, _ := rssDoc.ChildrenFiltered("title").Html()
 		assert.Equal(t, "Feed of &#34;the_1-user.with.all.allowedChars&#34;", title)
@@ -335,6 +342,8 @@ func testGetUserRss(t *testing.T) {
 	session := loginUser(t, "user2")
 	req = NewRequestf(t, "GET", "/non-existent-user.rss")
 	session.MakeRequest(t, req, http.StatusNotFound)
+
+	MakeRequest(t, NewRequest(t, "GET", "/").SetHeader("Accept", "application/rss+xml"), http.StatusUnsupportedMediaType)
 
 	defer test.MockVariableValue(&setting.Other.EnableFeed, false)()
 	MakeRequest(t, NewRequestf(t, "GET", "/%s.rss", user34), http.StatusNotFound)
@@ -377,4 +386,26 @@ func testUserLocationMapLink(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	AssertHTMLElement(t, htmlDoc, `a[href="https://example/foo/A%2Fb"]`, true)
+}
+
+func testUserFollow(t *testing.T) {
+	bot := &user_model.User{
+		Name:  "follow-bot",
+		Email: "follow-bot@example.com",
+		Type:  user_model.UserTypeBot,
+	}
+	require.NoError(t, user_model.CreateUser(t.Context(), bot, &user_model.Meta{}))
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	session := loginUser(t, doer.Name)
+
+	req := NewRequestWithValues(t, "POST", "/"+bot.Name, map[string]string{"action": "follow"})
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `id="profile-avatar-card"`)
+	assert.True(t, user_model.IsFollowing(t.Context(), doer.ID, bot.ID))
+
+	req = NewRequestWithValues(t, "POST", "/"+bot.Name, map[string]string{"action": "unfollow"})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `id="profile-avatar-card"`)
+	assert.False(t, user_model.IsFollowing(t.Context(), doer.ID, bot.ID))
 }

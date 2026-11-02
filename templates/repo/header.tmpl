@@ -97,13 +97,14 @@
 			{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
 				<div class="overflow-menu-items">
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
-					<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}">
-						{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
-					</a>
+						{{$codeLinkUseCurrentRef := and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}
+						<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if $codeLinkUseCurrentRef}}/src/{{.RefTypeNameSubURL}}{{end}}" data-shortcut-keys="g c">
+							{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
+						</a>
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
-						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues">
+						<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" data-shortcut-keys="g i">
 							{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues"}}
 							{{if .Repository.NumOpenIssues}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
@@ -111,14 +112,15 @@
 						</a>
 					{{end}}
 
-					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalTracker}}
-						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank">
+					{{if and (.Permission.CanRead ctx.Consts.RepoUnitTypeExternalTracker) .RepoExternalIssuesLink}}
+						{{/* Internal and external issue trackers can be enabled at the same time, only show the external link if it exists */}}
+						<a class="item" href="{{.RepoExternalIssuesLink}}" target="_blank">
 							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues"}}
 						</a>
 					{{end}}
 
 					{{if and .Repository.CanEnablePulls (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests)}}
-						<a class="{{if .PageIsPullList}}active {{end}}item" href="{{.RepoLink}}/pulls">
+						<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls" data-shortcut-keys="g p">
 							{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.pulls"}}
 							{{if .Repository.NumOpenPulls}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenPulls}}</span>
@@ -127,7 +129,7 @@
 					{{end}}
 
 					{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions) (not .IsEmptyRepo)}}
-						<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
+						<a class="{{if .PageIsActions}}active{{end}} item" href="{{.RepoLink}}/actions" data-shortcut-keys="g a">
 							{{svg "octicon-play"}} {{ctx.Locale.Tr "actions.actions"}}
 							{{if .Repository.NumOpenActionRuns}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
@@ -136,14 +138,14 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypePackages}}
-						<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active {{end}}item">
+						<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active{{end}} item">
 							{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
 						</a>
 					{{end}}
 
 					{{$projectsUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeProjects}}
 					{{if and (not ctx.Consts.RepoUnitTypeProjects.UnitGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
-						<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
+						<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active{{end}} item" data-shortcut-keys="g b">
 							{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.projects"}}
 							{{if .Repository.NumOpenProjects}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenProjects}}</span>
@@ -152,7 +154,7 @@
 					{{end}}
 
 					{{if and (.Permission.CanRead ctx.Consts.RepoUnitTypeReleases) (not .IsEmptyRepo)}}
-					<a class="{{if or .PageIsReleaseList .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/releases">
+					<a class="{{if or .PageIsReleaseList .PageIsTagList}}active{{end}} item" href="{{.RepoLink}}/releases" data-shortcut-keys="g r">
 						{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.releases"}}
 						{{if .NumReleases}}
 							<span class="ui small label">{{CountFmt .NumReleases}}</span>
@@ -161,19 +163,19 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeWiki}}
-						<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki">
+						<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" data-shortcut-keys="g w">
 							{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.wiki"}}
 						</a>
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalWiki}}
-						<a class="item" href="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank">
+						<a class="item" href="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" data-shortcut-keys="g w">
 							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.wiki"}}
 						</a>
 					{{end}}
 
 					{{if and (.Permission.CanReadAny ctx.Consts.RepoUnitTypePullRequests ctx.Consts.RepoUnitTypeIssues ctx.Consts.RepoUnitTypeReleases ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo)}}
-						<a class="{{if .PageIsActivity}}active {{end}}item" href="{{.RepoLink}}/activity">
+						<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
 							{{svg "octicon-pulse"}} {{ctx.Locale.Tr "repo.activity"}}
 						</a>
 					{{end}}

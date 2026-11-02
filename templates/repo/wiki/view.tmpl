@@ -96,10 +96,10 @@
 	</div>
 </div>
 
-<div class="ui small modal" id="repo-wiki-delete-page-modal">
+<dialog class="modal-dialog" id="repo-wiki-delete-page-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.wiki.delete_page_notice_1" $title}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</dialog>
 
 {{template "base/footer" .}}

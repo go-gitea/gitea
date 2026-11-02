@@ -98,6 +98,7 @@ func NewWebhookPolicy() *policy.Policy {
 	}
 	p = policy.NewPolicy("webhook", policyMode(setting.Security.EgressMode),
 		policy.WithAllow(setting.Webhook.AllowedHostList, "security.ALLOWED_HOST_LIST"),
+		policy.WithLocalNeedsIPAllow(),
 		policy.WithProxy(selectProxy))
 
 	return p
@@ -106,6 +107,7 @@ func NewWebhookPolicy() *policy.Policy {
 func NewSecurityPolicy(usage string) *policy.Policy {
 	return policy.NewPolicy(usage, policyMode(setting.Security.EgressMode),
 		policy.WithAllow(setting.Security.AllowedHostList, "security.ALLOWED_HOST_LIST"),
+		policy.WithLocalNeedsIPAllow(),
 		policy.WithProxy(proxy.Proxy()))
 }
 

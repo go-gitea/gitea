@@ -270,7 +270,7 @@ func LoadBranchesAndTags(ctx *context.Context) {
 		ctx.JSON(http.StatusOK, response)
 		return
 	}
-	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.PathParam("sha")), git.IsErrNotExist, err)
+	ctx.ServerError("LoadBranchesAndTags", err)
 }
 
 // Diff show different from current commit to previous commit

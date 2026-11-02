@@ -103,7 +103,7 @@
 						{{svg "octicon-arrow-right"}}
 						<div class="ui floating dropdown" data-no-results="{{ctx.Locale.Tr "no_results_found"}}">
 							<div class="ui basic small button">
-								<span id="pull-target-branch" class="gt-ellipsis" data-base-user-name="{{$baseUserName}}" data-text-compare-base="{{ctx.Locale.Tr "repo.pulls.compare_base"}}">
+								<span id="pull-target-branch" class="gt-ellipsis" data-base-user-name="{{$baseUserName}}" data-old-target-branch="{{$baseBranch}}" data-branch="{{$baseBranch}}" data-text-compare-base="{{ctx.Locale.Tr "repo.pulls.compare_base"}}">
 									{{ctx.Locale.Tr "repo.pulls.compare_base"}}: {{$baseUserName}}:{{$baseBranch}}
 								</span>
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}

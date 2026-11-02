@@ -59,12 +59,13 @@ const wfTest1Jobs: ActionsJob[] = [
 const mockJob = (id: number, jobId: string, name: string, needs?: string[]): ActionsJob =>
   ({id, link: '', jobId, name, status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '1s', needs});
 
-test('matrix nodes key on job id, not on the display name', () => {
+test('matrix nodes key on job id and take the label legs share with or without a suffix', () => {
   const legs = createWorkflowGraphModel([mockJob(1, 'explicit', 'leg one'), mockJob(2, 'explicit', 'leg two')]);
   expect(legs.nodes).toHaveLength(1);
   expect(legs.nodes[0].type).toBe('matrix');
   expect(legs.nodes[0].name).toBe('explicit');
   expect(legs.nodes[0].jobs.map((j) => j.id)).toEqual([1, 2]);
+  expect(createWorkflowGraphModel([mockJob(1, 'image', 'Image'), mockJob(2, 'image', 'Image (dind)')]).nodes[0].name).toBe('Image');
 
   const lookalikes = createWorkflowGraphModel([
     mockJob(1, 'setup', 'setup'),

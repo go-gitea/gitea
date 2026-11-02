@@ -401,8 +401,10 @@ func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byt
 		_, _ = w.WriteString(`"><a href="#fn:user-content-`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" class="footnote-ref" role="doc-noteref">`) // FIXME: here and below, need to keep the classes
+		// literal brackets separate adjacent refs, also where no CSS applies like in mails
+		_, _ = w.WriteString("[")
 		_, _ = w.WriteString(is)
-		_, _ = w.WriteString(` </a></sup>`) // the style doesn't work at the moment, so add a space to separate the names
+		_, _ = w.WriteString("]</a></sup>")
 	}
 	return ast.WalkContinue, nil
 }

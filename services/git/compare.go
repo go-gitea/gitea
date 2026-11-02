@@ -73,8 +73,8 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	if baseRepo.ID != headRepo.ID {
 		exist := headGitRepo.IsReferenceExist(ctx, compareInfo.BaseCommitID)
 		if !exist {
-			if err := git.FetchRemoteCommit(ctx, headRepo, baseRepo, compareInfo.BaseCommitID); err != nil {
-				return compareInfo, fmt.Errorf("FetchRemoteCommit: %w", err)
+			if err := git.FetchRemoteTempCommit(ctx, headRepo, baseRepo, compareInfo.BaseCommitID); err != nil {
+				return compareInfo, fmt.Errorf("FetchRemoteTempCommit: %w", err)
 			}
 		}
 	}

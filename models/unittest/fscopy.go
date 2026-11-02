@@ -60,7 +60,6 @@ func SyncDirs(srcPath, destPath string) error {
 	}
 
 	// the keep file is used to keep the directory in a git repository, it doesn't need to be synced
-	// and go-git doesn't work with the ".keep" file (it would report errors like "ref is empty")
 	const keepFile = ".keep"
 
 	// find and delete all untracked files

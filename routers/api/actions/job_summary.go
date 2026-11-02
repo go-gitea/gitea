@@ -41,7 +41,7 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusInternalServerError, "Error getting task steps")
 		return
 	}
-	if !slices.ContainsFunc(steps, func(s *actions_model.ActionTaskStep) bool { return s.Index == stepIndex }) {
+	if !slices.ContainsFunc(steps, func(s *actions_model.ActionTaskStep) bool { return s.WorkflowStepIndex() == stepIndex }) {
 		ctx.HTTPError(http.StatusBadRequest, "step_index mismatch")
 		return
 	}

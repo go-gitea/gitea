@@ -96,7 +96,7 @@ func saveUploadChunkV3(st storage.ObjectStorage, ctx *ArtifactContext, artifact 
 	// save chunk to storage
 	writtenSize, err := st.Save(storagePath, r, contentSize)
 	if err != nil {
-		return 0, fmt.Errorf("save chunk to storage error: %v", err)
+		return 0, fmt.Errorf("save chunk to storage error: %w", err)
 	}
 
 	defer func() {
@@ -129,7 +129,7 @@ func saveUploadChunkV3GetTotalSize(st storage.ObjectStorage, ctx *ArtifactContex
 	contentRange := ctx.Req.Header.Get("Content-Range")
 	var start, end int64
 	if _, err := fmt.Sscanf(contentRange, "bytes %d-%d/%d", &start, &end, &totalSize); err != nil {
-		return 0, fmt.Errorf("parse content range error: %v", err)
+		return 0, fmt.Errorf("parse content range error: %w", err)
 	}
 	_, err := saveUploadChunkV3(st, ctx, artifact, runID, saveUploadChunkOptions{start: start, end: &end, checkMd5: true})
 	if err != nil {
@@ -289,7 +289,7 @@ func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID, ru
 		art.StoragePath = storagePath
 		art.Status = actions.ArtifactStatusUploadConfirmed
 		if err := actions.UpdateArtifact(ctx, art, "storage_path", "status"); err != nil {
-			return fmt.Errorf("update artifact error: %v", err)
+			return fmt.Errorf("update artifact error: %w", err)
 		}
 	}
 	return nil
@@ -342,7 +342,7 @@ func mergeChunksForArtifact(chunks []*chunkFileItem, st storage.ObjectStorage, a
 		var readCloser io.ReadCloser
 		var err error
 		if readCloser, err = st.Open(c.Path); err != nil {
-			return "", fmt.Errorf("open chunk error: %v, %s", err, c.Path)
+			return "", fmt.Errorf("open chunk error: %w, %s", err, c.Path)
 		}
 		readers = append(readers, readCloser)
 	}
@@ -362,7 +362,7 @@ func mergeChunksForArtifact(chunks []*chunkFileItem, st storage.ObjectStorage, a
 	storagePath := generateArtifactStoragePath(artifact)
 	written, err := st.Save(storagePath, mergedReader, artifact.FileCompressedSize)
 	if err != nil {
-		return "", fmt.Errorf("save merged file error: %v", err)
+		return "", fmt.Errorf("save merged file error: %w", err)
 	}
 	if written != artifact.FileCompressedSize {
 		return "", errors.New("merged file size is not equal to chunk length")

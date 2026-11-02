@@ -376,7 +376,6 @@
   "settings.key_name": "Nama Kunci",
   "settings.key_content": "Konten",
   "settings.principal_content": "Konten",
-  "settings.delete_key": "Hapus",
   "settings.ssh_key_deletion": "Hapus Kunci SSH",
   "settings.gpg_key_deletion": "Hapus Kunci GPG",
   "settings.ssh_key_deletion_desc": "Menghapus kunci SSH akan mencabut akses ke akun Anda. Lanjutkan?",

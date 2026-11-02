@@ -89,6 +89,5 @@ func TestDoubleQuoteKeyword(t *testing.T) {
 	assert.Empty(t, doubleQuoteKeyword(""))
 	assert.Equal(t, `"a" "b" "c"`, doubleQuoteKeyword("a b c"))
 	assert.Equal(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
-	assert.Equal(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
 	assert.Equal(t, `"a" "d" "g"`, doubleQuoteKeyword(`a  "" "d" """g`))
 }

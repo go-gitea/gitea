@@ -33,12 +33,12 @@ SIGNING_KEY = none
 
 [server]
 SSH_DOMAIN       = localhost
-HTTP_PORT        = 3003
-ROOT_URL         = http://localhost:3003/
-LOCAL_ROOT_URL   = http://127.0.0.1:3003/
+HTTP_PORT        = {{TEST_HTTP_PORT}}
+ROOT_URL         = http://localhost:{{TEST_HTTP_PORT}}/
+LOCAL_ROOT_URL   = http://127.0.0.1:{{TEST_HTTP_PORT}}/
 DISABLE_SSH      = false
 SSH_LISTEN_HOST  = localhost
-SSH_PORT         = 2201
+SSH_PORT         = {{TEST_SSH_PORT}}
 START_SSH_SERVER = true
 LFS_START_SERVER = true
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w

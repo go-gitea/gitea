@@ -82,14 +82,6 @@ export function queryElems<T extends HTMLElement>(parent: Element | ParentNode, 
   return applyElemsCallback<T>(parent.querySelectorAll(selector), fn);
 }
 
-export function onDomReady(cb: () => Promisable<void>) {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', cb);
-  } else {
-    cb();
-  }
-}
-
 /** checks whether an element is owned by the current document, and whether it is a document fragment or element node
  *  if it is, it means it is a "normal" element managed by us, which can be modified safely. */
 export function isDocumentFragmentOrElementNode(el: Node) {

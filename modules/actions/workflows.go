@@ -532,7 +532,7 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			}
 
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -575,7 +575,7 @@ func matchPullRequestEvent(ctx context.Context, gitRepo *git.Repository, commit 
 		}
 		log.Trace("matching pull_request %s with %v", action, vals)
 		for _, val := range vals {
-			if glob.MustCompile(val, '/').Match(string(action)) {
+			if matchActivityType(val, string(action)) {
 				activityTypeMatched = true
 				matchTimes++
 				break
@@ -678,7 +678,7 @@ func matchIssueCommentEvent(issueCommentPayload *api.IssueCommentPayload, evt *j
 			// NONE
 
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(issueCommentPayload.Action)) {
+				if matchActivityType(val, string(issueCommentPayload.Action)) {
 					matchTimes++
 					break
 				}
@@ -718,7 +718,7 @@ func matchPullRequestReviewEvent(prPayload *api.PullRequestPayload, evt *jobpars
 			}
 
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -758,7 +758,7 @@ func matchPullRequestReviewCommentEvent(prPayload *api.PullRequestPayload, evt *
 			}
 
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -795,7 +795,7 @@ func matchReleaseEvent(payload *api.ReleasePayload, evt *jobparser.Event) bool {
 				action = "edited"
 			}
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
+				if matchActivityType(val, string(action)) {
 					matchTimes++
 					break
 				}
@@ -832,7 +832,7 @@ func matchPackageEvent(payload *api.PackagePayload, evt *jobparser.Event) bool {
 				action = "published"
 			}
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
+				if matchActivityType(val, string(action)) {
 					matchTimes++
 					break
 				}
@@ -857,7 +857,7 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 		case "types":
 			action := payload.Action
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(action) {
+				if matchActivityType(val, action) {
 					matchTimes++
 					break
 				}
@@ -892,4 +892,14 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 		}
 	}
 	return matchTimes == len(evt.Acts())
+}
+
+// matchActivityType treats an invalid user-provided pattern as no match instead of panicking
+func matchActivityType(pattern string, actions ...string) bool {
+	g, err := glob.Compile(pattern, '/')
+	if err != nil {
+		log.Debug("invalid activity type pattern %q: %v", pattern, err)
+		return false
+	}
+	return slices.ContainsFunc(actions, g.Match)
 }

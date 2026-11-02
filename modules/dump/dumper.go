@@ -16,8 +16,8 @@ import (
 	"slices"
 	"strings"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/mholt/archives"
@@ -184,7 +184,7 @@ func (dumper *Dumper) Close() error {
 
 func (dumper *Dumper) normalizeFilePath(absPath string) string {
 	absPath = filepath.Clean(absPath)
-	if setting.IsWindows {
+	if consts.IsWindows {
 		absPath = strings.ToLower(absPath)
 	}
 	return absPath

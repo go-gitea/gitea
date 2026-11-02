@@ -5,7 +5,6 @@ package validation
 
 import (
 	"context"
-	"io"
 	"reflect"
 	"regexp"
 	"strings"
@@ -14,14 +13,13 @@ import (
 	"gitea.dev/modules/auth"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/glob"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/util"
-
-	"gitea.com/go-chi/binding" //nolint:depguard // this package wraps it
+	"gitea.dev/modules/web/binding"
 )
 
 const (
 	ErrCustomMessage       = "CustomMessage"
+	ErrEmail               = "EmailError"
+	ErrURL                 = "UrlError"
 	ErrGitRefName          = "GitRefNameError"
 	ErrGlobPattern         = "GlobPattern"
 	ErrRegexPattern        = "RegexPattern"
@@ -30,35 +28,19 @@ const (
 	ErrInvalidBadgeSlug    = "InvalidBadgeSlug"
 )
 
-type jsonProvider struct{}
-
-func (j jsonProvider) Marshal(v any) ([]byte, error) { return json.Marshal(v) }
-
-func (j jsonProvider) Unmarshal(data []byte, v any) error { return json.Unmarshal(data, v) }
-
-func (j jsonProvider) NewDecoder(reader io.Reader) binding.JSONDecoder {
-	return json.NewDecoder(reader)
-}
-
-func (j jsonProvider) NewEncoder(writer io.Writer) binding.JSONEncoder {
-	return json.NewEncoder(writer)
-}
-
 func newFieldError(field reflect.StructField, cls, msg string) *BindingError {
 	return &BindingError{FieldNames: []string{field.Name}, Classification: cls, Message: msg}
 }
 
 func AddValidationError(errs BindingErrors, fieldName, errorMsg string) BindingErrors {
-	errs.Add([]string{fieldName}, ErrCustomMessage, errorMsg)
-	return errs
+	return append(errs, BindingError{FieldNames: []string{fieldName}, Classification: ErrCustomMessage, Message: errorMsg})
 }
 
 // AddBindingRules adds additional binding rules
 func AddBindingRules(b *binding.Binder) {
-	b.ClearRules("Email")
 	b.AddRuleNonZero("Email", func(_ context.Context, f *binding.ValidationField) *binding.Error {
 		if !IsEmailAddressValid(f.ValueMustString()) {
-			return newFieldError(f.StructField, binding.ERR_EMAIL, "invalid email")
+			return newFieldError(f.StructField, ErrEmail, "invalid email")
 		}
 		return nil
 	})
@@ -71,13 +53,13 @@ func AddBindingRules(b *binding.Binder) {
 	})
 	b.AddRuleNonZero("ValidUrl", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
 		if !IsValidURL(f.ValueMustString()) {
-			return newFieldError(f.StructField, binding.ERR_URL, "Url")
+			return newFieldError(f.StructField, ErrURL, "Url")
 		}
 		return nil
 	})
 	b.AddRuleNonZero("ValidSiteUrl", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
 		if !IsValidSiteURL(f.ValueMustString()) {
-			return newFieldError(f.StructField, binding.ERR_URL, "Url")
+			return newFieldError(f.StructField, ErrURL, "Url")
 		}
 		return nil
 	})
@@ -152,7 +134,7 @@ func validPort(p string) bool {
 }
 
 var Binder = sync.OnceValue(func() *binding.Binder {
-	b := binding.NewBinder().WithJSONProvider(jsonProvider{}).WithDefaultRules().WithNameMapper(util.ToSnakeCase)
+	b := binding.NewBinder()
 	AddBindingRules(b)
 	return b
 })

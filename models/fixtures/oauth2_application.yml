@@ -3,7 +3,7 @@
   uid: 1
   name: "Test"
   client_id: "da7da3ba-9a13-4167-856f-3899de0b0138"
-  client_secret: "$2a$10$UYRgUSgekzBp6hYe8pAdc.cgB4Gn06QRKsORUnIYTYQADs.YR/uvi" # bcrypt of "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=
+  client_secret: "$2a$04$fk.C0LyaUcmxOFLcfcXUDO084yIA9o0nRwkSHSZb/tvZkCzLZjRea" # bcrypt of "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=
   redirect_uris: '["https://example.com"]'
   created_unix: 1546869730
   updated_unix: 1546869730
@@ -13,7 +13,7 @@
   uid: 2
   name: "Test native app"
   client_id: "ce5a1322-42a7-11ed-b878-0242ac120002"
-  client_secret: "$2a$10$UYRgUSgekzBp6hYe8pAdc.cgB4Gn06QRKsORUnIYTYQADs.YR/uvi" # bcrypt of "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=
+  client_secret: "$2a$04$VvPoNpflYJB94T8seLcZnOCTtQtB3Q2wXw7ZgrWIi2Oix3VWL8s7i" # bcrypt of "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=
   redirect_uris: '["http://127.0.0.1"]'
   created_unix: 1546869730
   updated_unix: 1546869730

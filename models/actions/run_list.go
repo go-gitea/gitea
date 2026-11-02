@@ -5,6 +5,8 @@ package actions
 
 import (
 	"context"
+	"maps"
+	"slices"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -40,6 +42,21 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// GetLatestAttempts returns the latest attempts of the runs keyed by attempt ID
+func (runs RunList) GetLatestAttempts(ctx context.Context) (map[int64]*ActionRunAttempt, error) {
+	attemptIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.LatestAttemptID, run.LatestAttemptID != 0
+	})
+	attempts := make(map[int64]*ActionRunAttempt, len(attemptIDs))
+	if len(attemptIDs) == 0 {
+		return attempts, nil
+	}
+	if err := db.GetEngine(ctx).In("id", attemptIDs).Find(&attempts); err != nil {
+		return nil, err
+	}
+	return attempts, ActionRunAttemptList(slices.Collect(maps.Values(attempts))).LoadTriggerUser(ctx)
 }
 
 func (runs RunList) LoadRepos(ctx context.Context) error {

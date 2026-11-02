@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -156,7 +156,7 @@ func createDelegateHooks(hookDir string) (err error) {
 
 func checkExecutable(filename string) bool {
 	// windows has no concept of a executable bit
-	if runtime.GOOS == "windows" {
+	if consts.IsWindows {
 		return true
 	}
 	fileInfo, err := os.Stat(filename)

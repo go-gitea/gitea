@@ -4,6 +4,7 @@
 package git_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 
@@ -22,147 +24,114 @@ func TestGetCommitStatuses(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
 	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
 
-	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
-		ListOptions: db.ListOptions{Page: 1, PageSize: 50},
-		RepoID:      repo1.ID,
-		SHA:         sha1,
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, 5, int(maxResults))
-	var indexes []int64
-	for _, status := range statuses {
-		indexes = append(indexes, status.Index)
-	}
-	assert.Equal(t, []int64{5, 4, 3, 2, 1}, indexes)
-	assert.Equal(t, "deploy/awesomeness", statuses[0].Context)
-	assert.Equal(t, commitstatus.CommitStatusError, statuses[0].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[0].APIURL(t.Context()))
+	t.Run("CommitStatusOptions", func(t *testing.T) {
+		statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
+			ListOptions: db.ListOptions{Page: 1, PageSize: 50},
+			RepoID:      repo1.ID,
+			SHA:         sha1,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 5, int(maxResults))
+		var indexes []int64
+		for _, status := range statuses {
+			indexes = append(indexes, status.Index)
+		}
+		assert.Equal(t, []int64{5, 4, 3, 2, 1}, indexes)
+		assert.Equal(t, "deploy/awesomeness", statuses[0].Context)
+		assert.Equal(t, commitstatus.CommitStatusError, statuses[0].State)
+		assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[0].APIURL(t.Context()))
 
-	statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
-		ListOptions: db.ListOptions{Page: 2, PageSize: 50},
-		RepoID:      repo1.ID,
-		SHA:         sha1,
+		statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
+			ListOptions: db.ListOptions{Page: 2, PageSize: 50},
+			RepoID:      repo1.ID,
+			SHA:         sha1,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 5, int(maxResults))
+		assert.Empty(t, statuses)
 	})
-	assert.NoError(t, err)
-	assert.Equal(t, 5, int(maxResults))
-	assert.Empty(t, statuses)
+
+	t.Run("GetCountLatestCommitStatus", func(t *testing.T) {
+		commitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo1.ID, sha1, db.ListOptions{
+			Page:     1,
+			PageSize: 2,
+		})
+		assert.NoError(t, err)
+		assert.Len(t, commitStatuses, 2)
+		assert.Equal(t, commitstatus.CommitStatusFailure, commitStatuses[0].State)
+		assert.Equal(t, "ci/awesomeness", commitStatuses[0].Context)
+		assert.Equal(t, commitstatus.CommitStatusError, commitStatuses[1].State)
+		assert.Equal(t, "deploy/awesomeness", commitStatuses[1].Context)
+
+		count, err := git_model.CountLatestCommitStatus(t.Context(), repo1.ID, sha1)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 3, count)
+	})
+
+	t.Run("GetLatestCommitStatusForRepoCommitIDs", func(t *testing.T) {
+		commitIDs := []string{sha1}
+		// SQLite has a limit of 1000 for WHERE expression variables per query, use a larger slice to test
+		for i := range 2000 {
+			commitIDs = append(commitIDs, fmt.Sprintf("%040x", i+1))
+		}
+		statuses, err := git_model.GetLatestCommitStatusForRepoCommitIDs(t.Context(), repo1.ID, commitIDs)
+		assert.NoError(t, err)
+		assert.Len(t, statuses[sha1], 3)
+		latestIndexes := make(map[string]int64)
+		for _, status := range statuses[sha1] {
+			latestIndexes[status.Context] = status.Index
+		}
+		assert.Equal(t, map[string]int64{
+			"ci/awesomeness":     4,
+			"cov/awesomeness":    3,
+			"deploy/awesomeness": 5,
+		}, latestIndexes)
+	})
 }
 
 func Test_CalcCommitStatus(t *testing.T) {
 	kases := []struct {
-		statuses []*git_model.CommitStatus
-		expected *git_model.CommitStatus
+		statuses commitstatus.CommitStatusStates
+		expected commitstatus.CommitStatusState
 	}{
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusPending,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusPending,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusPending},
+			expected: commitstatus.CommitStatusPending,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-				{
-					State: commitstatus.CommitStatusPending,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusPending,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusSuccess, commitstatus.CommitStatusPending},
+			expected: commitstatus.CommitStatusPending,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-				{
-					State: commitstatus.CommitStatusPending,
-				},
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusPending,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusSuccess, commitstatus.CommitStatusPending, commitstatus.CommitStatusSuccess},
+			expected: commitstatus.CommitStatusPending,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusError,
-				},
-				{
-					State: commitstatus.CommitStatusPending,
-				},
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusFailure,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusError, commitstatus.CommitStatusPending, commitstatus.CommitStatusSuccess},
+			expected: commitstatus.CommitStatusFailure,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusWarning,
-				},
-				{
-					State: commitstatus.CommitStatusPending,
-				},
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusFailure,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusWarning, commitstatus.CommitStatusPending, commitstatus.CommitStatusSuccess},
+			expected: commitstatus.CommitStatusFailure,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-				{
-					State: commitstatus.CommitStatusSuccess,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusSuccess,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusSuccess, commitstatus.CommitStatusSuccess, commitstatus.CommitStatusSuccess},
+			expected: commitstatus.CommitStatusSuccess,
 		},
 		{
-			statuses: []*git_model.CommitStatus{
-				{
-					State: commitstatus.CommitStatusFailure,
-				},
-				{
-					State: commitstatus.CommitStatusError,
-				},
-				{
-					State: commitstatus.CommitStatusWarning,
-				},
-			},
-			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusFailure,
-			},
+			statuses: commitstatus.CommitStatusStates{commitstatus.CommitStatusFailure, commitstatus.CommitStatusError, commitstatus.CommitStatusWarning},
+			expected: commitstatus.CommitStatusFailure,
 		},
 	}
 
 	for _, kase := range kases {
-		assert.Equal(t, kase.expected, git_model.CalcCommitStatus(kase.statuses), "statuses: %v", kase.statuses)
+		statuses := make([]*git_model.CommitStatus, len(kase.statuses))
+		for i, state := range kase.statuses {
+			statuses[i] = &git_model.CommitStatus{State: state}
+		}
+		assert.Equal(t, &git_model.CommitStatus{State: kase.expected}, git_model.CalcCommitStatus(statuses), "statuses: %v", statuses)
 	}
 }
 
@@ -187,29 +156,19 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 		assert.NoError(t, err)
 	}()
 
-	err = git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
-		Repo:    repo2,
-		Creator: user2,
-		SHA:     commit.ID,
-		CommitStatus: &git_model.CommitStatus{
-			State:     commitstatus.CommitStatusFailure,
-			TargetURL: "https://example.com/tests/",
-			Context:   "compliance/lint-backend",
-		},
-	})
-	assert.NoError(t, err)
-
-	err = git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
-		Repo:    repo2,
-		Creator: user2,
-		SHA:     commit.ID,
-		CommitStatus: &git_model.CommitStatus{
-			State:     commitstatus.CommitStatusSuccess,
-			TargetURL: "https://example.com/tests/",
-			Context:   "compliance/lint-backend",
-		},
-	})
-	assert.NoError(t, err)
+	for _, state := range []commitstatus.CommitStatusState{commitstatus.CommitStatusFailure, commitstatus.CommitStatusSuccess} {
+		err = git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
+			Repo:    repo2,
+			Creator: user2,
+			SHA:     commit.ID,
+			CommitStatus: &git_model.CommitStatus{
+				State:     state,
+				TargetURL: "https://example.com/tests/",
+				Context:   "compliance/lint-backend",
+			},
+		})
+		assert.NoError(t, err)
+	}
 
 	contexts, err := git_model.FindRepoRecentCommitStatusContexts(t.Context(), repo2.ID, time.Hour)
 	assert.NoError(t, err)
@@ -242,31 +201,10 @@ func TestCommitStatusesApplyDoerPermission(t *testing.T) {
 		},
 	}
 
-	git_model.CommitStatusesApplyDoerPermission(t.Context(), doer, statuses)
+	git_model.CommitStatusesApplyDoerPermission(cache.WithCacheContext(t.Context()), doer, statuses)
 	assert.Equal(t, visibleURL, statuses[0].TargetURL)
 	assert.Empty(t, statuses[1].TargetURL)
 	assert.Equal(t, "https://mycicd.org/1", statuses[2].TargetURL)
-}
-
-func TestGetCountLatestCommitStatus(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
-
-	commitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo1.ID, sha1, db.ListOptions{
-		Page:     1,
-		PageSize: 2,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, commitStatuses, 2)
-	assert.Equal(t, commitstatus.CommitStatusFailure, commitStatuses[0].State)
-	assert.Equal(t, "ci/awesomeness", commitStatuses[0].Context)
-	assert.Equal(t, commitstatus.CommitStatusError, commitStatuses[1].State)
-	assert.Equal(t, "deploy/awesomeness", commitStatuses[1].Context)
-
-	count, err := git_model.CountLatestCommitStatus(t.Context(), repo1.ID, sha1)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 3, count)
+	assert.NotNil(t, statuses[0].Repo)
+	assert.Same(t, statuses[0].Repo, statuses[2].Repo)
 }

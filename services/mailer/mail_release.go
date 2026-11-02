@@ -14,6 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
@@ -41,7 +42,14 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 
-	recipients, err := user_model.GetMailableUsersByIDs(ctx, watcherIDList, false)
+	customWatcherIDs, err := repo_model.GetRepoCustomWatchersIDs(ctx, rel.RepoID, repo_model.WatchReleases)
+	if err != nil {
+		log.Error("GetRepoCustomWatchersIDs(%d): %v", rel.RepoID, err)
+		return
+	}
+	customWatchers := container.SetOf(customWatcherIDs...)
+
+	recipients, err := user_model.GetMailableUsersByIDs(ctx, watcherIDList, len(customWatchers) > 0)
 	if err != nil {
 		log.Error("user_model.GetMailableUsersByIDs: %v", err)
 		return
@@ -52,9 +60,11 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 
-	// delete publisher or any users with no permission
+	// delete publisher, on-mention users without a custom watch or any users with no permission
 	recipients = slices.DeleteFunc(recipients, func(u *user_model.User) bool {
-		return u.ID == rel.PublisherID || !access_model.CheckRepoUnitUser(ctx, rel.Repo, u, unit.TypeReleases)
+		return u.ID == rel.PublisherID ||
+			u.EmailNotificationsPreference == user_model.EmailNotificationsOnMention && !customWatchers.Contains(u.ID) ||
+			!access_model.CheckRepoUnitUser(ctx, rel.Repo, u, unit.TypeReleases)
 	})
 
 	langMap := make(map[string][]*user_model.User)

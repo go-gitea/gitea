@@ -240,7 +240,7 @@ func FindAllMentionsBytes(content []byte) []RefSpan {
 }
 
 // FindFirstMentionBytes matches the first mention in then given content
-// and returns the location of the unvalidated user name, including the @ prefix.
+// and returns the location of the unvalidated username, including the @ prefix.
 func FindFirstMentionBytes(content []byte) (bool, RefSpan) {
 	mention := mentionPattern.FindSubmatchIndex(content)
 	if mention == nil {

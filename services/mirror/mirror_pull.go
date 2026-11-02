@@ -43,7 +43,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	}
 
 	err = git.ManagedRemoteAdd(ctx, repo, remoteName, addr, git.RemoteOptionMirrorFetch)
-	if err != nil && !git.IsRemoteNotExistError(err) {
+	if err != nil {
 		return err
 	}
 
@@ -56,7 +56,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		}
 
 		err = git.ManagedRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, git.RemoteOptionMirrorFetch)
-		if err != nil && !git.IsRemoteNotExistError(err) {
+		if err != nil {
 			return err
 		}
 	}

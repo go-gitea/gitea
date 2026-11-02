@@ -6,6 +6,7 @@ package auth
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync/atomic"
 	"testing"
 
@@ -32,6 +33,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider
 	response, terr := oauth2_provider.NewAccessTokenResponse(t.Context(), grant, signingKey, signingKey)
 	assert.Nil(t, terr)
 	assert.NotNil(t, response)
+	assert.Equal(t, grant.Scope, response.Scope)
 
 	parsedToken, err := jwt.ParseWithClaims(response.IDToken, &oauth2_provider.OIDCToken{}, func(token *jwt.Token) (any, error) {
 		assert.NotNil(t, token.Method)
@@ -115,21 +117,56 @@ func TestOAuth2ScopeChange(t *testing.T) {
 	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("oauth2-scope-change")}
-	authorize := func(scope string) int {
+	authorize := func(scope string) *httptest.ResponseRecorder {
 		ctx, resp := contexttest.MockContext(t, "/login/oauth/authorize", mockOpt)
 		ctx.Doer = doer
 		web.SetForm(ctx, &forms.AuthorizationForm{ResponseType: "code", ClientID: app.ClientID, RedirectURI: app.RedirectURIs[0], State: "state", Scope: scope})
 		AuthorizeOAuth(ctx)
-		return resp.Code
+		return resp
 	}
-	assert.Equal(t, http.StatusSeeOther, authorize(""))
-	assert.Equal(t, http.StatusSeeOther, authorize("profile openid"))
-	assert.Equal(t, http.StatusOK, authorize("openid profile email"))
+	assert.Equal(t, http.StatusSeeOther, authorize("").Code)
+	assert.Equal(t, http.StatusSeeOther, authorize("profile openid").Code)
+	grant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1})
+	require.NoError(t, auth.UpdateGrantScope(t.Context(), grant, "openid profile read:user write:user"))
+	assert.Equal(t, http.StatusSeeOther, authorize("openid profile write:user").Code)
+	require.NoError(t, auth.UpdateGrantScope(t.Context(), grant, "openid invalid:scope"))
+	assert.Equal(t, http.StatusOK, authorize("openid profile").Code)
+	require.NoError(t, auth.UpdateGrantScope(t.Context(), grant, "openid profile"))
+	assert.Equal(t, http.StatusOK, authorize("openid profile email").Code)
 
-	ctx, resp := contexttest.MockContext(t, "/login/oauth/grant", mockOpt)
-	ctx.Doer = doer
-	web.SetForm(ctx, &forms.GrantApplicationForm{ClientID: app.ClientID, Granted: true, RedirectURI: app.RedirectURIs[0], State: "state", Scope: "openid profile email"})
-	GrantApplicationOAuth(ctx)
-	assert.Equal(t, http.StatusSeeOther, resp.Code)
-	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, Scope: "openid profile email"})
+	for _, tt := range []struct {
+		name, scope, wantScope string
+	}{
+		{"only invalid scopes", "invalid:scope unsupported", "no-token-scope"},
+		{"OIDC with invalid scope", "openid invalid:scope", "openid no-token-scope"},
+		{"comma-only scope", ",", "no-token-scope"},
+		{"OIDC with comma-only scope", "openid ,,", "openid no-token-scope"},
+		{"OIDC scopes", "openid profile email", "openid profile email"},
+		{"mixed valid and invalid scopes", "openid groups read:user,invalid:scope public-only unsupported", "openid groups public-only read:user"},
+		{"normalized access scopes", " read:user  openid profile email read:user ", "openid profile email read:user"},
+		{"redundant read scope", "openid read:user write:user", "openid write:user"},
+		{"redundant scope with all", "openid all read:user", "openid all"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := authorize(tt.scope)
+			require.Equal(t, http.StatusOK, resp.Code)
+			ctx, resp := contexttest.MockContext(t, "/login/oauth/grant", mockOpt)
+			ctx.Doer = doer
+			web.SetForm(ctx, &forms.GrantApplicationForm{ClientID: app.ClientID, Granted: true, RedirectURI: app.RedirectURIs[0], State: "state", Scope: tt.scope})
+			GrantApplicationOAuth(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			redirect, err := url.Parse(resp.Header().Get("Location"))
+			require.NoError(t, err)
+			assert.Empty(t, redirect.Query().Get("error"))
+			assert.Equal(t, "state", redirect.Query().Get("state"))
+			unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, Scope: tt.wantScope})
+			assert.NotEmpty(t, redirect.Query().Get("code"))
+			resp = authorize(tt.scope)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			redirect, err = url.Parse(resp.Header().Get("Location"))
+			require.NoError(t, err)
+			assert.NotEmpty(t, redirect.Query().Get("code"))
+			assert.Empty(t, redirect.Query().Get("error"))
+		})
+	}
 }

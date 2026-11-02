@@ -5,11 +5,14 @@ package security
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	audit_model "gitea.dev/models/audit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/openid"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -18,6 +21,8 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
+
+const openIDAssociationCodeMinutes = 10
 
 // OpenIDPost response for change user's openid
 func OpenIDPost(ctx *context.Context) {
@@ -70,7 +75,8 @@ func OpenIDPost(ctx *context.Context) {
 		}
 	}
 
-	redirectTo := setting.AppURL + "user/settings/security"
+	state := base.CreateTimeLimitCode(fmt.Sprintf("openid_association:%d", ctx.Doer.ID), openIDAssociationCodeMinutes, time.Now(), nil)
+	redirectTo := setting.AppURL + "user/settings/security?state=" + state
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
 		loadSecurityData(ctx)
@@ -82,6 +88,11 @@ func OpenIDPost(ctx *context.Context) {
 }
 
 func settingsOpenIDVerify(ctx *context.Context) {
+	if !base.VerifyTimeLimitCode(time.Now(), fmt.Sprintf("openid_association:%d", ctx.Doer.ID), openIDAssociationCodeMinutes, ctx.FormString("state")) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	log.Trace("Incoming call to: " + ctx.Req.URL.String())
 
 	fullURL := setting.AppURL + ctx.Req.URL.String()[1:]

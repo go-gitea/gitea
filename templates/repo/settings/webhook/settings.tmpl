@@ -66,26 +66,30 @@
 	<h4>{{ctx.Locale.Tr "repo.settings.event_desc"}}</h4>
 	<div class="grouped event type fields">
 		<div class="field">
-			<div class="ui radio non-events checkbox">
+			<div class="ui radio checkbox">
 				<input name="events" type="radio" value="push_only" {{if or $isNew .Webhook.PushOnly}}checked{{end}}>
 				<label>{{ctx.Locale.Tr "repo.settings.event_push_only"}}</label>
 			</div>
 		</div>
 		<div class="field">
-			<div class="ui radio non-events checkbox">
+			<div class="ui radio checkbox">
 				<input name="events" type="radio" value="send_everything" {{if .Webhook.SendEverything}}checked{{end}}>
 				<label>{{ctx.Locale.Tr "repo.settings.event_send_everything"}}</label>
 			</div>
 		</div>
 		<div class="field">
-			<div class="ui radio events checkbox">
+			<div class="ui radio checkbox">
 				<input name="events" type="radio" value="choose_events" {{if .Webhook.ChooseEvents}}checked{{end}}>
 				<label>{{ctx.Locale.Tr "repo.settings.event_choose"}}</label>
 			</div>
 		</div>
 	</div>
 
-	<div class="events fields ui grid {{if not .Webhook.ChooseEvents}}tw-hidden{{end}}">
+	<div class="fields ui grid {{if not .Webhook.ChooseEvents}}tw-hidden{{end}} js-webhook-custom-events">
+		<div class="fourteen wide column">
+			<button type="button" class="ui tiny button" data-events-select-all="true">{{ctx.Locale.Tr "admin.notices.select_all"}}</button>
+			<button type="button" class="ui tiny button" data-events-select-all="false">{{ctx.Locale.Tr "admin.notices.deselect_all"}}</button>
+		</div>
 		<!-- Repository Events -->
 		<div class="fourteen wide column">
 			<label>{{ctx.Locale.Tr "repo.settings.event_header_repository"}}</label>

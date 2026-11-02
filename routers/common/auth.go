@@ -6,6 +6,8 @@ package common
 import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web/middleware"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -55,4 +57,17 @@ type VerifyOptions struct {
 	SignOutRequired              bool
 	AdminRequired                bool
 	DisableCrossOriginProtection bool
+}
+
+func CheckSignedInUser(doer *user_model.User, sess session.Store) (ret struct {
+	NeedActivateAccount bool
+	LoginIsProhibited   bool
+	NeedChangePassword  bool
+},
+) {
+	ret.NeedActivateAccount = !doer.IsActive && setting.Service.RegisterEmailConfirm
+	ret.LoginIsProhibited = !doer.IsActive || doer.ProhibitLogin
+	isImpersonated := sess != nil && context.IsDoerSessionImpersonated(sess)
+	ret.NeedChangePassword = doer.MustChangePassword && !isImpersonated && !doer.IsTypeBot()
+	return ret
 }

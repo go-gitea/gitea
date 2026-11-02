@@ -4,10 +4,9 @@
 package git
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
-
-	"gitea.dev/modules/git/gitcmd"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,26 +38,6 @@ func TestRepository_GetBranches(t *testing.T) {
 	assert.Empty(t, branches)
 	assert.Equal(t, 3, countAll)
 	assert.ElementsMatch(t, []string{}, branches)
-}
-
-func TestGetBranchNamesAfterRepack(t *testing.T) {
-	repoDir := t.TempDir()
-	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(repoDir).Run(t.Context()))
-	for _, from := range []string{"", "from refs/heads/main^0\n"} {
-		stdin := "commit refs/heads/main\ncommitter a <a@a> 0 +0000\ndata 0\n" + from
-		require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(stdin)).Run(t.Context()))
-		require.NoError(t, gitcmd.NewCommand("repack", "-d").WithDir(repoDir).Run(t.Context()))
-	}
-
-	repo, err := OpenRepositoryLocal(t.Context(), repoDir)
-	require.NoError(t, err)
-	defer repo.Close()
-	require.False(t, repo.IsObjectExist(t.Context(), "0000000000000000000000000000000000000001"))
-	require.NoError(t, gitcmd.NewCommand("repack", "-a", "-d").WithDir(repoDir).Run(t.Context()))
-
-	branches, _, err := repo.GetBranchNames(t.Context(), 0, 0)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"main"}, branches)
 }
 
 func BenchmarkRepository_GetBranches(b *testing.B) {
@@ -118,108 +97,37 @@ func BenchmarkGetRefsBySha(b *testing.B) {
 	_, _ = bareRepo5.GetRefsBySha(b.Context(), "58a4bcc53ac13e7ff76127e0fb518b5262bf09af", "")
 }
 
-func TestRepository_IsObjectExist(t *testing.T) {
-	ctx := t.Context()
-	repo, err := OpenRepositoryLocal(ctx, filepath.Join(testReposDir, "repo1_bare"))
-	require.NoError(t, err)
-	defer repo.Close()
-
-	// FIXME: Inconsistent behavior between gogit and nogogit editions
-	// See the comment of IsObjectExist in gogit edition for more details.
-	supportShortHash := !isGogit
-
-	tests := []struct {
-		name string
-		arg  string
-		want bool
+func TestRepository_Existence(t *testing.T) {
+	for _, method := range []struct {
+		name         string
+		exists       func(*Repository, context.Context, string) bool
+		branchExists bool
 	}{
-		{
-			name: "empty",
-			arg:  "",
-			want: false,
-		},
-		{
-			name: "branch",
-			arg:  "master",
-			want: false,
-		},
-		{
-			name: "commit hash",
-			arg:  "ce064814f4a0d337b333e646ece456cd39fab612",
-			want: true,
-		},
-		{
-			name: "short commit hash",
-			arg:  "ce06481",
-			want: supportShortHash,
-		},
-		{
-			name: "blob hash",
-			arg:  "153f451b9ee7fa1da317ab17a127e9fd9d384310",
-			want: true,
-		},
-		{
-			name: "short blob hash",
-			arg:  "153f451",
-			want: supportShortHash,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, repo.IsObjectExist(ctx, tt.arg))
-		})
-	}
-}
+		{"IsObjectExist", (*Repository).IsObjectExist, false},
+		{"IsReferenceExist", (*Repository).IsReferenceExist, true},
+	} {
+		t.Run(method.name, func(t *testing.T) {
+			ctx := t.Context()
+			repo, err := OpenRepositoryLocal(ctx, filepath.Join(testReposDir, "repo1_bare"))
+			require.NoError(t, err)
+			defer repo.Close()
 
-func TestRepository_IsReferenceExist(t *testing.T) {
-	ctx := t.Context()
-	repo, err := OpenRepositoryLocal(ctx, filepath.Join(testReposDir, "repo1_bare"))
-	require.NoError(t, err)
-	defer repo.Close()
-
-	// FIXME: Inconsistent behavior between gogit and nogogit editions
-	// See the comment of IsReferenceExist in gogit edition for more details.
-	supportBlobHash := !isGogit
-
-	tests := []struct {
-		name string
-		arg  string
-		want bool
-	}{
-		{
-			name: "empty",
-			arg:  "",
-			want: false,
-		},
-		{
-			name: "branch",
-			arg:  "master",
-			want: true,
-		},
-		{
-			name: "commit hash",
-			arg:  "ce064814f4a0d337b333e646ece456cd39fab612",
-			want: true,
-		},
-		{
-			name: "short commit hash",
-			arg:  "ce06481",
-			want: true,
-		},
-		{
-			name: "blob hash",
-			arg:  "153f451b9ee7fa1da317ab17a127e9fd9d384310",
-			want: supportBlobHash,
-		},
-		{
-			name: "short blob hash",
-			arg:  "153f451",
-			want: supportBlobHash,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, repo.IsReferenceExist(ctx, tt.arg))
+			for _, testCase := range []struct {
+				name string
+				arg  string
+				want bool
+			}{
+				{"empty", "", false},
+				{"branch", "master", method.branchExists},
+				{"commit hash", "ce064814f4a0d337b333e646ece456cd39fab612", true},
+				{"short commit hash", "ce06481", true},
+				{"blob hash", "153f451b9ee7fa1da317ab17a127e9fd9d384310", true},
+				{"short blob hash", "153f451", true},
+			} {
+				t.Run(testCase.name, func(t *testing.T) {
+					assert.Equal(t, testCase.want, method.exists(repo, ctx, testCase.arg))
+				})
+			}
 		})
 	}
 }

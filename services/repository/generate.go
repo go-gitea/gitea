@@ -263,7 +263,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("readGiteaTemplateFile: %w", err)
 	}
 
-	if err = git.InitRepositoryLocal(ctx, tmpDir, false, templateRepo.ObjectFormatName); err != nil {
+	if err = git.InitRepositoryLocal(ctx, tmpDir, false, templateRepo.ObjectFormatName, ""); err != nil {
 		return err
 	}
 

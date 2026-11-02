@@ -99,7 +99,9 @@ func handleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 			return true
 		}
 	}
-	if lastModified != nil && !lastModified.IsZero() {
+	// https://www.rfc-editor.org/rfc/rfc9110#section-13.1.3
+	// A recipient MUST ignore If-Modified-Since if the request contains an If-None-Match header field
+	if lastModified != nil && !lastModified.IsZero() && req.Header.Get("If-None-Match") == "" {
 		ifModifiedSince := req.Header.Get("If-Modified-Since")
 		if ifModifiedSince != "" {
 			t, err := time.Parse(http.TimeFormat, ifModifiedSince)

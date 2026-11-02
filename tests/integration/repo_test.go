@@ -44,6 +44,7 @@ func TestRepoView(t *testing.T) {
 	t.Run("ViewRepoDirectory", testViewRepoDirectory)
 	t.Run("ViewRepoDirectoryReadme", testViewRepoDirectoryReadme)
 	t.Run("ViewRepoSymlink", testViewRepoSymlink)
+	t.Run("ViewRepoCitationPicksCFFCaseInsensitivelyThroughSymlink", testViewRepoCitationPicksCFFCaseInsensitivelyThroughSymlink)
 	t.Run("MarkDownReadmeImage", testMarkDownReadmeImage)
 	t.Run("MarkDownReadmeImageSubfolder", testMarkDownReadmeImageSubfolder)
 	t.Run("GeneratedSourceLink", testGeneratedSourceLink)
@@ -68,8 +69,7 @@ func testViewRepoPublic(t *testing.T) {
 	req = NewRequest(t, "GET", "/org3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
-	session = loginUser(t, "user1")
-	session.MakeRequest(t, req, http.StatusNotFound)
+	loginUser(t, "user1").MakeRequest(t, NewRequest(t, "GET", "/org3/repo3"), http.StatusOK)
 }
 
 func testViewRepoWithCache(t *testing.T) {
@@ -186,9 +186,9 @@ func testViewRepo1CloneLinkAnonymous(t *testing.T) {
 	_, exists = htmlDoc.doc.Find(".repo-clone-ssh").Attr("data-link")
 	assert.False(t, exists)
 
-	link, exists = htmlDoc.doc.Find(".repo-clone-tea").Attr("data-link")
+	link, exists = htmlDoc.doc.Find(".repo-clone-cli").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
-	assert.Equal(t, "tea clone user2/repo1", link)
+	assert.Equal(t, "gt repo clone user2/repo1", link)
 }
 
 func testViewRepo1CloneLinkAuthorized(t *testing.T) {
@@ -209,9 +209,9 @@ func testViewRepo1CloneLinkAuthorized(t *testing.T) {
 	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.SSH.User, setting.SSH.Domain, setting.SSH.Port)
 	assert.Equal(t, sshURL, link)
 
-	link, exists = htmlDoc.doc.Find(".repo-clone-tea").Attr("data-link")
+	link, exists = htmlDoc.doc.Find(".repo-clone-cli").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
-	assert.Equal(t, "tea clone user2/repo1", link)
+	assert.Equal(t, "gt repo clone user2/repo1", link)
 }
 
 func testViewRepoWithSymlinks(t *testing.T) {
@@ -511,6 +511,24 @@ func testViewRepoSymlink(t *testing.T) {
 	req = NewRequest(t, "GET", followSymbolLinkHref)
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/user2/repo1/src/branch/symlink/some/other/path/awefulcake.txt?follow_symlink=1", resp.Header().Get("Location"))
+}
+
+func testViewRepoCitationPicksCFFCaseInsensitivelyThroughSymlink(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 2, ID: 1})
+	require.NoError(t, git.ForceFastImport(t.Context(), repo.CodeStorageRepo(), []git.FastImportCommit{
+		{
+			Ref: "refs/heads/citation", Message: "test", Files: []git.FastImportFile{
+				{Path: "CITATION.CFF/README.md", Content: "not a citation"},
+				{Path: "CITATION.bib", Content: "@misc{key}"},
+				{Mode: git.EntryModeSymlink, Path: "citation.cff", Content: "meta/citation.yaml"},
+				{Path: "meta/citation.yaml", Content: "title: Tool\nauthors: [{name: Team}]\n"},
+			},
+		},
+	}))
+	resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/src/branch/citation"), http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, "Team. Tool [Computer software]", htmlDoc.Find("#cite-repo-modal .citation-apa").AttrOr("data-text", ""))
+	assert.Equal(t, "/user2/repo1/src/branch/citation/citation.cff", htmlDoc.Find("#cite-repo-modal a.jump").AttrOr("href", ""))
 }
 
 func testMarkDownReadmeImage(t *testing.T) {

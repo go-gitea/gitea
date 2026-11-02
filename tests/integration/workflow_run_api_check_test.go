@@ -28,7 +28,7 @@ func TestAPIWorkflowRun(t *testing.T) {
 		testAPIWorkflowRunBasic(t, "/api/v1/user/actions", "User2", 803, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
 	})
 	t.Run("OrgRuns", func(t *testing.T) {
-		testAPIWorkflowRunBasic(t, "/api/v1/orgs/org3/actions", "User1", 802, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadRepository)
+		testAPIWorkflowRunBasic(t, "/api/v1/orgs/org3/actions", "User1", 802, auth_model.AccessTokenScopeAll)
 	})
 	t.Run("RepoRuns", func(t *testing.T) {
 		testAPIWorkflowRunBasic(t, "/api/v1/repos/org3/repo5/actions", "User2", 802, auth_model.AccessTokenScopeReadRepository)

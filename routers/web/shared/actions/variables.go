@@ -27,8 +27,7 @@ const (
 )
 
 type variablesCtx struct {
-	OwnerID           int64
-	RepoID            int64
+	BelongingScope    actions_model.BelongingScope
 	IsRepo            bool
 	IsOrg             bool
 	IsUser            bool
@@ -40,8 +39,7 @@ type variablesCtx struct {
 func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &variablesCtx{
-			OwnerID:           0,
-			RepoID:            ctx.Repo.Repository.ID,
+			BelongingScope:    actions_model.BelongingScopeRepo(ctx.Repo.Repository.ID),
 			IsRepo:            true,
 			VariablesTemplate: tplRepoVariables,
 			RedirectLink:      ctx.Repo.RepoLink + "/settings/actions/variables",
@@ -54,8 +52,7 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 			return nil, nil //nolint:nilnil // error is already handled by ctx.ServerError
 		}
 		return &variablesCtx{
-			OwnerID:           ctx.ContextUser.ID,
-			RepoID:            0,
+			BelongingScope:    actions_model.BelongingScopeOwner(ctx.Org.Organization.ID),
 			IsOrg:             true,
 			VariablesTemplate: tplOrgVariables,
 			RedirectLink:      ctx.Org.OrgLink + "/settings/actions/variables",
@@ -64,8 +61,7 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 
 	if ctx.Data["PageIsUserSettings"] == true {
 		return &variablesCtx{
-			OwnerID:           ctx.Doer.ID,
-			RepoID:            0,
+			BelongingScope:    actions_model.BelongingScopeOwner(ctx.Doer.ID),
 			IsUser:            true,
 			VariablesTemplate: tplUserVariables,
 			RedirectLink:      setting.AppSubURL + "/user/settings/actions/variables",
@@ -74,8 +70,7 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 
 	if ctx.Data["PageIsAdmin"] == true {
 		return &variablesCtx{
-			OwnerID:           0,
-			RepoID:            0,
+			BelongingScope:    actions_model.BelongingScopeGlobal(),
 			IsGlobal:          true,
 			VariablesTemplate: tplAdminVariables,
 			RedirectLink:      setting.AppSubURL + "/-/admin/actions/variables",
@@ -97,8 +92,7 @@ func Variables(ctx *context.Context) {
 	}
 
 	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		OwnerID: vCtx.OwnerID,
-		RepoID:  vCtx.RepoID,
+		BelongingScope: vCtx.BelongingScope,
 	})
 	if err != nil {
 		ctx.ServerError("FindVariables", err)
@@ -124,7 +118,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm[*forms.EditVariableForm](ctx)
 
-	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
+	v, err := actions_service.CreateVariable(ctx, vCtx.BelongingScope, form.Name, form.Data, form.Description)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -168,25 +162,9 @@ func VariableUpdate(ctx *context.Context) {
 
 func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *actions_model.ActionVariable {
 	opts := actions_model.FindVariablesOpts{
-		IDs: []int64{id},
+		IDs:            []int64{id},
+		BelongingScope: vCtx.BelongingScope,
 	}
-	switch {
-	case vCtx.IsRepo:
-		opts.RepoID = vCtx.RepoID
-		if opts.RepoID == 0 {
-			panic("RepoID is 0")
-		}
-	case vCtx.IsOrg, vCtx.IsUser:
-		opts.OwnerID = vCtx.OwnerID
-		if opts.OwnerID == 0 {
-			panic("OwnerID is 0")
-		}
-	case vCtx.IsGlobal:
-		// do nothing
-	default:
-		panic("invalid actions variable")
-	}
-
 	got, err := actions_model.FindVariables(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindVariables", err)

@@ -150,9 +150,9 @@ func GetWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*
 }
 
 // GetWebAuthnCredentialByID returns WebAuthn credential by id
-func GetWebAuthnCredentialByID(ctx context.Context, id int64) (*WebAuthnCredential, error) {
+func GetWebAuthnCredentialByID(ctx context.Context, uid, id int64) (*WebAuthnCredential, error) {
 	cred := new(WebAuthnCredential)
-	if found, err := db.GetEngine(ctx).ID(id).Get(cred); err != nil {
+	if found, err := db.GetEngine(ctx).Where("user_id = ?", uid).ID(id).Get(cred); err != nil {
 		return nil, err
 	} else if !found {
 		return nil, ErrWebAuthnCredentialNotExist{ID: id}
@@ -195,8 +195,26 @@ func CreateCredential(ctx context.Context, userID int64, name string, cred *weba
 	return c, nil
 }
 
+// RenameCredential renames the user's WebAuthnCredential, names are unique per user regardless of letter case
+func RenameCredential(ctx context.Context, uid, id int64, name string) (bool, error) {
+	used, err := db.GetEngine(ctx).Where("user_id = ? AND lower_name = ? AND id != ?", uid, strings.ToLower(name), id).Exist(&WebAuthnCredential{})
+	if err != nil {
+		return false, err
+	} else if used {
+		return false, util.ErrorWrapTranslatable(
+			util.NewAlreadyExistErrorf("WebAuthn credential name already exists [uid: %d, name: %s]", uid, name),
+			"settings.webauthn_nickname_been_used",
+		)
+	}
+	updated, err := db.GetEngine(ctx).ID(id).Where("user_id=? AND `name`<>?", uid, name).Cols("name", "lower_name").Update(&WebAuthnCredential{
+		Name:      name,
+		LowerName: strings.ToLower(name),
+	})
+	return updated > 0, err
+}
+
 // DeleteCredential will delete WebAuthnCredential
-func DeleteCredential(ctx context.Context, id, userID int64) (bool, error) {
-	had, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Delete(&WebAuthnCredential{})
+func DeleteCredential(ctx context.Context, uid, id int64) (bool, error) {
+	had, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", uid).Delete(&WebAuthnCredential{})
 	return had > 0, err
 }

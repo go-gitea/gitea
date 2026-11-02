@@ -282,35 +282,6 @@ func DeleteOrphanedIssueLabels(ctx context.Context) error {
 	return err
 }
 
-// CountIssueLabelWithOutsideLabels count label comments with outside label
-func CountIssueLabelWithOutsideLabels(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where(builder.Expr("(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)")).
-		Table("issue_label").
-		Join("inner", "label", "issue_label.label_id = label.id ").
-		Join("inner", "issue", "issue.id = issue_label.issue_id ").
-		Join("inner", "repository", "issue.repo_id = repository.id").
-		Count(new(IssueLabel))
-}
-
-// FixIssueLabelWithOutsideLabels fix label comments with outside label
-func FixIssueLabelWithOutsideLabels(ctx context.Context) (int64, error) {
-	res, err := db.GetEngine(ctx).Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
-		SELECT il_too.id FROM (
-			SELECT il_too_too.id
-				FROM issue_label AS il_too_too
-					INNER JOIN label ON il_too_too.label_id = label.id
-					INNER JOIN issue on issue.id = il_too_too.issue_id
-					INNER JOIN repository on repository.id = issue.repo_id
-				WHERE
-					(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
-	) AS il_too )`)
-	if err != nil {
-		return 0, err
-	}
-
-	return res.RowsAffected()
-}
-
 // LoadLabels loads labels
 func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 	if !issue.isLabelsLoaded && issue.Labels == nil && issue.ID != 0 {

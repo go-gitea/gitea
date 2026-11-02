@@ -15,89 +15,57 @@ import (
 )
 
 func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
-	iniStr := `
+	for _, tc := range []struct {
+		iniStr, logType, artifactType string
+	}{
+		{`
 	[storage]
 	STORAGE_TYPE = minio
-	`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
-
-	iniStr = `
+	`, "minio", "minio"},
+		{`
 [storage.actions_log]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
-
-	iniStr = `
+`, "minio", "local"},
+		{`
 [storage.actions_log]
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
-
-	iniStr = `
+`, "minio", "local"},
+		{`
 [storage.actions_artifacts]
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
-
-	iniStr = `
+`, "local", "minio"},
+		{`
 [storage.actions_artifacts]
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
 STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
+`, "local", "minio"},
+		{``, "local", "local"},
+	} {
+		cfg, err := NewConfigProviderFromData(tc.iniStr)
+		assert.NoError(t, err)
+		assert.NoError(t, loadActionsFrom(cfg))
 
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
-
-	iniStr = ``
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
+		assert.EqualValues(t, tc.logType, Actions.LogStorage.Type)
+		if tc.logType == "minio" {
+			assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
+		} else {
+			assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
+		}
+		assert.EqualValues(t, tc.artifactType, Actions.ArtifactStorage.Type)
+		if tc.artifactType == "minio" {
+			assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
+		} else {
+			assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
+		}
+	}
 }
 
 func Test_WorkflowDirs(t *testing.T) {

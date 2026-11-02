@@ -4,12 +4,15 @@
 package repo
 
 import (
+	"cmp"
 	"errors"
 	"net/http"
+	"slices"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	"gitea.dev/modules/label"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/templates"
@@ -76,6 +79,16 @@ func RetrieveLabelsForList(ctx *context.Context) {
 		}
 		for _, l := range orgLabels {
 			l.CalOpenOrgIssues(ctx, ctx.Repo.Repository.ID, l.ID)
+		}
+		switch ctx.FormString("sort") {
+		case "leastissues":
+			slices.SortStableFunc(orgLabels, func(label1, label2 *issues_model.Label) int {
+				return cmp.Compare(label1.NumOpenRepoIssues, label2.NumOpenRepoIssues)
+			})
+		case "mostissues":
+			slices.SortStableFunc(orgLabels, func(label1, label2 *issues_model.Label) int {
+				return cmp.Compare(label2.NumOpenRepoIssues, label1.NumOpenRepoIssues)
+			})
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 
@@ -152,7 +165,7 @@ func UpdateLabel(ctx *context.Context) {
 
 // DeleteLabel delete a label
 func DeleteLabel(ctx *context.Context) {
-	if err := issues_model.DeleteLabel(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
+	if err := issues_model.DeleteRepoLabel(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteLabel: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))
@@ -163,7 +176,7 @@ func DeleteLabel(ctx *context.Context) {
 
 // UpdateIssueLabel change issue's labels
 func UpdateIssueLabel(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}

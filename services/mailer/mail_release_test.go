@@ -61,3 +61,29 @@ func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 	assert.Equal(t, admin.EmailTo(), sent[0].To)
 	assert.NotEqual(t, unauthorized.EmailTo(), sent[0].To)
 }
+
+func TestMailNewReleaseOnMentionCustomWatch(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.MailService, &setting.Mailer{FromEmail: "noreply@example.com"})()
+	defer mockMailTemplates(string(tplNewReleaseMail), "{{.Subject}}", "<p>{{.Release.TagName}}</p>")()
+
+	// users 4 and 9 only get mail on mention and watch repo 1 with all activity
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	customWatcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	allWatcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
+	require.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), customWatcher, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeCustom, WatchReleases: true}))
+
+	rel := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1, RepoID: repo.ID})
+	rel.Publisher = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: rel.PublisherID})
+
+	var recipients []string
+	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
+		for _, msg := range msgs {
+			recipients = append(recipients, msg.To)
+		}
+	})()
+
+	MailNewRelease(t.Context(), rel)
+	assert.Contains(t, recipients, customWatcher.EmailTo())
+	assert.NotContains(t, recipients, allWatcher.EmailTo())
+}

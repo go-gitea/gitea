@@ -77,40 +77,18 @@ func TestRenderRepoComment(t *testing.T) {
 	}
 	t.Run("RenderCommitBody", func(t *testing.T) {
 		defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
-		type args struct {
-			msg string
-		}
 		tests := []struct {
 			name string
-			args args
-			want template.HTML
+			msg  string
 		}{
-			{
-				name: "multiple lines",
-				args: args{
-					msg: "first line\nsecond line",
-				},
-				want: "second line",
-			},
-			{
-				name: "multiple lines with leading newlines",
-				args: args{
-					msg: "\n\n\n\nfirst line\nsecond line",
-				},
-				want: "second line",
-			},
-			{
-				name: "multiple lines with trailing newlines",
-				args: args{
-					msg: "first line\nsecond line\n\n\n",
-				},
-				want: "second line",
-			},
+			{"multiple lines", "first line\nsecond line"},
+			{"multiple lines with leading newlines", "\n\n\n\nfirst line\nsecond line"},
+			{"multiple lines with trailing newlines", "first line\nsecond line\n\n\n"},
 		}
 		ut := newTestRenderUtils(t)
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				assert.Equalf(t, tt.want, ut.RenderCommitBody(tt.args.msg, mockRepo), "RenderCommitBody(%v, %v)", tt.args.msg, nil)
+				assert.Equalf(t, template.HTML("second line"), ut.RenderCommitBody(tt.msg, mockRepo), "RenderCommitBody(%v, %v)", tt.msg, nil)
 			})
 		}
 
@@ -156,6 +134,23 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 		// a URL embedded in larger subject text still becomes its own link
 		expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">see </a><a href="https://example.com/x" data-markdown-generated-content="">https://example.com/x</a><a href="https://example.com/link" class="muted title-full-link"> here</a></span>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("see https://example.com/x here", "https://example.com/link", mockRepo))
+	})
+
+	t.Run("RenderCommitMessageLinkSubjectEmoji", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.UI.CustomEmojisMap, map[string]string{"custom-emoji": ":custom-emoji:"})()
+		for _, tt := range []struct {
+			name, subject, content string
+		}{
+			{"native", "Bug ❌ Feature ✅", `Bug <span class="emoji" data-alias="x">❌</span> Feature <span class="emoji" data-alias="white_check_mark">✅</span>`},
+			{"shortcode", "Ship :+1: today", `Ship <span class="emoji" data-alias="+1">👍</span> today`},
+			{"emoji only", "👍", `<span class="emoji" data-alias="+1">👍</span>`},
+			{"custom", "Ship :custom-emoji:", `Ship <span class="emoji"><img alt=":custom-emoji:" src="/assets/img/emoji/custom-emoji.png"/></span>`},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">` + tt.content + `</a></span>`
+				assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject(tt.subject, "https://example.com/link", mockRepo))
+			})
+		}
 	})
 
 	t.Run("RenderIssueTitle", func(t *testing.T) {
@@ -319,7 +314,7 @@ func TestRenderLabels(t *testing.T) {
 }
 
 func TestUserMention(t *testing.T) {
-	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	rendered := newTestRenderUtils(t).MarkdownToHtml("@no-such-user @mention-user @mention-user")
 	assert.Equal(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }

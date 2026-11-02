@@ -48,7 +48,7 @@ func testMain(m *testing.M) int {
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	err := tests.InitIntegrationTest()
+	workPath, err := tests.InitIntegrationTest()
 	if err != nil {
 		return testlogger.MainErrorf("InitTest error: %v", err)
 	}
@@ -67,11 +67,12 @@ func testMain(m *testing.M) int {
 	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
 
-	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
-		log.Error("Failed to remove indexer path: %v", err)
-	}
-	if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
-		log.Error("Failed to remove indexer path: %v", err)
+	if exitCode == 0 {
+		graceful.GetManager().DoGracefulShutdown() // let background tasks finish writing
+		<-graceful.GetManager().Done()
+		if err = os.RemoveAll(workPath); err != nil {
+			log.Error("Failed to remove work path: %v", err)
+		}
 	}
 	return exitCode
 }

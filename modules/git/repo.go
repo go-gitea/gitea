@@ -118,7 +118,7 @@ func IsRepoURLAccessible(ctx context.Context, url string) bool {
 }
 
 // InitRepositoryLocal initializes a new Git repository.
-func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, objectFormatName string) error {
+func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, objectFormatName, initialBranch string) error {
 	err := os.MkdirAll(localRepoPath, os.ModePerm)
 	if err != nil {
 		return err
@@ -131,6 +131,9 @@ func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, o
 	}
 	if DefaultFeatures().SupportHashSha256 {
 		cmd.AddOptionValues("--object-format", objectFormatName)
+	}
+	if initialBranch != "" {
+		cmd.AddOptionValues("--initial-branch", initialBranch)
 	}
 
 	if bare {
@@ -223,7 +226,6 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 // PushOptions options when push to remote
 type PushOptions struct {
 	Remote         string
-	LocalRefName   string
 	Branch         string
 	Force          bool
 	ForceWithLease string
@@ -245,13 +247,7 @@ func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 	}
 	remoteBranchArgs := []string{opts.Remote}
 	if len(opts.Branch) > 0 {
-		var refspec string
-		if opts.LocalRefName != "" {
-			refspec = fmt.Sprintf("%s:%s", opts.LocalRefName, opts.Branch)
-		} else {
-			refspec = opts.Branch
-		}
-		remoteBranchArgs = append(remoteBranchArgs, refspec)
+		remoteBranchArgs = append(remoteBranchArgs, opts.Branch)
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 

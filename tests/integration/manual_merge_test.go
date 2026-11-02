@@ -5,6 +5,7 @@ package integration
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 
@@ -59,6 +61,10 @@ func TestManualMergeAutodetect(t *testing.T) {
 			require.NoError(t, err)
 		}
 
+		testAPICreateBranch(t, user2Ctx.Session, user2.Name, repoName, defaultBranch, "empty-pr", http.StatusCreated)
+		emptyAPIPull, err := doAPICreatePullRequest(user1Ctx, user2.Name, repoName, defaultBranch, "empty-pr")(t)
+		require.NoError(t, err)
+
 		// user1 clones, then merges every branch sequentially, then pushes once.
 		// The first merge fast-forwards; the rest produce real merge commits,
 		// which generates multiple commits for "git rev-list --ancestry-path --merges ...".
@@ -100,5 +106,10 @@ func TestManualMergeAutodetect(t *testing.T) {
 			assert.Equalf(t, user1.ID, pr.MergerID, "PR %d (%s) merger should be the pusher", i+1, branchNames[i])
 			assert.Equalf(t, expectedMergeCommits[i], pr.MergedCommitID, "PR %d (%s) should be attributed to its own merge commit, not another PR's", i+1, branchNames[i])
 		}
+
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+		emptyPR := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: emptyAPIPull.ID})
+		assert.False(t, emptyPR.HasMerged, "empty PR must not be detected as manually merged")
+		assert.Equal(t, issues_model.PullRequestStatusAncestor, emptyPR.Status)
 	})
 }
