@@ -64,13 +64,13 @@ func TestOauth2DefaultApplications(t *testing.T) {
 
 	cfg, _ := NewConfigProviderFromData(``)
 	loadOAuth2From(cfg)
-	assert.Equal(t, []string{"git-credential-oauth", "git-credential-manager", "tea", "gitea-app", "gitea-vscode"}, OAuth2.DefaultApplications)
+	assert.Equal(t, []string{"git-credential-oauth", "git-credential-manager", "gitea-cli", "gitea-app", "gitea-vscode"}, OAuth2.DefaultApplications)
 
 	cfg, _ = NewConfigProviderFromData(`[oauth2]
 DEFAULT_APPLICATIONS = tea
 `)
 	loadOAuth2From(cfg)
-	assert.Equal(t, []string{"tea"}, OAuth2.DefaultApplications)
+	assert.Equal(t, []string{"gitea-cli"}, OAuth2.DefaultApplications)
 
 	cfg, _ = NewConfigProviderFromData(`[oauth2]
 DEFAULT_APPLICATIONS =
