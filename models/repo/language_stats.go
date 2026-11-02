@@ -5,9 +5,7 @@ package repo
 
 import (
 	"context"
-	"maps"
 	"math"
-	"slices"
 	"sort"
 	"strings"
 
@@ -150,18 +148,16 @@ func UpdateLanguageStats(ctx context.Context, repo *Repository, commitID string,
 		if err != nil {
 			return err
 		}
-		langs := slices.Sorted(maps.Keys(stats)) // fixed order so concurrent updates lock rows in the same order and ties pick the same primary language
 		var topLang string
 		var s int64
-		for _, lang := range langs {
-			if size := stats[lang]; size > s {
+		for lang, size := range stats {
+			if size > s || (size == s && lang < topLang) {
 				s = size
 				topLang = lang
 			}
 		}
 
-		for _, lang := range langs {
-			size := stats[lang]
+		for lang, size := range stats {
 			upd := false
 			for _, s := range oldstats {
 				// Update already existing language
