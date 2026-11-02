@@ -4,9 +4,11 @@
 package private
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
@@ -49,14 +51,16 @@ func hookPostReceiveCollectPushUpdates(opts *private.HookOptions, repo *repo_mod
 	return updates
 }
 
-func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) {
+func hookPostReceiveSyncBranches(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) {
 	branchNames := make([]string, 0, len(updates))
+	firstPushedBranch := ""
 	for _, update := range updates {
 		if !update.RefFullName.IsBranch() {
 			continue
 		}
 		branchNames = append(branchNames, update.RefFullName.BranchName())
 		if !update.IsDelRef() {
+			firstPushedBranch = util.IfZero(firstPushedBranch, update.RefFullName.BranchName())
 			pull_service.UpdatePullsRefs(ctx, repo, update)
 		}
 	}
@@ -71,9 +75,79 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 		return
 	}
 
-	if err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames); err != nil {
-		log.Error("failed to sync branch to DB: %v", err)
+	// if default branch doesn't exist, try to guess one from existing git repo
+	defaultBranch, err := hookPostReceiveFindDefaultBranch(ctx, gitRepo, repo.DefaultBranch)
+	if err != nil {
+		log.Error("failed to find default branch: %v", err)
+		if repo.IsEmpty {
+			return // keep the repo consistently empty, the next push will retry
+		}
 	}
+
+	wasEmpty := repo.IsEmpty
+	if wasEmpty {
+		defaultBranch = util.IfZero(defaultBranch, firstPushedBranch)
+	}
+	// mark the repo as not empty in the same transaction, so readers never see an empty repo with branches or a non-empty repo without
+	err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames, func(ctx context.Context) (err error) {
+		if !wasEmpty || defaultBranch == "" {
+			return nil
+		}
+		if defaultBranch, err = hookPostReceiveMarkRepoNotEmpty(ctx, gitRepo, repo.ID, defaultBranch); err != nil {
+			return fmt.Errorf("mark repo as not empty: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error("failed to sync branch to DB: %v", err)
+		return
+	}
+	if wasEmpty && defaultBranch != "" {
+		repo.IsEmpty = false
+	}
+	if repo.IsEmpty {
+		return
+	}
+
+	defaultBranchChanged := true
+	switch {
+	case wasEmpty:
+		repo.DefaultBranch = defaultBranch // updated in the transaction
+	case defaultBranch != "" && defaultBranch != repo.DefaultBranch:
+		repo.DefaultBranch = defaultBranch
+		if err = repo_model.UpdateDefaultBranch(ctx, repo); err != nil {
+			log.Error("failed to update default branch: %v", err)
+			return
+		}
+	default:
+		defaultBranchChanged = false
+	}
+
+	// if default branch was changed or pushed, always keep the HEAD ref in sync
+	if defaultBranchChanged || slices.Contains(opts.RefFullNames, git.RefNameFromBranch(repo.DefaultBranch)) {
+		_ = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
+	}
+}
+
+// hookPostReceiveMarkRepoNotEmpty returns the default branch of the repo after marking it as not empty
+func hookPostReceiveMarkRepoNotEmpty(ctx context.Context, gitRepo *git.Repository, repoID int64, defaultBranch string) (string, error) {
+	marked, err := repo_model.MarkRepositoryNotEmpty(ctx, repoID, defaultBranch)
+	if err != nil {
+		return "", err
+	}
+	if marked {
+		return defaultBranch, nil
+	}
+	// marked by others, keep the default branch if it exists in git
+	freshRepo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		return "", err
+	}
+	if _, err = gitRepo.GetBranchCommitID(ctx, freshRepo.DefaultBranch); !errors.Is(err, util.ErrNotExist) {
+		return freshRepo.DefaultBranch, err
+	}
+	freshRepo.DefaultBranch = defaultBranch // the current default branch doesn't exist in git
+	return defaultBranch, repo_model.UpdateDefaultBranch(ctx, freshRepo)
 }
 
 // HookPostReceive updates services and users
@@ -87,10 +161,9 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	// In the post-receive hook, the git repo has received all changes,
 	// So even if any error happens, nothing can be stopped or undone, so the errors should be skipped
 	repo := ctx.Repo.Repository
-	updates := hookPostReceiveCollectPushUpdates(opts, repo) // first, collect updates and sync branches
-	hookPostReceiveSyncDatabaseBranches(ctx, opts, repo, updates)
-	hookPostReceiveSyncRepoDefaultBranch(ctx, opts, repo)
-	hookPostReceiveUpdateRepoByOptions(ctx, opts, repo)
+	updates := hookPostReceiveCollectPushUpdates(opts, repo)
+	hookPostReceiveUpdateRepoByOptions(ctx, opts, repo) // push options are only honored while the repo is still empty
+	hookPostReceiveSyncBranches(ctx, opts, repo, updates)
 
 	// handle async updates (e.g.: notification, cache management, repo update time, etc.)
 	if err := repo_service.PushUpdates(updates...); err != nil {
@@ -202,42 +275,14 @@ func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *
 	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{Results: results})
 }
 
-func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {
-	hasBranch := false
-	for _, refFullName := range opts.RefFullNames {
-		if hasBranch = refFullName.IsBranch(); hasBranch {
-			break
+// hookPostReceiveFindDefaultBranch returns the first one of the default branch, main and master that exists in git
+func hookPostReceiveFindDefaultBranch(ctx context.Context, gitRepo *git.Repository, defaultBranch string) (string, error) {
+	for _, branch := range []string{defaultBranch, "main", "master"} {
+		if _, err := gitRepo.GetBranchCommitID(ctx, branch); err == nil {
+			return branch, nil
+		} else if !errors.Is(err, util.ErrNotExist) {
+			return "", err
 		}
 	}
-	if !hasBranch {
-		return
-	}
-	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
-	if err != nil {
-		log.Error("failed to open git repo: %v", err)
-		return
-	}
-
-	// if default branch doesn't exist, try to guess one from existing git repo
-	_, err = gitRepo.GetBranchCommitID(ctx, repo.DefaultBranch)
-	if errors.Is(err, util.ErrNotExist) {
-		for _, guessBranchName := range []string{"main", "master"} {
-			if _, err = gitRepo.GetBranchCommitID(ctx, guessBranchName); err == nil {
-				repo.DefaultBranch = guessBranchName
-				err = repo_model.UpdateDefaultBranch(ctx, repo)
-				if err != nil {
-					log.Error("failed to update default branch: %v", err)
-					return
-				}
-				break
-			}
-		}
-	}
-
-	// if default branch was pushed, always keep the HEAD ref in sync
-	for _, refFullName := range opts.RefFullNames {
-		if refFullName.IsBranch() && refFullName.BranchName() == repo.DefaultBranch {
-			_ = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
-		}
-	}
+	return "", nil
 }

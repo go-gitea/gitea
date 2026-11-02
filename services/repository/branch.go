@@ -305,7 +305,8 @@ func checkBranchName(ctx context.Context, gitRepo *git.Repository, name string) 
 // It will check whether the branches of the repository have never been synced before.
 // If so, it will sync all branches of the repository.
 // Otherwise, it will sync the branches that need to be updated.
-func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.Repository, branchNames []string) error {
+// If beforeSync is not nil, it runs in the same locked transaction before the sync.
+func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.Repository, branchNames []string, beforeSync func(ctx context.Context) error) error {
 	// Some designs that make the code look strange but are made for performance optimization purposes:
 	// 1. Sync branches in a batch to reduce the number of DB queries.
 	// 2. Lazy load commit information since it may be not necessary.
@@ -326,6 +327,11 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 	defer releaser()
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		if beforeSync != nil {
+			if err := beforeSync(ctx); err != nil {
+				return err
+			}
+		}
 		dbBranches, err := git_model.GetBranches(ctx, repoID, branchNames, true)
 		if err != nil {
 			return fmt.Errorf("git_model.GetBranches: %v", err)
