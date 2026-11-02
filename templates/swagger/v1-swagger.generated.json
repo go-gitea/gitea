@@ -28585,6 +28585,11 @@
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
+        "issues_creation_restriction": {
+          "description": "who is allowed to create issues: \"reader\" (any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
+          "type": "string",
+          "x-go-name": "IssuesCreationRestriction"
+        },
         "mirror_interval": {
           "description": "set to a string like `8h30m0s` to set the mirror interval time",
           "type": "string",
@@ -28620,6 +28625,11 @@
           "description": "`repo` to only allow repo-level projects, `owner` to only allow owner projects, `all` to allow both.",
           "type": "string",
           "x-go-name": "ProjectsMode"
+        },
+        "pull_requests_creation_restriction": {
+          "description": "who is allowed to create pull requests: \"reader\" (any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
+          "type": "string",
+          "x-go-name": "PullRequestsCreationRestriction"
         },
         "squash_merge_commit_message": {
           "description": "set the default squash merge commit message body: \"PR_BODY\", \"COMMIT_MESSAGES\", or \"BLANK\".",
@@ -32420,6 +32430,11 @@
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
+        "issues_creation_restriction": {
+          "description": "who is allowed to create issues: \"reader\", \"member\" or \"writer\"",
+          "type": "string",
+          "x-go-name": "IssuesCreationRestriction"
+        },
         "language": {
           "type": "string",
           "x-go-name": "Language"
@@ -32501,6 +32516,11 @@
         "projects_mode": {
           "type": "string",
           "x-go-name": "ProjectsMode"
+        },
+        "pull_requests_creation_restriction": {
+          "description": "who is allowed to create pull requests: \"reader\", \"member\" or \"writer\"",
+          "type": "string",
+          "x-go-name": "PullRequestsCreationRestriction"
         },
         "release_counter": {
           "type": "integer",

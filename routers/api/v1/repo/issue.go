@@ -614,6 +614,8 @@ func CreateIssue(ctx *context.APIContext) {
 	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, form.Projects); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err.Error())
+		} else if errors.Is(err, issues_model.ErrMustCollaborator) || errors.Is(err, issues_model.ErrCreationRequiresWriteAccess) {
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {

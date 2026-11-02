@@ -1476,6 +1476,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 				return
 			}
 			ctx.JSONError(flashError)
+		case errors.Is(err, issues_model.ErrCreationRequiresWriteAccess):
+			ctx.JSONError(ctx.Tr("repo.pulls.new.must_write_access"))
 		default:
 			// It's an unexpected error.
 			// If it happens, we should add another case to handle it.
