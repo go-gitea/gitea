@@ -34526,15 +34526,6 @@
         }
       }
     },
-    "StringSlice": {
-      "description": "StringSlice",
-      "schema": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
-      }
-    },
     "Tag": {
       "description": "Tag",
       "schema": {

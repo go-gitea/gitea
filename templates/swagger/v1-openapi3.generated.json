@@ -1375,19 +1375,6 @@
         },
         "description": "StopWatchList"
       },
-      "StringSlice": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          }
-        },
-        "description": "StringSlice"
-      },
       "Tag": {
         "content": {
           "application/json": {
