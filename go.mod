@@ -5,11 +5,11 @@ go 1.27
 toolchain go1.27.3
 
 require (
-	connectrpc.com/connect/v2 v2.0.1
+	connectrpc.com/connect/v2 v2.0.2
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
 	gitea.dev/actionslib v1.5.0
-	gitea.dev/sdk v1.3.0
+	gitea.dev/sdk v1.5.0
 	github.com/42wim/httpsig v1.3.0
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432
 	github.com/Azure/go-ntlmssp v0.1.1
@@ -22,24 +22,24 @@ require (
 	github.com/blevesearch/bleve/v2 v2.6.1
 	github.com/bohde/codel v0.2.0
 	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c
-	github.com/buildkite/terminal-to-html/v3 v3.17.1
+	github.com/buildkite/terminal-to-html/v3 v3.17.3
 	github.com/caddyserver/certmagic v0.25.6
 	github.com/charmbracelet/git-lfs-transfer v0.1.1-0.20260812203852-971c0284dc33
 	github.com/coder/websocket v1.8.15
-	github.com/dlclark/regexp2/v2 v2.9.1
+	github.com/dlclark/regexp2/v2 v2.11.0
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.1.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.5
 	github.com/emersion/go-imap v1.2.1
 	github.com/felixge/fgprof v0.9.5
 	github.com/fsnotify/fsnotify v1.10.1
-	github.com/getkin/kin-openapi v0.151.0
+	github.com/getkin/kin-openapi v0.152.0
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/cors v1.2.2
-	github.com/go-co-op/gocron/v2 v2.22.0
+	github.com/go-co-op/gocron/v2 v2.23.0
 	github.com/go-enry/go-enry/v2 v2.9.6
 	github.com/go-ldap/ldap/v3 v3.4.15
-	github.com/go-redsync/redsync/v4 v4.18.0
+	github.com/go-redsync/redsync/v4 v4.18.1
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/go-webauthn/webauthn v0.18.2
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
@@ -47,7 +47,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/go-github/v93 v93.0.0
 	github.com/google/licenseclassifier/v2 v2.0.0
-	github.com/google/pprof v0.0.0-20261016150608-1facf8f91b50
+	github.com/google/pprof v0.0.0-20261026192309-dbd0ed30aa88
 	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/hashicorp/go-version v1.9.0
@@ -85,7 +85,7 @@ require (
 	github.com/yohcop/openid-go v1.0.1
 	github.com/yuin/goldmark v1.8.6
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
-	gitlab.com/gitlab-org/api/client-go/v3 v3.29.0
+	gitlab.com/gitlab-org/api/client-go/v3 v3.39.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.6.0.20261013184558-04dd63131525
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.47.0
@@ -95,10 +95,10 @@ require (
 	golang.org/x/sync v0.24.0
 	golang.org/x/sys v0.49.0
 	golang.org/x/text v0.43.0
-	google.golang.org/grpc v1.84.0
+	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/ini.v1 v1.67.3
-	modernc.org/sqlite v1.60.1
+	modernc.org/sqlite v1.61.0
 	mvdan.cc/xurls/v2 v2.6.0
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.4.3
@@ -189,7 +189,7 @@ require (
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/ncruces/go-strftime v1.0.0 // indirect
+	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/nwaples/rardecode/v2 v2.2.3 // indirect
 	github.com/oasdiff/yaml v0.1.1 // indirect
 	github.com/oasdiff/yaml3 v0.0.14 // indirect
@@ -227,8 +227,8 @@ require (
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/time v0.16.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800 // indirect
-	modernc.org/libc v1.77.1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260817212433-ac3dfec99bb1 // indirect
+	modernc.org/libc v1.79.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
