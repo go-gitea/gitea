@@ -4,6 +4,7 @@
 package pull
 
 import (
+	"sync"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -120,4 +121,60 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		// 2 comments should exist now: one regular push comment and one force-push comment.
 		assertCommitCommentCount(t, 2, 1)
 	})
+}
+
+func TestCreatePushPullCommentSkipsAlreadyCommentedCommits(t *testing.T) {
+	ctx := t.Context()
+	require.NoError(t, unittest.PrepareTestDatabase())
+	require.NoError(t, db.TruncateBeans(ctx, &issues_model.Comment{}))
+	pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, pr.LoadIssue(ctx))
+	require.NoError(t, pr.LoadBaseRepo(ctx))
+
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	baseCommit, err := gitRepo.GetBranchCommit(ctx, pr.BaseBranch)
+	require.NoError(t, err)
+	headCommit, err := gitRepo.GetBranchCommit(ctx, pr.HeadBranch)
+	require.NoError(t, err)
+
+	// the pull request creation and the queued branch push both comment the same commits
+	_, created, err := CreatePushPullComment(ctx, pusher, pr, baseCommit.ID.String(), headCommit.ID.String(), false)
+	require.NoError(t, err)
+	assert.True(t, created)
+	_, created, err = CreatePushPullComment(ctx, pusher, pr, baseCommit.ID.String(), headCommit.ID.String(), false)
+	require.NoError(t, err)
+	assert.False(t, created)
+	unittest.AssertCount(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePullRequestPush}, 1)
+
+	// a push overlapping an earlier comment only comments the new commits
+	require.NoError(t, db.TruncateBeans(ctx, &issues_model.Comment{}))
+	data, _, err := preparePushPullCommentPushActionContent(ctx, pr, baseCommit.ID.String(), headCommit.ID.String(), false)
+	require.NoError(t, err)
+	require.Len(t, data.CommitIDs, 2)
+	contentJSON, _ := json.Marshal(issues_model.PushActionContent{CommitIDs: data.CommitIDs[:1]})
+	_, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+		Type: issues_model.CommentTypePullRequestPush, Doer: pusher, Repo: pr.BaseRepo, Issue: pr.Issue, Content: string(contentJSON),
+	})
+	require.NoError(t, err)
+	comment, created, err := CreatePushPullComment(ctx, pusher, pr, baseCommit.ID.String(), headCommit.ID.String(), false)
+	require.NoError(t, err)
+	require.True(t, created)
+	commentData, err := comment.GetPushActionContent()
+	require.NoError(t, err)
+	assert.Equal(t, data.CommitIDs[1:], commentData.CommitIDs)
+
+	// concurrent handlers comment once without deadlocking
+	require.NoError(t, db.TruncateBeans(ctx, &issues_model.Comment{}))
+	var wg sync.WaitGroup
+	for range 5 {
+		wg.Go(func() {
+			_, _, err := CreatePushPullComment(ctx, pusher, pr, baseCommit.ID.String(), headCommit.ID.String(), false)
+			assert.NoError(t, err)
+		})
+	}
+	wg.Wait()
+	unittest.AssertCount(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePullRequestPush}, 1)
 }

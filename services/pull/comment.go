@@ -5,6 +5,7 @@ package pull
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	"gitea.dev/models/db"
@@ -12,6 +13,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 )
@@ -73,6 +75,33 @@ func reconcileOldCommitCommentsForForcePush(ctx context.Context, oldCommitCommen
 	return needDeleteCommentIDs
 }
 
+// lockPushComments serializes push comment writes, callers in a transaction must lock before starting it
+func lockPushComments(ctx context.Context, issueID int64) (globallock.ReleaseFunc, error) {
+	if db.InTransaction(ctx) {
+		return func() {}, nil
+	}
+	return globallock.Lock(ctx, fmt.Sprintf("pull_push_comment_%d", issueID))
+}
+
+// removeAlreadyCommentedCommits drops commits an earlier non-force push comment lists, e.g. from the pull request creation
+func removeAlreadyCommentedCommits(ctx context.Context, pr *issues_model.PullRequest, data *issues_model.PushActionContent) error {
+	var oldCommitComments []*issues_model.Comment
+	err := db.GetEngine(ctx).Table("comment").Cols("type", "content").
+		Where("issue_id = ?", pr.IssueID).And("type = ?", issues_model.CommentTypePullRequestPush).
+		Find(&oldCommitComments)
+	if err != nil {
+		return err
+	}
+	commentedCommitIDs := make(container.Set[string])
+	for _, oldCommitComment := range oldCommitComments {
+		if oldData, err := oldCommitComment.GetPushActionContent(); err == nil && !oldData.IsForcePush {
+			commentedCommitIDs.AddMultiple(oldData.CommitIDs...)
+		}
+	}
+	data.CommitIDs = slices.DeleteFunc(data.CommitIDs, func(commitID string) bool { return commentedCommitIDs.Contains(commitID) })
+	return nil
+}
+
 func cleanUpOldCommitCommentsForNewForcePush(ctx context.Context, pr *issues_model.PullRequest, data *issues_model.PushActionContent) error {
 	// All old non-force-push commit comments will be deleted if they are not in the new commit list.
 	var oldCommitComments []*issues_model.Comment
@@ -120,12 +149,20 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 		return nil, false, err
 	}
 
+	release, err := lockPushComments(ctx, pr.IssueID)
+	if err != nil {
+		return nil, false, err
+	}
+	defer release()
+
 	comment, err = db.WithTx2(ctx, func(ctx context.Context) (comment *issues_model.Comment, err error) {
 		if isForcePush {
 			err := cleanUpOldCommitCommentsForNewForcePush(ctx, pr, &data)
 			if err != nil {
 				log.Error("CleanUpOldCommitComments failed: %v", err)
 			}
+		} else if err := removeAlreadyCommentedCommits(ctx, pr, &data); err != nil {
+			log.Error("RemoveAlreadyCommentedCommits failed: %v", err)
 		}
 
 		if len(data.CommitIDs) > 0 {

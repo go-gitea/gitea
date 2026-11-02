@@ -310,6 +310,12 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
 
+	release, err := lockPushComments(ctx, pr.IssueID)
+	if err != nil {
+		return err
+	}
+	defer release()
+
 	// add first push codes comment
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		// The UPDATE acquires the transaction lock, if the UPDATE succeeds, it should have updated one row (the "base_branch" is changed)
