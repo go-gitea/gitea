@@ -11,7 +11,10 @@ import (
 	"fmt"
 	"testing"
 
+	"gitea.dev/modules/packages"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -151,4 +154,30 @@ func TestCompareVersions(t *testing.T) {
 	for _, c := range cases {
 		assert.Equal(t, c.expected, CompareVersions(c.a, c.b), "%s vs %s", c.a, c.b)
 	}
+}
+
+func TestParsePackageArchiveTooLarge(t *testing.T) {
+	var buf bytes.Buffer
+	gw, err := gzip.NewWriterLevel(&buf, gzip.BestSpeed)
+	require.NoError(t, err)
+	tw := tar.NewWriter(gw)
+
+	// a member which inflates past the limit, placed before the description file
+	padding := int64(maxArchiveSize) + 1 // one byte past what the parser allows
+	require.NoError(t, tw.WriteHeader(&tar.Header{Name: "padding.bin", Mode: 0o600, Size: padding}))
+	chunk := make([]byte, 1<<20)
+	for remaining := padding; remaining > 0; remaining -= int64(len(chunk)) {
+		_, err := tw.Write(chunk[:min(remaining, int64(len(chunk)))])
+		require.NoError(t, err)
+	}
+
+	content := createDescription(packageName, packageVersion).Bytes()
+	require.NoError(t, tw.WriteHeader(&tar.Header{Name: "gitea/DESCRIPTION", Mode: 0o600, Size: int64(len(content))}))
+	_, err = tw.Write(content)
+	require.NoError(t, err)
+	require.NoError(t, tw.Close())
+	require.NoError(t, gw.Close())
+
+	_, err = ParsePackage(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	assert.ErrorIs(t, err, packages.ErrContentTooLarge)
 }

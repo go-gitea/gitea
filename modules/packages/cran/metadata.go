@@ -63,6 +63,9 @@ type Metadata struct {
 	NeedsCompilation bool     `json:"needs_compilation"`
 }
 
+// Bounds the bytes of the tar members which are inflated while looking for the description file.
+const maxArchiveSize = 256 * 1024 * 1024
+
 type ReaderReaderAt interface {
 	io.Reader
 	io.ReaderAt
@@ -89,7 +92,7 @@ func parsePackageTarGz(r io.Reader) (*Package, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(gzr)
+	tr := tar.NewReader(packages.NewLimitedReader(gzr, maxArchiveSize))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
