@@ -105,7 +105,11 @@ func CreateCodeComment(ctx *context.Context) {
 		attachments,
 	)
 	if err != nil {
-		ctx.ServerError("CreateCodeComment", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+		} else {
+			ctx.ServerError("CreateCodeComment", err)
+		}
 		return
 	}
 
@@ -279,6 +283,8 @@ func SubmitReview(ctx *context.Context) {
 			ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		} else if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
 			ctx.Status(http.StatusUnprocessableEntity)
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
 		} else {
 			ctx.ServerError("SubmitReview", err)
 		}

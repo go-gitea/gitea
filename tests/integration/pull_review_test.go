@@ -37,6 +37,7 @@ func TestPullReview(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("ReviewerMissed", testPullReviewReviewerMissed)
 	t.Run("LockedPR", testPullReviewLockedPR)
+	t.Run("BlockedUser", testPullReviewBlockedUser)
 }
 
 func testPullReviewReviewerMissed(t *testing.T) {
@@ -76,6 +77,25 @@ func testPullReviewLockedPR(t *testing.T) {
 	unittest.AssertCount(t, &issues_model.Comment{IssueID: 3}, commentCount)
 
 	MakeRequest(t, NewRequestWithJSON(t, "POST", reviewsURL, reviewOptions).AddTokenAuth(getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)), http.StatusOK)
+}
+
+func testPullReviewBlockedUser(t *testing.T) {
+	const reviewsURL = "/api/v1/repos/user2/repo1/pulls/2/reviews"
+	blocked := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34}) // blocked by user2, the owner of repo1
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: 2})
+	pendingReview, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{Type: issues_model.ReviewTypePending, Issue: issue, Reviewer: blocked})
+	require.NoError(t, err)
+	commentCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID})
+
+	token := getUserToken(t, blocked.Name, auth_model.AccessTokenScopeWriteRepository)
+	session := loginUser(t, blocked.Name)
+	testSubmitReview(t, session, "user2", "repo1", "2", "", "comment", http.StatusBadRequest)
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/pulls/2/files/reviews/comments", map[string]string{
+		"origin": "diff", "content": "test", "path": "README.md", "side": "proposed", "line": "1",
+	}), http.StatusBadRequest)
+	MakeRequest(t, NewRequestWithJSON(t, "POST", reviewsURL, &api.CreatePullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
+	MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/%d", reviewsURL, pendingReview.ID), &api.SubmitPullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
+	unittest.AssertCount(t, &issues_model.Comment{IssueID: issue.ID}, commentCount)
 }
 
 func TestPullView_CodeOwner(t *testing.T) {

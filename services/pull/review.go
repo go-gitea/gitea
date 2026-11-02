@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -95,6 +96,10 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 // * replyReviewID is set: add the comment to the existing submitted review
 // When pendingReview=true: get current pending review or create a new one, and add the comment to it
 func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (_ *issues_model.Comment, err error) {
+	if err := checkReviewerNotBlocked(ctx, doer, issue); err != nil {
+		return nil, err
+	}
+
 	replyToSubmittedReview := !pendingReview && replyReviewID != 0
 	if replyToSubmittedReview {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
@@ -180,6 +185,18 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	// NOTICE: if it's a pending review the notifications will not be fired until user submit review.
 
 	return comment, nil
+}
+
+func checkReviewerNotBlocked(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) error {
+	if err := issue.LoadRepo(ctx); err != nil {
+		return err
+	}
+	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, issue.Repo.OwnerID) {
+		if !access_model.IsUserRepoAdmin(ctx, issue.Repo, doer) {
+			return user_model.ErrBlockedUser
+		}
+	}
+	return nil
 }
 
 // createCodeComment creates a plain code comment at the specified line / path
@@ -280,6 +297,10 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, reviewType issues_model.ReviewType, content, commitID string, attachmentUUIDs []string) (*issues_model.Review, *issues_model.Comment, error) {
+	if err := checkReviewerNotBlocked(ctx, doer, issue); err != nil {
+		return nil, nil, err
+	}
+
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		return nil, nil, err
 	}
