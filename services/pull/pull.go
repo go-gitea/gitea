@@ -295,8 +295,17 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		return err
 	}
 
-	// Set new target branch
 	oldBranch := pr.BaseBranch
+	oldBranches, err := git_model.GetBranches(ctx, pr.BaseRepoID, []string{oldBranch}, true) // includes deleted, retargeting runs on base branch deletion
+	if err != nil {
+		return err
+	}
+	var oldSHA string
+	if len(oldBranches) > 0 {
+		oldSHA = oldBranches[0].CommitID
+	}
+
+	// Set new target branch
 	pr.BaseBranch = targetBranch
 
 	// Refresh patch
@@ -311,7 +320,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	}
 
 	// add first push codes comment
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
 		// The UPDATE acquires the transaction lock, if the UPDATE succeeds, it should have updated one row (the "base_branch" is changed)
 		// If no row is updated, it means the PR has been merged or closed in the meantime
 		updated, err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch")
@@ -358,6 +367,11 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		_, _, err = CreatePushPullComment(ctx, doer, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false)
 		return err
 	})
+	if err != nil {
+		return err
+	}
+	notify_service.PullRequestChangeTargetBranch(ctx, doer, pr, oldBranch, oldSHA)
+	return nil
 }
 
 type TestPullRequestOptions struct {

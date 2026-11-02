@@ -334,6 +334,8 @@ type ReleasePayload struct {
 	Action HookReleaseAction `json:"action"`
 	// The release that was acted upon
 	Release *Release `json:"release"`
+	// Changes made to the release
+	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The repository containing the release
 	Repository *Repository `json:"repository"`
 	// The user who performed the action
@@ -460,7 +462,13 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
-// ChangesPayload represents the payload information of issue change
+// ChangesBasePayload represents the previous base branch of a pull request
+type ChangesBasePayload struct {
+	Ref ChangesFromPayload `json:"ref"`
+	Sha ChangesFromPayload `json:"sha"`
+}
+
+// ChangesPayload represents changes included in an event payload
 type ChangesPayload struct {
 	// Changes made to the title
 	Title *ChangesFromPayload `json:"title,omitempty"`
@@ -468,7 +476,9 @@ type ChangesPayload struct {
 	Body *ChangesFromPayload `json:"body,omitempty"`
 	// Changes made to the reference
 	Ref *ChangesFromPayload `json:"ref,omitempty"`
-	// Changes made to the repository name
+	// Changes made to the pull request base branch
+	Base *ChangesBasePayload `json:"base,omitempty"`
+	// Changes made to the repository or release name
 	Name *ChangesFromPayload `json:"name,omitempty"`
 	// Changes made to the labels added
 	AddedLabels []*Label `json:"added_labels"`

@@ -360,7 +360,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 	if !rel.IsDraft {
 		if !isTagCreated && !isConvertedFromTag {
-			notify_service.UpdateRelease(ctx, doer, rel)
+			notify_service.UpdateRelease(ctx, doer, rel, oldRelease.Title, oldRelease.Note)
 			return nil
 		}
 		notify_service.NewRelease(ctx, rel)
