@@ -17,6 +17,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	db_indexer "gitea.dev/modules/indexer/issues/db"
@@ -191,6 +192,22 @@ func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
 	return user.ID
 }
 
+// readableIssueTypeFilter narrows an unset issue type filter to the only type the doer can read,
+// the issue routes tolerate pull request permissions so handlers listing both types must do this
+func readableIssueTypeFilter(ctx *context.Context, isPull optional.Option[bool]) optional.Option[bool] {
+	if isPull.Has() {
+		return isPull
+	}
+	canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
+	canReadPulls := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
+	if canReadPulls && !canReadIssues {
+		return optional.Some(true)
+	} else if canReadIssues && !canReadPulls {
+		return optional.Some(false)
+	}
+	return isPull
+}
+
 // SearchRepoIssuesJSON lists the issues of a repository
 // This function was copied from API (decouple the web and API routes),
 // it is only used by frontend to search some dependency or related issues
@@ -234,7 +251,11 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		}
 	}
 
-	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
+	isPull := readableIssueTypeFilter(ctx, common.ParseIssueFilterTypeIsPull(ctx.FormString("type")))
+	if isPull.Has() && !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull.Value()) {
+		ctx.NotFound(nil)
+		return
+	}
 
 	// FIXME: we should be more efficient here
 	createdByID := getUserIDForFilter(ctx, "created_by")
