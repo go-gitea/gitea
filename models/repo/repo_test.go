@@ -235,3 +235,19 @@ func TestIsValidSSHAccessRepoName(t *testing.T) {
 	assert.False(t, IsValidSSHAccessRepoName("foo.git"))
 	assert.False(t, IsValidSSHAccessRepoName("foo.RSS"))
 }
+
+func TestDisableLanguageStatsHidesStats(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1})
+	require.NoError(t, UpdateLanguageStats(t.Context(), repo, "1234567890", map[string]int64{"Go": 10}))
+	defer test.MockVariableValue(&setting.Repository.DisableLanguageStats, true)()
+
+	stats, err := GetLanguageStats(t.Context(), repo)
+	require.NoError(t, err)
+	assert.Empty(t, stats)
+	require.NoError(t, repo.LoadAttributes(t.Context()))
+	assert.Nil(t, repo.PrimaryLanguage)
+	repos := RepositoryList{repo}
+	require.NoError(t, repos.LoadLanguageStats(t.Context()))
+	assert.Nil(t, repos[0].PrimaryLanguage)
+}

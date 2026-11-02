@@ -318,6 +318,10 @@ func (repo *Repository) LoadAttributes(ctx context.Context) error {
 		return fmt.Errorf("load owner: %w", err)
 	}
 
+	if setting.Repository.DisableLanguageStats {
+		return nil
+	}
+
 	// Load primary language
 	stats := make(LanguageStatList, 0, 1)
 	if err := db.GetEngine(ctx).

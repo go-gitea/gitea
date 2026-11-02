@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/go-enry/go-enry/v2"
@@ -100,6 +101,9 @@ func roundByLargestRemainder(percs map[string]float32, target float32) {
 
 // GetLanguageStats returns the language statistics for a repository
 func GetLanguageStats(ctx context.Context, repo *Repository) (LanguageStatList, error) {
+	if setting.Repository.DisableLanguageStats {
+		return nil, nil
+	}
 	stats := make(LanguageStatList, 0, 6)
 	if err := db.GetEngine(ctx).Where("`repo_id` = ?", repo.ID).Desc("`size`").Find(&stats); err != nil {
 		return nil, err
