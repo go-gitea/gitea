@@ -207,6 +207,10 @@ func Test_Projects(t *testing.T) {
 		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colA, issue(5), 3))
 		assert.Equal(t, []int64{3, 5, 2}, order(colA))
 		assert.Equal(t, []int64{1}, order(colB))
+
+		// a stale reorder of A must not touch a card that has meanwhile moved to B
+		assert.NoError(t, project_model.SetIssueSorting(t.Context(), colA, 1, 99))
+		assert.Equal(t, []int64{1}, order(colB))
 	})
 
 	t.Run("Repository projects", func(t *testing.T) {

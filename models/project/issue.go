@@ -63,9 +63,14 @@ func GetColumnIssueSortings(ctx context.Context, column *Column, excludeIssueID 
 	return rows, err
 }
 
-// SetIssueSorting updates one issue's position in the project without touching its column.
-func SetIssueSorting(ctx context.Context, projectID, issueID, sorting int64) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET sorting=? WHERE issue_id=? AND project_id=?", sorting, issueID, projectID)
+// SetIssueSorting updates one issue's position, only while it is still in the column: a concurrent move
+// may have taken it elsewhere since the caller read the column.
+func SetIssueSorting(ctx context.Context, column *Column, issueID, sorting int64) error {
+	_, err := db.GetEngine(ctx).
+		Where("project_id=? AND issue_id=?", column.ProjectID, issueID).
+		In("project_board_id", columnIssueIDs(column)).
+		Cols("sorting").
+		Update(&ProjectIssue{Sorting: sorting})
 	return err
 }
 

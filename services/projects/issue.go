@@ -134,7 +134,7 @@ func MoveIssueAfter(ctx context.Context, doer *user_model.User, column *project_
 			if other.Sorting == newSorting {
 				continue
 			}
-			if err := project_model.SetIssueSorting(ctx, column.ProjectID, other.IssueID, newSorting); err != nil {
+			if err := project_model.SetIssueSorting(ctx, column, other.IssueID, newSorting); err != nil {
 				return nil, err
 			}
 		}
