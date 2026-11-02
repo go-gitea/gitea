@@ -153,7 +153,6 @@ var (
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
-		DisableLanguageStats:                    false,
 		DefaultBranch:                           "main",
 		DefaultObjectFormat:                     "sha1",
 		AllowForkWithoutMaximumLimit:            true,

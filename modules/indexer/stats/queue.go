@@ -39,6 +39,9 @@ func initStatsQueue() error {
 
 // UpdateRepoIndexer update a repository's entries in the indexer
 func UpdateRepoIndexer(repo *repo_model.Repository) error {
+	if setting.Repository.DisableLanguageStats {
+		return nil
+	}
 	if err := statsQueue.Push(repo.ID); err != nil {
 		if err != queue.ErrAlreadyInQueue {
 			return err
