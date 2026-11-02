@@ -65,6 +65,9 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return commitMergeTree(ctx, repo_model.MergeStyleSquash, message, sig, tmpRepoBaseBranch)
 	}
 
+	if err := prepareTemporaryRepoForMerge(ctx); err != nil {
+		return err
+	}
 	cmdMerge := gitcmd.NewCommand("merge", "--squash").AddDynamicArguments(tmpRepoTrackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleSquash, cmdMerge); err != nil {
 		log.Error("%-v Unable to merge --squash tracking into base: %v", ctx.pr, err)

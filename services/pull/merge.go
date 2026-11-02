@@ -11,9 +11,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
-	"unicode"
 	"uuid"
 
 	"gitea.dev/models/db"
@@ -182,37 +182,11 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 
 func AddCommitMessageTailer(message, tailerKey, tailerValue string) string {
 	tailerLine := tailerKey + ": " + tailerValue
-	message = strings.ReplaceAll(message, "\r\n", "\n")
-	message = strings.ReplaceAll(message, "\r", "\n")
-	if strings.Contains(message, "\n"+tailerLine+"\n") || strings.HasSuffix(message, "\n"+tailerLine) {
+	message = util.NormalizeStringEOL(message)
+	if _, _, trailer := git.CommitMessageSplitTrailer(message); slices.Contains(strings.Split(trailer, "\n"), tailerLine) {
 		return message
 	}
-
-	if !strings.HasSuffix(message, "\n") {
-		message += "\n"
-	}
-	pos1 := strings.LastIndexByte(message[:len(message)-1], '\n')
-	pos2 := -1
-	if pos1 != -1 {
-		pos2 = strings.IndexByte(message[pos1:], ':')
-		if pos2 != -1 {
-			pos2 += pos1
-		}
-	}
-	var lastLineKey string
-	if pos1 != -1 && pos2 != -1 {
-		lastLineKey = message[pos1+1 : pos2]
-	}
-
-	isLikelyTailerLine := lastLineKey != "" && unicode.IsUpper(rune(lastLineKey[0])) && strings.Contains(message, "-")
-	for i := 0; isLikelyTailerLine && i < len(lastLineKey); i++ {
-		r := rune(lastLineKey[i])
-		isLikelyTailerLine = unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-'
-	}
-	if !strings.HasSuffix(message, "\n\n") && !isLikelyTailerLine {
-		message += "\n"
-	}
-	return message + tailerLine
+	return git.CommitMessageMerge(message, tailerLine)
 }
 
 // ErrInvalidMergeStyle represents an error if merging with disabled merge strategy
@@ -456,12 +430,6 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	}
 	defer cancel()
 
-	if !git.DefaultFeatures().SupportGitMergeTree || (mergeStyle != repo_model.MergeStyleMerge && mergeStyle != repo_model.MergeStyleSquash) {
-		if err := prepareTemporaryRepoForMerge(mergeCtx); err != nil {
-			return "", err
-		}
-	}
-
 	// Merge commits.
 	switch mergeStyle {
 	case repo_model.MergeStyleMerge:
@@ -493,15 +461,11 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	// I think in the interests of data safety - failures to push to the lfs should prevent
 	// the merge as you can always remerge.
 	if setting.LFS.StartServer {
-		mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "HEAD")
-		if err != nil {
-			return "", fmt.Errorf("failed to get full commit id for HEAD: %w", err)
-		}
 		mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "original_"+tmpRepoBaseBranch)
 		if err != nil {
 			return "", fmt.Errorf("failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
 		}
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
+		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, mergeCommitID, mergeBaseSHA, pr); err != nil {
 			return "", err
 		}
 	}
@@ -572,8 +536,13 @@ func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
 	return nil
 }
 
-// commitMergeTree merges tracking into base without a worktree and commits the result onto base
 func commitMergeTree(ctx *mergeContext, mergeStyle repo_model.MergeStyle, message string, author *git.Signature, parents ...string) error {
+	if err := git.ValidateObjectMessage(git.ObjectCommit, message); err != nil {
+		return err
+	}
+	if strings.TrimSpace(message) == "" {
+		return util.NewInvalidArgumentErrorf("empty commit message")
+	}
 	treeID, hasConflicts, conflictFiles, err := git.MergeTree(ctx, ctx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch, "")
 	if gitcmd.IsStderr(err, gitcmd.StderrUnrelatedHistories) {
 		return ErrMergeUnrelatedHistories{Style: mergeStyle, Err: err}
@@ -582,17 +551,7 @@ func commitMergeTree(ctx *mergeContext, mergeStyle repo_model.MergeStyle, messag
 	} else if hasConflicts {
 		return ErrMergeConflicts{Style: mergeStyle, StdOut: strings.Join(conflictFiles, "\n")}
 	}
-	treeObjectID, err := git.NewIDFromString(treeID)
-	if err != nil {
-		return err
-	}
-
-	gitRepo, err := git.OpenRepositoryLocal(ctx, ctx.tmpBasePath)
-	if err != nil {
-		return err
-	}
-	defer gitRepo.Close()
-	commitID, err := gitRepo.CommitTree(ctx, author, ctx.committer, &git.Tree{ID: treeObjectID}, git.CommitTreeOpts{
+	commitID, err := git.CommitTree(ctx, ctx.tmpRepo, author, ctx.committer, treeID, git.CommitTreeOpts{
 		Parents:   parents,
 		Message:   message,
 		Key:       ctx.signKey,

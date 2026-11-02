@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/gitdiff"
+	pull_service "gitea.dev/services/pull"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
@@ -275,10 +276,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 		"GIT_COMMITTER_DATE="+committerDate.Format(time.RFC3339),
 	)
 
-	messageBytes := new(bytes.Buffer)
-	_, _ = messageBytes.WriteString(util.NormalizeStringEOL(opts.CommitMessage))
-	_, _ = messageBytes.WriteString("\n")
-
+	message := util.NormalizeStringEOL(opts.CommitMessage)
 	cmdCommitTree := gitcmd.NewCommand("commit-tree").AddDynamicArguments(opts.TreeHash)
 	if opts.ParentCommitID != "" {
 		cmdCommitTree.AddOptionValues("-p", opts.ParentCommitID)
@@ -299,9 +297,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 		cmdCommitTree.AddOptionFormat("-S%s", key.KeyID)
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
-				_, _ = messageBytes.WriteString("\n" + git.CoAuthoredByTrailer + ": ")
-				_, _ = messageBytes.WriteString(committerSig.String())
-				_, _ = messageBytes.WriteString("\n")
+				message = pull_service.AddCommitMessageTailer(message, git.CoAuthoredByTrailer, committerSig.String())
 			}
 			committerSig = signer
 		}
@@ -310,10 +306,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	}
 
 	if opts.SignOff {
-		// Signed-off-by
-		_, _ = messageBytes.WriteString("\n")
-		_, _ = messageBytes.WriteString("Signed-off-by: ")
-		_, _ = messageBytes.WriteString(committerSig.String())
+		message = pull_service.AddCommitMessageTailer(message, "Signed-off-by", committerSig.String())
 	}
 
 	env = append(env,
@@ -326,7 +319,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 		WithEnv(env).
 		WithRepo(t.gitRepo).
 		WithStdoutBuffer(stdout).
-		WithStdinBytes(messageBytes.Bytes()).
+		WithStdinBytes([]byte(message + "\n")).
 		RunWithStderr(ctx); err != nil {
 		return "", fmt.Errorf("unable to commit-tree in temporary repo: %s, error: %w", t.repo.FullName(), err)
 	}

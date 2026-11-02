@@ -5,7 +5,6 @@
 package git
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"os"
@@ -26,7 +25,7 @@ type CommitTreeOpts struct {
 }
 
 // CommitTree creates a commit from a given tree id for the user with provided message
-func (repo *Repository) CommitTree(ctx context.Context, author, committer *Signature, tree *Tree, opts CommitTreeOpts) (ObjectID, error) {
+func CommitTree(ctx context.Context, repo RepositoryFacade, author, committer *Signature, treeID string, opts CommitTreeOpts) (ObjectID, error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
@@ -38,15 +37,11 @@ func (repo *Repository) CommitTree(ctx context.Context, author, committer *Signa
 		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	cmd := gitcmd.NewCommand("commit-tree").AddDynamicArguments(tree.ID.String())
+	cmd := gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeID)
 
 	for _, parent := range opts.Parents {
 		cmd.AddArguments("-p").AddDynamicArguments(parent)
 	}
-
-	messageBytes := new(bytes.Buffer)
-	_, _ = messageBytes.WriteString(util.NormalizeStringEOL(opts.Message))
-	_, _ = messageBytes.WriteString("\n")
 
 	if opts.Key != nil {
 		if opts.Key.Format != "" {
@@ -63,7 +58,7 @@ func (repo *Repository) CommitTree(ctx context.Context, author, committer *Signa
 
 	stdout, _, err := cmd.WithEnv(env).
 		WithRepo(repo).
-		WithStdinBytes(messageBytes.Bytes()).
+		WithStdinBytes([]byte(strings.TrimRight(util.NormalizeStringEOL(opts.Message), "\n") + "\n")).
 		RunStdString(ctx)
 	if err != nil {
 		return nil, err
