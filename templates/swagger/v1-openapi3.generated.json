@@ -28758,6 +28758,14 @@
             }
           },
           {
+            "description": "Alias of `base_branch`, for GitHub compatibility",
+            "in": "query",
+            "name": "base",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "Filter by head branch of the pull request, as `branch`, `owner:branch` or `owner/repo:branch`",
             "in": "query",
             "name": "head",

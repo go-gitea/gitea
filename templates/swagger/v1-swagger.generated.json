@@ -16119,6 +16119,12 @@
           },
           {
             "type": "string",
+            "description": "Alias of `base_branch`, for GitHub compatibility",
+            "name": "base",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "description": "Filter by head branch of the pull request, as `branch`, `owner:branch` or `owner/repo:branch`",
             "name": "head",
             "in": "query"

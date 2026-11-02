@@ -33,7 +33,7 @@ func (cr *CompareRouterReq) DirectComparison() bool {
 	return cr.CompareSeparator == ".."
 }
 
-func parseHead(head string) (headOwnerName, headRepoName, headRef string) {
+func ParseHead(head string) (headOwnerName, headRepoName, headRef string) {
 	paths := strings.SplitN(head, ":", 2)
 	if len(paths) == 1 {
 		return "", "", paths[0]
@@ -82,7 +82,7 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 		sep = ".."
 		basePart, headPart, ok = strings.Cut(routerParam, sep)
 		if !ok {
-			headOwnerName, headRepoName, headOriRef := parseHead(routerParam)
+			headOwnerName, headRepoName, headOriRef := ParseHead(routerParam)
 			headOriRef, headOriRefSuffix := git.ParseRefSuffix(headOriRef)
 			return &CompareRouterReq{
 				HeadOriRef:       headOriRef,
@@ -96,7 +96,7 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 
 	ci := &CompareRouterReq{CompareSeparator: sep}
 	ci.BaseOriRef, ci.BaseOriRefSuffix = git.ParseRefSuffix(basePart)
-	ci.HeadOwner, ci.HeadRepoName, ci.HeadOriRef = parseHead(headPart)
+	ci.HeadOwner, ci.HeadRepoName, ci.HeadOriRef = ParseHead(headPart)
 	ci.HeadOriRef, ci.HeadOriRefSuffix = git.ParseRefSuffix(ci.HeadOriRef)
 	return ci
 }
@@ -149,24 +149,24 @@ func FindHeadRepo(ctx context.Context, baseRepo *repo_model.Repository, headUser
 	return findHeadRepoFromRootBase(ctx, baseRepo, headUserID, maxForkTraverseLevel)
 }
 
-func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, compareReq *CompareRouterReq) (headOwner *user_model.User, headRepo *repo_model.Repository, err error) {
-	if compareReq.HeadOwner == "" {
-		if compareReq.HeadRepoName != "" { // unsupported syntax
+func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, headOwnerName, headRepoName string) (headOwner *user_model.User, headRepo *repo_model.Repository, err error) {
+	if headOwnerName == "" {
+		if headRepoName != "" { // unsupported syntax
 			return nil, nil, util.ErrorWrap(util.ErrInvalidArgument, "head owner must be specified when head repo name is given")
 		}
 
 		return baseRepo.Owner, baseRepo, nil
 	}
 
-	if compareReq.HeadOwner == baseRepo.Owner.Name {
+	if headOwnerName == baseRepo.Owner.Name {
 		headOwner = baseRepo.Owner
 	} else {
-		headOwner, err = user_model.GetUserByName(ctx, compareReq.HeadOwner)
+		headOwner, err = user_model.GetUserByName(ctx, headOwnerName)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
-	if compareReq.HeadRepoName == "" {
+	if headRepoName == "" {
 		if headOwner.ID == baseRepo.OwnerID {
 			headRepo = baseRepo
 		} else {
@@ -179,10 +179,10 @@ func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, c
 			}
 		}
 	} else {
-		if compareReq.HeadOwner == baseRepo.Owner.Name && compareReq.HeadRepoName == baseRepo.Name {
+		if headOwnerName == baseRepo.Owner.Name && headRepoName == baseRepo.Name {
 			headRepo = baseRepo
 		} else {
-			headRepo, err = repo_model.GetRepositoryByName(ctx, headOwner.ID, compareReq.HeadRepoName)
+			headRepo, err = repo_model.GetRepositoryByName(ctx, headOwner.ID, headRepoName)
 			if err != nil {
 				return nil, nil, err
 			}

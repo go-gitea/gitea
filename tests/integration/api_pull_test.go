@@ -144,17 +144,7 @@ func TestAPIViewPulls(t *testing.T) {
 			}))
 	}
 
-	pullIndexes := func(t *testing.T, query string) []int64 {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?%s", owner.Name, repo.Name, query).AddTokenAuth(ctx.Token)
-		listed := DecodeJSON(t, ctx.Session.MakeRequest(t, req, http.StatusOK), []*api.PullRequest{})
-		indexes := make([]int64, 0, len(listed))
-		for _, pr := range listed {
-			indexes = append(indexes, pr.Index)
-		}
-		return indexes
-	}
-
-	t.Run("DefaultState", func(t *testing.T) {
+	t.Run("ListFilters", func(t *testing.T) {
 		writeToken := getTokenForLoggedInUser(t, ctx.Session, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/3", owner.Name, repo.Name), &api.EditPullRequestOption{
 			State: new(string(api.StateClosed)),
@@ -162,29 +152,28 @@ func TestAPIViewPulls(t *testing.T) {
 		MakeRequest(t, req, http.StatusCreated)
 
 		for query, want := range map[string][]int64{
-			"":             {2, 5},
-			"state=closed": {3},
-			"state=all":    {2, 3, 5},
+			"":                                             {2, 5},
+			"state=closed":                                 {3},
+			"state=all":                                    {2, 3, 5},
+			"state=all&head=branch2":                       {3},
+			"state=all&head=user2:branch2":                 {3},
+			"state=all&head=user2/repo1:branch2":           {3},
+			"state=all&head=branch2%5E":                    {},
+			"state=all&head=master...branch2":              {},
+			"state=all&head=user5:branch2":                 {},
+			"state=all&head=user-not-exist:branch2":        {},
+			"state=all&head=user2/repo-not-exist:branch2":  {},
+			"state=all&base_branch=master&head=branch2":    {3},
+			"state=all&base=branch-not-exist&head=branch2": {},
 		} {
-			assert.ElementsMatch(t, want, pullIndexes(t, query), query)
+			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?%s", owner.Name, repo.Name, query).AddTokenAuth(ctx.Token)
+			listed := DecodeJSON(t, ctx.Session.MakeRequest(t, req, http.StatusOK), []*api.PullRequest{})
+			indexes := make([]int64, 0, len(listed))
+			for _, pr := range listed {
+				indexes = append(indexes, pr.Index)
+			}
+			assert.ElementsMatch(t, want, indexes, query)
 		}
-	})
-
-	t.Run("FilterByHead", func(t *testing.T) {
-		for head, want := range map[string][]int64{
-			"branch2":                      {3},
-			"user2:branch2":                {3},
-			"user2/repo1:branch2":          {3},
-			"branch-not-exist":             {},
-			"branch2^":                     {},
-			"master...branch2":             {},
-			"user5:branch2":                {}, // no fork of repo1
-			"user-not-exist:branch2":       {},
-			"user2/repo-not-exist:branch2": {},
-		} {
-			assert.ElementsMatch(t, want, pullIndexes(t, "state=all&head="+url.QueryEscape(head)), head)
-		}
-		assert.Equal(t, []int64{3}, pullIndexes(t, "state=all&base_branch=master&head=branch2"))
 	})
 
 	t.Run("APICommitPullRequest", func(t *testing.T) {

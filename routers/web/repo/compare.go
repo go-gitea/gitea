@@ -166,7 +166,7 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	compareReq := common.ParseCompareRouterParam(compareParam)
 
 	// 2 get repository and owner for head
-	headOwner, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
+	headOwner, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq.HeadOwner, compareReq.HeadRepoName)
 	if err != nil {
 		return err
 	}

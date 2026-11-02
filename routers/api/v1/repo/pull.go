@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"math"
@@ -64,6 +65,10 @@ func ListPullRequests(ctx *context.APIContext) {
 	// - name: base_branch
 	//   in: query
 	//   description: Filter by target base branch of the pull request
+	//   type: string
+	// - name: base
+	//   in: query
+	//   description: Alias of `base_branch`, for GitHub compatibility
 	//   type: string
 	// - name: head
 	//   in: query
@@ -154,13 +159,18 @@ func ListPullRequests(ctx *context.APIContext) {
 		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
 		PosterID:    posterID,
-		BaseBranch:  ctx.FormTrim("base_branch"),
+		BaseBranch:  cmp.Or(ctx.FormTrim("base_branch"), ctx.FormTrim("base")),
 		HeadRepoID:  headRepoID,
 		HeadBranch:  headBranch,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
+	}
+	if headRepoID != 0 {
+		for _, pr := range prs {
+			pull_service.StartPullRequestCheckOnView(ctx, pr)
+		}
 	}
 
 	apiPrs, err := convert.ToAPIPullRequests(ctx, ctx.Repo.Repository, prs, ctx.Doer)
@@ -229,16 +239,10 @@ func GetPullRequest(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
 }
 
-// parsePullRequestHead returns a zero repo ID for a head the doer can't see, so a hidden fork looks like a missing one
-func parsePullRequestHead(ctx *context.APIContext, head string) (headRepoID int64, headBranch string, _ error) {
-	if strings.Contains(head, "..") {
-		return 0, "", nil
-	}
-	compareReq := common.ParseCompareRouterParam(head)
-	if compareReq.HeadOriRefSuffix != "" {
-		return 0, "", nil
-	}
-	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, ctx.Repo.Repository, compareReq)
+// parsePullRequestHead treats an inaccessible fork as missing so its existence stays hidden
+func parsePullRequestHead(ctx *context.APIContext, head string) (int64, string, error) {
+	headOwner, headRepoName, headBranch := common.ParseHead(head)
+	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, ctx.Repo.Repository, headOwner, headRepoName)
 	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 		return 0, "", nil
 	} else if err != nil {
@@ -253,7 +257,7 @@ func parsePullRequestHead(ctx *context.APIContext, head string) (headRepoID int6
 			return 0, "", nil
 		}
 	}
-	return headRepo.ID, compareReq.HeadOriRef, nil
+	return headRepo.ID, headBranch, nil
 }
 
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
@@ -978,7 +982,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	baseRepo := ctx.Repo.Repository
 	compareReq := common.ParseCompareRouterParam(compareParam)
 
-	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
+	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq.HeadOwner, compareReq.HeadRepoName)
 	switch {
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.APIError(http.StatusBadRequest, err.Error())
