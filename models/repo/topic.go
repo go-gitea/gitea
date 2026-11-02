@@ -186,7 +186,7 @@ func (opts *FindTopicOptions) ToConds() builder.Cond {
 }
 
 func (opts *FindTopicOptions) ToOrders() string {
-	orderBy := "topic.repo_count DESC"
+	orderBy := "topic.repo_count DESC, topic.id DESC"
 	if opts.RepoID > 0 {
 		orderBy = "topic.name" // when render topics for a repo, it's better to sort them by name, to get consistent result
 	}

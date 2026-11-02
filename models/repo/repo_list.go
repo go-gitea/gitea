@@ -605,6 +605,7 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 	if len(orderBy) == 0 {
 		orderBy = db.SearchOrderByAlphabetically
 	}
+	orderBy = db.WithIDTiebreaker(orderBy, "repository")
 
 	args := make([]any, 0)
 	if opts.PriorityOwnerID > 0 {
@@ -835,7 +836,7 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
-	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond).OrderBy(db.WithIDTiebreaker(opts.OrderBy, "repository").String())
 	repos := make(RepositoryList, 0, opts.PageSize)
 	db.SetSessionPagination(sess, &opts)
 	return repos, count, sess.Find(&repos)
