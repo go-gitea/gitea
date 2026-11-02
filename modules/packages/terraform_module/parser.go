@@ -27,8 +27,8 @@ var (
 )
 
 const (
-	maxParseSize  = 32 << 20 // decompressed bytes, bounds gzip bombs independently of the storage quota
-	maxReadmeSize = 1 << 20  // larger READMEs are not stored, they would be rendered on every page view
+	maxParseSize  = 32 * 1024 * 1024 // decompressed bytes, bounds gzip bombs independently of the storage quota
+	maxReadmeSize = 1024 * 1024      // larger READMEs are not stored, they would be rendered on every page view
 )
 
 // same rules as Terraform's module source address parser (github.com/hashicorp/terraform-registry-address)
