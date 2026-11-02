@@ -16,20 +16,19 @@ function updateIssueCount(card: HTMLElement): void {
 }
 
 async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<void> {
-  const columnCards = to.querySelectorAll('.issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
 
-  const columnSorting = {
-    issues: Array.from(columnCards, (card, i) => ({
-      issueID: parseInt(card.getAttribute('data-issue')!),
-      sorting: i,
-    })),
+  // send only this card and its predecessor: the board may be stale, so never report the whole column
+  const prevCard = item.previousElementSibling;
+  const move = {
+    issueID: parseInt(item.getAttribute('data-issue')!),
+    prevIssueID: prevCard?.classList.contains('issue-card') ? parseInt(prevCard.getAttribute('data-issue')!) : 0,
   };
 
   try {
     await POST(`${to.getAttribute('data-url')}/move`, {
-      data: columnSorting,
+      data: move,
     });
   } catch (error) {
     console.error(error);

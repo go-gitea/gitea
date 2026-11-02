@@ -43,6 +43,32 @@ func columnIssueIDs(column *Column) []int64 {
 	return []int64{column.ID}
 }
 
+// ColumnIssueSorting is an issue's stored position within a column.
+type ColumnIssueSorting struct {
+	IssueID int64 `xorm:"issue_id"`
+	Sorting int64 `xorm:"sorting"`
+}
+
+// GetColumnIssueSortings returns the column's issues in board order, leaving out excludeIssueID.
+func GetColumnIssueSortings(ctx context.Context, column *Column, excludeIssueID int64) (rows []ColumnIssueSorting, _ error) {
+	// same order as the board: see the "project-column-sorting" sort type
+	err := db.GetEngine(ctx).Table("project_issue").
+		Select("project_issue.issue_id, project_issue.sorting").
+		Join("INNER", "issue", "issue.id = project_issue.issue_id").
+		Where("project_issue.project_id=?", column.ProjectID).
+		In("project_issue.project_board_id", columnIssueIDs(column)).
+		And("project_issue.issue_id<>?", excludeIssueID).
+		OrderBy("project_issue.sorting ASC, issue.created_unix DESC, issue.id DESC").
+		Find(&rows)
+	return rows, err
+}
+
+// SetIssueSorting updates one issue's position in the project without touching its column.
+func SetIssueSorting(ctx context.Context, projectID, issueID, sorting int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET sorting=? WHERE issue_id=? AND project_id=?", sorting, issueID, projectID)
+	return err
+}
+
 // IsIssueInColumn reports whether the issue is placed in the column.
 func IsIssueInColumn(ctx context.Context, issueID int64, column *Column) (bool, error) {
 	return db.GetEngine(ctx).

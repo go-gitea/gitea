@@ -99,10 +99,36 @@ func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *is
 	return nil
 }
 
-// MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
+// MoveIssueAfter puts the issue into the column right after prevIssueID (the first place when it is 0,
+// the last when that card is no longer in the column). Only the moved issue changes column, so a
+// stale board in another browser cannot pull other cards back.
+func MoveIssueAfter(ctx context.Context, doer *user_model.User, column *project_model.Column, issue *issues_model.Issue, prevIssueID int64) error {
 	moves, err := db.WithTx2(ctx, func(ctx context.Context) ([]columnMove, error) {
-		return moveIssuesOnProjectColumn(ctx, doer, column, sortedIssueIDs)
+		others, err := project_model.GetColumnIssueSortings(ctx, column, issue.ID)
+		if err != nil {
+			return nil, err
+		}
+		pos := len(others)
+		if prevIssueID == 0 {
+			pos = 0
+		} else if i := slices.IndexFunc(others, func(r project_model.ColumnIssueSorting) bool { return r.IssueID == prevIssueID }); i >= 0 {
+			pos = i + 1
+		}
+
+		moves, err := moveIssuesOnProjectColumn(ctx, doer, column, map[int64]int64{int64(pos): issue.ID})
+		if err != nil {
+			return nil, err
+		}
+		for i, other := range others {
+			newSorting := int64(i + util.Iif(i >= pos, 1, 0))
+			if other.Sorting == newSorting {
+				continue
+			}
+			if err := project_model.SetIssueSorting(ctx, column.ProjectID, other.IssueID, newSorting); err != nil {
+				return nil, err
+			}
+		}
+		return moves, nil
 	})
 	if err != nil {
 		return err
