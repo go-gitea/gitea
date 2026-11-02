@@ -194,6 +194,10 @@ func Test_Projects(t *testing.T) {
 			return ids
 		}
 
+		// a predecessor outside the project is rejected
+		assert.ErrorIs(t, MoveIssueAfter(t.Context(), user2, colA, issue(1), 11), ErrIssueNotInProject)
+		assert.Equal(t, []int64{1, 2, 3, 5}, order(colA))
+
 		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colB, issue(1), 0))
 		// the sender still believes issue 1 is in A: it must stay in B, and the move falls back to the end of A
 		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colA, issue(2), 1))

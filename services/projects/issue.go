@@ -104,6 +104,16 @@ func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *is
 // stale board in another browser cannot pull other cards back.
 func MoveIssueAfter(ctx context.Context, doer *user_model.User, column *project_model.Column, issue *issues_model.Issue, prevIssueID int64) error {
 	moves, err := db.WithTx2(ctx, func(ctx context.Context) ([]columnMove, error) {
+		if prevIssueID != 0 {
+			// the predecessor may have left this column since the client rendered it, but not the project
+			inProject, err := db.GetEngine(ctx).Where("project_id=? AND issue_id=?", column.ProjectID, prevIssueID).Exist(new(project_model.ProjectIssue))
+			if err != nil {
+				return nil, err
+			}
+			if !inProject {
+				return nil, ErrIssueNotInProject
+			}
+		}
 		others, err := project_model.GetColumnIssueSortings(ctx, column, issue.ID)
 		if err != nil {
 			return nil, err
