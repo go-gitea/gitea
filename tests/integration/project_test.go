@@ -416,3 +416,48 @@ func TestProjects(t *testing.T) {
 		require.Equal(t, "user4", assignees[3].Name)
 	})
 }
+
+func TestMoveIssuesFromStaleBoards(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	proj := &project_model.Project{Title: "stale boards", RepoID: repo1.ID, Type: project_model.TypeRepository}
+	require.NoError(t, project_model.NewProject(t.Context(), proj))
+	colA := &project_model.Column{Title: "A", ProjectID: proj.ID}
+	colB := &project_model.Column{Title: "B", ProjectID: proj.ID}
+	require.NoError(t, project_model.NewColumn(t.Context(), colA))
+	require.NoError(t, project_model.NewColumn(t.Context(), colB))
+	for i, issueID := range []int64{1, 2, 3, 5} {
+		require.NoError(t, db.Insert(t.Context(), &project_model.ProjectIssue{IssueID: issueID, ProjectID: proj.ID, ProjectColumnID: colA.ID, Sorting: int64(i)}))
+	}
+
+	move := func(sess *TestSession, col *project_model.Column, issueID, prevIssueID int64) {
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/user2/repo1/projects/%d/%d/move", proj.ID, col.ID), map[string]any{
+			"issueID": issueID, "prevIssueID": prevIssueID,
+		})
+		sess.MakeRequest(t, req, http.StatusOK)
+	}
+	columnOf := func(issueID int64) int64 {
+		return unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issueID, ProjectID: proj.ID}).ProjectColumnID
+	}
+
+	// both users loaded the board while it was A=[1,2,3,5], B=[]
+	sess1, sess2 := loginUser(t, "user2"), loginUser(t, "user1")
+
+	move(sess1, colB, 1, 0)
+
+	// user1's board is stale: it still shows issue 1 in A, so it reports issue 3 as placed after it
+	move(sess2, colA, 3, 1)
+
+	assert.Equal(t, colB.ID, columnOf(1), "the stale board must not pull issue 1 back to A")
+	for _, issueID := range []int64{2, 3, 5} {
+		assert.Equal(t, colA.ID, columnOf(issueID))
+	}
+	rows, err := project_model.GetColumnIssueSortings(t.Context(), colA, 0)
+	require.NoError(t, err)
+	var order []int64
+	for _, r := range rows {
+		order = append(order, r.IssueID)
+	}
+	assert.Equal(t, []int64{2, 5, 3}, order) // the vanished predecessor falls back to the column end
+}
