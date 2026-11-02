@@ -6,7 +6,6 @@ package user
 import (
 	gocontext "context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -205,20 +204,14 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["PackageRegistryHost"] = registryHostURL.Host
 
-	if pd.Package.Type == packages_model.TypeTerraformModule {
-		if submodule := ctx.PathParam("submodule"); submodule != "" {
-			metadata, ok := pd.Metadata.(*tfmod.Metadata)
-			if !ok {
-				ctx.ServerError("ViewPackageVersion", fmt.Errorf("unexpected metadata type %T", pd.Metadata))
-				return
-			}
-			if _, ok := metadata.Submodules[submodule]; !ok {
-				ctx.NotFound(nil)
-				return
-			}
-			ctx.Data["PackageSubmodule"] = submodule
-			ctx.Data["Title"] = pd.Package.Name + " //modules/" + submodule
+	if submodule := ctx.PathParam("submodule"); submodule != "" {
+		metadata, ok := pd.Metadata.(*tfmod.Metadata) // the route is shared by all package types
+		if !ok || metadata.Submodules[submodule] == nil {
+			ctx.NotFound(nil)
+			return
 		}
+		ctx.Data["PackageSubmodule"] = submodule
+		ctx.Data["Title"] = pd.Package.Name + " //modules/" + submodule
 	}
 
 	switch pd.Package.Type {

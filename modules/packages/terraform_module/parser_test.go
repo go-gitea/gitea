@@ -83,6 +83,15 @@ output "vpc_id" {
 	require.NoError(t, err)
 	assert.Equal(t, &Metadata{Submodules: map[string]*Submodule{"net": {Module: &Module{}}}}, metadata)
 
+	metadata, err = ParseModuleArchive(bytes.NewReader(buildArchive(map[string]string{
+		"main.tf":               "",
+		"README.md":             strings.Repeat("#", maxReadmeSize+1),
+		"modules/net/main.tf":   "",
+		"modules/net/README.md": strings.Repeat("#", maxReadmeSize+1),
+	})))
+	require.NoError(t, err)
+	assert.Equal(t, &Metadata{Root: &Module{}, Submodules: map[string]*Submodule{"net": {Module: &Module{}}}}, metadata)
+
 	_, err = ParseModuleArchive(bytes.NewReader(buildArchive(map[string]string{"mod-1.0.0/main.tf": ""})))
 	assert.ErrorIs(t, err, ErrNoRootModule)
 	_, err = ParseModuleArchive(bytes.NewReader(buildArchive(map[string]string{"main.tf": strings.Repeat("#", maxParseSize)})))

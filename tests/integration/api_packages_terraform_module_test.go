@@ -75,6 +75,9 @@ func TestPackageTerraformModule(t *testing.T) {
 		assert.Contains(t, content, "cidr")
 		assert.Contains(t, content, "Net submodule")
 		loginUser(t, admin.Name).MakeRequest(t, NewRequest(t, "GET", page+"/modules/unknown"), http.StatusNotFound)
+
+		MakeRequest(t, NewRequestWithBody(t, "PUT", "/api/packages/"+privateOrg.Name+"/generic/vpc/1.0.0/file.bin", strings.NewReader("x")).AddBasicAuth(admin.Name), http.StatusCreated)
+		loginUser(t, admin.Name).MakeRequest(t, NewRequest(t, "GET", "/"+privateOrg.Name+"/-/packages/generic/vpc/1.0.0/modules/net"), http.StatusNotFound)
 	})
 
 	t.Run("ListVersions", func(t *testing.T) {

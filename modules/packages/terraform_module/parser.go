@@ -26,7 +26,10 @@ var (
 	ErrNoRootModule    = errors.New("no terraform module at the archive root: package the module directory's contents, not the directory itself (e.g. `tar -czf module.tar.gz -C path/to/module .`)")
 )
 
-const maxParseSize = 32 << 20 // decompressed bytes, bounds gzip bombs independently of the storage quota
+const (
+	maxParseSize  = 32 << 20 // decompressed bytes, bounds gzip bombs independently of the storage quota
+	maxReadmeSize = 1 << 20  // larger READMEs are not stored, they would be rendered on every page view
+)
 
 // same rules as Terraform's module source address parser (github.com/hashicorp/terraform-registry-address)
 var (
@@ -91,7 +94,7 @@ func parseTar(tr *tar.Reader) (*Metadata, error) {
 		isReadme := lowerBase == "readme.md" || lowerBase == "readme"
 		name, isSubmodule := strings.CutPrefix(dir, "modules/")
 		isSubmodule = isSubmodule && !strings.Contains(name, "/") // standard module structure, one level deep
-		if !isSource && !isReadme || dir != "" && !isSubmodule {
+		if !isSource && !isReadme || dir != "" && !isSubmodule || isReadme && hdr.Size > maxReadmeSize {
 			continue
 		}
 		data, err := io.ReadAll(tr)
