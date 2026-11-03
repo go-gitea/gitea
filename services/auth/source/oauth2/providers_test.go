@@ -4,9 +4,19 @@
 package oauth2
 
 import (
+	"net/http"
+	"testing"
 	"time"
 
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/providers/gitea"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 )
 
@@ -59,4 +69,30 @@ func init() {
 			func(clientKey, secret, callbackURL string, scopes ...string) goth.Provider {
 				return &fakeProvider{}
 			}))
+}
+
+func TestGetOAuth2CallbackURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host:3000/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLAuto)()
+
+	reqCtx := reqctx.NewRequestContextForTest(t)
+	req := &http.Request{
+		Host:   "lan-host:3000",
+		Header: http.Header{"X-Forwarded-Proto": {"https"}},
+	}
+	_ = httplib.RequestWithContext(req, reqCtx)
+	httplib.MarkRequestSupportPublicURL(reqCtx)
+
+	cbURL := GetOAuth2CallbackURL(reqCtx, "my-oidc")
+	assert.Equal(t, "https://lan-host:3000/sub/user/oauth2/my-oidc/callback", cbURL)
+
+	provider := gitea.New("client", "secret", "http://cfg-host:3000/sub/user/oauth2/my-oidc/callback")
+	updateProviderCallbackURL(provider, cbURL)
+	assert.Equal(t, cbURL, provider.CallbackURL)
+	sess, err := provider.BeginAuth("state")
+	require.NoError(t, err)
+	authURL, err := sess.GetAuthURL()
+	require.NoError(t, err)
+	assert.Contains(t, authURL, "redirect_uri=https%3A%2F%2Flan-host%3A3000%2Fsub%2Fuser%2Foauth2%2Fmy-oidc%2Fcallback")
 }
