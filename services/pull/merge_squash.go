@@ -59,7 +59,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 	}
 
 	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
-		message = AddCommitMessageTailer(message, git.CoAuthoredByTrailer, sig.String())
+		message = git.CommitMessageAddTrailer(message, git.CoAuthoredByTrailer, sig.String())
 	}
 	if git.DefaultFeatures().SupportGitMergeTree {
 		return commitMergeTree(ctx, repo_model.MergeStyleSquash, message, sig, tmpRepoBaseBranch)

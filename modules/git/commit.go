@@ -249,20 +249,43 @@ func GetFullCommitID(ctx context.Context, repo RepositoryFacade, shortID string)
 	return strings.TrimSpace(commitID), nil
 }
 
-func ValidateObjectMessage(typ ObjectType, message string) error {
+// CleanupObjectMessage formats a message like "git stripspace", accepting any EOL style
+func CleanupObjectMessage(message string) string {
+	var sb strings.Builder
+	pendingBlank := false
+	for line := range strings.SplitSeq(util.NormalizeStringEOL(message), "\n") {
+		line = strings.TrimRight(line, " \t")
+		if line == "" {
+			pendingBlank = sb.Len() > 0
+			continue
+		}
+		if pendingBlank {
+			sb.WriteByte('\n')
+			pendingBlank = false
+		}
+		sb.WriteString(line)
+		sb.WriteByte('\n')
+	}
+	return sb.String()
+}
+
+// PrepareObjectMessage cleans up a message and validates the result for storing in a git object
+func PrepareObjectMessage(typ ObjectType, message string) (string, error) {
+	message = CleanupObjectMessage(message)
 	if len(message) > 512*1024 {
 		// It doesn't make sense to store very large messages in git objects,
 		// and it never succeeded in the past due to the command line argument limit (e.g.: 128K on Linux).
 		// If any real world user would complain about the limit, let them explain why, then make the limit configurable.
-		return util.NewInvalidArgumentErrorf("git %s message is too long", typ)
+		return "", util.NewInvalidArgumentErrorf("git %s message is too long", typ)
 	}
-	return nil
+	return message, nil
 }
 
 func AddObjectMessageArgument(cmd *gitcmd.Command, typ ObjectType, message string) error {
-	if err := ValidateObjectMessage(typ, message); err != nil {
+	message, err := PrepareObjectMessage(typ, message)
+	if err != nil {
 		return err
 	}
-	cmd.AddArguments("--file=-").WithStdinBytes([]byte(message))
+	cmd.AddArguments("--cleanup=verbatim", "--file=-").WithStdinBytes([]byte(message))
 	return nil
 }

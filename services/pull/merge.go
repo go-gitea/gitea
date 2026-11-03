@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"uuid"
@@ -178,15 +177,6 @@ func expandDefaultMergeMessage(template string, varsMap map[string]string) (mess
 // GetDefaultMergeMessage returns default message used when merging pull request
 func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
 	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, nil)
-}
-
-func AddCommitMessageTailer(message, tailerKey, tailerValue string) string {
-	tailerLine := tailerKey + ": " + tailerValue
-	message = util.NormalizeStringEOL(message)
-	if _, _, trailer := git.CommitMessageSplitTrailer(message); slices.Contains(strings.Split(trailer, "\n"), tailerLine) {
-		return message
-	}
-	return git.CommitMessageMerge(message, tailerLine)
 }
 
 // ErrInvalidMergeStyle represents an error if merging with disabled merge strategy
@@ -537,9 +527,6 @@ func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
 }
 
 func commitMergeTree(ctx *mergeContext, mergeStyle repo_model.MergeStyle, message string, author *git.Signature, parents ...string) error {
-	if err := git.ValidateObjectMessage(git.ObjectCommit, message); err != nil {
-		return err
-	}
 	if strings.TrimSpace(message) == "" {
 		return util.NewInvalidArgumentErrorf("empty commit message")
 	}

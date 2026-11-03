@@ -6,6 +6,7 @@ package git
 import (
 	"net/mail"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
@@ -128,6 +129,18 @@ func CommitMessageMerge(m1, m2 string) string {
 		}
 	}
 	return out.String()
+}
+
+// CommitMessageAddTrailer appends a "key: value" trailer unless the message's trailers already contain it
+func CommitMessageAddTrailer(message, key, value string) string {
+	line := key + ": " + value
+	content, _, trailer := CommitMessageSplitTrailer(message)
+	if content == "" && strings.TrimSpace(message) != "" {
+		return strings.TrimSpace(message) + "\n\n" + line // the subject is never a trailer, even if it looks like one
+	} else if slices.Contains(strings.Split(trailer, "\n"), line) {
+		return message
+	}
+	return CommitMessageMerge(message, line)
 }
 
 func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {

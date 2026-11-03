@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/util"
 )
 
 // CommitTreeOpts represents the possible options to CommitTree
@@ -26,6 +25,10 @@ type CommitTreeOpts struct {
 
 // CommitTree creates a commit from a given tree id for the user with provided message
 func CommitTree(ctx context.Context, repo RepositoryFacade, author, committer *Signature, treeID string, opts CommitTreeOpts) (ObjectID, error) {
+	message, err := PrepareObjectMessage(ObjectCommit, opts.Message)
+	if err != nil {
+		return nil, err
+	}
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
@@ -58,7 +61,7 @@ func CommitTree(ctx context.Context, repo RepositoryFacade, author, committer *S
 
 	stdout, _, err := cmd.WithEnv(env).
 		WithRepo(repo).
-		WithStdinBytes([]byte(strings.TrimRight(util.NormalizeStringEOL(opts.Message), "\n") + "\n")).
+		WithStdinBytes([]byte(message)).
 		RunStdString(ctx)
 	if err != nil {
 		return nil, err
