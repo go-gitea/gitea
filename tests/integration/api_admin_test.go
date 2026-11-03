@@ -21,6 +21,8 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
@@ -110,20 +112,21 @@ func TestAPIListUsers(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeReadAdmin)
+	bot := &user_model.User{Name: "list-bot", Email: "list-bot@example.com", Type: user_model.UserTypeBot}
+	require.NoError(t, user_model.CreateUser(t.Context(), bot, &user_model.Meta{}))
 
-	req := NewRequest(t, "GET", "/api/v1/admin/users").
+	req := NewRequest(t, "GET", "/api/v1/admin/users?limit=50").
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	users := DecodeJSON(t, resp, []api.User{})
 
-	found := false
+	userTypes := map[string]api.UserTypeString{}
 	for _, user := range users {
-		if user.UserName == adminUsername {
-			found = true
-		}
+		userTypes[user.UserName] = user.Type
 	}
-	assert.True(t, found)
-	numberOfUsers := unittest.GetCount(t, &user_model.User{}, "type = 0")
+	assert.Equal(t, api.UserTypeStringUser, userTypes[adminUsername])
+	assert.Equal(t, api.UserTypeStringBot, userTypes[bot.Name])
+	numberOfUsers := unittest.GetCount(t, &user_model.User{}, builder.In("type", user_model.AdminListedUserTypes))
 	assert.Len(t, users, numberOfUsers)
 }
 

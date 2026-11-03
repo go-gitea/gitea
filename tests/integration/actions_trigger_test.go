@@ -886,11 +886,12 @@ jobs:
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
-		_, _, err = pull_service.SubmitReview(t.Context(), user4, gitRepo, pullIssue, issues_model.ReviewTypeApprove, "lgtm", sha, nil)
+		_, _, err = pull_service.SubmitReview(t.Context(), user4, gitRepo, pullIssue, issues_model.ReviewTypeApprove, "lgtm", addWorkflow.Commit.SHA, nil)
 		assert.NoError(t, err)
 
 		// verify that a commit status was created for the review event
 		waitCommitStatusAndInsertFakeStatus(t, repo, sha)
+		assert.Equal(t, sha, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID}).CommitSHA)
 	})
 }
 

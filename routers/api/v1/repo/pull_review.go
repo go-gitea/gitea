@@ -266,6 +266,9 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
 		return
 	}
+	if isIssueLockedForDoer(ctx, parent.Issue) {
+		return
+	}
 
 	comment, err := pull_service.CreateCodeComment(ctx,
 		ctx.Doer, ctx.Repo.GitRepo, parent.Issue,
@@ -507,8 +510,12 @@ func CreatePullReview(ctx *context.APIContext) {
 	}
 
 	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
-	if isWrong {
+	reviewType := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
+	if reviewType == issues_model.ReviewTypeUnknown {
+		return
+	}
+
+	if isIssueLockedForDoer(ctx, pr.Issue) {
 		return
 	}
 
@@ -634,8 +641,12 @@ func SubmitPullReview(ctx *context.APIContext) {
 	}
 
 	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
-	if isWrong {
+	reviewType := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
+	if reviewType == issues_model.ReviewTypeUnknown {
+		return
+	}
+
+	if isIssueLockedForDoer(ctx, pr.Issue) {
 		return
 	}
 
@@ -671,11 +682,18 @@ func SubmitPullReview(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiReview)
 }
 
-// preparePullReviewType return ReviewType and false or nil and true if an error happen
-func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest, event api.ReviewStateType, body string) (issues_model.ReviewType, bool) {
+func isIssueLockedForDoer(ctx *context.APIContext, issue *issues_model.Issue) bool {
+	if issue_service.IsLockedForDoer(issue, ctx.Repo.Permission) {
+		ctx.APIError(http.StatusForbidden, "cannot comment on a locked issue")
+		return true
+	}
+	return false
+}
+
+func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest, event api.ReviewStateType, body string) issues_model.ReviewType {
 	if err := pr.LoadIssue(ctx); err != nil {
 		ctx.APIErrorInternal(err)
-		return -1, true
+		return issues_model.ReviewTypeUnknown
 	}
 
 	switch event {
@@ -683,26 +701,26 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 		// can not approve your own PR
 		if pr.Issue.IsPoster(ctx.Doer.ID) {
 			ctx.APIError(http.StatusUnprocessableEntity, "approve your own pull is not allowed")
-			return -1, true
+			return issues_model.ReviewTypeUnknown
 		}
-		return issues_model.ReviewTypeApprove, false
+		return issues_model.ReviewTypeApprove
 
 	case api.ReviewStateRequestChanges:
 		// can not reject your own PR
 		if pr.Issue.IsPoster(ctx.Doer.ID) {
 			ctx.APIError(http.StatusUnprocessableEntity, "reject your own pull is not allowed")
-			return -1, true
+			return issues_model.ReviewTypeUnknown
 		}
 		if strings.TrimSpace(body) == "" {
 			ctx.APIError(http.StatusUnprocessableEntity, "review event REQUEST_CHANGES requires a body")
-			return -1, true
+			return issues_model.ReviewTypeUnknown
 		}
-		return issues_model.ReviewTypeReject, false
+		return issues_model.ReviewTypeReject
 
 	case api.ReviewStateComment:
-		return issues_model.ReviewTypeComment, false
+		return issues_model.ReviewTypeComment
 	default:
-		return issues_model.ReviewTypePending, false
+		return issues_model.ReviewTypePending
 	}
 }
 

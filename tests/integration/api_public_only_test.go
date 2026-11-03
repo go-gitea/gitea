@@ -117,6 +117,24 @@ func TestAPIOrgPermissionsPublicOnly(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
+func TestAPIPublicOnlyRejectedRoutes(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteAdmin, auth_model.AccessTokenScopeWriteOrganization,
+		auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopePublicOnly)
+	for _, route := range []struct{ method, url string }{
+		{"GET", "/api/v1/admin/orgs"},
+		{"POST", "/api/v1/orgs"},
+		{"POST", "/api/v1/org/org3/repos"},
+		{"POST", "/api/v1/orgs/org3/repos"},
+		{"DELETE", "/api/v1/orgs/org3/repos"},
+		{"POST", "/api/v1/orgs/org3/actions/runners/registration-token"},
+		{"POST", "/api/v1/repos/user2/repo1/generate"},
+	} {
+		MakeRequest(t, NewRequest(t, route.method, route.url).AddTokenAuth(token), http.StatusForbidden)
+	}
+}
+
 func TestAPITeamReposPublicOnly(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

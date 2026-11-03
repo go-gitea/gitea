@@ -64,11 +64,15 @@ func TestIsBlobAccessibleForRestrictedUser(t *testing.T) {
 	_, err = TryInsertFile(t.Context(), &PackageFile{VersionID: version.ID, BlobID: blob.ID, Name: "blob", LowerName: "blob"})
 	require.NoError(t, err)
 
-	accessible, err := IsBlobAccessibleForUser(t.Context(), blob.ID, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}))
+	accessible, err := IsBlobAccessibleForUser(t.Context(), blob.ID, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), false)
 	require.NoError(t, err)
 	assert.True(t, accessible)
 
-	accessible, err = IsBlobAccessibleForUser(t.Context(), blob.ID, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}))
+	accessible, err = IsBlobAccessibleForUser(t.Context(), blob.ID, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}), false)
+	require.NoError(t, err)
+	assert.False(t, accessible)
+
+	accessible, err = IsBlobAccessibleForUser(t.Context(), blob.ID, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), true)
 	require.NoError(t, err)
 	assert.False(t, accessible)
 }

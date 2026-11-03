@@ -34,6 +34,12 @@ func TestHeatmapEndpoints(t *testing.T) {
 		assert.Positive(t, result["totalContributions"])
 	})
 
+	t.Run("PrivateUserProfileAnonymous", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequest(t, "GET", "/user31/-/heatmap")
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
 	t.Run("OrgDashboard", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		req := NewRequest(t, "GET", "/org/org3/dashboard/-/heatmap")

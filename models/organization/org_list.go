@@ -70,7 +70,7 @@ func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 
 func (opts FindOrgOptions) ToConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"`user`.`type`": user_model.UserTypeOrganization}
-	if opts.UserID > 0 {
+	if opts.UserID != 0 {
 		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludeVisibility == structs.VisibleTypePrivate)))
 	}
 	// public=0, limited=1, private=2

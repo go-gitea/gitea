@@ -31,6 +31,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/uri"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/gitdiff"
 	"gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 )
@@ -905,10 +906,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			// SECURITY: The TreePath must be cleaned! use relative path
 			comment.TreePath = util.PathJoinRel(comment.TreePath)
 
-			patch, _ := git.GetFileDiffCutAroundLine(ctx,
-				g.gitRepo, pr.MergeBase, headCommitID, comment.TreePath,
-				int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
-			)
+			patch, _ := gitdiff.GetCodeCommentPatch(ctx, g.gitRepo, pr.MergeBase, headCommitID, comment.TreePath, int64(line+comment.Position-1))
 
 			if comment.CreatedAt.IsZero() {
 				comment.CreatedAt = review.CreatedAt

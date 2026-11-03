@@ -714,7 +714,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		}
 
 		// check view permissions
-		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) || (context.TokenIsPublicOnly(ctx) && !ctx.ContextUser.Visibility.IsPublic()) {
 			ctx.NotFound(fmt.Errorf("%s", ctx.ContextUser.Name))
 			return false
 		}
@@ -743,6 +743,9 @@ func UsernameSubRoute(ctx *context.Context) {
 		}
 	default:
 		context.UserAssignmentWeb()(ctx)
+		if !ctx.Written() && context.TokenIsPublicOnly(ctx) && !ctx.ContextUser.Visibility.IsPublic() {
+			ctx.NotFound(nil)
+		}
 		if !ctx.Written() {
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 			OwnerProfile(ctx)
@@ -817,6 +820,9 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 	ret.MentionCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.MentionID = optional.Some(doerID) }))
 	if err != nil {
 		return nil, err
+	}
+	if !opts.IsPull.Value() {
+		return ret, nil
 	}
 	ret.ReviewRequestedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewRequestedID = optional.Some(doerID) }))
 	if err != nil {

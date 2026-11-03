@@ -89,6 +89,7 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	GitConfig.Options = make(map[string]string)
 	GitConfig.SetOption("diff.algorithm", "histogram")
 	GitConfig.SetOption("core.logAllRefUpdates", "true")
+	GitConfig.SetOption("maintenance.strategy", "gc") // git 2.54's push-time default "geometric" delays pushes and repacks concurrently with other writes
 
 	secGitReflog := rootCfg.Section("git.reflog")
 	if secGitReflog.HasKey("ENABLED") {

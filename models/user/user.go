@@ -68,13 +68,20 @@ const (
 	UserTypeRemoteUser // 5
 )
 
+// AdminListedUserTypes HINT: USER-TYPE-GLOSSARY: administrators list every user type except organizations
+var AdminListedUserTypes = []UserType{UserTypeIndividual, UserTypeUserReserved, UserTypeBot, UserTypeRemoteUser}
+
 // DisplayName returns the English name of the user type for logs and the CLI, the UI translates "concept_user_*" instead
 func (t UserType) DisplayName() string {
 	switch t {
 	case UserTypeOrganization, UserTypeOrganizationReserved:
 		return "Organization"
+	case UserTypeUserReserved:
+		return "Reserved"
 	case UserTypeBot:
 		return "Bot"
+	case UserTypeRemoteUser:
+		return "Remote"
 	default:
 		return "User"
 	}
@@ -250,10 +257,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetAllUsers returns a slice of all individual users found in DB.
-func GetAllUsers(ctx context.Context) ([]*User, error) {
-	users := make([]*User, 0)
-	return users, db.GetEngine(ctx).OrderBy("id").Where("type = ?", UserTypeIndividual).Find(&users)
+// GetAllUsersForAdminListing returns a slice of all users of AdminListedUserTypes found in DB.
+func GetAllUsersForAdminListing(ctx context.Context) (users []*User, err error) {
+	err = db.GetEngine(ctx).OrderBy("id").In("type", AdminListedUserTypes).Find(&users)
+	return users, err
 }
 
 // IsLocal returns true if user login type is LoginPlain.
@@ -438,6 +445,18 @@ func (u *User) IsOrganization() bool {
 // IsIndividual returns true if user is actually an individual user.
 func (u *User) IsIndividual() bool {
 	return u.ID > 0 && u.Type == UserTypeIndividual
+}
+
+// IsFollowable returns whether other users can follow this user (individuals, bots and organizations)
+func (u *User) IsFollowable() bool {
+	if u.ID <= 0 {
+		return false
+	}
+	switch u.Type {
+	case UserTypeIndividual, UserTypeBot, UserTypeOrganization:
+		return true
+	}
+	return false
 }
 
 // IsTypeBot returns whether the user is of type bot
@@ -1048,7 +1067,7 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// Glossaries for XxxUser:
+// HINT: USER-TYPE-GLOSSARY: Glossaries for XxxUser:
 // * Possible: The user may or may not exist in the database, but we can still return a valid user object (e.g. Ghost user) for the given ID.
 // * Individual: The user is a real person, not an organization or a bot.
 // * Doer: The user is the one performing an action

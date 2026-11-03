@@ -14,6 +14,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/models/renderhelper"
@@ -72,22 +73,6 @@ var IssueTemplateCandidates = []string{
 	".github/issue_template.yml",
 }
 
-// MustAllowUserComment checks to make sure if an issue is locked.
-// If locked and user has permissions to write to the repository,
-// then the comment is allowed, else it is blocked
-func MustAllowUserComment(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
-		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.Link())
-		return
-	}
-}
-
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
 	if !ctx.Repo.Permission.CanRead(unit.TypeIssues) &&
@@ -99,7 +84,7 @@ func MustEnableIssues(ctx *context.Context) {
 	unitExtTracker, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 	if err == nil {
 		extURL := unitExtTracker.ExternalTrackerConfig().ExternalTrackerURL
-		if extURL != "" {
+		if extURL != "" && !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
 			ctx.Redirect(extURL)
 			return
 		}
@@ -186,8 +171,8 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 		return nil
 	}
 	issue.Repo = ctx.Repo.Repository
-	checkIssueRights(ctx, issue)
-	if ctx.Written() {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound(nil)
 		return nil
 	}
 	if err = issue.LoadAttributes(ctx); err != nil {
@@ -195,13 +180,6 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 		return nil
 	}
 	return issue
-}
-
-func checkIssueRights(ctx *context.Context, issue *issues_model.Issue) {
-	if issue.IsPull && !ctx.Repo.Permission.CanRead(unit.TypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
-		ctx.NotFound(nil)
-	}
 }
 
 func getActionIssues(ctx *context.Context) issues_model.IssueList {
@@ -481,39 +459,26 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
+func canSelfChangeOrAccessContent(ctx *context.Context, refIssue *issues_model.Issue, contentPosterID int64, accessMode perm.AccessMode) bool {
+	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, refIssue, contentPosterID, accessMode) {
+		ctx.HTTPError(http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
 // ChangeIssueReaction create a reaction for issue
 func ChangeIssueReaction(ctx *context.Context) {
 	form := web.GetForm[*forms.ReactionForm](ctx)
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
-		if log.IsTrace() {
-			if ctx.IsSigned {
-				issueType := "issues"
-				if issue.IsPull {
-					issueType = "pulls"
-				}
-				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
-					"User in Repo has Permissions: %-+v",
-					ctx.Doer,
-					issue.PosterID,
-					issueType,
-					ctx.Repo.Repository,
-					ctx.Repo.Permission)
-			} else {
-				log.Trace("Permission Denied: Not logged in")
-			}
-		}
-
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
 	if ctx.HasError() {
-		ctx.ServerError("ChangeIssueReaction", errors.New(ctx.GetErrMsg()))
+		ctx.HTTPError(http.StatusBadRequest, ctx.GetErrMsg())
+		return
+	}
+	issue := GetActionIssue(ctx)
+	if issue == nil {
+		return
+	}
+	if !canSelfChangeOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeRead) {
 		return
 	}
 

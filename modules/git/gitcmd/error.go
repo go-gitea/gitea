@@ -93,6 +93,7 @@ const (
 	StderrPathSpec           StderrPrefix = "fatal: pathspec"
 	StderrBadRevision        StderrPrefix = "fatal: bad revision"
 	StderrNoSuchPath         StderrPrefix = "fatal: no such path"
+	StderrBadObject          StderrPrefix = "fatal: bad object "
 
 	StderrNoSuchRemote1 StderrPrefix = "fatal: no such remote" // git < 2.30, exit status 128
 	StderrNoSuchRemote2 StderrPrefix = "error: no such remote" // git >= 2.30. exit status 2

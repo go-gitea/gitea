@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
@@ -206,6 +207,48 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 		results[projectColumnID] = append(results[projectColumnID], issue)
 	}
 	return results, nil
+}
+
+// LoadLinkedPullRequests returns, per issue, the pull requests referencing it that the doer can read
+func LoadLinkedPullRequests(ctx context.Context, issuesMap map[int64]issues_model.IssueList, doer *user_model.User) (map[int64][]*issues_model.Issue, error) {
+	linkedPrsMap := make(map[int64][]*issues_model.Issue)
+	canReadPulls := make(map[int64]bool)
+	for _, issuesList := range issuesMap {
+		for _, issue := range issuesList {
+			var referencedIDs []int64
+			for _, comment := range issue.Comments {
+				if comment.RefIssueID != 0 && comment.RefIsPull {
+					referencedIDs = append(referencedIDs, comment.RefIssueID)
+				}
+			}
+			if len(referencedIDs) == 0 {
+				continue
+			}
+
+			linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
+				IssueIDs: referencedIDs,
+				IsPull:   optional.Some(true),
+			})
+			if err != nil {
+				return nil, err
+			}
+			for _, pr := range linkedPrs {
+				canRead, ok := canReadPulls[pr.RepoID]
+				if !ok {
+					perm, err := access_model.GetDoerRepoPermission(ctx, pr.Repo, doer)
+					if err != nil {
+						return nil, err
+					}
+					canRead = perm.CanReadIssuesOrPulls(true)
+					canReadPulls[pr.RepoID] = canRead
+				}
+				if canRead {
+					linkedPrsMap[issue.ID] = append(linkedPrsMap[issue.ID], pr)
+				}
+			}
+		}
+	}
+	return linkedPrsMap, nil
 }
 
 // NumClosedIssues return counter of closed issues assigned to a project

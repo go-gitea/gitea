@@ -34,7 +34,7 @@ func TestGetWatchers(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	watches, err := repo_model.GetWatchers(t.Context(), repo.ID)
 	assert.NoError(t, err)
-	// One watchers are inactive, thus minus 1
+	// One watcher is inactive, thus minus 1
 	assert.Len(t, watches, repo.NumWatches-1)
 	for _, watch := range watches {
 		assert.Equal(t, repo.ID, watch.RepoID)
@@ -90,20 +90,26 @@ func TestWatchIfAuto(t *testing.T) {
 
 	setting.Service.AutoWatchOnChanges = true
 
-	// Must not add watch
+	// Must not add watch (user 8 has "don't watch" set)
 	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 8, 1, true))
 	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
-	// Should not add watch
+	// Should not add watch (read operation)
 	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 12, 1, false))
 	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
-	// Should add watch
+	// Should add watch (write operation)
 	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 12, 1, true))
+	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
+	assert.NoError(t, err)
+	assert.Len(t, watchers, prevCount+1)
+
+	// Should not add watch (system user should not be able to watch)
+	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), user_model.ActionsUserID, 1, true))
 	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount+1)

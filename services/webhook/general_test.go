@@ -579,6 +579,7 @@ func TestGetWikiPayloadInfo(t *testing.T) {
 
 func TestGetReleasePayloadInfo(t *testing.T) {
 	p := pullReleaseTestPayload()
+	p.Release.Attachments = []*api.Attachment{{}, {}}
 
 	cases := []struct {
 		action api.HookReleaseAction
@@ -587,12 +588,12 @@ func TestGetReleasePayloadInfo(t *testing.T) {
 	}{
 		{
 			api.HookReleasePublished,
-			"[test/repo] Release created: v1.0 by user1",
+			"[test/repo] Release created: v1.0 by user1 (assets: 2)",
 			greenColor,
 		},
 		{
 			api.HookReleaseUpdated,
-			"[test/repo] Release updated: v1.0 by user1",
+			"[test/repo] Release updated: v1.0 by user1 (assets: 2)",
 			yellowColor,
 		},
 		{

@@ -447,6 +447,14 @@ func extractUserNameFromOAuth2(gothUser *goth.User) (string, error) {
 	}
 }
 
+func oauth2IdentityMatchesUser(gothUser *goth.User, u *user_model.User) bool {
+	if gothUser.Email != "" && strings.EqualFold(gothUser.Email, u.Email) {
+		return true
+	}
+	uname, err := extractUserNameFromOAuth2(gothUser)
+	return err == nil && uname != "" && strings.EqualFold(uname, u.Name)
+}
+
 // HandleSignOut resets the session and sets the cookies
 func HandleSignOut(ctx *context.Context) {
 	_ = ctx.Session.Flush()
@@ -645,6 +653,9 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 						}
 						return false
 					}
+				}
+				if !oauth2IdentityMatchesUser(&possibleLinkAccountData.GothUser, user) {
+					break // name or email came from the sign-up form, report the conflict instead of linking
 				}
 				// TODO: probably we should respect 'remember' user's choice...
 				oauth2LinkAccount(ctx, user, possibleLinkAccountData, true)

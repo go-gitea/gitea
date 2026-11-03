@@ -20,6 +20,7 @@ export function initCompReactionSelector() {
     const res = await POST(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
       data: new URLSearchParams({content: reactionContent}),
     });
+    if (!res.ok) return;
 
     const data = await res.json();
     bottomReactions?.remove();

@@ -352,6 +352,9 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			hasWaitingJobs = hasWaitingJobs || (newJob.Status == actions_model.StatusWaiting && !newJob.IsReusableCaller)
 			newJobs = append(newJobs, newJob)
 		}
+		if err := checkRunJobLimit(ctx, plan.run.ID, newAttempt.ID, 0); err != nil { // inline reusable expansions only counted the jobs inserted before them
+			return err
+		}
 
 		// Refresh each ancestor's status from its now-fresh children.
 		// `newJobs` is appended top-down (caller before its children), so we walk it in reverse to refresh the deepest ancestor first.
