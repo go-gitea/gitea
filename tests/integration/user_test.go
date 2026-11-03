@@ -15,6 +15,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -36,6 +37,7 @@ func TestUser(t *testing.T) {
 	t.Run("GetUserRss", testGetUserRss)
 	t.Run("ListStopWatches", testUserListStopWatches)
 	t.Run("LocationMapLink", testUserLocationMapLink)
+	t.Run("ChangeFullName", testChangeFullName)
 	t.Run("RenameUsername", testRenameUsername)
 }
 
@@ -386,6 +388,50 @@ func testUserLocationMapLink(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	AssertHTMLElement(t, htmlDoc, `a[href="https://example/foo/A%2Fb"]`, true)
+}
+
+func testChangeFullName(t *testing.T) {
+	session := loginUser(t, "user2")
+	postSettings := func(t *testing.T, values map[string]string) string {
+		values["name"] = "user2"
+		req := NewRequestWithValues(t, "POST", "/user/settings", values)
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		resp = session.MakeRequest(t, NewRequest(t, "GET", test.RedirectURL(resp)), http.StatusOK)
+		return strings.TrimSpace(NewHTMLParser(t, resp.Body).doc.Find(".ui.negative.message").Text())
+	}
+	assertFullName := func(t *testing.T, expected string) {
+		assert.Equal(t, expected, unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"}).FullName)
+	}
+
+	t.Run("Change", func(t *testing.T) {
+		assert.Empty(t, postSettings(t, map[string]string{"full_name": "New Name"}))
+		assertFullName(t, "New Name")
+	})
+
+	t.Run("KeepWhenOmitted", func(t *testing.T) {
+		assert.Empty(t, postSettings(t, map[string]string{"location": "Somewhere"}))
+		assertFullName(t, "New Name")
+	})
+
+	t.Run("Clear", func(t *testing.T) {
+		assert.Empty(t, postSettings(t, map[string]string{"full_name": ""}))
+		assertFullName(t, "")
+	})
+
+	t.Run("Disabled", func(t *testing.T) {
+		assert.Empty(t, postSettings(t, map[string]string{"full_name": "Kept Name"}))
+		defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureChangeFullName))()
+
+		// the disabled input is not submitted, the other fields can still be saved
+		assert.Empty(t, postSettings(t, map[string]string{"location": "Elsewhere"}))
+		assertFullName(t, "Kept Name")
+
+		assert.NotEmpty(t, postSettings(t, map[string]string{"full_name": "Other Name"}))
+		assertFullName(t, "Kept Name")
+
+		assert.NotEmpty(t, postSettings(t, map[string]string{"full_name": ""}))
+		assertFullName(t, "Kept Name")
+	})
 }
 
 func testUserFollow(t *testing.T) {

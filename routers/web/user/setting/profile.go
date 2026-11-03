@@ -102,7 +102,9 @@ func ProfilePost(ctx *context.Context) {
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
 	}
 
-	if form.FullName != "" {
+	// The input is disabled (thus not submitted) when changing the full name is not allowed,
+	// so only a missing field keeps the current value, while an empty one clears it.
+	if ctx.Req.Form.Has("full_name") {
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
 			ctx.Flash.Error(ctx.Tr("user.form.change_full_name_disabled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
