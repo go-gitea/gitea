@@ -5,6 +5,7 @@ package terraform_module
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"errors"
 	"fmt"
@@ -15,21 +16,20 @@ import (
 	"slices"
 	"strings"
 
+	packages_module "gitea.dev/modules/packages"
+
 	"github.com/hashicorp/go-version"
 )
 
 var (
-	ErrInvalidName     = errors.New("module name is invalid")
-	ErrInvalidProvider = errors.New("module provider is invalid")
-	ErrInvalidVersion  = errors.New("module version is invalid")
-	ErrArchiveTooLarge = errors.New("module archive exceeds size limit")
-	ErrNoRootModule    = errors.New("no terraform module at the archive root: package the module directory's contents, not the directory itself (e.g. `tar -czf module.tar.gz -C path/to/module .`)")
+	ErrInvalidNamespace = errors.New("module namespace (owner name) is invalid")
+	ErrInvalidName      = errors.New("module name is invalid")
+	ErrInvalidProvider  = errors.New("module provider is invalid")
+	ErrInvalidVersion   = errors.New("module version is invalid")
+	ErrNoRootModule     = errors.New("no terraform module at the archive root: package the module directory's contents, not the directory itself (e.g. `tar -czf module.tar.gz -C path/to/module .`)")
 )
 
-const (
-	maxParseSize  = 32 * 1024 * 1024 // decompressed bytes, bounds gzip bombs independently of the storage quota
-	maxReadmeSize = 1024 * 1024      // larger READMEs are not stored, they would be rendered on every page view
-)
+const maxReadmeSize = 1024 * 1024 // larger READMEs are not stored, they would be rendered on every page view
 
 // same rules as Terraform's module source address parser (github.com/hashicorp/terraform-registry-address)
 var (
@@ -37,7 +37,10 @@ var (
 	systemRe = regexp.MustCompile(`\A[0-9a-z]{1,64}\z`)
 )
 
-func ValidateNameAndProvider(name, provider string) error {
+func ValidateAddress(namespace, name, provider string) error {
+	if !nameRe.MatchString(namespace) {
+		return ErrInvalidNamespace
+	}
 	if !nameRe.MatchString(name) {
 		return ErrInvalidName
 	}
@@ -48,12 +51,12 @@ func ValidateNameAndProvider(name, provider string) error {
 }
 
 // NormalizeVersion returns the canonical semver form, so `v1.0.0` and `1.0.0` are the same version
-func NormalizeVersion(s string) (string, error) {
-	v, err := version.NewSemver(s)
+func NormalizeVersion(raw string) (string, error) {
+	parsed, err := version.NewSemver(raw)
 	if err != nil {
 		return "", ErrInvalidVersion
 	}
-	return v.String(), nil
+	return parsed.String(), nil
 }
 
 func ParseModuleArchive(r io.Reader) (*Metadata, error) {
@@ -62,16 +65,11 @@ func ParseModuleArchive(r io.Reader) (*Metadata, error) {
 		return nil, fmt.Errorf("invalid gzip stream: %w", err)
 	}
 	defer gz.Close()
-
-	lr := &io.LimitedReader{R: gz, N: maxParseSize}
-	metadata, err := parseTar(tar.NewReader(lr))
-	if lr.N <= 0 {
-		return nil, ErrArchiveTooLarge
-	}
-	return metadata, err
+	return parseTar(tar.NewReader(packages_module.NewLimitedReader(gz, packages_module.MaxMetadataSize)))
 }
 
 func parseTar(tr *tar.Reader) (*Metadata, error) {
+	retained := packages_module.NewLimitedReader(tr, packages_module.MaxMetadataSize) // sparse entries read more than they decompress
 	metadata := &Metadata{}
 	root := map[string][]byte{} // .tf.json content yields no HCL blocks
 	submodules := map[string]map[string][]byte{}
@@ -85,19 +83,18 @@ func parseTar(tr *tar.Reader) (*Metadata, error) {
 			return nil, fmt.Errorf("invalid tar stream: %w", err)
 		}
 		dir, base := path.Split(path.Clean(hdr.Name))
-		if hdr.Typeflag != tar.TypeReg || strings.HasPrefix(base, "._") { // macOS AppleDouble sidecars
+		if hdr.Typeflag != tar.TypeReg || strings.HasPrefix(base, ".") { // Terraform ignores dotfiles
 			continue
 		}
 		dir = strings.TrimSuffix(dir, "/")
-		lowerBase := strings.ToLower(base)
-		isSource := strings.HasSuffix(lowerBase, ".tf") || strings.HasSuffix(lowerBase, ".tf.json")
-		isReadme := lowerBase == "readme.md" || lowerBase == "readme"
+		isSource := strings.HasSuffix(base, ".tf") || strings.HasSuffix(base, ".tf.json")
+		isReadme := strings.EqualFold(base, "readme.md") || strings.EqualFold(base, "readme")
 		name, isSubmodule := strings.CutPrefix(dir, "modules/")
 		isSubmodule = isSubmodule && !strings.Contains(name, "/") // standard module structure, one level deep
 		if !isSource && !isReadme || dir != "" && !isSubmodule || isReadme && hdr.Size > maxReadmeSize {
 			continue
 		}
-		data, err := io.ReadAll(tr)
+		data, err := io.ReadAll(retained)
 		if err != nil {
 			return nil, err
 		}
@@ -134,7 +131,7 @@ func parseModule(files map[string][]byte) *Module {
 	module := &Module{}
 	providers := map[string]*Provider{}
 	for _, filename := range slices.Sorted(maps.Keys(files)) {
-		for _, block := range (&hclScanner{src: files[filename]}).body(0).blocks {
+		for _, block := range (&hclScanner{src: bytes.TrimPrefix(files[filename], []byte("\xef\xbb\xbf"))}).body(0).blocks {
 			attrs := block.attrs
 			switch {
 			case block.typ == "variable" && len(block.labels) == 1:

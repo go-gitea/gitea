@@ -56,28 +56,27 @@ func TestPackageTerraformModule(t *testing.T) {
 		MakeRequest(t, NewRequestWithBody(t, "PUT", base+"/2.0.0", bytes.NewReader(archive)), http.StatusUnauthorized)
 	})
 
-	t.Run("View", func(t *testing.T) {
-		resp := loginUser(t, admin.Name).MakeRequest(t, NewRequest(t, "GET", "/"+privateOrg.Name+"/-/packages/terraform-module/vpc%2Faws/1.0.0"), http.StatusOK)
-		content := NewHTMLParser(t, resp.Body).Find(".packages-content-left").Text()
+	t.Run("Web", func(t *testing.T) {
+		session := loginUser(t, admin.Name)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/packages/rules/add", map[string]string{
+			"type": "terraform-module", "action": "save", "keep_count": "0", "remove_days": "0",
+		}), http.StatusSeeOther)
+		page := "/" + privateOrg.Name + "/-/packages/terraform-module/vpc%2Faws/1.0.0"
 		appURL, _ := url.Parse(setting.AppURL)
+		content := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", page), http.StatusOK).Body).Find(".packages-content-left").Text()
 		assert.Contains(t, content, `source  = "`+appURL.Host+"/"+privateOrg.Name+`/vpc/aws"`)
 		assert.Contains(t, content, "VPC module")
 		assert.Contains(t, content, "region")
 		assert.Contains(t, content, "/vpc/aws//modules/net")
-	})
 
-	t.Run("SubmoduleView", func(t *testing.T) {
-		page := "/" + privateOrg.Name + "/-/packages/terraform-module/vpc%2Faws/1.0.0"
-		resp := loginUser(t, admin.Name).MakeRequest(t, NewRequest(t, "GET", page+"/modules/net"), http.StatusOK)
-		content := NewHTMLParser(t, resp.Body).Find(".packages-content-left").Text()
-		appURL, _ := url.Parse(setting.AppURL)
+		content = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", page+"/modules/net"), http.StatusOK).Body).Find(".packages-content-left").Text()
 		assert.Contains(t, content, `source  = "`+appURL.Host+"/"+privateOrg.Name+`/vpc/aws//modules/net"`)
 		assert.Contains(t, content, "cidr")
 		assert.Contains(t, content, "Net submodule")
-		loginUser(t, admin.Name).MakeRequest(t, NewRequest(t, "GET", page+"/modules/unknown"), http.StatusNotFound)
+		session.MakeRequest(t, NewRequest(t, "GET", page+"/modules/unknown"), http.StatusNotFound)
 
 		MakeRequest(t, NewRequestWithBody(t, "PUT", "/api/packages/"+privateOrg.Name+"/generic/vpc/1.0.0/file.bin", strings.NewReader("x")).AddBasicAuth(admin.Name), http.StatusCreated)
-		loginUser(t, admin.Name).MakeRequest(t, NewRequest(t, "GET", "/"+privateOrg.Name+"/-/packages/generic/vpc/1.0.0/modules/net"), http.StatusNotFound)
+		session.MakeRequest(t, NewRequest(t, "GET", "/"+privateOrg.Name+"/-/packages/generic/vpc/1.0.0/modules/net"), http.StatusNotFound)
 	})
 
 	t.Run("ListVersions", func(t *testing.T) {
@@ -97,7 +96,7 @@ func TestPackageTerraformModule(t *testing.T) {
 
 		resp = MakeRequest(t, NewRequest(t, "GET", archiveURL), http.StatusOK)
 		assert.Equal(t, archive, resp.Body.Bytes())
-		MakeRequest(t, NewRequest(t, "GET", strings.Replace(archiveURL, "sig=", "sig=x", 1)), http.StatusUnauthorized)
+		MakeRequest(t, NewRequest(t, "GET", strings.Replace(archiveURL, "code=", "code=x", 1)), http.StatusUnauthorized)
 		MakeRequest(t, NewRequest(t, "GET", base+"/1.0.0/archive").AddBasicAuth(admin.Name), http.StatusOK)
 		MakeRequest(t, NewRequest(t, "GET", base+"/9.9.9/download").AddBasicAuth(admin.Name), http.StatusNotFound)
 	})

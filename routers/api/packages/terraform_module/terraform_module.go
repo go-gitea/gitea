@@ -4,17 +4,14 @@
 package terraform_module
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 
 	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/base"
 	packages_module "gitea.dev/modules/packages"
 	tfmod "gitea.dev/modules/packages/terraform_module"
 	"gitea.dev/modules/setting"
@@ -26,7 +23,7 @@ import (
 
 const (
 	archiveFilename    = "module.tar.gz"
-	archiveURLLifetime = 10 * time.Minute
+	archiveCodeMinutes = 10
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -36,7 +33,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 func packageName(ctx *context.Context) (string, error) {
 	name, provider := ctx.PathParam("name"), ctx.PathParam("provider")
-	if err := tfmod.ValidateNameAndProvider(name, provider); err != nil {
+	if err := tfmod.ValidateAddress(ctx.Package.Owner.Name, name, provider); err != nil {
 		return "", err
 	}
 	return name + "/" + provider, nil
@@ -59,17 +56,13 @@ func packageInfo(ctx *context.Context) (*packages_service.PackageInfo, error) {
 	}, nil
 }
 
-func archiveSignature(pi *packages_service.PackageInfo, expires string) string {
-	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
-	_, _ = fmt.Fprintf(mac, "terraform-module:%d:%s:%s:%s", pi.Owner.ID, pi.Name, pi.Version, expires)
-	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+func archiveCodeData(pi *packages_service.PackageInfo) string {
+	return fmt.Sprintf("terraform-module:%d:%s:%s", pi.Owner.ID, pi.Name, pi.Version)
 }
 
 func HasValidArchiveSignature(ctx *context.Context) bool {
 	pi, err := packageInfo(ctx)
-	expires := ctx.FormString("expires")
-	expiresUnix, _ := strconv.ParseInt(expires, 10, 64)
-	return err == nil && time.Now().Unix() < expiresUnix && hmac.Equal([]byte(ctx.FormString("sig")), []byte(archiveSignature(pi, expires)))
+	return err == nil && base.VerifyTimeLimitCode(time.Now(), archiveCodeData(pi), archiveCodeMinutes, ctx.FormString("code"))
 }
 
 func ServiceDiscovery(ctx *context.Context) {
@@ -109,8 +102,7 @@ func DownloadRedirect(ctx *context.Context) {
 		return
 	}
 	// signed because Terraform sends no credentials when fetching it, "archive" tells go-getter the format of the extensionless URL
-	expires := strconv.FormatInt(time.Now().Add(archiveURLLifetime).Unix(), 10)
-	ctx.Resp.Header().Set("X-Terraform-Get", "./archive?archive=tar.gz&expires="+expires+"&sig="+archiveSignature(pi, expires))
+	ctx.Resp.Header().Set("X-Terraform-Get", "./archive?archive=tar.gz&code="+base.CreateTimeLimitCode(archiveCodeData(pi), archiveCodeMinutes, time.Now(), nil))
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -153,7 +145,7 @@ func UploadModule(ctx *context.Context) {
 
 	metadata, err := tfmod.ParseModuleArchive(buf)
 	if err != nil {
-		apiError(ctx, util.Iif(errors.Is(err, tfmod.ErrArchiveTooLarge), http.StatusRequestEntityTooLarge, http.StatusBadRequest), err)
+		apiError(ctx, util.Iif(errors.Is(err, packages_module.ErrContentTooLarge), http.StatusRequestEntityTooLarge, http.StatusBadRequest), err)
 		return
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {

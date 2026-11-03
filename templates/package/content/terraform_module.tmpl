@@ -1,12 +1,19 @@
 {{if eq .PackageDescriptor.Package.Type "terraform-module"}}
-	{{$nameProvider := StringUtils.Cut .PackageDescriptor.Package.Name "/"}}
+	{{$metadata := .PackageDescriptor.Metadata}}
 	{{$source := print .PackageRegistryHost "/" .PackageDescriptor.Owner.Name "/" .PackageDescriptor.Package.Name}}
 	{{$submodule := .PackageSubmodule}}
 	{{$moduleSource := $source}}
-	{{$moduleLabel := index $nameProvider 0}}
+	{{$moduleLabel := index (StringUtils.Cut .PackageDescriptor.Package.Name "/") 0}}
+	{{$readme := $metadata.Readme}}
+	{{$module := $metadata.Root}}
+	{{$treePath := ""}}
 	{{if $submodule}}
+		{{$sub := index $metadata.Submodules $submodule}}
 		{{$moduleSource = print $source "//modules/" $submodule}}
 		{{$moduleLabel = $submodule}}
+		{{$readme = $sub.Readme}}
+		{{$module = $sub.Module}}
+		{{$treePath = print "modules/" $submodule}}
 	{{end}}
 	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
@@ -36,32 +43,12 @@
 		</div>
 	</div>
 
-	{{if $submodule}}
-		{{$sub := index .PackageDescriptor.Metadata.Submodules $submodule}}
-		{{if $sub.Readme}}
-			<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
-			<div class="ui attached segment">{{ctx.RenderUtils.RenderPackageMarkdown $sub.Readme .PackageDescriptor.Repository}}</div>
-		{{end}}
-		{{with $sub.Module}}{{template "package/content/terraform_module/module_docs" .}}{{end}}
-	{{else}}
-		{{if .PackageDescriptor.Metadata.Readme}}
-			<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
-			<div class="ui attached segment">{{ctx.RenderUtils.RenderPackageMarkdown .PackageDescriptor.Metadata.Readme .PackageDescriptor.Repository}}</div>
-		{{end}}
-
-		{{with .PackageDescriptor.Metadata.Root}}{{template "package/content/terraform_module/module_docs" .}}{{end}}
-
-		{{if .PackageDescriptor.Metadata.Submodules}}
-			<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.submodules"}}</h4>
-			<div class="ui attached segment">
-				<ul>{{range $name, $sub := .PackageDescriptor.Metadata.Submodules}}<li><a href="{{$.PackageDescriptor.VersionWebLink}}/modules/{{PathEscape $name}}"><code>{{$source}}//modules/{{$name}}</code></a></li>{{end}}</ul>
-			</div>
-		{{end}}
+	{{if $readme}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
+		<div class="ui attached segment">{{ctx.RenderUtils.RenderPackageMarkdown $readme .PackageDescriptor.Repository $treePath}}</div>
 	{{end}}
-{{end}}
 
-{{define "package/content/terraform_module/module_docs"}}
-	{{if .Inputs}}
+	{{if and $module $module.Inputs}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.inputs"}}</h4>
 		<div class="ui attached segment">
 			<table class="ui table">
@@ -72,12 +59,12 @@
 					<th>{{ctx.Locale.Tr "packages.terraform_module.description"}}</th>
 				</tr></thead>
 				<tbody>
-					{{range .Inputs}}
+					{{range $input := $module.Inputs}}
 						<tr>
-							<td><code>{{.Name}}</code>{{if .Required}} <span class="ui tiny red label">{{ctx.Locale.Tr "packages.terraform_module.required"}}</span>{{end}}</td>
-							<td><code>{{.Type}}</code></td>
-							<td><code>{{.Default}}</code></td>
-							<td>{{.Description}}</td>
+							<td><code>{{$input.Name}}</code>{{if $input.Required}} <span class="ui tiny red label">{{ctx.Locale.Tr "packages.terraform_module.required"}}</span>{{end}}</td>
+							<td><code>{{$input.Type}}</code></td>
+							<td><code>{{$input.Default}}</code></td>
+							<td>{{$input.Description}}</td>
 						</tr>
 					{{end}}
 				</tbody>
@@ -85,7 +72,7 @@
 		</div>
 	{{end}}
 
-	{{if .Outputs}}
+	{{if and $module $module.Outputs}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.outputs"}}</h4>
 		<div class="ui attached segment">
 			<table class="ui table">
@@ -94,10 +81,10 @@
 					<th>{{ctx.Locale.Tr "packages.terraform_module.description"}}</th>
 				</tr></thead>
 				<tbody>
-					{{range .Outputs}}
+					{{range $output := $module.Outputs}}
 						<tr>
-							<td><code>{{.Name}}</code></td>
-							<td>{{.Description}}</td>
+							<td><code>{{$output.Name}}</code></td>
+							<td>{{$output.Description}}</td>
 						</tr>
 					{{end}}
 				</tbody>
@@ -105,10 +92,17 @@
 		</div>
 	{{end}}
 
-	{{if .Providers}}
+	{{if and $module $module.Providers}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.providers"}}</h4>
 		<div class="ui attached segment">
-			<ul>{{range .Providers}}<li><code>{{.Name}}</code>{{if .Source}} ({{.Source}}){{end}}{{if .Version}} <code>{{.Version}}</code>{{end}}</li>{{end}}</ul>
+			<ul>{{range $provider := $module.Providers}}<li><code>{{$provider.Name}}</code>{{if $provider.Source}} ({{$provider.Source}}){{end}}{{if $provider.Version}} <code>{{$provider.Version}}</code>{{end}}</li>{{end}}</ul>
+		</div>
+	{{end}}
+
+	{{if and (not $submodule) $metadata.Submodules}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.submodules"}}</h4>
+		<div class="ui attached segment">
+			<ul>{{range $name, $_sub := $metadata.Submodules}}<li><a href="{{$.PackageDescriptor.VersionWebLink}}/modules/{{PathEscape $name}}"><code>{{$source}}//modules/{{$name}}</code></a></li>{{end}}</ul>
 		</div>
 	{{end}}
 {{end}}

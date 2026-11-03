@@ -71,7 +71,7 @@ func (s *hclScanner) body(depth int) *hclBlock {
 			s.skipSpace(false)
 		}
 		if name == "" || s.peek(0) != '{' || depth >= 2 || !hclIndexedBlocks.Contains(name) { // only terraform.required_providers needs two levels
-			s.skipExpr() // skips unparsed nested blocks and anything malformed
+			s.skipExpr()
 			if s.pos == start {
 				s.pos++
 			}
@@ -119,7 +119,7 @@ func (s *hclScanner) skipExpr() (end int) {
 func (s *hclScanner) skipString() {
 	for s.pos++; s.pos < len(s.src); s.pos++ {
 		switch c := s.src[s.pos]; {
-		case c == '\\' || (c == '$' || c == '%') && s.peek(1) == c: // escape sequence
+		case c == '\\' && s.pos+1 < len(s.src) || (c == '$' || c == '%') && s.peek(1) == c:
 			s.pos++
 		case c == '"':
 			s.pos++
@@ -127,11 +127,14 @@ func (s *hclScanner) skipString() {
 		case c == '\n':
 			return
 		case (c == '$' || c == '%') && s.peek(1) == '{':
-			if s.nesting++; s.nesting > hclMaxNesting {
+			if s.nesting >= hclMaxNesting {
 				return
 			}
+			s.nesting++
 			s.pos += 2
-			s.skipExpr()
+			for s.skipExpr(); s.peek(0) == ',' || s.peek(0) == '\n'; s.skipExpr() { // commas and newlines don't end a template sequence
+				s.pos++
+			}
 			s.nesting--
 			if s.peek(0) != '}' {
 				return
@@ -224,9 +227,9 @@ func hclString(expr string) string {
 	if unescaped := hclWithoutEscapedTemplates.Replace(expr); strings.Contains(unescaped, "${") || strings.Contains(unescaped, "%{") {
 		return ""
 	}
-	s, err := strconv.Unquote(expr)
+	decoded, err := strconv.Unquote(expr)
 	if err != nil {
 		return ""
 	}
-	return hclUnescapeTemplates.Replace(s)
+	return hclUnescapeTemplates.Replace(decoded)
 }
