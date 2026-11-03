@@ -2680,7 +2680,7 @@
             "x-go-name": "Created"
           },
           "digest": {
-            "description": "Digest is \"sha256:\u003chex\u003e\" of the content, omitted when not recorded at upload",
+            "description": "Digest is the SHA-256 of the content as \"sha256:{hex}\", omitted when not recorded at upload",
             "type": "string",
             "x-go-name": "Digest"
           },
