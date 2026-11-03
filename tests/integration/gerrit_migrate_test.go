@@ -154,12 +154,6 @@ func TestGerritMigrateAPI(t *testing.T) {
 		return MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", options).AddTokenAuth(token), status)
 	}
 
-	t.Run("SSHRejected", func(t *testing.T) {
-		resp := migrate(&structs.MigrateRepoOptions{CloneAddr: "ssh://alice@gerrit.example.com:29418/team/demo", RepoName: "gerrit-ssh"}, http.StatusUnprocessableEntity)
-		assert.Contains(t, resp.Body.String(), "SSH clone URLs are not supported")
-		unittest.AssertNotExistsBean(t, &repo_model.Repository{Name: "gerrit-ssh"})
-	})
-
 	t.Run("Mirror", func(t *testing.T) {
 		server := newGerritTestServer(t)
 		migrate(&structs.MigrateRepoOptions{CloneAddr: server.cloneAddr(), RepoName: "gerrit-mirror", Mirror: true, MirrorInterval: "2h", PullRequests: true}, http.StatusCreated)

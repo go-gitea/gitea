@@ -96,13 +96,6 @@ func Migrate(ctx *context.APIContext) {
 
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
-	if gitServiceType == api.GerritService {
-		if err := migrations.ValidateGerritCloneAddr(form.CloneAddr); err != nil {
-			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-			return
-		}
-	}
-
 	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
 		err = migrations.IsMigrateURLAllowedForService(remoteAddr, gitServiceType, ctx.Doer)

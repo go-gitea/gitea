@@ -66,12 +66,6 @@ func (f *GerritDownloaderFactory) GitServiceType() structs.GitServiceType {
 	return structs.GerritService
 }
 
-// ValidateGerritCloneAddr checks that the Gerrit REST API can be reached from the clone address of a project
-func ValidateGerritCloneAddr(cloneAddr string) error {
-	_, err := parseGerritCloneAddr(cloneAddr)
-	return err
-}
-
 // gerritLocation is the parsed HTTP(S) clone URL of a Gerrit project, without credentials
 type gerritLocation struct {
 	scheme   string

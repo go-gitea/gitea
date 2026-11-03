@@ -274,12 +274,15 @@ func TestGerritCloneAddr(t *testing.T) {
 		"https://gerrit.example.com/",
 		"https://gerrit.example.com/team/../demo",
 	} {
-		require.Error(t, ValidateGerritCloneAddr(addr), addr)
+		_, err := parseGerritCloneAddr(addr)
+		require.Error(t, err, addr)
 	}
-	require.ErrorContains(t, ValidateGerritCloneAddr("ssh://alice@gerrit.example.com:29418/team/demo"), "SSH clone URLs are not supported")
-	require.NoError(t, ValidateGerritCloneAddr("https://gerrit.example.com/a/team/demo.git"))
+	_, err := parseGerritCloneAddr("ssh://alice@gerrit.example.com:29418/team/demo")
+	require.ErrorContains(t, err, "SSH clone URLs are not supported")
+	_, err = parseGerritCloneAddr("https://gerrit.example.com/a/team/demo.git")
+	require.NoError(t, err)
 
-	err := ValidateGerritCloneAddr("https://alice:secret@gerrit.example.com/")
+	_, err = parseGerritCloneAddr("https://alice:secret@gerrit.example.com/")
 	require.Error(t, err)
 	assert.NotContains(t, err.Error(), "secret")
 

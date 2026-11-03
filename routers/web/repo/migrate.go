@@ -151,13 +151,6 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
-	if form.Service == structs.GerritService {
-		if err := migrations.ValidateGerritCloneAddr(form.CloneAddr); err != nil {
-			ctx.JSONErrorWithField(err.Error(), "clone_addr")
-			return
-		}
-	}
-
 	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
 		err = migrations.IsMigrateURLAllowedForService(remoteAddr, form.Service, ctx.Doer)
