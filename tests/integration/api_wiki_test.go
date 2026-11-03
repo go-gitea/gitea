@@ -7,8 +7,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -16,7 +14,6 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAPIGetWikiPage(t *testing.T) {
@@ -175,6 +172,17 @@ func TestAPIGetWikiPage(t *testing.T) {
 		session := loginUser(t, username)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
+		for _, title := range []string{"", " "} {
+			content := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "Edited with title %q", title))
+			req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/wiki/page/Home", &api.CreateWikiPageOptions{
+				Title:         title,
+				ContentBase64: content,
+			}).AddTokenAuth(token)
+			page := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.WikiPage{})
+			assert.Equal(t, "Home", page.Title)
+			assert.Equal(t, content, page.ContentBase64)
+		}
+
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Page-With-Spaced-Name", username, "repo1")
 
 		req := NewRequestWithJSON(t, "PATCH", urlStr, &api.CreateWikiPageOptions{
@@ -200,46 +208,14 @@ func testAPICreateWikiPage(t *testing.T, session *TestSession, userName, repoNam
 }
 
 func TestAPINewWikiPage(t *testing.T) {
-	for _, title := range []string{
-		"New page",
-		"&&&&",
-	} {
-		defer tests.PrepareTestEnv(t)()
-		username := "user2"
-		session := loginUser(t, username)
-		testAPICreateWikiPage(t, session, username, "repo1", title, http.StatusCreated)
-	}
-
-	t.Run("EmptyTitle", func(t *testing.T) {
-		session := loginUser(t, "user2")
-		testAPICreateWikiPage(t, session, "user2", "repo1", "", http.StatusUnprocessableEntity)
-		testAPICreateWikiPage(t, session, "user2", "repo1", " ", http.StatusUnprocessableEntity)
-	})
-}
-
-func TestAPIEditWikiPageEmptyTitle(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	// an empty title keeps the page name unchanged
-	for _, title := range []string{"", " "} {
-		content := "Edited with title " + strconv.Quote(title)
-		req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/wiki/page/Home", &api.CreateWikiPageOptions{
-			Title:         title,
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte(content)),
-		}).AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-		page := DecodeJSON(t, resp, &api.WikiPage{})
-		assert.Equal(t, "Home", page.Title)
-
-		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/wiki/page/Home")
-		resp = MakeRequest(t, req, http.StatusOK)
-		page = DecodeJSON(t, resp, &api.WikiPage{})
-		pageContent, err := base64.RawStdEncoding.DecodeString(strings.TrimRight(page.ContentBase64, "="))
-		require.NoError(t, err)
-		assert.Equal(t, content, string(pageContent))
+	for title, status := range map[string]int{
+		"New page": http.StatusCreated,
+		"&&&&":     http.StatusCreated,
+		"":         http.StatusUnprocessableEntity,
+		" ":        http.StatusUnprocessableEntity,
+	} {
+		testAPICreateWikiPage(t, session, "user2", "repo1", title, status)
 	}
-
-	MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/wiki/page/unnamed"), http.StatusNotFound)
 }

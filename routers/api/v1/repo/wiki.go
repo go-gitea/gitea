@@ -49,7 +49,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
-	// the form is shared with EditWikiPage where an empty title means "keep unchanged", so it is checked here
+	// EditWikiPage shares the form but allows an empty title
 	if form.Title == "" {
 		ctx.APIError(http.StatusUnprocessableEntity, "title is required")
 		return
