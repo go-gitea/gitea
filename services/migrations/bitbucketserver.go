@@ -558,7 +558,14 @@ func (d *BitbucketServerDownloader) getActivities(ctx context.Context, prID int6
 	}
 	activities, err := bbsGetAll[*bbsActivity](ctx, d, d.repoPath()+"/pull-requests/"+strconv.FormatInt(prID, 10)+"/activities", nil)
 	if err != nil {
-		return nil, err
+		if ctx.Err() != nil {
+			return nil, err
+		}
+		// Bitbucket Server answers 500 for the activities of some pull requests (e.g. with merge conflicts),
+		// skip their comments and reviews instead of failing the whole migration
+		log.Warn("Bitbucket Server: unable to load activities of pull request %d, skipping its comments and reviews: %v", prID, err)
+		d.activities[prID] = nil
+		return nil, nil
 	}
 	slices.Reverse(activities) // listed newest first
 	d.activities[prID] = activities

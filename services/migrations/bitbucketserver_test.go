@@ -320,6 +320,30 @@ func TestBitbucketServerCommentsAndReviews(t *testing.T) {
 	assert.EqualValues(t, 4, reviews[0].IssueIndex)
 }
 
+// TestBitbucketServerActivitiesError checks that a pull request whose activities cannot be loaded
+// (Bitbucket Server answers 500 for some, e.g. with merge conflicts) does not fail the migration.
+func TestBitbucketServerActivitiesError(t *testing.T) {
+	var activityCalls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		activityCalls++
+		http.Error(w, `{"errors":[{"message":"boom"}]}`, http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	d := NewBitbucketServerDownloader(t.Context(), srv.URL, "", "", "", "PROJ", "repo")
+	pr := &base.PullRequest{Number: 128, ForeignIndex: 128}
+
+	comments, isEnd, err := d.GetComments(t.Context(), pr)
+	require.NoError(t, err)
+	assert.True(t, isEnd)
+	assert.Empty(t, comments)
+
+	reviews, err := d.GetReviews(t.Context(), pr)
+	require.NoError(t, err)
+	assert.Empty(t, reviews)
+	assert.Equal(t, 1, activityCalls, "the failure is cached for both calls")
+}
+
 // TestBitbucketServerDownloadRepo replays responses recorded from a Bitbucket Server 10.5.1 instance.
 // To record again, set BITBUCKETSERVER_LIVE_TOKEN (an HTTP access token with project read permission) and
 // optionally BITBUCKETSERVER_LIVE_URL (default http://localhost:7990/bitbucket) of an instance holding the
