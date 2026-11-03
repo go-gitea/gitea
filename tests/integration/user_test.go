@@ -408,6 +408,15 @@ func testChangeFullName(t *testing.T) {
 		assertFullName(t, "New Name")
 	})
 
+	t.Run("TooLong", func(t *testing.T) {
+		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+			"name":      "user2",
+			"full_name": strings.Repeat("a", 101),
+		})
+		session.MakeRequest(t, req, http.StatusOK)
+		assertFullName(t, "New Name")
+	})
+
 	t.Run("KeepWhenOmitted", func(t *testing.T) {
 		assert.Empty(t, postSettings(t, map[string]string{"location": "Somewhere"}))
 		assertFullName(t, "New Name")
