@@ -73,45 +73,43 @@
 							{{$release.RenderedNote}}
 						</div>
 						<div class="divider"></div>
-						<details class="download" {{if eq $idx 0}}open{{end}}>
+						{{$showArchives := and (not $.DisableDownloadSourceArchives) (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
+						<details {{if eq $idx 0}}open{{end}}>
 							<summary>
-								{{ctx.Locale.Tr "repo.release.downloads"}}
+								<span class="flex-text-inline">{{ctx.Locale.Tr "repo.release.assets"}}<span class="ui small label">{{if $showArchives}}{{Eval (len $release.Attachments) "+" 2}}{{else}}{{len $release.Attachments}}{{end}}</span></span>
 							</summary>
-							<ul class="ui divided list attachment-list">
+							<div class="flex-divided-list items-px-default tw-mt-2.5 tw-border tw-border-secondary tw-rounded">
 								{{range $att := $release.Attachments}}
-									<li class="item">
-										<a target="_blank" class="tw-flex-1 gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL ctx}}">
-											<strong class="flex-text-inline">{{svg "octicon-package" 16 "download-icon"}}<span class="gt-ellipsis">{{$att.Name}}</span></strong>
+									<div class="item tw-flex tw-flex-col tw-gap-1 lg:tw-flex-row lg:tw-items-center lg:tw-gap-4">
+										<a target="_blank" class="lg:tw-flex-1 lg:tw-min-w-[40%]" rel="nofollow" download href="{{$att.DownloadURL ctx}}">
+											<strong class="flex-text-inline">{{svg "octicon-package" 16 "tw-text-text-light-1"}}<span class="gt-ellipsis">{{$att.Name}}</span></strong>
 										</a>
-										<div class="attachment-right-info flex-text-inline">
-											<span class="tw-pl-5">{{$att.Size | FormatByteSize}}</span>
-											{{if $att.HashSHA256}}
-												<span class="flex-text-inline" data-tooltip-content="sha256:{{$att.HashSHA256}}">
-													<code class="tw-text-12">sha256:{{ShortSha $att.HashSHA256}}…</code>
-													<button type="button" class="btn interact-fg tw-px-1" data-clipboard-text="sha256:{{$att.HashSHA256}}" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}">{{svg "octicon-copy" 14}}</button>
-												</span>
-											{{end}}
-											<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber $att.DownloadCount)}}">
-												{{svg "octicon-info"}}
+										<div class="flex-text-block tw-justify-end tw-gap-3 tw-whitespace-nowrap tw-text-text-light-2 lg:tw-gap-4">
+											<span class="flex-text-inline tw-flex-1 tw-text-12 lg:tw-flex-initial lg:tw-max-w-[250px]">
+												{{if $att.HashSHA256}}
+													<span class="tw-font-mono gt-ellipsis">sha256:{{$att.HashSHA256}}</span>
+													<button type="button" class="btn interact-fg tw-shrink-0" data-clipboard-text="sha256:{{$att.HashSHA256}}" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}">{{svg "octicon-copy" 14}}</button>
+												{{end}}
 											</span>
-											<div class="tw-flex-1"></div>
-											{{DateUtils.TimeSince $att.CreatedUnix}}
+											<span class="flex-text-inline tw-justify-end lg:tw-min-w-[60px]" data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber $att.DownloadCount)}}">{{svg "octicon-download"}}{{ctx.Locale.PrettyNumber $att.DownloadCount}}</span>
+											<span class="tw-text-right lg:tw-min-w-[75px]">{{$att.Size | FormatByteSize}}</span>
+											<span class="tw-text-right lg:tw-min-w-[100px]">{{DateUtils.TimeSince $att.CreatedUnix}}</span>
 										</div>
-									</li>
+									</div>
 								{{end}}
-								{{if and (not $.DisableDownloadSourceArchives) (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
-									<li class="item">
+								{{if $showArchives}}
+									<div class="item">
 										<a class="archive-link" download href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.zip" rel="nofollow">
-											<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "download-icon"}}{{ctx.Locale.Tr "repo.release.source_code"}} (ZIP)</strong>
+											<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "tw-text-text-light-1"}}{{ctx.Locale.Tr "repo.release.source_code"}} (ZIP)</strong>
 										</a>
-									</li>
-									<li class="item">
+									</div>
+									<div class="item">
 										<a class="archive-link" download href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">
-											<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "download-icon"}}{{ctx.Locale.Tr "repo.release.source_code"}} (TAR.GZ)</strong>
+											<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "tw-text-text-light-1"}}{{ctx.Locale.Tr "repo.release.source_code"}} (TAR.GZ)</strong>
 										</a>
-									</li>
+									</div>
 								{{end}}
-							</ul>
+							</div>
 						</details>
 						{{if not (or $release.IsTag $release.IsDraft)}}
 							{{template "shared/reactions" dict
