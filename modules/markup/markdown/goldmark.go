@@ -4,9 +4,7 @@
 package markdown
 
 import (
-	"bytes"
 	"fmt"
-	"strings"
 
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/highlight"
@@ -79,6 +77,8 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			}
 		case *ast.CodeSpan:
 			g.transformCodeSpan(ctx, v, reader)
+		case *ast.FencedCodeBlock:
+			g.transformFencedCodeblock(v, reader)
 		case *ast.Blockquote:
 			return g.transformBlockquote(v, reader)
 		}
@@ -152,41 +152,21 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindRawHTML, r.renderRawHTML)
 }
 
-// trimFinalNewlineLexer trims after tokenizing because lexer rules may need the newline to match
-type trimFinalNewlineLexer struct{ chroma.Lexer }
-
-func (l trimFinalNewlineLexer) Tokenise(options *chroma.TokeniseOptions, text string) (chroma.Iterator, error) {
-	iterator, err := l.Lexer.Tokenise(options, text)
-	if err != nil {
-		return nil, err
-	}
-	next := iterator()
-	return func() chroma.Token {
-		token := next
-		if next = iterator(); next == chroma.EOF {
-			token.Value = strings.TrimSuffix(token.Value, "\n")
-		}
-		return token
-	}, nil
-}
-
 func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		var language string
-		var lexer chroma.Lexer
-		if fenced, ok := n.(*ast.FencedCodeBlock); ok && fenced.Info != nil {
-			language = string(fenced.Info.Segment.Value(source))
-			language = language[:strings.IndexAny(language+" ", " ,:")] // strip suffixes like "js:app.ts" or "rust,ignore"
-			lexer = lexers.Get(language)
+		if fenced, ok := n.(*ast.FencedCodeBlock); ok {
+			language = string(fenced.Language(source))
 		}
 		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
-		if err := r.renderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll code-block-trimmed"><pre %s><code %s>`, preAttrs, codeAttrs); err != nil {
+		if err := r.renderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs); err != nil {
 			return ast.WalkStop, err
 		}
+		lexer := highlight.DetectChromaLexerByFileName("", language)
 		code := n.Lines().Value(source)
-		if lexer == nil {
-			r.Writer.RawWrite(w, bytes.TrimSuffix(code, []byte("\n"))) // like GitHub, so that copying omits the final newline
-		} else if _, err := w.WriteString(string(highlight.RenderCodeByLexer(trimFinalNewlineLexer{chroma.Coalesce(lexer)}, string(code)))); err != nil {
+		if lexer == lexers.Fallback {
+			r.Writer.RawWrite(w, code) // chroma is 3x slower for plain text
+		} else if _, err := w.WriteString(string(highlight.RenderCodeByLexer(chroma.Coalesce(lexer), string(code)))); err != nil {
 			return ast.WalkStop, err
 		}
 	} else {

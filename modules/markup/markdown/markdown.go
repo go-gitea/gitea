@@ -104,7 +104,7 @@ func goldmarkDefaultParser() parser.Parser {
 func SpecializedMarkdown(ctx *markup.RenderContext) goldmark.Markdown {
 	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
 	// at the moment it is fast enough (see the benchmarks)
-	r := goldmark.New(
+	return goldmark.New(
 		goldmark.WithParser(goldmarkDefaultParser()),
 		goldmark.WithExtensions(
 			extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
@@ -124,15 +124,11 @@ func SpecializedMarkdown(ctx *markup.RenderContext) goldmark.Markdown {
 			parser.WithAttribute(),
 			parser.WithASTTransformers(util.Prioritized(NewASTTransformer(&ctx.RenderInternal), 10000)),
 		),
-		goldmark.WithRendererOptions(html.WithUnsafe()),
+		goldmark.WithRendererOptions(
+			html.WithUnsafe(),
+			renderer.WithNodeRenderers(util.Prioritized(NewHTMLRenderer(&ctx.RenderInternal), 10)),
+		),
 	)
-
-	// Override the original Tasklist renderer!
-	r.Renderer().AddOptions(
-		renderer.WithNodeRenderers(util.Prioritized(NewHTMLRenderer(&ctx.RenderInternal), 10)),
-	)
-
-	return r
 }
 
 // render calls goldmark render to convert Markdown to HTML
