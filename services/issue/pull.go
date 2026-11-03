@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	org_model "gitea.dev/models/organization"
@@ -17,6 +18,8 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+
+	"xorm.io/builder"
 )
 
 type ReviewRequestNotifier struct {
@@ -325,7 +328,7 @@ func pullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	for _, t := range uniqTeams {
-		reviewed, err := teamMemberHasReviewed(ctx, latestReviews, t)
+		reviewed, err := teamMemberHasReviewed(ctx, pr.IssueID, t)
 		if err != nil {
 			return nil, err
 		}
@@ -350,17 +353,14 @@ func pullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	return notifiers, nil
 }
 
-// teamMemberHasReviewed reports whether a member of the team approved or rejected the pull request.
+// teamMemberHasReviewed reports whether a team member has a non-dismissed approval or rejection on the issue.
 // SubmitReview removes the team's review request in that case, so requesting the team again would mail every member again.
-func teamMemberHasReviewed(ctx context.Context, reviews issues_model.ReviewList, team *org_model.Team) (bool, error) {
-	for _, review := range reviews {
-		if review.ReviewerTeamID != 0 || (review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject) {
-			continue
-		}
-		isMember, err := org_model.IsTeamMember(ctx, team.OrgID, team.ID, review.ReviewerID)
-		if err != nil || isMember {
-			return isMember, err
-		}
-	}
-	return false, nil
+// It doesn't use the latest review of each reviewer: a later single code comment is saved as a comment review but keeps the approval.
+func teamMemberHasReviewed(ctx context.Context, issueID int64, team *org_model.Team) (bool, error) {
+	return db.GetEngine(ctx).Where(builder.Eq{
+		"issue_id":  issueID,
+		"dismissed": false,
+	}.And(builder.In("type", issues_model.ReviewTypeApprove, issues_model.ReviewTypeReject)).
+		And(builder.In("reviewer_id", builder.Select("uid").From("team_user").Where(builder.Eq{"team_id": team.ID})))).
+		Exist(new(issues_model.Review))
 }

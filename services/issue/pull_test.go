@@ -36,27 +36,29 @@ func TestPullRequestCodeOwnersReview(t *testing.T) {
 
 	for _, tc := range []struct {
 		name      string
-		review    *issues_model.Review
+		reviews   []*issues_model.Review
 		wantUsers int
 		wantTeams int
 	}{
 		{"new requests", nil, 1, 1},
-		{"member approved", &issues_model.Review{ReviewerID: 4, Type: issues_model.ReviewTypeApprove}, 0, 0},
-		{"member rejected", &issues_model.Review{ReviewerID: 4, Type: issues_model.ReviewTypeReject}, 0, 0},
-		{"member commented", &issues_model.Review{ReviewerID: 4, Type: issues_model.ReviewTypeComment}, 0, 1},
-		{"member requested", &issues_model.Review{ReviewerID: 4, Type: issues_model.ReviewTypeRequest}, 0, 1},
-		{"non-member approved", &issues_model.Review{ReviewerID: 5, Type: issues_model.ReviewTypeApprove}, 1, 1},
-		{"other team reviewed", &issues_model.Review{ReviewerTeamID: 1, Type: issues_model.ReviewTypeApprove}, 1, 1},
-		{"team already requested", &issues_model.Review{ReviewerTeamID: 2, Type: issues_model.ReviewTypeRequest}, 1, 0},
+		{"member approved", []*issues_model.Review{{ReviewerID: 4, Type: issues_model.ReviewTypeApprove}}, 0, 0},
+		{"member rejected", []*issues_model.Review{{ReviewerID: 4, Type: issues_model.ReviewTypeReject}}, 0, 0},
+		{"member commented", []*issues_model.Review{{ReviewerID: 4, Type: issues_model.ReviewTypeComment}}, 0, 1},
+		{"member requested", []*issues_model.Review{{ReviewerID: 4, Type: issues_model.ReviewTypeRequest}}, 0, 1},
+		{"non-member approved", []*issues_model.Review{{ReviewerID: 5, Type: issues_model.ReviewTypeApprove}}, 1, 1},
+		{"other team reviewed", []*issues_model.Review{{ReviewerTeamID: 1, Type: issues_model.ReviewTypeApprove}}, 1, 1},
+		{"member approved then commented", []*issues_model.Review{{ReviewerID: 4, Type: issues_model.ReviewTypeApprove}, {ReviewerID: 4, Type: issues_model.ReviewTypeComment}}, 0, 0},
+		{"member approval dismissed", []*issues_model.Review{{ReviewerID: 4, Type: issues_model.ReviewTypeApprove, Dismissed: true}}, 1, 1},
+		{"team already requested", []*issues_model.Review{{ReviewerTeamID: 2, Type: issues_model.ReviewTypeRequest}}, 1, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, committer, err := db.TxContext(t.Context())
 			require.NoError(t, err)
 			defer committer.Close()
 
-			if tc.review != nil {
-				tc.review.IssueID = pr.IssueID
-				require.NoError(t, db.Insert(ctx, tc.review))
+			for _, review := range tc.reviews {
+				review.IssueID = pr.IssueID
+				require.NoError(t, db.Insert(ctx, review))
 			}
 			before, err := db.GetEngine(ctx).Count(&issues_model.Review{IssueID: pr.IssueID})
 			require.NoError(t, err)
@@ -89,7 +91,7 @@ func TestPullRequestCodeOwnersReview(t *testing.T) {
 			assert.Empty(t, notifiers)
 			after, err := db.GetEngine(ctx).Count(&issues_model.Review{IssueID: pr.IssueID})
 			require.NoError(t, err)
-			assert.EqualValues(t, before+int64(tc.wantUsers+tc.wantTeams), after)
+			assert.Equal(t, before+int64(tc.wantUsers+tc.wantTeams), after)
 		})
 	}
 }
