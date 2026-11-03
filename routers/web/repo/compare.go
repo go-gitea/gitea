@@ -736,7 +736,7 @@ func ExcerptBlob(ctx *context.Context) {
 		ctx.ServerError("GetCommit", err)
 		return
 	}
-	blob, err := commit.GetBlobByPath(ctx, ctx.Repo.GitRepo, filePath)
+	blob, err := commit.GetBlobByPath(ctx, gitRepo, filePath)
 	if err != nil {
 		ctx.ServerError("GetBlobByPath", err)
 		return
