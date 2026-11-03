@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+	{{template "mail/base/head" .Subject}}
+</head>
+
+<body>
+	{{if .IsMention}}<p>{{.locale.Tr "mail.issue.x_mentioned_you" .Doer.Name}}</p>{{end}}
+	<p><a href="{{.Link}}">{{.Location}}</a></p>
+	<div>{{.Body}}</div>
+	<p><a href="{{.CommitURL}}">{{.ShortSHA}}</a></p>
+	{{template "mail/base/footer"}}
+</body>
+</html>

@@ -32,6 +32,8 @@ import (
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/attachment"
 	sender_service "gitea.dev/services/mailer/sender"
 
@@ -165,6 +167,95 @@ func TestMailMentionsComment(t *testing.T) {
 	err := MailParticipantsComment(t.Context(), comment, activities_model.ActionCommentIssue, issue, []*user_model.User{})
 	require.NoError(t, err)
 	assert.Equal(t, 3, mails)
+}
+
+func TestMailCommitComment(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.MailService, &setting.Mailer{From: "test@gitea.com"})()
+	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/")()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer})
+	defer test.MockVariableValue(&setting.Langs, []string{"en-US"})()
+	defer test.MockVariableValue(&setting.Names, []string{"English"})()
+	translation.InitLocales(t.Context())
+	defer test.MockVariableValue(&setting.IncomingEmail.Enabled, true)()
+	author := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	participant := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	mentioned := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	commit := &git.Commit{
+		ID:     git.MustIDFromString("0123456789012345678901234567890123456789"),
+		Author: &git.Signature{Email: author.Email},
+	}
+	require.NoError(t, issues_model.CreateCommitComment(t.Context(), repo.ID, commit.ID.String(), &issues_model.Comment{PosterID: participant.ID}, nil))
+	comment := &issues_model.Comment{PosterID: doer.ID, Content: "**Comment body** [relative](./relative)", TreePath: "file<script>.go", Line: -42}
+	require.NoError(t, issues_model.CreateCommitComment(t.Context(), repo.ID, commit.ID.String(), comment, nil))
+
+	var message *sender_service.Message
+	for _, testCase := range []struct {
+		name            string
+		preference      string
+		doerPreference  string
+		mention         bool
+		muted           bool
+		private         bool
+		unmatchedAuthor bool
+		want            []int64
+	}{
+		{name: "duplicate mentions", mention: true, want: []int64{1, 4, 5, 11}},
+		{name: "on mention participant and your own doer", preference: user_model.EmailNotificationsOnMention, doerPreference: user_model.EmailNotificationsAndYourOwn, want: []int64{1, 2, 4, 11}},
+		{name: "disabled mentioned", preference: user_model.EmailNotificationsDisabled, mention: true, want: []int64{1, 4, 11}},
+		{name: "code access required", private: true, mention: true, want: []int64{1}},
+		{name: "unmatched author", unmatchedAuthor: true, want: []int64{1, 4, 5, 11}},
+		{name: "muted sources", doerPreference: user_model.EmailNotificationsAndYourOwn, mention: true, muted: true, want: []int64{11}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			doer.EmailNotificationsPreference = util.IfZero(testCase.doerPreference, user_model.EmailNotificationsEnabled)
+			participant.EmailNotificationsPreference = util.IfZero(testCase.preference, user_model.EmailNotificationsEnabled)
+			require.NoError(t, user_model.UpdateUserCols(t.Context(), participant, "email_notifications_preference"))
+			repo.IsPrivate = testCase.private
+			commit.Author.Email = util.Iif(testCase.unmatchedAuthor, "unmatched@example.com", author.Email)
+			mentions := []*user_model.User{mentioned}
+			if testCase.mention {
+				mentions = append(mentions, participant, participant, doer)
+			}
+			if testCase.muted {
+				for _, recipient := range []*user_model.User{author, participant, mentioned, doer} {
+					require.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), recipient, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeDont}))
+				}
+			}
+			var recipients []string
+			defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
+				for _, msg := range msgs {
+					recipients = append(recipients, msg.To)
+					if msg.To == mentioned.Email {
+						message = msg
+					}
+					if msg.To == participant.Email {
+						assert.Equal(t, []string{util.Iif(testCase.mention, "mention", "commit")}, msg.Headers["X-Gitea-Reason"])
+					}
+				}
+			})()
+			NewNotifier().CreateCommitComment(t.Context(), doer, repo, commit, comment, mentions)
+			var expected []string
+			for _, id := range testCase.want {
+				expected = append(expected, fmt.Sprintf("user%d@example.com", id))
+			}
+			assert.ElementsMatch(t, expected, recipients)
+		})
+	}
+
+	require.NotNil(t, message)
+	commitURL := "https://try.gitea.io/user2/repo1/commit/" + commit.ID.String()
+	assert.Equal(t, "[user2/repo1] Comment on commit 0123456789", message.Subject)
+	assert.Contains(t, message.Body, "<b>user2</b> mentioned you:")
+	assert.Contains(t, message.Body, fmt.Sprintf(`<a href="%s#r%d">file&lt;script&gt;.go:42</a>`, commitURL, comment.ID))
+	assert.Contains(t, message.Body, `<a href="`+commitURL+`">0123456789</a>`)
+	assert.Contains(t, message.Body, "<strong>Comment body</strong>")
+	assert.Contains(t, message.Body, `href="https://try.gitea.io/user2/repo1/relative"`)
+	assert.Equal(t, []string{fmt.Sprintf("<user2/repo1/commit/%s/comment/%d@localhost>", commit.ID.String(), comment.ID)}, message.Headers["Message-ID"])
+	assert.Equal(t, []string{"<user2/repo1/commit/" + commit.ID.String() + "@localhost>"}, message.Headers["In-Reply-To"])
+	assert.Equal(t, message.Headers["In-Reply-To"], message.Headers["References"])
+	assert.Empty(t, message.ReplyTo)
 }
 
 func TestMailParticipantsOnMentionCustomWatch(t *testing.T) {

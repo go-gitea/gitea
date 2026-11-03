@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"maps"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/log"
@@ -44,6 +46,19 @@ type mailComment struct {
 	ForceDoerNotification bool
 }
 
+func renderMailContent(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, content string) (template.HTML, error) {
+	body, err := markdown.RenderString(renderhelper.NewRenderContextRepoComment(ctx, repo).WithUseAbsoluteLink(true), content)
+	if err != nil || !setting.MailService.EmbedAttachmentImages {
+		return body, err
+	}
+	bodyAfterEmbedding, err := newMailAttachmentBase64Embedder(doer, repo, maxEmailBodySize).Base64InlineImages(ctx, body)
+	if err != nil {
+		log.Error("Failed to embed images in mail body: %v", err)
+		return body, nil
+	}
+	return bodyAfterEmbedding, nil
+}
+
 func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*sender_service.Message, error) {
 	var (
 		subject string
@@ -68,20 +83,9 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 	}
 
 	// This is the body of the new issue or comment, not the mail body
-	rctx := renderhelper.NewRenderContextRepoComment(ctx, comment.Issue.Repo).WithUseAbsoluteLink(true)
-	body, err := markdown.RenderString(rctx, comment.Content)
+	body, err := renderMailContent(ctx, comment.Doer, comment.Issue.Repo, comment.Content)
 	if err != nil {
 		return nil, err
-	}
-
-	if setting.MailService.EmbedAttachmentImages {
-		attEmbedder := newMailAttachmentBase64Embedder(comment.Doer, comment.Issue.Repo, maxEmailBodySize)
-		bodyAfterEmbedding, err := attEmbedder.Base64InlineImages(ctx, body)
-		if err != nil {
-			log.Error("Failed to embed images in mail body: %v", err)
-		} else {
-			body = bodyAfterEmbedding
-		}
 	}
 	actType, actName, tplName := actionToTemplate(comment.Issue, comment.ActionType, commentType, reviewType)
 

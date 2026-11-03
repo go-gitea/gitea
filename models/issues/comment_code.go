@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/markup/markdown"
 
@@ -24,7 +25,6 @@ func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_mode
 }
 
 func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *user_model.User, review *Review, showOutdatedComments bool) (CodeComments, error) {
-	pathToLineToComment := make(CodeComments)
 	if review == nil {
 		review = &Review{ID: 0}
 	}
@@ -38,14 +38,18 @@ func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *u
 	if err != nil {
 		return nil, err
 	}
+	return groupCodeComments(comments), nil
+}
 
+func groupCodeComments(comments []*Comment) CodeComments {
+	pathToLineToComment := make(CodeComments)
 	for _, comment := range comments {
 		if pathToLineToComment[comment.TreePath] == nil {
 			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
 		}
 		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
 	}
-	return pathToLineToComment, nil
+	return pathToLineToComment
 }
 
 func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issue, currentUser *user_model.User, review *Review, showOutdatedComments bool) ([]*Comment, error) {
@@ -71,19 +75,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := comments.LoadPosters(ctx); err != nil {
-		return nil, err
-	}
-
-	if err := comments.LoadAttachments(ctx); err != nil {
-		return nil, err
-	}
-
 	if err := comments.loadResolveDoers(ctx); err != nil {
-		return nil, err
-	}
-
-	if err := comments.loadReactions(ctx, issue.Repo); err != nil {
 		return nil, err
 	}
 
@@ -114,16 +106,31 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		}
 		comments[n] = comment
 		n++
+	}
+	comments = comments[:n]
+	return comments, comments.loadCodeCommentContent(ctx, issue.Repo)
+}
 
+func (comments CommentList) loadCodeCommentContent(ctx context.Context, repo *repo_model.Repository) error {
+	if err := comments.LoadPosters(ctx); err != nil {
+		return err
+	}
+	if err := comments.LoadAttachments(ctx); err != nil {
+		return err
+	}
+	if err := comments.loadReactions(ctx, repo); err != nil {
+		return err
+	}
+	for _, comment := range comments {
 		var err error
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, repo, renderhelper.RepoCommentOptions{
 			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
 		})
 		if comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content); err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return comments[:n], nil
+	return nil
 }
 
 // FetchCodeCommentsByLine fetches the code comments for a given treePath and line number

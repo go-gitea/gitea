@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"sort"
 	"strings"
 	"unicode"
 
@@ -20,7 +19,6 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/charset"
 	csv_module "gitea.dev/modules/csv"
@@ -39,7 +37,6 @@ import (
 	"gitea.dev/services/context/upload"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
-	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -677,28 +674,6 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 	ctx.Data["AllowMaintainerEdit"] = prConfig.DefaultAllowMaintainerEdit
 }
 
-// attachCommentsToLines attaches comments to their corresponding diff lines
-func attachCommentsToLines(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
-	for _, line := range section.Lines {
-		if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
-			line.Comments = append(line.Comments, comments...)
-		}
-		if comments, ok := lineComments[int64(line.RightIdx)]; ok {
-			line.Comments = append(line.Comments, comments...)
-		}
-		sort.SliceStable(line.Comments, func(i, j int) bool {
-			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
-		})
-	}
-}
-
-// attachHiddenCommentIDs calculates and attaches hidden comment IDs to expand buttons
-func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
-	for _, line := range section.Lines {
-		gitdiff.FillHiddenCommentIDsForDiffLine(line, lineComments)
-	}
-}
-
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
@@ -765,24 +740,25 @@ func ExcerptBlob(ctx *context.Context) {
 		if err != nil {
 			log.Error("GetIssueByIndex error: %v", err)
 		} else if issue.IsPull {
-			// FIXME: DIFF-CONVERSATION-DATA: the following data assignment is fragile
-			ctx.Data["Issue"] = issue
-			ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-				return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-			}
-			// and "diff/comment_form.tmpl" (reply comment) needs them
-			ctx.Data["PageIsPullFiles"] = true
-			ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
+			issue.Repo = ctx.Repo.Repository
+			prepareIssueCommentTemplateData(ctx, issue, true)
 
 			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
 			if err != nil {
 				log.Error("FetchCodeComments error: %v", err)
-			} else {
-				if lineComments, ok := allComments[filePath]; ok {
-					attachCommentsToLines(section, lineComments)
-					attachHiddenCommentIDs(section, lineComments)
-				}
+			} else if lineComments, ok := allComments[filePath]; ok {
+				gitdiff.AttachSectionComments(section, lineComments)
 			}
+		}
+	} else if ctx.FormBool("commit_diff") && ctx.Data["PageIsWiki"] != true {
+		diffBlobExcerptData.IsCommitDiff = true
+		prepareCommitCommentTemplateData(ctx, commit.ID.String())
+
+		allComments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, commit.ID.String(), filePath)
+		if err != nil {
+			log.Error("FetchCommitCodeComments error: %v", err)
+		} else if lineComments, ok := allComments[filePath]; ok {
+			gitdiff.AttachSectionComments(section, lineComments)
 		}
 	}
 

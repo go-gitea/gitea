@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	activities_model "gitea.dev/models/activities"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -32,6 +33,7 @@ import (
 	"gitea.dev/services/context"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	"gitea.dev/services/notifications"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/services/repository/gitgraph"
 )
@@ -280,15 +282,17 @@ func Diff(ctx *context.Context) {
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.PathParam("sha")
+	isWiki := ctx.Data["PageIsWiki"] != nil
 
 	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
 		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
+		IsCommitDiff:  !isWiki,
 	}
 	gitRepo := ctx.Repo.GitRepo // don't access ctx.Repo.GitRepo anymore, because it might not be right for wiki repo
 
-	if ctx.Data["PageIsWiki"] != nil {
+	if isWiki {
 		var err error
 		gitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
@@ -423,6 +427,34 @@ func Diff(ctx *context.Context) {
 		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
 
+	if !isWiki {
+		comments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, commitID)
+		if err != nil {
+			ctx.ServerError("FetchCommitCodeComments", err)
+			return
+		}
+		diff.AttachComments(comments)
+		ctx.Data["CommitComments"] = comments[""][0] // comments without a path are on the whole commit
+		if ctx.IsSigned {
+			unread, err := db.Find[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+				UserID:   ctx.Doer.ID,
+				RepoID:   ctx.Repo.Repository.ID,
+				CommitID: commitID,
+				Source:   []activities_model.NotificationSource{activities_model.NotificationSourceCommit},
+				Status:   []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
+			})
+			if err != nil {
+				ctx.ServerError("FindCommitNotifications", err)
+				return
+			}
+			if _, err := notifications.SetManyNotificationStatuses(ctx, unread, ctx.Doer, activities_model.NotificationStatusRead); err != nil {
+				ctx.ServerError("SetManyNotificationStatuses", err)
+				return
+			}
+		}
+		prepareCommitCommentTemplateData(ctx, commitID)
+	}
+
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 
@@ -465,5 +497,12 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 		return nil, err
 	}
 	git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, commits)
+	commitIDs := make([]string, 0, len(gitCommits))
+	for _, gitCommit := range gitCommits {
+		commitIDs = append(commitIDs, gitCommit.ID.String())
+	}
+	if ctx.Data["CommitCommentCounts"], err = issues_model.CountCommitComments(ctx, ctx.Repo.Repository.ID, commitIDs); err != nil {
+		return nil, err
+	}
 	return commits, nil
 }

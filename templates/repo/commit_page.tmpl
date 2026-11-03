@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 {{$commitLinkBase := print $.RepoLink (Iif $.PageIsWiki "/wiki" "") "/commit"}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository diff">
+<div role="main" aria-label="{{.Title}}" class="page-content repository diff" {{with .CommentContext}}data-content-history-url="{{.ConversationURL}}/content-history"{{end}}>
 	{{template "repo/header" .}}
 	<div class="ui container fluid padded">
 		<div class="ui top attached header segment">
@@ -199,6 +199,9 @@
 		{{end}}
 
 		{{template "repo/diff/box" .}}
+		{{if .CommentContext}}
+			{{template "repo/comment/commit_thread" dict "comments" .CommitComments}}
+		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}

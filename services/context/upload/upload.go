@@ -120,7 +120,7 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 		if len(ctx.PathParam("index")) > 0 {
 			uploadLinkUrl = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.PathParam("index")) + "/attachments"
 		} else {
-			uploadLinkUrl = ctx.Repo.RepoLink + "/issues/attachments"
+			uploadLinkUrl = ctx.Repo.RepoLink + "/attachments"
 		}
 		ctx.Data["UploadOptions"] = uploadOptions{
 			UploadUrl:       ctx.Repo.RepoLink + "/issues/attachments",

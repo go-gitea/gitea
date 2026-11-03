@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
-	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -26,7 +25,7 @@ func attachmentReadScope(unitType unit.Type) (auth_model.AccessTokenScope, bool)
 	switch unitType {
 	case unit.TypeIssues, unit.TypePullRequests:
 		return auth_model.AccessTokenScopeReadIssue, true
-	case unit.TypeReleases:
+	case unit.TypeCode, unit.TypeReleases:
 		return auth_model.AccessTokenScopeReadRepository, true
 	default:
 		return "", false
@@ -97,28 +96,19 @@ func DeleteAttachment(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Doer.ID != attach.UploaderID {
-		if attach.IssueID > 0 {
-			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
-			if err != nil {
-				ctx.ServerError("GetIssueByID", err)
-				return
-			}
-			if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		} else if attach.ReleaseID > 0 {
-			if !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		} else {
-			if !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		}
+	unitType, _, err := repo_service.GetAttachmentLinkedTypeAndRepoID(ctx, attach)
+	if err != nil {
+		ctx.ServerError("GetAttachmentLinkedTypeAndRepoID", err)
+		return
+	}
+	isUploader := ctx.Doer.ID == attach.UploaderID
+	canDelete := isUploader || ctx.Repo.Permission.IsAdmin() || ctx.Repo.Permission.IsOwner()
+	if unitType != unit.TypeInvalid { // the uploader of a linked attachment still needs to see its unit
+		canDelete = isUploader && ctx.Repo.Permission.CanRead(unitType) || ctx.Repo.Permission.CanWrite(unitType)
+	}
+	if !canDelete {
+		ctx.HTTPError(http.StatusForbidden)
+		return
 	}
 
 	err = repo_model.DeleteAttachment(ctx, attach, true)

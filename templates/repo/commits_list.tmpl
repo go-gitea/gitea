@@ -46,6 +46,9 @@
 						<button type="button" class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
+						{{with and $.CommitCommentCounts (index $.CommitCommentCounts $commitID)}}
+							<a class="flex-text-inline muted tw-ml-1" href="{{$commitRepoLink}}/commit/{{PathEscape $commitID}}" data-tooltip-content="{{ctx.Locale.TrN . "repo.issues.num_comments_1" "repo.issues.num_comments" .}}">{{svg "octicon-comment" 14}}{{.}}</a>
+						{{end}}
 						{{if $gitCommit.MessageBody}}
 						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody $gitCommit.MessageUTF8 $.Repository}}</pre>
 						{{end}}

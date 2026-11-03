@@ -1,0 +1,16 @@
+{{$root := ctx.RootData -}}
+{{if or $.comments $root.CommentContext.CanAddComment}}
+<div class="conversation-holder tw-mt-4" {{if $root.CommentContext.CanAddComment}}data-keep-empty{{end}}>
+	<h4 class="ui top attached header">{{ctx.Locale.TrN (len $.comments) "repo.issues.num_comments_1" "repo.issues.num_comments" (len $.comments)}}</h4>
+	<div class="ui attached segment comment-code-cloud">
+		{{if $.comments}}
+			<div class="comment-list tw-mb-4">
+				<div class="ui comments">
+					{{template "repo/comment/comments" dict "comments" $.comments}}
+				</div>
+			</div>
+		{{end}}
+		{{template "repo/comment/form" dict "TopLevel" true}}
+	</div>
+</div>
+{{end}}

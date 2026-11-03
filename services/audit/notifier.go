@@ -11,6 +11,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	notify_service "gitea.dev/services/notify"
 )
@@ -139,6 +140,14 @@ func (n *auditNotifier) DeleteComment(ctx context.Context, doer *user_model.User
 	}
 	action, key := issueOrPR(comment.Issue, audit_model.IssueCommentDelete, audit_model.PullRequestCommentDelete)
 	RecordAs(ctx, doer, action, repo, key, issueLabel(comment.Issue), "comment_id", comment.ID)
+}
+
+func (n *auditNotifier) CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit *git.Commit, comment *issues_model.Comment, _mentions []*user_model.User) {
+	RecordAs(ctx, doer, audit_model.CommitCommentCreate, repo, "commit", commit.ID.String(), "comment_id", comment.ID)
+}
+
+func (n *auditNotifier) DeleteCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, comment *issues_model.Comment) {
+	RecordAs(ctx, doer, audit_model.CommitCommentDelete, repo, "commit", comment.CommitComment.CommitSHA, "comment_id", comment.ID)
 }
 
 func (n *auditNotifier) NewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, _ string) {

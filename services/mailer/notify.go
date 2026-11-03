@@ -12,6 +12,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
@@ -53,6 +54,14 @@ func (m *mailNotifier) CreateIssueComment(ctx context.Context, doer *user_model.
 func (m *mailNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
 	if err := MailParticipants(ctx, issue, issue.Poster, activities_model.ActionCreateIssue, mentions); err != nil {
 		log.Error("MailParticipants: %v", err)
+	}
+}
+
+func (m *mailNotifier) CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
+	commit *git.Commit, comment *issues_model.Comment, mentions []*user_model.User,
+) {
+	if err := MailCommitComment(ctx, doer, repo, commit, comment, mentions); err != nil {
+		log.Error("CreateCommitComment: %v", err)
 	}
 }
 

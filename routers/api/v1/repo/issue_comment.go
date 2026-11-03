@@ -538,7 +538,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	if form.Body != comment.Content {
 		oldContent := comment.Content
 		comment.Content = form.Body
-		if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
+		if err := issue_service.UpdateComment(ctx, ctx.Doer, ctx.Repo.Repository, comment, comment.ContentVersion, oldContent); err != nil {
 			if errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.APIError(http.StatusForbidden, err.Error())
 			} else {
@@ -634,7 +634,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if err = issue_service.DeleteComment(ctx, ctx.Doer, ctx.Repo.Repository, comment); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

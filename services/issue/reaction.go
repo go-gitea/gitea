@@ -7,6 +7,7 @@ import (
 	"context"
 
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 )
@@ -29,23 +30,19 @@ func CreateIssueReaction(ctx context.Context, doer *user_model.User, issue *issu
 }
 
 // CreateCommentReaction creates a reaction on a comment.
-func CreateCommentReaction(ctx context.Context, doer *user_model.User, comment *issues_model.Comment, content string) (*issues_model.Reaction, error) {
-	if err := comment.LoadIssue(ctx); err != nil {
+func CreateCommentReaction(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, comment *issues_model.Comment, content string) (*issues_model.Reaction, error) {
+	blockerIDs, err := commentBlockerIDs(ctx, repo, comment)
+	if err != nil {
 		return nil, err
 	}
-
-	if err := comment.Issue.LoadRepo(ctx); err != nil {
-		return nil, err
-	}
-
-	if user_model.IsUserBlockedBy(ctx, doer, comment.Issue.PosterID, comment.Issue.Repo.OwnerID, comment.PosterID) {
+	if user_model.IsUserBlockedBy(ctx, doer, append(blockerIDs, comment.PosterID)...) {
 		return nil, user_model.ErrBlockedUser
 	}
 
 	return issues_model.CreateReaction(ctx, setting.UI.ReactionsLookup, &issues_model.ReactionOptions{
 		Type:      content,
 		DoerID:    doer.ID,
-		IssueID:   comment.Issue.ID,
+		IssueID:   comment.IssueID,
 		CommentID: comment.ID,
 	})
 }

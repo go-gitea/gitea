@@ -455,19 +455,26 @@ func setupDefaultDiff() *Diff {
 
 func TestDiff_LoadComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	for _, test := range []struct {
 		showOutdated bool
 		comments     int
 	}{{false, 2}, {true, 3}} {
 		t.Run(strconv.FormatBool(test.showOutdated), func(t *testing.T) {
-			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 			diff := setupDefaultDiff()
 			assert.NoError(t, diff.LoadComments(t.Context(), issue, user, test.showOutdated))
 			assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, test.comments)
 		})
 	}
+
+	section := &DiffSection{Lines: []*DiffLine{{LeftIdx: 5, RightIdx: 10}}}
+	AttachSectionComments(section, map[int64][]*issues_model.Comment{
+		-5: {{ID: 100, CreatedUnix: 2000}},
+		10: {{ID: 200, CreatedUnix: 1000}, {ID: 201, CreatedUnix: 2000}},
+	})
+	assert.Equal(t, issues_model.CommentList{{ID: 200, CreatedUnix: 1000}, {ID: 100, CreatedUnix: 2000}, {ID: 201, CreatedUnix: 2000}}, section.Lines[0].Comments)
 }
 
 func TestDiffLine_CanComment(t *testing.T) {

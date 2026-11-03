@@ -19,18 +19,16 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
-	"gitea.dev/services/context/upload"
 	"gitea.dev/services/forms"
 	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
-	user_service "gitea.dev/services/user"
 )
 
 const (
-	tplDiffConversation     templates.TplName = "repo/diff/conversation"
-	tplConversationOutdated templates.TplName = "repo/diff/conversation_outdated"
+	tplDiffConversation     templates.TplName = "repo/comment/conversation"
+	tplConversationOutdated templates.TplName = "repo/comment/conversation_outdated"
 	tplTimelineConversation templates.TplName = "repo/issue/view_content/conversation"
-	tplNewComment           templates.TplName = "repo/diff/new_comment"
+	tplNewComment           templates.TplName = "repo/comment/new_conversation"
 )
 
 // RenderNewCodeCommentForm will render the form for creating a new review comment
@@ -47,17 +45,14 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
 	}
-	ctx.Data["PageIsPullFiles"] = true
-	ctx.Data["Issue"] = issue
 	ctx.Data["CurrentReview"] = currentReview
 	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
 	}
-	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
-	upload.AddUploadContext(ctx, "comment")
+	prepareIssueCommentTemplateData(ctx, issue, true)
 	ctx.HTML(http.StatusOK, tplNewComment)
 }
 
@@ -172,8 +167,6 @@ func UpdateResolveConversation(ctx *context.Context) {
 }
 
 func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
-	ctx.Data["PageIsPullFiles"] = origin == "diff"
-
 	showOutdatedComments := origin == "timeline" || GetShowOutdatedComments(ctx)
 	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
@@ -191,15 +184,11 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 
-	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
-	upload.AddUploadContext(ctx, "comment")
-
 	ctx.Data["comments"] = comments
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
 		return
 	}
-	ctx.Data["Issue"] = comment.Issue
 	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
 		return
@@ -209,11 +198,8 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerError("GetRefCommitID", err)
 		return
 	}
-	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
-	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-	}
+	prepareIssueCommentTemplateData(ctx, comment.Issue, origin == "diff")
 
 	switch origin {
 	case "diff":

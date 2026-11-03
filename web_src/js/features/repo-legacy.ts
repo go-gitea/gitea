@@ -67,9 +67,8 @@ export function initRepository() {
     initRepoIssueTitleEdit();
     initRepoIssueWipToggle();
     initRepoIssueCommentTargetHashReset();
-
-    initRepoIssueReferenceIssue();
   }
+  initRepoIssueReferenceIssue();
 
   initUnicodeEscapeButton();
 }

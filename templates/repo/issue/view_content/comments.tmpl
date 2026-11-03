@@ -53,22 +53,11 @@
 						</div>
 						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
-							{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
+							{{template "repo/comment/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
-						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
-							{{if .RenderedContent}}
-								{{.RenderedContent}}
-							{{else}}
-								<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
-							{{end}}
-						</div>
-						<div id="{{.HashTag}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
-						{{if .Attachments}}
-							{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
-						{{end}}
+						{{template "repo/comment/content" dict "item" $comment}}
 					</div>
 					{{template "shared/reactions" dict
 						"AllowedReactions" $.AllowedIssueReactions
@@ -415,23 +404,12 @@
 							<div class="comment-header-right">
 								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 								{{if not $.Repository.IsArchived}}
-									{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "pull_review" "ConvContentItem" $comment}}
+									{{template "repo/comment/context_menu" dict "ConvContentType" "pull_review" "ConvContentItem" $comment}}
 								{{end}}
 							</div>
 						</div>
 						<div class="ui attached segment comment-body">
-							<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
-								{{if .RenderedContent}}
-									{{.RenderedContent}}
-								{{else}}
-									<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
-								{{end}}
-							</div>
-							<div id="{{.HashTag}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-							<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
-							{{if .Attachments}}
-								{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
-							{{end}}
+							{{template "repo/comment/content" dict "item" $comment}}
 						</div>
 						{{template "shared/reactions" dict
 							"AllowedReactions" $.AllowedIssueReactions
@@ -444,9 +422,9 @@
 
 				{{if and .Review .Review.CodeComments}}
 				<div class="timeline-item event code-comments-list">
-					{{range $filename, $lines := .Review.CodeComments}}
-						{{range $line, $comms := $lines}}
-							{{template "repo/issue/view_content/conversation" dict "comments" $comms}}
+					{{range $lines := .Review.CodeComments}}
+						{{range $comments := $lines}}
+							{{template "repo/issue/view_content/conversation" dict "comments" $comments}}
 						{{end}}
 					{{end}}
 				</div>

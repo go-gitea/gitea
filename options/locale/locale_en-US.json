@@ -481,6 +481,7 @@
   "mail.issue.action.ready_for_review": "<b>%[1]s</b> marked this pull request ready for review.",
   "mail.issue.action.new": "<b>%[1]s</b> created #%[2]d.",
   "mail.issue.in_tree_path": "In %s:",
+  "mail.commit_comment.subject": "[%s] Comment on commit %s",
   "mail.release.new.subject": "%s in %s released",
   "mail.release.new.text": "<b>%[1]s</b> released %[2]s in %[3]s",
   "mail.release.title": "Title: %s",

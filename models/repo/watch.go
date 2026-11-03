@@ -263,6 +263,15 @@ func GetRepoCustomWatchersIDs(ctx context.Context, repoID int64, watchType Watch
 	return getRepoWatchersIDs(ctx, repoID, watchType, true)
 }
 
+// GetRepoAllActivityWatchersIDs serves events, like commit comments, that no custom watch option covers
+func GetRepoAllActivityWatchersIDs(ctx context.Context, repoID int64) ([]int64, error) {
+	ids := make([]int64, 0, 64)
+	return ids, db.GetEngine(ctx).Table("watch").
+		Where(builder.Eq{"repo_id": repoID, "include_pull_requests": true, "include_issues": true, "include_releases": true}).
+		And(builder.In("mode", WatchModeNormal, WatchModeAuto)).
+		Select("user_id").Find(&ids)
+}
+
 func getRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType, customOnly bool) ([]int64, error) {
 	ids := make([]int64, 0, 64)
 	var watchColName string

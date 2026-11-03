@@ -514,24 +514,24 @@
   }
 }
 
-.repository.view.issue .comment-list .ui.comments {
+.repository .comment-list .ui.comments {
   max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 
-.repository.view.issue .comment-list .comment > .content > div:first-child {
+.repository .comment-list .comment > .content > div:first-child {
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
 }
 
-.repository.view.issue .comment-list .comment > .content > div:last-child {
+.repository .comment-list .comment > .content > div:last-child {
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
 }
 
-.repository.view.issue .comment-list .comment .comment-container {
+.repository .comment-list .comment .comment-container {
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   background: var(--color-box-body);
@@ -542,22 +542,22 @@
 }
 
 @media (max-width: 767.98px) {
-  .repository.view.issue .comment-list .comment .content .form .button {
+  .repository .comment-list .comment .content .form .button {
     width: 100%;
     margin: 0;
   }
 }
 
-.repository.view.issue .comment-list .comment .no-content {
+.repository .comment-list .comment .no-content {
   color: var(--color-text-light-2);
   font-style: italic;
 }
 
-.repository.view.issue .comment-list .comment .ui.form .field:first-child {
+.repository .comment-list .comment .ui.form .field:first-child {
   clear: none;
 }
 
-.repository.view.issue .comment-list .comment .ui.form .field.footer {
+.repository .comment-list .comment .ui.form .field.footer {
   overflow: hidden;
 }
 
@@ -577,7 +577,7 @@
   margin-left: 24px;
 }
 
-.repository.view.issue .comment-list .comment-code-cloud button.comment-form-reply {
+.repository .comment-list .comment-code-cloud button.comment-form-reply {
   margin: 0;
 }
 
