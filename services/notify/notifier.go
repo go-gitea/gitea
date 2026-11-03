@@ -40,6 +40,7 @@ type Notifier interface {
 	IssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue)
 	IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string)
 	IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string)
+	IssueChangeConfidential(ctx context.Context, doer *user_model.User, issue *issues_model.Issue)
 	IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 		addedLabels, removedLabels []*issues_model.Label)
 	IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64)

@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/validation"
+	"gitea.dev/modules/web/middleware"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -99,4 +102,28 @@ func TestMergePullRequestForm(t *testing.T) {
 		assert.Empty(t, form.MergeMessageField)
 		assert.True(t, form.HasMergeMessageField)
 	})
+}
+
+func TestIssueConfidentialFormValidate(t *testing.T) {
+	ctx := &middleware.ValidateContext{Locale: translation.MockLocale{}}
+	const invalidMessage = "repo.issues.confidential.invalid"
+
+	for _, value := range []string{"true", "false"} {
+		assert.Empty(t, (&IssueConfidentialForm{Confidential: value}).Validate(ctx, nil), value)
+		assert.Empty(t, (&CreateIssueForm{Confidential: value}).Validate(ctx, nil), value)
+	}
+	assert.Empty(t, (&CreateIssueForm{}).Validate(ctx, nil), "absent field creates a public issue")
+
+	errs := (&IssueConfidentialForm{Confidential: ""}).Validate(ctx, nil)
+	require.Len(t, errs, 1)
+	assert.Equal(t, invalidMessage, errs[0].Message)
+
+	for _, form := range []interface {
+		Validate(*middleware.ValidateContext, validation.BindingErrors) validation.BindingErrors
+	}{&IssueConfidentialForm{Confidential: "banana"}, &CreateIssueForm{Confidential: "banana"}} {
+		errs := form.Validate(ctx, nil)
+		require.Len(t, errs, 1)
+		assert.Equal(t, "Confidential", errs[0].FieldNames[0])
+		assert.Equal(t, invalidMessage, errs[0].Message)
+	}
 }

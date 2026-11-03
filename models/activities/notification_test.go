@@ -269,3 +269,53 @@ func TestSetIssueReadBy(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, activities_model.NotificationStatusRead, nt.Status)
 }
+
+func TestCreateOrUpdateIssueNotificationsConfidential(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	watcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	// the watcher gets a row while the issue is public
+	issue := &issues_model.Issue{RepoID: repo.ID, Repo: repo, Index: 9001, PosterID: 2, Title: "t"}
+	require.NoError(t, db.Insert(ctx, issue))
+	_, err := activities_model.CreateOrUpdateIssueNotifications(ctx, issue.ID, 0, 2, watcher.ID)
+	require.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: watcher.ID, IssueID: issue.ID})
+
+	setConfidential := func(confidential bool) {
+		_, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_confidential").Update(&issues_model.Issue{IsConfidential: confidential})
+		require.NoError(t, err)
+	}
+	unreadCount := func(viewer *user_model.User) int64 {
+		opts := activities_model.FindNotificationOptions{
+			UserID: watcher.ID, Viewer: viewer, Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
+		}
+		require.NoError(t, opts.ResolveHiddenIssues(ctx))
+		listed, err := db.Find[activities_model.Notification](ctx, opts)
+		require.NoError(t, err)
+		count, err := db.Count[activities_model.Notification](ctx, opts)
+		require.NoError(t, err)
+		assert.Equal(t, int64(len(listed)), count)
+		return count
+	}
+	visibleBefore := unreadCount(watcher)
+	assert.Positive(t, visibleBefore)
+
+	// make the watcher a non-collaborator to hide the issue from them
+	setConfidential(true)
+	_, err = db.GetEngine(ctx).Delete(&repo_model.Collaboration{RepoID: repo.ID, UserID: watcher.ID})
+	require.NoError(t, err)
+	hiddenWatcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
+
+	_, err = activities_model.CreateOrUpdateIssueNotifications(ctx, issue.ID, 0, 2, hiddenWatcher.ID)
+	require.NoError(t, err)
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: hiddenWatcher.ID, IssueID: issue.ID})
+
+	// the pre-existing row stays in the table but is hidden from lists and counts
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: watcher.ID, IssueID: issue.ID})
+	assert.Equal(t, visibleBefore-1, unreadCount(watcher))
+
+	setConfidential(false)
+	assert.Equal(t, visibleBefore, unreadCount(watcher))
+}

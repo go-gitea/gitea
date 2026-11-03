@@ -570,7 +570,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 		if !permission.HasAnyUnitAccessOrPublicAccess() {
 			continue
 		}
-		repos = append(repos, convert.ToRepo(ctx, repo, permission))
+		repos = append(repos, convert.ToAPIRepo(ctx, repo, permission, ctx.Doer))
 	}
 	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
@@ -624,7 +624,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, *permission))
+	ctx.JSON(http.StatusOK, convert.ToAPIRepo(ctx, repo, *permission, ctx.Doer))
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name

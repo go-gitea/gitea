@@ -54,6 +54,40 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	Owner          *user_model.User   // issues permission scope, it could be an organization or a user
 	Team           *organization.Team // issues permission scope
 	Doer           *user_model.User   // issues permission scope
+
+	// Visibility limits confidential issues; when nil it is resolved from Doer (nil Doer means anonymous)
+	Visibility   *VisibilityScope
+	Confidential optional.Option[bool]
+}
+
+// resolveVisibility returns options with Visibility set, so a caller that never sets it fails closed.
+func (o *IssuesOptions) resolveVisibility(ctx context.Context) (*IssuesOptions, error) {
+	if o.Visibility != nil {
+		return o, nil
+	}
+	resolved := o.Copy()
+	if user_model.DoerIsSiteAdminFullAccess(o.Doer) {
+		resolved.Visibility = &VisibilityScope{Unrestricted: true}
+		return resolved, nil
+	}
+	if o.Doer == nil || user_model.IsPublicOnlyDoer(o.Doer) {
+		return resolved, nil // nil scope: anonymous
+	}
+	var repoCond builder.Cond
+	switch {
+	case len(o.RepoIDs) > 0:
+		repoCond = builder.In("id", o.RepoIDs)
+	case o.RepoCond != nil:
+		repoCond = o.RepoCond
+	case o.Owner != nil:
+		repoCond = builder.Eq{"owner_id": o.Owner.ID}
+	}
+	scope, err := BuildVisibilityScopeByCond(ctx, o.Doer, repoCond)
+	if err != nil {
+		return nil, fmt.Errorf("resolveVisibility: %w", err)
+	}
+	resolved.Visibility = scope
+	return resolved, nil
 }
 
 // Copy returns a copy of the options.
@@ -226,6 +260,8 @@ func applyRepoConditions(sess db.Session, opts *IssuesOptions) {
 }
 
 func applyConditions(sess db.Session, opts *IssuesOptions) {
+	applyVisibilityConditions(sess, opts)
+
 	if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)
 	}
@@ -478,6 +514,10 @@ func applySubscribedCondition(sess db.Session, subscriberID int64) {
 
 // Issues returns a list of issues by given conditions.
 func Issues(ctx context.Context, opts *IssuesOptions) (IssueList, error) {
+	opts, err := opts.resolveVisibility(ctx)
+	if err != nil {
+		return nil, err
+	}
 	sess := db.GetEngine(ctx).
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	applyLimit(sess, opts)
@@ -498,6 +538,10 @@ func Issues(ctx context.Context, opts *IssuesOptions) (IssueList, error) {
 
 // IssueIDs returns a list of issue ids by given conditions.
 func IssueIDs(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Cond) ([]int64, int64, error) {
+	opts, err := opts.resolveVisibility(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
 	sess := db.GetEngine(ctx).
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	applyConditions(sess, opts)

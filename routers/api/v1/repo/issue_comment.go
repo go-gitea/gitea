@@ -268,6 +268,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	opts := &issues_model.FindCommentsOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
+		Visibility:  issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission),
 		Type:        issues_model.CommentTypeComment,
 		Since:       since,
 		Before:      before,
@@ -415,6 +416,9 @@ func GetIssueComment(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
+	if !checkCommentIssueVisible(ctx, comment) {
+		return
+	}
 
 	if comment.Type != issues_model.CommentTypeComment {
 		ctx.Status(http.StatusNoContent)
@@ -525,6 +529,9 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		ctx.APIErrorAuto(err)
 		return
 	}
+	if !checkCommentIssueVisible(ctx, comment) {
+		return
+	}
 	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite) {
 		ctx.Status(http.StatusForbidden)
 		return
@@ -623,6 +630,9 @@ func deleteIssueComment(ctx *context.APIContext) {
 	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
+		return
+	}
+	if !checkCommentIssueVisible(ctx, comment) {
 		return
 	}
 	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite) {

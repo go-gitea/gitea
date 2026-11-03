@@ -399,10 +399,6 @@ func (g *GitlabDownloader) GetIssues(ctx context.Context, page, perPage int) ([]
 	for _, issue := range issues {
 		// record the issue IID, to be used in GetPullRequests()
 		g.iidResolver.recordIssueIID(issue.IID)
-		if issue.Confidential { // Gitea can't restrict an issue to project members
-			continue
-		}
-
 		labels := make([]*base.Label, 0, len(issue.Labels))
 		for _, l := range issue.Labels {
 			labels = append(labels, &base.Label{
@@ -448,6 +444,8 @@ func (g *GitlabDownloader) GetIssues(ctx context.Context, page, perPage int) ([]
 			Updated:      *issue.UpdatedAt,
 			ForeignIndex: issue.IID,
 			Context:      gitlabIssueContext{IsMergeRequest: false},
+
+			IsConfidential: issue.Confidential,
 		})
 	}
 

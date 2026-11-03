@@ -32,6 +32,13 @@ func ToPayloadPullRequest(ctx context.Context, pr *issues_model.PullRequest, doe
 	return toAPIPullRequest(ctx, pr, doer, true)
 }
 
+func toPullRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, doer *user_model.User, isPayload bool) *api.Repository {
+	if isPayload {
+		return ToRepo(ctx, repo, permissionInRepo)
+	}
+	return ToAPIRepo(ctx, repo, permissionInRepo, doer)
+}
+
 // toAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
@@ -112,7 +119,7 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: ToRepo(ctx, pr.BaseRepo, repoUserPerm),
+			Repository: toPullRepo(ctx, pr.BaseRepo, repoUserPerm, doer, isPayload),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
@@ -196,7 +203,7 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		exist = false
 		if isPayload || pr.HeadRepoID == pr.BaseRepoID || p.HasAnyUnitAccessOrPublicAccess() {
 			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-			apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+			apiPullRequest.Head.Repository = toPullRepo(ctx, pr.HeadRepo, p, doer, isPayload)
 
 			headGitRepo, err = git.OpenRepository(ctx, pr.HeadRepo)
 			if err != nil {
@@ -349,7 +356,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		baseRepoPerm.AccessMode = perm.AccessModeNone
 	}
 
-	apiRepo := ToRepo(ctx, baseRepo, baseRepoPerm)
+	apiRepo := ToAPIRepo(ctx, baseRepo, baseRepoPerm, doer)
 	baseBranchCache := make(map[string]*git_model.Branch)
 	apiPullRequests := make([]*api.PullRequest, 0, len(prs))
 	for _, pr := range prs {
@@ -441,7 +448,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 				p.AccessMode = perm.AccessModeNone
 			}
 			if p.HasAnyUnitAccessOrPublicAccess() {
-				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+				apiPullRequest.Head.Repository = ToAPIRepo(ctx, pr.HeadRepo, p, doer)
 			}
 		}
 		if apiPullRequest.Head.Repository != nil {

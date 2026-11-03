@@ -138,6 +138,10 @@ func (s projectScope) findIssue(ctx *context.APIContext) *issues_model.Issue {
 		ctx.APIErrorNotFound()
 		return nil
 	}
+	if err := issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, perm); err != nil {
+		ctx.APIErrorAuto(err)
+		return nil
+	}
 	// the repo route group has mustNotBeArchived, owner boards have to check per issue
 	if issue.Repo.IsArchived {
 		ctx.APIError(http.StatusLocked, "repo is archived")
@@ -1601,6 +1605,7 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	if scope.Repo != nil {
 		// the route already established repo read access, and every issue here is that repo's
 		issuesOpts.RepoIDs = []int64{scope.Repo.ID}
+		issuesOpts.Visibility = issues_model.NewVisibilityScopeForRepo(ctx.Doer, scope.Repo.ID, ctx.Repo.Permission)
 	} else {
 		// an owner-level board spans repositories, so filter to what this doer may see
 		issuesOpts.Owner = scope.Owner

@@ -6,11 +6,13 @@ package markup
 import (
 	"testing"
 
+	"gitea.dev/models/db"
 	issue_model "gitea.dev/models/issues"
 	perm_model "gitea.dev/models/perm"
 	"gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -43,6 +45,26 @@ func TestRenderHelperIssueIconTitle(t *testing.T) {
 			})
 			assert.ErrorIs(t, err, util.ErrPermissionDenied)
 		}
+	})
+
+	t.Run("HiddenConfidentialIssue", func(t *testing.T) {
+		issue := unittest.AssertExistsAndLoadBean(t, &issue_model.Issue{}, builder.Eq{"repo_id": 1, "`index`": 1, "is_pull": false})
+		_, err := db.GetEngine(t.Context()).ID(issue.ID).Cols("is_confidential").Update(&issue_model.Issue{IsConfidential: true})
+		assert.NoError(t, err)
+		defer func() {
+			_, err := db.GetEngine(t.Context()).ID(issue.ID).Cols("is_confidential").Update(&issue_model.Issue{IsConfidential: false})
+			assert.NoError(t, err)
+		}()
+
+		ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
+		contexttest.LoadRepo(t, ctx, 1)
+		_, err = renderRepoIssueIconTitle(ctx, markup.RenderIssueIconTitleOptions{LinkHref: "/link", IssueIndex: 1})
+		assert.ErrorIs(t, err, util.ErrPermissionDenied)
+
+		ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.PosterID})
+		htm, err := renderRepoIssueIconTitle(ctx, markup.RenderIssueIconTitleOptions{LinkHref: "/link", IssueIndex: 1})
+		assert.NoError(t, err)
+		assert.Contains(t, string(htm), "issue1")
 	})
 
 	t.Run("RenderAcrossRepo", func(t *testing.T) {

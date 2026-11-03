@@ -91,3 +91,7 @@ func TestDoubleQuoteKeyword(t *testing.T) {
 	assert.Equal(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
 	assert.Equal(t, `"a" "d" "g"`, doubleQuoteKeyword(`a  "" "d" """g`))
 }
+
+func TestMeilisearchIndexerVersion(t *testing.T) {
+	assert.Equal(t, 7, issueIndexerLatestVersion) // bumped for the is_confidential field
+}

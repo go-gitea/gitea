@@ -338,6 +338,9 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		ctx.APIErrorNotFound()
 		return nil
 	}
+	if !checkCommentIssueVisible(ctx, comment) {
+		return nil
+	}
 
 	comment.Issue.Repo = ctx.Repo.Repository
 

@@ -149,6 +149,10 @@ func getRepoIssueComment(ctx *context.Context, commentID int64) *issues_model.Co
 		ctx.NotFound(nil)
 		return nil
 	}
+	if err = issues_model.CheckIssueVisible(ctx, comment.Issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.ServerError("CheckIssueVisible", err)
+		return nil
+	}
 	return comment
 }
 

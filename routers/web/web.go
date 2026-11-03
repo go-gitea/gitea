@@ -1396,6 +1396,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/reactions/{action}", web.Bind[*forms.ReactionForm](), repo.ChangeIssueReaction)
 				m.Post("/lock", web.Bind[*forms.IssueLockForm](), repo.LockIssue)
 				m.Post("/unlock", repo.UnlockIssue)
+				m.Post("/confidential", web.Bind[*forms.IssueConfidentialForm](), repo.UpdateIssueConfidential)
 				m.Post("/delete", reqRepoAdmin, repo.DeleteIssue)
 				m.Post("/content-history/soft-delete", repo.SoftDeleteContentHistory)
 			})

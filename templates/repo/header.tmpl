@@ -106,8 +106,8 @@
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
 						<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" data-shortcut-keys="g i">
 							{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues"}}
-							{{if .Repository.NumOpenIssues}}
-								<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
+							{{if .NumOpenIssuesForViewer}}
+								<span class="ui small label">{{CountFmt .NumOpenIssuesForViewer}}</span>
 							{{end}}
 						</a>
 					{{end}}

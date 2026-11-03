@@ -44,7 +44,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 			return
 		}
 		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.HasAnyUnitAccess() {
-			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
+			apiRepos = append(apiRepos, convert.ToAPIRepo(ctx, repos[i], permission, ctx.Doer))
 		}
 	}
 
@@ -128,7 +128,7 @@ func ListMyRepos(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		results[i] = convert.ToRepo(ctx, repo, permission)
+		results[i] = convert.ToAPIRepo(ctx, repo, permission, ctx.Doer)
 	}
 
 	ctx.SetLinkHeader(count, opts.ListOptions.PageSize)

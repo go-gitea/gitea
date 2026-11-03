@@ -499,3 +499,40 @@ func searchIssueWithAnyAssignee(t *testing.T) {
 		assert.Equal(t, test.expectedTotal, total)
 	}
 }
+
+func TestVisibilityOptionsConversion(t *testing.T) {
+	assert.Nil(t, ToSearchOptions("", &issues.IssuesOptions{}).Visibility)
+
+	filter := ToSearchOptions("", &issues.IssuesOptions{
+		Visibility: &issues.VisibilityScope{DoerID: 5, WriterRepoIDs: []int64{1, 2}},
+	}).Visibility
+	assert.Equal(t, &internal.VisibilityFilter{ViewerID: 5, WriterRepoIDs: []int64{1, 2}}, filter)
+
+	assert.True(t, ToSearchOptions("", &issues.IssuesOptions{Visibility: &issues.VisibilityScope{Unrestricted: true}}).Visibility.Unrestricted)
+}
+
+func TestDBSearchConfidentialIssues(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	setting.Indexer.IssueType = "db"
+	InitIssueIndexer(true)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues.Issue{ID: 1})
+	_, err := db.GetEngine(t.Context()).ID(issue.ID).Cols("is_confidential").Update(&issues.Issue{IsConfidential: true})
+	require.NoError(t, err)
+
+	data, ok, err := getIssueIndexerData(t.Context(), issue.ID)
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.True(t, data.IsConfidential)
+
+	search := func(visibility *internal.VisibilityFilter) []int64 {
+		ids, _, err := SearchIssues(t.Context(), &SearchOptions{RepoIDs: []int64{issue.RepoID}, Visibility: visibility})
+		require.NoError(t, err)
+		return ids
+	}
+	assert.NotContains(t, search(nil), issue.ID)
+	assert.NotContains(t, search(&internal.VisibilityFilter{ViewerID: 999999}), issue.ID)
+	assert.Contains(t, search(&internal.VisibilityFilter{ViewerID: issue.PosterID}), issue.ID)
+	assert.Contains(t, search(&internal.VisibilityFilter{WriterRepoIDs: []int64{issue.RepoID}}), issue.ID)
+	assert.Contains(t, search(&internal.VisibilityFilter{Unrestricted: true}), issue.ID)
+}

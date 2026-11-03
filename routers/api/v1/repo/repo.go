@@ -216,7 +216,7 @@ func Search(ctx *context.APIContext) {
 				Error: err.Error(),
 			})
 		}
-		results[i] = convert.ToRepo(ctx, repo, permission)
+		results[i] = convert.ToAPIRepo(ctx, repo, permission, ctx.Doer)
 	}
 	ctx.SetLinkHeader(count, opts.PageSize)
 	ctx.SetTotalCountHeader(count)
@@ -263,7 +263,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		ctx.APIErrorInternal(err)
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}))
+	ctx.JSON(http.StatusCreated, convert.ToAPIRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}, ctx.Doer))
 }
 
 // Create one repository of mine
@@ -401,7 +401,7 @@ func Generate(ctx *context.APIContext) {
 	}
 	log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 
-	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}))
+	ctx.JSON(http.StatusCreated, convert.ToAPIRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}, ctx.Doer))
 }
 
 // CreateOrgRepoDeprecated create one repository of the organization
@@ -495,7 +495,7 @@ func Get(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission))
+	ctx.JSON(http.StatusOK, convert.ToAPIRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Doer))
 }
 
 // GetByID returns a single Repository
@@ -535,7 +535,7 @@ func GetByID(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, permission))
+	ctx.JSON(http.StatusOK, convert.ToAPIRepo(ctx, repo, permission, ctx.Doer))
 }
 
 // Edit edit repository properties
@@ -600,7 +600,7 @@ func Edit(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, ctx.Repo.Permission))
+	ctx.JSON(http.StatusOK, convert.ToAPIRepo(ctx, repo, ctx.Repo.Permission, ctx.Doer))
 }
 
 // updateBasicProperties updates the basic properties of a repo: Name, Description, Website and Visibility

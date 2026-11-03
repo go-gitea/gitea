@@ -68,6 +68,11 @@ func RetrieveLabelsForList(ctx *context.Context) {
 	for _, l := range labels {
 		l.CalOpenIssues()
 	}
+	scope := issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission)
+	if err := issues_model.SubtractHiddenIssuesFromLabels(ctx, labels, scope); err != nil {
+		ctx.ServerError("SubtractHiddenIssuesFromLabels", err)
+		return
+	}
 
 	ctx.Data["Labels"] = labels
 
@@ -78,7 +83,7 @@ func RetrieveLabelsForList(ctx *context.Context) {
 			return
 		}
 		for _, l := range orgLabels {
-			l.CalOpenOrgIssues(ctx, ctx.Repo.Repository.ID, l.ID)
+			l.CalOpenOrgIssues(ctx, ctx.Repo.Repository.ID, l.ID, scope)
 		}
 		switch ctx.FormString("sort") {
 		case "leastissues":

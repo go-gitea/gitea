@@ -135,6 +135,10 @@ func (*NullNotifier) IssueClearLabels(ctx context.Context, doer *user_model.User
 func (*NullNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 }
 
+// IssueChangeConfidential places a place holder function
+func (*NullNotifier) IssueChangeConfidential(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+}
+
 // IssueChangeRef places a place holder function
 func (*NullNotifier) IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 }

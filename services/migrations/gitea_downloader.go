@@ -11,10 +11,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
@@ -414,6 +416,37 @@ func (g *GiteaDownloader) getCommentReactions(commentID int64) ([]*base.Reaction
 	return reactions, nil
 }
 
+// listConfidentialIssues reads the issue "confidential" flag, which the SDK's Issue type lacks.
+// A source that predates the field yields an empty set, so its issues import as public.
+func (g *GiteaDownloader) listConfidentialIssues(ctx context.Context, page, perPage int) (map[int64]bool, error) {
+	query := url.Values{"state": {"all"}, "type": {"issues"}, "page": {strconv.Itoa(page)}, "limit": {strconv.Itoa(perPage)}}
+	endpoint := fmt.Sprintf("%s/api/v1/repos/%s/%s/issues?%s", strings.TrimSuffix(g.baseURL, "/"), url.PathEscape(g.repoOwner), url.PathEscape(g.repoName), query.Encode())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("listConfidentialIssues: %w", err)
+	}
+	resp, err := g.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("listConfidentialIssues: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("listConfidentialIssues: unexpected status %d", resp.StatusCode)
+	}
+	var listed []struct {
+		Index        int64 `json:"number"`
+		Confidential bool  `json:"confidential"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&listed); err != nil {
+		return nil, fmt.Errorf("listConfidentialIssues: %w", err)
+	}
+	confidential := make(map[int64]bool, len(listed))
+	for _, issue := range listed {
+		confidential[issue.Index] = issue.Confidential
+	}
+	return confidential, nil
+}
+
 // GetIssues returns issues according start and limit
 func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {
@@ -431,6 +464,10 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 	}
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing issues: %w", err)
+	}
+	confidential, err := g.listConfidentialIssues(ctx, page, perPage)
+	if err != nil {
+		return nil, false, fmt.Errorf("GetIssues: %w", err)
 	}
 	for _, issue := range issues {
 		labels := make([]*base.Label, 0, len(issue.Labels))
@@ -471,6 +508,8 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 			IsLocked:     issue.IsLocked,
 			ForeignIndex: issue.Index,
 			Context:      issue.Comments,
+
+			IsConfidential: confidential[issue.Index],
 		})
 	}
 

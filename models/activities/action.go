@@ -5,6 +5,7 @@
 package activities
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"net/url"
@@ -605,4 +606,44 @@ func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
 		return res.RowsAffected()
 	}
 	return 0, nil
+}
+
+// hiddenConfidentialActionLikeChunkSize bounds the LIKE terms per NOT (...) conjunct to keep the SQL expression depth small (SQLite).
+const hiddenConfidentialActionLikeChunkSize = 200
+
+// hiddenConfidentialActionsCond excludes action rows about issues hidden from actor. requestedRepoID 0 = all repositories.
+// Action.Content of issue actions is "index|title", and the patterns are literals, not bind parameters (MSSQL 2100-parameter limit).
+func hiddenConfidentialActionsCond(ctx context.Context, actor *user_model.User, requestedRepoID int64) (builder.Cond, error) {
+	var issueCond builder.Cond
+	if requestedRepoID != 0 {
+		issueCond = builder.Eq{"issue.repo_id": requestedRepoID}
+	}
+	hidden, err := issues_model.FindHiddenConfidentialIssues(ctx, actor, issueCond)
+	if err != nil {
+		return nil, fmt.Errorf("hiddenConfidentialActionsCond: %w", err)
+	}
+	if len(hidden) == 0 {
+		return builder.NewCond(), nil
+	}
+	slices.SortFunc(hidden, func(a, b *issues_model.Issue) int {
+		return cmp.Or(cmp.Compare(a.RepoID, b.RepoID), cmp.Compare(a.Index, b.Index))
+	})
+
+	cond := builder.NewCond()
+	for chunk := range slices.Chunk(hidden, hiddenConfidentialActionLikeChunkSize) {
+		var groups []builder.Cond
+		var likes []builder.Cond
+		for i, issue := range chunk {
+			likes = append(likes, builder.Expr("action.content LIKE '"+strconv.FormatInt(issue.Index, 10)+"|%'"))
+			if i == len(chunk)-1 || chunk[i+1].RepoID != issue.RepoID {
+				groups = append(groups, builder.And(builder.Eq{"action.repo_id": issue.RepoID}, builder.Or(likes...)))
+				likes = nil
+			}
+		}
+		cond = cond.And(builder.Not{builder.And(
+			builder.In("action.op_type", ActionCreateIssue, ActionCommentIssue, ActionCloseIssue, ActionReopenIssue),
+			builder.Or(groups...),
+		)})
+	}
+	return cond, nil
 }

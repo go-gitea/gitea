@@ -85,6 +85,33 @@ func TestToStopWatchesRespectsPermissions(t *testing.T) {
 	assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{visibleAdmin[0].RepoName, visibleAdmin[1].RepoName})
 }
 
+func TestToStopWatchesAndTrackedTimeListHideConfidentialIssues(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	poster := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	hiddenUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	issue := &issues_model.Issue{RepoID: repo.ID, Repo: repo, Index: 9100, PosterID: poster.ID, Poster: poster, Title: "hidden zebrafinch", IsConfidential: true}
+	require.NoError(t, db.Insert(ctx, issue))
+	stopwatch := &issues_model.Stopwatch{IssueID: issue.ID, UserID: hiddenUser.ID}
+	require.NoError(t, db.Insert(ctx, stopwatch))
+	trackedTime := &issues_model.TrackedTime{IssueID: issue.ID, Issue: issue, UserID: hiddenUser.ID, Time: 60}
+	require.NoError(t, db.Insert(ctx, trackedTime))
+
+	stopwatches, err := ToStopWatches(ctx, hiddenUser, []*issues_model.Stopwatch{stopwatch})
+	require.NoError(t, err)
+	assert.Empty(t, stopwatches)
+	assert.Empty(t, ToTrackedTimeList(ctx, hiddenUser, issues_model.TrackedTimeList{trackedTime}))
+
+	stopwatches, err = ToStopWatches(ctx, owner, []*issues_model.Stopwatch{stopwatch})
+	require.NoError(t, err)
+	assert.Len(t, stopwatches, 1)
+	assert.Len(t, ToTrackedTimeList(ctx, owner, issues_model.TrackedTimeList{trackedTime}), 1)
+}
+
 func TestToTrackedTime(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 

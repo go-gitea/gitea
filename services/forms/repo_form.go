@@ -346,6 +346,15 @@ type CreateIssueForm struct {
 	Content             string
 	Files               []string
 	AllowMaintainerEdit bool
+	Confidential        string `form:"confidential"` // "", "true" or "false"
+}
+
+// Validate validates the fields
+func (f *CreateIssueForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
+	if f.Confidential != "" && f.Confidential != "true" && f.Confidential != "false" {
+		errs = validation.AddValidationError(errs, "Confidential", ctx.Locale.TrString("repo.issues.confidential.invalid"))
+	}
+	return errs
 }
 
 // CreateCommentForm form for creating comment
@@ -366,6 +375,20 @@ type ReactionForm struct {
 type IssueLockForm struct {
 	middleware.FormDefaultValidator
 	Reason string `binding:"Required"`
+}
+
+// IssueConfidentialForm form for making an issue confidential or public
+type IssueConfidentialForm struct {
+	middleware.FormDefaultValidator
+	Confidential string `form:"confidential"`
+}
+
+// Validate validates the fields
+func (f *IssueConfidentialForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
+	if f.Confidential != "true" && f.Confidential != "false" {
+		errs = validation.AddValidationError(errs, "Confidential", ctx.Locale.TrString("repo.issues.confidential.invalid"))
+	}
+	return errs
 }
 
 // CreateProjectForm form for creating a project

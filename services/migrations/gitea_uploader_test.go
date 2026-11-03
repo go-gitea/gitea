@@ -149,6 +149,29 @@ func TestCreateReleasesSkipsUnavailableAssets(t *testing.T) {
 	assert.Equal(t, "kept", sourceRelease.Assets[0].Name)
 }
 
+func TestGiteaUploadConfidentialFlag(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	uploader := NewGiteaLocalUploader(t.Context(), doer, doer.Name, "repo1")
+	uploader.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	created := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	require.NoError(t, uploader.CreateIssues(t.Context(),
+		&base.Issue{Number: 9001, Title: "secret", State: "open", Created: created, Updated: created, IsConfidential: true},
+		&base.Issue{Number: 9002, Title: "public", State: "open", Created: created, Updated: created},
+	))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: 9001}).IsConfidential)
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: 9002}).IsConfidential)
+
+	pull, err := uploader.newPullRequest(t.Context(), &base.PullRequest{
+		Number: 9003, Title: "pull", State: "open", Created: created, Updated: created, EnsuredSafe: true,
+		Base: base.PullRequestBranch{Ref: "master", SHA: "base"},
+	})
+	require.NoError(t, err)
+	assert.True(t, pull.Issue.IsPull)
+	assert.False(t, pull.Issue.IsConfidential)
+}
+
 func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

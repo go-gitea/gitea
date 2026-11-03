@@ -104,6 +104,10 @@ func DeleteAttachment(ctx *context.Context) {
 				ctx.ServerError("GetIssueByID", err)
 				return
 			}
+			if err = issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+				ctx.ServerError("CheckIssueVisible", err)
+				return
+			}
 			if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 				ctx.HTTPError(http.StatusForbidden)
 				return
@@ -184,6 +188,24 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		if !perm.CanRead(unitType) {
 			ctx.HTTPError(http.StatusNotFound)
 			return
+		}
+
+		// Attachments of a hidden confidential issue (or of its comments) look like an unknown UUID.
+		if unitType == unit.TypeIssues && attach.IssueID != 0 {
+			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
+			if err != nil {
+				ctx.ServerError("GetIssueByID", err)
+				return
+			}
+			visible, err := issues_model.IsIssueVisible(ctx, issue, ctx.Doer, perm)
+			if err != nil {
+				ctx.ServerError("IsIssueVisible", err)
+				return
+			}
+			if !visible {
+				ctx.HTTPError(http.StatusNotFound)
+				return
+			}
 		}
 
 		// Draft release attachments must not be exposed to anyone without write

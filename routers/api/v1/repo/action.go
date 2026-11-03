@@ -1199,7 +1199,7 @@ func getCurrentRepoActionRunAttemptByNumber(ctx *context.APIContext) (*actions_m
 
 func respondRepoActionWorkflowRun(ctx *context.APIContext, run *actions_model.ActionRun) {
 	run.Repo = ctx.Repo.Repository
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
+	convertedRun, err := convert.ToAPIActionWorkflowRun(ctx, run, nil, false, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1283,7 +1283,7 @@ func GetWorkflowRunAttempt(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, attempt, false)
+	convertedRun, err := convert.ToAPIActionWorkflowRun(ctx, run, attempt, false, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1330,7 +1330,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
+	convertedRun, err := convert.ToAPIActionWorkflowRun(ctx, run, nil, false, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

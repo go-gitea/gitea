@@ -27,6 +27,16 @@ func GetMentionsInRepo(ctx *context.Context) {
 			return
 		}
 		if issue != nil {
+			visible, err := issues_model.IsIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission)
+			if err != nil {
+				ctx.ServerError("IsIssueVisible", err)
+				return
+			}
+			if !visible {
+				issue = nil // a hidden issue contributes no participants, like a missing one
+			}
+		}
+		if issue != nil {
 			userIDs, err := issue.GetParticipantIDsByIssue(ctx)
 			if err != nil {
 				ctx.ServerError("GetParticipantIDsByIssue", err)

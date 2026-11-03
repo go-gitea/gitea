@@ -59,6 +59,10 @@ func IssueUnpin(ctx *context.Context) {
 		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
+	if err = issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.ServerError("CheckIssueVisible", err)
+		return
+	}
 
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err = issue.LoadRepo(ctx)
@@ -103,6 +107,10 @@ func IssuePinMove(ctx *context.Context) {
 	if issue.RepoID != ctx.Repo.Repository.ID {
 		ctx.Status(http.StatusNotFound)
 		log.Error("Issue does not belong to this repository")
+		return
+	}
+	if err = issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.ServerError("CheckIssueVisible", err)
 		return
 	}
 

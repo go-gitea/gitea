@@ -9,6 +9,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/context"
@@ -66,6 +67,7 @@ func Activity(ctx *context.Context) {
 		ctx.Repo.Permission.CanRead(unit.TypeIssues),
 		ctx.Repo.Permission.CanRead(unit.TypePullRequests),
 		canReadCode,
+		issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission),
 	)
 	if err != nil {
 		ctx.ServerError("GetActivityStats", err)

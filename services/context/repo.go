@@ -638,6 +638,15 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 		return
 	}
 
+	if ctx.Repo.Permission.CanRead(unit_model.TypeIssues) {
+		ctx.Data["NumOpenIssuesForViewer"], err = issues_model.CountOpenIssuesForViewer(ctx, repo,
+			issues_model.NewVisibilityScopeForRepo(ctx.Doer, repo.ID, ctx.Repo.Permission))
+		if err != nil {
+			ctx.ServerError("CountOpenIssuesForViewer", err)
+			return
+		}
+	}
+
 	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name
 	ctx.Data["PageTitleCommon"] = repo.Name + " - " + setting.AppName
 	ctx.Data["Repository"] = repo

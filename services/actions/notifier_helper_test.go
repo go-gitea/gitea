@@ -137,3 +137,32 @@ func TestDetectAndHandleSchedulesDropsRemovedWorkflows(t *testing.T) {
 	require.NoError(t, DetectAndHandleSchedules(t.Context(), repo))
 	unittest.AssertNotExistsBean(t, &actions_model.ActionSchedule{RepoID: repo.ID})
 }
+
+func TestActionsNotifierConfidential(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	require.NoError(t, issue.LoadAttributes(t.Context()))
+	issue.IsConfidential = true
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
+	comment.Issue = issue
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
+	before := unittest.GetCount(t, &actions_model.ActionRun{})
+
+	ctx := t.Context()
+	notifier := NewNotifier()
+	notifier.NewIssue(ctx, issue, nil)
+	notifier.CreateIssueComment(ctx, doer, issue.Repo, issue, comment, nil)
+	notifier.UpdateComment(ctx, doer, comment, "old")
+	notifier.DeleteComment(ctx, doer, comment)
+	notifier.IssueChangeLabels(ctx, doer, issue, []*issues_model.Label{label}, nil)
+	notifier.IssueChangeAssignee(ctx, doer, issue, assignee, false, nil)
+	notifier.IssueChangeStatus(ctx, doer, "", issue, nil, true)
+	notifier.IssueChangeTitle(ctx, doer, issue, "old title")
+	notifier.IssueChangeContent(ctx, doer, issue, "old content")
+	notifier.IssueChangeMilestone(ctx, doer, issue, 0)
+	notifier.IssueChangeConfidential(ctx, doer, issue)
+
+	assert.Equal(t, before, unittest.GetCount(t, &actions_model.ActionRun{}))
+}

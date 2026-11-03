@@ -365,3 +365,35 @@ func TestGiteaDownloadCommentsPaging(t *testing.T) {
 		})
 	}
 }
+
+func TestGiteaDownloadIssueConfidential(t *testing.T) {
+	for name, tc := range map[string]struct {
+		body     string
+		expected bool
+	}{
+		"confidential":   {`"confidential":true,`, true},
+		"older source":   {``, false},
+		"explicit false": {`"confidential":false,`, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/api/v1/version":
+					_, _ = w.Write([]byte(`{"version":"1.27.0"}`))
+				case "/api/v1/repos/o/r/issues":
+					_, _ = fmt.Fprintf(w, `[{"number":1,%s"user":{}}]`, tc.body)
+				default:
+					_, _ = w.Write([]byte(`[]`))
+				}
+			}))
+			defer server.Close()
+
+			downloader, err := NewGiteaDownloader(t.Context(), server.URL, "o/r", "", "", "")
+			require.NoError(t, err)
+			issues, _, err := downloader.GetIssues(t.Context(), 1, 10)
+			require.NoError(t, err)
+			require.Len(t, issues, 1)
+			assert.Equal(t, tc.expected, issues[0].IsConfidential)
+		})
+	}
+}

@@ -26,6 +26,9 @@ import (
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs, projectIDs []int64) error {
+	if issue.IsPull {
+		issue.IsConfidential = false
+	}
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}

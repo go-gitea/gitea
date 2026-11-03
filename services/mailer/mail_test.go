@@ -594,3 +594,33 @@ func TestMailPullRequestPush(t *testing.T) {
 	assert.Contains(t, msgs[0].Body, `<a href="https://try.gitea.io/user2/repo1/commit/0000000000000000000000000000000000000000">0000000000</a> - test commit msg`)
 	assert.Contains(t, msgs[0].Body, `</html>`)
 }
+
+func TestMailIssueRecipientsConfidential(t *testing.T) {
+	doer, _, issue, comment := prepareMailerTest(t)
+	comment.Poster = doer
+	defer mockMailTemplates("mail/repo/issue/comment", subjectTpl, bodyTpl)()
+
+	var recipients []string
+	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
+		for _, msg := range msgs {
+			recipients = append(recipients, msg.To)
+		}
+	})()
+
+	// user 5 watches repo 1 and user 4 is mentioned; neither is poster, assignee or Writer
+	hiddenWatcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	hiddenMentioned := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	poster := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	require.NoError(t, MailParticipantsComment(t.Context(), comment, activities_model.ActionCommentIssue, issue, []*user_model.User{hiddenMentioned}))
+	require.Contains(t, recipients, hiddenWatcher.Email)
+	require.Contains(t, recipients, hiddenMentioned.Email)
+	require.Contains(t, recipients, poster.Email)
+
+	recipients = nil
+	issue.IsConfidential = true
+	require.NoError(t, MailParticipantsComment(t.Context(), comment, activities_model.ActionCommentIssue, issue, []*user_model.User{hiddenMentioned}))
+	assert.NotContains(t, recipients, hiddenWatcher.Email)
+	assert.NotContains(t, recipients, hiddenMentioned.Email)
+	assert.Contains(t, recipients, poster.Email)
+}

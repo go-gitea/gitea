@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -25,16 +26,16 @@ import (
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
-func appendPrivateInformation(ctx stdCtx.Context, apiKey *api.DeployKey, key *deploykey_model.DeployKey, repository *repo_model.Repository) (*api.DeployKey, error) {
+func appendPrivateInformation(ctx stdCtx.Context, apiKey *api.DeployKey, key *deploykey_model.DeployKey, repository *repo_model.Repository, doer *user_model.User) (*api.DeployKey, error) {
 	apiKey.ReadOnly = key.Mode == perm.AccessModeRead
 	if repository.ID == key.RepoID {
-		apiKey.Repository = convert.ToRepo(ctx, repository, access_model.Permission{AccessMode: key.Mode})
+		apiKey.Repository = convert.ToAPIRepo(ctx, repository, access_model.Permission{AccessMode: key.Mode}, doer)
 	} else {
 		repo, err := repo_model.GetRepositoryByID(ctx, key.RepoID)
 		if err != nil {
 			return apiKey, err
 		}
-		apiKey.Repository = convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: key.Mode})
+		apiKey.Repository = convert.ToAPIRepo(ctx, repo, access_model.Permission{AccessMode: key.Mode}, doer)
 	}
 	return apiKey, nil
 }
@@ -96,7 +97,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 	for i := range keys {
 		apiDeployKeys[i] = convert.ToDeployKey(ctx, ctx.Repo.Repository, keys[i])
 		if ctx.Doer.IsAdmin || ((ctx.Repo.Repository.ID == keys[i].RepoID) && (ctx.Doer.ID == ctx.Repo.Owner.ID)) {
-			apiDeployKeys[i], _ = appendPrivateInformation(ctx, apiDeployKeys[i], keys[i], ctx.Repo.Repository)
+			apiDeployKeys[i], _ = appendPrivateInformation(ctx, apiDeployKeys[i], keys[i], ctx.Repo.Repository, ctx.Doer)
 		}
 	}
 
@@ -142,7 +143,7 @@ func GetDeployKey(ctx *context.APIContext) {
 
 	apiDeployKey := convert.ToDeployKey(ctx, ctx.Repo.Repository, key)
 	if ctx.Doer.IsAdmin || ((ctx.Repo.Repository.ID == key.RepoID) && (ctx.Doer.ID == ctx.Repo.Owner.ID)) {
-		apiDeployKey, _ = appendPrivateInformation(ctx, apiDeployKey, key, ctx.Repo.Repository)
+		apiDeployKey, _ = appendPrivateInformation(ctx, apiDeployKey, key, ctx.Repo.Repository, ctx.Doer)
 	}
 	ctx.JSON(http.StatusOK, apiDeployKey)
 }

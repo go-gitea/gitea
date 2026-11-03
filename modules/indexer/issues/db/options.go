@@ -82,6 +82,15 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		Doer:               nil,
 	}
 
+	// a nil filter leaves Visibility nil and Doer nil, which resolves to the anonymous scope (fail closed)
+	if options.Visibility != nil {
+		opts.Visibility = &issue_model.VisibilityScope{
+			Unrestricted:  options.Visibility.Unrestricted,
+			DoerID:        options.Visibility.ViewerID,
+			WriterRepoIDs: options.Visibility.WriterRepoIDs,
+		}
+	}
+
 	if len(options.MilestoneIDs) == 1 && options.MilestoneIDs[0] == 0 {
 		opts.MilestoneIDs = []int64{db.NoConditionID}
 	} else {

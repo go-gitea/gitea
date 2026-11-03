@@ -326,6 +326,7 @@ func ViewProject(ctx *context.Context) {
 		LabelIDs:     preparedLabelFilter.SelectedLabelIDs,
 		AssigneeID:   assigneeID,
 		MilestoneIDs: milestoneIDs,
+		Visibility:   issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission),
 	})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)

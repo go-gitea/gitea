@@ -55,7 +55,7 @@ var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already
 // Issue represents an issue or pull request of repository.
 type Issue struct {
 	ID                int64                  `xorm:"pk autoincr"`
-	RepoID            int64                  `xorm:"INDEX(repo_closed_pull) UNIQUE(repo_index)"`
+	RepoID            int64                  `xorm:"INDEX(repo_closed_pull) UNIQUE(repo_index) INDEX(repo_confidential)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	Index             int64                  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
 	PosterID          int64                  `xorm:"INDEX"`
@@ -104,6 +104,9 @@ type Issue struct {
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
 	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
+
+	// IsConfidential limits visibility to the poster, assignees and Writers; never true for pulls
+	IsConfidential bool `xorm:"INDEX(repo_confidential) NOT NULL DEFAULT false"`
 
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
@@ -628,6 +631,24 @@ func GetIssuesByIDs(ctx context.Context, issueIDs []int64, keepOrder ...bool) (I
 	}
 
 	return issues, nil
+}
+
+// GetVisibleIssuesByIDs returns the issues with the given IDs that scope can see, in the order of issueIDs.
+func GetVisibleIssuesByIDs(ctx context.Context, issueIDs []int64, scope *VisibilityScope) (IssueList, error) {
+	issues, err := GetIssuesByIDs(ctx, issueIDs, true)
+	if err != nil {
+		return nil, err
+	}
+	if len(issues) == 0 || (scope != nil && scope.Unrestricted) {
+		return issues, nil
+	}
+	visibleIDs := make([]int64, 0, len(issues))
+	if err := db.GetEngine(ctx).Table("issue").Cols("id").
+		Where(builder.In("issue.id", issueIDs)).And(scope.Cond()).Find(&visibleIDs); err != nil {
+		return nil, err
+	}
+	visible := container.SetOf(visibleIDs...)
+	return slices.DeleteFunc(issues, func(issue *Issue) bool { return !visible.Contains(issue.ID) }), nil
 }
 
 // GetIssueIDsByRepoID returns all issue ids by repo id
