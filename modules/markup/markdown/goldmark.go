@@ -12,7 +12,6 @@ import (
 	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/markup/markdown/math"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
@@ -165,7 +164,7 @@ func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.No
 
 		code := n.Lines().Value(source)
 		lexer := highlight.DetectChromaLexerByFileName("", language)
-		renderedHTML := highlight.RenderCodeByLexer(chroma.Coalesce(lexer), string(code))
+		renderedHTML := highlight.RenderCodeByLexer(lexer, string(code))
 		if _, err = w.WriteString(string(renderedHTML)); err != nil {
 			return ast.WalkStop, err
 		}
