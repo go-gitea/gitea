@@ -1,110 +1,100 @@
-// Copyright 2026 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package oauth2
 
 import (
-	"context"
 	"net/http"
-	"net/http/httptest"
 	"testing"
+	"time"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
-	"github.com/markbates/goth/providers/openidConnect"
+	"github.com/markbates/goth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 )
 
-func TestGetProviderForRequestAutoCallbackURL(t *testing.T) {
-	oldAppURL := setting.AppURL
-	setting.AppURL = "http://localhost:3000/"
-	defer func() {
-		setting.AppURL = oldAppURL
-		ClearProviders()
-	}()
+type fakeProvider struct{}
 
-	t.Run("StandardOAuth2Provider", func(t *testing.T) {
-		ClearProviders()
-		src := &Source{
-			Provider:        "github",
-			ClientID:        "test-client-id",
-			ClientSecret:    "test-client-secret",
-			AutoCallbackURL: false,
+func (p *fakeProvider) Name() string {
+	return "fake"
+}
+
+func (p *fakeProvider) SetName(name string) {}
+
+func (p *fakeProvider) BeginAuth(state string) (goth.Session, error) {
+	return nil, nil //nolint:nilnil // the auth method is not applicable
+}
+
+func (p *fakeProvider) UnmarshalSession(string) (goth.Session, error) {
+	return nil, nil //nolint:nilnil // the auth method is not applicable
+}
+
+func (p *fakeProvider) FetchUser(goth.Session) (goth.User, error) {
+	return goth.User{}, nil
+}
+
+func (p *fakeProvider) Debug(bool) {
+}
+
+func (p *fakeProvider) RefreshToken(refreshToken string) (*oauth2.Token, error) {
+	switch refreshToken {
+	case "expired":
+		return nil, &oauth2.RetrieveError{
+			ErrorCode: "invalid_grant",
 		}
-		require.NoError(t, RegisterProviderWithGothic("my-github", src))
+	default:
+		return &oauth2.Token{
+			AccessToken:  "token",
+			TokenType:    "Bearer",
+			RefreshToken: "refresh",
+			Expiry:       time.Now().Add(time.Hour),
+		}, nil
+	}
+}
 
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://localhost:3000/user/oauth2/my-github", nil)
-		require.NoError(t, err)
-		req.Header.Set("X-Forwarded-Proto", "https")
-		req.Header.Set("X-Forwarded-Host", "git.example.com")
+func (p *fakeProvider) RefreshTokenAvailable() bool {
+	return true
+}
 
-		// 1. AutoCallbackURL disabled -> uses static setting.AppURL
-		pDisabled, err := getProviderForRequest("my-github", req, src)
-		require.NoError(t, err)
-		sessDisabled, err := pDisabled.BeginAuth("state1")
-		require.NoError(t, err)
-		authURLDisabled, err := sessDisabled.GetAuthURL()
-		require.NoError(t, err)
-		assert.Contains(t, authURLDisabled, "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fuser%2Foauth2%2Fmy-github%2Fcallback")
+func init() {
+	RegisterGothProvider(
+		NewSimpleProvider("fake", "Fake", []string{"account"},
+			func(clientKey, secret, callbackURL string, scopes ...string) goth.Provider {
+				return &fakeProvider{}
+			}))
+}
 
-		// 2. AutoCallbackURL enabled -> derives callback URL from current request headers
-		src.AutoCallbackURL = true
-		pEnabled, err := getProviderForRequest("my-github", req, src)
-		require.NoError(t, err)
-		assert.Equal(t, "my-github", pEnabled.Name())
-		sessEnabled, err := pEnabled.BeginAuth("state2")
-		require.NoError(t, err)
-		authURLEnabled, err := sessEnabled.GetAuthURL()
-		require.NoError(t, err)
-		assert.Contains(t, authURLEnabled, "redirect_uri=https%3A%2F%2Fgit.example.com%2Fuser%2Foauth2%2Fmy-github%2Fcallback")
+func TestGetOAuth2CallbackURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host:3000/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLAuto)()
+
+	reqCtx := reqctx.NewRequestContextForTest(t)
+	req := &http.Request{
+		Host:   "lan-host:3000",
+		Header: http.Header{"X-Forwarded-Proto": {"https"}},
+	}
+	_ = httplib.RequestWithContext(req, reqCtx)
+	httplib.MarkRequestSupportPublicURL(reqCtx)
+
+	cbURL := GetOAuth2CallbackURL(reqCtx, "my-oidc")
+	assert.Equal(t, "https://lan-host:3000/sub/user/oauth2/my-oidc/callback", cbURL)
+
+	provider, err := createProvider("my-oidc", cbURL, &Source{
+		Provider:     "gitea",
+		ClientID:     "client",
+		ClientSecret: "secret",
 	})
-
-	t.Run("OpenIDConnectReusesDiscoveredEndpoints", func(t *testing.T) {
-		ClearProviders()
-		discoveryHits := 0
-		var tsURL string
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			discoveryHits++
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{
-				"issuer": "` + tsURL + `",
-				"authorization_endpoint": "` + tsURL + `/authorize",
-				"token_endpoint": "` + tsURL + `/token",
-				"userinfo_endpoint": "` + tsURL + `/userinfo"
-			}`))
-		}))
-		defer ts.Close()
-		tsURL = ts.URL
-
-		src := &Source{
-			Provider:                      "openidConnect",
-			ClientID:                      "oidc-client-id",
-			ClientSecret:                  "oidc-client-secret",
-			OpenIDConnectAutoDiscoveryURL: ts.URL + "/.well-known/openid-configuration",
-			AutoCallbackURL:               true,
-		}
-		require.NoError(t, RegisterProviderWithGothic("my-oidc", src))
-		assert.Equal(t, 1, discoveryHits)
-
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://localhost:3000/user/oauth2/my-oidc", nil)
-		require.NoError(t, err)
-		req.Header.Set("X-Forwarded-Proto", "https")
-		req.Header.Set("X-Forwarded-Host", "sso.example.com")
-
-		p, err := getProviderForRequest("my-oidc", req, src)
-		require.NoError(t, err)
-		// Must NOT make a second HTTP discovery call on per-request clone
-		assert.Equal(t, 1, discoveryHits)
-
-		oidcP, ok := p.(*openidConnect.Provider)
-		require.True(t, ok)
-		assert.Equal(t, "https://sso.example.com/user/oauth2/my-oidc/callback", oidcP.CallbackURL)
-
-		sess, err := p.BeginAuth("state-oidc")
-		require.NoError(t, err)
-		authURL, err := sess.GetAuthURL()
-		require.NoError(t, err)
-		assert.Contains(t, authURL, "redirect_uri=https%3A%2F%2Fsso.example.com%2Fuser%2Foauth2%2Fmy-oidc%2Fcallback")
-	})
+	require.NoError(t, err)
+	sess, err := provider.BeginAuth("state")
+	require.NoError(t, err)
+	authURL, err := sess.GetAuthURL()
+	require.NoError(t, err)
+	assert.Contains(t, authURL, "redirect_uri=https%3A%2F%2Flan-host%3A3000%2Fsub%2Fuser%2Foauth2%2Fmy-oidc%2Fcallback")
 }
