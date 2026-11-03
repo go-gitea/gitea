@@ -86,7 +86,7 @@ func TestGetOAuth2CallbackURL(t *testing.T) {
 	cbURL := GetOAuth2CallbackURL(reqCtx, "my-oidc")
 	assert.Equal(t, "https://lan-host:3000/sub/user/oauth2/my-oidc/callback", cbURL)
 
-	provider, err := createProvider("my-oidc", cbURL, &Source{
+	provider, err := createProviderWithCallbackURL("my-oidc", cbURL, &Source{
 		Provider:     "gitea",
 		ClientID:     "client",
 		ClientSecret: "secret",
