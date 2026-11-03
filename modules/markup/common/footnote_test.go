@@ -53,6 +53,10 @@ func TestCleanValue(t *testing.T) {
 		{"c🤔️🤔️d", "cd"},
 		{"a⚡a", "aa"},
 		{"e.~f", "ef"},
+		{"\u0939\u093f\u0928\u094d\u0926\u0940", "\u0939\u093f\u0928\u094d\u0926\u0940"},             // हिन्दी
+		{"\u0e20\u0e32\u0e29\u0e32\u0e44\u0e17\u0e22", "\u0e20\u0e32\u0e29\u0e32\u0e44\u0e17\u0e22"}, // বাংলা
+		{"Cafe\u0301", "cafe\u0301"},
+		{"a\u20ddb", "a\u20ddb"},
 	}
 	for _, test := range tests {
 		assert.Equal(t, []byte(test.expect), CleanValue([]byte(test.param)), test.param)
