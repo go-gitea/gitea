@@ -54,41 +54,31 @@ func Profile(ctx *context.Context) {
 
 // ProfilePost response for change user's profile
 func ProfilePost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings_title")
-	ctx.Data["PageIsSettingsProfile"] = true
-	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplSettingsProfile)
+	form := context.GetFetchActionForm[*forms.UpdateProfileForm](ctx)
+	if form == nil {
 		return
 	}
 
-	form := web.GetForm[*forms.UpdateProfileForm](ctx)
-
 	if form.Name != "" {
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeUsername) {
-			ctx.Flash.Error(ctx.Tr("user.form.change_username_disabled"))
-			ctx.Redirect(setting.AppSubURL + "/user/settings")
+			ctx.JSONErrorWithField(ctx.Tr("form.change_username_disabled"), "Name")
 			return
 		}
 		if err := user_service.RenameUser(ctx, ctx.Doer, form.Name, ctx.Doer); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
-				ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
+				ctx.JSONErrorWithField(ctx.Tr("form.username_change_not_local_user"), "Name")
 			case user_model.IsErrUserAlreadyExist(err):
-				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
+				ctx.JSONErrorWithField(ctx.Tr("form.username_been_taken"), "Name")
 			case db.IsErrNameReserved(err):
-				ctx.Flash.Error(ctx.Tr("user.form.name_reserved", form.Name))
+				ctx.JSONErrorWithField(ctx.Tr("user.form.name_reserved", form.Name), "Name")
 			case db.IsErrNamePatternNotAllowed(err):
-				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", form.Name))
+				ctx.JSONErrorWithField(ctx.Tr("user.form.name_pattern_not_allowed", form.Name), "Name")
 			case db.IsErrNameCharsNotAllowed(err):
-				ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", form.Name))
+				ctx.JSONErrorWithField(ctx.Tr("user.form.name_chars_not_allowed", form.Name), "Name")
 			default:
-				ctx.ServerError("RenameUser", err)
-				return
+				ctx.JSONErrorAuto(err)
 			}
-			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
 	}
@@ -102,25 +92,21 @@ func ProfilePost(ctx *context.Context) {
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
 	}
 
-	// The input is disabled (thus not submitted) when changing the full name is not allowed,
-	// so only a missing field keeps the current value, while an empty one clears it.
 	if form.FullName != nil {
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
-			ctx.Flash.Error(ctx.Tr("user.form.change_full_name_disabled"))
-			ctx.Redirect(setting.AppSubURL + "/user/settings")
+			ctx.JSONErrorWithField(ctx.Tr("form.change_full_name_disabled"), "FullName")
 			return
 		}
 		opts.FullName = optional.FromPtr(form.FullName)
 	}
 
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
-		ctx.ServerError("UpdateUser", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
-	log.Trace("User settings updated: %s", ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))
-	ctx.Redirect(setting.AppSubURL + "/user/settings")
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
 }
 
 // UpdateAvatarSetting update user's avatar
