@@ -246,6 +246,9 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 			}
 		}
 		if curPartLen == 0 {
+			if e.readErr == nil && curPartEnd == len(e.readBuf) && !utf8.FullRune(curPart) {
+				break // the part is a rune cut by the read boundary, keep it for the next read
+			}
 			// actually it's impossible that the part doesn't contain any valid rune,
 			// the only case is that the cap(readBuf) is too small, or the origin contain indeed doesn't contain any valid rune
 			// * try to leave the last 4 bytes (possible longest utf-8 encoding) to next round

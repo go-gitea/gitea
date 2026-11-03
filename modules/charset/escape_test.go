@@ -234,4 +234,12 @@ func TestHTMLChunkReader(t *testing.T) {
 	testReadChunks(t, 5, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
 	testReadChunks(t, 6, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
 	testReadChunks(t, 7, input, []textPart{{"<Aé啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
+
+	// a rune right after a tag must stay whole when the chunk boundary cuts it
+	for _, r := range []string{rune2, rune3, rune4} {
+		for chunkSize := 6; chunkSize < 5+len(r); chunkSize++ {
+			testReadChunks(t, chunkSize, "<abc>"+r, []textPart{{"<abc>", true}, {r, false}})
+		}
+	}
+	testReadChunks(t, 6, "<abc>"+rune3[:2], []textPart{{"<abc>", true}, {rune3[:1], false}, {rune3[1:2], false}})
 }
