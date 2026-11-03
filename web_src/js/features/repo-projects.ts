@@ -15,31 +15,25 @@ function updateIssueCount(card: HTMLElement): void {
   parent.querySelector('.project-column-issue-count')!.textContent = String(count);
 }
 
-let moveQueue = Promise.resolve(); // a move may name the previous move's card as its predecessor
-
-function moveIssue({item, from, to, oldIndex}: SortableEvent): void {
+async function moveIssue({item, from, to, oldIndex}: SortableEvent, previousMove: Promise<void> | undefined): Promise<void> {
   updateIssueCount(from);
   updateIssueCount(to);
-
   const prevCard = item.previousElementSibling;
   const data = {
     issueID: parseInt(item.getAttribute('data-issue')!),
     prevIssueID: prevCard ? parseInt(prevCard.getAttribute('data-issue')!) : 0,
   };
-  const previousMove = moveQueue;
-  moveQueue = (async () => {
-    await previousMove;
-    try {
-      const resp = await POST(`${to.getAttribute('data-url')}/move`, {data});
-      if (!resp.ok) throw new Error(`moving issue ${data.issueID} failed: ${resp.status}`);
-    } catch (error) {
-      console.error(error);
-      item.remove();
-      from.insertBefore(item, from.children[oldIndex!]);
-      updateIssueCount(from);
-      updateIssueCount(to);
-    }
-  })();
+  await previousMove; // the predecessor may be the previous move's card
+  try {
+    const resp = await POST(`${to.getAttribute('data-url')}/move`, {data});
+    if (!resp.ok) throw new Error(`moving issue ${data.issueID} failed: ${resp.status}`);
+  } catch (error) {
+    console.error(error);
+    item.remove();
+    from.insertBefore(item, from.children[oldIndex!]);
+    updateIssueCount(from);
+    updateIssueCount(to);
+  }
 }
 
 function initRepoProjectSortable(): void {
@@ -72,12 +66,14 @@ function initRepoProjectSortable(): void {
     },
   });
 
+  let lastMove: Promise<void> | undefined;
+  const onMove = (event: SortableEvent) => { lastMove = moveIssue(event, lastMove) };
   for (const boardColumn of boardColumns) {
     const boardCardList = boardColumn.querySelector<HTMLElement>('.cards')!;
     createSortable(boardCardList, {
       group: 'shared',
-      onAdd: moveIssue,
-      onUpdate: moveIssue,
+      onAdd: onMove,
+      onUpdate: onMove,
       delayOnTouchOnly: true,
       delay: 500,
     });
