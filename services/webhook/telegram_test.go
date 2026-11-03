@@ -79,6 +79,15 @@ func TestTelegramPayload(t *testing.T) {
 			`[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Repository created`,
 		},
 		{
+			"RepositoryTransferred", func() (TelegramPayload, error) {
+				p := repositoryTestPayload()
+				p.Action = api.HookRepoTransferred
+				p.Changes = &api.ChangesPayload{Owner: &api.ChangesFromPayload{From: "old-owner"}}
+				return tc.Repository(p)
+			},
+			`[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Repository transferred from old-owner`,
+		},
+		{
 			"Package", func() (TelegramPayload, error) { return tc.Package(packageTestPayload()) },
 			`Package created: <a href="http://localhost:3000/user1/-/packages/container/GiteaContainer/latest" rel="nofollow">GiteaContainer:latest</a> by <a href="https://try.gitea.io/user1" rel="nofollow">user1</a>`,
 		},

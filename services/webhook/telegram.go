@@ -157,6 +157,9 @@ func (t telegramConvertor) Repository(p *api.RepositoryPayload) (TelegramPayload
 	case api.HookRepoRenamed:
 		title = fmt.Sprintf("[%s] Repository renamed from %s", htmlLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName), html.EscapeString(getRepoRenamedFrom(p)))
 		return createTelegramPayloadHTML(title), nil
+	case api.HookRepoTransferred:
+		title = fmt.Sprintf("[%s] Repository transferred from %s", htmlLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName), html.EscapeString(getRepoTransferredFrom(p)))
+		return createTelegramPayloadHTML(title), nil
 	}
 	return TelegramPayload{}, nil
 }

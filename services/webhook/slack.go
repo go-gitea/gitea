@@ -304,6 +304,8 @@ func (s slackConvertor) Repository(p *api.RepositoryPayload) (SlackPayload, erro
 		text = fmt.Sprintf("[%s] Repository deleted by %s", repoLink, senderLink)
 	case api.HookRepoRenamed:
 		text = fmt.Sprintf("[%s] Repository renamed from %s by %s", repoLink, getRepoRenamedFrom(p), senderLink)
+	case api.HookRepoTransferred:
+		text = fmt.Sprintf("[%s] Repository transferred from %s by %s", repoLink, getRepoTransferredFrom(p), senderLink)
 	}
 
 	return s.createPayload(text, nil), nil

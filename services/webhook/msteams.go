@@ -263,6 +263,10 @@ func (m msteamsConvertor) Repository(p *api.RepositoryPayload) (MSTeamsPayload, 
 		title = fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
 		url = p.Repository.HTMLURL
 		color = greenColor
+	case api.HookRepoTransferred:
+		title = fmt.Sprintf("[%s] Repository transferred from %s", p.Repository.FullName, getRepoTransferredFrom(p))
+		url = p.Repository.HTMLURL
+		color = greenColor
 	}
 
 	return createMSTeamsPayload(

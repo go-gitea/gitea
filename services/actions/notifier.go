@@ -393,6 +393,18 @@ func (n *actionsNotifier) CreateRepository(ctx context.Context, doer, u *user_mo
 	}).Notify(ctx)
 }
 
+func (n *actionsNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+	ctx = withMethod(ctx, "TransferRepository")
+
+	newNotifyInput(repo, doer, webhook_module.HookEventRepository).WithPayload(&api.RepositoryPayload{
+		Action:       api.HookRepoTransferred,
+		Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
+		Organization: convert.ToUser(ctx, repo.MustOwner(ctx), nil),
+		Sender:       convert.ToUser(ctx, doer, nil),
+		Changes:      &api.ChangesPayload{Owner: &api.ChangesFromPayload{From: oldOwnerName}},
+	}).Notify(ctx)
+}
+
 func (n *actionsNotifier) ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
 	ctx = withMethod(ctx, "ForkRepository")
 

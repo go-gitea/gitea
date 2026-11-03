@@ -115,6 +115,12 @@ func TestSlackPayload(t *testing.T) {
 		pl, err = sc.Repository(p)
 		require.NoError(t, err)
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Repository renamed from old-repo by <https://try.gitea.io/user1|user1>", pl.Text)
+
+		p.Action = api.HookRepoTransferred
+		p.Changes = &api.ChangesPayload{Owner: &api.ChangesFromPayload{From: "old-owner"}}
+		pl, err = sc.Repository(p)
+		require.NoError(t, err)
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Repository transferred from old-owner by <https://try.gitea.io/user1|user1>", pl.Text)
 	})
 
 	t.Run("Wiki", func(t *testing.T) {

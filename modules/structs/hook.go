@@ -470,6 +470,8 @@ type ChangesPayload struct {
 	Ref *ChangesFromPayload `json:"ref,omitempty"`
 	// Changes made to the repository name
 	Name *ChangesFromPayload `json:"name,omitempty"`
+	// Changes made to the repository owner (for transfer actions)
+	Owner *ChangesFromPayload `json:"owner,omitempty"`
 	// Changes made to the labels added
 	AddedLabels []*Label `json:"added_labels"`
 	// Changes made to the labels removed
@@ -560,6 +562,8 @@ const (
 	HookRepoDeleted HookRepoAction = "deleted"
 	// HookRepoRenamed renamed
 	HookRepoRenamed HookRepoAction = "renamed"
+	// HookRepoTransferred transferred
+	HookRepoTransferred HookRepoAction = "transferred"
 )
 
 // RepositoryPayload payload for repository webhooks
