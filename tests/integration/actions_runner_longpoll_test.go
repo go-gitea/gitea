@@ -53,15 +53,17 @@ jobs:
 
 		_, tasksVersion := runner.fetchTaskOnce(t, 0)
 		defer test.MockVariableValue(&setting.Actions.RunnerLongPollTimeout, 5*time.Second)()
-		t.Run("client deadline", func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Run("HoldEndsBeforeClientDeadline", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), 1500*time.Millisecond)
 			defer cancel()
+			start := time.Now()
 			resp, err := runner.client.runnerServiceClient.FetchTask(ctx, &runnerv1.FetchTaskRequest{
 				TasksVersion: tasksVersion,
 			})
 			require.NoError(t, err)
 			assert.Nil(t, resp.Task)
 			assert.Equal(t, tasksVersion, resp.TasksVersion)
+			assert.GreaterOrEqual(t, time.Since(start), 400*time.Millisecond)
 		})
 		requestWritten := make(chan struct{})
 		ctx := httptrace.WithClientTrace(t.Context(), &httptrace.ClientTrace{

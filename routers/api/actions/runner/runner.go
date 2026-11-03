@@ -17,6 +17,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -167,31 +168,35 @@ func (s *Service) Declare(
 	}, nil
 }
 
-// FetchTask assigns a task to the runner. When no task is available, the
-// request is held open until a new task version is signalled, the long-poll
-// timeout elapses, or the client disconnects.
+// FetchTask assigns a task to the runner. Without one, it holds the request until the scope's tasks version changes,
+// the long-poll timeout elapses, the server shuts down, or the client disconnects.
 func (s *Service) FetchTask(
 	ctx context.Context,
 	req *runnerv1.FetchTaskRequest,
 ) (*runnerv1.FetchTaskResponse, error) {
 	runner := GetRunner(ctx)
 
-	timeout := setting.Actions.RunnerLongPollTimeout
+	holdFor := setting.Actions.RunnerLongPollTimeout
 	if clientDeadline, ok := ctx.Deadline(); ok {
-		timeout = min(timeout, time.Until(clientDeadline)-time.Second)
+		holdFor = min(holdFor, time.Until(clientDeadline)-time.Second)
 	}
-	var deadline <-chan time.Time
-	var recheck <-chan time.Time
-	if timeout > 0 {
-		deadline = time.After(timeout)
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-		recheck = ticker.C
+	var holdEnd, heartbeat <-chan time.Time
+	if holdFor > 0 {
+		defer actions_model.WatchTasksVersion()()
+		holdTimer := time.NewTimer(holdFor)
+		defer holdTimer.Stop()
+		holdEnd = holdTimer.C
+		heartbeatTicker := time.NewTicker(actions_model.RunnerHeartbeatInterval / 2)
+		defer heartbeatTicker.Stop()
+		heartbeat = heartbeatTicker.C
 	}
 
 	clientVersion := req.TasksVersion
 	for {
-		wakeCh := actions_model.TasksVersionWakeChannel()
+		var wake <-chan struct{}
+		if holdEnd != nil {
+			wake = actions_model.TasksVersionWakeChannel(runner.OwnerID, runner.RepoID)
+		}
 
 		latestVersion, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
 		if err != nil {
@@ -224,38 +229,35 @@ func (s *Service) FetchTask(
 				// so it retries on its next poll instead of sleeping until the next bump.
 				//  A steady stream here means MAX_CONCURRENT_TASK_PICKS is too low for the fleet.
 				log.Debug("task pick throttled for runner %q (id %d); it will retry on its next poll", freshRunner.Name, freshRunner.ID)
-				return &runnerv1.FetchTaskResponse{
-					TasksVersion: clientVersion,
-				}, nil
+				return &runnerv1.FetchTaskResponse{TasksVersion: clientVersion}, nil
 			} else if ok {
-				return &runnerv1.FetchTaskResponse{
-					Task:         t,
-					TasksVersion: latestVersion,
-				}, nil
+				return &runnerv1.FetchTaskResponse{Task: t, TasksVersion: latestVersion}, nil
 			}
 			clientVersion = latestVersion
 		}
 
-		if deadline == nil {
-			return &runnerv1.FetchTaskResponse{
-				TasksVersion: latestVersion,
-			}, nil
+		if holdEnd == nil {
+			return &runnerv1.FetchTaskResponse{TasksVersion: latestVersion}, nil
 		}
-
-		if now := time.Now(); actions_model.ShouldPersistLastOnline(runner.LastOnline, now) {
-			runner.LastOnline = timeutil.TimeStamp(now.Unix())
-			if err := actions_model.UpdateRunner(ctx, runner, "last_online"); err != nil {
-				log.Error("can't update runner status: %v", err)
+	wait:
+		for {
+			select {
+			case <-wake:
+				break wait
+			case now := <-heartbeat:
+				if actions_model.ShouldPersistLastOnline(runner.LastOnline, now) {
+					runner.LastOnline = timeutil.TimeStamp(now.Unix())
+					if err := actions_model.UpdateRunner(ctx, runner, "last_online"); err != nil {
+						log.Error("can't update runner status: %v", err)
+					}
+				}
+			case <-holdEnd:
+				return &runnerv1.FetchTaskResponse{TasksVersion: latestVersion}, nil
+			case <-graceful.GetManager().ShutdownContext().Done():
+				return &runnerv1.FetchTaskResponse{TasksVersion: latestVersion}, nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
 			}
-		}
-
-		select {
-		case <-wakeCh:
-		case <-recheck:
-		case <-deadline:
-			deadline = nil
-		case <-ctx.Done():
-			return nil, ctx.Err()
 		}
 	}
 }

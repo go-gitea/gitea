@@ -6,91 +6,91 @@ package actions
 import (
 	"context"
 	"errors"
-	"sync"
 	"testing"
+	"time"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func assertChannelOpen(t *testing.T, ch <-chan struct{}, msg string) {
-	t.Helper()
+func isClosed(ch <-chan struct{}) bool {
 	select {
 	case <-ch:
-		t.Fatal(msg)
+		return true
 	default:
+		return false
 	}
 }
 
-func assertChannelClosed(t *testing.T, ch <-chan struct{}, msg string) {
-	t.Helper()
-	select {
-	case <-ch:
-	default:
-		t.Fatal(msg)
-	}
-}
-
-func TestTasksVersionWake_SignalClosesChannel(t *testing.T) {
-	ch := TasksVersionWakeChannel()
-	assertChannelOpen(t, ch, "channel should be open before signal")
-
-	signalTaskVersionWake()
-	assertChannelClosed(t, ch, "channel should be closed after signal")
-
-	assertChannelOpen(t, TasksVersionWakeChannel(), "replacement channel should be open")
-}
-
-func TestIncreaseTaskVersion_SignalsWakeAfterCommit(t *testing.T) {
-	for name, inTransaction := range map[string]bool{"Transaction": true, "NoTransaction": false} {
-		t.Run(name, func(t *testing.T) {
-			require.NoError(t, unittest.PrepareTestDatabase())
-
-			for version := range int64(2) {
-				ch := TasksVersionWakeChannel()
-				if inTransaction {
-					require.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
-						if err := IncreaseTaskVersion(ctx, 2, 1); err != nil {
-							return err
-						}
-						assertChannelOpen(t, ch, "wake must wait for the outer transaction to commit")
-						return nil
-					}))
-				} else {
-					require.NoError(t, IncreaseTaskVersion(t.Context(), 2, 1))
-				}
-				assertChannelClosed(t, ch, "committing the version must wake waiters")
-				for _, scope := range [][2]int64{{0, 0}, {2, 0}, {0, 1}} {
-					actualVersion, err := GetTasksVersionByScope(t.Context(), scope[0], scope[1])
-					require.NoError(t, err)
-					assert.Equal(t, version+1, actualVersion)
-				}
-			}
-		})
+func TestIncreaseTaskVersionWakesItsScopesAfterCommit(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	scopes := [][2]int64{{0, 0}, {2, 0}, {0, 1}}
+	wakeChannels := func() (chans []<-chan struct{}) {
+		for _, scope := range scopes {
+			chans = append(chans, TasksVersionWakeChannel(scope[0], scope[1]))
+		}
+		return chans
 	}
 
-	ch := TasksVersionWakeChannel()
+	chans := wakeChannels()
+	other := TasksVersionWakeChannel(3, 0)
+	require.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
+		require.NoError(t, IncreaseTaskVersion(ctx, 2, 1))
+		for _, ch := range chans {
+			assert.False(t, isClosed(ch))
+		}
+		return nil
+	}))
+	for _, ch := range chans {
+		assert.True(t, isClosed(ch))
+	}
+	assert.False(t, isClosed(other))
+
+	chans = wakeChannels()
 	rollback := errors.New("rollback")
 	assert.ErrorIs(t, db.WithTx(t.Context(), func(ctx context.Context) error {
-		if err := IncreaseTaskVersion(ctx, 2, 1); err != nil {
-			return err
-		}
-		assertChannelOpen(t, ch, "uncommitted versions must not wake waiters")
+		require.NoError(t, IncreaseTaskVersion(ctx, 2, 1))
 		return rollback
 	}), rollback)
-	assertChannelOpen(t, ch, "rolled back versions must not wake waiters")
+	for _, ch := range chans {
+		assert.False(t, isClosed(ch))
+	}
+
+	for _, scope := range scopes {
+		version, err := GetTasksVersionByScope(t.Context(), scope[0], scope[1])
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, version)
+	}
 }
 
-func TestTasksVersionWake_ConcurrentSafe(t *testing.T) {
-	var wg sync.WaitGroup
-	for range 100 {
-		wg.Go(func() { _ = TasksVersionWakeChannel() })
-		wg.Go(func() { signalTaskVersionWake() })
-	}
-	wg.Wait()
+func TestWatchTasksVersionWakesScopesChangedByAnotherProcess(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&tasksVersionWatchInterval, 10*time.Millisecond)()
+	changedRepoID := time.Now().UnixNano()
+	otherRepoID := changedRepoID + 1
+	require.NoError(t, IncreaseTaskVersion(t.Context(), 0, changedRepoID))
+	require.NoError(t, IncreaseTaskVersion(t.Context(), 0, otherRepoID))
+	defer WatchTasksVersion()()
 
-	assertChannelOpen(t, TasksVersionWakeChannel(), "a fresh subscription should be open until the next signal")
+	waitClosed := func(ch <-chan struct{}) {
+		t.Helper()
+		select {
+		case <-ch:
+		case <-time.After(5 * time.Second):
+			t.Fatal("waiter not woken")
+		}
+	}
+	changed, other := TasksVersionWakeChannel(0, changedRepoID), TasksVersionWakeChannel(0, otherRepoID)
+	waitClosed(changed)
+	waitClosed(other)
+
+	changed, other = TasksVersionWakeChannel(0, changedRepoID), TasksVersionWakeChannel(0, otherRepoID)
+	_, err := db.GetEngine(t.Context()).Exec("UPDATE action_tasks_version SET version = version + 1 WHERE owner_id = 0 AND repo_id = ?", changedRepoID)
+	require.NoError(t, err)
+	waitClosed(changed)
+	assert.False(t, isClosed(other))
 }
