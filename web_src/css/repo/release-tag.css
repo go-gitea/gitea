@@ -59,36 +59,33 @@
   margin-bottom: 2px; /* the legacy trick to align the avatar vertically, no better solution at the moment */
 }
 
-#release-list .release-entry .attachment-list {
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
+#release-list .release-asset {
+  display: grid;
+  grid-template-columns: minmax(40%, 1fr) minmax(0, 250px) minmax(60px, auto) minmax(75px, auto) minmax(100px, auto); /* fixed minimums keep columns aligned across rows */
+  place-items: center end;
+  gap: 16px;
+  white-space: nowrap;
+  color: var(--color-text-light-2);
 }
 
-#release-list .release-entry .attachment-list > .item {
-  display: flex;
-  padding: 8px;
-  flex-wrap: wrap;
+#release-list .release-asset > a,
+#release-list .release-asset-digest {
+  justify-self: stretch;
 }
 
-#release-list .release-entry .attachment-list > .item a {
-  min-width: 300px;
+#release-list .release-asset-digest {
+  font-family: var(--fonts-monospace);
+  font-size: 12px;
 }
 
-#release-list .release-entry .attachment-list .attachment-right-info {
-  flex-shrink: 0;
-  min-width: 300px;
-}
-
-#release-list .release-entry .detail .download[open] summary {
-  margin-bottom: 10px;
-}
-
-#release-list .download-icon {
-  color: var(--color-text-light-1);
-}
-
-#release-list .release-entry .detail .download .list li:last-child {
-  border-bottom: none;
+@media (max-width: 1023.98px) {
+  #release-list .release-asset {
+    grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+    gap: 4px 12px;
+  }
+  #release-list .release-asset > a {
+    grid-column: 1 / -1;
+  }
 }
 
 #tags-table .tag-list-row-title {

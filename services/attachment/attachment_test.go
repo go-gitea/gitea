@@ -4,13 +4,13 @@
 package attachment
 
 import (
-	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
 
 	_ "gitea.dev/models/actions"
 
@@ -26,20 +26,17 @@ func TestUploadAttachment(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	fPath := "./attachment_test.go"
-	f, err := os.Open(fPath)
-	assert.NoError(t, err)
-	defer f.Close()
-
+	content := "attachment content"
 	attach, err := NewAttachment(t.Context(), &repo_model.Attachment{
 		RepoID:     1,
 		UploaderID: user.ID,
-		Name:       filepath.Base(fPath),
-	}, f, -1)
+		Name:       "attachment.txt",
+	}, strings.NewReader(content), -1)
 	assert.NoError(t, err)
 
 	attachment, err := repo_model.GetAttachmentByUUID(t.Context(), attach.UUID)
 	assert.NoError(t, err)
 	assert.Equal(t, user.ID, attachment.UploaderID)
 	assert.Equal(t, int64(0), attachment.DownloadCount)
+	assert.Equal(t, base.EncodeSha256(content), attachment.HashSHA256)
 }
