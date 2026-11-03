@@ -248,7 +248,7 @@ func TestIssueListsRespectUnitReadPermission(t *testing.T) {
 			return resp.Code, issues
 		}
 		code, _ := search("pulls")
-		assert.Equal(t, http.StatusNotFound, code)
+		assert.Equal(t, http.StatusForbidden, code)
 
 		code, issues := search("")
 		assert.Equal(t, http.StatusOK, code)

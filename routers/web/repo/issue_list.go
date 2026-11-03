@@ -17,7 +17,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	db_indexer "gitea.dev/modules/indexer/issues/db"
@@ -45,8 +44,8 @@ func parseProjectIDsFromQuery(ctx *context.Context) []int64 {
 	return ctx.FormStringInt64s("project")
 }
 
-// SearchIssues searches for issues across the repositories that the user has access to
-func SearchIssues(ctx *context.Context) {
+// SearchGlobalIssues searches for issues across the repositories that the user has access to
+func SearchGlobalIssues(ctx *context.Context) {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.HTTPError(http.StatusUnprocessableEntity, err.Error())
@@ -192,22 +191,6 @@ func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
 	return user.ID
 }
 
-// readableIssueTypeFilter narrows an unset issue type filter to the only type the doer can read,
-// the issue routes tolerate pull request permissions so handlers listing both types must do this
-func readableIssueTypeFilter(ctx *context.Context, isPull optional.Option[bool]) optional.Option[bool] {
-	if isPull.Has() {
-		return isPull
-	}
-	canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
-	canReadPulls := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
-	if canReadPulls && !canReadIssues {
-		return optional.Some(true)
-	} else if canReadIssues && !canReadPulls {
-		return optional.Some(false)
-	}
-	return isPull
-}
-
 // SearchRepoIssuesJSON lists the issues of a repository
 // This function was copied from API (decouple the web and API routes),
 // it is only used by frontend to search some dependency or related issues
@@ -251,9 +234,9 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		}
 	}
 
-	isPull := readableIssueTypeFilter(ctx, common.ParseIssueFilterTypeIsPull(ctx.FormString("type")))
-	if isPull.Has() && !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull.Value()) {
-		ctx.NotFound(nil)
+	isPull, ok := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, ctx.FormString("type"))
+	if !ok {
+		ctx.HTTPError(http.StatusForbidden, "no permission to read issues or pulls")
 		return
 	}
 
