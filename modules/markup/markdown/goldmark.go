@@ -158,15 +158,15 @@ func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.No
 			language = string(fenced.Language(source))
 		}
 		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
-		if err := r.renderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs); err != nil {
+		err := r.renderInternal.FormatWithSafeAttrsf(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
+		if err != nil {
 			return ast.WalkStop, err
 		}
 
 		code := n.Lines().Value(source)
 		lexer := highlight.DetectChromaLexerByFileName("", language)
 		renderedHTML := highlight.RenderCodeByLexer(chroma.Coalesce(lexer), string(code))
-		_, err := w.WriteString(string(renderedHTML))
-		if err != nil {
+		if _, err = w.WriteString(string(renderedHTML)); err != nil {
 			return ast.WalkStop, err
 		}
 	} else {

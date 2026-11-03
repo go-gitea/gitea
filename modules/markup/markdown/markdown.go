@@ -234,14 +234,18 @@ func FeedExcerpt(ctx context.Context, content string) string {
 	pc := newParserContext(rctx)
 	pc.Set(renderConfigKey, &RenderConfig{})
 	start, texts := len(content), []text.Segment(nil)
-	_ = ast.Walk(SpecializedMarkdown(rctx).Parser().Parse(text.NewReader([]byte(content)), parser.WithContext(pc)), func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+
+	mdParser := SpecializedMarkdown(rctx).Parser()
+	mdReader := text.NewReader([]byte(content))
+	mdWalker := func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if entering && node.Type() == ast.TypeBlock && node.Lines().Len() > 0 {
 			start = min(start, strings.LastIndexByte(content[:node.Lines().At(0).Start], '\n')+1)
 		} else if textNode, ok := node.(*ast.Text); ok && entering && node.Parent().Type() == ast.TypeBlock {
 			texts = append(texts, textNode.Segment)
 		}
 		return ast.WalkContinue, nil
-	})
+	}
+	_ = ast.Walk(mdParser.Parse(mdReader, parser.WithContext(pc)), mdWalker)
 
 	excerpt := giteautil.EllipsisDisplayString(content[start:], 200)
 	kept, ok := strings.CutSuffix(excerpt, "…")

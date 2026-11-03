@@ -61,7 +61,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		lexer = chroma.Coalesce(lexer)
 
 		sb := &strings.Builder{}
-		_ = ctx.RenderInternal.FormatWithSafeAttrs(sb, `<pre %s><code %s>`, preAttrs, codeAttrs)
+		_ = ctx.RenderInternal.FormatWithSafeAttrsf(sb, `<pre %s><code %s>`, preAttrs, codeAttrs)
 		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
 		_, _ = sb.WriteString("</code></pre>")
 		return sb.String()
