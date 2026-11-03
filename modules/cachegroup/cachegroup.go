@@ -8,5 +8,6 @@ const (
 	EmailAvatarLink    = "email_avatar_link"
 	UserEmailAddresses = "user_email_addresses"
 	GPGKeyWithSubKeys  = "gpg_key_with_subkeys"
+	Repository         = "repository"
 	RepoUserPermission = "repo_user_permission"
 )

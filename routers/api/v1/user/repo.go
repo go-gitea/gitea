@@ -126,6 +126,7 @@ func ListMyRepos(ctx *context.APIContext) {
 		permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
+			return
 		}
 		results[i] = convert.ToRepo(ctx, repo, permission)
 	}

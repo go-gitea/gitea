@@ -3668,6 +3668,7 @@
             "example": [
               "all",
               "read:activitypub",
+              "write:commitstatus",
               "read:issue",
               "write:misc",
               "read:notification",
@@ -7982,7 +7983,8 @@
               "codebase",
               "codecommit",
               "bitbucketserver",
-              "forgejo"
+              "forgejo",
+              "bitbucket"
             ],
             "type": "string",
             "x-go-name": "Service"

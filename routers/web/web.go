@@ -695,7 +695,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("").Get(user_setting.Applications).
 				Post(user_setting.ApplicationsPost)
 			m.Post("/delete", user_setting.DeleteApplication)
-			m.Post("/regenerate", user_setting.RegenerateAccessToken)
+			m.Post("/regenerate", user_setting.ApplicationsRegenerateToken)
 		})
 
 		m.Combo("/keys").Get(user_setting.Keys).
@@ -824,6 +824,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
 			m.Post("/{userid}/access_tokens", admin.NewBotTokenPost)
 			m.Post("/{userid}/access_tokens/delete", admin.DeleteBotToken)
+			m.Post("/{userid}/access_tokens/regenerate", admin.RegenerateBotToken)
 			m.Post("/{userid}/orgs/{org_id}/remove", admin.RemoveUserFromOrg)
 			m.Post("/{userid}/orgs/remove-all", admin.RemoveUserFromAllOrgs)
 		})
@@ -916,10 +917,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/-/ownername.png/{username}", user.AvatarByUsernameSize)
 		m.Get("/-/ownername.keys/{username}", user.ShowSSHKeys)
 		m.Get("/-/ownername.gpg/{username}", user.ShowGPGKeys)
-		m.Get("/-/ownername.rss/{username}", feed.ShowUserFeedRSS)
-		m.Get("/-/ownername.atom/{username}", feed.ShowUserFeedAtom)
+		// tokens only authenticate feeds, the other variants render data outside any token scope
+		m.Get("/-/ownername.rss/{username}", webAuth.AllowBasic, feed.ShowUserFeedRSS)
+		m.Get("/-/ownername.atom/{username}", webAuth.AllowBasic, feed.ShowUserFeedAtom)
 		m.Get("/{username}", user.OwnerProfile)
-	}, webAuth.AllowBasic, optSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer())
+	}, optSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer())
 
 	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer(), user.ActionUserFollow)
 

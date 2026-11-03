@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	audit_model "gitea.dev/models/audit"
-	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -51,24 +50,18 @@ func hookPostReceiveCollectPushUpdates(opts *private.HookOptions, repo *repo_mod
 }
 
 func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) {
-	branchesToSync := make([]*repo_module.PushUpdateOptions, 0, len(updates))
+	branchNames := make([]string, 0, len(updates))
 	for _, update := range updates {
 		if !update.RefFullName.IsBranch() {
 			continue
 		}
-		if update.IsDelRef() {
-			if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
-				log.Error("failed to mark branch %s as deleted: %v", update.RefFullName, err)
-				continue
-			}
-		} else {
-			branchesToSync = append(branchesToSync, update)
-			// TODO: should we return the error and return the error when pushing? Currently it will log the error and not prevent the pushing
+		branchNames = append(branchNames, update.RefFullName.BranchName())
+		if !update.IsDelRef() {
 			pull_service.UpdatePullsRefs(ctx, repo, update)
 		}
 	}
 
-	if len(branchesToSync) == 0 {
+	if len(branchNames) == 0 {
 		return
 	}
 
@@ -78,13 +71,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 		return
 	}
 
-	branchNames := make([]string, 0, len(branchesToSync))
-	commitIDs := make([]string, 0, len(branchesToSync))
-	for _, update := range branchesToSync {
-		branchNames = append(branchNames, update.RefFullName.BranchName())
-		commitIDs = append(commitIDs, update.NewCommitID)
-	}
-	if err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames, commitIDs); err != nil {
+	if err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames); err != nil {
 		log.Error("failed to sync branch to DB: %v", err)
 	}
 }
