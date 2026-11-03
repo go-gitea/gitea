@@ -154,7 +154,6 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	// only the moved card is sent, never the whole column: the client's board may be stale
 	form := &struct {
 		IssueID     int64 `json:"issueID"`
 		PrevIssueID int64 `json:"prevIssueID"`

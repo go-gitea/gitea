@@ -177,8 +177,7 @@ func Test_Projects(t *testing.T) {
 		colB := &project_model.Column{Title: "B", ProjectID: project.ID}
 		assert.NoError(t, project_model.NewColumn(t.Context(), colA))
 		assert.NoError(t, project_model.NewColumn(t.Context(), colB))
-		issueIDs := []int64{1, 2, 3, 5}
-		for i, id := range issueIDs {
+		for i, id := range []int64{1, 2, 3, 5} {
 			assert.NoError(t, db.Insert(t.Context(), &project_model.ProjectIssue{IssueID: id, ProjectID: project.ID, ProjectColumnID: colA.ID, Sorting: int64(i)}))
 		}
 		issue := func(id int64) *issues_model.Issue {
@@ -187,19 +186,14 @@ func Test_Projects(t *testing.T) {
 		order := func(col *project_model.Column) (ids []int64) {
 			rows, err := project_model.GetColumnIssueSortings(t.Context(), col, 0)
 			assert.NoError(t, err)
-			for i, r := range rows {
-				assert.EqualValues(t, i, r.Sorting)
-				ids = append(ids, r.IssueID)
+			for i, row := range rows {
+				assert.EqualValues(t, i, row.Sorting)
+				ids = append(ids, row.IssueID)
 			}
 			return ids
 		}
 
-		// a predecessor outside the project is rejected
-		assert.ErrorIs(t, MoveIssueAfter(t.Context(), user2, colA, issue(1), 11), ErrIssueNotInProject)
-		assert.Equal(t, []int64{1, 2, 3, 5}, order(colA))
-
 		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colB, issue(1), 0))
-		// the sender still believes issue 1 is in A: it must stay in B, and the move falls back to the end of A
 		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colA, issue(2), 1))
 		assert.Equal(t, []int64{3, 5, 2}, order(colA))
 		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colA, issue(5), 0))
@@ -207,8 +201,6 @@ func Test_Projects(t *testing.T) {
 		assert.NoError(t, MoveIssueAfter(t.Context(), user2, colA, issue(5), 3))
 		assert.Equal(t, []int64{3, 5, 2}, order(colA))
 		assert.Equal(t, []int64{1}, order(colB))
-
-		// a stale reorder of A must not touch a card that has meanwhile moved to B
 		assert.NoError(t, project_model.SetIssueSorting(t.Context(), colA, 1, 99))
 		assert.Equal(t, []int64{1}, order(colB))
 	})

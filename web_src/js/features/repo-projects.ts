@@ -15,27 +15,31 @@ function updateIssueCount(card: HTMLElement): void {
   parent.querySelector('.project-column-issue-count')!.textContent = String(count);
 }
 
-async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<void> {
+let moveQueue = Promise.resolve(); // a move may name the previous move's card as its predecessor
+
+function moveIssue({item, from, to, oldIndex}: SortableEvent): void {
   updateIssueCount(from);
   updateIssueCount(to);
 
-  // send only this card and its predecessor: the board may be stale, so never report the whole column
   const prevCard = item.previousElementSibling;
-  const move = {
+  const data = {
     issueID: parseInt(item.getAttribute('data-issue')!),
-    prevIssueID: prevCard?.classList.contains('issue-card') ? parseInt(prevCard.getAttribute('data-issue')!) : 0,
+    prevIssueID: prevCard ? parseInt(prevCard.getAttribute('data-issue')!) : 0,
   };
-
-  try {
-    await POST(`${to.getAttribute('data-url')}/move`, {
-      data: move,
-    });
-  } catch (error) {
-    console.error(error);
-    if (oldIndex !== undefined) {
-      from.insertBefore(item, from.children[oldIndex]);
+  const previousMove = moveQueue;
+  moveQueue = (async () => {
+    await previousMove;
+    try {
+      const resp = await POST(`${to.getAttribute('data-url')}/move`, {data});
+      if (!resp.ok) throw new Error(`moving issue ${data.issueID} failed: ${resp.status}`);
+    } catch (error) {
+      console.error(error);
+      item.remove();
+      from.insertBefore(item, from.children[oldIndex!]);
+      updateIssueCount(from);
+      updateIssueCount(to);
     }
-  }
+  })();
 }
 
 function initRepoProjectSortable(): void {
@@ -72,8 +76,8 @@ function initRepoProjectSortable(): void {
     const boardCardList = boardColumn.querySelector<HTMLElement>('.cards')!;
     createSortable(boardCardList, {
       group: 'shared',
-      onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
-      onUpdate: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
+      onAdd: moveIssue,
+      onUpdate: moveIssue,
       delayOnTouchOnly: true,
       delay: 500,
     });

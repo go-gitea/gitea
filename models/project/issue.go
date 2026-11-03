@@ -43,15 +43,14 @@ func columnIssueIDs(column *Column) []int64 {
 	return []int64{column.ID}
 }
 
-// ColumnIssueSorting is an issue's stored position within a column.
+// ColumnIssueSorting is an issue's position in a column.
 type ColumnIssueSorting struct {
 	IssueID int64 `xorm:"issue_id"`
 	Sorting int64 `xorm:"sorting"`
 }
 
-// GetColumnIssueSortings returns the column's issues in board order, leaving out excludeIssueID.
+// GetColumnIssueSortings returns the column's issues except excludeIssueID in board order.
 func GetColumnIssueSortings(ctx context.Context, column *Column, excludeIssueID int64) (rows []ColumnIssueSorting, _ error) {
-	// same order as the board: see the "project-column-sorting" sort type
 	err := db.GetEngine(ctx).Table("project_issue").
 		Select("project_issue.issue_id, project_issue.sorting").
 		Join("INNER", "issue", "issue.id = project_issue.issue_id").
@@ -63,8 +62,13 @@ func GetColumnIssueSortings(ctx context.Context, column *Column, excludeIssueID 
 	return rows, err
 }
 
-// SetIssueSorting updates one issue's position, only while it is still in the column: a concurrent move
-// may have taken it elsewhere since the caller read the column.
+// LockColumn serializes writers of the column's card order until the transaction ends.
+func LockColumn(ctx context.Context, column *Column) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_board` SET sorting=sorting WHERE id=?", column.ID)
+	return err
+}
+
+// SetIssueSorting sets the issue's sorting if it is still in the column.
 func SetIssueSorting(ctx context.Context, column *Column, issueID, sorting int64) error {
 	_, err := db.GetEngine(ctx).
 		Where("project_id=? AND issue_id=?", column.ProjectID, issueID).

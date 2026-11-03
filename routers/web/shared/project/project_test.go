@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
@@ -82,11 +83,12 @@ func TestMoveIssuesNeedsOnlyProjectWrite(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
 	_, _, err := issues_model.IssueAssignOrRemoveProject(ctx, issue, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), []int64{project.ID})
 	require.NoError(t, err)
+	require.NoError(t, db.Insert(ctx, &project_model.ProjectIssue{IssueID: 12, ProjectID: project.ID, ProjectColumnID: column.ID}))
 	ctx.SetPathParam("id", strconv.FormatInt(project.ID, 10))
 	ctx.SetPathParam("columnID", strconv.FormatInt(column.ID, 10))
-	ctx.Req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf(`{"issueID":%d,"prevIssueID":0}`, issue.ID)))
+	ctx.Req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf(`{"issueID":%d,"prevIssueID":12}`, issue.ID)))
 
 	MoveIssues(ctx)
 	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
-	unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: project.ID, ProjectColumnID: column.ID})
+	unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: project.ID, ProjectColumnID: column.ID, Sorting: 1})
 }
