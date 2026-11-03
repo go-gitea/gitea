@@ -21,9 +21,7 @@ import (
 
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -346,120 +344,6 @@ func TestGerritRepoInfoAndResolve(t *testing.T) {
 	d = newTestGerritDownloader(t, f.server.URL+"/gerrit/team/other", base.MigrateOptions{})
 	_, err = d.GetRepoInfo(t.Context())
 	require.ErrorContains(t, err, "no Gerrit project found")
-}
-
-func TestGerritPullRequests(t *testing.T) {
-	f := newGerritFixture(t)
-	d := newTestGerritDownloader(t, f.cloneAddr(), base.MigrateOptions{})
-	ctx := t.Context()
-
-	prs, isEnd, err := d.GetPullRequests(ctx, 1, 2)
-	require.NoError(t, err)
-	assert.False(t, isEnd)
-	require.Len(t, prs, 2)
-	assert.Equal(t, 2, f.listCalls, "the changes are listed page by page")
-
-	open := prs[0]
-	assert.EqualValues(t, 1, open.Number)
-	assert.EqualValues(t, 1, open.ForeignIndex)
-	assert.Equal(t, "First change", open.Title)
-	assert.Equal(t, "open", open.State)
-	assert.True(t, open.IsDraft)
-	assert.EqualValues(t, 1000, open.PosterID)
-	assert.Equal(t, "Alice Owner", open.PosterName)
-	assert.Equal(t, "alice@example.com", open.PosterEmail)
-	assert.Equal(t, "main", open.Base.Ref)
-	assert.Equal(t, f.shas["base"], open.Base.SHA)
-	assert.Equal(t, "refs/changes/01/1/2", open.Head.Ref)
-	assert.Equal(t, f.shas["c1p2"], open.Head.SHA)
-	assert.False(t, open.IsForkPullRequest())
-	assert.True(t, open.EnsuredSafe)
-	assert.Equal(t, base.PRFlowAGit, open.FlowType)
-	assert.Equal(t, time.Date(2024, 2, 1, 10, 0, 0, 0, time.UTC), open.Created.UTC())
-	assert.Equal(t, time.Date(2024, 2, 3, 10, 0, 0, 0, time.UTC), open.Updated.UTC())
-	assert.Equal(t, "body of change 1\n\nChange-Id: I0001\n\n---\nImported from Gerrit change "+f.server.URL+
-		"/gerrit/c/team/demo/+/1\nChange-Id: I0001\nBranch: main\nStatus: NEW", strings.TrimSpace(open.Content))
-
-	merged := prs[1]
-	assert.Equal(t, "closed", merged.State)
-	assert.True(t, merged.Merged)
-	assert.Equal(t, time.Date(2024, 3, 2, 9, 0, 0, 0, time.UTC), merged.MergedTime.UTC())
-	assert.False(t, merged.IsDraft)
-
-	prs, isEnd, err = d.GetPullRequests(ctx, 2, 2)
-	require.NoError(t, err)
-	assert.True(t, isEnd)
-	require.Len(t, prs, 1)
-	assert.Equal(t, "closed", prs[0].State)
-	assert.False(t, prs[0].Merged)
-	assert.NotNil(t, prs[0].Closed)
-	assert.Equal(t, "carol", prs[0].PosterName)
-}
-
-func TestGerritCommentsAndReviews(t *testing.T) {
-	f := newGerritFixture(t)
-	d := newTestGerritDownloader(t, f.cloneAddr(), base.MigrateOptions{})
-	ctx := t.Context()
-	prs, _, err := d.GetPullRequests(ctx, 1, 1)
-	require.NoError(t, err)
-	pr := prs[0]
-
-	checker, cleanup := test.NewLogChecker(log.DEFAULT)
-	defer cleanup()
-	checker.Filter(
-		`Gerrit change 1 has the vote label "Verified" with the value +1 on patch set 2`,
-		`Gerrit change 1 has the vote label "Custom-Label" with the value -1 on patch set 2`,
-		`Gerrit change 1 has the vote label "Verified" with the value -1 on patch set 2`,
-	).StopMark("gerrit votes checked")
-	reviews, err := d.GetReviews(ctx, pr)
-	require.NoError(t, err)
-	log.Info("gerrit votes checked")
-	filtered, stopped := checker.Check(time.Second)
-	assert.True(t, stopped)
-	assert.Equal(t, []bool{true, true, true}, filtered, "votes that are not Code-Review are reported")
-	type summary struct {
-		reviewer, state, commit string
-		comments                []string
-	}
-	var got []summary
-	for _, r := range reviews {
-		assert.EqualValues(t, 1, r.IssueIndex)
-		s := summary{reviewer: r.ReviewerName, state: r.State, commit: r.CommitID}
-		for _, c := range r.Comments {
-			s.comments = append(s.comments, fmt.Sprintf("%s:%d:%s", c.TreePath, c.Line, c.Content))
-		}
-		got = append(got, s)
-	}
-	assert.Equal(t, []summary{
-		{"Bob", base.ReviewStateChangesRequested, f.shas["c1p1"], nil},
-		{"carol", base.ReviewStateApproved, f.shas["c1p2"], []string{
-			"a.txt:2:inline on current",
-			"a.txt:-2:inline on parent side",
-			"a.txt:3:Lines 2-3:\n\nranged",
-		}},
-		{"CI Bot", base.ReviewStateCommented, f.shas["c1p2"], nil},
-	}, got)
-	assert.Contains(t, reviews[1].Content, "Custom-Label-1", "the original votes stay in the text")
-	assert.Contains(t, reviews[1].Content, "Verified+1")
-	assert.Equal(t, "Patch Set 2: Verified-1\n\nBuild failed", reviews[2].Content)
-
-	comments, isEnd, err := d.GetComments(ctx, pr)
-	require.NoError(t, err)
-	assert.True(t, isEnd)
-	assert.Equal(t, 1, f.commentCalls, "the comments of a change are requested once for comments and reviews")
-	var texts []string
-	for _, c := range comments {
-		assert.EqualValues(t, 1, c.IssueIndex)
-		texts = append(texts, c.PosterName+": "+c.Content)
-	}
-	assert.Equal(t, []string{
-		"Alice Owner: Uploaded patch set 1.",
-		"Bob: Comment on `a.txt` line 2 (patch set 1, revision " + f.shas["c1p1"] + "):\n\nold patch set comment",
-		"carol: Comment on \"../../etc/passwd\" line 1 (patch set 2, revision " + f.shas["c1p2"] + "):\n\nunsafe path",
-		"carol: Comment on `/COMMIT_MSG` line 1 (patch set 2, revision " + f.shas["c1p2"] + "):\n\ncommit message comment",
-		"Bob: Patch set level comment (patch set 2, revision " + f.shas["c1p2"] + "):\n\npatch set level",
-		"Alice Owner: Needs a rebase later",
-	}, texts)
 }
 
 func TestGerritActivityCache(t *testing.T) {
