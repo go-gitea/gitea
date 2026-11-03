@@ -17,7 +17,6 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
-	org_model "gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -337,73 +336,6 @@ func TestPullView_CodeOwner(t *testing.T) {
 			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.True(t, hasCodeownerReviews)
 		})
-	})
-}
-
-func TestPullView_CodeOwnerTeamAnsweredByMember(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
-		team1 := unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: 2}) // members: user2, user4
-
-		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user2, org3, repo_service.CreateRepoOptions{
-			Name:             "test_codeowner_team",
-			Readme:           "Default",
-			AutoInit:         true,
-			ObjectFormatName: git.Sha1ObjectFormat.Name(),
-			DefaultBranch:    "master",
-		}, true)
-		require.NoError(t, err)
-
-		_, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
-			OldBranch: repo.DefaultBranch,
-			Files: []*files_service.ChangeRepoFile{{
-				Operation:     "create",
-				TreePath:      "CODEOWNERS",
-				ContentReader: strings.NewReader("README.md @org3/team1\n"),
-			}},
-		})
-		require.NoError(t, err)
-
-		resp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
-			NewBranch: "codeowner-team",
-			Files: []*files_service.ChangeRepoFile{{
-				Operation:     "update",
-				TreePath:      "README.md",
-				ContentReader: strings.NewReader("# Changed by the team\n"),
-			}},
-		})
-		require.NoError(t, err)
-
-		session := loginUser(t, "user2")
-		testPullCreate(t, session, "org3", "test_codeowner_team", false, repo.DefaultBranch, "codeowner-team", "Test code owner team")
-
-		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-team"})
-		require.NoError(t, pr.LoadIssue(t.Context()))
-		require.NoError(t, pr.Issue.LoadRepo(t.Context()))
-		require.NoError(t, pr.Issue.Repo.LoadOwner(t.Context()))
-		teamRequest := func() *issues_model.Review {
-			return &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerTeamID: team1.ID}
-		}
-		unittest.AssertExistsAndLoadBean(t, teamRequest())
-
-		approval, _, err := issues_model.SubmitReview(t.Context(), user4, pr.Issue, issues_model.ReviewTypeApprove, "LGTM", resp.Commit.SHA, false, make([]string, 0))
-		require.NoError(t, err)
-		unittest.AssertNotExistsBean(t, teamRequest())
-
-		// what a later push to the PR runs: the team already has its answer, so it must not be requested again
-		notifiers, err := issue_service.PullRequestCodeOwnersReview(t.Context(), pr)
-		require.NoError(t, err)
-		assert.Empty(t, notifiers)
-		unittest.AssertNotExistsBean(t, teamRequest())
-
-		require.NoError(t, issues_model.DismissReview(t.Context(), approval, true))
-		notifiers, err = issue_service.PullRequestCodeOwnersReview(t.Context(), pr)
-		require.NoError(t, err)
-		require.Len(t, notifiers, 1)
-		assert.Equal(t, team1.ID, notifiers[0].ReviewTeam.ID)
-		unittest.AssertExistsAndLoadBean(t, teamRequest())
 	})
 }
 

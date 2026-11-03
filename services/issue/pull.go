@@ -332,27 +332,12 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		}
 	}
 
-	// SubmitReview removes a team's review request once a member approves or rejects,
-	// so without this check every later push would request (and mail) the whole team again.
-	answeredByMember := func(t *org_model.Team) (bool, error) {
-		for _, review := range latestReviews {
-			if review.ReviewerTeamID != 0 || (review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject) {
-				continue
-			}
-			isMember, err := org_model.IsTeamMember(ctx, t.OrgID, t.ID, review.ReviewerID)
-			if err != nil || isMember {
-				return isMember, err
-			}
-		}
-		return false, nil
-	}
-
 	for _, t := range uniqTeams {
-		answered, err := answeredByMember(t)
+		reviewed, err := teamMemberHasReviewed(ctx, latestReviews, t)
 		if err != nil {
 			return nil, err
 		}
-		if answered {
+		if reviewed {
 			continue
 		}
 		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster, true)
@@ -371,4 +356,19 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	return notifiers, nil
+}
+
+// teamMemberHasReviewed reports whether a member of the team approved or rejected the pull request.
+// SubmitReview removes the team's review request in that case, so requesting the team again would mail every member again.
+func teamMemberHasReviewed(ctx context.Context, reviews issues_model.ReviewList, team *org_model.Team) (bool, error) {
+	for _, review := range reviews {
+		if review.ReviewerTeamID != 0 || (review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject) {
+			continue
+		}
+		isMember, err := org_model.IsTeamMember(ctx, team.OrgID, team.ID, review.ReviewerID)
+		if err != nil || isMember {
+			return isMember, err
+		}
+	}
+	return false, nil
 }
