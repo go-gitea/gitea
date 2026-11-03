@@ -513,7 +513,6 @@
   "settings.delete_account_title": "حذف حساب کاربری",
   "settings.delete_account_desc": "آیا شما مطمئن هستید که می‎خواهیدحساب کاربری خود را حذف کنید؟",
   "settings.email_notifications.enable": "فعال‌سازی اعلان‌های ایمیل",
-  "settings.email_notifications.onmention": "فقط یادآوری توسط ایمیل",
   "settings.email_notifications.disable": "غیرفعال‌ کردن اعلان‌های ایمیل",
   "settings.email_notifications.submit": "ثبت اولویت ایمیل",
   "settings.visibility": "پدیداری کاربر",
@@ -1501,7 +1500,6 @@
   "repo.diff.comment.start_review": "شروع بازبینی",
   "repo.diff.comment.reply": "پاسخ",
   "repo.diff.review": "بازبینی",
-  "repo.diff.review.header": "ارائه بازبینی",
   "repo.diff.review.placeholder": "بازبینی دیدگاه",
   "repo.diff.review.comment": "دیدگاه",
   "repo.diff.review.approve": "پذیرفتن",
@@ -2134,5 +2132,6 @@
   "actions.workflow.scope_owner": "مالک",
   "actions.workflow.required": "الزامی",
   "actions.job_queue.filter_repo_no_select": "همه مخازن",
+  "projects.workflows.none": "هیچ",
   "actions.general.token_permissions.mode.restricted": "محصور"
 }

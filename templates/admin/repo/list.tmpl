@@ -96,14 +96,16 @@
 		{{template "base/paginate" .}}
 	</div>
 
-<form class="ui small modal form-fetch-action" id="admin-repo-delete-modal" method="post">
+<dialog class="modal-dialog" id="admin-repo-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.delete"}}</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "repo.settings.delete_desc"}}</p>
-		{{ctx.Locale.Tr "repo.settings.delete_notices_2" (HTMLFormat `<span class="%s"></span>` "repo-name")}}<br>
-		{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</form>
+	<form class="form-fetch-action" method="post">
+		<div class="content">
+			<p>{{ctx.Locale.Tr "repo.settings.delete_desc"}}</p>
+			{{ctx.Locale.Tr "repo.settings.delete_notices_2" (HTMLFormat `<span class="%s"></span>` "repo-name")}}<br>
+			{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</form>
+</dialog>
 
 {{template "admin/layout_footer" .}}

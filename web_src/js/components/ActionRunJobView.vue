@@ -15,6 +15,7 @@ import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../mo
 import {AnsiLineRenderer} from '../render/ansi.ts';
 import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
 import type {ActionRunViewStore, LogLine, LogLineCommand} from './ActionRunView.ts';
+import {registerAsyncHashChangeListener, removeAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight} = {extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
@@ -176,13 +177,12 @@ onMounted(async () => {
   });
 
   intervalID = setInterval(() => loadJob(), 1000);
-  hashChangeListener();
-  window.addEventListener('hashchange', hashChangeListener);
+  registerAsyncHashChangeListener(hashChangeListener);
 });
 
 onBeforeUnmount(() => {
   menuTippy.destroy();
-  window.removeEventListener('hashchange', hashChangeListener);
+  removeAsyncHashChangeListener(hashChangeListener);
   // clear the interval timer when the component is unmounted
   // even our page is rendered once, not spa style
   if (intervalID) {

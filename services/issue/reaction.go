@@ -8,6 +8,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 )
 
 // CreateIssueReaction creates a reaction on an issue.
@@ -20,7 +21,7 @@ func CreateIssueReaction(ctx context.Context, doer *user_model.User, issue *issu
 		return nil, user_model.ErrBlockedUser
 	}
 
-	return issues_model.CreateReaction(ctx, &issues_model.ReactionOptions{
+	return issues_model.CreateReaction(ctx, setting.UI.ReactionsLookup, &issues_model.ReactionOptions{
 		Type:    content,
 		DoerID:  doer.ID,
 		IssueID: issue.ID,
@@ -41,7 +42,7 @@ func CreateCommentReaction(ctx context.Context, doer *user_model.User, comment *
 		return nil, user_model.ErrBlockedUser
 	}
 
-	return issues_model.CreateReaction(ctx, &issues_model.ReactionOptions{
+	return issues_model.CreateReaction(ctx, setting.UI.ReactionsLookup, &issues_model.ReactionOptions{
 		Type:      content,
 		DoerID:    doer.ID,
 		IssueID:   comment.Issue.ID,

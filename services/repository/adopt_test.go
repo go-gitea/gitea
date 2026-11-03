@@ -76,17 +76,13 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 		_ = os.Mkdir(filepath.Join(setting.RepoRootPath, unadopted+".git"), 0o755)
 	}
 
-	opts := db.ListOptions{Page: 1, PageSize: 1}
-	repoNames, count, err := ListUnadoptedRepositories(t.Context(), "", &opts)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 2, count)
-	assert.Equal(t, unadoptedList[0], repoNames[0])
-
-	opts = db.ListOptions{Page: 2, PageSize: 1}
-	repoNames, count, err = ListUnadoptedRepositories(t.Context(), "", &opts)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 2, count)
-	assert.Equal(t, unadoptedList[1], repoNames[0])
+	for i, unadopted := range unadoptedList {
+		opts := db.ListOptions{Page: i + 1, PageSize: 1}
+		repoNames, count, err := ListUnadoptedRepositories(t.Context(), "", &opts)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 2, count)
+		assert.Equal(t, unadopted, repoNames[0])
+	}
 }
 
 func TestAdoptRepository(t *testing.T) {

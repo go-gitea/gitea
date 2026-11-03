@@ -332,29 +332,17 @@ func TestSingleWorkflow_SetJob(t *testing.T) {
 
 func TestGetContinueOnError(t *testing.T) {
 	tests := []struct {
-		name string
-		yaml string
-		want bool
+		name            string
+		continueOnError string
+		want            bool
 	}{
-		{
-			name: "absent",
-			yaml: "name: test\non: push\njobs:\n  job1:\n    runs-on: ubuntu-22.04\n    steps:\n      - run: echo hi\n",
-			want: false,
-		},
-		{
-			name: "static true",
-			yaml: "name: test\non: push\njobs:\n  job1:\n    runs-on: ubuntu-22.04\n    continue-on-error: true\n    steps:\n      - run: echo hi\n",
-			want: true,
-		},
-		{
-			name: "static false",
-			yaml: "name: test\non: push\njobs:\n  job1:\n    runs-on: ubuntu-22.04\n    continue-on-error: false\n    steps:\n      - run: echo hi\n",
-			want: false,
-		},
+		{name: "absent", want: false},
+		{name: "static true", continueOnError: "    continue-on-error: true\n", want: true},
+		{name: "static false", continueOnError: "    continue-on-error: false\n", want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Parse([]byte(tt.yaml))
+			got, err := Parse(fmt.Appendf(nil, "name: test\non: push\njobs:\n  job1:\n    runs-on: ubuntu-22.04\n%s    steps:\n      - run: echo hi\n", tt.continueOnError))
 			require.NoError(t, err)
 			require.Len(t, got, 1)
 			_, job := got[0].Job()

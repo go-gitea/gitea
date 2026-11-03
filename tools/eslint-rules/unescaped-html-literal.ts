@@ -2,7 +2,8 @@
 // https://github.com/github/eslint-plugin-github/blob/main/lib/rules/unescaped-html-literal.js
 import type {JSRuleDefinition, JSRuleDefinitionTypeOptions} from 'eslint';
 
-const htmlOpenTag = /^\s*<[a-zA-Z]/;
+const htmlTag = /<\/?[a-z][\w-]*[\s/>]/i;
+const escapingTags = new Set(['html', 'htmlRaw']);
 
 const rule: JSRuleDefinition<JSRuleDefinitionTypeOptions> = {
   meta: {
@@ -14,7 +15,7 @@ const rule: JSRuleDefinition<JSRuleDefinitionTypeOptions> = {
 
   create: (context) => ({
     Literal(node) {
-      if (typeof node.value !== 'string' || !htmlOpenTag.test(node.value)) return;
+      if (typeof node.value !== 'string' || !htmlTag.test(node.value)) return;
 
       context.report({
         node,
@@ -22,11 +23,10 @@ const rule: JSRuleDefinition<JSRuleDefinitionTypeOptions> = {
       });
     },
     TemplateLiteral(node) {
-      const templateStart = node.quasis[0]?.value.raw;
-      if (!templateStart || !htmlOpenTag.test(templateStart)) return;
+      if (node.quasis.every((quasi) => !htmlTag.test(quasi.value.raw))) return;
 
       const parent = node.parent;
-      if (parent?.type === 'TaggedTemplateExpression' && parent.tag.type === 'Identifier' && parent.tag.name === 'html') return;
+      if (parent?.type === 'TaggedTemplateExpression' && parent.tag.type === 'Identifier' && escapingTags.has(parent.tag.name)) return;
 
       context.report({
         node,

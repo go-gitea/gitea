@@ -30,75 +30,38 @@ func TestAPIRepoSecrets(t *testing.T) {
 		MakeRequest(t, req, http.StatusOK)
 	})
 
-	t.Run("Create", func(t *testing.T) {
-		cases := []struct {
-			Name           string
-			ExpectedStatus int
-		}{
-			{
-				Name:           "",
-				ExpectedStatus: http.StatusMethodNotAllowed,
-			},
-			{
-				Name:           "-",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           "_",
-				ExpectedStatus: http.StatusCreated,
-			},
-			{
-				Name:           "secret",
-				ExpectedStatus: http.StatusCreated,
-			},
-			{
-				Name:           "2secret",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           "GITEA_secret",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           "GITHUB_secret",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-		}
-
-		for _, c := range cases {
-			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s", repo.FullName(), c.Name), api.CreateOrUpdateSecretOption{
-				Data: "data",
-			}).AddTokenAuth(token)
-			MakeRequest(t, req, c.ExpectedStatus)
-		}
-	})
-
-	t.Run("CreateWithDescription", func(t *testing.T) {
-		cases := []struct {
-			Name           string
-			Description    string
-			ExpectedStatus int
-		}{
-			{
-				Name:           "no_description",
-				Description:    "",
-				ExpectedStatus: http.StatusCreated,
-			},
-			{
-				Name:           "description",
-				Description:    "some description",
-				ExpectedStatus: http.StatusCreated,
-			},
-		}
-
-		for _, c := range cases {
-			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s", repo.FullName(), c.Name), api.CreateOrUpdateSecretOption{
-				Data:        "data",
-				Description: c.Description,
-			}).AddTokenAuth(token)
-			MakeRequest(t, req, c.ExpectedStatus)
-		}
-	})
+	type secretCase struct {
+		Name, Description string
+		ExpectedStatus    int
+	}
+	for _, group := range []struct {
+		name  string
+		cases []secretCase
+	}{
+		{"Create", []secretCase{
+			{"", "", http.StatusMethodNotAllowed},
+			{"-", "", http.StatusBadRequest},
+			{"_", "", http.StatusCreated},
+			{"secret", "", http.StatusCreated},
+			{"2secret", "", http.StatusBadRequest},
+			{"GITEA_secret", "", http.StatusBadRequest},
+			{"GITHUB_secret", "", http.StatusBadRequest},
+		}},
+		{"CreateWithDescription", []secretCase{
+			{"no_description", "", http.StatusCreated},
+			{"description", "some description", http.StatusCreated},
+		}},
+	} {
+		t.Run(group.name, func(t *testing.T) {
+			for _, c := range group.cases {
+				req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s", repo.FullName(), c.Name), api.CreateOrUpdateSecretOption{
+					Data:        "data",
+					Description: c.Description,
+				}).AddTokenAuth(token)
+				MakeRequest(t, req, c.ExpectedStatus)
+			}
+		})
+	}
 
 	t.Run("Update", func(t *testing.T) {
 		name := "update_secret"

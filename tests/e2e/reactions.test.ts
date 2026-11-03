@@ -12,15 +12,20 @@ test('toggle issue reactions', async ({page, request}) => {
   ]);
   await page.goto(`/${owner}/${repoName}/issues/1`);
 
-  const issueComment = page.locator('.timeline-item.comment.issue-content-comment');
+  const reactions = page.locator('.timeline-item.comment.issue-content-comment').getByRole('group', {name: 'Reactions'});
+  const reactionPicker = reactions.getByRole('button', {name: 'Reactions', exact: true});
 
-  const reactionPicker = issueComment.locator('.select-reaction');
   await reactionPicker.click();
-  await reactionPicker.getByLabel('+1').click();
-
-  const reactions = issueComment.getByRole('group', {name: 'Reactions'});
+  await page.getByRole('menuitem', {name: '+1', exact: true}).click();
   await expect(reactions.getByRole('button', {name: /^\+1:/})).toContainText('1');
 
   await reactions.getByRole('button', {name: /^\+1:/}).click();
   await expect(reactions.getByRole('button', {name: /^\+1:/})).toHaveCount(0);
+
+  await reactionPicker.press('Enter');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await expect(reactions.getByRole('button', {name: /^-1:/})).toContainText('1');
+  await expect(reactionPicker).toBeFocused();
 });

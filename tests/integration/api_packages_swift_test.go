@@ -64,19 +64,14 @@ func TestPackageSwift(t *testing.T) {
 	t.Run("CheckLogin", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "POST", url, strings.NewReader(""))
-		MakeRequest(t, req, http.StatusUnauthorized)
+		for _, endpoint := range []string{url, url + "/login"} {
+			req := NewRequestWithBody(t, "POST", endpoint, strings.NewReader(""))
+			MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequestWithBody(t, "POST", url, strings.NewReader("")).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusOK)
-
-		req = NewRequestWithBody(t, "POST", url+"/login", strings.NewReader(""))
-		MakeRequest(t, req, http.StatusUnauthorized)
-
-		req = NewRequestWithBody(t, "POST", url+"/login", strings.NewReader("")).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusOK)
+			req = NewRequestWithBody(t, "POST", endpoint, strings.NewReader("")).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusOK)
+		}
 	})
 
 	t.Run("CheckAcceptMediaType", func(t *testing.T) {
@@ -108,171 +103,122 @@ func TestPackageSwift(t *testing.T) {
 		assert.Equal(t, "application/problem+json", resp.Header().Get("Content-Type"))
 	})
 
-	t.Run("Upload", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	for _, upload := range []struct {
+		name, version string
+		formField     bool
+	}{
+		{"Upload", packageVersion, false},
+		{"UploadMultipart", packageVersion2Beta, true},
+	} {
+		t.Run(upload.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		uploadPackage := func(t *testing.T, url string, expectedStatus int, sr io.Reader, metadata string) {
-			var body bytes.Buffer
-			mpw := multipart.NewWriter(&body)
+			uploadPackage := func(t *testing.T, url string, expectedStatus int, sr io.Reader, metadata string) {
+				var body bytes.Buffer
+				mpw := multipart.NewWriter(&body)
 
-			part, _ := mpw.CreateFormFile("source-archive", "source-archive.zip")
-			io.Copy(part, sr)
+				if upload.formField {
+					// Read the source archive content
+					sourceContent, err := io.ReadAll(sr)
+					assert.NoError(t, err)
+					mpw.WriteField("source-archive", string(sourceContent))
+				} else {
+					part, _ := mpw.CreateFormFile("source-archive", "source-archive.zip")
+					io.Copy(part, sr)
+				}
 
-			if metadata != "" {
-				mpw.WriteField("metadata", metadata)
+				if metadata != "" {
+					mpw.WriteField("metadata", metadata)
+				}
+
+				mpw.Close()
+
+				req := NewRequestWithBody(t, "PUT", url, &body).
+					SetHeader("Content-Type", mpw.FormDataContentType()).
+					SetHeader("Accept", swift_router.AcceptJSON).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, expectedStatus)
 			}
 
-			mpw.Close()
+			if !upload.formField {
+				for _, triple := range []string{"/sc_ope/package/1.0.0", "/scope/pack~age/1.0.0", "/scope/package/1_0.0"} {
+					req := NewRequestWithBody(t, "PUT", url+triple, bytes.NewReader([]byte{})).
+						AddBasicAuth(user.Name)
+					resp := MakeRequest(t, req, http.StatusBadRequest)
 
-			req := NewRequestWithBody(t, "PUT", url, &body).
-				SetHeader("Content-Type", mpw.FormDataContentType()).
-				SetHeader("Accept", swift_router.AcceptJSON).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, expectedStatus)
-		}
+					assert.Equal(t, "1", resp.Header().Get("Content-Version"))
+					assert.Equal(t, "application/problem+json", resp.Header().Get("Content-Type"))
+				}
+			}
 
-		for _, triple := range []string{"/sc_ope/package/1.0.0", "/scope/pack~age/1.0.0", "/scope/package/1_0.0"} {
-			req := NewRequestWithBody(t, "PUT", url+triple, bytes.NewReader([]byte{})).
-				AddBasicAuth(user.Name)
-			resp := MakeRequest(t, req, http.StatusBadRequest)
+			uploadURL := fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, upload.version)
 
-			assert.Equal(t, "1", resp.Header().Get("Content-Version"))
-			assert.Equal(t, "application/problem+json", resp.Header().Get("Content-Type"))
-		}
+			req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
+			MakeRequest(t, req, http.StatusUnauthorized)
 
-		uploadURL := fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, packageVersion)
+			// Test with metadata as form field
+			uploadPackage(
+				t,
+				uploadURL,
+				http.StatusCreated,
+				test.WriteZipArchive(map[string]string{
+					"Package.swift":           contentManifest1,
+					"Package@swift-5.6.swift": contentManifest2,
+				}),
+				makePackageMetadataJSON(upload.version),
+			)
 
-		req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
-		MakeRequest(t, req, http.StatusUnauthorized)
+			if upload.formField {
+				stableURL := fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, packageVersion2)
+				uploadPackage(t, stableURL, http.StatusCreated, test.WriteZipArchive(map[string]string{"Package.swift": contentManifest1}), "")
+			}
 
-		uploadPackage(
-			t,
-			uploadURL,
-			http.StatusCreated,
-			test.WriteZipArchive(map[string]string{
-				"Package.swift":           contentManifest1,
-				"Package@swift-5.6.swift": contentManifest2,
-			}),
-			makePackageMetadataJSON(packageVersion),
-		)
-
-		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeSwift)
-		assert.NoError(t, err)
-		assert.Len(t, pvs, 1)
-
-		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
-		assert.NoError(t, err)
-		assert.NotNil(t, pd.SemVer)
-		assert.Equal(t, packageID, pd.Package.Name)
-		assert.Equal(t, packageVersion, pd.Version.Version)
-		metadata, ok := pd.Metadata.(*swift_module.Metadata)
-		require.True(t, ok)
-		assert.Equal(t, packageDescription, metadata.Description)
-		assert.Len(t, metadata.Manifests, 2)
-		assert.Equal(t, contentManifest1, metadata.Manifests[""].Content)
-		assert.Equal(t, contentManifest2, metadata.Manifests["5.6"].Content)
-		assert.Len(t, pd.VersionProperties, 3)
-		assert.Equal(t, packageRepositoryURL1, pd.VersionProperties.GetByName(swift_module.PropertyRepositoryURL))
-
-		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
-		assert.NoError(t, err)
-		assert.Len(t, pfs, 1)
-		assert.Equal(t, fmt.Sprintf("%s-%s.zip", packageName, packageVersion), pfs[0].Name)
-		assert.True(t, pfs[0].IsLead)
-
-		uploadPackage(
-			t,
-			uploadURL,
-			http.StatusConflict,
-			test.WriteZipArchive(map[string]string{
-				"Package.swift": contentManifest1,
-			}),
-			"",
-		)
-	})
-
-	t.Run("UploadMultipart", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		uploadPackage := func(t *testing.T, url string, expectedStatus int, sr io.Reader, metadata string) {
-			var body bytes.Buffer
-			mpw := multipart.NewWriter(&body)
-
-			// Read the source archive content
-			sourceContent, err := io.ReadAll(sr)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeSwift)
 			assert.NoError(t, err)
-			mpw.WriteField("source-archive", string(sourceContent))
-
-			if metadata != "" {
-				mpw.WriteField("metadata", metadata)
+			versionIndex := 0
+			if upload.formField {
+				require.Len(t, pvs, 3) // ATTENTION: many subtests are unable to run separately, they depend on the results of previous tests
+				versionIndex = 1
+			} else {
+				assert.Len(t, pvs, 1)
 			}
 
-			mpw.Close()
+			pd, err := packages.GetPackageDescriptor(t.Context(), pvs[versionIndex])
+			assert.NoError(t, err)
+			assert.NotNil(t, pd.SemVer)
+			assert.Equal(t, packageID, pd.Package.Name)
+			assert.Equal(t, upload.version, pd.Version.Version)
+			metadata, ok := pd.Metadata.(*swift_module.Metadata)
+			require.True(t, ok)
+			assert.Equal(t, packageDescription, metadata.Description)
+			assert.Len(t, metadata.Manifests, 2)
+			assert.Equal(t, contentManifest1, metadata.Manifests[""].Content)
+			assert.Equal(t, contentManifest2, metadata.Manifests["5.6"].Content)
+			assert.Len(t, pd.VersionProperties, 3)
+			assert.Equal(t, packageRepositoryURL1, pd.VersionProperties.GetByName(swift_module.PropertyRepositoryURL))
 
-			req := NewRequestWithBody(t, "PUT", url, &body).
-				SetHeader("Content-Type", mpw.FormDataContentType()).
-				SetHeader("Accept", swift_router.AcceptJSON).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, expectedStatus)
-		}
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[versionIndex].ID)
+			assert.NoError(t, err)
+			assert.Len(t, pfs, 1)
+			assert.Equal(t, fmt.Sprintf("%s-%s.zip", packageName, upload.version), pfs[0].Name)
+			assert.True(t, pfs[0].IsLead)
 
-		uploadURL := fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, packageVersion2Beta)
+			uploadPackage(
+				t,
+				uploadURL,
+				http.StatusConflict,
+				test.WriteZipArchive(map[string]string{
+					"Package.swift": contentManifest1,
+				}),
+				"",
+			)
 
-		req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
-		MakeRequest(t, req, http.StatusUnauthorized)
-
-		// Test with metadata as form field
-		uploadPackage(
-			t,
-			uploadURL,
-			http.StatusCreated,
-			test.WriteZipArchive(map[string]string{
-				"Package.swift":           contentManifest1,
-				"Package@swift-5.6.swift": contentManifest2,
-			}),
-			makePackageMetadataJSON(packageVersion2Beta),
-		)
-
-		stableURL := fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, packageVersion2)
-		uploadPackage(t, stableURL, http.StatusCreated, test.WriteZipArchive(map[string]string{"Package.swift": contentManifest1}), "")
-
-		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeSwift)
-		assert.NoError(t, err)
-		require.Len(t, pvs, 3) // ATTENTION: many subtests are unable to run separately, they depend on the results of previous tests
-		thisPackageVersion := pvs[1]
-		pd, err := packages.GetPackageDescriptor(t.Context(), thisPackageVersion)
-		assert.NoError(t, err)
-		assert.NotNil(t, pd.SemVer)
-		assert.Equal(t, packageID, pd.Package.Name)
-		assert.Equal(t, packageVersion2Beta, pd.Version.Version)
-		metadata, ok := pd.Metadata.(*swift_module.Metadata)
-		require.True(t, ok)
-		assert.Equal(t, packageDescription, metadata.Description)
-		assert.Len(t, metadata.Manifests, 2)
-		assert.Equal(t, contentManifest1, metadata.Manifests[""].Content)
-		assert.Equal(t, contentManifest2, metadata.Manifests["5.6"].Content)
-		assert.Len(t, pd.VersionProperties, 3)
-		assert.Equal(t, packageRepositoryURL1, pd.VersionProperties.GetByName(swift_module.PropertyRepositoryURL))
-
-		pfs, err := packages.GetFilesByVersionID(t.Context(), thisPackageVersion.ID)
-		assert.NoError(t, err)
-		assert.Len(t, pfs, 1)
-		assert.Equal(t, fmt.Sprintf("%s-%s.zip", packageName, packageVersion2Beta), pfs[0].Name)
-		assert.True(t, pfs[0].IsLead)
-
-		uploadPackage(
-			t,
-			uploadURL,
-			http.StatusConflict,
-			test.WriteZipArchive(map[string]string{
-				"Package.swift": contentManifest1,
-			}),
-			"",
-		)
-
-		invalidURL := fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, "1.0.6-")
-		uploadPackage(t, invalidURL, http.StatusBadRequest, bytes.NewReader(nil), "")
-	})
+			if upload.formField {
+				invalidURL := fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, "1.0.6-")
+				uploadPackage(t, invalidURL, http.StatusBadRequest, bytes.NewReader(nil), "")
+			}
+		})
+	}
 
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

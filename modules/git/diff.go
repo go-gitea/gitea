@@ -5,6 +5,7 @@ package git
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"fmt"
 	"io"
@@ -200,22 +201,18 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			}
 			if old {
 				begin, _ = strconv.ParseInt(groups["beginOld"], 10, 64)
-				end, _ = strconv.ParseInt(groups["endOld"], 10, 64)
+				end, _ = strconv.ParseInt(cmp.Or(groups["endOld"], "1"), 10, 64)
 				// init otherLine with begin of opposite side
 				otherLine, _ = strconv.ParseInt(groups["beginNew"], 10, 64)
 			} else {
 				begin, _ = strconv.ParseInt(groups["beginNew"], 10, 64)
-				if groups["endNew"] != "" {
-					end, _ = strconv.ParseInt(groups["endNew"], 10, 64)
-				} else {
-					end = 0
-				}
+				end, _ = strconv.ParseInt(cmp.Or(groups["endNew"], "1"), 10, 64)
 				// init otherLine with begin of opposite side
 				otherLine, _ = strconv.ParseInt(groups["beginOld"], 10, 64)
 			}
 			end += begin // end is for real only the number of lines in hunk
 			// lof is between begin and end
-			if begin <= line && end >= line {
+			if begin <= line && line < end {
 				hunk = append(hunk, lof)
 				currentLine = begin
 				continue
@@ -265,27 +262,26 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 		oldBegin = otherLine
 		newBegin = currentLine
 	}
-	// headers + hunk header
-	newHunk := make([]string, headerLines)
-	// transfer existing headers
-	copy(newHunk, hunk[:headerLines])
-	// transfer last n lines
-	newHunk = append(newHunk, hunk[len(hunk)-numbersOfLine-1:]...)
 	// calculate newBegin, ... by counting lines
-	for i := len(hunk) - 1; i >= len(hunk)-numbersOfLine; i-- {
-		switch hunk[i][0] {
+	start := len(hunk)
+	for count := 0; count < numbersOfLine && start > headerLines+1; {
+		start--
+		switch hunk[start][0] {
 		case '+':
 			newBegin--
 			newNumOfLines++
 		case '-':
 			oldBegin--
 			oldNumOfLines++
+		case '\\':
+			continue
 		default:
 			oldBegin--
 			newBegin--
 			newNumOfLines++
 			oldNumOfLines++
 		}
+		count++
 	}
 
 	// "git diff" outputs "@@ -1 +1,3 @@" for "OLD" => "A\nB\nC"
@@ -294,9 +290,9 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 	// For example: "L1\nL2" => "A\nB", then the patch shows "L2" as line 1 on the left (deleted part)
 
 	// construct the new hunk header
-	newHunk[headerLines] = fmt.Sprintf("@@ -%d,%d +%d,%d @@",
+	hunk[headerLines] = fmt.Sprintf("@@ -%d,%d +%d,%d @@",
 		oldBegin, oldNumOfLines, newBegin, newNumOfLines)
-	return strings.Join(newHunk, "\n"), nil
+	return strings.Join(append(hunk[:headerLines+1], hunk[start:]...), "\n"), nil
 }
 
 // GetAffectedFiles returns the affected files between two commits

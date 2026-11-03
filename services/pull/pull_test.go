@@ -99,6 +99,7 @@ func TestBuildSquashMergeCommitMessages(t *testing.T) {
 		coAuthors []string
 		expected  string
 	}{
+		{"", []string{"the-user"}, "Co-authored-by: the-user\n"},
 		{"title", nil, "title"},
 		{"title", []string{"the-user"}, "title\n\n---------\n\nCo-authored-by: the-user\n"},
 		{"title\n\n", []string{"the-user"}, "title\n\n---------\n\nCo-authored-by: the-user\n"},

@@ -13,6 +13,7 @@ import (
 	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
@@ -46,8 +47,8 @@ func ListAccessTokens(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := auth_model.ListAccessTokensOptions{UserID: ctx.ContextUser.ID, ListOptions: utils.GetListOptions(ctx)}
 
@@ -95,10 +96,8 @@ func CreateAccessToken(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/AccessToken"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
 
 	form := web.GetForm[*api.CreateAccessTokenOption](ctx)
 
@@ -129,7 +128,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	t.Scope = scope
 
 	// a token-authenticated request must not mint a token with a broader scope than its own
-	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	apiTokenScope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
 	if hasApiTokenScope {
 		hasScope, err := apiTokenScope.CanCreateChildScope(scope)
 		if err != nil {
@@ -184,11 +183,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	token := ctx.PathParam("id")
@@ -248,7 +243,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/OAuth2Application"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	data := web.GetForm[*api.CreateOAuth2ApplicationOptions](ctx)
@@ -335,8 +330,8 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	appID := ctx.PathParamInt64("id")
 	app, err := auth_model.GetOAuth2ApplicationByID(ctx, appID)
 	if err != nil {
@@ -378,8 +373,8 @@ func GetOauth2Application(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OAuth2Application"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	appID := ctx.PathParamInt64("id")
 	app, err := auth_model.GetOAuth2ApplicationByID(ctx, appID)
 	if err != nil {
@@ -422,10 +417,8 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OAuth2Application"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	appID := ctx.PathParamInt64("id")
 
 	data := web.GetForm[*api.CreateOAuth2ApplicationOptions](ctx)

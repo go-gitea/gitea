@@ -601,7 +601,6 @@
   "settings.delete_account_title": "Odstrániť používateľský účet",
   "settings.delete_account_desc": "Naozaj chcete natrvalo odstrániť tento účet?",
   "settings.email_notifications.enable": "Povoliť e-mailové upozornenia",
-  "settings.email_notifications.onmention": "E-mail iba pri zmienke",
   "settings.email_notifications.disable": "Vypnúť e-mailové upozornenia",
   "settings.email_notifications.submit": "Nastaviť predvoľby e-mailu",
   "settings.email_notifications.andyourown": "A vaše vlastné upozornenia",
@@ -950,7 +949,6 @@
   "repo.settings.lfs_lfs_file_no_commits": "Pre tento súbor LFS sa nenašli žiadne commity",
   "repo.diff.comment.start_review": "Začať revíziu",
   "repo.diff.review": "Revízia",
-  "repo.diff.review.header": "Odoslať revíziu",
   "repo.diff.review.placeholder": "Revízna poznámka",
   "repo.release.tags": "Tagy",
   "repo.release.ahead.commits": "<strong>%d</strong> commitov",
@@ -1092,5 +1090,7 @@
   "actions.runs.branch": "Vetva",
   "actions.workflow.scope_owner": "Vlastník",
   "actions.workflow.scope_global": "Globálne",
-  "actions.job_queue.filter_repo_no_select": "Všetky repozitáre"
+  "actions.job_queue.filter_repo_no_select": "Všetky repozitáre",
+  "projects.workflows.actions": "Akcie",
+  "projects.workflows.none": "Žiadny"
 }

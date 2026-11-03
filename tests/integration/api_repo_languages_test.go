@@ -9,9 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/modules/queue"
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepoLanguages(t *testing.T) {
@@ -36,8 +38,7 @@ func TestRepoLanguages(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.NotEmpty(t, test.RedirectURL(resp))
 
-		// let gitea calculate language stats
-		time.Sleep(time.Second)
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 10*time.Second))
 
 		// Save new file to master branch
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/languages")

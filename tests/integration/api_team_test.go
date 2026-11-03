@@ -29,176 +29,309 @@ import (
 func TestAPITeam(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 1})
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamUser.TeamID})
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: teamUser.OrgID})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID})
+	t.Run("Search", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
-	req := NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
+		token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadOrganization)
+		req := NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s", org.Name, "_team").
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		results := DecodeJSON(t, resp, &TeamSearchResults{})
+		assert.NotEmpty(t, results.Data)
+		assert.Len(t, results.Data, 1)
+		assert.Equal(t, "test_team", results.Data[0].Name)
 
-	apiTeam := DecodeJSON(t, resp, &api.Team{})
-	assert.Equal(t, team.ID, apiTeam.ID)
-	assert.Equal(t, team.Name, apiTeam.Name)
-	assert.Equal(t, convert.ToOrganization(t.Context(), org), apiTeam.Organization)
+		// no access if not organization member
+		user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		token5 := getUserToken(t, user5.Name, auth_model.AccessTokenScopeReadOrganization)
 
-	// non team member user will not access the teams details
-	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser2.UID})
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s", org.Name, "team").
+			AddTokenAuth(token5)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 
-	session = loginUser(t, user2.Name)
-	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
-	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID).
-		AddTokenAuth(token)
-	_ = MakeRequest(t, req, http.StatusForbidden)
+	t.Run("GetTeamRepo", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
+		teamRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 24})
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5})
 
-	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID)
-	_ = MakeRequest(t, req, http.StatusUnauthorized)
+		token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadOrganization)
+		req := NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/", team.ID, teamRepo.FullName()).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &api.Repository{})
+		assert.Equal(t, "big_test_private_4", teamRepo.Name)
 
-	// Get an admin user able to create, update and delete teams.
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	session = loginUser(t, user.Name)
-	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
+		// no access if not organization member
+		user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		token5 := getUserToken(t, user5.Name, auth_model.AccessTokenScopeReadOrganization)
 
-	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
+		req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/", team.ID, teamRepo.FullName()).
+			AddTokenAuth(token5)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
 
-	// Create team.
-	teamToCreate := &api.CreateTeamOption{
-		Name:                    "team1",
-		Description:             "team one",
-		IncludesAllRepositories: true,
-		Permission:              "read",
-		Units:                   []string{"repo.code", "repo.issues"},
-	}
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusCreated)
-	apiTeam = DecodeJSON(t, resp, &api.Team{})
-	expectedTeamUnitsMap := map[string]string{"repo.code": "read", "repo.issues": "read"}
-	checkTeamResponse(t, "CreateTeam1", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, expectedTeamUnitsMap)
-	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, expectedTeamUnitsMap)
-	teamID := apiTeam.ID
+	t.Run("CRUD", func(t *testing.T) {
+		teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 1})
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamUser.TeamID})
+		org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: teamUser.OrgID})
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID})
 
-	// Edit team.
-	editDescription := "team 1"
-	editFalse := false
-	teamToEdit := &api.EditTeamOption{
-		Name:                    "teamone",
-		Description:             &editDescription,
-		Permission:              "admin",
-		IncludesAllRepositories: &editFalse,
-	}
+		session := loginUser(t, user.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
+		req := NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEdit).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = DecodeJSON(t, resp, &api.Team{})
-	checkTeamResponse(t, "EditTeam1", apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelName(teamToEdit.Permission), nil)
-	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelName(teamToEdit.Permission), nil)
+		apiTeam := DecodeJSON(t, resp, &api.Team{})
+		assert.Equal(t, team.ID, apiTeam.ID)
+		assert.Equal(t, team.Name, apiTeam.Name)
+		assert.Equal(t, convert.ToOrganization(t.Context(), org), apiTeam.Organization)
 
-	// Edit team Description only
-	editDescription = "first team"
-	teamToEditDesc := api.EditTeamOption{Description: &editDescription}
-	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEditDesc).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = DecodeJSON(t, resp, &api.Team{})
-	checkTeamResponse(t, "EditTeam1_DescOnly", apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelName(teamToEdit.Permission), nil)
-	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelName(teamToEdit.Permission), nil)
+		// non team member user will not access the teams details
+		teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3})
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser2.UID})
 
-	// Edit team to granular permissions, team's permission should be reset to none
-	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), api.EditTeamOption{
-		Permission: "read",
-		Units:      []string{"repo.code", "repo.issues"},
-	}).AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = DecodeJSON(t, resp, &api.Team{})
-	checkTeamResponse(t, "EditTeam1_Granular", apiTeam, teamToEdit.Name, editDescription, editFalse, api.AccessLevelNameNone, expectedTeamUnitsMap)
-	checkTeamBean(t, teamID, teamToEdit.Name, editDescription, editFalse, api.AccessLevelNameNone, expectedTeamUnitsMap)
+		session = loginUser(t, user2.Name)
+		token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
+		req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID).
+			AddTokenAuth(token)
+		_ = MakeRequest(t, req, http.StatusForbidden)
 
-	// Read team.
-	teamRead := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-	assert.NoError(t, teamRead.LoadUnits(t.Context()))
-	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamID).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = DecodeJSON(t, resp, &api.Team{})
-	checkTeamResponse(t, "ReadTeam1", apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories, api.AccessLevelName(teamRead.AccessMode.ToString()), teamRead.GetUnitsMap())
+		req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID)
+		_ = MakeRequest(t, req, http.StatusUnauthorized)
 
-	// Delete team.
-	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", teamID).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+		// Get an admin user able to create, update and delete teams.
+		user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		session = loginUser(t, user.Name)
+		token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 
-	// create team again via UnitsMap (granular: do not send permission=write).
-	teamToCreate = &api.CreateTeamOption{
-		Name:                    "team2",
-		Description:             "team two",
-		IncludesAllRepositories: true,
-		UnitsMap:                map[string]string{"repo.code": "read", "repo.issues": "write", "repo.wiki": "none"},
-	}
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusCreated)
-	apiTeam = DecodeJSON(t, resp, &api.Team{})
-	checkTeamResponse(t, "CreateTeam2", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, teamToCreate.UnitsMap)
-	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, teamToCreate.UnitsMap)
-	teamID = apiTeam.ID
+		org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
 
-	// Create a team with permission=write, then edit it to granular permissions later, team's permission should be reset to none
-	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), api.EditTeamOption{
-		Permission: "write",
-	}).AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = DecodeJSON(t, resp, &api.Team{})
-	checkTeamResponse(t, "EditTeam2_Write", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameWrite, nil)
-	checkTeamBean(t, teamID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameWrite, nil)
+		// Create team.
+		teamToCreate := &api.CreateTeamOption{
+			Name:                    "team1",
+			Description:             "team one",
+			IncludesAllRepositories: true,
+			Permission:              "read",
+			Units:                   []string{"repo.code", "repo.issues"},
+		}
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusCreated)
+		apiTeam = DecodeJSON(t, resp, &api.Team{})
+		expectedTeamUnitsMap := map[string]string{"repo.code": "read", "repo.issues": "read"}
+		checkTeamResponse(t, "CreateTeam1", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, expectedTeamUnitsMap)
+		checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, expectedTeamUnitsMap)
+		teamID := apiTeam.ID
 
-	// Edit team.
-	editDescription = "team 1"
-	editFalse = false
-	teamToEdit = &api.EditTeamOption{
-		Name:                    "teamtwo",
-		Description:             &editDescription,
-		IncludesAllRepositories: &editFalse,
-		UnitsMap:                map[string]string{"repo.code": "read", "repo.pulls": "read", "repo.releases": "write"},
-	}
+		// Edit team.
+		editDescription := "team 1"
+		editFalse := false
+		teamToEdit := &api.EditTeamOption{
+			Name:                    "teamone",
+			Description:             &editDescription,
+			Permission:              "admin",
+			IncludesAllRepositories: &editFalse,
+		}
 
-	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEdit).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = DecodeJSON(t, resp, &api.Team{})
-	checkTeamResponse(t, "EditTeam2", apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelNameNone, teamToEdit.UnitsMap)
-	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelNameNone, teamToEdit.UnitsMap)
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEdit).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiTeam = DecodeJSON(t, resp, &api.Team{})
+		checkTeamResponse(t, "EditTeam1", apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelName(teamToEdit.Permission), nil)
+		checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelName(teamToEdit.Permission), nil)
 
-	// Edit team Description only
-	editDescription = "second team"
-	teamToEditDesc = api.EditTeamOption{Description: &editDescription}
-	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEditDesc).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = DecodeJSON(t, resp, &api.Team{})
-	checkTeamResponse(t, "EditTeam2_DescOnly", apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelNameNone, teamToEdit.UnitsMap)
-	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelNameNone, teamToEdit.UnitsMap)
+		// Edit team Description only
+		editDescription = "first team"
+		teamToEditDesc := api.EditTeamOption{Description: &editDescription}
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEditDesc).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiTeam = DecodeJSON(t, resp, &api.Team{})
+		checkTeamResponse(t, "EditTeam1_DescOnly", apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelName(teamToEdit.Permission), nil)
+		checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelName(teamToEdit.Permission), nil)
 
-	// Read team.
-	teamRead = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamID).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = DecodeJSON(t, resp, &api.Team{})
-	assert.NoError(t, teamRead.LoadUnits(t.Context()))
-	checkTeamResponse(t, "ReadTeam2", apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories, api.AccessLevelName(teamRead.AccessMode.ToString()), teamRead.GetUnitsMap())
+		// Edit team to granular permissions, team's permission should be reset to none
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), api.EditTeamOption{
+			Permission: "read",
+			Units:      []string{"repo.code", "repo.issues"},
+		}).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiTeam = DecodeJSON(t, resp, &api.Team{})
+		checkTeamResponse(t, "EditTeam1_Granular", apiTeam, teamToEdit.Name, editDescription, editFalse, api.AccessLevelNameNone, expectedTeamUnitsMap)
+		checkTeamBean(t, teamID, teamToEdit.Name, editDescription, editFalse, api.AccessLevelNameNone, expectedTeamUnitsMap)
 
-	// Delete team.
-	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", teamID).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+		// Read team.
+		teamRead := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
+		assert.NoError(t, teamRead.LoadUnits(t.Context()))
+		req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamID).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiTeam = DecodeJSON(t, resp, &api.Team{})
+		checkTeamResponse(t, "ReadTeam1", apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories, api.AccessLevelName(teamRead.AccessMode.ToString()), teamRead.GetUnitsMap())
+
+		// Delete team.
+		req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", teamID).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+
+		// create team again via UnitsMap (granular: do not send permission=write).
+		teamToCreate = &api.CreateTeamOption{
+			Name:                    "team2",
+			Description:             "team two",
+			IncludesAllRepositories: true,
+			UnitsMap:                map[string]string{"repo.code": "read", "repo.issues": "write", "repo.wiki": "none"},
+		}
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusCreated)
+		apiTeam = DecodeJSON(t, resp, &api.Team{})
+		checkTeamResponse(t, "CreateTeam2", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, teamToCreate.UnitsMap)
+		checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, teamToCreate.UnitsMap)
+		teamID = apiTeam.ID
+
+		// Create a team with permission=write, then edit it to granular permissions later, team's permission should be reset to none
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), api.EditTeamOption{
+			Permission: "write",
+		}).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiTeam = DecodeJSON(t, resp, &api.Team{})
+		checkTeamResponse(t, "EditTeam2_Write", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameWrite, nil)
+		checkTeamBean(t, teamID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameWrite, nil)
+
+		// Edit team.
+		editDescription = "team 1"
+		editFalse = false
+		teamToEdit = &api.EditTeamOption{
+			Name:                    "teamtwo",
+			Description:             &editDescription,
+			IncludesAllRepositories: &editFalse,
+			UnitsMap:                map[string]string{"repo.code": "read", "repo.pulls": "read", "repo.releases": "write"},
+		}
+
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEdit).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiTeam = DecodeJSON(t, resp, &api.Team{})
+		checkTeamResponse(t, "EditTeam2", apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelNameNone, teamToEdit.UnitsMap)
+		checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelNameNone, teamToEdit.UnitsMap)
+
+		// Edit team Description only
+		editDescription = "second team"
+		teamToEditDesc = api.EditTeamOption{Description: &editDescription}
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEditDesc).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiTeam = DecodeJSON(t, resp, &api.Team{})
+		checkTeamResponse(t, "EditTeam2_DescOnly", apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelNameNone, teamToEdit.UnitsMap)
+		checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelNameNone, teamToEdit.UnitsMap)
+
+		// Read team.
+		teamRead = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
+		req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamID).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiTeam = DecodeJSON(t, resp, &api.Team{})
+		assert.NoError(t, teamRead.LoadUnits(t.Context()))
+		checkTeamResponse(t, "ReadTeam2", apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories, api.AccessLevelName(teamRead.AccessMode.ToString()), teamRead.GetUnitsMap())
+
+		// Delete team.
+		req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", teamID).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+	})
+
+	t.Run("VisibilityAccess", func(t *testing.T) {
+		insertTestTeam := func(t *testing.T, orgID int64, name string, visibility structs.VisibleType) *organization.Team {
+			t.Helper()
+			team := &organization.Team{
+				OrgID:      orgID,
+				LowerName:  name,
+				Name:       name,
+				AccessMode: perm.AccessModeRead,
+				Visibility: visibility,
+			}
+			assert.NoError(t, db.Insert(t.Context(), team))
+			return team
+		}
+
+		limitedTeam := insertTestTeam(t, 3, "limited-team", structs.VisibleTypeLimited)
+
+		// Org member who can read a limited team must not mutate its repos without membership.
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		token := getUserToken(t, user4.Name, auth_model.AccessTokenScopeWriteOrganization)
+		req := NewRequestf(t, "PUT", "/api/v1/teams/%d/repos/org3/repo3", limitedTeam.ID).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+
+		publicTeam := insertTestTeam(t, 23, "public-team", structs.VisibleTypePublic)
+
+		// Public team in a private org must not be readable by outsiders.
+		outsider := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		token = getUserToken(t, outsider.Name, auth_model.AccessTokenScopeReadOrganization)
+		req = NewRequestf(t, "GET", "/api/v1/teams/%d", publicTeam.ID).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// Member lookup must require org membership even for public teams.
+		req = NewRequestf(t, "GET", "/api/v1/teams/%d/members/%s", publicTeam.ID, outsider.Name).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// A limited team's repo list must not leak repos the viewer cannot access.
+		// repo3 is private; user28 is an org3 member (team12, no repo access) who can
+		// read the limited team but has no access to repo3.
+		assert.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: 3, TeamID: limitedTeam.ID, RepoID: 3}))
+		user28 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+		token28 := getUserToken(t, user28.Name, auth_model.AccessTokenScopeReadOrganization)
+
+		req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos", limitedTeam.ID).AddTokenAuth(token28)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var repos []*api.Repository
+		DecodeJSON(t, resp, &repos)
+		for _, r := range repos {
+			assert.NotEqual(t, int64(3), r.ID, "must not leak inaccessible private repo3")
+		}
+
+		// The single-repo lookup must not confirm an inaccessible repo's existence.
+		req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/org3/repo3", limitedTeam.ID).AddTokenAuth(token28)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("RepositoryAccess", func(t *testing.T) {
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
+		org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: team.OrgID})
+		assert.False(t, org.RepoAdminChangeTeamAccess)
+		targetRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 32, OwnerID: org.ID})
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+		assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), targetRepo, user, perm.AccessModeAdmin))
+
+		token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteOrganization)
+		url := fmt.Sprintf("/api/v1/teams/%d/repos/%s", team.ID, targetRepo.FullName())
+
+		req := NewRequest(t, "PUT", url).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+		unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
+
+		assert.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: org.ID, TeamID: team.ID, RepoID: targetRepo.ID}))
+
+		req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+		unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
+
+		siteAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		token = getUserToken(t, siteAdmin.Name, auth_model.AccessTokenScopeWriteOrganization)
+		req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
+		req = NewRequest(t, "PUT", url).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
+	})
 }
 
 func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, description string, includesAllRepositories bool, permission api.AccessLevelName, unitsMap map[string]string) {
@@ -223,142 +356,4 @@ func checkTeamBean(t *testing.T, id int64, name, description string, includesAll
 type TeamSearchResults struct {
 	OK   bool        `json:"ok"`
 	Data []*api.Team `json:"data"`
-}
-
-func TestAPITeamSearch(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
-
-	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadOrganization)
-	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s", org.Name, "_team").
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	results := DecodeJSON(t, resp, &TeamSearchResults{})
-	assert.NotEmpty(t, results.Data)
-	assert.Len(t, results.Data, 1)
-	assert.Equal(t, "test_team", results.Data[0].Name)
-
-	// no access if not organization member
-	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	token5 := getUserToken(t, user5.Name, auth_model.AccessTokenScopeReadOrganization)
-
-	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s", org.Name, "team").
-		AddTokenAuth(token5)
-	MakeRequest(t, req, http.StatusForbidden)
-}
-
-func TestAPIGetTeamRepo(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
-	teamRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 24})
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5})
-
-	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadOrganization)
-	req := NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/", team.ID, teamRepo.FullName()).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &api.Repository{})
-	assert.Equal(t, "big_test_private_4", teamRepo.Name)
-
-	// no access if not organization member
-	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	token5 := getUserToken(t, user5.Name, auth_model.AccessTokenScopeReadOrganization)
-
-	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/", team.ID, teamRepo.FullName()).
-		AddTokenAuth(token5)
-	MakeRequest(t, req, http.StatusNotFound)
-}
-
-func TestAPIAddRemoveTeamRepositoryRequiresOrgOwnerOrSetting(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: team.OrgID})
-	assert.False(t, org.RepoAdminChangeTeamAccess)
-	targetRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 32, OwnerID: org.ID})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
-	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), targetRepo, user, perm.AccessModeAdmin))
-
-	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteOrganization)
-	url := fmt.Sprintf("/api/v1/teams/%d/repos/%s", team.ID, targetRepo.FullName())
-
-	req := NewRequest(t, "PUT", url).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
-	unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
-
-	assert.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: org.ID, TeamID: team.ID, RepoID: targetRepo.ID}))
-
-	req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
-	unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
-
-	siteAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	token = getUserToken(t, siteAdmin.Name, auth_model.AccessTokenScopeWriteOrganization)
-	req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
-	req = NewRequest(t, "PUT", url).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
-}
-
-func TestAPITeamVisibilityAccess(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	insertTestTeam := func(t *testing.T, orgID int64, name string, visibility structs.VisibleType) *organization.Team {
-		t.Helper()
-		team := &organization.Team{
-			OrgID:      orgID,
-			LowerName:  name,
-			Name:       name,
-			AccessMode: perm.AccessModeRead,
-			Visibility: visibility,
-		}
-		assert.NoError(t, db.Insert(t.Context(), team))
-		return team
-	}
-
-	limitedTeam := insertTestTeam(t, 3, "limited-team", structs.VisibleTypeLimited)
-
-	// Org member who can read a limited team must not mutate its repos without membership.
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	token := getUserToken(t, user4.Name, auth_model.AccessTokenScopeWriteOrganization)
-	req := NewRequestf(t, "PUT", "/api/v1/teams/%d/repos/org3/repo3", limitedTeam.ID).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
-
-	publicTeam := insertTestTeam(t, 23, "public-team", structs.VisibleTypePublic)
-
-	// Public team in a private org must not be readable by outsiders.
-	outsider := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token = getUserToken(t, outsider.Name, auth_model.AccessTokenScopeReadOrganization)
-	req = NewRequestf(t, "GET", "/api/v1/teams/%d", publicTeam.ID).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-
-	// Member lookup must require org membership even for public teams.
-	req = NewRequestf(t, "GET", "/api/v1/teams/%d/members/%s", publicTeam.ID, outsider.Name).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-
-	// A limited team's repo list must not leak repos the viewer cannot access.
-	// repo3 is private; user28 is an org3 member (team12, no repo access) who can
-	// read the limited team but has no access to repo3.
-	assert.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: 3, TeamID: limitedTeam.ID, RepoID: 3}))
-	user28 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
-	token28 := getUserToken(t, user28.Name, auth_model.AccessTokenScopeReadOrganization)
-
-	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos", limitedTeam.ID).AddTokenAuth(token28)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var repos []*api.Repository
-	DecodeJSON(t, resp, &repos)
-	for _, r := range repos {
-		assert.NotEqual(t, int64(3), r.ID, "must not leak inaccessible private repo3")
-	}
-
-	// The single-repo lookup must not confirm an inaccessible repo's existence.
-	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/org3/repo3", limitedTeam.ID).AddTokenAuth(token28)
-	MakeRequest(t, req, http.StatusNotFound)
 }

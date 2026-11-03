@@ -122,6 +122,32 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 
 	pr3Poster := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
 
+	t.Run("PublicOnlyTokenCannotUpdatePrivateHeadEvenWhitelisted", func(t *testing.T) {
+		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
+		protectedBranch := &git_model.ProtectedBranch{
+			RepoID:           pr3.HeadRepoID,
+			RuleName:         pr3.HeadBranch,
+			CanPush:          true,
+			EnableWhitelist:  true,
+			WhitelistUserIDs: []int64{pr3Poster.ID},
+		}
+		_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
+		require.NoError(t, err)
+		defer db.DeleteByBean(t.Context(), protectedBranch)
+		require.NoError(t, pr3.LoadHeadRepo(t.Context()))
+		pr3.HeadRepo.IsPrivate = true
+
+		pushAllowed, _, _, err := checkUserAllowedToUpdate(t.Context(), pr3, pr3Poster)
+		assert.NoError(t, err)
+		assert.True(t, pushAllowed)
+
+		publicOnlyPoster := *pr3Poster
+		publicOnlyPoster.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:repository")
+		pushAllowed, _, _, err = checkUserAllowedToUpdate(t.Context(), pr3, &publicOnlyPoster)
+		assert.NoError(t, err)
+		assert.False(t, pushAllowed)
+	})
+
 	t.Run("MaintainerEditRespectsPosterPermissions", func(t *testing.T) {
 		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
 		pr3.AllowMaintainerEdit = true
@@ -131,65 +157,49 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 		assert.False(t, rebaseAllowed)
 	})
 
-	t.Run("MaintainerEditInheritsPosterPermissions", func(t *testing.T) {
-		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
-		pr3.AllowMaintainerEdit = true
-		protectedBranch := &git_model.ProtectedBranch{
-			RepoID:       pr3.HeadRepoID,
-			RuleName:     pr3.HeadBranch,
-			CanPush:      true,
-			CanForcePush: true,
-		}
-		_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
-		require.NoError(t, err)
-		defer db.DeleteByBean(t.Context(), protectedBranch)
+	for _, testCase := range []struct {
+		name          string
+		disableRebase bool
+	}{
+		{"MaintainerEditInheritsPosterPermissions", false},
+		{"MaintainerEditInheritsPosterPermissionsRebaseDisabled", true},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
+			pr3.AllowMaintainerEdit = true
+			protectedBranch := &git_model.ProtectedBranch{
+				RepoID:       pr3.HeadRepoID,
+				RuleName:     pr3.HeadBranch,
+				CanPush:      true,
+				CanForcePush: true,
+			}
+			_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
+			require.NoError(t, err)
+			defer db.DeleteByBean(t.Context(), protectedBranch)
 
-		collaboration := &repo_model.Collaboration{
-			RepoID: pr3.HeadRepoID,
-			UserID: pr3Poster.ID,
-			Mode:   perm.AccessModeWrite,
-		}
-		require.NoError(t, db.Insert(t.Context(), collaboration))
-		defer db.DeleteByBean(t.Context(), collaboration)
+			collaboration := &repo_model.Collaboration{
+				RepoID: pr3.HeadRepoID,
+				UserID: pr3Poster.ID,
+				Mode:   perm.AccessModeWrite,
+			}
+			require.NoError(t, db.Insert(t.Context(), collaboration))
+			defer db.DeleteByBean(t.Context(), collaboration)
 
-		require.NoError(t, pr3.LoadHeadRepo(t.Context()))
-		assert.NoError(t, access_model.RecalculateUserAccess(t.Context(), pr3.HeadRepo, pr3Poster.ID))
+			require.NoError(t, pr3.LoadHeadRepo(t.Context()))
+			assert.NoError(t, access_model.RecalculateUserAccess(t.Context(), pr3.HeadRepo, pr3Poster.ID))
 
-		pushAllowed, rebaseAllowed, _, err := checkUserAllowedToUpdate(t.Context(), pr3, pr3Poster)
-		assert.NoError(t, err)
-		assert.True(t, pushAllowed)
-		assert.True(t, rebaseAllowed)
-	})
+			if testCase.disableRebase {
+				setRepoAllowRebaseUpdate(t, pr3.BaseRepoID, false)
+			}
 
-	t.Run("MaintainerEditInheritsPosterPermissionsRebaseDisabled", func(t *testing.T) {
-		pr3 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
-		pr3.AllowMaintainerEdit = true
-		protectedBranch := &git_model.ProtectedBranch{
-			RepoID:       pr3.HeadRepoID,
-			RuleName:     pr3.HeadBranch,
-			CanPush:      true,
-			CanForcePush: true,
-		}
-		_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
-		require.NoError(t, err)
-		defer db.DeleteByBean(t.Context(), protectedBranch)
-
-		collaboration := &repo_model.Collaboration{
-			RepoID: pr3.HeadRepoID,
-			UserID: pr3Poster.ID,
-			Mode:   perm.AccessModeWrite,
-		}
-		require.NoError(t, db.Insert(t.Context(), collaboration))
-		defer db.DeleteByBean(t.Context(), collaboration)
-
-		require.NoError(t, pr3.LoadHeadRepo(t.Context()))
-		assert.NoError(t, access_model.RecalculateUserAccess(t.Context(), pr3.HeadRepo, pr3Poster.ID))
-
-		setRepoAllowRebaseUpdate(t, pr3.BaseRepoID, false)
-
-		pushAllowed, rebaseAllowed, _, err := checkUserAllowedToUpdate(t.Context(), pr3, pr3Poster)
-		assert.NoError(t, err)
-		assert.True(t, pushAllowed)
-		assert.False(t, rebaseAllowed)
-	})
+			pushAllowed, rebaseAllowed, _, err := checkUserAllowedToUpdate(t.Context(), pr3, pr3Poster)
+			assert.NoError(t, err)
+			assert.True(t, pushAllowed)
+			if testCase.disableRebase {
+				assert.False(t, rebaseAllowed)
+			} else {
+				assert.True(t, rebaseAllowed)
+			}
+		})
+	}
 }

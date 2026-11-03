@@ -145,7 +145,7 @@
 	</div>
 </div>
 
-<div id="generate-release-notes-modal" class="ui mini modal">
+<dialog id="generate-release-notes-modal" class="modal-dialog">
 	<div class="content ui form">
 		<p>{{ctx.Locale.Tr "repo.release.generate_notes_desc"}}</p>
 		<div class="field">
@@ -156,6 +156,6 @@
 			<button type="button" class="ui primary ok button">{{ctx.Locale.Tr "repo.release.generate_notes"}}</button>
 		</div>
 	</div>
-</div>
+</dialog>
 
 {{template "base/footer" .}}

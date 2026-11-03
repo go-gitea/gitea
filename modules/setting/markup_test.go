@@ -6,10 +6,17 @@ package setting
 import (
 	"testing"
 
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadMarkup(t *testing.T) {
+	defer test.MockVariableValue(&Markdown)()
+	defer test.MockVariableValue(&ExternalMarkupRenderers)()
+	defer test.MockVariableValue(&ExternalSanitizerRules)()
+	defer test.MockVariableValue(&MermaidMaxSourceCharacters)()
+
 	cfg, _ := NewConfigProviderFromData(``)
 	loadMarkupFrom(cfg)
 	assert.Equal(t, MarkdownMathCodeBlockOptions{ParseInlineDollar: true, ParseBlockDollar: true}, Markdown.MathCodeBlockOptions)

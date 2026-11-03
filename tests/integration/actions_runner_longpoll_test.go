@@ -21,7 +21,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,12 +56,12 @@ jobs:
 		t.Run("client deadline", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 			defer cancel()
-			resp, err := runner.client.runnerServiceClient.FetchTask(ctx, connect.NewRequest(&runnerv1.FetchTaskRequest{
+			resp, err := runner.client.runnerServiceClient.FetchTask(ctx, &runnerv1.FetchTaskRequest{
 				TasksVersion: tasksVersion,
-			}))
+			})
 			require.NoError(t, err)
-			assert.Nil(t, resp.Msg.Task)
-			assert.Equal(t, tasksVersion, resp.Msg.TasksVersion)
+			assert.Nil(t, resp.Task)
+			assert.Equal(t, tasksVersion, resp.TasksVersion)
 		})
 		requestWritten := make(chan struct{})
 		ctx := httptrace.WithClientTrace(t.Context(), &httptrace.ClientTrace{
@@ -76,13 +75,13 @@ jobs:
 		)
 		wg.Go(func() {
 			start := time.Now()
-			resp, err := runner.client.runnerServiceClient.FetchTask(ctx, connect.NewRequest(&runnerv1.FetchTaskRequest{
+			resp, err := runner.client.runnerServiceClient.FetchTask(ctx, &runnerv1.FetchTaskRequest{
 				TasksVersion: tasksVersion,
-			}))
+			})
 			elapsed = time.Since(start)
 			assert.NoError(t, err)
 			if resp != nil {
-				task = resp.Msg.Task
+				task = resp.Task
 			}
 		})
 

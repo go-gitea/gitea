@@ -131,6 +131,7 @@ type PullRequestsConfig struct {
 	DefaultUpdateStyle            UpdateStyle
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
+	DefaultSquashMergeMessage     SquashMergeMessage
 	DefaultAllowMaintainerEdit    bool
 	DefaultTargetBranch           string
 }
@@ -150,6 +151,7 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 	cfg.DefaultDeleteBranchAfterMerge = setting.Repository.PullRequest.DefaultDeleteBranchAfterMerge
 	cfg.DefaultMergeStyle = MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
 	cfg.DefaultMergeStyle = util.IfZero(cfg.DefaultMergeStyle, MergeStyleMerge)
+	cfg.DefaultSquashMergeMessage = SquashMergeMessage(setting.Repository.PullRequest.DefaultSquashMergeMessage)
 	return cfg
 }
 

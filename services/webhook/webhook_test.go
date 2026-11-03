@@ -7,11 +7,13 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -26,11 +28,61 @@ func TestWebhookService(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	t.Run("GetSlackHook", testWebhookGetSlackHook)
 	t.Run("PrepareWebhooks", testWebhookPrepare)
+	t.Run("AssigneeChanges", testWebhookAssigneeChanges)
 	t.Run("PrepareBranchFilterMatch", testWebhookPrepareBranchFilterMatch)
 	t.Run("PrepareBranchFilterNoMatch", testWebhookPrepareBranchFilterNoMatch)
 	t.Run("WebhookUserMail", testWebhookUserMail)
 	t.Run("CheckBranchFilter", testWebhookCheckBranchFilter)
 	t.Run("PrepareTestWebhookIgnoresGates", testPrepareTestWebhookIgnoresGates)
+}
+
+func testWebhookAssigneeChanges(t *testing.T) {
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	for _, c := range []struct {
+		name      string
+		issueID   int64
+		eventType webhook_module.HookEventType
+	}{
+		{"issue", 1, webhook_module.HookEventIssueAssign},
+		{"pull request", 2, webhook_module.HookEventPullRequestAssign},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			for _, removed := range []bool{false, true} {
+				issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: c.issueID})
+				require.NoError(t, issue.LoadAttributes(t.Context()))
+				hook := &webhook_model.Webhook{
+					RepoID:      issue.RepoID,
+					URL:         "http://localhost/gitea-webhook-test-assignee-changes",
+					ContentType: webhook_model.ContentTypeJSON,
+					Events:      `{"send_everything":true}`,
+					IsActive:    true,
+				}
+				require.NoError(t, db.Insert(t.Context(), hook))
+
+				(&webhookNotifier{}).IssueChangeAssignee(t.Context(), doer, issue, assignee, removed, nil)
+
+				task := unittest.AssertExistsAndLoadBean(t, &webhook_model.HookTask{HookID: hook.ID, EventType: c.eventType})
+				var payload struct {
+					Action  api.HookIssueAction `json:"action"`
+					Changes *api.ChangesPayload `json:"changes"`
+				}
+				require.NoError(t, json.Unmarshal([]byte(task.PayloadContent), &payload))
+				require.NotNil(t, payload.Changes)
+				if removed {
+					assert.Equal(t, api.HookIssueUnassigned, payload.Action)
+					assert.Empty(t, payload.Changes.AddedAssignees)
+					require.Len(t, payload.Changes.RemovedAssignees, 1)
+					assert.Equal(t, assignee.ID, payload.Changes.RemovedAssignees[0].ID)
+				} else {
+					assert.Equal(t, api.HookIssueAssigned, payload.Action)
+					assert.Empty(t, payload.Changes.RemovedAssignees)
+					require.Len(t, payload.Changes.AddedAssignees, 1)
+					assert.Equal(t, assignee.ID, payload.Changes.AddedAssignees[0].ID)
+				}
+			}
+		})
+	}
 }
 
 func testWebhookGetSlackHook(t *testing.T) {

@@ -195,3 +195,23 @@ func ToProjectColumnList(ctx context.Context, columns []*project_model.Column, d
 	}
 	return result
 }
+
+func ToProjectWorkflow(wf *project_model.Workflow) *api.ProjectWorkflow {
+	return &api.ProjectWorkflow{
+		ID:      wf.ID,
+		Event:   string(wf.WorkflowEvent),
+		Enabled: wf.Enabled,
+		Filters: api.ProjectWorkflowFilters(wf.WorkflowFilters),
+		Actions: api.ProjectWorkflowActions(wf.WorkflowActions),
+		Created: wf.CreatedUnix.AsTime(),
+		Updated: wf.UpdatedUnix.AsTime(),
+	}
+}
+
+func ToProjectWorkflowList(workflows []*project_model.Workflow) []*api.ProjectWorkflow {
+	result := make([]*api.ProjectWorkflow, len(workflows))
+	for i, wf := range workflows {
+		result[i] = ToProjectWorkflow(wf)
+	}
+	return result
+}

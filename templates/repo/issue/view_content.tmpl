@@ -38,9 +38,6 @@
 						</div>
 						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
-							{{if not $.Repository.IsArchived}}
-								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
-							{{end}}
 							{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_main" "ConvContentItem" .Issue}}
 						</div>
 					</div>
@@ -58,10 +55,11 @@
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Issue.Attachments "RenderedContent" .Issue.RenderedContent}}
 						{{end}}
 					</div>
-					{{$reactions := .Issue.Reactions.GroupByType}}
-					{{if $reactions}}
-						{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
-					{{end}}
+					{{template "shared/reactions" dict
+						"AllowedReactions" $.AllowedIssueReactions
+						"ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)
+						"Reactions" .Issue.Reactions.GroupByType
+					}}
 				</div>
 			</div>
 

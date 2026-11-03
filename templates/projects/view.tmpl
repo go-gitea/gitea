@@ -23,8 +23,12 @@
 				"ClosedMilestones" .ClosedMilestones
 			}}
 		</div>
-		{{if $canWriteProject}}
-			<div class="ui compact mini menu">
+		<div class="ui compact mini menu">
+			<a class="item" href="{{.Link}}/workflows">
+				{{svg "octicon-workflow"}}
+				{{ctx.Locale.Tr "projects.workflows"}}
+			</a>
+			{{if $canWriteProject}}
 				<a class="item screen-full">
 					{{svg "octicon-screen-full"}}
 					{{ctx.Locale.Tr "projects.enter_fullscreen"}}
@@ -66,8 +70,8 @@
 					{{svg "octicon-plus"}}
 					{{ctx.Locale.Tr "new_project_column"}}
 				</button>
-			</div>
-		{{end}}
+			{{end}}
+		</div>
 	</div>
 
 	<div class="ui container project-description">
@@ -133,7 +137,7 @@
 </div>
 
 {{if $canWriteProject}}
-<div class="ui small modal" id="project-column-modal-edit">
+<dialog class="modal-dialog" id="project-column-modal-edit">
 	<div class="header">{{ctx.Locale.Tr "repo.projects.column.edit"}}</div>
 	<div class="content">
 		<form class="ui form ignore-dirty" method="post" data-action-base-link="{{$.Link}}">
@@ -155,5 +159,5 @@
 			</div>
 		</form>
 	</div>
-</div>
+</dialog>
 {{end}}

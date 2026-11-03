@@ -110,7 +110,7 @@
 			<div class="item">
 				{{svg "octicon-trash"}}
 				<a class="show-modal" href data-modal="#delete-package-version-modal">{{ctx.Locale.Tr "packages.settings.delete.version"}}</a>
-				<div class="ui tiny modal" id="delete-package-version-modal">
+				<dialog class="modal-dialog" id="delete-package-version-modal">
 					<div class="header">
 						{{ctx.Locale.Tr "packages.settings.delete.version"}}
 					</div>
@@ -122,7 +122,7 @@
 							{{template "base/modal_actions_confirm" .}}
 						</form>
 					</div>
-				</div>
+				</dialog>
 			</div>
 			{{end}}
 		</div>
