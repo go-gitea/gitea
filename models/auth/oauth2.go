@@ -100,59 +100,36 @@ func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 	return m
 }
 
+// Init syncs the builtin applications with OAuth2.DefaultApplications, other processes may be doing the same concurrently.
 func Init(ctx context.Context) error {
 	builtinApps := BuiltinApplications()
-	var builtinAllClientIDs []string
-	for clientID := range builtinApps {
-		builtinAllClientIDs = append(builtinAllClientIDs, clientID)
+	configNames := container.Set[string]{}
+	for _, builtinApp := range builtinApps {
+		configNames.Add(builtinApp.ConfigName)
 	}
-
-	var registeredApps []*OAuth2Application
-	if err := db.GetEngine(ctx).In("client_id", builtinAllClientIDs).Find(&registeredApps); err != nil {
-		return err
-	}
-
-	clientIDsToAdd := container.Set[string]{}
 	for _, configName := range setting.OAuth2.DefaultApplications {
-		found := false
-		for clientID, builtinApp := range builtinApps {
-			if builtinApp.ConfigName == configName {
-				clientIDsToAdd.Add(clientID) // add all user-configured apps to the "add" list
-				found = true
-			}
-		}
-		if !found {
+		if !configNames.Contains(configName) {
 			return fmt.Errorf("unknown oauth2 application: %q", configName)
 		}
 	}
-	clientIDsToDelete := container.Set[string]{}
-	for _, app := range registeredApps {
-		if !clientIDsToAdd.Contains(app.ClientID) {
-			clientIDsToDelete.Add(app.ClientID) // if a registered app is not in the "add" list, it should be deleted
+	for clientID, builtinApp := range builtinApps {
+		app := &OAuth2Application{ClientID: clientID}
+		has, err := db.GetEngine(ctx).Get(app)
+		if err != nil {
+			return err
 		}
-	}
-	for _, app := range registeredApps {
-		clientIDsToAdd.Remove(app.ClientID) // no need to re-add existing (registered) apps, so remove them from the set
-	}
-
-	for _, app := range registeredApps {
-		if clientIDsToDelete.Contains(app.ClientID) {
-			if err := deleteOAuth2Application(ctx, app.ID, 0); err != nil {
+		if enabled := slices.Contains(setting.OAuth2.DefaultApplications, builtinApp.ConfigName); has && !enabled {
+			if err := deleteOAuth2Application(ctx, app.ID, 0); err != nil && !errors.Is(err, util.ErrNotExist) {
 				return err
+			}
+		} else if !has && enabled {
+			if err := db.Insert(ctx, &OAuth2Application{Name: builtinApp.DisplayName, ClientID: clientID, RedirectURIs: builtinApp.RedirectURIs}); err != nil {
+				if exists, _ := db.GetEngine(ctx).Exist(&OAuth2Application{ClientID: clientID}); !exists {
+					return err
+				}
 			}
 		}
 	}
-	for clientID := range clientIDsToAdd {
-		builtinApp := builtinApps[clientID]
-		if err := db.Insert(ctx, &OAuth2Application{
-			Name:         builtinApp.DisplayName,
-			ClientID:     clientID,
-			RedirectURIs: builtinApp.RedirectURIs,
-		}); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 

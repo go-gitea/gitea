@@ -4,6 +4,8 @@
 package auth_test
 
 import (
+	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -328,4 +331,19 @@ func TestOAuth2AuthorizationCode_GenerateRedirectURI(t *testing.T) {
 
 func TestOAuth2AuthorizationCode_TableName(t *testing.T) {
 	assert.Equal(t, "oauth2_authorization_code", new(auth_model.OAuth2AuthorizationCode).TableName())
+}
+
+func TestInitSyncsBuiltinApplicationsConcurrently(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	for _, apps := range [][]string{{"git-credential-oauth", "gitea-cli"}, {"gitea-cli"}} {
+		defer test.MockVariableValue(&setting.OAuth2.DefaultApplications, apps)()
+		var wg sync.WaitGroup
+		for range 8 {
+			wg.Go(func() { assert.NoError(t, auth_model.Init(t.Context())) })
+		}
+		wg.Wait()
+		for clientID, app := range auth_model.BuiltinApplications() {
+			unittest.AssertCount(t, &auth_model.OAuth2Application{ClientID: clientID}, util.Iif(slices.Contains(apps, app.ConfigName), 1, 0))
+		}
+	}
 }
