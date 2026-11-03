@@ -208,7 +208,7 @@ func (s *Service) FetchTask(
 			// if we don't increase the value of `latestVersion` here,
 			// the response of FetchTask will return tasksVersion as zero.
 			// and the runner will treat it as an old version of Gitea.
-			latestVersion = 1
+			latestVersion++
 		}
 
 		if clientVersion != latestVersion {
