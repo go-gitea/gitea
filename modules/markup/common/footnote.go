@@ -26,24 +26,15 @@ import (
 // and more closely matches the output from the shurcooL sanitizer
 // In particular Unicode letters and numbers are a lot more than a-zA-Z0-9...
 func CleanValue(value []byte) []byte {
-	value = bytes.TrimSpace(value)
-	rs := bytes.Runes(value)
-	result := make([]rune, 0, len(rs))
-	for _, r := range rs {
-		// Like GitHub, keep combining marks: dropping them mangles words in
-		// scripts like Devanagari (हिन्दी -> हनद) and decomposed accents.
-		// Variation selectors are marks too, but invisible, so drop them.
-		isMark := unicode.IsMark(r) && !unicode.Is(unicode.Variation_Selector, r)
-		if unicode.IsLetter(r) || isMark || unicode.IsNumber(r) || r == '_' || r == '-' {
-			result = append(result, unicode.ToLower(r))
+	return bytes.Map(func(r rune) rune {
+		switch {
+		case r == ' ':
+			return '-'
+		case r == '-' || unicode.In(r, unicode.L, unicode.M, unicode.Nd, unicode.Nl, unicode.Pc, unicode.Other_Alphabetic):
+			return unicode.ToLower(r)
 		}
-		// Like GitHub, only turn ASCII spaces into hyphens and drop all other
-		// whitespace (tabs, no-break spaces, em spaces, ...).
-		if r == ' ' {
-			result = append(result, '-')
-		}
-	}
-	return []byte(string(result))
+		return -1
+	}, bytes.TrimSpace(value))
 }
 
 // Most of what follows is a subtly changed version of github.com/yuin/goldmark/extension/footnote.go
