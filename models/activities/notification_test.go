@@ -196,23 +196,17 @@ func TestNotification_GetIssue(t *testing.T) {
 func TestGetNotificationCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	cnt, err := db.Count[activities_model.Notification](t.Context(), activities_model.FindNotificationOptions{
-		UserID: user.ID,
-		Status: []activities_model.NotificationStatus{
-			activities_model.NotificationStatusRead,
-		},
-	})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, cnt)
-
-	cnt, err = db.Count[activities_model.Notification](t.Context(), activities_model.FindNotificationOptions{
-		UserID: user.ID,
-		Status: []activities_model.NotificationStatus{
-			activities_model.NotificationStatusUnread,
-		},
-	})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, cnt)
+	for count, status := range []activities_model.NotificationStatus{
+		activities_model.NotificationStatusRead,
+		activities_model.NotificationStatusUnread,
+	} {
+		cnt, err := db.Count[activities_model.Notification](t.Context(), activities_model.FindNotificationOptions{
+			UserID: user.ID,
+			Status: []activities_model.NotificationStatus{status},
+		})
+		assert.NoError(t, err)
+		assert.EqualValues(t, count, cnt)
+	}
 }
 
 func TestSetNotificationStatus(t *testing.T) {

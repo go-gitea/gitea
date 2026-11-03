@@ -23,71 +23,70 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Events an admin causes while impersonating must stay traceable to the admin,
-// otherwise anything done in an impersonated session is pinned on the victim.
-func TestAdminAuditLogImpersonation(t *testing.T) {
+func TestAdminAuditLogAttribution(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
-	session := loginUser(t, "user1")
-	session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/2/impersonate"), http.StatusOK)
+	// A leaked token is only traceable if events name the token, not just its owner.
+	t.Run("TokenCredential", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
 
-	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
-		"name":        "impersonated-token",
-		"scope-dummy": "read:user",
-	}), http.StatusOK)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
+			Name: "audit-credential-repo",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
 
-	session.MakeRequest(t, NewRequest(t, "GET", "/user/logout"), http.StatusSeeOther)
-
-	events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{ActorID: 1})
-	require.NoError(t, err)
-
-	byAction := make(map[audit_model.Action]*audit_model.Event, len(events))
-	for _, e := range events {
-		byAction[e.Action] = e
-	}
-
-	start := byAction[audit_model.UserImpersonation]
-	require.NotNil(t, start)
-	assert.Equal(t, int64(1), start.ActorID)
-	assert.Equal(t, int64(2), start.ScopeID)
-
-	token := byAction[audit_model.UserAccessTokenAdd]
-	require.NotNil(t, token)
-	assert.Equal(t, int64(2), token.ActorID) // the token really belongs to user2
-	assert.Equal(t, int64(1), token.ImpersonatorID)
-	assert.Equal(t, "user1", token.ImpersonatorName)
-	assert.Equal(t, audit_model.OriginUI, token.Origin)
-	assert.NotEmpty(t, token.IPAddress)
-
-	exit := byAction[audit_model.UserImpersonationExit]
-	require.NotNil(t, exit)
-	assert.Equal(t, int64(1), exit.ActorID)
-	assert.Zero(t, exit.ImpersonatorID)
-}
-
-// A leaked token is only traceable if events name the token, not just its owner.
-func TestAdminAuditLogTokenCredential(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
-
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-
-	req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
-		Name: "audit-credential-repo",
-	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
-
-	events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{
-		Action:  audit_model.RepositoryCreate,
-		ActorID: 2,
+		events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{
+			Action:  audit_model.RepositoryCreate,
+			ActorID: 2,
+		})
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.True(t, strings.HasPrefix(events[0].ActorCredential, "access-token:"), "unexpected credential %q", events[0].ActorCredential)
+		assert.Equal(t, audit_model.OriginAPI, events[0].Origin)
+		assert.NotEmpty(t, events[0].IPAddress)
 	})
-	require.NoError(t, err)
-	require.Len(t, events, 1)
-	assert.True(t, strings.HasPrefix(events[0].ActorCredential, "access-token:"), "unexpected credential %q", events[0].ActorCredential)
-	assert.Equal(t, audit_model.OriginAPI, events[0].Origin)
-	assert.NotEmpty(t, events[0].IPAddress)
+
+	// Events an admin causes while impersonating must stay traceable to the admin,
+	// otherwise anything done in an impersonated session is pinned on the victim.
+	t.Run("Impersonation", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/2/impersonate"), http.StatusOK)
+
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
+			"name":        "impersonated-token",
+			"scope-dummy": "read:user",
+		}), http.StatusOK)
+
+		session.MakeRequest(t, NewRequest(t, "GET", "/user/logout"), http.StatusSeeOther)
+
+		events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{ActorID: 1})
+		require.NoError(t, err)
+
+		byAction := make(map[audit_model.Action]*audit_model.Event, len(events))
+		for _, e := range events {
+			byAction[e.Action] = e
+		}
+
+		start := byAction[audit_model.UserImpersonation]
+		require.NotNil(t, start)
+		assert.Equal(t, int64(1), start.ActorID)
+		assert.Equal(t, int64(2), start.ScopeID)
+
+		token := byAction[audit_model.UserAccessTokenAdd]
+		require.NotNil(t, token)
+		assert.Equal(t, int64(2), token.ActorID) // the token really belongs to user2
+		assert.Equal(t, int64(1), token.ImpersonatorID)
+		assert.Equal(t, "user1", token.ImpersonatorName)
+		assert.Equal(t, audit_model.OriginUI, token.Origin)
+		assert.NotEmpty(t, token.IPAddress)
+
+		exit := byAction[audit_model.UserImpersonationExit]
+		require.NotNil(t, exit)
+		assert.Equal(t, int64(1), exit.ActorID)
+		assert.Zero(t, exit.ImpersonatorID)
+	})
 }
 
 func TestAdminAuditLogExport(t *testing.T) {

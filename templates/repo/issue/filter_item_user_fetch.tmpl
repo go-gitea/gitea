@@ -6,7 +6,7 @@
 * TextFilterTitle
 */}}
 {{$queryLink := .QueryLink}}
-<div class="item ui dropdown custom user-remote-search" data-tooltip-content="{{ctx.Locale.Tr "repo.user_search_tooltip"}}"
+<div class="item ui dropdown custom" data-tooltip-content="{{ctx.Locale.Tr "repo.user_search_tooltip"}}" data-global-init="initDropdownUserRemoteSearch"
 		data-search-url="{{$.UserSearchUrl}}"
 		data-selected-username="{{$.SelectedUsername}}"
 		data-action-jump-url="{{QueryBuild $queryLink $.QueryParamKey NIL}}&{{$.QueryParamKey}}={username}"

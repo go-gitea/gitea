@@ -78,22 +78,14 @@ type CodebaseDownloader struct {
 // NewCodebaseDownloader creates a new downloader
 func NewCodebaseDownloader(_ context.Context, projectURL *url.URL, project, repoName, username, password string) *CodebaseDownloader {
 	baseURL, _ := url.Parse("https://api3.codebasehq.com")
-	transport := NewMigrationHTTPTransport()
 
 	downloader := &CodebaseDownloader{
 		baseURL:    baseURL,
 		projectURL: projectURL,
 		project:    project,
 		repoName:   repoName,
-		client: &http.Client{
-			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
-				if username != "" && password != "" {
-					req = req.Clone(req.Context())
-					req.SetBasicAuth(username, password)
-				}
-				return transport.RoundTrip(req)
-			}),
-		},
+
+		client:    newMigrationHTTPClient(baseURL.String(), basicAuthorization(username, password)),
 		userMap:   make(map[int64]*codebaseUser),
 		commitMap: make(map[string]string),
 	}

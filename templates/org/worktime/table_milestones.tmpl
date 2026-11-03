@@ -9,12 +9,12 @@
 	<tbody>
 		{{range $.WorktimeSumResult}}
 		<tr>
-			<td>
+			<td class="tw-break-anywhere">
 				{{if not .HideRepoName}}
 					{{svg "octicon-repo"}} <a href="{{$.Org.HomeLink}}/{{PathEscape .RepoName}}/issues">{{.RepoName}}</a>
 				{{end}}
 			</td>
-			<td>
+			<td class="tw-break-anywhere">
 				{{if .MilestoneName}}
 					{{svg "octicon-milestone"}} <a href="{{$.Org.HomeLink}}/{{PathEscape .RepoName}}/milestone/{{.MilestoneID}}">{{.MilestoneName}}</a>
 				{{else}}

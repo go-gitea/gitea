@@ -526,7 +526,6 @@
   "settings.delete_account_title": "Verwijder gebruikers account",
   "settings.delete_account_desc": "Weet je zeker dat je dit gebruikersaccount permanent wil verwijderen?",
   "settings.email_notifications.enable": "E-mailnotificaties inschakelen",
-  "settings.email_notifications.onmention": "Alleen e-mail op vermelding",
   "settings.email_notifications.disable": "E-mailnotificaties uitschakelen",
   "settings.email_notifications.submit": "E-mailvoorkeur instellen",
   "settings.email_notifications.andyourown": "En je eigen notificaties",
@@ -1478,7 +1477,6 @@
   "repo.diff.comment.add_review_comment": "Voeg commentaar toe",
   "repo.diff.comment.start_review": "Review starten",
   "repo.diff.comment.reply": "Reageer",
-  "repo.diff.review.header": "Review versturen",
   "repo.diff.review.placeholder": "Commentaar controleren",
   "repo.diff.review.comment": "Opmerking",
   "repo.diff.review.approve": "Goedkeuren",
@@ -2001,5 +1999,6 @@
   "actions.workflow.scope_owner": "Eigenaar",
   "actions.workflow.required": "Vereist",
   "actions.job_queue.filter_repo_no_select": "Alle repositories",
+  "projects.workflows.none": "Geen",
   "actions.general.token_permissions.mode.restricted": "Beperkt"
 }

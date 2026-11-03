@@ -65,8 +65,8 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SecretList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo.Repository
 	listOptions := utils.GetListOptions(ctx)
@@ -129,10 +129,8 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	//     description: response when creating a secret
 	//   "204":
 	//     description: response when updating a secret
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
 
@@ -185,10 +183,8 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: delete one secret of the repository
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
 
@@ -229,10 +225,8 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//			"$ref": "#/responses/ActionVariable"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		BelongingScope: actions_model.BelongingScopeRepo(ctx.Repo.Repository.ID),
 		Name:           ctx.PathParam("variablename"),
@@ -283,10 +277,8 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	//     description: response when deleting a variable
 	//   "204":
 	//     description: response when deleting a variable
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	if err := actions_service.DeleteVariableByName(ctx, actions_model.BelongingScopeRepo(ctx.Repo.Repository.ID), ctx.PathParam("variablename")); err != nil {
 		ctx.APIErrorAuto(err)
@@ -326,11 +318,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     description: response when creating a repo-level variable
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "409":
-	//     description: variable name already exists.
-	//   "500":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm[*api.CreateVariableOption](ctx)
@@ -391,10 +379,8 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	//     description: response when updating a repo-level variable
 	//   "204":
 	//     description: response when updating a repo-level variable
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
@@ -452,10 +438,8 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//		 "$ref": "#/responses/VariableList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	listOptions := utils.GetListOptions(ctx)
 
@@ -535,10 +519,8 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RunnerList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.ListRunners(ctx, 0, ctx.Repo.Repository.ID)
 }
 
@@ -568,10 +550,8 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Runner"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.GetRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
 }
 
@@ -601,10 +581,8 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: runner has been deleted
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
 }
 
@@ -640,12 +618,8 @@ func (Action) UpdateRunner(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Runner"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 	shared.UpdateRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
 }
 
@@ -691,12 +665,8 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	repoID := ctx.Repo.Repository.ID
 
@@ -762,10 +732,8 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRunsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	repoID := ctx.Repo.Repository.ID
 
@@ -811,16 +779,8 @@ func ListActionTasks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TasksList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 	listOptions := utils.GetListOptions(ctx)
 
 	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, &actions_model.FindTaskOptions{
@@ -876,15 +836,7 @@ func ActionsListRepositoryWorkflows(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActionWorkflowList"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "500":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	workflows, err := convert.ListActionWorkflows(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository)
@@ -921,15 +873,7 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActionWorkflow"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "500":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	workflowID := ctx.PathParam("workflow_id")
@@ -1010,12 +954,8 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRunsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	workflowID := ctx.PathParam("workflow_id")
 	scopedWorkflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
@@ -1068,14 +1008,8 @@ func ActionsDisableWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: No Content
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
 	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, false)
@@ -1127,14 +1061,8 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RunDetails"
 	//   "204":
 	//     description: No Content, if return_run_details is missing or false
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
 	opt := web.GetForm[*api.CreateActionWorkflowDispatch](ctx)
@@ -1215,16 +1143,8 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: No Content
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
 	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, true)
@@ -1313,10 +1233,8 @@ func GetWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	run := getCurrentRepoActionRunByID(ctx)
 	if ctx.Written() {
@@ -1357,10 +1275,8 @@ func GetWorkflowRunAttempt(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	run, attempt := getCurrentRepoActionRunAttemptByNumber(ctx)
 	if ctx.Written() {
@@ -1401,16 +1317,8 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
 	if ctx.Written() {
@@ -1454,16 +1362,8 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
 	if ctx.Written() {
@@ -1516,16 +1416,8 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/WorkflowJob"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
 	if ctx.Written() {
@@ -1616,12 +1508,8 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	repoID, runID := ctx.Repo.Repository.ID, ctx.PathParamInt64("run")
 
@@ -1685,10 +1573,8 @@ func ListWorkflowRunAttemptJobs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	run, attempt := getCurrentRepoActionRunAttemptByNumber(ctx)
 	if ctx.Written() {
@@ -1724,10 +1610,8 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJob"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	jobID := ctx.PathParamInt64("job_id")
 	job, has, err := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
@@ -1780,10 +1664,8 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ArtifactsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	artifactName := ctx.Req.URL.Query().Get("name")
 	repoID, runID := ctx.Repo.Repository.ID, ctx.PathParamInt64("run")
@@ -1837,10 +1719,8 @@ func DeleteActionRun(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: "No Content"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	run := getCurrentRepoActionRunByID(ctx)
 	if ctx.Written() {
@@ -1885,10 +1765,8 @@ func GetArtifacts(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ArtifactsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	repoID := ctx.Repo.Repository.ID
 	artifactName := ctx.Req.URL.Query().Get("name")
@@ -1941,10 +1819,8 @@ func GetArtifact(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Artifact"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
 	if ctx.Written() {
@@ -1985,10 +1861,8 @@ func DeleteArtifact(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: "No Content"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
 	if ctx.Written() {
@@ -2048,10 +1922,8 @@ func DownloadArtifact(ctx *context.APIContext) {
 	// responses:
 	//   "302":
 	//     description: redirect to the blob download
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
 	if ctx.Written() {

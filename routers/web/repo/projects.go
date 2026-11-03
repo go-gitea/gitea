@@ -12,6 +12,7 @@ import (
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
@@ -24,17 +25,20 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/shared/issue"
+	project_shared "gitea.dev/routers/web/shared/project"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
+	issue_service "gitea.dev/services/issue"
 	project_service "gitea.dev/services/projects"
 )
 
 const (
-	tplProjects     templates.TplName = "repo/projects/list"
-	tplProjectsNew  templates.TplName = "repo/projects/new"
-	tplProjectsView templates.TplName = "repo/projects/view"
+	tplProjects         templates.TplName = "repo/projects/list"
+	tplProjectsNew      templates.TplName = "repo/projects/new"
+	tplProjectsView     templates.TplName = "repo/projects/view"
+	tplProjectWorkflows templates.TplName = "repo/projects/workflows"
 )
 
 // MustEnableRepoProjects check if repo projects are enabled in settings
@@ -343,25 +347,10 @@ func ViewProject(ctx *context.Context) {
 		ctx.Data["issuesAttachmentMap"] = issuesAttachmentMap
 	}
 
-	linkedPrsMap := make(map[int64][]*issues_model.Issue)
-	for _, issuesList := range issuesMap {
-		for _, issue := range issuesList {
-			var referencedIDs []int64
-			for _, comment := range issue.Comments {
-				if comment.RefIssueID != 0 && comment.RefIsPull {
-					referencedIDs = append(referencedIDs, comment.RefIssueID)
-				}
-			}
-
-			if len(referencedIDs) > 0 {
-				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-					IssueIDs: referencedIDs,
-					IsPull:   optional.Some(true),
-				}); err == nil {
-					linkedPrsMap[issue.ID] = linkedPrs
-				}
-			}
-		}
+	linkedPrsMap, err := project_service.LoadLinkedPullRequests(ctx, issuesMap, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("LoadLinkedPullRequests", err)
+		return
 	}
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 
@@ -412,7 +401,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 	ctx.Data["AssigneeID"] = assigneeID
 
-	renderMilestones(ctx)
+	renderMilestones(ctx, project.ID)
 	if ctx.Written() {
 		return
 	}
@@ -435,9 +424,15 @@ func ViewProject(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
 
+// ProjectWorkflows renders the workflows page of a repository project
+func ProjectWorkflows(ctx *context.Context) {
+	ctx.Data["IsProjectsPage"] = true
+	project_shared.RenderWorkflows(ctx, ctx.Repo.Permission.CanWrite(unit.TypeProjects) && !ctx.Repo.Repository.IsArchived, tplProjectWorkflows)
+}
+
 // UpdateIssueProject change an issue's project
 func UpdateIssueProject(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}
@@ -454,7 +449,7 @@ func UpdateIssueProject(ctx *context.Context) {
 	projectIDs := ctx.FormStringInt64s("id")
 	var failedIssues []int64
 	for _, issue := range issues {
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs); err != nil {
+		if err := issue_service.AssignOrRemoveProjects(ctx, issue, ctx.Doer, projectIDs); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
 				failedIssues = append(failedIssues, issue.ID)
 				continue
@@ -476,6 +471,10 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 	issue, err := issues_model.GetIssueByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("issue_id"))
 	if err != nil {
 		ctx.ServerError("GetIssueByID", err)
+		return
+	}
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound(nil)
 		return
 	}
 	column, err := project_model.GetColumn(ctx, ctx.FormInt64("id"))

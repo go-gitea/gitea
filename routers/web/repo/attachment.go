@@ -203,7 +203,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		}
 
 		if requiredScope, ok := attachmentReadScope(unitType); ok {
-			context.CheckTokenScopes(ctx, repo, requiredScope)
+			context.CheckTokenScopes(ctx, requiredScope)
 			if ctx.Written() {
 				return
 			}

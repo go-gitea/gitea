@@ -178,7 +178,7 @@ type ErrGPGKeyIDAlreadyUsed struct {
 	KeyID string
 }
 
-// IsErrGPGKeyIDAlreadyUsed checks if an error is a ErrKeyNameAlreadyUsed.
+// IsErrGPGKeyIDAlreadyUsed checks if an error is a ErrGPGKeyIDAlreadyUsed.
 func IsErrGPGKeyIDAlreadyUsed(err error) bool {
 	_, ok := err.(ErrGPGKeyIDAlreadyUsed)
 	return ok

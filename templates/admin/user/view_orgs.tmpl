@@ -5,18 +5,20 @@
 	<span>{{ctx.Locale.Tr "settings.organization"}} ({{ctx.Locale.Tr "admin.total" $userOrgsTotal}})</span>
 	{{if $userOrgs}}
 		<button type="button" class="ui red tiny button show-modal" data-modal="#remove-all-orgs-modal">{{ctx.Locale.Tr "remove_all"}}</button>
-		<form class="ui small modal form-fetch-action" id="remove-all-orgs-modal" method="post" action="{{ctx.RootData.Link}}/orgs/remove-all">
+		<dialog class="modal-dialog" id="remove-all-orgs-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "admin.users.remove_all_orgs_title"}}
 			</div>
-			<div class="content">
-				<p>{{ctx.Locale.Tr "admin.users.remove_all_orgs_desc" $user.Name $userOrgsTotal}}</p>
-			</div>
-			<div class="actions">
-				<div class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</div>
-				<button class="ui red button" type="submit">{{ctx.Locale.Tr "remove_all"}}</button>
-			</div>
-		</form>
+			<form class="form-fetch-action" method="post" action="{{ctx.RootData.Link}}/orgs/remove-all">
+				<div class="content">
+					<p>{{ctx.Locale.Tr "admin.users.remove_all_orgs_desc" $user.Name $userOrgsTotal}}</p>
+				</div>
+				<div class="actions">
+					<div class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</div>
+					<button class="ui red button" type="submit">{{ctx.Locale.Tr "remove_all"}}</button>
+				</div>
+			</form>
+		</dialog>
 	{{end}}
 </h4>
 

@@ -39,6 +39,13 @@ func TestEditor(t *testing.T) {
 			testEditFile(t, sessionUser2, "user2", "repo1", "master", "README.md", "Hello, World (direct)\n")
 			testEditFileToNewBranch(t, sessionUser2, "user2", "repo1", "master", "feature/test", "README.md", "Hello, World (commit-to-new-branch)\n")
 		})
+		t.Run("EditorconfigOfBranch", func(t *testing.T) {
+			testCreateFile(t, sessionUser2, "user2", "repo1", "master", "editorconfig", ".editorconfig", "[*]\nindent_size = 2\n")
+			for _, link := range []string{"/user2/repo1/src/branch/editorconfig/README.md", "/user2/repo1/blame/branch/editorconfig/README.md"} {
+				resp := sessionUser2.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK)
+				AssertHTMLElement(t, NewHTMLParser(t, resp.Body), ".tab-size-2", true)
+			}
+		})
 		t.Run("PatchFile", testEditorPatchFile)
 		t.Run("DeleteFile", func(t *testing.T) {
 			viewLink := "/user2/repo1/src/branch/branch2/README.md"

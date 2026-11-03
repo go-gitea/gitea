@@ -276,7 +276,7 @@ func Repos(ctx *context.Context) {
 		}
 
 		userRepos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
-			Actor:   ctxUser,
+			OwnerID: ctxUser.ID,
 			Private: true,
 			ListOptions: db.ListOptions{
 				Page:     1,
@@ -300,7 +300,7 @@ func Repos(ctx *context.Context) {
 		ctx.Data["Dirs"] = repoNames
 		ctx.Data["ReposMap"] = repos
 	} else {
-		repos, reposCount, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
+		repos, reposCount, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{OwnerID: ctxUser.ID, Private: true, ListOptions: opts})
 		if err != nil {
 			ctx.ServerError("GetUserRepositories", err)
 			return

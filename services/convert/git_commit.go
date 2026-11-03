@@ -189,17 +189,17 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Retrieve files affected by the commit
 	if opts.Files {
-		fileStatus, err := git.GetCommitFileStatus(ctx, repo, commit.ID.String())
+		fileStatusSummary, err := git.GetCommitFileStatus(ctx, repo, commit.ID.String())
 		if err != nil {
 			return nil, err
 		}
 
-		affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
-		for filestatus, files := range map[string][]string{"added": fileStatus.Added, "removed": fileStatus.Removed, "modified": fileStatus.Modified} {
+		affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatusSummary.Added)+len(fileStatusSummary.Removed)+len(fileStatusSummary.Modified))
+		for fileStatus, files := range map[string][]string{"added": fileStatusSummary.Added, "removed": fileStatusSummary.Removed, "modified": fileStatusSummary.Modified} {
 			for _, filename := range files {
 				affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
 					Filename: filename,
-					Status:   filestatus,
+					Status:   fileStatus,
 				})
 			}
 		}

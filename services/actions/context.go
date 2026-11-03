@@ -58,10 +58,19 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	refName := git.RefName(ref)
+	refType := refName.RefType()
+	if refName.IsPull() {
+		refType = git.RefTypeBranch // GitHub reports pull request refs as branches
+	}
 	refProtected, err := git_model.IsRefProtected(ctx, run.RepoID, refName)
 	if err != nil {
 		log.Error("GenerateGiteaContext: check protection for ref %q: %v", refName, err)
 		refProtected = false
+	}
+
+	retentionDays := "" // not "0", v3 artifact uploads would read it as a 0-day limit
+	if setting.Actions.ArtifactRetentionDays > 0 {
+		retentionDays = strconv.FormatInt(setting.Actions.ArtifactRetentionDays, 10)
 	}
 
 	gitContext := GiteaContext{
@@ -84,12 +93,12 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"ref":               ref,                                      // string, The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
 		"ref_name":          refName.ShortName(),                      // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
 		"ref_protected":     refProtected,                             // boolean, true if protection rules are configured for the ref that triggered the workflow run.
-		"ref_type":          string(refName.RefType()),                // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
+		"ref_type":          string(refType),                          // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
 		"path":              "",                                       // string, Path on the runner to the file that sets system PATH variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
 		"repository":        run.Repo.OwnerName + "/" + run.Repo.Name, // string, The owner and repository name. For example, Codertocat/Hello-World.
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
 		"repositoryUrl":     run.Repo.HTMLURL(),                       // string, The Git URL to the repository. For example, git://github.com/codertocat/hello-world.git.
-		"retention_days":    "",                                       // string, The number of days that workflow run logs and artifacts are kept.
+		"retention_days":    retentionDays,                            // string, The number of days that artifacts are kept, empty when kept forever.
 		"run_id":            strconv.FormatInt(run.ID, 10),            // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
 		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
 		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.

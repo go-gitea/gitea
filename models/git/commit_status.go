@@ -182,7 +182,7 @@ func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (in
 
 func (status *CommitStatus) loadRepository(ctx context.Context) (err error) {
 	if status.Repo == nil {
-		status.Repo, err = repo_model.GetRepositoryByID(ctx, status.RepoID)
+		status.Repo, err = cache.GetWithContextCache(ctx, cachegroup.Repository, status.RepoID, repo_model.GetRepositoryByID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %w", status.RepoID, err)
 		}
@@ -230,11 +230,9 @@ func (status *CommitStatus) cutTargetURLGiteaActionsPrefix(ctx context.Context) 
 		return "", false
 	}
 
-	if status.Repo == nil {
-		if err := status.loadRepository(ctx); err != nil {
-			log.Error("loadRepository: %v", err)
-			return "", false
-		}
+	if err := status.loadRepository(ctx); err != nil {
+		log.Error("loadRepository: %v", err)
+		return "", false
 	}
 
 	prefix := status.Repo.Link() + "/actions"
@@ -572,11 +570,12 @@ func SignCommitsApplyDoerPermission(ctx context.Context, doer *user_model.User, 
 }
 
 func statusRepoCanReadActions(ctx context.Context, doer *user_model.User, status *CommitStatus) bool {
+	if err := status.loadRepository(ctx); err != nil {
+		log.Error("loadRepository: %v", err)
+		return false
+	}
 	perm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(status.RepoID, doer),
-		func(ctx context.Context, _ string) (access_model.Permission, error) { // only runs on a cache miss
-			if err := status.loadRepository(ctx); err != nil {
-				return access_model.Permission{}, err
-			}
+		func(ctx context.Context, _key string) (access_model.Permission, error) {
 			return access_model.GetDoerRepoPermission(ctx, status.Repo, doer)
 		},
 	)

@@ -212,15 +212,7 @@ func TestStopEndlessTasksSkipsCancelling(t *testing.T) {
 	var seq int64
 	newTaskWithJob := func(status actions_model.Status) *actions_model.ActionTask {
 		seq++
-		run := &actions_model.ActionRun{
-			RepoID: 1, OwnerID: 2, TriggerUserID: 2, WorkflowID: "test.yml",
-			Index: 99500 + seq, Ref: "refs/heads/main", Status: actions_model.StatusRunning,
-		}
-		require.NoError(t, db.Insert(t.Context(), run))
-		attempt := &actions_model.ActionRunAttempt{
-			RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: run.TriggerUserID, Status: actions_model.StatusRunning,
-		}
-		require.NoError(t, db.Insert(t.Context(), attempt))
+		run, attempt := createRunAttempt(t, 99500+seq, "", actions_model.StatusRunning)
 		job := &actions_model.ActionRunJob{
 			RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 1, RepoID: run.RepoID, OwnerID: run.OwnerID,
 			CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0", Name: "j", JobID: "j", Status: status,

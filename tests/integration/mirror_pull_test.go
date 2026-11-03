@@ -130,28 +130,26 @@ func TestMirrorPull(t *testing.T) {
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	assert.Equal(t, lastMirrorSync, mirror.LastSyncUnix)
-}
 
-// TestMirrorPullSSRFRevalidation ensures a pull mirror re-validates its remote URL against
-// the migration allow/block list on every sync, so a mirror whose (network) remote now
-// points at a disallowed internal host is never fetched.
-func TestMirrorPullSSRFRevalidation(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	// TestMirrorPullSSRFRevalidation ensures a pull mirror re-validates its remote URL against
+	// the migration allow/block list on every sync, so a mirror whose (network) remote now
+	// points at a disallowed internal host is never fetched.
+	t.Run("SSRFRevalidation", func(t *testing.T) {
+		ctx := t.Context()
+		var requests atomic.Int32
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requests.Add(1)
+			http.Redirect(w, r, "http://"+strings.Replace(r.Host, "127.0.0.1", "0.0.0.0", 1)+r.URL.RequestURI(), http.StatusFound)
+		}))
+		defer server.Close()
 
-	ctx := t.Context()
-	var requests atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requests.Add(1)
-		http.Redirect(w, r, "http://"+strings.Replace(r.Host, "127.0.0.1", "0.0.0.0", 1)+r.URL.RequestURI(), http.StatusFound)
-	}))
-	defer server.Close()
+		mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
+		require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, server.URL+"/repo.git"))
+		assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
+		assert.EqualValues(t, 1, requests.Load(), "the git proxy must deny the redirect to a reserved address")
 
-	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
-	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, server.URL+"/repo.git"))
-	assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
-	assert.EqualValues(t, 1, requests.Load(), "the git proxy must deny the redirect to a reserved address")
-
-	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
-	assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
-	assert.EqualValues(t, 1, requests.Load(), "the disallowed internal remote must not be reached")
+		defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
+		assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
+		assert.EqualValues(t, 1, requests.Load(), "the disallowed internal remote must not be reached")
+	})
 }

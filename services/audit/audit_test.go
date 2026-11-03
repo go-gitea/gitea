@@ -106,25 +106,15 @@ func TestBuildEvent(t *testing.T) {
 		e := buildEvent(context.Background(), RecordParams{
 			Action:          audit_model.UserCreate,
 			Actor:           actorRef(actions),
-			ActorCredential: actorCredential(context.Background(), actions),
+			ActorCredential: user_model.GetDoerCredential(actions),
 			Scope:           ScopeFromUser(u),
 		})
 		assert.Equal(t, user_model.ActionsUserID, e.ActorID)
 		assert.Equal(t, "gitea-actions:42", e.ActorCredential)
 
 		key := user_model.NewDeployKeyUserWithKeyID(7)
-		assert.Equal(t, "deploy-key:7", actorCredential(context.Background(), key))
-		assert.Empty(t, actorCredential(context.Background(), doer))
-	})
-
-	t.Run("CredentialFromRequest", func(t *testing.T) {
-		ctx := newRequestContext(t, doer)
-		middleware.GetContextData(ctx)[middleware.ContextDataKeyAuthCredential] = "access-token:9"
-		assert.Equal(t, "access-token:9", actorCredential(ctx, doer))
-
-		// an event recorded for someone other than the signed-in user is not
-		// tied to the credential of that request
-		assert.Empty(t, actorCredential(ctx, u))
+		assert.Equal(t, "deploy-key:7", user_model.GetDoerCredential(key))
+		assert.Empty(t, user_model.GetDoerCredential(doer))
 	})
 
 	t.Run("RequestInfo", func(t *testing.T) {
@@ -246,30 +236,21 @@ func TestRenderMessage(t *testing.T) {
 		}
 	})
 
-	t.Run("ReservedPlaceholders", func(t *testing.T) {
-		assert.Equal(t,
-			"User Actor started impersonating user owner/repo.",
-			renderMessage(audit_model.UserImpersonation, actor, scope, nil),
-		)
-	})
-
-	t.Run("NonStringMetadata", func(t *testing.T) {
-		assert.Equal(t,
-			"Removed external login from authentication source 7 for user owner/repo.",
-			renderMessage(audit_model.UserExternalLoginRemove, actor, scope, map[string]any{"auth_source_id": int64(7)}),
-		)
-	})
-
-	t.Run("MissingMetadataKeepsTheKey", func(t *testing.T) {
-		assert.Equal(t,
-			"Added deploy key deploy_key for repository owner/repo.",
-			renderMessage(audit_model.RepositoryDeployKeyAdd, actor, scope, nil),
-		)
-	})
-
-	t.Run("UnknownActionFallsBackToItsName", func(t *testing.T) {
-		assert.Equal(t, "not:an:action", renderMessage(audit_model.Action("not:an:action"), actor, scope, nil))
-	})
+	for _, tc := range []struct {
+		name     string
+		action   audit_model.Action
+		metadata map[string]any
+		message  string
+	}{
+		{"ReservedPlaceholders", audit_model.UserImpersonation, nil, "User Actor started impersonating user owner/repo."},
+		{"NonStringMetadata", audit_model.UserExternalLoginRemove, map[string]any{"auth_source_id": int64(7)}, "Removed external login from authentication source 7 for user owner/repo."},
+		{"MissingMetadataKeepsTheKey", audit_model.RepositoryDeployKeyAdd, nil, "Added deploy key deploy_key for repository owner/repo."},
+		{"UnknownActionFallsBackToItsName", audit_model.Action("not:an:action"), nil, "not:an:action"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.message, renderMessage(tc.action, actor, scope, tc.metadata))
+		})
+	}
 }
 
 func TestActionFilters(t *testing.T) {

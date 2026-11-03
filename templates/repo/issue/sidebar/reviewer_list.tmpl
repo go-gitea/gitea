@@ -106,7 +106,7 @@
 	</div>
 
 	{{if $data.CurrentPullReviewers}}
-	<div class="ui small modal" id="issue-sidebar-dismiss-review-modal">
+	<dialog class="modal-dialog" id="issue-sidebar-dismiss-review-modal">
 		<div class="header">
 			{{ctx.Locale.Tr "repo.issues.dismiss_review"}}
 		</div>
@@ -126,6 +126,6 @@
 				</div>
 			</form>
 		</div>
-	</div>
+	</dialog>
 	{{end}}
 </div>
