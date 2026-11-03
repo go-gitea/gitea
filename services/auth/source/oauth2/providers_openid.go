@@ -43,7 +43,27 @@ func (o *OpenIDProvider) CreateGothProvider(providerName, callbackURL string, so
 		scopes = append(scopes, source.Scopes...)
 	}
 
-	provider, err := openidConnect.New(source.ClientID, source.ClientSecret, callbackURL, source.OpenIDConnectAutoDiscoveryURL, scopes...)
+	var provider *openidConnect.Provider
+	var err error
+	if existing, ok := goth.GetProviders()[providerName].(*openidConnect.Provider); ok &&
+		existing.OpenIDConfig != nil &&
+		existing.OpenIDConfig.AuthEndpoint != "" &&
+		existing.OpenIDConfig.TokenEndpoint != "" &&
+		existing.OpenIDConfig.Issuer != "" {
+		provider, err = openidConnect.NewCustomisedURL(
+			source.ClientID,
+			source.ClientSecret,
+			callbackURL,
+			existing.OpenIDConfig.AuthEndpoint,
+			existing.OpenIDConfig.TokenEndpoint,
+			existing.OpenIDConfig.Issuer,
+			existing.OpenIDConfig.UserInfoEndpoint,
+			existing.OpenIDConfig.EndSessionEndpoint,
+			scopes...,
+		)
+	} else {
+		provider, err = openidConnect.New(source.ClientID, source.ClientSecret, callbackURL, source.OpenIDConnectAutoDiscoveryURL, scopes...)
+	}
 	if err != nil {
 		log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %v", providerName, source.OpenIDConnectAutoDiscoveryURL, err)
 		return nil, err

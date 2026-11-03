@@ -22,7 +22,11 @@ func (source *Source) Callout(request *http.Request, response http.ResponseWrite
 	gothRWMutex.Lock()
 	defer gothRWMutex.Unlock()
 
-	updateProviderCallbackURL(goth.GetProviders()[source.AuthSource.Name], GetOAuth2CallbackURL(request.Context(), source.AuthSource.Name))
+	provider, err := createProvider(source.AuthSource.Name, GetOAuth2CallbackURL(request.Context(), source.AuthSource.Name), source)
+	if err != nil {
+		return err
+	}
+	goth.UseProviders(provider)
 
 	url, err := gothic.GetAuthURL(response, request)
 	if err == nil {
@@ -40,7 +44,11 @@ func (source *Source) Callback(request *http.Request, response http.ResponseWrit
 	gothRWMutex.Lock()
 	defer gothRWMutex.Unlock()
 
-	updateProviderCallbackURL(goth.GetProviders()[source.AuthSource.Name], GetOAuth2CallbackURL(request.Context(), source.AuthSource.Name))
+	provider, err := createProvider(source.AuthSource.Name, GetOAuth2CallbackURL(request.Context(), source.AuthSource.Name), source)
+	if err != nil {
+		return goth.User{}, err
+	}
+	goth.UseProviders(provider)
 
 	user, err := gothic.CompleteUserAuth(response, request)
 	if err != nil {

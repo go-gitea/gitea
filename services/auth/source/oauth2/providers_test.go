@@ -14,7 +14,6 @@ import (
 	"gitea.dev/modules/test"
 
 	"github.com/markbates/goth"
-	"github.com/markbates/goth/providers/gitea"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -87,9 +86,12 @@ func TestGetOAuth2CallbackURL(t *testing.T) {
 	cbURL := GetOAuth2CallbackURL(reqCtx, "my-oidc")
 	assert.Equal(t, "https://lan-host:3000/sub/user/oauth2/my-oidc/callback", cbURL)
 
-	provider := gitea.New("client", "secret", "http://cfg-host:3000/sub/user/oauth2/my-oidc/callback")
-	updateProviderCallbackURL(provider, cbURL)
-	assert.Equal(t, cbURL, provider.CallbackURL)
+	provider, err := createProvider("my-oidc", cbURL, &Source{
+		Provider:     "gitea",
+		ClientID:     "client",
+		ClientSecret: "secret",
+	})
+	require.NoError(t, err)
 	sess, err := provider.BeginAuth("state")
 	require.NoError(t, err)
 	authURL, err := sess.GetAuthURL()

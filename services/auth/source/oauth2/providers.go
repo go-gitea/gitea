@@ -10,10 +10,8 @@ import (
 	"html"
 	"html/template"
 	"net/url"
-	"reflect"
 	"slices"
 	"sort"
-	"unsafe"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -24,7 +22,6 @@ import (
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/openidConnect"
-	"golang.org/x/oauth2"
 )
 
 // Provider is an interface for describing a single OAuth2 provider
@@ -174,7 +171,8 @@ func GetOAuth2Providers(ctx context.Context, isActive optional.Option[bool]) ([]
 
 // RegisterProviderWithGothic register a OAuth2 provider in goth lib
 func RegisterProviderWithGothic(providerName string, source *Source) error {
-	provider, err := createProvider(providerName, source)
+	callbackURL := setting.AppURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
+	provider, err := createProvider(providerName, callbackURL, source)
 
 	if err == nil && provider != nil {
 		gothRWMutex.Lock()
@@ -224,38 +222,14 @@ func GetOIDCEndSessionEndpoint(providerName string) string {
 
 var ErrAuthSourceNotActivated = errors.New("auth source is not activated")
 
-// used to create different types of goth providers
 // GetOAuth2CallbackURL returns the OAuth2 callback URL for the current request context
 func GetOAuth2CallbackURL(ctx context.Context, providerName string) string {
 	appURL := httplib.GuessCurrentAppURL(ctx)
 	return appURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
 }
 
-func updateProviderCallbackURL(provider goth.Provider, callbackURL string) {
-	if provider == nil {
-		return
-	}
-	v := reflect.ValueOf(provider)
-	if v.Kind() != reflect.Pointer || v.IsNil() {
-		return
-	}
-	elem := v.Elem()
-	if elem.Kind() != reflect.Struct {
-		return
-	}
-	if cbField := elem.FieldByName("CallbackURL"); cbField.IsValid() && cbField.CanSet() && cbField.Kind() == reflect.String {
-		cbField.SetString(callbackURL)
-	}
-	if cfgField := elem.FieldByName("config"); cfgField.IsValid() && cfgField.Kind() == reflect.Pointer && !cfgField.IsNil() {
-		if cfg, ok := reflect.NewAt(cfgField.Type(), unsafe.Pointer(cfgField.UnsafeAddr())).Elem().Interface().(*oauth2.Config); ok && cfg != nil {
-			cfg.RedirectURL = callbackURL
-		}
-	}
-}
-
-func createProvider(providerName string, source *Source) (goth.Provider, error) {
-	callbackURL := setting.AppURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
-
+// used to create different types of goth providers
+func createProvider(providerName, callbackURL string, source *Source) (goth.Provider, error) {
 	var provider goth.Provider
 	var err error
 
