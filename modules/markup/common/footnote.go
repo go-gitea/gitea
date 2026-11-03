@@ -30,7 +30,11 @@ func CleanValue(value []byte) []byte {
 	rs := bytes.Runes(value)
 	result := make([]rune, 0, len(rs))
 	for _, r := range rs {
-		if unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_' || r == '-' {
+		// Like GitHub, keep combining marks: dropping them mangles words in
+		// scripts like Devanagari (हिन्दी -> हनद) and decomposed accents.
+		// Variation selectors are marks too, but invisible, so drop them.
+		isMark := unicode.IsMark(r) && !unicode.Is(unicode.Variation_Selector, r)
+		if unicode.IsLetter(r) || isMark || unicode.IsNumber(r) || r == '_' || r == '-' {
 			result = append(result, unicode.ToLower(r))
 		}
 		// Like GitHub, only turn ASCII spaces into hyphens and drop all other
