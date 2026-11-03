@@ -77,26 +77,20 @@ func uploadAttachment(ctx *context.Context, repoID int64, uploadFunc attachment.
 	})
 }
 
-// DeleteAttachment response for deleting issue's attachment
-func DeleteAttachment(ctx *context.Context) {
+func DeletePendingAttachment(ctx *context.Context) {
 	file := ctx.FormString("file")
 	attach, err := repo_model.GetAttachmentByUUID(ctx, file)
 	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		ctx.ServerError("GetAttachmentByUUID", err)
 		return
 	}
 
-	if !ctx.IsSigned {
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
-	if attach.RepoID != ctx.Repo.Repository.ID {
-		ctx.HTTPError(http.StatusBadRequest, "attachment does not belong to this repository")
-		return
-	}
-
-	if attach.UploaderID != ctx.Doer.ID || attach.IsLinked() { // linked attachments are removed by editing their content
+	// only uploader can delete their own pending (unlinked) attachment,
+	// linked attachments are managed by the linked entity (issue, release, etc.) and cannot be deleted directly
+	canDelete := attach.RepoID == ctx.Repo.Repository.ID &&
+		attach.UploaderID == ctx.Doer.ID &&
+		!attach.IsLinked()
+	if !canDelete {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
