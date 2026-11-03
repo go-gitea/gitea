@@ -2,8 +2,6 @@ import {attachSearchBox} from '../../modules/search.ts';
 import {showModal} from '../../modules/modal.ts';
 import {hideElem, showElem} from '../../utils/dom.ts';
 import {svg} from '../../svg.ts';
-import {performFetchActionRequest} from '../../modules/fetch-action.ts';
-import {showErrorToast} from '../../modules/toast.ts';
 import {createCodeEditor, type CodemirrorEditor} from '../../modules/codeeditor/main.ts';
 
 export function initCodespaceTemplateEditor(modal: HTMLDialogElement) {
@@ -142,64 +140,4 @@ export function initCodespaceSecretRepositoryPicker(root: HTMLElement) {
     }
   }
   reset([], false);
-}
-
-export function initCodespaceManagerSecretModal(modal: HTMLDialogElement) {
-  const trigger = document.querySelector<HTMLButtonElement>('#manager-secret-button')!;
-  const status = document.querySelector<HTMLElement>('#manager-secret-status')!;
-  const form = modal.querySelector<HTMLFormElement>('form')!;
-  const submit = form.querySelector<HTMLButtonElement>('[data-secret-submit]')!;
-  const close = form.querySelector<HTMLButtonElement>('.cancel')!;
-  const value = modal.querySelector<HTMLInputElement>('#manager-secret-value')!;
-  const result = modal.querySelector<HTMLElement>('[data-secret-result]')!;
-  const confirmation = modal.querySelector<HTMLElement>('[data-secret-confirm]')!;
-  let pending = false;
-  let hasSecret = trigger.getAttribute('data-has-secret') === 'true';
-
-  const generate = async () => {
-    if (pending || !result.hidden) return;
-    pending = true;
-    submit.disabled = close.disabled = trigger.disabled = true;
-    const data = new FormData(form);
-    if (hasSecret) data.set('confirm', 'reset-secret');
-    // A lost response may still have replaced the verifier; the next attempt needs confirmation.
-    hasSecret = true;
-    trigger.textContent = trigger.getAttribute('data-reset-label')!;
-    try {
-      const response = await performFetchActionRequest(form, {method: 'POST', url: form.action, data});
-      if (!response) return;
-      const body = await response.json();
-      if (typeof body.secret !== 'string' || !body.secret) throw new Error('Missing secret');
-      status.textContent = status.getAttribute('data-generated-label')!;
-      if (!modal.open) return;
-      value.value = body.secret;
-      result.hidden = false;
-      confirmation.hidden = true;
-    } catch {
-      showErrorToast(modal.getAttribute('data-response-error')!);
-    } finally {
-      pending = false;
-      submit.disabled = close.disabled = trigger.disabled = false;
-      if (result.hidden) showElem(submit); else hideElem(submit);
-    }
-  };
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    generate();
-  });
-  trigger.addEventListener('click', () => {
-    showModal(modal, {
-      onShow() {
-        value.value = '';
-        result.hidden = true;
-        confirmation.hidden = !hasSecret;
-        if (hasSecret) showElem(submit); else hideElem(submit);
-        if (!hasSecret) generate();
-      },
-      onHidden() {
-        value.value = '';
-        result.hidden = true;
-      },
-    });
-  });
 }

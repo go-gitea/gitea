@@ -53,16 +53,9 @@ func AdminManagerUpdate(ctx *context.Context) {
 	handleManagerUpdate(ctx, codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite})
 }
 
-func AdminManagerSecret(ctx *context.Context) {
-	handleManagerSecret(ctx, codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite})
-}
-
-// AdminManagersCreateManager creates a site-wide Manager identity.
-func AdminManagersCreateManager(ctx *context.Context) {
-	handleManagerCreate(ctx, managerSettingsRenderOptions{
-		Scope:      codespace_service.ManagerSettingsScopeSite,
-		ActionBase: setting.AppSubURL + "/-/admin/codespaces/managers",
-	})
+// AdminRegistrationTokenReset rotates the site-wide registration token.
+func AdminRegistrationTokenReset(ctx *context.Context) {
+	handleRegistrationTokenReset(ctx, managerSettingsRenderOptions{Scope: codespace_service.ManagerSettingsScopeSite, ActionBase: setting.AppSubURL + "/-/admin/codespaces/managers"})
 }
 
 // UserSettings renders current user's Manager settings.
@@ -100,17 +93,9 @@ func UserManagerUpdate(ctx *context.Context) {
 	handleManagerUpdate(ctx, codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeUser, UserID: ctx.Doer.ID})
 }
 
-func UserManagerSecret(ctx *context.Context) {
-	handleManagerSecret(ctx, codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeUser, UserID: ctx.Doer.ID})
-}
-
-// UserSettingsCreateManager creates a Manager identity owned by the current user.
-func UserSettingsCreateManager(ctx *context.Context) {
-	handleManagerCreate(ctx, managerSettingsRenderOptions{
-		Scope:      codespace_service.ManagerSettingsScopeUser,
-		UserID:     ctx.Doer.ID,
-		ActionBase: setting.AppSubURL + "/user/settings/codespaces/managers",
-	})
+// UserRegistrationTokenReset rotates the current user's registration token.
+func UserRegistrationTokenReset(ctx *context.Context) {
+	handleRegistrationTokenReset(ctx, managerSettingsRenderOptions{Scope: codespace_service.ManagerSettingsScopeUser, UserID: ctx.Doer.ID, ActionBase: setting.AppSubURL + "/user/settings/codespaces/managers"})
 }
 
 type managerSettingsRenderOptions struct {
@@ -199,19 +184,14 @@ func handleManagerDelete(ctx *context.Context, opts managerSettingsRenderOptions
 	ctx.JSONRedirect(opts.ActionBase)
 }
 
-func handleManagerCreate(ctx *context.Context, opts managerSettingsRenderOptions) {
-	managerID, err := codespace_service.CreateManager(ctx, codespace_service.CreateManagerOptions{
-		ManagerSettingsOptions: codespace_service.ManagerSettingsOptions{
-			Scope:  opts.Scope,
-			UserID: opts.UserID,
-		},
-		Name: ctx.FormString("name"),
-	})
+func handleRegistrationTokenReset(ctx *context.Context, opts managerSettingsRenderOptions) {
+	_, err := codespace_service.RotateManagerRegistrationToken(ctx, codespace_service.ManagerSettingsOptions{Scope: opts.Scope, UserID: opts.UserID})
 	if err != nil {
 		handleManagerActionError(ctx, err)
 		return
 	}
-	ctx.JSONRedirect(opts.ActionBase + "/" + strconv.FormatInt(managerID, 10))
+	ctx.Flash.Success(ctx.Tr("codespace.registration_token_reset_success"))
+	ctx.JSONRedirect(opts.ActionBase)
 }
 
 func handleManagerUpdate(ctx *context.Context, opts codespace_service.ManagerSettingsOptions) {
@@ -221,16 +201,6 @@ func handleManagerUpdate(ctx *context.Context, opts codespace_service.ManagerSet
 	}
 	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
 	ctx.JSONRedirect(ctx.Req.URL.Path)
-}
-
-func handleManagerSecret(ctx *context.Context, opts codespace_service.ManagerSettingsOptions) {
-	ctx.RespHeader().Set("Cache-Control", "no-store")
-	secret, err := codespace_service.ResetManagerSecret(ctx, opts, ctx.PathParamInt64("manager_id"), ctx.FormString("confirm") == "reset-secret")
-	if err != nil {
-		handleManagerActionError(ctx, err)
-		return
-	}
-	ctx.JSON(http.StatusOK, map[string]string{"secret": secret})
 }
 
 func handleManagerActionError(ctx *context.Context, err error) {

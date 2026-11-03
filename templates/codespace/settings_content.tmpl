@@ -2,7 +2,25 @@
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "codespace.managers"}} ({{ctx.Locale.Tr "admin.total" .ManagerTotal}})
 		<div class="ui right">
-			<button class="ui primary tiny button show-modal" type="button" data-modal="#codespace-manager-create-modal">{{ctx.Locale.Tr "codespace.new_manager"}}</button>
+			<div class="ui top right pointing dropdown jump">
+				<button type="button" class="ui primary tiny button">
+					{{ctx.Locale.Tr "codespace.new_manager"}}
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</button>
+				<div class="menu">
+					<div class="item tw-max-w-96 tw-whitespace-normal">{{ctx.Locale.Tr "codespace.manager_registration_description"}}</div>
+					<div class="divider"></div>
+					<div class="header">{{ctx.Locale.Tr "codespace.registration_token"}}</div>
+					<div class="ui action input">
+						<input type="text" value="{{.ManagerSettings.RegistrationToken}}" readonly>
+						<button type="button" class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.ManagerSettings.RegistrationToken}}">{{svg "octicon-copy" 14}}</button>
+					</div>
+					<div class="divider"></div>
+					<div class="item">
+						<a class="link-action" data-url="{{.ActionBase}}/registration-token/reset" data-modal-confirm="{{ctx.Locale.Tr "codespace.registration_token_reset_confirm"}}">{{ctx.Locale.Tr "codespace.registration_token_reset"}}</a>
+					</div>
+				</div>
+			</div>
 		</div>
 	</h4>
 	{{if .ManagerSettings.Managers}}
@@ -53,23 +71,4 @@
 		<h4 class="ui top attached header tw-mt-4">{{ctx.Locale.Tr "codespace.unassigned_codespaces"}} ({{.CodespaceTotal}})</h4>
 		{{template "codespace/manager_codespaces" .}}
 	{{end}}
-
-	<dialog id="codespace-manager-create-modal" class="modal-dialog codespace-modal">
-		<div class="header">{{ctx.Locale.Tr "codespace.new_manager"}}</div>
-		<form class="ui form form-fetch-action ignore-dirty" method="post" action="{{$.ActionBase}}/create">
-			{{$.CsrfTokenHtml}}
-			<div class="content">
-				<p>{{ctx.Locale.Tr "codespace.manager_create_description"}}</p>
-				<div class="required field">
-					<label for="codespace-manager-name">{{ctx.Locale.Tr "codespace.manager_name"}}</label>
-					<input id="codespace-manager-name" name="name" maxlength="255" required>
-				</div>
-			</div>
-			<div class="actions">
-				<button class="ui cancel button" type="button">{{svg "octicon-x"}} {{ctx.Locale.Tr "cancel"}}</button>
-				<button class="ui primary button" type="submit">{{svg "octicon-check"}} {{ctx.Locale.Tr "codespace.manager_create"}}</button>
-			</div>
-		</form>
-	</dialog>
-
 </div>

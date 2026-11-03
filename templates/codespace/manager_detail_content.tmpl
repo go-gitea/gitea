@@ -30,18 +30,6 @@
 
 	<h4 class="ui top attached header tw-mt-4">{{ctx.Locale.Tr "codespace.manager_connection"}}</h4>
 	<div class="ui attached segment">
-		<div class="flex-divided-list items-with-main">
-			<div class="item">
-				<div class="item-main">
-					<div class="item-title">{{ctx.Locale.Tr "codespace.manager_credentials"}}</div>
-					<div id="manager-secret-status" class="item-body" data-generated-label="{{ctx.Locale.Tr "codespace.manager_secret_generated"}}">{{if .Manager.HasSecret}}{{ctx.Locale.Tr "codespace.manager_secret_generated"}}{{else}}{{ctx.Locale.Tr "codespace.manager_secret_missing"}}{{end}}</div>
-				</div>
-				<div class="item-trailing">
-					<button id="manager-secret-button" class="ui small button" type="button" data-has-secret="{{.Manager.HasSecret}}" data-reset-label="{{ctx.Locale.Tr "codespace.manager_secret_reset"}}">{{if .Manager.HasSecret}}{{ctx.Locale.Tr "codespace.manager_secret_reset"}}{{else}}{{ctx.Locale.Tr "codespace.manager_secret_generate"}}{{end}}</button>
-				</div>
-			</div>
-		</div>
-		<div class="divider"></div>
 		{{if or .Manager.GatewayURL .Manager.GatewaySSHAddr}}
 			<dl class="codespace-detail-list">
 				{{if .Manager.GatewayURL}}<dt>{{ctx.Locale.Tr "codespace.gateway"}}</dt><dd class="tw-font-mono">{{.Manager.GatewayURL}}</dd>{{end}}
@@ -61,7 +49,6 @@
 			<p class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.manager_waiting_declaration"}}</p>
 		{{end}}
 	</div>
-	{{template "codespace/manager_secret_modal" .}}
 
 	<h4 class="ui top attached header tw-mt-4">{{ctx.Locale.Tr "codespace.bound_codespaces"}} ({{.CodespaceTotal}})</h4>
 	{{template "codespace/manager_codespaces" .}}

@@ -46,6 +46,9 @@ func deleteUserResourcesLocked(ctx context.Context, userID int64) error {
 		return err
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		if _, err := db.GetEngine(ctx).Where("user_id = ?", userID).Delete(new(codespace_model.ManagerRegistrationToken)); err != nil {
+			return err
+		}
 		var secrets []*codespace_model.UserSecret
 		if err := db.GetEngine(ctx).Where("user_id = ?", userID).Find(&secrets); err != nil {
 			return err

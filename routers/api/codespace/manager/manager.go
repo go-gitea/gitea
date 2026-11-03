@@ -34,6 +34,31 @@ type Service struct {
 	codespacev1connect.UnimplementedManagerServiceHandler
 }
 
+// RegisterManager exchanges a scope registration token for one runtime identity.
+func (s *Service) RegisterManager(
+	ctx context.Context,
+	req *codespacev1.RegisterManagerRequest,
+) (*codespacev1.RegisterManagerResponse, error) {
+	manager, secret, err := codespace_service.RegisterManager(ctx, req.GetToken(), req.GetName())
+	if err != nil {
+		switch {
+		case errors.Is(err, codespace_service.ErrManagerRegistrationTokenInvalid):
+			return nil, failureError(connect.CodeUnauthenticated, "registration_token_invalid", err)
+		case errors.Is(err, codespace_service.ErrManagerSettingsNameInvalid):
+			return nil, failureError(connect.CodeInvalidArgument, "manager_name_invalid", err)
+		default:
+			return nil, serviceFailureError(err, "registration_failed", nil)
+		}
+	}
+	_, _, giteaWebURL := codespace_service.ManagerServiceTimings()
+	return &codespacev1.RegisterManagerResponse{
+		ManagerId:     manager.ID,
+		ManagerSecret: secret,
+		ManagerName:   manager.Name,
+		GiteaWebUrl:   giteaWebURL,
+	}, nil
+}
+
 // CheckManager confirms the authenticated Manager identity without changing it.
 func (s *Service) CheckManager(
 	ctx context.Context,

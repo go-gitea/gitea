@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 	"unicode"
 
 	codespace_model "gitea.dev/models/codespace"
@@ -50,12 +49,6 @@ type DeleteManagerOptions struct {
 	Confirm   bool
 }
 
-// CreateManagerOptions contains the settings scope and Gitea-managed display name.
-type CreateManagerOptions struct {
-	ManagerSettingsOptions
-	Name string
-}
-
 // ManagerDetailOptions selects one Manager management page and its Codespace page.
 type ManagerDetailOptions struct {
 	ManagerSettingsOptions
@@ -73,14 +66,14 @@ type ManagerDetail struct {
 
 // ManagerSettings contains Manager rows for settings pages.
 type ManagerSettings struct {
-	Managers []*ManagerSettingsView
+	Managers          []*ManagerSettingsView
+	RegistrationToken string
 }
 
 // ManagerSettingsView contains fields shown on Manager settings pages.
 type ManagerSettingsView struct {
 	ID                                 int64
 	Name                               string
-	HasSecret                          bool
 	UserID                             int64
 	UserDisplayName                    string
 	Version                            string
@@ -98,7 +91,17 @@ type ManagerSettingsView struct {
 
 // ListManagerSettings returns Manager summaries for one settings page.
 func ListManagerSettings(ctx context.Context, opts ManagerSettingsOptions) (*ManagerSettings, error) {
-	if err := validateManagerSettingsScope(ctx, opts); err != nil {
+	userID, err := managerSettingsUserID(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	var registrationToken *codespace_model.ManagerRegistrationToken
+	err = globallock.LockAndDo(ctx, codespaceUserRelationLockKey(userID), func(ctx context.Context) error {
+		var err error
+		registrationToken, err = codespace_model.GetOrCreateActiveManagerRegistrationToken(ctx, userID)
+		return err
+	})
+	if err != nil {
 		return nil, err
 	}
 	var managers []*codespace_model.Manager
@@ -113,7 +116,7 @@ func ListManagerSettings(ctx context.Context, opts ManagerSettingsOptions) (*Man
 	if err != nil {
 		return nil, err
 	}
-	return &ManagerSettings{Managers: views}, nil
+	return &ManagerSettings{Managers: views, RegistrationToken: registrationToken.Token}, nil
 }
 
 // GetManagerDetail returns one Manager only when it belongs to the requested settings scope.
@@ -145,45 +148,6 @@ func GetManagerDetail(ctx context.Context, opts ManagerDetailOptions) (*ManagerD
 	return &ManagerDetail{Manager: views[0], Codespaces: list.Rows, Total: list.Total}, nil
 }
 
-// CreateManager creates a Manager identity before credentials are provisioned.
-func CreateManager(ctx context.Context, opts CreateManagerOptions) (int64, error) {
-	name, err := normalizeManagerDisplayName(opts.Name)
-	if err != nil {
-		return 0, err
-	}
-	if err := validateManagerSettingsScope(ctx, opts.ManagerSettingsOptions); err != nil {
-		return 0, err
-	}
-	userID := opts.UserID
-	if opts.Scope == ManagerSettingsScopeSite {
-		userID = 0
-	}
-	var managerID int64
-	err = globallock.LockAndDo(ctx, codespaceUserRelationLockKey(userID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			if err := validateManagerSettingsScope(ctx, opts.ManagerSettingsOptions); err != nil {
-				return err
-			}
-			manager := &codespace_model.Manager{
-				Name:         name,
-				UserID:       userID,
-				RuntimeState: codespace_model.ManagerRuntimeStateRecovering,
-				TagsJSON:     "[]",
-				CreatedUnix:  time.Now().Unix(),
-			}
-			if _, err := db.GetEngine(ctx).Insert(manager); err != nil {
-				return err
-			}
-			managerID = manager.ID
-			return nil
-		})
-	})
-	if err != nil {
-		return 0, err
-	}
-	return managerID, nil
-}
-
 // UpdateManagerName changes only the Gitea-managed display name.
 func UpdateManagerName(ctx context.Context, opts ManagerSettingsOptions, managerID int64, name string) error {
 	name, err := normalizeManagerDisplayName(name)
@@ -205,27 +169,22 @@ func UpdateManagerName(ctx context.Context, opts ManagerSettingsOptions, manager
 	return err
 }
 
-// ResetManagerSecret returns the new secret only after replacing its stored verifier.
-func ResetManagerSecret(ctx context.Context, opts ManagerSettingsOptions, managerID int64, confirm bool) (string, error) {
-	manager, err := loadScopedSettingsManager(ctx, opts, managerID)
+// RotateManagerRegistrationToken invalidates the scope token without changing registered Managers.
+func RotateManagerRegistrationToken(ctx context.Context, opts ManagerSettingsOptions) (string, error) {
+	userID, err := managerSettingsUserID(ctx, opts)
 	if err != nil {
 		return "", err
 	}
-	if manager.SecretHash != "" && !confirm {
-		return "", ErrManagerSettingsConfirmRequired
-	}
-	previousHash := manager.SecretHash
-	secret := manager.GenerateManagerSecret()
-	// Reject a reset based on a verifier changed by another request.
-	affected, err := db.GetEngine(ctx).Where("id = ? AND user_id = ? AND secret_hash = ?", manager.ID, manager.UserID, previousHash).
-		Cols("secret_salt", "secret_hash").Update(manager)
+	var token *codespace_model.ManagerRegistrationToken
+	err = globallock.LockAndDo(ctx, codespaceUserRelationLockKey(userID), func(ctx context.Context) error {
+		var err error
+		token, err = codespace_model.NewManagerRegistrationToken(ctx, userID)
+		return err
+	})
 	if err != nil {
 		return "", err
 	}
-	if affected == 0 {
-		return "", ErrManagerSettingsChanged
-	}
-	return secret, nil
+	return token.Token, nil
 }
 
 func loadScopedSettingsManager(ctx context.Context, opts ManagerSettingsOptions, managerID int64) (*codespace_model.Manager, error) {
@@ -419,7 +378,6 @@ func settingsManagerViews(ctx context.Context, managers []*codespace_model.Manag
 		view := &ManagerSettingsView{
 			ID:                                 manager.ID,
 			Name:                               manager.Name,
-			HasSecret:                          manager.SecretHash != "",
 			UserID:                             manager.UserID,
 			UserDisplayName:                    userName,
 			Version:                            manager.Version,
@@ -504,6 +462,16 @@ func validateManagerSettingsScope(ctx context.Context, opts ManagerSettingsOptio
 	default:
 		return fmt.Errorf("unsupported manager settings scope %q", opts.Scope)
 	}
+}
+
+func managerSettingsUserID(ctx context.Context, opts ManagerSettingsOptions) (int64, error) {
+	if err := validateManagerSettingsScope(ctx, opts); err != nil {
+		return 0, err
+	}
+	if opts.Scope == ManagerSettingsScopeSite {
+		return 0, nil
+	}
+	return opts.UserID, nil
 }
 
 func loadSettingsManager(ctx context.Context, managerID int64) (*codespace_model.Manager, error) {

@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
+	"gitea.dev/codespace-proto-go/codespace/v1/codespacev1connect"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/modules/setting"
 	codespace_service "gitea.dev/services/codespace"
@@ -32,6 +33,12 @@ type versionedRequest interface {
 
 func withManager(next connect.ServerFunc) connect.ServerFunc {
 	return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
+		ctx, cancel := context.WithTimeout(ctx, setting.Codespace.ControlPlaneTimeout)
+		defer cancel()
+		stream = versionedStream{stream}
+		if spec.Procedure == codespacev1connect.ManagerServiceRegisterManagerProcedure {
+			return next(ctx, spec, stream)
+		}
 		info, _ := connect.CallInfoForServerContext(ctx)
 		manager, err := authenticate(ctx, info.RequestHeader())
 		if err != nil {
@@ -45,9 +52,7 @@ func withManager(next connect.ServerFunc) connect.ServerFunc {
 			}
 		}
 		ctx = context.WithValue(ctx, managerCtxKey{}, manager)
-		ctx, cancel := context.WithTimeout(ctx, setting.Codespace.ControlPlaneTimeout)
-		defer cancel()
-		err = next(ctx, spec, versionedStream{stream})
+		err = next(ctx, spec, stream)
 		if err != nil {
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
 				return connect.NewError(connect.CodeDeadlineExceeded, context.DeadlineExceeded.Error()).WithCause(context.DeadlineExceeded)

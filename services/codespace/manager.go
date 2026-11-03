@@ -14,6 +14,7 @@ import (
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
@@ -31,6 +32,8 @@ var (
 	ErrManagerUnregistered = errors.New("manager unregistered")
 	// ErrManagerUnauthenticated is returned when the Manager credential is not valid.
 	ErrManagerUnauthenticated = errors.New("manager unauthenticated")
+	// ErrManagerRegistrationTokenInvalid is returned when a token cannot register a Manager.
+	ErrManagerRegistrationTokenInvalid = errors.New("manager registration token is invalid")
 	// ErrBindRuntimeIdentityNotFound is returned when the create operation cannot be found.
 	ErrBindRuntimeIdentityNotFound = errors.New("runtime identity target not found")
 	// ErrBindRuntimeIdentityStateConflict is returned when the create operation cannot accept a runtime UUID.
@@ -61,6 +64,64 @@ type BindRuntimeIdentityOptions struct {
 type ManagerEnvironmentDeclaration struct {
 	Tag         string `json:"tag"`
 	Description string `json:"description,omitempty"`
+}
+
+// RegisterManager creates a complete Manager identity in the registration token's scope.
+func RegisterManager(ctx context.Context, token, name string) (*codespace_model.Manager, string, error) {
+	name, err := normalizeManagerDisplayName(name)
+	if err != nil {
+		return nil, "", err
+	}
+	if len(token) != 40 {
+		return nil, "", ErrManagerRegistrationTokenInvalid
+	}
+	registrationToken, err := codespace_model.GetManagerRegistrationToken(ctx, token)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			return nil, "", ErrManagerRegistrationTokenInvalid
+		}
+		return nil, "", err
+	}
+	if !registrationToken.IsActive {
+		return nil, "", ErrManagerRegistrationTokenInvalid
+	}
+
+	manager := &codespace_model.Manager{}
+	var secret string
+	err = globallock.LockAndDo(ctx, codespaceUserRelationLockKey(registrationToken.UserID), func(ctx context.Context) error {
+		return db.WithTx(ctx, func(ctx context.Context) error {
+			currentToken, err := codespace_model.GetManagerRegistrationToken(ctx, token)
+			if err != nil {
+				if errors.Is(err, util.ErrNotExist) {
+					return ErrManagerRegistrationTokenInvalid
+				}
+				return err
+			}
+			if !currentToken.IsActive || currentToken.UserID != registrationToken.UserID {
+				return ErrManagerRegistrationTokenInvalid
+			}
+			if currentToken.UserID > 0 {
+				user, err := user_model.GetUserByID(ctx, currentToken.UserID)
+				if err != nil || user.Type != user_model.UserTypeIndividual {
+					return ErrManagerRegistrationTokenInvalid
+				}
+			}
+			manager = &codespace_model.Manager{
+				Name:         name,
+				UserID:       currentToken.UserID,
+				TagsJSON:     "[]",
+				RuntimeState: codespace_model.ManagerRuntimeStateRecovering,
+				CreatedUnix:  time.Now().Unix(),
+			}
+			secret = manager.GenerateManagerSecret()
+			_, err = db.GetEngine(ctx).Insert(manager)
+			return err
+		})
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	return manager, secret, nil
 }
 
 // BindRuntimeIdentity stores the runtime UUID allocated by the Manager for an active create.

@@ -4,6 +4,8 @@
 package codespace
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	codespace_model "gitea.dev/models/codespace"
@@ -14,66 +16,93 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestManagerNameAndCredentialLifecycle(t *testing.T) {
+func TestManagerRegistrationTokenLifecycle(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	opts := CreateManagerOptions{
-		ManagerSettingsOptions: ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 1},
-		Name:                   " Personal Manager ",
-	}
-	managerID, err := CreateManager(t.Context(), opts)
+	opts := ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 1}
+	settings, err := ListManagerSettings(t.Context(), opts)
 	require.NoError(t, err)
-	require.NotZero(t, managerID)
-	manager, err := loadSettingsManager(t.Context(), managerID)
+	require.Len(t, settings.RegistrationToken, 40)
+
+	stable, err := ListManagerSettings(t.Context(), opts)
 	require.NoError(t, err)
-	assert.Empty(t, manager.SecretHash)
-	_, err = AuthenticateManager(t.Context(), managerID, "not-issued")
-	require.ErrorIs(t, err, ErrManagerUnauthenticated)
+	assert.Equal(t, settings.RegistrationToken, stable.RegistrationToken)
+
+	manager, secret, err := RegisterManager(t.Context(), settings.RegistrationToken, " Personal Manager ")
+	require.NoError(t, err)
 	assert.Equal(t, "Personal Manager", manager.Name)
 	assert.EqualValues(t, 1, manager.UserID)
 	assert.Equal(t, codespace_model.ManagerRuntimeStateRecovering, manager.RuntimeState)
-	views, err := ListManagerSettings(t.Context(), ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 1})
+	authenticated, err := AuthenticateManager(t.Context(), manager.ID, secret)
 	require.NoError(t, err)
-	require.Len(t, views.Managers, 1)
-	assert.Equal(t, managerDisplayPending, views.Managers[0].RuntimeDisplayState)
-	assert.False(t, views.Managers[0].HasSecret)
-	secret, err := ResetManagerSecret(t.Context(), opts.ManagerSettingsOptions, managerID, false)
+	assert.Equal(t, manager.ID, authenticated.ID)
+
+	second, secondSecret, err := RegisterManager(t.Context(), settings.RegistrationToken, "Second Manager")
 	require.NoError(t, err)
-	_, err = AuthenticateManager(t.Context(), managerID, secret)
+	assert.NotEqual(t, manager.ID, second.ID)
+	assert.NotEqual(t, secret, secondSecret)
+
+	rotated, err := RotateManagerRegistrationToken(t.Context(), opts)
 	require.NoError(t, err)
-	beforeRename, err := loadSettingsManager(t.Context(), managerID)
+	assert.NotEqual(t, settings.RegistrationToken, rotated)
+	_, _, err = RegisterManager(t.Context(), settings.RegistrationToken, "Old Token")
+	require.ErrorIs(t, err, ErrManagerRegistrationTokenInvalid)
+	third, _, err := RegisterManager(t.Context(), rotated, "Third Manager")
 	require.NoError(t, err)
-	require.NoError(t, UpdateManagerName(t.Context(), opts.ManagerSettingsOptions, managerID, " Renamed "))
-	manager, err = AuthenticateManager(t.Context(), managerID, secret)
+	assert.EqualValues(t, 1, third.UserID)
+
+	_, err = AuthenticateManager(t.Context(), manager.ID, secret)
 	require.NoError(t, err)
-	beforeRename.Name = "Renamed"
-	assert.Equal(t, beforeRename, manager)
-	assert.Equal(t, "Renamed", manager.Name)
-	assert.EqualValues(t, 1, manager.UserID)
-	_, err = ResetManagerSecret(t.Context(), opts.ManagerSettingsOptions, managerID, false)
-	require.ErrorIs(t, err, ErrManagerSettingsConfirmRequired)
+	require.NoError(t, UpdateManagerName(t.Context(), opts, manager.ID, " Renamed "))
+	authenticated, err = AuthenticateManager(t.Context(), manager.ID, secret)
+	require.NoError(t, err)
+	assert.Equal(t, "Renamed", authenticated.Name)
+
 	otherUser := ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 2}
-	require.ErrorIs(t, UpdateManagerName(t.Context(), otherUser, managerID, "Other"), ErrManagerSettingsNotFound)
-	_, err = ResetManagerSecret(t.Context(), otherUser, managerID, true)
-	require.ErrorIs(t, err, ErrManagerSettingsNotFound)
-	newSecret, err := ResetManagerSecret(t.Context(), ManagerSettingsOptions{Scope: ManagerSettingsScopeSite}, managerID, true)
-	require.NoError(t, err)
-	_, err = AuthenticateManager(t.Context(), managerID, secret)
-	require.ErrorIs(t, err, ErrManagerUnauthenticated)
-	_, err = AuthenticateManager(t.Context(), managerID, newSecret)
-	require.NoError(t, err)
+	require.ErrorIs(t, UpdateManagerName(t.Context(), otherUser, manager.ID, "Other"), ErrManagerSettingsNotFound)
 }
 
-func TestCreateManagerRejectsInvalidName(t *testing.T) {
+func TestRegisterManagerRejectsInvalidName(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+	settings, err := ListManagerSettings(t.Context(), ManagerSettingsOptions{Scope: ManagerSettingsScopeSite})
+	require.NoError(t, err)
 
 	for _, name := range []string{"", " \t ", "bad\nname"} {
-		_, err := CreateManager(t.Context(), CreateManagerOptions{
-			ManagerSettingsOptions: ManagerSettingsOptions{Scope: ManagerSettingsScopeSite},
-			Name:                   name,
-		})
+		_, _, err := RegisterManager(t.Context(), settings.RegistrationToken, name)
 		require.ErrorIs(t, err, ErrManagerSettingsNameInvalid)
 	}
+}
+
+func TestRegisterManagerAllowsConcurrentUseOfScopeToken(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	settings, err := ListManagerSettings(t.Context(), ManagerSettingsOptions{Scope: ManagerSettingsScopeSite})
+	require.NoError(t, err)
+
+	const registrations = 4
+	managerIDs := make(chan int64, registrations)
+	errors := make(chan error, registrations)
+	var wait sync.WaitGroup
+	for i := range registrations {
+		wait.Go(func() {
+			manager, _, err := RegisterManager(t.Context(), settings.RegistrationToken, fmt.Sprintf("Manager %d", i+1))
+			if err != nil {
+				errors <- err
+				return
+			}
+			managerIDs <- manager.ID
+		})
+	}
+	wait.Wait()
+	close(errors)
+	close(managerIDs)
+	for err := range errors {
+		require.NoError(t, err)
+	}
+	unique := make(map[int64]struct{}, registrations)
+	for managerID := range managerIDs {
+		unique[managerID] = struct{}{}
+	}
+	assert.Len(t, unique, registrations)
 }
 
 func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
@@ -207,12 +236,6 @@ func TestPersonalManagerDeleteRejectsForeignBindingBeforeCleanup(t *testing.T) {
 func TestManagerSettingsRequireIndividualUser(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	_, err := CreateManager(t.Context(), CreateManagerOptions{
-		ManagerSettingsOptions: ManagerSettingsOptions{
-			Scope:  ManagerSettingsScopeUser,
-			UserID: 3,
-		},
-		Name: "Manager",
-	})
+	_, err := ListManagerSettings(t.Context(), ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 3})
 	require.ErrorContains(t, err, "not an individual")
 }

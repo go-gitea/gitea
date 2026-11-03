@@ -1,10 +1,8 @@
-import {initCodespaceManagerSecretModal, initCodespaceSecretRepositoryPicker, initCodespaceTemplateEditor} from './CodespaceSettings.ts';
+import {initCodespaceSecretRepositoryPicker, initCodespaceTemplateEditor} from './CodespaceSettings.ts';
 import {EditorView} from '@codemirror/view';
 import * as modalModule from '../../modules/modal.ts';
-import * as fetchAction from '../../modules/fetch-action.ts';
 
 vi.mock('../../modules/modal.ts', () => ({showModal: vi.fn()}));
-vi.mock('../../modules/fetch-action.ts', () => ({performFetchActionRequest: vi.fn()}));
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -44,74 +42,6 @@ test('template editor submits edited JSONC and opens another template with fresh
     expect(EditorView.findFromDOM(modal.querySelector('.cm-editor')!)!.state.doc.toString()).toBe('{"image":"alpine:3"}');
   } finally {
     onHide!();
-    vi.restoreAllMocks();
-    document.body.replaceChildren();
-  }
-});
-
-test('manager credentials are generated on demand, cleared on close, and confirmed before reset', async () => {
-  document.body.innerHTML = `
-    <button id="manager-secret-button" data-has-secret="false" data-reset-label="Reset">Generate</button>
-    <p id="manager-secret-status" data-generated-label="Generated">Not generated</p>
-    <dialog open id="secret-modal">
-      <p data-secret-confirm>Confirm reset</p>
-      <div data-secret-result hidden>
-        <input id="manager-secret-value"><button type="button" data-clipboard-target="#manager-secret-value">Copy</button>
-      </div>
-      <form action="/manager/1/secret"><button class="ui cancel button" type="button">Close</button><button class="ui primary button" data-secret-submit>Reset</button></form>
-    </dialog>`;
-  const modal = document.querySelector<HTMLDialogElement>('#secret-modal')!;
-  let onHide: (() => void) | undefined;
-  const show = vi.mocked(modalModule.showModal).mockImplementation((_el, opts) => {
-    modal.open = true;
-    onHide = () => {
-      modal.open = false;
-      opts!.onHidden!.call(modal);
-    };
-    opts!.onShow!.call(modal);
-  });
-  const request = vi.mocked(fetchAction.performFetchActionRequest).mockResolvedValue(Response.json({secret: 'first-secret'}));
-  try {
-    initCodespaceManagerSecretModal(modal);
-    expect(show).not.toHaveBeenCalled();
-    const trigger = document.querySelector<HTMLButtonElement>('#manager-secret-button')!;
-    trigger.click();
-    const value = modal.querySelector<HTMLInputElement>('input')!;
-    await vi.waitFor(() => expect(value.value).toBe('first-secret'));
-    expect(request.mock.calls[0][1].data).toBeInstanceOf(FormData);
-    expect((request.mock.calls[0][1].data as FormData).has('confirm')).toBe(false);
-    onHide!();
-    expect(value.value).toBe('');
-    trigger.click();
-    expect(request).toHaveBeenCalledTimes(1);
-    expect(modal.querySelector<HTMLElement>('[data-secret-confirm]')!.hidden).toBe(false);
-    const submit = modal.querySelector<HTMLButtonElement>('[data-secret-submit]')!;
-    expect(submit.classList.contains('tw-hidden')).toBe(false);
-    request.mockResolvedValueOnce(null);
-    const form = modal.querySelector('form')!;
-    form.requestSubmit();
-    await vi.waitFor(() => expect(trigger.disabled).toBe(false));
-    expect(submit.classList.contains('tw-hidden')).toBe(false);
-    expect((request.mock.calls[1][1].data as FormData).get('confirm')).toBe('reset-secret');
-    request.mockResolvedValueOnce(Response.json({secret: 'second-secret'}));
-    form.requestSubmit();
-    await vi.waitFor(() => expect(value.value).toBe('second-secret'));
-    expect(modal.querySelector<HTMLElement>('[data-secret-confirm]')!.hidden).toBe(true);
-    expect(submit.classList.contains('tw-hidden')).toBe(true);
-    expect(form.querySelector<HTMLButtonElement>('.cancel')!.disabled).toBe(false);
-    onHide!();
-    expect(value.value).toBe('');
-    trigger.click();
-    const response = Promise.withResolvers<Response>();
-    request.mockReturnValueOnce(response.promise);
-    form.requestSubmit();
-    expect(trigger.disabled).toBe(true);
-    onHide!();
-    response.resolve(Response.json({secret: 'closed-secret'}));
-    await vi.waitFor(() => expect(trigger.disabled).toBe(false));
-    expect(value.value).toBe('');
-    expect(modal.querySelector<HTMLElement>('[data-secret-result]')!.hidden).toBe(true);
-  } finally {
     vi.restoreAllMocks();
     document.body.replaceChildren();
   }

@@ -157,43 +157,49 @@ func TestCodespaceManagerSettings(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user2")
 		base := "/user/settings/codespaces/managers"
-		session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, base+"/create", map[string]string{"name": " "}), http.StatusBadRequest)
-		response := session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, base+"/create", map[string]string{"name": "New Manager"}), http.StatusOK)
-		var created struct{ Redirect string }
-		DecodeJSON(t, response, &created)
-		require.True(t, strings.HasPrefix(created.Redirect, base+"/"))
-		session.MakeRequest(t, NewRequest(t, http.MethodGet, created.Redirect), http.StatusOK)
-		session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect, map[string]string{"name": "Renamed"}), http.StatusOK)
-		response = session.MakeRequest(t, NewRequest(t, http.MethodPost, created.Redirect+"/secret"), http.StatusOK)
-		assert.Equal(t, "no-store", response.Header().Get("Cache-Control"))
-		var credentials struct{ Secret string }
-		DecodeJSON(t, response, &credentials)
-		require.NotEmpty(t, credentials.Secret)
-		session.MakeRequest(t, NewRequest(t, http.MethodPost, created.Redirect+"/secret"), http.StatusBadRequest)
-		other := loginUser(t, "user4")
-		other.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect, map[string]string{"name": "Other"}), http.StatusNotFound)
-		other.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect+"/secret", map[string]string{"confirm": "reset-secret"}), http.StatusNotFound)
-		response = session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect+"/secret", map[string]string{"confirm": "reset-secret"}), http.StatusOK)
-		var reset struct{ Secret string }
+		settings, err := codespace_service.ListManagerSettings(t.Context(), codespace_service.ManagerSettingsOptions{
+			Scope: codespace_service.ManagerSettingsScopeUser, UserID: 2,
+		})
+		require.NoError(t, err)
+		require.Len(t, settings.RegistrationToken, 40)
+		response := session.MakeRequest(t, NewRequest(t, http.MethodGet, base), http.StatusOK)
+		assert.Contains(t, response.Body.String(), settings.RegistrationToken)
+
+		manager, secret, err := codespace_service.RegisterManager(t.Context(), settings.RegistrationToken, "New Manager")
+		require.NoError(t, err)
+		require.NotEmpty(t, secret)
+		managerURL := base + "/" + strconv.FormatInt(manager.ID, 10)
+		session.MakeRequest(t, NewRequest(t, http.MethodGet, managerURL), http.StatusOK)
+		session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, managerURL, map[string]string{"name": "Renamed"}), http.StatusOK)
+
+		response = session.MakeRequest(t, NewRequest(t, http.MethodPost, base+"/registration-token/reset").SetHeader("X-Gitea-Fetch-Action", "1"), http.StatusOK)
+		var reset struct{ Redirect string }
 		DecodeJSON(t, response, &reset)
-		assert.NotEqual(t, credentials.Secret, reset.Secret)
-		response = session.MakeRequest(t, NewRequest(t, http.MethodGet, created.Redirect), http.StatusOK)
+		assert.Equal(t, base, reset.Redirect)
+		rotated, err := codespace_service.ListManagerSettings(t.Context(), codespace_service.ManagerSettingsOptions{
+			Scope: codespace_service.ManagerSettingsScopeUser, UserID: 2,
+		})
+		require.NoError(t, err)
+		assert.NotEqual(t, settings.RegistrationToken, rotated.RegistrationToken)
+
+		other := loginUser(t, "user4")
+		other.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, managerURL, map[string]string{"name": "Other"}), http.StatusNotFound)
+		response = session.MakeRequest(t, NewRequest(t, http.MethodGet, managerURL), http.StatusOK)
 		assert.Contains(t, response.Body.String(), "Renamed")
 		admin := loginUser(t, "user1")
-		adminURL := strings.Replace(created.Redirect, base, "/-/admin/codespaces/managers", 1)
+		adminURL := strings.Replace(managerURL, base, "/-/admin/codespaces/managers", 1)
 		admin.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, adminURL, map[string]string{"name": "Admin renamed"}), http.StatusOK)
-		admin.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, adminURL+"/secret", map[string]string{"confirm": "reset-secret"}), http.StatusOK)
-		response = session.MakeRequest(t, NewRequest(t, http.MethodPost, created.Redirect+"/delete").SetHeader("X-Gitea-Fetch-Action", "1"), http.StatusBadRequest)
+		response = session.MakeRequest(t, NewRequest(t, http.MethodPost, managerURL+"/delete").SetHeader("X-Gitea-Fetch-Action", "1"), http.StatusBadRequest)
 		var deletionError struct{ ErrorMessage string }
 		DecodeJSON(t, response, &deletionError)
 		assert.NotEmpty(t, deletionError.ErrorMessage)
-		other.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect+"/delete", map[string]string{"confirm": "delete-manager"}).SetHeader("X-Gitea-Fetch-Action", "1"), http.StatusNotFound)
-		session.MakeRequest(t, NewRequest(t, http.MethodGet, created.Redirect), http.StatusOK)
-		response = session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect+"/delete", map[string]string{"confirm": "delete-manager"}).SetHeader("X-Gitea-Fetch-Action", "1"), http.StatusOK)
+		other.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, managerURL+"/delete", map[string]string{"confirm": "delete-manager"}).SetHeader("X-Gitea-Fetch-Action", "1"), http.StatusNotFound)
+		session.MakeRequest(t, NewRequest(t, http.MethodGet, managerURL), http.StatusOK)
+		response = session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, managerURL+"/delete", map[string]string{"confirm": "delete-manager"}).SetHeader("X-Gitea-Fetch-Action", "1"), http.StatusOK)
 		var deleted struct{ Redirect string }
 		DecodeJSON(t, response, &deleted)
 		assert.Equal(t, base, deleted.Redirect)
-		session.MakeRequest(t, NewRequest(t, http.MethodGet, created.Redirect), http.StatusNotFound)
+		session.MakeRequest(t, NewRequest(t, http.MethodGet, managerURL), http.StatusNotFound)
 	})
 }
 

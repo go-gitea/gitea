@@ -6,7 +6,7 @@ import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
-import {initCodespaceManagerSecretModal, initCodespaceSecretRepositoryPicker, initCodespaceTemplateEditor} from './comp/CodespaceSettings.ts';
+import {initCodespaceSecretRepositoryPicker, initCodespaceTemplateEditor} from './comp/CodespaceSettings.ts';
 import {initRepoSwitcher} from './repo-switcher.ts';
 import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
 
@@ -104,7 +104,6 @@ export function initGlobalComponent() {
   registerGlobalInitFunc('initTabSwitcher', initTabSwitcher);
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
-  registerGlobalInitFunc('initCodespaceManagerSecretModal', initCodespaceManagerSecretModal);
   registerGlobalInitFunc('initCodespaceTemplateEditor', initCodespaceTemplateEditor);
   registerGlobalInitFunc('initCodespaceSecretRepositoryPicker', initCodespaceSecretRepositoryPicker);
   registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);

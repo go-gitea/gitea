@@ -35,14 +35,39 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	client, cleanup := newManagerTestClient(t)
 	defer cleanup()
 
-	managerID, err := codespace_service.CreateManager(t.Context(), codespace_service.CreateManagerOptions{
-		ManagerSettingsOptions: codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite},
-		Name:                   "Gitea Manager",
+	settings, err := codespace_service.ListManagerSettings(t.Context(), codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite})
+	require.NoError(t, err)
+
+	_, err = client.RegisterManager(t.Context(), &codespacev1.RegisterManagerRequest{
+		ProtocolVersion: 0,
+		Token:           settings.RegistrationToken,
+		Name:            "Gitea Manager",
+	})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	assert.Equal(t, "protocol_mismatch", failureCategory(t, err))
+
+	_, err = client.RegisterManager(t.Context(), &codespacev1.RegisterManagerRequest{
+		ProtocolVersion: 1,
+		Token:           "0000000000000000000000000000000000000000",
+		Name:            "Gitea Manager",
+	})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	assert.Equal(t, "registration_token_invalid", failureCategory(t, err))
+
+	registered, err := client.RegisterManager(t.Context(), &codespacev1.RegisterManagerRequest{
+		ProtocolVersion: 1,
+		Token:           settings.RegistrationToken,
+		Name:            " Gitea Manager ",
 	})
 	require.NoError(t, err)
-	require.Positive(t, managerID)
-	secret, err := codespace_service.ResetManagerSecret(t.Context(), codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite}, managerID, false)
-	require.NoError(t, err)
+	require.Positive(t, registered.GetManagerId())
+	require.NotEmpty(t, registered.GetManagerSecret())
+	assert.Equal(t, "Gitea Manager", registered.GetManagerName())
+	assert.NotEmpty(t, registered.GetGiteaWebUrl())
+	managerID, secret := registered.GetManagerId(), registered.GetManagerSecret()
+
 	checked, err := client.CheckManager(managerContext(t.Context(), managerID, secret), &codespacev1.CheckManagerRequest{ProtocolVersion: 1})
 	require.NoError(t, err)
 	assert.Equal(t, "Gitea Manager", checked.GetManagerName())
