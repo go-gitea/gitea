@@ -276,7 +276,7 @@ func TestGerritCloneAddr(t *testing.T) {
 		require.Error(t, err, addr)
 	}
 	_, err := parseGerritCloneAddr("ssh://alice@gerrit.example.com:29418/team/demo")
-	require.ErrorContains(t, err, "SSH clone URLs are not supported")
+	require.ErrorContains(t, err, "unsupported scheme")
 	_, err = parseGerritCloneAddr("https://gerrit.example.com/a/team/demo.git")
 	require.NoError(t, err)
 

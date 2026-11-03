@@ -20,6 +20,7 @@ import (
 	"unicode/utf8"
 
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
@@ -79,22 +80,14 @@ func (l *gerritLocation) String() string {
 	return (&url.URL{Scheme: l.scheme, Host: l.host, Path: "/" + strings.Join(l.path, "/")}).String()
 }
 
-var errSSHNotSupported = errors.New("SSH clone URLs are not supported for Gerrit, the address of its REST API cannot be derived from them, use the HTTP(S) clone URL of the project")
-
 func parseGerritCloneAddr(rawURL string) (*gerritLocation, error) {
-	rawURL = strings.TrimSpace(rawURL)
-	if !strings.Contains(rawURL, "://") {
-		return nil, errSSHNotSupported
-	}
-	u, err := url.Parse(rawURL)
+	u, err := giturl.ParseGitURL(strings.TrimSpace(rawURL))
 	if err != nil {
 		return nil, errors.New("invalid Gerrit clone URL")
 	}
-	if u.Scheme == "ssh" {
-		return nil, errSSHNotSupported
-	}
+	// the address of the REST API can only be derived from an HTTP(S) clone URL, not from SSH or a local path
 	if u.Scheme != "http" && u.Scheme != "https" {
-		return nil, fmt.Errorf("unsupported scheme %q for Gerrit, the address of its REST API can only be derived from an HTTP(S) clone URL of the project", u.Scheme)
+		return nil, fmt.Errorf("unsupported scheme %q for Gerrit, use the HTTP(S) clone URL of the project", u.Scheme)
 	}
 	if u.Hostname() == "" {
 		return nil, errors.New("the Gerrit clone URL has no host")
