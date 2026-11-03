@@ -526,7 +526,7 @@ func testChangeFullName(t *testing.T) {
 
 		data := postSettings(t, map[string]string{"location": "Elsewhere2", "full_name": "Other Name"}, http.StatusBadRequest)
 		assert.Equal(t, []any{"FullName"}, data["errorFields"])
-		assert.Equal(t, translation.NewLocale("en-US").TrString("user.form.change_full_name_disabled"), data["errorMessage"])
+		assert.Equal(t, "Changing full name is disabled.", data["errorMessage"])
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2", FullName: "New Name", Location: "Elsewhere"})
 	})
 }
