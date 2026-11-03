@@ -4,24 +4,17 @@
 package oauth2
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"html"
 	"html/template"
 	"net/url"
 	"slices"
 	"sort"
 
-	"gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 
 	"github.com/markbates/goth"
-	"github.com/markbates/goth/providers/openidConnect"
 )
 
 // Provider is an interface for describing a single OAuth2 provider
@@ -30,102 +23,33 @@ type Provider interface {
 	DisplayName() string
 	IconHTML(size int) template.HTML
 	CustomURLSettings() *CustomURLSettings
-	SupportSSHPublicKey() bool
 }
 
-// GothProviderCreator provides a function to create a goth.Provider
+// GothProviderCreator is a interface for creating a goth.Provider for a Provider
 type GothProviderCreator interface {
-	CreateGothProvider(providerName, callbackURL string, source *Source) (goth.Provider, error)
-}
-
-// GothProvider is an interface for describing a single OAuth2 provider
-type GothProvider interface {
 	Provider
-	GothProviderCreator
-}
-
-// AuthSourceProvider provides a provider for an AuthSource. Multiple auth sources could use the same registered GothProvider
-// So each auth source should have its own DisplayName and IconHTML for display.
-// The Name is the GothProvider's name, to help to find the GothProvider to sign in.
-// The DisplayName is the auth source config's name, site admin set it on the admin page, the IconURL can also be set there.
-type AuthSourceProvider struct {
-	GothProvider
-	sourceName, iconURL string
-}
-
-func (p *AuthSourceProvider) Name() string {
-	return p.GothProvider.Name()
-}
-
-func (p *AuthSourceProvider) DisplayName() string {
-	return p.sourceName
-}
-
-func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
-	if p.iconURL != "" {
-		img := fmt.Sprintf(`<img class="tw-object-contain" width="%d" height="%d" src="%s" alt="%s">`,
-			size,
-			size,
-			html.EscapeString(p.iconURL), html.EscapeString(p.DisplayName()),
-		)
-		return template.HTML(img)
-	}
-	return p.GothProvider.IconHTML(size)
+	CreateGothProvider(providerName, callbackURL string, source *Source) (goth.Provider, error)
 }
 
 // Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
 // key is used to map the OAuth2Provider with the goth provider type (also in AuthSource.OAuth2Config.Provider)
 // value is used to store display data
-var gothProviders = map[string]GothProvider{}
+var gothProviders = map[string]GothProviderCreator{}
 
-func isAzureProvider(name string) bool {
-	return name == "azuread" || name == "microsoftonline" || name == "azureadv2"
-}
-
-// RegisterGothProvider registers a GothProvider
-func RegisterGothProvider(provider GothProvider) {
+// RegisterGothProvider registers a GothProviderCreator
+func RegisterGothProvider(provider GothProviderCreator) {
 	if _, has := gothProviders[provider.Name()]; has {
-		log.Fatal("Duplicate oauth2provider type provided: %s", provider.Name())
+		log.Fatal("Duplicate oauth2 provider type provided: %s", provider.Name())
 	}
 	gothProviders[provider.Name()] = provider
 }
 
-// getExistingAzureADAuthSources returns a list of Azure AD provider names that are already configured
-func getExistingAzureADAuthSources(ctx context.Context) ([]string, error) {
-	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		LoginType: auth.OAuth2,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var existingAzureProviders []string
-	for _, source := range authSources {
-		if oauth2Cfg, ok := source.Cfg.(*Source); ok {
-			if isAzureProvider(oauth2Cfg.Provider) {
-				existingAzureProviders = append(existingAzureProviders, oauth2Cfg.Provider)
-			}
-		}
-	}
-	return existingAzureProviders, nil
-}
-
-// GetSupportedOAuth2Providers returns the list of supported OAuth2 providers with context for filtering
-// key is used as technical name (like in the callbackURL)
-// values to display
-// Note: Azure AD providers (azuread, microsoftonline, azureadv2) are filtered out
-// unless they already exist in the system to encourage use of OpenID Connect
-func GetSupportedOAuth2Providers(ctx context.Context) []Provider {
+// GetSupportedOAuth2Providers returns the slice of unconfigured OAuth2 providers
+// sorted by provider name (A-Z)
+func GetSupportedOAuth2Providers() []Provider {
 	providers := make([]Provider, 0, len(gothProviders))
-	existingAzureSources, err := getExistingAzureADAuthSources(ctx)
-	if err != nil {
-		log.Error("Failed to get existing OAuth2 auth sources: %v", err)
-	}
 
 	for _, provider := range gothProviders {
-		if isAzureProvider(provider.Name()) && !slices.Contains(existingAzureSources, provider.Name()) {
-			continue
-		}
 		providers = append(providers, provider)
 	}
 	sort.Slice(providers, func(i, j int) bool {
@@ -134,49 +58,25 @@ func GetSupportedOAuth2Providers(ctx context.Context) []Provider {
 	return providers
 }
 
-func CreateProviderFromSource(source *auth.Source) (Provider, error) {
-	oauth2Cfg, ok := source.Cfg.(*Source)
-	if !ok {
-		return nil, fmt.Errorf("invalid OAuth2 source config: %v", oauth2Cfg)
+func GetOAuth2Provider(providerName string) (Provider, error) {
+	provider := gothProviders[providerName]
+	if provider == nil {
+		return nil, fmt.Errorf("unknown oauth2 provider: %s", providerName)
 	}
-	gothProv := gothProviders[oauth2Cfg.Provider]
-	return &AuthSourceProvider{GothProvider: gothProv, sourceName: source.Name, iconURL: oauth2Cfg.IconURL}, nil
+	return provider, nil
 }
 
-// GetOAuth2Providers returns the list of configured OAuth2 providers
-func GetOAuth2Providers(ctx context.Context, isActive optional.Option[bool]) ([]Provider, error) {
-	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		IsActive:  isActive,
-		LoginType: auth.OAuth2,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	providers := make([]Provider, 0, len(authSources))
-	for _, source := range authSources {
-		provider, err := CreateProviderFromSource(source)
-		if err != nil {
-			return nil, err
-		}
-		providers = append(providers, provider)
-	}
-
-	sort.Slice(providers, func(i, j int) bool {
-		return providers[i].Name() < providers[j].Name()
-	})
-
-	return providers, nil
+// DefaultCallbackURL returns the default OAuth2 callback URL configured via setting.AppURL
+func DefaultCallbackURL(providerName string) string {
+	return setting.AppURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
 }
 
-// RegisterProviderWithGothic register a OAuth2 provider in goth lib
+// RegisterProviderWithGothic registers a OAuth2 provider in goth lib
 func RegisterProviderWithGothic(providerName string, source *Source) error {
-	callbackURL := setting.AppURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
-	provider, err := createProvider(providerName, callbackURL, source)
-
+	provider, err := createProvider(providerName, source)
 	if err == nil && provider != nil {
-		gothRWMutex.Lock()
-		defer gothRWMutex.Unlock()
+		gothProvidersLock.Lock()
+		defer gothProvidersLock.Unlock()
 
 		goth.UseProviders(provider)
 	}
@@ -186,67 +86,46 @@ func RegisterProviderWithGothic(providerName string, source *Source) error {
 
 // RemoveProviderFromGothic removes the given OAuth2 provider from the goth lib
 func RemoveProviderFromGothic(providerName string) {
-	gothRWMutex.Lock()
-	defer gothRWMutex.Unlock()
+	gothProvidersLock.Lock()
+	defer gothProvidersLock.Unlock()
 
 	delete(goth.GetProviders(), providerName)
 }
 
 // ClearProviders clears all OAuth2 providers from the goth lib
 func ClearProviders() {
-	gothRWMutex.Lock()
-	defer gothRWMutex.Unlock()
+	gothProvidersLock.Lock()
+	defer gothProvidersLock.Unlock()
 
 	goth.ClearProviders()
 }
 
-// GetOIDCEndSessionEndpoint returns the OIDC end_session_endpoint for the
-// given provider name. Returns "" if the provider is not OIDC or doesn't
-// advertise an end_session_endpoint in its discovery document.
-func GetOIDCEndSessionEndpoint(providerName string) string {
-	gothRWMutex.RLock()
-	defer gothRWMutex.RUnlock()
+const defaultIconName = "gitea-openid"
 
-	provider, ok := goth.GetProviders()[providerName]
-	if !ok {
-		return ""
+func getIconHTML(name string, size int) template.HTML {
+	svgName := "gitea-" + name
+	if !slices.Contains(svg.GetIconNames(), svgName) {
+		log.Debug("No SVG icon %s, use default %s", svgName, defaultIconName)
+		svgName = defaultIconName
 	}
-
-	oidcProvider, ok := provider.(*openidConnect.Provider)
-	if !ok || oidcProvider.OpenIDConfig == nil {
-		return ""
-	}
-
-	return oidcProvider.OpenIDConfig.EndSessionEndpoint
+	return svg.RenderHTML(svgName, size, "gt-mr-3")
 }
 
-var ErrAuthSourceNotActivated = errors.New("auth source is not activated")
-
-// GetOAuth2CallbackURL returns the OAuth2 callback URL for the current request context
-func GetOAuth2CallbackURL(ctx context.Context, providerName string) string {
-	appURL := httplib.GuessCurrentAppURL(ctx)
-	return appURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
+// createProvider creates a goth.Provider using the default setting.AppURL callback URL
+func createProvider(providerName string, source *Source) (goth.Provider, error) {
+	return createProviderWithCallbackURL(providerName, DefaultCallbackURL(providerName), source)
 }
 
-// used to create different types of goth providers
-func createProvider(providerName, callbackURL string, source *Source) (goth.Provider, error) {
-	var provider goth.Provider
-	var err error
-
-	p, ok := gothProviders[source.Provider]
-	if !ok {
-		return nil, ErrAuthSourceNotActivated
+// createProviderWithCallbackURL creates a goth.Provider using the specified callback URL
+func createProviderWithCallbackURL(providerName, callbackURL string, source *Source) (goth.Provider, error) {
+	providerCreator, has := gothProviders[source.Provider]
+	if !has {
+		return nil, fmt.Errorf("unable to find provider creator for %q (source %q)", source.Provider, providerName)
 	}
-
-	provider, err = p.CreateGothProvider(providerName, callbackURL, source)
+	provider, err := providerCreator.CreateGothProvider(providerName, callbackURL, source)
 	if err != nil {
-		return provider, err
+		return nil, err
 	}
-
-	// always set the name if provider is created so we can support multiple setups of 1 provider
-	if provider != nil {
-		provider.SetName(providerName)
-	}
-
-	return provider, err
+	provider.SetName(providerName)
+	return provider, nil
 }
