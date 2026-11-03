@@ -10,17 +10,21 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"reflect"
 	"slices"
 	"sort"
+	"unsafe"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/openidConnect"
+	"golang.org/x/oauth2"
 )
 
 // Provider is an interface for describing a single OAuth2 provider
@@ -221,9 +225,32 @@ func GetOIDCEndSessionEndpoint(providerName string) string {
 var ErrAuthSourceNotActivated = errors.New("auth source is not activated")
 
 // used to create different types of goth providers
+// GetOAuth2CallbackURL returns the OAuth2 callback URL for the current request context
 func GetOAuth2CallbackURL(ctx context.Context, providerName string) string {
 	appURL := httplib.GuessCurrentAppURL(ctx)
 	return appURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
+}
+
+func updateProviderCallbackURL(provider goth.Provider, callbackURL string) {
+	if provider == nil {
+		return
+	}
+	v := reflect.ValueOf(provider)
+	if v.Kind() != reflect.Pointer || v.IsNil() {
+		return
+	}
+	elem := v.Elem()
+	if elem.Kind() != reflect.Struct {
+		return
+	}
+	if cbField := elem.FieldByName("CallbackURL"); cbField.IsValid() && cbField.CanSet() && cbField.Kind() == reflect.String {
+		cbField.SetString(callbackURL)
+	}
+	if cfgField := elem.FieldByName("config"); cfgField.IsValid() && cfgField.Kind() == reflect.Pointer && !cfgField.IsNil() {
+		if cfg, ok := reflect.NewAt(cfgField.Type(), unsafe.Pointer(cfgField.UnsafeAddr())).Elem().Interface().(*oauth2.Config); ok && cfg != nil {
+			cfg.RedirectURL = callbackURL
+		}
+	}
 }
 
 func createProvider(providerName string, source *Source) (goth.Provider, error) {
