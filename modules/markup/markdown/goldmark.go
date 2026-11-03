@@ -162,12 +162,18 @@ func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.No
 		if err := r.renderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs); err != nil {
 			return ast.WalkStop, err
 		}
-		lexer := highlight.DetectChromaLexerByFileName("", language)
+
 		code := n.Lines().Value(source)
+		lexer := highlight.DetectChromaLexerByFileName("", language)
 		if lexer == lexers.Fallback {
-			r.Writer.RawWrite(w, code) // chroma is 3x slower for plain text
-		} else if _, err := w.WriteString(string(highlight.RenderCodeByLexer(chroma.Coalesce(lexer), string(code)))); err != nil {
-			return ast.WalkStop, err
+			// chroma is 3x slower for plain text, use RawWrite does HTML escaping
+			r.Writer.RawWrite(w, code)
+		} else {
+			renderedHTML := highlight.RenderCodeByLexer(chroma.Coalesce(lexer), string(code))
+			_, err := w.WriteString(string(renderedHTML))
+			if err != nil {
+				return ast.WalkStop, err
+			}
 		}
 	} else {
 		if _, err := w.WriteString("</code></pre></div>"); err != nil {
