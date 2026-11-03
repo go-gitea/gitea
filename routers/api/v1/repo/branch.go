@@ -54,8 +54,8 @@ func GetBranch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Branch"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	branchName := ctx.PathParam("*")
 
@@ -115,12 +115,8 @@ func DeleteBranch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.APIError(http.StatusNotFound, "Git Repository is empty.")
 		return
@@ -194,14 +190,8 @@ func CreateBranch(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Branch"
-	//   "403":
-	//     description: The branch is archived or a mirror.
-	//   "404":
-	//     description: The old branch does not exist.
-	//   "409":
-	//     description: The branch with the same name already exists.
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.APIError(http.StatusNotFound, "Git Repository is empty.")
@@ -418,14 +408,8 @@ func UpdateBranch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm[*api.UpdateBranchRepoOption](ctx)
 
@@ -493,12 +477,8 @@ func RenameBranch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm[*api.RenameBranchRepoOption](ctx)
 
@@ -565,8 +545,8 @@ func GetBranchProtection(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BranchProtection"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.PathParam("*")
@@ -674,14 +654,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/BranchProtection"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.CreateBranchProtectionOption](ctx)
 	repo := ctx.Repo.Repository
@@ -882,12 +856,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BranchProtection"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.EditBranchProtectionOption](ctx)
 	repo := ctx.Repo.Repository
 	bpName := ctx.PathParam("*")
@@ -1231,8 +1201,8 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.PathParam("*")
@@ -1281,12 +1251,8 @@ func UpdateBranchProtectionPriories(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.UpdateBranchProtectionPriories](ctx)
 	repo := ctx.Repo.Repository
 
@@ -1322,11 +1288,7 @@ func MergeUpstream(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MergeUpstreamResponse"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
+	//   default:
 	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.MergeUpstreamRequest](ctx)
 	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch, form.FfOnly)

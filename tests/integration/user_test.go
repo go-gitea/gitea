@@ -22,11 +22,13 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("ViewUser", testViewUser)
+	t.Run("FollowUser", testUserFollow)
 	t.Run("RenameInvalidUsername", testRenameInvalidUsername)
 	t.Run("RenameReservedUsername", testRenameReservedUsername)
 	t.Run("ViewLimitedAndPrivateUserAndRename", testViewLimitedAndPrivateUserAndRename)
@@ -384,4 +386,26 @@ func testUserLocationMapLink(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	AssertHTMLElement(t, htmlDoc, `a[href="https://example/foo/A%2Fb"]`, true)
+}
+
+func testUserFollow(t *testing.T) {
+	bot := &user_model.User{
+		Name:  "follow-bot",
+		Email: "follow-bot@example.com",
+		Type:  user_model.UserTypeBot,
+	}
+	require.NoError(t, user_model.CreateUser(t.Context(), bot, &user_model.Meta{}))
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	session := loginUser(t, doer.Name)
+
+	req := NewRequestWithValues(t, "POST", "/"+bot.Name, map[string]string{"action": "follow"})
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `id="profile-avatar-card"`)
+	assert.True(t, user_model.IsFollowing(t.Context(), doer.ID, bot.ID))
+
+	req = NewRequestWithValues(t, "POST", "/"+bot.Name, map[string]string{"action": "unfollow"})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `id="profile-avatar-card"`)
+	assert.False(t, user_model.IsFollowing(t.Context(), doer.ID, bot.ID))
 }

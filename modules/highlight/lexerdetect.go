@@ -215,7 +215,7 @@ func normalizeFileNameLang(fileName, fileLang string) (string, string) {
 
 func DetectChromaLexerByFileName(fileName, fileLang string) chroma.Lexer {
 	lexer, _ := detectChromaLexerByFileName(fileName, fileLang)
-	return lexer
+	return normalizeLexer(lexer)
 }
 
 func detectChromaLexerByFileName(fileName, fileLang string) (_ chroma.Lexer, byLang bool) {
@@ -289,14 +289,14 @@ func detectChromaLexerWithAnalyze(fileName, lang string, code []byte) chroma.Lex
 
 	// if lang is provided, and it matches a lexer, use it directly
 	if byLang {
-		return chroma.Coalesce(lexer)
+		return lexer
 	}
 
 	// if a lexer is detected and there is no conflict for the file extension, use it directly
 	fileExt := path.Ext(fileName)
 	_, hasConflicts := chromaLexers().conflictingExtLangMap[fileExt]
 	if !hasConflicts && lexer != lexers.Fallback {
-		return chroma.Coalesce(lexer)
+		return lexer
 	}
 
 	// try to detect language by content, for best guessing for the language
@@ -308,5 +308,5 @@ func detectChromaLexerWithAnalyze(fileName, lang string, code []byte) chroma.Lex
 			log.Warn("No chroma lexer found for enry detected language: %s (file: %s), need to fix the language mapping between enry and chroma.", analyzedLanguage, fileName)
 		}
 	}
-	return chroma.Coalesce(lexer)
+	return lexer
 }

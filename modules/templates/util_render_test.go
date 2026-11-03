@@ -136,6 +136,23 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("see https://example.com/x here", "https://example.com/link", mockRepo))
 	})
 
+	t.Run("RenderCommitMessageLinkSubjectEmoji", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.UI.CustomEmojisMap, map[string]string{"custom-emoji": ":custom-emoji:"})()
+		for _, tt := range []struct {
+			name, subject, content string
+		}{
+			{"native", "Bug ❌ Feature ✅", `Bug <span class="emoji" data-alias="x">❌</span> Feature <span class="emoji" data-alias="white_check_mark">✅</span>`},
+			{"shortcode", "Ship :+1: today", `Ship <span class="emoji" data-alias="+1">👍</span> today`},
+			{"emoji only", "👍", `<span class="emoji" data-alias="+1">👍</span>`},
+			{"custom", "Ship :custom-emoji:", `Ship <span class="emoji"><img alt=":custom-emoji:" src="/assets/img/emoji/custom-emoji.png"/></span>`},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">` + tt.content + `</a></span>`
+				assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject(tt.subject, "https://example.com/link", mockRepo))
+			})
+		}
+	})
+
 	t.Run("RenderIssueTitle", func(t *testing.T) {
 		defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 		expected := `  space @mention-user<SPACE><SPACE>

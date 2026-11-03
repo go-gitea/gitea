@@ -358,7 +358,7 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 
 func TestGetDoerUserIDsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	ids, err := user_model.GetDoerUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"})
+	ids, err := user_model.GetRealDoerUserIDsByNames(t.Context(), []string{"user1", "user2", "none_existing_user"})
 	assert.ErrorIs(t, err, util.ErrNotExist)
 	assert.Equal(t, []int64{1, 2}, ids)
 

@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	"gitea.dev/modules/label"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/templates"
@@ -175,7 +176,7 @@ func DeleteLabel(ctx *context.Context) {
 
 // UpdateIssueLabel change issue's labels
 func UpdateIssueLabel(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}

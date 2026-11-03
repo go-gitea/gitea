@@ -25,12 +25,12 @@
 								</div>
 								<div class="whitelist field">
 									<label>{{ctx.Locale.Tr "repo.settings.tags.protection.allowed.users"}}</label>
-									{{template "repo/settings/user_dropdown" (dict "Name" "allowlist_users" "Value" .allowlist_users "Users" .Users)}}
+									{{template "repo/settings/user_dropdown" (dict "Name" "allowlist_users" "Value" .allowlist_users "Users" .PushUsers)}}
 								</div>
 								{{if .Owner.IsOrganization}}
 									<div class="whitelist field">
 										<label>{{ctx.Locale.Tr "repo.settings.tags.protection.allowed.teams"}}</label>
-										{{template "repo/settings/team_dropdown" (dict "Name" "allowlist_teams" "Value" .allowlist_teams "Teams" .Teams)}}
+										{{template "repo/settings/team_dropdown" (dict "Name" "allowlist_teams" "Value" .allowlist_teams "Teams" .PushTeams)}}
 									</div>
 								{{end}}
 								<div class="field">
@@ -65,16 +65,16 @@
 										<td>
 											{{if or .AllowlistUserIDs (and $.Owner.IsOrganization .AllowlistTeamIDs)}}
 												{{$userIDs := .AllowlistUserIDs}}
-												{{range $.Users}}
-													{{if SliceUtils.Contains $userIDs .ID}}
-														<a class="ui basic label" href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 26}} {{.GetDisplayName}}</a>
+												{{range $user := $.PushUsers}}
+													{{if SliceUtils.Contains $userIDs $user.ID}}
+														<a class="ui basic label" {{if gt $user.ID 0}}href="{{$user.HomeLink}}"{{end}}>{{ctx.AvatarUtils.Avatar $user 20}} {{$user.GetDisplayName}}</a>
 													{{end}}
 												{{end}}
 												{{if $.Owner.IsOrganization}}
 													{{$teamIDs := .AllowlistTeamIDs}}
-													{{range $.Teams}}
-														{{if SliceUtils.Contains $teamIDs .ID}}
-															<a class="ui basic label" href="{{$.Owner.OrganisationLink}}/teams/{{PathEscape .LowerName}}">{{.Name}}</a>
+													{{range $team := $.PushTeams}}
+														{{if SliceUtils.Contains $teamIDs $team.ID}}
+															<a class="ui basic label" href="{{$.Owner.OrganisationLink}}/teams/{{PathEscape $team.LowerName}}">{{$team.Name}}</a>
 														{{end}}
 													{{end}}
 												{{end}}

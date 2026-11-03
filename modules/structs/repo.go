@@ -359,7 +359,8 @@ const (
 	CodeCommitService                            // 9 codecommit service
 	BitbucketServerService                       // 10 bitbucket server (data center) service
 	ForgejoService                               // 11 forgejo service
-	GerritService                                // 12 gerrit service
+	BitbucketService                             // 12 bitbucket.org service
+	GerritService                                // 13 gerrit service
 )
 
 // Name represents the service type's name
@@ -393,6 +394,8 @@ func (gt GitServiceType) Title() string {
 		return "Gerrit"
 	case ForgejoService:
 		return "Forgejo"
+	case BitbucketService:
+		return "Bitbucket"
 	case PlainGitService:
 		return "Git"
 	}
@@ -402,19 +405,10 @@ func (gt GitServiceType) Title() string {
 // Variants returns the hosting options of gt's provider, which share one entry on the migrate page
 func (gt GitServiceType) Variants() []GitServiceType {
 	switch gt {
-	case BitbucketServerService:
-		return []GitServiceType{BitbucketServerService}
+	case BitbucketService, BitbucketServerService:
+		return []GitServiceType{BitbucketService, BitbucketServerService}
 	}
 	return nil
-}
-
-// ProviderTitle returns the title of gt's entry on the migrate page
-func (gt GitServiceType) ProviderTitle() string {
-	switch gt {
-	case BitbucketServerService:
-		return "Bitbucket"
-	}
-	return gt.Title()
 }
 
 // MigrateRepoOptions options for migrating repository's
@@ -429,7 +423,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit","bitbucketserver","forgejo","gerrit"]
+	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit","bitbucketserver","forgejo","bitbucket","gerrit"]
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
@@ -467,6 +461,7 @@ var SupportedFullGitService = []GitServiceType{
 	GithubService,
 	GitlabService,
 	GiteaService,
+	BitbucketService,
 	ForgejoService,
 	GogsService,
 	OneDevService,

@@ -9,13 +9,7 @@
 			<form class="ui form left-right-form form-fetch-action" action="{{.Link}}" method="post">
 				{{template "repo/migrate/common-init" (dict "ServiceType" .service)}}
 
-				<div class="inline required field">
-					<label>{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
-					<input name="clone_addr" autofocus required>
-					<span class="help">
-					{{ctx.Locale.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate.clone_local_path"}}{{end}}
-					</span>
-				</div>
+				{{template "repo/migrate/common-clone-addr"}}
 
 				<div class="inline required field">
 					<label>{{ctx.Locale.Tr "repo.migrate.codecommit.aws_access_key_id"}}</label>

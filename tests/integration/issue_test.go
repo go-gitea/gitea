@@ -602,7 +602,7 @@ func TestIssueReaction(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/react"), map[string]string{
 		"content": "8ball",
 	})
-	session.MakeRequest(t, req, http.StatusInternalServerError)
+	session.MakeRequest(t, req, http.StatusForbidden)
 	req = NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/react"), map[string]string{
 		"content": "eyes",
 	})
@@ -719,4 +719,16 @@ func TestIssueRefSelectorEnabledForPoster(t *testing.T) {
 	// The update-ref URL must be present so JS can send the POST request.
 	_, hasURL := sel.Attr("data-url-update-issueref")
 	assert.True(t, hasURL, "data-url-update-issueref must be set for the issue poster")
+}
+
+func TestIssueCommentContent(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	issue := &issues_model.Issue{Title: "title\x00content", Content: "body\x00content"}
+	require.NoError(t, db.Insert(t.Context(), issue))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID, Title: "title content", Content: "body content"})
+
+	comment := &issues_model.Comment{Content: "body\x00content"}
+	require.NoError(t, db.Insert(t.Context(), comment))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID, Content: "body content"})
 }
