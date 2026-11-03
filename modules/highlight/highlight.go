@@ -18,6 +18,7 @@ import (
 
 	"github.com/alecthomas/chroma/v2"
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 )
 
@@ -99,8 +100,11 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 	return RenderCodeByLexer(lexer, code), lexer, formatLexerName(lexer.Config().Name)
 }
 
-// RenderCodeByLexer returns a HTML version of code string with chroma syntax highlighting classes
+// RenderCodeByLexer returns an HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
+	if lexer == lexers.Fallback {
+		return htmlEscape(code) // chroma is 3x slower for plain text
+	}
 	formatter := chromahtml.New(chromahtml.WithClasses(true),
 		chromahtml.WithLineNumbers(false),
 		chromahtml.PreventSurroundingPre(true),

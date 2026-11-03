@@ -13,7 +13,6 @@ import (
 	"gitea.dev/modules/markup/markdown/math"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
@@ -165,15 +164,10 @@ func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.No
 
 		code := n.Lines().Value(source)
 		lexer := highlight.DetectChromaLexerByFileName("", language)
-		if lexer == lexers.Fallback {
-			// chroma is 3x slower for plain text, use RawWrite does HTML escaping
-			r.Writer.RawWrite(w, code)
-		} else {
-			renderedHTML := highlight.RenderCodeByLexer(chroma.Coalesce(lexer), string(code))
-			_, err := w.WriteString(string(renderedHTML))
-			if err != nil {
-				return ast.WalkStop, err
-			}
+		renderedHTML := highlight.RenderCodeByLexer(chroma.Coalesce(lexer), string(code))
+		_, err := w.WriteString(string(renderedHTML))
+		if err != nil {
+			return ast.WalkStop, err
 		}
 	} else {
 		if _, err := w.WriteString("</code></pre></div>"); err != nil {
