@@ -306,6 +306,7 @@
   border: none;
 }
 
+/* sometimes, we'd like to make "<a href>" look like a button */
 a.btn,
 a.btn:hover {
   color: inherit;
