@@ -33,7 +33,9 @@ func CleanValue(value []byte) []byte {
 		if unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_' || r == '-' {
 			result = append(result, unicode.ToLower(r))
 		}
-		if unicode.IsSpace(r) {
+		// Like GitHub, only turn ASCII spaces into hyphens and drop all other
+		// whitespace (tabs, no-break spaces, em spaces, ...).
+		if r == ' ' {
 			result = append(result, '-')
 		}
 	}
