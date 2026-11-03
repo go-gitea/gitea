@@ -94,6 +94,10 @@ func UnmarshalFromDB(data []byte, v any) bool {
 	if err != nil {
 		// Even if database value is corrupted, we should not let it cause unnecessary 500 error or block user's operation
 		// Corrupted database value is a really rare case, it should never happen unless site admin manually modified the database.
+		// Although some database values will be printed into logs, it isn't a real problem
+		// because such case should never really happen. If it happens, logging the value
+		// is the only way to tell site admin which record is wrong since there is no other context information,
+		// and then they need to re-create the config (with new secrets)
 		setting.PanicInDevOrTesting("UnmarshalFromDB %q failed: %v", string(data), err)
 		return false
 	}
