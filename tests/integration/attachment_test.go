@@ -66,11 +66,13 @@ func testCreateAttachment(t *testing.T, session *TestSession, repoURL, issueOrRe
 }
 
 func testDeleteIssueAttachment(t *testing.T, session *TestSession, repoURL, uuid string, expectedStatus int) {
+	t.Helper()
 	req := NewRequestWithValues(t, "POST", repoURL+"/issues/attachments/remove", map[string]string{"file": uuid})
 	session.MakeRequest(t, req, expectedStatus)
 }
 
 func testDeleteReleaseAttachment(t *testing.T, session *TestSession, repoURL, uuid string, expectedStatus int) {
+	t.Helper()
 	req := NewRequestWithValues(t, "POST", repoURL+"/releases/attachments/remove", map[string]string{"file": uuid})
 	session.MakeRequest(t, req, expectedStatus)
 }
@@ -300,8 +302,10 @@ func testDeleteAttachmentPermissions(t *testing.T) {
 	testCreateReleaseAttachment(t, readonlySession, repoURL, "reader-release.png", testGeneratePngBytes(), http.StatusNotFound)
 
 	crossRepoUUID := testCreateIssueAttachment(t, ownerSession, repoURL, "cross-repo.png", testGeneratePngBytes(), http.StatusOK)
-	testDeleteIssueAttachment(t, ownerSession, "/user2/repo2", crossRepoUUID, http.StatusBadRequest)
+	testDeleteIssueAttachment(t, ownerSession, "/user2/repo2", crossRepoUUID, http.StatusForbidden)
+	testDeleteReleaseAttachment(t, ownerSession, "/user2/repo2", crossRepoUUID, http.StatusForbidden)
 	testDeleteIssueAttachment(t, ownerSession, repoURL, crossRepoUUID, http.StatusOK)
+	testDeleteIssueAttachment(t, ownerSession, repoURL, crossRepoUUID, http.StatusNotFound)
 
 	releaseUUID := testCreateReleaseAttachment(t, ownerSession, repoURL, "reader-release.png", testGeneratePngBytes(), http.StatusOK)
 	testDeleteReleaseAttachment(t, ownerSession, repoURL, releaseUUID, http.StatusOK)
@@ -316,7 +320,4 @@ func testDeleteAttachmentPermissions(t *testing.T) {
 	linked.ReleaseID, linked.CommentID = 0, 1
 	require.NoError(t, repo_model.UpdateAttachmentByUUID(t.Context(), linked, "release_id", "comment_id"))
 	testDeleteIssueAttachment(t, ownerSession, repoURL, linkedUUID, http.StatusForbidden)
-
-	// test deleting release attachment from another repo
-	testDeleteReleaseAttachment(t, ownerSession, "/user2/repo2", crossRepoUUID, http.StatusBadRequest)
 }
