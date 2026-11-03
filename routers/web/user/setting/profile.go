@@ -94,12 +94,14 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	opts := &user_service.UpdateOptions{
-		KeepEmailPrivate:    optional.Some(form.KeepEmailPrivate),
-		Description:         optional.Some(form.Description),
-		Website:             optional.Some(form.Website),
-		Location:            optional.Some(form.Location),
-		Visibility:          optional.Some(form.Visibility),
-		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
+		KeepEmailPrivate: optional.Some(form.KeepEmailPrivate),
+		Description:      optional.Some(form.Description),
+		Website:          optional.Some(form.Website),
+		Location:         optional.Some(form.Location),
+		Visibility:       optional.Some(form.Visibility),
+	}
+	if !user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeActivityVisibility) {
+		opts.KeepActivityPrivate = optional.Some(form.KeepActivityPrivate)
 	}
 
 	if form.FullName != "" {

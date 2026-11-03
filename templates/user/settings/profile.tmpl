@@ -79,11 +79,15 @@
 					</div>
 				</div>
 
+				{{$activityLocked := $.UserDisabledFeatures.Contains "change_activity_visibility"}}
 				<div class="field">
-					<div class="ui checkbox" id="keep-activity-private">
+					<div class="ui checkbox {{if $activityLocked}}disabled{{end}}" id="keep-activity-private">
 						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{ctx.Locale.Tr "settings.keep_activity_private"}}</strong></label>
-						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
+						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.IsActivityPrivate}}checked{{end}} {{if $activityLocked}}disabled{{end}}>
 					</div>
+					{{if $activityLocked}}
+					<p class="help tw-text-blue">{{ctx.Locale.Tr "settings.keep_activity_private_disabled"}}</p>
+					{{end}}
 				</div>
 
 				<div class="divider"></div>

@@ -8,7 +8,10 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 )
 
@@ -24,6 +27,12 @@ func TestAPIUserVariables(t *testing.T) {
 			"website": "https://gitea.com",
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
+
+		t.Run("FullNameLocked", func(t *testing.T) {
+			defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureChangeFullName))()
+			req := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", map[string]string{"full_name": "new name"}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNotFound)
+		})
 	})
 
 	session := loginUser(t, "user1")
