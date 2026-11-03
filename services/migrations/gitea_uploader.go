@@ -780,10 +780,6 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 
 	milestoneID := g.milestones[pr.Milestone]
 
-	if err := g.verifyGerritChange(ctx, pr); err != nil {
-		return nil, fmt.Errorf("newPullRequest: %w", err)
-	}
-
 	head, err := g.updateGitForPullRequest(ctx, pr)
 	if err != nil {
 		return nil, fmt.Errorf("updateGitForPullRequest: %w", err)

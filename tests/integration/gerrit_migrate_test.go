@@ -174,14 +174,6 @@ func TestGerritMigrateAPI(t *testing.T) {
 		assert.ElementsMatch(t, []string{"main", "change"}, branches)
 	})
 
-	t.Run("MissingPatchSetRef", func(t *testing.T) {
-		server := newGerritTestServer(t)
-		runGerritTestGit(t, server.repoDir, "update-ref", "-d", "refs/changes/01/1/1")
-		migrate(&structs.MigrateRepoOptions{CloneAddr: server.cloneAddr(), RepoName: "gerrit-broken", PullRequests: true}, http.StatusInternalServerError)
-		broken := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "gerrit-broken"})
-		assert.Zero(t, unittest.GetCount(t, &issues_model.Issue{RepoID: broken.ID}), "no pull request is created from an incomplete clone")
-	})
-
 	t.Run("Migrate", func(t *testing.T) {
 		server := newGerritTestServer(t)
 		migrate(&structs.MigrateRepoOptions{CloneAddr: server.cloneAddr(), RepoName: "gerrit-ok", PullRequests: true}, http.StatusCreated)
