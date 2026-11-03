@@ -167,8 +167,7 @@ func Test_Projects(t *testing.T) {
 	})
 
 	t.Run("Moving an issue never moves other cards", func(t *testing.T) {
-		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		project := &project_model.Project{Title: "incremental move", RepoID: repo1.ID, Type: project_model.TypeRepository}
+		project := &project_model.Project{Title: "incremental move", RepoID: 1, Type: project_model.TypeRepository}
 		assert.NoError(t, project_model.NewProject(t.Context(), project))
 		defer func() {
 			assert.NoError(t, project_model.DeleteProjectByID(t.Context(), project.ID))

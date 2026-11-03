@@ -62,12 +62,6 @@ func GetColumnIssueSortings(ctx context.Context, column *Column, excludeIssueID 
 	return rows, err
 }
 
-// LockColumn serializes writers of the column's card order until the transaction ends.
-func LockColumn(ctx context.Context, column *Column) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_board` SET sorting=sorting WHERE id=?", column.ID)
-	return err
-}
-
 // SetIssueSorting sets the issue's sorting if it is still in the column.
 func SetIssueSorting(ctx context.Context, column *Column, issueID, sorting int64) error {
 	_, err := db.GetEngine(ctx).
