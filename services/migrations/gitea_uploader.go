@@ -869,8 +869,7 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 		pullRequest.MergerID = g.doer.ID
 	}
 
-	// the head of a Gerrit change is a ref, not a branch, like the head of an AGit pull request
-	if _, ok := pr.Context.(*gerritChange); ok {
+	if pr.IsAGitFlow {
 		pullRequest.Flow = issues_model.PullRequestFlowAGit
 	}
 

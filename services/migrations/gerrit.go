@@ -664,6 +664,7 @@ func (d *GerritDownloader) convertChange(change *gerritChange) (*base.PullReques
 	}
 
 	pr := &base.PullRequest{
+		IsAGitFlow:   true,
 		Number:       change.Number,
 		ForeignIndex: change.Number,
 		Title:        change.Subject,

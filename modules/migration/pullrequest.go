@@ -38,6 +38,7 @@ type PullRequest struct {
 	Context        DownloaderContext `yaml:"-"`
 	EnsuredSafe    bool              `yaml:"ensured_safe"`
 	IsDraft        bool              `yaml:"is_draft"`
+	IsAGitFlow     bool              `yaml:"is_agit_flow"` // the head is a ref, not a branch
 }
 
 func (p *PullRequest) GetLocalIndex() int64          { return p.Number }
