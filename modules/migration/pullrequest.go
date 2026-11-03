@@ -11,6 +11,14 @@ import (
 	"gitea.dev/modules/git"
 )
 
+// PRFlowType is the flow of a pull request, its values match the ones of issues_model.PullRequestFlow
+type PRFlowType int
+
+const (
+	PRFlowGithub PRFlowType = iota // 0: the head is a branch
+	PRFlowAGit                     // 1: the head is a ref, not a branch
+)
+
 // PullRequest defines a standard pull request information
 type PullRequest struct {
 	Number         int64
@@ -38,7 +46,7 @@ type PullRequest struct {
 	Context        DownloaderContext `yaml:"-"`
 	EnsuredSafe    bool              `yaml:"ensured_safe"`
 	IsDraft        bool              `yaml:"is_draft"`
-	IsAGitFlow     bool              `yaml:"is_agit_flow"` // the head is a ref, not a branch
+	FlowType       PRFlowType        `yaml:"flow_type"`
 }
 
 func (p *PullRequest) GetLocalIndex() int64          { return p.Number }

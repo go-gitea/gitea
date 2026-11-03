@@ -374,7 +374,7 @@ func TestGerritPullRequests(t *testing.T) {
 	assert.Equal(t, f.shas["c1p2"], open.Head.SHA)
 	assert.False(t, open.IsForkPullRequest())
 	assert.True(t, open.EnsuredSafe)
-	assert.True(t, open.IsAGitFlow)
+	assert.Equal(t, base.PRFlowAGit, open.FlowType)
 	assert.Equal(t, time.Date(2024, 2, 1, 10, 0, 0, 0, time.UTC), open.Created.UTC())
 	assert.Equal(t, time.Date(2024, 2, 3, 10, 0, 0, 0, time.UTC), open.Updated.UTC())
 	assert.Equal(t, "body of change 1\n\nChange-Id: I0001\n\n---\nImported from Gerrit change "+f.server.URL+

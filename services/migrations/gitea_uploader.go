@@ -869,7 +869,7 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 		pullRequest.MergerID = g.doer.ID
 	}
 
-	if pr.IsAGitFlow {
+	if pr.FlowType == base.PRFlowAGit {
 		pullRequest.Flow = issues_model.PullRequestFlowAGit
 	}
 
