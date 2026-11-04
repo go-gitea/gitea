@@ -261,7 +261,6 @@ func Routes() *web.Router {
 	routes.BeforeRouting(user.UsernamePreRoute)
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.Methods("GET, HEAD", "/assets/site-manifest.json", misc.SiteManifest)
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, public.AssetsCors(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
@@ -569,7 +568,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/issues", func() {
 		m.Get("", user.Issues)
-		m.Get("/search", repo.SearchIssues)
+		m.Get("/search", repo.SearchGlobalIssues)
 	}, reqSignIn)
 
 	m.Get("/pulls", reqSignIn, user.Pulls)

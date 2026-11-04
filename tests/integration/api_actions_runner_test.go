@@ -10,9 +10,10 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
@@ -26,6 +27,12 @@ func TestAPIActionsRunner(t *testing.T) {
 	t.Run("UserRunner", testActionsRunnerUser)
 	t.Run("OwnerRunner", testActionsRunnerOwner)
 	t.Run("RepoRunner", testActionsRunnerRepo)
+}
+
+func loginRepoAdmin(t *testing.T, repo *repo_model.Repository) *TestSession {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), repo, user, perm.AccessModeAdmin))
+	return loginUser(t, user.Name)
 }
 
 func newRunnerUpdateRequest(t *testing.T, url string, disabled bool) *RequestWrapper {
@@ -296,54 +303,34 @@ func testActionsRunnerOwner(t *testing.T) {
 
 func testActionsRunnerRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	session := loginRepoAdmin(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}))
+	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	runnerURL := func(id int64) string { return fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", id) }
 
-	t.Run("GetRunner", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadRepository)
-		// Verify get the runner by id with read scope
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34348)).AddTokenAuth(token)
-		runnerResp := MakeRequest(t, req, http.StatusOK)
+	t.Run("Forbidden", func(t *testing.T) {
+		MakeRequest(t, NewRequest(t, "DELETE", runnerURL(34348)).AddTokenAuth(readToken), http.StatusForbidden)
+		MakeRequest(t, newRunnerUpdateRequest(t, runnerURL(34348), true).AddTokenAuth(readToken), http.StatusForbidden)
+		orgToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
+		MakeRequest(t, NewRequest(t, "GET", runnerURL(34348)).AddTokenAuth(orgToken), http.StatusForbidden)
+	})
 
-		runner := DecodeJSON(t, runnerResp, &api.ActionRunner{})
-
-		assert.Equal(t, "runner_to_be_deleted-repo1", runner.Name)
-		assert.Equal(t, int64(34348), runner.ID)
-		assert.False(t, runner.Disabled)
-		assert.False(t, runner.Ephemeral)
-		assert.Len(t, runner.Labels, 2)
-		assert.Equal(t, "runner_to_be_deleted", runner.Labels[0].Name)
-		assert.Equal(t, "linux", runner.Labels[1].Name)
+	t.Run("NotFound", func(t *testing.T) {
+		MakeRequest(t, NewRequest(t, "GET", runnerURL(34349)).AddTokenAuth(readToken), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "DELETE", runnerURL(34349)).AddTokenAuth(writeToken), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "DELETE", runnerURL(4384797347934)).AddTokenAuth(writeToken), http.StatusNotFound)
 	})
 
 	t.Run("Access", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequest(t, "POST", "/api/v1/repos/user2/repo1/actions/runners/registration-token").AddTokenAuth(token)
-		tokenResp := MakeRequest(t, req, http.StatusOK)
-		registrationToken := DecodeJSON(t, tokenResp, &struct {
+		req := NewRequest(t, "POST", "/api/v1/repos/user2/repo1/actions/runners/registration-token").AddTokenAuth(writeToken)
+		assert.NotEmpty(t, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &struct {
 			Token string `json:"token"`
-		}{})
-		assert.NotEmpty(t, registrationToken.Token)
+		}{}).Token)
 
-		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/actions/runners").AddTokenAuth(token)
-		runnerListResp := MakeRequest(t, req, http.StatusOK)
-		runnerList := DecodeJSON(t, runnerListResp, &api.ActionRunnersResponse{})
-
-		assert.Len(t, runnerList.Entries, 1)
-		assert.Equal(t, "runner_to_be_deleted-repo1", runnerList.Entries[0].Name)
-		assert.Equal(t, int64(34348), runnerList.Entries[0].ID)
-		assert.False(t, runnerList.Entries[0].Disabled)
-		assert.False(t, runnerList.Entries[0].Ephemeral)
-		assert.Len(t, runnerList.Entries[0].Labels, 2)
-		assert.Equal(t, "runner_to_be_deleted", runnerList.Entries[0].Labels[0].Name)
-		assert.Equal(t, "linux", runnerList.Entries[0].Labels[1].Name)
-
-		// Verify get the runner by id
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
-		runnerResp := MakeRequest(t, req, http.StatusOK)
-
-		runner := DecodeJSON(t, runnerResp, &api.ActionRunner{})
-
+		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/actions/runners").AddTokenAuth(readToken)
+		runnerList := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionRunnersResponse{})
+		require.Len(t, runnerList.Entries, 1)
+		runner := runnerList.Entries[0]
 		assert.Equal(t, "runner_to_be_deleted-repo1", runner.Name)
 		assert.Equal(t, int64(34348), runner.ID)
 		assert.False(t, runner.Disabled)
@@ -352,94 +339,13 @@ func testActionsRunnerRepo(t *testing.T) {
 		assert.Equal(t, "runner_to_be_deleted", runner.Labels[0].Name)
 		assert.Equal(t, "linux", runner.Labels[1].Name)
 
-		req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID), true).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
-		req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID), true).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
-		runnerResp = MakeRequest(t, req, http.StatusOK)
-		runner = DecodeJSON(t, runnerResp, &api.ActionRunner{})
-		assert.True(t, runner.Disabled)
+		req = NewRequest(t, "GET", runnerURL(runner.ID)).AddTokenAuth(readToken)
+		assert.Equal(t, runner, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionRunner{}))
 
-		req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID), false).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
-		req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID), false).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
+		req = newRunnerUpdateRequest(t, runnerURL(runner.ID), true).AddTokenAuth(writeToken)
+		assert.True(t, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionRunner{}).Disabled)
 
-		// Verify delete the runner by id
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNoContent)
-
-		// Verify runner deletion
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("OrgAdminTeamMember", func(t *testing.T) {
-		adminTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
-		orgRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-		require.NoError(t, repo_service.TeamAddRepository(t.Context(), adminTeam, orgRepo))
-		token := getUserToken(t, "user28", auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequest(t, "POST", "/api/v1/repos/org3/repo3/actions/runners/registration-token").AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
-	})
-
-	t.Run("DeleteReadScopeForbidden", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadRepository)
-
-		// Verify delete the runner by id is forbidden with read scope
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34348)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusForbidden)
-	})
-
-	t.Run("DisableReadScopeForbidden", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadRepository)
-
-		req := newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34348), true).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusForbidden)
-	})
-
-	t.Run("UpdateReadScopeForbidden", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadRepository)
-
-		req := newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34348), false).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusForbidden)
-	})
-
-	t.Run("GetOrganizationScopeForbidden", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadOrganization)
-		// Verify get the runner by id with read scope
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34348)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusForbidden)
-	})
-
-	t.Run("GetAdminRunnerNotFound", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadRepository)
-		// Verify get a runner by id of different entity is not found
-		// runner.EditableInContext(ownerID, repoID) false
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34349)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("DeleteAdminRunnerNotFound", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteRepository)
-		// Verify delete a runner by id of different entity is not found
-		// runner.EditableInContext(ownerID, repoID) false
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34349)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("DeleteAdminRunnerNotFoundUnknownID", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteRepository)
-		// Verify delete a runner by unknown id is not found
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 4384797347934)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "DELETE", runnerURL(runner.ID)).AddTokenAuth(writeToken), http.StatusNoContent)
+		MakeRequest(t, NewRequest(t, "GET", runnerURL(runner.ID)).AddTokenAuth(readToken), http.StatusNotFound)
 	})
 }

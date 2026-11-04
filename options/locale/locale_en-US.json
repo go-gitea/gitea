@@ -2318,7 +2318,7 @@
   "repo.settings.event_branch_delete": "Branch Deletion",
   "repo.settings.event_push_desc": "Git push to a repository.",
   "repo.settings.event_repository": "Repository",
-  "repo.settings.event_repository_desc": "Repository created, deleted, or renamed.",
+  "repo.settings.event_repository_desc": "Repository created, deleted, renamed, or transferred.",
   "repo.settings.event_header_issue": "Issue Events",
   "repo.settings.event_issues": "Issues",
   "repo.settings.event_issues_desc": "Issue opened, closed, reopened, edited or deleted.",

@@ -164,7 +164,7 @@ func (a *actionNotifier) RenameRepository(ctx context.Context, doer *user_model.
 	}
 }
 
-func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
 	if err := NotifyWatchers(ctx, &activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -172,7 +172,7 @@ func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_mode
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		Content:   path.Join(oldOwnerName, repo.Name),
+		Content:   path.Join(oldOwner.Name, repo.Name),
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
