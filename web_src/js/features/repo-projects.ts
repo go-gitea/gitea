@@ -41,7 +41,7 @@ function initRepoProjectSortable(): void {
     handle: '.project-column-header',
     delayOnTouchOnly: true,
     delay: 500,
-    onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, the body catches its own errors
+    onSort: async () => {
       boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
 
       const columnSorting = {
@@ -65,8 +65,8 @@ function initRepoProjectSortable(): void {
     const boardCardList = boardColumn.querySelector<HTMLElement>('.cards')!;
     createSortable(boardCardList, {
       group: 'shared',
-      onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
-      onUpdate: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
+      onAdd: moveIssue,
+      onUpdate: moveIssue,
       delayOnTouchOnly: true,
       delay: 500,
     });

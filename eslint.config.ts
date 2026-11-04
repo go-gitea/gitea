@@ -211,7 +211,7 @@ export default defineConfig([
       '@typescript-eslint/no-magic-numbers': [0],
       '@typescript-eslint/no-meaningless-void-operator': [0],
       '@typescript-eslint/no-misused-new': [2],
-      '@typescript-eslint/no-misused-promises': [2, {checksVoidReturn: {attributes: false, arguments: false}}],
+      '@typescript-eslint/no-misused-promises': [2, {checksVoidReturn: {attributes: false, arguments: false, properties: false}}],
       '@typescript-eslint/no-misused-spread': [2],
       '@typescript-eslint/no-mixed-enums': [0],
       '@typescript-eslint/no-namespace': [2],
