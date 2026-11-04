@@ -58,5 +58,5 @@ type EditMilestoneOption struct {
 	State *string `json:"state"`
 	// Deadline is the due date for the milestone, use null or empty string to remove the deadline
 	// swagger:strfmt date-time
-	Deadline optional.Option[*string] `json:"due_on,omitzero"`
+	Deadline optional.Option[*string] `json:"due_on,omitzero" form:"-"` // go-chi/binding panics validating the nil element a JSON null decodes to
 }
