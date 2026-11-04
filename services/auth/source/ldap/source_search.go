@@ -6,6 +6,7 @@ package ldap
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -109,14 +110,41 @@ func (source *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 }
 
 func dial(source *Source) (*ldap.Conn, error) {
-	log.Trace("Dialing LDAP with security protocol (%v) without verifying: %v", source.SecurityProtocol, source.SkipVerify)
+	hosts := strings.Split(source.Host, ",")
+	var errs []error
+	for _, rawHost := range hosts {
+		host := strings.TrimSpace(rawHost)
+		if host == "" {
+			continue
+		}
+		conn, err := dialHost(source, host)
+		if err == nil {
+			return conn, nil
+		}
+		log.Debug("Failed to dial LDAP host %q: %v", host, err)
+		errs = append(errs, fmt.Errorf("%s: %w", host, err))
+	}
+	if len(errs) == 0 {
+		return nil, errors.New("no LDAP host configured")
+	}
+	return nil, fmt.Errorf("error during Dial across %d host(s): %w", len(errs), errors.Join(errs...))
+}
+
+func dialHost(source *Source, host string) (*ldap.Conn, error) {
+	log.Trace("Dialing LDAP host %q with security protocol (%v) without verifying: %v", host, source.SecurityProtocol, source.SkipVerify)
+
+	serverName := host
+	hostPort := net.JoinHostPort(host, strconv.Itoa(source.Port))
+	if h, p, err := net.SplitHostPort(host); err == nil && h != "" && p != "" {
+		serverName = h
+		hostPort = host
+	}
 
 	tlsConfig := &tls.Config{
-		ServerName:         source.Host,
+		ServerName:         serverName,
 		InsecureSkipVerify: source.SkipVerify,
 	}
 
-	hostPort := net.JoinHostPort(source.Host, strconv.Itoa(source.Port))
 	if source.SecurityProtocol == SecurityProtocolLDAPS {
 		return ldap.DialURL("ldaps://"+hostPort, ldap.DialWithTLSConfig(tlsConfig))
 	}
