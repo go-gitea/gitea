@@ -467,11 +467,22 @@ func (m *matchList) Rejected() []string {
 func (m *matchList) NeverMatching() []string {
 	var out []string
 	for _, rule := range slices.Concat(m.ipv4List, m.ipv6List) {
-		if fullyReserved(rule.prefix) {
+		switch {
+		case fullyReserved(rule.prefix):
 			out = append(out, fmt.Sprintf("%s is a reserved range and is never dialable", rule.prefix))
+		case fullyNAT64(rule.prefix):
+			out = append(out, fmt.Sprintf("%s is a NAT64 range, its addresses are decoded to IPv4 before matching so the entry never matches", rule.prefix))
 		}
 	}
 	return out
+}
+
+// fullyNAT64 reports whether every address of the prefix is in the NAT64 well-known
+// prefix: checkAddr decodes those to the embedded IPv4 before matching, so an IPv6
+// entry inside 64:ff9b::/96 never matches. A partially covering prefix still matches
+// its non-NAT64 part and is not flagged.
+func fullyNAT64(prefix netip.Prefix) bool {
+	return nat64WKP.Contains(prefix.Addr()) && prefix.Bits() >= nat64WKP.Bits()
 }
 
 // fullyReserved reports whether every address of the prefix is reserved, so the entry never matches.
