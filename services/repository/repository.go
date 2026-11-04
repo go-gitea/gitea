@@ -28,6 +28,7 @@ import (
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -360,4 +361,12 @@ func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, na
 		return repo_model.ErrRepoFilesAlreadyExist{Uname: owner.Name, Name: name}
 	}
 	return nil
+}
+
+func AfterRepoArchived(ctx context.Context, repo *repo_model.Repository) {
+	if err := actions_service.CleanRepoScheduleTasks(ctx, repo); err != nil {
+		log.Error("CleanRepoScheduleTasks for archived repo %s: %v", repo.FullName(), err)
+	}
+	issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+	audit.Record(ctx, audit_model.RepositoryArchive, repo)
 }

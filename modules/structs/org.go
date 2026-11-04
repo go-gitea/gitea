@@ -25,6 +25,8 @@ type Organization struct {
 	Visibility VisibilityString `json:"visibility"`
 	// Whether repository administrators can change team access
 	RepoAdminChangeTeamAccess bool `json:"repo_admin_change_team_access"`
+	// Whether the organization is archived
+	Archived bool `json:"archived"`
 	// username of the organization
 	// deprecated
 	UserName string `json:"username"`
@@ -81,6 +83,8 @@ type EditOrgOption struct {
 	Visibility *VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
 	// Whether repository administrators can change team access
 	RepoAdminChangeTeamAccess *bool `json:"repo_admin_change_team_access"`
+	// Whether the organization is archived, archiving also archives its repositories
+	Archived *bool `json:"archived"`
 }
 
 // RenameOrgOption options when renaming an organization

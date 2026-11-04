@@ -1,8 +1,10 @@
 <h4 class="ui top attached header">
 	{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.title"}}
+	{{if not $.IsOrgArchived}}
 	<div class="ui right">
 		<a class="ui primary tiny button" href="{{.Link}}/rules/add">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.add"}}</a>
 	</div>
+	{{end}}
 </h4>
 <div class="ui attached segment">
 	<div class="flex-divided-list items-with-main">

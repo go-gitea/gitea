@@ -57,6 +57,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	}
 
 	oldOwnerName := repo.OwnerName
+	wasArchived := repo.IsArchived
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
@@ -86,6 +87,9 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	}
 	releaser()
 
+	if !wasArchived && repo.IsArchived {
+		AfterRepoArchived(ctx, repo)
+	}
 	notify_service.TransferRepository(ctx, doer, repo, oldOwnerName)
 
 	return nil
@@ -269,6 +273,19 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("decrease old owner repository count: %w", err)
 	}
 
+	// read after the count update locked the new owner row, see createRepositoryInDB
+	if newOwner.IsOrganization() && !repo.IsArchived {
+		if archived, err := user_model.IsUserArchived(ctx, newOwner.ID); err != nil {
+			return err
+		} else if archived && repo.IsMirror {
+			return ErrOrgArchived
+		} else if archived {
+			if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
+				return fmt.Errorf("archive repo: %w", err)
+			}
+		}
+	}
+
 	if err := repo_model.WatchRepoAuto(ctx, doer, repo, true); err != nil {
 		return fmt.Errorf("watchRepo: %w", err)
 	}
@@ -450,8 +467,13 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return LimitReachedError{Limit: newOwner.MaxCreationLimit()}
 	}
 
+	if newOwner.IsOrganization() && newOwner.IsArchived && repo.IsMirror {
+		return ErrOrgArchived
+	}
+
 	var isDirectTransfer bool
 	oldOwnerName := repo.OwnerName
+	wasArchived := repo.IsArchived
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Admin is always allowed to transfer || user transfer repo back to his account,
@@ -500,6 +522,9 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	if isDirectTransfer {
+		if !wasArchived && repo.IsArchived {
+			AfterRepoArchived(ctx, repo)
+		}
 		notify_service.TransferRepository(ctx, doer, repo, oldOwnerName)
 	} else {
 		// notify users who are able to accept / reject transfer

@@ -5,6 +5,9 @@
 		{{template "org/settings/navbar" ctx.RootData}}
 		<div class="flex-container-main">
 			{{template "base/alert" ctx.RootData}}
+			{{if ctx.RootData.Org.IsArchived}}
+				<div class="ui warning message">{{ctx.Locale.Tr "org.settings.archived_read_only"}}</div>
+			{{end}}
 			{{/* block: org-setting-content */}}
 
 {{if false}}{{/* to make html structure "likely" complete to prevent IDE warnings */}}

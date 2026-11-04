@@ -3,6 +3,7 @@
 </h4>
 <div class="ui attached segment">
 	<form class="ui form form-fetch-action " action="{{.Link}}" method="post">
+		<fieldset class="tw-contents"{{if $.IsOrgArchived}} disabled{{end}}>
 		<!-- Cross-Repository Access -->
 		<div class="help">{{ctx.Locale.Tr "actions.general.cross_repo_desc"}}</div>
 
@@ -39,6 +40,7 @@
 				<button class="ui primary button" type="submit" name="cross_repo_add_target" value="true">{{ctx.Locale.Tr "add"}}</button>
 			</div>
 		</div>
+		</fieldset>
 	</form>
 </div>
 
@@ -47,6 +49,7 @@
 </h4>
 <div class="ui attached segment">
 	<form class="ui form form-fetch-action" action="{{.Link}}" method="post" data-global-init="initOwnerActionsPermissionsForm">
+		<fieldset class="tw-contents"{{if $.IsOrgArchived}} disabled{{end}}>
 		{{template "shared/actions/permission_mode_select" .}}
 		<div class="divider"></div>
 		{{template "shared/actions/permissions_table" .}}
@@ -54,5 +57,6 @@
 		<div class="field">
 			<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 		</div>
+		</fieldset>
 	</form>
 </div>

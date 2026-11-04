@@ -3,6 +3,7 @@
 </h4>
 <div class="ui attached segment">
 	<div class="ui form">
+		{{if not $.IsOrgArchived}}
 		<div class="field">
 			<label>{{ctx.Locale.Tr "packages.owner.settings.cargo.initialize.description"}}</label>
 		</div>
@@ -15,6 +16,7 @@
 		<form class="field" action="{{.Link}}/cargo/rebuild" method="post">
 			<button type="submit" class="ui primary button">{{ctx.Locale.Tr "packages.owner.settings.cargo.rebuild"}}</button>
 		</form>
+		{{end}}
 		<div class="field">
 			<label>{{ctx.Locale.Tr "packages.registry.documentation" "Cargo" "https://docs.gitea.com/usage/packages/cargo/"}}</label>
 		</div>

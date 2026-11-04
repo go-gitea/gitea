@@ -388,6 +388,19 @@ func Edit(ctx *context.APIContext) {
 
 	form := web.GetForm[*api.EditOrgOption](ctx)
 
+	if ctx.Org.Organization.IsArchived && (form.Archived == nil || *form.Archived) && (form.FullName != nil || form.Description != nil ||
+		form.Website != nil || form.Location != nil || form.Email != nil || form.RepoAdminChangeTeamAccess != nil) {
+		ctx.APIError(http.StatusLocked, "organization is archived")
+		return
+	}
+
+	if form.Archived != nil && *form.Archived && !ctx.Org.Organization.IsArchived {
+		if err := org.CheckOrganizationArchivable(ctx, ctx.Org.Organization.ID); err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
+	}
+
 	if err := org.UpdateOrgEmailAddress(ctx, ctx.Org.Organization, form.Email); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -408,6 +421,13 @@ func Edit(ctx *context.APIContext) {
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
 		ctx.APIErrorInternal(err)
 		return
+	}
+
+	if form.Archived != nil {
+		if err := org.SetOrganizationArchived(ctx, ctx.Org.Organization, *form.Archived); err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))

@@ -3,6 +3,7 @@
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.runners.runner_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		<div class="ui right">
+			{{if not $.IsOrgArchived}}
 			<div class="ui top right pointing dropdown jump">
 				<button type="button" class="ui primary tiny button">
 					{{ctx.Locale.Tr "actions.runners.new"}}
@@ -32,6 +33,7 @@
 					</div>
 				</div>
 			</div>
+			{{end}}
 
 		</div>
 	</h4>

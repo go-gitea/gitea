@@ -33,6 +33,9 @@
 				<div class="item-main">
 					<div class="item-title">
 						{{template "shared/user/name" $org.AsUser}}
+						{{if $org.IsArchived}}
+							<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+						{{end}}
 						{{if $org.Visibility.IsPrivate}}
 							<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
 						{{end}}

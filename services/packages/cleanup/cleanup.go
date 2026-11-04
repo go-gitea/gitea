@@ -85,6 +85,9 @@ func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.Packa
 }
 
 func executeCleanupOneRule(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
+	if archived, err := user_model.IsUserArchived(ctx, pcr.OwnerID); err != nil || archived {
+		return err
+	}
 	if err := pcr.CompiledPattern(); err != nil {
 		return fmt.Errorf("CleanupRule [%d]: CompilePattern failed: %w", pcr.ID, err)
 	}

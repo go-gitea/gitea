@@ -49,6 +49,15 @@ func Settings(ctx *context.Context) {
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
 
+	if !ctx.Org.Organization.IsArchived {
+		mirrors, err := org_service.GetMirrorNames(ctx, ctx.Org.Organization.ID)
+		if err != nil {
+			ctx.ServerError("GetMirrorNames", err)
+			return
+		}
+		ctx.Data["OrgMirrors"] = mirrors
+	}
+
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
@@ -237,6 +246,14 @@ func SettingsRenamePost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("org.settings.rename_success", oldOrgName, newOrgName))
 	ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(newOrgName) + "/settings")
+}
+
+func SettingsArchivePost(ctx *context.Context) {
+	if err := org_service.SetOrganizationArchived(ctx, ctx.Org.Organization, ctx.FormBool("archive")); err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 }
 
 // SettingsChangeVisibilityPost response for change organization visibility
