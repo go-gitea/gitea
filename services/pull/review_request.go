@@ -1,7 +1,7 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package issue
+package pull
 
 import (
 	"context"
@@ -199,7 +199,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)
 }
 
-func ReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewNotifiers []*ReviewRequestNotifier) {
+func reviewRequestNotify(ctx context.Context, issue *issues_model.Issue, reviewNotifiers []*ReviewRequestNotifier) {
 	for _, reviewNotifier := range reviewNotifiers {
 		if reviewNotifier.Reviewer != nil {
 			notify_service.PullRequestReviewRequest(ctx, issue.Poster, issue, reviewNotifier.Reviewer, reviewNotifier.IsAdd, reviewNotifier.Comment)
@@ -284,4 +284,35 @@ func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, rep
 	}
 
 	return false
+}
+
+type ReviewRequestNotifier struct {
+	Comment    *issues_model.Comment
+	IsAdd      bool
+	Reviewer   *user_model.User
+	ReviewTeam *organization.Team
+}
+
+func init() {
+	notify_service.RegisterNotifier(&reviewRequestNotifier{})
+}
+
+type reviewRequestNotifier struct {
+	notify_service.NullNotifier
+}
+
+func (_n *reviewRequestNotifier) IssueChangeTitle(ctx context.Context, _doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
+	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(issue.Title) {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			log.Error("IssueChangeTitle: LoadPullRequest: %v", err)
+			return
+		}
+
+		reviewNotifiers, err := RequestCodeOwnersReview(ctx, issue.PullRequest)
+		if err != nil {
+			log.Error("RequestCodeOwnersReview: %v", err)
+		} else {
+			reviewRequestNotify(ctx, issue, reviewNotifiers)
+		}
+	}
 }
