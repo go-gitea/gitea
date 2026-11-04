@@ -188,7 +188,8 @@ Gitea or set your environment appropriately.`, "")
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 
 	hookOptions := private.HookOptions{
-		IsWiki: isWiki,
+		IsWiki:         isWiki,
+		QuotaOperation: os.Getenv("GITEA_QUOTA_OPERATION"),
 
 		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
@@ -324,7 +325,8 @@ Gitea or set your environment appropriately.`, "")
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 
 	hookOptions := private.HookOptions{
-		IsWiki: isWiki,
+		IsWiki:         isWiki,
+		QuotaOperation: os.Getenv("GITEA_QUOTA_OPERATION"),
 
 		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
@@ -519,7 +521,8 @@ Gitea or set your environment appropriately.`, "")
 	// S: ... ...
 	// S: flush-pkt
 	hookOptions := private.HookOptions{
-		IsWiki: isWiki,
+		IsWiki:         isWiki,
+		QuotaOperation: os.Getenv("GITEA_QUOTA_OPERATION"),
 
 		GitPushOptions: make(map[string]string),
 

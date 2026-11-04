@@ -60,10 +60,12 @@ func (repo *Repository) CommitTree(ctx context.Context, author, committer *Signa
 		cmd.AddArguments("--no-gpg-sign")
 	}
 
-	stdout, _, err := cmd.WithEnv(env).
-		WithRepo(repo).
-		WithStdinBytes(messageBytes.Bytes()).
-		RunStdString(ctx)
+	var stdout string
+	err := GuardStorageMutation(ctx, repo, StorageFetch, func(ctx context.Context, target RepositoryFacade, _ []string) error {
+		var runErr error
+		stdout, _, runErr = cmd.WithEnv(env).WithRepo(target).WithStdinBytes(messageBytes.Bytes()).RunStdString(ctx)
+		return runErr
+	})
 	if err != nil {
 		return nil, err
 	}

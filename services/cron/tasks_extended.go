@@ -238,6 +238,7 @@ func registerRebuildIssueIndexer() {
 }
 
 func initExtendedTasks() {
+	registerStorageQuotaReconciliation()
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
 	registerGarbageCollectRepositories()

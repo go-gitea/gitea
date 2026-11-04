@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -23,6 +24,7 @@ import (
 	git_model "gitea.dev/models/git"
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	quota_model "gitea.dev/models/quota"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -35,6 +37,7 @@ import (
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
+	"gitea.dev/services/quota"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -224,6 +227,24 @@ func BatchHandler(ctx *context.Context) {
 	contentStore := lfs_module.NewContentStore()
 
 	var responseObjects []*lfs_module.ObjectResponse
+	remaining := int64(math.MaxInt64)
+	if isUpload {
+		_, op, err := quota.Begin(ctx, repository)
+		if err != nil {
+			if errors.Is(err, quota_model.ErrBusy) {
+				ctx.Resp.Header().Set("Retry-After", "1")
+				writeStatus(ctx, http.StatusTooManyRequests)
+			} else {
+				writeStatus(ctx, http.StatusServiceUnavailable)
+			}
+			return
+		}
+		defer op.Finish()
+		if op != nil {
+			remaining = op.LFSReserved
+		}
+	}
+	counted := make(map[string]bool)
 
 	for _, p := range br.Objects {
 		if !p.IsValid() {
@@ -270,6 +291,7 @@ func BatchHandler(ctx *context.Context) {
 			}
 
 			var err *lfs_module.ObjectError
+
 			if !exists && setting.LFS.MaxFileSize > 0 && p.Size > setting.LFS.MaxFileSize {
 				err = &lfs_module.ObjectError{
 					Code:    http.StatusUnprocessableEntity,
@@ -277,6 +299,14 @@ func BatchHandler(ctx *context.Context) {
 				}
 			}
 
+			if err == nil && meta == nil && !counted[p.Oid] {
+				if p.Size > remaining {
+					err = &lfs_module.ObjectError{Code: http.StatusUnprocessableEntity, Message: "LFS upload exceeds repository or account storage quota"}
+				} else {
+					remaining -= p.Size
+					counted[p.Oid] = true
+				}
+			}
 			responseObject = buildObjectResponse(rc, p, false, !exists, err)
 		} else {
 			var err *lfs_module.ObjectError
@@ -310,6 +340,7 @@ func UploadHandler(ctx *context.Context) {
 	var err error
 	if p.Size, err = strconv.ParseInt(ctx.PathParam("size"), 10, 64); err != nil {
 		writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
+		return
 	}
 
 	if !p.IsValid() {
@@ -323,8 +354,36 @@ func UploadHandler(ctx *context.Context) {
 		return
 	}
 
+	quotaCtx, op, err := quota.Begin(ctx, repository)
+	if err != nil {
+		if errors.Is(err, quota_model.ErrBusy) {
+			ctx.Resp.Header().Set("Retry-After", "1")
+			writeStatusMessage(ctx, http.StatusTooManyRequests, err.Error())
+		} else {
+			writeStatus(ctx, http.StatusServiceUnavailable)
+		}
+		return
+	}
+	defer op.Finish()
+	existing, lookupErr := git_model.GetLFSMetaObjectByOid(ctx, repository.ID, p.Oid)
+	if lookupErr != nil && !errors.Is(lookupErr, git_model.ErrLFSObjectNotExist) {
+		writeStatus(ctx, http.StatusInternalServerError)
+		return
+	}
+	if existing == nil {
+		if setting.LFS.MaxFileSize > 0 && p.Size > setting.LFS.MaxFileSize {
+			writeStatusMessage(ctx, http.StatusUnprocessableEntity, "LFS object exceeds maximum file size")
+			return
+		}
+		if err = op.Check(quotaCtx, 0, p.Size); err != nil {
+			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+	}
+	ctx.Req.Body = http.MaxBytesReader(ctx.Resp, ctx.Req.Body, p.Size)
+
 	uploadOrVerify := func() error {
-		contentStore := lfs_module.NewContentStore()
+		contentStore := quota.NewContentStore(quotaCtx)
 		stat, err := contentStore.Stat(p)
 		if stat != nil {
 			// The bytes already exist in the content store. Only skip proof of
@@ -366,13 +425,14 @@ func UploadHandler(ctx *context.Context) {
 			log.Error("Unable to check LFS OID[%s] stat. Error: %v", p.Oid, err)
 			return err
 		}
-		_, err = git_model.NewLFSMetaObject(ctx, repository.ID, p)
+		_, err = quota.AssociateLFS(quotaCtx, repository.ID, p)
 		return err
 	}
 
 	defer ctx.Req.Body.Close()
 	if err := uploadOrVerify(); err != nil {
-		if errors.Is(err, lfs_module.ErrSizeMismatch) || errors.Is(err, lfs_module.ErrHashMismatch) {
+		var tooLarge *http.MaxBytesError
+		if errors.Is(err, lfs_module.ErrSizeMismatch) || errors.Is(err, lfs_module.ErrHashMismatch) || errors.As(err, &tooLarge) {
 			log.Error("Upload does not match LFS MetaObject [%s]. Error: %v", p.Oid, err)
 			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 		} else {

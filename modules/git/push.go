@@ -16,12 +16,18 @@ func PushToExternal(ctx context.Context, repo RepositoryFacade, opts PushOptions
 
 // PushManaged pushes from one managed repository to another managed repository.
 func PushManaged(ctx context.Context, fromRepo, toRepo RepositoryFacade, opts PushOptions) error {
-	opts.Remote = gitrepo.RepoLocalPath(toRepo)
-	return Push(ctx, gitrepo.RepoLocalPath(fromRepo), opts)
+	return GuardStorageMutation(ctx, toRepo, StoragePush, func(ctx context.Context, target RepositoryFacade, env []string) error {
+		opts.Remote = gitrepo.RepoLocalPath(target)
+		opts.Env = append(opts.Env, env...)
+		return Push(ctx, gitrepo.RepoLocalPath(fromRepo), opts)
+	})
 }
 
 // PushFromLocal pushes from a local path to a managed repository.
 func PushFromLocal(ctx context.Context, fromLocalPath string, toRepo RepositoryFacade, opts PushOptions) error {
-	opts.Remote = gitrepo.RepoLocalPath(toRepo)
-	return Push(ctx, fromLocalPath, opts)
+	return GuardStorageMutation(ctx, toRepo, StoragePush, func(ctx context.Context, target RepositoryFacade, env []string) error {
+		opts.Remote = gitrepo.RepoLocalPath(target)
+		opts.Env = append(opts.Env, env...)
+		return Push(ctx, fromLocalPath, opts)
+	})
 }

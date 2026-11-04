@@ -252,6 +252,13 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	if extra.HasError() {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
+	if results.QuotaOperation != "" {
+		defer func() {
+			if err := private.CompleteQuota(context.WithoutCancel(ctx), results.RepoID, results.QuotaOperation); err != nil {
+				log.Error("Completing SSH quota operation: %v", err)
+			}
+		}()
+	}
 
 	// LFS SSH protocol
 	if verb == git.CmdVerbLfsTransfer {
@@ -334,6 +341,11 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.
 	// it could be re-considered whether to use the same git.CommonGitCmdEnvs() as "git" command later.
 	command.Env = append(command.Env, gitcmd.CommonCmdServEnvs()...)
+	if results.QuotaOperation != "" {
+		command.Env = append(command.Env, "GITEA_QUOTA_OPERATION="+results.QuotaOperation,
+			"GIT_CONFIG_COUNT=2", "GIT_CONFIG_KEY_0=receive.maxInputSize", fmt.Sprintf("GIT_CONFIG_VALUE_0=%d", max(1024, results.QuotaGitReserved)),
+			"GIT_CONFIG_KEY_1=receive.autogc", "GIT_CONFIG_VALUE_1=false")
+	}
 
 	if err = command.Run(); err != nil {
 		return fail(ctx, "Failed to execute git command", "Failed to execute git command: %v", err)

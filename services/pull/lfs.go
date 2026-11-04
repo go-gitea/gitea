@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
 	"strconv"
 
 	git_model "gitea.dev/models/git"
@@ -19,6 +20,7 @@ import (
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/quota"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -115,23 +117,33 @@ func createLFSMetaObjectsFromCatFileBatch(ctx context.Context, catFileBatchReade
 			continue
 		}
 
-		exist, _ := contentStore.Exists(pointer)
-		if !exist {
+		info, err := contentStore.Stat(pointer)
+		if os.IsNotExist(err) {
 			continue
 		}
 
+		if err != nil {
+			return err
+		}
+		if info.Size() != pointer.Size {
+			return lfs.ErrSizeMismatch
+		}
 		// Then we need to check that this pointer is in the db
-		if _, err := git_model.GetLFSMetaObjectByOid(ctx, pr.HeadRepoID, pointer.Oid); err != nil {
+		meta, err := git_model.GetLFSMetaObjectByOid(ctx, pr.HeadRepoID, pointer.Oid)
+		if err != nil {
 			if err == git_model.ErrLFSObjectNotExist {
 				log.Warn("During merge of: %d in %-v, there is a pointer to LFS Oid: %s which although present in the LFS store is not associated with the head repo %-v", pr.Index, pr.BaseRepo, pointer.Oid, pr.HeadRepo)
 				continue
 			}
 			return err
 		}
+		if meta.Size != pointer.Size {
+			return lfs.ErrSizeMismatch
+		}
 		// OK we have a pointer that is associated with the head repo
 		// and is actually a file in the LFS
 		// Therefore it should be associated with the base repo
-		if _, err := git_model.NewLFSMetaObject(ctx, pr.BaseRepoID, pointer); err != nil {
+		if _, err := quota.AssociateLFS(ctx, pr.BaseRepoID, pointer); err != nil {
 			return err
 		}
 	}

@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 )
 
@@ -25,6 +26,7 @@ var (
 // ContentStore provides a simple file system based storage.
 type ContentStore struct {
 	ObjectStorage storage.ObjectStorage
+	TemporaryPath string
 }
 
 // NewContentStore creates the default ContentStore
@@ -45,36 +47,42 @@ func (s *ContentStore) Get(pointer Pointer) (storage.Object, error) {
 }
 
 // Put takes a Meta object and an io.Reader and writes the content to the store.
-func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
-	p := pointer.RelativePath()
-
-	// Wrap the provided reader with an inline hashing and size checker
-	wrappedRd := newHashingReader(pointer.Size, pointer.Oid, r)
-
-	// now pass the wrapped reader to Save - if there is a size mismatch or hash mismatch then
-	// the errors returned by the newHashingReader should percolate up to here
-	written, err := s.ObjectStorage.Save(p, wrappedRd, pointer.Size)
-	if err != nil {
-		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", pointer.Oid, p, err)
-		return err
-	}
-
-	// check again whether there is any error during the Save operation
-	// because some errors might be ignored by the Reader's caller
-	if wrappedRd.lastError != nil && !errors.Is(wrappedRd.lastError, io.EOF) {
-		err = wrappedRd.lastError
-	} else if written != pointer.Size {
-		err = ErrSizeMismatch
-	}
-
-	// if the upload failed, try to delete the file
-	if err != nil {
-		if errDel := s.ObjectStorage.Delete(p); errDel != nil {
-			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, errDel)
+func (s *ContentStore) Put(pointer Pointer, r io.Reader) (retErr error) {
+	temporaryPath := s.TemporaryPath
+	if temporaryPath == "" {
+		if local, ok := s.ObjectStorage.(*storage.LocalStorage); ok {
+			temporaryPath = local.TemporaryPath()
+		} else {
+			temporaryPath = setting.AppDataTempDir("lfs").JoinPath()
 		}
 	}
-
-	return err
+	if err := os.MkdirAll(temporaryPath, 0o700); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(temporaryPath, "gitea-lfs-*")
+	if err != nil {
+		return err
+	}
+	defer func() { retErr = errors.Join(retErr, tmp.Close(), os.Remove(tmp.Name())) }()
+	wrappedRd := newHashingReader(pointer.Size, pointer.Oid, r)
+	written, err := io.Copy(tmp, wrappedRd)
+	if err != nil {
+		return err
+	}
+	if written != pointer.Size {
+		return ErrSizeMismatch
+	}
+	if _, err = tmp.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	written, err = s.ObjectStorage.Save(pointer.RelativePath(), tmp, pointer.Size)
+	if err != nil {
+		return err
+	}
+	if written != pointer.Size {
+		return ErrSizeMismatch
+	}
+	return nil
 }
 
 func (s *ContentStore) Stat(pointer Pointer) (os.FileInfo, error) {
@@ -131,6 +139,15 @@ func (r *hashingReader) recordError(err error) error {
 }
 
 func (r *hashingReader) Read(b []byte) (int, error) {
+	if len(b) > 0 {
+		remaining := r.expectedSize - r.currentSize
+		if remaining < 0 {
+			return 0, r.recordError(ErrSizeMismatch)
+		}
+		if remaining < int64(len(b)) {
+			b = b[:remaining+1]
+		}
+	}
 	n, err := r.internal.Read(b)
 
 	if n > 0 {

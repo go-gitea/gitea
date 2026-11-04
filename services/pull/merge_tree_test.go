@@ -4,14 +4,25 @@
 package pull
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"strconv"
 	"testing"
 
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	quota_model "gitea.dev/models/quota"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/quota"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -152,4 +163,50 @@ base
 `, baseBranch, headBranch, emptyFile)
 	err := gitcmd.NewCommand("fast-import").WithRepo(repo).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
 	require.NoError(t, err)
+}
+
+func TestPullRequestQuotaBusyRetry(t *testing.T) {
+	prPatchCheckerQueue = queue.CreateUniqueQueue(t.Context(), "pr_patch_checker", handlePullRequestChecks)
+	t.Cleanup(func() { prPatchCheckerQueue = nil })
+	require.NoError(t, unittest.PrepareTestDatabase())
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, pr.LoadBaseRepo(t.Context()))
+	require.NoError(t, quota_model.SetPolicy(t.Context(), &quota_model.Policy{Subject: quota_model.Repository, SubjectID: pr.BaseRepoID, GitLimit: new(int64(1024 * 1024))}))
+	_, op, err := quota.Begin(t.Context(), pr.BaseRepo)
+	require.NoError(t, err)
+	defer func() {
+		if op != nil {
+			op.Finish()
+		}
+	}()
+	item := strconv.FormatInt(pr.ID, 10)
+	require.Equal(t, []string{item}, handlePullRequestChecks(item))
+	stored := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+	require.Equal(t, issues_model.PullRequestStatusChecking, stored.Status)
+	op.Finish()
+	op = nil
+	require.Empty(t, handlePullRequestChecks(item))
+}
+
+func TestPullLFSRejectsForgedSize(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	backend, err := storage.NewLocalStorage(ctx, &setting.Storage{Path: t.TempDir()})
+	require.NoError(t, err)
+	defer test.MockVariableValue(&storage.LFS, backend)()
+	data := bytes.Repeat([]byte("x"), 1024)
+	pointer, err := lfs.GeneratePointer(bytes.NewReader(data))
+	require.NoError(t, err)
+	require.NoError(t, lfs.NewContentStore().Put(pointer, bytes.NewReader(data)))
+	_, err = git_model.NewLFSMetaObject(ctx, 1, pointer)
+	require.NoError(t, err)
+	for _, size := range []int64{1, 2048} {
+		pointer.Size = size
+		content := pointer.StringContent()
+		batch := fmt.Sprintf("%040d blob %d\n%s\n", 1, len(content), content)
+		err := createLFSMetaObjectsFromCatFileBatch(ctx, io.NopCloser(bytes.NewBufferString(batch)), &issues_model.PullRequest{HeadRepoID: 1, BaseRepoID: 2})
+		require.ErrorIs(t, err, lfs.ErrSizeMismatch)
+		_, err = git_model.GetLFSMetaObjectByOid(ctx, 2, pointer.Oid)
+		require.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+	}
 }

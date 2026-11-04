@@ -30,6 +30,7 @@ import (
 	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
+	"gitea.dev/services/quota"
 )
 
 const (
@@ -518,7 +519,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		metas[i].Oid = oid[:idx]
 		// metas[i].RepositoryID = ctx.Repo.Repository.ID
 	}
-	if err := git_model.LFSAutoAssociate(ctx, metas, ctx.Doer, ctx.Repo.Repository.ID); err != nil {
+	if err := quota.AutoAssociateLFS(ctx, metas, ctx.Doer, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("LFSAutoAssociate", err)
 		return
 	}

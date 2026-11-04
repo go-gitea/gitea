@@ -26,6 +26,7 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	asymkey_service "gitea.dev/services/asymkey"
 	pull_service "gitea.dev/services/pull"
+	"gitea.dev/services/quota"
 )
 
 // IdentityOptions for a person's identity like an author or committer
@@ -80,6 +81,11 @@ type LazyReadSeeker interface {
 
 // ChangeRepoFiles adds, updates or removes multiple files in the given repository
 func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ChangeRepoFilesOptions) (_ *structs.FilesResponse, errRet error) {
+	ctx, quotaOp, quotaErr := quota.Begin(ctx, repo)
+	if quotaErr != nil {
+		return nil, quotaErr
+	}
+	defer quotaOp.Finish()
 	var addedLfsPointers []lfs.Pointer
 	defer func() {
 		if errRet != nil {
@@ -225,7 +231,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		}
 	}
 
-	lfsContentStore := lfs.NewContentStore()
+	lfsContentStore := quota.NewContentStore(ctx)
 	for _, file := range opts.Files {
 		switch file.Operation {
 		case "create", "update", "rename", "upload":
@@ -515,7 +521,7 @@ func modifyFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeR
 	defer writeObjectRet.LfsContent.Close()
 
 	// Now we must store the content into an LFS object
-	lfsMetaObject, err := git_model.NewLFSMetaObject(ctx, repoID, writeObjectRet.LfsPointer)
+	lfsMetaObject, err := quota.AssociateLFS(ctx, repoID, writeObjectRet.LfsPointer)
 	if err != nil {
 		return nil, err
 	}

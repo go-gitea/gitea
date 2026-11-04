@@ -50,6 +50,8 @@ func (repo *Repository) GitRepoManagedID() string {
 	return repo.repoFacade.GitRepoManagedID()
 }
 
+func (repo *Repository) GitRepoFacade() RepositoryFacade { return repo.repoFacade }
+
 func (repo *Repository) GitRepoLocation() string {
 	return repo.repoFacade.GitRepoLocation()
 }
@@ -168,6 +170,7 @@ type CloneRepoOptions struct {
 	Quiet         bool
 	Branch        string
 	Shared        bool
+	Dissociate    bool
 	NoCheckout    bool
 	Depth         int
 	Filter        string
@@ -198,6 +201,9 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	}
 	if opts.Shared {
 		cmd.AddArguments("-s")
+	}
+	if opts.Dissociate {
+		cmd.AddArguments("--dissociate")
 	}
 	if opts.NoCheckout {
 		cmd.AddArguments("--no-checkout")

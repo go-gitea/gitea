@@ -46,7 +46,19 @@ type ServCommandResults struct {
 	UserID          int64
 	UserExtDoerData string
 
-	RepoStoragePath string
+	RepoStoragePath  string
+	QuotaOperation   string
+	QuotaGitReserved int64
+}
+
+func CompleteQuota(ctx context.Context, repoID int64, token string) error {
+	if token == "" {
+		return nil
+	}
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/quota/%d/complete", repoID)
+	req := newInternalRequestAPI(ctx, reqURL, "POST", map[string]string{"token": token})
+	_, extra := requestJSONResp(req, &ResponseText{})
+	return extra.Error
 }
 
 // ServCommand preps for a serv call

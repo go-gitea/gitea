@@ -21,6 +21,7 @@ import (
 	"gitea.dev/services/audit"
 	gitea_context "gitea.dev/services/context"
 	pull_service "gitea.dev/services/pull"
+	"gitea.dev/services/quota"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -79,6 +80,13 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 // HookPostReceive updates services and users
 func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
+	release, err := quota.Bind(ctx, ctx.Repo.Repository, opts.QuotaOperation)
+	if err != nil {
+		ctx.PrivateInternalErrorf("Resuming quota operation: %v", err)
+		return
+	}
+	defer release()
+
 	if opts.IsWiki {
 		setting.PanicInDevOrTesting("wiki hook-post-receive is not supported")
 		return

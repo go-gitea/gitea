@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/quota"
 )
 
 func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
@@ -162,7 +163,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			if err != nil {
 				return repo, fmt.Errorf("NewClientFromEndpoint: %w", err)
 			}
-			if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
+			if err = quota.StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 				return repo, fmt.Errorf("StoreMissingLfsObjectsInRepository: %w", err)
 			}

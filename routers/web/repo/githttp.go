@@ -33,6 +33,7 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
+	"gitea.dev/services/quota"
 	repo_service "gitea.dev/services/repository"
 
 	"github.com/go-chi/cors"
@@ -406,6 +407,15 @@ func serviceRPC(ctx *context.Context, service string) {
 
 	// set SSH_ORIGINAL_COMMAND to allow pre-receive and post-receive hooks
 	gitCmdEnvs := prepareGitCmdEnvs(ctx, h, "SSH_ORIGINAL_COMMAND="+service)
+	if service == ServiceTypeReceivePack {
+		_, op, err := quota.Begin(ctx, h.repo)
+		if err != nil {
+			_ = pktLineWriteText(ctx.Resp, "ERR "+err.Error())
+			return
+		}
+		defer op.Finish()
+		gitCmdEnvs = op.Environment(gitCmdEnvs)
+	}
 	err := cmd.AddArguments(".").
 		WithRepo(h.getStorageRepo()).WithEnv(gitCmdEnvs).
 		WithStdinCopy(reqBody).

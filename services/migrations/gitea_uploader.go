@@ -34,6 +34,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/gitdiff"
 	"gitea.dev/services/pull"
+	"gitea.dev/services/quota"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -724,8 +725,13 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 					fetchArg = git.BranchPrefix + fetchArg
 				}
 
-				_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithRepo(g.repo).RunStdString(ctx)
+				err = quota.Fetch(ctx, g.repo, func(fetchCtx context.Context, target git.RepositoryFacade, env []string) error {
+					return gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithRepo(target).WithEnv(env).Run(fetchCtx)
+				})
 				if err != nil {
+					if quota.IsQuotaError(err) {
+						return "", err
+					}
 					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					return head, nil
 				}

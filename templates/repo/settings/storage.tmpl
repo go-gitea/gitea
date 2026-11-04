@@ -1,0 +1,24 @@
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings storage")}}
+	<div class="repo-setting-content">
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "quota.title"}}</h4>
+		<div class="ui attached segment">
+			{{if .StorageQuota}}
+				{{template "quota/usage" .StorageQuota}}
+			{{else}}
+				<p>{{ctx.Locale.Tr "quota.gc_unavailable"}}</p>
+			{{end}}
+			{{if or .StorageQuota .IsAdmin}}
+				<div class="flex-text-block tw-flex-wrap tw-mt-4">
+					{{if .StorageQuota}}
+						<form class="ui form form-fetch-action" action="{{.RepoLink}}/settings/quota/gc" method="post">
+							<button type="submit" class="ui primary button">{{ctx.Locale.Tr "quota.gc"}}</button>
+						</form>
+					{{end}}
+					{{if .IsAdmin}}
+						<a class="ui button" href="{{AppSubUrl}}/-/admin/quotas/repository/{{.Repository.ID}}">{{ctx.Locale.Tr "quota.manage"}}</a>
+					{{end}}
+				</div>
+			{{end}}
+		</div>
+	</div>
+{{template "repo/settings/layout_footer" .}}

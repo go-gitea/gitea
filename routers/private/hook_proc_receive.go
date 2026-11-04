@@ -13,11 +13,19 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/services/agit"
 	gitea_context "gitea.dev/services/context"
+	"gitea.dev/services/quota"
 )
 
 // HookProcReceive proc-receive hook - only handles agit Proc-Receive requests at present
 func HookProcReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
+	release, err := quota.Bind(ctx, ctx.Repo.Repository, opts.QuotaOperation)
+	if err != nil {
+		ctx.PrivateInternalErrorf("Resuming quota operation: %v", err)
+		return
+	}
+	defer release()
+
 	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return
 	}

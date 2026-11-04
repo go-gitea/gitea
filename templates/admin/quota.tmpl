@@ -1,0 +1,27 @@
+{{template "admin/layout_head" (dict "pageClass" "admin storage-quota")}}
+<div class="admin-setting-content">
+	<h3>{{.StorageQuota.Name}}</h3>
+	{{template "quota/summary" .StorageQuota}}
+	<div class="ui attached segment">
+		<form class="ui form form-fetch-action" method="post">
+			<p>{{ctx.Locale.Tr "quota.override_help"}}</p>
+			{{if .StorageQuota.Git}}
+				<div class="field">
+					<label>{{ctx.Locale.Tr "quota.git"}}</label>
+					<input name="git_limit" value="{{.GitOverride}}" placeholder="{{ctx.Locale.Tr "quota.inherit"}}">
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "quota.lfs"}}</label>
+					<input name="lfs_limit" value="{{.LFSOverride}}" placeholder="{{ctx.Locale.Tr "quota.inherit"}}">
+				</div>
+			{{else}}
+				<div class="field">
+					<label>{{ctx.Locale.Tr "quota.account"}}</label>
+					<input name="total_limit" value="{{.TotalOverride}}" placeholder="{{ctx.Locale.Tr "quota.inherit"}}">
+				</div>
+			{{end}}
+			<button type="submit" class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+		</form>
+	</div>
+</div>
+{{template "admin/layout_footer" .}}

@@ -47,12 +47,18 @@ func MergeTree(ctx context.Context, repo RepositoryFacade, baseRef, headRef, mer
 		return scanner.Err()
 	})
 
-	err := cmd.WithRepo(repo).RunWithStderr(ctx)
+	err := GuardStorageMutation(ctx, repo, StorageFetch, func(ctx context.Context, target RepositoryFacade, env []string) error {
+		runErr := cmd.WithRepo(target).WithEnv(env).RunWithStderr(ctx)
+		if gitcmd.IsErrorExitCode(runErr, 1) {
+			isErrHasConflicts = true
+			return nil
+		}
+		return runErr
+	})
 	// For a successful, non-conflicted merge, the exit status is 0. When the merge has conflicts, the exit status is 1.
 	// A merge can have conflicts without having individual files conflict
 	// https://git-scm.com/docs/git-merge-tree/2.38.0#_mistakes_to_avoid
-	isErrHasConflicts = gitcmd.IsErrorExitCode(err, 1)
-	if err == nil || isErrHasConflicts {
+	if err == nil {
 		return treeID, isErrHasConflicts, conflictFiles, nil
 	}
 	return "", false, nil, fmt.Errorf("run merge-tree failed: %w", err)

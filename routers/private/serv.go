@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
+	"gitea.dev/services/quota"
 	repo_service "gitea.dev/services/repository"
 	wiki_service "gitea.dev/services/wiki"
 )
@@ -302,6 +303,16 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	gitRepo := util.Iif(results.IsWiki, repo.WikiStorageRepo(), repo.CodeStorageRepo())
 	results.RepoStoragePath = gitrepo.RepoLocalPath(gitRepo)
+	if verb == git.CmdVerbReceivePack {
+		_, op, err := quota.Begin(ctx, repo)
+		if err != nil {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "%s", err)
+			return
+		}
+		if op != nil {
+			results.QuotaOperation, results.QuotaGitReserved = op.Token, op.GitReserved
+		}
+	}
 	log.Debug("Serv Results: %+v", results)
 	ctx.JSON(http.StatusOK, results)
 	// We will update the keys in a different call.
