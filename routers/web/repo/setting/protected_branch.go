@@ -131,6 +131,11 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/branches/edit")
 		return
 	}
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
+		ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.QueryEscape(f.RuleName)))
+		return
+	}
 
 	var err error
 	if f.RuleID > 0 {
