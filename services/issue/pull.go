@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	org_model "gitea.dev/models/organization"
@@ -17,6 +18,8 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+
+	"xorm.io/builder"
 )
 
 type ReviewRequestNotifier struct {
@@ -97,7 +100,16 @@ func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_mod
 // Get the matching code owner rules for a given pr + repo combination. The returned
 // complete flag is false when rule matching was cut short by the match budget, so
 // the returned slice is only a partial set of the matching rules.
-func getMatchingCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_model.PullRequest) (matchingRules []*issues_model.CodeOwnerRule, complete bool, err error) {
+func getMatchingCodeOwnerRules(ctx context.Context, pr *issues_model.PullRequest) (matchingRules []*issues_model.CodeOwnerRule, complete bool, err error) {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return nil, false, err
+	}
+	repo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	if err != nil {
+		return nil, false, err
+	}
+	defer closer.Close()
+
 	rules, err := getCodeOwnerRules(ctx, repo, pr)
 	if err != nil {
 		return nil, false, err
@@ -150,20 +162,7 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 		return true
 	}
 
-	if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("HasAllRequiredCodeownerReviews: failed to load base repository for PR %d: %v", pr.ID, err)
-		return false
-	}
-
-	repo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
-	if err != nil {
-		log.Error("HasAllRequiredCodeownerReviews: failed to open base repository for PR %d: %v", pr.ID, err)
-		return false
-	}
-
-	defer closer.Close()
-
-	matchingRules, complete, err := getMatchingCodeOwnerRules(ctx, repo, pr)
+	matchingRules, complete, err := getMatchingCodeOwnerRules(ctx, pr)
 	if err != nil {
 		log.Error("HasAllRequiredCodeownerReviews: failed to match code owner rules for PR %d: %v", pr.ID, err)
 		return false
@@ -254,7 +253,6 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	if err := pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}
-	issue := pr.Issue
 	if pr.IsWorkInProgress(ctx) {
 		return nil, nil
 	}
@@ -262,19 +260,11 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
-
 	pr.Issue.Repo = pr.BaseRepo
-
-	repo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	defer closer.Close()
 
 	// The notifier only requests reviews, so a partial (budget-truncated) rule set is
 	// acceptable here; the complete flag matters only for the merge gate.
-	matchingRules, _, err := getMatchingCodeOwnerRules(ctx, repo, pr)
+	matchingRules, _, err := getMatchingCodeOwnerRules(ctx, pr)
 	if err != nil {
 		return nil, err
 	}
@@ -282,6 +272,11 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return nil, nil
 	}
 
+	return pullRequestCodeOwnersReview(ctx, pr, matchingRules)
+}
+
+func pullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest, matchingRules []*issues_model.CodeOwnerRule) ([]*ReviewRequestNotifier, error) {
+	issue := pr.Issue
 	uniqUsers := make(map[int64]*user_model.User)
 	uniqTeams := make(map[string]*org_model.Team)
 	for _, rule := range matchingRules {
@@ -333,6 +328,13 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	for _, t := range uniqTeams {
+		reviewed, err := teamMemberHasReviewed(ctx, pr.IssueID, t)
+		if err != nil {
+			return nil, err
+		}
+		if reviewed {
+			continue
+		}
 		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster, true)
 		if err != nil {
 			log.Warn("Failed add reviewer team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
@@ -349,4 +351,16 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	return notifiers, nil
+}
+
+// teamMemberHasReviewed reports whether a team member has a non-dismissed approval or rejection on the issue.
+// SubmitReview removes the team's review request in that case, so requesting the team again would mail every member again.
+// It doesn't use the latest review of each reviewer: a later single code comment is saved as a comment review but keeps the approval.
+func teamMemberHasReviewed(ctx context.Context, issueID int64, team *org_model.Team) (bool, error) {
+	return db.GetEngine(ctx).Where(builder.Eq{
+		"issue_id":  issueID,
+		"dismissed": false,
+	}.And(builder.In("type", issues_model.ReviewTypeApprove, issues_model.ReviewTypeReject)).
+		And(builder.In("reviewer_id", builder.Select("uid").From("team_user").Where(builder.Eq{"team_id": team.ID})))).
+		Exist(new(issues_model.Review))
 }
