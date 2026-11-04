@@ -4,6 +4,7 @@
   issue_id: 1
   time: 400
   created_unix: 946684800
+  spent_on_unix: 946684800
   deleted: false
 
 -
@@ -12,6 +13,7 @@
   issue_id: 2
   time: 3661
   created_unix: 946684801
+  spent_on_unix: 946684801
   deleted: false
 
 -
@@ -20,6 +22,7 @@
   issue_id: 2
   time: 1
   created_unix: 946684802
+  spent_on_unix: 946684802
   deleted: false
 
 -
@@ -28,6 +31,7 @@
   issue_id: 4
   time: 1
   created_unix: 946684803
+  spent_on_unix: 946684803
   deleted: false
 
 -
@@ -36,6 +40,7 @@
   issue_id: 5
   time: 1
   created_unix: 946684804
+  spent_on_unix: 946684804
   deleted: false
 
 -
@@ -44,6 +49,7 @@
   issue_id: 2
   time: 20
   created_unix: 946684812
+  spent_on_unix: 946684812
   deleted: false
 
 -
@@ -52,6 +58,7 @@
   issue_id: 4
   time: 3
   created_unix: 946684813
+  spent_on_unix: 946684813
   deleted: false
 
 -
@@ -60,6 +67,7 @@
   issue_id: 4
   time: 71
   created_unix: 947688814
+  spent_on_unix: 947688814
   deleted: false
 
 -
@@ -68,6 +76,7 @@
   issue_id: 2
   time: 100000
   created_unix: 947688815
+  spent_on_unix: 947688815
   deleted: true
 
 # DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

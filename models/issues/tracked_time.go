@@ -27,6 +27,8 @@ type TrackedTime struct {
 	User        *user_model.User `xorm:"-"`
 	Created     time.Time        `xorm:"-"`
 	CreatedUnix int64            `xorm:"created"`
+	SpentOn     time.Time        `xorm:"-"`
+	SpentOnUnix int64            `xorm:"INDEX NOT NULL DEFAULT 0"`
 	Time        int64            `xorm:"NOT NULL"`
 	Deleted     bool             `xorm:"NOT NULL DEFAULT false"`
 }
@@ -41,6 +43,10 @@ type TrackedTimeList []*TrackedTime
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *TrackedTime) AfterLoad() {
 	t.Created = time.Unix(t.CreatedUnix, 0).In(setting.DefaultUILocation)
+	if t.SpentOnUnix == 0 {
+		t.SpentOnUnix = t.CreatedUnix
+	}
+	t.SpentOn = time.Unix(t.SpentOnUnix, 0).In(setting.DefaultUILocation)
 }
 
 // LoadAttributes load Issue, User
@@ -109,10 +115,10 @@ func (opts *FindTrackedTimesOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"issue.milestone_id": opts.MilestoneID})
 	}
 	if opts.CreatedAfterUnix != 0 {
-		cond = cond.And(builder.Gte{"tracked_time.created_unix": opts.CreatedAfterUnix})
+		cond = cond.And(builder.Gte{"tracked_time.spent_on_unix": opts.CreatedAfterUnix})
 	}
 	if opts.CreatedBeforeUnix != 0 {
-		cond = cond.And(builder.Lte{"tracked_time.created_unix": opts.CreatedBeforeUnix})
+		cond = cond.And(builder.Lte{"tracked_time.spent_on_unix": opts.CreatedBeforeUnix})
 	}
 	return cond
 }
@@ -166,9 +172,9 @@ func GetTrackedSeconds(ctx context.Context, opts FindTrackedTimesOptions) (track
 }
 
 // AddTime will add the given time (in seconds) to the issue
-func AddTime(ctx context.Context, user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
+func AddTime(ctx context.Context, user *user_model.User, issue *Issue, amount int64, spentOn time.Time) (*TrackedTime, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*TrackedTime, error) {
-		t, err := addTime(ctx, user, issue, amount, created)
+		t, err := addTime(ctx, user, issue, amount, spentOn)
 		if err != nil {
 			return nil, err
 		}
@@ -194,15 +200,16 @@ func AddTime(ctx context.Context, user *user_model.User, issue *Issue, amount in
 	})
 }
 
-func addTime(ctx context.Context, user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
-	if created.IsZero() {
-		created = time.Now()
+func addTime(ctx context.Context, user *user_model.User, issue *Issue, amount int64, spentOn time.Time) (*TrackedTime, error) {
+	if spentOn.IsZero() {
+		spentOn = time.Now()
 	}
 	tt := &TrackedTime{
-		IssueID: issue.ID,
-		UserID:  user.ID,
-		Time:    amount,
-		Created: created,
+		IssueID:     issue.ID,
+		UserID:      user.ID,
+		Time:        amount,
+		SpentOn:     spentOn,
+		SpentOnUnix: spentOn.Unix(),
 	}
 	return tt, db.Insert(ctx, tt)
 }

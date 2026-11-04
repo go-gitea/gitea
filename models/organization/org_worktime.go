@@ -25,8 +25,8 @@ func GetWorktimeByRepos(ctx context.Context, org *Organization, unitFrom, unixTo
 		Join("INNER", "repository", "issue.repo_id = repository.id").
 		Where(builder.Eq{"repository.owner_id": org.ID}).
 		And(builder.Eq{"tracked_time.deleted": false}).
-		And(builder.Gte{"tracked_time.created_unix": unitFrom}).
-		And(builder.Lte{"tracked_time.created_unix": unixTo}).
+		And(builder.Gte{"tracked_time.spent_on_unix": unitFrom}).
+		And(builder.Lte{"tracked_time.spent_on_unix": unixTo}).
 		GroupBy("repository.name").
 		OrderBy("repository.name").
 		Find(&results)
@@ -51,8 +51,8 @@ func GetWorktimeByMilestones(ctx context.Context, org *Organization, unitFrom, u
 		Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
 		Where(builder.Eq{"repository.owner_id": org.ID}).
 		And(builder.Eq{"tracked_time.deleted": false}).
-		And(builder.Gte{"tracked_time.created_unix": unitFrom}).
-		And(builder.Lte{"tracked_time.created_unix": unixTo}).
+		And(builder.Gte{"tracked_time.spent_on_unix": unitFrom}).
+		And(builder.Lte{"tracked_time.spent_on_unix": unixTo}).
 		GroupBy("repository.name, milestone.name, milestone.deadline_unix, milestone.id").
 		OrderBy("repository.name, milestone.deadline_unix, milestone.id").
 		Find(&results)
@@ -95,8 +95,8 @@ func GetWorktimeByMembers(ctx context.Context, org *Organization, unitFrom, unix
 		Join("INNER", "`user`", "tracked_time.user_id = `user`.id").
 		Where(builder.Eq{"repository.owner_id": org.ID}).
 		And(builder.Eq{"tracked_time.deleted": false}).
-		And(builder.Gte{"tracked_time.created_unix": unitFrom}).
-		And(builder.Lte{"tracked_time.created_unix": unixTo}).
+		And(builder.Gte{"tracked_time.spent_on_unix": unitFrom}).
+		And(builder.Lte{"tracked_time.spent_on_unix": unixTo}).
 		GroupBy("`user`.name").
 		OrderBy("sum_time DESC").
 		Find(&results)

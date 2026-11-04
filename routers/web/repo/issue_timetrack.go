@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -41,7 +42,18 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 
-	if _, err := issues_model.AddTime(c, c.Doer, issue, int64(total.Seconds()), time.Now()); err != nil {
+	spentOnTime := time.Now()
+	spentOn := strings.TrimSpace(form.SpentOn)
+	if spentOn != "" {
+		parsed, err := time.ParseInLocation(time.DateOnly, spentOn, setting.DefaultUILocation)
+		if err != nil {
+			c.JSONError(c.Tr("repo.issues.add_time_spent_on_invalid"))
+			return
+		}
+		spentOnTime = parsed
+	}
+
+	if _, err := issues_model.AddTime(c, c.Doer, issue, int64(total.Seconds()), spentOnTime); err != nil {
 		c.ServerError("AddTime", err)
 		return
 	}
