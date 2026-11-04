@@ -569,7 +569,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/issues", func() {
 		m.Get("", user.Issues)
-		m.Get("/search", repo.SearchIssues)
+		m.Get("/search", repo.SearchGlobalIssues)
 	}, reqSignIn)
 
 	m.Get("/pulls", reqSignIn, user.Pulls)
