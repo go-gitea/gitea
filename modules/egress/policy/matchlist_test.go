@@ -206,4 +206,15 @@ func TestNeverMatching(t *testing.T) {
 	// (127.0.0.0/8, ::1/128) is dialable and must not be flagged
 	assert.Empty(t, NewAllowList("loopback", Strict).NeverMatching())
 	assert.Empty(t, NewAllowList("127.0.0.0/8, ::1/128", Strict).NeverMatching())
+
+	// NAT64 well-known-prefix entries never match: checkAddr decodes them to the
+	// embedded IPv4 before matching, so they are flagged like reserved ranges
+	nat64 := NewAllowList("64:ff9b::/96, 64:ff9b::a00:0/104, 64:ff9b::8.8.8.8", Strict).NeverMatching()
+	assert.Len(t, nat64, 3)
+	joined = strings.Join(nat64, "\n")
+	assert.Contains(t, joined, "64:ff9b::/96")
+	assert.Contains(t, joined, "64:ff9b::a00:0/104")
+	assert.Contains(t, joined, "64:ff9b::808:808/128")
+	// a prefix only partially covering the WKP still matches its non-NAT64 part
+	assert.Empty(t, NewAllowList("64:ff9b::/95", Strict).NeverMatching())
 }
