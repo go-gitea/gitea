@@ -5,7 +5,6 @@ package convert
 
 import (
 	"context"
-	"io"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -199,13 +198,14 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 			apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 
-			var headCloser io.Closer
-			headGitRepo, headCloser, err = git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
-			if err != nil {
-				log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
-				return nil
+			if pr.HeadRepoID != pr.BaseRepoID { // not request-cached, a lingering cat-file would block deleting the fork on Windows
+				headGitRepo, err = git.OpenRepository(ctx, pr.HeadRepo)
+				if err != nil {
+					log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
+					return nil
+				}
+				defer headGitRepo.Close()
 			}
-			defer headCloser.Close()
 
 			exist, err = git_model.IsBranchExist(ctx, pr.HeadRepoID, pr.HeadBranch)
 			if err != nil {
