@@ -554,7 +554,7 @@ func doProtectBranchExt(ctx APITestContext, ruleName string, opts doProtectBranc
 
 		// Send the request to update branch protection settings
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), formData)
-		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
 
 		// Check if the "master" branch has been locked successfully
 		flashMsg := ctx.Session.GetCookieFlashMessage()

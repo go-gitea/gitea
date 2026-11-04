@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -124,16 +123,13 @@ func SettingsProtectedBranch(c *context.Context) {
 
 // SettingsProtectedBranchPost updates the protected branch settings
 func SettingsProtectedBranchPost(ctx *context.Context) {
-	f := web.GetForm[*forms.ProtectBranchForm](ctx)
-	var protectBranch *git_model.ProtectedBranch
-	if f.RuleName == "" {
-		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_rule_name"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/branches/edit")
+	f := context.GetFetchActionForm[*forms.ProtectBranchForm](ctx)
+	if f == nil {
 		return
 	}
-	if ctx.HasError() {
-		ctx.Flash.Error(ctx.GetErrMsg())
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.QueryEscape(f.RuleName)))
+	var protectBranch *git_model.ProtectedBranch
+	if f.RuleName == "" {
+		ctx.JSONError(ctx.Tr("repo.settings.protected_branch_required_rule_name"))
 		return
 	}
 
@@ -154,8 +150,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 				return
 			}
 			if sameNameProtectBranch != nil {
-				ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_duplicate_rule_name"))
-				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
+				ctx.JSONError(ctx.Tr("repo.settings.protected_branch_duplicate_rule_name"))
 				return
 			}
 		}
@@ -182,8 +177,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	var whitelistUsers, whitelistTeams, forcePushAllowlistUsers, forcePushAllowlistTeams, deletionAllowlistUsers, deletionAllowlistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams, bypassAllowlistUsers, bypassAllowlistTeams []int64
 	protectBranch.RuleName = f.RuleName
 	if f.RequiredApprovals < 0 {
-		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, f.RuleName))
+		ctx.JSONError(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
 		return
 	}
 
@@ -276,16 +270,14 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 				continue
 			}
 			if _, err := glob.Compile(trimmed); err != nil {
-				ctx.Flash.Error(ctx.Tr("repo.settings.protect_invalid_status_check_pattern", pattern))
-				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.QueryEscape(protectBranch.RuleName)))
+				ctx.JSONError(ctx.Tr("repo.settings.protect_invalid_status_check_pattern", pattern))
 				return
 			}
 			validPatterns = append(validPatterns, trimmed)
 		}
 		if len(validPatterns) == 0 {
 			// if status check is enabled, patterns slice is not allowed to be empty
-			ctx.Flash.Error(ctx.Tr("repo.settings.protect_no_valid_status_check_patterns"))
-			ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, url.QueryEscape(protectBranch.RuleName)))
+			ctx.JSONError(ctx.Tr("repo.settings.protect_no_valid_status_check_patterns"))
 			return
 		}
 		protectBranch.StatusCheckContexts = validPatterns
@@ -339,7 +331,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", protectBranch.RuleName))
-	ctx.Redirect(fmt.Sprintf("%s/settings/branches?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
+	ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
 }
 
 // DeleteProtectedBranchRulePost delete protected branch rule by id

@@ -1216,7 +1216,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/branches", func() {
 			m.Get("/", repo_setting.ProtectedBranchRules)
 			m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
-				Post(web.Bind[*forms.ProtectBranchForm](), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
+				Post(context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
 			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
 			m.Post("/priority", context.RepoMustNotBeArchived(), repo_setting.UpdateBranchProtectionPriories)
 		})

@@ -829,7 +829,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 			"enable_status_check":   "true",
 			"status_check_contexts": "gitea/actions",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
 		addToQueuePullChan := make(chan automergequeue.AutoMergeItem, 1)
 		resetAutoMergeQueueMock := test.MockVariableValue(&automergequeue.AddToQueue, func(item automergequeue.AutoMergeItem) { addToQueuePullChan <- item })
@@ -911,7 +911,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 			"status_check_contexts": "gitea/actions",
 			"required_approvals":    "1",
 		})
-		baseSession.MakeRequest(t, req, http.StatusSeeOther)
+		baseSession.MakeRequest(t, req, http.StatusOK)
 
 		// first time insert automerge record, return true
 		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false)
@@ -1023,7 +1023,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 			"status_check_contexts": "gitea/actions",
 			"required_approvals":    "1",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		// first time insert automerge record, return true
@@ -1098,7 +1098,7 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 			"status_check_contexts":      "gitea/actions",
 			"block_admin_merge_override": "true",
 		})
-		session.MakeRequest(t, pbCreateReq, http.StatusSeeOther)
+		session.MakeRequest(t, pbCreateReq, http.StatusOK)
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
@@ -1144,7 +1144,7 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 			"enable_bypass_allowlist":    "on",
 			"bypass_allowlist_users":     strconv.FormatInt(bypassUser.ID, 10),
 		})
-		ownerSession.MakeRequest(t, pbCreateReq, http.StatusSeeOther)
+		ownerSession.MakeRequest(t, pbCreateReq, http.StatusOK)
 		defer testAPIDeleteBranchProtection(t, "master", http.StatusNoContent)
 
 		token := getTokenForLoggedInUser(t, bypassSession, auth_model.AccessTokenScopeWriteRepository)
