@@ -95,9 +95,14 @@ func (n NullDownloader) GetNewIssues(_ context.Context, page, perPage int, updat
 	return nil, false, ErrNotSupported{Entity: "NewIssues"}
 }
 
-// GetNewPullRequests returns pull requests updated after the given time, paginated
-func (n NullDownloader) GetNewPullRequests(_ context.Context, page, perPage int, updatedAfter time.Time) ([]*PullRequest, bool, error) {
-	return nil, false, ErrNotSupported{Entity: "NewPullRequests"}
+// GetPullRequestUpdates lists the pull requests updated after the given time
+func (n NullDownloader) GetPullRequestUpdates(_ context.Context, updatedAfter time.Time) ([]PullRequestUpdate, error) {
+	return nil, ErrNotSupported{Entity: "PullRequestUpdates"}
+}
+
+// GetPullRequestsByNumber returns the given pull requests
+func (n NullDownloader) GetPullRequestsByNumber(_ context.Context, numbers []int64) ([]*PullRequest, error) {
+	return nil, ErrNotSupported{Entity: "PullRequestsByNumber"}
 }
 
 // GetNewComments returns an issue's or pull request's comments updated after the given time

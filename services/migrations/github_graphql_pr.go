@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	base "gitea.dev/modules/migration"
@@ -26,6 +27,20 @@ var graphQLReviewRequestsSweepQuery = nodeConnQuery("PullRequest", "reviewReques
 
 func (g *GithubGraphQLDownloader) graphQLPullRequestsQuery() string {
 	return g.graphQLContentQuery("pullRequests", graphQLPRFields, graphQLPRDiscussion)
+}
+
+const graphQLPullRequestUpdatesQuery = `query($owner:String!,$name:String!,$cursor:String,$first:Int!){repository(owner:$owner,name:$name){` +
+	`pullRequests(first:$first,after:$cursor,orderBy:{field:UPDATED_AT,direction:DESC}){` + gqlPageInfoFields + ` nodes{number updatedAt}}}}`
+
+func (g *GithubGraphQLDownloader) graphQLPullRequestsByNumberQuery(numbers []int64) string {
+	fields := g.graphQLContentNodeFields(graphQLPRFields, graphQLPRDiscussion)
+	var query strings.Builder
+	query.WriteString("query($owner:String!,$name:String!){repository(owner:$owner,name:$name){")
+	for _, number := range numbers {
+		fmt.Fprintf(&query, "pr%d:pullRequest(number:%d){%s}", number, number, fields)
+	}
+	query.WriteString("}}")
+	return query.String()
 }
 
 type gqlRepoRef struct {
@@ -86,6 +101,89 @@ type gqlPullRequestsResponse struct {
 	} `json:"repository"`
 }
 
+type gqlPullRequestUpdate struct {
+	Number    int64     `json:"number"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type gqlPullRequestUpdatesResponse struct {
+	Repository struct {
+		PullRequests gqlConn[gqlPullRequestUpdate] `json:"pullRequests"`
+	} `json:"repository"`
+}
+
+// getPullRequestUpdatesGraphQL walks newest-updated first until the watermark, pull requests have no since filter
+func (g *GithubGraphQLDownloader) getPullRequestUpdatesGraphQL(ctx context.Context, updatedAfter time.Time) ([]base.PullRequestUpdate, error) {
+	var updates []base.PullRequestUpdate
+	cursor := ""
+	for {
+		var resp gqlPullRequestUpdatesResponse
+		if err := g.doGraphQLPage(ctx, graphQLPullRequestUpdatesQuery, cursor, githubGraphQLPageSize, &resp); err != nil {
+			return nil, err
+		}
+		conn := resp.Repository.PullRequests
+		for _, node := range conn.Nodes {
+			if node.UpdatedAt.Before(updatedAfter) {
+				return updates, nil
+			}
+			updates = append(updates, base.PullRequestUpdate{Number: node.Number, Updated: node.UpdatedAt})
+		}
+		if !conn.PageInfo.HasNextPage {
+			return updates, nil
+		}
+		cursor = conn.PageInfo.EndCursor
+	}
+}
+
+func (g *GithubGraphQLDownloader) getPullRequestsByNumberGraphQL(ctx context.Context, numbers []int64) ([]*base.PullRequest, error) {
+	prs := make([]*base.PullRequest, 0, len(numbers))
+	for chunk := range slices.Chunk(numbers, githubGraphQLPRPageSize) {
+		chunkPRs, err := g.getPullRequestChunkGraphQL(ctx, chunk)
+		if err != nil {
+			return nil, err
+		}
+		prs = append(prs, chunkPRs...)
+	}
+	return prs, nil
+}
+
+func (g *GithubGraphQLDownloader) getPullRequestChunkGraphQL(ctx context.Context, numbers []int64) ([]*base.PullRequest, error) {
+	var resp struct {
+		Repository map[string]*gqlPullRequest `json:"repository"`
+	}
+	err := g.doGraphQL(ctx, g.graphQLPullRequestsByNumberQuery(numbers), map[string]any{"owner": g.repoOwner, "name": g.repoName}, &resp)
+	if isGraphQLTooHeavy(err) && len(numbers) > 1 {
+		half := len(numbers) / 2
+		first, err := g.getPullRequestChunkGraphQL(ctx, numbers[:half])
+		if err != nil {
+			return nil, err
+		}
+		rest, err := g.getPullRequestChunkGraphQL(ctx, numbers[half:])
+		return append(first, rest...), err
+	}
+	if err != nil {
+		return nil, err
+	}
+	prefetched := map[string]*gqlPrefetched{}
+	prs := make([]*base.PullRequest, 0, len(numbers))
+	for _, number := range numbers {
+		node := resp.Repository[fmt.Sprintf("pr%d", number)]
+		if node == nil {
+			continue
+		}
+		pr, err := g.convertGraphQLPullRequest(ctx, node, prefetched)
+		if err != nil {
+			return nil, err
+		}
+		_ = CheckAndEnsureSafePR(pr, g.baseURL, g) // SECURITY: like the REST path
+		prs = append(prs, pr)
+	}
+	if err := g.enrichGraphQLPage(ctx, prefetched); err != nil {
+		return nil, err
+	}
+	return prs, nil
+}
+
 func (g *GithubGraphQLDownloader) getPullRequestsGraphQL(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	if page <= 1 {
 		g.prCursor = ""
@@ -97,12 +195,7 @@ func (g *GithubGraphQLDownloader) getPullRequestsGraphQL(ctx context.Context, pa
 	conn := resp.Repository.PullRequests
 	prefetched := map[string]*gqlPrefetched{}
 	prs := make([]*base.PullRequest, 0, len(conn.Nodes))
-	hitWatermark := false
 	for i := range conn.Nodes {
-		if !g.since.IsZero() && conn.Nodes[i].UpdatedAt.Before(g.since) {
-			hitWatermark = true
-			break
-		}
 		pr, err := g.convertGraphQLPullRequest(ctx, &conn.Nodes[i], prefetched)
 		if err != nil {
 			return nil, false, err
@@ -114,7 +207,7 @@ func (g *GithubGraphQLDownloader) getPullRequestsGraphQL(ctx context.Context, pa
 		return nil, false, err
 	}
 	g.prCursor = conn.PageInfo.EndCursor // only now, a failed page is retried from the same cursor
-	return prs, hitWatermark || !conn.PageInfo.HasNextPage, nil
+	return prs, !conn.PageInfo.HasNextPage, nil
 }
 
 func (g *GithubGraphQLDownloader) convertGraphQLPullRequest(ctx context.Context, node *gqlPullRequest, prefetchedByNodeID map[string]*gqlPrefetched) (*base.PullRequest, error) {

@@ -6,8 +6,10 @@ package migrations
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
+	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 
 	"github.com/google/go-github/v93/github"
@@ -24,40 +26,58 @@ func (g *GithubDownloaderV3) GetNewIssues(ctx context.Context, page, perPage int
 	return g.getIssuesSince(ctx, page, perPage, "updated", updatedAfter)
 }
 
-// GetNewPullRequests walks newest-updated first and stops at the watermark: the list has no since filter,
+// GetPullRequestUpdates walks newest-updated first and stops at the watermark: the list has no since filter,
 // and the search API is capped with a much smaller rate limit
-func (g *GithubDownloaderV3) GetNewPullRequests(ctx context.Context, page, perPage int, updatedAfter time.Time) ([]*base.PullRequest, bool, error) {
-	if perPage > g.maxPerPage {
-		perPage = g.maxPerPage
-	}
+func (g *GithubDownloaderV3) GetPullRequestUpdates(ctx context.Context, updatedAfter time.Time) ([]base.PullRequestUpdate, error) {
 	opt := &github.PullRequestListOptions{
-		Sort:      "updated",
-		Direction: "desc",
-		State:     "all",
-		ListOptions: github.ListOptions{
-			PerPage: perPage,
-			Page:    page,
-		},
+		Sort:        "updated",
+		Direction:   "desc",
+		State:       "all",
+		ListOptions: github.ListOptions{PerPage: g.maxPerPage},
 	}
-	g.waitAndPickClient(ctx)
-	prs, resp, err := g.getClient().PullRequests.List(ctx, g.repoOwner, g.repoName, opt)
-	g.setRateFromResponse(resp)
-	if err != nil {
-		return nil, false, fmt.Errorf("GetNewPullRequests: %w", err)
-	}
-	allPRs := make([]*base.PullRequest, 0, len(prs))
-	for _, pr := range prs {
-		if pr.GetUpdatedAt().Before(updatedAfter) {
-			return allPRs, true, nil
-		}
-		basePR, err := g.convertGithubPullRequest(ctx, pr, perPage)
+	var updates []base.PullRequestUpdate
+	for page := 1; ; page++ {
+		opt.Page = page
+		g.waitAndPickClient(ctx)
+		prs, resp, err := g.getClient().PullRequests.List(ctx, g.repoOwner, g.repoName, opt)
+		g.setRateFromResponse(resp)
 		if err != nil {
-			return nil, false, err
+			return nil, fmt.Errorf("GetPullRequestUpdates: %w", err)
+		}
+		for _, pr := range prs {
+			if pr.GetUpdatedAt().Before(updatedAfter) {
+				return updates, nil
+			}
+			updates = append(updates, base.PullRequestUpdate{Number: int64(pr.GetNumber()), Updated: pr.GetUpdatedAt().Time})
+		}
+		if resp.NextPage == 0 {
+			return updates, nil
+		}
+	}
+}
+
+func (g *GithubDownloaderV3) GetPullRequestsByNumber(ctx context.Context, numbers []int64) ([]*base.PullRequest, error) {
+	prs := make([]*base.PullRequest, 0, len(numbers))
+	for _, number := range numbers {
+		g.waitAndPickClient(ctx)
+		pr, resp, err := g.getClient().PullRequests.Get(ctx, g.repoOwner, g.repoName, int(number))
+		g.setRateFromResponse(resp)
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			// deleted upstream since it was listed, e.g. spam removal; failing would stop every later sync here
+			log.Warn("GitHub pull request #%d in %s/%s is gone, skipped", number, g.repoOwner, g.repoName)
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("GetPullRequestsByNumber: %w", err)
+		}
+		basePR, err := g.convertGithubPullRequest(ctx, pr, g.maxPerPage)
+		if err != nil {
+			return nil, err
 		}
 		_ = CheckAndEnsureSafePR(basePR, g.baseURL, g) // SECURITY: like the migration path
-		allPRs = append(allPRs, basePR)
+		prs = append(prs, basePR)
 	}
-	return allPRs, resp.NextPage == 0, nil
+	return prs, nil
 }
 
 func (g *GithubDownloaderV3) GetNewComments(ctx context.Context, commentable base.Commentable, updatedAfter time.Time) ([]*base.Comment, bool, error) {
@@ -86,16 +106,24 @@ func (g *GithubGraphQLDownloader) GetNewIssues(ctx context.Context, page, perPag
 	return g.GithubDownloaderV3.GetNewIssues(ctx, page-g.restIssuePageOffset, perPage, updatedAfter)
 }
 
-func (g *GithubGraphQLDownloader) GetNewPullRequests(ctx context.Context, page, perPage int, updatedAfter time.Time) ([]*base.PullRequest, bool, error) {
-	g.since = updatedAfter
+func (g *GithubGraphQLDownloader) GetPullRequestUpdates(ctx context.Context, updatedAfter time.Time) ([]base.PullRequestUpdate, error) {
 	if !g.restFallback {
-		prs, isEnd, err := g.getPullRequestsGraphQL(ctx, page, perPage)
+		updates, err := g.getPullRequestUpdatesGraphQL(ctx, updatedAfter)
 		if !g.fallBackToREST(ctx, err) {
-			return prs, isEnd, err
+			return updates, err
 		}
-		g.restPRPageOffset = page - 1
 	}
-	return g.GithubDownloaderV3.GetNewPullRequests(ctx, page-g.restPRPageOffset, perPage, updatedAfter)
+	return g.GithubDownloaderV3.GetPullRequestUpdates(ctx, updatedAfter)
+}
+
+func (g *GithubGraphQLDownloader) GetPullRequestsByNumber(ctx context.Context, numbers []int64) ([]*base.PullRequest, error) {
+	if !g.restFallback {
+		prs, err := g.getPullRequestsByNumberGraphQL(ctx, numbers)
+		if !g.fallBackToREST(ctx, err) {
+			return prs, err
+		}
+	}
+	return g.GithubDownloaderV3.GetPullRequestsByNumber(ctx, numbers)
 }
 
 func (g *GithubGraphQLDownloader) GetNewComments(ctx context.Context, commentable base.Commentable, updatedAfter time.Time) ([]*base.Comment, bool, error) {

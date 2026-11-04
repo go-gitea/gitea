@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -640,72 +641,70 @@ func syncRepository(ctx context.Context, downloader base.Downloader, uploader ba
 		}
 	}
 
-	// pull requests updated since the watermark, kept so their reviews (which
-	// GitHub cannot filter by time) are only refetched for what changed
-	var syncedPRs []*base.PullRequest
+	// listed first and written oldest-first, so a sync that stops midway resumes from the last pull request written:
+	// writing newest-first would move the watermark past the ones still left
 	if opts.PullRequests {
 		log.Trace("syncing pull requests")
 		messenger("repo.migrate.syncing_pulls")
-		prBatchSize := uploader.MaxBatchInsertSize("pullrequest")
-
-		for i := 1; ; i++ {
-			prs, isEnd, err := downloader.GetNewPullRequests(ctx, i, prBatchSize, marks.pulls)
-			if err != nil {
-				if !base.IsErrNotSupported(err) {
-					return err
-				}
-				log.Warn("syncing pull requests is not supported, ignored")
-				break
-			}
-
-			if err := uploader.PatchPullRequests(ctx, prs...); err != nil {
+		if err := syncPullRequests(ctx, downloader, uploader, opts, marks); err != nil {
+			if !base.IsErrNotSupported(err) {
 				return err
 			}
-			syncedPRs = append(syncedPRs, prs...)
-			if opts.Comments {
-				for _, pr := range prs {
-					if err := syncEntityComments(ctx, downloader, uploader, pr, marks.comments); err != nil {
-						return err
-					}
-				}
-			}
-
-			if isEnd {
-				break
-			}
-		}
-	}
-
-	if opts.PullRequests {
-		log.Trace("syncing reviews")
-		messenger("repo.migrate.syncing_reviews")
-		reviewBatchSize := uploader.MaxBatchInsertSize("review")
-
-		reviews := make([]*base.Review, 0, reviewBatchSize)
-		for _, pr := range syncedPRs {
-			prReviews, err := downloader.GetNewReviews(ctx, pr, marks.pulls)
-			if err != nil {
-				if !base.IsErrNotSupported(err) {
-					return err
-				}
-				log.Warn("syncing reviews is not supported, ignored")
-				break
-			}
-			reviews = append(reviews, prReviews...)
-
-			if len(reviews) >= reviewBatchSize {
-				if err := uploader.PatchReviews(ctx, reviews...); err != nil {
-					return err
-				}
-				reviews = reviews[:0]
-			}
-		}
-		if len(reviews) > 0 {
-			if err := uploader.PatchReviews(ctx, reviews...); err != nil {
-				return err
-			}
+			log.Warn("syncing pull requests is not supported, ignored")
 		}
 	}
 
 	return uploader.Finish(ctx)
+}
+
+func syncPullRequests(ctx context.Context, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, marks syncWatermarks) error {
+	updates, err := downloader.GetPullRequestUpdates(ctx, marks.pulls)
+	if err != nil {
+		return err
+	}
+	slices.SortFunc(updates, func(a, b base.PullRequestUpdate) int {
+		return cmp.Or(a.Updated.Compare(b.Updated), cmp.Compare(a.Number, b.Number))
+	})
+	numbers := make([]int64, 0, len(updates))
+	for _, update := range updates {
+		numbers = append(numbers, update.Number)
+	}
+
+	for batch := range slices.Chunk(numbers, uploader.MaxBatchInsertSize("pullrequest")) {
+		// everything of a batch is downloaded before any of it is written, a failed download leaves the watermark where it was
+		prs, err := downloader.GetPullRequestsByNumber(ctx, batch)
+		if err != nil {
+			return err
+		}
+		var comments []*base.Comment
+		var reviews []*base.Review
+		for _, pr := range prs {
+			if opts.Comments {
+				// since the pull request watermark, the global comment one may already be past a pull request a stopped sync left
+				prComments, _, err := downloader.GetNewComments(ctx, pr, marks.pulls)
+				if err != nil && !base.IsErrNotSupported(err) {
+					return err
+				}
+				comments = append(comments, prComments...)
+			}
+			prReviews, err := downloader.GetNewReviews(ctx, pr, marks.pulls)
+			if err != nil && !base.IsErrNotSupported(err) {
+				return err
+			}
+			reviews = append(reviews, prReviews...)
+		}
+
+		if err := uploader.PatchPullRequests(ctx, prs...); err != nil {
+			return err
+		}
+		if err := uploader.PatchComments(ctx, comments...); err != nil {
+			return err
+		}
+		for reviewBatch := range slices.Chunk(reviews, uploader.MaxBatchInsertSize("review")) {
+			if err := uploader.PatchReviews(ctx, reviewBatch...); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

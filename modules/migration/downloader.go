@@ -29,8 +29,10 @@ type Downloader interface {
 	SupportSyncing() bool
 	// GetNewIssues returns issues updated after the given time, paginated
 	GetNewIssues(ctx context.Context, page, perPage int, updatedAfter time.Time) ([]*Issue, bool, error)
-	// GetNewPullRequests returns pull requests updated after the given time, paginated
-	GetNewPullRequests(ctx context.Context, page, perPage int, updatedAfter time.Time) ([]*PullRequest, bool, error)
+	// GetPullRequestUpdates lists the pull requests updated after the given time, newest first, without their content
+	GetPullRequestUpdates(ctx context.Context, updatedAfter time.Time) ([]PullRequestUpdate, error)
+	// GetPullRequestsByNumber returns the given pull requests
+	GetPullRequestsByNumber(ctx context.Context, numbers []int64) ([]*PullRequest, error)
 	// GetNewComments returns an issue's or pull request's comments updated after the given time
 	GetNewComments(ctx context.Context, commentable Commentable, updatedAfter time.Time) ([]*Comment, bool, error)
 	// GetNewReviews returns a pull request's reviews updated after the given time

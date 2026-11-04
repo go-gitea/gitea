@@ -369,17 +369,24 @@ func graphQLRateResetWait(header http.Header) time.Duration {
 }
 
 // graphQLContentQuery orders by creation since a mutable sort key skips rows, nested comment reactions exceed GitHub's node limit.
-// An incremental sync orders by update instead: issues ascending from the watermark (an update only moves one past the cursor),
-// pull requests descending until the watermark since they have no since filter.
+// An incremental sync orders issues by update instead, ascending from the watermark (an update only moves one past the cursor).
 func (g *GithubGraphQLDownloader) graphQLContentQuery(connection, prFields, prDiscussion string) string {
 	sinceDecl, order := "", "orderBy:{field:CREATED_AT,direction:ASC}"
-	switch {
-	case g.since.IsZero():
-	case connection == "issues":
+	if !g.since.IsZero() && connection == "issues" {
 		sinceDecl, order = ",$since:DateTime!", "orderBy:{field:UPDATED_AT,direction:ASC},filterBy:{since:$since}"
-	default:
-		order = "orderBy:{field:UPDATED_AT,direction:DESC}"
 	}
+	return fmt.Sprintf(`
+query($owner:String!,$name:String!,$cursor:String,$first:Int!%[4]s){
+  repository(owner:$owner,name:$name){
+    %[1]s(first:$first,after:$cursor,%[5]s){
+      %[2]s
+      nodes{%[3]s}
+    }
+  }
+}`, connection, gqlPageInfoFields, g.graphQLContentNodeFields(prFields, prDiscussion), sinceDecl, order)
+}
+
+func (g *GithubGraphQLDownloader) graphQLContentNodeFields(prFields, prDiscussion string) string {
 	fields := prFields
 	if !g.SkipReactions {
 		fields += " reactions(first:100){" + gqlPageInfoFields + " nodes{" + gqlReactionFields + "}}"
@@ -388,21 +395,12 @@ func (g *GithubGraphQLDownloader) graphQLContentQuery(connection, prFields, prDi
 		fields += " comments(first:100){" + gqlPageInfoFields + " nodes{id databaseId body createdAt updatedAt author{" + gqlActorFields + "}}}" + prDiscussion
 	}
 	return fmt.Sprintf(`
-query($owner:String!,$name:String!,$cursor:String,$first:Int!%[7]s){
-  repository(owner:$owner,name:$name){
-    %[1]s(first:$first,after:$cursor,%[8]s){
-      %[2]s
-      nodes{
         id number title body state createdAt updatedAt closedAt locked
-        author{%[3]s}
+        author{%[1]s}
         milestone{title}
-        labels(first:%[4]d){%[2]s nodes{name color description}}
-        assignees(first:%[5]d){%[2]s nodes{login}}
-        %[6]s
-      }
-    }
-  }
-}`, connection, gqlPageInfoFields, gqlActorFields, graphQLLabelPageSize, graphQLAssigneePageSize, fields, sinceDecl, order)
+        labels(first:%[2]d){%[3]s nodes{name color description}}
+        assignees(first:%[4]d){%[3]s nodes{login}}
+        %[5]s`, gqlActorFields, graphQLLabelPageSize, gqlPageInfoFields, graphQLAssigneePageSize, fields)
 }
 
 func (g *GithubGraphQLDownloader) graphQLIssuesQuery() string {
