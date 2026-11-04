@@ -88,6 +88,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context)
 		}
 	}
 
-	data.IsReady = data.hasPermToMerge && !prInfo.IsPullRequestBroken && pull.IsStatusMergeable() && data.WorkInProgressSection == nil && len(data.mergeBlockers) == 0 && !data.hasOverridableBlockers &&
+	data.IsReady = data.hasPermToMerge && !prInfo.IsPullRequestBroken && pull.IsStatusMergeable() && prInfo.workInProgressPrefix == "" && len(data.mergeBlockers) == 0 && !data.hasOverridableBlockers &&
 		(data.StatusCheckData == nil || data.StatusCheckData.AllPassed())
 }

@@ -58,15 +58,11 @@ type MergeOptions struct {
 }
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
-	repository, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user, repo)
-	require.NoError(t, err)
-	updateRepoPullRequestConfig(t, repository.ID, func(config *repo_model.PullRequestsConfig) {
-		config.DefaultDeleteBranchAfterMerge = mergeOptions.DeleteBranch
-	})
 	options := map[string]string{
-		"do":                  string(mergeOptions.Style),
-		"head_commit_id":      mergeOptions.HeadCommitID,
-		"merge_message_field": mergeOptions.Message,
+		"do":                        string(mergeOptions.Style),
+		"head_commit_id":            mergeOptions.HeadCommitID,
+		"delete_branch_after_merge": util.Iif(mergeOptions.DeleteBranch, "on", ""),
+		"merge_message_field":       mergeOptions.Message,
 	}
 	var resp *httptest.ResponseRecorder
 	require.Eventually(t, func() bool {
@@ -79,6 +75,8 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 	assert.Equal(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullNum), redirect)
 
 	pullNumInt, err := strconv.ParseInt(pullNum, 10, 64)
+	assert.NoError(t, err)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user, repo)
 	assert.NoError(t, err)
 	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullNumInt)
 	assert.NoError(t, err)

@@ -266,8 +266,8 @@ type pullMergeBoxData struct {
 	StatusCheckData *pullCommitStatusCheckData
 
 	hasOverridableBlockers bool
-	isMergeBlocked         bool // only marking as manually merged is possible, e.g. for WIP or open dependencies
-	canMergeNow            bool // PR is mergeable, either no blocker, or doer can bypass the blockers
+	canBypassProtection    bool
+	hasOpenDependencies    bool
 	hasPermToMerge         bool
 	unsignable             bool // signed commits are required but Gitea can't sign the merge commit
 	mergeBlockers          []template.HTML

@@ -49,7 +49,7 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
 }
 
 function initRepoPullMergeBoxRefresh(el: Element) {
-  const isBusy = () => Boolean(el.querySelector('[aria-expanded="true"], #pull-request-merge-form form, #merge-bypass-rules:checked')); // keep the user's open menu, form or bypass choice
+  const isBusy = () => Boolean(el.querySelector('[aria-expanded="true"], [data-fetch-is-loading], #pull-request-merge-form :is(form, :checked)')); // keep open menus, forms, bypass choices and pending requests
   activePageTimerRefresh({
     interval: () => el.isConnected ? Number(el.getAttribute('data-pull-merge-box-reloading-interval')) : 0,
     async callback() {

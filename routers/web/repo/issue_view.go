@@ -917,7 +917,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		ctx.ServerError("IssueNoDependenciesLeft", err)
 		return
 	}
-	if !noDeps {
+	data.hasOpenDependencies = !noDeps
+	if data.hasOpenDependencies {
 		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.issues.dependency.pr_close_blocked"))
 	}
 
@@ -925,13 +926,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	// admin can merge without checks, writer can merge when checks succeed
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
-	canBypassProtection := isRepoAdmin
+	data.canBypassProtection = isRepoAdmin
 	if ctx.IsSigned && prInfo.ProtectedBranchRule != nil {
-		canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
+		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
 	}
-
-	data.isMergeBlocked = prInfo.workInProgressPrefix != "" || !noDeps
-	data.canMergeNow = (!data.hasOverridableBlockers || canBypassProtection) && !data.isMergeBlocked
 
 	if _, data.AutoMerge, err = pull_model.GetScheduledMergeByPullID(ctx, pull.ID); err != nil {
 		ctx.ServerError("GetScheduledMergeByPullID", err)
@@ -943,7 +941,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	}
 
 	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress) > 0)
-	if data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && !pull.IsUnrelated() && !data.hasOverridableBlockers && len(data.mergeBlockers) == 0 {
+	if data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && !data.hasOverridableBlockers && len(data.mergeBlockers) == 0 {
 		lastChange := data.AutoMerge.CreatedUnix
 		if data.StatusCheckData != nil {
 			lastChange = max(lastChange, data.StatusCheckData.lastUpdated)
@@ -953,7 +951,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 
 	prInfo.prepareMergeBoxSections(ctx)
-	prInfo.prepareMergeBoxFormProps(ctx, prConfig)
+	prInfo.prepareMergeBoxFormProps(ctx, prConfig, ctx.Repo.GitRepo)
 }
 
 func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context) {

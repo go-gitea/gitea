@@ -20,7 +20,7 @@ import (
 func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 	repo := &repo_model.Repository{ID: 1, OwnerName: "user2", Name: "repo1"}
 	prConfig := &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true, AllowManualMerge: true}
-	checks := func(required string, statuses ...*git_model.CommitStatus) *pullCommitStatusCheckData {
+	checks := func(statuses ...*git_model.CommitStatus) *pullCommitStatusCheckData {
 		actionsStatuses := actions_module.CommitActionsStatusMap{}
 		for i, cs := range statuses {
 			cs.ID, cs.TargetURL = int64(i+1), "#"
@@ -28,28 +28,24 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 				actionsStatuses[cs.ID] = actions_model.StatusRunning
 			}
 		}
-		data := &pullCommitStatusCheckData{IsContextRequired: func(context string) bool { return context == required }, ActionsStatuses: actionsStatuses}
+		data := &pullCommitStatusCheckData{IsContextRequired: func(context string) bool { return context == "ci/test" }, ActionsStatuses: actionsStatuses}
 		data.groupStatuses(statuses)
 		return data
 	}
 	status := func(context string, state commitstatus.CommitStatusState, description string) *git_model.CommitStatus {
 		return &git_model.CommitStatus{Context: context, State: state, Description: description}
 	}
-	passed := checks("ci/test",
-		status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 32s"),
-		status("ci/test", commitstatus.CommitStatusSuccess, "Successful in 2m"),
-		status("ci/build (linux)", commitstatus.CommitStatusSuccess, "Successful in 4m"),
-		status("ci/build (windows)", commitstatus.CommitStatusSuccess, "Successful in 6m"),
-		status("ci/build (macos)", commitstatus.CommitStatusSuccess, "Successful in 5m"),
-		status("ci/e2e (chromium)", commitstatus.CommitStatusSuccess, "Successful in 3m"),
-		status("ci/e2e (firefox)", commitstatus.CommitStatusSuccess, "Successful in 4m"),
-		status("security/codeql", commitstatus.CommitStatusSuccess, "No new alerts"),
-	)
+	review := func(data *pullMergeBoxData, icon, iconClass, titleKey string, detail template.HTML, blocking bool) {
+		data.ReviewSection = &pullMergeBoxSection{Icon: icon, IconClass: iconClass, Title: ctx.Locale.Tr(titleKey), Details: []template.HTML{detail}}
+		if blocking {
+			data.addOverridableBlocker(detail)
+		}
+	}
 	add := func(title string, setup func(prInfo *pullRequestViewInfo)) {
 		pull := &issues_model.PullRequest{Index: 1, Status: issues_model.PullRequestStatusMergeable, HeadRepo: repo, BaseRepo: repo, HeadBranch: "feature", BaseBranch: "main"}
 		issue := &issues_model.Issue{Index: 1, IsPull: true, Title: "Add feature", Repo: repo, PullRequest: pull}
 		pull.Issue = issue
-		data := &pullMergeBoxData{hasPermToMerge: true, canMergeNow: true}
+		data := &pullMergeBoxData{hasPermToMerge: true, canBypassProtection: true}
 		prInfo := &pullRequestViewInfo{issue: issue, MergeBoxData: data, headTarget: "user2:feature"}
 		setup(prInfo)
 		if issue.IsClosed {
@@ -57,7 +53,7 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 			prInfo.prepareMergeBoxClosedSection(ctx)
 		} else {
 			prInfo.prepareMergeBoxSections(ctx)
-			prInfo.prepareMergeBoxFormProps(ctx, prConfig)
+			prInfo.prepareMergeBoxFormProps(ctx, prConfig, nil)
 		}
 		scenarios = append(scenarios, map[string]any{
 			"Title":                           title,
@@ -69,60 +65,10 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 		})
 	}
 
-	add("Ready to merge", func(prInfo *pullRequestViewInfo) {
-		prInfo.MergeBoxData.StatusCheckData = passed
-	})
-	add("Review required, checks in progress", func(prInfo *pullRequestViewInfo) {
+	add("Ready to merge, out of date", func(prInfo *pullRequestViewInfo) {
 		data := prInfo.MergeBoxData
-		line := ctx.Locale.TrN(1, "repo.pulls.approvals_required_1", "repo.pulls.approvals_required_n", 1)
-		data.ReviewSection = &pullMergeBoxSection{Icon: "octicon-x", IconClass: "tw-bg-red", Title: ctx.Locale.Tr("repo.pulls.review_required"), Details: []template.HTML{line}}
-		data.addOverridableBlocker(line)
-		data.StatusCheckData = checks("ci/test",
-			status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 32s"),
-			status("ci/test", commitstatus.CommitStatusPending, "Running"),
-			status("ci/build (linux)", commitstatus.CommitStatusPending, "Running"),
-			status("ci/build (macos)", commitstatus.CommitStatusPending, "Running"),
-			status("ci/build (windows)", commitstatus.CommitStatusPending, "Queued"),
-			status("ci/e2e (chromium)", commitstatus.CommitStatusPending, "Waiting for ci/build"),
-			status("ci/e2e (firefox)", commitstatus.CommitStatusPending, "Waiting for ci/build"),
-			status("ci/docs", commitstatus.CommitStatusSuccess, "Successful in 12s"),
-			status("security/codeql", commitstatus.CommitStatusSuccess, "No new alerts"),
-		)
-	})
-	add("Some checks were not successful", func(prInfo *pullRequestViewInfo) {
-		data := prInfo.MergeBoxData
-		data.StatusCheckData = checks("ci/lint",
-			status("ci/lint", commitstatus.CommitStatusFailure, "Failing after 32s"),
-			status("ci/audit", commitstatus.CommitStatusWarning, "2 advisories"),
-			status("ci/test (sqlite)", commitstatus.CommitStatusError, "Failing after 3m"),
-			status("ci/build (linux)", commitstatus.CommitStatusPending, "Queued"),
-			status("ci/build (windows)", commitstatus.CommitStatusPending, "Queued"),
-			status("ci/e2e (chromium)", commitstatus.CommitStatusPending, "Running"),
-			status("ci/e2e (firefox)", commitstatus.CommitStatusPending, "Running"),
-			status("ci/docs", commitstatus.CommitStatusSkipped, "Skipped"),
-			status("ci/release", commitstatus.CommitStatusSkipped, "Skipped"),
-			status("ci/deploy", commitstatus.CommitStatusSkipped, "Skipped"),
-			status("ci/test (mysql)", commitstatus.CommitStatusSuccess, "Successful in 5m"),
-			status("ci/test (pgsql)", commitstatus.CommitStatusSuccess, "Successful in 5m"),
-			status("security/codeql", commitstatus.CommitStatusSuccess, "No new alerts"),
-		)
-		data.hasOverridableBlockers = true
-	})
-	add("All checks have failed", func(prInfo *pullRequestViewInfo) {
-		prInfo.MergeBoxData.StatusCheckData = checks("ci/test",
-			status("ci/lint", commitstatus.CommitStatusFailure, "Failing after 32s"),
-			status("ci/test", commitstatus.CommitStatusError, "Failing after 2m"),
-			status("ci/build (linux)", commitstatus.CommitStatusFailure, "Failing after 1m"),
-			status("ci/build (windows)", commitstatus.CommitStatusFailure, "Failing after 3m"),
-		)
-	})
-	add("Changes approved, out of date", func(prInfo *pullRequestViewInfo) {
-		data := prInfo.MergeBoxData
-		data.ReviewSection = &pullMergeBoxSection{
-			Icon: "octicon-check", IconClass: "tw-bg-green", Title: ctx.Locale.Tr("repo.pulls.changes_approved"),
-			Details: []template.HTML{ctx.Locale.TrN(2, "repo.pulls.approvals_granted_1", "repo.pulls.approvals_granted_n", 2)},
-		}
-		data.StatusCheckData = passed
+		review(data, "octicon-check", "tw-bg-green", "repo.pulls.changes_approved", ctx.Locale.TrN(2, "repo.pulls.approvals_granted_1", "repo.pulls.approvals_granted_n", 2), false)
+		data.StatusCheckData = checks(status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 32s"), status("ci/test", commitstatus.CommitStatusSuccess, "Successful in 2m"))
 		data.ShowUpdatePullInfo = true
 		data.UpdateStyleOptions = []*pullUpdateAction{
 			{URL: "#", Text: ctx.Tr("repo.pulls.update_branch"), Selected: true, Description: ctx.Tr("repo.pulls.update_branch_desc"), ButtonText: ctx.Tr("repo.pulls.update_branch_button")},
@@ -130,30 +76,36 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 		}
 		data.UpdatePrimaryAction = data.UpdateStyleOptions[0]
 	})
+	add("Review required, checks in progress", func(prInfo *pullRequestViewInfo) {
+		review(prInfo.MergeBoxData, "octicon-x", "tw-bg-red", "repo.pulls.review_required", ctx.Locale.TrN(1, "repo.pulls.approvals_required_1", "repo.pulls.approvals_required_n", 1), true)
+		prInfo.MergeBoxData.StatusCheckData = checks(
+			status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 32s"),
+			status("ci/test", commitstatus.CommitStatusPending, "Running"),
+			status("ci/build", commitstatus.CommitStatusPending, "Queued"),
+		)
+	})
+	add("Some checks were not successful", func(prInfo *pullRequestViewInfo) {
+		prInfo.MergeBoxData.StatusCheckData = checks(
+			status("ci/test", commitstatus.CommitStatusFailure, "Failing after 32s"),
+			status("ci/audit", commitstatus.CommitStatusWarning, "2 advisories"),
+			status("ci/e2e", commitstatus.CommitStatusPending, "Running"),
+			status("ci/docs", commitstatus.CommitStatusSkipped, "Skipped"),
+			status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 5m"),
+		)
+		prInfo.MergeBoxData.hasOverridableBlockers = true
+	})
 	add("Changes requested, auto-merge enabled", func(prInfo *pullRequestViewInfo) {
 		data := prInfo.MergeBoxData
-		line := ctx.Locale.Tr("repo.pulls.blocked_by_rejection")
-		data.ReviewSection = &pullMergeBoxSection{Icon: "octicon-file-diff", IconClass: "tw-bg-red", Title: ctx.Locale.Tr("repo.pulls.changes_requested"), Details: []template.HTML{line}}
-		data.addOverridableBlocker(line)
+		review(data, "octicon-file-diff", "tw-bg-red", "repo.pulls.changes_requested", ctx.Locale.Tr("repo.pulls.blocked_by_rejection"), true)
 		data.AutoMerge = &pull_model.AutoMerge{Doer: &user_model.User{Name: "user2"}, MergeStyle: repo_model.MergeStyleSquash}
 		data.CanCancelAutoMerge = true
 	})
-	add("Conflicts", func(prInfo *pullRequestViewInfo) {
-		pull := prInfo.issue.PullRequest
-		pull.Status, pull.ConflictedFiles = issues_model.PullRequestStatusConflict, []string{"README.md", "main.go"}
-	})
-	add("Checking for mergeability", func(prInfo *pullRequestViewInfo) {
-		prInfo.issue.PullRequest.Status = issues_model.PullRequestStatusChecking
-	})
-	add("Work in progress", func(prInfo *pullRequestViewInfo) {
+	add("Work in progress, conflicts", func(prInfo *pullRequestViewInfo) {
 		prInfo.workInProgressPrefix, prInfo.issue.Title = "WIP:", "WIP: Add feature"
-		prInfo.MergeBoxData.isMergeBlocked = true
+		prInfo.issue.PullRequest.Status, prInfo.issue.PullRequest.ConflictedFiles = issues_model.PullRequestStatusConflict, []string{"README.md", "main.go"}
 	})
 	add("Merged", func(prInfo *pullRequestViewInfo) {
 		prInfo.issue.IsClosed, prInfo.issue.PullRequest.HasMerged = true, true
-	})
-	add("Closed with unmerged commits", func(prInfo *pullRequestViewInfo) {
-		prInfo.issue.IsClosed = true
 	})
 	return scenarios
 }

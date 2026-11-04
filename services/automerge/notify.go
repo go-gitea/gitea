@@ -82,9 +82,3 @@ func (n *automergeNotifier) IssueChangeTitle(ctx context.Context, doer *user_mod
 		disableIssueAutoMerge(ctx, doer, issue, "work_in_progress")
 	}
 }
-
-func (n *automergeNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, _ string) {
-	if err := pull_service.DisableAutoMergeIfNotWriter(ctx, doer, pr, "base_changed"); err != nil {
-		log.Error("DisableAutoMergeIfNotWriter[%d]: %v", pr.ID, err)
-	}
-}

@@ -295,6 +295,9 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
 		return err
 	}
+	if err := DisableAutoMergeIfNotWriter(ctx, doer, pr, "base_changed"); err != nil {
+		return err
+	}
 
 	// Set new target branch
 	oldBranch := pr.BaseBranch

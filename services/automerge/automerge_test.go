@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/test"
 	"gitea.dev/services/automergequeue"
+	pull_service "gitea.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ func TestAutoMergeDisabledOrCanceled(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "squash", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRScheduledToAutoMerge}).Content)
 
-	notifier.PullRequestChangeTargetBranch(t.Context(), admin, pr, "")
+	require.NoError(t, pull_service.DisableAutoMergeIfNotWriter(t.Context(), admin, pr, "base_changed"))
 	unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	notifier.IssueChangeStatus(t.Context(), admin, "", pr.Issue, nil, true)
 	assert.Equal(t, "closed", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge}).Content)
@@ -47,7 +48,7 @@ func TestAutoMergeDisabledOrCanceled(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge, Content: "work_in_progress"})
 
 	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, pr.ID, repo_model.MergeStyleMerge, "title", false))
-	notifier.PullRequestChangeTargetBranch(t.Context(), nonWriter, pr, "")
+	require.NoError(t, pull_service.DisableAutoMergeIfNotWriter(t.Context(), nonWriter, pr, "base_changed"))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge, Content: "base_changed"})
 
 	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, pr.ID, repo_model.MergeStyleMerge, "title", false))
