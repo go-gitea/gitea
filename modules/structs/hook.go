@@ -468,6 +468,13 @@ type ChangesBasePayload struct {
 	Sha ChangesFromPayload `json:"sha"`
 }
 
+type ChangesOwnerPayload struct {
+	From struct {
+		User         *User `json:"user,omitempty"`
+		Organization *User `json:"organization,omitempty"`
+	} `json:"from"`
+}
+
 // ChangesPayload represents changes included in an event payload
 type ChangesPayload struct {
 	// Changes made to the title
@@ -480,6 +487,8 @@ type ChangesPayload struct {
 	Base *ChangesBasePayload `json:"base,omitempty"`
 	// Changes made to the repository or release name
 	Name *ChangesFromPayload `json:"name,omitempty"`
+	// Changes made to the repository owner
+	Owner *ChangesOwnerPayload `json:"owner,omitempty"`
 	// Changes made to the labels added
 	AddedLabels []*Label `json:"added_labels"`
 	// Changes made to the labels removed
@@ -570,6 +579,8 @@ const (
 	HookRepoDeleted HookRepoAction = "deleted"
 	// HookRepoRenamed renamed
 	HookRepoRenamed HookRepoAction = "renamed"
+	// HookRepoTransferred transferred
+	HookRepoTransferred HookRepoAction = "transferred"
 )
 
 // RepositoryPayload payload for repository webhooks

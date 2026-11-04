@@ -146,6 +146,24 @@ func (m *webhookNotifier) RenameRepository(ctx context.Context, doer *user_model
 	}
 }
 
+func (m *webhookNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
+	changes := &api.ChangesPayload{Owner: &api.ChangesOwnerPayload{}}
+	if oldOwner.IsOrganization() {
+		changes.Owner.From.Organization = convert.ToUser(ctx, oldOwner, nil)
+	} else {
+		changes.Owner.From.User = convert.ToUser(ctx, oldOwner, nil)
+	}
+	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventRepository, &api.RepositoryPayload{
+		Action:       api.HookRepoTransferred,
+		Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
+		Organization: convert.ToUser(ctx, repo.MustOwner(ctx), nil),
+		Sender:       convert.ToUser(ctx, doer, nil),
+		Changes:      changes,
+	}); err != nil {
+		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+	}
+}
+
 func (m *webhookNotifier) MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	// Add to hook queue for created repo after session commit.
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventRepository, &api.RepositoryPayload{

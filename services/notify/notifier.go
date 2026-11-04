@@ -27,7 +27,7 @@ type Notifier interface {
 	DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository)
 	ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository)
 	RenameRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldRepoName string)
-	TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string)
+	TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User)
 	RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository)
 
 	NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User)
