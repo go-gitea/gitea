@@ -227,13 +227,18 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 			unittest.CheckConsistencyFor(t, &activities_model.Action{})
 
 			require.NoError(t, issue.LoadRepo(t.Context()))
-			for doer, visible := range map[*user_model.User]bool{nil: false, user: true} { // repo2 is private
+			for doer, visibleCount := range map[*user_model.User]int{nil: 0, user: 1} {
 				perm, err := access_model.GetDoerRepoPermission(t.Context(), issue.Repo, doer)
 				require.NoError(t, err)
 				comments, err := FilterReadableComments(t.Context(), doer, perm, issue, issues_model.CommentList{comment})
 				require.NoError(t, err)
-				assert.Equal(t, visible, len(comments) == 1)
+				assert.Len(t, comments, visibleCount)
 			}
+
+			require.NoError(t, UpdateIssuesCommit(t.Context(), user, issue.Repo, pushCommits, issue.Repo.DefaultBranch))
+			comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID})
+			assert.Equal(t, issue.RepoID, comment.RefRepoID)
+			assert.Contains(t, comment.Content, issue.Repo.Link()+"/commit/")
 		})
 	}
 }

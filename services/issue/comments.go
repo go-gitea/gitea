@@ -26,8 +26,8 @@ import (
 	"xorm.io/builder"
 )
 
-// CreateRefComment creates a reference comment to issue from a commit of commitRepo.
-func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, commitRepo *repo_model.Repository, content, commitSHA string) error {
+// CreateRefComment creates a commit reference comment to issue.
+func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, commitRepoID int64, content, commitSHA string) error {
 	if len(commitSHA) == 0 {
 		return errors.New("cannot create reference with empty commit SHA")
 	}
@@ -39,7 +39,7 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 	}
 
 	// Check if same reference from same commit has already existed.
-	has, err := db.Exist[issues_model.Comment](ctx, builder.Eq{
+	existing, has, err := db.Get[issues_model.Comment](ctx, builder.Eq{
 		"`type`":     issues_model.CommentTypeCommitRef,
 		"issue_id":   issue.ID,
 		"commit_sha": commitSHA,
@@ -47,7 +47,11 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 	if err != nil {
 		return fmt.Errorf("check reference comment: %w", err)
 	} else if has {
-		return nil
+		if commitRepoID == issue.RepoID && existing.RefRepoID != issue.RepoID { // repoint to the issue's repo, the first one may be private or get deleted
+			_, err = db.GetEngine(ctx).ID(existing.ID).NoAutoTime().Cols("ref_repo_id", "content").
+				Update(&issues_model.Comment{RefRepoID: commitRepoID, Content: content})
+		}
+		return err
 	}
 
 	_, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
@@ -57,7 +61,7 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 		Issue:     issue,
 		CommitSHA: commitSHA,
 		Content:   content,
-		RefRepoID: commitRepo.ID,
+		RefRepoID: commitRepoID,
 	})
 	return err
 }
@@ -227,7 +231,7 @@ func FilterReadableComments(ctx context.Context, doer *user_model.User, perm acc
 		switch {
 		case issues_model.CommentTypeIsRef(c.Type):
 			refRepoID, refUnit = c.RefRepoID, util.Iif(c.RefIsPull, unit.TypePullRequests, unit.TypeIssues)
-		case c.Type == issues_model.CommentTypeCommitRef:
+		case c.Type == issues_model.CommentTypeCommitRef && c.RefRepoID != issue.RepoID:
 			refRepoID, refUnit = c.RefRepoID, unit.TypeCode // zero for references created before the commit repo was recorded
 		case c.Type == issues_model.CommentTypeAddDependency || c.Type == issues_model.CommentTypeRemoveDependency:
 			if err := c.LoadDepIssueDetails(ctx); err != nil && !issues_model.IsErrIssueNotExist(err) {
