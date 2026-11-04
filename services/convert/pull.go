@@ -148,12 +148,12 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		apiPullRequest.Closed = pr.Issue.ClosedUnix.AsTimePtr()
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.FullName(), err)
 		return nil
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	exist, err := git_model.IsBranchExist(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
@@ -198,12 +198,14 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 			apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 
-			headGitRepo, err = git.OpenRepository(ctx, pr.HeadRepo)
-			if err != nil {
-				log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
-				return nil
+			if pr.HeadRepoID != pr.BaseRepoID { // not request-cached, a lingering cat-file would block deleting the fork on Windows
+				headGitRepo, err = git.OpenRepository(ctx, pr.HeadRepo)
+				if err != nil {
+					log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
+					return nil
+				}
+				defer headGitRepo.Close()
 			}
-			defer headGitRepo.Close()
 
 			exist, err = git_model.IsBranchExist(ctx, pr.HeadRepoID, pr.HeadBranch)
 			if err != nil {
@@ -255,13 +257,7 @@ func toAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
-		baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
-		if err != nil {
-			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.FullName(), err)
-			return nil
-		}
-		defer baseGitRepo.Close()
-		refs, err := baseGitRepo.GetRefsFiltered(ctx, apiPullRequest.Head.Ref)
+		refs, err := gitRepo.GetRefsFiltered(ctx, apiPullRequest.Head.Ref)
 		if err != nil {
 			log.Error("GetRefsFiltered[%s]: %v", apiPullRequest.Head.Ref, err)
 			return nil
@@ -337,11 +333,11 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		return nil, err
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, baseRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, baseRepo)
 	if err != nil {
 		return nil, err
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	baseRepoPerm, err := access_model.GetDoerRepoPermission(ctx, baseRepo, doer)
 	if err != nil {
