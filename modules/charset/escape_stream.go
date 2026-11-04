@@ -30,7 +30,6 @@ type htmlEscaper struct {
 
 const detectWindowRunes = 4096 // bounds the detection results of long text parts
 
-// escape returns content with the runes of its text parts that need escaping replaced, or content itself if there are none
 func (e *htmlEscaper) escape(content string) string {
 	for pos := 0; pos < len(content); {
 		if content[pos] == '<' {
@@ -46,9 +45,11 @@ func (e *htmlEscaper) escape(content string) string {
 		if idx := strings.IndexByte(content[pos:], '<'); idx != -1 {
 			textEnd = pos + idx
 		}
-		text, _ := strings.CutPrefix(content[pos:textEnd], "\xef\xbb\xbf") // a leading BOM is kept as is
-		if !e.inTagMath && !isStringAsciiSafe(text) {
-			e.escapeText(content, textEnd-len(text), textEnd)
+		if strings.HasPrefix(content[pos:textEnd], utf8Bom) {
+			pos += len(utf8Bom) // a BOM at the start of a text part is kept as is
+		}
+		if !e.inTagMath && !isStringAsciiSafe(content[pos:textEnd]) {
+			e.escapeText(content, pos, textEnd)
 		}
 		pos = textEnd
 	}

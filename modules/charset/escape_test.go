@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
@@ -131,9 +130,9 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 		// UTF-8/16/32 all use the same codepoint for BOM
 		// Gitea could read UTF-16/32 content and convert into UTF-8 internally then render it, so we only process UTF-8 internally
 		name:   "UTF BOM",
-		text:   "\xef\xbb\xbftest",
-		result: "\xef\xbb\xbftest",
-		status: EscapeStatus{},
+		text:   "\xef\xbb\xbftest<b>\xef\xbb\xbftest\xef\xbb\xbf",
+		result: "\xef\xbb\xbftest<b>\xef\xbb\xbftest" + `<span class="escaped-code-point" data-escaped="[U+FEFF]"><span class="char">` + "\xef\xbb\xbf" + `</span></span>`,
+		status: EscapeStatus{Escaped: true, HasInvisible: true},
 	},
 	{
 		name:   "ambiguous",
@@ -154,8 +153,8 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 	},
 	{
 		name:   "ambiguous in math",
-		text:   "<math><mo>−</mo><mi>b</mi></math> −",
-		result: `<math><mo>−</mo><mi>b</mi></math> <span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character:− [U+2212],- [U+002D]"><span class="char">−</span></span>`,
+		text:   `<maTH display="block"><mo>−</mo></MAth><mathx>−`,
+		result: `<maTH display="block"><mo>−</mo></MAth><mathx><span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character:− [U+2212],- [U+002D]"><span class="char">−</span></span>`,
 		status: EscapeStatus{Escaped: true, HasAmbiguous: true},
 	},
 }
@@ -167,34 +166,6 @@ func TestEscapeControlHTML(t *testing.T) {
 			assert.Equal(t, tt.status, *status)
 			assert.EqualValues(t, tt.result, output)
 		})
-	}
-}
-
-func TestEscapeControlReader(t *testing.T) {
-	for _, tt := range escapeControlTests {
-		t.Run(tt.name, func(t *testing.T) {
-			output := &htmlutil.HTMLBuilder{}
-			status, err := EscapeControlReader(strings.NewReader(tt.text), output, &translation.MockLocale{})
-			assert.NoError(t, err)
-			assert.Equal(t, tt.status, *status)
-			assert.Equal(t, tt.result, output.String())
-		})
-	}
-}
-
-func TestTrackHtmlTag(t *testing.T) {
-	e := &htmlEscaper{}
-	for _, tt := range []struct {
-		tag    string
-		inMath bool
-	}{
-		{`<maTH display="block">`, true},
-		{"<mo>", true},
-		{"</MAth>", false},
-		{"<mathx>", false},
-	} {
-		e.trackHtmlTag(tt.tag)
-		assert.Equal(t, tt.inMath, e.inTagMath, tt.tag)
 	}
 }
 

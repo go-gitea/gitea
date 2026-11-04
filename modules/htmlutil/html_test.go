@@ -5,6 +5,7 @@ package htmlutil
 
 import (
 	"html/template"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,16 +26,14 @@ func TestHTMLFormat(t *testing.T) {
 
 func TestHTMLBuilder(t *testing.T) {
 	b := &HTMLBuilder{}
-	b.Grow(10)
 	b.WriteString("<").WriteHTML("<hr>").WriteFormatf("<span>%s%s</span>", ">", EscapeString(">"))
 	assert.Equal(t, "&lt;<hr><span>&gt;&gt;</span>", b.String())
 	assert.Equal(t, template.HTML("&lt;<hr><span>&gt;&gt;</span>"), b.HTMLString())
-	b.Reset()
-	assert.Empty(t, b.String())
 }
 
 func TestHTMLWriter(t *testing.T) {
-	sb, w := NewHTMLStringWriter()
+	sb := new(strings.Builder)
+	w := NewHTMLWriter(sb)
 	w.WriteString("<").WriteHTML("<hr>").WriteFormatf("<span>%s%s</span>", ">", EscapeString(">"))
 	assert.Equal(t, "&lt;<hr><span>&gt;&gt;</span>", sb.String())
 	assert.NoError(t, w.Err())

@@ -5,10 +5,8 @@ package charset
 
 import (
 	"html/template"
-	"io"
 	"sync"
 
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
 )
@@ -45,9 +43,9 @@ func isStringAsciiSafe(str string) bool {
 	return true
 }
 
-// EscapeControlHTML escapes the Unicode control sequences in a provided html document
+// EscapeControlHTML escapes the Unicode control sequences in a provided html document, in memory as views render the EscapeStatus first
 func EscapeControlHTML(html template.HTML, locale translation.Locale, opts ...EscapeOptions) (escaped *EscapeStatus, output template.HTML) {
-	if !setting.UI.AmbiguousUnicodeDetection || isStringAsciiSafe(string(html)) { // most code lines, nothing in them can need escaping
+	if !setting.UI.AmbiguousUnicodeDetection || isStringAsciiSafe(string(html)) {
 		return &EscapeStatus{}, html
 	}
 	escaper := &htmlEscaper{escaped: &EscapeStatus{}, locale: locale, ambiguousTables: AmbiguousTablesForLocale(locale)}
@@ -55,19 +53,4 @@ func EscapeControlHTML(html template.HTML, locale translation.Locale, opts ...Es
 		escaper.allowed = opts[0].Allowed
 	}
 	return escaper.escaped, template.HTML(escaper.escape(string(html)))
-}
-
-// EscapeControlReader escapes the Unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
-func EscapeControlReader(reader io.Reader, writer htmlutil.HTMLWriter, locale translation.Locale, opts ...EscapeOptions) (*EscapeStatus, error) {
-	if !setting.UI.AmbiguousUnicodeDetection {
-		_, err := io.Copy(writer.OriginWriter(), reader)
-		return &EscapeStatus{}, err
-	}
-	buf, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	escaped, output := EscapeControlHTML(template.HTML(buf), locale, opts...)
-	_, err = io.WriteString(writer.OriginWriter(), string(output))
-	return escaped, err
 }

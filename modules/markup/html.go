@@ -264,8 +264,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	if !ctx.usedByRender && ctx.RenderHelper != nil {
 		defer ctx.RenderHelper.CleanUp()
 	}
-	// FIXME: don't read all content to memory
-	rawHTML, err := io.ReadAll(input)
+	rawHTML, err := io.ReadAll(input) // no streaming by design, the TOC before the content needs all headings
 	if err != nil {
 		return err
 	}
