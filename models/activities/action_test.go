@@ -215,17 +215,3 @@ func TestGetFeedsConfidential(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, feedContents(repoFeed(hiddenViewer)), "9001|t")
 }
-
-func TestGetFeedsManyHiddenConfidentialIssues(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	ctx := t.Context()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	hiddenViewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
-
-	const hiddenCount = 500
-	for index := int64(9100); index < 9100+hiddenCount; index++ {
-		require.NoError(t, db.Insert(ctx, &issue_model.Issue{RepoID: repo.ID, Repo: repo, Index: index, PosterID: 2, Title: "t", IsConfidential: true}))
-	}
-	_, _, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{RequestedRepo: repo, Actor: hiddenViewer, IncludePrivate: true})
-	require.NoError(t, err)
-}

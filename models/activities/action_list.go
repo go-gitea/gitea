@@ -241,7 +241,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		if opts.RequestedRepo != nil {
 			requestedRepoID = opts.RequestedRepo.ID
 		}
-		hiddenCond, err := hiddenConfidentialActionsCond(ctx, opts.Actor, requestedRepoID)
+		hiddenCond, err := hiddenConfidentialActionsCond(ctx, opts.Actor, cond, requestedRepoID)
 		if err != nil {
 			return nil, 0, fmt.Errorf("GetFeeds: %w", err)
 		}

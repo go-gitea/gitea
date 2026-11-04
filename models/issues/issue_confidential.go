@@ -12,6 +12,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -192,6 +193,19 @@ func hiddenConfidentialCond(scope *VisibilityScope, issueCond builder.Cond) buil
 		cond = cond.And(issueCond)
 	}
 	return cond
+}
+
+// HiddenConfidentialIssuesOfActionsCond matches action rows whose Content ("index|title") refers to a confidential issue hidden by scope.
+func HiddenConfidentialIssuesOfActionsCond(scope *VisibilityScope) builder.Cond {
+	indexLike := "CONCAT(issue.`index`, '|%')"
+	if setting.Database.Type.IsSQLite3() {
+		indexLike = "CAST(issue.`index` AS TEXT) || '|%'" // CONCAT needs SQLite 3.44+
+	}
+	return builder.Exists(builder.Select("1").From("issue").Where(builder.And(
+		builder.Expr("issue.repo_id = action.repo_id"),
+		hiddenConfidentialCond(scope, nil),
+		builder.Expr("action.content LIKE "+indexLike),
+	)))
 }
 
 // FindHiddenConfidentialIssues returns the confidential issues matching cond (on the issue table) hidden from doer.
