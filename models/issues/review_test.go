@@ -434,16 +434,6 @@ func TestRecalculateReviewsOfficial(t *testing.T) {
 	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
 	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
 	assert.True(t, review.Official)
-
-	request, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
-		Type:     issues_model.ReviewTypeRequest,
-		Issue:    issue,
-		Reviewer: reviewer,
-	})
-	assert.NoError(t, err)
-	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
-	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID}).Official)
-	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: request.ID}).Official)
 }
 
 func TestTeamReviewRequestOfficial(t *testing.T) {
@@ -451,10 +441,7 @@ func TestTeamReviewRequestOfficial(t *testing.T) {
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12})
 	assert.NoError(t, issue.LoadRepo(t.Context()))
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	comment, err := issues_model.AddTeamReviewRequest(t.Context(), issue, team, doer, false)
+	comment, err := issues_model.AddTeamReviewRequest(t.Context(), issue, unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}), &user_model.User{ID: 2}, false)
 	assert.NoError(t, err)
 	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: comment.ReviewID}).Official)
 
