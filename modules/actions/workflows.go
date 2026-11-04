@@ -872,7 +872,6 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 	return matchTimes == len(evt.Acts())
 }
 
-// matchActivityType treats an invalid user-provided pattern as no match instead of panicking
 // toActivityTypes converts an issue or pull request action into the GitHub Actions activity types it matches.
 // A label update can be both "labeled" and "unlabeled" when it adds and removes labels at once.
 func toActivityTypes(action api.HookIssueAction, changes *api.ChangesPayload) []string {
@@ -895,6 +894,7 @@ func toActivityTypes(action api.HookIssueAction, changes *api.ChangesPayload) []
 	}
 }
 
+// matchActivityType treats an invalid user-provided pattern as no match instead of panicking
 func matchActivityType(pattern string, actions ...string) bool {
 	g, err := glob.Compile(pattern, '/')
 	if err != nil {
