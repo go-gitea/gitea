@@ -8,10 +8,7 @@ import (
 	"net/http"
 	"net/http/cgi"
 	"net/http/httptest"
-	"os"
-	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -22,6 +19,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/structs"
 	"gitea.dev/tests"
@@ -38,51 +36,40 @@ type gerritTestServer struct {
 	head    string
 }
 
-func runGerritTestGit(t *testing.T, dir string, args ...string) string {
-	t.Helper()
-	cmd := exec.CommandContext(t.Context(), "git", args...)
-	cmd.Dir = dir
-	cmd.Env = append(os.Environ(),
-		"GIT_AUTHOR_NAME=Alice", "GIT_AUTHOR_EMAIL=alice@example.com", "GIT_AUTHOR_DATE=2024-01-01T00:00:00Z",
-		"GIT_COMMITTER_NAME=Alice", "GIT_COMMITTER_EMAIL=alice@example.com", "GIT_COMMITTER_DATE=2024-01-01T00:00:00Z")
-	out, err := cmd.CombinedOutput()
-	require.NoError(t, err, string(out))
-	return strings.TrimSpace(string(out))
-}
-
 // newGerritTestServer serves the project "team/demo" with REST API and git over HTTP, like a Gerrit under /gerrit
 func newGerritTestServer(t *testing.T) *gerritTestServer {
 	t.Helper()
 	root := t.TempDir()
 	s := &gerritTestServer{repoDir: filepath.Join(root, "team", "demo")}
-	require.NoError(t, os.MkdirAll(filepath.Dir(s.repoDir), 0o755))
+	require.NoError(t, git.InitRepositoryLocal(t.Context(), s.repoDir, true, git.Sha1ObjectFormat.Name(), "main"))
 
-	work := t.TempDir()
-	runGerritTestGit(t, work, "init", "-q", "-b", "main")
-	write := func(content string) string {
-		require.NoError(t, os.WriteFile(filepath.Join(work, "a.txt"), []byte(content), 0o644))
-		runGerritTestGit(t, work, "add", "a.txt")
-		runGerritTestGit(t, work, "commit", "-q", "-m", "commit "+content)
-		return runGerritTestGit(t, work, "rev-parse", "HEAD")
+	data := func(content string) string { return fmt.Sprintf("data %d\n%s\n", len(content), content) }
+	var stream strings.Builder
+	for _, commit := range []struct{ ref, content string }{
+		{"refs/heads/main", "l1\nl2\nl3\n"},
+		{"refs/changes/01/1/1", "l1\nfirst\nl3\n"},
+		{"refs/changes/01/1/2", "l1\nsecond\nl3\n"},
+	} {
+		stream.WriteString("commit " + commit.ref + "\ncommitter Alice <alice@example.com> 1704067200 +0000\n" + data(commit.ref))
+		if commit.ref != "refs/heads/main" {
+			stream.WriteString("from refs/heads/main\n")
+		}
+		stream.WriteString("M 644 inline a.txt\n" + data(commit.content))
 	}
-	s.base = write("l1\nl2\nl3\n")
-	runGerritTestGit(t, work, "checkout", "-q", "-b", "change")
-	patchSet1 := write("l1\nfirst\nl3\n")
-	runGerritTestGit(t, work, "update-ref", "refs/changes/01/1/1", "HEAD")
-	s.head = write("l1\nsecond\nl3\n")
-	runGerritTestGit(t, work, "update-ref", "refs/changes/01/1/2", "HEAD")
-	runGerritTestGit(t, work, "checkout", "-q", "main")
-	runGerritTestGit(t, work, "clone", "-q", "--bare", work, s.repoDir)
-	for _, ref := range []string{"refs/changes/01/1/1", "refs/changes/01/1/2"} {
-		runGerritTestGit(t, work, "push", "-q", s.repoDir, ref+":"+ref)
-	}
+	_, _, err := gitcmd.NewCommand("fast-import", "--quiet").WithDir(s.repoDir).WithStdinBytes([]byte(stream.String())).RunStdString(t.Context())
+	require.NoError(t, err)
+	shas, _, err := gitcmd.NewCommand("rev-parse", "refs/heads/main", "refs/changes/01/1/1", "refs/changes/01/1/2").WithDir(s.repoDir).RunStdString(t.Context())
+	require.NoError(t, err)
+	refs := strings.Fields(shas)
+	s.base, s.head = refs[0], refs[2]
+	patchSet1 := refs[1]
 
-	execPath, err := exec.CommandContext(t.Context(), "git", "--exec-path").Output()
+	execPath, _, err := gitcmd.NewCommand("--exec-path").RunStdString(t.Context())
 	require.NoError(t, err)
 	gitBackend := &cgi.Handler{
-		Path: filepath.Join(strings.TrimSpace(string(execPath)), "git-http-backend"),
+		Path: filepath.Join(strings.TrimSpace(execPath), "git-http-backend"),
 		Root: "/gerrit",
-		Env:  []string{"GIT_PROJECT_ROOT=" + root, "GIT_HTTP_EXPORT_ALL=1"},
+		Env:  []string{"GIT_PROJECT_ROOT=" + root, "GIT_HTTP_EXPORT_ALL=1", "GIT_CONFIG_NOSYSTEM=1"},
 	}
 
 	account := func(id int, name string) map[string]any {
@@ -90,7 +77,7 @@ func newGerritTestServer(t *testing.T) *gerritTestServer {
 	}
 	revision := func(number int, ref string) map[string]any {
 		return map[string]any{
-			"_number": number, "ref": ref, "created": "2024-02-01 10:00:00.000000000",
+			"_number": number, "ref": ref,
 			"commit": map[string]any{"parents": []map[string]any{{"commit": s.base}}, "message": "Change one\n\nDescription\n\nChange-Id: I1\n"},
 		}
 	}
@@ -171,7 +158,7 @@ func TestGerritMigrateAPI(t *testing.T) {
 		defer gitRepo.Close()
 		branches, _, err := gitRepo.GetBranchNames(t.Context(), 0, 0)
 		require.NoError(t, err)
-		assert.ElementsMatch(t, []string{"main", "change"}, branches)
+		assert.Equal(t, []string{"main"}, branches)
 	})
 
 	t.Run("Migrate", func(t *testing.T) {
@@ -250,7 +237,6 @@ func TestGerritMigrateWeb(t *testing.T) {
 	assert.Equal(t, 1, form.Find(`input[name="clone_addr"]`).Length())
 	assert.Equal(t, 1, form.Find(`input[name="auth_username"]`).Length())
 	assert.Equal(t, 1, form.Find(`input[name="auth_password"]`).Length())
-	assert.Equal(t, 1, form.Find(`input[name="auth_token"]`).Length())
 	assert.Equal(t, 1, form.Find(`input[name="pull_requests"]`).Length())
 	assert.Equal(t, 1, form.Find(`input[name="mirror"]`).Length())
 	_, checked := form.Find(`input[name="mirror"]`).Attr("checked")
@@ -260,15 +246,4 @@ func TestGerritMigrateWeb(t *testing.T) {
 	resp = session.MakeRequest(t, NewRequest(t, "GET", mirrorHref), http.StatusOK)
 	_, checked = NewHTMLParser(t, resp.Body).Find(`input[name="mirror"]`).Attr("checked")
 	assert.True(t, checked)
-
-	link, _ := form.Attr("action")
-	uid, _ := form.Find(`input[name="uid"]`).Attr("value")
-	post := func(values map[string]string) string {
-		values["uid"], values["service"] = uid, strconv.Itoa(int(structs.GerritService))
-		values["repo_name"] = "gerrit-web"
-		resp := session.MakeRequest(t, NewRequestWithValues(t, "POST", link, values), http.StatusBadRequest)
-		return resp.Body.String()
-	}
-	assert.Contains(t, post(map[string]string{"clone_addr": "ssh://alice@gerrit.example.com:29418/team/demo"}), "SSH clone URLs are not supported")
-	unittest.AssertNotExistsBean(t, &repo_model.Repository{Name: "gerrit-web"})
 }

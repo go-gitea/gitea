@@ -164,10 +164,6 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 		messenger = base.NilMessenger
 	}
 
-	if opts.GitServiceType == structs.GerritService {
-		opts.Comments = opts.PullRequests
-	}
-
 	repo, err := downloader.GetRepoInfo(ctx)
 	if err != nil {
 		if !base.IsErrNotSupported(err) {

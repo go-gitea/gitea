@@ -22,11 +22,7 @@
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "password"}}</label>
 					<input name="auth_password" type="password">
-				</div>
-				<div class="inline field">
-					<label>{{ctx.Locale.Tr "access_token"}}</label>
-					<input name="auth_token" type="password" autocomplete="new-password">
-					<span class="help">{{ctx.Locale.Tr "repo.migrate.gerrit.token_desc"}}</span>
+					<span class="help">{{ctx.Locale.Tr "repo.migrate.gerrit.password_desc"}}</span>
 				</div>
 
 				{{template "repo/migrate/common-options" .}}

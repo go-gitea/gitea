@@ -16,10 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
-	"unicode/utf8"
 
-	"gitea.dev/modules/git"
 	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -35,8 +32,6 @@ var (
 const (
 	gerritMaxPageSize     = 100
 	gerritMaxResponseSize = 64 * 1024 * 1024
-	gerritMaxAttempts     = 5
-	gerritMaxRetryWait    = time.Minute
 	gerritMaxPathDepth    = 8
 	gerritXSSIPrefix      = ")]}'"
 )
@@ -49,7 +44,7 @@ func init() {
 type GerritDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
-func (f *GerritDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
+func (f *GerritDownloaderFactory) New(_ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
 	location, err := parseGerritCloneAddr(opts.CloneAddr)
 	if err != nil {
 		return nil, err
@@ -59,7 +54,7 @@ func (f *GerritDownloaderFactory) New(ctx context.Context, opts base.MigrateOpti
 		username, password = location.username, cmp.Or(password, location.password)
 	}
 	log.Trace("Create Gerrit downloader. Host: %s Path: %s", location.host, location.path)
-	return NewGerritDownloader(ctx, location, username, password, opts.AuthToken), nil
+	return NewGerritDownloader(location, username, password), nil
 }
 
 // GitServiceType returns the type of git service
@@ -67,11 +62,11 @@ func (f *GerritDownloaderFactory) GitServiceType() structs.GitServiceType {
 	return structs.GerritService
 }
 
-// gerritLocation is the parsed HTTP(S) clone URL of a Gerrit project, without credentials
+// gerritLocation is the parsed HTTP(S) clone URL of a Gerrit project
 type gerritLocation struct {
 	scheme   string
 	host     string
-	path     []string // path segments, the "/a/" authentication prefix and ".git" suffix included as given
+	path     []string // path segments, the "/a/" authentication prefix included as given
 	username string
 	password string
 }
@@ -142,46 +137,32 @@ func (l *gerritLocation) candidates() []gerritCandidate {
 type GerritDownloader struct {
 	base.NullDownloader
 	client   *http.Client
-	sleep    func(context.Context, time.Duration) error
 	location *gerritLocation
 	username string
 	password string
-	token    string
 
-	resolved bool
-	root     string // URL of the Gerrit web application, without the authentication prefix
-	project  string
+	root        string // URL of the Gerrit web application, without the authentication prefix
+	project     string
+	description string
 
-	changeNumbers []int64 // all changes of the project, ascending
-	numbersLoaded bool
-
-	activities map[int64]*gerritActivity // review data by change number, of the current page
+	changeNumbers []int64                   // all changes of the project, ascending
+	activities    map[int64]*gerritActivity // review data by change number, of the current page
 }
 
 // NewGerritDownloader creates a Gerrit downloader
-func NewGerritDownloader(_ context.Context, location *gerritLocation, username, password, token string) *GerritDownloader {
+func NewGerritDownloader(location *gerritLocation, username, password string) *GerritDownloader {
 	return &GerritDownloader{
-		client:     &http.Client{Transport: getMigrationTransport()}, // not retrying, callAPI retries rate limits itself
-		sleep:      gerritSleep,
+		client:     newMigrationHTTPClient(location.String(), basicAuthorization(username, password)),
 		activities: map[int64]*gerritActivity{},
 		location:   location,
 		username:   username,
 		password:   password,
-		token:      token,
 	}
 }
 
+// isAuthenticated tells whether requests carry credentials, Gerrit's HTTP authentication needs a username
 func (d *GerritDownloader) isAuthenticated() bool {
-	user, password := d.credentials()
-	return user != "" || password != ""
-}
-
-// credentials are used for REST and git alike, a token is a Gerrit HTTP password
-func (d *GerritDownloader) credentials() (user, password string) {
-	if d.token != "" {
-		return cmp.Or(d.username, "token"), d.token
-	}
-	return d.username, d.password
+	return d.username != ""
 }
 
 // String implements Stringer
@@ -204,7 +185,7 @@ func (d *GerritDownloader) FormatCloneURL(_ base.MigrateOptions, remoteAddr stri
 		return "", err
 	}
 	if d.isAuthenticated() {
-		u.User = url.UserPassword(d.credentials())
+		u.User = url.UserPassword(d.username, d.password)
 	}
 	return u.String(), nil
 }
@@ -240,22 +221,18 @@ func (a gerritAccount) displayName() string {
 	return cmp.Or(a.Name, a.Username, a.Email, "gerrit-user-"+strconv.FormatInt(a.ID, 10))
 }
 
-type gerritCommit struct {
-	Parents []struct {
-		Commit string `json:"commit"`
-	} `json:"parents"`
-	Message string `json:"message"`
-}
-
 type gerritRevision struct {
-	Number  int          `json:"_number"`
-	Ref     string       `json:"ref"`
-	Created gerritTime   `json:"created"`
-	Commit  gerritCommit `json:"commit"`
+	Number int    `json:"_number"`
+	Ref    string `json:"ref"`
+	Commit struct {
+		Parents []struct {
+			Commit string `json:"commit"`
+		} `json:"parents"`
+		Message string `json:"message"`
+	} `json:"commit"`
 }
 
 type gerritMessage struct {
-	ID             string        `json:"id"`
 	Author         gerritAccount `json:"author"`
 	Date           gerritTime    `json:"date"`
 	Message        string        `json:"message"`
@@ -263,66 +240,44 @@ type gerritMessage struct {
 	RevisionNumber int           `json:"_revision_number"`
 }
 
-type gerritChangeInfo struct {
-	Project         string                     `json:"project"`
-	Branch          string                     `json:"branch"`
-	ChangeID        string                     `json:"change_id"`
-	Subject         string                     `json:"subject"`
-	Status          string                     `json:"status"`
-	Created         gerritTime                 `json:"created"`
-	Updated         gerritTime                 `json:"updated"`
-	Submitted       gerritTime                 `json:"submitted"`
-	Owner           gerritAccount              `json:"owner"`
-	Number          int64                      `json:"_number"`
-	WorkInProgress  bool                       `json:"work_in_progress"`
-	CurrentRevision string                     `json:"current_revision"`
-	Revisions       map[string]*gerritRevision `json:"revisions"`
-	Messages        []gerritMessage            `json:"messages"`
+// gerritChange is the downloader context of a pull request
+type gerritChange struct {
+	Branch          string                    `json:"branch"`
+	ChangeID        string                    `json:"change_id"`
+	Subject         string                    `json:"subject"`
+	Status          string                    `json:"status"`
+	Created         gerritTime                `json:"created"`
+	Updated         gerritTime                `json:"updated"`
+	Submitted       gerritTime                `json:"submitted"`
+	Owner           gerritAccount             `json:"owner"`
+	Number          int64                     `json:"_number"`
+	WorkInProgress  bool                      `json:"work_in_progress"`
+	CurrentRevision string                    `json:"current_revision"`
+	Revisions       map[string]gerritRevision `json:"revisions"`
+	Messages        []gerritMessage           `json:"messages"`
+}
+
+func (c *gerritChange) revision(patchSet int) string {
+	for sha, revision := range c.Revisions {
+		if revision.Number == patchSet {
+			return sha
+		}
+	}
+	return ""
 }
 
 type gerritCommentInfo struct {
-	ID         string        `json:"id"`
-	PatchSet   int           `json:"patch_set"`
-	Line       int           `json:"line"`
-	InReplyTo  string        `json:"in_reply_to"`
-	Message    string        `json:"message"`
-	Updated    gerritTime    `json:"updated"`
-	Author     gerritAccount `json:"author"`
-	Side       string        `json:"side"`
-	Parent     int           `json:"parent"`
-	Unresolved *bool         `json:"unresolved"`
-	Range      *struct {
+	PatchSet int           `json:"patch_set"`
+	Line     int           `json:"line"`
+	Message  string        `json:"message"`
+	Updated  gerritTime    `json:"updated"`
+	Author   gerritAccount `json:"author"`
+	Side     string        `json:"side"`
+	Parent   int           `json:"parent"`
+	Range    *struct {
 		StartLine int `json:"start_line"`
 		EndLine   int `json:"end_line"`
 	} `json:"range"`
-}
-
-// gerritPatchSet is a revision of a change, fetched with the repository through its ref
-type gerritPatchSet struct {
-	Number  int
-	SHA     string
-	Ref     string
-	Created time.Time
-}
-
-// gerritChange is a validated change, it is the downloader context of the pull request
-type gerritChange struct {
-	gerritChangeInfo
-	patchSets []gerritPatchSet // ascending
-	current   gerritPatchSet
-}
-
-func (c *gerritChange) patchSet(number int) *gerritPatchSet {
-	for i := range c.patchSets {
-		if c.patchSets[i].Number == number {
-			return &c.patchSets[i]
-		}
-	}
-	return nil
-}
-
-func gerritChangeRef(changeNumber int64, patchSet int) string {
-	return fmt.Sprintf("refs/changes/%02d/%d/%d", changeNumber%100, changeNumber, patchSet)
 }
 
 type gerritStatusError struct {
@@ -380,25 +335,19 @@ func (d *GerritDownloader) changeURL(number int64) string {
 	return d.root + "/c/" + d.project + "/+/" + strconv.FormatInt(number, 10)
 }
 
-// callAPI sends a GET request to the REST API of a resolved root, a rate limited or unavailable
-// server is asked again after the time it names
+// callAPI sends a GET request to the REST API of a resolved root
 func (d *GerritDownloader) callAPI(ctx context.Context, root, path string, query url.Values, result any) error {
 	endpoint := root + path
 	apiURL := endpoint
 	if len(query) > 0 {
 		apiURL += "?" + query.Encode()
 	}
-
-	resp, err := d.doRequest(ctx, apiURL)
-	for attempt := 1; err == nil && isGerritRetryable(resp.StatusCode) && attempt < gerritMaxAttempts; attempt++ {
-		wait := gerritRetryAfter(resp.Header.Get("Retry-After"), attempt)
-		resp.Body.Close()
-		log.Warn("Gerrit answered the request to %s with a temporary error, retrying in %s", endpoint, wait)
-		if err := d.sleep(ctx, wait); err != nil {
-			return err
-		}
-		resp, err = d.doRequest(ctx, apiURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return err
 	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := d.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -421,38 +370,16 @@ func (d *GerritDownloader) callAPI(ctx context.Context, root, path string, query
 	return nil
 }
 
-func isGerritRetryable(status int) bool {
-	return status == http.StatusTooManyRequests || status == http.StatusBadGateway ||
-		status == http.StatusServiceUnavailable || status == http.StatusGatewayTimeout
-}
-
-func (d *GerritDownloader) doRequest(ctx context.Context, apiURL string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/json")
-	if d.isAuthenticated() {
-		req.SetBasicAuth(d.credentials())
-	}
-	return d.client.Do(req)
-}
-
 func (d *GerritDownloader) get(ctx context.Context, path string, query url.Values, result any) error {
-	if err := d.resolve(ctx); err != nil {
-		return err
-	}
 	return d.callAPI(ctx, d.apiRoot(), path, query, result)
 }
 
 // resolve finds out which part of the clone URL path is the project by asking the server
 func (d *GerritDownloader) resolve(ctx context.Context) error {
-	if d.resolved {
-		return nil
-	}
 	for _, candidate := range d.location.candidates() {
 		var info struct {
-			Name string `json:"name"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
 		}
 		apiRoot := candidate.root
 		if d.isAuthenticated() {
@@ -471,40 +398,15 @@ func (d *GerritDownloader) resolve(ctx context.Context) error {
 		if info.Name != candidate.project {
 			continue
 		}
-		d.root, d.project, d.resolved = candidate.root, candidate.project, true
+		d.root, d.project, d.description = candidate.root, candidate.project, info.Description
 		return nil
 	}
 	return fmt.Errorf("no Gerrit project found for %s, check the clone URL and the permission to read the project", d.location)
 }
 
-func gerritRetryAfter(header string, attempt int) time.Duration {
-	wait := time.Duration(1<<(attempt-1)) * time.Second
-	if seconds, err := strconv.Atoi(strings.TrimSpace(header)); err == nil && seconds >= 0 {
-		wait = time.Duration(seconds) * time.Second
-	}
-	return min(wait, gerritMaxRetryWait)
-}
-
-func gerritSleep(ctx context.Context, d time.Duration) error {
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
-	}
-}
-
-// GetRepoInfo returns the information of the project
+// GetRepoInfo resolves the project, the migration calls it before any other method
 func (d *GerritDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, error) {
 	if err := d.resolve(ctx); err != nil {
-		return nil, err
-	}
-	var project struct {
-		Description string `json:"description"`
-	}
-	if err := d.get(ctx, d.projectPath(), nil, &project); err != nil {
 		return nil, err
 	}
 
@@ -518,9 +420,7 @@ func (d *GerritDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, e
 
 	return &base.Repository{
 		Name:          d.project[strings.LastIndex(d.project, "/")+1:],
-		Owner:         "",
-		IsPrivate:     d.isAuthenticated(),
-		Description:   project.Description,
+		Description:   d.description,
 		CloneURL:      d.cloneURL(),
 		OriginalURL:   d.root + "/admin/repos/" + url.PathEscape(d.project),
 		DefaultBranch: strings.TrimPrefix(head, "refs/heads/"),
@@ -528,11 +428,7 @@ func (d *GerritDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, e
 }
 
 func (d *GerritDownloader) loadChangeNumbers(ctx context.Context) error {
-	if d.numbersLoaded {
-		return nil
-	}
-	seen := map[int64]bool{}
-	var numbers []int64
+	d.changeNumbers = nil
 	query := url.Values{"q": {"project:" + strconv.Quote(d.project)}, "n": {strconv.Itoa(gerritMaxPageSize)}}
 	for start := 0; ; {
 		query.Set("S", strconv.Itoa(start))
@@ -544,38 +440,30 @@ func (d *GerritDownloader) loadChangeNumbers(ctx context.Context) error {
 			return err
 		}
 		for _, change := range page {
-			if change.Number <= 0 {
-				return fmt.Errorf("gerrit returned a change with the invalid number %d", change.Number)
-			}
-			if !seen[change.Number] {
-				seen[change.Number] = true
-				numbers = append(numbers, change.Number)
-			}
+			d.changeNumbers = append(d.changeNumbers, change.Number)
 		}
 		start += len(page)
 		if len(page) == 0 || !page[len(page)-1].MoreChanges {
 			break
 		}
 	}
-	slices.Sort(numbers)
-	d.changeNumbers, d.numbersLoaded = numbers, true
+	// changes updated while paging move to the front of the list and can be returned twice
+	slices.Sort(d.changeNumbers)
+	d.changeNumbers = slices.Compact(d.changeNumbers)
 	return nil
 }
 
 // GetPullRequests returns a page of changes, oldest first
 func (d *GerritDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	d.activities = map[int64]*gerritActivity{}
-	if page < 1 {
-		page = 1
-	}
+	page = max(page, 1)
 	if perPage <= 0 {
 		perPage = gerritMaxPageSize
 	}
 	if page == 1 {
-		d.numbersLoaded = false
-	}
-	if err := d.loadChangeNumbers(ctx); err != nil {
-		return nil, false, err
+		if err := d.loadChangeNumbers(ctx); err != nil {
+			return nil, false, err
+		}
 	}
 
 	start := min((page-1)*perPage, len(d.changeNumbers))
@@ -592,76 +480,24 @@ func (d *GerritDownloader) GetPullRequests(ctx context.Context, page, perPage in
 }
 
 func (d *GerritDownloader) getPullRequest(ctx context.Context, number int64) (*base.PullRequest, error) {
-	var info gerritChangeInfo
+	change := &gerritChange{}
 	query := url.Values{"o": {"ALL_REVISIONS", "CURRENT_REVISION", "ALL_COMMITS", "MESSAGES", "DETAILED_ACCOUNTS"}}
-	if err := d.get(ctx, d.changePath(number), query, &info); err != nil {
+	if err := d.get(ctx, d.changePath(number), query, change); err != nil {
 		return nil, err
 	}
-	change, err := d.validateChange(number, &info)
-	if err != nil {
-		return nil, err
-	}
-	return d.convertChange(change)
-}
 
-func (d *GerritDownloader) validateChange(number int64, info *gerritChangeInfo) (*gerritChange, error) {
-	if info.Number != number {
-		return nil, fmt.Errorf("gerrit returned change %d for the request of change %d", info.Number, number)
-	}
-	if info.Project != d.project {
-		return nil, fmt.Errorf("gerrit change %d belongs to the project %q, not %q", number, info.Project, d.project)
-	}
-	if info.Subject == "" || info.Created.IsZero() || info.Updated.IsZero() {
-		return nil, fmt.Errorf("gerrit change %d has no subject or no timestamps", number)
-	}
-	info.Branch = strings.TrimPrefix(info.Branch, "refs/heads/")
-	if info.Branch == "" || !git.IsValidRefPattern(git.BranchPrefix+info.Branch) {
-		return nil, fmt.Errorf("gerrit change %d has the invalid target branch %q", number, info.Branch)
-	}
-
-	change := &gerritChange{gerritChangeInfo: *info}
-	for sha, revision := range info.Revisions {
-		if revision == nil || revision.Number <= 0 {
-			return nil, fmt.Errorf("gerrit change %d has a revision without patch set number", number)
-		}
-		if !git.IsStringValidObjectID(nil, sha) {
-			return nil, fmt.Errorf("gerrit change %d has the invalid revision %q", number, sha)
-		}
-		ref := gerritChangeRef(number, revision.Number)
-		if revision.Ref != "" && revision.Ref != ref {
-			return nil, fmt.Errorf("gerrit change %d reports the unexpected ref %q for patch set %d", number, revision.Ref, revision.Number)
-		}
-		if change.patchSet(revision.Number) != nil {
-			return nil, fmt.Errorf("gerrit change %d has the patch set %d twice", number, revision.Number)
-		}
-		change.patchSets = append(change.patchSets, gerritPatchSet{Number: revision.Number, SHA: sha, Ref: ref, Created: revision.Created.Time})
-	}
-	slices.SortFunc(change.patchSets, func(a, b gerritPatchSet) int { return cmp.Compare(a.Number, b.Number) })
-
-	currentRevision, ok := info.Revisions[info.CurrentRevision]
-	if !ok {
-		return nil, fmt.Errorf("gerrit change %d has no valid current patch set", number)
-	}
-	change.current = *change.patchSet(currentRevision.Number)
-	return change, nil
-}
-
-func (d *GerritDownloader) convertChange(change *gerritChange) (*base.PullRequest, error) {
+	current := change.Revisions[change.CurrentRevision]
 	// the target branch tip moves on after a merge, the parent of the patch set is the base the reviewers saw
 	baseSHA := ""
-	if parents := change.Revisions[change.current.SHA].Commit.Parents; len(parents) > 0 {
-		baseSHA = parents[0].Commit
+	if len(current.Commit.Parents) > 0 {
+		baseSHA = current.Commit.Parents[0].Commit
 	}
-	branch := func(ref, sha string) base.PullRequestBranch {
-		return base.PullRequestBranch{Ref: ref, SHA: sha, RepoName: d.project}
-	}
-
 	pr := &base.PullRequest{
 		FlowType:     base.PRFlowAGit,
 		Number:       change.Number,
 		ForeignIndex: change.Number,
 		Title:        change.Subject,
-		Content:      d.changeDescription(change),
+		Content:      d.changeDescription(change, current.Commit.Message),
 		PosterID:     change.Owner.ID,
 		PosterName:   change.Owner.displayName(),
 		PosterEmail:  change.Owner.Email,
@@ -669,32 +505,24 @@ func (d *GerritDownloader) convertChange(change *gerritChange) (*base.PullReques
 		Created:      change.Created.Time,
 		Updated:      change.Updated.Time,
 		IsDraft:      change.WorkInProgress || change.Status == "DRAFT",
-		Head:         branch(change.current.Ref, change.current.SHA),
-		Base:         branch(change.Branch, baseSHA),
+		Head:         base.PullRequestBranch{Ref: current.Ref, SHA: change.CurrentRevision},
+		Base:         base.PullRequestBranch{Ref: change.Branch, SHA: baseSHA},
 		Context:      change,
 	}
-
 	switch change.Status {
-	case "NEW", "DRAFT":
 	case "MERGED":
 		merged := cmp.Or(change.Submitted.Time, change.Updated.Time)
 		pr.State, pr.Merged, pr.MergedTime, pr.Closed = "closed", true, &merged, &merged
-		pr.MergeCommitSHA = change.current.SHA
+		pr.MergeCommitSHA = change.CurrentRevision
 	case "ABANDONED":
 		closed := change.Updated.Time
 		pr.State, pr.Closed = "closed", &closed
-	default:
-		return nil, fmt.Errorf("gerrit change %d has the unknown status %q", change.Number, change.Status)
 	}
-
-	if !CheckAndEnsureSafePR(pr, d.root, d) {
-		return nil, fmt.Errorf("gerrit change %d has an unsafe ref or revision", change.Number)
-	}
+	_ = CheckAndEnsureSafePR(pr, d.root, d)
 	return pr, nil
 }
 
-func (d *GerritDownloader) changeDescription(change *gerritChange) string {
-	message := change.Revisions[change.current.SHA].Commit.Message
+func (d *GerritDownloader) changeDescription(change *gerritChange, message string) string {
 	body := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(message), change.Subject))
 	footer := fmt.Sprintf("Imported from Gerrit change %s\nChange-Id: %s\nBranch: %s\nStatus: %s",
 		d.changeURL(change.Number), change.ChangeID, change.Branch, change.Status)
@@ -706,7 +534,6 @@ func (d *GerritDownloader) changeDescription(change *gerritChange) string {
 
 // gerritActivity is what the messages and comments of a change are converted to
 type gerritActivity struct {
-	number   int64
 	reviews  []*base.Review
 	comments []*base.Comment
 }
@@ -783,6 +610,7 @@ func parseGerritVotes(message string) (patchSet int, votes []gerritVote) {
 	return patchSet, votes
 }
 
+// gerritReviewState maps Code-Review votes, +1 only means that someone else must approve
 func gerritReviewState(votes []gerritVote) string {
 	state := base.ReviewStateCommented
 	for _, vote := range votes {
@@ -790,49 +618,13 @@ func gerritReviewState(votes []gerritVote) string {
 			continue
 		}
 		switch {
-		case vote.value > 0:
+		case vote.value >= 2:
 			state = base.ReviewStateApproved
 		case vote.value < 0:
 			state = base.ReviewStateChangesRequested
 		}
 	}
 	return state
-}
-
-// warnUnmappedGerritVotes reports the votes that are not Code-Review, they only stay in the text of the review
-func warnUnmappedGerritVotes(changeNumber int64, patchSet int, votes []gerritVote) {
-	for _, vote := range votes {
-		if vote.label != "Code-Review" {
-			log.Warn("Gerrit change %d has the vote label %s with the value %+d on patch set %d which cannot be mapped to a review state, it is kept in the text of the review",
-				changeNumber, strconv.Quote(vote.label), vote.value, patchSet)
-		}
-	}
-}
-
-// isSafeGerritPath tells whether a path of a comment can be used as the tree path of a code comment
-func isSafeGerritPath(path string) bool {
-	if path == "" || len(path) > 4096 || !utf8.ValidString(path) || strings.HasPrefix(path, "/") {
-		return false
-	}
-	for _, r := range path {
-		if unicode.IsControl(r) || r == '`' || r == '\\' {
-			return false
-		}
-	}
-	for seg := range strings.SplitSeq(path, "/") {
-		if seg == "" || seg == "." || seg == ".." {
-			return false
-		}
-	}
-	return true
-}
-
-func describeGerritPath(number int64, path string) string {
-	if isSafeGerritPath(path) || path == "/COMMIT_MSG" || path == "/MERGE_LIST" {
-		return "`" + path + "`"
-	}
-	log.Warn("Gerrit change %d has a comment on a path that is not safe to be used as a file path", number)
-	return strconv.QuoteToGraphic(path)
 }
 
 type gerritReviewKey struct {
@@ -842,16 +634,15 @@ type gerritReviewKey struct {
 }
 
 func buildGerritActivity(change *gerritChange, byPath map[string][]gerritCommentInfo) *gerritActivity {
-	activity := &gerritActivity{number: change.Number}
+	activity := &gerritActivity{}
 	reviewsByKey := map[gerritReviewKey]*base.Review{}
 
 	for _, message := range change.Messages {
 		at := cmp.Or(message.Date.Time, change.Updated.Time)
 		headerPatchSet, votes := parseGerritVotes(message.Message)
-		patchSet := change.patchSet(cmp.Or(message.RevisionNumber, headerPatchSet))
-		warnUnmappedGerritVotes(change.Number, headerPatchSet, votes)
-		autogenerated := strings.HasPrefix(message.Tag, "autogenerated:")
-		if patchSet == nil || (autogenerated && len(votes) == 0) {
+		patchSet := cmp.Or(message.RevisionNumber, headerPatchSet)
+		sha := change.revision(patchSet)
+		if sha == "" || (strings.HasPrefix(message.Tag, "autogenerated:") && len(votes) == 0) {
 			activity.comments = append(activity.comments, &base.Comment{
 				PosterID:    message.Author.ID,
 				PosterName:  message.Author.displayName(),
@@ -865,13 +656,13 @@ func buildGerritActivity(change *gerritChange, byPath map[string][]gerritComment
 		review := &base.Review{
 			ReviewerID:   message.Author.ID,
 			ReviewerName: message.Author.displayName(),
-			CommitID:     patchSet.SHA,
+			CommitID:     sha,
 			Content:      message.Message,
 			CreatedAt:    at,
 			State:        gerritReviewState(votes),
 		}
 		activity.reviews = append(activity.reviews, review)
-		reviewsByKey[gerritReviewKey{message.Author.ID, patchSet.Number, at.Unix()}] = review
+		reviewsByKey[gerritReviewKey{message.Author.ID, patchSet, at.Unix()}] = review
 	}
 
 	paths := make([]string, 0, len(byPath))
@@ -893,35 +684,33 @@ func buildGerritActivity(change *gerritChange, byPath map[string][]gerritComment
 func (a *gerritActivity) addComment(change *gerritChange, path string, c *gerritCommentInfo, reviewsByKey map[gerritReviewKey]*base.Review) {
 	at := cmp.Or(c.Updated.Time, change.Updated.Time)
 	text := cmp.Or(c.Message, "(no text)")
-	patchSet := change.patchSet(c.PatchSet)
+	ranged := c.Range != nil && c.Range.StartLine > 0 && c.Range.StartLine < c.Range.EndLine
 
-	// the diff of a pull request is the current patch set against its parent
-	anchored := patchSet != nil && patchSet.Number == change.current.Number && isSafeGerritPath(path) &&
-		c.Line > 0 && c.Parent == 0
-	if anchored {
+	// the diff of a pull request is the current patch set against its parent, Gerrit's magic files start with "/"
+	if c.PatchSet == change.Revisions[change.CurrentRevision].Number && !strings.HasPrefix(path, "/") && c.Line > 0 && c.Parent == 0 {
 		line := c.Line
 		if c.Side == "PARENT" {
 			line = -line
 		}
-		if c.Range != nil && c.Range.StartLine > 0 && c.Range.StartLine < c.Range.EndLine {
+		if ranged {
 			text = fmt.Sprintf("Lines %d-%d:\n\n%s", c.Range.StartLine, c.Range.EndLine, text)
 		}
 		reviewComment := &base.ReviewComment{
 			Content:   text,
 			TreePath:  path,
 			Line:      line,
-			CommitID:  patchSet.SHA,
+			CommitID:  change.CurrentRevision,
 			PosterID:  c.Author.ID,
 			CreatedAt: at,
 			UpdatedAt: at,
 		}
-		key := gerritReviewKey{c.Author.ID, patchSet.Number, at.Unix()}
+		key := gerritReviewKey{c.Author.ID, c.PatchSet, at.Unix()}
 		review, ok := reviewsByKey[key]
 		if !ok {
 			review = &base.Review{
 				ReviewerID:   c.Author.ID,
 				ReviewerName: c.Author.displayName(),
-				CommitID:     patchSet.SHA,
+				CommitID:     change.CurrentRevision,
 				CreatedAt:    at,
 				State:        base.ReviewStateCommented,
 			}
@@ -936,9 +725,9 @@ func (a *gerritActivity) addComment(change *gerritChange, path string, c *gerrit
 	if path == "/PATCHSET_LEVEL" {
 		where.WriteString("Patch set level comment")
 	} else {
-		where.WriteString("Comment on " + describeGerritPath(change.Number, path))
+		fmt.Fprintf(&where, "Comment on `%s`", path)
 		switch {
-		case c.Range != nil && c.Range.StartLine > 0 && c.Range.StartLine < c.Range.EndLine:
+		case ranged:
 			fmt.Fprintf(&where, " lines %d-%d", c.Range.StartLine, c.Range.EndLine)
 		case c.Line > 0:
 			fmt.Fprintf(&where, " line %d", c.Line)
@@ -947,13 +736,10 @@ func (a *gerritActivity) addComment(change *gerritChange, path string, c *gerrit
 			where.WriteString(" of the parent")
 		}
 	}
-	if patchSet != nil {
-		fmt.Fprintf(&where, " (patch set %d, revision %s)", patchSet.Number, patchSet.SHA)
+	if sha := change.revision(c.PatchSet); sha != "" {
+		fmt.Fprintf(&where, " (patch set %d, revision %s)", c.PatchSet, sha)
 	} else {
 		fmt.Fprintf(&where, " (unknown patch set %d)", c.PatchSet)
-	}
-	if c.InReplyTo != "" {
-		where.WriteString(", reply to comment " + strconv.Quote(c.InReplyTo))
 	}
 	a.comments = append(a.comments, &base.Comment{
 		PosterID:    c.Author.ID,
