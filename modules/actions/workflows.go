@@ -510,9 +510,7 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
 			// Actions with the same name:
 			// opened, edited, closed, reopened, assigned, unassigned, milestoned, demilestoned
-			// Actions need to be converted:
-			// label_updated -> labeled (when adding) or unlabeled (when removing)
-			// label_cleared -> unlabeled
+			// Actions need to be converted: see toActivityTypes
 			// Unsupported activity types:
 			// deleted, transferred, pinned, unpinned, locked, unlocked
 
@@ -543,10 +541,7 @@ func matchPullRequestEvent(ctx context.Context, gitRepo *git.Repository, commit 
 		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
 		// Actions with the same name:
 		// opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, milestoned, demilestoned
-		// Actions need to be converted:
-		// synchronized -> synchronize
-		// label_updated -> labeled (when adding) or unlabeled (when removing)
-		// label_cleared -> unlabeled
+		// Actions need to be converted: see toActivityTypes
 		// Unsupported activity types:
 		// converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued
 
@@ -872,8 +867,7 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 	return matchTimes == len(evt.Acts())
 }
 
-// toActivityTypes converts an issue or pull request action into the GitHub Actions activity types it matches.
-// A label update can be both "labeled" and "unlabeled" when it adds and removes labels at once.
+// toActivityTypes returns several types because one label update can both add and remove labels
 func toActivityTypes(action api.HookIssueAction, changes *api.ChangesPayload) []string {
 	switch action {
 	case api.HookIssueSynchronized:
