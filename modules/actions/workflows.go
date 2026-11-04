@@ -516,21 +516,7 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			// Unsupported activity types:
 			// deleted, transferred, pinned, unpinned, locked, unlocked
 
-			actions := []string{}
-			switch issuePayload.Action {
-			case api.HookIssueLabelUpdated:
-				if len(issuePayload.Changes.AddedLabels) > 0 {
-					actions = append(actions, "labeled")
-				}
-				if len(issuePayload.Changes.RemovedLabels) > 0 {
-					actions = append(actions, "unlabeled")
-				}
-			case api.HookIssueLabelCleared:
-				actions = append(actions, "unlabeled")
-			default:
-				actions = append(actions, string(issuePayload.Action))
-			}
-
+			actions := toActivityTypes(issuePayload.Action, issuePayload.Changes)
 			for _, val := range vals {
 				if matchActivityType(val, actions...) {
 					matchTimes++
@@ -559,23 +545,15 @@ func matchPullRequestEvent(ctx context.Context, gitRepo *git.Repository, commit 
 		// opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, milestoned, demilestoned
 		// Actions need to be converted:
 		// synchronized -> synchronize
-		// label_updated -> labeled
+		// label_updated -> labeled (when adding) or unlabeled (when removing)
 		// label_cleared -> unlabeled
 		// Unsupported activity types:
 		// converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued
 
-		action := prPayload.Action
-		switch action {
-		case api.HookIssueSynchronized:
-			action = "synchronize"
-		case api.HookIssueLabelUpdated:
-			action = "labeled"
-		case api.HookIssueLabelCleared:
-			action = "unlabeled"
-		}
-		log.Trace("matching pull_request %s with %v", action, vals)
+		actions := toActivityTypes(prPayload.Action, prPayload.Changes)
+		log.Trace("matching pull_request %v with %v", actions, vals)
 		for _, val := range vals {
-			if matchActivityType(val, string(action)) {
+			if matchActivityType(val, actions...) {
 				activityTypeMatched = true
 				matchTimes++
 				break
@@ -895,6 +873,28 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 }
 
 // matchActivityType treats an invalid user-provided pattern as no match instead of panicking
+// toActivityTypes converts an issue or pull request action into the GitHub Actions activity types it matches.
+// A label update can be both "labeled" and "unlabeled" when it adds and removes labels at once.
+func toActivityTypes(action api.HookIssueAction, changes *api.ChangesPayload) []string {
+	switch action {
+	case api.HookIssueSynchronized:
+		return []string{"synchronize"}
+	case api.HookIssueLabelUpdated:
+		var types []string
+		if len(changes.AddedLabels) > 0 {
+			types = append(types, "labeled")
+		}
+		if len(changes.RemovedLabels) > 0 {
+			types = append(types, "unlabeled")
+		}
+		return types
+	case api.HookIssueLabelCleared:
+		return []string{"unlabeled"}
+	default:
+		return []string{string(action)}
+	}
+}
+
 func matchActivityType(pattern string, actions ...string) bool {
 	g, err := glob.Compile(pattern, '/')
 	if err != nil {
