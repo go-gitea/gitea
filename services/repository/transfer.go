@@ -262,7 +262,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("GetOwnerActionsConfig: %w", err)
 	}
 
-	if err := actions_model.RemoveScopedWorkflowSource(ctx, oldOwner.ID, repo.ID); err != nil {
+	if err := actions_model.RemoveOwnerScopedWorkflowSources(ctx, repo.ID); err != nil {
 		return fmt.Errorf("transferOwnership: %w", err)
 	}
 

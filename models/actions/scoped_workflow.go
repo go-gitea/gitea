@@ -175,3 +175,9 @@ func RemoveScopedWorkflowSource(ctx context.Context, ownerID, repoID int64) erro
 	_, err := db.GetEngine(ctx).Where("owner_id = ? AND source_repo_id = ?", ownerID, repoID).Delete(new(ActionScopedWorkflowSource))
 	return err
 }
+
+// RemoveOwnerScopedWorkflowSources removes every owner-level registration of repoID, as only its current owner may hold one.
+func RemoveOwnerScopedWorkflowSources(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("owner_id <> 0 AND source_repo_id = ?", repoID).Delete(new(ActionScopedWorkflowSource))
+	return err
+}
