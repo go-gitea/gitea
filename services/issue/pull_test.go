@@ -95,3 +95,47 @@ func TestPullRequestCodeOwnersReview(t *testing.T) {
 		})
 	}
 }
+
+func TestPullRequestCodeOwnersReviewSkipsReviewersWithoutAccess(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	// PR in the private repo org3/repo3
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: 12})
+	require.NoError(t, pr.LoadIssue(t.Context()))
+	require.NoError(t, pr.LoadBaseRepo(t.Context()))
+	require.NoError(t, pr.Issue.LoadRepo(t.Context()))
+	require.True(t, pr.BaseRepo.IsPrivate)
+
+	member := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	outsider := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}) // no access to repo3
+	team := unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: 2})
+	teamWithoutRepo := unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: 12}) // org3 team without repo3
+
+	rules := []*issues_model.CodeOwnerRule{
+		{Users: []*user_model.User{member, outsider}, Teams: []*org_model.Team{team, teamWithoutRepo}},
+	}
+
+	ctx, committer, err := db.TxContext(t.Context())
+	require.NoError(t, err)
+	defer committer.Close()
+
+	notifiers, err := pullRequestCodeOwnersReview(ctx, pr, rules)
+	require.NoError(t, err)
+
+	var userIDs, teamIDs []int64
+	for _, notifier := range notifiers {
+		if notifier.Reviewer != nil {
+			userIDs = append(userIDs, notifier.Reviewer.ID)
+		} else {
+			teamIDs = append(teamIDs, notifier.ReviewTeam.ID)
+		}
+	}
+	assert.Equal(t, []int64{member.ID}, userIDs)
+	assert.Equal(t, []int64{team.ID}, teamIDs)
+	has, err := db.GetEngine(ctx).Exist(&issues_model.Review{IssueID: pr.IssueID, ReviewerID: outsider.ID})
+	require.NoError(t, err)
+	assert.False(t, has)
+	has, err = db.GetEngine(ctx).Exist(&issues_model.Review{IssueID: pr.IssueID, ReviewerTeamID: teamWithoutRepo.ID})
+	require.NoError(t, err)
+	assert.False(t, has)
+}
