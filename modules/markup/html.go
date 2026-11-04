@@ -153,8 +153,6 @@ func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content st
 		issueIndexPatternProcessor,
 		commitCrossReferencePatternProcessor,
 		hashCurrentPatternProcessor,
-		emojiShortCodeProcessor,
-		emojiProcessor,
 		linkProcessor,
 	}
 
@@ -175,6 +173,9 @@ func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content st
 		node.DataAtom = atom.A
 		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}, {Key: "class", Val: "muted title-full-link"}}
 		node.FirstChild, node.LastChild = ch, ch
+		for n := node.FirstChild; n != nil; {
+			n = visitNode(ctx, emojiProcessors, n)
+		}
 	})
 	rendered := postProcessHTML(ctx, procs, htmlutil.EscapeString(content))
 	return htmlutil.HTMLFormat(`<span class="title-full-link-hover">%s</span>`, rendered)

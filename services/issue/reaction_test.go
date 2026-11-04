@@ -36,15 +36,6 @@ func TestIssueAddReaction(t *testing.T) {
 	addReaction(t, user1, issue, nil, "heart")
 
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue.ID})
-}
-
-func TestIssueAddDuplicateReaction(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-
-	addReaction(t, user1, issue, nil, "heart")
 
 	reaction, err := CreateIssueReaction(t.Context(), user1, issue, "heart")
 	assert.Error(t, err)
@@ -52,17 +43,8 @@ func TestIssueAddDuplicateReaction(t *testing.T) {
 
 	existingR := unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue.ID})
 	assert.Equal(t, existingR.ID, reaction.ID)
-}
 
-func TestIssueDeleteReaction(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-
-	addReaction(t, user1, issue, nil, "heart")
-
-	err := issues_model.DeleteIssueReaction(t.Context(), user1.ID, issue.ID, "heart")
+	err = issues_model.DeleteIssueReaction(t.Context(), user1.ID, issue.ID, "heart")
 	assert.NoError(t, err)
 
 	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue.ID})
@@ -117,6 +99,9 @@ func TestIssueCommentAddReaction(t *testing.T) {
 	addReaction(t, user1, nil, comment, "heart")
 
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: comment.IssueID, CommentID: comment.ID})
+	assert.NoError(t, issues_model.DeleteCommentReaction(t.Context(), user1.ID, comment.IssueID, comment.ID, "heart"))
+
+	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: comment.IssueID, CommentID: comment.ID})
 }
 
 func TestIssueCommentDeleteReaction(t *testing.T) {
@@ -141,16 +126,4 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	reactions := reactionsList.GroupByType()
 	assert.Len(t, reactions["heart"], 3)
 	assert.Len(t, reactions["+1"], 1)
-}
-
-func TestIssueCommentReactionCount(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
-
-	addReaction(t, user1, nil, comment, "heart")
-	assert.NoError(t, issues_model.DeleteCommentReaction(t.Context(), user1.ID, comment.IssueID, comment.ID, "heart"))
-
-	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: comment.IssueID, CommentID: comment.ID})
 }

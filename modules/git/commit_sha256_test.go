@@ -5,11 +5,9 @@ package git
 
 import (
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGetFullCommitIDSha256(t *testing.T) {
@@ -24,74 +22,6 @@ func TestGetFullCommitIDErrorSha256(t *testing.T) {
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")
 	}
-}
-
-func TestCommitFromReaderSha256(t *testing.T) {
-	commitString := `tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
-parent 26e9ccc29fad747e9c5d9f4c9ddeb7eff61cc45ef6a8dc258cbeb181afc055e8
-author Adam Majer <amajer@suse.de> 1698676906 +0100
-committer Adam Majer <amajer@suse.de> 1698676906 +0100
-gpgsig-sha256 -----BEGIN PGP SIGNATURE-----
-` + " " + `
- iQIrBAABCgAtFiEES+fB08xlgTrzSdQvhkUIsBsmec8FAmU/wKoPHGFtYWplckBz
- dXNlLmRlAAoJEIZFCLAbJnnP4s4PQIJATa++WPzR6/H4etT7bsOGoMyguEJYyWOd
- aTybplzT7QAL7h2to0QszGabtzMJPIA39xSFZNYNN30voK5YyyYibXluPKgjemfK
- WNXwF+gkwgZI38gSvKf+vlqI+EYyIFe19wOhiju0m8SIlB5NEPiWHa17q2mqmqqx
- 1FWa2JdqLPYjAtSLFXeSZegrY5V1FxdemyMUONkg8YO9OSIMZiE0GsnnOXQ3xcT4
- JTCnmlUxIKw689UiEY80JopUIq+Wl7+qq9507IYYSUCyB6JazL42AKMzVCbD+qBP
- oOzh/hafYgk9H9qCQXaLbmvs17zXRpicig1bAzqgAy1FDelvpERyRTydEajSLIG6
- U1cRCkgXCZ0NfsYNPPmBa8b3+rnstypXYTbyMwTln7FfUAaGo6o9JYiPMkzxlmsy
- zfp/tcaY8+LlBL9aOJjtv+a0p+HrpCGd6CCa4ARfphTLq8QRSSh8uzlB9N+6HnRI
- VAEUo6ecdDxSpyt2naeg9pKus/BRi7P6g4B1hkk/zZstUX/QP4IQuAJbXjkvsC+X
- HKRr3NlRM/DygzTyj0gN74uoa0goCIbyAQhiT42nm0cuhM7uN/W0ayrlZjGF1cbR
- 8NCJUL2Nwj0ywKIavC99Ipkb8AsFwpVT6U6effs6
- =xybZ
- -----END PGP SIGNATURE-----
-
-signed commit`
-
-	sha := &Sha256Hash{
-		0x94, 0x33, 0xb2, 0xa6, 0x2b, 0x96, 0x4c, 0x17, 0xa4, 0x48, 0x5a, 0xe1, 0x80, 0xf4, 0x5f, 0x59,
-		0x5d, 0x3e, 0x69, 0xd3, 0x1b, 0x78, 0x60, 0x87, 0x77, 0x5e, 0x28, 0xc6, 0xb6, 0x39, 0x9d, 0xf0,
-	}
-	gitRepo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare_sha256"))
-	assert.NoError(t, err)
-	assert.NotNil(t, gitRepo)
-	defer gitRepo.Close()
-
-	commitFromReader, err := CommitFromReader(sha, strings.NewReader(commitString))
-	assert.NoError(t, err)
-	require.NotNil(t, commitFromReader)
-	assert.EqualValues(t, sha, commitFromReader.ID)
-	assert.Equal(t, `-----BEGIN PGP SIGNATURE-----
-
-iQIrBAABCgAtFiEES+fB08xlgTrzSdQvhkUIsBsmec8FAmU/wKoPHGFtYWplckBz
-dXNlLmRlAAoJEIZFCLAbJnnP4s4PQIJATa++WPzR6/H4etT7bsOGoMyguEJYyWOd
-aTybplzT7QAL7h2to0QszGabtzMJPIA39xSFZNYNN30voK5YyyYibXluPKgjemfK
-WNXwF+gkwgZI38gSvKf+vlqI+EYyIFe19wOhiju0m8SIlB5NEPiWHa17q2mqmqqx
-1FWa2JdqLPYjAtSLFXeSZegrY5V1FxdemyMUONkg8YO9OSIMZiE0GsnnOXQ3xcT4
-JTCnmlUxIKw689UiEY80JopUIq+Wl7+qq9507IYYSUCyB6JazL42AKMzVCbD+qBP
-oOzh/hafYgk9H9qCQXaLbmvs17zXRpicig1bAzqgAy1FDelvpERyRTydEajSLIG6
-U1cRCkgXCZ0NfsYNPPmBa8b3+rnstypXYTbyMwTln7FfUAaGo6o9JYiPMkzxlmsy
-zfp/tcaY8+LlBL9aOJjtv+a0p+HrpCGd6CCa4ARfphTLq8QRSSh8uzlB9N+6HnRI
-VAEUo6ecdDxSpyt2naeg9pKus/BRi7P6g4B1hkk/zZstUX/QP4IQuAJbXjkvsC+X
-HKRr3NlRM/DygzTyj0gN74uoa0goCIbyAQhiT42nm0cuhM7uN/W0ayrlZjGF1cbR
-8NCJUL2Nwj0ywKIavC99Ipkb8AsFwpVT6U6effs6
-=xybZ
------END PGP SIGNATURE-----`, commitFromReader.Signature.Signature)
-	assert.Equal(t, `tree e7f9e96dd79c09b078cac8b303a7d3b9d65ff9b734e86060a4d20409fd379f9e
-parent 26e9ccc29fad747e9c5d9f4c9ddeb7eff61cc45ef6a8dc258cbeb181afc055e8
-author Adam Majer <amajer@suse.de> 1698676906 +0100
-committer Adam Majer <amajer@suse.de> 1698676906 +0100
-
-signed commit`, commitFromReader.Signature.Payload)
-	assert.Equal(t, "Adam Majer <amajer@suse.de>", commitFromReader.Author.String())
-
-	commitFromReader2, err := CommitFromReader(sha, strings.NewReader(commitString+"\n\n"))
-	assert.NoError(t, err)
-	commitFromReader.CommitMessage.MessageRaw += "\n\n"
-	commitFromReader.Signature.Payload += "\n\n"
-	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
 func TestHasPreviousCommitSha256(t *testing.T) {

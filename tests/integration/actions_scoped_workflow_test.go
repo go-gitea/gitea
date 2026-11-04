@@ -239,6 +239,48 @@ jobs:
 				"both the web form and the API created a scoped dispatch run")
 		})
 
+		// protectAndOpenPR protects consumer's default branch and opens a PR on `branch`, returning a merge-request builder.
+		// When statusCheckEnabled it also configures "ci/manual" as the only CONFIGURED required context and satisfies it,
+		// so the scoped check is the only thing that can gate the merge; otherwise the rule's own status check stays off.
+		protectAndOpenPR := func(t *testing.T, consumer *repo_model.Repository, branch, filename string, statusCheckEnabled bool) (api.PullRequest, func() *RequestWrapper) {
+			pbValues := map[string]string{
+				"rule_name":                  consumer.DefaultBranch,
+				"enable_push":                "true",
+				"block_admin_merge_override": "true", // otherwise the repo owner bypasses the status check
+			}
+			if statusCheckEnabled {
+				pbValues["enable_status_check"] = "true"
+				pbValues["status_check_contexts"] = "ci/manual"
+			}
+			user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", consumer.OwnerName, consumer.Name), pbValues), http.StatusSeeOther)
+
+			prFile := &api.CreateFileOptions{
+				FileOptions: api.FileOptions{
+					BranchName: consumer.DefaultBranch, NewBranchName: branch, Message: "pr change",
+					Author:    api.Identity{Name: user2.Name, Email: user2.Email},
+					Committer: api.Identity{Name: user2.Name, Email: user2.Email},
+					Dates:     api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
+				},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("pr change")),
+			}
+			createWorkflowFile(t, user2Token, consumer.OwnerName, consumer.Name, filename, prFile)
+			apiCtx := NewAPITestContext(t, user2.Name, consumer.Name, auth_model.AccessTokenScopeWriteRepository)
+			pr, err := doAPICreatePullRequest(apiCtx, consumer.OwnerName, consumer.Name, consumer.DefaultBranch, branch)(t)
+			require.NoError(t, err)
+
+			if statusCheckEnabled {
+				// satisfy the configured "ci/manual" check so only the scoped check can gate the merge
+				manualStatus := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", consumer.OwnerName, consumer.Name, pr.Head.Sha),
+					api.CreateStatusOption{State: commitstatus.CommitStatusSuccess, Context: "ci/manual", TargetURL: "http://test.ci/"}).AddTokenAuth(user2Token)
+				user2Session.MakeRequest(t, manualStatus, http.StatusCreated)
+			}
+
+			return pr, func() *RequestWrapper {
+				return NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", consumer.OwnerName, consumer.Name, pr.Index),
+					&forms.MergePullRequestForm{Do: string(repo_model.MergeStyleMerge), MergeMessageField: "merge"}).AddTokenAuth(user2Token)
+			}
+		}
+
 		t.Run("Required scoped check gates the PR merge", func(t *testing.T) {
 			// A required scoped workflow's check gates PR merges on a protected branch and cannot be bypassed,
 			// whether or not the branch enables its own status check. The scoped check is added to the required set dynamically.
@@ -246,54 +288,12 @@ jobs:
 			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/pr.yaml", scopedPRWorkflow)
 			registerUserScopedSource(t, source, "pr.yaml") // required
 
-			// protectAndOpenPR protects consumer's default branch and opens a PR on `branch`, returning a merge-request builder.
-			// When statusCheckEnabled it also configures "ci/manual" as the only CONFIGURED required context and satisfies it,
-			// so the scoped check is the only thing that can gate the merge; otherwise the rule's own status check stays off.
-			protectAndOpenPR := func(t *testing.T, consumer *repo_model.Repository, branch string, statusCheckEnabled bool) func() *RequestWrapper {
-				pbValues := map[string]string{
-					"rule_name":                  consumer.DefaultBranch,
-					"enable_push":                "true",
-					"block_admin_merge_override": "true", // otherwise the repo owner bypasses the status check
-				}
-				if statusCheckEnabled {
-					pbValues["enable_status_check"] = "true"
-					pbValues["status_check_contexts"] = "ci/manual"
-				}
-				user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", consumer.OwnerName, consumer.Name), pbValues), http.StatusSeeOther)
-
-				prFile := &api.CreateFileOptions{
-					FileOptions: api.FileOptions{
-						BranchName: consumer.DefaultBranch, NewBranchName: branch, Message: "pr change",
-						Author:    api.Identity{Name: user2.Name, Email: user2.Email},
-						Committer: api.Identity{Name: user2.Name, Email: user2.Email},
-						Dates:     api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
-					},
-					ContentBase64: base64.StdEncoding.EncodeToString([]byte("pr change")),
-				}
-				createWorkflowFile(t, user2Token, consumer.OwnerName, consumer.Name, "pr-change.txt", prFile)
-				apiCtx := NewAPITestContext(t, user2.Name, consumer.Name, auth_model.AccessTokenScopeWriteRepository)
-				pr, err := doAPICreatePullRequest(apiCtx, consumer.OwnerName, consumer.Name, consumer.DefaultBranch, branch)(t)
-				require.NoError(t, err)
-
-				if statusCheckEnabled {
-					// satisfy the configured "ci/manual" check so only the scoped check can gate the merge
-					manualStatus := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", consumer.OwnerName, consumer.Name, pr.Head.Sha),
-						api.CreateStatusOption{State: commitstatus.CommitStatusSuccess, Context: "ci/manual", TargetURL: "http://test.ci/"}).AddTokenAuth(user2Token)
-					user2Session.MakeRequest(t, manualStatus, http.StatusCreated)
-				}
-
-				return func() *RequestWrapper {
-					return NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", consumer.OwnerName, consumer.Name, pr.Index),
-						&forms.MergePullRequestForm{Do: string(repo_model.MergeStyleMerge), MergeMessageField: "merge"}).AddTokenAuth(user2Token)
-				}
-			}
-
 			t.Run("pending blocks, success allows", func(t *testing.T) {
 				consumer := createTestRepo(t, "sw-gate-consumer", false)
 				runner := newMockRunner()
 				runner.registerAsRepoRunner(t, consumer.OwnerName, consumer.Name, "sw-gate-runner", []string{"ubuntu-latest"}, false)
 
-				mergeReq := protectAndOpenPR(t, consumer, "gate-pr", true)
+				_, mergeReq := protectAndOpenPR(t, consumer, "gate-pr", "pr-change.txt", true)
 				run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true})
 				assert.Equal(t, source.ID, run.WorkflowRepoID)
 
@@ -314,7 +314,7 @@ jobs:
 				consumer := createTestRepo(t, "sw-noact-consumer", false)
 				require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), consumer, nil, []unit_model.Type{unit_model.TypeActions}))
 
-				mergeReq := protectAndOpenPR(t, consumer, "noact-pr", true)
+				_, mergeReq := protectAndOpenPR(t, consumer, "noact-pr", "pr-change.txt", true)
 				assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true}),
 					"Actions disabled, so no scoped run is created")
 
@@ -329,7 +329,7 @@ jobs:
 				runner := newMockRunner()
 				runner.registerAsRepoRunner(t, consumer.OwnerName, consumer.Name, "sw-nocheck-runner", []string{"ubuntu-latest"}, false)
 
-				mergeReq := protectAndOpenPR(t, consumer, "nocheck-pr", false)
+				_, mergeReq := protectAndOpenPR(t, consumer, "nocheck-pr", "pr-change.txt", false)
 				unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true})
 
 				// pending scoped check blocks the merge despite the branch's own status check being off
@@ -365,26 +365,8 @@ jobs:
 
 			consumer := createTestRepo(t, "sw-filtered-consumer", false)
 			// Protect the default branch (its own status check stays off, so only the required scoped check gates the merge).
-			user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", consumer.OwnerName, consumer.Name), map[string]string{
-				"rule_name":                  consumer.DefaultBranch,
-				"enable_push":                "true",
-				"block_admin_merge_override": "true", // otherwise the repo owner bypasses the status check
-			}), http.StatusSeeOther)
-
 			// Open a PR that changes a file NOT matching the workflow's `paths: [src/**]`, so it is filtered out.
-			prFile := &api.CreateFileOptions{
-				FileOptions: api.FileOptions{
-					BranchName: consumer.DefaultBranch, NewBranchName: "filtered-pr", Message: "pr change",
-					Author:    api.Identity{Name: user2.Name, Email: user2.Email},
-					Committer: api.Identity{Name: user2.Name, Email: user2.Email},
-					Dates:     api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
-				},
-				ContentBase64: base64.StdEncoding.EncodeToString([]byte("pr change")),
-			}
-			createWorkflowFile(t, user2Token, consumer.OwnerName, consumer.Name, "docs.txt", prFile)
-			apiCtx := NewAPITestContext(t, user2.Name, consumer.Name, auth_model.AccessTokenScopeWriteRepository)
-			pr, err := doAPICreatePullRequest(apiCtx, consumer.OwnerName, consumer.Name, consumer.DefaultBranch, "filtered-pr")(t)
-			require.NoError(t, err)
+			pr, mergeReq := protectAndOpenPR(t, consumer, "filtered-pr", "docs.txt", false)
 
 			// Filtered: no scoped run is created, but a skipped commit status is posted on the PR head.
 			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true}), "filtered scoped workflow creates no run")
@@ -392,9 +374,7 @@ jobs:
 
 			// The skipped (success) status satisfies the required scoped check (prefixed with the source repo), so the merge is allowed.
 			assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
-			mergeReq := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", consumer.OwnerName, consumer.Name, pr.Index),
-				&forms.MergePullRequestForm{Do: string(repo_model.MergeStyleMerge), MergeMessageField: "merge"}).AddTokenAuth(user2Token)
-			user2Session.MakeRequest(t, mergeReq, http.StatusOK)
+			user2Session.MakeRequest(t, mergeReq(), http.StatusOK)
 		})
 
 		t.Run("Settings page required patterns", func(t *testing.T) {

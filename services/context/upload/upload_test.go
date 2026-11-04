@@ -21,174 +21,25 @@ func TestUpload(t *testing.T) {
 	kases := []struct {
 		data         []byte
 		fileName     string
-		allowedTypes string
+		allowedTypes []string
 		err          error
 	}{
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "dir/test.txt",
-			allowedTypes: "",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "../../../test.txt",
-			allowedTypes: "",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: ",",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "|",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "*/*",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "*/*,",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "*/*|",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "text/plain",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "dir/test.txt",
-			allowedTypes: "text/plain",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "/dir.txt/test.js",
-			allowedTypes: ".js",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: " text/plain ",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: ".txt",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: " .txt,.js",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: " .txt|.js",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "../../test.txt",
-			allowedTypes: " .txt|.js",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: " .txt ,.js ",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "text/plain, .txt",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "text/*",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "text/*,.js",
-			err:          nil,
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "text/**",
-			err:          ErrFileTypeForbidden{"text/plain; charset=utf-8"},
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: "application/x-gzip",
-			err:          ErrFileTypeForbidden{"text/plain; charset=utf-8"},
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: ".zip",
-			err:          ErrFileTypeForbidden{"text/plain; charset=utf-8"},
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: ".zip,.txtx",
-			err:          ErrFileTypeForbidden{"text/plain; charset=utf-8"},
-		},
-		{
-			data:         testContent,
-			fileName:     "test.txt",
-			allowedTypes: ".zip|.txtx",
-			err:          ErrFileTypeForbidden{"text/plain; charset=utf-8"},
-		},
-		{
-			data:         b.Bytes(),
-			fileName:     "test.txt",
-			allowedTypes: "application/x-gzip",
-			err:          nil,
-		},
+		{testContent, "test.txt", []string{""}, nil},
+		{testContent, "dir/test.txt", []string{""}, nil},
+		{testContent, "../../../test.txt", []string{""}, nil},
+		{testContent, "test.txt", []string{"", ",", "|", "*/*", "*/*,", "*/*|", "text/plain"}, nil},
+		{testContent, "dir/test.txt", []string{"text/plain"}, nil},
+		{testContent, "/dir.txt/test.js", []string{".js"}, nil},
+		{testContent, "test.txt", []string{" text/plain ", ".txt", " .txt,.js", " .txt|.js"}, nil},
+		{testContent, "../../test.txt", []string{" .txt|.js"}, nil},
+		{testContent, "test.txt", []string{" .txt ,.js ", "text/plain, .txt", "text/*", "text/*,.js"}, nil},
+		{testContent, "test.txt", []string{"text/**", "application/x-gzip", ".zip", ".zip,.txtx", ".zip|.txtx"}, ErrFileTypeForbidden{"text/plain; charset=utf-8"}},
+		{b.Bytes(), "test.txt", []string{"application/x-gzip"}, nil},
 	}
 
 	for _, kase := range kases {
-		assert.Equal(t, kase.err, Verify(kase.data, kase.fileName, kase.allowedTypes))
+		for _, allowedTypes := range kase.allowedTypes {
+			assert.Equal(t, kase.err, Verify(kase.data, kase.fileName, allowedTypes))
+		}
 	}
 }

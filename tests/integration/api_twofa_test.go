@@ -20,92 +20,92 @@ import (
 func TestAPITwoFactor(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 16})
+	t.Run("WebAuthn", func(t *testing.T) {
+		// user1 has no webauthn enrolled, he can request API with basic auth
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		unittest.AssertNotExistsBean(t, &auth_model.WebAuthnCredential{UserID: user1.ID})
+		req := NewRequest(t, "GET", "/api/v1/user")
+		req.SetBasicAuth(user1.Name, "password")
+		MakeRequest(t, req, http.StatusOK)
 
-	req := NewRequest(t, "GET", "/api/v1/user").
-		AddBasicAuth(user.Name)
-	MakeRequest(t, req, http.StatusOK)
+		// user1 has no webauthn enrolled, he can request git protocol with basic auth
+		req = NewRequest(t, "GET", "/user2/repo1/info/refs")
+		req.SetBasicAuth(user1.Name, "password")
+		MakeRequest(t, req, http.StatusOK)
 
-	otpKey, err := totp.Generate(totp.GenerateOpts{
-		SecretSize:  40,
-		Issuer:      "gitea-test",
-		AccountName: user.Name,
+		// user1 has no webauthn enrolled, he can request container package with basic auth
+		req = NewRequest(t, "GET", "/v2/token")
+		req.SetBasicAuth(user1.Name, "password")
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		type tokenResponse struct {
+			Token string `json:"token"`
+		}
+		tokenParsed := DecodeJSON(t, resp, &tokenResponse{})
+		assert.NotEmpty(t, tokenParsed.Token)
+
+		// user32 has webauthn enrolled, he can't request API with basic auth
+		user32 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 32})
+		unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{UserID: user32.ID})
+
+		req = NewRequest(t, "GET", "/api/v1/user")
+		req.SetBasicAuth(user32.Name, "notpassword")
+		resp = MakeRequest(t, req, http.StatusUnauthorized)
+
+		type userResponse struct {
+			Message string `json:"message"`
+		}
+		userParsed := DecodeJSON(t, resp, &userResponse{})
+		assert.Equal(t, "basic authorization is not allowed while WebAuthn enrolled", userParsed.Message)
+
+		// user32 has webauthn enrolled, he can't request git protocol with basic auth
+		req = NewRequest(t, "GET", "/user2/repo1/info/refs")
+		req.SetBasicAuth(user32.Name, "notpassword")
+		MakeRequest(t, req, http.StatusUnauthorized)
+
+		// user32 has webauthn enrolled, he can't request container package with basic auth
+		req = NewRequest(t, "GET", "/v2/token")
+		req.SetBasicAuth(user1.Name, "notpassword")
+		MakeRequest(t, req, http.StatusUnauthorized)
 	})
-	assert.NoError(t, err)
 
-	tfa := &auth_model.TwoFactor{
-		UID: user.ID,
-	}
-	assert.NoError(t, tfa.SetSecret(otpKey.Secret()))
+	t.Run("TOTP", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 16})
 
-	assert.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
+		req := NewRequest(t, "GET", "/api/v1/user").
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequest(t, "GET", "/api/v1/user").
-		AddBasicAuth(user.Name)
-	MakeRequest(t, req, http.StatusUnauthorized)
+		otpKey, err := totp.Generate(totp.GenerateOpts{
+			SecretSize:  40,
+			Issuer:      "gitea-test",
+			AccountName: user.Name,
+		})
+		assert.NoError(t, err)
 
-	passcode, err := totp.GenerateCode(otpKey.Secret(), time.Now())
-	assert.NoError(t, err)
+		tfa := &auth_model.TwoFactor{
+			UID: user.ID,
+		}
+		assert.NoError(t, tfa.SetSecret(otpKey.Secret()))
 
-	req = NewRequest(t, "GET", "/api/v1/user").
-		AddBasicAuth(user.Name)
-	req.Header.Set("X-Gitea-OTP", passcode)
-	MakeRequest(t, req, http.StatusOK)
+		assert.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
 
-	// the same passcode must not be replayable on the basic-auth surface (RFC 6238 single-use)
-	req = NewRequest(t, "GET", "/api/v1/user").
-		AddBasicAuth(user.Name)
-	req.Header.Set("X-Gitea-OTP", passcode)
-	MakeRequest(t, req, http.StatusUnauthorized)
-}
+		req = NewRequest(t, "GET", "/api/v1/user").
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusUnauthorized)
 
-func TestBasicAuthWithWebAuthn(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+		passcode, err := totp.GenerateCode(otpKey.Secret(), time.Now())
+		assert.NoError(t, err)
 
-	// user1 has no webauthn enrolled, he can request API with basic auth
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	unittest.AssertNotExistsBean(t, &auth_model.WebAuthnCredential{UserID: user1.ID})
-	req := NewRequest(t, "GET", "/api/v1/user")
-	req.SetBasicAuth(user1.Name, "password")
-	MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", "/api/v1/user").
+			AddBasicAuth(user.Name)
+		req.Header.Set("X-Gitea-OTP", passcode)
+		MakeRequest(t, req, http.StatusOK)
 
-	// user1 has no webauthn enrolled, he can request git protocol with basic auth
-	req = NewRequest(t, "GET", "/user2/repo1/info/refs")
-	req.SetBasicAuth(user1.Name, "password")
-	MakeRequest(t, req, http.StatusOK)
-
-	// user1 has no webauthn enrolled, he can request container package with basic auth
-	req = NewRequest(t, "GET", "/v2/token")
-	req.SetBasicAuth(user1.Name, "password")
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	type tokenResponse struct {
-		Token string `json:"token"`
-	}
-	tokenParsed := DecodeJSON(t, resp, &tokenResponse{})
-	assert.NotEmpty(t, tokenParsed.Token)
-
-	// user32 has webauthn enrolled, he can't request API with basic auth
-	user32 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 32})
-	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{UserID: user32.ID})
-
-	req = NewRequest(t, "GET", "/api/v1/user")
-	req.SetBasicAuth(user32.Name, "notpassword")
-	resp = MakeRequest(t, req, http.StatusUnauthorized)
-
-	type userResponse struct {
-		Message string `json:"message"`
-	}
-	userParsed := DecodeJSON(t, resp, &userResponse{})
-	assert.Equal(t, "basic authorization is not allowed while WebAuthn enrolled", userParsed.Message)
-
-	// user32 has webauthn enrolled, he can't request git protocol with basic auth
-	req = NewRequest(t, "GET", "/user2/repo1/info/refs")
-	req.SetBasicAuth(user32.Name, "notpassword")
-	MakeRequest(t, req, http.StatusUnauthorized)
-
-	// user32 has webauthn enrolled, he can't request container package with basic auth
-	req = NewRequest(t, "GET", "/v2/token")
-	req.SetBasicAuth(user1.Name, "notpassword")
-	MakeRequest(t, req, http.StatusUnauthorized)
+		// the same passcode must not be replayable on the basic-auth surface (RFC 6238 single-use)
+		req = NewRequest(t, "GET", "/api/v1/user").
+			AddBasicAuth(user.Name)
+		req.Header.Set("X-Gitea-OTP", passcode)
+		MakeRequest(t, req, http.StatusUnauthorized)
+	})
 }

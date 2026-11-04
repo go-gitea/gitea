@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/shared/issue"
+	project_shared "gitea.dev/routers/web/shared/project"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
@@ -29,9 +30,10 @@ import (
 )
 
 const (
-	tplProjects     templates.TplName = "org/projects/list"
-	tplProjectsNew  templates.TplName = "org/projects/new"
-	tplProjectsView templates.TplName = "org/projects/view"
+	tplProjects         templates.TplName = "org/projects/list"
+	tplProjectsNew      templates.TplName = "org/projects/new"
+	tplProjectsView     templates.TplName = "org/projects/view"
+	tplProjectWorkflows templates.TplName = "org/projects/workflows"
 )
 
 // Projects renders the home page of projects
@@ -365,25 +367,10 @@ func ViewProject(ctx *context.Context) {
 		ctx.Data["issuesAttachmentMap"] = issuesAttachmentMap
 	}
 
-	linkedPrsMap := make(map[int64][]*issues_model.Issue)
-	for _, issuesList := range issuesMap {
-		for _, issue := range issuesList {
-			var referencedIDs []int64
-			for _, comment := range issue.Comments {
-				if comment.RefIssueID != 0 && comment.RefIsPull {
-					referencedIDs = append(referencedIDs, comment.RefIssueID)
-				}
-			}
-
-			if len(referencedIDs) > 0 {
-				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-					IssueIDs: referencedIDs,
-					IsPull:   optional.Some(true),
-				}); err == nil {
-					linkedPrsMap[issue.ID] = linkedPrs
-				}
-			}
-		}
+	linkedPrsMap, err := project_service.LoadLinkedPullRequests(ctx, issuesMap, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("LoadLinkedPullRequests", err)
+		return
 	}
 
 	// TODO: Add option to filter also by repository specific labels
@@ -438,7 +425,8 @@ func ViewProject(ctx *context.Context) {
 			accessCond,
 		)
 		milestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-			RepoCond: repoCond,
+			RepoCond:  repoCond,
+			ProjectID: project.ID,
 		})
 		if err != nil {
 			ctx.ServerError("GetOrgMilestones", err)
@@ -475,4 +463,14 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
+}
+
+// ProjectWorkflows renders the workflows page of an owner-level project
+func ProjectWorkflows(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+	ctx.Data["PageIsViewProjects"] = true
+	project_shared.RenderWorkflows(ctx, canWriteProjects(ctx), tplProjectWorkflows)
 }

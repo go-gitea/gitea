@@ -52,124 +52,45 @@ func TestAddDeployKey(t *testing.T) {
 }
 
 func TestCollaborationPost(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadUser(t, ctx, 4)
-	contexttest.LoadRepo(t, ctx, 1)
+	for _, c := range []struct {
+		name, collaborator string
+		userID             int64
+	}{
+		{"AddCollaboratorTwice", "user4", 4},
+		{"InactiveUser", "user9", 9},
+		{"NonExistentUser", "user34", 0},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			assert.NoError(t, unittest.PrepareTestDatabase())
+			ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
+			contexttest.LoadUser(t, ctx, 2)
+			if c.userID != 0 {
+				contexttest.LoadUser(t, ctx, c.userID)
+			}
+			contexttest.LoadRepo(t, ctx, 1)
+			ctx.Req.Form.Set("collaborator", c.collaborator)
 
-	ctx.Req.Form.Set("collaborator", "user4")
+			owner := &user_model.User{LowerName: "user2", Type: user_model.UserTypeIndividual}
+			ctx.Repo = &context.Repository{Owner: owner}
+			if c.userID == 4 {
+				ctx.Repo.Repository = &repo_model.Repository{ID: 2, Owner: owner}
+			}
 
-	u := &user_model.User{
-		LowerName: "user2",
-		Type:      user_model.UserTypeIndividual,
+			CollaborationPost(ctx)
+			assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+
+			if c.userID == 4 {
+				exists, err := repo_model.IsCollaborator(ctx, ctx.Repo.Repository.ID, 4)
+				assert.NoError(t, err)
+				assert.True(t, exists)
+
+				// Try adding the same collaborator again
+				CollaborationPost(ctx)
+				assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+			}
+			assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+		})
 	}
-
-	re := &repo_model.Repository{
-		ID:    2,
-		Owner: u,
-	}
-
-	repo := &context.Repository{
-		Owner:      u,
-		Repository: re,
-	}
-
-	ctx.Repo = repo
-
-	CollaborationPost(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-
-	exists, err := repo_model.IsCollaborator(ctx, re.ID, 4)
-	assert.NoError(t, err)
-	assert.True(t, exists)
-}
-
-func TestCollaborationPost_InactiveUser(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadUser(t, ctx, 9)
-	contexttest.LoadRepo(t, ctx, 1)
-
-	ctx.Req.Form.Set("collaborator", "user9")
-
-	repo := &context.Repository{
-		Owner: &user_model.User{
-			LowerName: "user2",
-		},
-	}
-
-	ctx.Repo = repo
-
-	CollaborationPost(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
-}
-
-func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadUser(t, ctx, 4)
-	contexttest.LoadRepo(t, ctx, 1)
-
-	ctx.Req.Form.Set("collaborator", "user4")
-
-	u := &user_model.User{
-		LowerName: "user2",
-		Type:      user_model.UserTypeIndividual,
-	}
-
-	re := &repo_model.Repository{
-		ID:    2,
-		Owner: u,
-	}
-
-	repo := &context.Repository{
-		Owner:      u,
-		Repository: re,
-	}
-
-	ctx.Repo = repo
-
-	CollaborationPost(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-
-	exists, err := repo_model.IsCollaborator(ctx, re.ID, 4)
-	assert.NoError(t, err)
-	assert.True(t, exists)
-
-	// Try adding the same collaborator again
-	CollaborationPost(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
-}
-
-func TestCollaborationPost_NonExistentUser(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadRepo(t, ctx, 1)
-
-	ctx.Req.Form.Set("collaborator", "user34")
-
-	repo := &context.Repository{
-		Owner: &user_model.User{
-			LowerName: "user2",
-		},
-	}
-
-	ctx.Repo = repo
-
-	CollaborationPost(ctx)
-
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
 func TestAddTeamPost(t *testing.T) {

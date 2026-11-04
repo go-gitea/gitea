@@ -464,13 +464,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout)
 
-		_, _, err = gitcmd.NewCommand("branch", "unrelated").
-			AddDynamicArguments(commitSha).
-			WithRepo(repo1).
-			RunStdString(t.Context())
-		assert.NoError(t, err)
-
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "unrelated", "README.md", "Hello, World (Edited Once)\n")
 
 		// Use API to create a conflicting pr
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -481,13 +475,20 @@ func TestCantMergeUnrelated(t *testing.T) {
 		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusCreated)
 
+		assert.NoError(t, git.UpdateRef(t.Context(), repo1, git.BranchPrefix+"unrelated", commitSha))
+		session.MakeRequest(t, NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user1/repo1/pulls", &api.CreatePullRequestOption{
+			Head: "unrelated", Base: "base", Title: "create an unrelated pr",
+		}).AddTokenAuth(token), http.StatusUnprocessableEntity)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user1/repo1/compare/master..unrelated", map[string]string{"title": "create an unrelated pr"}), http.StatusBadRequest)
+
+		pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{RepoID: repo1.ID, Doer: user1, Branch: "unrelated"})
+
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
-			HeadRepoID: repo1.ID,
-			BaseRepoID: repo1.ID,
-			HeadBranch: "unrelated",
-			BaseBranch: "base",
-		})
+		var pr *issues_model.PullRequest
+		require.Eventually(t, func() bool {
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{HeadRepoID: repo1.ID, BaseRepoID: repo1.ID, HeadBranch: "unrelated", BaseBranch: "base"})
+			return !pr.IsChecking()
+		}, 5*time.Second, 20*time.Millisecond)
 		assert.True(t, pr.IsUnrelated())
 		resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user1/repo1/pulls/%d", pr.Index)), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)

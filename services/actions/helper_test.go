@@ -99,47 +99,30 @@ func TestPullRequestTargetBaseSHA(t *testing.T) {
 		return string(payload)
 	}
 
-	t.Run("pull_request_target with base SHA", func(t *testing.T) {
-		run := &actions_model.ActionRun{
-			Event:        webhook_module.HookEventPullRequest,
-			TriggerEvent: actions_module.GithubEventPullRequestTarget,
-			EventPayload: prPayload("base-sha"),
-		}
-		got, ok := pullRequestTargetBaseSHA(run)
-		assert.True(t, ok)
-		assert.Equal(t, "base-sha", got)
-	})
-
-	t.Run("non pull_request_target trigger", func(t *testing.T) {
-		run := &actions_model.ActionRun{
-			Event:        webhook_module.HookEventPullRequest,
-			TriggerEvent: actions_module.GithubEventPullRequest,
-			EventPayload: prPayload("base-sha"),
-		}
-		got, ok := pullRequestTargetBaseSHA(run)
-		assert.False(t, ok)
-		assert.Empty(t, got)
-	})
-
-	t.Run("missing base SHA", func(t *testing.T) {
-		run := &actions_model.ActionRun{
-			Event:        webhook_module.HookEventPullRequest,
-			TriggerEvent: actions_module.GithubEventPullRequestTarget,
-			EventPayload: prPayload(""),
-		}
-		got, ok := pullRequestTargetBaseSHA(run)
-		assert.False(t, ok)
-		assert.Empty(t, got)
-	})
-
-	t.Run("invalid payload", func(t *testing.T) {
-		run := &actions_model.ActionRun{
-			Event:        webhook_module.HookEventPullRequest,
-			TriggerEvent: actions_module.GithubEventPullRequestTarget,
-			EventPayload: "{",
-		}
-		got, ok := pullRequestTargetBaseSHA(run)
-		assert.False(t, ok)
-		assert.Empty(t, got)
-	})
+	for _, test := range []struct {
+		name         string
+		triggerEvent string
+		payload      string
+		wantSHA      string
+	}{
+		{"pull_request_target with base SHA", actions_module.GithubEventPullRequestTarget, prPayload("base-sha"), "base-sha"},
+		{"non pull_request_target trigger", actions_module.GithubEventPullRequest, prPayload("base-sha"), ""},
+		{"missing base SHA", actions_module.GithubEventPullRequestTarget, prPayload(""), ""},
+		{"invalid payload", actions_module.GithubEventPullRequestTarget, "{", ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, ok := pullRequestTargetBaseSHA(&actions_model.ActionRun{
+				Event:        webhook_module.HookEventPullRequest,
+				TriggerEvent: test.triggerEvent,
+				EventPayload: test.payload,
+			})
+			if test.wantSHA != "" {
+				assert.True(t, ok)
+				assert.Equal(t, test.wantSHA, got)
+			} else {
+				assert.False(t, ok)
+				assert.Empty(t, got)
+			}
+		})
+	}
 }

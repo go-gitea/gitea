@@ -47,10 +47,8 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReactionList"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -87,7 +85,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToUser(ctx, r.User, ctx.Doer),
+			User:     convert.ToAuthor(ctx, r.User, r.OriginalAuthor, ctx.Doer),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -131,10 +129,8 @@ func PostIssueCommentReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Reaction"
 	//   "201":
 	//     "$ref": "#/responses/Reaction"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.EditReactionOption](ctx)
 
@@ -174,10 +170,8 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.EditReactionOption](ctx)
 
@@ -266,10 +260,8 @@ func GetIssueReactions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReactionList"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
@@ -300,7 +292,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToUser(ctx, r.User, ctx.Doer),
+			User:     convert.ToAuthor(ctx, r.User, r.OriginalAuthor, ctx.Doer),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -345,10 +337,8 @@ func PostIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Reaction"
 	//   "201":
 	//     "$ref": "#/responses/Reaction"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.EditReactionOption](ctx)
 	changeIssueReaction(ctx, *form, true)
 }
@@ -386,10 +376,8 @@ func DeleteIssueReaction(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.EditReactionOption](ctx)
 	changeIssueReaction(ctx, *form, false)
 }

@@ -1084,5 +1084,6 @@
   "actions.runs.summary": "Yfirlit",
   "actions.workflow.scope_owner": "Eigandi",
   "actions.workflow.required": "Nauðsynlegt",
-  "actions.job_queue.filter_repo_no_select": "Öll hugbúnaðarsöfn"
+  "actions.job_queue.filter_repo_no_select": "Öll hugbúnaðarsöfn",
+  "projects.workflows.none": "Ekkert"
 }

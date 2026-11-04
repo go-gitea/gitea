@@ -5,7 +5,6 @@ package org
 
 import (
 	"net/http"
-	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
@@ -25,14 +24,7 @@ const tplOrgHome templates.TplName = "org/home"
 
 // Home show organization home page
 func Home(ctx *context.Context) {
-	uname := ctx.PathParam("username")
-
-	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
-		ctx.NotFound(nil)
-		return
-	}
-
-	ctx.SetPathParam("org", uname)
+	ctx.SetPathParam("org", ctx.PathParam("username"))
 	context.OrgAssignment(context.OrgAssignmentOptions{})(ctx)
 	if ctx.Written() {
 		return

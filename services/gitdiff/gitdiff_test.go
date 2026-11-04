@@ -269,27 +269,22 @@ index 0000000..6bb8f39
 		diffBuilder.WriteString("+line" + strconv.Itoa(i) + "\n")
 	}
 	diff = diffBuilder.String()
-	result, err := ParsePatch(t.Context(), 20, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
-	if err != nil {
-		t.Errorf("There should not be an error: %v", err)
+	checkLimits := func(maxLines, maxCharacters int, incomplete bool) {
+		result, err := ParsePatch(t.Context(), maxLines, maxCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
+		if err != nil {
+			t.Errorf("There should not be an error: %v", err)
+		}
+		if result.Files[0].IsIncomplete != incomplete {
+			if incomplete {
+				t.Errorf("Files should be incomplete! %v", result.Files[0])
+			} else {
+				t.Errorf("Files should not be incomplete! %v", result.Files[0])
+			}
+		}
 	}
-	if !result.Files[0].IsIncomplete {
-		t.Errorf("Files should be incomplete! %v", result.Files[0])
-	}
-	result, err = ParsePatch(t.Context(), 40, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
-	if err != nil {
-		t.Errorf("There should not be an error: %v", err)
-	}
-	if result.Files[0].IsIncomplete {
-		t.Errorf("Files should not be incomplete! %v", result.Files[0])
-	}
-	result, err = ParsePatch(t.Context(), 40, 5, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
-	if err != nil {
-		t.Errorf("There should not be an error: %v", err)
-	}
-	if result.Files[0].IsIncomplete {
-		t.Errorf("Files should not be incomplete! %v", result.Files[0])
-	}
+	checkLimits(20, setting.Git.MaxGitDiffLineCharacters, true)
+	checkLimits(40, setting.Git.MaxGitDiffLineCharacters, false)
+	checkLimits(40, 5, false)
 
 	// Test max characters
 	diff = `diff --git a/newfile2 b/newfile2
@@ -314,72 +309,24 @@ index 0000000..6bb8f39
 	diffBuilder.WriteString("+line" + strconv.Itoa(35) + "\n")
 	diff = diffBuilder.String()
 
-	result, err = ParsePatch(t.Context(), 20, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
-	if err != nil {
-		t.Errorf("There should not be an error: %v", err)
-	}
-	if !result.Files[0].IsIncomplete {
-		t.Errorf("Files should be incomplete! %v", result.Files[0])
-	}
-	result, err = ParsePatch(t.Context(), 40, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
-	if err != nil {
-		t.Errorf("There should not be an error: %v", err)
-	}
-	if result.Files[0].IsIncomplete {
-		t.Errorf("Files should not be incomplete! %v", result.Files[0])
-	}
+	checkLimits(20, 4096, true)
+	checkLimits(40, 4096, false)
 
-	diff = `diff --git "a/README.md" "b/README.md"
+	for _, header := range []string{
+		`diff --git "a/README.md" "b/README.md"
 --- a/README.md
-+++ b/README.md
-@@ -1,3 +1,6 @@
- # gitea-github-migrator
-+
-+ Build Status
-- Latest Release
- Docker Pulls
-+ cut off
-+ cut off`
-	_, err = ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
-	if err != nil {
-		t.Errorf("ParsePatch failed: %s", err)
-	}
-
-	diff2 := `diff --git "a/A \\ B" "b/A \\ B"
++++ b/README.md`,
+		`diff --git "a/A \\ B" "b/A \\ B"
 --- "a/A \\ B"
-+++ "b/A \\ B"
-@@ -1,3 +1,6 @@
- # gitea-github-migrator
-+
-+ Build Status
-- Latest Release
- Docker Pulls
-+ cut off
-+ cut off`
-	_, err = ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2))
-	if err != nil {
-		t.Errorf("ParsePatch failed: %s", err)
-	}
-
-	diff2a := `diff --git "a/A \\ B" b/A/B
++++ "b/A \\ B"`,
+		`diff --git "a/A \\ B" b/A/B
 --- "a/A \\ B"
-+++ b/A/B
-@@ -1,3 +1,6 @@
- # gitea-github-migrator
-+
-+ Build Status
-- Latest Release
- Docker Pulls
-+ cut off
-+ cut off`
-	_, err = ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a))
-	if err != nil {
-		t.Errorf("ParsePatch failed: %s", err)
-	}
-
-	diff3 := `diff --git a/README.md b/README.md
++++ b/A/B`,
+		`diff --git a/README.md b/README.md
 --- a/README.md
-+++ b/README.md
++++ b/README.md`,
+	} {
+		_, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(header+`
 @@ -1,3 +1,6 @@
  # gitea-github-migrator
 +
@@ -387,10 +334,10 @@ index 0000000..6bb8f39
 - Latest Release
  Docker Pulls
 + cut off
-+ cut off`
-	_, err = ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3))
-	if err != nil {
-		t.Errorf("ParsePatch failed: %s", err)
++ cut off`))
+		if err != nil {
+			t.Errorf("ParsePatch failed: %s", err)
+		}
 	}
 }
 
@@ -506,24 +453,21 @@ func setupDefaultDiff() *Diff {
 	}
 }
 
-func TestDiff_LoadCommentsNoOutdated(t *testing.T) {
+func TestDiff_LoadComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(t.Context(), issue, user, false))
-	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
-}
-
-func TestDiff_LoadCommentsWithOutdated(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(t.Context(), issue, user, true))
-	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 3)
+	for _, test := range []struct {
+		showOutdated bool
+		comments     int
+	}{{false, 2}, {true, 3}} {
+		t.Run(strconv.FormatBool(test.showOutdated), func(t *testing.T) {
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+			diff := setupDefaultDiff()
+			assert.NoError(t, diff.LoadComments(t.Context(), issue, user, test.showOutdated))
+			assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, test.comments)
+		})
+	}
 }
 
 func TestDiffLine_CanComment(t *testing.T) {
@@ -574,21 +518,9 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 }
 
 func TestNoCrashes(t *testing.T) {
-	type testcase struct {
-		gitdiff string
-	}
-
-	tests := []testcase{
-		{
-			gitdiff: "diff --git \n--- a\t\n",
-		},
-		{
-			gitdiff: "diff --git \"0\n",
-		},
-	}
-	for _, testcase := range tests {
+	for _, patch := range []string{"diff --git \n--- a\t\n", "diff --git \"0\n"} {
 		// It shouldn't crash, so don't care about the output.
-		ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff))
+		ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(patch))
 	}
 }
 
@@ -712,18 +644,15 @@ func TestGeneratePatchForUnchangedLineFromReader(t *testing.T) {
 func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 	tests := []struct {
 		name         string
-		line         *DiffLine
+		sectionInfo  *DiffLineSectionInfo
 		lineComments map[int64][]*issues_model.Comment
 		expected     []int64
 	}{
 		{
 			name: "comments in hidden range",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx: 10,
-					RightIdx:     20,
-				},
+			sectionInfo: &DiffLineSectionInfo{
+				LastRightIdx: 10,
+				RightIdx:     20,
 			},
 			lineComments: map[int64][]*issues_model.Comment{
 				15: {{ID: 100}, {ID: 101}},
@@ -733,12 +662,9 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 		},
 		{
 			name: "comments outside hidden range",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx: 10,
-					RightIdx:     20,
-				},
+			sectionInfo: &DiffLineSectionInfo{
+				LastRightIdx: 10,
+				RightIdx:     20,
 			},
 			lineComments: map[int64][]*issues_model.Comment{
 				5:  {{ID: 100}},
@@ -748,12 +674,9 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 		},
 		{
 			name: "negative line numbers (left side)",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx: 10,
-					RightIdx:     20,
-				},
+			sectionInfo: &DiffLineSectionInfo{
+				LastRightIdx: 10,
+				RightIdx:     20,
 			},
 			lineComments: map[int64][]*issues_model.Comment{
 				-15: {{ID: 100}}, // Left-side comment, should NOT be counted
@@ -763,13 +686,10 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 		},
 		{
 			name: "boundary conditions - normal expansion (both boundaries exclusive)",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:  10,
-					RightIdx:      20,
-					RightHunkSize: 5, // Normal case: next section has content
-				},
+			sectionInfo: &DiffLineSectionInfo{
+				LastRightIdx:  10,
+				RightIdx:      20,
+				RightHunkSize: 5, // Normal case: next section has content
 			},
 			lineComments: map[int64][]*issues_model.Comment{
 				10: {{ID: 100}}, // at LastRightIdx (visible line), should NOT be included
@@ -781,13 +701,10 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 		},
 		{
 			name: "boundary conditions - end of file expansion (RightIdx inclusive)",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:  54,
-					RightIdx:      70,
-					RightHunkSize: 0, // End of file: no more content after
-				},
+			sectionInfo: &DiffLineSectionInfo{
+				LastRightIdx:  54,
+				RightIdx:      70,
+				RightHunkSize: 0, // End of file: no more content after
 			},
 			lineComments: map[int64][]*issues_model.Comment{
 				54: {{ID: 54}}, // at LastRightIdx (visible line), should NOT be included
@@ -798,13 +715,10 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 		},
 		{
 			name: "real-world scenario - start of file with hunk",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:  0,  // No previous visible section
-					RightIdx:      26, // Line 26 is first visible line of hunk
-					RightHunkSize: 9,  // Normal hunk with content
-				},
+			sectionInfo: &DiffLineSectionInfo{
+				LastRightIdx:  0,  // No previous visible section
+				RightIdx:      26, // Line 26 is first visible line of hunk
+				RightHunkSize: 9,  // Normal hunk with content
 			},
 			lineComments: map[int64][]*issues_model.Comment{
 				1:  {{ID: 1}},  // Line 1 is hidden
@@ -818,8 +732,9 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			FillHiddenCommentIDsForDiffLine(tt.line, tt.lineComments)
-			assert.ElementsMatch(t, tt.expected, tt.line.SectionInfo.HiddenCommentIDs)
+			line := &DiffLine{Type: DiffLineSection, SectionInfo: tt.sectionInfo}
+			FillHiddenCommentIDsForDiffLine(line, tt.lineComments)
+			assert.ElementsMatch(t, tt.expected, line.SectionInfo.HiddenCommentIDs)
 		})
 	}
 }
@@ -827,7 +742,7 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 	tests := []struct {
 		name             string
-		line             *DiffLine
+		sectionInfo      *DiffLineSectionInfo
 		fileNameHash     string
 		data             *DiffBlobExcerptData
 		expectContains   []string
@@ -835,17 +750,14 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 	}{
 		{
 			name: "expand up button with hidden comments",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:     0,
-					RightIdx:         26,
-					LeftIdx:          26,
-					LastLeftIdx:      0,
-					LeftHunkSize:     0,
-					RightHunkSize:    0,
-					HiddenCommentIDs: []int64{100},
-				},
+			sectionInfo: &DiffLineSectionInfo{
+				LastRightIdx:     0,
+				RightIdx:         26,
+				LeftIdx:          26,
+				LastLeftIdx:      0,
+				LeftHunkSize:     0,
+				RightHunkSize:    0,
+				HiddenCommentIDs: []int64{100},
 			},
 			fileNameHash: "abc123",
 			data: &DiffBlobExcerptData{
@@ -862,17 +774,14 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 		},
 		{
 			name: "expand up and down buttons with pull request",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:     10,
-					RightIdx:         50,
-					LeftIdx:          10,
-					LastLeftIdx:      5,
-					LeftHunkSize:     5,
-					RightHunkSize:    5,
-					HiddenCommentIDs: []int64{200, 201},
-				},
+			sectionInfo: &DiffLineSectionInfo{
+				LastRightIdx:     10,
+				RightIdx:         50,
+				LeftIdx:          10,
+				LastLeftIdx:      5,
+				LeftHunkSize:     5,
+				RightHunkSize:    5,
+				HiddenCommentIDs: []int64{200, 201},
 			},
 			fileNameHash: "def456",
 			data: &DiffBlobExcerptData{
@@ -893,17 +802,14 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 		},
 		{
 			name: "no hidden comments",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:     10,
-					RightIdx:         20,
-					LeftIdx:          10,
-					LastLeftIdx:      5,
-					LeftHunkSize:     5,
-					RightHunkSize:    5,
-					HiddenCommentIDs: nil,
-				},
+			sectionInfo: &DiffLineSectionInfo{
+				LastRightIdx:     10,
+				RightIdx:         20,
+				LeftIdx:          10,
+				LastLeftIdx:      5,
+				LeftHunkSize:     5,
+				RightHunkSize:    5,
+				HiddenCommentIDs: nil,
 			},
 			fileNameHash: "ghi789",
 			data: &DiffBlobExcerptData{
@@ -921,7 +827,7 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.line.RenderBlobExcerptButtons(tt.fileNameHash, tt.data)
+			result := (&DiffLine{Type: DiffLineSection, SectionInfo: tt.sectionInfo}).RenderBlobExcerptButtons(tt.fileNameHash, tt.data)
 			resultStr := string(result)
 
 			for _, expected := range tt.expectContains {
@@ -1084,63 +990,33 @@ func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
 }
 
 func TestHighlightCodeLines(t *testing.T) {
+	highlightLines := func(name string, lines []*DiffLine, content string) map[int]template.HTML {
+		return highlightCodeLinesForDiffFile(&DiffFile{
+			Name:     name,
+			Sections: []*DiffSection{{Lines: lines}},
+		}, true, []byte(content))
+	}
 	t.Run("CharsetDetecting", func(t *testing.T) {
-		diffFile := &DiffFile{
-			Name: "a.c",
-			Sections: []*DiffSection{
-				{
-					Lines: []*DiffLine{{LeftIdx: 1}},
-				},
-			},
-		}
-		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("// abc\xcc def\xcd")) // ISO-8859-1 bytes
+		ret := highlightLines("a.c", []*DiffLine{{LeftIdx: 1}}, "// abc\xcc def\xcd") // ISO-8859-1 bytes
 		assert.Equal(t, "<span class=\"c1\">// abcÌ defÍ\n</span>", string(ret[0]))
 	})
 
 	t.Run("LeftLines", func(t *testing.T) {
-		diffFile := &DiffFile{
-			Name: "a.c",
-			Sections: []*DiffSection{
-				{
-					Lines: []*DiffLine{
-						{LeftIdx: 1},
-						{LeftIdx: 2},
-						{LeftIdx: 3},
-					},
-				},
-			},
-		}
 		const nl = "\n"
-		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\nb\n"))
+		ret := highlightLines("a.c", []*DiffLine{{LeftIdx: 1}, {LeftIdx: 2}, {LeftIdx: 3}}, "a\nb\n")
 		assert.Equal(t, map[int]template.HTML{
 			0: `<span class="n">a</span>` + nl,
 			1: `<span class="n">b</span>` + nl,
 		}, ret)
 	})
 	t.Run("CharCR", func(t *testing.T) {
-		diffFile := &DiffFile{
-			Name: "a.txt",
-			Sections: []*DiffSection{
-				{
-					Lines: []*DiffLine{{LeftIdx: 1}, {LeftIdx: 2}},
-				},
-			},
-		}
-		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\rb\r\nc"))
+		ret := highlightLines("a.txt", []*DiffLine{{LeftIdx: 1}, {LeftIdx: 2}}, "a\rb\r\nc")
 		assert.Equal(t, "a␍b\n", string(ret[0]))
 		assert.Equal(t, `c`, string(ret[1]))
 	})
 
 	t.Run("LongLineTruncated", func(t *testing.T) {
-		diffFile := &DiffFile{
-			Name: "a.c",
-			Sections: []*DiffSection{
-				{
-					Lines: []*DiffLine{{LeftIdx: 1, IsTruncated: true}},
-				},
-			},
-		}
-		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("// anything"))
+		ret := highlightLines("a.c", []*DiffLine{{LeftIdx: 1, IsTruncated: true}}, "// anything")
 		assert.Empty(t, ret)
 	})
 }

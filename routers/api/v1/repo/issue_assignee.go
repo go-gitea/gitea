@@ -53,14 +53,8 @@ func AddIssueAssignees(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	opts := web.GetForm[*api.IssueAssigneesOption](ctx)
 	updateIssueAssignees(ctx, *opts, true)
@@ -100,12 +94,8 @@ func DeleteIssueAssignees(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.IssueAssigneesOption](ctx)
 	updateIssueAssignees(ctx, *opts, false)
@@ -143,10 +133,8 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
@@ -198,7 +186,7 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 		return
 	}
 
-	assigneeIDs, err := user_model.GetDoerUserIDsByNames(ctx, opts.Assignees)
+	assigneeIDs, err := user_model.GetRealDoerUserIDsByNames(ctx, opts.Assignees)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())

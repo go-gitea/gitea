@@ -28,61 +28,51 @@ func TestAPIGitHooks(t *testing.T) {
 echo "TestGitHookScript"
 `
 
-	t.Run("ListGitHooks", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	// user1 is an admin user
+	adminSession := loginUser(t, "user1")
+	adminReadToken := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeReadRepository)
+	adminWriteToken := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeWriteRepository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo1.OwnerID})
+	ownerSession := loginUser(t, owner1.Name)
+	ownerReadToken := getTokenForLoggedInUser(t, ownerSession, auth_model.AccessTokenScopeReadRepository)
+	ownerWriteToken := getTokenForLoggedInUser(t, ownerSession, auth_model.AccessTokenScopeWriteRepository)
 
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 37})
-		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	for _, testCase := range []struct {
+		name   string
+		repoID int64
+	}{
+		{"ListGitHooks", 37},
+		{"NoGitHooks", 1},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		// user1 is an admin user
-		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-		apiGitHooks := DecodeJSON(t, resp, []*api.GitHook{})
-		assert.Len(t, apiGitHooks, 3)
-		for _, apiGitHook := range apiGitHooks {
-			if apiGitHook.Name == "pre-receive" {
-				assert.True(t, apiGitHook.IsActive)
-				assert.Equal(t, testHookContent, apiGitHook.Content)
-			} else {
-				assert.False(t, apiGitHook.IsActive)
-				assert.Empty(t, apiGitHook.Content)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: testCase.repoID})
+			owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
+				AddTokenAuth(adminReadToken)
+			resp := MakeRequest(t, req, http.StatusOK)
+			apiGitHooks := DecodeJSON(t, resp, []*api.GitHook{})
+			assert.Len(t, apiGitHooks, 3)
+			for _, apiGitHook := range apiGitHooks {
+				if testCase.repoID == 37 && apiGitHook.Name == "pre-receive" {
+					assert.True(t, apiGitHook.IsActive)
+					assert.Equal(t, testHookContent, apiGitHook.Content)
+				} else {
+					assert.False(t, apiGitHook.IsActive)
+					assert.Empty(t, apiGitHook.Content)
+				}
 			}
-		}
-	})
-
-	t.Run("NoGitHooks", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-		// user1 is an admin user
-		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-		apiGitHooks := DecodeJSON(t, resp, []*api.GitHook{})
-		assert.Len(t, apiGitHooks, 3)
-		for _, apiGitHook := range apiGitHooks {
-			assert.False(t, apiGitHook.IsActive)
-			assert.Empty(t, apiGitHook.Content)
-		}
-	})
+		})
+	}
 
 	t.Run("ListGitHooksNoAccess", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-		session := loginUser(t, owner.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
-			AddTokenAuth(token)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner1.Name, repo1.Name).
+			AddTokenAuth(ownerReadToken)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 
@@ -92,11 +82,8 @@ echo "TestGitHookScript"
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 37})
 		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-		// user1 is an admin user
-		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
-			AddTokenAuth(token)
+			AddTokenAuth(adminReadToken)
 		resp := MakeRequest(t, req, http.StatusOK)
 		apiGitHook := DecodeJSON(t, resp, &api.GitHook{})
 		assert.True(t, apiGitHook.IsActive)
@@ -105,13 +92,8 @@ echo "TestGitHookScript"
 	t.Run("GetGitHookNoAccess", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-		session := loginUser(t, owner.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
-			AddTokenAuth(token)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner1.Name, repo1.Name).
+			AddTokenAuth(ownerReadToken)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 
@@ -121,22 +103,18 @@ echo "TestGitHookScript"
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-		// user1 is an admin user
-		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive",
 			owner.Name, repo.Name)
 		req := NewRequestWithJSON(t, "PATCH", urlStr, &api.EditGitHookOption{
 			Content: testHookContent,
-		}).AddTokenAuth(token)
+		}).AddTokenAuth(adminWriteToken)
 		resp := MakeRequest(t, req, http.StatusOK)
 		apiGitHook := DecodeJSON(t, resp, &api.GitHook{})
 		assert.True(t, apiGitHook.IsActive)
 		assert.Equal(t, testHookContent, apiGitHook.Content)
 
 		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
-			AddTokenAuth(token)
+			AddTokenAuth(adminWriteToken)
 		resp = MakeRequest(t, req, http.StatusOK)
 		apiGitHook2 := DecodeJSON(t, resp, &api.GitHook{})
 		assert.True(t, apiGitHook2.IsActive)
@@ -146,15 +124,10 @@ echo "TestGitHookScript"
 	t.Run("EditGitHookNoAccess", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-		session := loginUser(t, owner.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive", owner1.Name, repo1.Name)
 		req := NewRequestWithJSON(t, "PATCH", urlStr, &api.EditGitHookOption{
 			Content: testHookContent,
-		}).AddTokenAuth(token)
+		}).AddTokenAuth(ownerWriteToken)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 
@@ -164,16 +137,12 @@ echo "TestGitHookScript"
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 37})
 		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-		// user1 is an admin user
-		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
 		req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
-			AddTokenAuth(token)
+			AddTokenAuth(adminWriteToken)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
-			AddTokenAuth(token)
+			AddTokenAuth(adminWriteToken)
 		resp := MakeRequest(t, req, http.StatusOK)
 		apiGitHook2 := DecodeJSON(t, resp, &api.GitHook{})
 		assert.False(t, apiGitHook2.IsActive)
@@ -183,13 +152,8 @@ echo "TestGitHookScript"
 	t.Run("DeleteGitHookNoAccess", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-		session := loginUser(t, owner.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
-			AddTokenAuth(token)
+		req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner1.Name, repo1.Name).
+			AddTokenAuth(ownerWriteToken)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 }

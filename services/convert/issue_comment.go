@@ -18,7 +18,7 @@ import (
 func ToAPIComment(ctx context.Context, repo *repo_model.Repository, c *issues_model.Comment) *api.Comment {
 	return &api.Comment{
 		ID:          c.ID,
-		Poster:      ToUser(ctx, c.Poster, nil),
+		Poster:      ToAuthor(ctx, c.Poster, c.OriginalAuthor, nil),
 		HTMLURL:     c.HTMLURL(ctx),
 		IssueURL:    c.IssueURL(ctx),
 		PRURL:       c.PRURL(ctx),
@@ -86,7 +86,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 	comment := &api.TimelineComment{
 		ID:       c.ID,
 		Type:     c.Type.String(),
-		Poster:   ToUser(ctx, c.Poster, nil),
+		Poster:   ToAuthor(ctx, c.Poster, c.OriginalAuthor, nil),
 		HTMLURL:  c.HTMLURL(ctx),
 		IssueURL: c.IssueURL(ctx),
 		PRURL:    c.PRURL(ctx),

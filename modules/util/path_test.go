@@ -159,33 +159,18 @@ func TestCleanPath(t *testing.T) {
 		{[]string{`a`}, `a`},
 		{[]string{`/a/`}, `a`},
 		{[]string{`../a/`, `../b`, `c/..`, `d`}, `a/b/d`},
-		{[]string{`a\..\b`}, `a\..\b`},
 		{[]string{`a`, ``, `b`}, `a/b`},
 		{[]string{`a`, `..`, `b`}, `a/b`},
 		{[]string{`lfs`, `repo/..`, `user/../path`}, `lfs/path`},
 	}
 	for _, c := range cases {
 		assert.Equal(t, c.expected, PathJoinRel(c.elems...), "case: %v", c.elems)
-	}
-
-	cases = []struct {
-		elems    []string
-		expected string
-	}{
-		{[]string{}, ``},
-		{[]string{``}, ``},
-		{[]string{`..`}, `.`},
-		{[]string{`a`}, `a`},
-		{[]string{`/a/`}, `a`},
-		{[]string{`../a/`, `../b`, `c/..`, `d`}, `a/b/d`},
-		{[]string{`a\..\b`}, `b`},
-		{[]string{`a`, ``, `b`}, `a/b`},
-		{[]string{`a`, `..`, `b`}, `a/b`},
-		{[]string{`lfs`, `repo/..`, `user/../path`}, `lfs/path`},
-	}
-	for _, c := range cases {
 		assert.Equal(t, c.expected, PathJoinRelX(c.elems...), "case: %v", c.elems)
 	}
+
+	backslashPath := []string{`a\..\b`}
+	assert.Equal(t, `a\..\b`, PathJoinRel(backslashPath...), "case: %v", backslashPath)
+	assert.Equal(t, `b`, PathJoinRelX(backslashPath...), "case: %v", backslashPath)
 
 	// for POSIX only, but the result is similar on Windows, because the first element must be an absolute path
 	if consts.IsWindows {

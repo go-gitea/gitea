@@ -51,8 +51,8 @@ func ListTags(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TagList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOpts := utils.GetListOptions(ctx)
 
@@ -97,10 +97,8 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AnnotatedTag"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
@@ -148,8 +146,8 @@ func GetTag(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Tag"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	tagName := ctx.PathParam("*")
 
 	tag, err := ctx.Repo.GitRepo.GetTag(ctx, tagName)
@@ -185,16 +183,8 @@ func CreateTag(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Tag"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "405":
-	//     "$ref": "#/responses/empty"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.CreateTagOption](ctx)
 
 	// If target is not provided use default branch
@@ -256,16 +246,8 @@ func DeleteTag(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "405":
-	//     "$ref": "#/responses/empty"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	tagName := ctx.PathParam("*")
 
 	tag, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
@@ -357,8 +339,8 @@ func GetTagProtection(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TagProtection"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo.Repository
 	id := ctx.PathParamInt64("id")
@@ -403,14 +385,8 @@ func CreateTagProtection(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/TagProtection"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.CreateTagProtectionOption](ctx)
 	repo := ctx.Repo.Repository
@@ -436,7 +412,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 	}
 
 	var whitelistUsers, whitelistTeams []int64
-	whitelistUsers, err = user_model.GetDoerUserIDsByNames(ctx, form.WhitelistUsernames)
+	whitelistUsers, err = user_model.GetDoerUserIDsByNamesWithSystem(ctx, form.WhitelistUsernames)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -515,12 +491,8 @@ func EditTagProtection(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TagProtection"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo.Repository
 	form := web.GetForm[*api.EditTagProtectionOption](ctx)
@@ -558,7 +530,7 @@ func EditTagProtection(ctx *context.APIContext) {
 	}
 
 	if form.WhitelistUsernames != nil {
-		whitelistUsers, err = user_model.GetDoerUserIDsByNames(ctx, form.WhitelistUsernames)
+		whitelistUsers, err = user_model.GetDoerUserIDsByNamesWithSystem(ctx, form.WhitelistUsernames)
 		if err != nil {
 			if errors.Is(err, util.ErrNotExist) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -616,8 +588,8 @@ func DeleteTagProtection(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo.Repository
 	id := ctx.PathParamInt64("id")

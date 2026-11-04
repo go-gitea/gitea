@@ -5,6 +5,7 @@ package issue
 
 import (
 	"context"
+	"slices"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -83,5 +84,42 @@ func ReplaceLabels(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	}
 
 	notify_service.IssueChangeLabels(ctx, doer, issue, labels, old)
+	return nil
+}
+
+func AddRemoveLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, toAdd, toRemove []*issues_model.Label) error {
+	oldLabels, err := issues_model.GetLabelsByIssueID(ctx, issue.ID)
+	if err != nil {
+		return err
+	}
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issues_model.NewIssueLabels(ctx, issue, toAdd, doer); err != nil {
+			return err
+		}
+		for _, label := range toRemove {
+			if err := issues_model.DeleteIssueLabel(ctx, issue, label, doer); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	var added, removed []*issues_model.Label
+	for _, label := range issue.Labels {
+		if !slices.ContainsFunc(oldLabels, func(old *issues_model.Label) bool { return old.ID == label.ID }) {
+			added = append(added, label)
+		}
+	}
+	for _, label := range oldLabels {
+		if !slices.ContainsFunc(issue.Labels, func(current *issues_model.Label) bool { return current.ID == label.ID }) {
+			removed = append(removed, label)
+		}
+	}
+	if len(added) > 0 || len(removed) > 0 {
+		notify_service.IssueChangeLabels(ctx, doer, issue, added, removed)
+	}
 	return nil
 }

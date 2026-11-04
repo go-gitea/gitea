@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -43,6 +44,7 @@ type GiteaLocalUploader struct {
 	doer           *user_model.User
 	repoOwner      string
 	repoName       string
+	cloneURL       string // clone address of the source, may carry credentials
 	repo           *repo_model.Repository
 	labels         map[string]*issues_model.Label
 	milestones     map[string]int64
@@ -118,6 +120,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	r.Description = repo.Description
 	r.Website = repo.Website
 
+	g.cloneURL = repo.CloneURL
 	r, err = repo_service.MigrateRepositoryGitData(ctx, owner, r, base.MigrateOptions{
 		RepoName:       g.repoName,
 		Description:    repo.Description,
@@ -131,7 +134,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 		Wiki:           opts.Wiki,
 		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
 		MirrorInterval: opts.MirrorInterval,
-	}, NewMigrationHTTPTransport())
+	}, getMigrationHTTPClient().Transport)
 
 	g.sameApp = strings.HasPrefix(repo.OriginalURL, setting.AppURL)
 	g.repo = r
@@ -237,13 +240,15 @@ func (g *GiteaLocalUploader) CreateLabels(ctx context.Context, labels ...*base.L
 			l.Color = color
 		}
 
-		lbs = append(lbs, &issues_model.Label{
+		lb := &issues_model.Label{
 			RepoID:      g.repo.ID,
 			Name:        l.Name,
 			Exclusive:   l.Exclusive,
 			Description: l.Description,
 			Color:       l.Color,
-		})
+		}
+		lb.SetArchived(l.Archived)
+		lbs = append(lbs, lb)
 	}
 
 	err := issues_model.NewLabels(ctx, lbs...)
@@ -332,32 +337,29 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 
 			// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
 			// ... we must assume that they are safe and simply download the attachment
-			err := func() error {
+			var rc io.ReadCloser
+			var err error
+			if asset.DownloadFunc != nil {
+				rc, err = asset.DownloadFunc()
+			} else if asset.DownloadURL != nil {
 				// asset.DownloadURL maybe a local file
-				var rc io.ReadCloser
-				var err error
-				if asset.DownloadFunc != nil {
-					rc, err = asset.DownloadFunc()
-					if err != nil {
-						return err
-					}
-				} else if asset.DownloadURL != nil {
-					// use the migration client so the fetch (including any redirect) is
-					// validated against the migration host allow/block list
-					rc, err = uri.OpenWithClient(*asset.DownloadURL, getMigrationHTTPClient())
-					if err != nil {
-						return err
-					}
-				}
-				if rc == nil {
-					return nil
-				}
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
-				rc.Close()
-				return err
-			}()
+				// use the migration client so the fetch (including any redirect) is
+				// validated against the migration host allow/block list
+				rc, err = uri.OpenWithClient(*asset.DownloadURL, getMigrationHTTPClient())
+			}
 			if err != nil {
-				return err
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				WarnAndNotice("Skipped asset %s of release %s: %v", asset.Name, release.TagName, err)
+				continue
+			}
+			if rc != nil {
+				attach.Size, err = storage.Attachments.Save(attach.RelativePath(), rc, util.Iif(*asset.Size > 0, int64(*asset.Size), -1)) // GitLab links and Forgejo external links report no size
+				rc.Close()
+				if err != nil {
+					return fmt.Errorf("release %s asset %s: %w", release.TagName, asset.Name, err)
+				}
 			}
 
 			rel.Attachments = append(rel.Attachments, &attach)
@@ -506,17 +508,40 @@ func (g *GiteaLocalUploader) CreateComments(ctx context.Context, comments ...*ba
 			}
 		case issues_model.CommentTypeChangeTitle:
 			if comment.Meta["OldTitle"] != nil {
-				cm.OldTitle = fmt.Sprint(comment.Meta["OldTitle"])
+				cm.OldTitle = util.TruncateRunes(fmt.Sprint(comment.Meta["OldTitle"]), 255)
 			}
 			if comment.Meta["NewTitle"] != nil {
-				cm.NewTitle = fmt.Sprint(comment.Meta["NewTitle"])
+				cm.NewTitle = util.TruncateRunes(fmt.Sprint(comment.Meta["NewTitle"]), 255)
 			}
 		case issues_model.CommentTypeChangeTargetBranch:
 			if comment.Meta["OldRef"] != nil && comment.Meta["NewRef"] != nil {
-				cm.OldRef = fmt.Sprint(comment.Meta["OldRef"])
-				cm.NewRef = fmt.Sprint(comment.Meta["NewRef"])
+				cm.OldRef = util.TruncateRunes(fmt.Sprint(comment.Meta["OldRef"]), 255)
+				cm.NewRef = util.TruncateRunes(fmt.Sprint(comment.Meta["NewRef"]), 255)
 				cm.Content = ""
 			}
+		case issues_model.CommentTypeLabel:
+			if name, ok := comment.Meta["LabelName"].(string); ok {
+				if label, ok := g.labels[name]; ok {
+					cm.LabelID = label.ID
+				}
+			}
+			if cm.LabelID == 0 {
+				continue // label_id 0 renders nothing and gitea doctor deletes it
+			}
+		case issues_model.CommentTypeMilestone:
+			if title, ok := comment.Meta["MilestoneTitle"].(string); ok {
+				if removed, _ := comment.Meta["Removed"].(bool); removed {
+					cm.OldMilestoneID = g.milestones[title]
+				} else {
+					cm.MilestoneID = g.milestones[title]
+				}
+			}
+			if cm.MilestoneID == 0 && cm.OldMilestoneID == 0 {
+				continue
+			}
+		case issues_model.CommentTypeDeleteBranch:
+			cm.OldRef = util.TruncateRunes(comment.Content, 255)
+			cm.Content = ""
 		case issues_model.CommentTypeMergePull:
 			cm.Content = ""
 		case issues_model.CommentTypePRScheduledToAutoMerge, issues_model.CommentTypePRUnScheduledToAutoMerge:
@@ -574,6 +599,29 @@ func (g *GiteaLocalUploader) CreatePullRequests(ctx context.Context, prs ...*bas
 	return nil
 }
 
+func (g *GiteaLocalUploader) commitExists(ctx context.Context, sha string) bool {
+	_, _, err := gitcmd.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(sha).WithRepo(g.repo).RunStdString(ctx)
+	return err == nil
+}
+
+// fetchCommit tries to get a missing head commit of a closed pull request by its SHA from the head repository,
+// e.g. a squash-merged pull request whose source branch is gone and which the host does not expose as a ref
+func (g *GiteaLocalUploader) fetchCommit(ctx context.Context, pr *base.PullRequest) bool {
+	remote := pr.Head.CloneURL
+	if !pr.IsForkPullRequest() && g.cloneURL != "" {
+		remote = g.cloneURL // the source repository itself, with the migration credentials
+	}
+	if remote == "" {
+		return false
+	}
+	_, _, err := gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, pr.Head.SHA).WithRepo(g.repo).RunStdString(ctx)
+	if err != nil {
+		log.Warn("PR #%d fetching head commit %s failed: %v", pr.Number, pr.Head.SHA, util.SanitizeCredentialURLs(err.Error()))
+		return false
+	}
+	return g.commitExists(ctx, pr.Head.SHA)
+}
+
 func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *base.PullRequest) (head string, err error) {
 	// SECURITY: this pr must have been must have been ensured safe
 	if !pr.EnsuredSafe {
@@ -582,7 +630,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 	}
 
 	// Anonymous function to download the patch file (allows us to use defer)
-	err = func() error {
+	if err := func() error {
 		// if the patchURL is empty there is nothing to download
 		if pr.PatchURL == "" {
 			return nil
@@ -608,9 +656,8 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		_, err = io.Copy(f, ret)
 
 		return err
-	}()
-	if err != nil {
-		return "", err
+	}(); err != nil { // the patch is only a fallback for a missing head ref
+		log.Warn("PR #%d in %s/%s: unable to download patch: %v", pr.Number, g.repoOwner, g.repoName, err)
 	}
 
 	head = "unknown repository"
@@ -623,10 +670,14 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 			return head, nil
 		}
 
+		// ... the head commit may already be in the repository (e.g. fetched by the mirror clone as a hidden
+		// pull request ref), then no remote is needed and a private fork does not need credentials either
+		headIsLocal := pr.Head.SHA != "" && g.commitExists(ctx, pr.Head.SHA)
+
 		// 3. We need to create a remote for this clone url
 		// ... maybe we already have a name for this remote
 		remote, ok := g.prHeadCache[pr.Head.CloneURL+":"]
-		if !ok {
+		if !ok && !headIsLocal {
 			// ... let's try ownername as a reasonable name
 			remote = pr.Head.OwnerName
 			if !git.IsValidRefPattern(remote) {
@@ -634,16 +685,11 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 			}
 			// ... now add the remote
-			err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true)
-			if err != nil {
+			if err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true); err != nil {
 				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
-			} else {
-				g.prHeadCache[pr.Head.CloneURL+":"] = remote
-				ok = true
+				return head, nil
 			}
-		}
-		if !ok {
-			return head, nil
+			g.prHeadCache[pr.Head.CloneURL+":"] = remote
 		}
 
 		// 4. Check if we already have this ref?
@@ -667,15 +713,22 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				}
 			}
 
-			fetchArg := pr.Head.Ref + ":" + git.BranchPrefix + localRef
-			if strings.HasPrefix(fetchArg, "-") {
-				fetchArg = git.BranchPrefix + fetchArg
-			}
+			if headIsLocal {
+				if err = git.UpdateRef(ctx, g.repo, git.BranchPrefix+localRef, pr.Head.SHA); err != nil {
+					log.Error("Creating branch %s for PR #%d in %s/%s failed: %v", localRef, pr.Number, g.repoOwner, g.repoName, err)
+					return head, nil
+				}
+			} else {
+				fetchArg := pr.Head.Ref + ":" + git.BranchPrefix + localRef
+				if strings.HasPrefix(fetchArg, "-") {
+					fetchArg = git.BranchPrefix + fetchArg
+				}
 
-			_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithRepo(g.repo).RunStdString(ctx)
-			if err != nil {
-				log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
-				return head, nil
+				_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithRepo(g.repo).RunStdString(ctx)
+				if err != nil {
+					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+					return head, nil
+				}
 			}
 			g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
 			head = localRef
@@ -706,18 +759,11 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 	if pr.Head.SHA == "" {
 		// The SHA is empty
 		log.Warn("Empty reference, no pull head for PR #%d in %s/%s", pr.Number, g.repoOwner, g.repoName)
-	} else {
-		_, _, err = gitcmd.NewCommand("rev-list", "--quiet", "-1").
-			AddDynamicArguments(pr.Head.SHA).WithRepo(g.repo).RunStdString(ctx)
-		if err != nil {
-			// Git update-ref remove bad references with a relative path
-			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
-		} else {
-			// set head information
-			if err = git.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
-				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
-			}
-		}
+	} else if !g.commitExists(ctx, pr.Head.SHA) && !g.fetchCommit(ctx, pr) {
+		// Git update-ref remove bad references with a relative path
+		log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
+	} else if err = git.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
+		log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 	}
 
 	return head, nil
@@ -848,6 +894,7 @@ func convertReviewState(state string) issues_model.ReviewType {
 // CreateReviews create pull request reviews of currently migrated issues
 func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base.Review) error {
 	cms := make([]*issues_model.Review, 0, len(reviews))
+	var fallbackComments []*issues_model.Comment
 	for _, review := range reviews {
 		var issue *issues_model.Issue
 		issue, ok := g.issues[review.IssueIndex]
@@ -863,6 +910,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			IssueID:     issue.ID,
 			Content:     review.Content,
 			Official:    review.Official,
+			Dismissed:   review.Dismissed,
 			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 		}
@@ -883,15 +931,33 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			}
 			g.prCache[issue.ID] = pr
 		}
+		headCommitID := ""
 		if pr.MergeBase == "" {
-			// No mergebase -> no basis for any patches
-			log.Warn("PR #%d in %s/%s: does not have a merge base, all review comments will be ignored", pr.Index, g.repoOwner, g.repoName)
-			continue
+			log.Warn("PR #%d in %s/%s: does not have a merge base, review comments will be added as plain comments", pr.Index, g.repoOwner, g.repoName)
+		} else if id, err := g.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName()); err != nil {
+			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, review comments will be added as plain comments", pr.Index, pr.GetGitHeadRefName(), g.repoOwner, g.repoName, err)
+		} else {
+			headCommitID = id
 		}
 
-		headCommitID, err := g.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
-		if err != nil {
-			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, all review comments will be ignored", pr.Index, pr.GetGitHeadRefName(), g.repoOwner, g.repoName, err)
+		if headCommitID == "" {
+			// without a diff to anchor to, keep the text as plain comments instead of an empty review
+			for _, comment := range review.Comments {
+				c := issues_model.Comment{
+					Type:        issues_model.CommentTypeComment,
+					IssueID:     issue.ID,
+					Content:     fmt.Sprintf("Comment on `%s` line %d:\n\n%s", util.PathJoinRel(comment.TreePath), max(comment.Line, -comment.Line), comment.Content),
+					CreatedUnix: timeutil.TimeStamp(cmp.Or(comment.CreatedAt, review.CreatedAt).Unix()),
+					UpdatedUnix: timeutil.TimeStamp(cmp.Or(comment.UpdatedAt, comment.CreatedAt, review.CreatedAt).Unix()),
+				}
+				if err := g.remapUser(ctx, review, &c); err != nil {
+					return err
+				}
+				fallbackComments = append(fallbackComments, &c)
+			}
+			if len(review.Comments) > 0 && cm.Type == issues_model.ReviewTypeComment && cm.Content == "" {
+				cms = cms[:len(cms)-1]
+			}
 			continue
 		}
 
@@ -933,6 +999,10 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 				UpdatedUnix: timeutil.TimeStamp(comment.UpdatedAt.Unix()),
 			}
 
+			if comment.Resolved {
+				c.ResolveDoerID = g.doer.ID // the original resolver is unknown to the migration data
+			}
+
 			if err := g.remapUser(ctx, review, &c); err != nil {
 				return err
 			}
@@ -941,7 +1011,10 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 		}
 	}
 
-	return issues_model.InsertReviews(ctx, cms)
+	if err := issues_model.InsertReviews(ctx, cms); err != nil {
+		return err
+	}
+	return issues_model.InsertIssueComments(ctx, fallbackComments)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.

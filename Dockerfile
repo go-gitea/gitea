@@ -8,8 +8,8 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --froze
 COPY --exclude=.git/ . .
 RUN make frontend
 
-# Build backend for each target platform
-FROM docker.io/library/golang:1.27-alpine3.24 AS build-env
+# Cross-compile backend on the native platform to avoid slow QEMU emulation
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27-alpine3.24 AS build-env
 
 ARG GITEA_VERSION
 ARG TAGS=""
@@ -28,11 +28,15 @@ RUN go mod download
 # ".git" directory is mounted separately later only for version data extraction.
 COPY --exclude=.git/ . .
 COPY --from=frontend-build /src/public/assets public/assets
+RUN --mount=type=cache,target="/root/.cache/go-build" make generate-backend
 
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
 # Build gitea, .git mount is required for version data
 RUN --mount=type=cache,target="/root/.cache/go-build" \
     --mount=type=bind,source=".git/",target=".git/" \
-    make backend
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} make gitea
 
 COPY docker/root /tmp/local
 

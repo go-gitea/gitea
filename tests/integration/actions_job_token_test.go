@@ -183,103 +183,210 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 				})
 			})
 		}
-	})
-}
 
-func TestActionsCrossRepoAccess(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
+		t.Run("CrossRepoAccess", func(t *testing.T) {
+			session := loginUser(t, "user2")
+			token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
 
-		// 1. Create Organization
-		orgName := "org-cross-test"
-		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &structs.CreateOrgOption{
-			UserName: orgName,
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		owner, err := org_model.GetOrgByName(t.Context(), orgName)
-		require.NoError(t, err)
-
-		// 2. Create Two Repositories in owner
-		createRepoInOrg := func(name string) int64 {
-			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName), &structs.CreateRepoOption{
-				Name:     name,
-				AutoInit: true,
-			}).AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusCreated)
-			repo := DecodeJSON(t, resp, &structs.Repository{})
-			return repo.ID
-		}
-
-		repoAID := createRepoInOrg("repo-A")
-		repoBID := createRepoInOrg("repo-B")
-
-		// 3. Enable Actions in Repo A (Source) and Repo B (Target)
-		enableActions := func(repoID int64) {
-			err := db.Insert(t.Context(), &repo_model.RepoUnit{
-				RepoID: repoID,
-				Type:   unit_model.TypeActions,
-				Config: &repo_model.ActionsConfig{
-					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
-				},
-			})
-			require.NoError(t, err)
-		}
-
-		enableActions(repoAID)
-		enableActions(repoBID)
-
-		// 4. Create Task in Repo A, and use A's token to access B
-		taskA := createActionTask(t, repoAID, false)
-		testCtxA := APITestContext{
-			Session:  emptyTestSession(t),
-			Token:    taskA.Token,
-			Username: orgName,
-			Reponame: "repo-B",
-		}
-
-		testCtxA.ExpectedCode = http.StatusOK
-		t.Run("PublicCrossRepoAccess", doAPIGetRepository(testCtxA, func(t *testing.T, r structs.Repository) {
-			assert.Equal(t, "repo-B", r.Name)
-		}))
-
-		// make repo-B be private
-		req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org-cross-test/repo-B", &structs.EditRepoOption{Private: new(true)}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
-
-		testCtxA.ExpectedCode = http.StatusNotFound
-		t.Run("NoPrivateCrossRepoAccess", doAPIGetRepository(testCtxA, nil))
-
-		ownerActionsCfg := actions_model.OwnerActionsConfig{AllowedCrossRepoIDs: []int64{repoBID}}
-		require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), owner.ID, ownerActionsCfg))
-
-		testCtxA.ExpectedCode = http.StatusOK
-		t.Run("AccessToSelectedPrivateRepo", doAPIGetRepository(testCtxA, func(t *testing.T, r structs.Repository) {
-			assert.Equal(t, "repo-B", r.Name)
-		}))
-
-		t.Run("RepoTransfer", func(t *testing.T) {
-			ownerActionsCfg, err := actions_model.GetOwnerActionsConfig(t.Context(), owner.ID)
-			require.NoError(t, err)
-			assert.Contains(t, ownerActionsCfg.AllowedCrossRepoIDs, repoBID)
-
-			// Transfer Repository to user4
-			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/repo-B/transfer", orgName), &structs.TransferRepoOption{
-				NewOwner: "user4",
+			// 1. Create Organization
+			orgName := "org-cross-test"
+			req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &structs.CreateOrgOption{
+				UserName: orgName,
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusCreated)
 
-			// Accept transfer as user4
-			session4 := loginUser(t, "user4")
-			token4 := getTokenForLoggedInUser(t, session4, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-			req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/repo-B/transfer/accept", orgName)).AddTokenAuth(token4)
-			MakeRequest(t, req, http.StatusAccepted)
-
-			// Verify it is removed from the org's config
-			ownerActionsCfg, err = actions_model.GetOwnerActionsConfig(t.Context(), owner.ID)
+			owner, err := org_model.GetOrgByName(t.Context(), orgName)
 			require.NoError(t, err)
-			assert.NotContains(t, ownerActionsCfg.AllowedCrossRepoIDs, repoBID)
+
+			// 2. Create Two Repositories in owner
+			createRepoInOrg := func(name string) int64 {
+				req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName), &structs.CreateRepoOption{
+					Name:     name,
+					AutoInit: true,
+				}).AddTokenAuth(token)
+				resp := MakeRequest(t, req, http.StatusCreated)
+				repo := DecodeJSON(t, resp, &structs.Repository{})
+				return repo.ID
+			}
+
+			repoAID := createRepoInOrg("repo-A")
+			repoBID := createRepoInOrg("repo-B")
+
+			// 3. Enable Actions in Repo A (Source) and Repo B (Target)
+			enableActions := func(repoID int64) {
+				err := db.Insert(t.Context(), &repo_model.RepoUnit{
+					RepoID: repoID,
+					Type:   unit_model.TypeActions,
+					Config: &repo_model.ActionsConfig{
+						TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
+					},
+				})
+				require.NoError(t, err)
+			}
+
+			enableActions(repoAID)
+			enableActions(repoBID)
+
+			// 4. Create Task in Repo A, and use A's token to access B
+			taskA := createActionTask(t, repoAID, false)
+			testCtxA := APITestContext{
+				Session:  emptyTestSession(t),
+				Token:    taskA.Token,
+				Username: orgName,
+				Reponame: "repo-B",
+			}
+
+			testCtxA.ExpectedCode = http.StatusOK
+			t.Run("PublicCrossRepoAccess", doAPIGetRepository(testCtxA, func(t *testing.T, r structs.Repository) {
+				assert.Equal(t, "repo-B", r.Name)
+			}))
+
+			// make repo-B be private
+			req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org-cross-test/repo-B", &structs.EditRepoOption{Private: new(true)}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			testCtxA.ExpectedCode = http.StatusNotFound
+			t.Run("NoPrivateCrossRepoAccess", doAPIGetRepository(testCtxA, nil))
+
+			ownerActionsCfg := actions_model.OwnerActionsConfig{AllowedCrossRepoIDs: []int64{repoBID}}
+			require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), owner.ID, ownerActionsCfg))
+
+			testCtxA.ExpectedCode = http.StatusOK
+			t.Run("AccessToSelectedPrivateRepo", doAPIGetRepository(testCtxA, func(t *testing.T, r structs.Repository) {
+				assert.Equal(t, "repo-B", r.Name)
+			}))
+
+			t.Run("RepoTransfer", func(t *testing.T) {
+				ownerActionsCfg, err := actions_model.GetOwnerActionsConfig(t.Context(), owner.ID)
+				require.NoError(t, err)
+				assert.Contains(t, ownerActionsCfg.AllowedCrossRepoIDs, repoBID)
+
+				// Transfer Repository to user4
+				req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/repo-B/transfer", orgName), &structs.TransferRepoOption{
+					NewOwner: "user4",
+				}).AddTokenAuth(token)
+				MakeRequest(t, req, http.StatusCreated)
+
+				// Accept transfer as user4
+				session4 := loginUser(t, "user4")
+				token4 := getTokenForLoggedInUser(t, session4, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+				req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/repo-B/transfer/accept", orgName)).AddTokenAuth(token4)
+				MakeRequest(t, req, http.StatusAccepted)
+
+				// Verify it is removed from the org's config
+				ownerActionsCfg, err = actions_model.GetOwnerActionsConfig(t.Context(), owner.ID)
+				require.NoError(t, err)
+				assert.NotContains(t, ownerActionsCfg.AllowedCrossRepoIDs, repoBID)
+			})
+		})
+
+		t.Run("TokenPermissionsPersistenceWithWorkflow", func(t *testing.T) {
+			user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+			session := loginUser(t, user2.Name)
+			token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+			// create repos
+			repo1 := createActionsTestRepo(t, token, "actions-permission-repo1", false)
+			repo2 := createActionsTestRepo(t, token, "actions-permission-repo2", true)
+
+			// add repo2 to owner-level cross-repo access list
+			req := NewRequestWithValues(t, "POST", "/user/settings/actions/general", map[string]string{
+				"cross_repo_add_target":      "true",
+				"cross_repo_add_target_name": repo2.Name,
+			})
+			session.MakeRequest(t, req, http.StatusOK)
+
+			// create the runner for repo1
+			runner1 := newMockRunner()
+			runner1.registerAsRepoRunner(t, user2.Name, repo1.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+			// set repo1 actions token permission mode to "permissive"
+			req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo1.Name), map[string]string{
+				"token_permission_mode": "permissive",
+				"override_owner_config": "true",
+			})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			// set repo2 actions token permission mode to "restricted", and set max permissions
+			req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
+				"token_permission_mode":  "restricted",
+				"override_owner_config":  "true",
+				"enable_max_permissions": "true",
+				"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeReleases)): "read",
+			})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			// create a workflow file with "permission" keyword for repo1
+			wfTreePath := ".gitea/workflows/test_permissions.yml"
+			wfFileContent := `name: Test Permissions
+on:
+  push:
+    paths:
+      - '.gitea/workflows/test_permissions.yml'
+
+jobs:
+  job-override:
+    runs-on: ubuntu-latest
+    permissions:
+      code: write
+    steps:
+      - run: echo "test perms"
+`
+			opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
+			createWorkflowFile(t, token, user2.Name, repo1.Name, wfTreePath, opts)
+
+			task1 := runner1.fetchTask(t)
+			task1Token := task1.Secrets["GITEA_TOKEN"]
+			require.NotEmpty(t, task1Token)
+
+			// should fail: target repo does not allow code access
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo2.Name)).AddTokenAuth(task1Token)
+			MakeRequest(t, req, http.StatusNotFound)
+
+			// set repo2 max permission to "read" so that the actions token can access code
+			req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
+				"token_permission_mode":  "restricted",
+				"override_owner_config":  "true",
+				"enable_max_permissions": "true",
+				"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)):     "read",
+				"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeReleases)): "read",
+			})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			// should succeed: target repo now allows code read access for this token
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo2.Name)).AddTokenAuth(task1Token)
+			MakeRequest(t, req, http.StatusOK)
+			// but it should not have write access
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo2.Name), lfs.BatchRequest{Operation: "upload"}).
+				SetHeader("Accept", lfs.MediaType).
+				AddBasicAuth("gitea-actions", task1Token)
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			// set repo1&repo2 max permission to "write" so that the actions token can access code
+			req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo1.Name), map[string]string{
+				"token_permission_mode":  "restricted",
+				"override_owner_config":  "true",
+				"enable_max_permissions": "true",
+				"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)): "write",
+			})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+			req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
+				"token_permission_mode":  "restricted",
+				"override_owner_config":  "true",
+				"enable_max_permissions": "true",
+				"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)): "write",
+			})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			// now task1 has write access to repo1, but still only read access to repo2 (different repo)
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo1.Name), lfs.BatchRequest{Operation: "upload"}).
+				SetHeader("Accept", lfs.MediaType).
+				AddBasicAuth("gitea-actions", task1Token)
+			MakeRequest(t, req, http.StatusOK)
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo2.Name), lfs.BatchRequest{Operation: "upload"}).
+				SetHeader("Accept", lfs.MediaType).
+				AddBasicAuth("gitea-actions", task1Token)
+			MakeRequest(t, req, http.StatusUnauthorized)
 		})
 	})
 }
@@ -361,115 +468,4 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 	task.GenerateAndFillToken()
 	require.NoError(t, db.Insert(t.Context(), task))
 	return task
-}
-
-func TestActionsTokenPermissionsPersistenceWithWorkflow(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user2.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		// create repos
-		repo1 := createActionsTestRepo(t, token, "actions-permission-repo1", false)
-		repo2 := createActionsTestRepo(t, token, "actions-permission-repo2", true)
-
-		// add repo2 to owner-level cross-repo access list
-		req := NewRequestWithValues(t, "POST", "/user/settings/actions/general", map[string]string{
-			"cross_repo_add_target":      "true",
-			"cross_repo_add_target_name": repo2.Name,
-		})
-		session.MakeRequest(t, req, http.StatusOK)
-
-		// create the runner for repo1
-		runner1 := newMockRunner()
-		runner1.registerAsRepoRunner(t, user2.Name, repo1.Name, "mock-runner", []string{"ubuntu-latest"}, false)
-
-		// set repo1 actions token permission mode to "permissive"
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo1.Name), map[string]string{
-			"token_permission_mode": "permissive",
-			"override_owner_config": "true",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-
-		// set repo2 actions token permission mode to "restricted", and set max permissions
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
-			"token_permission_mode":  "restricted",
-			"override_owner_config":  "true",
-			"enable_max_permissions": "true",
-			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeReleases)): "read",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-
-		// create a workflow file with "permission" keyword for repo1
-		wfTreePath := ".gitea/workflows/test_permissions.yml"
-		wfFileContent := `name: Test Permissions
-on:
-  push:
-    paths:
-      - '.gitea/workflows/test_permissions.yml'
-
-jobs:
-  job-override:
-    runs-on: ubuntu-latest
-    permissions:
-      code: write
-    steps:
-      - run: echo "test perms"
-`
-		opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, token, user2.Name, repo1.Name, wfTreePath, opts)
-
-		task1 := runner1.fetchTask(t)
-		task1Token := task1.Secrets["GITEA_TOKEN"]
-		require.NotEmpty(t, task1Token)
-
-		// should fail: target repo does not allow code access
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo2.Name)).AddTokenAuth(task1Token)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// set repo2 max permission to "read" so that the actions token can access code
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
-			"token_permission_mode":  "restricted",
-			"override_owner_config":  "true",
-			"enable_max_permissions": "true",
-			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)):     "read",
-			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeReleases)): "read",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-
-		// should succeed: target repo now allows code read access for this token
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo2.Name)).AddTokenAuth(task1Token)
-		MakeRequest(t, req, http.StatusOK)
-		// but it should not have write access
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo2.Name), lfs.BatchRequest{Operation: "upload"}).
-			SetHeader("Accept", lfs.MediaType).
-			AddBasicAuth("gitea-actions", task1Token)
-		MakeRequest(t, req, http.StatusUnauthorized)
-
-		// set repo1&repo2 max permission to "write" so that the actions token can access code
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo1.Name), map[string]string{
-			"token_permission_mode":  "restricted",
-			"override_owner_config":  "true",
-			"enable_max_permissions": "true",
-			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)): "write",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
-			"token_permission_mode":  "restricted",
-			"override_owner_config":  "true",
-			"enable_max_permissions": "true",
-			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)): "write",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-
-		// now task1 has write access to repo1, but still only read access to repo2 (different repo)
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo1.Name), lfs.BatchRequest{Operation: "upload"}).
-			SetHeader("Accept", lfs.MediaType).
-			AddBasicAuth("gitea-actions", task1Token)
-		MakeRequest(t, req, http.StatusOK)
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo2.Name), lfs.BatchRequest{Operation: "upload"}).
-			SetHeader("Accept", lfs.MediaType).
-			AddBasicAuth("gitea-actions", task1Token)
-		MakeRequest(t, req, http.StatusUnauthorized)
-	})
 }
