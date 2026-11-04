@@ -259,7 +259,12 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool]())
+	isPull, ok := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, ctx.FormString("type"))
+	if !ok {
+		ctx.HTTPError(http.StatusForbidden, "no permission to read issues or pulls")
+		return
+	}
+	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, isPull)
 
 	ret := issue.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret.IssueTemplates) > 0

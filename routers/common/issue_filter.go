@@ -7,7 +7,9 @@ import (
 	"context"
 
 	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
@@ -28,6 +30,32 @@ func ParseIssueFilterStateIsClosed(state string) optional.Option[bool] {
 
 func ParseIssueFilterTypeIsPull(typ string) optional.Option[bool] {
 	return optional.FromMapLookup(map[string]bool{"pulls": true, "issues": false}, typ)
+}
+
+func ParseIssueFilterTypeIsPullWithPermission(userPerm access_model.Permission, typ string) (optional.Option[bool], bool) {
+	typeIssues, typePulls := "issues", "pulls"
+	canReadIssues := userPerm.CanRead(unit.TypeIssues)
+	canReadPulls := userPerm.CanRead(unit.TypePullRequests)
+	switch {
+	case canReadIssues && canReadPulls:
+		return ParseIssueFilterTypeIsPull(typ), true
+	case typ == typeIssues && canReadIssues:
+		return optional.Some(false), true
+	case typ == typePulls && canReadPulls:
+		return optional.Some(true), true
+	default:
+		isPull := ParseIssueFilterTypeIsPull(typ)
+		if isPull.Has() {
+			if (isPull.Value() && canReadPulls) || (!isPull.Value() && canReadIssues) {
+				// explicitly specified a type that the user can read, so return it
+				return isPull, true
+			}
+		} else if canReadIssues || canReadPulls {
+			// no type specified, so return the type the user can read
+			return optional.Some(canReadPulls), true
+		}
+		return optional.None[bool](), false
+	}
 }
 
 type SearchIssuesRepoIDsOptions struct {
