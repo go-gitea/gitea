@@ -61,9 +61,9 @@ func TestReleaseTaskForRunnerCleanup(t *testing.T) {
 	runner.GenerateAndFillToken()
 	require.NoError(t, db.Insert(t.Context(), runner))
 
-	task, ok, err := actions_model.CreateTaskForRunner(t.Context(), runner)
+	task, _, err := actions_model.CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
-	require.True(t, ok)
+	require.NotNil(t, task)
 	require.Equal(t, actions_model.StatusRunning, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
 
 	// the cleanup helper uses its own context, so the claimed job is returned to the waiting queue

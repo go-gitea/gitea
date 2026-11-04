@@ -67,8 +67,8 @@ func GetRawFile(ctx *context.APIContext) {
 	//     description: Returns raw file content.
 	//     schema:
 	//       type: file
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.APIErrorNotFound()
@@ -120,8 +120,8 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	//     description: Returns raw file content.
 	//     schema:
 	//       type: file
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.APIErrorNotFound()
@@ -260,8 +260,8 @@ func GetArchive(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	serveRepoArchive(ctx, ctx.PathParam("*"), ctx.FormStrings("path"))
 }
 
@@ -296,8 +296,8 @@ func GetEditorconfig(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	ec, _, err := ctx.Repo.GetEditorconfig(ctx)
 	if err != nil {
@@ -391,14 +391,8 @@ func ChangeFiles(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FilesResponse"
-	//   "403":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 	apiOpts, opts := getAPIChangeRepoFileOptions[*api.ChangeFilesOptions](ctx)
 	if ctx.Written() {
 		return
@@ -465,14 +459,8 @@ func CreateFile(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
-	//   "403":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	apiOpts, opts := getAPIChangeRepoFileOptions[*api.CreateFileOptions](ctx)
 	if ctx.Written() {
@@ -536,14 +524,8 @@ func UpdateFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/FileResponse"
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
-	//   "403":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	apiOpts, opts := getAPIChangeRepoFileOptions[*api.UpdateFileOptions](ctx)
 	if ctx.Written() {
@@ -659,16 +641,8 @@ func DeleteFile(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileDeleteResponse"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	apiOpts, opts := getAPIChangeRepoFileOptions[*api.DeleteFileOptions](ctx)
 	if ctx.Written() {
@@ -743,8 +717,8 @@ func GetContentsExt(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ContentsExtResponse"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if treePath := ctx.PathParam("*"); treePath == "." || treePath == "/" {
 		ctx.SetPathParam("*", "") // workaround for swagger, it requires path parameter to be "required", but we need to list root directory
@@ -802,8 +776,8 @@ func GetContents(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ContentsResponse"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	ret := getRepoContents(ctx, files_service.GetContentsOrListOptions{
 		TreePath:                 ctx.PathParam("*"),
 		IncludeSingleFileContent: true,
@@ -854,8 +828,8 @@ func GetContentsList(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ContentsListResponse"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// same as GetContents(), this function is here because swagger fails if path is empty in GetContents() interface
 	GetContents(ctx)
@@ -892,8 +866,8 @@ func GetFileContentsGet(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ContentsListResponse"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// The POST method requires "write" permission, so we also support this "GET" method
 	opts := &api.GetFilesOptions{}
@@ -939,8 +913,8 @@ func GetFileContentsPost(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ContentsListResponse"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// This is actually a "read" request, but we need to accept a "files" list, then POST method seems easy to use.
 	// But the permission system requires that the caller must have "write" permission to use POST method.
