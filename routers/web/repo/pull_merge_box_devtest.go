@@ -17,7 +17,6 @@ import (
 	"gitea.dev/services/context"
 )
 
-// MockPullMergeBoxes returns merge box template data in various states for the devtest page
 func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 	repo := &repo_model.Repository{ID: 1, OwnerName: "user2", Name: "repo1"}
 	prConfig := &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true, AllowManualMerge: true}

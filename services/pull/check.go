@@ -167,8 +167,7 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 			return ErrIsWorkInProgress
 		}
 
-		// auto merge may be scheduled while conflicted or checking, it waits until mergeable
-		if !pr.IsStatusMergeable() && !pr.IsEmpty() && (mergeCheckType != MergeCheckTypeAuto || !pr.IsFilesConflicted() && !pr.IsChecking()) {
+		if !pr.IsStatusMergeable() && !pr.IsEmpty() && (mergeCheckType != MergeCheckTypeAuto || !pr.IsFilesConflicted() && !pr.IsChecking()) { // auto merge waits out conflicts and checking
 			return ErrNotMergeableState
 		}
 

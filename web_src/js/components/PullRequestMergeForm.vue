@@ -113,7 +113,7 @@ async function toggleActionForm(show: boolean) {
   <div>
     <div class="ui checkbox tw-flex tw-mb-4" v-if="!showActionForm && mergeForm.canMergeNow && !mergeForm.allOverridableChecksOk && mergeStyle !== mergeStyleManuallyMerged">
       <input type="checkbox" v-model="forceMerge" id="merge-bypass-rules">
-      <label class="tw-text-red" for="merge-bypass-rules">{{ mergeForm.textBypassRules }}</label>
+      <label class="tw-text-red tw-cursor-pointer" for="merge-bypass-rules">{{ mergeForm.textBypassRules }}</label>
     </div>
 
     <form ref="actionForm" class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">
@@ -168,9 +168,3 @@ async function toggleActionForm(show: boolean) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.ui.checkbox label {
-  cursor: pointer;
-}
-</style>

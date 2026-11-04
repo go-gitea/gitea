@@ -62,7 +62,7 @@ func (d *pullCommitStatusCheckData) groupStatuses(commitStatuses []*git_model.Co
 		d.counts[kind]++
 		d.lastUpdated = max(d.lastUpdated, cs.UpdatedUnix)
 		if kind == statusCheckExpected {
-			kind = statusCheckPending // listed with the pending checks but counted separately, like GitHub
+			kind = statusCheckPending // shown with pending checks but counted separately
 		}
 		byKind[kind] = append(byKind[kind], cs)
 	}
@@ -85,7 +85,6 @@ func (d *pullCommitStatusCheckData) AllPassed() bool {
 	return d.count(statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckExpected) == 0
 }
 
-// Section is the checks header, with a ring unless all checks agree
 func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMergeBoxSection {
 	parts := make([]string, 0, len(statusCheckKinds))
 	for _, kind := range statusCheckKinds {
@@ -120,9 +119,8 @@ type statusCheckRingSegment struct {
 	Dash, Offset float64
 }
 
-// ringSegments splits a 100-length ring into one arc per group, with GitHub's 18 degree gaps
 func (d *pullCommitStatusCheckData) ringSegments() (segments []statusCheckRingSegment) {
-	const gap = 5
+	const gap = 5 // of the 100-length ring, GitHub's 18 degree gaps
 	total, start := float64(d.count(statusCheckKinds...)), gap/2.0
 	for _, group := range slices.Backward(d.Groups) {
 		length := 100 * float64(len(group.CommitStatuses)) / total

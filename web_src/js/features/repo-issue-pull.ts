@@ -49,8 +49,7 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
 }
 
 function initRepoPullMergeBoxRefresh(el: Element) {
-  // like GitHub, skip the refresh while a menu or the merge form is open or rules are being bypassed
-  const isBusy = () => Boolean(el.querySelector('[aria-expanded="true"], #pull-request-merge-form form, #merge-bypass-rules:checked'));
+  const isBusy = () => Boolean(el.querySelector('[aria-expanded="true"], #pull-request-merge-form form, #merge-bypass-rules:checked')); // keep the user's open menu, form or bypass choice
   activePageTimerRefresh({
     interval: () => el.isConnected ? Number(el.getAttribute('data-pull-merge-box-reloading-interval')) : 0,
     async callback() {

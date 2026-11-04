@@ -31,21 +31,14 @@ func TestAutoMergeDisabledOrCanceled(t *testing.T) {
 	notifier := &automergeNotifier{}
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	require.NoError(t, pr.LoadIssue(t.Context()))
 	_, err := ScheduleAutoMerge(t.Context(), admin, pr, repo_model.MergeStyleSquash, "title", false)
 	require.NoError(t, err)
 	assert.Equal(t, "squash", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRScheduledToAutoMerge}).Content)
 
-	notifier.PullRequestSynchronized(t.Context(), nonWriter, pr, "", "")
 	notifier.PullRequestChangeTargetBranch(t.Context(), admin, pr, "")
 	unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	notifier.IssueChangeStatus(t.Context(), admin, "", pr.Issue, nil, true)
 	assert.Equal(t, "closed", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge}).Content)
-
-	pr.Flow = issues_model.PullRequestFlowAGit
-	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, pr.ID, repo_model.MergeStyleMerge, "title", false))
-	notifier.PullRequestSynchronized(t.Context(), nonWriter, pr, "", "")
-	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 
 	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, pr.ID, repo_model.MergeStyleMerge, "title", false))
 	oldTitle := pr.Issue.Title

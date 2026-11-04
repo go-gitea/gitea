@@ -90,7 +90,6 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 
 var ErrAutoMergeNotScheduled = util.NewNotExistErrorf("auto merge is not scheduled")
 
-// CancelScheduledAutoMerge cancels the auto merge for its enabler, the pull request author or a merger
 func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, perm access_model.Permission) error {
 	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
 	if err != nil {
@@ -101,27 +100,14 @@ func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 	if err := pull.LoadIssue(ctx); err != nil {
 		return err
 	}
-	if doer.ID != autoMerge.DoerID && !pull.Issue.IsPoster(doer.ID) {
+	if doer.ID != autoMerge.DoerID && !pull.Issue.IsPoster(doer.ID) { // enablers and authors may cancel without merge permission
 		if allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, perm, doer); err != nil {
 			return err
 		} else if !allowed {
 			return util.NewPermissionDeniedErrorf("user has no permission to cancel the scheduled auto merge")
 		}
 	}
-	return RemoveScheduledAutoMerge(ctx, doer, pull, "")
-}
-
-// RemoveScheduledAutoMerge cancels a previously scheduled pull request
-func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, reason string) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		if n, err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
-			return err
-		} else if n == 0 {
-			return nil
-		}
-		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
-		return err
-	})
+	return pull_service.RemoveScheduledAutoMerge(ctx, doer, pull, "")
 }
 
 var errSkipAutoMerge = errors.New("skip auto merge")

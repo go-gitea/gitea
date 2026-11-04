@@ -948,7 +948,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		if data.StatusCheckData != nil {
 			lastChange = max(lastChange, data.StatusCheckData.lastUpdated)
 		}
-		needRefreshMergeBox = needRefreshMergeBox || time.Since(lastChange.AsTime()) < time.Minute // an unblocked auto merge runs shortly, unless it failed
+		needRefreshMergeBox = needRefreshMergeBox || time.Since(lastChange.AsTime()) < time.Minute // refresh briefly while the queued auto merge runs
 	}
 	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 

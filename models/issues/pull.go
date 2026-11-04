@@ -452,9 +452,8 @@ func (pr *PullRequest) IsEmpty() bool {
 	return pr.Status == PullRequestStatusEmpty
 }
 
-// IsUnrelated returns true if head and base share no history, which the conflict checker reports as empty
 func (pr *PullRequest) IsUnrelated() bool {
-	return pr.IsEmpty() && pr.MergeBase == ""
+	return pr.IsEmpty() && pr.MergeBase == "" // the conflict checker reports unrelated histories as empty
 }
 
 // IsAncestor returns true if the Head Commit of this PR is an ancestor of the Base Commit
