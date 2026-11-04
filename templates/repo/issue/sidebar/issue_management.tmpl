@@ -79,6 +79,99 @@
 			</form>
 		</div>
 	</dialog>
+	{{if not .Issue.IsPull}}
+		<button type="button" class="tw-mt-1 fluid ui show-modal button" data-modal="#sidebar-move-copy-issue">
+			{{svg "octicon-arrow-switch"}}
+			{{ctx.Locale.Tr "repo.issues.move_copy.button"}}
+		</button>
+		<dialog class="modal-dialog" id="sidebar-move-copy-issue">
+			<div class="header">{{ctx.Locale.Tr "repo.issues.move_copy.title"}}</div>
+			<form class="ui form form-fetch-action" method="post" action="{{.Issue.Link}}/move" data-move-url="{{.Issue.Link}}/move" data-copy-url="{{.Issue.Link}}/copy">
+				<div class="content">
+					<div class="inline fields">
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input type="radio" name="mode" value="move" checked>
+								<label>{{ctx.Locale.Tr "repo.issues.move_copy.move"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input type="radio" name="mode" value="copy">
+								<label>{{ctx.Locale.Tr "repo.issues.move_copy.copy"}}</label>
+							</div>
+						</div>
+					</div>
+					<p class="help" data-move-copy-mode="move">{{ctx.Locale.Tr "repo.issues.move_copy.move_desc"}}</p>
+					<p class="help tw-hidden" data-move-copy-mode="copy">{{ctx.Locale.Tr "repo.issues.move_copy.copy_desc"}}</p>
+					<div class="required field">
+						<label>{{ctx.Locale.Tr "repo.issues.move_copy.target"}}</label>
+						<div class="ui fluid search selection dropdown" data-search-url="{{.RepoLink}}/issues/move-targets?q={query}">
+							<input type="hidden" name="target_repo" required>
+							<div class="default text">{{ctx.Locale.Tr "repo.issues.move_copy.search"}}</div>
+							<div class="menu"></div>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input type="checkbox" name="keep_labels">
+							<label>{{ctx.Locale.Tr "repo.issues.move_copy.keep_labels"}}</label>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input type="checkbox" name="keep_milestone">
+							<label>{{ctx.Locale.Tr "repo.issues.move_copy.keep_milestone"}}</label>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input type="checkbox" name="keep_projects">
+							<label>{{ctx.Locale.Tr "repo.issues.move_copy.keep_projects"}}</label>
+						</div>
+					</div>
+					<div class="tw-hidden" data-move-copy-mode="copy">
+						<div class="field">
+							<div class="ui checkbox">
+								<input type="checkbox" name="copy_attachments">
+								<label>{{ctx.Locale.Tr "repo.issues.move_copy.copy_attachments"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input type="checkbox" name="copy_assignees">
+								<label>{{ctx.Locale.Tr "repo.issues.move_copy.copy_assignees"}}</label>
+							</div>
+						</div>
+						{{if and .AllowCrossRepositoryDependencies (.Repository.IsDependenciesEnabled ctx)}}
+							<div class="grouped fields">
+								<label>{{ctx.Locale.Tr "repo.issues.move_copy.dependency"}}</label>
+								<div class="field">
+									<div class="ui radio checkbox">
+										<input type="radio" name="dependency" value="" checked>
+										<label>{{ctx.Locale.Tr "repo.issues.move_copy.dependency_none"}}</label>
+									</div>
+								</div>
+								<div class="field">
+									<div class="ui radio checkbox">
+										<input type="radio" name="dependency" value="original_blocks_copy">
+										<label>{{ctx.Locale.Tr "repo.issues.move_copy.dependency_original_blocks_copy"}}</label>
+									</div>
+								</div>
+								<div class="field">
+									<div class="ui radio checkbox">
+										<input type="radio" name="dependency" value="copy_blocks_original">
+										<label>{{ctx.Locale.Tr "repo.issues.move_copy.dependency_copy_blocks_original"}}</label>
+									</div>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				</div>
+				{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+			</form>
+		</dialog>
+	{{end}}
 	<button type="button" class="tw-mt-1 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "repo.issues.delete"}}

@@ -121,6 +121,11 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypeMoveIssueTo   // 39 issue moved to another repo (rendered like CommentTypeMoveIssueFrom, the issue keeps its timeline)
+	CommentTypeMoveIssueFrom // 40 issue moved from another repo
+	CommentTypeCopyIssueTo   // 41 issue copied to another repo (recorded on the original issue)
+	CommentTypeCopyIssueFrom // 42 issue copied from another repo (recorded on the copy)
 )
 
 var commentStrings = []string{
@@ -163,6 +168,10 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"move_issue_to",
+	"move_issue_from",
+	"copy_issue_to",
+	"copy_issue_from",
 }
 
 func (t CommentType) String() string {
@@ -176,6 +185,11 @@ func AsCommentType(typeName string) CommentType {
 		}
 	}
 	return CommentTypeUndefined
+}
+
+// CommentTypeIsMoveOrCopy returns true if the comment records an issue move or copy between repositories
+func CommentTypeIsMoveOrCopy(t CommentType) bool {
+	return t >= CommentTypeMoveIssueTo && t <= CommentTypeCopyIssueFrom
 }
 
 func (t CommentType) HasContentSupport() bool {

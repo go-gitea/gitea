@@ -82,6 +82,31 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
   });
 }
 
+export function initRepoIssueSidebarMoveCopy(elSidebar: HTMLElement) {
+  const form = elSidebar.querySelector<HTMLFormElement>('#sidebar-move-copy-issue form');
+  if (!form) return;
+
+  const elDropdown = form.querySelector<HTMLElement>('.ui.search.dropdown')!;
+  fomanticQuery(elDropdown).dropdown({
+    fullTextSearch: true,
+    apiSettings: {
+      url: elDropdown.getAttribute('data-search-url')!,
+      rawResponse: true, // backend responds an array, prevent fomantic api from converting it to an object
+      onResponse(response: Array<{id: number, full_name: string}>) {
+        const results = response.map((repo) => ({value: repo.full_name, name: html`${repo.full_name}`}));
+        return {success: true, results} satisfies FomanticApiResponse<{value: string, name: string}>;
+      },
+    },
+  });
+
+  const onModeChange = () => {
+    const mode = form.querySelector<HTMLInputElement>('input[name="mode"]:checked')!.value;
+    form.action = form.getAttribute(`data-${mode}-url`)!;
+    queryElems(form, '[data-move-copy-mode]', (el) => toggleElem(el, el.getAttribute('data-move-copy-mode') === mode));
+  };
+  queryElems(form, 'input[name="mode"]', (el) => el.addEventListener('change', onModeChange));
+}
+
 export function initRepoPullRequestAllowMaintainerEdit(elSidebar: HTMLElement) {
   const wrapper = elSidebar.querySelector('#allow-edits-from-maintainers')!;
   if (!wrapper) return;
@@ -111,6 +136,7 @@ export function initRepoIssueSidebar() {
     initRepoIssueBranchSelector(elSidebar);
     initRepoIssueDue(elSidebar);
     initRepoIssueSidebarDependency(elSidebar);
+    initRepoIssueSidebarMoveCopy(elSidebar);
     initRepoPullRequestAllowMaintainerEdit(elSidebar);
     // init the combo list: a dropdown for selecting items, and a list for showing selected items and related actions
     queryElems(elSidebar, '.issue-sidebar-combo', (el) => new IssueSidebarComboList(el).init());

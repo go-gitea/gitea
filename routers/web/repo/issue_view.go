@@ -268,6 +268,9 @@ func combineLabelComments(issue *issues_model.Issue) {
 func prepareIssueViewLoad(ctx *context.Context) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
+		if issues_model.IsErrIssueNotExist(err) && redirectMovedIssue(ctx, ctx.PathParamInt64("index")) {
+			return nil
+		}
 		ctx.ServerError("GetIssueByIndex", err)
 		return nil
 	}

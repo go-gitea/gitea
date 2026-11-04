@@ -250,6 +250,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 			&issues_model.IssueDependency{DependencyID: issue.ID},
 			&issues_model.Comment{DependentIssueID: issue.ID},
 			&issues_model.IssuePin{IssueID: issue.ID},
+			&issues_model.IssueRedirect{IssueID: issue.ID},
 		); err != nil {
 			return nil, err
 		}
