@@ -33,12 +33,11 @@ type Source struct {
 	ExternalIDClaim       string
 }
 
-// FromDB fills up an OAuth2Config from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &source)
+	auth.UnmarshalAuthSourceConfig(bs, source)
+	return nil
 }
 
-// ToDB exports an OAuth2Config to a serialized format.
 func (source *Source) ToDB() ([]byte, error) {
 	return json.Marshal(source)
 }

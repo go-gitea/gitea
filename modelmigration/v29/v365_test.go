@@ -7,59 +7,89 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"xorm.io/xorm/schemas"
 )
 
-type issueBeforeV365 struct {
-	ID     int64 `xorm:"pk autoincr"`
-	RepoID int64 `xorm:"INDEX"`
+func TestNormalizeLegacyConfigJSONValue(t *testing.T) {
+	const (
+		config = `{"Host":"smtp.example.com"}`
+		packed = "≻潈瑳㨢猢瑭⹰硥浡汰⹥潣≭⁽"
+	)
+	for _, tc := range []struct {
+		name, input, want string
+	}{
+		{"empty", "", ""},
+		{"valid", config + " ", config + " "},
+		{"unicode and large number", ` {"name":"例😀","id":9007199254740993} `, ` {"name":"例😀","id":9007199254740993} `},
+		{"double encoded", packed, config},
+		{"double encoded with BOM", "\ufeff" + packed, config},
+		{"BOM", "\xff\xfe" + config, config},
+		{"BOM with non-BMP rune", "\xff\xfe" + `{"name":"😀"}`, `{"name":"😀"}`},
+		{"corrupt", "invalid", "invalid"},
+		{"corrupt non-BMP rune", "invalid😀", "invalid😀"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := normalizeLegacyConfigJSON(tc.input)
+			assert.Equal(t, tc.want, got)
+			assert.Equal(t, got, normalizeLegacyConfigJSON(got))
+		})
+	}
 }
 
-func (issueBeforeV365) TableName() string { return "issue" }
-
-func TestAddIsConfidentialToIssue(t *testing.T) {
-	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(issueBeforeV365))
-	defer deferrable()
+func TestNormalizeLegacyConfigJSON(t *testing.T) {
+	type RepoUnit struct {
+		ID     int64 `xorm:"pk autoincr"`
+		RepoID int64
+		Config string `xorm:"TEXT"`
+	}
+	type LoginSource struct {
+		ID   int64 `xorm:"pk autoincr"`
+		Name string
+		Cfg  string `xorm:"TEXT"`
+	}
+	x, cleanup := migrationtest.PrepareTestEnv(t, 0, new(RepoUnit), new(LoginSource))
+	defer cleanup()
 	if x == nil || t.Failed() {
 		return
 	}
+	defer test.MockVariableValue(&setting.Database.IterateBufferSize, 2)()
 
-	const issueCount = 5
-	for range issueCount {
-		_, err := x.Insert(&issueBeforeV365{RepoID: 1})
+	inputs := []string{
+		` {"id":9007199254740993,"name":"例😀"} `,
+		"≻潈瑳㨢猢瑭⹰硥浡汰⹥潣≭⁽",
+		"\ufeff≻潈瑳㨢猢瑭⹰硥浡汰⹥潣≭⁽",
+		"",
+		"invalid",
+	}
+	want := []string{inputs[0], `{"Host":"smtp.example.com"}`, `{"Host":"smtp.example.com"}`, "", "invalid", ""}
+	for _, input := range inputs {
+		_, err := x.Insert(&RepoUnit{RepoID: 42, Config: input})
+		require.NoError(t, err)
+		_, err = x.Insert(&LoginSource{Name: "test", Cfg: input})
 		require.NoError(t, err)
 	}
-
-	require.NoError(t, AddIsConfidentialToIssue(t.Context(), x))
-	require.NoError(t, AddIsConfidentialToIssue(t.Context(), x), "migration must be idempotent")
-
-	type issueAfterV365 struct {
-		ID             int64
-		IsConfidential bool
-	}
-	var issues []issueAfterV365
-	require.NoError(t, x.Table("issue").Asc("id").Find(&issues))
-	require.Len(t, issues, issueCount)
-	for _, issue := range issues {
-		assert.False(t, issue.IsConfidential)
-	}
-
-	tables, err := x.DBMetas()
+	_, err := x.Exec("INSERT INTO `repo_unit` (`repo_id`, `config`) VALUES (?, NULL)", 42)
 	require.NoError(t, err)
-	for _, table := range tables {
-		if table.Name != "issue" {
-			continue
+	_, err = x.Exec("INSERT INTO `login_source` (`name`, `cfg`) VALUES (?, NULL)", "test")
+	require.NoError(t, err)
+
+	for range 2 {
+		require.NoError(t, NormalizeLegacyConfigJSON(t.Context(), x))
+		var units []RepoUnit
+		require.NoError(t, x.Asc("id").Find(&units))
+		require.Len(t, units, len(want))
+		var sources []LoginSource
+		require.NoError(t, x.Asc("id").Find(&sources))
+		require.Len(t, sources, len(want))
+		for i, config := range want {
+			assert.Equal(t, config, units[i].Config)
+			assert.EqualValues(t, 42, units[i].RepoID)
+			assert.Equal(t, config, sources[i].Cfg)
+			assert.Equal(t, "test", sources[i].Name)
 		}
-		var index *schemas.Index
-		for _, candidate := range table.Indexes {
-			if candidate.XName(table.Name) == "IDX_issue_repo_confidential" {
-				index = candidate
-			}
-		}
-		require.NotNil(t, index)
-		assert.Equal(t, []string{"repo_id", "is_confidential"}, index.Cols)
 	}
 }
