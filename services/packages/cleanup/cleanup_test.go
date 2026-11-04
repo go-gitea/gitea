@@ -4,15 +4,13 @@
 package container
 
 import (
-	"crypto/sha256"
-	"fmt"
 	"testing"
 
-	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/models/unittest"
 	container_module "gitea.dev/modules/packages/container"
 
+	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,62 +22,38 @@ func TestMain(m *testing.M) {
 func TestExecuteCleanupOneRulePackageContainerKeepCount(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	p, err := packages_model.TryInsertPackage(t.Context(), &packages_model.Package{
-		OwnerID:   2,
-		Type:      packages_model.TypeContainer,
-		Name:      "multi-arch",
-		LowerName: "multi-arch",
-	})
+	p, err := packages_model.TryInsertPackage(t.Context(), &packages_model.Package{Type: packages_model.TypeContainer, LowerName: "multi-arch"})
 	require.NoError(t, err)
 
-	created := int64(1000)
-	insertVersion := func(t *testing.T, version string, references ...string) {
-		pv, err := packages_model.GetOrInsertVersion(t.Context(), &packages_model.PackageVersion{
-			PackageID:    p.ID,
-			Version:      version,
-			LowerVersion: version,
-		})
-		require.NoError(t, err)
-		created++
-		_, err = db.GetEngine(t.Context()).Exec("UPDATE package_version SET created_unix = ? WHERE id = ?", created, pv.ID)
+	insertVersion := func(version string, references ...string) {
+		pv, err := packages_model.GetOrInsertVersion(t.Context(), &packages_model.PackageVersion{PackageID: p.ID, LowerVersion: version})
 		require.NoError(t, err)
 		for _, ref := range references {
 			_, err = packages_model.InsertProperty(t.Context(), packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, ref)
 			require.NoError(t, err)
 		}
 	}
-	digestOf := func(s string) string {
-		return fmt.Sprintf("sha256:%x", sha256.Sum256([]byte(s)))
+	digestOf := func(s string) string { return digest.FromString(s).String() }
+	for _, tag := range []string{"v1", "v2"} {
+		insertVersion(digestOf(tag))
+		insertVersion(tag, digestOf(tag))
 	}
+	insertVersion("latest")
+	insertVersion(digestOf("pushed-by-digest"))
 
-	// every multi-arch push stores the untagged per-platform manifests and the tagged index
-	for _, tag := range []string{"v1", "v2", "v3"} {
-		amd64, arm64 := digestOf(tag+"-amd64"), digestOf(tag+"-arm64")
-		insertVersion(t, amd64)
-		insertVersion(t, arm64)
-		insertVersion(t, tag, amd64, arm64)
+	versionNames := func(pvs []*packages_model.PackageVersion) (names []string) {
+		for _, pv := range pvs {
+			names = append(names, pv.LowerVersion)
+		}
+		return names
 	}
+	pcr := &packages_model.PackageCleanupRule{Type: packages_model.TypeContainer, KeepCount: 1}
 
-	pcr := &packages_model.PackageCleanupRule{
-		Enabled:   true,
-		OwnerID:   2,
-		Type:      packages_model.TypeContainer,
-		KeepCount: 2,
-	}
-	require.NoError(t, pcr.CompiledPattern())
-
-	deleted, err := executeCleanupOneRulePackage(t.Context(), pcr, p)
+	removed, err := executeCleanupOneRulePackage(t.Context(), pcr, p, true)
 	require.NoError(t, err)
-	assert.True(t, deleted)
+	assert.Equal(t, []string{"v1"}, versionNames(removed))
 
-	pvs, err := packages_model.GetVersionsByPackageName(t.Context(), 2, packages_model.TypeContainer, "multi-arch")
+	removed, err = executeCleanupOneRulePackage(t.Context(), pcr, p, false)
 	require.NoError(t, err)
-	var remaining []string
-	for _, pv := range pvs {
-		remaining = append(remaining, pv.LowerVersion)
-	}
-	assert.ElementsMatch(t, []string{
-		"v2", digestOf("v2-amd64"), digestOf("v2-arm64"),
-		"v3", digestOf("v3-amd64"), digestOf("v3-arm64"),
-	}, remaining)
+	assert.Equal(t, []string{"v1", digestOf("v1")}, versionNames(removed))
 }

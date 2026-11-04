@@ -32,27 +32,7 @@ func CleanupTask(ctx context.Context, olderThan time.Duration) error {
 	return CleanupExpiredData(ctx, olderThan)
 }
 
-// excludeKeptVersions removes the newest pcr.KeepCount versions from pvs (sorted newest first).
-// Untagged container manifests (e.g. the per-platform manifests of a multi-arch image) are stored as versions
-// named by their digest. They don't count towards KeepCount, otherwise they would fill the keep window and
-// push out the tagged versions. Whether they get removed is decided by container_service.ShouldBeSkipped.
-func excludeKeptVersions(pcr *packages_model.PackageCleanupRule, pvs []*packages_model.PackageVersion) []*packages_model.PackageVersion {
-	if pcr.KeepCount <= 0 {
-		return pvs
-	}
-	kept := 0
-	remaining := make([]*packages_model.PackageVersion, 0, len(pvs))
-	for _, pv := range pvs {
-		if kept < pcr.KeepCount && !(pcr.Type == packages_model.TypeContainer && container_service.IsDigestVersion(pv)) {
-			kept++
-			continue
-		}
-		remaining = append(remaining, pv)
-	}
-	return remaining
-}
-
-func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.PackageCleanupRule, p *packages_model.Package) (versionDeleted bool, err error) {
+func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.PackageCleanupRule, p *packages_model.Package, dryRun bool) (removed []*packages_model.PackageVersion, err error) {
 	olderThan := time.Now().AddDate(0, 0, -pcr.RemoveDays)
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		PackageID:  p.ID,
@@ -60,13 +40,20 @@ func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.Packa
 		Sort:       packages_model.SortCreatedDesc,
 	})
 	if err != nil {
-		return false, fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
+		return nil, fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
 	}
-	pvs = excludeKeptVersions(pcr, pvs)
-	for _, pv := range pvs {
+	counted := 0
+	for i, pv := range pvs {
+		if counted < pcr.KeepCount && (pcr.Type != packages_model.TypeContainer || container_service.CountsTowardsKeepCount(pv)) {
+			counted++
+			continue
+		}
+		if i < pcr.KeepCount { // also keep the newest rows, e.g. untagged manifests pushed before their index
+			continue
+		}
 		if pcr.Type == packages_model.TypeContainer {
 			if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
-				return false, fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
+				return nil, fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
 			} else if skip {
 				log.Debug("Rule[%d]: keep '%s/%s' (container)", pcr.ID, p.Name, pv.Version)
 				continue
@@ -88,14 +75,36 @@ func executeCleanupOneRulePackage(ctx context.Context, pcr *packages_model.Packa
 			log.Debug("Rule[%d]: keep '%s/%s' (remove pattern)", pcr.ID, p.Name, pv.Version)
 			continue
 		}
-		log.Debug("Rule[%d]: remove '%s/%s'", pcr.ID, p.Name, pv.Version)
-		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-			log.Error("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %v", pcr.ID, err)
-			continue
+		if !dryRun {
+			log.Debug("Rule[%d]: remove '%s/%s'", pcr.ID, p.Name, pv.Version)
+			if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
+				log.Error("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %v", pcr.ID, err)
+				continue
+			}
 		}
-		versionDeleted = true
+		removed = append(removed, pv)
 	}
-	return versionDeleted, nil
+	return removed, nil
+}
+
+// PreviewCleanupRule returns the versions a run of pcr removes, except untagged manifests only referenced by them
+func PreviewCleanupRule(ctx context.Context, pcr *packages_model.PackageCleanupRule) ([]*packages_model.PackageDescriptor, error) {
+	if err := pcr.CompiledPattern(); err != nil {
+		return nil, err
+	}
+	packages, err := packages_model.GetPackagesByType(ctx, pcr.OwnerID, pcr.Type)
+	if err != nil {
+		return nil, err
+	}
+	var pvs []*packages_model.PackageVersion
+	for _, p := range packages {
+		removed, err := executeCleanupOneRulePackage(ctx, pcr, p, true)
+		if err != nil {
+			return nil, err
+		}
+		pvs = append(pvs, removed...)
+	}
+	return packages_model.GetPackageDescriptors(ctx, pvs)
 }
 
 func executeCleanupOneRule(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
@@ -110,25 +119,21 @@ func executeCleanupOneRule(ctx context.Context, pcr *packages_model.PackageClean
 
 	anyVersionDeleted := false
 	for _, p := range packages {
-		versionDeleted := false
-		err = db.WithTx(ctx, func(ctx context.Context) (err error) {
-			versionDeleted, err = executeCleanupOneRulePackage(ctx, pcr, p)
-			return err
+		removed, err := db.WithTx2(ctx, func(ctx context.Context) ([]*packages_model.PackageVersion, error) {
+			return executeCleanupOneRulePackage(ctx, pcr, p, false)
 		})
 		if err != nil {
 			log.Error("CleanupRule [%d]: executeCleanupOneRulePackage(%d) failed: %v", pcr.ID, p.ID, err)
 			continue
 		}
-		anyVersionDeleted = anyVersionDeleted || versionDeleted
-		if versionDeleted {
-			if pcr.Type == packages_model.TypeCargo {
-				owner, err := user_model.GetUserByID(ctx, pcr.OwnerID)
-				if err != nil {
-					return fmt.Errorf("GetUserByID failed: %w", err)
-				}
-				if err := cargo_service.UpdatePackageIndexIfExists(ctx, owner, owner, p.ID); err != nil {
-					return fmt.Errorf("CleanupRule [%d]: cargo.UpdatePackageIndexIfExists failed: %w", pcr.ID, err)
-				}
+		anyVersionDeleted = anyVersionDeleted || len(removed) > 0
+		if len(removed) > 0 && pcr.Type == packages_model.TypeCargo {
+			owner, err := user_model.GetUserByID(ctx, pcr.OwnerID)
+			if err != nil {
+				return fmt.Errorf("GetUserByID failed: %w", err)
+			}
+			if err := cargo_service.UpdatePackageIndexIfExists(ctx, owner, owner, p.ID); err != nil {
+				return fmt.Errorf("CleanupRule [%d]: cargo.UpdatePackageIndexIfExists failed: %w", pcr.ID, err)
 			}
 		}
 	}
