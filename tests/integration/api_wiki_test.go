@@ -172,6 +172,17 @@ func TestAPIGetWikiPage(t *testing.T) {
 		session := loginUser(t, username)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
+		for _, title := range []string{"", " "} {
+			content := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "Edited with title %q", title))
+			req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/wiki/page/Home", &api.CreateWikiPageOptions{
+				Title:         title,
+				ContentBase64: content,
+			}).AddTokenAuth(token)
+			page := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.WikiPage{})
+			assert.Equal(t, "Home", page.Title)
+			assert.Equal(t, content, page.ContentBase64)
+		}
+
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Page-With-Spaced-Name", username, "repo1")
 
 		req := NewRequestWithJSON(t, "PATCH", urlStr, &api.CreateWikiPageOptions{
@@ -197,13 +208,14 @@ func testAPICreateWikiPage(t *testing.T, session *TestSession, userName, repoNam
 }
 
 func TestAPINewWikiPage(t *testing.T) {
-	for _, title := range []string{
-		"New page",
-		"&&&&",
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	for title, status := range map[string]int{
+		"New page": http.StatusCreated,
+		"&&&&":     http.StatusCreated,
+		"":         http.StatusUnprocessableEntity,
+		" ":        http.StatusUnprocessableEntity,
 	} {
-		defer tests.PrepareTestEnv(t)()
-		username := "user2"
-		session := loginUser(t, username)
-		testAPICreateWikiPage(t, session, username, "repo1", title, http.StatusCreated)
+		testAPICreateWikiPage(t, session, "user2", "repo1", title, status)
 	}
 }

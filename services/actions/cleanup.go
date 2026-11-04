@@ -10,6 +10,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
@@ -243,7 +244,17 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		if err := CleanupEphemeralRunners(ctx); err != nil {
 			return err
 		}
-		return db.DeleteBeans(ctx, recordsToDelete...)
+		if err := db.DeleteBeans(ctx, recordsToDelete...); err != nil {
+			return err
+		}
+		_, commitID, _ := getCommitStatusEventNameAndCommitID(run) // no statuses were created if this fails
+		cond := builder.Eq{"repo_id": repoID, "sha": commitID}.And(builder.Like{"target_url", fmt.Sprintf("/actions/runs/%d/jobs/", run.ID)})
+		for _, bean := range []any{&git_model.CommitStatus{}, &git_model.CommitStatusSummary{}} {
+			if _, err := db.GetEngine(ctx).Where(cond).Cols("target_url").Update(bean); err != nil {
+				return err
+			}
+		}
+		return nil
 	}); err != nil {
 		return err
 	}

@@ -5,7 +5,6 @@
 package user
 
 import (
-	"errors"
 	"net/http"
 
 	user_model "gitea.dev/models/user"
@@ -212,7 +211,6 @@ func CheckFollowing(ctx *context.APIContext) {
 	checkUserFollowing(ctx, ctx.ContextUser, target.ID)
 }
 
-// Follow follow a user
 func Follow(ctx *context.APIContext) {
 	// swagger:operation PUT /user/following/{username} user userCurrentPutFollow
 	// ---
@@ -230,17 +228,12 @@ func Follow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	if err := user_model.FollowUser(ctx, ctx.Doer, ctx.ContextUser); err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
 }
 
-// Unfollow unfollow a user
 func Unfollow(ctx *context.APIContext) {
 	// swagger:operation DELETE /user/following/{username} user userCurrentDeleteFollow
 	// ---
@@ -258,7 +251,7 @@ func Unfollow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	if err := user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

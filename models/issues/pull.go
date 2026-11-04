@@ -378,7 +378,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 	reviewersWritten := 0
 
 	for _, review := range reviews {
-		if maxReviewers > 0 && reviewersWritten > maxReviewers {
+		if maxReviewers > 0 && reviewersWritten >= maxReviewers {
 			break
 		}
 

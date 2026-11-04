@@ -35,26 +35,18 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
+	if issue_service.IsLockedForDoer(issue, ctx.Repo.Permission) {
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
+		return
+	}
+
+	form := web.GetForm[*forms.CreateCommentForm](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
-	form := web.GetForm[*forms.CreateCommentForm](ctx)
 	issueType := util.Iif(issue.IsPull, "pulls", "issues")
-
-	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
-		log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
-			"User in Repo has Permissions: %-+v", ctx.Doer, issue.PosterID, issueType, ctx.Repo.Repository, ctx.Repo.Permission)
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
-	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
-		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
-		return
-	}
-
 	redirect := fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, issueType, issue.Index)
 	attachments := util.Iif(setting.Attachment.Enabled, form.Files, nil)
 

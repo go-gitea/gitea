@@ -10,7 +10,11 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 	api "gitea.dev/modules/structs"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -369,6 +373,15 @@ func testActionsRunnerRepo(t *testing.T) {
 		// Verify runner deletion
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("OrgAdminTeamMember", func(t *testing.T) {
+		adminTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
+		orgRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+		require.NoError(t, repo_service.TeamAddRepository(t.Context(), adminTeam, orgRepo))
+		token := getUserToken(t, "user28", auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequest(t, "POST", "/api/v1/repos/org3/repo3/actions/runners/registration-token").AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
 	})
 
 	t.Run("DeleteReadScopeForbidden", func(t *testing.T) {
