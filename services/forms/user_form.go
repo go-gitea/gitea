@@ -160,8 +160,8 @@ type IntrospectTokenForm struct {
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
 	middleware.FormDefaultValidator
-	Name                string `binding:"Username;MaxSize(40)"`
-	FullName            string `binding:"MaxSize(100)"`
+	Name                string  `binding:"Username;MaxSize(40)"`
+	FullName            *string `binding:"MaxSize(100)"`
 	KeepEmailPrivate    bool
 	Website             string `binding:"ValidSiteUrl;MaxSize(255)"`
 	Location            string `binding:"MaxSize(50)"`

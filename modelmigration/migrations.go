@@ -441,7 +441,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(362, "Add reusable_workflow_ref column to action_run_job", v29.AddReusableWorkflowRefToActionRunJob),
 		newMigration(363, "Add release_id to reaction table", v29.AddReleaseIDToReaction),
 		newMigration(364, "Add new table project_workflow", v29.AddProjectWorkflow),
-		newMigration(365, "Add metadata mirror sync columns", v29.AddMetadataMirrorSyncColumns),
+		newMigration(365, "Normalize legacy repository unit and login source JSON", v29.NormalizeLegacyConfigJSON),
+		newMigration(366, "Add metadata mirror sync columns", v29.AddMetadataMirrorSyncColumns),
 	}
 	return preparedMigrations
 }

@@ -44,8 +44,8 @@ func parseProjectIDsFromQuery(ctx *context.Context) []int64 {
 	return ctx.FormStringInt64s("project")
 }
 
-// SearchIssues searches for issues across the repositories that the user has access to
-func SearchIssues(ctx *context.Context) {
+// SearchGlobalIssues searches for issues across the repositories that the user has access to
+func SearchGlobalIssues(ctx *context.Context) {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.HTTPError(http.StatusUnprocessableEntity, err.Error())
@@ -234,7 +234,11 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		}
 	}
 
-	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
+	isPull, ok := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, ctx.FormString("type"))
+	if !ok {
+		ctx.HTTPError(http.StatusForbidden, "no permission to read issues or pulls")
+		return
+	}
 
 	// FIXME: we should be more efficient here
 	createdByID := getUserIDForFilter(ctx, "created_by")
