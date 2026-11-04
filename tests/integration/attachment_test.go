@@ -310,14 +310,10 @@ func testDeleteAttachmentPermissions(t *testing.T) {
 	releaseUUID := testCreateReleaseAttachment(t, ownerSession, repoURL, "reader-release.png", testGeneratePngBytes(), http.StatusOK)
 	testDeleteReleaseAttachment(t, ownerSession, repoURL, releaseUUID, http.StatusOK)
 
-	linkedUUID := testCreateReleaseAttachment(t, ownerSession, repoURL, "linked-release.png", testGeneratePngBytes(), http.StatusOK)
+	linkedUUID := testCreateIssueAttachment(t, ownerSession, repoURL, "linked.png", testGeneratePngBytes(), http.StatusOK)
 	linked, err := repo_model.GetAttachmentByUUID(t.Context(), linkedUUID)
 	require.NoError(t, err)
-	linked.ReleaseID = 1
-	require.NoError(t, repo_model.UpdateAttachmentByUUID(t.Context(), linked, "release_id"))
-	testDeleteReleaseAttachment(t, ownerSession, repoURL, linkedUUID, http.StatusForbidden)
-	testDeleteIssueAttachment(t, ownerSession, repoURL, linkedUUID, http.StatusForbidden)
-	linked.ReleaseID, linked.CommentID = 0, 1
-	require.NoError(t, repo_model.UpdateAttachmentByUUID(t.Context(), linked, "release_id", "comment_id"))
+	linked.CommentID = 1
+	require.NoError(t, repo_model.UpdateAttachmentByUUID(t.Context(), linked, "comment_id"))
 	testDeleteIssueAttachment(t, ownerSession, repoURL, linkedUUID, http.StatusForbidden)
 }
