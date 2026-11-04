@@ -21,9 +21,9 @@ async function getIssueInfo(url: string): Promise<IssueInfo> {
   return data;
 }
 
-async function showRefIssuePopup(link: HTMLAnchorElement, {ownerName, repoName, pathType, indexString}: IssuePathInfo) {
+async function showRefIssuePopup(link: HTMLAnchorElement, info: IssuePathInfo) {
   const [data, {default: ContextPopup}] = await Promise.all([
-    getIssueInfo(`${window.config.appSubUrl}/${ownerName}/${repoName}/${pathType}/${indexString}/info`),
+    getIssueInfo(`${window.config.appSubUrl}/${info.ownerName}/${info.repoName}/${info.pathType}/${info.indexString}/info`),
     import('../components/ContextPopup.vue'),
   ]);
   const el = document.createElement('div');
