@@ -51,7 +51,8 @@ func hookPostReceiveCollectPushUpdates(opts *private.HookOptions, repo *repo_mod
 	return updates
 }
 
-func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) {
+// hookPostReceiveSyncDatabaseBranches returns true if this push marked the repo as not empty
+func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) bool {
 	branchNames := make([]string, 0, len(updates))
 	firstPushedBranch := ""
 	for _, update := range updates {
@@ -66,13 +67,13 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 	}
 
 	if len(branchNames) == 0 {
-		return
+		return false
 	}
 
 	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		log.Error("failed to open git repo: %v", err)
-		return
+		return false
 	}
 
 	var defaultBranch string
@@ -88,15 +89,13 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 	})
 	if err != nil {
 		log.Error("failed to sync branch to DB: %v", err)
-		return
+		return false
 	}
-	if defaultBranch != "" {
-		repo.IsEmpty, repo.DefaultBranch = false, defaultBranch
-		// the default branch might not be in this push, so sync HEAD here
-		if err = git.SetDefaultBranch(ctx, repo, defaultBranch); err != nil {
-			log.Error("failed to set default branch: %v", err)
-		}
+	if defaultBranch == "" {
+		return false
 	}
+	repo.IsEmpty, repo.DefaultBranch = false, defaultBranch
+	return true
 }
 
 // hookPostReceiveMarkRepoNotEmpty returns the default branch of the repo after marking it as not empty
@@ -141,8 +140,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	repo := ctx.Repo.Repository
 	updates := hookPostReceiveCollectPushUpdates(opts, repo)
 	hookPostReceiveUpdateRepoByOptions(ctx, opts, repo) // push options are only honored while the repo is still empty
-	hookPostReceiveSyncDatabaseBranches(ctx, opts, repo, updates)
-	hookPostReceiveSyncRepoDefaultBranch(ctx, opts, repo)
+	markedNotEmpty := hookPostReceiveSyncDatabaseBranches(ctx, opts, repo, updates)
+	hookPostReceiveSyncRepoDefaultBranch(ctx, opts, repo, markedNotEmpty)
 
 	// handle async updates (e.g.: notification, cache management, repo update time, etc.)
 	if err := repo_service.PushUpdates(updates...); err != nil {
@@ -254,7 +253,7 @@ func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *
 	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{Results: results})
 }
 
-func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {
+func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, markedNotEmpty bool) {
 	if repo.IsEmpty || !slices.ContainsFunc(opts.RefFullNames, git.RefName.IsBranch) {
 		return
 	}
@@ -278,8 +277,8 @@ func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opt
 		}
 	}
 
-	// if default branch was changed or pushed, always keep the HEAD ref in sync
-	if defaultBranchChanged || slices.Contains(opts.RefFullNames, git.RefNameFromBranch(repo.DefaultBranch)) {
+	// if default branch was chosen, changed or pushed, always keep the HEAD ref in sync
+	if markedNotEmpty || defaultBranchChanged || slices.Contains(opts.RefFullNames, git.RefNameFromBranch(repo.DefaultBranch)) {
 		_ = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
 	}
 }

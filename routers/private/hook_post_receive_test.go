@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHookPostReceiveSyncBranches(t *testing.T) {
+func TestHookPostReceiveDefaultBranch(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
@@ -53,8 +53,8 @@ func TestHookPostReceiveSyncBranches(t *testing.T) {
 	}
 	syncBranches := func(t *testing.T, repo *repo_model.Repository, opts *private.HookOptions) {
 		ctx, _ := contexttest.MockPrivateContext(t, "/")
-		hookPostReceiveSyncDatabaseBranches(ctx, opts, repo, hookPostReceiveCollectPushUpdates(opts, repo))
-		hookPostReceiveSyncRepoDefaultBranch(ctx, opts, repo)
+		markedNotEmpty := hookPostReceiveSyncDatabaseBranches(ctx, opts, repo, hookPostReceiveCollectPushUpdates(opts, repo))
+		hookPostReceiveSyncRepoDefaultBranch(ctx, opts, repo, markedNotEmpty)
 	}
 	assertRepo := func(t *testing.T, repo *repo_model.Repository, isEmpty bool, defaultBranch string) {
 		dbRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
