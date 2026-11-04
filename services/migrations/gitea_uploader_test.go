@@ -149,6 +149,37 @@ func TestCreateReleasesSkipsUnavailableAssets(t *testing.T) {
 	assert.Equal(t, "kept", sourceRelease.Assets[0].Name)
 }
 
+func TestCreateReleasesDatedByTargetCommit(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
+	uploader.repo = repo
+	var err error
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer uploader.Close()
+
+	commit, err := uploader.gitRepo.GetTagCommit(ctx, "v1.1")
+	require.NoError(t, err)
+
+	// Remove the fixture release for this tag so CreateReleases can insert a fresh one.
+	_, err = db.GetEngine(ctx).Delete(&repo_model.Release{RepoID: repo.ID, TagName: "v1.1"})
+	require.NoError(t, err)
+
+	// The source forge's release "created at" timestamp can be unreliable (e.g. it may
+	// reflect when the release draft was made rather than the commit date), so it must
+	// not override the commit date, otherwise an old commit released later could take
+	// over as the latest release and the order would no longer match the source.
+	misleadingCreated := time.Date(2099, 1, 1, 0, 0, 0, 0, time.UTC)
+	require.NoError(t, uploader.CreateReleases(ctx, &base.Release{TagName: "v1.1", Created: misleadingCreated}))
+
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: repo.ID, TagName: "v1.1"})
+	assert.Equal(t, commit.Committer.When.Unix(), release.CreatedUnix.AsTime().Unix())
+}
+
 func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

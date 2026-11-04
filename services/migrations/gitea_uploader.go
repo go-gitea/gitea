@@ -315,6 +315,10 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 				if err != nil {
 					return fmt.Errorf("CommitsCount: %w", err)
 				}
+				// Match native release creation (see createTag): date by the target commit,
+				// not the source forge's release metadata, so an old commit released later
+				// doesn't take over as the latest release and the order matches the source.
+				rel.CreatedUnix = timeutil.TimeStamp(commit.Committer.When.Unix())
 			}
 		}
 
