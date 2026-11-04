@@ -52,8 +52,16 @@ func (ci *CompareInfo) DirectComparison() bool {
 // It does its best to fill the fields as many as it can.
 // MergeBase can be empty if the base and head are unrelated.
 func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison, fileOnly bool) (compareInfo CompareInfo, err error) {
-	baseCommitID, err1 := git.GetFullCommitID(ctx, baseRepo, baseRef.String())
-	headCommitID, err2 := git.GetFullCommitID(ctx, headRepo, headRef.String())
+	resolveCommitID := func(repo *repo_model.Repository, ref git.RefName) (string, error) {
+		if repo.ID == headRepo.ID && (ref.IsBranch() || ref.IsPull()) && git.IsValidRefPattern(ref.String()) {
+			if commitID, err := headGitRepo.GetRefCommitID(ctx, ref.String()); err == nil {
+				return commitID, nil
+			}
+		}
+		return git.GetFullCommitID(ctx, repo, ref.String())
+	}
+	baseCommitID, err1 := resolveCommitID(baseRepo, baseRef)
+	headCommitID, err2 := resolveCommitID(headRepo, headRef)
 	compareInfo = CompareInfo{
 		BaseRepo:         baseRepo,
 		BaseRef:          baseRef,

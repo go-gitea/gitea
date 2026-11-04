@@ -457,6 +457,10 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 	}
 
 	if len(pullReviews) > 0 {
+		if err := reviews.LoadReviewers(ctx); err != nil {
+			ctx.ServerError("LoadReviewers", err)
+			return
+		}
 		// Drop all non-existing users and teams from the reviews
 		currentPullReviewers := make([]*repoReviewerSelection, 0, len(pullReviews))
 		for _, item := range pullReviews {
