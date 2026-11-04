@@ -135,7 +135,7 @@ export function initCodespaceSecretRepositoryPicker(root: HTMLElement) {
           id: element.getAttribute('data-repository-id')!,
           name: element.getAttribute('data-repository-name')!,
         }));
-        reset(repositories, button.getAttribute('data-modal-secret-access-all.checked') === 'true');
+        reset(repositories, button.getAttribute('data-modal-codespace-secret-access-all') === 'true');
       });
     }
   }

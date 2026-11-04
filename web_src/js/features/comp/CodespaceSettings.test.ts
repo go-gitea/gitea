@@ -52,7 +52,7 @@ test('secret repository access loads the complete selected scope and switches to
     <div class="codespace-secret-item">
       <span data-repository-id="1" data-repository-name="owner/first"></span>
       <span data-repository-id="2" data-repository-name="owner/second"></span>
-      <button class="codespace-secret-access-button" data-modal-secret-access-all.checked="false"></button>
+      <button class="codespace-secret-access-button" data-modal-codespace-secret-access-all="false"></button>
     </div>
     <div id="codespace-secret-access-modal">
       <form>
