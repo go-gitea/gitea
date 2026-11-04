@@ -83,24 +83,20 @@ func ProfilePost(ctx *context.Context) {
 		}
 	}
 
-	opts := &user_service.UpdateOptions{
+	if form.FullName != nil && user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
+		ctx.JSONErrorWithField(ctx.Tr("form.change_full_name_disabled"), "FullName")
+		return
+	}
+
+	if err := user_service.UpdateUser(ctx, ctx.Doer, &user_service.UpdateOptions{
 		KeepEmailPrivate:    optional.Some(form.KeepEmailPrivate),
+		FullName:            optional.FromPtr(form.FullName),
 		Description:         optional.Some(form.Description),
 		Website:             optional.Some(form.Website),
 		Location:            optional.Some(form.Location),
 		Visibility:          optional.Some(form.Visibility),
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
-	}
-
-	if form.FullName != nil {
-		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
-			ctx.JSONErrorWithField(ctx.Tr("form.change_full_name_disabled"), "FullName")
-			return
-		}
-		opts.FullName = optional.FromPtr(form.FullName)
-	}
-
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	}); err != nil {
 		ctx.JSONErrorAuto(err)
 		return
 	}

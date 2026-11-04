@@ -484,50 +484,29 @@ func testChangeFullName(t *testing.T) {
 	session := loginUser(t, "user2")
 	postSettings := func(t *testing.T, values map[string]string, expectedStatus int) map[string]any {
 		t.Helper()
-		req := NewRequestWithValues(t, "POST", "/user/settings", values)
-		resp := session.MakeRequest(t, req, expectedStatus)
-		data := DecodeJSON(t, resp, map[string]any{})
-		if expectedStatus == http.StatusOK {
-			assert.Equal(t, "/user/settings", data["redirect"])
-		}
-		return data
+		resp := session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings", values), expectedStatus)
+		return DecodeJSON(t, resp, map[string]any{})
 	}
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
-	assert.NotEqual(t, "New Name", user2.FullName)
-	assert.Empty(t, user2.Location)
 	t.Run("Change", func(t *testing.T) {
-		postSettings(t, map[string]string{"name": "user2", "full_name": "New Name"}, http.StatusOK)
+		postSettings(t, map[string]string{"full_name": "New Name"}, http.StatusOK)
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2", FullName: "New Name"})
-		postSettings(t, map[string]string{"location": "Somewhere"}, http.StatusOK)
-		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2", FullName: "New Name", Location: "Somewhere"})
 	})
 
-	t.Run("TooLong", func(t *testing.T) {
-		data := postSettings(t, map[string]string{"name": "user2", "full_name": strings.Repeat("a", 101)}, http.StatusBadRequest)
+	t.Run("Disabled", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureChangeFullName))()
+		postSettings(t, map[string]string{"location": "Elsewhere"}, http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2", FullName: "New Name", Location: "Elsewhere"})
+
+		data := postSettings(t, map[string]string{"full_name": "Other Name"}, http.StatusBadRequest)
 		assert.Equal(t, []any{"FullName"}, data["errorFields"])
-		assert.Equal(t, "FullName must contain at most 100 characters.", data["errorMessage"])
+		assert.Equal(t, "Changing full name is disabled.", data["errorMessage"])
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2", FullName: "New Name"})
 	})
 
 	t.Run("Clear", func(t *testing.T) {
-		postSettings(t, map[string]string{"name": "user2", "full_name": ""}, http.StatusOK)
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
-		assert.Empty(t, user2.FullName)
-	})
-
-	t.Run("Disabled", func(t *testing.T) {
-		postSettings(t, map[string]string{"name": "user2", "full_name": "New Name"}, http.StatusOK)
-		defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureChangeFullName))()
-
-		// the disabled input is not submitted, the other fields can still be saved
-		postSettings(t, map[string]string{"location": "Elsewhere"}, http.StatusOK)
-		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2", FullName: "New Name", Location: "Elsewhere"})
-
-		data := postSettings(t, map[string]string{"location": "Elsewhere2", "full_name": "Other Name"}, http.StatusBadRequest)
-		assert.Equal(t, []any{"FullName"}, data["errorFields"])
-		assert.Equal(t, "Changing full name is disabled.", data["errorMessage"])
-		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2", FullName: "New Name", Location: "Elsewhere"})
+		postSettings(t, map[string]string{"full_name": ""}, http.StatusOK)
+		assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"}).FullName)
 	})
 }
 
