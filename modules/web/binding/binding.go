@@ -30,7 +30,7 @@ import (
 const (
 	errContentType     = "ContentTypeError"
 	errDeserialization = "DeserializationError"
-	errTypeCast        = "TypeCastError"
+	ErrTypeCast        = "TypeCastError"
 	errRule            = "RuleError"
 
 	ErrRequired     = "RequiredError"
@@ -128,7 +128,7 @@ func NewBinder() *Binder {
 		stringType := reflect.TypeFor[string]()
 		value := reflect.Indirect(field.reflectValue)
 		if !value.CanConvert(stringType) {
-			return newFieldError(field.StructField, errTypeCast, "TrimSpace")
+			return newFieldError(field.StructField, ErrTypeCast, "TrimSpace")
 		}
 		field.assignValue(strings.TrimSpace(value.Convert(stringType).String()))
 		return nil
@@ -351,13 +351,13 @@ func setWithProperType(structField reflect.StructField, val string, fieldValue r
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		intVal, err := strconv.ParseInt(cmp.Or(val, "0"), 10, fieldValue.Type().Bits())
 		if err != nil {
-			return newFieldError(structField, errTypeCast, "Value could not be parsed as integer")
+			return newFieldError(structField, ErrTypeCast, "Value could not be parsed as integer")
 		}
 		fieldValue.SetInt(intVal)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		uintVal, err := strconv.ParseUint(cmp.Or(val, "0"), 10, fieldValue.Type().Bits())
 		if err != nil {
-			return newFieldError(structField, errTypeCast, "Value could not be parsed as unsigned integer")
+			return newFieldError(structField, ErrTypeCast, "Value could not be parsed as unsigned integer")
 		}
 		fieldValue.SetUint(uintVal)
 	case reflect.Bool:
@@ -367,7 +367,7 @@ func setWithProperType(structField reflect.StructField, val string, fieldValue r
 		}
 		boolVal, err := strconv.ParseBool(cmp.Or(val, "false"))
 		if err != nil {
-			return newFieldError(structField, errTypeCast, "Value could not be parsed as boolean")
+			return newFieldError(structField, ErrTypeCast, "Value could not be parsed as boolean")
 		}
 		fieldValue.SetBool(boolVal)
 	case reflect.String:
