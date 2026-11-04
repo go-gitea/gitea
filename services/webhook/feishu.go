@@ -148,11 +148,8 @@ func (fc feishuConvertor) Repository(p *api.RepositoryPayload) (FeishuPayload, e
 	case api.HookRepoDeleted:
 		text = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
 		return newFeishuTextPayload(text), nil
-	case api.HookRepoRenamed:
-		text = fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
-		return newFeishuTextPayload(text), nil
-	case api.HookRepoTransferred:
-		text = fmt.Sprintf("[%s] Repository transferred from %s", p.Repository.FullName, getRepoTransferredFrom(p))
+	case api.HookRepoRenamed, api.HookRepoTransferred:
+		text = fmt.Sprintf("[%s] Repository %s from %s", p.Repository.FullName, p.Action, getRepoChangedFrom(p))
 		return newFeishuTextPayload(text), nil
 	}
 

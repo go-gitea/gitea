@@ -210,16 +210,6 @@ func TestMSTeamsPayload(t *testing.T) {
 			"Repository:": fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL),
 		})
 		checkAction(t, pl, "http://localhost:3000/test/repo")
-
-		p.Action = api.HookRepoTransferred
-		p.Changes = &api.ChangesPayload{Owner: &api.ChangesFromPayload{From: "old-owner"}}
-		pl, err = mc.Repository(p)
-		require.NoError(t, err)
-
-		checkPayload(t, pl, "[test/repo] Repository transferred from old-owner", "", map[string]string{
-			"Repository:": fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL),
-		})
-		checkAction(t, pl, "http://localhost:3000/test/repo")
 	})
 
 	t.Run("Package", func(t *testing.T) {

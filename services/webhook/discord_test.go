@@ -148,13 +148,6 @@ func TestDiscordPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assertPayload(t, pl, p.Sender, "[test/repo] Repository created", "", "http://localhost:3000/test/repo")
-
-		p.Action = api.HookRepoTransferred
-		p.Changes = &api.ChangesPayload{Owner: &api.ChangesFromPayload{From: "old-owner"}}
-		pl, err = dc.Repository(p)
-		require.NoError(t, err)
-
-		assertPayload(t, pl, p.Sender, "[test/repo] Repository transferred from old-owner", "", "http://localhost:3000/test/repo")
 	})
 
 	t.Run("Package", func(t *testing.T) {

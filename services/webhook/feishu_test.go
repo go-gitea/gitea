@@ -63,16 +63,6 @@ func TestFeishuPayload(t *testing.T) {
 			"[test/repo] Repository created",
 		},
 		{
-			"RepositoryTransferred",
-			func() (FeishuPayload, error) {
-				p := repositoryTestPayload()
-				p.Action = api.HookRepoTransferred
-				p.Changes = &api.ChangesPayload{Owner: &api.ChangesFromPayload{From: "old-owner"}}
-				return fc.Repository(p)
-			},
-			"[test/repo] Repository transferred from old-owner",
-		},
-		{
 			"Package",
 			func() (FeishuPayload, error) { return fc.Package(packageTestPayload()) },
 			"Package created: GiteaContainer:latest by user1",

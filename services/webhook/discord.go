@@ -241,12 +241,8 @@ func (d discordConvertor) Repository(p *api.RepositoryPayload) (DiscordPayload, 
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
 		color = redColor
-	case api.HookRepoRenamed:
-		title = fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
-		url = p.Repository.HTMLURL
-		color = greenColor
-	case api.HookRepoTransferred:
-		title = fmt.Sprintf("[%s] Repository transferred from %s", p.Repository.FullName, getRepoTransferredFrom(p))
+	case api.HookRepoRenamed, api.HookRepoTransferred:
+		title = fmt.Sprintf("[%s] Repository %s from %s", p.Repository.FullName, p.Action, getRepoChangedFrom(p))
 		url = p.Repository.HTMLURL
 		color = greenColor
 	}

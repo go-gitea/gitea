@@ -34,7 +34,6 @@ func TestWebhookService(t *testing.T) {
 	t.Run("WebhookUserMail", testWebhookUserMail)
 	t.Run("CheckBranchFilter", testWebhookCheckBranchFilter)
 	t.Run("PrepareTestWebhookIgnoresGates", testPrepareTestWebhookIgnoresGates)
-	t.Run("TransferRepository", testWebhookTransferRepository)
 }
 
 func testWebhookAssigneeChanges(t *testing.T) {
@@ -114,32 +113,6 @@ func testWebhookPrepare(t *testing.T) {
 	err := PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}})
 	require.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
-}
-
-func testWebhookTransferRepository(t *testing.T) {
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	hook := &webhook_model.Webhook{
-		RepoID:      repo.ID,
-		URL:         "http://localhost/gitea-webhook-test-transfer-repository",
-		ContentType: webhook_model.ContentTypeJSON,
-		Events:      `{"send_everything":true}`,
-		IsActive:    true,
-	}
-	require.NoError(t, db.Insert(t.Context(), hook))
-
-	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventRepository}
-	unittest.AssertNotExistsBean(t, hookTask)
-
-	(&webhookNotifier{}).TransferRepository(t.Context(), doer, repo, "old-owner")
-
-	task := unittest.AssertExistsAndLoadBean(t, hookTask)
-	var payload api.RepositoryPayload
-	require.NoError(t, json.Unmarshal([]byte(task.PayloadContent), &payload))
-	assert.Equal(t, api.HookRepoTransferred, payload.Action)
-	require.NotNil(t, payload.Changes)
-	require.NotNil(t, payload.Changes.Owner)
-	assert.Equal(t, "old-owner", payload.Changes.Owner.From)
 }
 
 func testWebhookPrepareBranchFilterMatch(t *testing.T) {

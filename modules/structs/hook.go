@@ -460,6 +460,13 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
+type ChangesOwnerPayload struct {
+	From struct {
+		User         *User `json:"user,omitempty"`
+		Organization *User `json:"organization,omitempty"`
+	} `json:"from"`
+}
+
 // ChangesPayload represents the payload information of issue change
 type ChangesPayload struct {
 	// Changes made to the title
@@ -470,8 +477,8 @@ type ChangesPayload struct {
 	Ref *ChangesFromPayload `json:"ref,omitempty"`
 	// Changes made to the repository name
 	Name *ChangesFromPayload `json:"name,omitempty"`
-	// Changes made to the repository owner (for transfer actions)
-	Owner *ChangesFromPayload `json:"owner,omitempty"`
+	// Changes made to the repository owner
+	Owner *ChangesOwnerPayload `json:"owner,omitempty"`
 	// Changes made to the labels added
 	AddedLabels []*Label `json:"added_labels"`
 	// Changes made to the labels removed
