@@ -1124,7 +1124,6 @@
   "repo.migrate.onedev.description": "Migrer les données depuis code.onedev.io ou d’autre instance de OneDev.",
   "repo.migrate.codebase.description": "Migrer les données depuis codebasehq.com.",
   "repo.migrate.gitbucket.description": "Migrer les données depuis des instances GitBucket.",
-  "repo.migrate.bitbucketserver.description": "Migrer les données depuis des serveurs ou des centres de données Bitbucket.",
   "repo.migrate.bitbucketserver.variant": "Centre de données / Serveur",
   "repo.migrate.hosting": "Hébergement",
   "repo.migrate.codecommit.description": "Migrer les données depuis AWS CodeCommit.",

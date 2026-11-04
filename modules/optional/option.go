@@ -11,6 +11,8 @@ import "strconv"
 // * non-existing value are represented as an empty slice (None)
 // * existing value is represented as a slice with one element (Some)
 // * multiple values are represented as a slice with multiple elements (Some), the Value is the first element (not well-defined in this case)
+//
+// Attention: Option[T] doesn't work with some web middleware binding rules like "MaxSize" at the moment.
 type Option[T any] []T
 
 func None[T any]() Option[T] {
