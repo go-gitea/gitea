@@ -615,7 +615,6 @@
   "settings.permission_no_access": "Нет доступа",
   "settings.permission_read": "Прочитанные",
   "settings.permission_write": "Чтение и запись",
-  "settings.access_token_desc": "Выбранные области действия токена ограничивают авторизацию только соответствующими маршрутами <a %s>API</a>. Читайте <a %s>документацию</a> для получения дополнительной информации.",
   "settings.at_least_one_permission": "Необходимо выбрать хотя бы одно разрешение для создания токена",
   "settings.permissions_list": "Разрешения:",
   "settings.manage_oauth2_applications": "Управление приложениями OAuth2",
