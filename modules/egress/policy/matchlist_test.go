@@ -71,10 +71,7 @@ func TestMatchIPAddr(t *testing.T) {
 		{pattern: "loopback", ip: "127.0.0.1", port: 80, want: true},
 		{pattern: "loopback", ip: "::1", port: 80, want: true},
 		{pattern: "loopback", ip: "10.1.2.3", port: 80},
-		{pattern: "private", ip: "100.64.0.1", port: 80}, // CGNAT is its own alias
-		{pattern: "cgnat", ip: "100.64.0.1", port: 80, want: true},
-		{pattern: "cgnat", ip: "100.100.100.200", port: 80, want: true},
-		{pattern: "cgnat", ip: "10.1.2.3", port: 80},
+		{pattern: "private", ip: "100.64.0.1", port: 80, want: true},           // CGNAT
 		{pattern: "::ffff:10.0.0.0/104", ip: "10.1.2.3", port: 80, want: true}, // IPv4-mapped CIDR normalized to 10.0.0.0/8
 		{pattern: "private", ip: "8.8.8.8", port: 80},
 		{pattern: "private:22", ip: "fd00::1", port: 22, want: true},
@@ -141,7 +138,7 @@ func TestRejectedEntries(t *testing.T) {
 }
 
 func TestParseInternalRanges(t *testing.T) {
-	prefixes, rejected := ParseInternalRanges("10.0.0.0/8, private, loopback, cgnat, 192.168.1.1, 2001:db8::/32, ,")
+	prefixes, rejected := ParseInternalRanges("10.0.0.0/8, private, loopback, 192.168.1.1, 2001:db8::/32, ,")
 	assert.Empty(t, rejected)
 	contains := func(ip string) bool {
 		return inRange(prefixes, netip.MustParseAddr(ip))
@@ -150,7 +147,7 @@ func TestParseInternalRanges(t *testing.T) {
 	assert.True(t, contains("172.16.0.1"))      // private
 	assert.True(t, contains("192.168.0.1"))     // private and the single IP
 	assert.True(t, contains("127.0.0.1"))       // loopback
-	assert.True(t, contains("100.100.100.200")) // cgnat
+	assert.True(t, contains("100.100.100.200")) // CGNAT, covered by private
 	assert.True(t, contains("2001:db8::1"))
 	assert.False(t, contains("8.8.8.8"))
 	assert.False(t, contains("169.254.169.254"))

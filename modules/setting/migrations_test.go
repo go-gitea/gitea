@@ -18,8 +18,8 @@ func TestLoadMigrationsFrom(t *testing.T) {
 	for ini, want := range map[string][4]string{
 		`ALLOWED_DOMAINS = github.com
 BLOCKED_DOMAINS = gitlab.com
-ALLOW_LOCALNETWORKS = true`: {"github.com:*,private:*,loopback:*,cgnat:*", "gitlab.com", "strict", ""},
-		`ALLOW_LOCALNETWORKS = true`: {"private:*,loopback:*,cgnat:*", "", "lax", ""},
+ALLOW_LOCALNETWORKS = true`: {"github.com:*,private:*,loopback:*", "gitlab.com", "strict", ""},
+		`ALLOW_LOCALNETWORKS = true`: {"private:*,loopback:*", "", "lax", ""},
 		`ALLOWED_HOST_LIST = 10.0.0.0/8
 ALLOWED_DOMAINS = github.com
 ALLOW_LOCALNETWORKS = true
@@ -29,7 +29,7 @@ BLOCKED_DOMAINS = gitlab.com`: {"10.0.0.0/8", "evil.com", "lax", ""},
 		`ALLOWED_DOMAINS = github.com
 EGRESS_MODE = lax`: {"github.com:*", "", "lax", ""},
 		`ALLOWED_HOST_LIST = example.com
-ALLOWED_INTERNAL_RANGES = 10.0.0.0/8, cgnat`: {"example.com", "", "lax", "10.0.0.0/8, cgnat"},
+ALLOWED_INTERNAL_RANGES = 10.0.0.0/8, 100.64.0.0/10`: {"example.com", "", "lax", "10.0.0.0/8, 100.64.0.0/10"},
 		// an invalid allow entry is logged and dropped, startup continues
 		`ALLOWED_HOST_LIST = 10.0.0.5/8`: {"10.0.0.5/8", "", "lax", ""},
 	} {

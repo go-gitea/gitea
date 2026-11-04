@@ -56,15 +56,13 @@ func (p *domainRule) Contains(hostname string, port uint16) bool {
 const (
 	AliasPrivate  = "private"
 	AliasLoopback = "loopback"
-	AliasCGNAT    = "cgnat"
 )
 
 var namedRanges = sync.OnceValue(func() map[string][]netip.Prefix {
 	base := map[string][]string{
-		// private ranges, CGNAT is its own alias so "private" never covers the carrier-NAT metadata endpoint
-		AliasPrivate:  {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7"},
+		// private ranges and CGNAT
+		AliasPrivate:  {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7", "100.64.0.0/10"},
 		AliasLoopback: {"127.0.0.0/8", "::1/128"},
-		AliasCGNAT:    {"100.64.0.0/10"}, // carrier NAT, eg Tailscale
 	}
 	out := make(map[string][]netip.Prefix, len(base))
 	for name, ranges := range base {

@@ -51,8 +51,7 @@ func TestCheckAddr(t *testing.T) {
 		{name: "teredo reserved denied despite allow", allow: "2001::/23", ip: "2001::1"},
 		{name: "protocol assignment allowed by cidr", allow: "2001::/23", ip: "2001:3::1", want: true},
 		{name: "local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5"},
-		{name: "local gate accepts builtin", allow: "cgnat", ip: "100.64.0.1", want: true},
-		{name: "private does not cover cgnat", allow: "private", ip: "100.64.0.1"},
+		{name: "local gate accepts builtin", allow: "private", ip: "100.64.0.1", want: true}, // CGNAT is covered by private
 		{name: "local gate accepts cidr", allow: "10.0.0.0/24", ip: "10.0.0.5", want: true},
 		// strict mode requires every target to match the allow list, an empty list denies all
 		{name: "strict denies public with empty list", ip: "8.8.8.8", strict: true},
@@ -65,7 +64,7 @@ func TestCheckAddr(t *testing.T) {
 		{name: "strict reserved denied despite allow", allow: "168.63.129.16/32", ip: "168.63.129.16", strict: true},
 		{name: "strict link-local allowed by cidr", allow: "169.254.0.0/16", ip: "169.254.169.254", strict: true, want: true},
 		{name: "strict local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5", strict: true},
-		{name: "strict local gate accepts builtin", allow: "cgnat", ip: "100.64.0.1", strict: true, want: true},
+		{name: "strict local gate accepts builtin", allow: "private", ip: "100.64.0.1", strict: true, want: true},
 		// hostname entries cover non-public targets only within ALLOWED_INTERNAL_RANGES
 		{name: "ranges allow host in range", allow: "ci.internal.example.com", ranges: "10.0.0.0/8, 100.64.0.0/10", host: "ci.internal.example.com", ip: "10.1.2.3", want: true},
 		{name: "ranges allow cgnat in range", allow: "ci.internal.example.com", ranges: "10.0.0.0/8, 100.64.0.0/10", host: "ci.internal.example.com", ip: "100.100.100.200", port: 443, want: true},
@@ -206,11 +205,10 @@ func TestCheckHostIPs(t *testing.T) {
 
 	builtins := NewPolicy("test", Lax, WithAllow("private, loopback", ""))
 	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "10.0.0.5", "::1")))
-	cgnat := NewPolicy("test", Lax, WithAllow("cgnat", ""))
-	assert.NoError(t, cgnat.checkHostIPs(hostURL(t, "http://example.com"), ips("100.100.100.200"))) // cloud metadata is opt-in with its containing range
+	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("100.100.100.200"))) // CGNAT is covered by the private alias
 	for _, ip := range []string{
 		"0.1.2.3", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
-		"198.51.100.1", "203.0.113.1", "100.100.100.200", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "2001::1", "2001:db8::1",
+		"198.51.100.1", "203.0.113.1", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "2001::1", "2001:db8::1",
 		"2002::1", "fe80::1",
 	} {
 		assert.Error(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips(ip)), ip)
