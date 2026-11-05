@@ -58,41 +58,41 @@ func (ci *CompareInfo) DirectComparison() bool {
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
 // It does its best to fill the fields as many as it can.
 // MergeBase can be empty if the base and head are unrelated.
-func GetCompareInfo(ctx context.Context, baseHead CompareBaseHead, directComparison, fileOnly bool) (compareInfo CompareInfo, err error) {
-	baseCommitID, err1 := baseHead.BaseGitRepo.GetRefCommitID(ctx, baseHead.BaseRef.String())
-	headCommitID, err2 := baseHead.HeadGitRepo.GetRefCommitID(ctx, baseHead.HeadRef.String())
-	compareInfo = CompareInfo{
-		CompareBaseHead:  baseHead,
+func GetCompareInfo(ctx context.Context, bh CompareBaseHead, directComparison, fileOnly bool) (ci CompareInfo, err error) {
+	baseCommitID, err1 := bh.BaseGitRepo.GetRefCommitID(ctx, bh.BaseRef.String())
+	headCommitID, err2 := bh.HeadGitRepo.GetRefCommitID(ctx, bh.HeadRef.String())
+	ci = CompareInfo{
+		CompareBaseHead:  bh,
 		BaseCommitID:     baseCommitID,
 		HeadCommitID:     headCommitID,
 		CompareSeparator: util.Iif(directComparison, "..", "..."),
 	}
 	if err1 != nil || err2 != nil {
-		return compareInfo, errors.Join(err1, err2)
+		return ci, errors.Join(err1, err2)
 	}
 
 	// if they are not the same repository, then we need to fetch the base commit into the head repository
 	// because we will use the head repository in the following code
-	if baseHead.BaseRepo.ID != baseHead.HeadRepo.ID {
-		exist := baseHead.HeadGitRepo.IsReferenceExist(ctx, compareInfo.BaseCommitID)
+	if bh.BaseRepo.ID != bh.HeadRepo.ID {
+		exist := bh.HeadGitRepo.IsReferenceExist(ctx, ci.BaseCommitID)
 		if !exist {
-			if err := git.FetchRemoteTempCommit(ctx, baseHead.HeadRepo, baseHead.BaseRepo, compareInfo.BaseCommitID); err != nil {
-				return compareInfo, fmt.Errorf("FetchRemoteTempCommit: %w", err)
+			if err := git.FetchRemoteTempCommit(ctx, bh.HeadRepo, bh.BaseRepo, ci.BaseCommitID); err != nil {
+				return ci, fmt.Errorf("FetchRemoteTempCommit: %w", err)
 			}
 		}
 	}
 
 	if !directComparison {
-		compareInfo.CompareBase, err = git.MergeBase(ctx, baseHead.HeadRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
+		ci.CompareBase, err = git.MergeBase(ctx, bh.HeadRepo, ci.BaseCommitID, ci.HeadCommitID)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			return compareInfo, fmt.Errorf("MergeBase: %w", err)
+			return ci, fmt.Errorf("MergeBase: %w", err)
 		}
 	} else {
-		compareInfo.CompareBase = compareInfo.BaseCommitID
+		ci.CompareBase = ci.BaseCommitID
 	}
 
-	if compareInfo.CompareBase == "" {
-		return compareInfo, nil
+	if ci.CompareBase == "" {
+		return ci, nil
 	}
 
 	// We have a common base - therefore we know that ... should work
@@ -101,15 +101,15 @@ func GetCompareInfo(ctx context.Context, baseHead CompareBaseHead, directCompari
 		// which is different from the meaning of "..." in git diff (where it implies diffing from the merge base).
 		// For listing PR commits, we must use merge-base..head to include only the commits introduced by the head branch.
 		// Otherwise, commits newly pushed to the base branch would also be included, which is incorrect.
-		compareInfo.Commits, err = baseHead.HeadGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.CompareBase+".."+compareInfo.HeadCommitID)
+		ci.Commits, err = bh.HeadGitRepo.ShowPrettyFormatLogToList(ctx, ci.CompareBase+".."+ci.HeadCommitID)
 		if err != nil {
-			return compareInfo, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
+			return ci, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 		}
 	}
 
 	// Count number of changed files.
 	// TODO: This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = baseHead.HeadGitRepo.GetDiffNumChangedFiles(ctx, compareInfo.BaseCommitID, compareInfo.HeadCommitID, directComparison)
-	return compareInfo, err
+	ci.NumFiles, err = bh.HeadGitRepo.GetDiffNumChangedFiles(ctx, ci.BaseCommitID, ci.HeadCommitID, directComparison)
+	return ci, err
 }
