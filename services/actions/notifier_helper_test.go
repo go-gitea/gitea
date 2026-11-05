@@ -41,41 +41,27 @@ func TestIfNeedApproval(t *testing.T) {
 	normalUser := &user_model.User{ID: 10}
 	restrictedUser := &user_model.User{ID: 11, IsRestricted: true}
 
-	t.Run("not a fork PR never needs approval", func(t *testing.T) {
-		need, err := ifNeedApprovalWith(t.Context(), nonForkRun, repo, normalUser, alwaysWrite, hasMerged)
-		require.NoError(t, err)
-		assert.False(t, need)
-	})
-
-	t.Run("pull_request_target never needs approval even when fork", func(t *testing.T) {
-		need, err := ifNeedApprovalWith(t.Context(), prTargetRun, repo, normalUser, alwaysWrite, hasMerged)
-		require.NoError(t, err)
-		assert.False(t, need)
-	})
-
-	t.Run("restricted user always needs approval", func(t *testing.T) {
-		need, err := ifNeedApprovalWith(t.Context(), forkRun, repo, restrictedUser, alwaysWrite, hasMerged)
-		require.NoError(t, err)
-		assert.True(t, need)
-	})
-
-	t.Run("fork PR with write permission does not need approval", func(t *testing.T) {
-		need, err := ifNeedApprovalWith(t.Context(), forkRun, repo, normalUser, alwaysWrite, noMerged)
-		require.NoError(t, err)
-		assert.False(t, need)
-	})
-
-	t.Run("fork PR with merged PR but no write permission does not need approval", func(t *testing.T) {
-		need, err := ifNeedApprovalWith(t.Context(), forkRun, repo, normalUser, neverWrite, hasMerged)
-		require.NoError(t, err)
-		assert.False(t, need)
-	})
-
-	t.Run("fork PR with no write and no merged PR needs approval", func(t *testing.T) {
-		need, err := ifNeedApprovalWith(t.Context(), forkRun, repo, normalUser, neverWrite, noMerged)
-		require.NoError(t, err)
-		assert.True(t, need)
-	})
+	for _, tt := range []struct {
+		name      string
+		run       *actions_model.ActionRun
+		user      *user_model.User
+		canWrite  func(context.Context, *repo_model.Repository, *user_model.User) (bool, error)
+		hasMerged func(context.Context, int64, int64) (bool, error)
+		check     assert.BoolAssertionFunc
+	}{
+		{"not a fork PR never needs approval", nonForkRun, normalUser, alwaysWrite, hasMerged, assert.False},
+		{"pull_request_target never needs approval even when fork", prTargetRun, normalUser, alwaysWrite, hasMerged, assert.False},
+		{"restricted user always needs approval", forkRun, restrictedUser, alwaysWrite, hasMerged, assert.True},
+		{"fork PR with write permission does not need approval", forkRun, normalUser, alwaysWrite, noMerged, assert.False},
+		{"fork PR with merged PR but no write permission does not need approval", forkRun, normalUser, neverWrite, hasMerged, assert.False},
+		{"fork PR with no write and no merged PR needs approval", forkRun, normalUser, neverWrite, noMerged, assert.True},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			need, err := ifNeedApprovalWith(t.Context(), tt.run, repo, tt.user, tt.canWrite, tt.hasMerged)
+			require.NoError(t, err)
+			tt.check(t, need)
+		})
+	}
 
 	t.Run("canWriteActions error is propagated", func(t *testing.T) {
 		failWrite := func(_ context.Context, _ *repo_model.Repository, _ *user_model.User) (bool, error) {
@@ -122,12 +108,12 @@ func TestGetApprovalUsersAddsForkPullRequestAuthorUnlessDefaultBranchWorkflow(t 
 }
 
 func TestFilteredWorkflowCommitStatusForForkPullRequest(t *testing.T) {
-	forkPR := &issues_model.PullRequest{
+	input := new(notifyInput).WithPullRequest(&issues_model.PullRequest{
 		Flow:       issues_model.PullRequestFlowGithub,
 		BaseRepoID: 1,
 		HeadRepoID: 2,
-	}
-	input := newPullRequestReviewNotifyInput(&repo_model.Repository{ID: 1}, &user_model.User{ID: 2}, actions_module.GithubEventPullRequest, "refs/pull/1/head", forkPR)
+		Index:      1,
+	})
 
 	assert.True(t, isForkPullRequestInput(input))
 	assert.Equal(t, "refs/pull/1/head", input.Ref.String())
@@ -141,4 +127,13 @@ func TestFilteredWorkflowCommitStatusForForkPullRequest(t *testing.T) {
 	assert.True(t, shouldCreateSkippedCommitStatusForFilteredWorkflow(newNotifyInput(&repo_model.Repository{ID: 1}, &user_model.User{ID: 2}, actions_module.GithubEventPullRequest), &actions_module.DetectedWorkflow{
 		TriggerEvent: &jobparser.Event{Name: actions_module.GithubEventPullRequest},
 	}))
+}
+
+func TestDetectAndHandleSchedulesDropsRemovedWorkflows(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, actions_model.ReplaceScheduleTasksByRepo(t.Context(), repo.ID, []*actions_model.ActionSchedule{{RepoID: repo.ID, WorkflowID: "removed.yml"}}))
+
+	require.NoError(t, DetectAndHandleSchedules(t.Context(), repo))
+	unittest.AssertNotExistsBean(t, &actions_model.ActionSchedule{RepoID: repo.ID})
 }

@@ -13,8 +13,7 @@ import (
 	"github.com/gorilla/feeds"
 )
 
-// ShowBranchFeed shows tags and/or releases on the repo as RSS / Atom feed
-func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
+func showBranchFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
 	if !checkRepoFeedTokenScope(ctx) {
 		return
 	}

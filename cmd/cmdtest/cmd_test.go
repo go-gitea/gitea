@@ -76,110 +76,82 @@ func TestCliCmd(t *testing.T) {
 	cli.SubcommandHelpTemplate = "(subcommand help template)"
 
 	cases := []struct {
-		env map[string]string
-		cmd string
-		exp string
+		env  map[string]string
+		cmds []string
+		exp  string
 	}{
 		// help commands
 		{
-			cmd: "./gitea -h",
-			exp: "DEFAULT CONFIGURATION:",
+			cmds: []string{"./gitea -h", "./gitea help"},
+			exp:  "DEFAULT CONFIGURATION:",
 		},
 		{
-			cmd: "./gitea help",
-			exp: "DEFAULT CONFIGURATION:",
-		},
-
-		{
-			cmd: "./gitea -c /dev/null -h",
-			exp: "ConfigFile: /dev/null",
-		},
-
-		{
-			cmd: "./gitea -c /dev/null help",
-			exp: "ConfigFile: /dev/null",
-		},
-		{
-			cmd: "./gitea help -c /dev/null",
-			exp: "ConfigFile: /dev/null",
-		},
-
-		{
-			cmd: "./gitea -c /dev/null test-cmd -h",
-			exp: "ConfigFile: /dev/null",
-		},
-		{
-			cmd: "./gitea test-cmd -c /dev/null -h",
-			exp: "ConfigFile: /dev/null",
-		},
-		{
-			cmd: "./gitea test-cmd -h -c /dev/null",
-			exp: "ConfigFile: /dev/null",
-		},
-
-		{
-			cmd: "./gitea -c /dev/null test-cmd help",
-			exp: "ConfigFile: /dev/null",
-		},
-		{
-			cmd: "./gitea test-cmd -c /dev/null help",
-			exp: "ConfigFile: /dev/null",
-		},
-		{
-			cmd: "./gitea test-cmd help -c /dev/null",
+			cmds: []string{
+				"./gitea -c /dev/null -h",
+				"./gitea -c /dev/null help",
+				"./gitea help -c /dev/null",
+				"./gitea -c /dev/null test-cmd -h",
+				"./gitea test-cmd -c /dev/null -h",
+				"./gitea test-cmd -h -c /dev/null",
+				"./gitea -c /dev/null test-cmd help",
+				"./gitea test-cmd -c /dev/null help",
+				"./gitea test-cmd help -c /dev/null",
+			},
 			exp: "ConfigFile: /dev/null",
 		},
 
 		// parse paths
 		{
-			cmd: "./gitea test-cmd",
-			exp: makePathOutput(defaultWorkPath, defaultCustomPath, defaultCustomConf),
+			cmds: []string{"./gitea test-cmd"},
+			exp:  makePathOutput(defaultWorkPath, defaultCustomPath, defaultCustomConf),
 		},
 		{
-			cmd: "./gitea -c /tmp/app.ini test-cmd",
-			exp: makePathOutput(defaultWorkPath, defaultCustomPath, "/tmp/app.ini"),
+			cmds: []string{"./gitea -c /tmp/app.ini test-cmd"},
+			exp:  makePathOutput(defaultWorkPath, defaultCustomPath, "/tmp/app.ini"),
 		},
 		{
-			cmd: "./gitea test-cmd -c /tmp/app.ini",
-			exp: makePathOutput(defaultWorkPath, defaultCustomPath, "/tmp/app.ini"),
+			cmds: []string{"./gitea test-cmd -c /tmp/app.ini"},
+			exp:  makePathOutput(defaultWorkPath, defaultCustomPath, "/tmp/app.ini"),
 		},
 		{
-			env: map[string]string{"GITEA_WORK_DIR": "/tmp"},
-			cmd: "./gitea test-cmd",
-			exp: makePathOutput("/tmp", "/tmp/custom", "/tmp/custom/conf/app.ini"),
+			env:  map[string]string{"GITEA_WORK_DIR": "/tmp"},
+			cmds: []string{"./gitea test-cmd"},
+			exp:  makePathOutput("/tmp", "/tmp/custom", "/tmp/custom/conf/app.ini"),
 		},
 		{
-			env: map[string]string{"GITEA_WORK_DIR": "/tmp"},
-			cmd: "./gitea test-cmd --work-path /tmp/other",
-			exp: makePathOutput("/tmp/other", "/tmp/other/custom", "/tmp/other/custom/conf/app.ini"),
+			env:  map[string]string{"GITEA_WORK_DIR": "/tmp"},
+			cmds: []string{"./gitea test-cmd --work-path /tmp/other"},
+			exp:  makePathOutput("/tmp/other", "/tmp/other/custom", "/tmp/other/custom/conf/app.ini"),
 		},
 		{
-			env: map[string]string{"GITEA_WORK_DIR": "/tmp"},
-			cmd: "./gitea test-cmd --config /tmp/app-other.ini",
-			exp: makePathOutput("/tmp", "/tmp/custom", "/tmp/app-other.ini"),
+			env:  map[string]string{"GITEA_WORK_DIR": "/tmp"},
+			cmds: []string{"./gitea test-cmd --config /tmp/app-other.ini"},
+			exp:  makePathOutput("/tmp", "/tmp/custom", "/tmp/app-other.ini"),
 		},
 	}
 
 	for _, c := range cases {
-		t.Run(c.cmd, func(t *testing.T) {
-			app := newTestApp(cli.Command{
-				Action: func(ctx context.Context, cmd *cli.Command) error {
-					_, _ = fmt.Fprint(cmd.Root().Writer, makePathOutput(setting.AppWorkPath, setting.CustomPath, setting.CustomConf))
-					return nil
-				},
+		for _, command := range c.cmds {
+			t.Run(command, func(t *testing.T) {
+				app := newTestApp(cli.Command{
+					Action: func(ctx context.Context, cmd *cli.Command) error {
+						_, _ = fmt.Fprint(cmd.Root().Writer, makePathOutput(setting.AppWorkPath, setting.CustomPath, setting.CustomConf))
+						return nil
+					},
+				})
+				for k, v := range c.env {
+					t.Setenv(k, v)
+				}
+				args := strings.Split(command, " ") // for test only, "split" is good enough
+				r, err := runTestApp(app, args...)
+				assert.NoError(t, err, command)
+				assert.NotEmpty(t, c.exp, command)
+				if !assert.Contains(t, r.Stdout, c.exp, command) {
+					t.Log("Full output:\n" + r.Stdout)
+					t.Log("Expected:\n" + c.exp)
+				}
 			})
-			for k, v := range c.env {
-				t.Setenv(k, v)
-			}
-			args := strings.Split(c.cmd, " ") // for test only, "split" is good enough
-			r, err := runTestApp(app, args...)
-			assert.NoError(t, err, c.cmd)
-			assert.NotEmpty(t, c.exp, c.cmd)
-			if !assert.Contains(t, r.Stdout, c.exp, c.cmd) {
-				t.Log("Full output:\n" + r.Stdout)
-				t.Log("Expected:\n" + c.exp)
-			}
-		})
+		}
 	}
 }
 

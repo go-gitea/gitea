@@ -5,7 +5,6 @@ package json
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/json" //nolint:depguard // this package wraps it
 	"io"
 )
@@ -23,7 +22,7 @@ type Decoder interface {
 // Interface represents an interface to handle json data
 type Interface interface {
 	Marshal(v any) ([]byte, error)
-	MarshalWrite(w io.Writer, v any) error
+	MarshalWriteRelaxed(w io.Writer, v any) error
 	Unmarshal(data []byte, v any) error
 	NewEncoder(writer io.Writer) Encoder
 	NewDecoder(reader io.Reader) Decoder
@@ -37,9 +36,10 @@ func Marshal(v any) ([]byte, error) {
 	return DefaultJSONHandler.Marshal(v)
 }
 
-// MarshalWrite writes the JSON encoding of v to the given writer
-func MarshalWrite(w io.Writer, v any) error {
-	return DefaultJSONHandler.MarshalWrite(w, v)
+// MarshalWriteRelaxed writes the JSON encoding of v to the given writer
+// It tolerates invalid UTF-8 in strings and replaces them with the Unicode replacement character U+FFFD.
+func MarshalWriteRelaxed(w io.Writer, v any) error {
+	return DefaultJSONHandler.MarshalWriteRelaxed(w, v)
 }
 
 // Unmarshal decodes object from bytes
@@ -79,39 +79,4 @@ func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 // Valid proxy to json.Valid
 func Valid(data []byte) bool {
 	return json.Valid(data)
-}
-
-// UnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
-// possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
-func UnmarshalHandleDoubleEncode(bs []byte, v any) error {
-	if len(bs) == 0 {
-		// json.Unmarshal will report errors if input is empty (nil or zero-length)
-		// It seems that XORM ignores the nil but still passes zero-length string into this function
-		// To be consistent, we should treat all empty inputs as success
-		return nil
-	}
-	err := json.Unmarshal(bs, v)
-	if err != nil {
-		ok := true
-		rs := []byte{}
-		temp := make([]byte, 2)
-		for _, rn := range string(bs) {
-			if rn > 0xffff {
-				ok = false
-				break
-			}
-			binary.LittleEndian.PutUint16(temp, uint16(rn))
-			rs = append(rs, temp...)
-		}
-		if ok {
-			if len(rs) > 1 && rs[0] == 0xff && rs[1] == 0xfe {
-				rs = rs[2:]
-			}
-			err = json.Unmarshal(rs, v)
-		}
-	}
-	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
-		err = json.Unmarshal(bs[2:], v)
-	}
-	return err
 }

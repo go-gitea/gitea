@@ -52,8 +52,8 @@ func GetIssueDependencies(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// If this issue's repository does not enable dependencies then there can be no dependencies by default
 	if !ctx.Repo.Repository.IsDependenciesEnabled(ctx) {
@@ -164,10 +164,8 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//   "404":
-	//     description: the issue does not exist
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
 	target := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
@@ -225,10 +223,8 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
 	target := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
@@ -290,8 +286,8 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	// We need to list the issues that DEPEND on this issue not the other way round
 	// Therefore whether dependencies are enabled or not in this repository is potentially irrelevant.
@@ -384,8 +380,8 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//   "404":
-	//     description: the issue does not exist
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	dependency := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if ctx.Written() {
@@ -441,8 +437,8 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	dependency := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if ctx.Written() {

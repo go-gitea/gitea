@@ -25,63 +25,38 @@ import (
 )
 
 func TestCheckCallerChain_Cycle(t *testing.T) {
-	t.Run("DirectCycle", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
+	for _, testCase := range []struct {
+		name         string
+		uses         []string
+		sourceRepoID int64
+		error        string
+	}{
 		// A -> A: leaf's CallUses matches its direct parent's.
-		chain := buildCallerChain(t,
-			"./.gitea/workflows/a.yml",
-			"./.gitea/workflows/a.yml",
-		)
-		err := checkCallerChain(t.Context(), chain[len(chain)-1])
-		assert.ErrorContains(t, err, "cycle detected")
-	})
-
-	t.Run("IndirectCycle", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
+		{"DirectCycle", []string{"./.gitea/workflows/a.yml", "./.gitea/workflows/a.yml"}, 0, "cycle detected"},
 		// A -> B -> A: leaf's CallUses matches its grandparent's.
-		chain := buildCallerChain(t,
-			"./.gitea/workflows/a.yml",
-			"./.gitea/workflows/b.yml",
-			"./.gitea/workflows/a.yml",
-		)
-		err := checkCallerChain(t.Context(), chain[len(chain)-1])
-		assert.ErrorContains(t, err, "cycle detected")
-	})
-
-	t.Run("MixedPrefixCycle", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
+		{"IndirectCycle", []string{"./.gitea/workflows/a.yml", "./.gitea/workflows/b.yml", "./.gitea/workflows/a.yml"}, 0, "cycle detected"},
 		// A -> A written with both same-repo prefixes: they name the same file.
-		chain := buildCallerChain(t,
-			"./.gitea/workflows/a.yml",
-			"$/.gitea/workflows/a.yml",
-		)
-		err := checkCallerChain(t.Context(), chain[len(chain)-1])
-		assert.ErrorContains(t, err, "cycle detected")
-		assert.Equal(t, canonicalCallUses(&actions_model.ActionRunJob{CallUses: "owner/repo/.gitea/workflows/a.yml@v1"}), canonicalCallUses(&actions_model.ActionRunJob{CallUses: "self:owner/repo/.gitea/workflows/a.yml@v1"}))
-	})
-
-	t.Run("NoCycle", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
+		{"MixedPrefixCycle", []string{"./.gitea/workflows/a.yml", "$/.gitea/workflows/a.yml"}, 0, "cycle detected"},
 		// Sanity: linear chain with distinct CallUses must not trip cycle detection.
-		chain := buildCallerChain(t,
-			"./.gitea/workflows/a.yml",
-			"./.gitea/workflows/b.yml",
-			"./.gitea/workflows/c.yml",
-		)
-		require.NoError(t, checkCallerChain(t.Context(), chain[len(chain)-1]))
-	})
-
-	t.Run("SameLocalPathInOtherRepo", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		chain := buildCallerChain(t,
-			"./.gitea/workflows/a.yml",
-			"owner/lib/.gitea/workflows/lib.yml@v1",
-			"./.gitea/workflows/a.yml",
-		)
-		leaf := chain[len(chain)-1]
-		leaf.WorkflowSourceRepoID = 2
-		require.NoError(t, checkCallerChain(t.Context(), leaf))
-	})
+		{"NoCycle", []string{"./.gitea/workflows/a.yml", "./.gitea/workflows/b.yml", "./.gitea/workflows/c.yml"}, 0, ""},
+		{"SameLocalPathInOtherRepo", []string{"./.gitea/workflows/a.yml", "owner/lib/.gitea/workflows/lib.yml@v1", "./.gitea/workflows/a.yml"}, 2, ""},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			chain := buildCallerChain(t, testCase.uses...)
+			leaf := chain[len(chain)-1]
+			leaf.WorkflowSourceRepoID = testCase.sourceRepoID
+			err := checkCallerChain(t.Context(), leaf)
+			if testCase.error == "" {
+				require.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, testCase.error)
+			}
+			if testCase.name == "MixedPrefixCycle" {
+				assert.Equal(t, canonicalCallUses(&actions_model.ActionRunJob{CallUses: "owner/repo/.gitea/workflows/a.yml@v1"}), canonicalCallUses(&actions_model.ActionRunJob{CallUses: "self:owner/repo/.gitea/workflows/a.yml@v1"}))
+			}
+		})
+	}
 
 	t.Run("ResolvedIdentityCycle", func(t *testing.T) {
 		require.NoError(t, unittest.PrepareTestDatabase())
@@ -205,20 +180,18 @@ func TestResolveUses(t *testing.T) {
 
 	t.Run("DirectoryAllowlist", func(t *testing.T) {
 		// SCOPED_WORKFLOW_DIRS is allowed (local and cross-repo).
-		ref, err := ResolveUses(ctx, "./.gitea/scoped_workflows/lib.yml")
-		require.NoError(t, err)
-		assert.Equal(t, ".gitea/scoped_workflows/lib.yml", ref.Path)
-
-		ref, err = ResolveUses(ctx, "owner/repo/.gitea/scoped_workflows/lib.yml@v1")
-		require.NoError(t, err)
-		assert.Equal(t, ".gitea/scoped_workflows/lib.yml", ref.Path)
-
-		ref, err = ResolveUses(ctx, "self:owner/repo/.gitea/scoped_workflows/lib.yml@v1")
-		require.NoError(t, err)
-		assert.Equal(t, ".gitea/scoped_workflows/lib.yml", ref.Path)
+		for _, uses := range []string{
+			"./.gitea/scoped_workflows/lib.yml",
+			"owner/repo/.gitea/scoped_workflows/lib.yml@v1",
+			"self:owner/repo/.gitea/scoped_workflows/lib.yml@v1",
+		} {
+			ref, err := ResolveUses(ctx, uses)
+			require.NoError(t, err)
+			assert.Equal(t, ".gitea/scoped_workflows/lib.yml", ref.Path)
+		}
 
 		// A directory that is neither WORKFLOW_DIRS nor SCOPED_WORKFLOW_DIRS parses but is rejected by the allowlist.
-		_, err = ResolveUses(ctx, "./not-workflows/build.yml")
+		_, err := ResolveUses(ctx, "./not-workflows/build.yml")
 		require.Error(t, err)
 		_, err = ResolveUses(ctx, "owner/repo/lib/build.yml@v1")
 		require.Error(t, err)

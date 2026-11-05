@@ -37,44 +37,25 @@ func TestRender_IssueList(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(out)))
 	}
 
-	t.Run("NormalIssueRef", func(t *testing.T) {
-		test(
-			"#12345",
+	for _, tc := range []struct {
+		name, input, expected string
+	}{
+		{
+			"NormalIssueRef", "#12345",
 			`<p><a href="/test-user/test-repo/issues/12345" class="ref-issue" rel="nofollow">#12345</a></p>`,
-		)
-	})
-
-	t.Run("ListIssueRef", func(t *testing.T) {
-		test(
-			"* #12345",
-			`<ul>
+		},
+		{"ListIssueRef", "* #12345", `<ul>
 <li><div>issue #12345</div></li>
-</ul>`,
-		)
-	})
-
-	t.Run("ListIssueRefNormal", func(t *testing.T) {
-		test(
-			"* foo #12345 bar",
-			`<ul>
+</ul>`},
+		{"ListIssueRefNormal", "* foo #12345 bar", `<ul>
 <li>foo <a href="/test-user/test-repo/issues/12345" class="ref-issue" rel="nofollow">#12345</a> bar</li>
-</ul>`,
-		)
-	})
-
-	t.Run("ListTodoIssueRef", func(t *testing.T) {
-		test(
-			"* [ ] #12345",
-			`<ul>
+</ul>`},
+		{"ListTodoIssueRef", "* [ ] #12345", `<ul>
 <li class="task-list-item"><input type="checkbox" disabled="" data-source-position="2"/><div>issue #12345</div></li>
-</ul>`,
-		)
-	})
-
-	t.Run("IssueFootnote", func(t *testing.T) {
-		test(
-			"foo[^1][^2]\n\n[^1]: bar\n[^2]: baz",
-			`<p>foo<sup id="fnref:user-content-1-12345"><a href="#fn:user-content-1-12345" rel="nofollow">1 </a></sup><sup id="fnref:user-content-2-12345"><a href="#fn:user-content-2-12345" rel="nofollow">2 </a></sup></p>
+</ul>`},
+		{
+			"IssueFootnote", "foo[^1][^2]\n\n[^1]: bar\n[^2]: baz",
+			`<p>foo<sup id="fnref:user-content-1-12345"><a href="#fn:user-content-1-12345" rel="nofollow">[1]</a></sup><sup id="fnref:user-content-2-12345"><a href="#fn:user-content-2-12345" rel="nofollow">[2]</a></sup></p>
 <div>
 <hr/>
 <ol>
@@ -86,6 +67,10 @@ func TestRender_IssueList(t *testing.T) {
 </li>
 </ol>
 </div>`,
-		)
-	})
+		},
+	} {
+		t.Run(tc.name, func(_t *testing.T) {
+			test(tc.input, tc.expected)
+		})
+	}
 }

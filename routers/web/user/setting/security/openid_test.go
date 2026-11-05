@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
 
@@ -101,18 +102,12 @@ func TestOpenIDAssociation(t *testing.T) {
 	assert.Equal(t, "Nonce already used", ctx.Flash.ErrorMsg)
 }
 
-func TestDeleteOpenIDReturnsNotFoundForOtherUsersAddress(t *testing.T) {
+func TestOpenIDReturnsNotFoundForOtherUsersAddress(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "POST /user/settings/security?id=1")
-	contexttest.LoadUser(t, ctx, 2)
-	DeleteOpenID(ctx)
-	assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
-}
-
-func TestToggleOpenIDVisibilityReturnsNotFoundForOtherUsersAddress(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "POST /user/settings/security?id=1")
-	contexttest.LoadUser(t, ctx, 2)
-	ToggleOpenIDVisibility(ctx)
-	assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
+	for _, handler := range []func(*context.Context){DeleteOpenID, ToggleOpenIDVisibility} {
+		ctx, _ := contexttest.MockContext(t, "POST /user/settings/security?id=1")
+		contexttest.LoadUser(t, ctx, 2)
+		handler(ctx)
+		assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
+	}
 }

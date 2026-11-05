@@ -206,20 +206,16 @@ func TestWorkflowExecution(t *testing.T) {
 	}
 
 	t.Run("ColumnChangedFromDefaultColumn", func(t *testing.T) {
-		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemColumnChanged, WorkflowFilters: project_model.WorkflowFilters{SourceColumnID: 1, TargetColumnID: 2}, WorkflowActions: addLabel})
+		addWorkflow(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemColumnChanged, WorkflowFilters: project_model.WorkflowFilters{SourceColumnID: 1, TargetColumnID: 2}, WorkflowActions: addLabel})
 		moveIssue(t, t.Context(), 2, 2)
 		assert.True(t, hasLabel(t, 2))
 	})
 
-	t.Run("NoOpMoveWithinDefaultColumn", func(t *testing.T) {
+	t.Run("NoOpMoveWithinDefaultColumnAndNoCascadeFromWorkflows", func(t *testing.T) {
 		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemColumnChanged, WorkflowActions: addLabel})
 		moveIssue(t, t.Context(), 2, 1)
 		assert.False(t, hasLabel(t, 2))
 		unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: 2, Type: issues_model.CommentTypeProjectColumn})
-	})
-
-	t.Run("NoCascadeFromWorkflows", func(t *testing.T) {
-		setup(t, project_model.Workflow{WorkflowEvent: project_model.WorkflowEventItemColumnChanged, WorkflowActions: addLabel})
 		moveIssue(t, issues_model.WithProjectWorkflow(t.Context(), project_model.WorkflowEventItemAddedToProject), 1, 2)
 		assert.False(t, hasLabel(t, 1))
 	})

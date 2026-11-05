@@ -34,24 +34,24 @@ func assertUserDeleted(t *testing.T, userID int64) {
 func TestUserDeleteAccount(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user8")
-	urlStr := "/user/settings/account/delete?password=" + userPassword
-	req := NewRequest(t, "POST", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	assert.NotEmpty(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
+	t.Run("StillOwnRepos", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		urlStr := "/user/settings/account/delete?password=" + userPassword
+		req := NewRequest(t, "POST", urlStr)
+		resp := session.MakeRequest(t, req, http.StatusBadRequest)
+		assert.NotEmpty(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+		// user should not have been deleted, because the user still owns repos
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	})
 
-	assertUserDeleted(t, 8)
-	unittest.CheckConsistencyFor(t, &user_model.User{})
-}
+	t.Run("Delete", func(t *testing.T) {
+		session := loginUser(t, "user8")
+		urlStr := "/user/settings/account/delete?password=" + userPassword
+		req := NewRequest(t, "POST", urlStr)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.NotEmpty(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
 
-func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	urlStr := "/user/settings/account/delete?password=" + userPassword
-	req := NewRequest(t, "POST", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusBadRequest)
-	assert.NotEmpty(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
-	// user should not have been deleted, because the user still owns repos
-	unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		assertUserDeleted(t, 8)
+		unittest.CheckConsistencyFor(t, &user_model.User{})
+	})
 }

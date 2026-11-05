@@ -27,14 +27,9 @@ func TestMemoryBroker_HasNoTopicSubscribers(t *testing.T) {
 	_, cancel := b.Subscribe("topic")
 	cancel()
 	assert.False(t, b.HasTopicSubscribers("topic"))
-}
 
-// Backend-specific: MemoryBroker prunes empty topics from its internal map so
-// idle-user entries don't accumulate.
-func TestMemoryBroker_CancelDeletesEmptyTopic(t *testing.T) {
-	b := NewMemoryBroker()
-	_, cancel := b.Subscribe("topic")
-	cancel()
+	// Backend-specific: MemoryBroker prunes empty topics from its internal map so
+	// idle-user entries don't accumulate.
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	_, present := b.subs["topic"]

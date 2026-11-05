@@ -145,90 +145,42 @@ func TestRender_links(t *testing.T) {
 	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
 	common.InitLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
-	// Text that should be turned into URL
-	test(
-		"https://www.example.com",
-		`<p><a href="https://www.example.com" rel="nofollow">https://www.example.com</a></p>`)
-	test(
-		"http://www.example.com",
-		`<p><a href="http://www.example.com" rel="nofollow">http://www.example.com</a></p>`)
-	test(
-		"https://example.com",
-		`<p><a href="https://example.com" rel="nofollow">https://example.com</a></p>`)
-	test(
-		"http://example.com",
-		`<p><a href="http://example.com" rel="nofollow">http://example.com</a></p>`)
-	test(
-		"http://foo.com/blah_blah",
-		`<p><a href="http://foo.com/blah_blah" rel="nofollow">http://foo.com/blah_blah</a></p>`)
-	test(
-		"http://foo.com/blah_blah/",
-		`<p><a href="http://foo.com/blah_blah/" rel="nofollow">http://foo.com/blah_blah/</a></p>`)
-	test(
-		"http://www.example.com/wpstyle/?p=364",
-		`<p><a href="http://www.example.com/wpstyle/?p=364" rel="nofollow">http://www.example.com/wpstyle/?p=364</a></p>`)
-	test(
-		"https://www.example.com/foo/?bar=baz&inga=42&quux",
-		`<p><a href="https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`)
-	test(
-		"http://142.42.1.1/",
-		`<p><a href="http://142.42.1.1/" rel="nofollow">http://142.42.1.1/</a></p>`)
-	test(
-		"https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd",
-		`<p><a href="https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd" rel="nofollow">https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd</a></p>`)
-	test(
-		"https://en.wikipedia.org/wiki/URL_(disambiguation)",
-		`<p><a href="https://en.wikipedia.org/wiki/URL_(disambiguation)" rel="nofollow">https://en.wikipedia.org/wiki/URL_(disambiguation)</a></p>`)
-	test(
-		"https://foo_bar.example.com/",
-		`<p><a href="https://foo_bar.example.com/" rel="nofollow">https://foo_bar.example.com/</a></p>`)
-	test(
-		"https://stackoverflow.com/questions/2896191/what-is-go-used-fore",
-		`<p><a href="https://stackoverflow.com/questions/2896191/what-is-go-used-fore" rel="nofollow">https://stackoverflow.com/questions/2896191/what-is-go-used-fore</a></p>`)
-	test(
-		"https://username:password@gitea.com",
-		`<p><a href="https://username:password@gitea.com" rel="nofollow">https://username:password@gitea.com</a></p>`)
-	test(
-		"ftp://gitea.com/file.txt",
-		`<p><a href="ftp://gitea.com/file.txt" rel="nofollow">ftp://gitea.com/file.txt</a></p>`)
-	test(
-		"magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download",
-		`<p><a href="magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
-	test(
-		`[link](https://example.com)`,
-		`<p><a href="https://example.com" rel="nofollow">link</a></p>`)
-	test(
-		`[link](mailto:test@example.com)`,
-		`<p><a href="mailto:test@example.com" rel="nofollow">link</a></p>`)
-	test(
-		`[link](javascript:xss)`,
-		`<p>link</p>`)
+	for _, testCase := range []struct {
+		input, expected string
+	}{
+		// Text that should be turned into URL
+		{"https://www.example.com", `<p><a href="https://www.example.com" rel="nofollow">https://www.example.com</a></p>`},
+		{"http://www.example.com", `<p><a href="http://www.example.com" rel="nofollow">http://www.example.com</a></p>`},
+		{"https://example.com", `<p><a href="https://example.com" rel="nofollow">https://example.com</a></p>`},
+		{"http://example.com", `<p><a href="http://example.com" rel="nofollow">http://example.com</a></p>`},
+		{"http://foo.com/blah_blah", `<p><a href="http://foo.com/blah_blah" rel="nofollow">http://foo.com/blah_blah</a></p>`},
+		{"http://foo.com/blah_blah/", `<p><a href="http://foo.com/blah_blah/" rel="nofollow">http://foo.com/blah_blah/</a></p>`},
+		{"http://www.example.com/wpstyle/?p=364", `<p><a href="http://www.example.com/wpstyle/?p=364" rel="nofollow">http://www.example.com/wpstyle/?p=364</a></p>`},
+		{"https://www.example.com/foo/?bar=baz&inga=42&quux", `<p><a href="https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`},
+		{"http://142.42.1.1/", `<p><a href="http://142.42.1.1/" rel="nofollow">http://142.42.1.1/</a></p>`},
+		{"https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd", `<p><a href="https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd" rel="nofollow">https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd</a></p>`},
+		{"https://en.wikipedia.org/wiki/URL_(disambiguation)", `<p><a href="https://en.wikipedia.org/wiki/URL_(disambiguation)" rel="nofollow">https://en.wikipedia.org/wiki/URL_(disambiguation)</a></p>`},
+		{"https://foo_bar.example.com/", `<p><a href="https://foo_bar.example.com/" rel="nofollow">https://foo_bar.example.com/</a></p>`},
+		{"https://stackoverflow.com/questions/2896191/what-is-go-used-fore", `<p><a href="https://stackoverflow.com/questions/2896191/what-is-go-used-fore" rel="nofollow">https://stackoverflow.com/questions/2896191/what-is-go-used-fore</a></p>`},
+		{"https://username:password@gitea.com", `<p><a href="https://username:password@gitea.com" rel="nofollow">https://username:password@gitea.com</a></p>`},
+		{"ftp://gitea.com/file.txt", `<p><a href="ftp://gitea.com/file.txt" rel="nofollow">ftp://gitea.com/file.txt</a></p>`},
+		{"magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download", `<p><a href="magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`},
+		{`[link](https://example.com)`, `<p><a href="https://example.com" rel="nofollow">link</a></p>`},
+		{`[link](mailto:test@example.com)`, `<p><a href="mailto:test@example.com" rel="nofollow">link</a></p>`},
+		{`[link](javascript:xss)`, `<p>link</p>`},
 
-	// Test that should *not* be turned into URL
-	test(
-		"www.example.com",
-		`<p>www.example.com</p>`)
-	test(
-		"example.com",
-		`<p>example.com</p>`)
-	test(
-		"test.example.com",
-		`<p>test.example.com</p>`)
-	test(
-		"http://",
-		`<p>http://</p>`)
-	test(
-		"https://",
-		`<p>https://</p>`)
-	test(
-		"://",
-		`<p>://</p>`)
-	test(
-		"www",
-		`<p>www</p>`)
-	test(
-		"ftps://gitea.com",
-		`<p>ftps://gitea.com</p>`)
+		// Test that should *not* be turned into URL
+		{"www.example.com", `<p>www.example.com</p>`},
+		{"example.com", `<p>example.com</p>`},
+		{"test.example.com", `<p>test.example.com</p>`},
+		{"http://", `<p>http://</p>`},
+		{"https://", `<p>https://</p>`},
+		{"://", `<p>://</p>`},
+		{"www", `<p>www</p>`},
+		{"ftps://gitea.com", `<p>ftps://gitea.com</p>`},
+	} {
+		test(testCase.input, testCase.expected)
+	}
 
 	t.Run("LinkEllipsis", func(t *testing.T) {
 		input := util.EllipsisDisplayString("http://10.1.2.3", 12)
@@ -244,73 +196,41 @@ func TestRender_links(t *testing.T) {
 func TestRender_email(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
-	test := func(input, expected string) {
-		res, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
-		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res), "input: %s", input)
-	}
+	for _, testCase := range []struct {
+		input, expected string
+	}{
+		// Text that should be turned into email link
+		{"info@gitea.com", `<p><a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a></p>`},
+		{"(info@gitea.com)", `<p>(<a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>)</p>`},
+		{"[info@gitea.com]", `<p>[<a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>]</p>`},
+		{"info@gitea.com.", `<p><a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>.</p>`},
+		{"firstname+lastname@gitea.com", `<p><a href="mailto:firstname+lastname@gitea.com" rel="nofollow">firstname+lastname@gitea.com</a></p>`},
+		{"send email to info@gitea.co.uk.", `<p>send email to <a href="mailto:info@gitea.co.uk" rel="nofollow">info@gitea.co.uk</a>.</p>`},
 
-	// Text that should be turned into email link
-	test(
-		"info@gitea.com",
-		`<p><a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a></p>`)
-	test(
-		"(info@gitea.com)",
-		`<p>(<a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>)</p>`)
-	test(
-		"[info@gitea.com]",
-		`<p>[<a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>]</p>`)
-	test(
-		"info@gitea.com.",
-		`<p><a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>.</p>`)
-	test(
-		"firstname+lastname@gitea.com",
-		`<p><a href="mailto:firstname+lastname@gitea.com" rel="nofollow">firstname+lastname@gitea.com</a></p>`)
-	test(
-		"send email to info@gitea.co.uk.",
-		`<p>send email to <a href="mailto:info@gitea.co.uk" rel="nofollow">info@gitea.co.uk</a>.</p>`)
-
-	test(
-		`j.doe@example.com,
+		{`j.doe@example.com,
 	j.doe@example.com.
 	j.doe@example.com;
 	j.doe@example.com?
-	j.doe@example.com!`,
-		`<p><a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>,
+	j.doe@example.com!`, `<p><a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>,
 <a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>.
 <a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>;
 <a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>?
-<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>!</p>`)
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>!</p>`},
 
-	// match GitHub behavior
-	test("email@domain@domain.com", `<p>email@<a href="mailto:domain@domain.com" rel="nofollow">domain@domain.com</a></p>`)
+		// match GitHub behavior
+		{"email@domain@domain.com", `<p>email@<a href="mailto:domain@domain.com" rel="nofollow">domain@domain.com</a></p>`},
 
-	// match GitHub behavior
-	test(`"info@gitea.com"`, `<p>&#34;<a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>&#34;</p>`)
+		// match GitHub behavior
+		{`"info@gitea.com"`, `<p>&#34;<a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>&#34;</p>`},
 
-	// Test that should *not* be turned into email links
-	test(
-		"/home/gitea/mailstore/info@gitea/com",
-		`<p>/home/gitea/mailstore/info@gitea/com</p>`)
-	test(
-		"git@try.gitea.io:go-gitea/gitea.git",
-		`<p>git@try.gitea.io:go-gitea/gitea.git</p>`)
-	test(
-		"https://foo:bar@gitea.io",
-		`<p><a href="https://foo:bar@gitea.io" rel="nofollow">https://foo:bar@gitea.io</a></p>`)
-	test(
-		"gitea@3",
-		`<p>gitea@3</p>`)
-	test(
-		"gitea@gmail.c",
-		`<p>gitea@gmail.c</p>`)
-	test(
-		"email@domain..com",
-		`<p>email@domain..com</p>`)
+		// Test that should *not* be turned into email links
+		{"/home/gitea/mailstore/info@gitea/com", `<p>/home/gitea/mailstore/info@gitea/com</p>`},
+		{"git@try.gitea.io:go-gitea/gitea.git", `<p>git@try.gitea.io:go-gitea/gitea.git</p>`},
+		{"https://foo:bar@gitea.io", `<p><a href="https://foo:bar@gitea.io" rel="nofollow">https://foo:bar@gitea.io</a></p>`},
+		{"gitea@3", `<p>gitea@3</p>`},
+		{"gitea@gmail.c", `<p>gitea@gmail.c</p>`},
+		{"email@domain..com", `<p>email@domain..com</p>`},
 
-	cases := []struct {
-		input, expected string
-	}{
 		// match GitHub behavior
 		{"?a@d.zz", `<p>?<a href="mailto:a@d.zz" rel="nofollow">a@d.zz</a></p>`},
 		{"*a@d.zz", `<p>*<a href="mailto:a@d.zz" rel="nofollow">a@d.zz</a></p>`},
@@ -320,9 +240,10 @@ func TestRender_email(t *testing.T) {
 		// maybe we should reduce the candidate characters for the "name" part in the future
 		{"a*a@d.zz", `<p><a href="mailto:a*a@d.zz" rel="nofollow">a*a@d.zz</a></p>`},
 		{"a~a@d.zz", `<p><a href="mailto:a~a@d.zz" rel="nofollow">a~a@d.zz</a></p>`},
-	}
-	for _, c := range cases {
-		test(c.input, c.expected)
+	} {
+		res, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), testCase.input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(testCase.expected), strings.TrimSpace(res), "input: %s", testCase.input)
 	}
 }
 
@@ -394,12 +315,6 @@ func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	tree := markup.TestRepoURL + "src/master"
 
-	test := func(input, expected string) {
-		buffer, err := markdown.RenderString(markup.NewTestRenderContext(tree), input)
-		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
-	}
-
 	url := tree + "/Link"
 	otherURL := tree + "/Other-Link"
 	encodedURL := tree + "/Link%3F"
@@ -410,88 +325,36 @@ func TestRender_ShortLinks(t *testing.T) {
 	renderableFileURL := tree + "/markdown_file.md"
 	unrenderableFileURL := tree + "/file.zip"
 	favicon := "http://google.com/favicon.ico"
-	test(
-		"[[Link]]",
-		`<p><a href="`+url+`" rel="nofollow">Link</a></p>`,
-	)
-	test(
-		"[[Link.-]]",
-		`<p><a href="http://localhost:3000/test-owner/test-repo/src/master/Link.-" rel="nofollow">Link.-</a></p>`,
-	)
-	test(
-		"[[Link.jpg]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" title="Link.jpg" alt="Link.jpg"/></a></p>`,
-	)
-	test(
-		"[["+favicon+"]]",
-		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico" alt="`+favicon+`"/></a></p>`,
-	)
-	test(
-		"[[Name|Link]]",
-		`<p><a href="`+url+`" rel="nofollow">Name</a></p>`,
-	)
-	test(
-		"[[Name|Link.jpg]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" title="Name" alt="Name"/></a></p>`,
-	)
-	test(
-		"[[Name|Link.jpg|alt=AltName]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" title="AltName" alt="AltName"/></a></p>`,
-	)
-	test(
-		"[[Name|Link.jpg|title=Title]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" title="Title" alt="Title"/></a></p>`,
-	)
-	test(
-		"[[Name|Link.jpg|alt=AltName|title=Title]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" title="Title" alt="AltName"/></a></p>`,
-	)
-	test(
-		"[[Name|Link.jpg|alt=\"AltName\"|title='Title']]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" title="Title" alt="AltName"/></a></p>`,
-	)
-	test(
-		"[[Name|Link Other.jpg|alt=\"AltName\"|title='Title']]",
-		`<p><a href="`+otherImgurl+`" rel="nofollow"><img src="`+otherImgurl+`" title="Title" alt="AltName"/></a></p>`,
-	)
-	test(
-		"[[Link]] [[Other Link]]",
-		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherURL+`" rel="nofollow">Other Link</a></p>`,
-	)
-	test(
-		"[[Link?]]",
-		`<p><a href="`+encodedURL+`" rel="nofollow">Link?</a></p>`,
-	)
-	test(
-		"[[Link]] [[Other Link]] [[Link?]]",
-		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherURL+`" rel="nofollow">Other Link</a> <a href="`+encodedURL+`" rel="nofollow">Link?</a></p>`,
-	)
-	test(
-		"[[markdown_file.md]]",
-		`<p><a href="`+renderableFileURL+`" rel="nofollow">markdown_file.md</a></p>`,
-	)
-	test(
-		"[[file.zip]]",
-		`<p><a href="`+unrenderableFileURL+`" rel="nofollow">file.zip</a></p>`,
-	)
-	test(
-		"[[Link #.jpg]]",
-		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" title="Link #.jpg" alt="Link #.jpg"/></a></p>`,
-	)
-	test(
-		"[[Name|Link #.jpg|alt=\"AltName\"|title='Title']]",
-		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" title="Title" alt="AltName"/></a></p>`,
-	)
-	// FIXME: it's unable to resolve: [[link?k=v]]
-	// FIXME: it is a wrong test case, it is not an image, but a link with anchor "#.jpg"
-	test(
-		"[[some/path/Link #.jpg]]",
-		`<p><a href="`+notencodedImgurl+`" rel="nofollow"><img src="`+notencodedImgurl+`" title="Link #.jpg" alt="some/path/Link #.jpg"/></a></p>`,
-	)
-	test(
-		"<p><a href=\"https://example.org\">[[foobar]]</a></p>",
-		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`,
-	)
+	for _, testCase := range []struct {
+		input, expected string
+	}{
+		{"[[Link]]", `<p><a href="` + url + `" rel="nofollow">Link</a></p>`},
+		{"[[Link.-]]", `<p><a href="http://localhost:3000/test-owner/test-repo/src/master/Link.-" rel="nofollow">Link.-</a></p>`},
+		{"[[Link.jpg]]", `<p><a href="` + imgurl + `" rel="nofollow"><img src="` + imgurl + `" title="Link.jpg" alt="Link.jpg"/></a></p>`},
+		{"[[" + favicon + "]]", `<p><a href="` + favicon + `" rel="nofollow"><img src="` + favicon + `" title="favicon.ico" alt="` + favicon + `"/></a></p>`},
+		{"[[Name|Link]]", `<p><a href="` + url + `" rel="nofollow">Name</a></p>`},
+		{"[[Name|Link.jpg]]", `<p><a href="` + imgurl + `" rel="nofollow"><img src="` + imgurl + `" title="Name" alt="Name"/></a></p>`},
+		{"[[Name|Link.jpg|alt=AltName]]", `<p><a href="` + imgurl + `" rel="nofollow"><img src="` + imgurl + `" title="AltName" alt="AltName"/></a></p>`},
+		{"[[Name|Link.jpg|title=Title]]", `<p><a href="` + imgurl + `" rel="nofollow"><img src="` + imgurl + `" title="Title" alt="Title"/></a></p>`},
+		{"[[Name|Link.jpg|alt=AltName|title=Title]]", `<p><a href="` + imgurl + `" rel="nofollow"><img src="` + imgurl + `" title="Title" alt="AltName"/></a></p>`},
+		{"[[Name|Link.jpg|alt=\"AltName\"|title='Title']]", `<p><a href="` + imgurl + `" rel="nofollow"><img src="` + imgurl + `" title="Title" alt="AltName"/></a></p>`},
+		{"[[Name|Link Other.jpg|alt=\"AltName\"|title='Title']]", `<p><a href="` + otherImgurl + `" rel="nofollow"><img src="` + otherImgurl + `" title="Title" alt="AltName"/></a></p>`},
+		{"[[Link]] [[Other Link]]", `<p><a href="` + url + `" rel="nofollow">Link</a> <a href="` + otherURL + `" rel="nofollow">Other Link</a></p>`},
+		{"[[Link?]]", `<p><a href="` + encodedURL + `" rel="nofollow">Link?</a></p>`},
+		{"[[Link]] [[Other Link]] [[Link?]]", `<p><a href="` + url + `" rel="nofollow">Link</a> <a href="` + otherURL + `" rel="nofollow">Other Link</a> <a href="` + encodedURL + `" rel="nofollow">Link?</a></p>`},
+		{"[[markdown_file.md]]", `<p><a href="` + renderableFileURL + `" rel="nofollow">markdown_file.md</a></p>`},
+		{"[[file.zip]]", `<p><a href="` + unrenderableFileURL + `" rel="nofollow">file.zip</a></p>`},
+		{"[[Link #.jpg]]", `<p><a href="` + encodedImgurl + `" rel="nofollow"><img src="` + encodedImgurl + `" title="Link #.jpg" alt="Link #.jpg"/></a></p>`},
+		{"[[Name|Link #.jpg|alt=\"AltName\"|title='Title']]", `<p><a href="` + encodedImgurl + `" rel="nofollow"><img src="` + encodedImgurl + `" title="Title" alt="AltName"/></a></p>`},
+		// FIXME: it's unable to resolve: [[link?k=v]]
+		// FIXME: it is a wrong test case, it is not an image, but a link with anchor "#.jpg"
+		{"[[some/path/Link #.jpg]]", `<p><a href="` + notencodedImgurl + `" rel="nofollow"><img src="` + notencodedImgurl + `" title="Link #.jpg" alt="some/path/Link #.jpg"/></a></p>`},
+		{"<p><a href=\"https://example.org\">[[foobar]]</a></p>", `<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`},
+	} {
+		buffer, err := markdown.RenderString(markup.NewTestRenderContext(tree), testCase.input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(testCase.expected), strings.TrimSpace(string(buffer)))
+	}
 }
 
 func Test_ParseClusterFuzz(t *testing.T) {
@@ -519,45 +382,36 @@ func TestPostProcess(t *testing.T) {
 	setting.StaticURLPrefix = strings.TrimSuffix(markup.TestAppURL, "/") // can't run standalone
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 
-	test := func(input, expected string) {
+	for _, testCase := range []struct {
+		input, expected string
+	}{
+		// Issue index shouldn't be post-processing in a document.
+		{"#1", "#1"},
+
+		// But cross-referenced issue index should work.
+		{"go-gitea/gitea#12345", `<a href="/go-gitea/gitea/issues/12345" class="ref-issue">go-gitea/gitea#12345</a>`},
+
+		// Test that other post-processing still works.
+		{":gitea:", `<span class="emoji"><img alt=":gitea:" src="` + setting.StaticURLPrefix + `/assets/img/emoji/gitea.png"/></span>`},
+		{"Some text with 😄 in the middle", `Some text with <span class="emoji" data-alias="smile">😄</span> in the middle`},
+		{"http://localhost:3000/person/repo/issues/4#issuecomment-1234", `<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`},
+		{"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>", "<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>"},
+
+		// special tags, GitHub's behavior, and for unclosed tags, output as text content as much as possible
+		{"<script>a", `&lt;script&gt;a`},
+		{"<script>a</script>", `&lt;script&gt;a&lt;/script&gt;`},
+		{"<STYLE>a", `&lt;STYLE&gt;a`},
+		{"<style>a</STYLE>", `&lt;style&gt;a&lt;/STYLE&gt;`},
+
+		// other special tags, our special behavior
+		{"<?php\nfoo", "&lt;?php\nfoo"},
+		{"<%asp\nfoo", "&lt;%asp\nfoo"},
+	} {
 		var res strings.Builder
-		err := markup.PostProcessDefault(markup.NewTestRenderContext(markup.TestAppURL, map[string]string{"user": "go-gitea", "repo": "gitea"}), strings.NewReader(input), &res)
+		err := markup.PostProcessDefault(markup.NewTestRenderContext(markup.TestAppURL, map[string]string{"user": "go-gitea", "repo": "gitea"}), strings.NewReader(testCase.input), &res)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
+		assert.Equal(t, strings.TrimSpace(testCase.expected), strings.TrimSpace(res.String()))
 	}
-
-	// Issue index shouldn't be post-processing in a document.
-	test(
-		"#1",
-		"#1")
-
-	// But cross-referenced issue index should work.
-	test(
-		"go-gitea/gitea#12345",
-		`<a href="/go-gitea/gitea/issues/12345" class="ref-issue">go-gitea/gitea#12345</a>`)
-
-	// Test that other post-processing still works.
-	test(
-		":gitea:",
-		`<span class="emoji"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span>`)
-	test(
-		"Some text with 😄 in the middle",
-		`Some text with <span class="emoji" data-alias="smile">😄</span> in the middle`)
-	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
-		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
-	test(
-		"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>",
-		"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>")
-
-	// special tags, GitHub's behavior, and for unclosed tags, output as text content as much as possible
-	test("<script>a", `&lt;script&gt;a`)
-	test("<script>a</script>", `&lt;script&gt;a&lt;/script&gt;`)
-	test("<STYLE>a", `&lt;STYLE&gt;a`)
-	test("<style>a</STYLE>", `&lt;style&gt;a&lt;/STYLE&gt;`)
-
-	// other special tags, our special behavior
-	test("<?php\nfoo", "&lt;?php\nfoo")
-	test("<%asp\nfoo", "&lt;%asp\nfoo")
 }
 
 func TestIssue16020(t *testing.T) {

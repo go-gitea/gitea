@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
 
 	admin_model "gitea.dev/models/admin"
 	"gitea.dev/models/db"
@@ -152,7 +153,7 @@ func MigratePost(ctx *context.Context) {
 
 	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
-		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
+		err = migrations.IsMigrateURLAllowedForService(remoteAddr, form.Service, ctx.Doer)
 	}
 	if err != nil {
 		handleMigrateRemoteAddrError(ctx, err, "clone_addr")
@@ -231,8 +232,13 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 
 	// Plain git should be first
-	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
+	services := append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
+	ctx.Data["Services"] = slices.DeleteFunc(services, func(gt structs.GitServiceType) bool {
+		variants := gt.Variants()
+		return len(variants) > 0 && variants[0] != gt
+	})
 	ctx.Data["service"] = serviceType
+	ctx.Data["ServiceVariants"] = serviceType.Variants()
 }
 
 func MigrateRetryPost(ctx *context.Context) {

@@ -33,10 +33,8 @@ func GetThread(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/NotificationThread"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	n := getThread(ctx)
 	if n == nil {
@@ -74,10 +72,8 @@ func ReadThread(ctx *context.APIContext) {
 	// responses:
 	//   "205":
 	//     "$ref": "#/responses/NotificationThread"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	n := getThread(ctx)
 	if n == nil {

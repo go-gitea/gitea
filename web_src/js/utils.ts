@@ -50,9 +50,15 @@ export function stripTags(text: string): string {
 }
 
 export function parseIssueHref(href: string): IssuePathInfo | null {
-  // FIXME: it should use pathname and trim the appSubUrl ahead
-  const path = (href || '').replace(/[#?].*$/, '');
-  const match = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path);
+  const {appSubUrl} = window.config;
+  let pathname: string;
+  try {
+    pathname = new URL(href || '', window.location.href).pathname;
+  } catch {
+    return null;
+  }
+  if (!pathname.startsWith(appSubUrl)) return null;
+  const match = /^\/([-.\w]+)\/([-.\w]+)\/(issues|pulls)\/([0-9]+)(?:\/|$)/.exec(pathname.slice(appSubUrl.length));
   if (!match) return null;
   const [, ownerName, repoName, pathType, indexString] = match;
   return {ownerName, repoName, pathType, indexString};
