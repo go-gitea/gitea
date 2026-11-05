@@ -52,7 +52,7 @@ var (
 	AppURL    string
 	AppDomain string
 
-	// AlternativeRootURLs are further URLs this instance is served at, each with a '/' suffix like AppURL
+	// AlternativeRootURLs are the ROOT_URL entries after the first
 	AlternativeRootURLs []string
 
 	// PublicURLDetection controls how to use the HTTP request headers to detect public URL
@@ -120,27 +120,17 @@ var (
 
 func loadServerDomainAndURL(sec ConfigSection, protocol string) {
 	defaultAppURL := protocol + "://localhost:" + HTTPPort
-	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
+	rootURL, alternativeRootURLs, _ := strings.Cut(sec.Key("ROOT_URL").MustString(defaultAppURL), ",")
 	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLAuto)
 	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy && PublicURLDetection != PublicURLNever {
 		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
 	}
 
-	// Check validity of AppURL
-	appURL, err := url.Parse(AppURL)
-	if err != nil {
-		log.Fatal("Invalid ROOT_URL %q: %s", AppURL, err)
-	}
-	// Remove default ports from AppURL.
-	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
-	if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
-		appURL.Host = appURL.Hostname()
-	}
-	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
-	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
-	AlternativeRootURLs = sec.Key("ALTERNATIVE_ROOT_URLS").Strings(",")
-	for i, rootURL := range AlternativeRootURLs {
-		AlternativeRootURLs[i] = strings.TrimRight(rootURL, "/") + "/"
+	var appURL *url.URL
+	AppURL, appURL = parseRootURL(rootURL)
+	AlternativeRootURLs = util.SplitTrimSpace(alternativeRootURLs, ",")
+	for i, alternativeRootURL := range AlternativeRootURLs {
+		AlternativeRootURLs[i], _ = parseRootURL(alternativeRootURL)
 	}
 
 	// AppSubURL should start with '/' and end without '/', such as '/{subpath}'.
@@ -149,6 +139,22 @@ func loadServerDomainAndURL(sec ConfigSection, protocol string) {
 	UseSubURLPath = sec.Key("USE_SUB_URL_PATH").MustBool(false)
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppDomain = appURL.Hostname()
+}
+
+// parseRootURL validates and normalizes a ROOT_URL entry
+func parseRootURL(rootURL string) (string, *url.URL) {
+	// Check validity of AppURL
+	parsed, err := url.Parse(strings.TrimSpace(rootURL))
+	if err != nil {
+		log.Fatal("Invalid ROOT_URL %q: %s", rootURL, err)
+	}
+	// Remove default ports from AppURL.
+	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
+	if (parsed.Scheme == string(HTTP) && parsed.Port() == "80") || (parsed.Scheme == string(HTTPS) && parsed.Port() == "443") {
+		parsed.Host = parsed.Hostname()
+	}
+	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
+	return strings.TrimRight(parsed.String(), "/") + "/", parsed
 }
 
 func loadServerFrom(rootCfg ConfigProvider) {

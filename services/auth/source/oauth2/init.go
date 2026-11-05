@@ -12,6 +12,7 @@ import (
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -41,7 +42,11 @@ func Init(ctx context.Context) error {
 	}
 
 	gothic.GetProviderName = func(req *http.Request) (string, error) {
-		return req.Header.Get(ProviderHeaderKey), nil
+		providerName := req.Header.Get(ProviderHeaderKey)
+		if rootURL := httplib.GuessCurrentRootURL(req.Context()); rootURL != setting.AppURL {
+			providerName = rootURL + providerName
+		}
+		return providerName, nil
 	}
 
 	// Unlock our mutex

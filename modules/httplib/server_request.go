@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"gitea.dev/modules/reqctx"
@@ -112,6 +113,14 @@ func parseForwardedProtoValue(val string) (string, bool) {
 // TODO: should rename it to GuessCurrentPublicURL in the future
 func GuessCurrentAppURL(ctx context.Context) string {
 	return GuessCurrentHostURL(ctx) + setting.AppSubURL + "/"
+}
+
+// GuessCurrentRootURL returns the request's ROOT_URL entry, defaulting to the first
+func GuessCurrentRootURL(ctx context.Context) string {
+	if appURL := GuessCurrentAppURL(ctx); slices.Contains(setting.AlternativeRootURLs, appURL) {
+		return appURL
+	}
+	return setting.AppURL
 }
 
 // GuessCurrentHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
