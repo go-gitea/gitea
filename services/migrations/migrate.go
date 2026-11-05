@@ -609,10 +609,21 @@ func syncRepository(ctx context.Context, downloader base.Downloader, uploader ba
 		}
 	}
 
+	commentedIssues, commentedPulls, err := getCommentedEntities(ctx, downloader, opts, marks)
+	if err != nil {
+		return err
+	}
+
 	if opts.Issues {
 		log.Trace("syncing issues")
 		messenger("repo.migrate.syncing_issues")
 		issueBatchSize := uploader.MaxBatchInsertSize("issue")
+
+		// oldest comment first and before the issue stream, so a stopped sync resumes before the ones left
+		synced, err := syncCommentedIssues(ctx, downloader, uploader, commentedIssues, issueBatchSize)
+		if err != nil {
+			return err
+		}
 
 		for i := 1; ; i++ {
 			issues, isEnd, err := downloader.GetNewIssues(ctx, i, issueBatchSize, marks.issues)
@@ -629,6 +640,9 @@ func syncRepository(ctx context.Context, downloader base.Downloader, uploader ba
 			}
 			if opts.Comments {
 				for _, issue := range issues {
+					if synced.Contains(issue.Number) {
+						continue
+					}
 					if err := syncEntityComments(ctx, downloader, uploader, issue, marks.comments); err != nil {
 						return err
 					}
@@ -646,7 +660,7 @@ func syncRepository(ctx context.Context, downloader base.Downloader, uploader ba
 	if opts.PullRequests {
 		log.Trace("syncing pull requests")
 		messenger("repo.migrate.syncing_pulls")
-		if err := syncPullRequests(ctx, downloader, uploader, opts, marks); err != nil {
+		if err := syncPullRequests(ctx, downloader, uploader, opts, marks, commentedPulls); err != nil {
 			if !base.IsErrNotSupported(err) {
 				return err
 			}
@@ -657,10 +671,94 @@ func syncRepository(ctx context.Context, downloader base.Downloader, uploader ba
 	return uploader.Finish(ctx)
 }
 
-func syncPullRequests(ctx context.Context, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, marks syncWatermarks) error {
+// getCommentedEntities finds the issues and pull requests changed only by a new comment, which the issue and
+// pull request listings can miss; nothing on a first sync, the listings take everything then
+func getCommentedEntities(ctx context.Context, downloader base.Downloader, opts base.MigrateOptions, marks syncWatermarks) (issues, pulls []base.CommentedEntity, err error) {
+	if !opts.Comments || marks.comments.IsZero() || (!opts.Issues && !opts.PullRequests) {
+		return nil, nil, nil
+	}
+	// from the oldest stream watermark, a stream a stopped sync left behind may have comments older than the newest one
+	since := marks.comments
+	if opts.Issues && !marks.issues.IsZero() && marks.issues.Before(since) {
+		since = marks.issues
+	}
+	if opts.PullRequests && !marks.pulls.IsZero() && marks.pulls.Before(since) {
+		since = marks.pulls
+	}
+	entities, err := downloader.GetCommentedEntities(ctx, since)
+	if err != nil {
+		if !base.IsErrNotSupported(err) {
+			return nil, nil, err
+		}
+		return nil, nil, nil
+	}
+	for _, entity := range entities {
+		if entity.IsPull {
+			pulls = append(pulls, entity)
+		} else {
+			issues = append(issues, entity)
+		}
+	}
+	return issues, pulls, nil
+}
+
+// syncCommentedIssues syncs the issues found through their comments with their comments since the oldest new one
+func syncCommentedIssues(ctx context.Context, downloader base.Downloader, uploader base.Uploader, entities []base.CommentedEntity, batchSize int) (container.Set[int64], error) {
+	synced := make(container.Set[int64], len(entities))
+	slices.SortFunc(entities, func(a, b base.CommentedEntity) int {
+		return cmp.Or(a.Until.Compare(b.Until), cmp.Compare(a.Number, b.Number))
+	})
+	for batch := range slices.Chunk(entities, batchSize) {
+		numbers := make([]int64, 0, len(batch))
+		since := make(map[int64]time.Time, len(batch))
+		for _, entity := range batch {
+			numbers = append(numbers, entity.Number)
+			since[entity.Number] = entity.Since
+		}
+		// downloaded before written, like the pull request batches
+		issues, err := downloader.GetIssuesByNumber(ctx, numbers)
+		if err != nil {
+			if base.IsErrNotSupported(err) {
+				return synced, nil
+			}
+			return nil, err
+		}
+		var comments []*base.Comment
+		for _, issue := range issues {
+			issueComments, _, err := downloader.GetNewComments(ctx, issue, since[issue.Number])
+			if err != nil && !base.IsErrNotSupported(err) {
+				return nil, err
+			}
+			comments = append(comments, issueComments...)
+		}
+		if err := uploader.PatchIssues(ctx, issues...); err != nil {
+			return nil, err
+		}
+		if err := uploader.PatchComments(ctx, comments...); err != nil {
+			return nil, err
+		}
+		for _, issue := range issues {
+			synced.Add(issue.Number)
+		}
+	}
+	return synced, nil
+}
+
+func syncPullRequests(ctx context.Context, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, marks syncWatermarks, commented []base.CommentedEntity) error {
 	updates, err := downloader.GetPullRequestUpdates(ctx, marks.pulls)
 	if err != nil {
 		return err
+	}
+	// a pull request with only a new comment sorts at that comment, so the resume order holds
+	commentSince := make(map[int64]time.Time, len(commented))
+	for _, entity := range commented {
+		commentSince[entity.Number] = entity.Since
+		idx := slices.IndexFunc(updates, func(u base.PullRequestUpdate) bool { return u.Number == entity.Number })
+		if idx < 0 {
+			updates = append(updates, base.PullRequestUpdate{Number: entity.Number, Updated: entity.Until})
+		} else if entity.Until.After(updates[idx].Updated) {
+			updates[idx].Updated = entity.Until
+		}
 	}
 	slices.SortFunc(updates, func(a, b base.PullRequestUpdate) int {
 		return cmp.Or(a.Updated.Compare(b.Updated), cmp.Compare(a.Number, b.Number))
@@ -681,7 +779,11 @@ func syncPullRequests(ctx context.Context, downloader base.Downloader, uploader 
 		for _, pr := range prs {
 			if opts.Comments {
 				// since the pull request watermark, the global comment one may already be past a pull request a stopped sync left
-				prComments, _, err := downloader.GetNewComments(ctx, pr, marks.pulls)
+				since := marks.pulls
+				if commentedSince, ok := commentSince[pr.Number]; ok && commentedSince.Before(since) {
+					since = commentedSince
+				}
+				prComments, _, err := downloader.GetNewComments(ctx, pr, since)
 				if err != nil && !base.IsErrNotSupported(err) {
 					return err
 				}

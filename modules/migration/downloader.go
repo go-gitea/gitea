@@ -33,6 +33,10 @@ type Downloader interface {
 	GetPullRequestUpdates(ctx context.Context, updatedAfter time.Time) ([]PullRequestUpdate, error)
 	// GetPullRequestsByNumber returns the given pull requests
 	GetPullRequestsByNumber(ctx context.Context, numbers []int64) ([]*PullRequest, error)
+	// GetCommentedEntities lists the issues and pull requests with comments updated after the given time
+	GetCommentedEntities(ctx context.Context, updatedAfter time.Time) ([]CommentedEntity, error)
+	// GetIssuesByNumber returns the given issues
+	GetIssuesByNumber(ctx context.Context, numbers []int64) ([]*Issue, error)
 	// GetNewComments returns an issue's or pull request's comments updated after the given time
 	GetNewComments(ctx context.Context, commentable Commentable, updatedAfter time.Time) ([]*Comment, bool, error)
 	// GetNewReviews returns a pull request's reviews updated after the given time

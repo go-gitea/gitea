@@ -7,6 +7,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"path"
+	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"gitea.dev/modules/log"
@@ -78,6 +82,106 @@ func (g *GithubDownloaderV3) GetPullRequestsByNumber(ctx context.Context, number
 		prs = append(prs, basePR)
 	}
 	return prs, nil
+}
+
+// GetCommentedEntities lists the issues and pull requests with comments updated after the given time: GitHub does not always
+// move an issue or pull request in its updated index for a new comment, so the issue and pull request listings miss them
+func (g *GithubDownloaderV3) GetCommentedEntities(ctx context.Context, updatedAfter time.Time) ([]base.CommentedEntity, error) {
+	if updatedAfter.IsZero() { // GitHub rejects since=0001-01-01, and a first sync takes everything anyway
+		return nil, nil
+	}
+	byNumber := map[int64]*base.CommentedEntity{}
+	add := func(number int64, isPull bool, updated time.Time) {
+		entity, ok := byNumber[number]
+		if !ok {
+			byNumber[number] = &base.CommentedEntity{Number: number, IsPull: isPull, Since: updated, Until: updated}
+			return
+		}
+		entity.IsPull = entity.IsPull || isPull
+		if updated.Before(entity.Since) {
+			entity.Since = updated
+		}
+		if updated.After(entity.Until) {
+			entity.Until = updated
+		}
+	}
+
+	updated, asc := "updated", "asc"
+	issueOpt := &github.IssueListCommentsOptions{Sort: &updated, Direction: &asc, Since: &updatedAfter, ListOptions: github.ListOptions{PerPage: g.maxPerPage}}
+	for {
+		g.waitAndPickClient(ctx)
+		comments, resp, err := g.getClient().Issues.ListComments(ctx, g.repoOwner, g.repoName, 0, issueOpt)
+		g.setRateFromResponse(resp)
+		if err != nil {
+			return nil, fmt.Errorf("GetCommentedEntities: %w", err)
+		}
+		for _, comment := range comments {
+			if number, ok := numberFromURL(comment.GetIssueURL()); ok {
+				// the issue url is the same for pull requests, the html one is not
+				add(number, strings.Contains(comment.GetHTMLURL(), "/pull/"), comment.GetUpdatedAt().Time)
+			}
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		issueOpt.Page = resp.NextPage
+	}
+
+	reviewOpt := &github.PullRequestListCommentsOptions{Sort: updated, Direction: asc, Since: updatedAfter, ListOptions: github.ListOptions{PerPage: g.maxPerPage}}
+	for {
+		g.waitAndPickClient(ctx)
+		comments, resp, err := g.getClient().PullRequests.ListComments(ctx, g.repoOwner, g.repoName, 0, reviewOpt)
+		g.setRateFromResponse(resp)
+		if err != nil {
+			return nil, fmt.Errorf("GetCommentedEntities: %w", err)
+		}
+		for _, comment := range comments {
+			if number, ok := numberFromURL(comment.GetPullRequestURL()); ok {
+				add(number, true, comment.GetUpdatedAt().Time)
+			}
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		reviewOpt.Page = resp.NextPage
+	}
+
+	entities := make([]base.CommentedEntity, 0, len(byNumber))
+	for _, entity := range byNumber {
+		entities = append(entities, *entity)
+	}
+	slices.SortFunc(entities, func(a, b base.CommentedEntity) int { return a.Until.Compare(b.Until) })
+	return entities, nil
+}
+
+func numberFromURL(u string) (int64, bool) {
+	number, err := strconv.ParseInt(path.Base(u), 10, 64)
+	return number, err == nil && number > 0
+}
+
+func (g *GithubDownloaderV3) GetIssuesByNumber(ctx context.Context, numbers []int64) ([]*base.Issue, error) {
+	issues := make([]*base.Issue, 0, len(numbers))
+	for _, number := range numbers {
+		g.waitAndPickClient(ctx)
+		issue, resp, err := g.getClient().Issues.Get(ctx, g.repoOwner, g.repoName, int(number))
+		g.setRateFromResponse(resp)
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Warn("GitHub issue #%d in %s/%s is gone, skipped", number, g.repoOwner, g.repoName)
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("GetIssuesByNumber: %w", err)
+		}
+		if issue.IsPullRequest() {
+			continue
+		}
+		converted, err := g.convertGithubIssue(ctx, issue, g.maxPerPage)
+		if err != nil {
+			return nil, err
+		}
+		issues = append(issues, converted)
+	}
+	return issues, nil
 }
 
 func (g *GithubDownloaderV3) GetNewComments(ctx context.Context, commentable base.Commentable, updatedAfter time.Time) ([]*base.Comment, bool, error) {

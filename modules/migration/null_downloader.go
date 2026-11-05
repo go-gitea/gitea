@@ -105,6 +105,16 @@ func (n NullDownloader) GetPullRequestsByNumber(_ context.Context, numbers []int
 	return nil, ErrNotSupported{Entity: "PullRequestsByNumber"}
 }
 
+// GetCommentedEntities lists the issues and pull requests with comments updated after the given time
+func (n NullDownloader) GetCommentedEntities(_ context.Context, updatedAfter time.Time) ([]CommentedEntity, error) {
+	return nil, ErrNotSupported{Entity: "CommentedEntities"}
+}
+
+// GetIssuesByNumber returns the given issues
+func (n NullDownloader) GetIssuesByNumber(_ context.Context, numbers []int64) ([]*Issue, error) {
+	return nil, ErrNotSupported{Entity: "IssuesByNumber"}
+}
+
 // GetNewComments returns an issue's or pull request's comments updated after the given time
 func (n NullDownloader) GetNewComments(_ context.Context, commentable Commentable, updatedAfter time.Time) ([]*Comment, bool, error) {
 	return nil, false, ErrNotSupported{Entity: "NewComments"}
