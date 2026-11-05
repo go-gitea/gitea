@@ -22,31 +22,31 @@ import (
 // Return warning messages on parsing errors
 // We're trying to do the best we can when parsing a file.
 // Invalid lines are skipped. Non-existent users and teams too.
-func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRule, []string) {
+func GetCodeOwnersFromContent(ctx context.Context, data string) (rules []*CodeOwnerRule, warnings []string) {
 	if len(data) == 0 {
 		return nil, nil
 	}
 
-	rules := make([]*CodeOwnerRule, 0)
-	lines := strings.Split(data, "\n")
-	warnings := make([]string, 0)
 	globalReview := optional.None[bool]()
 	sectionReview := optional.None[bool]()
 	section := ""
 	var owners []string
 
-	for i, line := range lines {
+	lineNum := 0
+	for line := range strings.SplitSeq(data, "\n") {
+		lineNum++
 		line, reviewRequest, annotationWarnings := parseCodeOwnerAnnotation(line)
 		for _, warning := range annotationWarnings {
-			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", i+1, warning))
+			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", lineNum, warning))
 		}
-		if strings.TrimSpace(line) == "" {
+		line = strings.TrimSpace(line)
+		if line == "" {
 			if reviewRequest.Has() {
 				globalReview = reviewRequest
 			}
 			continue
 		}
-		if heading := strings.TrimSpace(line); strings.HasPrefix(heading, "[") {
+		if heading := line; strings.HasPrefix(heading, "[") {
 			if end := strings.IndexByte(heading, ']'); end > 1 && (end == len(heading)-1 || heading[end+1] == ' ' || heading[end+1] == '\t') {
 				section = strings.ToLower(strings.TrimSpace(heading[1:end]))
 				owners = TokenizeCodeOwnersLine(heading[end+1:])
@@ -62,12 +62,12 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRul
 			tokens = append(tokens, owners...)
 		}
 		if len(tokens) < 2 {
-			warnings = append(warnings, fmt.Sprintf("Line: %d: incorrect format", i+1))
+			warnings = append(warnings, fmt.Sprintf("Line: %d: incorrect format", lineNum))
 			continue
 		}
 		rule, wr := ParseCodeOwnersLine(ctx, tokens)
 		for _, w := range wr {
-			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", i+1, w))
+			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", lineNum, w))
 		}
 		if rule == nil {
 			continue
@@ -102,15 +102,8 @@ type CodeOwnerRule struct {
 	Teams    []*org_model.Team
 }
 
-func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, []string) {
-	var err error
-	rule := &CodeOwnerRule{
-		Users:    make([]*user_model.User, 0),
-		Teams:    make([]*org_model.Team, 0),
-		Negative: strings.HasPrefix(tokens[0], "!"),
-	}
-
-	warnings := make([]string, 0)
+func ParseCodeOwnersLine(ctx context.Context, tokens []string) (rule *CodeOwnerRule, warnings []string) {
+	rule = &CodeOwnerRule{Negative: strings.HasPrefix(tokens[0], "!")}
 
 	// Strip leading "!" for negative rules, then strip leading "/" since
 	// git returns relative paths (e.g. "docs/foo.md" not "/docs/foo.md")
@@ -129,11 +122,14 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 		}
 		expr = compiled.String()
 	}
+
+	var err error
 	rule.Rule, err = regexp2.Compile(expr, regexp2.None)
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
 		return nil, warnings
 	}
+
 	// Bound matching time so user-supplied patterns cannot stall PR creation via catastrophic backtracking.
 	rule.Rule.MatchTimeout = codeOwnerMatchTimeout
 
@@ -184,38 +180,35 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 	return rule, warnings
 }
 
-func TokenizeCodeOwnersLine(line string) []string {
-	if len(line) == 0 {
+func TokenizeCodeOwnersLine(line string) (tokens []string) {
+	line = strings.TrimSpace(line)
+	line = strings.ReplaceAll(line, "\t", " ")
+	if line == "" {
 		return nil
 	}
 
-	line = strings.TrimSpace(line)
-	line = strings.ReplaceAll(line, "\t", " ")
-
-	tokens := make([]string, 0)
-
 	escape := false
-	token := ""
+	var token strings.Builder
 	for _, char := range line {
 		if escape {
-			token += string(char)
+			token.WriteRune(char)
 			escape = false
-		} else if string(char) == "\\" {
+		} else if char == '\\' {
 			escape = true
-		} else if string(char) == "#" {
+		} else if char == '#' {
 			break
-		} else if string(char) == " " {
-			if len(token) > 0 {
-				tokens = append(tokens, token)
-				token = ""
+		} else if char == ' ' {
+			if token.Len() > 0 {
+				tokens = append(tokens, token.String())
+				token.Reset()
 			}
 		} else {
-			token += string(char)
+			token.WriteRune(char)
 		}
 	}
 
-	if len(token) > 0 {
-		tokens = append(tokens, token)
+	if token.Len() > 0 {
+		tokens = append(tokens, token.String())
 	}
 
 	return tokens

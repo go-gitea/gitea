@@ -9,6 +9,7 @@ import (
 	"image"
 	"io"
 	"path"
+	"slices"
 	"strings"
 
 	git_model "gitea.dev/models/git"
@@ -169,7 +170,7 @@ func prepareFileCodeOwners(ctx *context.Context) {
 		return
 	}
 	matching, warnings2 := issue_service.MatchCodeOwnerRules(rules, []string{ctx.Repo.TreePath})
-	warnings := append(warnings1, warnings2...)
+	warnings := slices.Concat(warnings1, warnings2)
 	if len(warnings) > 0 {
 		ctx.Flash.Warning(strings.Join(warnings, "\n"), true)
 	}
