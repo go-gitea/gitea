@@ -26,6 +26,7 @@ func TestAccess(t *testing.T) {
 	t.Run("RecalculateAccesses2", testRecalculateAccesses2)
 	t.Run("RecalculateAccessesUpdateMode", testRecalculateAccessesUpdateMode)
 	t.Run("RecalculateAccessesRemoveAccess", testRecalculateAccessesRemoveAccess)
+	t.Run("RecalculateUserAccessRestricted", testRecalculateUserAccessRestricted)
 }
 
 func testAccessLevel(t *testing.T) {
@@ -200,4 +201,21 @@ func testRecalculateAccessesRemoveAccess(t *testing.T) {
 	has, err = db.GetEngine(t.Context()).Get(removedAccess)
 	assert.NoError(t, err)
 	assert.False(t, has, "Access should be deleted after removing collaboration")
+}
+
+func testRecalculateUserAccessRestricted(t *testing.T) {
+	// restricted user added as a read collaborator to a public repo
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.False(t, repo.IsPrivate)
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
+	assert.True(t, user29.IsRestricted)
+
+	assert.NoError(t, db.Insert(t.Context(), &repo_model.Collaboration{UserID: 29, RepoID: 1, Mode: perm_model.AccessModeRead}))
+	assert.NoError(t, access_model.RecalculateUserAccess(t.Context(), repo, 29))
+
+	access := &access_model.Access{UserID: 29, RepoID: 1}
+	has, err := db.GetEngine(t.Context()).Get(access)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.Equal(t, perm_model.AccessModeRead, access.Mode)
 }
