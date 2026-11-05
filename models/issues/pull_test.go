@@ -336,7 +336,7 @@ func testParseCodeOwnersLine(t *testing.T) {
 
 	given := []CodeOwnerTest{
 		{Line: "", Tokens: nil},
-		{Line: "# comment", Tokens: []string{}},
+		{Line: "# comment", Tokens: nil},
 		{Line: "!.* @user1 @org1/team1", Tokens: []string{"!.*", "@user1", "@org1/team1"}},
 		{Line: `.*\\.js @user2 #comment`, Tokens: []string{`.*\.js`, "@user2"}},
 		{Line: `docs/(aws|google|azure)/[^/]*\\.(md|txt) @org3 @org2/team2`, Tokens: []string{`docs/(aws|google|azure)/[^/]*\.(md|txt)`, "@org3", "@org2/team2"}},
@@ -348,7 +348,7 @@ func testParseCodeOwnersLine(t *testing.T) {
 
 	for _, g := range given {
 		tokens := issues_model.TokenizeCodeOwnersLine(g.Line)
-		assert.Equal(t, g.Tokens, tokens, "Codeowners tokenizer failed")
+		assert.Equal(t, g.Tokens, tokens, "Codeowners tokenizer failed: input=%s", g.Line)
 	}
 }
 
@@ -475,7 +475,7 @@ func testCodeOwnerSectionsAndAnnotations(t *testing.T) {
 	assert.True(t, rules[0].ReviewRequest.Value())
 	assert.True(t, match(rules[0], "src/app.js"))
 	assert.False(t, match(rules[0], "appXjs"))
-	assert.Equal(t, "documentation", rules[1].Section)
+	assert.Equal(t, "Documentation", rules[1].Section)
 	assert.Equal(t, "user1", rules[1].Users[0].Name)
 	assert.True(t, rules[1].ReviewRequest.Value())
 	assert.Equal(t, "user5", rules[2].Users[0].Name)

@@ -23,10 +23,6 @@ import (
 // We're trying to do the best we can when parsing a file.
 // Invalid lines are skipped. Non-existent users and teams too.
 func GetCodeOwnersFromContent(ctx context.Context, data string) (rules []*CodeOwnerRule, warnings []string) {
-	if len(data) == 0 {
-		return nil, nil
-	}
-
 	globalReview := optional.None[bool]()
 	sectionReview := optional.None[bool]()
 	section := ""
@@ -46,9 +42,13 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) (rules []*CodeOw
 			}
 			continue
 		}
+
+		// To support section headers, there could be an edge case for end users:
+		// `[a-z] @user` now becomes a section header instead of a rule, but it is really rare to happen.
+		// A workaround is to use `/[a-z] @user` to make it a rule.
 		if heading := line; strings.HasPrefix(heading, "[") {
 			if end := strings.IndexByte(heading, ']'); end > 1 && (end == len(heading)-1 || heading[end+1] == ' ' || heading[end+1] == '\t') {
-				section = strings.ToLower(strings.TrimSpace(heading[1:end]))
+				section = heading[1:end]
 				owners = TokenizeCodeOwnersLine(heading[end+1:])
 				sectionReview = reviewRequest
 				continue
@@ -172,7 +172,7 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (rule *CodeOwnerR
 		}
 	}
 
-	if (len(rule.Users) == 0) && (len(rule.Teams) == 0) {
+	if len(rule.Users) == 0 && len(rule.Teams) == 0 {
 		warnings = append(warnings, "no users/groups matched")
 		return nil, warnings
 	}
