@@ -675,7 +675,6 @@
   "settings.permission_no_access": "Bez přístupu",
   "settings.permission_read": "Přečtené",
   "settings.permission_write": "čtení i zápis",
-  "settings.access_token_desc": "Vybraná oprávnění tokenu omezují autorizaci pouze na odpovídající trasy <a %s>API</a>. Přečtěte si <a %s>dokumentaci</a> pro více informací.",
   "settings.at_least_one_permission": "Musíte vybrat alespoň jedno oprávnění pro vytvoření tokenu",
   "settings.permissions_list": "Oprávnění:",
   "settings.manage_oauth2_applications": "Spravovat OAuth2 aplikace",
