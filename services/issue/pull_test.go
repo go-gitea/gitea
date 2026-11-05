@@ -4,6 +4,7 @@
 package issue
 
 import (
+	"fmt"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -138,4 +139,47 @@ func TestPullRequestCodeOwnersReviewSkipsReviewersWithoutAccess(t *testing.T) {
 	has, err = db.GetEngine(ctx).Exist(&issues_model.Review{IssueID: pr.IssueID, ReviewerTeamID: teamWithoutRepo.ID})
 	require.NoError(t, err)
 	assert.False(t, has)
+}
+
+func TestPullRequestCodeOwnersReviewSkipsOrgsAndForeignTeams(t *testing.T) {
+	for _, isPrivate := range []bool{true, false} {
+		t.Run(fmt.Sprintf("private=%v", isPrivate), func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+
+			// PR in org3/repo3
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: 12})
+			require.NoError(t, pr.LoadIssue(t.Context()))
+			require.NoError(t, pr.LoadBaseRepo(t.Context()))
+			require.NoError(t, pr.Issue.LoadRepo(t.Context()))
+			pr.BaseRepo.IsPrivate = isPrivate
+
+			member := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+			ownerOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})   // org3
+			otherOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 6})   // org6
+			team := unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: 2})        // org3 team with repo3
+			foreignTeam := unittest.AssertExistsAndLoadBean(t, &org_model.Team{ID: 9}) // org17/review_team
+
+			rules := []*issues_model.CodeOwnerRule{
+				{Users: []*user_model.User{member, ownerOrg, otherOrg}, Teams: []*org_model.Team{team, foreignTeam}},
+			}
+
+			ctx, committer, err := db.TxContext(t.Context())
+			require.NoError(t, err)
+			defer committer.Close()
+
+			notifiers, err := pullRequestCodeOwnersReview(ctx, pr, rules)
+			require.NoError(t, err)
+
+			var userIDs, teamIDs []int64
+			for _, notifier := range notifiers {
+				if notifier.Reviewer != nil {
+					userIDs = append(userIDs, notifier.Reviewer.ID)
+				} else {
+					teamIDs = append(teamIDs, notifier.ReviewTeam.ID)
+				}
+			}
+			assert.Equal(t, []int64{member.ID}, userIDs)
+			assert.Equal(t, []int64{team.ID}, teamIDs)
+		})
+	}
 }

@@ -313,6 +313,10 @@ func pullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	for _, u := range uniqUsers {
+		if u.IsOrganization() {
+			// organizations can't be requested as reviewers
+			continue
+		}
 		if u.ID != issue.Poster.ID && !contain(latestReviews, u) {
 			// CODEOWNERS may name anyone, but only users who can read the pull requests
 			// may be requested, as for a manual review request.
@@ -340,6 +344,10 @@ func pullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	for _, t := range uniqTeams {
+		// only teams of the repository owner can be requested, as for a manual review request
+		if t.OrgID != pr.BaseRepo.OwnerID {
+			continue
+		}
 		if pr.BaseRepo.IsPrivate && !org_model.HasTeamRepo(ctx, t.OrgID, t.ID, pr.BaseRepo.ID) {
 			continue
 		}
