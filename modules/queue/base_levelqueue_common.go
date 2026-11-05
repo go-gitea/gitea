@@ -80,7 +80,7 @@ func (q *baseLevelQueueCommonImpl) removeAllItems() error {
 	// In the past, levelqueue corrupted a lot, so we introduced a workaround
 	// https://github.com/go-gitea/gitea/pull/24912 to reset the corrupted levelqueue.
 	//
-	// Now, the levelqueue package should has been fixed by https://gitea.com/lunny/levelqueue/pulls/8
+	// Now, the levelqueue package should have been fixed by https://gitea.com/lunny/levelqueue/pulls/8
 	// So the workaround is no longer needed, and we can just pop all items from the queue like other queues.
 	//
 	// TODO: it's better to have a RemoveAll() or Reset() method in levelqueue
