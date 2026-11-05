@@ -90,8 +90,8 @@ conditional `UPDATE` or a lock.
 
 ### Git
 
-- Reuse open repositories via `git.RepositoryFromContextOrOpen` rather than spawning
-  extra `git` processes.
+- Pass already open repositories down rather than reopening them or spawning extra
+  `git` processes.
 
 ## Dependencies
 
