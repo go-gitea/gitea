@@ -47,7 +47,7 @@ func TestAttachCommentsToLines(t *testing.T) {
 }
 
 func TestNewPullRequestTitleContent(t *testing.T) {
-	ci := &git_service.CompareInfo{HeadRef: "refs/heads/head-branch"}
+	ci := &git_service.CompareInfo{CompareBaseHead: git_service.CompareBaseHead{HeadRef: "refs/heads/head-branch"}}
 
 	mockCommit := func(msg string) *git_model.SignCommitWithStatuses {
 		return &git_model.SignCommitWithStatuses{

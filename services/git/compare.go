@@ -13,14 +13,21 @@ import (
 	"gitea.dev/modules/util"
 )
 
+type CompareBaseHead struct {
+	BaseRepo    *repo_model.Repository
+	BaseGitRepo *git.Repository
+	BaseRef     git.RefName
+
+	HeadRepo    *repo_model.Repository
+	HeadGitRepo *git.Repository
+	HeadRef     git.RefName
+}
+
 // CompareInfo represents needed information for comparing references.
 type CompareInfo struct {
-	BaseRepo     *repo_model.Repository
-	BaseRef      git.RefName
+	CompareBaseHead
+
 	BaseCommitID string
-	HeadRepo     *repo_model.Repository
-	HeadGitRepo  *git.Repository
-	HeadRef      git.RefName
 	HeadCommitID string
 
 	CompareSeparator string
@@ -51,16 +58,12 @@ func (ci *CompareInfo) DirectComparison() bool {
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
 // It does its best to fill the fields as many as it can.
 // MergeBase can be empty if the base and head are unrelated.
-func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, baseGitRepo, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison, fileOnly bool) (compareInfo CompareInfo, err error) {
-	baseCommitID, err1 := baseGitRepo.GetRefCommitID(ctx, baseRef.String())
-	headCommitID, err2 := headGitRepo.GetRefCommitID(ctx, headRef.String())
+func GetCompareInfo(ctx context.Context, baseHead CompareBaseHead, directComparison, fileOnly bool) (compareInfo CompareInfo, err error) {
+	baseCommitID, err1 := baseHead.BaseGitRepo.GetRefCommitID(ctx, baseHead.BaseRef.String())
+	headCommitID, err2 := baseHead.HeadGitRepo.GetRefCommitID(ctx, baseHead.HeadRef.String())
 	compareInfo = CompareInfo{
-		BaseRepo:         baseRepo,
-		BaseRef:          baseRef,
+		CompareBaseHead:  baseHead,
 		BaseCommitID:     baseCommitID,
-		HeadRepo:         headRepo,
-		HeadGitRepo:      headGitRepo,
-		HeadRef:          headRef,
 		HeadCommitID:     headCommitID,
 		CompareSeparator: util.Iif(directComparison, "..", "..."),
 	}
@@ -69,18 +72,18 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	}
 
 	// if they are not the same repository, then we need to fetch the base commit into the head repository
-	// because we will use headGitRepo in the following code
-	if baseRepo.ID != headRepo.ID {
-		exist := headGitRepo.IsReferenceExist(ctx, compareInfo.BaseCommitID)
+	// because we will use the head repository in the following code
+	if baseHead.BaseRepo.ID != baseHead.HeadRepo.ID {
+		exist := baseHead.HeadGitRepo.IsReferenceExist(ctx, compareInfo.BaseCommitID)
 		if !exist {
-			if err := git.FetchRemoteTempCommit(ctx, headRepo, baseRepo, compareInfo.BaseCommitID); err != nil {
+			if err := git.FetchRemoteTempCommit(ctx, baseHead.HeadRepo, baseHead.BaseRepo, compareInfo.BaseCommitID); err != nil {
 				return compareInfo, fmt.Errorf("FetchRemoteTempCommit: %w", err)
 			}
 		}
 	}
 
 	if !directComparison {
-		compareInfo.CompareBase, err = git.MergeBase(ctx, headRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
+		compareInfo.CompareBase, err = git.MergeBase(ctx, baseHead.HeadRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return compareInfo, fmt.Errorf("MergeBase: %w", err)
 		}
@@ -98,7 +101,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		// which is different from the meaning of "..." in git diff (where it implies diffing from the merge base).
 		// For listing PR commits, we must use merge-base..head to include only the commits introduced by the head branch.
 		// Otherwise, commits newly pushed to the base branch would also be included, which is incorrect.
-		compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.CompareBase+".."+compareInfo.HeadCommitID)
+		compareInfo.Commits, err = baseHead.HeadGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.CompareBase+".."+compareInfo.HeadCommitID)
 		if err != nil {
 			return compareInfo, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 		}
@@ -107,6 +110,6 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	// Count number of changed files.
 	// TODO: This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(ctx, compareInfo.BaseCommitID, compareInfo.HeadCommitID, directComparison)
+	compareInfo.NumFiles, err = baseHead.HeadGitRepo.GetDiffNumChangedFiles(ctx, compareInfo.BaseCommitID, compareInfo.HeadCommitID, directComparison)
 	return compareInfo, err
 }
