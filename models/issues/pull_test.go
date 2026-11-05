@@ -44,6 +44,7 @@ func TestPullRequest(t *testing.T) {
 	t.Run("ParseCodeOwnersLine", testParseCodeOwnersLine)
 	t.Run("CodeOwnerAbsolutePathPatterns", testCodeOwnerAbsolutePathPatterns)
 	t.Run("CodeOwnerPatternMatchTimeout", testCodeOwnerPatternMatchTimeout)
+	t.Run("CodeOwnerSectionsAndAnnotations", testCodeOwnerSectionsAndAnnotations)
 	t.Run("GetApprovers", testGetApprovers)
 	t.Run("GetPullRequestByMergedCommit", testGetPullRequestByMergedCommit)
 	t.Run("Migrate_InsertPullRequests", testMigrateInsertPullRequests)
@@ -447,4 +448,46 @@ func testMigrateInsertPullRequests(t *testing.T) {
 	_ = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: i.ID})
 
 	unittest.CheckConsistencyFor(t, &issues_model.Issue{}, &issues_model.PullRequest{})
+}
+
+func testCodeOwnerSectionsAndAnnotations(t *testing.T) {
+	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), "*.js @user5\n[Docs] @user1\n*.md\n")
+	require.Empty(t, warnings)
+	require.Len(t, rules, 2)
+	for _, rule := range rules {
+		assert.False(t, rule.ReviewRequest.Has())
+	}
+
+	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), `## review-request=false # global
+*.js @user5 ## review-request=true # line
+[Documentation] @user1 ## review-request=true # section
+*.md
+/docs/* @user5 ## review-request=false
+[Other Section] @user5
+*.txt
+`)
+	require.Empty(t, warnings)
+	require.Len(t, rules, 4)
+	assert.True(t, rules[0].ReviewRequest.Value())
+	assert.True(t, rules[0].Match("src/app.js"))
+	assert.False(t, rules[0].Match("appXjs"))
+	assert.Equal(t, "documentation", rules[1].Section)
+	assert.Equal(t, "user1", rules[1].Users[0].Name)
+	assert.True(t, rules[1].ReviewRequest.Value())
+	assert.Equal(t, "user5", rules[2].Users[0].Name)
+	assert.False(t, rules[2].ReviewRequest.Value())
+	assert.True(t, rules[2].Match("docs/guide.md"))
+	assert.False(t, rules[2].Match("other/docs/guide.md"))
+	assert.False(t, rules[3].ReviewRequest.Value())
+
+	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), "*.js @user5 ## review-request=invalid\n*[ @user5\n")
+	require.Len(t, rules, 1)
+	assert.False(t, rules[0].ReviewRequest.Has())
+	require.Len(t, warnings, 2)
+
+	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), `file\#name @user5 ## review-request=false`)
+	require.Empty(t, warnings)
+	require.Len(t, rules, 1)
+	assert.True(t, rules[0].Match("file#name"))
+	assert.False(t, rules[0].ReviewRequest.Value())
 }

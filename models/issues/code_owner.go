@@ -1,0 +1,259 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package issues
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"time"
+
+	org_model "gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/optional"
+
+	"github.com/dlclark/regexp2/v2"
+)
+
+// GetCodeOwnersFromContent returns the code owners configuration
+// Return empty slice if files missing
+// Return warning messages on parsing errors
+// We're trying to do the best we can when parsing a file.
+// Invalid lines are skipped. Non-existent users and teams too.
+func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRule, []string) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	rules := make([]*CodeOwnerRule, 0)
+	lines := strings.Split(data, "\n")
+	warnings := make([]string, 0)
+	globalReview := optional.None[bool]()
+	sectionReview := optional.None[bool]()
+	section := ""
+	var owners []string
+
+	for i, line := range lines {
+		line, reviewRequest, annotationWarnings := parseCodeOwnerAnnotation(line)
+		for _, warning := range annotationWarnings {
+			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", i+1, warning))
+		}
+		if strings.TrimSpace(line) == "" {
+			if reviewRequest.Has() {
+				globalReview = reviewRequest
+			}
+			continue
+		}
+		if heading := strings.TrimSpace(line); strings.HasPrefix(heading, "[") {
+			if end := strings.IndexByte(heading, ']'); end > 1 && (end == len(heading)-1 || heading[end+1] == ' ' || heading[end+1] == '\t') {
+				section = strings.ToLower(strings.TrimSpace(heading[1:end]))
+				owners = TokenizeCodeOwnersLine(heading[end+1:])
+				sectionReview = reviewRequest
+				continue
+			}
+		}
+		tokens := TokenizeCodeOwnersLine(line)
+		if len(tokens) == 0 {
+			continue
+		}
+		if len(tokens) == 1 && len(owners) > 0 {
+			tokens = append(tokens, owners...)
+		}
+		if len(tokens) < 2 {
+			warnings = append(warnings, fmt.Sprintf("Line: %d: incorrect format", i+1))
+			continue
+		}
+		rule, wr := ParseCodeOwnersLine(ctx, tokens)
+		for _, w := range wr {
+			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", i+1, w))
+		}
+		if rule == nil {
+			continue
+		}
+
+		rule.Section = section
+		rule.ReviewRequest = reviewRequest
+		if !rule.ReviewRequest.Has() {
+			rule.ReviewRequest = sectionReview
+		}
+		if !rule.ReviewRequest.Has() {
+			rule.ReviewRequest = globalReview
+		}
+		rules = append(rules, rule)
+	}
+
+	return rules, warnings
+}
+
+// codeOwnerMatchTimeout bounds a single pattern match so a crafted pattern
+// cannot stall via catastrophic backtracking. See also the aggregate budget
+// enforced by the caller across the whole rules×files match loop.
+const codeOwnerMatchTimeout = 150 * time.Millisecond
+
+type CodeOwnerRule struct {
+	Section       string
+	ReviewRequest optional.Option[bool]
+
+	Rule     *regexp2.Regexp // it supports negative lookahead, does better for end users
+	Negative bool
+	Users    []*user_model.User
+	Teams    []*org_model.Team
+}
+
+func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, []string) {
+	var err error
+	rule := &CodeOwnerRule{
+		Users:    make([]*user_model.User, 0),
+		Teams:    make([]*org_model.Team, 0),
+		Negative: strings.HasPrefix(tokens[0], "!"),
+	}
+
+	warnings := make([]string, 0)
+
+	// Strip leading "!" for negative rules, then strip leading "/" since
+	// git returns relative paths (e.g. "docs/foo.md" not "/docs/foo.md")
+	// and the regex is already anchored with ^...$, so the "/" is redundant.
+	pattern := strings.TrimPrefix(tokens[0], "!")
+	pattern = strings.TrimPrefix(pattern, "/")
+	expr := fmt.Sprintf("^%s$", pattern)
+	if strings.HasPrefix(pattern, "*") || strings.Contains(pattern, "/*") {
+		compiled, compileErr := glob.CompileToRegexp(pattern)
+		if compileErr != nil {
+			return nil, []string{fmt.Sprintf("incorrect codeowner glob: %s", compileErr)}
+		}
+		expr = compiled.String()
+	}
+	rule.Rule, err = regexp2.Compile(expr, regexp2.None)
+	if err != nil {
+		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
+		return nil, warnings
+	}
+	// Bound matching time so user-supplied patterns cannot stall PR creation via catastrophic backtracking.
+	rule.Rule.MatchTimeout = codeOwnerMatchTimeout
+
+	for _, user := range tokens[1:] {
+		user = strings.TrimPrefix(user, "@")
+
+		// Only @org/team can contain slashes
+		if strings.Contains(user, "/") {
+			s := strings.Split(user, "/")
+			if len(s) != 2 {
+				warnings = append(warnings, "incorrect codeowner group: "+user)
+				continue
+			}
+			orgName := s[0]
+			teamName := s[1]
+
+			org, err := org_model.GetOrgByName(ctx, orgName)
+			if err != nil {
+				warnings = append(warnings, "incorrect codeowner organization: "+user)
+				continue
+			}
+			teams, err := org.LoadTeams(ctx)
+			if err != nil {
+				warnings = append(warnings, "incorrect codeowner team: "+user)
+				continue
+			}
+
+			for _, team := range teams {
+				if team.Name == teamName {
+					rule.Teams = append(rule.Teams, team)
+				}
+			}
+		} else {
+			u, err := user_model.GetUserByName(ctx, user)
+			if err != nil {
+				warnings = append(warnings, "incorrect codeowner user: "+user)
+				continue
+			}
+			rule.Users = append(rule.Users, u)
+		}
+	}
+
+	if (len(rule.Users) == 0) && (len(rule.Teams) == 0) {
+		warnings = append(warnings, "no users/groups matched")
+		return nil, warnings
+	}
+
+	return rule, warnings
+}
+
+func TokenizeCodeOwnersLine(line string) []string {
+	if len(line) == 0 {
+		return nil
+	}
+
+	line = strings.TrimSpace(line)
+	line = strings.ReplaceAll(line, "\t", " ")
+
+	tokens := make([]string, 0)
+
+	escape := false
+	token := ""
+	for _, char := range line {
+		if escape {
+			token += string(char)
+			escape = false
+		} else if string(char) == "\\" {
+			escape = true
+		} else if string(char) == "#" {
+			break
+		} else if string(char) == " " {
+			if len(token) > 0 {
+				tokens = append(tokens, token)
+				token = ""
+			}
+		} else {
+			token += string(char)
+		}
+	}
+
+	if len(token) > 0 {
+		tokens = append(tokens, token)
+	}
+
+	return tokens
+}
+
+func (r *CodeOwnerRule) Match(path string) bool {
+	matched, err := r.Rule.MatchString(path)
+	return err == nil && matched != r.Negative
+}
+
+func parseCodeOwnerAnnotation(line string) (string, optional.Option[bool], []string) {
+	escape := false
+	for i := 0; i < len(line); i++ {
+		if escape {
+			escape = false
+			continue
+		}
+		if line[i] == '\\' {
+			escape = true
+			continue
+		}
+		if line[i] != '#' {
+			continue
+		}
+		review := optional.None[bool]()
+		var warnings []string
+		if strings.HasPrefix(line[i:], "##") {
+			annotation, _, _ := strings.Cut(line[i+2:], "#")
+			for field := range strings.FieldsSeq(annotation) {
+				key, value, ok := strings.Cut(field, "=")
+				if key != "review-request" {
+					warnings = append(warnings, "unknown codeowner annotation: "+key)
+					continue
+				}
+				if !ok || (value != "true" && value != "false") {
+					warnings = append(warnings, "incorrect review-request annotation: "+field)
+					continue
+				}
+				review = optional.Some(value == "true")
+			}
+		}
+		return line[:i], review, warnings
+	}
+	return line, optional.None[bool](), nil
+}

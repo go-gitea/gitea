@@ -25,6 +25,16 @@
 		</div>
 	{{end}}
 
+	{{if and (not .ReadmeInList) .FileCodeOwners}}
+		<div class="file-codeowners ui segment flex-text-block tw-flex-wrap">
+			{{svg "octicon-shield-check" 16}}
+			<span>{{ctx.Locale.Tr "repo.codeowners"}}</span>
+			{{range $one := .FileCodeOwners}}
+				<a href="{{$one.CodeOwnerLink}}">{{$one.CodeOwnerName}}</a>
+			{{end}}
+		</div>
+	{{end}}
+
 	<h4 class="file-header ui top attached header flex-left-right">
 		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{if .ReadmeInList}}
