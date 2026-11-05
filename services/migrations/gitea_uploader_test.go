@@ -127,9 +127,9 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.Len(t, pulls[0].Issue.Comments, 2)
 }
 
-func TestCreateReleasesSkipsUnavailableAssets(t *testing.T) {
+func TestCreateReleases(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	sourceRelease := &base.Release{Name: "assets", Assets: []*base.ReleaseAsset{
+	sourceRelease := &base.Release{Name: "assets", Latest: true, Assets: []*base.ReleaseAsset{
 		{Name: "gone", Size: new(0), DownloadCount: new(0), DownloadFunc: func() (io.ReadCloser, error) { return nil, errors.New("gone") }},
 		{Name: "kept", Size: new(0), DownloadCount: new(0), DownloadFunc: func() (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("data")), nil }},
 	}}
@@ -137,8 +137,22 @@ func TestCreateReleasesSkipsUnavailableAssets(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	uploader := NewGiteaLocalUploader(t.Context(), doer, doer.Name, "repo1")
 	uploader.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	require.NoError(t, uploader.CreateReleases(t.Context(), sourceRelease))
+	gitRepo, err := git.OpenRepository(t.Context(), uploader.repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	uploader.gitRepo = gitRepo
+	_, err = db.GetEngine(t.Context()).Delete(&repo_model.Release{RepoID: 1, TagName: "v1.1"})
+	require.NoError(t, err)
+	require.NoError(t, uploader.CreateReleases(t.Context(), sourceRelease, &base.Release{TagName: "v1.1", Created: time.Date(2099, 1, 1, 0, 0, 0, 0, time.UTC)}))
+	require.NoError(t, uploader.SyncTags(t.Context()))
+	commit, err := gitRepo.GetTagCommit(t.Context(), "v1.1")
+	require.NoError(t, err)
+	assert.Equal(t, commit.Committer.When.Unix(), int64(unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, TagName: "v1.1"}).CreatedUnix))
+	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).LatestReleaseID)
+	require.NoError(t, uploader.CreateReleases(t.Context(), &base.Release{TagName: "newer", Created: time.Now().Add(time.Hour)}))
+	require.NoError(t, uploader.SyncTags(t.Context()))
 	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, Title: "assets"})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, LatestReleaseID: release.ID})
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ReleaseID: release.ID, Name: "kept", Size: 4})
 	unittest.AssertNotExistsBean(t, &repo_model.Attachment{ReleaseID: release.ID, Name: "gone"})
 
@@ -147,37 +161,6 @@ func TestCreateReleasesSkipsUnavailableAssets(t *testing.T) {
 	require.NoError(t, dumper.CreateReleases(t.Context(), sourceRelease))
 	require.Len(t, sourceRelease.Assets, 1)
 	assert.Equal(t, "kept", sourceRelease.Assets[0].Name)
-}
-
-func TestCreateReleasesDatedByTargetCommit(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx := t.Context()
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
-	uploader.repo = repo
-	var err error
-	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
-	require.NoError(t, err)
-	defer uploader.Close()
-
-	commit, err := uploader.gitRepo.GetTagCommit(ctx, "v1.1")
-	require.NoError(t, err)
-
-	// Remove the fixture release for this tag so CreateReleases can insert a fresh one.
-	_, err = db.GetEngine(ctx).Delete(&repo_model.Release{RepoID: repo.ID, TagName: "v1.1"})
-	require.NoError(t, err)
-
-	// The source forge's release "created at" timestamp can be unreliable (e.g. it may
-	// reflect when the release draft was made rather than the commit date), so it must
-	// not override the commit date, otherwise an old commit released later could take
-	// over as the latest release and the order would no longer match the source.
-	misleadingCreated := time.Date(2099, 1, 1, 0, 0, 0, 0, time.UTC)
-	require.NoError(t, uploader.CreateReleases(ctx, &base.Release{TagName: "v1.1", Created: misleadingCreated}))
-
-	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: repo.ID, TagName: "v1.1"})
-	assert.Equal(t, commit.Committer.When.Unix(), release.CreatedUnix.AsTime().Unix())
 }
 
 func TestGiteaUploadRemapLocalUser(t *testing.T) {
