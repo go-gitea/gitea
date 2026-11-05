@@ -67,10 +67,11 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
       onResponse(response: Issue[]) {
         const filteredResponse: FomanticApiResponse<{value: number, name: string}> = {success: true, results: []};
         const currIssueId = elDropdown.getAttribute('data-issue-id');
+        const existingDependencyIds = new Set(Array.from(elSidebar.querySelectorAll('[data-issue-dependency-id]'), (el) => el.getAttribute('data-issue-dependency-id')));
         // Parse the response from the api to work with our dropdown
         for (const issue of response) {
-          // Don't list current issue in the dependency list.
-          if (String(issue.id) === currIssueId) continue;
+          // Don't list the current issue or its existing dependencies in the dependency list.
+          if (String(issue.id) === currIssueId || existingDependencyIds.has(String(issue.id))) continue;
           filteredResponse.results.push({
             value: issue.id,
             name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,

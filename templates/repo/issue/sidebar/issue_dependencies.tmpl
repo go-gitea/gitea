@@ -20,7 +20,7 @@
 			</span>
 			<div class="flex-divided-list">
 				{{range .BlockingDependencies}}
-					<div class="item {{if .Issue.IsClosed}}is-closed{{end}} flex-left-right">
+					<div class="item {{if .Issue.IsClosed}}is-closed{{end}} flex-left-right" data-issue-dependency-id="{{.Issue.ID}}">
 						<div class="item-left">
 							<a class="muted issue-dependency-title gt-ellipsis" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
 								#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
@@ -54,7 +54,7 @@
 			</span>
 			<div class="flex-divided-list">
 				{{range .BlockedByDependencies}}
-					<div class="item {{if .Issue.IsClosed}}is-closed{{end}} flex-left-right">
+					<div class="item {{if .Issue.IsClosed}}is-closed{{end}} flex-left-right" data-issue-dependency-id="{{.Issue.ID}}">
 						<div class="item-left">
 							<a class="muted issue-dependency-title gt-ellipsis" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
 								#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
