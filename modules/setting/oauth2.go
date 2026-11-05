@@ -6,7 +6,6 @@ package setting
 import (
 	"math"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 
 	"gitea.dev/modules/generate"
@@ -59,7 +58,6 @@ var OAuth2Client struct {
 	Username               OAuth2UsernameType
 	UpdateAvatar           bool
 	AccountLinking         OAuth2AccountLinkingType
-	AlternativeRootURLs    []string
 }
 
 func loadOAuth2ClientFrom(rootCfg ConfigProvider) {
@@ -77,10 +75,6 @@ func loadOAuth2ClientFrom(rootCfg ConfigProvider) {
 	if !OAuth2Client.AccountLinking.isValid() {
 		log.Warn("Account linking setting is not valid: '%s', will fallback to '%s'", OAuth2Client.AccountLinking, OAuth2AccountLinkingLogin)
 		OAuth2Client.AccountLinking = OAuth2AccountLinkingLogin
-	}
-	OAuth2Client.AlternativeRootURLs = sec.Key("ALTERNATIVE_ROOT_URLS").Strings(",")
-	for i, rootURL := range OAuth2Client.AlternativeRootURLs {
-		OAuth2Client.AlternativeRootURLs[i] = strings.TrimSuffix(rootURL, "/") + "/"
 	}
 }
 

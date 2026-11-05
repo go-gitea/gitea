@@ -52,6 +52,9 @@ var (
 	AppURL    string
 	AppDomain string
 
+	// AlternativeRootURLs are further URLs this instance is served at, each with a '/' suffix like AppURL
+	AlternativeRootURLs []string
+
 	// PublicURLDetection controls how to use the HTTP request headers to detect public URL
 	PublicURLDetection string
 
@@ -135,6 +138,10 @@ func loadServerDomainAndURL(sec ConfigSection, protocol string) {
 	}
 	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
 	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
+	AlternativeRootURLs = sec.Key("ALTERNATIVE_ROOT_URLS").Strings(",")
+	for i, rootURL := range AlternativeRootURLs {
+		AlternativeRootURLs[i] = strings.TrimRight(rootURL, "/") + "/"
+	}
 
 	// AppSubURL should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.

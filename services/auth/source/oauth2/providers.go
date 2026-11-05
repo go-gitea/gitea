@@ -175,7 +175,7 @@ func RegisterProviderWithGothic(providerName string, source *Source) error {
 		return err
 	}
 	providers := []goth.Provider{provider}
-	for _, rootURL := range setting.OAuth2Client.AlternativeRootURLs {
+	for _, rootURL := range setting.AlternativeRootURLs {
 		altProvider, err := createProvider(providerName, rootURL, source)
 		if err != nil {
 			return err
@@ -196,7 +196,7 @@ func RemoveProviderFromGothic(providerName string) {
 	defer gothRWMutex.Unlock()
 
 	delete(goth.GetProviders(), providerName)
-	for _, rootURL := range setting.OAuth2Client.AlternativeRootURLs {
+	for _, rootURL := range setting.AlternativeRootURLs {
 		delete(goth.GetProviders(), rootURL+providerName)
 	}
 }

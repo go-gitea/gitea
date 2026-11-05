@@ -15,7 +15,7 @@ import (
 )
 
 func (source *Source) gothProviderName(req *http.Request) string {
-	if appURL := httplib.GuessCurrentAppURL(req.Context()); slices.Contains(setting.OAuth2Client.AlternativeRootURLs, appURL) {
+	if appURL := httplib.GuessCurrentAppURL(req.Context()); slices.Contains(setting.AlternativeRootURLs, appURL) {
 		return appURL + source.AuthSource.Name
 	}
 	return source.AuthSource.Name
