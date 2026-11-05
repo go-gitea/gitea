@@ -466,18 +466,12 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 		for _, item := range pullReviews {
 			if item.Review.ReviewerID > 0 {
 				if err := item.Review.LoadReviewer(ctx); err != nil {
-					if user_model.IsErrUserNotExist(err) {
-						continue
-					}
 					ctx.ServerError("LoadReviewer", err)
 					return
 				}
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
 				if err := item.Review.LoadReviewerTeam(ctx); err != nil {
-					if organization.IsErrTeamNotExist(err) {
-						continue
-					}
 					ctx.ServerError("LoadReviewerTeam", err)
 					return
 				}

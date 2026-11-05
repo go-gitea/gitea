@@ -753,7 +753,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			if comment.Review == nil {
 				continue
 			}
-			if comment.Review.ReviewerID > 0 && comment.Poster.ID == comment.Review.ReviewerID {
+			if comment.Poster.ID == comment.Review.ReviewerID {
 				comment.Review.Reviewer = comment.Poster
 			}
 			if err = comment.Review.LoadAttributes(ctx); err != nil {

@@ -186,7 +186,7 @@ func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
 		return nil
 	}
 
-	r.ReviewerTeam, err = organization.GetTeamByID(ctx, r.ReviewerTeamID)
+	r.ReviewerTeamID, r.ReviewerTeam, err = organization.GetPossibleTeamByID(ctx, r.ReviewerTeamID)
 	return err
 }
 
