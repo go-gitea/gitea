@@ -52,16 +52,13 @@ func (ci *CompareInfo) DirectComparison() bool {
 // It does its best to fill the fields as many as it can.
 // MergeBase can be empty if the base and head are unrelated.
 func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison, fileOnly bool) (compareInfo CompareInfo, err error) {
-	var baseCommitID, headCommitID string
-	var err1, err2 error
-	if baseRepo.ID == headRepo.ID && baseRef.IsBranch() && (headRef.IsBranch() || headRef.IsPull()) {
-		// read the refs from the open cat-file batch instead of spawning two "git rev-parse"
-		baseCommitID, err1 = headGitRepo.GetRefCommitID(ctx, baseRef.String())
-		headCommitID, err2 = headGitRepo.GetRefCommitID(ctx, headRef.String())
-	} else {
-		baseCommitID, err1 = git.GetFullCommitID(ctx, baseRepo, baseRef.String())
-		headCommitID, err2 = git.GetFullCommitID(ctx, headRepo, headRef.String())
+	baseGitRepo, baseGitRepoCloser, err := git.RepositoryFromContextOrOpen(ctx, baseRepo)
+	if err != nil {
+		return compareInfo, err
 	}
+	defer baseGitRepoCloser.Close()
+	baseCommitID, err1 := baseGitRepo.GetRefCommitID(ctx, baseRef.String())
+	headCommitID, err2 := headGitRepo.GetRefCommitID(ctx, headRef.String())
 	compareInfo = CompareInfo{
 		BaseRepo:         baseRepo,
 		BaseRef:          baseRef,
