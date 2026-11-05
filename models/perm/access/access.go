@@ -225,8 +225,12 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 // RecalculateUserAccess recalculates new access for a single user
 // Usable if we know access only affected one user
 func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (err error) {
+	if err = repo.LoadOwner(ctx); err != nil {
+		return err
+	}
+
 	minMode := perm.AccessModeRead
-	if !repo.IsPrivate && !user.IsRestricted {
+	if !repo.IsPrivate && !repo.Owner.IsOrganization() && !user.IsRestricted {
 		minMode = perm.AccessModeWrite
 	}
 
@@ -239,9 +243,7 @@ func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, use
 		accessMode = collaborator.Mode
 	}
 
-	if err = repo.LoadOwner(ctx); err != nil {
-		return err
-	} else if repo.Owner.IsOrganization() {
+	if repo.Owner.IsOrganization() {
 		var teams []organization.Team
 		if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
 			Join("INNER", "team_user", "team_user.team_id = team.id").
