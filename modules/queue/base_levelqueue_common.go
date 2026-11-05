@@ -84,7 +84,7 @@ func (q *baseLevelQueueCommonImpl) removeAllItems() error {
 	// So the workaround is no longer needed, and we can just pop all items from the queue like other queues.
 	//
 	// TODO: it's better to have a RemoveAll() or Reset() method in levelqueue
-	for {
+	for items := q.internal.Len(); items > 0; items-- {
 		_, err := q.internal.LPop()
 		if err == levelqueue.ErrNotFound {
 			break
