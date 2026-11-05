@@ -132,6 +132,7 @@ func TestCreatePushPullComment(t *testing.T) {
 		require.Len(t, data.CommitIDs, 2)
 		insertCommitComment(t, issues_model.PushActionContent{IsForcePush: true, CommitIDs: []string{baseCommitID, headCommitID}})
 		insertCommitComment(t, issues_model.PushActionContent{CommitIDs: data.CommitIDs[:1]})
+		insertCommitComment(t, issues_model.PushActionContent{CommitIDs: []string{baseCommitID}})
 
 		comment, _, err := CreatePushPullComment(t.Context(), pusher, pr, baseCommitID, headCommitID, false)
 		require.NoError(t, err)
@@ -143,6 +144,6 @@ func TestCreatePushPullComment(t *testing.T) {
 		_, created, err := CreatePushPullComment(t.Context(), pusher, pr, baseCommitID, headCommitID, false)
 		require.NoError(t, err)
 		assert.False(t, created)
-		assertCommitCommentCount(t, 3, 1)
+		assertCommitCommentCount(t, 4, 1)
 	})
 }
