@@ -87,6 +87,14 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        true,
 	}
 	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &release, []string{attach.UUID}, "test"))
+
+	assert.NoError(t, db.Insert(t.Context(), &user_model.EmailAddress{UID: user.ID, Email: "address1@example.com", IsActivated: true}))
+	actionsUser := user_model.NewActionsUser()
+	actionsRelease := &repo_model.Release{RepoID: repo.ID, Repo: repo, PublisherID: actionsUser.ID, Publisher: actionsUser, TagName: "v0.1.6", Target: "master"}
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, actionsRelease, nil, ""))
+	actionsRelease = unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: actionsRelease.ID})
+	assert.NoError(t, actionsRelease.LoadAttributes(t.Context()))
+	assert.Equal(t, actionsUser.Name, actionsRelease.Publisher.Name)
 }
 
 func TestRelease_Update(t *testing.T) {
