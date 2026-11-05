@@ -436,6 +436,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 			Review:    review,
 			ItemID:    review.ReviewerID,
 		}
+		// HINT: REVIEWER-ID-NEGATIVE: ItemID < 0 means "team id"
 		if review.ReviewerTeamID > 0 {
 			tmp.IsTeam = true
 			tmp.ItemID = -review.ReviewerTeamID

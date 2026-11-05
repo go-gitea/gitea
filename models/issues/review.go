@@ -121,11 +121,15 @@ func (rt ReviewType) Icon() string {
 
 // Review represents collection of code comments giving feedback for a PR
 type Review struct {
-	ID               int64 `xorm:"pk autoincr"`
-	Type             ReviewType
-	Reviewer         *user_model.User   `xorm:"-"`
-	ReviewerID       int64              `xorm:"index"`
-	ReviewerTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	ID       int64 `xorm:"pk autoincr"`
+	Type     ReviewType
+	Reviewer *user_model.User `xorm:"-"`
+
+	// HINT: REVIEWER-ID-NEGATIVE: ReviewerID and ReviewerTeamID must be positive at the moment,
+	// because the current template uses a trick "ItemID < 0" means "team id"
+	ReviewerID     int64 `xorm:"index"`
+	ReviewerTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
+
 	ReviewerTeam     *organization.Team `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
