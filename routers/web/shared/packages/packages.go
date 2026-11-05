@@ -18,6 +18,7 @@ import (
 	"gitea.dev/services/forms"
 	cargo_service "gitea.dev/services/packages/cargo"
 	container_service "gitea.dev/services/packages/container"
+	debian_service "gitea.dev/services/packages/debian"
 )
 
 func SetPackagesContext(ctx *context.Context, owner *user_model.User) {
@@ -249,4 +250,14 @@ func RebuildCargoIndex(ctx *context.Context, owner *user_model.User) {
 	} else {
 		ctx.Flash.Success(ctx.Tr("packages.owner.settings.cargo.rebuild.success"))
 	}
+}
+
+func RegenerateDebianKeyPair(ctx *context.Context, owner *user_model.User) {
+	if err := debian_service.RegenerateKeyPair(ctx, owner.ID); err != nil {
+		log.Error("RegenerateDebianKeyPair failed for owner %d: %v", owner.ID, err)
+		ctx.Flash.Error(ctx.Tr("packages.owner.settings.debian.keypair.error", err))
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("packages.owner.settings.debian.keypair.success"))
 }
