@@ -50,7 +50,6 @@ func TestPrepareFileNameAndType(t *testing.T) {
 	test("a.tar.gz", "", "a.tar.gz", "tar.gz")
 	test("a.tar.gz", "tar.gz", "a.tar.gz", "tar.gz")
 	test("a.tar.gz", "no-such", "", "")
-
 	test("a.b", "", "a.b", "zip")
 }
 
