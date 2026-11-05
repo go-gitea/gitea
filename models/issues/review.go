@@ -1001,34 +1001,14 @@ func DeleteReview(ctx context.Context, r *Review) error {
 			return errors.New("review request can not be deleted using this method")
 		}
 
-		opts := FindCommentsOptions{
-			Type:     CommentTypeCode,
-			IssueID:  r.IssueID,
-			ReviewID: r.ID,
-		}
-
-		if _, err := db.Delete[Comment](ctx, opts); err != nil {
-			return err
-		}
-
-		opts = FindCommentsOptions{
-			Type:     CommentTypeReview,
-			IssueID:  r.IssueID,
-			ReviewID: r.ID,
-		}
-
-		if _, err := db.Delete[Comment](ctx, opts); err != nil {
-			return err
-		}
-
-		opts = FindCommentsOptions{
-			Type:     CommentTypeDismissReview,
-			IssueID:  r.IssueID,
-			ReviewID: r.ID,
-		}
-
-		if _, err := db.Delete[Comment](ctx, opts); err != nil {
-			return err
+		for _, commentType := range [...]CommentType{CommentTypeCode, CommentTypeReview, CommentTypeDismissReview} {
+			if _, err := db.Delete[Comment](ctx, FindCommentsOptions{
+				Type:     commentType,
+				IssueID:  r.IssueID,
+				ReviewID: r.ID,
+			}); err != nil {
+				return err
+			}
 		}
 
 		if _, err := db.DeleteByID[Review](ctx, r.ID); err != nil {
