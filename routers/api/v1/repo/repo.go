@@ -23,7 +23,6 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/label"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/optional"
@@ -254,17 +253,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		ObjectFormatName: string(opt.ObjectFormatName),
 	})
 	if err != nil {
-		if repo_model.IsErrRepoAlreadyExist(err) {
-			ctx.APIError(http.StatusConflict, "The repository with the same name already exists.")
-		} else if db.IsErrNameReserved(err) ||
-			db.IsErrNamePatternNotAllowed(err) ||
-			label.IsErrTemplateLoad(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-		} else if errors.Is(err, util.ErrPermissionDenied) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 

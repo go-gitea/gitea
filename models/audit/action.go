@@ -91,6 +91,7 @@ var (
 	UserOpenIDAdd                   = define("user:openid:add", "Associated OpenID {openid} to user {scope}.")
 	UserOpenIDRemove                = define("user:openid:remove", "Removed OpenID {openid} from user {scope}.")
 	UserAccessTokenAdd              = define("user:accesstoken:add", "Added access token {token} for user {scope} with scope {token_scope}.")
+	UserAccessTokenRegenerate       = define("user:accesstoken:regenerate", "Regenerated access token {token} of user {scope}.")
 	UserAccessTokenRemove           = define("user:accesstoken:remove", "Removed access token {token} from user {scope}.")
 	UserOAuth2ApplicationAdd        = define("user:oauth2application:add", "Added OAuth2 application {oauth2_application} for user {scope}.")
 	UserOAuth2ApplicationUpdate     = define("user:oauth2application:update", "Updated OAuth2 application {oauth2_application} of user {scope}.")

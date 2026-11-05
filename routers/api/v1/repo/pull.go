@@ -131,7 +131,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 	prs, maxResults, err := issues_model.PullRequests(ctx, ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
 		ListOptions: listOptions,
-		State:       ctx.FormTrim("state"),
+		IsClosed:    common.ParseIssueFilterStateIsClosed(ctx.FormTrim("state")),
 		SortType:    ctx.FormTrim("sort"),
 		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
@@ -404,7 +404,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	)
 
 	// Get repo/branch information
-	compareResult, closer := parseCompareInfo(ctx, form.Base+".."+form.Head)
+	compareResult, closer := parseCompareInfo(ctx, form.Base+"..."+form.Head)
 	if ctx.Written() {
 		return
 	}
@@ -412,6 +412,10 @@ func CreatePullRequest(ctx *context.APIContext) {
 
 	if !compareResult.BaseRef.IsBranch() || !compareResult.HeadRef.IsBranch() {
 		ctx.APIError(http.StatusUnprocessableEntity, "Invalid PullRequest: base and head must be branches")
+		return
+	}
+	if compareResult.CompareBase == "" {
+		ctx.APIError(http.StatusUnprocessableEntity, "Invalid PullRequest: base and head have no common history")
 		return
 	}
 

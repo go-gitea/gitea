@@ -53,7 +53,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 		"language":              "en-US",
 		"keep_activity_private": "1",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc *HTMLDoc) bool {

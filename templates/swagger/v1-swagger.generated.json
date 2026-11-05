@@ -3095,9 +3095,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to get",
+            "type": "string",
+            "description": "id of the label to get, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -3127,9 +3126,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to delete",
+            "type": "string",
+            "description": "id of the label to delete, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -3165,9 +3163,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to edit",
+            "type": "string",
+            "description": "id of the label to edit, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -14297,9 +14294,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to get",
+            "type": "string",
+            "description": "id of the label to get, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -14336,9 +14332,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to delete",
+            "type": "string",
+            "description": "id of the label to delete, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -14381,9 +14376,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to edit",
+            "type": "string",
+            "description": "id of the label to edit, or its name when not numeric",
             "name": "id",
             "in": "path",
             "required": true
@@ -26228,6 +26222,7 @@
           "example": [
             "all",
             "read:activitypub",
+            "write:commitstatus",
             "read:issue",
             "write:misc",
             "read:notification",
@@ -30591,7 +30586,8 @@
             "codebase",
             "codecommit",
             "bitbucketserver",
-            "forgejo"
+            "forgejo",
+            "bitbucket"
           ],
           "x-go-name": "Service"
         },
@@ -31103,6 +31099,14 @@
           "description": "The name of the package file",
           "type": "string",
           "x-go-name": "Name"
+        },
+        "properties": {
+          "description": "The type specific properties locating the package file, e.g. the distribution and component of a Debian package",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Properties"
         },
         "sha1": {
           "description": "The SHA1 hash of the package file",
