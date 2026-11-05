@@ -67,17 +67,11 @@ func PackagesUniverse(ctx *context.Context) {
 		if _, ok := universe[pd.Package.Name]; !ok {
 			universe[pd.Package.Name] = make(map[string]*VersionInfo)
 		}
-
-		dependencies := packages_model.DescriptorMetadata[*chef_module.Metadata](pd).Dependencies
-		if dependencies == nil {
-			dependencies = make(map[string]string)
-		}
-
 		universe[pd.Package.Name][pd.Version.Version] = &VersionInfo{
 			LocationType: "opscode",
 			LocationPath: baseURL,
 			DownloadURL:  fmt.Sprintf("%s/cookbooks/%s/versions/%s/download", baseURL, url.PathEscape(pd.Package.Name), pd.Version.Version),
-			Dependencies: dependencies,
+			Dependencies: util.MapNilAsEmpty(packages_model.DescriptorMetadata[*chef_module.Metadata](pd).Dependencies),
 		}
 	}
 
@@ -249,11 +243,6 @@ func PackageVersionMetadata(ctx *context.Context) {
 
 	metadata := packages_model.DescriptorMetadata[*chef_module.Metadata](pd)
 
-	dependencies := metadata.Dependencies
-	if dependencies == nil {
-		dependencies = make(map[string]string)
-	}
-
 	ctx.JSON(http.StatusOK, &Result{
 		Version:         pd.Version.Version,
 		TarballFileSize: pd.Files[0].Blob.Size,
@@ -261,7 +250,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 		Cookbook:        baseURL,
 		File:            fmt.Sprintf("%s/versions/%s/download", baseURL, pd.Version.Version),
 		License:         metadata.License,
-		Dependencies:    dependencies,
+		Dependencies:    util.MapNilAsEmpty(metadata.Dependencies),
 	})
 }
 
