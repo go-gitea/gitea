@@ -49,13 +49,11 @@ func MailPreviewRender(ctx *context.Context) {
 	body := mailBody.String()
 	// emulate mail clients, which resolve "cid:" URIs to the mail's inline attachments
 	body = strings.ReplaceAll(body, `src="cid:`, `src="`+setting.AppSubURL+`/devtest/mail-preview-embed/`)
-	previewStyle := "body {padding: 12px 16px}"
 	// a page can force "color-scheme" on an embedded document but never "prefers-color-scheme"
 	if scheme := ctx.FormString("scheme"); scheme == "light" || scheme == "dark" {
 		body = mailDarkSchemeQuery.ReplaceAllString(body, util.Iif(scheme == "dark", "@media all", "@media not all"))
-		previewStyle += "\n:root {color-scheme: " + scheme + "}"
+		body = strings.Replace(body, "</head>", "<style>:root {color-scheme: "+scheme+"}</style></head>", 1)
 	}
-	body = strings.Replace(body, "</head>", "<style>"+previewStyle+"</style></head>", 1)
 	// fragment templates like "mail/base/head" would be sniffed as text/plain otherwise
 	ctx.Resp.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = ctx.Resp.Write([]byte(body))

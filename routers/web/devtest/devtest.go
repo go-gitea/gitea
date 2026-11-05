@@ -21,6 +21,8 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/indexer/code"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
@@ -35,8 +37,8 @@ func List(ctx *context.Context) {
 	}
 	var subNames []string
 	for _, tmplName := range templateNames {
-		subName := strings.TrimSuffix(tmplName, ".tmpl")
-		if !strings.HasPrefix(subName, "devtest-") {
+		subName, isTmpl := strings.CutSuffix(tmplName, ".tmpl")
+		if isTmpl && !strings.HasPrefix(subName, "devtest-") {
 			subNames = append(subNames, subName)
 		}
 	}
@@ -213,6 +215,19 @@ func prepareMockDataAvatarStack(ctx *context.Context) {
 	*/
 }
 
+func prepareMockDataMarkdown(ctx *context.Context) {
+	content, err := templates.AssetFS().ReadFile("devtest/markdown.md")
+	if err != nil {
+		ctx.ServerError("ReadFile", err)
+		return
+	}
+	rctx := markup.NewRenderContext(ctx).WithMetas(markup.ComposeSimpleDocumentMetas()).WithEnableHeadingIDGeneration(true)
+	ctx.Data["MarkdownHTML"], err = markdown.RenderString(rctx, string(content))
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+	}
+}
+
 func prepareMockDataRelativeTime(ctx *context.Context) {
 	now := time.Now()
 	ctx.Data["TimeNow"] = now
@@ -244,6 +259,8 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataBadgeCommitSign(ctx)
 	case "/devtest/badge-actions-svg":
 		prepareMockDataBadgeActionsSvg(ctx)
+	case "/devtest/markdown":
+		prepareMockDataMarkdown(ctx)
 	case "/devtest/relative-time":
 		prepareMockDataRelativeTime(ctx)
 	case "/devtest/toast-and-message":

@@ -369,8 +369,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	cond := builder.NewCond()
 
 	if opts.Private {
-		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
-			// OK we're in the context of a User
+		if opts.Actor != nil && !opts.Actor.IsAdmin {
 			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 		}
 	} else {
@@ -782,7 +781,8 @@ func FindCodeSearchRepoIDs(ctx context.Context, doer *user_model.User, fullNames
 func PublicRepoUnderPublicOwnerCond() builder.Cond {
 	return builder.And(
 		builder.Eq{"`repository`.is_private": false},
-		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePublic})),
+		builder.Exists(builder.Select("1").From("`user` repo_owner").
+			Where(builder.Expr("repo_owner.id = `repository`.owner_id").And(builder.Eq{"repo_owner.visibility": structs.VisibleTypePublic}))),
 	)
 }
 

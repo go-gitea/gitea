@@ -26,18 +26,15 @@ import (
 // and more closely matches the output from the shurcooL sanitizer
 // In particular Unicode letters and numbers are a lot more than a-zA-Z0-9...
 func CleanValue(value []byte) []byte {
-	value = bytes.TrimSpace(value)
-	rs := bytes.Runes(value)
-	result := make([]rune, 0, len(rs))
-	for _, r := range rs {
-		if unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_' || r == '-' {
-			result = append(result, unicode.ToLower(r))
+	return bytes.Map(func(r rune) rune {
+		switch {
+		case r == ' ':
+			return '-'
+		case r == '-' || unicode.In(r, unicode.L, unicode.M, unicode.Nd, unicode.Nl, unicode.Pc, unicode.Other_Alphabetic):
+			return unicode.ToLower(r)
 		}
-		if unicode.IsSpace(r) {
-			result = append(result, '-')
-		}
-	}
-	return []byte(string(result))
+		return -1
+	}, bytes.TrimSpace(value))
 }
 
 // Most of what follows is a subtly changed version of github.com/yuin/goldmark/extension/footnote.go
@@ -401,8 +398,10 @@ func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byt
 		_, _ = w.WriteString(`"><a href="#fn:user-content-`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" class="footnote-ref" role="doc-noteref">`) // FIXME: here and below, need to keep the classes
+		// literal brackets separate adjacent refs, also where no CSS applies like in mails
+		_, _ = w.WriteString("[")
 		_, _ = w.WriteString(is)
-		_, _ = w.WriteString(` </a></sup>`) // the style doesn't work at the moment, so add a space to separate the names
+		_, _ = w.WriteString("]</a></sup>")
 	}
 	return ast.WalkContinue, nil
 }

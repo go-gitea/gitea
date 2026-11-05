@@ -89,15 +89,14 @@ func TestCreateTaskForRunnerConcurrentClaim(t *testing.T) {
 	// as happens when all see the same stale tasksVersion simultaneously.
 	type result struct {
 		task *actions_model.ActionTask
-		ok   bool
 		err  error
 	}
 	results := make([]result, numJobs)
 	var wg sync.WaitGroup
 	for i := range numJobs {
 		wg.Go(func() {
-			task, ok, err := actions_model.CreateTaskForRunner(t.Context(), runners[i])
-			results[i] = result{task, ok, err}
+			task, _, err := actions_model.CreateTaskForRunner(t.Context(), runners[i])
+			results[i] = result{task, err}
 		})
 	}
 	wg.Wait()
@@ -106,8 +105,7 @@ func TestCreateTaskForRunnerConcurrentClaim(t *testing.T) {
 	claimedJobIDs := make(map[int64]bool)
 	for i, r := range results {
 		require.NoError(t, r.err, "runner %d got an unexpected error", i)
-		require.True(t, r.ok, "runner %d did not get a task even though free jobs exist", i)
-		require.NotNil(t, r.task)
+		require.NotNil(t, r.task, "runner %d did not get a task even though free jobs exist", i)
 		assert.False(t, claimedJobIDs[r.task.JobID], "job %d was claimed by more than one runner", r.task.JobID)
 		claimedJobIDs[r.task.JobID] = true
 	}
