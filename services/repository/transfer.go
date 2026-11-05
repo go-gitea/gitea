@@ -487,7 +487,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 			if err := db.Insert(ctx, &repo_model.Collaboration{RepoID: repo.ID, UserID: newOwner.ID, Mode: perm.AccessModeRead}); err != nil {
 				return err
 			}
-			if err := access_model.RecalculateUserAccess(ctx, repo, newOwner.ID); err != nil {
+			if err := access_model.RecalculateUserAccess(ctx, repo, newOwner); err != nil {
 				return err
 			}
 		}
