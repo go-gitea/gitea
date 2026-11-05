@@ -6,6 +6,7 @@ package org
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -101,6 +102,39 @@ func TestNewTeam(t *testing.T) {
 	assert.NoError(t, NewTeam(t.Context(), team))
 	unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: teamName})
 	unittest.CheckConsistencyFor(t, &organization.Team{}, &user_model.User{ID: team.OrgID})
+}
+
+func TestNewTeamConcurrentDuplicate(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const teamName = "concurrentDuplicateTeam"
+	const workers = 5
+	var wg sync.WaitGroup
+	errs := make([]error, workers)
+
+	for i := range workers {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			errs[idx] = NewTeam(t.Context(), &organization.Team{Name: teamName, OrgID: 3})
+		}(i)
+	}
+	wg.Wait()
+
+	successCount := 0
+	alreadyExistCount := 0
+	for _, err := range errs {
+		if err == nil {
+			successCount++
+		} else if organization.IsErrTeamAlreadyExist(err) {
+			alreadyExistCount++
+		} else {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+	assert.Equal(t, 1, successCount)
+	assert.Equal(t, workers-1, alreadyExistCount)
+	unittest.CheckConsistencyFor(t, &organization.Team{}, &user_model.User{ID: 3})
 }
 
 func TestUpdateTeam(t *testing.T) {

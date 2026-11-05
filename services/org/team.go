@@ -17,6 +17,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -26,6 +27,10 @@ import (
 
 	"xorm.io/builder"
 )
+
+func getOrgTeamLockKey(orgID int64) string {
+	return fmt.Sprintf("org_team_%d", orgID)
+}
 
 // recordTeamAudit emits a team-related audit event scoped to the owning organization.
 func recordTeamAudit(ctx context.Context, action audit_model.Action, team *organization.Team, metadata ...any) {
@@ -58,43 +63,46 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
-	has, err = db.Exist[organization.Team](ctx, builder.Eq{
-		"org_id":     t.OrgID,
-		"lower_name": t.LowerName,
-	})
-	if err != nil {
-		return err
-	}
-	if has {
-		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
-	}
 
-	if err = db.WithTx(ctx, func(ctx context.Context) error {
-		if err = db.Insert(ctx, t); err != nil {
-			return err
-		}
-
-		// insert units for team
-		if len(t.Units) > 0 {
-			for _, unit := range t.Units {
-				unit.TeamID = t.ID
-			}
-			if err = db.Insert(ctx, &t.Units); err != nil {
+	if err = globallock.LockAndDo(ctx, getOrgTeamLockKey(t.OrgID), func(ctx context.Context) error {
+		return db.WithTx(ctx, func(ctx context.Context) error {
+			has, err := db.Exist[organization.Team](ctx, builder.Eq{
+				"org_id":     t.OrgID,
+				"lower_name": t.LowerName,
+			})
+			if err != nil {
 				return err
 			}
-		}
-
-		// Add all repositories to the team if it has access to all of them.
-		if t.IncludesAllRepositories {
-			err = repo_service.AddAllRepositoriesToTeam(ctx, t)
-			if err != nil {
-				return fmt.Errorf("addAllRepositories: %w", err)
+			if has {
+				return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
 			}
-		}
 
-		// Update organization number of teams.
-		_, err = db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID)
-		return err
+			if err = db.Insert(ctx, t); err != nil {
+				return err
+			}
+
+			// insert units for team
+			if len(t.Units) > 0 {
+				for _, unit := range t.Units {
+					unit.TeamID = t.ID
+				}
+				if err = db.Insert(ctx, &t.Units); err != nil {
+					return err
+				}
+			}
+
+			// Add all repositories to the team if it has access to all of them.
+			if t.IncludesAllRepositories {
+				err = repo_service.AddAllRepositoriesToTeam(ctx, t)
+				if err != nil {
+					return fmt.Errorf("addAllRepositories: %w", err)
+				}
+			}
+
+			// Update organization number of teams.
+			_, err = db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID)
+			return err
+		})
 	}); err != nil {
 		return err
 	}
@@ -114,66 +122,68 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		t.Description = t.Description[:255]
 	}
 
-	if err = db.WithTx(ctx, func(ctx context.Context) error {
-		t.LowerName = strings.ToLower(t.Name)
-		has, err := db.Exist[organization.Team](ctx, builder.Eq{
-			"org_id":     t.OrgID,
-			"lower_name": t.LowerName,
-		}.And(builder.Neq{"id": t.ID}),
-		)
-		if err != nil {
-			return err
-		} else if has {
-			return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
-		}
-
-		sess := db.GetEngine(ctx)
-		if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
-			"can_create_org_repo", "authorize", "includes_all_repositories", "visibility").Update(t); err != nil {
-			return fmt.Errorf("update: %w", err)
-		}
-
-		if authChanged {
-			// update units for team
-			for _, unit := range t.Units {
-				unit.TeamID = t.ID
-			}
-			// Delete team-unit.
-			if _, err := sess.
-				Where("team_id=?", t.ID).
-				Delete(new(organization.TeamUnit)); err != nil {
+	if err = globallock.LockAndDo(ctx, getOrgTeamLockKey(t.OrgID), func(ctx context.Context) error {
+		return db.WithTx(ctx, func(ctx context.Context) error {
+			t.LowerName = strings.ToLower(t.Name)
+			has, err := db.Exist[organization.Team](ctx, builder.Eq{
+				"org_id":     t.OrgID,
+				"lower_name": t.LowerName,
+			}.And(builder.Neq{"id": t.ID}),
+			)
+			if err != nil {
 				return err
+			} else if has {
+				return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
 			}
-			if len(t.Units) > 0 {
-				if _, err = sess.Cols("org_id", "team_id", "type", "access_mode").Insert(&t.Units); err != nil {
+
+			sess := db.GetEngine(ctx)
+			if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
+				"can_create_org_repo", "authorize", "includes_all_repositories", "visibility").Update(t); err != nil {
+				return fmt.Errorf("update: %w", err)
+			}
+
+			if authChanged {
+				// update units for team
+				for _, unit := range t.Units {
+					unit.TeamID = t.ID
+				}
+				// Delete team-unit.
+				if _, err := sess.
+					Where("team_id=?", t.ID).
+					Delete(new(organization.TeamUnit)); err != nil {
 					return err
 				}
-			}
+				if len(t.Units) > 0 {
+					if _, err = sess.Cols("org_id", "team_id", "type", "access_mode").Insert(&t.Units); err != nil {
+						return err
+					}
+				}
 
-			// Update access for team members if needed.
-			repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
-				TeamID: t.ID,
-			})
-			if err != nil {
-				return fmt.Errorf("GetTeamRepositories: %w", err)
-			}
+				// Update access for team members if needed.
+				repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
+					TeamID: t.ID,
+				})
+				if err != nil {
+					return fmt.Errorf("GetTeamRepositories: %w", err)
+				}
 
-			for _, repo := range repos {
-				if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
-					return fmt.Errorf("recalculateTeamAccesses: %w", err)
+				for _, repo := range repos {
+					if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
+						return fmt.Errorf("recalculateTeamAccesses: %w", err)
+					}
 				}
 			}
-		}
 
-		// Add all repositories to the team if it has access to all of them.
-		if includeAllChanged && t.IncludesAllRepositories {
-			err = repo_service.AddAllRepositoriesToTeam(ctx, t)
-			if err != nil {
-				return fmt.Errorf("addAllRepositories: %w", err)
+			// Add all repositories to the team if it has access to all of them.
+			if includeAllChanged && t.IncludesAllRepositories {
+				err = repo_service.AddAllRepositoriesToTeam(ctx, t)
+				if err != nil {
+					return fmt.Errorf("addAllRepositories: %w", err)
+				}
 			}
-		}
 
-		return nil
+			return nil
+		})
 	}); err != nil {
 		return err
 	}
