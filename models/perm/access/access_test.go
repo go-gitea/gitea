@@ -211,7 +211,7 @@ func testRecalculateUserAccessRestricted(t *testing.T) {
 	assert.True(t, user29.IsRestricted)
 
 	assert.NoError(t, db.Insert(t.Context(), &repo_model.Collaboration{UserID: 29, RepoID: 1, Mode: perm_model.AccessModeRead}))
-	assert.NoError(t, access_model.RecalculateUserAccess(t.Context(), repo, 29))
+	assert.NoError(t, access_model.RecalculateUserAccess(t.Context(), repo, user29))
 
 	access := &access_model.Access{UserID: 29, RepoID: 1}
 	has, err := db.GetEngine(t.Context()).Get(access)

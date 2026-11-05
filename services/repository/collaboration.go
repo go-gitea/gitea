@@ -69,7 +69,7 @@ func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u
 			added = true
 		}
 
-		return access_model.RecalculateUserAccess(ctx, repo, u.ID)
+		return access_model.RecalculateUserAccess(ctx, repo, u)
 	}); err != nil {
 		return err
 	}
