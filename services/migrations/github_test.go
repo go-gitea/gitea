@@ -20,7 +20,7 @@ import (
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -118,6 +118,57 @@ func TestGithubIssuePagination(t *testing.T) {
 			assert.Equal(t, []string{tc.pages[0], tc.pages[1], tc.pages[1], tc.pages[2], tc.pages[2], tc.pages[2], tc.pages[0], tc.pages[1]}, requests)
 		})
 	}
+}
+
+func TestGithubGetAllCommentsSkipsEmptyReactionsAndRecordsRateLimit(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v3/repos/o/r/issues/comments", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-RateLimit-Limit", "5000")
+		w.Header().Set("X-RateLimit-Reset", "4102444800")
+		if r.URL.Query().Get("page") == "1" {
+			w.Header().Set("X-RateLimit-Remaining", "100")
+			_, _ = w.Write([]byte(`[{"issue_url":"https://api.github.com/repos/o/r/issues/7","reactions":{"total_count":0}}]`))
+			return
+		}
+
+		w.Header().Set("X-RateLimit-Remaining", "0")
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+	require.NoError(t, err)
+	comments, _, err := downloader.GetAllComments(t.Context(), 1, 100)
+	require.NoError(t, err)
+	require.Len(t, comments, 1)
+
+	_, _, err = downloader.GetAllComments(t.Context(), 2, 100)
+	require.Error(t, err)
+	assert.Zero(t, downloader.rates[0].Remaining)
+}
+
+func TestGithubGetIssueRecoversIssueOmittedFromList(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v3/repos/o/r/issues/123":
+			_, _ = w.Write([]byte(`{"number":123,"title":"recovered issue","user":{"id":1,"login":"user"},"created_at":"2024-08-12T08:38:46Z","updated_at":"2025-01-21T10:05:11Z","state":"closed"}`))
+		case "/api/v3/repos/o/r/issues/123/reactions":
+			_, _ = w.Write([]byte(`[]`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "o", "r")
+	require.NoError(t, err)
+
+	issue, err := downloader.GetIssue(t.Context(), 123)
+	require.NoError(t, err)
+	assert.EqualValues(t, 123, issue.Number)
+	assert.Equal(t, "recovered issue", issue.Title)
 }
 
 func TestGitHubDownloadRepo(t *testing.T) {
@@ -543,10 +594,17 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, reviews)
 }
 
-func TestGithubMultiToken(t *testing.T) {
+func TestConvertGithubDismissedReview(t *testing.T) {
+	review := convertGithubReview(&github.PullRequestReview{State: new("DISMISSED")})
+	assert.Equal(t, base.ReviewStateCommented, review.State)
+	assert.True(t, review.Dismissed)
+}
+
+func TestGithubFormatCloneURL(t *testing.T) {
 	testCases := []struct {
 		desc             string
 		token            string
+		username         string
 		expectedCloneURL string
 	}{
 		{
@@ -559,12 +617,17 @@ func TestGithubMultiToken(t *testing.T) {
 			token:            "token1,token2",
 			expectedCloneURL: "https://oauth2:token1@github.com",
 		},
+		{
+			desc:             "Username And Password",
+			username:         "user",
+			expectedCloneURL: "https://user:password@github.com",
+		},
 	}
 	factory := GithubDownloaderV3Factory{}
 
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			opts := base.MigrateOptions{CloneAddr: "https://github.com/go-gitea/gitea", AuthToken: tC.token}
+			opts := base.MigrateOptions{CloneAddr: "https://github.com/go-gitea/gitea", AuthToken: tC.token, AuthUsername: tC.username, AuthPassword: "password"}
 			client, err := factory.New(t.Context(), opts)
 			require.NoError(t, err)
 

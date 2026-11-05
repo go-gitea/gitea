@@ -62,10 +62,10 @@ func GetLanguages(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	//   "200":
 	//     "$ref": "#/responses/LanguageStatistics"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	langs, err := repo_model.GetLanguageStats(ctx, ctx.Repo.Repository)
 	if err != nil {

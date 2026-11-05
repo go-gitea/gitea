@@ -4,7 +4,9 @@
 package actions
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -13,6 +15,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,9 +56,8 @@ jobs:
       - run: echo hi
 `
 
-func insertMaxParallelRun(t *testing.T, workflow string, needApproval bool) *actions_model.ActionRun {
-	t.Helper()
-	run := &actions_model.ActionRun{
+func newMaxParallelRun(needApproval bool) *actions_model.ActionRun {
+	return &actions_model.ActionRun{
 		Title:             "max-parallel",
 		RepoID:            4,
 		OwnerID:           1,
@@ -70,6 +72,11 @@ func insertMaxParallelRun(t *testing.T, workflow string, needApproval bool) *act
 		WorkflowRepoID:    4,
 		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
 	}
+}
+
+func insertMaxParallelRun(t *testing.T, workflow string, needApproval bool) *actions_model.ActionRun {
+	t.Helper()
+	run := newMaxParallelRun(needApproval)
 	require.NoError(t, PrepareRunAndInsert(t.Context(), []byte(workflow), run, nil))
 	return run
 }
@@ -303,4 +310,20 @@ func insertConcurrencyHolder(t *testing.T, index int64, group string) *actions_m
 	}
 	require.NoError(t, db.Insert(ctx, holder))
 	return holder
+}
+
+func TestPrepareRunAndInsert_MaxJobNumPerRun(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	workflow := func(jobCount int) []byte {
+		var sb strings.Builder
+		sb.WriteString("on: push\njobs:\n")
+		for i := range jobCount {
+			fmt.Fprintf(&sb, "  job%d:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n", i)
+		}
+		return []byte(sb.String())
+	}
+	require.NoError(t, PrepareRunAndInsert(t.Context(), workflow(actions_model.MaxJobNumPerRun), newMaxParallelRun(false), nil))
+	err := PrepareRunAndInsert(t.Context(), workflow(actions_model.MaxJobNumPerRun+1), newMaxParallelRun(false), nil)
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	assert.ErrorContains(t, err, "exceeds the maximum")
 }

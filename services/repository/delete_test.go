@@ -34,10 +34,6 @@ func TestTeam_HasRepository(t *testing.T) {
 
 	test(2, 3, true)
 	test(2, 5, false)
-}
-
-func TestTeam_RemoveRepository(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(teamID, repoID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})

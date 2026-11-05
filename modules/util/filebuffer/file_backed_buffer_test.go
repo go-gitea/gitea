@@ -12,24 +12,16 @@ import (
 )
 
 func TestFileBackedBuffer(t *testing.T) {
-	cases := []struct {
-		MaxMemorySize int
-		Data          string
-	}{
-		{5, "test"},
-		{5, "testtest"},
-	}
-
-	for _, c := range cases {
-		buf := New(c.MaxMemorySize, t.TempDir())
-		_, err := io.Copy(buf, strings.NewReader(c.Data))
+	for _, content := range []string{"test", "testtest"} {
+		buf := New(5, t.TempDir())
+		_, err := io.Copy(buf, strings.NewReader(content))
 		assert.NoError(t, err)
 
-		assert.EqualValues(t, len(c.Data), buf.Size())
+		assert.EqualValues(t, len(content), buf.Size())
 
 		data, err := io.ReadAll(buf)
 		assert.NoError(t, err)
-		assert.Equal(t, c.Data, string(data))
+		assert.Equal(t, content, string(data))
 
 		assert.NoError(t, buf.Close())
 	}

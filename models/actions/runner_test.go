@@ -12,72 +12,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShouldPersistLastOnline(t *testing.T) {
-	now := time.Now()
-	tests := []struct {
-		name string
-		last timeutil.TimeStamp
-		want bool
+func TestShouldPersistRunnerTimestamps(t *testing.T) {
+	for _, scenario := range []struct {
+		name     string
+		persist  func(timeutil.TimeStamp, time.Time) bool
+		interval time.Duration
+		freshAge time.Duration
 	}{
-		{
-			name: "fresh, skip write",
-			last: timeutil.TimeStamp(now.Add(-5 * time.Second).Unix()),
-			want: false,
-		},
-		{
-			name: "exactly at interval, write",
-			last: timeutil.TimeStamp(now.Add(-RunnerHeartbeatInterval).Unix()),
-			want: true,
-		},
-		{
-			name: "stale, write",
-			last: timeutil.TimeStamp(now.Add(-2 * RunnerHeartbeatInterval).Unix()),
-			want: true,
-		},
-		{
-			name: "zero (never seen), write",
-			last: 0,
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, ShouldPersistLastOnline(tt.last, now))
-		})
-	}
-}
-
-func TestShouldPersistLastActive(t *testing.T) {
-	now := time.Now()
-	tests := []struct {
-		name string
-		last timeutil.TimeStamp
-		want bool
-	}{
-		{
-			name: "fresh, skip write",
-			last: timeutil.TimeStamp(now.Add(-1 * time.Second).Unix()),
-			want: false,
-		},
-		{
-			name: "exactly at interval, write",
-			last: timeutil.TimeStamp(now.Add(-RunnerActiveInterval).Unix()),
-			want: true,
-		},
-		{
-			name: "stale, write",
-			last: timeutil.TimeStamp(now.Add(-2 * RunnerActiveInterval).Unix()),
-			want: true,
-		},
-		{
-			name: "zero (never seen), write",
-			last: 0,
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, ShouldPersistLastActive(tt.last, now))
+		{"online", ShouldPersistLastOnline, RunnerHeartbeatInterval, 5 * time.Second},
+		{"active", ShouldPersistLastActive, RunnerActiveInterval, time.Second},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			now := time.Now()
+			for _, tt := range []struct {
+				name string
+				last timeutil.TimeStamp
+				want bool
+			}{
+				{"fresh, skip write", timeutil.TimeStamp(now.Add(-scenario.freshAge).Unix()), false},
+				{"exactly at interval, write", timeutil.TimeStamp(now.Add(-scenario.interval).Unix()), true},
+				{"stale, write", timeutil.TimeStamp(now.Add(-2 * scenario.interval).Unix()), true},
+				{"zero (never seen), write", 0, true},
+			} {
+				t.Run(tt.name, func(t *testing.T) {
+					assert.Equal(t, tt.want, scenario.persist(tt.last, now))
+				})
+			}
 		})
 	}
 }

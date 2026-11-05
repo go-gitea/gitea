@@ -16,9 +16,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestToCommitMeta(t *testing.T) {
+func TestToCommitMetaAndTree(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	sha1 := git.Sha1ObjectFormat
 	signature := &git.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}
 	tag := &git.Tag{
@@ -30,20 +30,15 @@ func TestToCommitMeta(t *testing.T) {
 		CommitMessage: git.CommitMessage{MessageRaw: "Test Message"},
 	}
 
-	commitMeta := ToCommitMeta(headRepo, tag)
+	commitMeta := ToCommitMeta(repo, tag)
 
 	assert.NotNil(t, commitMeta)
 	assert.Equal(t, &api.CommitMeta{
 		SHA:     sha1.EmptyObjectID().String(),
-		URL:     headRepo.APIURL() + "/git/commits/" + sha1.EmptyObjectID().String(),
+		URL:     repo.APIURL() + "/git/commits/" + sha1.EmptyObjectID().String(),
 		Created: time.Unix(0, 0),
 	}, commitMeta)
-}
 
-func TestToCommitTree(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	signature := &git.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}
 	commit := &git.Commit{
 		ID:        git.MustIDFromString("65f1bf27bc3bf70f64657658635e66094edbcb4d"),
 		TreeID:    git.MustIDFromString("2a2f1d4670728a2e10049e345bd7a276468beab6"),

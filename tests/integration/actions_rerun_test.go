@@ -111,18 +111,13 @@ jobs:
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, run.ID, job1.ID))
 		session.MakeRequest(t, req, http.StatusOK)
 		// job2 needs job1, so rerunning job1 will also rerun job2
-		// fetch and exec job1
-		job1TaskR2 := runner.fetchTask(t)
-		assert.Equal(t, "3", job1TaskR2.Context.GetFields()["run_attempt"].GetStringValue())
-		runner.execTask(t, job1TaskR2, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-		// fetch and exec job2
-		job2TaskR2 := runner.fetchTask(t)
-		assert.Equal(t, "3", job2TaskR2.Context.GetFields()["run_attempt"].GetStringValue())
-		runner.execTask(t, job2TaskR2, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
+		for range 2 {
+			task := runner.fetchTask(t)
+			assert.Equal(t, "3", task.Context.GetFields()["run_attempt"].GetStringValue())
+			runner.execTask(t, task, &mockTaskOutcome{
+				result: runnerv1.Result_RESULT_SUCCESS,
+			})
+		}
 		assert.EqualValues(t, 3, getRunLatestAttemptNum(t, run.ID))
 
 		// RERUN-3: rerun job2
@@ -201,17 +196,13 @@ jobs:
 
 			req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, run.ID))
 			session.MakeRequest(t, req, http.StatusOK)
-			// fetch and exec job1
-			job1TaskR4 := runner.fetchTask(t)
-			assert.Equal(t, "5", job1TaskR4.Context.GetFields()["run_attempt"].GetStringValue())
-			runner.execTask(t, job1TaskR4, &mockTaskOutcome{
-				result: runnerv1.Result_RESULT_SUCCESS,
-			})
-			job2TaskR4 := runner.fetchTask(t)
-			assert.Equal(t, "5", job2TaskR4.Context.GetFields()["run_attempt"].GetStringValue())
-			runner.execTask(t, job2TaskR4, &mockTaskOutcome{
-				result: runnerv1.Result_RESULT_SUCCESS,
-			})
+			for range 2 {
+				task := runner.fetchTask(t)
+				assert.Equal(t, "5", task.Context.GetFields()["run_attempt"].GetStringValue())
+				runner.execTask(t, task, &mockTaskOutcome{
+					result: runnerv1.Result_RESULT_SUCCESS,
+				})
+			}
 			assert.EqualValues(t, 5, getRunLatestAttemptNum(t, run.ID))
 		})
 	})
@@ -282,68 +273,46 @@ jobs:
 		legacyRun.Created = started - 5
 		legacyRun.Updated = stopped
 
-		legacyJob1 := &actions_model.ActionRunJob{
-			RunID:             legacyRun.ID,
-			RepoID:            repo.ID,
-			OwnerID:           repo.OwnerID,
-			CommitSHA:         legacyRun.CommitSHA,
-			Name:              payloads["job1"].name,
-			Attempt:           1,
-			WorkflowPayload:   payloads["job1"].payload,
-			JobID:             "job1",
-			Needs:             payloads["job1"].needs,
-			RunsOn:            payloads["job1"].runsOn,
-			Status:            actions_model.StatusSuccess,
-			RunAttemptID:      0,
-			AttemptJobID:      0,
-			Started:           started,
-			Stopped:           stopped,
-			IsForkPullRequest: false,
+		legacyJobs := [2]*actions_model.ActionRunJob{}
+		for index, jobID := range []string{"job1", "job2"} {
+			legacyJobs[index] = &actions_model.ActionRunJob{
+				RunID:             legacyRun.ID,
+				RepoID:            repo.ID,
+				OwnerID:           repo.OwnerID,
+				CommitSHA:         legacyRun.CommitSHA,
+				Name:              payloads[jobID].name,
+				Attempt:           1,
+				WorkflowPayload:   payloads[jobID].payload,
+				JobID:             jobID,
+				Needs:             payloads[jobID].needs,
+				RunsOn:            payloads[jobID].runsOn,
+				Status:            actions_model.StatusSuccess,
+				RunAttemptID:      0,
+				AttemptJobID:      0,
+				Started:           started,
+				Stopped:           stopped,
+				IsForkPullRequest: false,
+			}
 		}
-		legacyJob2 := &actions_model.ActionRunJob{
-			RunID:             legacyRun.ID,
-			RepoID:            repo.ID,
-			OwnerID:           repo.OwnerID,
-			CommitSHA:         legacyRun.CommitSHA,
-			Name:              payloads["job2"].name,
-			Attempt:           1,
-			WorkflowPayload:   payloads["job2"].payload,
-			JobID:             "job2",
-			Needs:             payloads["job2"].needs,
-			RunsOn:            payloads["job2"].runsOn,
-			Status:            actions_model.StatusSuccess,
-			RunAttemptID:      0,
-			AttemptJobID:      0,
-			Started:           started,
-			Stopped:           stopped,
-			IsForkPullRequest: false,
-		}
+		legacyJob1, legacyJob2 := legacyJobs[0], legacyJobs[1]
 		require.NoError(t, db.Insert(t.Context(), legacyJob1, legacyJob2))
 
-		legacyTask1 := &actions_model.ActionTask{
-			JobID:             legacyJob1.ID,
-			Attempt:           1,
-			Status:            actions_model.StatusSuccess,
-			Started:           started,
-			Stopped:           stopped,
-			RepoID:            repo.ID,
-			OwnerID:           repo.OwnerID,
-			CommitSHA:         legacyRun.CommitSHA,
-			IsForkPullRequest: false,
+		legacyTasks := [2]*actions_model.ActionTask{}
+		for index, legacyJob := range legacyJobs {
+			legacyTasks[index] = &actions_model.ActionTask{
+				JobID:             legacyJob.ID,
+				Attempt:           1,
+				Status:            actions_model.StatusSuccess,
+				Started:           started,
+				Stopped:           stopped,
+				RepoID:            repo.ID,
+				OwnerID:           repo.OwnerID,
+				CommitSHA:         legacyRun.CommitSHA,
+				IsForkPullRequest: false,
+			}
+			legacyTasks[index].GenerateAndFillToken()
 		}
-		legacyTask1.GenerateAndFillToken()
-		legacyTask2 := &actions_model.ActionTask{
-			JobID:             legacyJob2.ID,
-			Attempt:           1,
-			Status:            actions_model.StatusSuccess,
-			Started:           started,
-			Stopped:           stopped,
-			RepoID:            repo.ID,
-			OwnerID:           repo.OwnerID,
-			CommitSHA:         legacyRun.CommitSHA,
-			IsForkPullRequest: false,
-		}
-		legacyTask2.GenerateAndFillToken()
+		legacyTask1, legacyTask2 := legacyTasks[0], legacyTasks[1]
 		require.NoError(t, db.Insert(t.Context(), legacyTask1, legacyTask2))
 
 		legacyJob1.TaskID = legacyTask1.ID

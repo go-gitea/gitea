@@ -57,42 +57,38 @@ func TestProjectWorkflowsWeb(t *testing.T) {
 
 	session.MakeRequest(t, NewRequest(t, "POST", workflowLink+"/delete"), http.StatusOK)
 	session.MakeRequest(t, NewRequest(t, "GET", workflowLink), http.StatusNotFound)
-}
+	t.Run("Execution", func(t *testing.T) {
+		link := "/user2/repo1/projects/1"
 
-func TestProjectWorkflowExecution(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+		for _, opts := range []*api.CreateProjectWorkflowOption{{
+			Event:   "item_added_to_project",
+			Actions: api.ProjectWorkflowActions{ColumnID: 2, AddLabelIDs: []int64{1}},
+		}, {
+			Event:   "item_column_changed",
+			Actions: api.ProjectWorkflowActions{IssueState: "close"},
+		}} {
+			session.MakeRequest(t, NewRequestWithJSON(t, "POST", link+"/workflows", opts), http.StatusOK)
+		}
 
-	link := "/user2/repo1/projects/1"
-	session := loginUser(t, "user2")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/issues", &api.CreateIssueOption{
+			Title:    "workflow item",
+			Projects: []int64{1},
+		}).AddTokenAuth(token)
+		created := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Issue{})
 
-	for _, opts := range []*api.CreateProjectWorkflowOption{{
-		Event:   "item_added_to_project",
-		Actions: api.ProjectWorkflowActions{ColumnID: 2, AddLabelIDs: []int64{1}},
-	}, {
-		Event:   "item_column_changed",
-		Actions: api.ProjectWorkflowActions{IssueState: "close"},
-	}} {
-		session.MakeRequest(t, NewRequestWithJSON(t, "POST", link+"/workflows", opts), http.StatusOK)
-	}
+		assert.EqualValues(t, 2, unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: created.ID, ProjectID: 1}).ProjectColumnID)
+		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: created.ID, LabelID: 1})
+		assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: created.ID}).IsClosed)
+		resp := session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/issues/%d", created.Index), http.StatusOK)
+		assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".timeline-item.event .comment-text-line").Text(), "Project workflow Item added to project")
 
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/issues", &api.CreateIssueOption{
-		Title:    "workflow item",
-		Projects: []int64{1},
-	}).AddTokenAuth(token)
-	created := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Issue{})
+		req = NewRequestWithJSON(t, "POST", link+"/3/move", map[string]any{
+			"issues": []map[string]any{{"issueID": created.ID, "sorting": 0}},
+		})
+		session.MakeRequest(t, req, http.StatusOK)
 
-	assert.EqualValues(t, 2, unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: created.ID, ProjectID: 1}).ProjectColumnID)
-	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: created.ID, LabelID: 1})
-	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: created.ID}).IsClosed)
-	resp := session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/issues/%d", created.Index), http.StatusOK)
-	assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".timeline-item.event .comment-text-line").Text(), "Project workflow Item added to project")
-
-	req = NewRequestWithJSON(t, "POST", link+"/3/move", map[string]any{
-		"issues": []map[string]any{{"issueID": created.ID, "sorting": 0}},
+		assert.EqualValues(t, 3, unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: created.ID, ProjectID: 1}).ProjectColumnID)
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: created.ID}).IsClosed)
 	})
-	session.MakeRequest(t, req, http.StatusOK)
-
-	assert.EqualValues(t, 3, unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: created.ID, ProjectID: 1}).ProjectColumnID)
-	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: created.ID}).IsClosed)
 }

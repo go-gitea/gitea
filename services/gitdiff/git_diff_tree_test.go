@@ -17,19 +17,59 @@ import (
 )
 
 func TestGitDiffTree(t *testing.T) {
+	firstCommitDiff := &DiffTree{
+		Files: []*DiffTreeRecord{
+			{
+				Status:     "added",
+				HeadPath:   ".gitignore",
+				BasePath:   ".gitignore",
+				HeadMode:   git.EntryModeBlob,
+				BaseMode:   git.EntryModeNoEntry,
+				HeadBlobID: "f1c181ec9c5c921245027c6b452ecfc1d3626364",
+				BaseBlobID: "0000000000000000000000000000000000000000",
+			},
+			{
+				Status:     "added",
+				HeadPath:   "LICENSE",
+				BasePath:   "LICENSE",
+				HeadMode:   git.EntryModeBlob,
+				BaseMode:   git.EntryModeNoEntry,
+				HeadBlobID: "c996f4725be8fc8c1d1c776e58c97ddc5d03b336",
+				BaseBlobID: "0000000000000000000000000000000000000000",
+			},
+			{
+				Status:     "added",
+				HeadPath:   "README.md",
+				BasePath:   "README.md",
+				HeadMode:   git.EntryModeBlob,
+				BaseMode:   git.EntryModeNoEntry,
+				HeadBlobID: "074e590b8e64898b02beef03ece83f962c94f54c",
+				BaseBlobID: "0000000000000000000000000000000000000000",
+			},
+		},
+	}
+
+	readmeDiff := &DiffTreeRecord{
+		Status:     "modified",
+		HeadPath:   "README.md",
+		BasePath:   "README.md",
+		HeadMode:   git.EntryModeBlob,
+		BaseMode:   git.EntryModeBlob,
+		HeadBlobID: "fb39771a8865c9a67f2ab9b616c854805664553c",
+		BaseBlobID: "9dfc0a6257d8eff526f0cfaf6a8ea950f55a9dba",
+	}
+
 	test := []struct {
 		Name         string
-		RepoPath     string
 		BaseSha      string
 		HeadSha      string
 		useMergeBase bool
 		Expected     *DiffTree
 	}{
 		{
-			Name:     "happy path",
-			RepoPath: "../../modules/git/tests/repos/repo5_pulls",
-			BaseSha:  "72866af952e98d02a73003501836074b286a78f6",
-			HeadSha:  "d8e0bbb45f200e67d9a784ce55bd90821af45ebd",
+			Name:    "happy path",
+			BaseSha: "72866af952e98d02a73003501836074b286a78f6",
+			HeadSha: "d8e0bbb45f200e67d9a784ce55bd90821af45ebd",
 			Expected: &DiffTree{
 				Files: []*DiffTreeRecord{
 					{
@@ -55,89 +95,25 @@ func TestGitDiffTree(t *testing.T) {
 		},
 		{
 			Name:     "first commit (no parent)",
-			RepoPath: "../../modules/git/tests/repos/repo5_pulls",
 			HeadSha:  "72866af952e98d02a73003501836074b286a78f6",
-			Expected: &DiffTree{
-				Files: []*DiffTreeRecord{
-					{
-						Status:     "added",
-						HeadPath:   ".gitignore",
-						BasePath:   ".gitignore",
-						HeadMode:   git.EntryModeBlob,
-						BaseMode:   git.EntryModeNoEntry,
-						HeadBlobID: "f1c181ec9c5c921245027c6b452ecfc1d3626364",
-						BaseBlobID: "0000000000000000000000000000000000000000",
-					},
-					{
-						Status:     "added",
-						HeadPath:   "LICENSE",
-						BasePath:   "LICENSE",
-						HeadMode:   git.EntryModeBlob,
-						BaseMode:   git.EntryModeNoEntry,
-						HeadBlobID: "c996f4725be8fc8c1d1c776e58c97ddc5d03b336",
-						BaseBlobID: "0000000000000000000000000000000000000000",
-					},
-					{
-						Status:     "added",
-						HeadPath:   "README.md",
-						BasePath:   "README.md",
-						HeadMode:   git.EntryModeBlob,
-						BaseMode:   git.EntryModeNoEntry,
-						HeadBlobID: "074e590b8e64898b02beef03ece83f962c94f54c",
-						BaseBlobID: "0000000000000000000000000000000000000000",
-					},
-				},
-			},
+			Expected: firstCommitDiff,
 		},
 		{
 			Name:         "first commit (no parent), merge base = true",
-			RepoPath:     "../../modules/git/tests/repos/repo5_pulls",
 			HeadSha:      "72866af952e98d02a73003501836074b286a78f6",
 			useMergeBase: true,
-			Expected: &DiffTree{
-				Files: []*DiffTreeRecord{
-					{
-						Status:     "added",
-						HeadPath:   ".gitignore",
-						BasePath:   ".gitignore",
-						HeadMode:   git.EntryModeBlob,
-						BaseMode:   git.EntryModeNoEntry,
-						HeadBlobID: "f1c181ec9c5c921245027c6b452ecfc1d3626364",
-						BaseBlobID: "0000000000000000000000000000000000000000",
-					},
-					{
-						Status:     "added",
-						HeadPath:   "LICENSE",
-						BasePath:   "LICENSE",
-						HeadMode:   git.EntryModeBlob,
-						BaseMode:   git.EntryModeNoEntry,
-						HeadBlobID: "c996f4725be8fc8c1d1c776e58c97ddc5d03b336",
-						BaseBlobID: "0000000000000000000000000000000000000000",
-					},
-					{
-						Status:     "added",
-						HeadPath:   "README.md",
-						BasePath:   "README.md",
-						HeadMode:   git.EntryModeBlob,
-						BaseMode:   git.EntryModeNoEntry,
-						HeadBlobID: "074e590b8e64898b02beef03ece83f962c94f54c",
-						BaseBlobID: "0000000000000000000000000000000000000000",
-					},
-				},
-			},
+			Expected:     firstCommitDiff,
 		},
 		{
-			Name:     "base and head same",
-			RepoPath: "../../modules/git/tests/repos/repo5_pulls",
-			BaseSha:  "ed8f4d2fa5b2420706580d191f5dd50c4e491f3f",
-			HeadSha:  "ed8f4d2fa5b2420706580d191f5dd50c4e491f3f",
+			Name:    "base and head same",
+			BaseSha: "ed8f4d2fa5b2420706580d191f5dd50c4e491f3f",
+			HeadSha: "ed8f4d2fa5b2420706580d191f5dd50c4e491f3f",
 			Expected: &DiffTree{
 				Files: []*DiffTreeRecord{},
 			},
 		},
 		{
 			Name:         "useMergeBase false",
-			RepoPath:     "../../modules/git/tests/repos/repo5_pulls",
 			BaseSha:      "ed8f4d2fa5b2420706580d191f5dd50c4e491f3f",
 			HeadSha:      "111cac04bd7d20301964e27a93698aabb5781b80", // this commit can be found on the update-readme branch
 			useMergeBase: false,
@@ -152,42 +128,23 @@ func TestGitDiffTree(t *testing.T) {
 						HeadBlobID: "c996f4725be8fc8c1d1c776e58c97ddc5d03b336",
 						BaseBlobID: "ed5119b3c1f45547b6785bc03eac7f87570fa17f",
 					},
-
-					{
-						Status:     "modified",
-						HeadPath:   "README.md",
-						BasePath:   "README.md",
-						HeadMode:   git.EntryModeBlob,
-						BaseMode:   git.EntryModeBlob,
-						HeadBlobID: "fb39771a8865c9a67f2ab9b616c854805664553c",
-						BaseBlobID: "9dfc0a6257d8eff526f0cfaf6a8ea950f55a9dba",
-					},
+					readmeDiff,
 				},
 			},
 		},
 		{
 			Name:         "useMergeBase true",
-			RepoPath:     "../../modules/git/tests/repos/repo5_pulls",
 			BaseSha:      "ed8f4d2fa5b2420706580d191f5dd50c4e491f3f",
 			HeadSha:      "111cac04bd7d20301964e27a93698aabb5781b80", // this commit can be found on the update-readme branch
 			useMergeBase: true,
 			Expected: &DiffTree{
 				Files: []*DiffTreeRecord{
-					{
-						Status:     "modified",
-						HeadPath:   "README.md",
-						BasePath:   "README.md",
-						HeadMode:   git.EntryModeBlob,
-						BaseMode:   git.EntryModeBlob,
-						HeadBlobID: "fb39771a8865c9a67f2ab9b616c854805664553c",
-						BaseBlobID: "9dfc0a6257d8eff526f0cfaf6a8ea950f55a9dba",
-					},
+					readmeDiff,
 				},
 			},
 		},
 		{
 			Name:         "no base set",
-			RepoPath:     "../../modules/git/tests/repos/repo5_pulls",
 			HeadSha:      "d8e0bbb45f200e67d9a784ce55bd90821af45ebd", // this commit can be found on the update-readme branch
 			useMergeBase: false,
 			Expected: &DiffTree{
@@ -208,7 +165,7 @@ func TestGitDiffTree(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.Name, func(t *testing.T) {
-			gitRepo, err := git.OpenRepositoryLocal(t.Context(), tt.RepoPath)
+			gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 
@@ -444,33 +401,29 @@ func TestParseGitDiffTree(t *testing.T) {
 
 func TestGitDiffTreeErrors(t *testing.T) {
 	test := []struct {
-		Name     string
-		RepoPath string
-		BaseSha  string
-		HeadSha  string
+		Name    string
+		BaseSha string
+		HeadSha string
 	}{
 		{
-			Name:     "head doesn't exist",
-			RepoPath: "../../modules/git/tests/repos/repo5_pulls",
-			BaseSha:  "f32b0a9dfd09a60f616f29158f772cedd89942d2",
-			HeadSha:  "asdfasdfasdf",
+			Name:    "head doesn't exist",
+			BaseSha: "f32b0a9dfd09a60f616f29158f772cedd89942d2",
+			HeadSha: "asdfasdfasdf",
 		},
 		{
-			Name:     "base doesn't exist",
-			RepoPath: "../../modules/git/tests/repos/repo5_pulls",
-			BaseSha:  "asdfasdfasdf",
-			HeadSha:  "f32b0a9dfd09a60f616f29158f772cedd89942d2",
+			Name:    "base doesn't exist",
+			BaseSha: "asdfasdfasdf",
+			HeadSha: "f32b0a9dfd09a60f616f29158f772cedd89942d2",
 		},
 		{
-			Name:     "head not set",
-			RepoPath: "../../modules/git/tests/repos/repo5_pulls",
-			BaseSha:  "f32b0a9dfd09a60f616f29158f772cedd89942d2",
+			Name:    "head not set",
+			BaseSha: "f32b0a9dfd09a60f616f29158f772cedd89942d2",
 		},
 	}
 
 	for _, tt := range test {
 		t.Run(tt.Name, func(t *testing.T) {
-			gitRepo, err := git.OpenRepositoryLocal(t.Context(), tt.RepoPath)
+			gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 

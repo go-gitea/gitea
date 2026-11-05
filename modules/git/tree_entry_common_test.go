@@ -46,32 +46,22 @@ func TestFollowLink(t *testing.T) {
 		assert.Nil(t, res)
 	}
 
-	{
-		// should error for broken links
-		entry, err := commit.Tree().GetTreeEntryByPath(t.Context(), r, "foo/broken_link")
+	for _, test := range []struct {
+		fullPath       string
+		symlinkContent string
+		checkLink      bool
+	}{
+		{"foo/broken_link", "nar/broken_link", true},     // should error for broken links
+		{"foo/outside_repo", "../../outside_repo", true}, // should error for external links
+		{"foo/link_short", "a", false},                   // testing fix for short link bug
+	} {
+		entry, err := commit.Tree().GetTreeEntryByPath(t.Context(), r, test.fullPath)
 		require.NoError(t, err)
-		assert.True(t, entry.IsLink())
-		res, err := EntryFollowLink(t.Context(), r, commit, "foo/broken_link", entry)
+		if test.checkLink {
+			assert.True(t, entry.IsLink())
+		}
+		res, err := EntryFollowLink(t.Context(), r, commit, test.fullPath, entry)
 		assert.ErrorIs(t, err, util.ErrNotExist)
-		assert.Equal(t, "nar/broken_link", res.SymlinkContent)
-	}
-
-	{
-		// should error for external links
-		entry, err := commit.Tree().GetTreeEntryByPath(t.Context(), r, "foo/outside_repo")
-		require.NoError(t, err)
-		assert.True(t, entry.IsLink())
-		res, err := EntryFollowLink(t.Context(), r, commit, "foo/outside_repo", entry)
-		assert.ErrorIs(t, err, util.ErrNotExist)
-		assert.Equal(t, "../../outside_repo", res.SymlinkContent)
-	}
-
-	{
-		// testing fix for short link bug
-		entry, err := commit.Tree().GetTreeEntryByPath(t.Context(), r, "foo/link_short")
-		require.NoError(t, err)
-		res, err := EntryFollowLink(t.Context(), r, commit, "foo/link_short", entry)
-		assert.ErrorIs(t, err, util.ErrNotExist)
-		assert.Equal(t, "a", res.SymlinkContent)
+		assert.Equal(t, test.symlinkContent, res.SymlinkContent)
 	}
 }

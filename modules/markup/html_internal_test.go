@@ -85,7 +85,6 @@ func TestRender_IssueIndexPattern(t *testing.T) {
 	test("#abcd")
 	test("test#1234")
 	test("#1234test")
-	test("#abcd")
 	test("test!1234")
 	test("!1234test")
 	test(" test !1234test")
@@ -257,16 +256,7 @@ func TestRender_IssueIndexPattern_NoShortPattern(t *testing.T) {
 	testRenderIssueIndexPattern(t, "#1", "#1", NewTestRenderContext(metas))
 	testRenderIssueIndexPattern(t, "#1312", "#1312", NewTestRenderContext(metas))
 	testRenderIssueIndexPattern(t, "!1", "!1", NewTestRenderContext(metas))
-}
 
-func TestRender_PostProcessIssueTitle(t *testing.T) {
-	setting.AppURL = TestAppURL
-	metas := map[string]string{
-		"format": "https://someurl.com/{user}/{repo}/{index}",
-		"user":   "someUser",
-		"repo":   "someRepo",
-		"style":  IssueNameStyleNumeric,
-	}
 	actual := PostProcessIssueTitle(NewTestRenderContext(metas), "#1")
 	assert.Equal(t, template.HTML("#1"), actual)
 }

@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -157,12 +158,13 @@ func setTagsContext(ctx *context.Context) error {
 	}
 	ctx.Data["ProtectedTags"] = protectedTags
 
-	users, err := access_model.GetUsersWithAnyUnitAccess(ctx, ctx.Repo.Repository, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
+	repoUsers, err := access_model.GetUsersWithAnyUnitAccess(ctx, ctx.Repo.Repository, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		ctx.ServerError("GetUsersWithUnitAccess", err)
 		return err
 	}
-	ctx.Data["Users"] = users
+	users := []*user_model.User{user_model.NewActionsUser(), user_model.NewDeployKeyUser()}
+	ctx.Data["PushUsers"] = append(users, repoUsers...)
 
 	if ctx.Repo.Owner.IsOrganization() {
 		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, ctx.Repo.Owner.ID, ctx.Repo.Repository.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
@@ -170,7 +172,7 @@ func setTagsContext(ctx *context.Context) error {
 			ctx.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return err
 		}
-		ctx.Data["Teams"] = teams
+		ctx.Data["PushTeams"] = teams
 	}
 
 	return nil

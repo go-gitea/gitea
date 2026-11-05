@@ -185,9 +185,16 @@ func TestDetectMatched(t *testing.T) {
 		{
 			desc:         "HookEventPullRequest(pull_request) `label_updated` action matches GithubEventPullRequest(pull_request) with `label` activity type",
 			triggedEvent: webhook_module.HookEventPullRequest,
-			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated},
+			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated, Changes: &api.ChangesPayload{AddedLabels: []*api.Label{{ID: 1, Name: "label"}}}},
 			yamlOn:       "on:\n  pull_request:\n    types: [labeled]",
 			expected:     detectMatched,
+		},
+		{
+			desc:         "HookEventPullRequestLabel(pull_request_label) label removal doesn't match GithubEventPullRequest(pull_request) with `labeled` activity type",
+			triggedEvent: webhook_module.HookEventPullRequestLabel,
+			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated, Changes: &api.ChangesPayload{RemovedLabels: []*api.Label{{ID: 1}}}},
+			yamlOn:       "on:\n  pull_request:\n    types: [labeled]",
+			expected:     detectNotApplicable,
 		},
 		{
 			desc:         "HookEventPullRequestReviewComment(pull_request_review_comment) matches GithubEventPullRequestReviewComment(pull_request_review_comment)",
@@ -281,6 +288,24 @@ func TestDetectMatched(t *testing.T) {
 }
 
 func TestMatchIssuesEvent(t *testing.T) {
+	labelChangesPayload := func() *api.IssuePayload {
+		return &api.IssuePayload{
+			Action: api.HookIssueLabelUpdated,
+			Issue: &api.Issue{
+				Labels: []*api.Label{
+					{ID: 789, Name: "new-label"},
+				},
+			},
+			Changes: &api.ChangesPayload{
+				AddedLabels: []*api.Label{
+					{ID: 789, Name: "new-label"},
+				},
+				RemovedLabels: []*api.Label{
+					{ID: 123, Name: "deleted-label"},
+				},
+			},
+		}
+	}
 	testCases := []struct {
 		desc      string
 		payload   *api.IssuePayload
@@ -358,67 +383,22 @@ func TestMatchIssuesEvent(t *testing.T) {
 			eventType: "unlabeled",
 		},
 		{
-			desc: "Both adding and removing labels should trigger labeled event",
-			payload: &api.IssuePayload{
-				Action: api.HookIssueLabelUpdated,
-				Issue: &api.Issue{
-					Labels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-				},
-				Changes: &api.ChangesPayload{
-					AddedLabels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-					RemovedLabels: []*api.Label{
-						{ID: 123, Name: "deleted-label"},
-					},
-				},
-			},
+			desc:      "Both adding and removing labels should trigger labeled event",
+			payload:   labelChangesPayload(),
 			yamlOn:    "on:\n  issues:\n    types: [labeled]",
 			expected:  true,
 			eventType: "labeled",
 		},
 		{
-			desc: "Both adding and removing labels should trigger unlabeled event",
-			payload: &api.IssuePayload{
-				Action: api.HookIssueLabelUpdated,
-				Issue: &api.Issue{
-					Labels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-				},
-				Changes: &api.ChangesPayload{
-					AddedLabels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-					RemovedLabels: []*api.Label{
-						{ID: 123, Name: "deleted-label"},
-					},
-				},
-			},
+			desc:      "Both adding and removing labels should trigger unlabeled event",
+			payload:   labelChangesPayload(),
 			yamlOn:    "on:\n  issues:\n    types: [unlabeled]",
 			expected:  true,
 			eventType: "unlabeled",
 		},
 		{
-			desc: "Both adding and removing labels should trigger both events",
-			payload: &api.IssuePayload{
-				Action: api.HookIssueLabelUpdated,
-				Issue: &api.Issue{
-					Labels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-				},
-				Changes: &api.ChangesPayload{
-					AddedLabels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-					RemovedLabels: []*api.Label{
-						{ID: 123, Name: "deleted-label"},
-					},
-				},
-			},
+			desc:      "Both adding and removing labels should trigger both events",
+			payload:   labelChangesPayload(),
 			yamlOn:    "on:\n  issues:\n    types: [labeled, unlabeled]",
 			expected:  true,
 			eventType: "multiple",

@@ -80,30 +80,16 @@ func TestViewReleasesNoLogin(t *testing.T) {
 }
 
 func TestCreateRelease(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	for _, releaseType := range []string{"stable", "prerelease", "draft"} {
+		t.Run(releaseType, func(t *testing.T) {
+			defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user2")
-	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
+			session := loginUser(t, "user2")
+			createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", releaseType == "prerelease", releaseType == "draft")
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.stable"), 4)
-}
-
-func TestCreateReleasePreRelease(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", true, false)
-
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.prerelease"), 4)
-}
-
-func TestCreateReleaseDraft(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	session := loginUser(t, "user2")
-	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, true)
-
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.draft"), 4)
+			checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release."+releaseType), 4)
+		})
+	}
 }
 
 func TestCreateReleasePaging(t *testing.T) {

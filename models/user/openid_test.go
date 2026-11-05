@@ -14,57 +14,57 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetUserOpenIDs(t *testing.T) {
+func TestUserOpenIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	oids, err := user_model.GetUserOpenIDs(t.Context(), int64(1))
-	if assert.NoError(t, err) && assert.Len(t, oids, 2) {
-		assert.Equal(t, "https://user1.domain1.tld/", oids[0].URI)
+	t.Run("GetUserOpenIDs", func(t *testing.T) {
+		oids, err := user_model.GetUserOpenIDs(t.Context(), int64(1))
+		if assert.NoError(t, err) && assert.Len(t, oids, 2) {
+			assert.Equal(t, "https://user1.domain1.tld/", oids[0].URI)
+			assert.False(t, oids[0].Show)
+			assert.Equal(t, "http://user1.domain2.tld/", oids[1].URI)
+			assert.True(t, oids[1].Show)
+		}
+
+		oids, err = user_model.GetUserOpenIDs(t.Context(), int64(2))
+		if assert.NoError(t, err) && assert.Len(t, oids, 1) {
+			assert.Equal(t, "https://domain1.tld/user2/", oids[0].URI)
+			assert.True(t, oids[0].Show)
+		}
+	})
+
+	t.Run("ToggleUserOpenIDVisibilityRequiresOwnership", func(t *testing.T) {
+		unauthorizedUser, err := user_model.GetUserByID(t.Context(), int64(2))
+		require.NoError(t, err)
+
+		err = user_model.ToggleUserOpenIDVisibility(t.Context(), int64(1), unauthorizedUser)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, util.ErrNotExist)
+	})
+
+	t.Run("ToggleUserOpenIDVisibility", func(t *testing.T) {
+		user, err := user_model.GetUserByID(t.Context(), int64(2))
+		require.NoError(t, err)
+		oids, err := user_model.GetUserOpenIDs(t.Context(), int64(2))
+		require.NoError(t, err)
+		require.Len(t, oids, 1)
+		assert.True(t, oids[0].Show)
+
+		err = user_model.ToggleUserOpenIDVisibility(t.Context(), oids[0].ID, user)
+		require.NoError(t, err)
+
+		oids, err = user_model.GetUserOpenIDs(t.Context(), int64(2))
+		require.NoError(t, err)
+		require.Len(t, oids, 1)
+
 		assert.False(t, oids[0].Show)
-		assert.Equal(t, "http://user1.domain2.tld/", oids[1].URI)
-		assert.True(t, oids[1].Show)
-	}
+		err = user_model.ToggleUserOpenIDVisibility(t.Context(), oids[0].ID, user)
+		require.NoError(t, err)
 
-	oids, err = user_model.GetUserOpenIDs(t.Context(), int64(2))
-	if assert.NoError(t, err) && assert.Len(t, oids, 1) {
-		assert.Equal(t, "https://domain1.tld/user2/", oids[0].URI)
-		assert.True(t, oids[0].Show)
-	}
-}
-
-func TestToggleUserOpenIDVisibility(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user, err := user_model.GetUserByID(t.Context(), int64(2))
-	require.NoError(t, err)
-	oids, err := user_model.GetUserOpenIDs(t.Context(), int64(2))
-	require.NoError(t, err)
-	require.Len(t, oids, 1)
-	assert.True(t, oids[0].Show)
-
-	err = user_model.ToggleUserOpenIDVisibility(t.Context(), oids[0].ID, user)
-	require.NoError(t, err)
-
-	oids, err = user_model.GetUserOpenIDs(t.Context(), int64(2))
-	require.NoError(t, err)
-	require.Len(t, oids, 1)
-
-	assert.False(t, oids[0].Show)
-	err = user_model.ToggleUserOpenIDVisibility(t.Context(), oids[0].ID, user)
-	require.NoError(t, err)
-
-	oids, err = user_model.GetUserOpenIDs(t.Context(), int64(2))
-	require.NoError(t, err)
-	if assert.Len(t, oids, 1) {
-		assert.True(t, oids[0].Show)
-	}
-}
-
-func TestToggleUserOpenIDVisibilityRequiresOwnership(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	unauthorizedUser, err := user_model.GetUserByID(t.Context(), int64(2))
-	require.NoError(t, err)
-
-	err = user_model.ToggleUserOpenIDVisibility(t.Context(), int64(1), unauthorizedUser)
-	require.Error(t, err)
-	assert.ErrorIs(t, err, util.ErrNotExist)
+		oids, err = user_model.GetUserOpenIDs(t.Context(), int64(2))
+		require.NoError(t, err)
+		if assert.Len(t, oids, 1) {
+			assert.True(t, oids[0].Show)
+		}
+	})
 }
