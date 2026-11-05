@@ -160,14 +160,18 @@ type fileCodeOwner struct {
 }
 
 func prepareFileCodeOwners(ctx *context.Context) {
-	rules, warnings := issue_service.GetCodeOwnerRules(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit)
+	rules, warnings1, err := issue_service.GetCodeOwnerRules(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit)
+	if msg, _ := util.ErrorUnwrapForUser(err); msg != "" {
+		ctx.Flash.Error(msg, true)
+		return
+	} else if err != nil {
+		log.Error("GetCodeOwnerRules: failed to read CODEOWNERS file at repo %s commit %s: %v", ctx.Repo.Repository.LogString(), ctx.Repo.CommitID, err)
+		return
+	}
+	matching, warnings2 := issue_service.MatchCodeOwnerRules(rules, []string{ctx.Repo.TreePath})
+	warnings := append(warnings1, warnings2...)
 	if len(warnings) > 0 {
 		ctx.Flash.Warning(strings.Join(warnings, "\n"), true)
-	}
-
-	matching, complete := issue_service.MatchCodeOwnerRules(rules, []string{ctx.Repo.TreePath})
-	if !complete {
-		return
 	}
 
 	var owners []fileCodeOwner

@@ -466,18 +466,22 @@ func testCodeOwnerSectionsAndAnnotations(t *testing.T) {
 [Other Section] @user5
 *.txt
 `)
+	match := func(rule *issues_model.CodeOwnerRule, path string) bool {
+		v, _ := rule.Rule.MatchString(path)
+		return v
+	}
 	require.Empty(t, warnings)
 	require.Len(t, rules, 4)
 	assert.True(t, rules[0].ReviewRequest.Value())
-	assert.True(t, rules[0].Match("src/app.js"))
-	assert.False(t, rules[0].Match("appXjs"))
+	assert.True(t, match(rules[0], "src/app.js"))
+	assert.False(t, match(rules[0], "appXjs"))
 	assert.Equal(t, "documentation", rules[1].Section)
 	assert.Equal(t, "user1", rules[1].Users[0].Name)
 	assert.True(t, rules[1].ReviewRequest.Value())
 	assert.Equal(t, "user5", rules[2].Users[0].Name)
 	assert.False(t, rules[2].ReviewRequest.Value())
-	assert.True(t, rules[2].Match("docs/guide.md"))
-	assert.False(t, rules[2].Match("other/docs/guide.md"))
+	assert.True(t, match(rules[2], "docs/guide.md"))
+	assert.False(t, match(rules[2], "other/docs/guide.md"))
 	assert.False(t, rules[3].ReviewRequest.Value())
 
 	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), "*.js @user5 ## review-request=invalid\n*[ @user5\n")
@@ -488,6 +492,6 @@ func testCodeOwnerSectionsAndAnnotations(t *testing.T) {
 	rules, warnings = issues_model.GetCodeOwnersFromContent(t.Context(), `file\#name @user5 ## review-request=false`)
 	require.Empty(t, warnings)
 	require.Len(t, rules, 1)
-	assert.True(t, rules[0].Match("file#name"))
+	assert.True(t, match(rules[0], "file#name"))
 	assert.False(t, rules[0].ReviewRequest.Value())
 }

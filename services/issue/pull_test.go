@@ -124,8 +124,8 @@ other.md
 		{[]string{"other.md"}, []int{0, 3, 4}},
 		{[]string{"file.go"}, nil},
 	} {
-		matching, complete := MatchCodeOwnerRules(rules, tc.paths)
-		assert.True(t, complete)
+		matching, warnings := MatchCodeOwnerRules(rules, tc.paths)
+		assert.Empty(t, warnings)
 		expected := make([]*issues_model.CodeOwnerRule, 0, len(tc.indices))
 		for _, i := range tc.indices {
 			expected = append(expected, rules[i])

@@ -118,6 +118,10 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 	pattern := strings.TrimPrefix(tokens[0], "!")
 	pattern = strings.TrimPrefix(pattern, "/")
 	expr := fmt.Sprintf("^%s$", pattern)
+
+	// To make life easier, we support glob expressions if the pattern contains a "*" or "/*" (e.g. "*.md" or "docs/*.md")
+	// However, "src/test\\..*\\.js" is still the only way because "src/test.*.js" can't be used as a glob at the moment.
+	// In the future, maybe it's better to introduce a new annotation to specify the pattern type, e.g.: "pattern-syntax=glob" or "pattern-syntax=regexp"
 	if strings.HasPrefix(pattern, "*") || strings.Contains(pattern, "/*") {
 		compiled, compileErr := glob.CompileToRegexp(pattern)
 		if compileErr != nil {
@@ -215,11 +219,6 @@ func TokenizeCodeOwnersLine(line string) []string {
 	}
 
 	return tokens
-}
-
-func (r *CodeOwnerRule) Match(path string) bool {
-	matched, err := r.Rule.MatchString(path)
-	return err == nil && matched != r.Negative
 }
 
 func parseCodeOwnerAnnotation(line string) (string, optional.Option[bool], []string) {
