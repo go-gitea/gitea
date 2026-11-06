@@ -409,7 +409,9 @@ func SyncBranchesToDB(ctx context.Context, repo *repo_model.Repository, pusherID
 		return err
 	}
 	if !wasEmpty && repo.DefaultBranch == oldDefaultBranch && slices.Contains(branchNames, repo.DefaultBranch) {
-		return git.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
+		if err := git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+			log.Error("SyncBranchesToDB: set HEAD of %s: %v", repo.FullName(), err)
+		}
 	}
 	return nil
 }
