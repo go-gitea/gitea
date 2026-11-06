@@ -152,7 +152,7 @@ type RepoSettingForm struct {
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
 	middleware.FormDefaultValidator
-	RuleName                      string `binding:"Required"`
+	RuleName                      string `binding:"Required" locale:"repo.settings.protect_branch_name_pattern"`
 	RuleID                        int64
 	EnablePush                    string
 	WhitelistUsers                string

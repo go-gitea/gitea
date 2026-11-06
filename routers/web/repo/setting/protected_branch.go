@@ -5,7 +5,6 @@ package setting
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -127,12 +126,11 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	if f == nil {
 		return
 	}
-	var protectBranch *git_model.ProtectedBranch
-	if f.RuleName == "" {
-		ctx.JSONError(ctx.Tr("repo.settings.protected_branch_required_rule_name"))
+	if f.RequiredApprovals < 0 {
+		ctx.JSONErrorWithField(ctx.Tr("repo.settings.protected_branch_required_approvals_min"), "required_approvals")
 		return
 	}
-
+	var protectBranch *git_model.ProtectedBranch
 	var err error
 	if f.RuleID > 0 {
 		// If the RuleID isn't 0, it must be an edit operation. So we get rule by id.
@@ -150,7 +148,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 				return
 			}
 			if sameNameProtectBranch != nil {
-				ctx.JSONError(ctx.Tr("repo.settings.protected_branch_duplicate_rule_name"))
+				ctx.JSONErrorWithField(ctx.Tr("repo.settings.protected_branch_duplicate_rule_name"), "rule_name")
 				return
 			}
 		}
@@ -176,10 +174,6 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 
 	var whitelistUsers, whitelistTeams, forcePushAllowlistUsers, forcePushAllowlistTeams, deletionAllowlistUsers, deletionAllowlistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams, bypassAllowlistUsers, bypassAllowlistTeams []int64
 	protectBranch.RuleName = f.RuleName
-	if f.RequiredApprovals < 0 {
-		ctx.JSONError(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
-		return
-	}
 
 	switch f.EnablePush {
 	case "all":
@@ -270,14 +264,14 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 				continue
 			}
 			if _, err := glob.Compile(trimmed); err != nil {
-				ctx.JSONError(ctx.Tr("repo.settings.protect_invalid_status_check_pattern", pattern))
+				ctx.JSONErrorWithField(ctx.Tr("repo.settings.protect_invalid_status_check_pattern", pattern), "status_check_contexts")
 				return
 			}
 			validPatterns = append(validPatterns, trimmed)
 		}
 		if len(validPatterns) == 0 {
 			// if status check is enabled, patterns slice is not allowed to be empty
-			ctx.JSONError(ctx.Tr("repo.settings.protect_no_valid_status_check_patterns"))
+			ctx.JSONErrorWithField(ctx.Tr("repo.settings.protect_no_valid_status_check_patterns"), "status_check_contexts")
 			return
 		}
 		protectBranch.StatusCheckContexts = validPatterns
@@ -331,7 +325,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", protectBranch.RuleName))
-	ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 }
 
 // DeleteProtectedBranchRulePost delete protected branch rule by id
