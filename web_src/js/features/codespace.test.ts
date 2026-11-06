@@ -27,23 +27,21 @@ test('codespace create environment selection updates its explanation', () => {
     <form data-codespace-create-form>
       <div class="dropdown">
         <input name="environment_tag" value="standard">
-        <div data-codespace-environment-text>standard</div>
-        <div class="codespace-create-environment-option" data-value="standard"></div>
-        <div class="codespace-create-environment-option" data-value="large"></div>
       </div>
       <div data-codespace-environment-detail="standard"></div>
       <div data-codespace-environment-detail="large" class="tw-hidden"></div>
     </form>`;
 
   initCodespaceCreateForm();
-  document.querySelector<HTMLElement>('[data-value="large"]')!.click();
+  const environmentInput = document.querySelector<HTMLInputElement>('input[name="environment_tag"]')!;
+  environmentInput.value = 'large';
+  environmentInput.dispatchEvent(new Event('change'));
 
-  expect(document.querySelector<HTMLInputElement>('input[name="environment_tag"]')!.value).toBe('large');
-  expect(document.querySelector<HTMLElement>('[data-codespace-environment-text]')!.textContent).toBe('large');
+  expect(environmentInput.value).toBe('large');
   expect(document.querySelector<HTMLElement>('[data-codespace-environment-detail="standard"]')!.classList.contains('tw-hidden')).toBe(true);
   expect(document.querySelector<HTMLElement>('[data-codespace-environment-detail="large"]')!.classList.contains('tw-hidden')).toBe(false);
 
-  document.querySelector<HTMLInputElement>('input[name="environment_tag"]')!.value = '';
+  environmentInput.value = '';
   const submitEvent = new SubmitEvent('submit', {cancelable: true});
   document.querySelector<HTMLFormElement>('form')!.dispatchEvent(submitEvent);
   expect(submitEvent.defaultPrevented).toBe(true);
@@ -57,11 +55,8 @@ test('codespace create configuration preview preserves its source and environmen
   document.body.innerHTML = `
     <form data-codespace-create-form>
       <input name="environment_tag" value="standard">
-      <select data-codespace-dev-container data-preview-url="/owner/repo/codespaces/new"
-        data-ref-type="branch" data-ref-name="main">
-        <option value=".devcontainer/devcontainer.json">Default</option>
-        <option value=".devcontainer/node/devcontainer.json">Node</option>
-      </select>
+      <input type="hidden" data-codespace-dev-container data-preview-url="/owner/repo/codespaces/new"
+        data-ref-type="branch" data-ref-name="main" value=".devcontainer/devcontainer.json">
       <input name="request_hash" value="reviewed">
       <input name="recommended_secret_value_TOKEN" value="private-value">
       <button type="button" data-codespace-review class="tw-hidden">Update configuration</button>
@@ -69,9 +64,9 @@ test('codespace create configuration preview preserves its source and environmen
     </form>`;
 
   initCodespaceCreateForm();
-  const select = document.querySelector<HTMLSelectElement>('[data-codespace-dev-container]')!;
-  select.value = '.devcontainer/node/devcontainer.json';
-  select.dispatchEvent(new Event('change'));
+  const input = document.querySelector<HTMLInputElement>('[data-codespace-dev-container]')!;
+  input.value = '.devcontainer/node/devcontainer.json';
+  input.dispatchEvent(new Event('change'));
 
   expect(navigations).toHaveLength(0);
   expect(document.querySelector<HTMLButtonElement>('[data-codespace-create]')!.disabled).toBe(true);
@@ -79,8 +74,8 @@ test('codespace create configuration preview preserves its source and environmen
   document.querySelector<HTMLButtonElement>('[data-codespace-review]')!.click();
 
   const previewURL = new URL(navigations.at(-1)!.url);
-  select.selectedIndex = 0;
-  select.dispatchEvent(new Event('change'));
+  input.value = '.devcontainer/devcontainer.json';
+  input.dispatchEvent(new Event('change'));
   expect(document.querySelector('[data-codespace-review]')!.classList.contains('tw-hidden')).toBe(true);
   expect(previewURL.pathname).toBe('/owner/repo/codespaces/new');
   expect(Object.fromEntries(previewURL.searchParams)).toEqual({
@@ -250,7 +245,6 @@ test('codespace settings button fills and opens the shared auto-stop modal', () 
 function codespaceLogHTML() {
   return `
     <section class="codespace-log-panel">
-      <span class="tw-invisible" data-codespace-log-loading>Loading</span>
       <div id="codespace-log-view" data-log-url="/-/codespaces/1/logs" data-log-next-offset="0" data-log-refresh-after-ms="10">
         <div data-log-empty-message>Empty</div>
         <pre data-log-content></pre>

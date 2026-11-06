@@ -21,7 +21,6 @@ var Codespace = struct {
 	ManagerOfflineTimeout  time.Duration
 	OperationLeaseTimeout  time.Duration
 	OperationMaxDuration   time.Duration
-	QueueTimeout           time.Duration
 	LogMaxSize             int64
 	AutoStopDefaultTimeout time.Duration
 	AutoStopMinTimeout     time.Duration
@@ -35,7 +34,6 @@ var Codespace = struct {
 	ManagerOfflineTimeout:  120 * time.Second,
 	OperationLeaseTimeout:  300 * time.Second,
 	OperationMaxDuration:   2 * time.Hour,
-	QueueTimeout:           5 * time.Minute,
 	LogMaxSize:             64 * 1024 * 1024,
 	AutoStopDefaultTimeout: 30 * time.Minute,
 	AutoStopMinTimeout:     5 * time.Minute,
@@ -51,7 +49,6 @@ func loadCodespaceFrom(rootCfg ConfigProvider) {
 	Codespace.ManagerOfflineTimeout = sec.Key("MANAGER_OFFLINE_TIMEOUT").MustDuration(120 * time.Second)
 	Codespace.OperationLeaseTimeout = sec.Key("OPERATION_LEASE_TIMEOUT").MustDuration(300 * time.Second)
 	Codespace.OperationMaxDuration = sec.Key("OPERATION_MAX_DURATION").MustDuration(2 * time.Hour)
-	Codespace.QueueTimeout = sec.Key("QUEUE_TIMEOUT").MustDuration(5 * time.Minute)
 	Codespace.LogMaxSize = mustCodespaceBytes(sec, "LOG_MAX_SIZE", "64MiB")
 	Codespace.AutoStopDefaultTimeout = sec.Key("AUTO_STOP_DEFAULT_TIMEOUT").MustDuration(30 * time.Minute)
 	Codespace.AutoStopMinTimeout = sec.Key("AUTO_STOP_MIN_TIMEOUT").MustDuration(5 * time.Minute)

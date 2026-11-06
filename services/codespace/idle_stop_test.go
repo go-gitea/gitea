@@ -211,7 +211,7 @@ func TestRequestIdleStopKeepsQueuedCleanupOperation(t *testing.T) {
 		Status:                codespace_model.StatusRunning,
 		OperationRVersion:     12,
 		OperationTrigger:      codespace_model.OperationTriggerIdle,
-		OperationCreatedUnix:  time.Now().Add(-setting.Codespace.QueueTimeout - time.Second).Unix(),
+		OperationCreatedUnix:  time.Now().Add(-time.Hour).Unix(),
 		InteractionGeneration: 6,
 	})
 

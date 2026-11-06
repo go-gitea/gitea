@@ -35,8 +35,9 @@ test('clone panel main tabs keep selection and panels in sync', () => {
   const codespacesTab = parent.querySelector<HTMLButtonElement>('.repo-codespaces-main')!;
   const cloneSection = parent.querySelector<HTMLElement>('.repo-clone-section')!;
   const codespacesSection = parent.querySelector<HTMLElement>('.repo-codespaces-section')!;
+  const onPanelChange = vi.fn();
 
-  initRepoCloneCodespaceTabs(parent);
+  initRepoCloneCodespaceTabs(parent, onPanelChange);
   codespacesTab.click();
   expect(cloneTab.getAttribute('aria-selected')).toEqual('false');
   expect(codespacesTab.getAttribute('aria-selected')).toEqual('true');
@@ -44,10 +45,12 @@ test('clone panel main tabs keep selection and panels in sync', () => {
   expect(codespacesTab.tabIndex).toEqual(0);
   expect(cloneSection.hidden).toEqual(true);
   expect(codespacesSection.hidden).toEqual(false);
+  expect(onPanelChange).toHaveBeenCalledTimes(1);
 
   codespacesTab.dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowLeft', bubbles: true}));
   expect(cloneTab.getAttribute('aria-selected')).toEqual('true');
   expect(codespacesTab.getAttribute('aria-selected')).toEqual('false');
   expect(cloneSection.hidden).toEqual(false);
   expect(codespacesSection.hidden).toEqual(true);
+  expect(onPanelChange).toHaveBeenCalledTimes(2);
 });

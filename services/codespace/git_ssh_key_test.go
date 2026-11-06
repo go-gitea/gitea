@@ -455,17 +455,6 @@ func TestValidateGitTransports(t *testing.T) {
 	})
 }
 
-func configureGitTransportTestSettings(t *testing.T, protocol string, disableHTTPGit, disableSSH bool, knownHosts []string) {
-	t.Helper()
-	t.Cleanup(test.MockVariableValue(&setting.Repository.DisableHTTPGit, disableHTTPGit))
-	t.Cleanup(test.MockVariableValue(&setting.SSH.Disabled, disableSSH))
-	t.Cleanup(test.MockVariableValue(&setting.SSH.Domain, "gitea.example.com"))
-	t.Cleanup(test.MockVariableValue(&setting.SSH.Port, 22))
-	t.Cleanup(test.MockVariableValue(&setting.SSH.StartBuiltinServer, false))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.GitSSHKnownHosts, knownHosts))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.GitProtocol, protocol))
-}
-
 func configureServiceGitSSHHostKey(t *testing.T) {
 	t.Helper()
 	keyPath := filepath.Join(t.TempDir(), "gitea.ed25519")

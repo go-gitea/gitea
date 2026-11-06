@@ -73,9 +73,12 @@
   margin: 5px 0;
 }
 
-.clone-panel-codespace-create,
-.clone-panel-codespace-list {
+.clone-panel-codespace-create {
   padding: 12px;
+}
+
+.repo-codespaces-section > .divider {
+  margin: 0;
 }
 
 .clone-panel-codespace-context {
@@ -87,68 +90,59 @@
 }
 
 .clone-panel-codespace-context .flex-text-inline > span,
-.clone-panel-codespace-copy,
-.clone-panel-codespace-main {
+.clone-panel-codespace-copy {
   min-width: 0;
 }
 
 .clone-panel-codespace-list-title {
-  margin-bottom: 4px;
+  padding: 8px 12px 4px;
   color: var(--color-text-light-2);
   font-size: 12px;
   font-weight: var(--font-weight-semibold);
 }
 
 .clone-panel-codespace-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  box-sizing: border-box;
+  min-height: 56px;
   min-width: 0;
-  padding: 8px 0;
+  padding: 8px 12px;
+  color: var(--color-text);
+  text-decoration: none;
 }
 
 .clone-panel-codespace-row + .clone-panel-codespace-row {
   border-top: 1px solid var(--color-secondary);
 }
 
-.clone-panel-codespace-main {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  gap: 8px;
+.clone-panel-codespace-row:hover,
+.clone-panel-codespace-row:focus-visible {
+  background: var(--color-hover);
   color: var(--color-text);
+  text-decoration: none;
 }
 
-.clone-panel-codespace-main:hover strong {
+.clone-panel-codespace-row:hover strong,
+.clone-panel-codespace-row:focus-visible strong {
   color: var(--color-primary);
-}
-
-.clone-panel-codespace-main > svg,
-.clone-panel-codespace-row > .ui.button,
-.clone-panel-codespace-row > form {
-  flex-shrink: 0;
 }
 
 .clone-panel-codespace-copy {
   display: flex;
-  flex: 1;
   flex-direction: column;
   gap: 3px;
 }
 
 .clone-panel-codespace-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
+  overflow: hidden;
   min-width: 0;
   color: var(--color-text-light-2);
   font-size: 12px;
-}
-
-.clone-panel-codespace-meta .ui.label {
-  flex-shrink: 0;
-  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .clone-panel-codespace-empty {
@@ -162,5 +156,5 @@
 .clone-panel-codespace-footer {
   display: flex;
   justify-content: flex-end;
-  padding: 10px 12px;
+  padding: 8px 12px;
 }

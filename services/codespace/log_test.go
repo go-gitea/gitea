@@ -391,7 +391,7 @@ func TestReadLogRequiresCreator(t *testing.T) {
 		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 		Limit:       LogReadMaxBytes,
 	})
-	require.ErrorIs(t, err, ErrReadLogPermissionDenied)
+	require.ErrorIs(t, err, ErrReadLogNotFound)
 }
 
 func TestReadLogRejectsOffsetPastEOF(t *testing.T) {

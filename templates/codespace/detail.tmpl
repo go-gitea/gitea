@@ -12,7 +12,7 @@
 			<div class="codespace-detail-layout">
 				<section class="codespace-log-panel">
 					<div class="codespace-log-header">
-						<h3 class="codespace-log-title flex-text-block">{{svg "octicon-terminal" 16}}{{ctx.Locale.Tr "codespace.operation_log"}}<span class="codespace-log-loading tw-invisible" data-codespace-log-loading>{{ctx.Locale.Tr "loading"}}</span></h3>
+						<h3 class="codespace-log-title flex-text-block">{{svg "octicon-terminal" 16}}{{ctx.Locale.Tr "codespace.operation_log"}}</h3>
 						<a class="ui small basic button tw-shrink-0" href="{{AppSubUrl}}/-/codespaces/{{.Codespace.ID}}/logs/download">{{svg "octicon-download" 16}}{{ctx.Locale.Tr "codespace.download_logs"}}</a>
 					</div>
 					<div id="codespace-log-view" class="console codespace-log-view" role="log" tabindex="0" aria-label="{{ctx.Locale.Tr "codespace.operation_log"}}"

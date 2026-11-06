@@ -17,8 +17,6 @@ import (
 var (
 	// ErrLifecycleActionNotFound is returned when the Codespace no longer exists.
 	ErrLifecycleActionNotFound = errors.New("codespace not found")
-	// ErrLifecycleActionPermissionDenied is returned when the user is not the Codespace creator.
-	ErrLifecycleActionPermissionDenied = errors.New("codespace permission denied")
 	// ErrLifecycleActionStateUnavailable is returned when the lifecycle state cannot accept the action.
 	ErrLifecycleActionStateUnavailable = errors.New("codespace lifecycle state unavailable")
 	// ErrLifecycleActionVersionExhausted is returned when operation_rversion cannot advance.
@@ -57,26 +55,54 @@ func DeleteCodespace(ctx context.Context, opts LifecycleActionOptions) (*Lifecyc
 	return applyCreatorLifecycleAction(ctx, opts, codespace_model.OperationDelete)
 }
 
-func applyCreatorLifecycleAction(ctx context.Context, opts LifecycleActionOptions, operationType string) (*LifecycleActionResult, error) {
-	if opts.UserID <= 0 {
-		return nil, errors.New("user_id must be positive")
+// CancelResumeCodespace returns an unclaimed resume to the stable stopped state.
+func CancelResumeCodespace(ctx context.Context, opts LifecycleActionOptions) (*LifecycleActionResult, error) {
+	if err := validateLifecycleActionOptions(opts); err != nil {
+		return nil, err
 	}
-	if opts.CodespaceID <= 0 {
-		return nil, errors.New("codespace_id must be positive")
-	}
-
 	var result *LifecycleActionResult
 	err := db.WithTx(ctx, func(ctx context.Context) error {
-		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
+		codespace, has, err := findCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
 		if err != nil {
 			return err
 		}
 		if !has {
 			return ErrLifecycleActionNotFound
 		}
-		if codespace.UserID != opts.UserID {
-			return ErrLifecycleActionPermissionDenied
+		if codespace.Status != codespace_model.StatusStopped ||
+			codespace_model.ActiveOperationType(codespace) != codespace_model.OperationResume ||
+			!codespace_model.IsOperationQueued(codespace) {
+			return ErrLifecycleActionStateUnavailable
+		}
+		expected := snapshotCodespaceState(codespace)
+		clearActiveOperation(codespace)
+		codespace.UpdatedUnix = time.Now().Unix()
+		if err := updateCodespaceIfCurrent(ctx, expected, codespace,
+			"operation_trigger", "operation_created_unix", "operation_started_unix", "operation_deadline_unix", "updated_unix"); err != nil {
+			return err
+		}
+		result = lifecycleActionResult(codespace)
+		return nil
+	})
+	if errors.Is(err, errCodespaceStateChanged) {
+		return nil, ErrLifecycleActionStateUnavailable
+	}
+	return result, err
+}
+
+func applyCreatorLifecycleAction(ctx context.Context, opts LifecycleActionOptions, operationType string) (*LifecycleActionResult, error) {
+	if err := validateLifecycleActionOptions(opts); err != nil {
+		return nil, err
+	}
+
+	var result *LifecycleActionResult
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		codespace, has, err := findCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
+		if err != nil {
+			return err
+		}
+		if !has {
+			return ErrLifecycleActionNotFound
 		}
 		now := time.Now().Unix()
 		switch operationType {
@@ -104,6 +130,16 @@ func applyCreatorLifecycleAction(ctx context.Context, opts LifecycleActionOption
 		return nil, err
 	}
 	return result, nil
+}
+
+func validateLifecycleActionOptions(opts LifecycleActionOptions) error {
+	if opts.UserID <= 0 {
+		return errors.New("user_id must be positive")
+	}
+	if opts.CodespaceID <= 0 {
+		return errors.New("codespace_id must be positive")
+	}
+	return nil
 }
 
 func applyStopAction(ctx context.Context, codespace *codespace_model.Codespace, now int64) (*LifecycleActionResult, error) {

@@ -63,12 +63,6 @@ func ValidateCodespaceConfig() error {
 	if setting.Codespace.ManagerOfflineTimeout%time.Second != 0 {
 		return errors.New("[codespace] MANAGER_OFFLINE_TIMEOUT must be a positive whole number of seconds")
 	}
-	if setting.Codespace.QueueTimeout <= 0 {
-		return errors.New("[codespace] QUEUE_TIMEOUT must be positive")
-	}
-	if setting.Codespace.QueueTimeout%time.Second != 0 {
-		return errors.New("[codespace] QUEUE_TIMEOUT must be a positive whole number of seconds")
-	}
 	if setting.Codespace.ControlPlaneTimeout > setting.Codespace.ManagerOfflineTimeout/4 {
 		return errors.New("[codespace] CONTROL_PLANE_TIMEOUT must be no greater than MANAGER_OFFLINE_TIMEOUT/4")
 	}

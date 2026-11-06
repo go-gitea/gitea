@@ -58,8 +58,6 @@ var (
 	ErrUpdateLogSizeExceeded = errors.New("codespace log size exceeded")
 	// ErrReadLogNotFound is returned when the Codespace no longer exists.
 	ErrReadLogNotFound = errors.New("codespace log codespace not found")
-	// ErrReadLogPermissionDenied is returned when the user cannot read this Codespace log.
-	ErrReadLogPermissionDenied = errors.New("codespace log permission denied")
 	// ErrReadLogInvalidArgument is returned when read options are outside the supported range.
 	ErrReadLogInvalidArgument = errors.New("codespace log invalid argument")
 	// ErrReadLogOffsetConflict is returned when the requested offset is not a physical line boundary.
@@ -234,16 +232,12 @@ func ReadLog(ctx context.Context, opts ReadLogOptions) (*ReadLogResult, error) {
 		return nil, fmt.Errorf("%w: limit must be between 1 and %d", ErrReadLogInvalidArgument, LogReadMaxBytes)
 	}
 
-	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
+	codespace, has, err := findCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
 	if err != nil {
 		return nil, err
 	}
 	if !has {
 		return nil, ErrReadLogNotFound
-	}
-	if codespace.UserID != opts.UserID {
-		return nil, ErrReadLogPermissionDenied
 	}
 	if opts.Offset > codespace.LogSize {
 		return nil, &LogOffsetError{Err: ErrReadLogOffsetConflict, CurrentOffset: codespace.LogSize}

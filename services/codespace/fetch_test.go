@@ -21,8 +21,10 @@ import (
 
 func TestFetchOperationsClaimsCreate(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	configureFetchGitTransport(t, codespace_model.GitProtocolHTTP, false, false, nil)
+	configureGitTransportTestSettings(t, codespace_model.GitProtocolHTTP, false, false, nil)
 
+	fullManager := insertServiceManager(t)
+	markServiceManagerOnline(t, fullManager, `[{"tag":"default"}]`)
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	codespaceUUID := "10101010-1010-4010-8010-101010101010"
@@ -33,6 +35,16 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
+
+	fullResult, err := FetchOperations(t.Context(), fullManager, FetchOperationsOptions{
+		AcceptedOperationTypes: []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
+		AcceptedCreateTags:     []string{"default"},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, fullResult.Operations)
+	waiting := loadServiceCodespace(t, codespaceUUID)
+	assert.Zero(t, waiting.ManagerID)
+	assert.True(t, codespace_model.IsOperationQueued(waiting))
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		StartupCapacityAvailable: 1,
@@ -67,7 +79,7 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 
 func TestFetchOperationsReleasesCreateClaimWhenPayloadInvalid(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	configureFetchGitTransport(t, codespace_model.GitProtocolHTTP, false, false, nil)
+	configureGitTransportTestSettings(t, codespace_model.GitProtocolHTTP, false, false, nil)
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
@@ -97,7 +109,7 @@ func TestFetchOperationsReleasesCreateClaimWhenPayloadInvalid(t *testing.T) {
 
 func TestFetchOperationsClaimsOnlyAcceptedCreateTag(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	configureFetchGitTransport(t, codespace_model.GitProtocolHTTP, false, false, nil)
+	configureGitTransportTestSettings(t, codespace_model.GitProtocolHTTP, false, false, nil)
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"},{"tag":"gpu"}]`)
@@ -167,7 +179,7 @@ func TestCanonicalStartRef(t *testing.T) {
 
 func TestBuildCreatePayloadUsesPullRequestHeadBranch(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	configureFetchGitTransport(t, codespace_model.GitProtocolHTTP, false, false, nil)
+	configureGitTransportTestSettings(t, codespace_model.GitProtocolHTTP, false, false, nil)
 
 	payload, err := buildCreatePayload(t.Context(), &codespace_model.Codespace{
 		UserID:              2,
@@ -188,7 +200,7 @@ func TestBuildCreatePayloadUsesPullRequestHeadBranch(t *testing.T) {
 func TestBuildCreatePayloadUsesForkPullRequestRepository(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	require.NoError(t, db.Insert(t.Context(), &git_model.Branch{RepoID: 11, Name: "branch2"}))
-	configureFetchGitTransport(t, codespace_model.GitProtocolHTTP, false, false, nil)
+	configureGitTransportTestSettings(t, codespace_model.GitProtocolHTTP, false, false, nil)
 
 	payload, err := buildCreatePayload(t.Context(), &codespace_model.Codespace{
 		UserID:              11,
@@ -208,8 +220,8 @@ func TestBuildCreatePayloadUsesForkPullRequestRepository(t *testing.T) {
 
 func TestFetchOperationsReturnsSSHCloneURLWhenEnabled(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	configureFetchGitTransport(t, codespace_model.GitProtocolSSH, false, false, []string{
-		"localhost ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf",
+	configureGitTransportTestSettings(t, codespace_model.GitProtocolSSH, false, false, []string{
+		"gitea.example.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf",
 	})
 
 	manager := insertServiceManager(t)
@@ -236,17 +248,6 @@ func TestFetchOperationsReturnsSSHCloneURLWhenEnabled(t *testing.T) {
 	assert.NotEmpty(t, create.GetRepository().GetCloneHttpUrl())
 	assert.NotEmpty(t, create.GetRepository().GetCloneSshUrl())
 	assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_SSH, create.GetRepository().GetPreferredProtocol())
-}
-
-func configureFetchGitTransport(t *testing.T, protocol string, disableHTTPGit, disableSSH bool, knownHosts []string) {
-	t.Helper()
-	t.Cleanup(test.MockVariableValue(&setting.Repository.DisableHTTPGit, disableHTTPGit))
-	t.Cleanup(test.MockVariableValue(&setting.SSH.Disabled, disableSSH))
-	t.Cleanup(test.MockVariableValue(&setting.SSH.Domain, "localhost"))
-	t.Cleanup(test.MockVariableValue(&setting.SSH.Port, 22))
-	t.Cleanup(test.MockVariableValue(&setting.SSH.StartBuiltinServer, false))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.GitSSHKnownHosts, knownHosts))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.GitProtocol, protocol))
 }
 
 func TestFetchOperationsSkipsCreateOutsideManagerUserScope(t *testing.T) {
@@ -348,77 +349,6 @@ func TestFetchOperationsDisabledDrainsWithoutClaimingStartup(t *testing.T) {
 	assert.Zero(t, loadServiceCodespace(t, queuedCreateUUID).ManagerID)
 	assert.True(t, codespace_model.IsOperationQueued(loadServiceCodespace(t, queuedCreateUUID)))
 	assert.True(t, codespace_model.IsOperationRunning(loadServiceCodespace(t, queuedStopUUID)))
-}
-
-func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	manager := insertServiceManager(t)
-	now := time.Now().Unix()
-	cases := []struct {
-		name           string
-		uuid           string
-		status         string
-		withCredential bool
-		expectedStatus string
-		expectToken    bool
-		expectKey      bool
-	}{
-		{
-			name:           "create",
-			uuid:           "16161616-1616-4616-8616-161616161611",
-			status:         codespace_model.StatusCreating,
-			withCredential: true,
-			expectedStatus: codespace_model.StatusFailed,
-		},
-		{
-			name:           "resume",
-			uuid:           "16161616-1616-4616-8616-161616161612",
-			status:         codespace_model.StatusStopped,
-			withCredential: true,
-			expectedStatus: codespace_model.StatusStopped,
-			expectKey:      true,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-				UUID:                 tc.uuid,
-				Status:               tc.status,
-				OperationRVersion:    40,
-				OperationTrigger:     codespace_model.OperationTriggerUser,
-				OperationCreatedUnix: now - int64(setting.Codespace.QueueTimeout/time.Second) - 1,
-			})
-			if tc.withCredential {
-				insertServiceCredentials(t, tc.uuid)
-			}
-
-			require.NoError(t, applyQueuedTimeout(t.Context(), loadServiceCodespace(t, tc.uuid), now))
-
-			row := loadServiceCodespace(t, tc.uuid)
-			assert.Equal(t, tc.expectedStatus, row.Status)
-			assert.False(t, hasActiveOperation(row))
-			assert.Empty(t, row.OperationTrigger)
-			assert.Greater(t, row.UpdatedUnix, int64(1))
-			if tc.expectToken {
-				assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
-			} else {
-				assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
-			}
-			if tc.expectKey {
-				assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
-			} else {
-				assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
-			}
-		})
-	}
-	for _, status := range []string{codespace_model.StatusRunning, codespace_model.StatusDeleting} {
-		assert.False(t, isQueuedExpired(&codespace_model.Codespace{
-			Status: status, OperationTrigger: codespace_model.OperationTriggerUser,
-			OperationCreatedUnix: now - int64(setting.Codespace.QueueTimeout/time.Second) - 1,
-		}, time.Unix(now, 0)))
-	}
 }
 
 func TestFetchOperationsRenewsObservedOperation(t *testing.T) {

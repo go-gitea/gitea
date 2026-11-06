@@ -75,11 +75,29 @@ func TestNormalizeRuntimeMetadataProtoValidation(t *testing.T) {
 				metadata.ResourceUsage.Memory.UsedBytes = -1
 			},
 		},
+		{
+			name: "missing disk capacity",
+			mutate: func(metadata *codespacev1.RuntimeMetadata) {
+				metadata.ResourceUsage.Disk.LimitBytes = 0
+			},
+		},
+		{
+			name: "missing ready workspace folder",
+			mutate: func(metadata *codespacev1.RuntimeMetadata) {
+				metadata.WorkspaceFolder = ""
+			},
+		},
+		{
+			name: "relative workspace folder",
+			mutate: func(metadata *codespacev1.RuntimeMetadata) {
+				metadata.WorkspaceFolder = "workspaces/project"
+			},
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			metadata := metadataProtoForTest(t, 1, bootStageReady, []map[string]any{{
+			metadata := serviceRuntimeMetadataProto(t, 1, bootStageReady, []map[string]any{{
 				"endpoint_id": "web",
 				"label":       "Web",
 				"public":      false,
@@ -91,7 +109,7 @@ func TestNormalizeRuntimeMetadataProtoValidation(t *testing.T) {
 	}
 
 	t.Run("workspace endpoint is optional", func(t *testing.T) {
-		metadata := metadataProtoForTest(t, 1, bootStageReady, []map[string]any{{
+		metadata := serviceRuntimeMetadataProto(t, 1, bootStageReady, []map[string]any{{
 			"endpoint_id": "web",
 			"label":       "Web",
 			"public":      false,
@@ -100,6 +118,13 @@ func TestNormalizeRuntimeMetadataProtoValidation(t *testing.T) {
 		normalized, _, err := normalizeRuntimeMetadata(metadata)
 		require.NoError(t, err)
 		require.Len(t, normalized.Endpoints, 1)
+	})
+
+	t.Run("workspace folder is optional while booting", func(t *testing.T) {
+		metadata := serviceRuntimeMetadataProto(t, 1, bootStagePrepareRuntime, nil)
+		normalized, _, err := normalizeRuntimeMetadata(metadata)
+		require.NoError(t, err)
+		assert.Empty(t, normalized.WorkspaceFolder)
 	})
 }
 
@@ -137,7 +162,7 @@ func TestNormalizeRuntimeMetadataLabelBoundaries(t *testing.T) {
 					"public":      true,
 				})
 			}
-			metadata, _, err := normalizeRuntimeMetadata(metadataProtoForTest(t, 1, bootStageReady, endpoints))
+			metadata, _, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(t, 1, bootStageReady, endpoints))
 			if tc.wantErr {
 				require.Error(t, err)
 				return
@@ -157,13 +182,13 @@ func TestNormalizeRuntimeMetadataLabelBoundaries(t *testing.T) {
 }
 
 func TestNormalizeRuntimeMetadataCanonicalizesEndpointOrder(t *testing.T) {
-	first, firstHash, err := normalizeRuntimeMetadata(metadataProtoForTest(t, 1, bootStageReady, []map[string]any{
+	first, firstHash, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(t, 1, bootStageReady, []map[string]any{
 		{"endpoint_id": "z-api", "label": "Z API", "public": true, "port": 8080},
 		{"endpoint_id": "app", "label": "App", "public": true, "port": 3000},
 	}))
 	require.NoError(t, err)
 
-	second, secondHash, err := normalizeRuntimeMetadata(metadataProtoForTest(t, 1, bootStageReady, []map[string]any{
+	second, secondHash, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(t, 1, bootStageReady, []map[string]any{
 		{"endpoint_id": "app", "label": "App", "public": true, "port": 3000},
 		{"endpoint_id": "z-api", "label": "Z API", "public": true, "port": 8080},
 	}))
@@ -180,13 +205,18 @@ func TestNormalizeRuntimeMetadataCanonicalizesEndpointOrder(t *testing.T) {
 }
 
 func TestNormalizeRuntimeMetadataBootAndResourceUsage(t *testing.T) {
-	input := metadataProtoForTest(t, 1, bootStagePublishReady, []map[string]any{})
+	input := serviceRuntimeMetadataProto(t, 1, bootStagePublishReady, []map[string]any{})
+	input.ResourceUsage.Cpu.LimitMillicores = 0
+	input.ResourceUsage.Memory.LimitBytes = 0
 	metadata, hash, err := normalizeRuntimeMetadata(input)
 	require.NoError(t, err)
 	assert.Equal(t, bootStagePublishReady, metadata.Boot.Stage)
+	assert.Equal(t, "/workspaces/project", metadata.WorkspaceFolder)
 	assert.EqualValues(t, 125, metadata.ResourceUsage.CPU.UsedMillicores)
 	assert.EqualValues(t, 256*1024*1024, metadata.ResourceUsage.Memory.UsedBytes)
 	assert.EqualValues(t, 512*1024*1024, metadata.ResourceUsage.Disk.UsedBytes)
+	assert.Zero(t, metadata.ResourceUsage.CPU.LimitMillicores)
+	assert.Zero(t, metadata.ResourceUsage.Memory.LimitBytes)
 	input.ResourceUsage.Cpu.UsedMillicores++
 	_, nextHash, err := normalizeRuntimeMetadata(input)
 	require.NoError(t, err)
@@ -196,9 +226,4 @@ func TestNormalizeRuntimeMetadataBootAndResourceUsage(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, hash, nextHash)
 	assert.Zero(t, metadata.ResourceUsage.ObservedUnix)
-}
-
-func metadataProtoForTest(t *testing.T, operationRVersion int64, stage string, endpoints []map[string]any) *codespacev1.RuntimeMetadata {
-	t.Helper()
-	return serviceRuntimeMetadataProto(t, operationRVersion, stage, endpoints)
 }

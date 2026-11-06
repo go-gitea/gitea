@@ -17,8 +17,6 @@ import (
 var (
 	// ErrInteractionNotFound is returned when the Codespace no longer exists.
 	ErrInteractionNotFound = errors.New("codespace not found")
-	// ErrInteractionPermissionDenied is returned when the user is not the Codespace creator.
-	ErrInteractionPermissionDenied = errors.New("codespace permission denied")
 	// ErrInteractionStateUnavailable is returned when the lifecycle state cannot accept the request.
 	ErrInteractionStateUnavailable = errors.New("codespace state unavailable")
 	// ErrInteractionVersionExhausted is returned when interaction_generation cannot advance.
@@ -64,9 +62,12 @@ func ContinueCodespace(ctx context.Context, opts ContinueCodespaceOptions) (*Con
 
 	var result *ContinueCodespaceResult
 	err := db.WithTx(ctx, func(ctx context.Context) error {
-		codespace, err := loadCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
+		codespace, has, err := findCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
 		if err != nil {
 			return err
+		}
+		if !has {
+			return ErrInteractionNotFound
 		}
 		if codespace.Status != codespace_model.StatusRunning || (hasActiveOperation(codespace) && !isQueuedIdleStop(codespace)) {
 			return ErrInteractionStateUnavailable
@@ -103,9 +104,12 @@ func UpdateAutoStop(ctx context.Context, opts UpdateAutoStopOptions) (*UpdateAut
 
 	var result *UpdateAutoStopResult
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		codespace, err := loadCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
+		codespace, has, err := findCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
 		if err != nil {
 			return err
+		}
+		if !has {
+			return ErrInteractionNotFound
 		}
 		if codespace.Status != codespace_model.StatusRunning && codespace.Status != codespace_model.StatusStopped {
 			return ErrInteractionStateUnavailable
@@ -160,21 +164,6 @@ func validateCreatorInteractionOptions(userID, codespaceID int64) error {
 		return errors.New("codespace_id must be positive")
 	}
 	return nil
-}
-
-func loadCreatorCodespace(ctx context.Context, userID, codespaceID int64) (*codespace_model.Codespace, error) {
-	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(codespaceID).Get(codespace)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, ErrInteractionNotFound
-	}
-	if codespace.UserID != userID {
-		return nil, ErrInteractionPermissionDenied
-	}
-	return codespace, nil
 }
 
 func normalizeAutoStopOptions(mode string, customTimeoutSeconds int64) (string, int64, error) {

@@ -12,7 +12,6 @@ import (
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 )
 
 const reconcileCodespacesBatchSize = 100
@@ -24,7 +23,6 @@ type ReconcileCodespacesOptions struct {
 
 // ReconcileCodespacesResult reports how many records were changed by the maintenance task.
 type ReconcileCodespacesResult struct {
-	QueuedTimedOut  int
 	RunningTimedOut int
 	FailedDeleted   int
 }
@@ -38,62 +36,10 @@ func ReconcileCodespaces(ctx context.Context, opts ReconcileCodespacesOptions) (
 	now := time.Now().Unix()
 	result := &ReconcileCodespacesResult{}
 	err := errors.Join(
-		reconcileQueuedOperationTimeouts(ctx, now, result),
 		reconcileRunningOperationTimeouts(ctx, now, result),
 		reconcileFailedCodespaces(ctx, now, opts.FailedOlderThan, result),
 	)
 	return result, err
-}
-
-func reconcileQueuedOperationTimeouts(ctx context.Context, now int64, result *ReconcileCodespacesResult) error {
-	var rows []*codespace_model.Codespace
-	if err := db.GetEngine(ctx).
-		Where("operation_created_unix > 0 AND operation_created_unix <= ? AND operation_started_unix = 0 AND operation_deadline_unix = 0",
-			now-int64(setting.Codespace.QueueTimeout/time.Second)).
-		In("status", codespace_model.StatusCreating, codespace_model.StatusStopped).
-		Asc("operation_created_unix", "id").
-		Limit(reconcileCodespacesBatchSize).
-		Find(&rows); err != nil {
-		return err
-	}
-
-	var errs []error
-	for _, row := range rows {
-		if err := reconcileQueuedOperationTimeout(ctx, row.ID, now, result); err != nil {
-			log.Error("Failed to reconcile queued Codespace operation %d: %v", row.ID, err)
-			errs = append(errs, fmt.Errorf("queued operation %d: %w", row.ID, err))
-		}
-	}
-	return errors.Join(errs...)
-}
-
-func reconcileQueuedOperationTimeout(ctx context.Context, codespaceID, now int64, result *ReconcileCodespacesResult) error {
-	var summary *internalStateSummary
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(codespaceID).Get(codespace)
-		if err != nil || !has {
-			return err
-		}
-		if !codespace_model.IsOperationQueued(codespace) || !isQueuedExpired(codespace, time.Unix(now, 0)) {
-			return nil
-		}
-		summary = operationTimeoutSummary(codespace, queuedTimeoutStatus(codespace_model.ActiveOperationType(codespace)))
-		if err := applyQueuedTimeout(ctx, codespace, now); err != nil {
-			if errors.Is(err, errCodespaceStateChanged) {
-				summary = nil
-				return nil
-			}
-			return err
-		}
-		result.QueuedTimedOut++
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	appendInternalStateSummary(ctx, summary)
-	return nil
 }
 
 func reconcileRunningOperationTimeouts(ctx context.Context, now int64, result *ReconcileCodespacesResult) error {

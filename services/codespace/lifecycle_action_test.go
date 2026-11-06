@@ -103,6 +103,18 @@ func TestResumeCodespaceQueuesResume(t *testing.T) {
 	assert.Equal(t, codespace_model.OperationTriggerUser, row.OperationTrigger)
 	assert.EqualValues(t, 8, row.InteractionGeneration)
 	assert.Positive(t, row.LastActiveUnix)
+
+	result, err = CancelResumeCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
+	require.NoError(t, err)
+	assert.Equal(t, codespace_model.StatusStopped, result.Status)
+	assert.Empty(t, result.OperationType)
+	assert.EqualValues(t, 19, result.OperationRVersion)
+	row = loadServiceCodespace(t, codespaceUUID)
+	assert.False(t, hasActiveOperation(row))
+	assert.EqualValues(t, 8, row.InteractionGeneration)
+
+	_, err = CancelResumeCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
+	require.ErrorIs(t, err, ErrLifecycleActionStateUnavailable)
 }
 
 func TestDeleteCodespacePhysicalForUnboundCreatingAndFailed(t *testing.T) {
@@ -241,7 +253,7 @@ func TestLifecycleActionsRequireCreator(t *testing.T) {
 	})
 
 	_, err := StopCodespace(t.Context(), LifecycleActionOptions{UserID: 2, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
-	require.ErrorIs(t, err, ErrLifecycleActionPermissionDenied)
+	require.ErrorIs(t, err, ErrLifecycleActionNotFound)
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.Equal(t, codespace_model.StatusRunning, row.Status)
 	assert.False(t, hasActiveOperation(row))

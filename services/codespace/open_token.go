@@ -112,15 +112,11 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 	var result *openEndpointResult
 	var unavailableCategory string
 	err := db.WithTx(ctx, func(ctx context.Context) error {
-		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
+		codespace, has, err := findCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
 		if err != nil {
 			return err
 		}
 		if !has {
-			return ErrOpenEndpointNotFound
-		}
-		if codespace.UserID != opts.UserID {
 			return ErrOpenEndpointNotFound
 		}
 		if codespace.UUID == "" {

@@ -5,6 +5,7 @@ package codespace
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"testing"
 
@@ -69,7 +70,7 @@ func TestListFiltersCurrentCreatorByRepositoryOwner(t *testing.T) {
 	assert.EqualValues(t, 2, repositoryOwner.ID)
 	assert.Equal(t, "/-/codespaces?owner=user2&partial=true", ctx.Data["CodespaceListStateURL"])
 
-	ctx, resp = contexttest.MockContext(t, "GET /-/codespaces?owner=org3&partial=true", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-org-list")})
+	ctx, resp = contexttest.MockContext(t, "GET /-/codespaces?owner=org3&q=repo3&partial=true", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-org-list")})
 	contexttest.LoadUser(t, ctx, 2)
 	List(ctx)
 
@@ -81,10 +82,13 @@ func TestListFiltersCurrentCreatorByRepositoryOwner(t *testing.T) {
 	repositoryOwner, ok = ctx.Data["CodespaceRepositoryOwner"].(*user_model.User)
 	require.True(t, ok)
 	assert.EqualValues(t, 3, repositoryOwner.ID)
-	assert.Equal(t, "/-/codespaces?owner=org3&partial=true", ctx.Data["CodespaceListStateURL"])
+	assert.Equal(t, "repo3", ctx.Data["Keyword"])
+	assert.Equal(t, "/-/codespaces?owner=org3&partial=true&q=repo3", ctx.Data["CodespaceListStateURL"])
 	pager, ok := ctx.Data["Page"].(*context.Pagination)
 	require.True(t, ok)
-	assert.Equal(t, "owner=org3", string(pager.GetParams()))
+	params, err := url.ParseQuery(string(pager.GetParams()))
+	require.NoError(t, err)
+	assert.Equal(t, url.Values{"owner": {"org3"}, "q": {"repo3"}}, params)
 	assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
 }
 
@@ -152,6 +156,12 @@ func TestDetailOpensGatewayRecoveryModal(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
+	_, err := db.GetEngine(t.Context()).ID(manager.ID).Cols("gateway_ssh_addr", "gateway_ssh_host_key_algorithm", "gateway_ssh_host_key_fingerprint_sha256").Update(&codespace_model.Manager{
+		GatewaySSHAddr:                     "ssh.example.com:2222",
+		GatewaySSHHostKeyAlgorithm:         "ssh-ed25519",
+		GatewaySSHHostKeyFingerprintSHA256: "SHA256:view",
+	})
+	require.NoError(t, err)
 	codespaceUUID := "27272727-2727-4727-8727-272727272727"
 	insertWebOpenCodespace(t, manager.ID, codespaceUUID, 94)
 	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
@@ -175,6 +185,9 @@ func TestDetailOpensGatewayRecoveryModal(t *testing.T) {
 	assert.Equal(t, "App", modal.Label)
 	assert.Equal(t, "codespace.authenticated_endpoint", modal.Access)
 	assert.Equal(t, "/-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/open/app-3000", modal.OpenPath)
+	assert.Contains(t, resp.Body.String(), "vscode://vscode-remote/ssh-remote&#43;cs-"+codespaceUUID+"@ssh.example.com:2222/workspaces/project")
+	assert.Contains(t, resp.Body.String(), "zed://ssh/cs-"+codespaceUUID+"@ssh.example.com:2222/workspaces/project")
+	assert.NotContains(t, resp.Body.String(), "#ZgotmplZ")
 }
 
 func TestDetailRejectsOtherCreator(t *testing.T) {

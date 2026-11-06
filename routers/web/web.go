@@ -564,6 +564,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/logs/download", web_codespace.DownloadLogs)
 		m.Post("/stop", web_codespace.Stop)
 		m.Post("/resume", web_codespace.Resume)
+		m.Post("/resume/cancel", web_codespace.CancelResume)
 		m.Post("/delete", web_codespace.Delete)
 		m.Post("/continue", web_codespace.Continue)
 		m.Post("/auto-stop", web_codespace.AutoStop)

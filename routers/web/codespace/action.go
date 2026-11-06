@@ -27,9 +27,14 @@ func Resume(ctx *context.Context) {
 	lifecycleAction(ctx, codespace_service.ResumeCodespace, "")
 }
 
+// CancelResume cancels an unclaimed resume for the creator's Codespace.
+func CancelResume(ctx *context.Context) {
+	lifecycleAction(ctx, codespace_service.CancelResumeCodespace, "")
+}
+
 // Delete deletes or queues deletion for the creator's Codespace.
 func Delete(ctx *context.Context) {
-	lifecycleAction(ctx, codespace_service.DeleteCodespace, codespaceListPath("", 1))
+	lifecycleAction(ctx, codespace_service.DeleteCodespace, codespaceListPath("", "", 1))
 }
 
 type lifecycleActionFunc func(gocontext.Context, codespace_service.LifecycleActionOptions) (*codespace_service.LifecycleActionResult, error)
@@ -118,7 +123,7 @@ func AutoStop(ctx *context.Context) {
 			return
 		}
 		switch {
-		case errors.Is(err, codespace_service.ErrInteractionNotFound), errors.Is(err, codespace_service.ErrInteractionPermissionDenied):
+		case errors.Is(err, codespace_service.ErrInteractionNotFound):
 			ctx.JSONErrorNotFound()
 		case errors.Is(err, codespace_service.ErrInteractionStateUnavailable):
 			ctx.JSONError(ctx.Tr("codespace.error.state_unavailable"))
@@ -137,7 +142,7 @@ func handleInteractionError(ctx *context.Context, name string, err error, return
 	switch {
 	case errors.Is(err, codespace_service.ErrInteractionInvalidArgument):
 		ctx.Flash.Error(ctx.Tr("codespace.error.invalid_request"))
-	case errors.Is(err, codespace_service.ErrInteractionNotFound), errors.Is(err, codespace_service.ErrInteractionPermissionDenied):
+	case errors.Is(err, codespace_service.ErrInteractionNotFound):
 		ctx.NotFound(nil)
 		return
 	case errors.Is(err, codespace_service.ErrInteractionStateUnavailable):
@@ -153,7 +158,7 @@ func handleInteractionError(ctx *context.Context, name string, err error, return
 
 func handleLifecycleActionError(ctx *context.Context, name string, err error, returnPath string) {
 	switch {
-	case errors.Is(err, codespace_service.ErrLifecycleActionNotFound), errors.Is(err, codespace_service.ErrLifecycleActionPermissionDenied):
+	case errors.Is(err, codespace_service.ErrLifecycleActionNotFound):
 		ctx.NotFound(nil)
 		return
 	case errors.Is(err, codespace_service.ErrLifecycleActionStateUnavailable):
@@ -197,10 +202,13 @@ func codespaceActionReturnPath(codespaceID int64, raw, fallback string) string {
 	return parsed.String()
 }
 
-func codespaceListPath(owner string, page int) string {
+func codespaceListPath(owner, keyword string, page int) string {
 	values := url.Values{}
 	if owner != "" {
 		values.Set("owner", owner)
+	}
+	if keyword != "" {
+		values.Set("q", keyword)
 	}
 	if page > 1 {
 		values.Set("page", strconv.Itoa(page))

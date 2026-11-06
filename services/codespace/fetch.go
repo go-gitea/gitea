@@ -126,7 +126,7 @@ func fetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 		grantTime := time.Now()
 		remaining := int(maxOperations) - len(result.Operations)
 		if opts.CleanupCapacityAvailable > 0 {
-			claimed, err := claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, int(opts.CleanupCapacityAvailable), nil, []string{codespace_model.OperationStop, codespace_model.OperationDelete}, result, &summaries)
+			claimed, err := claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, int(opts.CleanupCapacityAvailable), nil, []string{codespace_model.OperationStop, codespace_model.OperationDelete}, result)
 			if err != nil {
 				return err
 			}
@@ -137,7 +137,7 @@ func fetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 		}
 		capacity := int(opts.StartupCapacityAvailable)
 		if slices.Contains(opts.AcceptedOperationTypes, codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE) && len(acceptedCreateTags) > 0 {
-			claimed, err := claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, capacity, acceptedCreateTags, []string{codespace_model.OperationCreate}, result, &summaries)
+			claimed, err := claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, capacity, acceptedCreateTags, []string{codespace_model.OperationCreate}, result)
 			if err != nil {
 				return err
 			}
@@ -145,7 +145,7 @@ func fetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 			capacity -= claimed
 		}
 		if remaining > 0 && capacity > 0 && slices.Contains(opts.AcceptedOperationTypes, codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_RESUME) {
-			_, err = claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, capacity, nil, []string{codespace_model.OperationResume}, result, &summaries)
+			_, err = claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, capacity, nil, []string{codespace_model.OperationResume}, result)
 		}
 		return err
 	})
@@ -246,8 +246,7 @@ func normalizeAcceptedCreateTags(tags []string, declared []ManagerEnvironmentDec
 	normalized := make([]string, 0, len(tags))
 	seen := make(map[string]struct{}, len(tags))
 	for _, tag := range tags {
-		tag = strings.ToLower(strings.TrimSpace(tag))
-		if !tagPattern.MatchString(tag) {
+		if !environmentTagPattern.MatchString(tag) {
 			return nil, fmt.Errorf("invalid accepted create tag %q", tag)
 		}
 		if _, ok := declaredTags[tag]; !ok {
@@ -371,7 +370,7 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 	return nil
 }
 
-func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, grantTime time.Time, remaining, capacity int, createTags, operationTypes []string, result *codespacev1.FetchOperationsResponse, summaries *[]*internalStateSummary) (int, error) {
+func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, grantTime time.Time, remaining, capacity int, createTags, operationTypes []string, result *codespacev1.FetchOperationsResponse) (int, error) {
 	if remaining <= 0 || capacity <= 0 {
 		return 0, nil
 	}
@@ -397,28 +396,6 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 	for _, candidate := range candidates {
 		if claimed >= capacity || claimed >= remaining {
 			break
-		}
-		if isQueuedExpired(candidate, grantTime) {
-			var summary *internalStateSummary
-			err := db.WithTx(ctx, func(ctx context.Context) error {
-				current := new(codespace_model.Codespace)
-				has, err := db.GetEngine(ctx).ID(candidate.ID).Get(current)
-				if err != nil || !has {
-					return err
-				}
-				if current.OperationRVersion != candidate.OperationRVersion || !codespace_model.IsOperationQueued(current) || !isQueuedExpired(current, grantTime) {
-					return nil
-				}
-				summary = operationTimeoutSummary(current, queuedTimeoutStatus(codespace_model.ActiveOperationType(current)))
-				return applyQueuedTimeout(ctx, current, grantTime.Unix())
-			})
-			if err != nil {
-				return claimed, err
-			}
-			if summary != nil {
-				*summaries = append(*summaries, summary)
-			}
-			continue
 		}
 		startedUnix := grantTime.Unix()
 		leaseMillis, deadlineUnix, ok := grantLease(startedUnix, grantTime)
@@ -500,30 +477,6 @@ func queuedOperationCandidateStatuses(operationTypes []string) []string {
 		}
 	}
 	return statuses
-}
-
-func isQueuedExpired(codespace *codespace_model.Codespace, now time.Time) bool {
-	return !isConvergentOperation(codespace_model.ActiveOperationType(codespace)) &&
-		codespace_model.IsOperationQueued(codespace) &&
-		codespace.OperationCreatedUnix > 0 &&
-		now.Unix() >= codespace.OperationCreatedUnix+int64(setting.Codespace.QueueTimeout/time.Second)
-}
-
-func applyQueuedTimeout(ctx context.Context, codespace *codespace_model.Codespace, now int64) error {
-	operationType := codespace_model.ActiveOperationType(codespace)
-	if isConvergentOperation(operationType) {
-		return nil
-	}
-	return applyFinalState(ctx, codespace, queuedTimeoutStatus(operationType), now)
-}
-
-func queuedTimeoutStatus(operationType string) string {
-	switch operationType {
-	case codespace_model.OperationResume:
-		return codespace_model.StatusStopped
-	default:
-		return codespace_model.StatusFailed
-	}
 }
 
 func applyRunningTimeout(ctx context.Context, codespace *codespace_model.Codespace, now int64) error {

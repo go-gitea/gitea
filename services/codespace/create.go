@@ -224,8 +224,8 @@ func CreateCodespace(ctx context.Context, opts CreateCodespaceOptions) (*CreateC
 				if !canRead {
 					return ErrCreatePermissionDenied
 				}
-				environmentTag := strings.ToLower(strings.TrimSpace(opts.EnvironmentTag))
-				if !tagPattern.MatchString(environmentTag) {
+				environmentTag := opts.EnvironmentTag
+				if !environmentTagPattern.MatchString(environmentTag) {
 					return ErrCreateEnvironmentUnavailable
 				}
 				environments, err := listVisibleCreateEnvironments(ctx, user.ID, environmentTag)
@@ -636,7 +636,6 @@ func listVisibleCreateEnvironments(ctx context.Context, userID int64, selectedTa
 			}
 		}
 	}
-	selectedTag = strings.ToLower(strings.TrimSpace(selectedTag))
 	result := make([]CreateEnvironmentOption, 0, len(byTag))
 	for _, item := range byTag {
 		if len(item.descriptions) == 1 {

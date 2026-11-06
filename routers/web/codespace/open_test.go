@@ -146,7 +146,8 @@ func webOpenRuntimeMetadata(t *testing.T, operationRVersion int64, endpoints []*
 	metadataEndpoints := slices.Clone(endpoints)
 	metadataEndpoints = append(metadataEndpoints, &codespacev1.RuntimeEndpoint{EndpointId: "workspace", Label: "Workspace"})
 	return &codespacev1.RuntimeMetadata{
-		Endpoints: metadataEndpoints,
+		Endpoints:       metadataEndpoints,
+		WorkspaceFolder: "/workspaces/project",
 		Boot: &codespacev1.RuntimeBoot{
 			OperationRversion: operationRVersion,
 			Stage:             codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY,

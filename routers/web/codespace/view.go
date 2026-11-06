@@ -70,9 +70,11 @@ func List(ctx *context.Context) {
 
 	page := max(ctx.FormInt("page"), 1)
 	pageSize := setting.UI.User.RepoPagingNum
+	keyword := strings.TrimSpace(ctx.FormString("q"))
 	result, err := codespace_service.ListCreatorCodespaces(ctx, codespace_service.CreatorListOptions{
 		UserID:      ctx.Doer.ID,
 		RepoOwnerID: repoOwnerID,
+		Keyword:     keyword,
 		Page:        page,
 		PageSize:    pageSize,
 	})
@@ -82,15 +84,16 @@ func List(ctx *context.Context) {
 	}
 	if page > 1 && len(result.Rows) == 0 && result.Total > 0 {
 		lastPage := int((result.Total + int64(pageSize) - 1) / int64(pageSize))
-		ctx.Redirect(setting.AppSubURL+codespaceListPath(ownerName, lastPage), http.StatusSeeOther)
+		ctx.Redirect(setting.AppSubURL+codespaceListPath(ownerName, keyword, lastPage), http.StatusSeeOther)
 		return
 	}
 
 	ctx.Data["Title"] = ctx.Tr("codespace.title")
 	ctx.Data["PageIsCodespaces"] = true
 	ctx.Data["Codespaces"] = result.Rows
-	ctx.Data["CodespaceListReturnTo"] = setting.AppSubURL + codespaceListPath(ownerName, page)
-	stateURL, _ := url.Parse(setting.AppSubURL + codespaceListPath(ownerName, page))
+	ctx.Data["Keyword"] = keyword
+	ctx.Data["CodespaceListReturnTo"] = setting.AppSubURL + codespaceListPath(ownerName, keyword, page)
+	stateURL, _ := url.Parse(setting.AppSubURL + codespaceListPath(ownerName, keyword, page))
 	query := stateURL.Query()
 	query.Set("partial", "true")
 	stateURL.RawQuery = query.Encode()
@@ -168,10 +171,10 @@ func State(ctx *context.Context) {
 }
 
 func setCreatorDetailTab(ctx *context.Context, view *codespace_service.CreatorCodespaceView) {
-	listReturnTo := setting.AppSubURL + codespaceListPath("", 1)
+	listReturnTo := setting.AppSubURL + codespaceListPath("", "", 1)
 	if target, err := url.Parse(ctx.FormString("return_to")); err == nil && target.Scheme == "" && target.Host == "" && target.Fragment == "" && target.Path == listReturnTo {
 		page, _ := strconv.Atoi(target.Query().Get("page"))
-		listReturnTo = setting.AppSubURL + codespaceListPath(target.Query().Get("owner"), max(1, page))
+		listReturnTo = setting.AppSubURL + codespaceListPath(target.Query().Get("owner"), target.Query().Get("q"), max(1, page))
 	}
 	ctx.Data["CodespaceListReturnTo"] = listReturnTo
 	tab := strings.TrimSpace(ctx.FormString("tab"))
@@ -203,7 +206,7 @@ func loadCreatorDetail(ctx *context.Context) (*codespace_service.CreatorCodespac
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, codespace_service.ErrViewNotFound), errors.Is(err, codespace_service.ErrViewPermissionDenied):
+		case errors.Is(err, codespace_service.ErrViewNotFound):
 			ctx.NotFound(nil)
 		default:
 			ctx.ServerError("GetCreatorCodespace", err)

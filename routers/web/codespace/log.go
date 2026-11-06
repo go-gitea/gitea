@@ -60,7 +60,7 @@ func Logs(ctx *context.Context) {
 		switch {
 		case errors.Is(err, codespace_service.ErrReadLogInvalidArgument):
 			writeLogError(ctx, http.StatusBadRequest, "invalid_argument", 0)
-		case errors.Is(err, codespace_service.ErrReadLogPermissionDenied), errors.Is(err, codespace_service.ErrReadLogNotFound):
+		case errors.Is(err, codespace_service.ErrReadLogNotFound):
 			writeLogError(ctx, http.StatusNotFound, "codespace_not_found", 0)
 		default:
 			ctx.ServerError("ReadLog", err)
@@ -119,7 +119,7 @@ func DownloadLogs(ctx *context.Context) {
 
 func handleDownloadLogError(ctx *context.Context, err error) {
 	switch {
-	case errors.Is(err, codespace_service.ErrReadLogPermissionDenied), errors.Is(err, codespace_service.ErrReadLogNotFound):
+	case errors.Is(err, codespace_service.ErrReadLogNotFound):
 		ctx.NotFound(nil)
 	case errors.Is(err, codespace_service.ErrReadLogInvalidArgument), errors.Is(err, codespace_service.ErrReadLogOffsetConflict):
 		ctx.HTTPError(http.StatusConflict)

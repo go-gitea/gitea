@@ -17,7 +17,7 @@ import (
 func TestCodespaceActionHelpers(t *testing.T) {
 	t.Run("detail return context", func(t *testing.T) {
 		for _, test := range []struct{ input, want string }{
-			{"/-/codespaces?owner=org3&page=2", "/-/codespaces?owner=org3&page=2"},
+			{"/-/codespaces?owner=org3&page=2&q=remote+workspace", "/-/codespaces?owner=org3&page=2&q=remote+workspace"},
 			{"https://example.com/-/codespaces", "/-/codespaces"},
 			{"/-/codespaces/99", "/-/codespaces"},
 		} {
@@ -43,7 +43,7 @@ func TestCodespaceActionHelpers(t *testing.T) {
 		for _, test := range tests {
 			assert.Equal(t, test.want, codespaceActionReturnPath(12, test.input, codespaceDetailPath(12)))
 		}
-		assert.Equal(t, "/-/codespaces?owner=org&page=2", codespaceListPath("org", 2))
+		assert.Equal(t, "/-/codespaces?owner=org&page=2&q=remote+workspace", codespaceListPath("org", "remote workspace", 2))
 	})
 
 	t.Run("auto-stop duration form", func(t *testing.T) {
@@ -83,11 +83,9 @@ func TestCodespaceActionErrorResponses(t *testing.T) {
 	}{
 		{"invalid interaction", codespace_service.ErrInteractionInvalidArgument, true, http.StatusSeeOther, true},
 		{"missing interaction", codespace_service.ErrInteractionNotFound, true, http.StatusNotFound, false},
-		{"denied interaction", codespace_service.ErrInteractionPermissionDenied, true, http.StatusNotFound, false},
 		{"unavailable interaction", codespace_service.ErrInteractionStateUnavailable, true, http.StatusSeeOther, true},
 		{"exhausted interaction", codespace_service.ErrInteractionVersionExhausted, true, http.StatusSeeOther, true},
 		{"missing lifecycle", codespace_service.ErrLifecycleActionNotFound, false, http.StatusNotFound, false},
-		{"denied lifecycle", codespace_service.ErrLifecycleActionPermissionDenied, false, http.StatusNotFound, false},
 		{"unavailable lifecycle", codespace_service.ErrLifecycleActionStateUnavailable, false, http.StatusSeeOther, true},
 		{"exhausted lifecycle", codespace_service.ErrLifecycleActionVersionExhausted, false, http.StatusSeeOther, true},
 	}

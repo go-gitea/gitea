@@ -164,16 +164,13 @@ func (*Codespace) TableIndices() []*schemas.Index {
 	managerActive := schemas.NewIndex("manager_active", schemas.IndexType)
 	managerActive.AddColumn("manager_id", "operation_started_unix", "operation_created_unix", "id")
 
-	queuedTimeout := schemas.NewIndex("queued_timeout", schemas.IndexType)
-	queuedTimeout.AddColumn("operation_started_unix", "operation_created_unix", "id")
-
 	runningTimeout := schemas.NewIndex("running_timeout", schemas.IndexType)
 	runningTimeout.AddColumn("operation_deadline_unix", "id")
 
 	failedRetention := schemas.NewIndex("failed_retention", schemas.IndexType)
 	failedRetention.AddColumn("status", "updated_unix", "id")
 
-	return []*schemas.Index{userUpdated, repo, createClaim, managerActive, queuedTimeout, runningTimeout, failedRetention}
+	return []*schemas.Index{userUpdated, repo, createClaim, managerActive, runningTimeout, failedRetention}
 }
 
 // TableIndices returns Manager indexes in the same order as their main queries.

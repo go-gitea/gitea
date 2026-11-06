@@ -23,28 +23,14 @@ export function initCodespaceCreateForm() {
 
   const environmentInput = form.querySelector<HTMLInputElement>('input[name="environment_tag"]');
   const environmentDropdown = environmentInput?.closest<HTMLElement>('.dropdown');
-  const environmentText = environmentDropdown?.querySelector<HTMLElement>('[data-codespace-environment-text]');
   const environmentDetails = form.querySelectorAll<HTMLElement>('[data-codespace-environment-detail]');
-  const selectEnvironment = (tag: string) => {
-    if (environmentInput) environmentInput.value = tag;
-    if (environmentText && tag) {
-      environmentText.textContent = tag;
-      environmentText.classList.remove('default');
-    }
+  environmentInput?.addEventListener('change', () => {
     environmentDropdown?.classList.remove('error');
     environmentDropdown?.removeAttribute('aria-invalid');
     for (const detail of environmentDetails) {
-      toggleElem(detail, detail.getAttribute('data-codespace-environment-detail') === tag);
+      toggleElem(detail, detail.getAttribute('data-codespace-environment-detail') === environmentInput.value);
     }
-  };
-  environmentInput?.addEventListener('change', () => {
-    selectEnvironment(environmentInput.value);
   });
-  for (const option of form.querySelectorAll<HTMLElement>('.codespace-create-environment-option')) {
-    option.addEventListener('click', () => {
-      selectEnvironment(option.getAttribute('data-value') ?? '');
-    });
-  }
   form.addEventListener('submit', (event) => {
     if (form.querySelector<HTMLButtonElement>('[data-codespace-create]')?.disabled) {
       event.preventDefault();
@@ -57,23 +43,23 @@ export function initCodespaceCreateForm() {
     environmentDropdown?.focus();
   });
 
-  const devContainerSelect = form.querySelector<HTMLSelectElement>('[data-codespace-dev-container]');
+  const devContainerInput = form.querySelector<HTMLInputElement>('[data-codespace-dev-container]');
   const reviewButton = form.querySelector<HTMLButtonElement>('[data-codespace-review]');
   const createButton = form.querySelector<HTMLButtonElement>('[data-codespace-create]');
-  const reviewedSelection = devContainerSelect?.value;
-  devContainerSelect?.addEventListener('change', () => {
-    const changed = devContainerSelect.value !== reviewedSelection;
+  const reviewedSelection = devContainerInput?.value;
+  devContainerInput?.addEventListener('change', () => {
+    const changed = devContainerInput.value !== reviewedSelection;
     if (reviewButton) toggleElem(reviewButton, changed);
     const warning = form.querySelector<HTMLElement>('[data-codespace-review-warning]');
     if (warning) toggleElem(warning, changed);
     if (createButton) createButton.disabled = changed || !form.querySelector<HTMLInputElement>('[name="request_hash"]')!.value;
   });
   reviewButton?.addEventListener('click', () => {
-    if (!devContainerSelect) return;
-    const previewURL = new URL(devContainerSelect.getAttribute('data-preview-url')!, window.location.href);
-    previewURL.searchParams.set('ref_type', devContainerSelect.getAttribute('data-ref-type')!);
-    previewURL.searchParams.set('ref_name', devContainerSelect.getAttribute('data-ref-name')!);
-    previewURL.searchParams.set('dev_container', devContainerSelect.value);
+    if (!devContainerInput) return;
+    const previewURL = new URL(devContainerInput.getAttribute('data-preview-url')!, window.location.href);
+    previewURL.searchParams.set('ref_type', devContainerInput.getAttribute('data-ref-type')!);
+    previewURL.searchParams.set('ref_name', devContainerInput.getAttribute('data-ref-name')!);
+    previewURL.searchParams.set('dev_container', devContainerInput.value);
     if (environmentInput?.value) previewURL.searchParams.set('environment_tag', environmentInput.value);
     ignoreAreYouSure(form);
     window.location.assign(previewURL);
@@ -257,7 +243,6 @@ function initCodespaceLog(logEl: HTMLElement) {
   const panel = logEl.closest<HTMLElement>('.codespace-log-panel')!;
   const content = logEl.querySelector<HTMLElement>('[data-log-content]')!;
   const empty = logEl.querySelector<HTMLElement>('[data-log-empty-message]')!;
-  const loading = panel.querySelector<HTMLElement>('[data-codespace-log-loading]')!;
   const error = panel.querySelector<HTMLElement>('[data-log-error]')!;
   const retry = panel.querySelector<HTMLButtonElement>('[data-log-retry]')!;
   const lifetime = new AbortController();
@@ -284,7 +269,6 @@ function initCodespaceLog(logEl: HTMLElement) {
     clearTimeout(timer);
     timer = undefined;
     pending = true;
-    loading.classList.remove('tw-invisible');
     const requestRevision = revision;
     const following = eof && atBottom();
     try {
@@ -334,7 +318,6 @@ function initCodespaceLog(logEl: HTMLElement) {
       if (atBottom()) schedule(refreshDelay(refreshAfter, ++failures));
     } finally {
       pending = false;
-      loading.classList.add('tw-invisible');
     }
   }
 

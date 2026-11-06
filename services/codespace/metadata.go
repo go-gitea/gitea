@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"path"
 	"regexp"
 	"slices"
 	"strings"
@@ -80,9 +81,10 @@ type runtimeMetadataCacheEntry struct {
 }
 
 type runtimeMetadata struct {
-	Endpoints     []runtimeMetadataEndpoint    `json:"endpoints"`
-	Boot          runtimeMetadataBoot          `json:"boot"`
-	ResourceUsage runtimeMetadataResourceUsage `json:"resource_usage"`
+	Endpoints       []runtimeMetadataEndpoint    `json:"endpoints"`
+	Boot            runtimeMetadataBoot          `json:"boot"`
+	ResourceUsage   runtimeMetadataResourceUsage `json:"resource_usage"`
+	WorkspaceFolder string                       `json:"workspace_folder"`
 }
 
 type runtimeMetadataEndpoint struct {
@@ -240,6 +242,15 @@ func normalizeRuntimeMetadata(input *codespacev1.RuntimeMetadata) (runtimeMetada
 		return runtimeMetadata{}, "", fmt.Errorf("invalid boot stage %q", input.GetBoot().GetStage())
 	}
 
+	workspaceFolder := input.GetWorkspaceFolder()
+	if workspaceFolder != "" {
+		if len(workspaceFolder) > 4096 || !utf8.ValidString(workspaceFolder) || strings.TrimSpace(workspaceFolder) != workspaceFolder || !path.IsAbs(workspaceFolder) || path.Clean(workspaceFolder) != workspaceFolder || strings.ContainsFunc(workspaceFolder, unicode.IsControl) {
+			return runtimeMetadata{}, "", errors.New("runtime metadata workspace folder must be a clean absolute POSIX path")
+		}
+	} else if bootStage == bootStagePublishReady || bootStage == bootStageReady {
+		return runtimeMetadata{}, "", errors.New("runtime metadata workspace folder is required when publishing ready state")
+	}
+
 	metadata := runtimeMetadata{
 		Endpoints: make([]runtimeMetadataEndpoint, 0, len(input.GetEndpoints())),
 		Boot: runtimeMetadataBoot{
@@ -248,7 +259,8 @@ func normalizeRuntimeMetadata(input *codespacev1.RuntimeMetadata) (runtimeMetada
 			StartedUnix:       input.GetBoot().GetStartedUnix(),
 			LastUpdateUnix:    input.GetBoot().GetLastUpdateUnix(),
 		},
-		ResourceUsage: resourceUsage,
+		ResourceUsage:   resourceUsage,
+		WorkspaceFolder: workspaceFolder,
 	}
 	if err := validateRuntimeMetadataBoot(metadata.Boot); err != nil {
 		return runtimeMetadata{}, "", err
@@ -345,6 +357,9 @@ func normalizeRuntimeMetadataResourceUsage(input *codespacev1.RuntimeResourceUsa
 		usage.Disk.UsedBytes < 0 || usage.Disk.LimitBytes < 0 ||
 		usage.ObservedUnix < 0 {
 		return runtimeMetadataResourceUsage{}, errors.New("runtime metadata resource usage must not be negative")
+	}
+	if usage.Disk.LimitBytes == 0 {
+		return runtimeMetadataResourceUsage{}, errors.New("runtime metadata disk limit must be positive")
 	}
 	if usage.ObservedUnix > time.Now().Unix()+30 {
 		return runtimeMetadataResourceUsage{}, errors.New("runtime metadata observation time is too far in the future")

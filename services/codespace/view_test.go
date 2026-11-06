@@ -63,11 +63,13 @@ func TestListCreatorCodespacesPaginatesWithinRepositoryOwner(t *testing.T) {
 		"37373737-3737-4737-8737-373737373737",
 		"38383838-3838-4838-8838-383838383838",
 	}
+	environmentTags := []string{"rust", "python", "go"}
 	for index, uuid := range uuids {
 		insertServiceCodespace(t, 0, &codespace_model.Codespace{UUID: uuid, Status: codespace_model.StatusStopped})
-		_, err := db.GetEngine(t.Context()).Where("uuid = ?", uuid).Cols("repo_id", "updated_unix").Update(&codespace_model.Codespace{
-			RepoID:      3,
-			UpdatedUnix: int64(index + 2),
+		_, err := db.GetEngine(t.Context()).Where("uuid = ?", uuid).Cols("repo_id", "environment_tag", "updated_unix").Update(&codespace_model.Codespace{
+			RepoID:         3,
+			EnvironmentTag: environmentTags[index],
+			UpdatedUnix:    int64(index + 2),
 		})
 		require.NoError(t, err)
 	}
@@ -85,6 +87,17 @@ func TestListCreatorCodespacesPaginatesWithinRepositoryOwner(t *testing.T) {
 	assert.EqualValues(t, 2, second.Total)
 	require.Len(t, second.Rows, 1)
 	assert.Equal(t, uuids[0], second.Rows[0].UUID)
+
+	byRepository, err := ListCreatorCodespaces(t.Context(), CreatorListOptions{UserID: 1, Keyword: "ORG3/REPO3", Page: 1, PageSize: 1})
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, byRepository.Total)
+	require.Len(t, byRepository.Rows, 1)
+
+	byEnvironment, err := ListCreatorCodespaces(t.Context(), CreatorListOptions{UserID: 1, Keyword: "python", Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, byEnvironment.Total)
+	require.Len(t, byEnvironment.Rows, 1)
+	assert.Equal(t, uuids[1], byEnvironment.Rows[0].UUID)
 }
 
 func TestListCreatorCodespacesAppliesLimit(t *testing.T) {
@@ -209,7 +222,8 @@ func TestGetCreatorCodespaceKeepsQueuedIdleStopInteractive(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
-	_, err := db.GetEngine(t.Context()).ID(manager.ID).Cols("gateway_ssh_addr", "gateway_ssh_host_key_algorithm", "gateway_ssh_host_key_fingerprint_sha256").Update(&codespace_model.Manager{
+	_, err := db.GetEngine(t.Context()).ID(manager.ID).Cols("gateway_url", "gateway_ssh_addr", "gateway_ssh_host_key_algorithm", "gateway_ssh_host_key_fingerprint_sha256").Update(&codespace_model.Manager{
+		GatewayURL:                         "https://gateway.example.com",
 		GatewaySSHAddr:                     "ssh.example.com:2222",
 		GatewaySSHHostKeyAlgorithm:         "ssh-ed25519",
 		GatewaySSHHostKeyFingerprintSHA256: "SHA256:view",
@@ -243,10 +257,46 @@ func TestGetCreatorCodespaceKeepsQueuedIdleStopInteractive(t *testing.T) {
 	assert.False(t, view.Endpoints[1].CanOpen)
 	assert.EqualValues(t, 3000, view.Endpoints[0].Port)
 	assert.EqualValues(t, 8080, view.Endpoints[1].Port)
+	assert.Equal(t, "https://private-app-18181818181848188818181818181818.gateway.example.com/", view.Endpoints[0].URL)
 	require.NotNil(t, view.SSH)
 	assert.Equal(t, "ssh -p 2222 cs-"+codespaceUUID+"@ssh.example.com", view.SSH.Command)
+	assert.Equal(t, "/workspaces/project", view.SSH.WorkspaceFolder)
+	assert.Equal(t, "vscode://vscode-remote/ssh-remote+cs-"+codespaceUUID+"@ssh.example.com:2222/workspaces/project", string(view.SSH.VSCodeURL))
+	assert.Equal(t, "zed://ssh/cs-"+codespaceUUID+"@ssh.example.com:2222/workspaces/project", string(view.SSH.ZedURL))
 	assert.Equal(t, "ssh-ed25519", view.SSH.HostKeyAlgorithm)
 	assert.Equal(t, "SHA256:view", view.SSH.HostKeyFingerprint)
+}
+
+func TestCreatorSSHViewFormatsIPv6Address(t *testing.T) {
+	view := creatorSSHView(&codespace_model.Codespace{UUID: "18181818-1818-4818-8818-181818181818"}, &codespace_model.Manager{
+		GatewaySSHAddr: "[2001:db8::1]:2222",
+	}, "/workspaces/project")
+
+	require.NotNil(t, view)
+	assert.Equal(t, "ssh -p 2222 cs-18181818-1818-4818-8818-181818181818@[2001:db8::1]", view.Command)
+	assert.Equal(t, "vscode://vscode-remote/ssh-remote+cs-18181818-1818-4818-8818-181818181818@%5B2001:db8::1%5D:2222/workspaces/project", string(view.VSCodeURL))
+}
+
+func TestGetCreatorCodespaceRunsWithoutWorkspaceEndpoint(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	manager := insertServiceManager(t)
+	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
+	codespaceUUID := "46464646-4646-4646-8646-464646464646"
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+		UUID:              codespaceUUID,
+		Status:            codespace_model.StatusRunning,
+		OperationRVersion: 46,
+	})
+	entry := serviceRuntimeMetadataEntry(t, 46, nil)
+	entry.Metadata.Endpoints = nil
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, entry))
+
+	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
+	require.NoError(t, err)
+	assert.Equal(t, DisplayRunning, view.DisplayStatus)
+	assert.Nil(t, view.Workspace)
+	assert.False(t, view.CanOpen)
 }
 
 func TestGetCreatorCodespaceShowsTransitionsAndPermissions(t *testing.T) {
@@ -269,7 +319,7 @@ func TestGetCreatorCodespaceShowsTransitionsAndPermissions(t *testing.T) {
 	assert.True(t, view.CanDelete)
 
 	_, err = GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 2, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
-	require.ErrorIs(t, err, ErrViewPermissionDenied)
+	require.ErrorIs(t, err, ErrViewNotFound)
 }
 
 func TestGetCreatorCodespaceShowsCurrentBootStage(t *testing.T) {

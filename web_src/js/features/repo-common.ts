@@ -52,8 +52,8 @@ export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
   return tmpl.replace('{url}', () => needEncode ? encodeURIComponent(url) : url);
 }
 
-function initRepoCloneButtonsCombo(parent: Element) {
-  initRepoCloneCodespaceTabs(parent);
+function initRepoCloneButtonsCombo(parent: Element, onPanelChange?: () => void) {
+  initRepoCloneCodespaceTabs(parent, onPanelChange);
 
   // the clone section is not rendered at all when no git transport (HTTPS/SSH) is available
   const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url');
@@ -129,7 +129,7 @@ function initRepoCloneButtonsCombo(parent: Element) {
   });
 }
 
-export function initRepoCloneCodespaceTabs(parent: Element) {
+export function initRepoCloneCodespaceTabs(parent: Element, onPanelChange?: () => void) {
   const cloneTab = parent.querySelector<HTMLButtonElement>('.repo-clone-main');
   const codespacesTab = parent.querySelector<HTMLButtonElement>('.repo-codespaces-main');
   const cloneSection = parent.querySelector<HTMLElement>('.repo-clone-section');
@@ -145,6 +145,7 @@ export function initRepoCloneCodespaceTabs(parent: Element) {
     codespacesTab.tabIndex = visible ? -1 : 0;
     cloneSection.hidden = !visible;
     codespacesSection.hidden = visible;
+    onPanelChange?.();
   };
 
   cloneTab.addEventListener('click', () => showClone(true));
@@ -165,15 +166,17 @@ export function initRepoCloneCodespaceTabs(parent: Element) {
 
 function initRepoClonePanel(btn: HTMLButtonElement) {
   const elPanel = btn.nextElementSibling!;
+  let tippyInstance: ReturnType<typeof createTippy>;
   // "init" must be before the "createTippy" otherwise the "tippy-target" will be removed from the document
-  initRepoCloneButtonsCombo(elPanel);
-  createTippy(btn, {
+  initRepoCloneButtonsCombo(elPanel, () => tippyInstance.popperInstance!.update());
+  tippyInstance = createTippy(btn, {
     content: elPanel,
     trigger: 'click',
     placement: 'bottom-end',
     interactive: true,
     hideOnClick: true,
     arrow: false,
+    limitSizeToViewport: {vertical: true},
   });
 }
 

@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"net"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +18,8 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/setting"
+
+	"xorm.io/builder"
 )
 
 const (
@@ -51,12 +55,8 @@ const (
 	refreshStableMilliseconds     = 15000
 )
 
-var (
-	// ErrViewNotFound is returned when the Codespace cannot be found.
-	ErrViewNotFound = errors.New("codespace view not found")
-	// ErrViewPermissionDenied is returned when the caller is not the creator.
-	ErrViewPermissionDenied = errors.New("codespace view permission denied")
-)
+// ErrViewNotFound is returned when the Codespace cannot be found.
+var ErrViewNotFound = errors.New("codespace view not found")
 
 // CreatorListOptions selects creator-owned Codespaces for a list page.
 type CreatorListOptions struct {
@@ -66,6 +66,7 @@ type CreatorListOptions struct {
 	RefType     string
 	RefName     string
 	CommitSHA   string
+	Keyword     string
 	Page        int
 	PageSize    int
 	Limit       int
@@ -118,6 +119,7 @@ type CreatorCodespaceView struct {
 	CanContinue          bool
 	CanStop              bool
 	CanResume            bool
+	CanCancelResume      bool
 	CanDelete            bool
 	CanConfigureAutoStop bool
 }
@@ -147,6 +149,7 @@ type CreatorEndpointView struct {
 	Label      string
 	Port       uint16
 	Public     bool
+	URL        string
 	OpenPath   string
 	CanOpen    bool
 }
@@ -154,6 +157,9 @@ type CreatorEndpointView struct {
 // CreatorSSHView contains the current SSH command shown on the detail page.
 type CreatorSSHView struct {
 	Command            string
+	WorkspaceFolder    string
+	VSCodeURL          template.URL
+	ZedURL             template.URL
 	HostKeyAlgorithm   string
 	HostKeyFingerprint string
 }
@@ -188,8 +194,28 @@ func ListCreatorCodespaces(ctx context.Context, opts CreatorListOptions) (*Creat
 	if opts.RepoID > 0 {
 		query.And("codespace.repo_id = ?", opts.RepoID)
 	}
+	keyword := strings.TrimSpace(opts.Keyword)
 	if opts.RepoOwnerID > 0 {
 		query.Join("INNER", "repository", "repository.id = codespace.repo_id AND repository.owner_id = ?", opts.RepoOwnerID)
+	} else if keyword != "" {
+		query.Join("LEFT", "repository", "repository.id = codespace.repo_id")
+	}
+	if keyword != "" {
+		query.Join("LEFT", "`user`", "`user`.id = repository.owner_id")
+		pattern := "%" + keyword + "%"
+		keywordCondition := builder.Or(
+			db.BuildCaseInsensitiveLike("repository.lower_name", pattern),
+			db.BuildCaseInsensitiveLike("`user`.lower_name", pattern),
+			db.BuildCaseInsensitiveLike("codespace.ref_name", pattern),
+			db.BuildCaseInsensitiveLike("codespace.environment_tag", pattern),
+		)
+		if ownerName, repoName, ok := strings.Cut(keyword, "/"); ok && ownerName != "" && repoName != "" {
+			keywordCondition = keywordCondition.Or(builder.And(
+				db.BuildCaseInsensitiveLike("`user`.lower_name", "%"+ownerName+"%"),
+				db.BuildCaseInsensitiveLike("repository.lower_name", "%"+repoName+"%"),
+			))
+		}
+		query.And(keywordCondition)
 	}
 	if opts.RefType != "" || opts.RefName != "" {
 		if opts.RefType == "" || opts.RefName == "" {
@@ -241,22 +267,24 @@ func GetCreatorCodespace(ctx context.Context, opts CreatorDetailOptions) (*Creat
 	if opts.CodespaceID <= 0 {
 		return nil, errors.New("codespace_id must be positive")
 	}
-	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
+	codespace, has, err := findCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
 	if err != nil {
 		return nil, err
 	}
 	if !has {
 		return nil, ErrViewNotFound
 	}
-	if codespace.UserID != opts.UserID {
-		return nil, ErrViewPermissionDenied
-	}
 	cache, err := loadCodespaceViewCache(ctx, []*codespace_model.Codespace{codespace})
 	if err != nil {
 		return nil, err
 	}
 	return creatorCodespaceView(codespace, cache, true), nil
+}
+
+func findCreatorCodespace(ctx context.Context, userID, codespaceID int64) (*codespace_model.Codespace, bool, error) {
+	codespace := new(codespace_model.Codespace)
+	has, err := db.GetEngine(ctx).ID(codespaceID).Where("user_id = ?", userID).Get(codespace)
+	return codespace, has, err
 }
 
 func creatorCodespaceView(codespace *codespace_model.Codespace, cache *codespaceViewCache, includeDetailData bool) *CreatorCodespaceView {
@@ -443,25 +471,24 @@ func runningDisplayStatus(codespace *codespace_model.Codespace, view *CreatorCod
 		if !includeDetailData {
 			continue
 		}
+		endpointURL, _ := gatewayEndpointURL(manager.GatewayURL, codespace.UUID, endpoint.EndpointID)
 		view.Endpoints = append(view.Endpoints, CreatorEndpointView{
 			EndpointID: endpoint.EndpointID,
 			Label:      endpoint.Label,
 			Port:       uint16(endpoint.Port),
 			Public:     endpoint.Public,
+			URL:        endpointURL,
 			OpenPath:   codespaceDetailPath(codespace.ID) + "/open/" + endpoint.EndpointID,
 		})
 	}
-	if view.Workspace == nil {
-		return DisplayMetadataRebuilding
-	}
 	if includeDetailData {
 		view.ResourceUsage = creatorResourceUsageView(entry.Metadata.ResourceUsage)
-		view.SSH = creatorSSHView(codespace, manager)
+		view.SSH = creatorSSHView(codespace, manager, entry.Metadata.WorkspaceFolder)
 	}
 	return DisplayRunning
 }
 
-func creatorSSHView(codespace *codespace_model.Codespace, manager *codespace_model.Manager) *CreatorSSHView {
+func creatorSSHView(codespace *codespace_model.Codespace, manager *codespace_model.Manager, workspaceFolder string) *CreatorSSHView {
 	if manager.GatewaySSHAddr == "" {
 		return nil
 	}
@@ -469,12 +496,24 @@ func creatorSSHView(codespace *codespace_model.Codespace, manager *codespace_mod
 	if err != nil {
 		return nil
 	}
-	command := "ssh cs-" + codespace.UUID + "@" + host
-	if port != "" && port != "22" {
-		command = "ssh -p " + port + " cs-" + codespace.UUID + "@" + host
+	remoteHost := host
+	if strings.Contains(host, ":") {
+		remoteHost = "[" + host + "]"
 	}
+	remote := "cs-" + codespace.UUID + "@" + remoteHost
+	command := "ssh cs-" + codespace.UUID + "@" + remoteHost
+	if port != "" && port != "22" {
+		remote = "cs-" + codespace.UUID + "@" + net.JoinHostPort(host, port)
+		command = "ssh -p " + port + " cs-" + codespace.UUID + "@" + remoteHost
+	}
+	workspacePath := strings.TrimPrefix(workspaceFolder, "/")
+	vsCodeURL := (&url.URL{Scheme: "vscode", Host: "vscode-remote", Path: "/ssh-remote+" + remote + "/" + workspacePath}).String()
+	zedURL := (&url.URL{Scheme: "zed", Host: "ssh", Path: "/" + remote + "/" + workspacePath}).String()
 	return &CreatorSSHView{
 		Command:            command,
+		WorkspaceFolder:    workspaceFolder,
+		VSCodeURL:          template.URL(vsCodeURL),
+		ZedURL:             template.URL(zedURL),
 		HostKeyAlgorithm:   strings.TrimSpace(manager.GatewaySSHHostKeyAlgorithm),
 		HostKeyFingerprint: strings.TrimSpace(manager.GatewaySSHHostKeyFingerprintSHA256),
 	}
@@ -533,6 +572,7 @@ func applyCreatorActions(codespace *codespace_model.Codespace, view *CreatorCode
 	view.CanContinue = codespace.Status == codespace_model.StatusRunning && isQueuedIdleStop(codespace)
 	view.CanStop = codespace.Status == codespace_model.StatusRunning && (!hasActiveOperation(codespace) || isQueuedIdleStop(codespace))
 	view.CanResume = codespace.Status == codespace_model.StatusStopped && !hasActiveOperation(codespace) && view.DisplayStatus == DisplayStopped && manager != nil && manager.RuntimeState == codespace_model.ManagerRuntimeStateOnline && !isManagerOffline(manager)
+	view.CanCancelResume = codespace.Status == codespace_model.StatusStopped && codespace_model.ActiveOperationType(codespace) == codespace_model.OperationResume && codespace_model.IsOperationQueued(codespace)
 }
 
 func codespaceDetailPath(codespaceID int64) string {

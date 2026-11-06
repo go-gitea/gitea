@@ -21,9 +21,16 @@ type createPermissionRepository struct {
 	Permissions []codespace_service.CreatePermissionRequest
 }
 
-type createConfigurationGroup struct {
-	Scope   string
-	Options []codespace_service.CreateDevContainerOption
+type createConfigurationOption struct {
+	Selection  string
+	Name       string
+	ScopeLabel string
+}
+
+type createEnvironmentOption struct {
+	Tag         string
+	ScopeLabels []string
+	Online      bool
 }
 
 // New renders the creation confirmation for a repository and ref.
@@ -112,11 +119,25 @@ func Create(ctx *context.Context) {
 
 func renderCreateConfirm(ctx *context.Context, status int, plan *codespace_service.CreateCodespacePlan, opts codespace_service.CreateCodespaceOptions, errorMessage template.HTML) {
 	ctx.RespHeader().Set("Cache-Control", "no-store")
-	selectedEnvironment := ""
+	globalScopeLabel := ctx.Locale.TrString("codespace.scope.global")
+	personalScopeLabel := ctx.Locale.TrString("codespace.scope.personal")
+	environmentOptions := make([]createEnvironmentOption, 0, len(plan.Environments))
 	for _, environment := range plan.Environments {
+		scopeLabels := make([]string, 0, 2)
+		if environment.Site {
+			scopeLabels = append(scopeLabels, globalScopeLabel)
+		}
+		if environment.Personal {
+			scopeLabels = append(scopeLabels, personalScopeLabel)
+		}
+		environmentOption := createEnvironmentOption{
+			Tag:         environment.Tag,
+			ScopeLabels: scopeLabels,
+			Online:      environment.Online,
+		}
+		environmentOptions = append(environmentOptions, environmentOption)
 		if environment.Selected {
-			selectedEnvironment = environment.Tag
-			break
+			ctx.Data["CreateSelectedEnvironment"] = environmentOption
 		}
 	}
 	permissionRepositories := make([]createPermissionRepository, 0)
@@ -139,28 +160,34 @@ func renderCreateConfirm(ctx *context.Context, status int, plan *codespace_servi
 
 	ctx.Data["Title"] = ctx.Tr("codespace.confirm_create")
 	ctx.Data["CreatePlan"] = plan
-	ctx.Data["CreateSelectedEnvironment"] = selectedEnvironment
+	ctx.Data["CreateEnvironmentOptions"] = environmentOptions
 	ctx.Data["CreatePermissionRepositories"] = permissionRepositories
 	ctx.Data["CreatePermissionGrants"] = permissionGrants
 	ctx.Data["CreateRecommendedSecretEnabled"] = opts.RecommendedSecretEnabled
 	ctx.Data["CreateHasPendingRecommendedSecret"] = hasPendingRecommendedSecret
 	ctx.Data["CreateError"] = errorMessage
-	groups := make([]createConfigurationGroup, 0, 3)
-	for _, scope := range []string{"repository", "personal", "site"} {
-		group := createConfigurationGroup{Scope: scope}
-		for _, option := range plan.DevContainerOptions {
-			if option.Scope == scope {
-				if option.Selected {
-					ctx.Data["CreateConfigurationSelected"] = true
-				}
-				group.Options = append(group.Options, option)
-			}
+	configurationOptions := make([]createConfigurationOption, 0, len(plan.DevContainerOptions))
+	for _, option := range plan.DevContainerOptions {
+		var scopeLabel string
+		switch option.Scope {
+		case "repository":
+			scopeLabel = ctx.Locale.TrString("codespace.scope.repository")
+		case "personal":
+			scopeLabel = personalScopeLabel
+		default:
+			scopeLabel = globalScopeLabel
 		}
-		if len(group.Options) > 0 {
-			groups = append(groups, group)
+		configurationOption := createConfigurationOption{
+			Selection:  option.Selection,
+			Name:       option.Name,
+			ScopeLabel: scopeLabel,
+		}
+		configurationOptions = append(configurationOptions, configurationOption)
+		if option.Selected {
+			ctx.Data["CreateSelectedConfiguration"] = configurationOption
 		}
 	}
-	ctx.Data["CreateConfigurationGroups"] = groups
+	ctx.Data["CreateConfigurationOptions"] = configurationOptions
 	ctx.HTML(status, tplCodespaceCreateConfirm)
 }
 

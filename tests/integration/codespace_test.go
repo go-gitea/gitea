@@ -5,6 +5,8 @@ package integration
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -22,21 +24,26 @@ import (
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	codespace_service "gitea.dev/services/codespace"
+	repo_service "gitea.dev/services/repository"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/connect/v2/connectproto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
 )
 
 func TestCodespaceRoutes(t *testing.T) {
@@ -204,7 +211,7 @@ func TestCodespaceManagerSettings(t *testing.T) {
 }
 
 func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		defer test.MockVariableValue(&setting.Codespace.Enabled, true)()
 
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -309,6 +316,36 @@ func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2/releases").AddTokenAuth(token), http.StatusForbidden)
 		require.NoError(t, codespace_service.RevokePermissionAuthorization(t.Context(), 2, authorization.ID))
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(token), http.StatusForbidden)
+
+		privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		collaborator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), privateRepo, collaborator, perm.AccessModeWrite))
+		collaboratorToken, collaboratorCodespaceUUID := createRunningCodespaceToken(t, privateRepo, collaborator)
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(collaboratorToken), http.StatusOK)
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/user2/repo2/info/refs?service=git-upload-pack").AddBasicAuth("codespace", collaboratorToken), http.StatusOK)
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/user2/repo2/info/refs?service=git-receive-pack").AddBasicAuth("codespace", collaboratorToken), http.StatusOK)
+
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), privateRepo, collaborator, perm.AccessModeRead))
+		currentPermission, err := access_model.GetDoerRepoPermission(t.Context(), privateRepo, collaborator)
+		require.NoError(t, err)
+		require.False(t, currentPermission.CanWrite(unit.TypeCode))
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(collaboratorToken), http.StatusOK)
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/user2/repo2/info/refs?service=git-upload-pack").AddBasicAuth("codespace", collaboratorToken), http.StatusOK)
+		require.NoError(t, git.CreateDelegateHooks(t.Context(), privateRepo))
+		pushURL := *giteaURL
+		pushURL.Path = "/user2/repo2.git"
+		pushURL.User = url.UserPassword("codespace", collaboratorToken)
+		pushRef := "HEAD:refs/heads/codespace-read-only-" + uuid.NewV4().String()
+		_, _, pushErr := gitcmd.NewCommand("push").AddDynamicArguments(pushURL.String(), pushRef).WithRepo(privateRepo).RunStdString(t.Context())
+		require.Error(t, pushErr)
+		assert.Contains(t, pushErr.Stderr(), "User permission denied for writing.")
+
+		require.NoError(t, repo_service.DeleteCollaboration(t.Context(), privateRepo, collaborator))
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(collaboratorToken), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, http.MethodGet, "/user2/repo2/info/refs?service=git-upload-pack").AddBasicAuth("codespace", collaboratorToken), http.StatusNotFound)
+		collaboratorCodespace := unittest.AssertExistsAndLoadBean(t, &codespace_model.Codespace{UUID: collaboratorCodespaceUUID})
+		_, err = codespace_service.GetCreatorCodespace(t.Context(), codespace_service.CreatorDetailOptions{UserID: collaborator.ID, CodespaceID: collaboratorCodespace.ID})
+		require.NoError(t, err)
 
 		MakeRequest(t, NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/actions/artifacts/999999/zip/raw", repo.OwnerName, repo.Name).AddTokenAuth("gcs_invalid"), http.StatusNotFound)
 
@@ -633,10 +670,10 @@ func createCodespaceFromRepository(t *testing.T, session *TestSession, path, ref
 	requestHash, ok := doc.Find(`input[name="request_hash"]`).Attr("value")
 	require.True(t, ok)
 	require.NotEmpty(t, requestHash)
-	environmentTag, ok := doc.Find(`.codespace-create-environment-option`).First().Attr("data-value")
+	environmentTag, ok := doc.Find(`#codespace-environment-tag .menu .item`).First().Attr("data-value")
 	require.True(t, ok)
 	require.NotEmpty(t, environmentTag)
-	devContainer, ok := doc.Find(`select[name="dev_container"] option[selected]`).First().Attr("value")
+	devContainer, ok := doc.Find(`#codespace-dev-container .menu .item`).First().Attr("data-value")
 	require.True(t, ok)
 	require.NotEmpty(t, devContainer)
 	values["request_hash"] = requestHash
@@ -648,6 +685,11 @@ func createCodespaceFromRepository(t *testing.T, session *TestSession, path, ref
 func createRunningCodespaceTokenForRepo(t *testing.T, repo *repo_model.Repository) (string, string) {
 	t.Helper()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	return createRunningCodespaceToken(t, repo, user)
+}
+
+func createRunningCodespaceToken(t *testing.T, repo *repo_model.Repository, user *user_model.User) (string, string) {
+	t.Helper()
 	codespaceUUID := uuid.NewV4().String()
 	manager := &codespace_model.Manager{
 		Name:           "codespace-token-manager-" + codespaceUUID[:8],
@@ -679,10 +721,19 @@ func createRunningCodespaceTokenForRepo(t *testing.T, repo *repo_model.Repositor
 	result, err := codespace_service.RequestRuntimeAccess(t.Context(), manager, codespace_service.RequestRuntimeAccessOptions{
 		CodespaceUUID:     codespaceUUID,
 		OperationRVersion: 1,
-		GitSSHPublicKey:   integrationGitSSHPublicKey(t),
+		GitSSHPublicKey:   integrationUniqueGitSSHPublicKey(t),
 	})
 	require.NoError(t, err)
 	return result.Token, codespaceUUID
+}
+
+func integrationUniqueGitSSHPublicKey(t *testing.T) []byte {
+	t.Helper()
+	publicKey, _, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	key, err := ssh.NewPublicKey(publicKey)
+	require.NoError(t, err)
+	return key.Marshal()
 }
 
 func integrationGitSSHPublicKey(t *testing.T) []byte {
@@ -805,7 +856,8 @@ func createFinalRequest(codespaceID int64, codespaceUUID string, operationRVersi
 
 func integrationRuntimeMetadata(operationRVersion int64) *codespacev1.RuntimeMetadata {
 	return &codespacev1.RuntimeMetadata{
-		Endpoints: []*codespacev1.RuntimeEndpoint{{EndpointId: "workspace", Label: "Workspace"}},
+		Endpoints:       []*codespacev1.RuntimeEndpoint{{EndpointId: "workspace", Label: "Workspace"}},
+		WorkspaceFolder: "/workspaces/project",
 		Boot: &codespacev1.RuntimeBoot{
 			OperationRversion: operationRVersion,
 			Stage:             codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY,

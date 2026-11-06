@@ -38,25 +38,29 @@
 						<div class="codespace-create-environment-fields">
 							<div class="required field">
 								<label for="codespace-environment-tag">{{ctx.Locale.Tr "codespace.runtime_environment"}}</label>
-								<div id="codespace-environment-tag" class="ui fluid selection dropdown" tabindex="0">
-									<input type="hidden" name="environment_tag" value="{{.CreateSelectedEnvironment}}">
+								{{$selectedEnvironment := .CreateSelectedEnvironment}}
+								<div id="codespace-environment-tag" class="ui fluid selection dropdown codespace-scope-dropdown" tabindex="0">
+									<input type="hidden" name="environment_tag" value="{{if $selectedEnvironment}}{{$selectedEnvironment.Tag}}{{end}}">
 									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="{{if not .CreateSelectedEnvironment}}default {{end}}text" data-codespace-environment-text>
-										{{if .CreateSelectedEnvironment}}{{.CreateSelectedEnvironment}}{{else}}{{ctx.Locale.Tr "codespace.environment_select"}}{{end}}
+									<div class="{{if not $selectedEnvironment}}default {{end}}text">
+										{{if $selectedEnvironment}}
+											<span class="tw-min-w-0 tw-flex-1 tw-truncate">{{$selectedEnvironment.Tag}}</span>
+											<span class="tw-flex tw-shrink-0 tw-gap-1">
+												{{range $scopeLabel := $selectedEnvironment.ScopeLabels}}<span class="ui tiny basic label codespace-scope-label">{{$scopeLabel}}</span>{{end}}
+												{{if not $selectedEnvironment.Online}}<span class="ui tiny red label codespace-scope-label">{{ctx.Locale.Tr "codespace.manager_status.offline"}}</span>{{end}}
+											</span>
+										{{else}}
+											{{ctx.Locale.Tr "codespace.environment_select"}}
+										{{end}}
 									</div>
-									<div class="menu">
-										{{range $environment := .CreatePlan.Environments}}
-											<div class="item codespace-create-environment-option" data-value="{{$environment.Tag}}" data-text="{{$environment.Tag}}">
-												<div class="codespace-create-environment-title">
-													<strong>{{$environment.Tag}}</strong>
-													<span class="ui tiny {{if $environment.Online}}green{{else}}basic{{end}} label">
-														{{if $environment.Online}}{{ctx.Locale.Tr "codespace.manager_status.online"}}{{else}}{{ctx.Locale.Tr "codespace.manager_status.offline"}}{{end}}
-													</span>
-												</div>
-												{{if $environment.Description}}<div class="codespace-create-environment-description">{{$environment.Description}}</div>{{end}}
-												<div class="codespace-create-environment-source">
-													{{if and $environment.Site $environment.Personal}}{{ctx.Locale.Tr "codespace.environment_source_both"}}{{else if $environment.Personal}}{{ctx.Locale.Tr "codespace.environment_source_personal"}}{{else}}{{ctx.Locale.Tr "codespace.environment_source_site"}}{{end}}
-												</div>
+									<div class="menu flex-items-menu">
+										{{range $environment := .CreateEnvironmentOptions}}
+											<div class="item" data-value="{{$environment.Tag}}">
+												<span class="tw-min-w-0 tw-flex-1 tw-truncate">{{$environment.Tag}}</span>
+												<span class="tw-flex tw-shrink-0 tw-gap-1">
+													{{range $scopeLabel := $environment.ScopeLabels}}<span class="ui tiny basic label codespace-scope-label">{{$scopeLabel}}</span>{{end}}
+													{{if not $environment.Online}}<span class="ui tiny red label codespace-scope-label">{{ctx.Locale.Tr "codespace.manager_status.offline"}}</span>{{end}}
+												</span>
 											</div>
 										{{end}}
 									</div>
@@ -68,16 +72,29 @@
 								{{end}}
 							</div>
 							<div class="field">
-							<label for="codespace-dev-container">{{ctx.Locale.Tr "codespace.dev_container_configuration"}}</label>
-								<select id="codespace-dev-container" class="ui fluid selection dropdown" name="dev_container"
-									data-codespace-dev-container data-preview-url="{{.RepoLink}}/codespaces/new" data-ref-type="{{.CreatePlan.RefType}}" data-ref-name="{{.CreatePlan.RefName}}">
-									{{if not .CreateConfigurationSelected}}<option value="" selected disabled>{{ctx.Locale.Tr "codespace.configuration_select"}}</option>{{end}}
-									{{range $group := .CreateConfigurationGroups}}
-										<optgroup label="{{ctx.Locale.Tr (print "codespace.configuration_source." $group.Scope)}}">
-											{{range $option := $group.Options}}<option value="{{$option.Selection}}"{{if $option.Selected}} selected{{end}}>{{$option.Name}}</option>{{end}}
-										</optgroup>
-									{{end}}
-								</select>
+								<label for="codespace-dev-container">{{ctx.Locale.Tr "codespace.dev_container_configuration"}}</label>
+								{{$selectedConfiguration := .CreateSelectedConfiguration}}
+								<div id="codespace-dev-container" class="ui fluid selection dropdown codespace-scope-dropdown codespace-dev-container-dropdown" tabindex="0">
+									<input type="hidden" name="dev_container" value="{{if $selectedConfiguration}}{{$selectedConfiguration.Selection}}{{end}}"
+										data-codespace-dev-container data-preview-url="{{.RepoLink}}/codespaces/new" data-ref-type="{{.CreatePlan.RefType}}" data-ref-name="{{.CreatePlan.RefName}}">
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+									<div class="{{if not $selectedConfiguration}}default {{end}}text">
+										{{if $selectedConfiguration}}
+											<span class="tw-min-w-0 tw-flex-1 tw-truncate">{{$selectedConfiguration.Name}}</span>
+											<span class="ui tiny basic label codespace-scope-label">{{$selectedConfiguration.ScopeLabel}}</span>
+										{{else}}
+											{{ctx.Locale.Tr "codespace.configuration_select"}}
+										{{end}}
+									</div>
+									<div class="menu flex-items-menu">
+										{{range $option := .CreateConfigurationOptions}}
+											<div class="item" data-value="{{$option.Selection}}">
+												<span class="tw-min-w-0 tw-flex-1 tw-truncate">{{$option.Name}}</span>
+												<span class="ui tiny basic label codespace-scope-label">{{$option.ScopeLabel}}</span>
+											</div>
+										{{end}}
+									</div>
+								</div>
 								<div class="ui warning message tw-hidden" data-codespace-review-warning>{{ctx.Locale.Tr "codespace.configuration_review_warning"}}</div>
 								<button class="ui button tw-hidden" type="button" data-codespace-review>{{ctx.Locale.Tr "codespace.configuration_review"}}</button>
 							</div>

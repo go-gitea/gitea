@@ -83,7 +83,7 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 		ProtocolVersion:                    1,
 		GatewayUrl:                         "https://WorkSpace.EXAMPLE.com:443/",
 		GatewaySshAddr:                     "WorkSpace.EXAMPLE.com:0022",
-		Environments:                       []*codespacev1.EnvironmentTag{{Tag: "Default", Description: "Default environment"}, {Tag: "large"}},
+		Environments:                       []*codespacev1.EnvironmentTag{{Tag: "default", Description: "Default environment"}, {Tag: "large"}},
 		Version:                            " 0.1.0 ",
 		ManagerRuntimeState:                codespacev1.ManagerRuntimeState_MANAGER_RUNTIME_STATE_ONLINE,
 		GatewaySshHostKeyAlgorithm:         " ssh-ed25519 ",
@@ -480,7 +480,8 @@ func failureCategory(t *testing.T, err error) string {
 
 func managerTestRuntimeMetadata(operationRVersion int64) *codespacev1.RuntimeMetadata {
 	return &codespacev1.RuntimeMetadata{
-		Endpoints: []*codespacev1.RuntimeEndpoint{{EndpointId: "workspace", Label: "Workspace"}},
+		Endpoints:       []*codespacev1.RuntimeEndpoint{{EndpointId: "workspace", Label: "Workspace"}},
+		WorkspaceFolder: "/workspaces/project",
 		Boot: &codespacev1.RuntimeBoot{
 			OperationRversion: operationRVersion,
 			Stage:             codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY,

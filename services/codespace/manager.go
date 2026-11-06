@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	tagPattern                  = regexp.MustCompile(`^[a-z0-9_-]{1,64}$`)
+	environmentTagPattern       = regexp.MustCompile(`^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$`)
 	sshHostKeyFingerprintRegexp = regexp.MustCompile(`^SHA256:[A-Za-z0-9+/]+={0,2}$`)
 )
 
@@ -318,8 +318,8 @@ func normalizeManagerEnvironments(environments []*codespacev1.EnvironmentTag) ([
 		if environment == nil {
 			return nil, errors.New("manager environment is required")
 		}
-		tag := strings.ToLower(strings.TrimSpace(environment.GetTag()))
-		if !tagPattern.MatchString(tag) {
+		tag := environment.GetTag()
+		if !environmentTagPattern.MatchString(tag) {
 			return nil, fmt.Errorf("invalid manager environment tag %q", tag)
 		}
 		if _, exists := seen[tag]; exists {

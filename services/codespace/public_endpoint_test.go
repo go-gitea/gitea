@@ -169,8 +169,13 @@ func serviceRuntimeMetadataProto(t *testing.T, operationRVersion int64, stage st
 			Label:      workspaceEndpointLabel,
 		})
 	}
+	workspaceFolder := ""
+	if stage == bootStagePublishReady || stage == bootStageReady {
+		workspaceFolder = "/workspaces/project"
+	}
 	return &codespacev1.RuntimeMetadata{
-		Endpoints: metadataEndpoints,
+		Endpoints:       metadataEndpoints,
+		WorkspaceFolder: workspaceFolder,
 		Boot: &codespacev1.RuntimeBoot{
 			OperationRversion: operationRVersion,
 			Stage:             serviceRuntimeMetadataBootStage(t, stage),

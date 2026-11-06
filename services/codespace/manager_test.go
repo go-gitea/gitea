@@ -40,7 +40,7 @@ func TestNormalizeDeclareManagerOptions(t *testing.T) {
 
 func TestNormalizeManagerEnvironments(t *testing.T) {
 	environments, err := normalizeManagerEnvironments([]*codespacev1.EnvironmentTag{
-		{Tag: " Standard ", Description: " General development "},
+		{Tag: "standard", Description: " General development "},
 		{Tag: "gpu"},
 	})
 	require.NoError(t, err)
@@ -49,8 +49,10 @@ func TestNormalizeManagerEnvironments(t *testing.T) {
 		{Tag: "gpu"},
 	}, environments)
 
-	_, err = normalizeManagerEnvironments([]*codespacev1.EnvironmentTag{{Tag: "standard"}, {Tag: "STANDARD"}})
-	require.Error(t, err)
+	for _, tag := range []string{" Standard ", "STANDARD", "standard_gpu", "standard.gpu", strings.Repeat("a", 64)} {
+		_, err = normalizeManagerEnvironments([]*codespacev1.EnvironmentTag{{Tag: tag}})
+		require.Error(t, err, tag)
+	}
 }
 
 func TestNormalizeDeclareManagerOptionsRejectsInvalidFields(t *testing.T) {
@@ -371,7 +373,6 @@ func TestValidateCodespaceConfigAndTimings(t *testing.T) {
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.ManagerOfflineTimeout, 80*time.Second))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.OperationLeaseTimeout, 1500*time.Millisecond))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.OperationMaxDuration, 3*time.Hour))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.QueueTimeout, 7*time.Minute))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.LogMaxSize, int64(32*1024*1024)))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.AutoStopDefaultTimeout, 25*time.Minute))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.AutoStopMinTimeout, 3*time.Minute))
