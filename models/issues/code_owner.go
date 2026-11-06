@@ -72,6 +72,7 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) (rules []*CodeOw
 		if rule == nil {
 			continue
 		}
+		rule.LineNum = lineNum
 
 		rule.Section = section
 		rule.ReviewRequest = reviewRequest
@@ -93,6 +94,7 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) (rules []*CodeOw
 const codeOwnerMatchTimeout = 150 * time.Millisecond
 
 type CodeOwnerRule struct {
+	LineNum       int
 	Section       string
 	ReviewRequest optional.Option[bool]
 

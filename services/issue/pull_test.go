@@ -4,6 +4,7 @@
 package issue
 
 import (
+	"strings"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -105,32 +106,35 @@ func TestPullRequestCodeOwnersReview(t *testing.T) {
 
 func TestMatchCodeOwnerRules(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), `*.md @user1
+	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), strings.TrimSpace(`
+*.md @user1
 [Docs] @user5
 *.md
 README.md @user4
-[DOCS] @user2
+[Docs] @user2
 other.md
 [Independent] @user1
 *.md
-`)
+`))
 	require.Empty(t, warnings)
 	for _, tc := range []struct {
-		paths   []string
-		indices []int
+		paths    []string
+		lineNums []int
 	}{
-		{[]string{"README.md"}, []int{0, 2, 4}},
-		{[]string{"README.md", "guide.md"}, []int{0, 1, 2, 4}},
-		{[]string{"other.md"}, []int{0, 3, 4}},
+		{[]string{"README.md"}, []int{1, 4, 8}},
+		{[]string{"README.md", "guide.md"}, []int{1, 3, 4, 8}},
+		{[]string{"other.md"}, []int{1, 6, 8}},
 		{[]string{"file.go"}, nil},
 	} {
-		matching, warnings := MatchCodeOwnerRules(rules, tc.paths)
-		assert.Empty(t, warnings)
-		expected := make([]*issues_model.CodeOwnerRule, 0, len(tc.indices))
-		for _, i := range tc.indices {
-			expected = append(expected, rules[i])
-		}
-		assert.Equal(t, expected, matching)
+		t.Run(strings.Join(tc.paths, ","), func(t *testing.T) {
+			matching, warnings := MatchCodeOwnerRules(rules, tc.paths)
+			assert.Empty(t, warnings)
+			var lineNums []int
+			for _, rule := range matching {
+				lineNums = append(lineNums, rule.LineNum)
+			}
+			assert.Equal(t, tc.lineNums, lineNums)
+		})
 	}
 }
 
