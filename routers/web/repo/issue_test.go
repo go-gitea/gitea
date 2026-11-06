@@ -5,17 +5,23 @@ package repo
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/references"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
 
@@ -214,4 +220,60 @@ func TestIssueActionsRequireItemUnitWrite(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, lockIssue("2"))
 	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).IsLocked)
+}
+
+func TestIssueListsRespectUnitReadPermission(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	// user2/repo1 with read access to issues only, so pull requests must stay hidden
+	issuesOnlyContext := func(path string) (*context.Context, *httptest.ResponseRecorder) {
+		ctx, resp := contexttest.MockContext(t, path)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, 1)
+		ctx.Repo.Permission = access_model.Permission{}
+		ctx.Repo.Permission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: unit.TypeIssues}}, perm.AccessModeRead)
+		return ctx, resp
+	}
+
+	t.Run("SearchRepoIssuesJSON", func(t *testing.T) {
+		search := func(typ string) (int, []*api.Issue) {
+			ctx, resp := issuesOnlyContext("user2/repo1/issues/search")
+			ctx.Req.Form.Set("state", "all")
+			ctx.Req.Form.Set("type", typ)
+			SearchRepoIssuesJSON(ctx)
+			var issues []*api.Issue
+			if resp.Code == http.StatusOK {
+				require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &issues))
+			}
+			return resp.Code, issues
+		}
+		code, _ := search("pulls")
+		assert.Equal(t, http.StatusForbidden, code)
+
+		code, issues := search("")
+		assert.Equal(t, http.StatusOK, code)
+		assert.Len(t, issues, 2)
+		for _, issue := range issues {
+			assert.Nil(t, issue.PullRequest, "pull request #%d listed", issue.Index)
+		}
+	})
+
+	t.Run("MilestoneIssuesAndPulls", func(t *testing.T) {
+		// milestone1 of repo1 only holds pull request #2
+		view := func(issuesOnly bool) issues_model.IssueList {
+			ctx, resp := issuesOnlyContext("user2/repo1/milestone/1")
+			if !issuesOnly {
+				contexttest.LoadRepo(t, ctx, 1) // restores the owner permission of user2
+			}
+			contexttest.LoadGitRepo(t, ctx)
+			defer ctx.Repo.GitRepo.Close()
+			ctx.SetPathParam("id", "1")
+			MilestoneIssuesAndPulls(ctx)
+			assert.Equal(t, http.StatusOK, resp.Code)
+			issues, _ := ctx.Data["Issues"].(issues_model.IssueList)
+			return issues
+		}
+		assert.Len(t, view(false), 1)
+		assert.Empty(t, view(true))
+	})
 }
