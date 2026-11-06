@@ -133,7 +133,7 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 			resp := MakeRequest(t, req, http.StatusOK)
 			doc := NewHTMLParser(t, resp.Body)
 			AssertHTMLElement(t, doc, "form[action='/user/login']", enabled)
-			AssertHTMLElement(t, doc, "form:has(.signin-passkey) input[name=remember]", true)
+			AssertHTMLElement(t, doc, "input[name=remember]", true)
 
 			postStatus := http.StatusForbidden
 			if enabled {

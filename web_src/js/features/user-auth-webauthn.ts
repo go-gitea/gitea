@@ -23,7 +23,7 @@ export function initUserAuthWebAuthn() {
   }
 
   if (elSignInPasskeyBtn) {
-    const elRemember = elSignInPasskeyBtn.closest('form')!.querySelector<HTMLInputElement>('input[name=remember]');
+    const elRemember = Array.from(document.querySelectorAll<HTMLInputElement>('input[name=remember]')).at(-1); // the nearest one above the passkey button
     elSignInPasskeyBtn.addEventListener('click', () => loginPasskey(Boolean(elRemember?.checked)));
   }
 

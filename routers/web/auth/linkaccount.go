@@ -160,6 +160,7 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 			return
 		}
 
+		_ = ctx.Session.Set(session.KeySignInMethod, session.SignInMethodOAuth2)
 		handleSignIn(ctx, u, oauth2Remember(ctx))
 		return
 	}
@@ -259,6 +260,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
+	_ = ctx.Session.Set(session.KeySignInMethod, session.SignInMethodOAuth2)
 	handleSignIn(ctx, u, oauth2Remember(ctx))
 }
 

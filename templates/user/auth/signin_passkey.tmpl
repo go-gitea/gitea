@@ -1,6 +1,0 @@
-{{if .EnablePasskeyAuth}}
-<div class="field signin-passkey-container">
-	{{template "user/auth/webauthn_error" .}}
-	<button type="button" class="ui button tw-w-full tw-gap-3 signin-passkey">{{svg "octicon-passkey-fill"}} {{ctx.Locale.Tr "auth.signin_passkey"}}</button>
-</div>
-{{end}}

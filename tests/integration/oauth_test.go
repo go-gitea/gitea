@@ -128,6 +128,7 @@ func TestOAuth2LinkAccountSignupAutoLinking(t *testing.T) {
 		defer web.RouteMockReset()
 		web.RouteMock(web.MockAfterMiddlewares, func(ctx *context.Context) {
 			require.NoError(t, auth.Oauth2SetLinkAccountData(ctx, auth.LinkAccountData{AuthSourceID: authSource.ID, GothUser: gothUser}))
+			require.NoError(t, ctx.Session.Set("oauth2Remember", true))
 		})
 		session := emptyTestSession(t)
 		req := NewRequestWithValues(t, "POST", "/user/link_account_signup", map[string]string{
@@ -155,6 +156,7 @@ func TestOAuth2LinkAccountSignupAutoLinking(t *testing.T) {
 		session, _ := signUp(t, gothUser, user2.Name, user2.Email, http.StatusSeeOther)
 		unittest.AssertExistsAndLoadBean(t, &user_model.ExternalLoginUser{ExternalID: gothUser.UserID, UserID: user2.ID}, unittest.OrderBy("external_id"))
 		session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &auth_model.AuthToken{UserID: user2.ID, SignInMethod: "oauth2"})
 	})
 }
 
