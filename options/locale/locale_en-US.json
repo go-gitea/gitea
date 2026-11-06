@@ -519,7 +519,6 @@
   "form.AuthName": "Authorization name",
   "form.AdminEmail": "Admin email",
   "form.NewBranchName": "New branch name",
-  "form.RequiredApprovals": "Required approvals",
   "form.CommitSummary": "Commit summary",
   "form.CommitMessage": "Commit message",
   "form.CommitChoice": "Commit choice",
