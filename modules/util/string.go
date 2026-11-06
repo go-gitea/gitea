@@ -6,6 +6,7 @@ package util
 import (
 	"iter"
 	"strings"
+	"unicode"
 	"unsafe"
 )
 
@@ -98,6 +99,11 @@ func UnsafeBytesToString(b []byte) string {
 // UnsafeStringToBytes uses Go's unsafe package to convert a string to a byte slice.
 func UnsafeStringToBytes(s string) []byte {
 	return unsafe.Slice(unsafe.StringData(s), len(s))
+}
+
+// IsWordRune reports whether r is a Unicode word character
+func IsWordRune(r rune) bool {
+	return unicode.In(r, unicode.L, unicode.M, unicode.Nd, unicode.Nl, unicode.Pc, unicode.Other_Alphabetic)
 }
 
 // SplitTrimSpace splits the string at given separator and trims leading and trailing space

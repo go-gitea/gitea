@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"unicode"
 
+	giteautil "gitea.dev/modules/util"
+
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -30,7 +32,7 @@ func CleanValue(value []byte) []byte {
 		switch {
 		case r == ' ':
 			return '-'
-		case r == '-' || unicode.In(r, unicode.L, unicode.M, unicode.Nd, unicode.Nl, unicode.Pc, unicode.Other_Alphabetic):
+		case r == '-' || giteautil.IsWordRune(r):
 			return unicode.ToLower(r)
 		}
 		return -1
