@@ -36,9 +36,8 @@ func CommonTemplateContextData() reqctx.ContextData {
 		"ShowFooterVersion":             setting.Other.ShowFooterVersion,
 		"DisableDownloadSourceArchives": setting.Repository.DisableDownloadSourceArchives,
 
-		"EnableSwagger":      setting.API.EnableSwagger,
-		"EnableOpenIDSignIn": setting.Service.EnableOpenIDSignIn,
-		"PageStartTime":      time.Now(),
+		"EnableSwagger": setting.API.EnableSwagger,
+		"PageStartTime": time.Now(),
 
 		"RunModeIsProd": setting.IsProd,
 		"ViteModeIsDev": public.IsViteDevMode(),

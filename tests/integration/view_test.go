@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVersion(t *testing.T) {
@@ -104,11 +106,11 @@ func testSecurityHeadersDefaults(t *testing.T) {
 func testSiteManifest(t *testing.T) {
 	req := NewRequest(t, "GET", "/")
 	resp := MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), `<link rel="manifest" href="/assets/site-manifest.json">`)
-
-	req = NewRequest(t, "GET", "/assets/site-manifest.json")
-	resp = MakeRequest(t, req, http.StatusOK)
-	assert.Equal(t, "application/manifest+json", resp.Header().Get("Content-Type"))
+	manifestURL, _ := NewHTMLParser(t, resp.Body).Find(`link[rel="manifest"]`).Attr("href")
+	manifestBase64, ok := strings.CutPrefix(manifestURL, "data:application/manifest+json;base64,")
+	require.True(t, ok)
+	manifestJSON, err := base64.StdEncoding.DecodeString(manifestBase64)
+	require.NoError(t, err)
 
 	assetBase := strings.TrimSuffix(setting.AppURL, "/")
 	expectedJSON := fmt.Sprintf(`{
@@ -126,7 +128,7 @@ func testSiteManifest(t *testing.T) {
 		assetBase+"/assets/img/logo.png",
 		assetBase+"/assets/img/logo.svg",
 	)
-	assert.JSONEq(t, expectedJSON, resp.Body.String())
+	assert.JSONEq(t, expectedJSON, string(manifestJSON))
 }
 
 func testViewPageCurrentURL(t *testing.T) {

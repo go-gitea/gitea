@@ -25,6 +25,7 @@ import (
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
+	release_service "gitea.dev/services/release"
 )
 
 // pushQueue represents a queue to handle update pull request tests
@@ -386,6 +387,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 
 			newReleases = append(newReleases, rel)
 		} else {
+			wasLatestCandidate := rel.CanBeLatest()
 			rel.Sha1 = commit.ID.String()
 			rel.CreatedUnix = createdUnix
 			if rel.IsTag {
@@ -401,6 +403,9 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			rel.PublisherID = pusher.ID
 			if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 				return fmt.Errorf("Update: %w", err)
+			}
+			if err = release_service.UpdateLatestRelease(ctx, repo, rel, wasLatestCandidate, ""); err != nil {
+				return fmt.Errorf("pushUpdateAddTags: %w", err)
 			}
 		}
 	}

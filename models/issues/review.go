@@ -121,11 +121,15 @@ func (rt ReviewType) Icon() string {
 
 // Review represents collection of code comments giving feedback for a PR
 type Review struct {
-	ID               int64 `xorm:"pk autoincr"`
-	Type             ReviewType
-	Reviewer         *user_model.User   `xorm:"-"`
-	ReviewerID       int64              `xorm:"index"`
-	ReviewerTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	ID       int64 `xorm:"pk autoincr"`
+	Type     ReviewType
+	Reviewer *user_model.User `xorm:"-"`
+
+	// HINT: REVIEWER-ID-NEGATIVE: ReviewerID and ReviewerTeamID must be positive at the moment,
+	// because the current template uses a trick "ItemID < 0" means "team id"
+	ReviewerID     int64 `xorm:"index"`
+	ReviewerTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
+
 	ReviewerTeam     *organization.Team `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
@@ -186,7 +190,7 @@ func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
 		return nil
 	}
 
-	r.ReviewerTeam, err = organization.GetTeamByID(ctx, r.ReviewerTeamID)
+	r.ReviewerTeamID, r.ReviewerTeam, err = organization.GetPossibleTeamByID(ctx, r.ReviewerTeamID)
 	return err
 }
 
@@ -1001,34 +1005,14 @@ func DeleteReview(ctx context.Context, r *Review) error {
 			return errors.New("review request can not be deleted using this method")
 		}
 
-		opts := FindCommentsOptions{
-			Type:     CommentTypeCode,
-			IssueID:  r.IssueID,
-			ReviewID: r.ID,
-		}
-
-		if _, err := db.Delete[Comment](ctx, opts); err != nil {
-			return err
-		}
-
-		opts = FindCommentsOptions{
-			Type:     CommentTypeReview,
-			IssueID:  r.IssueID,
-			ReviewID: r.ID,
-		}
-
-		if _, err := db.Delete[Comment](ctx, opts); err != nil {
-			return err
-		}
-
-		opts = FindCommentsOptions{
-			Type:     CommentTypeDismissReview,
-			IssueID:  r.IssueID,
-			ReviewID: r.ID,
-		}
-
-		if _, err := db.Delete[Comment](ctx, opts); err != nil {
-			return err
+		for _, commentType := range [...]CommentType{CommentTypeCode, CommentTypeReview, CommentTypeDismissReview} {
+			if _, err := db.Delete[Comment](ctx, FindCommentsOptions{
+				Type:     commentType,
+				IssueID:  r.IssueID,
+				ReviewID: r.ID,
+			}); err != nil {
+				return err
+			}
 		}
 
 		if _, err := db.DeleteByID[Review](ctx, r.ID); err != nil {
