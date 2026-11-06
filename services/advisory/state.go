@@ -8,11 +8,13 @@ import (
 	"errors"
 
 	advisory_model "gitea.dev/models/advisory"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -179,6 +181,6 @@ func revokeDuplicateAccess(ctx context.Context, doer *user_model.User, a *adviso
 	if err != nil {
 		return err
 	}
-	notify_service.SecurityAdvisoryCollaboratorRemoved(ctx, doer, original, reporter, nil)
+	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorRemove, original.Repo, "advisory", original.Identifier, "collaborator", audit.AdvisoryCollaboratorName(reporter, nil))
 	return nil
 }

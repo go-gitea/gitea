@@ -566,23 +566,10 @@ func (list List) LoadAttributes(ctx context.Context) error {
 	if len(list) == 0 {
 		return nil
 	}
-	if err := list.loadRepos(ctx); err != nil {
-		return fmt.Errorf("LoadAttributes: loadRepos: %w", err)
-	}
-	if err := list.LoadLabels(ctx); err != nil {
-		return fmt.Errorf("LoadAttributes: LoadLabels: %w", err)
-	}
-	if err := list.loadVulnerabilities(ctx); err != nil {
-		return fmt.Errorf("LoadAttributes: loadVulnerabilities: %w", err)
-	}
-	if err := list.loadCredits(ctx); err != nil {
-		return fmt.Errorf("LoadAttributes: loadCredits: %w", err)
-	}
-	if err := list.loadUsers(ctx); err != nil {
-		return fmt.Errorf("LoadAttributes: loadUsers: %w", err)
-	}
-	if err := list.loadDuplicateOf(ctx); err != nil {
-		return fmt.Errorf("LoadAttributes: loadDuplicateOf: %w", err)
+	for _, load := range []func(context.Context) error{list.loadRepos, list.LoadLabels, list.loadVulnerabilities, list.loadCredits, list.loadUsers, list.loadDuplicateOf} {
+		if err := load(ctx); err != nil {
+			return fmt.Errorf("LoadAttributes: %w", err)
+		}
 	}
 	return nil
 }

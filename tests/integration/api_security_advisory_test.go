@@ -49,26 +49,23 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		Vulnerabilities:  []*api.RepositoryAdvisoryVulnerability{{Package: &api.RepositoryAdvisoryPackage{Ecosystem: "go", Name: "gitea.dev"}, VulnerableVersionRange: "< 1.2.3"}},
 	}
 
-	MakeRequest(t, NewRequest(t, "GET", baseURL).AddTokenAuth(adminToken), http.StatusNotFound) // the unit is disabled, also for admins
+	advisoryRequest(t, "GET", baseURL, adminToken, nil, http.StatusNotFound) // the unit is disabled, also for admins
 	require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, []repo_model.RepoUnit{{RepoID: repo.ID, Type: unit.TypeSecurityAdvisories}}, nil))
 
-	resp := MakeRequest(t, NewRequest(t, "GET", pvrURL), http.StatusOK)
-	assert.False(t, DecodeJSON(t, resp, &api.PrivateVulnerabilityReporting{}).Enabled)
-	MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL+"/reports", report).AddTokenAuth(reporterToken), http.StatusForbidden)
-	MakeRequest(t, NewRequest(t, "PUT", pvrURL).AddTokenAuth(outsiderToken), http.StatusForbidden)
-	MakeRequest(t, NewRequest(t, "PUT", pvrURL).AddTokenAuth(adminToken), http.StatusNoContent)
+	assert.False(t, advisoryJSON(t, "GET", pvrURL, "", nil, http.StatusOK, &api.PrivateVulnerabilityReporting{}).Enabled)
+	advisoryRequest(t, "POST", baseURL+"/reports", reporterToken, report, http.StatusForbidden)
+	advisoryRequest(t, "PUT", pvrURL, outsiderToken, nil, http.StatusForbidden)
+	advisoryRequest(t, "PUT", pvrURL, adminToken, nil, http.StatusNoContent)
 	// enabling the already enabled unit must keep its config
-	MakeRequest(t, NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1", &api.EditRepoOption{HasSecurityAdvisories: new(true)}).AddTokenAuth(adminToken), http.StatusOK)
-	resp = MakeRequest(t, NewRequest(t, "GET", pvrURL), http.StatusOK)
-	assert.True(t, DecodeJSON(t, resp, &api.PrivateVulnerabilityReporting{}).Enabled)
+	advisoryRequest(t, "PATCH", "/api/v1/repos/user2/repo1", adminToken, &api.EditRepoOption{HasSecurityAdvisories: new(true)}, http.StatusOK)
+	assert.True(t, advisoryJSON(t, "GET", pvrURL, "", nil, http.StatusOK, &api.PrivateVulnerabilityReporting{}).Enabled)
 
 	// webhooks sending everything must not forward undisclosed reports
 	everythingHook := createTestWebhook(t, repo.ID, &webhook_module.HookEvent{SendEverything: true})
 	reportHook := createTestWebhook(t, repo.ID, &webhook_module.HookEvent{ChooseEvents: true, HookEvents: webhook_module.HookEvents{webhook_module.HookEventRepositoryAdvisoryReported: true}})
 
-	MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL+"/reports", report).AddTokenAuth(blockedToken), http.StatusForbidden)
-	resp = MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL+"/reports", report).AddTokenAuth(reporterToken), http.StatusCreated)
-	reported := DecodeJSON(t, resp, &api.RepositoryAdvisory{})
+	advisoryRequest(t, "POST", baseURL+"/reports", blockedToken, report, http.StatusForbidden)
+	reported := advisoryJSON(t, "POST", baseURL+"/reports", reporterToken, report, http.StatusCreated, &api.RepositoryAdvisory{})
 	assert.Equal(t, "triage", reported.State)
 	assert.Equal(t, "medium", *reported.Severity)
 	assert.Equal(t, "user4", reported.Author.UserName)
@@ -78,33 +75,30 @@ func TestAPISecurityAdvisory(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &webhook_model.HookTask{HookID: reportHook.ID, EventType: webhook_module.HookEventRepositoryAdvisoryReported})
 
 	t.Run("DraftVisibility", func(t *testing.T) {
-		MakeRequest(t, NewRequest(t, "GET", advisoryURL).AddTokenAuth(writerToken), http.StatusNotFound)
-		MakeRequest(t, NewRequest(t, "GET", advisoryURL).AddTokenAuth(adminPublicOnlyToken), http.StatusNotFound)
-		MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusNotFound)
-		patchAdvisory(t, advisoryURL, outsiderToken, map[string]any{"summary": "x"}, http.StatusNotFound)
-		resp := MakeRequest(t, NewRequest(t, "GET", baseURL).AddTokenAuth(adminPublicOnlyToken), http.StatusOK)
-		assert.Empty(t, DecodeJSON(t, resp, []*api.RepositoryAdvisory{}))
+		advisoryRequest(t, "GET", advisoryURL, writerToken, nil, http.StatusNotFound)
+		advisoryRequest(t, "GET", advisoryURL, adminPublicOnlyToken, nil, http.StatusNotFound)
+		advisoryRequest(t, "GET", advisoryURL, "", nil, http.StatusNotFound)
+		advisoryRequest(t, "PATCH", advisoryURL, outsiderToken, map[string]any{"summary": "x"}, http.StatusNotFound)
+		assert.Empty(t, advisoryJSON(t, "GET", baseURL, adminPublicOnlyToken, nil, http.StatusOK, []*api.RepositoryAdvisory{}))
 	})
 
 	t.Run("Edit", func(t *testing.T) {
 		// participants can edit the content, but not what only maintainers decide
-		patchAdvisory(t, advisoryURL, reporterToken, map[string]any{"state": "draft"}, http.StatusForbidden)
-		patchAdvisory(t, advisoryURL, reporterToken, map[string]any{"cve_id": "CVE-2026-1234"}, http.StatusForbidden)
-		patchAdvisory(t, advisoryURL, reporterToken, map[string]any{"cwe_ids": []string{"CWE-79"}}, http.StatusOK)
-		resp := MakeRequest(t, NewRequest(t, "GET", advisoryURL).AddTokenAuth(reporterToken), http.StatusOK)
-		assert.Equal(t, []string{"CWE-79"}, DecodeJSON(t, resp, &api.RepositoryAdvisory{}).CweIDs)
+		advisoryRequest(t, "PATCH", advisoryURL, reporterToken, map[string]any{"state": "draft"}, http.StatusForbidden)
+		advisoryRequest(t, "PATCH", advisoryURL, reporterToken, map[string]any{"cve_id": "CVE-2026-1234"}, http.StatusForbidden)
+		advisoryRequest(t, "PATCH", advisoryURL, reporterToken, map[string]any{"cwe_ids": []string{"CWE-79"}}, http.StatusOK)
+		assert.Equal(t, []string{"CWE-79"}, advisoryJSON(t, "GET", advisoryURL, reporterToken, nil, http.StatusOK, &api.RepositoryAdvisory{}).CweIDs)
 
-		patchAdvisory(t, advisoryURL, adminToken, map[string]any{"severity": "high"}, http.StatusUnprocessableEntity)
-		patchAdvisory(t, advisoryURL, adminToken, map[string]any{"state": "published"}, http.StatusUnprocessableEntity)
+		advisoryRequest(t, "PATCH", advisoryURL, adminToken, map[string]any{"severity": "high"}, http.StatusUnprocessableEntity)
+		advisoryRequest(t, "PATCH", advisoryURL, adminToken, map[string]any{"state": "published"}, http.StatusUnprocessableEntity)
 		// an invalid collaborator rejects the whole request before anything is saved
-		patchAdvisory(t, advisoryURL, adminToken, map[string]any{"summary": "changed", "collaborating_users": []string{"user29"}}, http.StatusForbidden)
-		resp = patchAdvisory(t, advisoryURL, adminToken, map[string]any{
+		advisoryRequest(t, "PATCH", advisoryURL, adminToken, map[string]any{"summary": "changed", "collaborating_users": []string{"user29"}}, http.StatusForbidden)
+		edited := advisoryJSON(t, "PATCH", advisoryURL, adminToken, map[string]any{
 			"state":               "draft",
 			"description":         "rewritten for publishing",
 			"cvss_vector_string":  "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N",
 			"collaborating_users": []string{"user5"},
-		}, http.StatusOK)
-		edited := DecodeJSON(t, resp, &api.RepositoryAdvisory{})
+		}, http.StatusOK, &api.RepositoryAdvisory{})
 		assert.Equal(t, report.Summary, edited.Summary)
 		assert.Equal(t, "draft", edited.State)
 		assert.Equal(t, "critical", *edited.Severity)
@@ -115,52 +109,45 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		assert.Equal(t, "rewritten for publishing", accepted.Description)
 		assert.Equal(t, report.Description, accepted.ReportDescription, "the report is kept as it was accepted")
 
-		MakeRequest(t, NewRequest(t, "GET", advisoryURL).AddTokenAuth(outsiderToken), http.StatusOK)
-		patchAdvisory(t, advisoryURL, adminToken, map[string]any{"collaborating_users": []string{}}, http.StatusOK)
-		MakeRequest(t, NewRequest(t, "GET", advisoryURL).AddTokenAuth(outsiderToken), http.StatusNotFound)
+		advisoryRequest(t, "GET", advisoryURL, outsiderToken, nil, http.StatusOK)
+		advisoryRequest(t, "PATCH", advisoryURL, adminToken, map[string]any{"collaborating_users": []string{}}, http.StatusOK)
+		advisoryRequest(t, "GET", advisoryURL, outsiderToken, nil, http.StatusNotFound)
 	})
 
 	t.Run("Comments", func(t *testing.T) {
 		commentsURL := advisoryURL + "/comments"
-		MakeRequest(t, NewRequest(t, "GET", commentsURL).AddTokenAuth(writerToken), http.StatusNotFound)
-		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", commentsURL, &api.RepositoryAdvisoryCommentOption{Body: "steps attached"}).AddTokenAuth(reporterToken), http.StatusCreated)
-		reporterComment := DecodeJSON(t, resp, &api.RepositoryAdvisoryComment{})
-		resp = MakeRequest(t, NewRequestWithJSON(t, "POST", commentsURL, &api.RepositoryAdvisoryCommentOption{Body: "confirmed"}).AddTokenAuth(adminToken), http.StatusCreated)
-		adminComment := DecodeJSON(t, resp, &api.RepositoryAdvisoryComment{})
+		postComment := func(token string, opt *api.RepositoryAdvisoryCommentOption) string {
+			return fmt.Sprintf("%s/%d", commentsURL, advisoryJSON(t, "POST", commentsURL, token, opt, http.StatusCreated, &api.RepositoryAdvisoryComment{}).ID)
+		}
+		advisoryRequest(t, "GET", commentsURL, writerToken, nil, http.StatusNotFound)
+		reporterCommentURL := postComment(reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "steps attached"})
+		adminCommentURL := postComment(adminToken, &api.RepositoryAdvisoryCommentOption{Body: "confirmed"})
 
-		adminCommentURL := fmt.Sprintf("%s/%d", commentsURL, adminComment.ID)
-		MakeRequest(t, NewRequestWithJSON(t, "PATCH", adminCommentURL, &api.RepositoryAdvisoryCommentOption{Body: "x"}).AddTokenAuth(reporterToken), http.StatusForbidden)
-		MakeRequest(t, NewRequest(t, "DELETE", adminCommentURL).AddTokenAuth(reporterToken), http.StatusForbidden)
-		resp = MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", commentsURL, reporterComment.ID), &api.RepositoryAdvisoryCommentOption{Body: "steps updated"}).AddTokenAuth(reporterToken), http.StatusOK)
-		assert.Equal(t, "steps updated", DecodeJSON(t, resp, &api.RepositoryAdvisoryComment{}).Body)
-		MakeRequest(t, NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", commentsURL, reporterComment.ID)).AddTokenAuth(adminToken), http.StatusNoContent)
+		advisoryRequest(t, "PATCH", adminCommentURL, reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "x"}, http.StatusForbidden)
+		advisoryRequest(t, "DELETE", adminCommentURL, reporterToken, nil, http.StatusForbidden)
+		assert.Equal(t, "steps updated", advisoryJSON(t, "PATCH", reporterCommentURL, reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "steps updated"}, http.StatusOK, &api.RepositoryAdvisoryComment{}).Body)
+		advisoryRequest(t, "DELETE", reporterCommentURL, adminToken, nil, http.StatusNoContent)
 
-		MakeRequest(t, NewRequestWithJSON(t, "POST", commentsURL, &api.RepositoryAdvisoryCommentOption{Body: "x", IsInternal: true}).AddTokenAuth(reporterToken), http.StatusForbidden)
-		resp = MakeRequest(t, NewRequestWithJSON(t, "POST", commentsURL, &api.RepositoryAdvisoryCommentOption{Body: "the reporter seems to sell this", IsInternal: true}).AddTokenAuth(adminToken), http.StatusCreated)
-		internalCommentURL := fmt.Sprintf("%s/%d", commentsURL, DecodeJSON(t, resp, &api.RepositoryAdvisoryComment{}).ID)
-		MakeRequest(t, NewRequestWithJSON(t, "PATCH", internalCommentURL, &api.RepositoryAdvisoryCommentOption{Body: "x"}).AddTokenAuth(reporterToken), http.StatusNotFound)
+		advisoryRequest(t, "POST", commentsURL, reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "x", IsInternal: true}, http.StatusForbidden)
+		internalCommentURL := postComment(adminToken, &api.RepositoryAdvisoryCommentOption{Body: "the reporter seems to sell this", IsInternal: true})
+		advisoryRequest(t, "PATCH", internalCommentURL, reporterToken, &api.RepositoryAdvisoryCommentOption{Body: "x"}, http.StatusNotFound)
 
-		resp = MakeRequest(t, NewRequest(t, "GET", commentsURL).AddTokenAuth(reporterToken), http.StatusOK)
-		comments := DecodeJSON(t, resp, []*api.RepositoryAdvisoryComment{})
+		comments := advisoryJSON(t, "GET", commentsURL, reporterToken, nil, http.StatusOK, []*api.RepositoryAdvisoryComment{})
 		require.Len(t, comments, 1)
 		assert.Equal(t, "user2", comments[0].User.UserName)
-		resp = MakeRequest(t, NewRequest(t, "GET", commentsURL).AddTokenAuth(adminToken), http.StatusOK)
-		comments = DecodeJSON(t, resp, []*api.RepositoryAdvisoryComment{})
+		comments = advisoryJSON(t, "GET", commentsURL, adminToken, nil, http.StatusOK, []*api.RepositoryAdvisoryComment{})
 		require.Len(t, comments, 2)
 		assert.True(t, comments[1].IsInternal)
 	})
 
 	t.Run("Publish", func(t *testing.T) {
-		resp := patchAdvisory(t, advisoryURL, adminToken, map[string]any{"state": "published"}, http.StatusOK)
-		assert.Equal(t, "user2", DecodeJSON(t, resp, &api.RepositoryAdvisory{}).Publisher.UserName)
-
-		resp = MakeRequest(t, NewRequest(t, "GET", advisoryURL).AddTokenAuth(outsiderToken), http.StatusOK)
-		public := DecodeJSON(t, resp, &api.RepositoryAdvisory{})
+		assert.Equal(t, "user2", advisoryJSON(t, "PATCH", advisoryURL, adminToken, map[string]any{"state": "published"}, http.StatusOK, &api.RepositoryAdvisory{}).Publisher.UserName)
+		public := advisoryJSON(t, "GET", advisoryURL, outsiderToken, nil, http.StatusOK, &api.RepositoryAdvisory{})
 		assert.Nil(t, public.Author)
 		assert.Nil(t, public.CollaboratingUsers)
 		assert.Nil(t, public.Submission)
-		MakeRequest(t, NewRequest(t, "GET", advisoryURL).AddTokenAuth(adminPublicOnlyToken), http.StatusOK)
-		patchAdvisory(t, advisoryURL, reporterToken, map[string]any{"summary": "x"}, http.StatusForbidden)
+		advisoryRequest(t, "GET", advisoryURL, adminPublicOnlyToken, nil, http.StatusOK)
+		advisoryRequest(t, "PATCH", advisoryURL, reporterToken, map[string]any{"summary": "x"}, http.StatusForbidden)
 
 		// the published payload is sent without the private parts
 		task := unittest.AssertExistsAndLoadBean(t, &webhook_model.HookTask{HookID: everythingHook.ID, EventType: webhook_module.HookEventRepositoryAdvisory})
@@ -169,39 +156,33 @@ func TestAPISecurityAdvisory(t *testing.T) {
 	})
 
 	t.Run("CloseAsDuplicate", func(t *testing.T) {
-		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL, &api.CreateRepositoryAdvisoryOption{Summary: "Original", Description: "details"}).AddTokenAuth(adminToken), http.StatusCreated)
-		original := DecodeJSON(t, resp, &api.RepositoryAdvisory{})
-		resp = MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL+"/reports", report).AddTokenAuth(outsiderToken), http.StatusCreated)
-		duplicateURL := baseURL + "/" + DecodeJSON(t, resp, &api.RepositoryAdvisory{}).Identifier
-		patchAdvisory(t, duplicateURL, adminToken, map[string]any{"state": "closed"}, http.StatusUnprocessableEntity)
-		patchAdvisory(t, duplicateURL, adminToken, map[string]any{"state": "closed", "close_reason": "duplicate"}, http.StatusUnprocessableEntity)
-		resp = patchAdvisory(t, duplicateURL, adminToken, map[string]any{"state": "closed", "close_reason": "duplicate", "duplicate_of": original.Identifier}, http.StatusOK)
-		closed := DecodeJSON(t, resp, &api.RepositoryAdvisory{})
+		original := advisoryJSON(t, "POST", baseURL, adminToken, &api.CreateRepositoryAdvisoryOption{Summary: "Original", Description: "details"}, http.StatusCreated, &api.RepositoryAdvisory{})
+		originalURL := baseURL + "/" + original.Identifier
+		duplicateURL := baseURL + "/" + advisoryJSON(t, "POST", baseURL+"/reports", outsiderToken, report, http.StatusCreated, &api.RepositoryAdvisory{}).Identifier
+		closeAsDuplicate := map[string]any{"state": "closed", "close_reason": "duplicate", "duplicate_of": original.Identifier}
+		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "closed"}, http.StatusUnprocessableEntity)
+		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "closed", "close_reason": "duplicate"}, http.StatusUnprocessableEntity)
+		closed := advisoryJSON(t, "PATCH", duplicateURL, adminToken, closeAsDuplicate, http.StatusOK, &api.RepositoryAdvisory{})
 		assert.Equal(t, "duplicate", closed.CloseReason)
 		assert.Equal(t, original.Identifier, closed.DuplicateOf)
 
 		// the reporter of the duplicate can follow the original, but not edit it
-		originalURL := baseURL + "/" + original.Identifier
-		MakeRequest(t, NewRequest(t, "GET", originalURL+"/comments").AddTokenAuth(outsiderToken), http.StatusOK)
-		patchAdvisory(t, originalURL, outsiderToken, map[string]any{"summary": "x"}, http.StatusForbidden)
-		patchAdvisory(t, duplicateURL, adminToken, map[string]any{"state": "draft"}, http.StatusOK)
-		MakeRequest(t, NewRequest(t, "GET", originalURL+"/comments").AddTokenAuth(outsiderToken), http.StatusNotFound) // reopening revokes the access
-		patchAdvisory(t, duplicateURL, adminToken, map[string]any{"state": "closed", "close_reason": "duplicate", "duplicate_of": original.Identifier}, http.StatusOK)
-		resp = MakeRequest(t, NewRequest(t, "GET", baseURL+"?close_reason=duplicate").AddTokenAuth(adminToken), http.StatusOK)
-		assert.Len(t, DecodeJSON(t, resp, []*api.RepositoryAdvisory{}), 1)
+		advisoryRequest(t, "GET", originalURL+"/comments", outsiderToken, nil, http.StatusOK)
+		advisoryRequest(t, "PATCH", originalURL, outsiderToken, map[string]any{"summary": "x"}, http.StatusForbidden)
+		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "draft"}, http.StatusOK)
+		advisoryRequest(t, "GET", originalURL+"/comments", outsiderToken, nil, http.StatusNotFound) // reopening revokes the access
+		advisoryRequest(t, "PATCH", duplicateURL, adminToken, closeAsDuplicate, http.StatusOK)
+		assert.Len(t, advisoryJSON(t, "GET", baseURL+"?close_reason=duplicate", adminToken, nil, http.StatusOK, []*api.RepositoryAdvisory{}), 1)
 	})
 
 	t.Run("SearchAndLabels", func(t *testing.T) {
-		create := &api.CreateRepositoryAdvisoryOption{Summary: "SQL injection in search", Description: "details", Labels: []int64{1}}
-		MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL, &api.CreateRepositoryAdvisoryOption{Summary: "x", Description: "x", Labels: []int64{4}}).AddTokenAuth(adminToken), http.StatusUnprocessableEntity) // organization label of another owner
-		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL, create).AddTokenAuth(adminToken), http.StatusCreated)
-		created := DecodeJSON(t, resp, &api.RepositoryAdvisory{})
+		advisoryRequest(t, "POST", baseURL, adminToken, &api.CreateRepositoryAdvisoryOption{Summary: "x", Description: "x", Labels: []int64{4}}, http.StatusUnprocessableEntity) // organization label of another owner
+		created := advisoryJSON(t, "POST", baseURL, adminToken, &api.CreateRepositoryAdvisoryOption{Summary: "SQL injection in search", Description: "details", Labels: []int64{1}}, http.StatusCreated, &api.RepositoryAdvisory{})
 		require.Len(t, created.Labels, 1)
 
 		search := func(query string) []string {
-			resp := MakeRequest(t, NewRequest(t, "GET", baseURL+"?"+query).AddTokenAuth(adminToken), http.StatusOK)
 			var ids []string
-			for _, a := range DecodeJSON(t, resp, []*api.RepositoryAdvisory{}) {
+			for _, a := range advisoryJSON(t, "GET", baseURL+"?"+query, adminToken, nil, http.StatusOK, []*api.RepositoryAdvisory{}) {
 				ids = append(ids, a.Identifier)
 			}
 			return ids
@@ -214,24 +195,22 @@ func TestAPISecurityAdvisory(t *testing.T) {
 
 	t.Run("Create", func(t *testing.T) {
 		create := &api.CreateRepositoryAdvisoryOption{Summary: "Path traversal", Description: "details", Severity: "low", Credits: []*api.RepositoryAdvisoryCredit{{Login: "user4", Type: "finder"}}}
-		MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL, create).AddTokenAuth(writerToken), http.StatusForbidden)
-		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL, create).AddTokenAuth(adminToken), http.StatusCreated)
-		created := DecodeJSON(t, resp, &api.RepositoryAdvisory{})
+		advisoryRequest(t, "POST", baseURL, writerToken, create, http.StatusForbidden)
+		created := advisoryJSON(t, "POST", baseURL, adminToken, create, http.StatusCreated, &api.RepositoryAdvisory{})
 		assert.Equal(t, "draft", created.State)
 		require.Len(t, created.Credits, 1)
 		assert.Nil(t, created.Submission)
 
-		resp = MakeRequest(t, NewRequest(t, "GET", baseURL+"?state=draft").AddTokenAuth(adminToken), http.StatusOK)
-		assert.Equal(t, "3", resp.Header().Get("X-Total-Count"))
+		assert.Equal(t, "3", advisoryRequest(t, "GET", baseURL+"?state=draft", adminToken, nil, http.StatusOK).Header().Get("X-Total-Count"))
 		for _, query := range []string{"state=bogus", "close_reason=bogus", "cwe=CWE-7_"} {
-			MakeRequest(t, NewRequest(t, "GET", baseURL+"?"+query).AddTokenAuth(adminToken), http.StatusUnprocessableEntity)
+			advisoryRequest(t, "GET", baseURL+"?"+query, adminToken, nil, http.StatusUnprocessableEntity)
 		}
 		create.CVSSVectorString = "CVSS:3.1/AV:N"
-		MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL, create).AddTokenAuth(adminToken), http.StatusUnprocessableEntity)
+		advisoryRequest(t, "POST", baseURL, adminToken, create, http.StatusUnprocessableEntity)
 	})
 
-	MakeRequest(t, NewRequest(t, "DELETE", pvrURL).AddTokenAuth(adminToken), http.StatusNoContent)
-	MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL+"/reports", report).AddTokenAuth(reporterToken), http.StatusForbidden)
+	advisoryRequest(t, "DELETE", pvrURL, adminToken, nil, http.StatusNoContent)
+	advisoryRequest(t, "POST", baseURL+"/reports", reporterToken, report, http.StatusForbidden)
 }
 
 func TestAPISecurityAdvisorySecurityTeam(t *testing.T) {
@@ -243,20 +222,27 @@ func TestAPISecurityAdvisorySecurityTeam(t *testing.T) {
 	memberToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository)
 
 	const baseURL = "/api/v1/repos/org3/repo3/security-advisories"
-	resp := MakeRequest(t, NewRequestWithJSON(t, "POST", baseURL, &api.CreateRepositoryAdvisoryOption{Summary: "Draft", Description: "details"}).AddTokenAuth(ownerToken), http.StatusCreated)
-	advisoryURL := baseURL + "/" + DecodeJSON(t, resp, &api.RepositoryAdvisory{}).Identifier
-	MakeRequest(t, NewRequest(t, "GET", advisoryURL).AddTokenAuth(memberToken), http.StatusNotFound)
+	advisoryURL := baseURL + "/" + advisoryJSON(t, "POST", baseURL, ownerToken, &api.CreateRepositoryAdvisoryOption{Summary: "Draft", Description: "details"}, http.StatusCreated, &api.RepositoryAdvisory{}).Identifier
+	advisoryRequest(t, "GET", advisoryURL, memberToken, nil, http.StatusNotFound)
 
-	resp = MakeRequest(t, NewRequestWithJSON(t, "PATCH", "/api/v1/teams/2", &api.EditTeamOption{IsSecurityTeam: new(true)}).AddTokenAuth(ownerToken), http.StatusOK)
-	assert.True(t, DecodeJSON(t, resp, &api.Team{}).IsSecurityTeam)
-	MakeRequest(t, NewRequest(t, "GET", advisoryURL+"/comments").AddTokenAuth(memberToken), http.StatusOK)
-	patchAdvisory(t, advisoryURL, memberToken, map[string]any{"summary": "edited by the security team"}, http.StatusOK)
-	patchAdvisory(t, advisoryURL, memberToken, map[string]any{"state": "published"}, http.StatusForbidden)
+	assert.True(t, advisoryJSON(t, "PATCH", "/api/v1/teams/2", ownerToken, &api.EditTeamOption{IsSecurityTeam: new(true)}, http.StatusOK, &api.Team{}).IsSecurityTeam)
+	advisoryRequest(t, "GET", advisoryURL+"/comments", memberToken, nil, http.StatusOK)
+	advisoryRequest(t, "PATCH", advisoryURL, memberToken, map[string]any{"summary": "edited by the security team"}, http.StatusOK)
+	advisoryRequest(t, "PATCH", advisoryURL, memberToken, map[string]any{"state": "published"}, http.StatusForbidden)
 }
 
-func patchAdvisory(t *testing.T, url, token string, body any, status int) *httptest.ResponseRecorder {
+func advisoryRequest(t *testing.T, method, url, token string, body any, status int) *httptest.ResponseRecorder {
 	t.Helper()
-	return MakeRequest(t, NewRequestWithJSON(t, "PATCH", url, body).AddTokenAuth(token), status)
+	req := NewRequest(t, method, url)
+	if body != nil {
+		req = NewRequestWithJSON(t, method, url, body)
+	}
+	return MakeRequest(t, req.AddTokenAuth(token), status)
+}
+
+func advisoryJSON[T any](t *testing.T, method, url, token string, body any, status int, v T) T {
+	t.Helper()
+	return DecodeJSON(t, advisoryRequest(t, method, url, token, body, status), v)
 }
 
 func createTestWebhook(t *testing.T, repoID int64, events *webhook_module.HookEvent) *webhook_model.Webhook {

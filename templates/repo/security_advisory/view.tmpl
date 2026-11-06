@@ -258,17 +258,9 @@
 					</div>
 					{{if .CanManageSecurityAdvisories}}
 						<div class="flex-relaxed-list">
-							{{range .CollaboratorForms}}
-								{{$placeholder := ctx.Locale.Tr .PlaceholderKey}}
-								<form class="ui form form-fetch-action" action="{{$advisory.Link}}/collaborators" method="post">
-									<input type="hidden" name="type" value="{{.Type}}">
-									<div class="field">
-										<div class="ui search fluid input" data-global-init="{{.SearchInit}}"{{with .OrgName}} data-org-name="{{.}}"{{end}}>
-											<input class="prompt" name="collaborator" placeholder="{{$placeholder}}" aria-label="{{$placeholder}}" autocomplete="off" required>
-										</div>
-									</div>
-									<button type="submit" class="fluid ui button">{{svg .Icon}} {{ctx.Locale.Tr .SubmitKey}}</button>
-								</form>
+							{{template "repo/security_advisory/collaborator_form" dict "Link" $advisory.Link "Type" "user" "Icon" "octicon-person-add" "SearchInit" "initSecurityAdvisoryUserSearch" "PlaceholderKey" "search.user_kind" "SubmitKey" "repo.settings.add_collaborator"}}
+							{{if .Repository.Owner.IsOrganization}}
+								{{template "repo/security_advisory/collaborator_form" dict "Link" $advisory.Link "Type" "team" "Icon" "octicon-people" "SearchInit" "initSecurityAdvisoryTeamSearch" "OrgName" .Repository.Owner.Name "PlaceholderKey" "search.team_kind" "SubmitKey" "repo.settings.add_team"}}
 							{{end}}
 						</div>
 					{{end}}

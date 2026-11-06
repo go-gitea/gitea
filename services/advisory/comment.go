@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	advisory_model "gitea.dev/models/advisory"
+	"gitea.dev/models/db"
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/util"
@@ -36,7 +37,7 @@ func CreateComment(ctx context.Context, doer *user_model.User, a *advisory_model
 		return nil, err
 	}
 	c := &advisory_model.Comment{AdvisoryID: a.ID, PosterID: doer.ID, Poster: doer, Content: content, IsInternal: isInternal}
-	if err := advisory_model.CreateComment(ctx, c); err != nil {
+	if err := db.Insert(ctx, c); err != nil {
 		return nil, err
 	}
 	notify_service.NewSecurityAdvisoryComment(ctx, doer, a, c)
@@ -58,5 +59,6 @@ func DeleteComment(ctx context.Context, doer *user_model.User, perms advisory_mo
 	if c.PosterID != doer.ID && !perms.CanManage {
 		return util.NewPermissionDeniedErrorf("only the poster and repository admins can delete a comment")
 	}
-	return advisory_model.DeleteComment(ctx, c)
+	_, err := db.DeleteByID[advisory_model.Comment](ctx, c.ID)
+	return err
 }

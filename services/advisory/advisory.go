@@ -11,10 +11,43 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 )
+
+type requestViewerKey struct{}
+
+// RequestViewer looks up the security teams once per request, a failed lookup only hides the non-public advisories
+func RequestViewer(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, isRepoAdmin, publicOnly bool) advisory_model.Viewer {
+	if v, ok := ctx.GetContextValue(requestViewerKey{}).(advisory_model.Viewer); ok {
+		return v
+	}
+	v, err := advisory_model.NewViewer(ctx, doer, repo, isRepoAdmin, publicOnly)
+	if err != nil {
+		log.Error("NewViewer: %v", err)
+	}
+	ctx.SetContextValue(requestViewerKey{}, v)
+	return v
+}
+
+type requestAdvisoryKey struct{}
+
+type requestAdvisory struct {
+	advisory *advisory_model.Advisory
+	perms    advisory_model.Permissions
+}
+
+func SetRequestAdvisory(ctx reqctx.RequestContext, a *advisory_model.Advisory, perms advisory_model.Permissions) {
+	ctx.SetContextValue(requestAdvisoryKey{}, &requestAdvisory{advisory: a, perms: perms})
+}
+
+func RequestAdvisory(ctx context.Context) (*advisory_model.Advisory, advisory_model.Permissions) {
+	loaded := reqctx.MustContextValue[*requestAdvisory](ctx, requestAdvisoryKey{})
+	return loaded.advisory, loaded.perms
+}
 
 // isBlockedFromAdvisory also checks the reporter because a private report is their content
 func isBlockedFromAdvisory(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool {
@@ -33,7 +66,7 @@ func CreateAdvisory(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err := advisory_model.CreateAdvisory(ctx, a); err != nil {
 		return nil, err
 	}
-	notify_service.NewSecurityAdvisory(ctx, doer, a)
+	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryCreate, a.Repo, "advisory", a.Identifier)
 	return a, nil
 }
 
@@ -101,6 +134,6 @@ func DeleteAdvisory(ctx context.Context, doer *user_model.User, a *advisory_mode
 	if err := advisory_model.DeleteAdvisory(ctx, a); err != nil {
 		return err
 	}
-	notify_service.DeleteSecurityAdvisory(ctx, doer, a)
+	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryDelete, a.Repo, "advisory", a.Identifier)
 	return nil
 }

@@ -22,21 +22,18 @@ import (
 func TestValidateStateOptions(t *testing.T) {
 	triage := &advisory_model.Advisory{ID: 1, RepoID: 1, State: advisory_model.StateTriage}
 	original := &advisory_model.Advisory{ID: 2, RepoID: 1}
-	for _, c := range []struct {
-		opts  StateOptions
-		valid bool
-	}{
-		{StateOptions{State: advisory_model.StateDraft}, true},
-		{StateOptions{State: advisory_model.StatePublished}, false},
-		{StateOptions{State: advisory_model.StateDraft, CloseReason: advisory_model.CloseReasonInvalid}, false},
-		{StateOptions{State: advisory_model.StateClosed}, false},
-		{StateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonInvalid}, true},
-		{StateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonInvalid, DuplicateOf: original}, false},
-		{StateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate}, false},
-		{StateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original}, true},
-		{StateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: triage}, false},
+	for opts, valid := range map[StateOptions]bool{
+		{State: advisory_model.StateDraft}:                                                                           true,
+		{State: advisory_model.StatePublished}:                                                                       false,
+		{State: advisory_model.StateDraft, CloseReason: advisory_model.CloseReasonInvalid}:                           false,
+		{State: advisory_model.StateClosed}:                                                                          false,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonInvalid}:                          true,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonInvalid, DuplicateOf: original}:   false,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate}:                        false,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original}: true,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: triage}:   false,
 	} {
-		assert.Equal(t, c.valid, validateStateOptions(triage, c.opts) == nil, "%+v", c.opts)
+		assert.Equal(t, valid, validateStateOptions(triage, opts) == nil, "%+v", opts)
 	}
 }
 

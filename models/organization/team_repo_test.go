@@ -34,22 +34,19 @@ func TestGetTeamsWithAccessToRepoUnit(t *testing.T) {
 func TestSecurityTeamMembers(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
+	assertMember := func(expected bool, userID, repoID int64) {
+		t.Helper()
+		isMember, err := organization.IsSecurityTeamMember(ctx, userID, repoID)
+		require.NoError(t, err)
+		assert.Equal(t, expected, isMember)
+	}
 	// team 2 of org 3 has repository 3 and the members user2 and user4
-	isMember, err := organization.IsSecurityTeamMember(ctx, 4, 3)
+	assertMember(false, 4, 3)
+	_, err := db.GetEngine(ctx).ID(2).Cols("is_security_team").Update(&organization.Team{IsSecurityTeam: true})
 	require.NoError(t, err)
-	assert.False(t, isMember)
-
-	_, err = db.GetEngine(ctx).ID(2).Cols("is_security_team").Update(&organization.Team{IsSecurityTeam: true})
-	require.NoError(t, err)
-	isMember, err = organization.IsSecurityTeamMember(ctx, 4, 3)
-	require.NoError(t, err)
-	assert.True(t, isMember)
-	isMember, err = organization.IsSecurityTeamMember(ctx, 4, 5)
-	require.NoError(t, err)
-	assert.False(t, isMember, "the team doesn't include repository 5")
-	isMember, err = organization.IsSecurityTeamMember(ctx, 5, 3)
-	require.NoError(t, err)
-	assert.False(t, isMember)
+	assertMember(true, 4, 3)
+	assertMember(false, 4, 5) // the team doesn't include repository 5
+	assertMember(false, 5, 3)
 
 	ids, err := organization.GetSecurityTeamMemberIDs(ctx, 3)
 	require.NoError(t, err)

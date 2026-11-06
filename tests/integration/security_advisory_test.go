@@ -26,6 +26,9 @@ func TestSecurityAdvisoryWeb(t *testing.T) {
 	outsider := loginUser(t, "user5")
 	const advisoriesURL = "/user2/repo1/security/advisories"
 
+	page := func(s *TestSession, url string) string {
+		return s.MakeRequest(t, NewRequest(t, "GET", url), http.StatusOK).Body.String()
+	}
 	privateReporting := func() bool {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		return repo.MustGetUnit(t.Context(), unit.TypeSecurityAdvisories).SecurityAdvisoriesConfig().PrivateVulnerabilityReporting
@@ -39,10 +42,9 @@ func TestSecurityAdvisoryWeb(t *testing.T) {
 	saveUnits(map[string]string{"enable_security_advisories": "on", "private_vulnerability_reporting": "on"})
 	assert.True(t, privateReporting())
 
-	resp := reporter.MakeRequest(t, NewRequest(t, "GET", advisoriesURL), http.StatusOK)
-	assert.Contains(t, resp.Body.String(), advisoriesURL+"/report")
+	assert.Contains(t, page(reporter, advisoriesURL), advisoriesURL+"/report")
 	reporter.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"/report"), http.StatusOK)
-	resp = reporter.MakeRequest(t, NewRequestWithValues(t, "POST", advisoriesURL+"/report", map[string]string{
+	resp := reporter.MakeRequest(t, NewRequestWithValues(t, "POST", advisoriesURL+"/report", map[string]string{
 		"summary":                  "Path traversal in uploads",
 		"content":                  "Uploading `../x` writes outside the data directory.",
 		"cvss_v3_vector":           "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
@@ -56,45 +58,41 @@ func TestSecurityAdvisoryWeb(t *testing.T) {
 	advisoryURL := advisoriesURL + "/" + a.Identifier
 	assert.Equal(t, advisoryURL, *test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
 
-	resp = admin.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"?state=triage&q=traversal"), http.StatusOK)
-	assert.Contains(t, resp.Body.String(), a.Identifier)
-	resp = admin.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"?state=triage&q=nomatch"), http.StatusOK)
-	assert.NotContains(t, resp.Body.String(), a.Identifier)
+	assert.Contains(t, page(admin, advisoriesURL+"?state=triage&q=traversal"), a.Identifier)
+	assert.NotContains(t, page(admin, advisoriesURL+"?state=triage&q=nomatch"), a.Identifier)
 
 	reporter.MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusOK)
 	outsider.MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusNotFound)
 	MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusNotFound)
-	resp = outsider.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"?state=triage"), http.StatusOK)
-	assert.NotContains(t, resp.Body.String(), a.Identifier)
+	assert.NotContains(t, page(outsider, advisoriesURL+"?state=triage"), a.Identifier)
 	outsider.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/state", map[string]string{"state": "draft"}), http.StatusNotFound)
 
 	const comment = "Confirmed, the fix is in progress."
 	reporter.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/comments", map[string]string{"content": comment}), http.StatusOK)
-	resp = admin.MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusOK)
-	assert.Contains(t, resp.Body.String(), comment)
-	assert.NotContains(t, resp.Body.String(), "data-mentions-url", "mentions would suggest users who cannot see the advisory")
+	body := page(admin, advisoryURL)
+	assert.Contains(t, body, comment)
+	assert.NotContains(t, body, "data-mentions-url", "mentions would suggest users who cannot see the advisory")
 
 	const internalComment = "The reporter asked for a bounty twice."
 	admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/comments", map[string]string{"content": internalComment, "is_internal": "on"}), http.StatusOK)
-	resp = admin.MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusOK)
-	assert.Contains(t, resp.Body.String(), internalComment)
-	resp = reporter.MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusOK)
-	assert.Contains(t, resp.Body.String(), comment)
-	assert.NotContains(t, resp.Body.String(), internalComment)
+	assert.Contains(t, page(admin, advisoryURL), internalComment)
+	body = page(reporter, advisoryURL)
+	assert.Contains(t, body, comment)
+	assert.NotContains(t, body, internalComment)
 
 	admin.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"/new"), http.StatusOK)
 	outsider.MakeRequest(t, NewRequest(t, "GET", advisoriesURL+"/new"), http.StatusForbidden)
-	resp = reporter.MakeRequest(t, NewRequest(t, "GET", advisoryURL+"/edit"), http.StatusOK)
-	assert.Contains(t, resp.Body.String(), "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
-	assert.NotContains(t, resp.Body.String(), `name="credit_user"`, "only admins manage credits")
+	body = page(reporter, advisoryURL+"/edit")
+	assert.Contains(t, body, "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
+	assert.NotContains(t, body, `name="credit_user"`, "only admins manage credits")
 
 	reporter.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/state", map[string]string{"state": "draft"}), http.StatusForbidden)
 	admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/state", map[string]string{"state": "draft"}), http.StatusOK)
 	admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/state", map[string]string{"state": "published"}), http.StatusOK)
 
-	resp = MakeRequest(t, NewRequest(t, "GET", advisoryURL), http.StatusOK)
-	assert.Contains(t, resp.Body.String(), "Path traversal in uploads")
-	assert.NotContains(t, resp.Body.String(), comment, "the discussion stays private after publishing")
+	body = page(nil, advisoryURL) // anonymous
+	assert.Contains(t, body, "Path traversal in uploads")
+	assert.NotContains(t, body, comment, "the discussion stays private after publishing")
 	reporter.MakeRequest(t, NewRequest(t, "GET", advisoryURL+"/edit"), http.StatusForbidden)
 
 	saveUnits(map[string]string{})

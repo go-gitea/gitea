@@ -95,16 +95,7 @@ func GetCommentByID(ctx context.Context, advisoryID, id int64, includeInternal b
 	return c, nil
 }
 
-func CreateComment(ctx context.Context, c *Comment) error {
-	return db.Insert(ctx, c)
-}
-
 func UpdateCommentContent(ctx context.Context, c *Comment) error {
 	_, err := db.GetEngine(ctx).ID(c.ID).Cols("content").Update(c)
-	return err
-}
-
-func DeleteComment(ctx context.Context, c *Comment) error {
-	_, err := db.DeleteByID[Comment](ctx, c.ID)
 	return err
 }

@@ -23,16 +23,17 @@ type Type int
 const (
 	TypeInvalid Type = iota // 0 invalid
 
-	TypeCode               // 1 code
-	TypeIssues             // 2 issues
-	TypePullRequests       // 3 PRs
-	TypeReleases           // 4 Releases
-	TypeWiki               // 5 Wiki
-	TypeExternalWiki       // 6 ExternalWiki
-	TypeExternalTracker    // 7 ExternalTracker
-	TypeProjects           // 8 Projects: implies that the doer can read some information from issue & PR, org-level is not well-designed
-	TypePackages           // 9 Packages: for most cases, it is for owner-level (not well-designed though)
-	TypeActions            // 10 Actions
+	TypeCode            // 1 code
+	TypeIssues          // 2 issues
+	TypePullRequests    // 3 PRs
+	TypeReleases        // 4 Releases
+	TypeWiki            // 5 Wiki
+	TypeExternalWiki    // 6 ExternalWiki
+	TypeExternalTracker // 7 ExternalTracker
+	TypeProjects        // 8 Projects: implies that the doer can read some information from issue & PR, org-level is not well-designed
+	TypePackages        // 9 Packages: for most cases, it is for owner-level (not well-designed though)
+	TypeActions         // 10 Actions
+
 	TypeSecurityAdvisories // 11 Security advisories
 )
 
@@ -340,16 +341,17 @@ var (
 
 	// Units contains all the units
 	Units = map[Type]Unit{
-		TypeCode:               UnitCode,
-		TypeIssues:             UnitIssues,
-		TypeExternalTracker:    UnitExternalTracker,
-		TypePullRequests:       UnitPullRequests,
-		TypeReleases:           UnitReleases,
-		TypeWiki:               UnitWiki,
-		TypeExternalWiki:       UnitExternalWiki,
-		TypeProjects:           UnitProjects,
-		TypePackages:           UnitPackages,
-		TypeActions:            UnitActions,
+		TypeCode:            UnitCode,
+		TypeIssues:          UnitIssues,
+		TypeExternalTracker: UnitExternalTracker,
+		TypePullRequests:    UnitPullRequests,
+		TypeReleases:        UnitReleases,
+		TypeWiki:            UnitWiki,
+		TypeExternalWiki:    UnitExternalWiki,
+		TypeProjects:        UnitProjects,
+		TypePackages:        UnitPackages,
+		TypeActions:         UnitActions,
+
 		TypeSecurityAdvisories: UnitSecurityAdvisories,
 	}
 )

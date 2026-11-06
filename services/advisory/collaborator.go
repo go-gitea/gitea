@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	advisory_model "gitea.dev/models/advisory"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
@@ -16,6 +17,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -141,7 +143,7 @@ func addWritableCollaborator(ctx context.Context, advisoryID int64, c collaborat
 
 func (changes collaboratorChanges) notify(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
 	for _, c := range changes.removed {
-		notify_service.SecurityAdvisoryCollaboratorRemoved(ctx, doer, a, c.user, c.team)
+		audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorRemove, a.Repo, "advisory", a.Identifier, "collaborator", audit.AdvisoryCollaboratorName(c.user, c.team))
 	}
 	for _, c := range changes.added {
 		notify_service.SecurityAdvisoryCollaboratorAdded(ctx, doer, a, c.user, c.team)
@@ -205,15 +207,8 @@ func replaceCollaborators(ctx context.Context, a *advisory_model.Advisory, userN
 	if len(wanted)+len(userNames.Value())+len(teamNames.Value()) > maxListLength {
 		return collaboratorChanges{}, util.NewInvalidArgumentErrorf("at most %d collaborators are allowed", maxListLength)
 	}
-	for _, name := range userNames.Value() {
-		c, err := lookupNewCollaborator(ctx, a, name, false)
-		if err != nil {
-			return collaboratorChanges{}, err
-		}
-		wanted = append(wanted, c)
-	}
-	for _, name := range teamNames.Value() {
-		c, err := lookupNewCollaborator(ctx, a, name, true)
+	for i, name := range slices.Concat(userNames.Value(), teamNames.Value()) {
+		c, err := lookupNewCollaborator(ctx, a, name, i >= len(userNames.Value()))
 		if err != nil {
 			return collaboratorChanges{}, err
 		}

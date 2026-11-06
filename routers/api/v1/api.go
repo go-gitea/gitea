@@ -749,12 +749,6 @@ func mustEnableUnit(unitType unit.Type) func(ctx *context.APIContext) {
 	}
 }
 
-func mustEnableSecurityAdvisories(ctx *context.APIContext) {
-	if !ctx.Repo.Permission.CanRead(unit.TypeSecurityAdvisories) {
-		ctx.APIErrorNotFound()
-	}
-}
-
 // reqProjectsUnitAccess mirrors the web's reqUnitAccess for the Projects unit. Org
 // visibility is too permissive for reads, org ownership too strict for writes.
 func reqProjectsUnitAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) {
@@ -1454,8 +1448,8 @@ func Routes() *web.Router {
 								Delete(repo.DeleteSecurityAdvisoryComment)
 						}, repo.MustSeeSecurityAdvisoryDiscussion)
 					}, repo.LoadSecurityAdvisory)
-				}, mustEnableSecurityAdvisories)
-				m.Combo("/private-vulnerability-reporting", mustEnableSecurityAdvisories).
+				}, mustEnableUnit(unit.TypeSecurityAdvisories))
+				m.Combo("/private-vulnerability-reporting", mustEnableUnit(unit.TypeSecurityAdvisories)).
 					Get(repo.GetPrivateVulnerabilityReporting).
 					Put(reqToken(), rejectPublicOnly(), reqAdmin(), mustNotBeArchived, repo.EnablePrivateVulnerabilityReporting).
 					Delete(reqToken(), rejectPublicOnly(), reqAdmin(), mustNotBeArchived, repo.DisablePrivateVulnerabilityReporting)

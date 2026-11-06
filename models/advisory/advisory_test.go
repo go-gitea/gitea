@@ -19,6 +19,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func createAdvisory(t *testing.T, a *advisory_model.Advisory) *advisory_model.Advisory {
+	t.Helper()
+	require.NoError(t, advisory_model.CreateAdvisory(t.Context(), a))
+	return a
+}
+
+func findAdvisoryIDs(t *testing.T, opts advisory_model.FindAdvisoriesOptions) []int64 {
+	t.Helper()
+	list, err := db.Find[advisory_model.Advisory](t.Context(), opts)
+	require.NoError(t, err)
+	ids := make([]int64, 0, len(list))
+	for _, a := range list {
+		ids = append(ids, a.ID)
+	}
+	return ids
+}
+
 func TestStateTransitions(t *testing.T) {
 	assert.True(t, advisory_model.StateTriage.CanTransitionTo(advisory_model.StateDraft))
 	assert.False(t, advisory_model.StateTriage.CanTransitionTo(advisory_model.StatePublished), "reports are accepted as drafts first")
@@ -37,7 +54,7 @@ func TestSeverityLocaleKey(t *testing.T) {
 func TestCreateAndDeleteAdvisory(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	a := &advisory_model.Advisory{
+	a := createAdvisory(t, &advisory_model.Advisory{
 		RepoID:          1,
 		Summary:         "XSS in markdown",
 		State:           advisory_model.StateDraft,
@@ -45,16 +62,11 @@ func TestCreateAndDeleteAdvisory(t *testing.T) {
 		CweIDs:          []string{"CWE-79"},
 		Vulnerabilities: []*advisory_model.Vulnerability{{Ecosystem: "go", PackageName: "example.com/pkg", VulnerableVersionRange: "< 1.2.3"}},
 		Credits:         []*advisory_model.Credit{{UserID: 4, Type: "finder"}},
-	}
-	require.NoError(t, advisory_model.CreateAdvisory(t.Context(), a))
+	})
 	assert.Regexp(t, `^[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}$`, a.Identifier)
 	assert.EqualValues(t, 1, a.Index)
-	next := &advisory_model.Advisory{RepoID: 1, Summary: "next", State: advisory_model.StateDraft, ReporterID: 2}
-	require.NoError(t, advisory_model.CreateAdvisory(t.Context(), next))
-	assert.EqualValues(t, 2, next.Index)
-	other := &advisory_model.Advisory{RepoID: 2, Summary: "other repository", State: advisory_model.StateDraft, ReporterID: 2}
-	require.NoError(t, advisory_model.CreateAdvisory(t.Context(), other))
-	assert.EqualValues(t, 1, other.Index)
+	assert.EqualValues(t, 2, createAdvisory(t, &advisory_model.Advisory{RepoID: 1, Summary: "next", State: advisory_model.StateDraft, ReporterID: 2}).Index)
+	assert.EqualValues(t, 1, createAdvisory(t, &advisory_model.Advisory{RepoID: 2, Summary: "other repository", State: advisory_model.StateDraft, ReporterID: 2}).Index)
 
 	got, err := advisory_model.GetAdvisoryByIdentifier(t.Context(), 1, a.Identifier)
 	require.NoError(t, err)
@@ -93,7 +105,7 @@ func TestCreateAndDeleteAdvisory(t *testing.T) {
 
 	assert.ErrorIs(t, advisory_model.DeleteAdvisory(t.Context(), got), util.ErrInvalidArgument, "it has been published in the meantime")
 
-	require.NoError(t, advisory_model.CreateComment(t.Context(), &advisory_model.Comment{AdvisoryID: a.ID, PosterID: 2, Content: "hi"}))
+	require.NoError(t, db.Insert(t.Context(), &advisory_model.Comment{AdvisoryID: a.ID, PosterID: 2, Content: "hi"}))
 	require.NoError(t, advisory_model.DeleteAdvisoriesByRepoID(t.Context(), 1))
 	unittest.AssertNotExistsBean(t, &advisory_model.Advisory{ID: a.ID})
 	unittest.AssertNotExistsBean(t, &advisory_model.Vulnerability{AdvisoryID: a.ID})
@@ -107,65 +119,53 @@ func TestViewerAccess(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user := func(id int64) *user_model.User { return unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: id}) }
 
-	newAdvisory := func(state advisory_model.State) *advisory_model.Advisory {
-		a := &advisory_model.Advisory{RepoID: repo.ID, Summary: state.String(), State: state, ReporterID: 4, IsReport: true}
-		require.NoError(t, advisory_model.CreateAdvisory(ctx, a))
-		return a
+	triage := createAdvisory(t, &advisory_model.Advisory{RepoID: repo.ID, Summary: "triage", State: advisory_model.StateTriage, ReporterID: 4, IsReport: true})
+	published := createAdvisory(t, &advisory_model.Advisory{RepoID: repo.ID, Summary: "published", State: advisory_model.StatePublished, ReporterID: 4, IsReport: true})
+	// team 7 has member user15
+	for _, c := range []*advisory_model.Collaborator{{UserID: 5}, {TeamID: 7}, {UserID: 10, ReadOnly: true}} {
+		c.AdvisoryID = triage.ID
+		_, err := advisory_model.AddCollaborator(ctx, c)
+		require.NoError(t, err)
 	}
-	triage := newAdvisory(advisory_model.StateTriage)
-	published := newAdvisory(advisory_model.StatePublished)
-	_, err := advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: triage.ID, UserID: 5})
-	require.NoError(t, err)
-	_, err = advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: triage.ID, TeamID: 7}) // team 7 has member user15
-	require.NoError(t, err)
-	_, err = advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: triage.ID, UserID: 10, ReadOnly: true})
-	require.NoError(t, err)
 	// a draft created by user 9 while being an admin, who is no admin anymore
-	draft := &advisory_model.Advisory{RepoID: repo.ID, Summary: "draft", State: advisory_model.StateDraft, ReporterID: 9}
-	require.NoError(t, advisory_model.CreateAdvisory(ctx, draft))
+	draft := createAdvisory(t, &advisory_model.Advisory{RepoID: repo.ID, Summary: "draft", State: advisory_model.StateDraft, ReporterID: 9})
 
-	cases := []struct {
-		name          string
-		viewer        advisory_model.Viewer
-		perms         advisory_model.Permissions
-		canManage     bool
-		visibleTriage bool
+	collaboratorPerms := advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true}
+	for _, c := range []struct {
+		name   string
+		viewer advisory_model.Viewer
+		perms  advisory_model.Permissions
 	}{
-		{"anonymous", advisory_model.Viewer{}, advisory_model.Permissions{}, false, false},
-		{"repo admin", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true, CanManage: true}, true, true},
-		{"security team member", advisory_model.Viewer{Doer: user(8), IsSecurityTeamMember: true}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true}, false, true},
-		{"repo admin with public-only token", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true, PublicOnly: true}, advisory_model.Permissions{}, false, false},
-		{"reporter", advisory_model.Viewer{Doer: user(4)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}, false, true},
-		{"user collaborator", advisory_model.Viewer{Doer: user(5)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true}, false, true},
-		{"team collaborator", advisory_model.Viewer{Doer: user(15)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true}, false, true},
-		{"read-only collaborator", advisory_model.Viewer{Doer: user(10)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true}, false, true},
-		{"outsider", advisory_model.Viewer{Doer: user(8)}, advisory_model.Permissions{}, false, false},
-		{"actions user", advisory_model.Viewer{Doer: user_model.NewActionsUser(), IsRepoAdmin: true}, advisory_model.Permissions{}, false, false},
-	}
-	for _, c := range cases {
+		{"anonymous", advisory_model.Viewer{}, advisory_model.Permissions{}},
+		{"repo admin", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: true, CanManage: true}},
+		{"security team member", advisory_model.Viewer{Doer: user(8), IsSecurityTeamMember: true}, collaboratorPerms},
+		{"repo admin with public-only token", advisory_model.Viewer{Doer: user(2), IsRepoAdmin: true, PublicOnly: true}, advisory_model.Permissions{}},
+		{"reporter", advisory_model.Viewer{Doer: user(4)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: true}},
+		{"user collaborator", advisory_model.Viewer{Doer: user(5)}, collaboratorPerms},
+		{"team collaborator", advisory_model.Viewer{Doer: user(15)}, collaboratorPerms},
+		{"read-only collaborator", advisory_model.Viewer{Doer: user(10)}, advisory_model.Permissions{CanView: true, CanSeeDiscussion: true}},
+		{"outsider", advisory_model.Viewer{Doer: user(8)}, advisory_model.Permissions{}},
+		{"actions user", advisory_model.Viewer{Doer: user_model.NewActionsUser(), IsRepoAdmin: true}, advisory_model.Permissions{}},
+	} {
 		t.Run(c.name, func(t *testing.T) {
 			perms, err := c.viewer.Permissions(ctx, triage)
 			require.NoError(t, err)
 			assert.Equal(t, c.perms, perms)
-			assert.Equal(t, c.canManage, c.viewer.CanManage())
+			assert.Equal(t, c.perms.CanManage, c.viewer.CanManage())
 
 			perms, err = c.viewer.Permissions(ctx, published)
 			require.NoError(t, err)
 			assert.True(t, perms.CanView)
-			assert.Equal(t, c.canManage, perms.CanEdit, "only admins edit published advisories")
+			assert.Equal(t, c.perms.CanManage, perms.CanEdit, "only admins edit published advisories")
 
-			list, err := db.Find[advisory_model.Advisory](ctx, advisory_model.FindAdvisoriesOptions{RepoID: repo.ID, Viewer: c.viewer})
-			require.NoError(t, err)
-			ids := make([]int64, 0, len(list))
-			for _, a := range list {
-				ids = append(ids, a.ID)
-			}
+			opts := advisory_model.FindAdvisoriesOptions{RepoID: repo.ID, Viewer: c.viewer}
+			ids := findAdvisoryIDs(t, opts)
 			assert.Contains(t, ids, published.ID)
-			assert.Equal(t, c.visibleTriage, slices.Contains(ids, triage.ID))
+			assert.Equal(t, c.perms.CanView, slices.Contains(ids, triage.ID))
 
-			counts, err := advisory_model.CountAdvisoriesByState(ctx, advisory_model.FindAdvisoriesOptions{RepoID: repo.ID, Viewer: c.viewer})
+			counts, err := advisory_model.CountAdvisoriesByState(ctx, opts)
 			require.NoError(t, err)
-			assert.Equal(t, c.visibleTriage, counts[advisory_model.StateTriage] == 1)
+			assert.Equal(t, c.perms.CanView, counts[advisory_model.StateTriage] == 1)
 		})
 	}
 
@@ -185,26 +185,18 @@ func TestFindAdvisoriesFilters(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1, RepoID: 1})
+	admin := advisory_model.Viewer{Doer: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), IsRepoAdmin: true}
 
-	xss := &advisory_model.Advisory{
+	xss := createAdvisory(t, &advisory_model.Advisory{
 		RepoID: 1, Summary: "XSS in markdown", State: advisory_model.StatePublished, ReporterID: 2, Severity: advisory_model.SeverityHigh,
 		CweIDs: []string{"CWE-79"}, Labels: []*issues_model.Label{label},
 		Vulnerabilities: []*advisory_model.Vulnerability{{Ecosystem: "npm", PackageName: "markdown-it"}},
-	}
-	dup := &advisory_model.Advisory{RepoID: 1, Summary: "Same XSS", State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, ReporterID: 2}
-	for _, a := range []*advisory_model.Advisory{xss, dup} {
-		require.NoError(t, advisory_model.CreateAdvisory(ctx, a))
-	}
+	})
+	dup := createAdvisory(t, &advisory_model.Advisory{RepoID: 1, Summary: "Same XSS", State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, ReporterID: 2})
 
 	find := func(opts advisory_model.FindAdvisoriesOptions) []int64 {
-		opts.RepoID, opts.Viewer = 1, advisory_model.Viewer{Doer: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), IsRepoAdmin: true}
-		list, err := db.Find[advisory_model.Advisory](ctx, opts)
-		require.NoError(t, err)
-		ids := make([]int64, 0, len(list))
-		for _, a := range list {
-			ids = append(ids, a.ID)
-		}
-		return ids
+		opts.RepoID, opts.Viewer = 1, admin
+		return findAdvisoryIDs(t, opts)
 	}
 	assert.ElementsMatch(t, []int64{xss.ID, dup.ID}, find(advisory_model.FindAdvisoriesOptions{Keyword: "xss"}))
 	assert.Equal(t, []int64{xss.ID}, find(advisory_model.FindAdvisoriesOptions{Keyword: "MARKDOWN-IT"}))
@@ -222,10 +214,7 @@ func TestFindAdvisoriesFilters(t *testing.T) {
 	require.NoError(t, advisory_model.DeleteLabelLinks(ctx, label.ID))
 	assert.ElementsMatch(t, []int64{xss.ID, dup.ID}, find(advisory_model.FindAdvisoriesOptions{LabelIDs: []int64{0}}), "deleted labels are unassigned")
 
-	counts, err := advisory_model.CountAdvisoriesByState(ctx, advisory_model.FindAdvisoriesOptions{
-		RepoID: 1, Viewer: advisory_model.Viewer{Doer: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), IsRepoAdmin: true},
-		Keyword: "same", States: []advisory_model.State{advisory_model.StatePublished},
-	})
+	counts, err := advisory_model.CountAdvisoriesByState(ctx, advisory_model.FindAdvisoriesOptions{RepoID: 1, Viewer: admin, Keyword: "same", States: []advisory_model.State{advisory_model.StatePublished}})
 	require.NoError(t, err)
 	assert.Equal(t, map[advisory_model.State]int64{advisory_model.StateClosed: 1}, counts, "the state is ignored, the other filters are applied")
 }

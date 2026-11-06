@@ -12,9 +12,7 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cvss"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
-	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -24,26 +22,8 @@ import (
 	"gitea.dev/services/convert"
 )
 
-type advisoryViewerKey struct{}
-
-// advisoryViewer looks up the security teams once per request, a failed lookup only hides the non-public advisories
 func advisoryViewer(ctx *context.APIContext) advisory_model.Viewer {
-	if v, ok := ctx.GetContextValue(advisoryViewerKey{}).(advisory_model.Viewer); ok {
-		return v
-	}
-	v, err := advisory_model.NewViewer(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission.IsAdmin(), user_model.IsPublicOnlyDoer(ctx.Doer))
-	if err != nil {
-		log.Error("NewViewer: %v", err)
-	}
-	ctx.SetContextValue(advisoryViewerKey{}, v)
-	return v
-}
-
-type securityAdvisoryContextKey struct{}
-
-type loadedSecurityAdvisory struct {
-	advisory *advisory_model.Advisory
-	perms    advisory_model.Permissions
+	return advisory_service.RequestViewer(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission.IsAdmin(), user_model.IsPublicOnlyDoer(ctx.Doer))
 }
 
 // LoadSecurityAdvisory responds with 404 if the doer cannot see the advisory, like for advisories that don't exist
@@ -53,12 +33,7 @@ func LoadSecurityAdvisory(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	ctx.SetContextValue(securityAdvisoryContextKey{}, &loadedSecurityAdvisory{advisory: a, perms: perms})
-}
-
-func getSecurityAdvisory(ctx *context.APIContext) (*advisory_model.Advisory, advisory_model.Permissions) {
-	loaded := reqctx.MustContextValue[*loadedSecurityAdvisory](ctx, securityAdvisoryContextKey{})
-	return loaded.advisory, loaded.perms
+	advisory_service.SetRequestAdvisory(ctx, a, perms)
 }
 
 func MustManageSecurityAdvisories(ctx *context.APIContext) {
@@ -69,7 +44,7 @@ func MustManageSecurityAdvisories(ctx *context.APIContext) {
 
 // MustSeeSecurityAdvisoryDiscussion responds with 404 like for advisories the doer cannot see at all
 func MustSeeSecurityAdvisoryDiscussion(ctx *context.APIContext) {
-	if _, perms := getSecurityAdvisory(ctx); !perms.CanSeeDiscussion {
+	if _, perms := advisory_service.RequestAdvisory(ctx); !perms.CanSeeDiscussion {
 		ctx.APIErrorNotFound()
 	}
 }
@@ -314,7 +289,7 @@ func GetSecurityAdvisory(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryAdvisory"
 	//   default:
 	//     "$ref": "#/responses/error"
-	a, _ := getSecurityAdvisory(ctx)
+	a, _ := advisory_service.RequestAdvisory(ctx)
 	respondAdvisory(ctx, a, http.StatusOK)
 }
 
@@ -456,7 +431,7 @@ func EditSecurityAdvisory(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.EditRepositoryAdvisoryOption](ctx)
-	a, perms := getSecurityAdvisory(ctx)
+	a, perms := advisory_service.RequestAdvisory(ctx)
 	if err := a.LoadAttributes(ctx); err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -578,7 +553,7 @@ func setPrivateVulnerabilityReporting(ctx *context.APIContext, enabled bool) {
 }
 
 func getAdvisoryComment(ctx *context.APIContext) *advisory_model.Comment {
-	a, perms := getSecurityAdvisory(ctx)
+	a, perms := advisory_service.RequestAdvisory(ctx)
 	c, err := advisory_model.GetCommentByID(ctx, a.ID, ctx.PathParamInt64("id"), perms.CanSeeInternal)
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -627,7 +602,7 @@ func ListSecurityAdvisoryComments(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryAdvisoryCommentList"
 	//   default:
 	//     "$ref": "#/responses/error"
-	a, perms := getSecurityAdvisory(ctx)
+	a, perms := advisory_service.RequestAdvisory(ctx)
 	listOptions := utils.GetListOptions(ctx)
 	comments, total, err := db.FindAndCount[advisory_model.Comment](ctx, advisory_model.FindCommentsOptions{ListOptions: listOptions, AdvisoryID: a.ID, IncludeInternal: perms.CanSeeInternal})
 	if err != nil {
@@ -682,7 +657,7 @@ func CreateSecurityAdvisoryComment(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.RepositoryAdvisoryCommentOption](ctx)
-	a, perms := getSecurityAdvisory(ctx)
+	a, perms := advisory_service.RequestAdvisory(ctx)
 	c, err := advisory_service.CreateComment(ctx, ctx.Doer, a, perms, form.Body, form.IsInternal)
 	if err != nil {
 		apiAdvisoryError(ctx, err)
@@ -732,7 +707,7 @@ func EditSecurityAdvisoryComment(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.RepositoryAdvisoryCommentOption](ctx)
-	a, _ := getSecurityAdvisory(ctx)
+	a, _ := advisory_service.RequestAdvisory(ctx)
 	c := getAdvisoryComment(ctx)
 	if ctx.Written() {
 		return
@@ -776,7 +751,7 @@ func DeleteSecurityAdvisoryComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   default:
 	//     "$ref": "#/responses/error"
-	_, perms := getSecurityAdvisory(ctx)
+	_, perms := advisory_service.RequestAdvisory(ctx)
 	c := getAdvisoryComment(ctx)
 	if ctx.Written() {
 		return

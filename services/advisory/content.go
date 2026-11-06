@@ -91,17 +91,17 @@ func tooLong(maxLength int, values ...string) bool {
 
 // applyContent validates everything before changing the advisory, so that a rejected update doesn't leave it half changed
 func applyContent(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, opts *ContentOptions) error {
-	summary, err := normalizeSummary(opts.Summary)
-	if err != nil {
-		return err
+	summary := strings.TrimSpace(opts.Summary)
+	if summary == "" || tooLong(maxSummaryLength, summary) {
+		return util.NewInvalidArgumentErrorf("summary must be between 1 and %d characters", maxSummaryLength)
 	}
-	description, err := normalizeDescription(opts.Description)
-	if err != nil {
-		return err
+	description := strings.TrimRight(opts.Description, " \t\r\n") // keeps an indented code block at the start
+	if strings.TrimSpace(description) == "" {
+		return util.NewInvalidArgumentErrorf("description must not be empty")
 	}
-	cveID, err := normalizeCveID(opts.CveID)
-	if err != nil {
-		return err
+	cveID := strings.ToUpper(strings.TrimSpace(opts.CveID))
+	if cveID != "" && !cvePattern.MatchString(cveID) {
+		return util.NewInvalidArgumentErrorf("invalid CVE ID %q", opts.CveID)
 	}
 	scores, err := scoreSeverity(opts)
 	if err != nil {
@@ -135,30 +135,6 @@ func applyContent(ctx context.Context, doer *user_model.User, a *advisory_model.
 	return nil
 }
 
-func normalizeSummary(summary string) (string, error) {
-	summary = strings.TrimSpace(summary)
-	if summary == "" || tooLong(maxSummaryLength, summary) {
-		return "", util.NewInvalidArgumentErrorf("summary must be between 1 and %d characters", maxSummaryLength)
-	}
-	return summary, nil
-}
-
-func normalizeDescription(description string) (string, error) {
-	description = strings.TrimRight(description, " \t\r\n") // keeps an indented code block at the start
-	if strings.TrimSpace(description) == "" {
-		return "", util.NewInvalidArgumentErrorf("description must not be empty")
-	}
-	return description, nil
-}
-
-func normalizeCveID(id string) (string, error) {
-	normalized := strings.ToUpper(strings.TrimSpace(id))
-	if normalized != "" && !cvePattern.MatchString(normalized) {
-		return "", util.NewInvalidArgumentErrorf("invalid CVE ID %q", id)
-	}
-	return normalized, nil
-}
-
 func normalizeCweIDs(ids []string) ([]string, error) {
 	var res []string
 	for _, id := range ids {
@@ -189,10 +165,7 @@ func normalizeVulnerabilities(vulns []*advisory_model.Vulnerability) ([]*advisor
 				functions = append(functions, f)
 			}
 		}
-		if len(functions) > maxListLength {
-			return nil, util.NewInvalidArgumentErrorf("at most %d functions and %d characters per package field are allowed", maxListLength, maxFieldLength)
-		}
-		if tooLong(maxFieldLength, packageName, versionRange, patchedVersions) || tooLong(maxFieldLength, functions...) {
+		if len(functions) > maxListLength || tooLong(maxFieldLength, packageName, versionRange, patchedVersions) || tooLong(maxFieldLength, functions...) {
 			return nil, util.NewInvalidArgumentErrorf("at most %d functions and %d characters per package field are allowed", maxListLength, maxFieldLength)
 		}
 		res = append(res, &advisory_model.Vulnerability{

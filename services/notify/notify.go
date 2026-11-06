@@ -267,13 +267,6 @@ func DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 	}
 }
 
-// NewSecurityAdvisory notifies an advisory created by a maintainer to notifiers
-func NewSecurityAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
-	for _, notifier := range notifiers {
-		notifier.NewSecurityAdvisory(ctx, doer, a)
-	}
-}
-
 // NewSecurityAdvisoryReport notifies a private vulnerability report to notifiers
 func NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
 	for _, notifier := range notifiers {
@@ -288,24 +281,10 @@ func SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a 
 	}
 }
 
-// DeleteSecurityAdvisory notifies an advisory deletion to notifiers
-func DeleteSecurityAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
-	for _, notifier := range notifiers {
-		notifier.DeleteSecurityAdvisory(ctx, doer, a)
-	}
-}
-
 // SecurityAdvisoryCollaboratorAdded notifies a user or team granted access to an advisory to notifiers
 func SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
 	for _, notifier := range notifiers {
 		notifier.SecurityAdvisoryCollaboratorAdded(ctx, doer, a, user, team)
-	}
-}
-
-// SecurityAdvisoryCollaboratorRemoved notifies a user or team whose access to an advisory was revoked to notifiers
-func SecurityAdvisoryCollaboratorRemoved(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
-	for _, notifier := range notifiers {
-		notifier.SecurityAdvisoryCollaboratorRemoved(ctx, doer, a, user, team)
 	}
 }
 

@@ -193,38 +193,39 @@ type ProtectBranchForm struct {
 // WebhookForm form for changing web hook
 type WebhookForm struct {
 	middleware.FormDefaultValidator
-	Name                       string `binding:"MaxSize(255)"`
-	Events                     string
-	Create                     bool
-	Delete                     bool
-	Fork                       bool
-	Push                       bool
-	Issues                     bool
-	IssueAssign                bool
-	IssueLabel                 bool
-	IssueMilestone             bool
-	IssueComment               bool
-	PullRequest                bool
-	PullRequestAssign          bool
-	PullRequestLabel           bool
-	PullRequestMilestone       bool
-	PullRequestComment         bool
-	PullRequestReview          bool
-	PullRequestSync            bool
-	PullRequestReviewRequest   bool
-	Wiki                       bool
-	Repository                 bool
-	Release                    bool
-	Package                    bool
-	Status                     bool
-	WorkflowRun                bool
-	WorkflowJob                bool
+	Name                     string `binding:"MaxSize(255)"`
+	Events                   string
+	Create                   bool
+	Delete                   bool
+	Fork                     bool
+	Push                     bool
+	Issues                   bool
+	IssueAssign              bool
+	IssueLabel               bool
+	IssueMilestone           bool
+	IssueComment             bool
+	PullRequest              bool
+	PullRequestAssign        bool
+	PullRequestLabel         bool
+	PullRequestMilestone     bool
+	PullRequestComment       bool
+	PullRequestReview        bool
+	PullRequestSync          bool
+	PullRequestReviewRequest bool
+	Wiki                     bool
+	Repository               bool
+	Release                  bool
+	Package                  bool
+	Status                   bool
+	WorkflowRun              bool
+	WorkflowJob              bool
+	Active                   bool
+	BranchFilter             string `binding:"GlobPattern"`
+	AuthorizationHeader      string
+	Secret                   string
+
 	RepositoryAdvisory         bool
 	RepositoryAdvisoryReported bool
-	Active                     bool
-	BranchFilter               string `binding:"GlobPattern"`
-	AuthorizationHeader        string
-	Secret                     string
 }
 
 // PushOnly if the hook will be triggered when push

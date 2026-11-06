@@ -79,7 +79,9 @@ func MailSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *
 		return
 	}
 	ids.AddMultiple(adminIDs.Values()...)
-	recipients := advisoryMailRecipients(ctx, doer, a, ids, false, util.Iif[advisoryAccessCheck](c.IsInternal, canSeeInternal, canSeeDiscussion))
+	recipients := advisoryMailRecipients(ctx, doer, a, ids, false, func(p advisory_model.Permissions) bool {
+		return util.Iif(c.IsInternal, p.CanSeeInternal, p.CanSeeDiscussion)
+	})
 	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.comment", c.Content, fmt.Sprintf("/comments/%d", c.ID))
 }
 
@@ -100,7 +102,7 @@ func MailSecurityAdvisoryPublished(ctx context.Context, doer *user_model.User, a
 	for _, c := range a.Credits {
 		ids.Add(c.UserID)
 	}
-	recipients := advisoryMailRecipients(ctx, doer, a, ids, false, canReadPublished)
+	recipients := advisoryMailRecipients(ctx, doer, a, ids, false, func(p advisory_model.Permissions) bool { return p.CanView })
 	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.published", "", "/published")
 }
 
@@ -131,38 +133,27 @@ func loadAdvisoryRepo(ctx context.Context, a *advisory_model.Advisory) bool {
 	return true
 }
 
-// advisoryAccessCheck is checked again for each mail because users can lose access after they have been added
-type advisoryAccessCheck func(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool
-
-func canSeeDiscussion(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool {
-	perms, err := advisory_model.UserPermissions(ctx, u, a)
-	if err != nil {
-		log.Error("UserPermissions(%d, %d): %v", u.ID, a.ID, err)
-	}
-	return perms.CanSeeDiscussion
+func canSeeDiscussion(p advisory_model.Permissions) bool {
+	return p.CanSeeDiscussion
 }
 
-func canSeeInternal(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool {
-	perms, err := advisory_model.UserPermissions(ctx, u, a)
-	if err != nil {
-		log.Error("UserPermissions(%d, %d): %v", u.ID, a.ID, err)
-	}
-	return perms.CanSeeInternal
-}
-
-func canReadPublished(ctx context.Context, a *advisory_model.Advisory, u *user_model.User) bool {
-	return access_model.CheckRepoUnitUser(ctx, a.Repo, u, unit.TypeSecurityAdvisories)
-}
-
-// advisoryMailRecipients returns the mailable users without the doer, isDirect mails concern the recipients directly like mentions
-func advisoryMailRecipients(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, ids container.Set[int64], isDirect bool, canRead advisoryAccessCheck) []*user_model.User {
+// advisoryMailRecipients returns the mailable users without the doer, isDirect mails concern the recipients directly like mentions,
+// canRead is checked again for each mail because users can lose access after they have been added
+func advisoryMailRecipients(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, ids container.Set[int64], isDirect bool, canRead func(advisory_model.Permissions) bool) []*user_model.User {
 	recipients, err := user_model.GetMailableUsersByIDs(ctx, ids.Values(), isDirect)
 	if err != nil {
 		log.Error("GetMailableUsersByIDs: %v", err)
 		return nil
 	}
 	return slices.DeleteFunc(recipients, func(u *user_model.User) bool {
-		return u.ID == doer.ID || !canRead(ctx, a, u)
+		if u.ID == doer.ID {
+			return true
+		}
+		perms, err := advisory_model.UserPermissions(ctx, u, a)
+		if err != nil {
+			log.Error("UserPermissions(%d, %d): %v", u.ID, a.ID, err)
+		}
+		return !canRead(perms)
 	})
 }
 

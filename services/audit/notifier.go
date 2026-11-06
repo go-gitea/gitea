@@ -155,10 +155,6 @@ func (n *auditNotifier) DeleteWikiPage(ctx context.Context, doer *user_model.Use
 	RecordAs(ctx, doer, audit_model.WikiPageDelete, repo, "page", page)
 }
 
-func (n *auditNotifier) NewSecurityAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
-	RecordAs(ctx, doer, audit_model.SecurityAdvisoryCreate, a.Repo, "advisory", a.Identifier)
-}
-
 func (n *auditNotifier) NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
 	RecordAs(ctx, doer, audit_model.SecurityAdvisoryReport, a.Repo, "advisory", a.Identifier)
 }
@@ -167,11 +163,7 @@ func (n *auditNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *
 	RecordAs(ctx, doer, audit_model.SecurityAdvisoryState, a.Repo, "advisory", a.Identifier, "previous_state", oldState.String(), "state", a.State.String())
 }
 
-func (n *auditNotifier) DeleteSecurityAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
-	RecordAs(ctx, doer, audit_model.SecurityAdvisoryDelete, a.Repo, "advisory", a.Identifier)
-}
-
-func advisoryCollaboratorName(user *user_model.User, team *organization.Team) string {
+func AdvisoryCollaboratorName(user *user_model.User, team *organization.Team) string {
 	if team != nil {
 		return "team " + team.Name
 	}
@@ -179,9 +171,5 @@ func advisoryCollaboratorName(user *user_model.User, team *organization.Team) st
 }
 
 func (n *auditNotifier) SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
-	RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorAdd, a.Repo, "advisory", a.Identifier, "collaborator", advisoryCollaboratorName(user, team))
-}
-
-func (n *auditNotifier) SecurityAdvisoryCollaboratorRemoved(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
-	RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorRemove, a.Repo, "advisory", a.Identifier, "collaborator", advisoryCollaboratorName(user, team))
+	RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorAdd, a.Repo, "advisory", a.Identifier, "collaborator", AdvisoryCollaboratorName(user, team))
 }

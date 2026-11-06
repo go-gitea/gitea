@@ -18,10 +18,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/cvss"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
-	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -37,19 +35,8 @@ const (
 	tplSecurityAdvisoryForm templates.TplName = "repo/security_advisory/form"
 )
 
-type securityAdvisoryViewerKey struct{}
-
-// securityAdvisoryViewer looks up the security teams once per request, a failed lookup only hides the non-public advisories
 func securityAdvisoryViewer(ctx *context.Context) advisory_model.Viewer {
-	if v, ok := ctx.GetContextValue(securityAdvisoryViewerKey{}).(advisory_model.Viewer); ok {
-		return v
-	}
-	v, err := advisory_model.NewViewer(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission.IsAdmin(), false)
-	if err != nil {
-		log.Error("NewViewer: %v", err)
-	}
-	ctx.SetContextValue(securityAdvisoryViewerKey{}, v)
-	return v
+	return advisory_service.RequestViewer(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission.IsAdmin(), false)
 }
 
 func PrepareSecurityAdvisories(ctx *context.Context) {
@@ -181,7 +168,11 @@ func formValueAt(values []string, i int) string {
 	return ""
 }
 
-func contentFromForm(ctx *context.Context, form *forms.SecurityAdvisoryForm) (*advisory_service.ContentOptions, error) {
+func contentFromForm(ctx *context.Context) *advisory_service.ContentOptions {
+	form := context.GetFetchActionForm[*forms.SecurityAdvisoryForm](ctx)
+	if ctx.Written() {
+		return nil
+	}
 	content := &advisory_service.ContentOptions{
 		ContentVersion: form.ContentVersion,
 		Summary:        form.Summary,
@@ -193,7 +184,8 @@ func contentFromForm(ctx *context.Context, form *forms.SecurityAdvisoryForm) (*a
 	}
 	labelIDs, err := base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
 	if err != nil {
-		return nil, util.NewInvalidArgumentErrorf("invalid label")
+		jsonSecurityAdvisoryError(ctx, util.NewInvalidArgumentErrorf("invalid label"))
+		return nil
 	}
 	content.LabelIDs = labelIDs
 	if strings.TrimSpace(content.CvssV3Vector+content.CvssV4Vector) == "" {
@@ -205,18 +197,17 @@ func contentFromForm(ctx *context.Context, form *forms.SecurityAdvisoryForm) (*a
 			PackageName:            formValueAt(form.PackageName, i),
 			VulnerableVersionRange: formValueAt(form.VulnerableVersionRange, i),
 			PatchedVersions:        formValueAt(form.PatchedVersions, i),
-		}
-		for f := range strings.SplitSeq(formValueAt(form.VulnerableFunctions, i), "\n") {
-			if f = strings.TrimSpace(f); f != "" {
-				v.VulnerableFunctions = append(v.VulnerableFunctions, f)
-			}
+			VulnerableFunctions:    util.SplitTrimSpace(formValueAt(form.VulnerableFunctions, i), "\n"),
 		}
 		if strings.TrimSpace(v.PackageName+v.VulnerableVersionRange+v.PatchedVersions) != "" || len(v.VulnerableFunctions) > 0 {
 			content.Vulnerabilities = append(content.Vulnerabilities, v)
 		}
 	}
-	content.Credits, err = advisory_service.CreditsByLogins(ctx, form.CreditUser, form.CreditType)
-	return content, err
+	if content.Credits, err = advisory_service.CreditsByLogins(ctx, form.CreditUser, form.CreditType); err != nil {
+		jsonSecurityAdvisoryError(ctx, err)
+		return nil
+	}
+	return content
 }
 
 // jsonSecurityAdvisoryError responds to fetch-action requests, validation errors keep the form as it is
@@ -238,13 +229,8 @@ func NewSecurityAdvisory(ctx *context.Context) {
 }
 
 func NewSecurityAdvisoryPost(ctx *context.Context) {
-	form := context.GetFetchActionForm[*forms.SecurityAdvisoryForm](ctx)
+	content := contentFromForm(ctx)
 	if ctx.Written() {
-		return
-	}
-	content, err := contentFromForm(ctx, form)
-	if err != nil {
-		jsonSecurityAdvisoryError(ctx, err)
 		return
 	}
 	a, err := advisory_service.CreateAdvisory(ctx, ctx.Doer, ctx.Repo.Repository, content)
@@ -272,13 +258,8 @@ func ReportVulnerability(ctx *context.Context) {
 }
 
 func ReportVulnerabilityPost(ctx *context.Context) {
-	form := context.GetFetchActionForm[*forms.SecurityAdvisoryForm](ctx)
+	content := contentFromForm(ctx)
 	if ctx.Written() {
-		return
-	}
-	content, err := contentFromForm(ctx, form)
-	if err != nil {
-		jsonSecurityAdvisoryError(ctx, err)
 		return
 	}
 	a, err := advisory_service.ReportVulnerability(ctx, ctx.Doer, ctx.Repo.Repository, content)
@@ -303,13 +284,6 @@ func SecurityAdvisoryCVSSPreview(ctx *context.Context) {
 	})
 }
 
-type securityAdvisoryContextKey struct{}
-
-type loadedSecurityAdvisory struct {
-	advisory *advisory_model.Advisory
-	perms    advisory_model.Permissions
-}
-
 // LoadSecurityAdvisory responds with 404 if the doer cannot see the advisory, like for advisories that don't exist
 func LoadSecurityAdvisory(ctx *context.Context) {
 	a, perms, err := securityAdvisoryViewer(ctx).GetAdvisory(ctx, ctx.Repo.Repository, ctx.PathParam("identifier"))
@@ -318,14 +292,9 @@ func LoadSecurityAdvisory(ctx *context.Context) {
 		return
 	}
 	perms.CanEdit = perms.CanEdit && !ctx.Repo.Repository.IsArchived
-	ctx.SetContextValue(securityAdvisoryContextKey{}, &loadedSecurityAdvisory{advisory: a, perms: perms})
+	advisory_service.SetRequestAdvisory(ctx, a, perms)
 	ctx.Data["Advisory"] = a
 	ctx.Data["AdvisoryPerms"] = perms
-}
-
-func getSecurityAdvisory(ctx *context.Context) (*advisory_model.Advisory, advisory_model.Permissions) {
-	loaded := reqctx.MustContextValue[*loadedSecurityAdvisory](ctx, securityAdvisoryContextKey{})
-	return loaded.advisory, loaded.perms
 }
 
 func renderSecurityAdvisoryMarkdown(ctx *context.Context, footnoteID, content string) (template.HTML, error) {
@@ -340,19 +309,19 @@ func MustManageSecurityAdvisory(ctx *context.Context) {
 }
 
 func MustEditSecurityAdvisory(ctx *context.Context) {
-	if _, perms := getSecurityAdvisory(ctx); !perms.CanEdit {
+	if _, perms := advisory_service.RequestAdvisory(ctx); !perms.CanEdit {
 		ctx.HTTPError(http.StatusForbidden)
 	}
 }
 
 func MustSeeSecurityAdvisoryDiscussion(ctx *context.Context) {
-	if _, perms := getSecurityAdvisory(ctx); !perms.CanSeeDiscussion {
+	if _, perms := advisory_service.RequestAdvisory(ctx); !perms.CanSeeDiscussion {
 		ctx.HTTPError(http.StatusForbidden)
 	}
 }
 
 func ViewSecurityAdvisory(ctx *context.Context) {
-	a, perms := getSecurityAdvisory(ctx)
+	a, perms := advisory_service.RequestAdvisory(ctx)
 	if _, err := securityAdvisoryViewer(ctx).LoadForDisplay(ctx, advisory_model.List{a}); err != nil {
 		ctx.ServerError("LoadForDisplay", err)
 		return
@@ -363,29 +332,48 @@ func ViewSecurityAdvisory(ctx *context.Context) {
 		ctx.ServerError("RenderString", err)
 		return
 	}
-	if perms.CanSeeDiscussion && a.ReportDescription != "" && a.ReportDescription != a.Description {
-		if ctx.Data["RenderedReportDescription"], err = renderSecurityAdvisoryMarkdown(ctx, "report", a.ReportDescription); err != nil {
-			ctx.ServerError("RenderString", err)
-			return
-		}
-	}
 	if perms.CanSeeDiscussion {
-		prepareSecurityAdvisoryComments(ctx, a, perms)
-		if ctx.Written() {
+		if a.ReportDescription != "" && a.ReportDescription != a.Description {
+			if ctx.Data["RenderedReportDescription"], err = renderSecurityAdvisoryMarkdown(ctx, "report", a.ReportDescription); err != nil {
+				ctx.ServerError("RenderString", err)
+				return
+			}
+		}
+		comments, err := db.Find[advisory_model.Comment](ctx, advisory_model.FindCommentsOptions{AdvisoryID: a.ID, IncludeInternal: perms.CanSeeInternal})
+		if err != nil {
+			ctx.ServerError("FindComments", err)
 			return
 		}
+		if err := advisory_model.CommentList(comments).LoadPosters(ctx); err != nil {
+			ctx.ServerError("LoadPosters", err)
+			return
+		}
+		for _, c := range comments {
+			if c.RenderedContent, err = renderSecurityAdvisoryMarkdown(ctx, strconv.FormatInt(c.ID, 10), c.Content); err != nil {
+				ctx.ServerError("RenderString", err)
+				return
+			}
+		}
+		ctx.Data["Comments"] = comments
 	}
 	ctx.Data["StatusText"] = securityAdvisoryStatusText(ctx, a, perms)
 	ctx.Data["DescriptionAuthor"] = util.Iif(perms.CanSeeDiscussion, a.Reporter, a.Publisher)
 	ctx.Data["CVSSScores"] = securityAdvisoryCVSSScores(a)
 	ctx.Data["Collaborators"] = securityAdvisoryCollaborators(a)
-	ctx.Data["CollaboratorForms"] = securityAdvisoryCollaboratorForms(ctx)
 	ctx.Data["StateActions"] = securityAdvisoryStateActions(a.State)
 	if perms.CanManage && a.State.CanTransitionTo(advisory_model.StateClosed) {
-		prepareSecurityAdvisoryCloseForm(ctx, a)
-		if ctx.Written() {
+		candidates, err := db.Find[advisory_model.Advisory](ctx, advisory_model.FindAdvisoriesOptions{
+			ListOptions: db.ListOptions{PageSize: 100}, // the most recent ones, older originals can be chosen by the API
+			RepoID:      a.RepoID,
+			ExcludeID:   a.ID,
+			Viewer:      securityAdvisoryViewer(ctx),
+		})
+		if err != nil {
+			ctx.ServerError("FindAdvisories", err)
 			return
 		}
+		ctx.Data["DuplicateCandidates"] = candidates
+		ctx.Data["CanCloseSecurityAdvisory"] = true
 	}
 	ctx.HTML(http.StatusOK, tplSecurityAdvisoryView)
 }
@@ -440,32 +428,6 @@ func securityAdvisoryCollaborators(a *advisory_model.Advisory) []securityAdvisor
 	return collaborators
 }
 
-type securityAdvisoryCollaboratorForm struct {
-	Type, Icon, SearchInit, OrgName string
-	PlaceholderKey, SubmitKey       string
-}
-
-func securityAdvisoryCollaboratorForms(ctx *context.Context) []securityAdvisoryCollaboratorForm {
-	forms := []securityAdvisoryCollaboratorForm{{
-		Type:           "user",
-		Icon:           "octicon-person-add",
-		SearchInit:     "initSecurityAdvisoryUserSearch",
-		PlaceholderKey: "search.user_kind",
-		SubmitKey:      "repo.settings.add_collaborator",
-	}}
-	if owner := ctx.Repo.Repository.Owner; owner.IsOrganization() {
-		forms = append(forms, securityAdvisoryCollaboratorForm{
-			Type:           "team",
-			Icon:           "octicon-people",
-			SearchInit:     "initSecurityAdvisoryTeamSearch",
-			OrgName:        owner.Name,
-			PlaceholderKey: "search.team_kind",
-			SubmitKey:      "repo.settings.add_team",
-		})
-	}
-	return forms
-}
-
 type securityAdvisoryStateAction struct {
 	State                             advisory_model.State
 	ButtonClass, LabelKey, ConfirmKey string
@@ -493,42 +455,8 @@ func securityAdvisoryStateActions(current advisory_model.State) []securityAdviso
 	return actions
 }
 
-func prepareSecurityAdvisoryComments(ctx *context.Context, a *advisory_model.Advisory, perms advisory_model.Permissions) {
-	comments, err := db.Find[advisory_model.Comment](ctx, advisory_model.FindCommentsOptions{AdvisoryID: a.ID, IncludeInternal: perms.CanSeeInternal})
-	if err != nil {
-		ctx.ServerError("FindComments", err)
-		return
-	}
-	if err := advisory_model.CommentList(comments).LoadPosters(ctx); err != nil {
-		ctx.ServerError("LoadPosters", err)
-		return
-	}
-	for _, c := range comments {
-		if c.RenderedContent, err = renderSecurityAdvisoryMarkdown(ctx, strconv.FormatInt(c.ID, 10), c.Content); err != nil {
-			ctx.ServerError("RenderString", err)
-			return
-		}
-	}
-	ctx.Data["Comments"] = comments
-}
-
-func prepareSecurityAdvisoryCloseForm(ctx *context.Context, a *advisory_model.Advisory) {
-	candidates, err := db.Find[advisory_model.Advisory](ctx, advisory_model.FindAdvisoriesOptions{
-		ListOptions: db.ListOptions{PageSize: 100}, // the most recent ones, older originals can be chosen by the API
-		RepoID:      a.RepoID,
-		ExcludeID:   a.ID,
-		Viewer:      securityAdvisoryViewer(ctx),
-	})
-	if err != nil {
-		ctx.ServerError("FindAdvisories", err)
-		return
-	}
-	ctx.Data["DuplicateCandidates"] = candidates
-	ctx.Data["CanCloseSecurityAdvisory"] = true
-}
-
 func EditSecurityAdvisory(ctx *context.Context) {
-	a, _ := getSecurityAdvisory(ctx)
+	a, _ := advisory_service.RequestAdvisory(ctx)
 	if err := a.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
@@ -542,18 +470,13 @@ func EditSecurityAdvisory(ctx *context.Context) {
 }
 
 func EditSecurityAdvisoryPost(ctx *context.Context) {
-	a, perms := getSecurityAdvisory(ctx)
-	form := context.GetFetchActionForm[*forms.SecurityAdvisoryForm](ctx)
+	a, perms := advisory_service.RequestAdvisory(ctx)
+	content := contentFromForm(ctx)
 	if ctx.Written() {
 		return
 	}
 	if err := a.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
-		return
-	}
-	content, err := contentFromForm(ctx, form)
-	if err != nil {
-		jsonSecurityAdvisoryError(ctx, err)
 		return
 	}
 	opts := advisory_service.EditOptions{
@@ -579,7 +502,7 @@ func EditSecurityAdvisoryPost(ctx *context.Context) {
 }
 
 func ChangeSecurityAdvisoryState(ctx *context.Context) {
-	a, _ := getSecurityAdvisory(ctx)
+	a, _ := advisory_service.RequestAdvisory(ctx)
 	closeReason := ctx.FormString("close_reason")
 	// the modal keeps a chosen original when switching to another reason
 	duplicateOf := util.Iif(closeReason == advisory_model.CloseReasonDuplicate.String(), ctx.FormTrim("duplicate_of"), "")
@@ -596,7 +519,7 @@ func ChangeSecurityAdvisoryState(ctx *context.Context) {
 }
 
 func DeleteSecurityAdvisory(ctx *context.Context) {
-	a, _ := getSecurityAdvisory(ctx)
+	a, _ := advisory_service.RequestAdvisory(ctx)
 	if err := advisory_service.DeleteAdvisory(ctx, ctx.Doer, a); err != nil {
 		jsonSecurityAdvisoryError(ctx, err)
 		return
@@ -606,7 +529,7 @@ func DeleteSecurityAdvisory(ctx *context.Context) {
 }
 
 func AddSecurityAdvisoryCollaborator(ctx *context.Context) {
-	a, _ := getSecurityAdvisory(ctx)
+	a, _ := advisory_service.RequestAdvisory(ctx)
 	err := advisory_service.AddCollaborator(ctx, ctx.Doer, a, ctx.FormTrim("collaborator"), ctx.FormString("type") == "team")
 	switch {
 	case err == nil:
@@ -623,7 +546,7 @@ func AddSecurityAdvisoryCollaborator(ctx *context.Context) {
 }
 
 func RemoveSecurityAdvisoryCollaborator(ctx *context.Context) {
-	a, _ := getSecurityAdvisory(ctx)
+	a, _ := advisory_service.RequestAdvisory(ctx)
 	if err := advisory_service.RemoveCollaborator(ctx, ctx.Doer, a, ctx.FormInt64("user_id"), ctx.FormInt64("team_id")); err != nil {
 		ctx.ServerError("RemoveCollaborator", err)
 		return
@@ -632,7 +555,7 @@ func RemoveSecurityAdvisoryCollaborator(ctx *context.Context) {
 }
 
 func NewSecurityAdvisoryComment(ctx *context.Context) {
-	a, perms := getSecurityAdvisory(ctx)
+	a, perms := advisory_service.RequestAdvisory(ctx)
 	form := context.GetFetchActionForm[*forms.SecurityAdvisoryCommentForm](ctx)
 	if ctx.Written() {
 		return
@@ -646,7 +569,7 @@ func NewSecurityAdvisoryComment(ctx *context.Context) {
 }
 
 func getSecurityAdvisoryComment(ctx *context.Context) *advisory_model.Comment {
-	a, perms := getSecurityAdvisory(ctx)
+	a, perms := advisory_service.RequestAdvisory(ctx)
 	c, err := advisory_model.GetCommentByID(ctx, a.ID, ctx.PathParamInt64("id"), perms.CanSeeInternal)
 	if err != nil {
 		ctx.ServerError("GetCommentByID", err)
@@ -657,7 +580,7 @@ func getSecurityAdvisoryComment(ctx *context.Context) *advisory_model.Comment {
 
 // EditSecurityAdvisoryComment responds to the in-place editor of the issue comments, only the poster can edit
 func EditSecurityAdvisoryComment(ctx *context.Context) {
-	a, _ := getSecurityAdvisory(ctx)
+	a, _ := advisory_service.RequestAdvisory(ctx)
 	c := getSecurityAdvisoryComment(ctx)
 	if ctx.Written() {
 		return
@@ -679,7 +602,7 @@ func EditSecurityAdvisoryComment(ctx *context.Context) {
 }
 
 func DeleteSecurityAdvisoryComment(ctx *context.Context) {
-	_, perms := getSecurityAdvisory(ctx)
+	_, perms := advisory_service.RequestAdvisory(ctx)
 	c := getSecurityAdvisoryComment(ctx)
 	if ctx.Written() {
 		return

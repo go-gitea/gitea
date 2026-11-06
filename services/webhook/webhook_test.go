@@ -229,13 +229,9 @@ func testRepositoryAdvisoryReportHidesReporter(t *testing.T) {
 		RepoID:      repo.ID,
 		URL:         "http://localhost/gitea-webhook-test-advisory_report",
 		ContentType: webhook_model.ContentTypeJSON,
+		Events:      `{"choose_events":true,"events":{"repository_advisory_reported":true}}`,
 		IsActive:    true,
-		HookEvent: &webhook_module.HookEvent{
-			ChooseEvents: true,
-			HookEvents:   webhook_module.HookEvents{webhook_module.HookEventRepositoryAdvisoryReported: true},
-		},
 	}
-	require.NoError(t, hook.UpdateEvent())
 	require.NoError(t, db.Insert(t.Context(), hook))
 
 	a := &advisory_model.Advisory{RepoID: repo.ID, Repo: repo, Identifier: "abcd-efgh-ijkl", State: advisory_model.StateTriage, IsReport: true, ReporterID: reporter.ID}
