@@ -49,18 +49,14 @@ type CreateRepoOptions struct {
 	IsMirror         bool
 	IsTemplate       bool
 	AutoInit         bool
-	Status           repo_model.RepositoryStatus
 	TrustModel       repo_model.TrustModelType
 	MirrorInterval   string
 	ObjectFormatName string
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir string, opts CreateRepoOptions) error {
-	authorSig := repo.Owner.NewGitSig()
-
-	// Never clone/checkout the target repo here: it may already contain pushed content (e.g. symlinks)
-	if err := git.InitRepositoryLocal(ctx, tmpDir, false, repo.ObjectFormatName, repo.DefaultBranch); err != nil {
-		return fmt.Errorf("prepareRepoCommit: init temp repo: %w", err)
+	if err := git.InitRepositoryLocal(ctx, tmpDir, false, repo.ObjectFormatName, ""); err != nil {
+		return fmt.Errorf("git init: %w", err)
 	}
 
 	// README
@@ -82,7 +78,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 		// here we could just log the error and continue the rendering
 		log.Error("unable to expand template vars for repo README: %s, err: %v", opts.Readme, err)
 	}
-	if err = writeNewFile(filepath.Join(tmpDir, "README.md"), []byte(res)); err != nil {
+	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"), []byte(res), 0o644); err != nil {
 		return fmt.Errorf("write README.md: %w", err)
 	}
 
@@ -101,7 +97,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 		}
 
 		if buf.Len() > 0 {
-			if err = writeNewFile(filepath.Join(tmpDir, ".gitignore"), buf.Bytes()); err != nil {
+			if err = os.WriteFile(filepath.Join(tmpDir, ".gitignore"), buf.Bytes(), 0o644); err != nil {
 				return fmt.Errorf("write .gitignore: %w", err)
 			}
 		}
@@ -111,7 +107,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 	if len(opts.License) > 0 {
 		data, err = repo_module.GetLicense(opts.License, &repo_module.LicenseValues{
 			Owner: repo.OwnerName,
-			Email: authorSig.Email,
+			Email: repo.Owner.GetEmail(),
 			Repo:  repo.Name,
 			Year:  time.Now().Format("2006"),
 		})
@@ -119,25 +115,12 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 			return fmt.Errorf("getLicense[%s]: %w", opts.License, err)
 		}
 
-		if err = writeNewFile(filepath.Join(tmpDir, "LICENSE"), data); err != nil {
+		if err = os.WriteFile(filepath.Join(tmpDir, "LICENSE"), data, 0o644); err != nil {
 			return fmt.Errorf("write LICENSE: %w", err)
 		}
 	}
 
 	return nil
-}
-
-// writeNewFile fails if the path already exists, O_EXCL never follows a symlink
-func writeNewFile(name string, data []byte) error {
-	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-	if err != nil {
-		return err
-	}
-	if _, err = f.Write(data); err != nil {
-		_ = f.Close()
-		return err
-	}
-	return f.Close()
 }
 
 // InitRepository initializes README and .gitignore if needed.
@@ -237,7 +220,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		IsFsckEnabled:                   !opts.IsMirror,
 		IsTemplate:                      opts.IsTemplate,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
-		Status:                          opts.Status,
+		Status:                          repo_model.RepositoryBeingMigrated,
 		IsEmpty:                         !opts.AutoInit,
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
