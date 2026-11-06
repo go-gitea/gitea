@@ -84,6 +84,8 @@ conditional `UPDATE` or a lock.
 - On every start, `SyncAllTables` drops indexes absent from the model, so declare
   migration-created indexes there, including in backports. It only warns about
   nullability and default changes, so apply them through migrations.
+- Backported index changes alter the schema on a patch upgrade, which fails for
+  database users without schema permissions. Mention them in the backport PR.
 - `ForUpdate` only works on MySQL and PostgreSQL. MSSQL rejects TEXT columns in
   struct conditions and inserts of more than 1000 rows.
 - Paginated queries need a unique tiebreaker like `id` for a stable order.
