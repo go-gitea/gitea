@@ -32,6 +32,18 @@ func TestRepository_AddCollaborator(t *testing.T) {
 
 	assert.Error(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeOwner))
 	assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeAdmin))
+
+	repo8 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8})
+	repo38 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 38})
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
+	for _, collab := range []struct {
+		repo *repo_model.Repository
+		user *user_model.User
+	}{{repo8, user29}, {repo38, user4}} {
+		assert.NoError(t, db.Insert(t.Context(), &repo_model.Collaboration{RepoID: collab.repo.ID, UserID: collab.user.ID, Mode: perm.AccessModeRead}))
+		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), collab.repo, collab.user, perm.AccessModeRead))
+		unittest.AssertExistsAndLoadBean(t, &access_model.Access{RepoID: collab.repo.ID, UserID: collab.user.ID, Mode: perm.AccessModeRead})
+	}
 }
 
 func TestRepository_DeleteCollaboration(t *testing.T) {
