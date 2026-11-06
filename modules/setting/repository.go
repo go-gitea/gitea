@@ -211,6 +211,7 @@ var (
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
+			DefaultDeleteBranchAfterMerge:            true,
 			DefaultTitleSource:                       RepoPRTitleSourceAuto,
 		},
 

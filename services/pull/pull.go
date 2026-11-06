@@ -1015,11 +1015,18 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return nil, "", err
 	}
-	baseBranch := pull.BaseBranch
+	baseRef := git.RefNameFromBranch(pull.BaseBranch)
 	if pull.HasMerged {
-		baseBranch = pull.MergeBase
+		baseRef = git.RefName(pull.MergeBase)
 	}
-	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, git.RefNameFromBranch(baseBranch), git.RefName(pull.GetGitHeadRefName()), false, false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
+		BaseRepo:    pull.BaseRepo,
+		BaseGitRepo: baseGitRepo,
+		BaseRef:     baseRef,
+		HeadRepo:    pull.BaseRepo,
+		HeadGitRepo: baseGitRepo,
+		HeadRef:     git.RefName(pull.GetGitHeadRefName()),
+	}, false, false)
 	if err != nil {
 		return nil, "", err
 	}

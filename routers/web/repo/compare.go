@@ -296,7 +296,14 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 		}
 	}
 
-	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), fileOnly)
+	compareInfo, err := git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
+		BaseRepo:    baseRepo,
+		BaseGitRepo: ctx.Repo.GitRepo,
+		BaseRef:     baseRef,
+		HeadRepo:    headRepo,
+		HeadGitRepo: headGitRepo,
+		HeadRef:     headRef,
+	}, compareReq.DirectComparison(), fileOnly)
 	if err != nil {
 		return err
 	}
@@ -736,7 +743,7 @@ func ExcerptBlob(ctx *context.Context) {
 		ctx.ServerError("GetCommit", err)
 		return
 	}
-	blob, err := commit.GetBlobByPath(ctx, ctx.Repo.GitRepo, filePath)
+	blob, err := commit.GetBlobByPath(ctx, gitRepo, filePath)
 	if err != nil {
 		ctx.ServerError("GetBlobByPath", err)
 		return

@@ -10,13 +10,35 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestUserSettings(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	t.Run("RevokeOAuth2GrantOfOtherUser", testRevokeOAuth2GrantOfOtherUser)
+	t.Run("Account", testUserSettingsAccount)
+	t.Run("UpdatePassword", testUserSettingsUpdatePassword)
+	t.Run("UpdateEmail", testUserSettingsUpdateEmail)
+	t.Run("DeleteEmail", testUserSettingsDeleteEmail)
+	t.Run("Delete", testUserSettingsDelete)
+	t.Run("Pages", testUserSettingsPages)
+	t.Run("Security", testUserSettingsSecurity)
+	t.Run("Applications", testUserSettingsApplications)
+	t.Run("Keys", testUserSettingsKeys)
+	t.Run("Secrets", testUserSettingsSecrets)
+	t.Run("RenameInvalidUsername", testRenameInvalidUsername)
+	t.Run("RenameReservedUsername", testRenameReservedUsername)
+	t.Run("ChangeFullName", testChangeFullName)
+	t.Run("LocationMapLink", testUserLocationMapLink)
+	t.Run("RenameUsername", testRenameUsername)
+}
 
 // Validate that each navbar setting is correct. This checks that the
 // appropriate context is passed everywhere the navbar is rendered
@@ -56,9 +78,7 @@ func WithDisabledFeatures(t *testing.T, features ...string) {
 	})
 }
 
-func TestRevokeOAuth2GrantOfOtherUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testRevokeOAuth2GrantOfOtherUser(t *testing.T) {
 	// grant 1 belongs to user1, so user2 must not be able to act on it
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/1/revoke/1", nil)
@@ -68,9 +88,7 @@ func TestRevokeOAuth2GrantOfOtherUser(t *testing.T) {
 	assert.EqualValues(t, 1, grant.UserID)
 }
 
-func TestUserSettingsAccount(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testUserSettingsAccount(t *testing.T) {
 	for _, testCase := range []struct {
 		name           string
 		features       []string
@@ -123,9 +141,7 @@ func TestUserSettingsAccount(t *testing.T) {
 	})
 }
 
-func TestUserSettingsUpdatePassword(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testUserSettingsUpdatePassword(t *testing.T) {
 	t.Run("enabled", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -148,9 +164,7 @@ func TestUserSettingsUpdatePassword(t *testing.T) {
 	})
 }
 
-func TestUserSettingsUpdateEmail(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testUserSettingsUpdateEmail(t *testing.T) {
 	t.Run("credentials disabled", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -183,9 +197,7 @@ func TestUserSettingsUpdateEmail(t *testing.T) {
 	}
 }
 
-func TestUserSettingsDeleteEmail(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testUserSettingsDeleteEmail(t *testing.T) {
 	t.Run("credentials disabled", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -196,9 +208,7 @@ func TestUserSettingsDeleteEmail(t *testing.T) {
 	})
 }
 
-func TestUserSettingsDelete(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testUserSettingsDelete(t *testing.T) {
 	t.Run("deletion disabled", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -210,10 +220,10 @@ func TestUserSettingsDelete(t *testing.T) {
 	})
 }
 
-func TestUserSettingsPages(t *testing.T) {
+func testUserSettingsPages(t *testing.T) {
 	for _, page := range []string{"appearance", "packages", "packages/rules/add", "organization", "repos", "blocked_users"} {
 		t.Run(page, func(t *testing.T) {
-			defer tests.PrepareTestEnv(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			session := loginUser(t, "user2")
 			req := NewRequest(t, "GET", "/user/settings/"+page)
@@ -225,9 +235,7 @@ func TestUserSettingsPages(t *testing.T) {
 	}
 }
 
-func TestUserSettingsSecurity(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testUserSettingsSecurity(t *testing.T) {
 	for _, testCase := range []struct {
 		name     string
 		feature  string
@@ -261,9 +269,7 @@ func TestUserSettingsSecurity(t *testing.T) {
 	})
 }
 
-func TestUserSettingsApplications(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testUserSettingsApplications(t *testing.T) {
 	t.Run("Applications", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -342,9 +348,7 @@ func TestUserSettingsApplications(t *testing.T) {
 	})
 }
 
-func TestUserSettingsKeys(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testUserSettingsKeys(t *testing.T) {
 	for _, testCase := range []struct {
 		name    string
 		feature string
@@ -384,9 +388,7 @@ func TestUserSettingsKeys(t *testing.T) {
 	})
 }
 
-func TestUserSettingsSecrets(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testUserSettingsSecrets(t *testing.T) {
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user/settings/actions/secrets")
 	if setting.Actions.Enabled {
@@ -397,4 +399,145 @@ func TestUserSettingsSecrets(t *testing.T) {
 	} else {
 		session.MakeRequest(t, req, http.StatusNotFound)
 	}
+}
+
+func testRenameInvalidUsername(t *testing.T) {
+	invalidUsernames := []string{
+		"%2f*",
+		"%2f.",
+		"%2f..",
+		"%00",
+		"thisHas ASpace",
+		"p<A>tho>lo<gical",
+		".",
+		"..",
+		".well-known",
+		".abc",
+		"abc.",
+		"a..bc",
+		"a...bc",
+		"a.-bc",
+		"a._bc",
+		"a_-bc",
+		"a/bc",
+		"☁️",
+		"-",
+		"--diff",
+		"-im-here",
+		"a space",
+	}
+
+	session := loginUser(t, "user2")
+	for _, invalidUsername := range invalidUsernames {
+		t.Logf("Testing username %s", invalidUsername)
+
+		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+			"name":  invalidUsername,
+			"email": "user2@example.com",
+		})
+		resp := session.MakeRequest(t, req, http.StatusBadRequest)
+		data := DecodeJSON(t, resp, map[string]any{})
+		assert.Equal(t, []any{"Name"}, data["errorFields"])
+		assert.Contains(t,
+			data["errorMessage"],
+			translation.NewLocale("en-US").TrString("form.username_error", "Name"),
+		)
+
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
+	}
+}
+
+func testRenameReservedUsername(t *testing.T) {
+	// ".", "..", ".well-known" are also reserved but invalid as form input.
+	reservedNames := []string{
+		"api",
+		"openapi3.v1.json",
+		"swagger.v1.json",
+	}
+	patternNotAllowedNames := []string{
+		"name.keys",
+	}
+
+	session := loginUser(t, "user2")
+	locale := translation.NewLocale("en-US")
+	check := func(name, msgKey string) {
+		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+			"name":     name,
+			"email":    "user2@example.com",
+			"language": "en-US",
+		})
+		resp := session.MakeRequest(t, req, http.StatusBadRequest)
+		data := DecodeJSON(t, resp, map[string]any{})
+		assert.Equal(t, locale.TrString(msgKey, name), data["errorMessage"])
+		assert.Equal(t, []any{"Name"}, data["errorFields"])
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: name})
+	}
+	for _, name := range reservedNames {
+		check(name, "user.form.name_reserved")
+	}
+	for _, name := range patternNotAllowedNames {
+		check(name, "user.form.name_pattern_not_allowed")
+	}
+}
+
+func testChangeFullName(t *testing.T) {
+	session := loginUser(t, "user2")
+	postSettings := func(t *testing.T, values map[string]string, expectedStatus int) map[string]any {
+		t.Helper()
+		resp := session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings", values), expectedStatus)
+		return DecodeJSON(t, resp, map[string]any{})
+	}
+
+	t.Run("Change", func(t *testing.T) {
+		postSettings(t, map[string]string{"full_name": "New Name"}, http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2", FullName: "New Name"})
+	})
+
+	t.Run("Disabled", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureChangeFullName))()
+		postSettings(t, map[string]string{"location": "Elsewhere"}, http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2", FullName: "New Name", Location: "Elsewhere"})
+
+		data := postSettings(t, map[string]string{"full_name": "Other Name"}, http.StatusBadRequest)
+		assert.Equal(t, []any{"FullName"}, data["errorFields"])
+		assert.Equal(t, "Changing full name is disabled.", data["errorMessage"])
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2", FullName: "New Name"})
+	})
+
+	t.Run("Clear", func(t *testing.T) {
+		postSettings(t, map[string]string{"full_name": ""}, http.StatusOK)
+		assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"}).FullName)
+	})
+}
+
+func testRenameUsername(t *testing.T) {
+	session := loginUser(t, "user2")
+	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+		"name":     "newUsername",
+		"email":    "user2@example.com",
+		"language": "en-US",
+	})
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "/user/settings", DecodeJSON(t, resp, map[string]any{})["redirect"])
+
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "newUsername"})
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user2"})
+}
+
+func testUserLocationMapLink(t *testing.T) {
+	defer test.MockVariableValue(&setting.Service.UserLocationMapURL, "https://example/foo/")()
+
+	session := loginUser(t, "user2")
+	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+		"name":     "user2",
+		"email":    "user@example.com",
+		"language": "en-US",
+		"location": "A/b",
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequest(t, "GET", "/user2/")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, `a[href="https://example/foo/A%2Fb"]`, true)
 }

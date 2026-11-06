@@ -769,7 +769,6 @@
   "settings.permission_anonymous_read": "Leitura anônima",
   "settings.permission_everyone_read": "Leitura pública",
   "settings.permission_everyone_write": "Escrita para Todos",
-  "settings.access_token_desc": "As permissões de token selecionadas limitam a autorização somente às rotas da <a %s>API</a> correspondente. Leia a <a %s>documentação</a> para obter mais informações.",
   "settings.at_least_one_permission": "Você deve selecionar pelo menos uma permissão para criar um token",
   "settings.permissions_list": "Permissões:",
   "settings.manage_oauth2_applications": "Gerenciar aplicativos OAuth2",

@@ -1036,7 +1036,7 @@ export default defineConfig([
       'unicorn/prefer-single-call': [2],
       'unicorn/prefer-single-object-destructuring': [2],
       'unicorn/prefer-single-replace': [2],
-      'unicorn/prefer-smaller-scope': [2],
+      'unicorn/prefer-smaller-scope': [0],
       'unicorn/prefer-split-limit': [0], // too opinionated
       'unicorn/prefer-spread': [0],
       'unicorn/prefer-string-match-all': [2],

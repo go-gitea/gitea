@@ -91,12 +91,15 @@ func testCreateFile(t *testing.T, session *TestSession, user, repo, baseBranchNa
 
 func testEditorProtectedBranch(t *testing.T) {
 	session := loginUser(t, "user2")
+	assert.JSONEq(t, `{"errorMessage":"Required approvals cannot be negative.","renderFormat":"html","errorFields":["required_approvals"]}`,
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{"rule_name": "master", "required_approvals": "-1"}), http.StatusBadRequest).Body.String())
+
 	// Change the "master" branch to "protected"
 	req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
 		"rule_name":   "master",
 		"enable_push": "true",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 	flashMsg := session.GetCookieFlashMessage()
 	assert.Equal(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
 
@@ -112,7 +115,7 @@ func testEditorProtectedBranch(t *testing.T) {
 		"unprotected_file_patterns": "docs/*.md",
 		"enable_push":               "true",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 	flashMsg = session.GetCookieFlashMessage()
 	assert.Equal(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
 
