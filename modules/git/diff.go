@@ -5,6 +5,7 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"cmp"
 	"context"
 	"fmt"
@@ -306,20 +307,19 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 
 	affectedFiles := make([]string, 0, 32)
 
-	// Run `git diff --name-only` to get the names of the changed files
-	cmd := gitcmd.NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID)
+	// "-z" keeps paths raw, otherwise git quotes special characters and they can no longer match path patterns
+	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(oldCommitID, newCommitID)
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
 	err := cmd.WithEnv(env).WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(stdoutReader)
+			scanner.Split(scanNullTerminated)
 			for scanner.Scan() {
-				path := strings.TrimSpace(scanner.Text())
-				if len(path) == 0 {
-					continue
+				if path := scanner.Text(); path != "" {
+					affectedFiles = append(affectedFiles, path)
 				}
-				affectedFiles = append(affectedFiles, path)
 			}
 			return scanner.Err()
 		}).
@@ -329,6 +329,16 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 	}
 
 	return affectedFiles, err
+}
+
+func scanNullTerminated(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if i := bytes.IndexByte(data, 0); i >= 0 {
+		return i + 1, data[:i], nil
+	}
+	if atEOF && len(data) > 0 {
+		return len(data), data, nil
+	}
+	return 0, nil, nil
 }
 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
