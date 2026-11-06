@@ -13,7 +13,6 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
@@ -613,7 +612,8 @@ func EditPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, issue, issue.PosterID, perm.AccessModeWrite) {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) &&
+		(form.AllowMaintainerEdit == nil || form.Title != "" || form.Body != nil || form.Base != "" || form.State != nil) { // a lone allow_maintainer_edit is left to SetAllowEdits, the lock covers content
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -652,7 +652,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	// Update or remove deadline if set
-	if !editIssueDeadline(ctx, issue, form.Deadline, form.RemoveDeadline) {
+	if ctx.Repo.Permission.CanWrite(unit.TypePullRequests) && !editIssueDeadline(ctx, issue, form.Deadline, form.RemoveDeadline) {
 		return
 	}
 
@@ -744,7 +744,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			if issues_model.IsErrPullRequestAlreadyExists(err) {
 				ctx.APIError(http.StatusConflict, err.Error())
 				return
-			} else if issues_model.IsErrIssueIsClosed(err) {
+			} else if issues_model.IsErrIssueIsClosed(err) || git_model.IsErrBranchesEqual(err) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			} else if pull_service.IsErrPullRequestHasMerged(err) {

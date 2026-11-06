@@ -40,11 +40,6 @@ func IssueStopStopwatch(c *context.Context) {
 		return
 	}
 
-	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound(nil)
-		return
-	}
-
 	if ok, err := issues_model.FinishIssueStopwatch(c, c.Doer, issue); err != nil {
 		c.ServerError("FinishIssueStopwatch", err)
 		return
@@ -60,10 +55,6 @@ func IssueStopStopwatch(c *context.Context) {
 func CancelStopwatch(c *context.Context) {
 	issue := GetActionIssue(c)
 	if c.Written() {
-		return
-	}
-	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound(nil)
 		return
 	}
 

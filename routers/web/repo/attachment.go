@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/attachment"
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
@@ -107,18 +108,9 @@ func DeleteAttachment(ctx *context.Context) {
 		if !canSelfChangeOrAccessContent(ctx, issue, attach.UploaderID, perm.AccessModeWrite) {
 			return
 		}
-	} else if ctx.Doer.ID != attach.UploaderID {
-		if attach.ReleaseID > 0 {
-			if !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		} else {
-			if !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		}
+	} else if ctx.Doer.ID != attach.UploaderID && !util.Iif(attach.ReleaseID > 0, ctx.Repo.Permission.CanWrite(unit.TypeReleases), ctx.Repo.Permission.IsAdmin()) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
 	}
 
 	err = repo_model.DeleteAttachment(ctx, attach, true)

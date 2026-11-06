@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -346,7 +345,7 @@ func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Iss
 }
 
 func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Issue) bool {
-	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, issue, issue.PosterID, perm.AccessModeWrite) {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
 		ctx.APIError(http.StatusForbidden, "user should have permission to write issue")
 		return false
 	}

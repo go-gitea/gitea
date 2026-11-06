@@ -13,7 +13,6 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -682,7 +681,7 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, issue, issue.PosterID, perm.AccessModeWrite) {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}

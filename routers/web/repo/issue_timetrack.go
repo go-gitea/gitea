@@ -10,7 +10,6 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -92,7 +91,8 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 		return
 	}
 
-	if !canSelfChangeOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeWrite) {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 

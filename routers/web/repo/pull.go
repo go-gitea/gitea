@@ -20,7 +20,6 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
@@ -50,6 +49,7 @@ import (
 	"gitea.dev/services/forms"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -1546,7 +1546,8 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		return
 	}
 
-	if !canSelfChangeOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeWrite) {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 

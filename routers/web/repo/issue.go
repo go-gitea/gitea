@@ -247,7 +247,8 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	if !canSelfChangeOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeWrite) {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -274,11 +275,8 @@ func UpdateIssueRef(ctx *context.Context) {
 		return
 	}
 
-	if issue.IsPull {
+	if issue.IsPull || !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
 		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-	if !canSelfChangeOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeWrite) {
 		return
 	}
 
@@ -301,7 +299,8 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if !canSelfChangeOrAccessContent(ctx, issue, issue.PosterID, perm.AccessModeWrite) {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 

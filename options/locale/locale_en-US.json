@@ -1631,7 +1631,7 @@
   "repo.issues.unlock_comment": "unlocked this conversation %s",
   "repo.issues.lock_confirm": "Lock",
   "repo.issues.unlock_confirm": "Unlock",
-  "repo.issues.lock.notice_1": "- Other users cannot add new comments to this issue.",
+  "repo.issues.lock.notice_1": "- Other users cannot comment on or edit this issue.",
   "repo.issues.lock.notice_2": "- You and other collaborators with access to this repository can still leave comments that others can see.",
   "repo.issues.lock.notice_3": "- You can always unlock this issue again in the future.",
   "repo.issues.unlock.notice_1": "- Everyone would be able to comment on this issue once more.",
