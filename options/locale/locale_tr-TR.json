@@ -802,7 +802,6 @@
   "settings.permission_anonymous_read": "Anonim Okuma",
   "settings.permission_everyone_read": "Herkes Okuyabilir",
   "settings.permission_everyone_write": "Herkes Yazabilir",
-  "settings.access_token_desc": "Seçili token izinleri, yetkilendirmeyi ilgili <a %s>API</a> yollarıyla sınırlandıracaktır. Daha fazla bilgi için <a %s>belgeleri</a> okuyun.",
   "settings.at_least_one_permission": "Bir token oluşturmak için en azından bir izin seçmelisiniz",
   "settings.permissions_list": "İzinler:",
   "settings.manage_oauth2_applications": "OAuth2 Uygulamalarını Yönet",

@@ -261,7 +261,6 @@ func Routes() *web.Router {
 	routes.BeforeRouting(user.UsernamePreRoute)
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.Methods("GET, HEAD", "/assets/site-manifest.json", misc.SiteManifest)
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, public.AssetsCors(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
@@ -358,20 +357,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	optExploreSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
 	// middleware: only apply CrossOriginProtection
 	crossOriginProtect := verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: false})
-
-	openIDSignInEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignIn {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
-
-	openIDSignUpEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignUp {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
 
 	oauth2Enabled := func(ctx *context.Context) {
 		if !setting.OAuth2.Enabled {
@@ -569,7 +554,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/issues", func() {
 		m.Get("", user.Issues)
-		m.Get("/search", repo.SearchIssues)
+		m.Get("/search", repo.SearchGlobalIssues)
 	}, reqSignIn)
 
 	m.Get("/pulls", reqSignIn, user.Pulls)
@@ -580,21 +565,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Get("/user/login", auth.SignIn)
 	m.Group("/user", func() {
 		m.Post("/login", web.Bind[*forms.SignInForm](), auth.SignInPost)
-		m.Group("", func() {
-			m.Combo("/login/openid").
-				Get(auth.SignInOpenID).
-				Post(web.Bind[*forms.SignInOpenIDForm](), auth.SignInOpenIDPost)
-		}, openIDSignInEnabled)
-		m.Group("/openid", func() {
-			m.Combo("/connect").
-				Get(auth.ConnectOpenID).
-				Post(web.Bind[*forms.ConnectOpenIDForm](), auth.ConnectOpenIDPost)
-			m.Group("/register", func() {
-				m.Combo("").
-					Get(auth.RegisterOpenID, openIDSignUpEnabled).
-					Post(web.Bind[*forms.SignUpOpenIDForm](), auth.RegisterOpenIDPost)
-			}, openIDSignUpEnabled)
-		}, openIDSignInEnabled)
 		m.Get("/sign_up", auth.SignUp)
 		m.Post("/sign_up", web.Bind[*forms.RegisterForm](), auth.SignUpPost)
 		m.Get("/link_account", auth.LinkAccount)
@@ -635,7 +605,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
-		m.Post("", web.Bind[*forms.UpdateProfileForm](), user_setting.ProfilePost)
+		m.Post("", user_setting.ProfilePost)
 		m.Post("/update_preferences", user_setting.UpdatePreferences)
 		m.Get("/change_password", auth.MustChangePassword)
 		m.Post("/change_password", web.Bind[*forms.MustChangePasswordForm](), auth.MustChangePasswordPost)
@@ -672,11 +642,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/rename", security.WebauthnRename)
 				m.Post("/delete", security.WebauthnDelete)
 			})
-			m.Group("/openid", func() {
-				m.Post("", web.Bind[*forms.AddOpenIDForm](), security.OpenIDPost)
-				m.Post("/delete", security.DeleteOpenID)
-				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
-			}, openIDSignInEnabled)
 			m.Post("/account_link", security.DeleteAccountLink)
 		})
 
@@ -695,7 +660,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("").Get(user_setting.Applications).
 				Post(user_setting.ApplicationsPost)
 			m.Post("/delete", user_setting.DeleteApplication)
-			m.Post("/regenerate", user_setting.RegenerateAccessToken)
+			m.Post("/regenerate", user_setting.ApplicationsRegenerateToken)
 		})
 
 		m.Combo("/keys").Get(user_setting.Keys).
@@ -824,6 +789,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
 			m.Post("/{userid}/access_tokens", admin.NewBotTokenPost)
 			m.Post("/{userid}/access_tokens/delete", admin.DeleteBotToken)
+			m.Post("/{userid}/access_tokens/regenerate", admin.RegenerateBotToken)
 			m.Post("/{userid}/orgs/{org_id}/remove", admin.RemoveUserFromOrg)
 			m.Post("/{userid}/orgs/remove-all", admin.RemoveUserFromAllOrgs)
 		})
@@ -916,10 +882,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/-/ownername.png/{username}", user.AvatarByUsernameSize)
 		m.Get("/-/ownername.keys/{username}", user.ShowSSHKeys)
 		m.Get("/-/ownername.gpg/{username}", user.ShowGPGKeys)
-		m.Get("/-/ownername.rss/{username}", feed.ShowUserFeedRSS)
-		m.Get("/-/ownername.atom/{username}", feed.ShowUserFeedAtom)
+		// tokens only authenticate feeds, the other variants render data outside any token scope
+		m.Get("/-/ownername.rss/{username}", webAuth.AllowBasic, feed.ShowUserFeedRSS)
+		m.Get("/-/ownername.atom/{username}", webAuth.AllowBasic, feed.ShowUserFeedAtom)
 		m.Get("/{username}", user.OwnerProfile)
-	}, webAuth.AllowBasic, optSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer())
+	}, optSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer())
 
 	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer(), user.ActionUserFollow)
 

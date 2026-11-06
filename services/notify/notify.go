@@ -383,11 +383,11 @@ func MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo
 }
 
 // TransferRepository notifies create repository to notifiers
-func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
 	defer recoverPanic()
 
 	for _, notifier := range notifiers {
-		notifier.TransferRepository(ctx, doer, repo, oldOwnerName)
+		notifier.TransferRepository(ctx, doer, repo, oldOwner)
 	}
 }
 

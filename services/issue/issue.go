@@ -292,7 +292,6 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 		issues := make([]*issues_model.Issue, 0, db.DefaultMaxInSize)
 		if err := db.GetEngine(ctx).
 			Where("repo_id = ?", repoID).
-			OrderBy("id").
 			Limit(db.DefaultMaxInSize).
 			Find(&issues); err != nil {
 			return nil, err

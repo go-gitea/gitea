@@ -31,6 +31,9 @@ func getStarredRepos(ctx *context.APIContext, user *user_model.User, private boo
 	if err != nil {
 		return nil, err
 	}
+	if err := repo_model.RepositoryList(starredRepos).LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
 
 	repos := make([]*api.Repository, 0, len(starredRepos))
 	for _, starred := range starredRepos {
@@ -110,6 +113,7 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	repos, err := getStarredRepos(ctx, ctx.Doer, true)
 	if err != nil {
 		ctx.APIErrorInternal(err)
+		return
 	}
 
 	ctx.SetLinkHeader(int64(ctx.Doer.NumStars), utils.GetListOptions(ctx).PageSize)

@@ -681,7 +681,6 @@
   "settings.permission_no_access": "沒有權限",
   "settings.permission_read": "讀取",
   "settings.permission_write": "讀取和寫入",
-  "settings.access_token_desc": "選擇的 token 權限僅限於對應的 <a %s>API</a> 路徑授權。閱讀 <a %s>文件</a> 以了解更多資訊。",
   "settings.at_least_one_permission": "您必須選擇至少一個權限來建立 token",
   "settings.permissions_list": "權限:",
   "settings.manage_oauth2_applications": "管理 OAuth2 應用程式",
