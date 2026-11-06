@@ -70,17 +70,15 @@ type Dependency struct {
 	Alias        string   `json:"alias,omitempty" yaml:"alias,omitempty"`
 }
 
-const maxArchiveSize = 256 * 1024 * 1024 // tar members are inflated while looking for Chart.yaml
-
 // ParseChartArchive parses the metadata of a Helm archive
-func ParseChartArchive(r io.Reader) (*Metadata, error) {
+func ParseChartArchive(r io.Reader, size int64) (*Metadata, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(packages.NewLimitedReader(gzr, maxArchiveSize))
+	tr := tar.NewReader(packages.NewArchiveLimitedReader(gzr, size))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {

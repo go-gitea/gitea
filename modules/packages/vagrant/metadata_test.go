@@ -44,7 +44,7 @@ func TestParseMetadataFromBox(t *testing.T) {
 	t.Run("MissingInfoFile", func(t *testing.T) {
 		data := createArchive(map[string][]byte{"dummy.txt": {}})
 
-		metadata, err := ParseMetadataFromBox(data)
+		metadata, err := ParseMetadataFromBox(data, 0)
 		assert.NotNil(t, metadata)
 		assert.NoError(t, err)
 	})
@@ -68,7 +68,7 @@ func TestParseMetadataFromBox(t *testing.T) {
 
 	for name, parse := range map[string]func([]byte) (*Metadata, error){
 		"ValidBox": func(content []byte) (*Metadata, error) {
-			return ParseMetadataFromBox(createArchive(map[string][]byte{"info.json": content}))
+			return ParseMetadataFromBox(createArchive(map[string][]byte{"info.json": content}), 0)
 		},
 		"ValidInfoFile": func(content []byte) (*Metadata, error) {
 			return ParseInfoFile(bytes.NewReader(content))

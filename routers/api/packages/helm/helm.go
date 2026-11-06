@@ -156,7 +156,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	metadata, err := helm_module.ParseChartArchive(buf)
+	metadata, err := helm_module.ParseChartArchive(buf, buf.Size())
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)

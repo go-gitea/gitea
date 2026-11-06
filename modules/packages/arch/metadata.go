@@ -90,7 +90,7 @@ type FileMetadata struct {
 }
 
 // ParsePackage parses an Arch package file
-func ParsePackage(r io.Reader) (*Package, error) {
+func ParsePackage(r io.Reader, size int64) (*Package, error) {
 	header := make([]byte, 10)
 	n, err := util.ReadAtMost(r, header)
 	if err != nil {
@@ -134,7 +134,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	var p *Package
 	files := packages.NewBoundedFileList(maxFileEntries, maxFileNameBytes)
 
-	tr := tar.NewReader(inner)
+	tr := tar.NewReader(packages.NewArchiveLimitedReader(inner, size))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {

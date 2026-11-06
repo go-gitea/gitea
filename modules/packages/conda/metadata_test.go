@@ -45,7 +45,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("MissingIndexFile", func(t *testing.T) {
 		buf := createArchive(map[string][]byte{"dummy.txt": {}})
 
-		p, err := parsePackageTar(buf)
+		p, err := parsePackageTar(buf, 0)
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidStructure)
 	})
@@ -53,7 +53,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("MissingAboutFile", func(t *testing.T) {
 		buf := createArchive(map[string][]byte{"info/index.json": []byte(`{"name":"name","version":"1.0"}`)})
 
-		p, err := parsePackageTar(buf)
+		p, err := parsePackageTar(buf, 0)
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
@@ -66,7 +66,7 @@ func TestParsePackage(t *testing.T) {
 		for _, name := range []string{"", "name!", "nAMe"} {
 			buf := createArchive(map[string][]byte{"info/index.json": []byte(`{"name":"` + name + `","version":"1.0"}`)})
 
-			p, err := parsePackageTar(buf)
+			p, err := parsePackageTar(buf, 0)
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidName)
 		}
@@ -76,7 +76,7 @@ func TestParsePackage(t *testing.T) {
 		for _, version := range []string{"", "1.0-2"} {
 			buf := createArchive(map[string][]byte{"info/index.json": []byte(`{"name":"name","version":"` + version + `"}`)})
 
-			p, err := parsePackageTar(buf)
+			p, err := parsePackageTar(buf, 0)
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidVersion)
 		}
@@ -88,7 +88,7 @@ func TestParsePackage(t *testing.T) {
 			"info/about.json": []byte(`{"description":"` + description + `","dev_url":"` + repositoryURL + `","doc_url":"` + documentationURL + `","home":"` + projectURL + `"}`),
 		})
 
-		p, err := parsePackageTar(buf)
+		p, err := parsePackageTar(buf, 0)
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
@@ -113,7 +113,7 @@ func TestParsePackage(t *testing.T) {
 
 		br := bytes.NewReader(buf.Bytes())
 
-		p, err := ParsePackageBZ2(br)
+		p, err := ParsePackageBZ2(br, br.Size())
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 

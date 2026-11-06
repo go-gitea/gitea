@@ -91,10 +91,8 @@ type ReaderAndReaderAt interface {
 }
 
 // ParsePackageBZ2 parses the Conda package file compressed with bzip2
-func ParsePackageBZ2(r io.Reader) (*Package, error) {
-	gzr := bzip2.NewReader(r)
-
-	return parsePackageTar(gzr)
+func ParsePackageBZ2(r io.Reader, size int64) (*Package, error) {
+	return parsePackageTar(bzip2.NewReader(r), size)
 }
 
 // ParsePackageConda parses the Conda package file compressed with zip and zstd
@@ -112,13 +110,13 @@ func ParsePackageConda(r io.ReaderAt, size int64) (*Package, error) {
 			}
 			defer f.Close()
 
-			dec, err := zstd.NewReader(f)
+			dec, err := zstd.NewReader(packages.NewArchiveLimitedReader(f, size))
 			if err != nil {
 				return nil, err
 			}
 			defer dec.Close()
 
-			p, err := parsePackageTar(dec)
+			p, err := parsePackageTar(dec, size)
 			if p != nil {
 				p.FileMetadata.IsCondaPackage = true
 			}
@@ -129,11 +127,11 @@ func ParsePackageConda(r io.ReaderAt, size int64) (*Package, error) {
 	return nil, ErrInvalidStructure
 }
 
-func parsePackageTar(r io.Reader) (*Package, error) {
+func parsePackageTar(r io.Reader, size int64) (*Package, error) {
 	var i *index
 	var a *about
 
-	tr := tar.NewReader(r)
+	tr := tar.NewReader(packages.NewArchiveLimitedReader(r, size))
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {

@@ -87,7 +87,7 @@ func TestParsePackage(t *testing.T) {
 			t.Run("MissingPKGINFOFile", func(t *testing.T) {
 				data := createPackage(c, map[string][]byte{"dummy.txt": {}})
 
-				pp, err := ParsePackage(data)
+				pp, err := ParsePackage(data, 0)
 				assert.Nil(t, pp)
 				assert.ErrorIs(t, err, ErrMissingPKGINFOFile)
 			})
@@ -95,7 +95,7 @@ func TestParsePackage(t *testing.T) {
 			t.Run("InvalidPKGINFOFile", func(t *testing.T) {
 				data := createPackage(c, map[string][]byte{".PKGINFO": {}})
 
-				pp, err := ParsePackage(data)
+				pp, err := ParsePackage(data, 0)
 				assert.Nil(t, pp)
 				assert.ErrorIs(t, err, ErrInvalidName)
 			})
@@ -107,7 +107,7 @@ func TestParsePackage(t *testing.T) {
 					"usr/lib/legit\n\n%FILES%\n/etc/cron.d/x": {}, // must not reach the file list
 				})
 
-				p, err := ParsePackage(data)
+				p, err := ParsePackage(data, 0)
 				assert.NoError(t, err)
 				assert.NotNil(t, p)
 
@@ -180,7 +180,7 @@ func TestParsePackageTooManyFiles(t *testing.T) {
 		"file1":    "content1",
 		".PKGINFO": string(createPKGINFOContent(packageName, packageVersion)),
 	})
-	_, err := ParsePackage(buf)
+	_, err := ParsePackage(buf, 0)
 	assert.NoError(t, err)
 
 	buf = test.WriteTarCompression(gzip.NewWriter, map[string]string{
@@ -190,6 +190,6 @@ func TestParsePackageTooManyFiles(t *testing.T) {
 		"file4":    "content4",
 		".PKGINFO": string(createPKGINFOContent(packageName, packageVersion)),
 	})
-	_, err = ParsePackage(buf)
+	_, err = ParsePackage(buf, 0)
 	assert.ErrorIs(t, err, util.ErrInvalidArgument)
 }

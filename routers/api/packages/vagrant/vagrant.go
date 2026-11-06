@@ -166,7 +166,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	metadata, err := vagrant_module.ParseMetadataFromBox(buf)
+	metadata, err := vagrant_module.ParseMetadataFromBox(buf, buf.Size())
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
