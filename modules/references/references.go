@@ -33,13 +33,13 @@ var (
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[-\w][-.\w]*?|@[-\w][-.\w]*?/[-\w][-.\w]*?)(?:\s|$|[:,;.?!](\s|$)|'|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	// A non-ASCII character after the reference is checked by validReferenceEnd.
+	// findValidReferenceIndex checks a non-ASCII trailing character
 	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\"|[^\x00-\x7f])([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$|[^\x00-\x7f])`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\'|,)`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. org/repo#12345
-	// A non-ASCII character after the reference is checked by validReferenceEnd.
+	// findValidReferenceIndex checks a non-ASCII trailing character
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|[^\x00-\x7f])([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$|[^\x00-\x7f])`)
 	// crossReferenceCommitPattern matches a string that references a commit in a different repository
 	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
@@ -341,42 +341,37 @@ func FindAllIssueReferences(content string) []IssueReference {
 	return rawToIssueReferenceList(findAllIssueReferencesBytes(contentBytes, []string{}, nil))
 }
 
-// validReferenceEnd rejects a reference followed by a Unicode word character, like GitHub
-func validReferenceEnd(content []byte, match []int) bool {
-	r, _ := utf8.DecodeRune(content[match[3]:match[1]])
-	return !util.IsWordRune(r) && !unicode.Is(unicode.Join_Control, r)
-}
-
-// findValidReferenceIndex returns the submatch indexes of the first match of pattern in content that passes validReferenceEnd.
-func findValidReferenceIndex(pattern *regexp.Regexp, content string) []int {
-	for pos := 0; pos < len(content); {
-		match := pattern.FindStringSubmatchIndex(content[pos:])
+// findValidReferenceIndex returns the first match from pos that isn't followed by a word character
+func findValidReferenceIndex(pattern *regexp.Regexp, content []byte, pos int) []int {
+	for pos < len(content) {
+		match := pattern.FindSubmatchIndex(content[pos:])
 		if match == nil {
 			return nil
 		}
-		if validReferenceEnd(util.UnsafeStringToBytes(content[pos:]), match) {
-			for i := range match {
-				match[i] += pos
-			}
+		for i := range match {
+			match[i] += pos
+		}
+		if r, _ := utf8.DecodeRune(content[match[3]:match[1]]); !util.IsWordRune(r) && !unicode.Is(unicode.Join_Control, r) {
 			return match
 		}
-		pos += match[3]
+		pos = match[3]
 	}
 	return nil
 }
 
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
 func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool) *RenderizableReference {
+	contentBytes := util.UnsafeStringToBytes(content)
 	var match []int
 	if !crossLinkOnly {
-		match = findValidReferenceIndex(issueNumericPattern, content)
+		match = findValidReferenceIndex(issueNumericPattern, contentBytes, 0)
 	}
 	if match == nil {
-		if match = findValidReferenceIndex(crossReferenceIssueNumericPattern, content); match == nil {
+		if match = findValidReferenceIndex(crossReferenceIssueNumericPattern, contentBytes, 0); match == nil {
 			return nil
 		}
 	}
-	r := getCrossReference(util.UnsafeStringToBytes(content), match[2], match[3], false, prOnly)
+	r := getCrossReference(contentBytes, match[2], match[3], false, prOnly)
 	if r == nil {
 		return nil
 	}
@@ -459,47 +454,16 @@ func FindRenderizableReferenceAlphanumeric(content string) *RenderizableReferenc
 // originalContent is optional and used to detect closing/reopening keywords for URL references.
 func findAllIssueReferencesBytes(content []byte, links []string, originalContent []byte) []*rawReference {
 	ret := make([]*rawReference, 0, 10)
-	pos := 0
 
 	// Sadly we can't use FindAllSubmatchIndex because our pattern checks for starting and
 	// trailing spaces (\s#ref,\s), so if we get two consecutive references, the space
 	// from the second reference will be "eaten" by the first one:
 	// ...\s#ref1\s#ref2\s...	--> ...`\s#ref1\s`, (not) `#ref2,\s...`
-	for {
-		match := issueNumericPattern.FindSubmatchIndex(content[pos:])
-		if match == nil {
-			break
-		}
-		if validReferenceEnd(content[pos:], match) {
-			if ref := getCrossReference(content, match[2]+pos, match[3]+pos, false, false); ref != nil {
+	for _, pattern := range []*regexp.Regexp{issueNumericPattern, crossReferenceIssueNumericPattern} {
+		for match := findValidReferenceIndex(pattern, content, 0); match != nil; match = findValidReferenceIndex(pattern, content, match[3]) {
+			if ref := getCrossReference(content, match[2], match[3], false, false); ref != nil {
 				ret = append(ret, ref)
 			}
-		}
-		notrail := spaceTrimmedPattern.FindSubmatchIndex(content[match[2]+pos : match[3]+pos])
-		if notrail == nil {
-			pos = match[3] + pos
-		} else {
-			pos = match[3] + pos + notrail[1] - notrail[3]
-		}
-	}
-
-	pos = 0
-
-	for {
-		match := crossReferenceIssueNumericPattern.FindSubmatchIndex(content[pos:])
-		if match == nil {
-			break
-		}
-		if validReferenceEnd(content[pos:], match) {
-			if ref := getCrossReference(content, match[2]+pos, match[3]+pos, false, false); ref != nil {
-				ret = append(ret, ref)
-			}
-		}
-		notrail := spaceTrimmedPattern.FindSubmatchIndex(content[match[2]+pos : match[3]+pos])
-		if notrail == nil {
-			pos = match[3] + pos
-		} else {
-			pos = match[3] + pos + notrail[1] - notrail[3]
 		}
 	}
 
@@ -555,7 +519,7 @@ func findAllIssueReferencesBytes(content []byte, links []string, originalContent
 		return ret
 	}
 
-	pos = 0
+	pos := 0
 
 	for {
 		match := timeLogPattern.FindSubmatchIndex(content[pos:])
