@@ -47,7 +47,7 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 	if err != nil {
 		return fmt.Errorf("check reference comment: %w", err)
 	} else if has {
-		if commitRepoID == issue.RepoID && existing.RefRepoID != issue.RepoID { // repoint to the issue's repo, the first one may be private or get deleted
+		if commitRepoID == issue.RepoID && existing.RefRepoID != issue.RepoID { // the first push may be to a private repo, or to a fork whose deletion would delete this comment
 			_, err = db.GetEngine(ctx).ID(existing.ID).NoAutoTime().Cols("ref_repo_id", "content").
 				Update(&issues_model.Comment{RefRepoID: commitRepoID, Content: content})
 		}
@@ -232,7 +232,7 @@ func FilterReadableComments(ctx context.Context, doer *user_model.User, perm acc
 		case issues_model.CommentTypeIsRef(c.Type):
 			refRepoID, refUnit = c.RefRepoID, util.Iif(c.RefIsPull, unit.TypePullRequests, unit.TypeIssues)
 		case c.Type == issues_model.CommentTypeCommitRef && c.RefRepoID != issue.RepoID:
-			refRepoID, refUnit = c.RefRepoID, unit.TypeCode // zero for references created before the commit repo was recorded
+			refRepoID, refUnit = c.RefRepoID, unit.TypeCode // RefRepoID is 0 for legacy references, which stay visible
 		case c.Type == issues_model.CommentTypeAddDependency || c.Type == issues_model.CommentTypeRemoveDependency:
 			if err := c.LoadDepIssueDetails(ctx); err != nil && !issues_model.IsErrIssueNotExist(err) {
 				return nil, err
