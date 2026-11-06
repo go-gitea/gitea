@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -406,6 +407,19 @@ func (g *GithubDownloaderV3) GetReleases(ctx context.Context) ([]*base.Release, 
 			break
 		}
 	}
+
+	if slices.ContainsFunc(releases, func(release *base.Release) bool { return !release.Draft && !release.Prerelease }) {
+		g.waitAndPickClient(ctx)
+		latest, resp, err := g.getClient().Repositories.GetLatestRelease(ctx, g.repoOwner, g.repoName)
+		g.setRateFromResponse(resp)
+		if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
+			return nil, err
+		}
+		for _, release := range releases {
+			release.Latest = err == nil && release.TagName == latest.GetTagName()
+		}
+	}
+	slices.Reverse(releases)
 	return releases, nil
 }
 

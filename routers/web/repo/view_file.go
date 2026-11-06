@@ -9,10 +9,12 @@ import (
 	"image"
 	"io"
 	"path"
+	"slices"
 	"strings"
 
 	git_model "gitea.dev/models/git"
 	issue_model "gitea.dev/models/issues"
+	org_model "gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
@@ -153,9 +155,53 @@ func handleFileViewRenderImage(ctx *context.Context, fInfo *fileInfo, prefetchBu
 	return true
 }
 
+type fileCodeOwner struct {
+	CodeOwnerName string
+	CodeOwnerLink string
+}
+
+func prepareFileCodeOwners(ctx *context.Context) {
+	rules, warnings1, err := issue_service.GetCodeOwnerRules(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit)
+	if msg, _ := util.ErrorUnwrapForUser(err); msg != "" {
+		ctx.Flash.Error(msg, true)
+		return
+	} else if err != nil {
+		log.Error("GetCodeOwnerRules: failed to read CODEOWNERS file at repo %s commit %s: %v", ctx.Repo.Repository.LogString(), ctx.Repo.CommitID, err)
+		return
+	}
+	matching, warnings2 := issue_service.MatchCodeOwnerRules(rules, []string{ctx.Repo.TreePath})
+	warnings := slices.Concat(warnings1, warnings2)
+	if len(warnings) > 0 {
+		ctx.Flash.Warning(strings.Join(warnings, "\n"), true)
+	}
+
+	var owners []fileCodeOwner
+	seen := make(map[string]bool)
+	add := func(name, link string) {
+		if !seen[link] {
+			owners = append(owners, fileCodeOwner{name, link})
+			seen[link] = true
+		}
+	}
+	for _, rule := range matching {
+		for _, user := range rule.Users {
+			add("@"+user.Name, user.HomeLink())
+		}
+		for _, team := range rule.Teams {
+			org, err := org_model.GetOrgByID(ctx, team.OrgID)
+			if err != nil {
+				continue
+			}
+			add("@"+org.Name+"/"+team.Name, org.HomeLink()+"/teams/"+util.PathEscapeSegments(team.LowerName))
+		}
+	}
+	ctx.Data["FileCodeOwners"] = owners
+}
+
 func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
+	prepareFileCodeOwners(ctx)
 
 	if !prepareLatestCommitInfo(ctx) {
 		return

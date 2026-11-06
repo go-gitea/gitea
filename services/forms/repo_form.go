@@ -545,6 +545,7 @@ type NewReleaseForm struct {
 	Draft      bool
 	TagOnly    bool
 	Prerelease bool
+	MakeLatest bool
 	AddTagMsg  bool
 	Files      []string
 }
@@ -564,6 +565,7 @@ type EditReleaseForm struct {
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`
+	MakeLatest bool   `form:"make_latest"`
 	Files      []string
 }
 
