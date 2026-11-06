@@ -17,7 +17,7 @@ type Mention struct {
 	Name     string `json:"name"`
 	FullName string `json:"fullname"`
 	Avatar   string `json:"avatar"`
-	IsBot    bool   `json:"is_bot,omitempty"`
+	IsBot    bool   `json:"is_bot"`
 }
 
 // Collector builds a deduplicated list of Mention entries.

@@ -2,7 +2,7 @@ import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
 import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
 import {parseIssueHref, parseRepoOwnerPathInfo} from '../../utils.ts';
-import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
+import {createElementFromAttrs, createElementFromHTML, createUserLabel} from '../../utils/dom.ts';
 import {getIssueColorClass, getIssueIcon} from '../issue.ts';
 import {errorName} from '../../modules/errors.ts';
 import {debounce} from '../../utils/func.ts';
@@ -116,7 +116,7 @@ export function initTextExpander(expander: TextExpanderElement) {
             fullnameSpan.textContent = fullname;
             li.append(fullnameSpan);
           }
-          if (is_bot) li.append(createElementFromAttrs('span', {class: 'ui basic label tw-py-0'}, window.config.i18n.bot));
+          if (is_bot) li.append(createUserLabel());
 
           ul.append(li);
         }

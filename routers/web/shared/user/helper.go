@@ -16,7 +16,7 @@ type SearchUserInfo struct {
 	UserName   string `json:"username"`
 	AvatarLink string `json:"avatar_link"`
 	FullName   string `json:"full_name"`
-	IsBot      bool   `json:"is_bot,omitempty"`
+	IsBot      bool   `json:"is_bot"`
 }
 
 type SearchUserResponse struct {

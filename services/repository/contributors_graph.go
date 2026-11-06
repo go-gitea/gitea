@@ -48,7 +48,7 @@ type ContributorData struct {
 	Login        string              `json:"login"` // Login name of the contributor in case it exists
 	AvatarLink   string              `json:"avatar_link"`
 	HomeLink     string              `json:"home_link"`
-	IsBot        bool                `json:"is_bot,omitempty"`
+	IsBot        bool                `json:"is_bot"`
 	TotalCommits int64               `json:"total_commits"`
 	Weeks        map[int64]*WeekData `json:"weeks"`
 }

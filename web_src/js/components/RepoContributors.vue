@@ -74,7 +74,7 @@ type ContributorInfo = {
   name: string,
   avatar_link: string,
   home_link: string,
-  is_bot?: boolean,
+  is_bot: boolean,
 };
 
 type ContributorStats = ContributorInfo & {weeks: DayData[]};

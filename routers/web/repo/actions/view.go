@@ -372,7 +372,7 @@ type ViewRunAttempt struct {
 	TriggerUserName   string `json:"triggerUserName"`
 	TriggerUserLink   string `json:"triggerUserLink"`
 	TriggerUserAvatar string `json:"triggerUserAvatar"`
-	TriggerUserIsBot  bool   `json:"triggerUserIsBot,omitempty"`
+	TriggerUserIsBot  bool   `json:"triggerUserIsBot"`
 }
 
 type ViewPullRequest struct {
@@ -391,7 +391,7 @@ type ViewUser struct {
 	DisplayName string `json:"displayName"`
 	Link        string `json:"link"`
 	AvatarLink  string `json:"avatarLink,omitempty"`
-	IsBot       bool   `json:"isBot,omitempty"`
+	IsBot       bool   `json:"isBot"`
 }
 
 type ViewBranch struct {

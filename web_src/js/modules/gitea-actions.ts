@@ -40,7 +40,7 @@ export type ActionsRun = {
       displayName: string,
       link: string,
       avatarLink: string,
-      isBot?: boolean,
+      isBot: boolean,
     },
     branch: {
       name: string,
@@ -67,7 +67,7 @@ export type ActionsRunAttempt = {
   triggerUserName: string;
   triggerUserLink: string;
   triggerUserAvatar: string;
-  triggerUserIsBot?: boolean;
+  triggerUserIsBot: boolean;
 };
 
 export type ActionsJob = {
