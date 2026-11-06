@@ -257,7 +257,6 @@ func normalizeRuntimeMetadata(input *codespacev1.RuntimeMetadata) (runtimeMetada
 		return runtimeMetadata{}, "", errors.New("runtime metadata endpoints exceed 64")
 	}
 	seen := make(map[string]struct{}, len(input.GetEndpoints()))
-	workspaceFound := false
 	for _, endpoint := range input.GetEndpoints() {
 		normalized, err := normalizeRuntimeMetadataEndpoint(endpoint)
 		if err != nil {
@@ -267,13 +266,7 @@ func normalizeRuntimeMetadata(input *codespacev1.RuntimeMetadata) (runtimeMetada
 			return runtimeMetadata{}, "", fmt.Errorf("duplicate endpoint_id %q", normalized.EndpointID)
 		}
 		seen[normalized.EndpointID] = struct{}{}
-		if normalized.EndpointID == workspaceEndpointID {
-			workspaceFound = true
-		}
 		metadata.Endpoints = append(metadata.Endpoints, normalized)
-	}
-	if (bootStage == bootStagePublishReady || bootStage == bootStageReady) && !workspaceFound {
-		return runtimeMetadata{}, "", errors.New("runtime metadata workspace endpoint is required")
 	}
 	slices.SortFunc(metadata.Endpoints, func(a, b runtimeMetadataEndpoint) int {
 		return strings.Compare(a.EndpointID, b.EndpointID)

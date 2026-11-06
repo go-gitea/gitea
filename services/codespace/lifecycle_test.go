@@ -36,6 +36,7 @@ func TestFinalizeOperationResumeFailedTransaction(t *testing.T) {
 	insertServiceCredentials(t, codespaceUUID)
 
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
+		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
 		CodespaceUUID:     codespaceUUID,
 		OperationRVersion: 3,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_RESUME,
@@ -50,6 +51,36 @@ func TestFinalizeOperationResumeFailedTransaction(t *testing.T) {
 	assert.Positive(t, codespace.UpdatedUnix)
 	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+}
+
+func TestFinalizeOperationUnboundCreateFailure(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	manager := insertServiceManager(t)
+	codespace := &codespace_model.Codespace{
+		Status:                codespace_model.StatusCreating,
+		OperationRVersion:     3,
+		OperationTrigger:      codespace_model.OperationTriggerUser,
+		OperationCreatedUnix:  10,
+		OperationStartedUnix:  11,
+		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
+	}
+	insertServiceCodespace(t, manager.ID, codespace)
+
+	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
+		CodespaceID:       codespace.ID,
+		OperationRVersion: 3,
+		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,
+		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_FAILED,
+	})
+	require.NoError(t, err)
+	assert.False(t, outcome.GetResourceAbsent())
+
+	current := loadServiceCodespaceByID(t, codespace.ID)
+	assert.Equal(t, codespace_model.StatusFailed, current.Status)
+	assert.Zero(t, current.ManagerID)
+	assert.Empty(t, current.UUID)
+	assert.False(t, hasActiveOperation(current))
 }
 
 func TestFinalizeOperationCreateUsesDurablePrerequisites(t *testing.T) {
@@ -69,6 +100,7 @@ func TestFinalizeOperationCreateUsesDurablePrerequisites(t *testing.T) {
 	insertServiceCredentials(t, codespaceUUID)
 
 	_, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
+		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
 		CodespaceUUID:     codespaceUUID,
 		OperationRVersion: 3,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,
@@ -105,6 +137,7 @@ func TestFinalizeOperationRejectsWrongManagerAsStale(t *testing.T) {
 	})
 
 	_, err := FinalizeOperation(t.Context(), otherManager, FinalizeOperationOptions{
+		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
 		CodespaceUUID:     codespaceUUID,
 		OperationRVersion: 4,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_STOP,
@@ -131,6 +164,7 @@ func TestFinalizeOperationAcceptsConvergentCompletionAfterDeadline(t *testing.T)
 	insertServiceCredentials(t, codespaceUUID)
 
 	_, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
+		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
 		CodespaceUUID:     codespaceUUID,
 		OperationRVersion: 41,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_STOP,
@@ -155,6 +189,7 @@ func TestFinalizeOperationRejectsConvergentFailure(t *testing.T) {
 	})
 
 	_, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
+		CodespaceID:   codespaceIDByUUID(t, codespaceUUID),
 		CodespaceUUID: codespaceUUID, OperationRVersion: 42,
 		OperationType: codespacev1.OperationType_OPERATION_TYPE_DELETE,
 		FinalStatus:   codespacev1.FinalStatus_FINAL_STATUS_FAILED,
@@ -350,6 +385,7 @@ func TestFinalizeOperationCreateDoneRejectsDamagedGiteaToken(t *testing.T) {
 	}))
 
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
+		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
 		CodespaceUUID:     codespaceUUID,
 		OperationRVersion: 6,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,
@@ -387,6 +423,7 @@ func TestFinalizeStopClearsRuntimeMetadata(t *testing.T) {
 	require.True(t, hasReady)
 
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
+		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
 		CodespaceUUID:     codespaceUUID,
 		OperationRVersion: 6,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_STOP,

@@ -37,12 +37,6 @@ func TestNormalizeRuntimeMetadataProtoValidation(t *testing.T) {
 			},
 		},
 		{
-			name: "missing workspace endpoint",
-			mutate: func(metadata *codespacev1.RuntimeMetadata) {
-				metadata.Endpoints = metadata.Endpoints[:1]
-			},
-		},
-		{
 			name: "public workspace endpoint",
 			mutate: func(metadata *codespacev1.RuntimeMetadata) {
 				metadata.Endpoints[len(metadata.Endpoints)-1].Public = true
@@ -95,6 +89,18 @@ func TestNormalizeRuntimeMetadataProtoValidation(t *testing.T) {
 			require.Error(t, err)
 		})
 	}
+
+	t.Run("workspace endpoint is optional", func(t *testing.T) {
+		metadata := metadataProtoForTest(t, 1, bootStageReady, []map[string]any{{
+			"endpoint_id": "web",
+			"label":       "Web",
+			"public":      false,
+		}})
+		metadata.Endpoints = metadata.Endpoints[:1]
+		normalized, _, err := normalizeRuntimeMetadata(metadata)
+		require.NoError(t, err)
+		require.Len(t, normalized.Endpoints, 1)
+	})
 }
 
 func TestNormalizeRuntimeMetadataLabelBoundaries(t *testing.T) {

@@ -508,7 +508,7 @@ func TestFetchOperationsRejectsStateHistoryConflictBeforeWrites(t *testing.T) {
 	assert.Equal(t, originalDeadline, loadServiceCodespace(t, renewedUUID).OperationDeadlineUnix)
 }
 
-func TestFetchOperationsWaitsForUnobservedRunningOperation(t *testing.T) {
+func TestFetchOperationsRedeliversUnobservedRunningOperation(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
@@ -527,9 +527,38 @@ func TestFetchOperationsWaitsForUnobservedRunningOperation(t *testing.T) {
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{})
 	require.NoError(t, err)
+	require.Len(t, result.Operations, 1)
+	assert.Empty(t, result.RenewedLeases)
+	assert.Equal(t, codespaceUUID, result.Operations[0].GetRuntimeUuid())
+	assert.EqualValues(t, 38, result.Operations[0].GetOperationRversion())
+	assert.Positive(t, result.Operations[0].GetLeaseValidForMilliseconds())
+	assert.LessOrEqual(t, result.Operations[0].GetLeaseValidForMilliseconds(), int64(time.Minute/time.Millisecond))
+	assert.Equal(t, originalDeadline, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix)
+}
+
+func TestFetchOperationsExpiresUnobservedRunningOperation(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	manager := insertServiceManager(t)
+	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
+	codespaceUUID := "23232323-2323-4323-8323-232323232322"
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+		UUID:                  codespaceUUID,
+		Status:                codespace_model.StatusCreating,
+		OperationRVersion:     40,
+		OperationTrigger:      codespace_model.OperationTriggerUser,
+		OperationCreatedUnix:  time.Now().Add(-time.Minute).Unix(),
+		OperationStartedUnix:  time.Now().Add(-time.Minute).Unix(),
+		OperationDeadlineUnix: time.Now().Add(-time.Second).Unix(),
+	})
+
+	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{})
+	require.NoError(t, err)
 	assert.Empty(t, result.Operations)
 	assert.Empty(t, result.RenewedLeases)
-	assert.Equal(t, originalDeadline, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix)
+	current := loadServiceCodespace(t, codespaceUUID)
+	assert.Equal(t, codespace_model.StatusFailed, current.Status)
+	assert.False(t, hasActiveOperation(current))
 }
 
 func TestFetchOperationsReturnsCurrentPayloadForLowerObservedVersion(t *testing.T) {
@@ -538,6 +567,7 @@ func TestFetchOperationsReturnsCurrentPayloadForLowerObservedVersion(t *testing.
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	codespaceUUID := "24242424-2424-4424-8424-242424242421"
+	originalDeadline := time.Now().Add(time.Minute).Unix()
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusRunning,
@@ -545,7 +575,7 @@ func TestFetchOperationsReturnsCurrentPayloadForLowerObservedVersion(t *testing.
 		OperationTrigger:      codespace_model.OperationTriggerUser,
 		OperationCreatedUnix:  time.Now().Add(-time.Minute).Unix(),
 		OperationStartedUnix:  time.Now().Add(-time.Minute).Unix(),
-		OperationDeadlineUnix: time.Now().Add(time.Minute).Unix(),
+		OperationDeadlineUnix: originalDeadline,
 	})
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
@@ -560,7 +590,7 @@ func TestFetchOperationsReturnsCurrentPayloadForLowerObservedVersion(t *testing.
 	assert.Equal(t, codespaceUUID, result.Operations[0].GetRuntimeUuid())
 	assert.EqualValues(t, 39, result.Operations[0].GetOperationRversion())
 	assert.NotNil(t, result.Operations[0].GetStop())
-	assert.Greater(t, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix, time.Now().Unix()+1)
+	assert.Equal(t, originalDeadline, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix)
 }
 
 func TestFetchOperationsClaimsCleanupStop(t *testing.T) {

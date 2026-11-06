@@ -375,6 +375,7 @@ func TestFinalizeFailedDeletesCodespaceGitPublicKey(t *testing.T) {
 	keyID := loadServiceSSHKeyRelation(t, codespaceUUID).KeyID
 
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
+		CodespaceID:       codespaceIDByUUID(t, codespaceUUID),
 		CodespaceUUID:     codespaceUUID,
 		OperationRVersion: 18,
 		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,

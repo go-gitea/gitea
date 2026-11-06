@@ -167,6 +167,7 @@ func (s *Service) FinalizeOperation(
 ) (*codespacev1.FinalizeOperationResponse, error) {
 	manager := GetManager(ctx)
 	response, err := codespace_service.FinalizeOperation(ctx, manager, codespace_service.FinalizeOperationOptions{
+		CodespaceID:       req.GetCodespaceId(),
 		CodespaceUUID:     req.GetRuntimeUuid(),
 		OperationRVersion: req.GetOperationRversion(),
 		OperationType:     req.GetOperationType(),

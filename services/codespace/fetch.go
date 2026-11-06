@@ -307,8 +307,8 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 			if err := codespace_model.ValidateCodespace(codespace); err != nil {
 				return fmt.Errorf("invalid persisted Codespace: %w", err)
 			}
-			leaseMillis, deadlineUnix, ok := grantLease(codespace.OperationStartedUnix, grantTime)
-			if !ok {
+			remainingLease := time.Unix(codespace.OperationDeadlineUnix, 0).Sub(grantTime)
+			if codespace.OperationDeadlineUnix <= 0 || remainingLease < time.Millisecond {
 				operationType := codespace_model.ActiveOperationType(codespace)
 				summary := operationTimeoutSummary(codespace, timeoutStatus(operationType))
 				if isConvergentOperation(operationType) {
@@ -324,28 +324,29 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 				return nil
 			}
 			observedVersion, hasObserved := observedVersions[codespace.UUID]
-			if !hasObserved {
-				return nil
-			}
-			if observedVersion > codespace.OperationRVersion {
+			if hasObserved && observedVersion > codespace.OperationRVersion {
 				return ErrFetchStateHistoryConflict
 			}
 			operationType := codespace_model.ActiveOperationType(codespace)
-			if !setting.Codespace.Enabled && (operationType == codespace_model.OperationCreate || operationType == codespace_model.OperationResume) {
+			if hasObserved && !setting.Codespace.Enabled && (operationType == codespace_model.OperationCreate || operationType == codespace_model.OperationResume) {
 				if int32(len(result.Operations)) < maxOperations {
 					result.Operations = append(result.Operations, buildAbortOperationPayload(codespace))
 				}
 				return nil
 			}
-			expected := snapshotCodespaceState(codespace)
-			codespace.OperationDeadlineUnix = deadlineUnix
-			if err := updateCodespaceIfCurrent(ctx, expected, codespace, "operation_deadline_unix"); err != nil {
-				if errors.Is(err, errCodespaceStateChanged) {
-					return nil
+			if hasObserved && observedVersion == codespace.OperationRVersion {
+				leaseMillis, deadlineUnix, ok := grantLease(codespace.OperationStartedUnix, grantTime)
+				if !ok {
+					return applyRunningTimeout(ctx, codespace, grantTime.Unix())
 				}
-				return err
-			}
-			if observedVersion == codespace.OperationRVersion {
+				expected := snapshotCodespaceState(codespace)
+				codespace.OperationDeadlineUnix = deadlineUnix
+				if err := updateCodespaceIfCurrent(ctx, expected, codespace, "operation_deadline_unix"); err != nil {
+					if errors.Is(err, errCodespaceStateChanged) {
+						return nil
+					}
+					return err
+				}
 				result.RenewedLeases = append(result.RenewedLeases, &codespacev1.RenewedOperationLease{
 					RuntimeUuid:               codespace.UUID,
 					OperationRversion:         codespace.OperationRVersion,
@@ -356,7 +357,7 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 			if int32(len(result.Operations)) >= maxOperations {
 				return nil
 			}
-			payload, err := buildOperationPayload(ctx, codespace, leaseMillis)
+			payload, err := buildOperationPayload(ctx, codespace, remainingLease.Milliseconds())
 			if err != nil {
 				return err
 			}

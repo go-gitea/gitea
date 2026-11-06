@@ -20,6 +20,7 @@ var ErrFinalizeGiteaTokenRequired = errors.New("codespace gitea token is require
 
 // FinalizeOperationOptions contains a Manager final report.
 type FinalizeOperationOptions struct {
+	CodespaceID       int64
 	CodespaceUUID     string
 	OperationRVersion int64
 	OperationType     codespacev1.OperationType
@@ -31,8 +32,13 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 	if manager == nil || manager.ID <= 0 {
 		return nil, errors.New("manager is required")
 	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, util.NewInvalidArgumentErrorf("%v", err)
+	if opts.CodespaceID <= 0 {
+		return nil, util.NewInvalidArgumentErrorf("codespace_id must be positive")
+	}
+	if opts.CodespaceUUID != "" {
+		if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
+			return nil, util.NewInvalidArgumentErrorf("%v", err)
+		}
 	}
 	if opts.OperationRVersion <= 0 {
 		return nil, util.NewInvalidArgumentErrorf("operation_rversion must be positive")
@@ -48,7 +54,7 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 	var stateSummary *internalStateSummary
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
+		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
 		if err != nil {
 			return err
 		}
@@ -63,6 +69,12 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 		// A stale final ends Manager work but must not overwrite a newer operation, so acknowledge it without changing state.
 		if !isCurrentRunningOperation(codespace, manager.ID, opts.OperationRVersion) || codespace_model.ActiveOperationType(codespace) != operationType {
 			return nil
+		}
+		if opts.CodespaceUUID != codespace.UUID {
+			return nil
+		}
+		if codespace.UUID == "" && (operationType != codespace_model.OperationCreate || opts.FinalStatus != codespacev1.FinalStatus_FINAL_STATUS_FAILED) {
+			return util.NewInvalidArgumentErrorf("only an unbound create failure can finalize without runtime_uuid")
 		}
 		now := time.Now().Unix()
 		if isConvergentOperation(operationType) {
@@ -186,6 +198,9 @@ func finalOperationType(operationType codespacev1.OperationType) string {
 func applyFinalState(ctx context.Context, codespace *codespace_model.Codespace, status string, now int64) error {
 	expected := snapshotCodespaceState(codespace)
 	codespace.Status = status
+	if status == codespace_model.StatusFailed && codespace.UUID == "" {
+		codespace.ManagerID = 0
+	}
 	if status == codespace_model.StatusRunning {
 		codespace.RuntimeOperationRVersion = codespace.OperationRVersion
 	} else {
@@ -197,6 +212,7 @@ func applyFinalState(ctx context.Context, codespace *codespace_model.Codespace, 
 		return err
 	}
 	err := updateCodespaceIfCurrent(ctx, expected, codespace,
+		"manager_id",
 		"status",
 		"runtime_operation_r_version",
 		"operation_trigger",
