@@ -358,20 +358,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// middleware: only apply CrossOriginProtection
 	crossOriginProtect := verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: false})
 
-	openIDSignInEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignIn {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
-
-	openIDSignUpEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignUp {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
-
 	oauth2Enabled := func(ctx *context.Context) {
 		if !setting.OAuth2.Enabled {
 			ctx.HTTPError(http.StatusForbidden)
@@ -579,21 +565,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Get("/user/login", auth.SignIn)
 	m.Group("/user", func() {
 		m.Post("/login", web.Bind[*forms.SignInForm](), auth.SignInPost)
-		m.Group("", func() {
-			m.Combo("/login/openid").
-				Get(auth.SignInOpenID).
-				Post(web.Bind[*forms.SignInOpenIDForm](), auth.SignInOpenIDPost)
-		}, openIDSignInEnabled)
-		m.Group("/openid", func() {
-			m.Combo("/connect").
-				Get(auth.ConnectOpenID).
-				Post(web.Bind[*forms.ConnectOpenIDForm](), auth.ConnectOpenIDPost)
-			m.Group("/register", func() {
-				m.Combo("").
-					Get(auth.RegisterOpenID, openIDSignUpEnabled).
-					Post(web.Bind[*forms.SignUpOpenIDForm](), auth.RegisterOpenIDPost)
-			}, openIDSignUpEnabled)
-		}, openIDSignInEnabled)
 		m.Get("/sign_up", auth.SignUp)
 		m.Post("/sign_up", web.Bind[*forms.RegisterForm](), auth.SignUpPost)
 		m.Get("/link_account", auth.LinkAccount)
@@ -671,11 +642,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/rename", security.WebauthnRename)
 				m.Post("/delete", security.WebauthnDelete)
 			})
-			m.Group("/openid", func() {
-				m.Post("", web.Bind[*forms.AddOpenIDForm](), security.OpenIDPost)
-				m.Post("/delete", security.DeleteOpenID)
-				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
-			}, openIDSignInEnabled)
 			m.Post("/account_link", security.DeleteAccountLink)
 		})
 
