@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -363,6 +364,7 @@ func (g *GitlabDownloader) GetReleases(ctx context.Context) ([]*base.Release, er
 			break
 		}
 	}
+	slices.Reverse(releases)
 	return releases, nil
 }
 

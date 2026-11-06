@@ -443,6 +443,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(364, "Add new table project_workflow", v29.AddProjectWorkflow),
 		newMigration(365, "Normalize legacy repository unit and login source JSON", v29.NormalizeLegacyConfigJSON),
 		newMigration(366, "Drop user_open_id table", v29.DropUserOpenIDTable),
+		newMigration(367, "Add latest_release_id to repository table", v29.AddLatestReleaseIDToRepository),
 	}
 	return preparedMigrations
 }

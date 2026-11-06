@@ -2668,6 +2668,8 @@
   "repo.release.message": "Describe this release",
   "repo.release.prerelease_desc": "Mark as Pre-Release",
   "repo.release.prerelease_helper": "Mark this release unsuitable for production use.",
+  "repo.release.make_latest": "Set as Latest Release",
+  "repo.release.make_latest_helper": "Label this release as the latest for this repository.",
   "repo.release.cancel": "Cancel",
   "repo.release.publish": "Publish Release",
   "repo.release.save_draft": "Save Draft",
