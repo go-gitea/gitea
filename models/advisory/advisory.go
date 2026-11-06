@@ -455,6 +455,13 @@ func (opts FindAdvisoriesOptions) ToOrders() string {
 	return column + " DESC, id DESC"
 }
 
+// FindDuplicateCandidates returns what the close form shows of the most recent possible originals, older ones can be chosen by the API
+func FindDuplicateCandidates(ctx context.Context, a *Advisory, viewer Viewer) ([]*Advisory, error) {
+	opts := FindAdvisoriesOptions{RepoID: a.RepoID, ExcludeID: a.ID, Viewer: viewer}
+	var candidates []*Advisory
+	return candidates, db.GetEngine(ctx).Where(opts.ToConds().And(builder.Eq{"duplicate_of_id": 0})).OrderBy(opts.ToOrders()).Limit(100).Cols("identifier", "summary").Find(&candidates)
+}
+
 // CountAdvisoriesByState counts with all filters but the state
 func CountAdvisoriesByState(ctx context.Context, opts FindAdvisoriesOptions) (map[State]int64, error) {
 	opts.States = nil

@@ -91,13 +91,13 @@
 													<div class="item context js-aria-clickable" data-clipboard-text="{{$advisory.HTMLURL}}#{{$hashTag}}">{{ctx.Locale.Tr "copy_link"}}</div>
 													<div class="item context js-aria-clickable" data-clipboard-target="#{{$hashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</div>
 													{{if and $.IsSigned (not $.Repository.IsArchived)}}
-														<div class="item context js-aria-clickable quote-reply" data-target="{{$hashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
+														<div class="item context js-aria-clickable" data-global-click="onConvContentQuoteReply" data-target="{{$hashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
 														{{if or $isPoster $.CanManageSecurityAdvisories}}
 															<div class="divider"></div>
 															{{if $isPoster}}
-																<div class="item context js-aria-clickable edit-content">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
+																<div class="item context js-aria-clickable" data-global-click="onConvContentEdit">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
 															{{end}}
-															<div class="item context js-aria-clickable delete-comment" data-comment-id="{{$hashTag}}" data-url="{{$advisory.Link}}/comments/{{.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+															<div class="item context js-aria-clickable" data-global-click="onConvContentDelete" data-comment-hash-tag="{{$hashTag}}" data-url="{{$advisory.Link}}/comments/{{.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
 														{{end}}
 													{{end}}
 												</div>
@@ -224,7 +224,7 @@
 				<div class="divider"></div>
 				<span class="text"><strong>{{ctx.Locale.Tr "repo.security_advisories.credits"}}</strong></span>
 				<div class="ui relaxed list">
-					{{range $advisory.Credits}}
+					{{range $.VisibleCredits}}
 						<div class="item flex-text-block">
 							{{ctx.AvatarUtils.Avatar .User 20}}
 							{{template "shared/user/authorlink" .User}}

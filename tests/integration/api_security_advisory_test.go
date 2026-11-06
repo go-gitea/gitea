@@ -155,6 +155,19 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		assert.Contains(t, task.PayloadContent, `"author": null`)
 	})
 
+	t.Run("PrivateReporterCredit", func(t *testing.T) {
+		privateToken := getUserToken(t, "user31", auth_model.AccessTokenScopeWriteRepository)
+		privateReport := advisoryJSON(t, "POST", baseURL+"/reports", privateToken, report, http.StatusCreated, &api.RepositoryAdvisory{})
+		privateURL := baseURL + "/" + privateReport.Identifier
+		advisoryRequest(t, "PATCH", privateURL, adminToken, map[string]any{"state": "draft"}, http.StatusOK)
+		advisoryRequest(t, "PATCH", privateURL, adminToken, map[string]any{"state": "published"}, http.StatusOK)
+
+		assert.Empty(t, advisoryJSON(t, "GET", privateURL, "", nil, http.StatusOK, &api.RepositoryAdvisory{}).Credits)
+		assert.Len(t, advisoryJSON(t, "GET", privateURL, privateToken, nil, http.StatusOK, &api.RepositoryAdvisory{}).Credits, 1)
+		page := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/security/advisories/"+privateReport.Identifier), http.StatusOK)
+		assert.NotContains(t, page.Body.String(), "user31")
+	})
+
 	t.Run("CloseAsDuplicate", func(t *testing.T) {
 		original := advisoryJSON(t, "POST", baseURL, adminToken, &api.CreateRepositoryAdvisoryOption{Summary: "Original", Description: "details"}, http.StatusCreated, &api.RepositoryAdvisory{})
 		originalURL := baseURL + "/" + original.Identifier

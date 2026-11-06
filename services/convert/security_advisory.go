@@ -64,7 +64,7 @@ func ToAPIRepositoryAdvisory(ctx context.Context, a *advisory_model.Advisory, do
 	if a.CvssV4Vector != "" {
 		res.CVSSSeverities.CvssV4 = &api.RepositoryAdvisoryCVSS{VectorString: a.CvssV4Vector, Score: a.CvssV4Score()}
 	}
-	for _, c := range a.Credits {
+	for _, c := range a.VisibleCredits(ctx, doer) {
 		res.Credits = append(res.Credits, &api.RepositoryAdvisoryCredit{Login: c.User.Name, Type: c.Type})
 		res.CreditsDetailed = append(res.CreditsDetailed, &api.RepositoryAdvisoryCreditDetailed{User: ToUser(ctx, c.User, doer), Type: c.Type, State: "accepted"})
 	}

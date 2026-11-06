@@ -222,13 +222,13 @@ func replaceCollaborators(ctx context.Context, a *advisory_model.Advisory, userN
 		}
 	}
 	for _, c := range wanted {
-		isCurrent := slices.ContainsFunc(current, c.is)
-		if !isCurrent {
-			if err := validateCollaborator(ctx, a, c); err != nil {
-				return collaboratorChanges{}, err
-			}
+		if slices.ContainsFunc(current, c.is) {
+			continue // keeps the access of read-only collaborators, the API cannot tell them apart
 		}
-		changes.added = append(changes.added, c) // also grants write access to current read-only collaborators
+		if err := validateCollaborator(ctx, a, c); err != nil {
+			return collaboratorChanges{}, err
+		}
+		changes.added = append(changes.added, c)
 	}
 	return changes, nil
 }

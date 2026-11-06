@@ -217,4 +217,11 @@ func TestFindAdvisoriesFilters(t *testing.T) {
 	counts, err := advisory_model.CountAdvisoriesByState(ctx, advisory_model.FindAdvisoriesOptions{RepoID: 1, Viewer: admin, Keyword: "same", States: []advisory_model.State{advisory_model.StatePublished}})
 	require.NoError(t, err)
 	assert.Equal(t, map[advisory_model.State]int64{advisory_model.StateClosed: 1}, counts, "the state is ignored, the other filters are applied")
+
+	createAdvisory(t, &advisory_model.Advisory{RepoID: 1, Summary: "Same XSS again", State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOfID: xss.ID, ReporterID: 2})
+	candidates, err := advisory_model.FindDuplicateCandidates(ctx, dup, admin)
+	require.NoError(t, err)
+	require.Len(t, candidates, 1, "neither the advisory itself nor a duplicate can be the original")
+	assert.Equal(t, xss.Identifier, candidates[0].Identifier)
+	assert.Zero(t, candidates[0].ID, "only what the form shows is loaded")
 }

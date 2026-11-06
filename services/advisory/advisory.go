@@ -8,6 +8,7 @@ import (
 
 	advisory_model "gitea.dev/models/advisory"
 	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -131,9 +132,22 @@ func ReportVulnerability(ctx context.Context, doer *user_model.User, repo *repo_
 
 // DeleteAdvisory deletes an advisory which has never been published, only repository admins may call it
 func DeleteAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) error {
-	if err := advisory_model.DeleteAdvisory(ctx, a); err != nil {
+	var revokedAccess bool
+	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
+		if err := advisory_model.DeleteAdvisory(ctx, a); err != nil {
+			return err
+		}
+		if a.IsReport && a.DuplicateOfID != 0 {
+			revokedAccess, err = advisory_model.RemoveDuplicateReporter(ctx, a.DuplicateOfID, a.ReporterID)
+		}
+		return err
+	})
+	if err != nil {
 		return err
 	}
 	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryDelete, a.Repo, "advisory", a.Identifier)
+	if revokedAccess {
+		auditDuplicateAccessRevoked(ctx, doer, a, a.DuplicateOfID)
+	}
 	return nil
 }

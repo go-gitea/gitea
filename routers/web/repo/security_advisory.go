@@ -359,17 +359,13 @@ func ViewSecurityAdvisory(ctx *context.Context) {
 	ctx.Data["StatusText"] = securityAdvisoryStatusText(ctx, a, perms)
 	ctx.Data["DescriptionAuthor"] = util.Iif(perms.CanSeeDiscussion, a.Reporter, a.Publisher)
 	ctx.Data["CVSSScores"] = securityAdvisoryCVSSScores(a)
+	ctx.Data["VisibleCredits"] = a.VisibleCredits(ctx, ctx.Doer)
 	ctx.Data["Collaborators"] = securityAdvisoryCollaborators(a)
 	ctx.Data["StateActions"] = securityAdvisoryStateActions(a.State)
 	if perms.CanManage && a.State.CanTransitionTo(advisory_model.StateClosed) {
-		candidates, err := db.Find[advisory_model.Advisory](ctx, advisory_model.FindAdvisoriesOptions{
-			ListOptions: db.ListOptions{PageSize: 100}, // the most recent ones, older originals can be chosen by the API
-			RepoID:      a.RepoID,
-			ExcludeID:   a.ID,
-			Viewer:      securityAdvisoryViewer(ctx),
-		})
+		candidates, err := advisory_model.FindDuplicateCandidates(ctx, a, securityAdvisoryViewer(ctx))
 		if err != nil {
-			ctx.ServerError("FindAdvisories", err)
+			ctx.ServerError("FindDuplicateCandidates", err)
 			return
 		}
 		ctx.Data["DuplicateCandidates"] = candidates

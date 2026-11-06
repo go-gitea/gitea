@@ -4,6 +4,9 @@
 package advisory
 
 import (
+	"context"
+	"slices"
+
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 )
@@ -25,4 +28,12 @@ func init() {
 
 func (Credit) TableName() string {
 	return "security_advisory_credit"
+}
+
+// VisibleCredits hides the users whose profile the viewer can't see once the advisory is public, like a reporter with a private profile
+func (a *Advisory) VisibleCredits(ctx context.Context, viewer *user_model.User) []*Credit {
+	if !a.IsPublic() {
+		return a.Credits
+	}
+	return slices.DeleteFunc(slices.Clone(a.Credits), func(c *Credit) bool { return !user_model.IsUserVisibleToViewer(ctx, c.User, viewer) })
 }

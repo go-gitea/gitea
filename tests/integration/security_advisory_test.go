@@ -72,6 +72,9 @@ func TestSecurityAdvisoryWeb(t *testing.T) {
 	body := page(admin, advisoryURL)
 	assert.Contains(t, body, comment)
 	assert.NotContains(t, body, "data-mentions-url", "mentions would suggest users who cannot see the advisory")
+	assert.Contains(t, body, `data-global-click="onConvContentQuoteReply"`)
+	assert.Contains(t, body, `data-global-click="onConvContentDelete" data-comment-hash-tag="advisory-comment-`)
+	assert.Contains(t, page(reporter, advisoryURL), `data-global-click="onConvContentEdit"`)
 
 	const internalComment = "The reporter asked for a bounty twice."
 	admin.MakeRequest(t, NewRequestWithValues(t, "POST", advisoryURL+"/comments", map[string]string{"content": internalComment, "is_internal": "on"}), http.StatusOK)

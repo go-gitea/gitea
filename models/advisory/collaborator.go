@@ -54,9 +54,13 @@ func RemoveCollaborator(ctx context.Context, c *Collaborator) (bool, error) {
 	return n > 0, err
 }
 
-// RemoveReadOnlyCollaborator keeps a user who has been granted write access in the meantime
-func RemoveReadOnlyCollaborator(ctx context.Context, advisoryID, userID int64) (bool, error) {
-	n, err := db.GetEngine(ctx).Where("advisory_id = ? AND user_id = ? AND read_only = ?", advisoryID, userID, true).Delete(new(Collaborator))
+// RemoveDuplicateReporter revokes the read-only access of a reporter unless another of their reports is still a duplicate of the advisory,
+// it keeps a reporter who has been granted write access in the meantime
+func RemoveDuplicateReporter(ctx context.Context, advisoryID, reporterID int64) (bool, error) {
+	if has, err := db.Exist[Advisory](ctx, builder.Eq{"duplicate_of_id": advisoryID, "reporter_id": reporterID, "is_report": true}); err != nil || has {
+		return false, err
+	}
+	n, err := db.GetEngine(ctx).Where("advisory_id = ? AND user_id = ? AND read_only = ?", advisoryID, reporterID, true).Delete(new(Collaborator))
 	return n > 0, err
 }
 

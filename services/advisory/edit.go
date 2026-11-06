@@ -109,7 +109,7 @@ func EditAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.
 	}
 	effectiveCollaborators.notify(ctx, doer, a)
 	if stateChanged != nil {
-		return stateChanged.notify(ctx, doer, a)
+		stateChanged.notify(ctx, doer, a)
 	}
 	return nil
 }

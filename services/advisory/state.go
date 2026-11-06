@@ -63,6 +63,9 @@ func validateStateOptions(a *advisory_model.Advisory, opts StateOptions) error {
 	if opts.DuplicateOf != nil && opts.DuplicateOf.ID == a.ID {
 		return util.NewInvalidArgumentErrorf("an advisory cannot be a duplicate of itself")
 	}
+	if opts.DuplicateOf != nil && opts.DuplicateOf.DuplicateOfID != 0 {
+		return util.NewInvalidArgumentErrorf("the original advisory is a duplicate itself")
+	}
 	return nil
 }
 
@@ -72,7 +75,8 @@ func ChangeState(ctx context.Context, doer *user_model.User, a *advisory_model.A
 	if err != nil {
 		return err
 	}
-	return change.notify(ctx, doer, a)
+	change.notify(ctx, doer, a)
+	return nil
 }
 
 // stateChange is what updateState changed, for the notifications after the transaction
@@ -80,6 +84,7 @@ type stateChange struct {
 	oldState         advisory_model.State
 	oldDuplicateOfID int64
 	duplicateOf      *advisory_model.Advisory
+	revokedAccess    bool
 }
 
 func updateState(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, opts StateOptions) (*stateChange, error) {
@@ -108,7 +113,15 @@ func updateState(ctx context.Context, doer *user_model.User, a *advisory_model.A
 			cols = append(cols, "report_description")
 		}
 	}
-	return change, advisory_model.UpdateAdvisoryState(ctx, a, change.oldState, cols...)
+	return change, db.WithTx(ctx, func(ctx context.Context) (err error) {
+		if err := advisory_model.UpdateAdvisoryState(ctx, a, change.oldState, cols...); err != nil {
+			return err
+		}
+		if a.IsReport && change.oldDuplicateOfID != 0 {
+			change.revokedAccess, err = advisory_model.RemoveDuplicateReporter(ctx, change.oldDuplicateOfID, a.ReporterID)
+		}
+		return err
+	})
 }
 
 // keepOriginalReport saves the description of a report when it is accepted, a later edit replaces only the description
@@ -123,17 +136,12 @@ func keepOriginalReport(a *advisory_model.Advisory, opts StateOptions) bool {
 }
 
 // notify also lets the reporter of a duplicate follow the original advisory
-func (c *stateChange) notify(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) error {
+func (c *stateChange) notify(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
 	notify_service.SecurityAdvisoryStateChanged(ctx, doer, a, c.oldState)
-	if !a.IsReport {
-		return nil
+	if c.revokedAccess {
+		auditDuplicateAccessRevoked(ctx, doer, a, c.oldDuplicateOfID)
 	}
-	if c.oldDuplicateOfID != 0 {
-		if err := revokeDuplicateAccess(ctx, doer, a, c.oldDuplicateOfID); err != nil {
-			return err
-		}
-	}
-	if c.duplicateOf != nil {
+	if a.IsReport && c.duplicateOf != nil {
 		// the state has been changed already, the reporter just can't follow the original
 		err := grantReporterAccessToOriginal(ctx, doer, a, c.duplicateOf)
 		reporterCannotCollaborate := errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, user_model.ErrBlockedUser)
@@ -141,7 +149,6 @@ func (c *stateChange) notify(ctx context.Context, doer *user_model.User, a *advi
 			log.Error("the reporter of %d cannot follow the original %d: %v", a.ID, c.duplicateOf.ID, err)
 		}
 	}
-	return nil
 }
 
 // grantReporterAccessToOriginal adds the reporter of a duplicate as read-only collaborator
@@ -166,21 +173,16 @@ func grantReporterAccessToOriginal(ctx context.Context, doer *user_model.User, d
 	return nil
 }
 
-// revokeDuplicateAccess removes the reporter of a reopened duplicate from the original unless they have been granted write access
-func revokeDuplicateAccess(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, originalID int64) error {
-	removed, err := advisory_model.RemoveReadOnlyCollaborator(ctx, originalID, a.ReporterID)
-	if err != nil || !removed {
-		return err
-	}
+func auditDuplicateAccessRevoked(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, originalID int64) {
 	original, has, err := db.GetByID[advisory_model.Advisory](ctx, originalID)
 	if err != nil || !has {
-		return err
+		log.Error("auditDuplicateAccessRevoked: original %d, has %v: %v", originalID, has, err)
+		return
 	}
-	original.Repo = a.Repo
 	_, reporter, err := user_model.GetPossibleUserByID(ctx, a.ReporterID)
 	if err != nil {
-		return err
+		log.Error("auditDuplicateAccessRevoked: reporter %d: %v", a.ReporterID, err)
+		return
 	}
-	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorRemove, original.Repo, "advisory", original.Identifier, "collaborator", audit.AdvisoryCollaboratorName(reporter, nil))
-	return nil
+	audit.RecordAs(ctx, doer, audit_model.SecurityAdvisoryCollaboratorRemove, a.Repo, "advisory", original.Identifier, "collaborator", audit.AdvisoryCollaboratorName(reporter, nil))
 }
