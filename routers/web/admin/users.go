@@ -70,8 +70,7 @@ func Users(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort", UserSearchDefaultAdminSort)
 
-	// unfiltered, an administrator needs to list every account kind
-	types := []user_model.UserType{user_model.UserTypeIndividual, user_model.UserTypeUserReserved, user_model.UserTypeBot, user_model.UserTypeRemoteUser}
+	types := user_model.AdminListedUserTypes
 	userTypeFilter := api.UserTypeString(ctx.FormString("user_type"))
 	ctx.Data["UserTypeFilter"] = ""
 	if t, err := convert.UserTypeFromString(userTypeFilter); err == nil {
@@ -366,7 +365,7 @@ func ViewUser(ctx *context.Context) {
 func getTargetBot(ctx *context.Context) *user_model.User {
 	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetUserByID", user_model.IsErrUserNotExist, err)
+		ctx.ServerError("GetUserByID", err)
 		return nil
 	}
 	if !u.IsTypeBot() {
@@ -385,6 +384,12 @@ func NewBotTokenPost(ctx *context.Context) {
 func DeleteBotToken(ctx *context.Context) {
 	if u := getTargetBot(ctx); u != nil {
 		user_setting.DeleteAccessToken(ctx, u)
+	}
+}
+
+func RegenerateBotToken(ctx *context.Context) {
+	if u := getTargetBot(ctx); u != nil {
+		user_setting.RegenerateAccessToken(ctx, u)
 	}
 }
 

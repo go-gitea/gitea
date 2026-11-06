@@ -75,65 +75,34 @@ func TestBranchRuleMatchPriority(t *testing.T) {
 	}
 }
 
-func TestBranchRuleSortLegacy(t *testing.T) {
-	in := []*ProtectedBranch{{
-		RuleName:    "b",
-		CreatedUnix: 1,
-	}, {
-		RuleName:    "b/*",
-		CreatedUnix: 3,
-	}, {
-		RuleName:    "a/*",
-		CreatedUnix: 2,
-	}, {
-		RuleName:    "c",
-		CreatedUnix: 0,
-	}, {
-		RuleName:    "a",
-		CreatedUnix: 4,
-	}}
-	expect := []string{"c", "b", "a", "a/*", "b/*"}
-
-	pbr := ProtectedBranchRules(in)
-	pbr.sort()
-
-	var got []string
-	for i := range pbr {
-		got = append(got, pbr[i].RuleName)
+func TestBranchRuleSort(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		rules    ProtectedBranchRules
+		expected []string
+	}{
+		{"Legacy", ProtectedBranchRules{
+			{RuleName: "b", CreatedUnix: 1},
+			{RuleName: "b/*", CreatedUnix: 3},
+			{RuleName: "a/*", CreatedUnix: 2},
+			{RuleName: "c", CreatedUnix: 0},
+			{RuleName: "a", CreatedUnix: 4},
+		}, []string{"c", "b", "a", "a/*", "b/*"}},
+		{"Priority", ProtectedBranchRules{
+			{RuleName: "b", CreatedUnix: 1, Priority: 4},
+			{RuleName: "b/*", CreatedUnix: 3, Priority: 2},
+			{RuleName: "a/*", CreatedUnix: 2, Priority: 1},
+			{RuleName: "c", CreatedUnix: 0, Priority: 0},
+			{RuleName: "a", CreatedUnix: 4, Priority: 3},
+		}, []string{"c", "a/*", "b/*", "a", "b"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.rules.sort()
+			var got []string
+			for i := range tc.rules {
+				got = append(got, tc.rules[i].RuleName)
+			}
+			assert.Equal(t, tc.expected, got)
+		})
 	}
-	assert.Equal(t, expect, got)
-}
-
-func TestBranchRuleSortPriority(t *testing.T) {
-	in := []*ProtectedBranch{{
-		RuleName:    "b",
-		CreatedUnix: 1,
-		Priority:    4,
-	}, {
-		RuleName:    "b/*",
-		CreatedUnix: 3,
-		Priority:    2,
-	}, {
-		RuleName:    "a/*",
-		CreatedUnix: 2,
-		Priority:    1,
-	}, {
-		RuleName:    "c",
-		CreatedUnix: 0,
-		Priority:    0,
-	}, {
-		RuleName:    "a",
-		CreatedUnix: 4,
-		Priority:    3,
-	}}
-	expect := []string{"c", "a/*", "b/*", "a", "b"}
-
-	pbr := ProtectedBranchRules(in)
-	pbr.sort()
-
-	var got []string
-	for i := range pbr {
-		got = append(got, pbr[i].RuleName)
-	}
-	assert.Equal(t, expect, got)
 }

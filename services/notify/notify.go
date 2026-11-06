@@ -12,6 +12,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
+	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -21,6 +22,12 @@ import (
 
 var notifiers []Notifier
 
+func recoverPanic() {
+	if err := recover(); err != nil {
+		log.Error("PANIC while notifying: %v\n%s", err, log.Stack(2))
+	}
+}
+
 // RegisterNotifier providers method to receive notify messages
 func RegisterNotifier(notifier Notifier) {
 	go notifier.Run()
@@ -29,6 +36,8 @@ func RegisterNotifier(notifier Notifier) {
 
 // NewWikiPage notifies creating new wiki pages to notifiers
 func NewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.NewWikiPage(ctx, doer, repo, page, comment)
 	}
@@ -36,6 +45,8 @@ func NewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Re
 
 // EditWikiPage notifies editing or renaming wiki pages to notifiers
 func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.EditWikiPage(ctx, doer, repo, page, comment)
 	}
@@ -43,6 +54,8 @@ func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 // DeleteWikiPage notifies deleting wiki pages to notifiers
 func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.DeleteWikiPage(ctx, doer, repo, page)
 	}
@@ -63,6 +76,8 @@ func shouldSendCommentChangeNotification(ctx context.Context, comment *issues_mo
 func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
+	defer recoverPanic()
+
 	if !shouldSendCommentChangeNotification(ctx, comment) {
 		return
 	}
@@ -74,6 +89,8 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 
 // NewIssue notifies new issue to notifiers
 func NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.NewIssue(ctx, issue, mentions)
 	}
@@ -81,6 +98,8 @@ func NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_m
 
 // IssueChangeStatus notifies close or reopen issue to notifiers
 func IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.IssueChangeStatus(ctx, doer, commitID, issue, actionComment, closeOrReopen)
 	}
@@ -88,6 +107,8 @@ func IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID stri
 
 // DeleteIssue notify when some issue deleted
 func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.DeleteIssue(ctx, doer, issue)
 	}
@@ -95,6 +116,8 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 
 // MergePullRequest notifies merge pull request to notifiers
 func MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.MergePullRequest(ctx, doer, pr)
 	}
@@ -102,6 +125,8 @@ func MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_mod
 
 // AutoMergePullRequest notifies merge pull request to notifiers
 func AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.AutoMergePullRequest(ctx, doer, pr)
 	}
@@ -109,6 +134,8 @@ func AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues
 
 // NewPullRequest notifies new pull request to notifiers
 func NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
+	defer recoverPanic()
+
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue failed: %v", err)
 		return
@@ -123,6 +150,8 @@ func NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions 
 
 // PullRequestSynchronized notifies Synchronized pull request
 func PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.PullRequestSynchronized(ctx, doer, pr, before, after)
 	}
@@ -130,6 +159,8 @@ func PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *iss
 
 // PullRequestReview notifies new pull request review
 func PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
+	defer recoverPanic()
+
 	if err := review.LoadReviewer(ctx); err != nil {
 		log.Error("LoadReviewer failed: %v", err)
 		return
@@ -141,6 +172,8 @@ func PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review
 
 // PullRequestCodeComment notifies new pull request code comment
 func PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User) {
+	defer recoverPanic()
+
 	if err := comment.LoadPoster(ctx); err != nil {
 		log.Error("LoadPoster: %v", err)
 		return
@@ -152,6 +185,8 @@ func PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, c
 
 // PullRequestChangeTargetBranch notifies when a pull request's target branch was changed
 func PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.PullRequestChangeTargetBranch(ctx, doer, pr, oldBranch)
 	}
@@ -159,6 +194,8 @@ func PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, p
 
 // PullRequestPushCommits notifies when push commits to pull request's head branch
 func PullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.PullRequestPushCommits(ctx, doer, pr, comment)
 	}
@@ -166,6 +203,8 @@ func PullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issu
 
 // PullReviewDismiss notifies when a review was dismissed by repo admin
 func PullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.PullReviewDismiss(ctx, doer, review, comment)
 	}
@@ -173,6 +212,8 @@ func PullReviewDismiss(ctx context.Context, doer *user_model.User, review *issue
 
 // UpdateComment notifies update comment to notifiers
 func UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
+	defer recoverPanic()
+
 	if !shouldSendCommentChangeNotification(ctx, c) {
 		return
 	}
@@ -184,6 +225,8 @@ func UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.C
 
 // DeleteComment notifies delete comment to notifiers
 func DeleteComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment) {
+	defer recoverPanic()
+
 	if !shouldSendCommentChangeNotification(ctx, c) {
 		return
 	}
@@ -195,6 +238,8 @@ func DeleteComment(ctx context.Context, doer *user_model.User, c *issues_model.C
 
 // NewRelease notifies new release to notifiers
 func NewRelease(ctx context.Context, rel *repo_model.Release) {
+	defer recoverPanic()
+
 	if err := rel.LoadAttributes(ctx); err != nil {
 		log.Error("LoadPublisher: %v", err)
 		return
@@ -206,6 +251,8 @@ func NewRelease(ctx context.Context, rel *repo_model.Release) {
 
 // UpdateRelease notifies update release to notifiers
 func UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.UpdateRelease(ctx, doer, rel)
 	}
@@ -213,6 +260,8 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 
 // DeleteRelease notifies delete release to notifiers
 func DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.DeleteRelease(ctx, doer, rel)
 	}
@@ -269,6 +318,8 @@ func NewSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *a
 
 // IssueChangeMilestone notifies change milestone to notifiers
 func IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.IssueChangeMilestone(ctx, doer, issue, oldMilestoneID)
 	}
@@ -276,6 +327,8 @@ func IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *iss
 
 // IssueChangeContent notifies change content to notifiers
 func IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.IssueChangeContent(ctx, doer, issue, oldContent)
 	}
@@ -283,6 +336,8 @@ func IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issue
 
 // IssueChangeAssignee notifies change content to notifiers
 func IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.IssueChangeAssignee(ctx, doer, issue, assignee, removed, comment)
 	}
@@ -290,6 +345,8 @@ func IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issu
 
 // PullRequestReviewRequest notifies Request Review change
 func PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.PullRequestReviewRequest(ctx, doer, issue, reviewer, isRequest, comment)
 	}
@@ -297,6 +354,8 @@ func PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue 
 
 // IssueClearLabels notifies clear labels to notifiers
 func IssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.IssueClearLabels(ctx, doer, issue)
 	}
@@ -304,6 +363,8 @@ func IssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_
 
 // IssueChangeTitle notifies change title to notifiers
 func IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.IssueChangeTitle(ctx, doer, issue, oldTitle)
 	}
@@ -311,6 +372,8 @@ func IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_
 
 // IssueChangeRef notifies change reference to notifiers
 func IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.IssueChangeRef(ctx, doer, issue, oldRef)
 	}
@@ -320,13 +383,33 @@ func IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_mo
 func IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label,
 ) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.IssueChangeLabels(ctx, doer, issue, addedLabels, removedLabels)
 	}
 }
 
+func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.IssueChangeProjects(ctx, doer, issue, addedProjectIDs, removedProjectIDs)
+	}
+}
+
+func IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID int64, newColumn *project_model.Column) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.IssueChangeProjectColumn(ctx, doer, issue, oldColumnID, newColumn)
+	}
+}
+
 // CreateRepository notifies create repository to notifiers
 func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.CreateRepository(ctx, doer, u, repo)
 	}
@@ -334,6 +417,8 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 
 // AdoptRepository notifies the adoption of a repository to notifiers
 func AdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.AdoptRepository(ctx, doer, u, repo)
 	}
@@ -341,20 +426,26 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_m
 
 // MigrateRepository notifies create repository to notifiers
 func MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.MigrateRepository(ctx, doer, u, repo)
 	}
 }
 
 // TransferRepository notifies create repository to notifiers
-func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
-		notifier.TransferRepository(ctx, doer, repo, oldOwnerName)
+		notifier.TransferRepository(ctx, doer, repo, oldOwner)
 	}
 }
 
 // DeleteRepository notifies delete repository to notifiers
 func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.DeleteRepository(ctx, doer, repo)
 	}
@@ -362,6 +453,8 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 // ForkRepository notifies fork repository to notifiers
 func ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.ForkRepository(ctx, doer, oldRepo, repo)
 	}
@@ -369,6 +462,8 @@ func ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *r
 
 // RenameRepository notifies repository renamed
 func RenameRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldName string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.RenameRepository(ctx, doer, repo, oldName)
 	}
@@ -376,6 +471,8 @@ func RenameRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 // PushCommits notifies commits pushed to notifiers
 func PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.PushCommits(ctx, pusher, repo, opts, commits)
 	}
@@ -383,6 +480,8 @@ func PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.
 
 // CreateRef notifies branch or tag creation to notifiers
 func CreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.CreateRef(ctx, pusher, repo, refFullName, refID)
 	}
@@ -390,6 +489,8 @@ func CreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Re
 
 // DeleteRef notifies branch or tag deletion to notifiers
 func DeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.DeleteRef(ctx, pusher, repo, refFullName)
 	}
@@ -397,6 +498,8 @@ func DeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Re
 
 // SyncPushCommits notifies commits pushed to notifiers
 func SyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.SyncPushCommits(ctx, pusher, repo, opts, commits)
 	}
@@ -404,6 +507,8 @@ func SyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_mo
 
 // SyncCreateRef notifies branch or tag creation to notifiers
 func SyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.SyncCreateRef(ctx, pusher, repo, refFullName, refID)
 	}
@@ -411,6 +516,8 @@ func SyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_mode
 
 // SyncDeleteRef notifies branch or tag deletion to notifiers
 func SyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.SyncDeleteRef(ctx, pusher, repo, refFullName)
 	}
@@ -418,6 +525,8 @@ func SyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_mode
 
 // RepoPendingTransfer notifies creation of pending transfer to notifiers
 func RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.RepoPendingTransfer(ctx, doer, newOwner, repo)
 	}
@@ -425,6 +534,8 @@ func RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, r
 
 // PackageCreate notifies creation of a package to notifiers
 func PackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.PackageCreate(ctx, doer, pd)
 	}
@@ -432,6 +543,8 @@ func PackageCreate(ctx context.Context, doer *user_model.User, pd *packages_mode
 
 // PackageDelete notifies deletion of a package to notifiers
 func PackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.PackageDelete(ctx, doer, pd)
 	}
@@ -439,12 +552,16 @@ func PackageDelete(ctx context.Context, doer *user_model.User, pd *packages_mode
 
 // ChangeDefaultBranch notifies change default branch to notifiers
 func ChangeDefaultBranch(ctx context.Context, repo *repo_model.Repository) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.ChangeDefaultBranch(ctx, repo)
 	}
 }
 
 func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.CreateCommitStatus(ctx, repo, commit, sender, status)
 	}
@@ -454,6 +571,8 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit
 // Prefer the helpers in services/actions/notify.go over calling this directly;
 // unless you are sure the caller has already resolved the correct sender and paired notifications.
 func WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.WorkflowRunStatusUpdate(ctx, repo, sender, run)
 	}
@@ -463,6 +582,8 @@ func WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, s
 // Prefer the helpers in services/actions/notify.go over calling this directly;
 // unless you are sure the caller has already resolved the correct sender and paired notifications.
 func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.WorkflowJobStatusUpdate(ctx, repo, sender, job, task)
 	}
@@ -470,6 +591,8 @@ func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, s
 
 // Callers must invoke this after any DB write affecting the user's unread count.
 func NotificationCountChange(ctx context.Context, userID int64) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.NotificationCountChange(ctx, userID)
 	}
@@ -477,6 +600,8 @@ func NotificationCountChange(ctx context.Context, userID int64) {
 
 // Callers must invoke this after any stopwatch start/stop/cancel so the user's connected tabs refresh.
 func StopwatchChanged(ctx context.Context, user *user_model.User) {
+	defer recoverPanic()
+
 	for _, notifier := range notifiers {
 		notifier.StopwatchChanged(ctx, user)
 	}

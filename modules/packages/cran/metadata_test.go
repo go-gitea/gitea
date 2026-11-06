@@ -37,8 +37,11 @@ func createDescription(name, version string) *bytes.Buffer {
 }
 
 func TestParsePackage(t *testing.T) {
-	t.Run(".tar.gz", func(t *testing.T) {
-		createArchive := func(filename string, content []byte) *bytes.Reader {
+	for _, archive := range []struct {
+		extension string
+		create    func(string, []byte) *bytes.Reader
+	}{
+		{".tar.gz", func(filename string, content []byte) *bytes.Reader {
 			var buf bytes.Buffer
 			gw := gzip.NewWriter(&buf)
 			tw := tar.NewWriter(gw)
@@ -52,70 +55,43 @@ func TestParsePackage(t *testing.T) {
 			tw.Close()
 			gw.Close()
 			return bytes.NewReader(buf.Bytes())
-		}
-
-		t.Run("MissingDescriptionFile", func(t *testing.T) {
-			buf := createArchive(
-				"dummy.txt",
-				[]byte{},
-			)
-
-			p, err := ParsePackage(buf, buf.Size())
-			assert.Nil(t, p)
-			assert.ErrorIs(t, err, ErrMissingDescriptionFile)
-		})
-
-		t.Run("Valid", func(t *testing.T) {
-			buf := createArchive(
-				"package/DESCRIPTION",
-				createDescription(packageName, packageVersion).Bytes(),
-			)
-
-			p, err := ParsePackage(buf, buf.Size())
-
-			assert.NotNil(t, p)
-			assert.NoError(t, err)
-
-			assert.Equal(t, packageName, p.Name)
-			assert.Equal(t, packageVersion, p.Version)
-		})
-	})
-
-	t.Run(".zip", func(t *testing.T) {
-		createArchive := func(filename string, content []byte) *bytes.Reader {
+		}},
+		{".zip", func(filename string, content []byte) *bytes.Reader {
 			var buf bytes.Buffer
 			archive := zip.NewWriter(&buf)
 			w, _ := archive.Create(filename)
 			w.Write(content)
 			archive.Close()
 			return bytes.NewReader(buf.Bytes())
-		}
+		}},
+	} {
+		t.Run(archive.extension, func(t *testing.T) {
+			t.Run("MissingDescriptionFile", func(t *testing.T) {
+				buf := archive.create(
+					"dummy.txt",
+					[]byte{},
+				)
 
-		t.Run("MissingDescriptionFile", func(t *testing.T) {
-			buf := createArchive(
-				"dummy.txt",
-				[]byte{},
-			)
+				p, err := ParsePackage(buf, buf.Size())
+				assert.Nil(t, p)
+				assert.ErrorIs(t, err, ErrMissingDescriptionFile)
+			})
 
-			p, err := ParsePackage(buf, buf.Size())
-			assert.Nil(t, p)
-			assert.ErrorIs(t, err, ErrMissingDescriptionFile)
+			t.Run("Valid", func(t *testing.T) {
+				buf := archive.create(
+					"package/DESCRIPTION",
+					createDescription(packageName, packageVersion).Bytes(),
+				)
+
+				p, err := ParsePackage(buf, buf.Size())
+				assert.NotNil(t, p)
+				assert.NoError(t, err)
+
+				assert.Equal(t, packageName, p.Name)
+				assert.Equal(t, packageVersion, p.Version)
+			})
 		})
-
-		t.Run("Valid", func(t *testing.T) {
-			buf := createArchive(
-				"package/DESCRIPTION",
-				createDescription(packageName, packageVersion).Bytes(),
-			)
-
-			p, err := ParsePackage(buf, buf.Size())
-			assert.NotNil(t, p)
-			assert.NoError(t, err)
-
-			assert.Equal(t, packageName, p.Name)
-			assert.Equal(t, packageVersion, p.Version)
-		})
-	})
+	}
 }
 
 func TestParseDescription(t *testing.T) {
@@ -158,4 +134,21 @@ func TestParseDescription(t *testing.T) {
 		assert.ElementsMatch(t, []string{"abc", "123"}, p.Metadata.Imports)
 		assert.True(t, p.Metadata.NeedsCompilation)
 	})
+}
+
+func TestCompareVersions(t *testing.T) {
+	cases := []struct {
+		a, b     string
+		expected int
+	}{
+		{"1.0.3", "1.0.2", 1},
+		{"0.9.10", "0.9.9", 1},
+		{"2.5.2", "3.0.2", -1},
+		{"1.0-1", "1.0.0", 1},
+		{"1.0-2", "1.0.2", 0},
+		{"1.0", "1.0.0", -1},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, CompareVersions(c.a, c.b), "%s vs %s", c.a, c.b)
+	}
 }

@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"gitea.dev/models/db"
@@ -118,4 +119,13 @@ func GetLatestRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRu
 		return nil, fmt.Errorf("runner token: %w", util.ErrNotExist)
 	}
 	return &runnerToken, nil
+}
+
+// GetOrCreateActiveRunnerToken returns the latest runner token, or a new one if there is none or it is no longer active
+func GetOrCreateActiveRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerToken, error) {
+	token, err := GetLatestRunnerToken(ctx, ownerID, repoID)
+	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
+		return NewRunnerToken(ctx, ownerID, repoID)
+	}
+	return token, err
 }

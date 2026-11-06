@@ -75,45 +75,56 @@ func TestAPIReposGitCommitList(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	// Test getting commits (Page 1)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo20/commits?not=master&sha=remove-files-a", user.Name).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
+	for _, testCase := range []struct {
+		name, path, total string
+		commits           []string
+		files             [][]string
+	}{
+		// Test getting commits (Page 1)
+		{
+			"Page1", "repo20/commits?not=master&sha=remove-files-a", "2",
+			[]string{"cfe3b3c1fd36fba04f9183287b106497e1afe986", "c8e31bc7688741a5287fcde4fbb8fc129ca07027"},
+			[][]string{{"link_hi", "test.csv"}, {"test.csv"}},
+		},
+		// Test getting commits (Page 1)
+		{
+			"NotMaster", "repo16/commits", "3",
+			[]string{"69554a64c1e6030f051e5c3f94bfbd773cd6a324", "27566bd5738fc8b4e3fef3c5e72cce608537bd95", "5099b81332712fe655e34e8dd63574f503f61811"},
+			[][]string{{"readme.md"}, {"readme.md"}, {"readme.md"}},
+		},
+		// Test getting commits (Page=1, Branch=good-sign)
+		{
+			"DifferentBranch", "repo16/commits?sha=good-sign", "",
+			[]string{"f27c2b2b03dcab38beaf89b0ab4ff61f6de63441"},
+			[][]string{{"readme.md"}},
+		},
+		{
+			"FileHistory", "repo16/commits?path=readme.md&sha=good-sign", "1",
+			[]string{"f27c2b2b03dcab38beaf89b0ab4ff61f6de63441"},
+			[][]string{{"readme.md"}},
+		},
+		{
+			"FileHistoryNotOnMaster", "repo20/commits?path=test.csv&sha=add-csv&not=master", "1",
+			[]string{"c8e31bc7688741a5287fcde4fbb8fc129ca07027"},
+			[][]string{{"test.csv"}},
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s", user.Name, testCase.path).
+				AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			apiData := DecodeJSON(t, resp, []api.Commit{})
 
-	apiData := DecodeJSON(t, resp, []api.Commit{})
-
-	assert.Len(t, apiData, 2)
-	assert.Equal(t, "cfe3b3c1fd36fba04f9183287b106497e1afe986", apiData[0].CommitMeta.SHA)
-	compareCommitFiles(t, []string{"link_hi", "test.csv"}, apiData[0].Files)
-	assert.Equal(t, "c8e31bc7688741a5287fcde4fbb8fc129ca07027", apiData[1].CommitMeta.SHA)
-	compareCommitFiles(t, []string{"test.csv"}, apiData[1].Files)
-
-	assert.Equal(t, "2", resp.Header().Get("X-Total"))
-}
-
-func TestAPIReposGitCommitListNotMaster(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	// Login as User2.
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-
-	// Test getting commits (Page 1)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits", user.Name).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	apiData := DecodeJSON(t, resp, []api.Commit{})
-
-	assert.Len(t, apiData, 3)
-	assert.Equal(t, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", apiData[0].CommitMeta.SHA)
-	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
-	assert.Equal(t, "27566bd5738fc8b4e3fef3c5e72cce608537bd95", apiData[1].CommitMeta.SHA)
-	compareCommitFiles(t, []string{"readme.md"}, apiData[1].Files)
-	assert.Equal(t, "5099b81332712fe655e34e8dd63574f503f61811", apiData[2].CommitMeta.SHA)
-	compareCommitFiles(t, []string{"readme.md"}, apiData[2].Files)
-
-	assert.Equal(t, "3", resp.Header().Get("X-Total"))
+			assert.Len(t, apiData, len(testCase.commits))
+			for i, sha := range testCase.commits {
+				assert.Equal(t, sha, apiData[i].CommitMeta.SHA)
+				compareCommitFiles(t, testCase.files[i], apiData[i].Files)
+			}
+			if testCase.total != "" {
+				assert.Equal(t, testCase.total, resp.Header().Get("X-Total"))
+			}
+		})
+	}
 }
 
 func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
@@ -131,25 +142,6 @@ func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
 	apiData := DecodeJSON(t, resp, []api.Commit{})
 
 	assert.Empty(t, apiData)
-}
-
-func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	// Login as User2.
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-
-	// Test getting commits (Page=1, Branch=good-sign)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?sha=good-sign", user.Name).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	apiData := DecodeJSON(t, resp, []api.Commit{})
-
-	assert.Len(t, apiData, 1)
-	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
-	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
 }
 
 func TestAPIReposGitCommitListWithoutSelectFields(t *testing.T) {
@@ -195,46 +187,6 @@ func TestDownloadCommitDiffOrPatch(t *testing.T) {
 	assert.Equal(t,
 		"From f27c2b2b03dcab38beaf89b0ab4ff61f6de63441 Mon Sep 17 00:00:00 2001\nFrom: User2 <user2@example.com>\nDate: Sun, 6 Aug 2017 19:55:01 +0200\nSubject: [PATCH] good signed commit\n\n---\n readme.md | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 readme.md\n\ndiff --git a/readme.md b/readme.md\nnew file mode 100644\nindex 0000000..458121c\n--- /dev/null\n+++ b/readme.md\n@@ -0,0 +1 @@\n+good sign\n",
 		resp.Body.String())
-}
-
-func TestGetFileHistory(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	// Login as User2.
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?path=readme.md&sha=good-sign", user.Name).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	apiData := DecodeJSON(t, resp, []api.Commit{})
-
-	assert.Len(t, apiData, 1)
-	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
-	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
-
-	assert.Equal(t, "1", resp.Header().Get("X-Total"))
-}
-
-func TestGetFileHistoryNotOnMaster(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	// Login as User2.
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo20/commits?path=test.csv&sha=add-csv&not=master", user.Name).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	apiData := DecodeJSON(t, resp, []api.Commit{})
-
-	assert.Len(t, apiData, 1)
-	assert.Equal(t, "c8e31bc7688741a5287fcde4fbb8fc129ca07027", apiData[0].CommitMeta.SHA)
-	compareCommitFiles(t, []string{"test.csv"}, apiData[0].Files)
-
-	assert.Equal(t, "1", resp.Header().Get("X-Total"))
 }
 
 func TestGetFileHistoryEmptyDateRange(t *testing.T) {

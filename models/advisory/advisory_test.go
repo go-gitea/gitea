@@ -218,7 +218,7 @@ func TestFindAdvisoriesFilters(t *testing.T) {
 	assert.Equal(t, []int64{dup.ID}, find(advisory_model.FindAdvisoriesOptions{CloseReason: advisory_model.CloseReasonDuplicate}))
 	require.NoError(t, advisory_model.DeleteLabelLinks(ctx, label.ID))
 	assert.Equal(t, []int64{xss.ID}, find(advisory_model.FindAdvisoriesOptions{LabelIDs: []int64{label.ID}}), "existing labels stay assigned")
-	require.NoError(t, issues_model.DeleteLabel(ctx, label.RepoID, label.ID))
+	require.NoError(t, issues_model.DeleteRepoLabel(ctx, label.RepoID, label.ID))
 	require.NoError(t, advisory_model.DeleteLabelLinks(ctx, label.ID))
 	assert.ElementsMatch(t, []int64{xss.ID, dup.ID}, find(advisory_model.FindAdvisoriesOptions{LabelIDs: []int64{0}}), "deleted labels are unassigned")
 

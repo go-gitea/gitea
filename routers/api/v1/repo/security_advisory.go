@@ -31,7 +31,7 @@ func advisoryViewer(ctx *context.APIContext) advisory_model.Viewer {
 	if v, ok := ctx.GetContextValue(advisoryViewerKey{}).(advisory_model.Viewer); ok {
 		return v
 	}
-	v, err := advisory_model.NewViewer(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission.IsAdmin(), ctx.PublicOnly)
+	v, err := advisory_model.NewViewer(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission.IsAdmin(), user_model.IsPublicOnlyDoer(ctx.Doer))
 	if err != nil {
 		log.Error("NewViewer: %v", err)
 	}
@@ -235,10 +235,8 @@ func ListSecurityAdvisories(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryAdvisoryList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	opts, err := advisory_service.ParseListFilters(advisory_service.ListFilters{
 		State:       ctx.FormString("state"),
 		Keyword:     ctx.FormTrim("q"),
@@ -314,8 +312,8 @@ func GetSecurityAdvisory(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryAdvisory"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	a, _ := getSecurityAdvisory(ctx)
 	respondAdvisory(ctx, a, http.StatusOK)
 }
@@ -347,14 +345,8 @@ func CreateSecurityAdvisory(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/RepositoryAdvisory"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.CreateRepositoryAdvisoryOption](ctx)
 	credits, err := toAdvisoryCredits(ctx, form.Credits)
 	if err != nil {
@@ -408,14 +400,8 @@ func CreatePrivateVulnerabilityReport(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/RepositoryAdvisory"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.CreatePrivateVulnerabilityReportOption](ctx)
 	v3, v4 := cvssVectorOptions(form.CVSSVectorString)
 	a, err := advisory_service.ReportVulnerability(ctx, ctx.Doer, ctx.Repo.Repository, &advisory_service.ContentOptions{
@@ -467,14 +453,8 @@ func EditSecurityAdvisory(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryAdvisory"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.EditRepositoryAdvisoryOption](ctx)
 	a, perms := getSecurityAdvisory(ctx)
 	if err := a.LoadAttributes(ctx); err != nil {
@@ -536,8 +516,8 @@ func GetPrivateVulnerabilityReporting(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PrivateVulnerabilityReporting"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	ctx.JSON(http.StatusOK, &api.PrivateVulnerabilityReporting{Enabled: advisory_service.IsPrivateReportingEnabled(ctx, ctx.Repo.Repository)})
 }
 
@@ -560,12 +540,8 @@ func EnablePrivateVulnerabilityReporting(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	setPrivateVulnerabilityReporting(ctx, true)
 }
 
@@ -588,12 +564,8 @@ func DisablePrivateVulnerabilityReporting(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	setPrivateVulnerabilityReporting(ctx, false)
 }
 
@@ -653,8 +625,8 @@ func ListSecurityAdvisoryComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryAdvisoryCommentList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	a, perms := getSecurityAdvisory(ctx)
 	listOptions := utils.GetListOptions(ctx)
 	comments, total, err := db.FindAndCount[advisory_model.Comment](ctx, advisory_model.FindCommentsOptions{ListOptions: listOptions, AdvisoryID: a.ID, IncludeInternal: perms.CanSeeInternal})
@@ -707,14 +679,8 @@ func CreateSecurityAdvisoryComment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/RepositoryAdvisoryComment"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.RepositoryAdvisoryCommentOption](ctx)
 	a, perms := getSecurityAdvisory(ctx)
 	c, err := advisory_service.CreateComment(ctx, ctx.Doer, a, perms, form.Body, form.IsInternal)
@@ -763,14 +729,8 @@ func EditSecurityAdvisoryComment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryAdvisoryComment"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.RepositoryAdvisoryCommentOption](ctx)
 	a, _ := getSecurityAdvisory(ctx)
 	c := getAdvisoryComment(ctx)
@@ -814,12 +774,8 @@ func DeleteSecurityAdvisoryComment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	_, perms := getSecurityAdvisory(ctx)
 	c := getAdvisoryComment(ctx)
 	if ctx.Written() {

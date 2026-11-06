@@ -20,6 +20,9 @@ type AuthToken struct { //nolint:revive // export stutter
 	TokenHash   string
 	UserID      int64              `xorm:"INDEX"`
 	ExpiresUnix timeutil.TimeStamp `xorm:"INDEX"`
+
+	PreviousTokenHash string             // Identifies stale cookies without authenticating them.
+	RotatedUnix       timeutil.TimeStamp // Bounds the grace window for stale cookies.
 }
 
 func init() {
@@ -44,9 +47,10 @@ func GetAuthTokenByID(ctx context.Context, id string) (*AuthToken, error) {
 	return at, nil
 }
 
-func UpdateAuthTokenByID(ctx context.Context, t *AuthToken) error {
-	_, err := db.GetEngine(ctx).ID(t.ID).Cols("token_hash", "expires_unix").Update(t)
-	return err
+func UpdateAuthTokenByID(ctx context.Context, t *AuthToken, oldHash string) (bool, error) {
+	affected, err := db.GetEngine(ctx).ID(t.ID).Where("token_hash = ?", oldHash).
+		Cols("token_hash", "expires_unix", "previous_token_hash", "rotated_unix").Update(t)
+	return affected == 1, err
 }
 
 func DeleteAuthTokenByID(ctx context.Context, id string) error {

@@ -5,6 +5,7 @@ import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {attachSearchBox} from '../modules/search.ts';
 import {globMatch} from '../utils/glob.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
@@ -66,9 +67,8 @@ export function attachSearchTeamBox(box: HTMLElement) {
   })));
 }
 
-function initRepoSettingsGitHook() {
-  if (!document.querySelector('.page-content.repository.settings.edit.githook')) return;
-  createCodeEditor(document.querySelector<HTMLTextAreaElement>('#content')!);
+function initRepoSettingsGitHook(form: HTMLFormElement) {
+  createCodeEditor(form.querySelector<HTMLTextAreaElement>('textarea[name=content]')!);
 }
 
 function initRepoSettingsBranches() {
@@ -139,11 +139,11 @@ function initRepoSettingsOptions() {
 }
 
 export function initRepoSettings() {
+  registerGlobalInitFunc('initRepoSettingsGitHook', initRepoSettingsGitHook);
   if (!document.querySelector('.page-content.repository.settings')) return;
   initRepoSettingsOptions();
   initRepoSettingsBranches();
   initRepoSettingsCollaboration();
   initRepoSettingsSearchTeamBox();
-  initRepoSettingsGitHook();
   initRepoSettingsBranchesDrag();
 }

@@ -104,6 +104,7 @@ type uploadOptions struct {
 
 // AddUploadContext renders template values for dropzone
 func AddUploadContext(ctx *context.Context, uploadType string) {
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	switch uploadType {
 	case "release":
 		ctx.Data["UploadOptions"] = uploadOptions{

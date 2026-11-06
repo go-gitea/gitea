@@ -4,13 +4,22 @@
 package project
 
 import (
+	"fmt"
+	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"testing"
 
+	issues_model "gitea.dev/models/issues"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -21,6 +30,7 @@ func TestMain(m *testing.M) {
 // resolves projects owned by the scope its route assigned, so an ID belonging to anyone
 // else reads as not found rather than leaking across owners.
 func TestFindColumn(t *testing.T) {
+	unittest.PrepareTestEnv(t)
 	for _, tc := range []struct {
 		name       string
 		projectID  string
@@ -35,7 +45,6 @@ func TestFindColumn(t *testing.T) {
 		{"owner board cannot reach another owner's project", "4", "4", 1, false, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			unittest.PrepareTestEnv(t)
 			ctx, _ := contexttest.MockContext(t, "user2/-/projects")
 			contexttest.LoadUser(t, ctx, tc.doerID)
 			if tc.repoScoped {
@@ -57,4 +66,27 @@ func TestFindColumn(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMoveIssuesNeedsOnlyProjectWrite(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: 3, IsArchived: true}, "is_archived"))
+	ctx, _ := contexttest.MockContext(t, "POST /org3/-/projects")
+	contexttest.LoadUser(t, ctx, 15)
+	ctx.ContextUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	project := &project_model.Project{Title: "board", OwnerID: 3, CreatorID: 2, Type: project_model.TypeOrganization}
+	require.NoError(t, project_model.NewProject(ctx, project))
+	require.NoError(t, project_model.NewColumn(ctx, &project_model.Column{Title: "Backlog", ProjectID: project.ID, Default: true}))
+	column := &project_model.Column{Title: "Done", ProjectID: project.ID}
+	require.NoError(t, project_model.NewColumn(ctx, column))
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
+	_, _, err := issues_model.IssueAssignOrRemoveProject(ctx, issue, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), []int64{project.ID})
+	require.NoError(t, err)
+	ctx.SetPathParam("id", strconv.FormatInt(project.ID, 10))
+	ctx.SetPathParam("columnID", strconv.FormatInt(column.ID, 10))
+	ctx.Req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf(`{"issues":[{"issueID":%d,"sorting":0}]}`, issue.ID)))
+
+	MoveIssues(ctx)
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+	unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: project.ID, ProjectColumnID: column.ID})
 }

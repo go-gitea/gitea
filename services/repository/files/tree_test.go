@@ -78,7 +78,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 	}
 	treeNodes, err := GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.GitRepo, ctx.Repo.Commit, "", "")
 	assert.NoError(t, err)
-	assert.Equal(t, []*TreeViewNode{
+	expectedNodes := []*TreeViewNode{
 		{
 			EntryName:     "docs",
 			EntryMode:     "tree",
@@ -86,36 +86,22 @@ func TestGetTreeViewNodes(t *testing.T) {
 			EntryIcon:     mockIconForFolder(),
 			EntryIconOpen: mockOpenIconForFolder(),
 		},
-	}, treeNodes)
+	}
+	assert.Equal(t, expectedNodes, treeNodes)
 
 	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.GitRepo, ctx.Repo.Commit, "", "docs/README.md")
 	assert.NoError(t, err)
-	assert.Equal(t, []*TreeViewNode{
-		{
-			EntryName:     "docs",
-			EntryMode:     "tree",
-			FullPath:      "docs",
-			EntryIcon:     mockIconForFolder(),
-			EntryIconOpen: mockOpenIconForFolder(),
-			Children: []*TreeViewNode{
-				{
-					EntryName: "README.md",
-					EntryMode: "blob",
-					FullPath:  "docs/README.md",
-					EntryIcon: mockIconForFile(`svg-mfi-readme`),
-				},
-			},
-		},
-	}, treeNodes)
-
-	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.GitRepo, ctx.Repo.Commit, "docs", "README.md")
-	assert.NoError(t, err)
-	assert.Equal(t, []*TreeViewNode{
+	expectedNodes[0].Children = []*TreeViewNode{
 		{
 			EntryName: "README.md",
 			EntryMode: "blob",
 			FullPath:  "docs/README.md",
 			EntryIcon: mockIconForFile(`svg-mfi-readme`),
 		},
-	}, treeNodes)
+	}
+	assert.Equal(t, expectedNodes, treeNodes)
+
+	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.GitRepo, ctx.Repo.Commit, "docs", "README.md")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedNodes[0].Children, treeNodes)
 }

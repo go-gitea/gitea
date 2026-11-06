@@ -209,6 +209,7 @@ type Repository struct {
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
 	ObjectFormatName                string             `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
+	LatestReleaseID                 int64              `xorm:"NOT NULL DEFAULT 0"` // 0 selects the latest release by date
 
 	TrustModel TrustModelType
 
@@ -496,10 +497,9 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 		repo.MustOwner(ctx)
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
-			_ = db.GetEngine(ctx).Table("team_repo").
+			_ = db.GetEngine(ctx).Select("team.lower_name").Table("team_repo").
 				Join("INNER", "team", "team.id = team_repo.team_id").
 				Where("team_repo.repo_id = ?", repo.ID).
-				Select("team.lower_name").
 				OrderBy("team.lower_name").
 				Find(&teams)
 			metas["teams"] = "," + strings.Join(teams, ",") + ","
@@ -608,7 +608,7 @@ type CloneLink struct {
 
 	SSH   string
 	HTTPS string
-	Tea   string
+	CLI   string
 }
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on the given owner and repository name.
@@ -659,9 +659,9 @@ func composeSSHCloneURL(doer *user_model.User, ownerName, repoName string, useUR
 	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 }
 
-// ComposeTeaCloneCommand returns Tea CLI clone command based on the given owner and repository name.
-func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
-	return fmt.Sprintf("tea clone %s/%s", url.PathEscape(owner), url.PathEscape(repo))
+// ComposeCLICloneCommand returns the gt (gitea-cli) clone command based on the given owner and repository name.
+func ComposeCLICloneCommand(ctx context.Context, owner, repo string) string {
+	return fmt.Sprintf("gt repo clone %s/%s", url.PathEscape(owner), url.PathEscape(repo))
 }
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
@@ -671,7 +671,7 @@ func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, re
 		SupportSSH:   !setting.SSH.Disabled && (doer != nil || setting.SSH.ExposeAnonymous),
 		SSH:          ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
 		HTTPS:        ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
-		Tea:          ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
+		CLI:          ComposeCLICloneCommand(ctx, repo.OwnerName, repoPathName),
 	}
 }
 

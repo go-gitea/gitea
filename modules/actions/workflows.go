@@ -510,29 +510,13 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
 			// Actions with the same name:
 			// opened, edited, closed, reopened, assigned, unassigned, milestoned, demilestoned
-			// Actions need to be converted:
-			// label_updated -> labeled (when adding) or unlabeled (when removing)
-			// label_cleared -> unlabeled
+			// Actions need to be converted: see toActivityTypes
 			// Unsupported activity types:
 			// deleted, transferred, pinned, unpinned, locked, unlocked
 
-			actions := []string{}
-			switch issuePayload.Action {
-			case api.HookIssueLabelUpdated:
-				if len(issuePayload.Changes.AddedLabels) > 0 {
-					actions = append(actions, "labeled")
-				}
-				if len(issuePayload.Changes.RemovedLabels) > 0 {
-					actions = append(actions, "unlabeled")
-				}
-			case api.HookIssueLabelCleared:
-				actions = append(actions, "unlabeled")
-			default:
-				actions = append(actions, string(issuePayload.Action))
-			}
-
+			actions := toActivityTypes(issuePayload.Action, issuePayload.Changes)
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -557,25 +541,14 @@ func matchPullRequestEvent(ctx context.Context, gitRepo *git.Repository, commit 
 		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
 		// Actions with the same name:
 		// opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, milestoned, demilestoned
-		// Actions need to be converted:
-		// synchronized -> synchronize
-		// label_updated -> labeled
-		// label_cleared -> unlabeled
+		// Actions need to be converted: see toActivityTypes
 		// Unsupported activity types:
 		// converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued
 
-		action := prPayload.Action
-		switch action {
-		case api.HookIssueSynchronized:
-			action = "synchronize"
-		case api.HookIssueLabelUpdated:
-			action = "labeled"
-		case api.HookIssueLabelCleared:
-			action = "unlabeled"
-		}
-		log.Trace("matching pull_request %s with %v", action, vals)
+		actions := toActivityTypes(prPayload.Action, prPayload.Changes)
+		log.Trace("matching pull_request %v with %v", actions, vals)
 		for _, val := range vals {
-			if glob.MustCompile(val, '/').Match(string(action)) {
+			if matchActivityType(val, actions...) {
 				activityTypeMatched = true
 				matchTimes++
 				break
@@ -678,7 +651,7 @@ func matchIssueCommentEvent(issueCommentPayload *api.IssueCommentPayload, evt *j
 			// NONE
 
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(issueCommentPayload.Action)) {
+				if matchActivityType(val, string(issueCommentPayload.Action)) {
 					matchTimes++
 					break
 				}
@@ -718,7 +691,7 @@ func matchPullRequestReviewEvent(prPayload *api.PullRequestPayload, evt *jobpars
 			}
 
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -758,7 +731,7 @@ func matchPullRequestReviewCommentEvent(prPayload *api.PullRequestPayload, evt *
 			}
 
 			for _, val := range vals {
-				if slices.ContainsFunc(actions, glob.MustCompile(val, '/').Match) {
+				if matchActivityType(val, actions...) {
 					matchTimes++
 					break
 				}
@@ -795,7 +768,7 @@ func matchReleaseEvent(payload *api.ReleasePayload, evt *jobparser.Event) bool {
 				action = "edited"
 			}
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
+				if matchActivityType(val, string(action)) {
 					matchTimes++
 					break
 				}
@@ -832,7 +805,7 @@ func matchPackageEvent(payload *api.PackagePayload, evt *jobparser.Event) bool {
 				action = "published"
 			}
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
+				if matchActivityType(val, string(action)) {
 					matchTimes++
 					break
 				}
@@ -857,7 +830,7 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 		case "types":
 			action := payload.Action
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(action) {
+				if matchActivityType(val, action) {
 					matchTimes++
 					break
 				}
@@ -892,4 +865,35 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 		}
 	}
 	return matchTimes == len(evt.Acts())
+}
+
+// toActivityTypes returns several types because one label update can both add and remove labels
+func toActivityTypes(action api.HookIssueAction, changes *api.ChangesPayload) []string {
+	switch action {
+	case api.HookIssueSynchronized:
+		return []string{"synchronize"}
+	case api.HookIssueLabelUpdated:
+		var types []string
+		if len(changes.AddedLabels) > 0 {
+			types = append(types, "labeled")
+		}
+		if len(changes.RemovedLabels) > 0 {
+			types = append(types, "unlabeled")
+		}
+		return types
+	case api.HookIssueLabelCleared:
+		return []string{"unlabeled"}
+	default:
+		return []string{string(action)}
+	}
+}
+
+// matchActivityType treats an invalid user-provided pattern as no match instead of panicking
+func matchActivityType(pattern string, actions ...string) bool {
+	g, err := glob.Compile(pattern, '/')
+	if err != nil {
+		log.Debug("invalid activity type pattern %q: %v", pattern, err)
+		return false
+	}
+	return slices.ContainsFunc(actions, g.Match)
 }

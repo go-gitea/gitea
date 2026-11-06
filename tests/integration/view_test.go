@@ -4,19 +4,32 @@
 package integration
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestVersion(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.AppVer, "test-version-1")()
+	req := NewRequest(t, "GET", "/api/v1/version")
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	version := DecodeJSON(t, resp, &structs.ServerVersion{})
+	assert.Equal(t, setting.AppVer, version.Version)
+}
 
 func TestView(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -93,11 +106,11 @@ func testSecurityHeadersDefaults(t *testing.T) {
 func testSiteManifest(t *testing.T) {
 	req := NewRequest(t, "GET", "/")
 	resp := MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), `<link rel="manifest" href="/assets/site-manifest.json">`)
-
-	req = NewRequest(t, "GET", "/assets/site-manifest.json")
-	resp = MakeRequest(t, req, http.StatusOK)
-	assert.Equal(t, "application/manifest+json", resp.Header().Get("Content-Type"))
+	manifestURL, _ := NewHTMLParser(t, resp.Body).Find(`link[rel="manifest"]`).Attr("href")
+	manifestBase64, ok := strings.CutPrefix(manifestURL, "data:application/manifest+json;base64,")
+	require.True(t, ok)
+	manifestJSON, err := base64.StdEncoding.DecodeString(manifestBase64)
+	require.NoError(t, err)
 
 	assetBase := strings.TrimSuffix(setting.AppURL, "/")
 	expectedJSON := fmt.Sprintf(`{
@@ -115,7 +128,7 @@ func testSiteManifest(t *testing.T) {
 		assetBase+"/assets/img/logo.png",
 		assetBase+"/assets/img/logo.svg",
 	)
-	assert.JSONEq(t, expectedJSON, resp.Body.String())
+	assert.JSONEq(t, expectedJSON, string(manifestJSON))
 }
 
 func testViewPageCurrentURL(t *testing.T) {
@@ -126,6 +139,6 @@ func testViewPageCurrentURL(t *testing.T) {
 		currentURL, _ = ctx.Data["CurrentURL"].(string)
 	})
 	defer web.RouteMockReset()
-	MakeRequest(t, NewRequest(t, "GET", "/any-page?k=v"), http.StatusNotFound)
-	assert.Equal(t, "/subpath/any-page?k=v", currentURL)
+	MakeRequest(t, NewRequest(t, "GET", "/user2?k=v"), http.StatusOK)
+	assert.Equal(t, "/subpath/user2?k=v", currentURL)
 }

@@ -55,7 +55,7 @@
 					<div class="item-trailing">
 						<button type="button" class="ui basic red show-modal button" data-modal="#delete-package-modal">{{ctx.Locale.Tr "packages.settings.delete"}}</button>
 					</div>
-					<div class="ui tiny modal" id="delete-package-modal">
+					<dialog class="modal-dialog" id="delete-package-modal">
 						<div class="header">
 							{{ctx.Locale.Tr "packages.settings.delete"}}
 						</div>
@@ -78,7 +78,7 @@
 								{{template "base/modal_actions_confirm" .}}
 							</form>
 						</div>
-					</div>
+					</dialog>
 				</div>
 			</div>
 		</div>

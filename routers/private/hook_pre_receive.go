@@ -11,7 +11,6 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/private"
@@ -131,13 +130,19 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
 	objectFormat := ctx.Repo.GetObjectFormat()
+	isDeletingBranch := newCommitID == objectFormat.EmptyObjectID().String()
 
 	defaultBranch := repo.DefaultBranch
 	if ctx.opts.IsWiki && repo.DefaultWikiBranch != "" {
 		defaultBranch = repo.DefaultWikiBranch
 	}
-	if branchName == defaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
+
+	if isDeletingBranch && branchName == defaultBranch {
 		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is the default branch and cannot be deleted", branchName)
+		return
+	}
+	if isDeletingBranch && branchName == repo.GetPullRequestTargetBranch(ctx) {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
 		return
 	}
 
@@ -157,9 +162,11 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	//
 	// First of all we need to enforce absolutely:
 	//
-	// 1. Detect and prevent deletion of the branch
-	if newCommitID == objectFormat.EmptyObjectID().String() {
-		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
+	// 1. Enforce branch deletion permissions
+	if isDeletingBranch {
+		if !protectBranch.CanUserDelete(ctx, ctx.Doer, ctx.Repo.Permission) {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
+		}
 		return
 	}
 
@@ -200,7 +207,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	// Now there are several tests which can be overridden:
 	//
 	// 4. Check protected file patterns - this is overridable from the UI
-	changedProtectedfiles := false
+	changedProtectedFiles := false
 	protectedFilePath := ""
 
 	globs := protectBranch.GetProtectedFilePatterns()
@@ -213,26 +220,17 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 				return
 			}
 
-			changedProtectedfiles = true
+			changedProtectedFiles = true
 			protectedFilePath = errFilePathProtected.Path
 		}
 	}
 
 	// 5. Check if the doer is allowed to push (and force-push if the incoming push is a force-push)
 	var canPush bool
-	if ctx.opts.UserID == user_model.DeployKeyUserID {
-		// This flag is only ever true if protectBranch.CanForcePush is true
-		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableForcePushAllowlist || protectBranch.ForcePushAllowlistDeployKeys)
-		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
-		}
+	if isForcePush {
+		canPush = !changedProtectedFiles && protectBranch.CanUserForcePush(ctx, ctx.Doer, ctx.Repo.Permission)
 	} else {
-		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, ctx.Doer, ctx.Repo.Permission)
-		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission)
-		}
+		canPush = !changedProtectedFiles && protectBranch.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission)
 	}
 
 	// 6. If we're not allowed to push directly
@@ -242,7 +240,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			// 6a. If we're not merging from the UI/API then there are two ways we got here:
 			//
 			// We are changing a protected file, and we're not allowed to do that
-			if changedProtectedfiles {
+			if changedProtectedFiles {
 				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
 				return
 			}
@@ -297,7 +295,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		}
 
 		// Now if we're not an admin - we can't overwrite protected files so fail now
-		if changedProtectedfiles {
+		if changedProtectedFiles {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
 			return
 		}

@@ -22,7 +22,7 @@
 	</div>
 	{{end}}
 
-	<div class="ui small modal" id="disable-twofa">
+	<dialog class="modal-dialog" id="disable-twofa">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.twofa_disable"}}
@@ -31,5 +31,5 @@
 			<p>{{ctx.Locale.Tr "settings.twofa_disable_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
-	</div>
+	</dialog>
 </div>

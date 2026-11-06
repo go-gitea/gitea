@@ -9,9 +9,11 @@ test('update profile biography', async ({page, request}) => {
   await page.goto('/user/settings');
   await page.getByLabel('Biography').fill(bio);
   await page.getByRole('button', {name: 'Update Profile'}).click();
+  await expect(page.getByText('Your profile has been updated.', {exact: true})).toBeVisible();
   await expect(page.getByLabel('Biography')).toHaveValue(bio);
   await page.getByLabel('Biography').fill('');
   await page.getByRole('button', {name: 'Update Profile'}).click();
+  await expect(page.getByText('Your profile has been updated.', {exact: true})).toBeVisible();
   await expect(page.getByLabel('Biography')).toHaveValue('');
 });
 

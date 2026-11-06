@@ -26,7 +26,7 @@ func findProject(ctx *context.Context) *project_model.Project {
 		project, err = project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	}
 	if err != nil {
-		ctx.NotFoundOrServerError("GetProject", project_model.IsErrProjectNotExist, err)
+		ctx.ServerError("GetProject", err)
 		return nil
 	}
 	return project
@@ -39,7 +39,7 @@ func findColumn(ctx *context.Context) (*project_model.Project, *project_model.Co
 	}
 	column, err := project_model.GetColumnByIDAndProjectID(ctx, ctx.PathParamInt64("columnID"), project.ID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetColumnByIDAndProjectID", project_model.IsErrProjectColumnNotExist, err)
+		ctx.ServerError("GetColumnByIDAndProjectID", err)
 		return nil, nil
 	}
 	return project, column
@@ -175,7 +175,7 @@ func MoveIssues(ctx *context.Context) {
 	}
 	movedIssues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("GetIssueByID", err)
 		return
 	}
 

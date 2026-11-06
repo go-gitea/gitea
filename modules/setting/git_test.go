@@ -27,6 +27,7 @@ a.b = 1
 	loadGitFrom(cfg)
 	assert.Equal(t, "1", GitConfig.Options["a.b"])
 	assert.Equal(t, "histogram", GitConfig.Options["diff.algorithm"])
+	assert.Equal(t, "gc", GitConfig.Options["maintenance.strategy"])
 
 	cfg, err = NewConfigProviderFromData(`
 [git.config]
@@ -38,8 +39,8 @@ diff.algorithm = other
 }
 
 func TestGitReflog(t *testing.T) {
-	defer test.MockVariableValue(&Git)
-	defer test.MockVariableValue(&GitConfig)
+	defer test.MockVariableValue(&Git)()
+	defer test.MockVariableValue(&GitConfig)()
 
 	// default reflog config without legacy options
 	cfg, err := NewConfigProviderFromData(``)
@@ -47,7 +48,7 @@ func TestGitReflog(t *testing.T) {
 	loadGitFrom(cfg)
 
 	assert.Equal(t, "true", GitConfig.GetOption("core.logAllRefUpdates"))
-	assert.Equal(t, "90", GitConfig.GetOption("gc.reflogExpire"))
+	assert.Empty(t, GitConfig.GetOption("gc.reflogExpire"))
 
 	// custom reflog config by legacy options
 	cfg, err = NewConfigProviderFromData(`
@@ -56,8 +57,9 @@ ENABLED = false
 EXPIRATION = 123
 `)
 	assert.NoError(t, err)
+	applyDeprecatedKeys(cfg)
 	loadGitFrom(cfg)
 
 	assert.Equal(t, "false", GitConfig.GetOption("core.logAllRefUpdates"))
-	assert.Equal(t, "123", GitConfig.GetOption("gc.reflogExpire"))
+	assert.Equal(t, "123.days", GitConfig.GetOption("gc.reflogExpire"))
 }

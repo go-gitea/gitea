@@ -110,6 +110,13 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 }
 
 func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.AccessMode, error) {
+	if !user_model.DoerTokenAllowsOwner(doer, pkgOwner) {
+		return perm.AccessModeNone, nil
+	}
+	if user_model.DoerIsSiteAdminFullAccess(doer) {
+		return perm.AccessModeOwner, nil
+	}
+
 	if setting.Service.RequireSignInViewStrict && (doer == nil || doer.IsGhost()) {
 		return perm.AccessModeNone, nil
 	}
