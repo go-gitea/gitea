@@ -698,7 +698,6 @@
   "settings.permission_anonymous_read": "Анонімне читання",
   "settings.permission_everyone_read": "Читання для всіх",
   "settings.permission_everyone_write": "Запис для всіх",
-  "settings.access_token_desc": "Обрані дозволи токена обмежують авторизацію лише відповідними маршрутами <a %s>API</a>. Читайте <a %s>документацію</a> для отримання додаткової інформації.",
   "settings.at_least_one_permission": "Необхідно вибрати хоча б одне право доступу для створення токена",
   "settings.permissions_list": "Дозволи:",
   "settings.manage_oauth2_applications": "Керування додатками OAuth2",

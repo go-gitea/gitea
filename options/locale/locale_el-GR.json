@@ -614,7 +614,6 @@
   "settings.permission_no_access": "Καμία Πρόσβαση",
   "settings.permission_read": "Αναγνωσμένες",
   "settings.permission_write": "Ανάγνωση και Εγγραφή",
-  "settings.access_token_desc": "Τα επιλεγμένα δικαιώματα διακριτικών περιορίζουν την άδεια μόνο στις αντίστοιχες διαδρομές <a %s>API</a>. Διαβάστε την τεκμηρίωση <a %s></a> για περισσότερες πληροφορίες.",
   "settings.at_least_one_permission": "Πρέπει να επιλέξετε τουλάχιστον ένα δικαίωμα για να δημιουργήσετε ένα διακριτικό",
   "settings.permissions_list": "Δικαιώματα:",
   "settings.manage_oauth2_applications": "Διαχείριση Εφαρμογών Oauth2",
