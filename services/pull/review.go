@@ -112,10 +112,6 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	// Comments that are replies don't require a review header to show up in the issue view
 	// Add the code comment to existing submitted review
 	if replyToSubmittedReview {
-		if err = issue.LoadRepo(ctx); err != nil {
-			return nil, err
-		}
-
 		comment, err := createCodeComment(ctx,
 			doer,
 			issue.Repo,
@@ -191,12 +187,15 @@ func checkReviewerNotBlocked(ctx context.Context, doer *user_model.User, issue *
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
-	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, issue.Repo.OwnerID) {
-		if !access_model.IsUserRepoAdmin(ctx, issue.Repo, doer) {
-			return user_model.ErrBlockedUser
+	if !user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, issue.Repo.OwnerID) || access_model.IsUserRepoAdmin(ctx, issue.Repo, doer) {
+		return nil
+	}
+	if !user_model.IsUserBlockedBy(ctx, doer, issue.Repo.OwnerID) { // the author's block must not keep official reviewers from requesting changes
+		if official, err := issues_model.IsOfficialReviewer(ctx, issue, doer); err != nil || official {
+			return err
 		}
 	}
-	return nil
+	return util.ErrorWrapTranslatable(user_model.ErrBlockedUser, "repo.issues.comment.blocked_user")
 }
 
 // createCodeComment creates a plain code comment at the specified line / path
