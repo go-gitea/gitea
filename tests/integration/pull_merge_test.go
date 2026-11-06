@@ -451,13 +451,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout)
 
-		_, _, err = gitcmd.NewCommand("branch", "unrelated").
-			AddDynamicArguments(commitSha).
-			WithRepo(repo1).
-			RunStdString(t.Context())
-		assert.NoError(t, err)
-
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "unrelated", "README.md", "Hello, World (Edited Once)\n")
 
 		// Use API to create a conflicting pr
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -467,6 +461,12 @@ func TestCantMergeUnrelated(t *testing.T) {
 			Title: "create an unrelated pr",
 		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusCreated)
+
+		assert.NoError(t, git.UpdateRef(t.Context(), repo1, git.BranchPrefix+"unrelated", commitSha))
+		session.MakeRequest(t, NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user1/repo1/pulls", &api.CreatePullRequestOption{
+			Head: "unrelated", Base: "base", Title: "create an unrelated pr",
+		}).AddTokenAuth(token), http.StatusUnprocessableEntity)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user1/repo1/compare/master..unrelated", map[string]string{"title": "create an unrelated pr"}), http.StatusBadRequest)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
@@ -1215,7 +1215,6 @@ func TestPullSquashMessage(t *testing.T) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 
-		defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultSquashMergeMessage, "COMMIT_MESSAGES")()
 		defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 80)()
 
 		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
@@ -1226,6 +1225,14 @@ func TestPullSquashMessage(t *testing.T) {
 			DefaultBranch: "main",
 		})
 		require.NoError(t, err)
+		prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
+		require.NoError(t, err)
+		prUnit.PullRequestsConfig().DefaultSquashMergeMessage = repo_model.SquashMergeMessageCommitMessages
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, []repo_model.RepoUnit{{
+			RepoID: repo.ID,
+			Type:   unit_model.TypePullRequests,
+			Config: prUnit.PullRequestsConfig(),
+		}}, nil))
 
 		type commitInfo struct {
 			userName      string
@@ -1352,8 +1359,6 @@ Co-authored-by: user4 <user4@example.com>
 			pullRequest.Issue.Content = "PR description"
 			pullRequest.BaseRepo = repo
 
-			prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
-			require.NoError(t, err)
 			for style, expected := range map[repo_model.SquashMergeMessage]string{
 				repo_model.SquashMergeMessageBlank:  "",
 				repo_model.SquashMergeMessagePRBody: "PR description",
@@ -1366,7 +1371,6 @@ Co-authored-by: user4 <user4@example.com>
 		})
 
 		t.Run("API squash merge without message uses repository default", func(t *testing.T) {
-			defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultSquashMergeMessage, "PR_BODY")()
 			token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository)
 			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/1/merge", user2.Name, repo.Name), map[string]string{"do": "squash"}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)

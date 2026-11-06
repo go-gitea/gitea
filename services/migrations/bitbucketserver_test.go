@@ -255,16 +255,22 @@ const bbsActivitiesPage2JSON = `{"isLastPage":true,"values":[
 ]}`
 
 func TestBitbucketServerCommentsAndReviews(t *testing.T) {
-	var activityCalls int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/rest/api/1.0/projects/PROJ/repos/repo/pull-requests/4/activities", r.URL.Path)
-		activityCalls++
-		if r.URL.Query().Get("start") == "10" {
+	activityCalls := map[string]int{}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /rest/api/1.0/projects/PROJ/repos/repo/pull-requests/{id}/activities", func(w http.ResponseWriter, r *http.Request) {
+		activityCalls[r.PathValue("id")]++
+		switch {
+		case r.PathValue("id") == "5":
+			w.WriteHeader(http.StatusInternalServerError)
+		case r.PathValue("id") == "6":
+			w.WriteHeader(http.StatusServiceUnavailable)
+		case r.URL.Query().Get("start") == "10":
 			_, _ = w.Write([]byte(bbsActivitiesPage2JSON))
-			return
+		default:
+			_, _ = w.Write([]byte(bbsActivitiesJSON))
 		}
-		_, _ = w.Write([]byte(bbsActivitiesJSON))
-	}))
+	})
+	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	d := NewBitbucketServerDownloader(t.Context(), srv.URL, "", "", "", "PROJ", "repo")
@@ -293,7 +299,6 @@ func TestBitbucketServerCommentsAndReviews(t *testing.T) {
 
 	reviews, err := d.GetReviews(t.Context(), pr)
 	require.NoError(t, err)
-	assert.Equal(t, 2, activityCalls, "activities are paged and cached for both calls")
 
 	type summary struct {
 		reviewer, state, path string
@@ -318,6 +323,17 @@ func TestBitbucketServerCommentsAndReviews(t *testing.T) {
 	assert.Equal(t, "fffffffffffffffffffffffffffffffffffffff0", reviews[3].Comments[0].CommitID)
 	assert.Equal(t, "inline reply", reviews[2].Comments[0].Content)
 	assert.EqualValues(t, 4, reviews[0].IssueIndex)
+
+	skipped := &base.PullRequest{Number: 5, ForeignIndex: 5}
+	comments, _, err = d.GetComments(t.Context(), skipped)
+	require.NoError(t, err)
+	assert.Empty(t, comments)
+	reviews, err = d.GetReviews(t.Context(), skipped)
+	require.NoError(t, err)
+	assert.Empty(t, reviews)
+	_, _, err = d.GetComments(t.Context(), &base.PullRequest{Number: 6, ForeignIndex: 6})
+	assert.Error(t, err, "only a 500 is skipped")
+	assert.Equal(t, map[string]int{"4": 2, "5": 1, "6": 1}, activityCalls, "activities are paged and cached for both calls, also when skipped")
 }
 
 // TestBitbucketServerDownloadRepo replays responses recorded from a Bitbucket Server 10.5.1 instance.

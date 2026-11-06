@@ -372,24 +372,10 @@ func ListIssues(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
-
-	if isPull.Has() && !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull.Value()) {
-		ctx.APIErrorNotFound()
+	isPull, ok := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, ctx.FormString("type"))
+	if !ok {
+		ctx.APIError(http.StatusForbidden, "no permission to read issues or pulls")
 		return
-	}
-
-	if !isPull.Has() {
-		canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
-		canReadPulls := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
-		if !canReadIssues && !canReadPulls {
-			ctx.APIErrorNotFound()
-			return
-		} else if !canReadIssues {
-			isPull = optional.Some(true)
-		} else if !canReadPulls {
-			isPull = optional.Some(false)
-		}
 	}
 
 	// FIXME: we should be more efficient here
