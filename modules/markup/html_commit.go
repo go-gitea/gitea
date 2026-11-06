@@ -49,7 +49,7 @@ func shortCompareRef(ref string) string {
 	return ref
 }
 
-// shortenCommitLink shortens links whose text is their own commit or compare URL, like linkified URLs and "<url>" autolinks
+// linkified URLs and "<url>" autolinks reach here as links whose text is their own URL
 func shortenCommitLink(ctx *RenderContext, anchor *html.Node) {
 	text := anchor.FirstChild
 	if ctx.RenderOptions.Metas == nil || text == nil || text != anchor.LastChild || text.Type != html.TextNode || !strings.Contains(text.Data, "://") {

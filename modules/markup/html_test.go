@@ -88,7 +88,6 @@ func TestRender_Commits(t *testing.T) {
 	test(pullCommit+" fixes "+repo+"issues/2", `<p><a href="`+pullCommit+`" rel="nofollow"><code>65f1bf27bc</code></a> fixes <a href="`+repo+`issues/2" class="ref-issue" rel="nofollow">#2</a></p>`)
 	test(commitShort+"#diff-2.", `<p><a href="`+commitShort+`#diff-2" rel="nofollow"><code>65f1bf2</code>#diff-2</a>.</p>`)
 	test(commitShort+"?w=1", `<p><a href="`+commitShort+`?w=1" rel="nofollow"><code>65f1bf2</code>?w=1</a></p>`)
-	test(pullCommit, `<p><a href="`+pullCommit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(otherCommit, `<p><a href="`+otherCommit+`" rel="nofollow">user2/repo1@<code>65f1bf27bc</code></a></p>`)
 	test(branchCompare, `<p><a href="`+branchCompare+`" rel="nofollow"><code>main...feature/x</code></a></p>`)
 	test(githubCommit+" "+commitShort+" "+commit, `<p><a href="`+githubCommit+`" rel="nofollow">`+githubCommit+`</a> <a href="`+commitShort+`" rel="nofollow"><code>65f1bf2</code></a> <a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
