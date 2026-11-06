@@ -13,7 +13,6 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/indexer/code/internal"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 )
 
 func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
@@ -39,27 +38,9 @@ func getRepoChanges(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 	}
 
 	if needGenesis {
-		return genesisChanges(ctx, repo, gitRepo, revision)
+		return genesisChanges(ctx, gitRepo, revision)
 	}
 	return nonGenesisChanges(ctx, repo, gitRepo, revision)
-}
-
-func isIndexable(entry *git.TreeEntry) bool {
-	if !entry.IsRegular() && !entry.IsExecutable() {
-		return false
-	}
-	name := strings.ToLower(entry.Name())
-	for _, g := range setting.Indexer.ExcludePatterns {
-		if g.Match(name) {
-			return false
-		}
-	}
-	for _, g := range setting.Indexer.IncludePatterns {
-		if g.Match(name) {
-			return true
-		}
-	}
-	return len(setting.Indexer.IncludePatterns) == 0
 }
 
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
@@ -71,12 +52,11 @@ func parseGitLsTreeOutput(ctx context.Context, gitRepo *git.Repository, stdout [
 	idxCount := 0
 	updates := make([]internal.FileUpdate, len(entries))
 	for _, entry := range entries {
-		if isIndexable(entry) {
+		if (entry.IsRegular() || entry.IsExecutable()) && internal.IsSearchable(entry.Name(), 0) {
 			updates[idxCount] = internal.FileUpdate{
 				Filename: entry.Name(),
 				BlobSha:  entry.ID.String(),
 				Size:     entry.GetSize(ctx, gitRepo),
-				Sized:    true,
 			}
 			idxCount++
 		}
@@ -84,16 +64,19 @@ func parseGitLsTreeOutput(ctx context.Context, gitRepo *git.Repository, stdout [
 	return updates[:idxCount], nil
 }
 
-// genesisChanges get changes to add repo to the indexer for the first time
-func genesisChanges(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, revision string) (*internal.RepoChanges, error) {
-	var changes internal.RepoChanges
-	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "--full-tree", "-l", "-r").AddDynamicArguments(revision).WithRepo(repo).RunStdBytes(ctx)
-	if runErr != nil {
-		return nil, runErr
+func ListFiles(ctx context.Context, gitRepo *git.Repository, revision string, paths ...string) ([]internal.FileUpdate, error) {
+	stdout, _, err := gitcmd.NewCommand("ls-tree", "--full-tree", "-l", "-r").AddDynamicArguments(revision).AddDashesAndList(paths...).WithRepo(gitRepo).RunStdBytes(ctx)
+	if err != nil {
+		return nil, err
 	}
+	return parseGitLsTreeOutput(ctx, gitRepo, stdout)
+}
 
+// genesisChanges get changes to add repo to the indexer for the first time
+func genesisChanges(ctx context.Context, gitRepo *git.Repository, revision string) (*internal.RepoChanges, error) {
+	var changes internal.RepoChanges
 	var err error
-	changes.Updates, err = parseGitLsTreeOutput(ctx, gitRepo, stdout)
+	changes.Updates, err = ListFiles(ctx, gitRepo, revision)
 	return &changes, err
 }
 
@@ -102,13 +85,12 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, gitRepo
 	diffCmd := gitcmd.NewCommand("diff", "--name-status").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
 	stdout, _, runErr := diffCmd.WithRepo(repo).RunStdString(ctx)
 	if runErr != nil {
-		// previous commit sha may have been removed by a force push, so
-		// try rebuilding from scratch
+		// The previous commit may have been removed by a force push.
 		log.Warn("git diff: %v", runErr)
 		if err := (*globalIndexer.Load()).Delete(ctx, repo.ID); err != nil {
 			return nil, err
 		}
-		return genesisChanges(ctx, repo, gitRepo, revision)
+		return genesisChanges(ctx, gitRepo, revision)
 	}
 
 	var changes internal.RepoChanges
@@ -180,9 +162,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, gitRepo
 			log.Warn("Unrecognized status: %c (line=%s)", status, line)
 		}
 
-		// According to https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/command-line-string-limitation#more-information
-		// the command line length should less than 8191 characters, assume filepath is 256, then 8191/256 = 31, so we use 30
-		if len(updatedFilenames) >= 30 {
+		if len(updatedFilenames) >= 30 { // Stay below Windows' command-line limit.
 			if err := updateChanges(); err != nil {
 				return nil, err
 			}

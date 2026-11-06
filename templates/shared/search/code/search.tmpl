@@ -3,14 +3,17 @@
 	"Disabled" .CodeIndexerUnavailable
 	"Value" .Keyword
 	"Placeholder" (ctx.Locale.Tr "search.code_kind")
-	"SearchModes" .SearchModes
-	"SelectedSearchMode" .SelectedSearchMode
+	"Tooltip" (ctx.Locale.Tr "search.code_search_tooltip")
 	)}}
 </form>
 <div class="divider"></div>
 <div class="ui list">
 	{{template "base/alert" .}}
-	{{if .CodeIndexerUnavailable}}
+	{{if .CodeSearchError}}
+		<div class="ui error message">
+			<p>{{ctx.Locale.Tr "search.code_search_invalid" .CodeSearchError}}</p>
+		</div>
+	{{else if .CodeIndexerUnavailable}}
 		<div class="ui error message">
 			<p>{{ctx.Locale.Tr "search.code_search_unavailable"}}</p>
 		</div>
@@ -19,6 +22,9 @@
 			<div class="ui message">
 				<p>{{ctx.Locale.Tr "search.code_search_by_git_grep"}}</p>
 			</div>
+		{{end}}
+		{{if .CodeSearchIncomplete}}
+			<div class="ui warning message">{{ctx.Locale.Tr "search.code_search_incomplete"}}</div>
 		{{end}}
 		{{if .SearchResults}}
 			{{template "shared/search/code/results" .}}

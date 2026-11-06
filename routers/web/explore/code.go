@@ -5,23 +5,16 @@ package explore
 
 import (
 	"net/http"
-	"slices"
 
-	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
-	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/routers/common"
+	"gitea.dev/services/codesearch"
 	"gitea.dev/services/context"
 )
 
-const (
-	// tplExploreCode explore code page template
-	tplExploreCode templates.TplName = "explore/code"
-)
+const tplExploreCode templates.TplName = "explore/code"
 
-// Code render explore code page
 func Code(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage {
 		ctx.Redirect(setting.AppSubURL + "/explore")
@@ -36,95 +29,8 @@ func Code(ctx *context.Context) {
 	ctx.Data["PageIsExploreCode"] = true
 	ctx.Data["PageIsViewCode"] = true
 
-	prepareSearch := common.PrepareCodeSearch(ctx)
-	if prepareSearch.Keyword == "" {
+	common.SearchCode(ctx, &codesearch.Options{Engine: codesearch.Indexer})
+	if !ctx.Written() {
 		ctx.HTML(http.StatusOK, tplExploreCode)
-		return
 	}
-
-	page := ctx.FormInt("page")
-	if page <= 0 {
-		page = 1
-	}
-
-	var (
-		repoIDs []int64
-		err     error
-		isAdmin bool
-	)
-	if ctx.Doer != nil {
-		isAdmin = ctx.Doer.IsAdmin
-	}
-
-	// guest user or non-admin user
-	if ctx.Doer == nil || !isAdmin {
-		repoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("FindUserCodeAccessibleRepoIDs", err)
-			return
-		}
-	}
-
-	var (
-		total                 int64
-		searchResults         []*code_indexer.Result
-		searchResultLanguages []*code_indexer.SearchResultLanguages
-	)
-
-	if (len(repoIDs) > 0) || isAdmin {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
-			RepoIDs:    repoIDs,
-			Keyword:    prepareSearch.Keyword,
-			SearchMode: prepareSearch.SearchMode,
-			Language:   prepareSearch.Language,
-			Paginator: &db.ListOptions{
-				Page:     page,
-				PageSize: setting.UI.RepoSearchPagingNum,
-			},
-		})
-		if err != nil {
-			if code_indexer.IsAvailable(ctx) {
-				ctx.ServerError("SearchResults", err)
-				return
-			}
-			ctx.Data["CodeIndexerUnavailable"] = true
-		} else {
-			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
-		}
-
-		loadRepoIDs := make([]int64, 0, len(searchResults))
-		for _, result := range searchResults {
-			if !slices.Contains(loadRepoIDs, result.RepoID) {
-				loadRepoIDs = append(loadRepoIDs, result.RepoID)
-			}
-		}
-
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
-		if err != nil {
-			ctx.ServerError("GetRepositoriesMapByIDs", err)
-			return
-		}
-
-		ctx.Data["RepoMaps"] = repoMaps
-
-		if len(loadRepoIDs) != len(repoMaps) {
-			// Remove deleted repos from search results
-			cleanedSearchResults := make([]*code_indexer.Result, 0, len(repoMaps))
-			for _, sr := range searchResults {
-				if _, found := repoMaps[sr.RepoID]; found {
-					cleanedSearchResults = append(cleanedSearchResults, sr)
-				}
-			}
-
-			searchResults = cleanedSearchResults
-		}
-	}
-
-	ctx.Data["SearchResults"] = searchResults
-	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-
-	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.RepoSearchPagingNum).CurPage(page).Build()
-	ctx.Data["Page"] = pager
-
-	ctx.HTML(http.StatusOK, tplExploreCode)
 }

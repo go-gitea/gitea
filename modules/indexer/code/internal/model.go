@@ -9,7 +9,6 @@ type FileUpdate struct {
 	Filename string
 	BlobSha  string
 	Size     int64
-	Sized    bool
 }
 
 // RepoChanges changes (file additions/updates/removals) to a repo
@@ -26,14 +25,19 @@ type IndexerData struct {
 // SearchResult result of performing a search in a repo
 type SearchResult struct {
 	RepoID      int64
-	StartIndex  int
-	EndIndex    int
 	Filename    string
 	Content     string
 	CommitID    string
 	UpdatedUnix timeutil.TimeStamp
 	Language    string
 	Color       string
+
+	ContentMatches []MatchRange // byte ranges into Content
+}
+
+// MatchRange is the byte range [Start, End) of a matched term
+type MatchRange struct {
+	Start, End int
 }
 
 // SearchResultLanguages result of top languages count in search results
