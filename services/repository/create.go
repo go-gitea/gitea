@@ -56,25 +56,11 @@ type CreateRepoOptions struct {
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir string, opts CreateRepoOptions) error {
-	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
-	// Because this may call hooks we should pass in the environment
-	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+authorSig.Name,
-		"GIT_AUTHOR_EMAIL="+authorSig.Email,
-		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+authorSig.Name,
-		"GIT_COMMITTER_EMAIL="+authorSig.Email,
-		"GIT_COMMITTER_DATE="+commitTimeStr,
-	)
-
-	// Clone to temporary path and do the init commit.
-	if err := git.CloneRepoToLocal(ctx, repo, tmpDir, git.CloneRepoOptions{
-		Env: env,
-	}); err != nil {
-		log.Error("Failed to clone from %v into %s\nError: %v", repo, tmpDir, err)
-		return fmt.Errorf("git clone: %w", err)
+	// Never clone/checkout the target repo here: it may already contain pushed content (e.g. symlinks)
+	if err := git.InitRepositoryLocal(ctx, tmpDir, false, repo.ObjectFormatName, repo.DefaultBranch); err != nil {
+		return fmt.Errorf("prepareRepoCommit: init temp repo: %w", err)
 	}
 
 	// README
@@ -96,8 +82,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 		// here we could just log the error and continue the rendering
 		log.Error("unable to expand template vars for repo README: %s, err: %v", opts.Readme, err)
 	}
-	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"),
-		[]byte(res), 0o644); err != nil {
+	if err = writeNewFile(filepath.Join(tmpDir, "README.md"), []byte(res)); err != nil {
 		return fmt.Errorf("write README.md: %w", err)
 	}
 
@@ -116,7 +101,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 		}
 
 		if buf.Len() > 0 {
-			if err = os.WriteFile(filepath.Join(tmpDir, ".gitignore"), buf.Bytes(), 0o644); err != nil {
+			if err = writeNewFile(filepath.Join(tmpDir, ".gitignore"), buf.Bytes()); err != nil {
 				return fmt.Errorf("write .gitignore: %w", err)
 			}
 		}
@@ -134,12 +119,25 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 			return fmt.Errorf("getLicense[%s]: %w", opts.License, err)
 		}
 
-		if err = os.WriteFile(filepath.Join(tmpDir, "LICENSE"), data, 0o644); err != nil {
+		if err = writeNewFile(filepath.Join(tmpDir, "LICENSE"), data); err != nil {
 			return fmt.Errorf("write LICENSE: %w", err)
 		}
 	}
 
 	return nil
+}
+
+// writeNewFile fails if the path already exists, O_EXCL never follows a symlink
+func writeNewFile(name string, data []byte) error {
+	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err = f.Write(data); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 // InitRepository initializes README and .gitignore if needed.

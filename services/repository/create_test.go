@@ -5,12 +5,14 @@ package repository
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
 
 	"github.com/stretchr/testify/assert"
@@ -44,6 +46,19 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("AutoInit", func(t *testing.T) {
+		createdRepo, err := CreateRepositoryDirectly(t.Context(), user2, user2, CreateRepoOptions{
+			Name:          "auto-init-repo",
+			DefaultBranch: "custom-default",
+			AutoInit:      true,
+			Readme:        "Default",
+		}, true)
+		assert.NoError(t, err)
+		_, _, err = gitcmd.NewCommand("cat-file", "-e").AddDynamicArguments("custom-default:README.md").WithRepo(createdRepo).RunStdString(t.Context())
+		assert.NoError(t, err)
+		assert.NoError(t, DeleteRepositoryDirectly(t.Context(), createdRepo.ID))
+	})
+
 	t.Run("Failure", func(t *testing.T) {
 		// a failed creating because some mock data
 		// create the repository directory so that the creation will fail after database record created.
@@ -65,4 +80,19 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, exist)
 	})
+}
+
+func TestWriteNewFile(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target")
+	assert.NoError(t, os.WriteFile(target, []byte("original"), 0o644))
+	assert.NoError(t, os.Symlink(target, filepath.Join(dir, "link")))
+
+	assert.Error(t, writeNewFile(filepath.Join(dir, "link"), []byte("evil")))
+	assert.Error(t, writeNewFile(target, []byte("evil")))
+	content, err := os.ReadFile(target)
+	assert.NoError(t, err)
+	assert.Equal(t, "original", string(content))
+
+	assert.NoError(t, writeNewFile(filepath.Join(dir, "new"), []byte("ok")))
 }
