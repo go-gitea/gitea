@@ -6,89 +6,36 @@ package ldap
 import (
 	"fmt"
 	"net"
+	"net/http/httptest"
+	"net/netip"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestDialMultipleHostsFailover(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+func TestDial(t *testing.T) {
+	silent, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	defer ln.Close()
+	defer silent.Close()
+	tlsServer := httptest.NewTLSServer(nil)
+	defer tlsServer.Close()
 
-	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				return
-			}
-			_ = conn.Close()
-		}
-	}()
+	conn, err := dial(&Source{Host: " , ldap://127.0.0.1:1 , 127.0.0.1 , ", Port: int(netip.MustParseAddrPort(silent.Addr().String()).Port())})
+	require.NoError(t, err)
+	conn.Close()
 
-	tcpAddr, ok := ln.Addr().(*net.TCPAddr)
-	require.True(t, ok)
-	validPort := tcpAddr.Port
+	start := time.Now()
+	conn, err = dial(&Source{Host: fmt.Sprintf("ldaps://%s, ldaps://%s", silent.Addr(), tlsServer.Listener.Addr()), SecurityProtocol: SecurityProtocolLDAPS, SkipVerify: true})
+	require.NoError(t, err)
+	assert.Less(t, time.Since(start), 10*time.Second)
+	conn.Close()
 
-	t.Run("SingleHost", func(t *testing.T) {
-		source := &Source{
-			Host:             "127.0.0.1",
-			Port:             validPort,
-			SecurityProtocol: SecurityProtocolUnencrypted,
-		}
-		conn, err := dial(source)
-		require.NoError(t, err)
-		require.NotNil(t, conn)
-		conn.Close()
-	})
+	_, err = dial(&Source{Host: "ldaps://127.0.0.1:1, ldap://127.0.0.1", SecurityProtocol: SecurityProtocolStartTLS})
+	assert.ErrorContains(t, err, "ldaps://127.0.0.1:1: ")
+	assert.ErrorContains(t, err, "ldap://127.0.0.1: unsupported LDAP URL")
 
-	t.Run("FailoverToSecondHostWithPortOverride", func(t *testing.T) {
-		source := &Source{
-			Host:             fmt.Sprintf("127.0.0.1:1, 127.0.0.1:%d", validPort),
-			Port:             1,
-			SecurityProtocol: SecurityProtocolUnencrypted,
-		}
-		conn, err := dial(source)
-		require.NoError(t, err)
-		require.NotNil(t, conn)
-		conn.Close()
-	})
-
-	t.Run("FailoverTrimsWhitespaceAndSkipsEmpty", func(t *testing.T) {
-		source := &Source{
-			Host:             " , 127.0.0.1:1 ,  127.0.0.1 , ",
-			Port:             validPort,
-			SecurityProtocol: SecurityProtocolUnencrypted,
-		}
-		conn, err := dial(source)
-		require.NoError(t, err)
-		require.NotNil(t, conn)
-		conn.Close()
-	})
-
-	t.Run("AllHostsUnreachable", func(t *testing.T) {
-		source := &Source{
-			Host:             "127.0.0.1:1, 127.0.0.1:2",
-			Port:             389,
-			SecurityProtocol: SecurityProtocolUnencrypted,
-		}
-		conn, err := dial(source)
-		assert.Nil(t, conn)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "127.0.0.1:1")
-		assert.Contains(t, err.Error(), "127.0.0.1:2")
-	})
-
-	t.Run("NoHostConfigured", func(t *testing.T) {
-		source := &Source{
-			Host:             " , , ",
-			Port:             389,
-			SecurityProtocol: SecurityProtocolUnencrypted,
-		}
-		conn, err := dial(source)
-		assert.Nil(t, conn)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "no LDAP host configured")
-	})
+	_, err = dial(&Source{Host: " , "})
+	assert.EqualError(t, err, "no LDAP host configured")
 }
