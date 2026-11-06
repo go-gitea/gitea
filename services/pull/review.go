@@ -332,6 +332,9 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	if err != nil {
 		return nil, nil, err
 	}
+	if reviewType == issues_model.ReviewTypePending {
+		return review, nil, nil
+	}
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, doer, comm.Content)
 	if err != nil {
