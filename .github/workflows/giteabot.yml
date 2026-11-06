@@ -50,7 +50,7 @@ jobs:
       pull-requests: write
       statuses: write
     steps:
-      - uses: go-gitea/giteabot@afdbffb3216b5a3d7d104c8dc283d2b21ac24f33 # v1.5.0
+      - uses: go-gitea/giteabot@15b18fdedd98a80d0968d0bd9db3a9428814b808 # v1.5.1
         with:
           github_token: ${{ secrets.GITEABOT_TOKEN }}
           checks: ${{ github.event.inputs.checks || 'backport_branches,backport_conflict_free,labels,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions' }}
