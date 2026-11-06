@@ -731,8 +731,8 @@ func testRefreshTokenInvalidation(t *testing.T) {
 	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
 	assert.Equal(t, "token was already used", parsedError.ErrorDescription)
 
-	req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{"token": parsed.RefreshToken})
-	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpKaUE9")
+	req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{"token": parsed.RefreshToken}).
+		AddBasicAuth("da7da3ba-9a13-4167-856f-3899de0b0138", "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=")
 	assert.JSONEq(t, `{"active":false}`, MakeRequest(t, req, http.StatusOK).Body.String())
 }
 
@@ -840,6 +840,16 @@ func testOAuthIntrospection(t *testing.T) {
 	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpK")
 	resp = MakeRequest(t, req, http.StatusUnauthorized)
 	assert.Contains(t, resp.Body.String(), "no valid authorization")
+
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 1, ProhibitLogin: true}, "prohibit_login"))
+	defer func() {
+		require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 1}, "prohibit_login"))
+	}()
+	for _, token := range []string{parsed.AccessToken, parsed.RefreshToken} {
+		req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{"token": token}).
+			AddBasicAuth("da7da3ba-9a13-4167-856f-3899de0b0138", "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=")
+		assert.JSONEq(t, `{"active":false}`, MakeRequest(t, req, http.StatusOK).Body.String())
+	}
 }
 
 func testOAuthIntrospectionCrossClientIsolation(t *testing.T) {

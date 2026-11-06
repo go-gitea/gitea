@@ -273,7 +273,7 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		"", nil,
 	)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	if err := comment.LoadPoster(ctx); err != nil {

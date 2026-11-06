@@ -40,8 +40,6 @@ func TestPreReceive(t *testing.T) {
 
 		web.SetForm(ctx, &private.HookOptions{
 			UserID:       2,
-			OldCommitIDs: []string{"205ac761f3326a7ebe416e8673760016450b5cec"},
-			NewCommitIDs: []string{"1032bbf17fbc0d9c95bb5418dabe8f8c99278700"},
 			RefFullNames: []git.RefName{"refs/for/master"},
 		})
 		HookProcReceive(ctx)
