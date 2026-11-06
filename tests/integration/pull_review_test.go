@@ -94,6 +94,12 @@ func TestPullView_CodeOwner(t *testing.T) {
 		}, true)
 		assert.NoError(t, err)
 
+		for _, reviewer := range []*user_model.User{user5, user8} {
+			require.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), reviewer, repo, repo_model.WatchOptions{
+				Mode: repo_model.WatchModeCustom, WatchPullRequests: true,
+			}))
+		}
+
 		// create code owner branch protection
 		protectBranch := git_model.ProtectedBranch{
 			BlockOnCodeownerReviews: true,
@@ -117,6 +123,31 @@ func TestPullView_CodeOwner(t *testing.T) {
 			},
 		})
 		assert.NoError(t, err)
+
+		t.Run("File owners", func(t *testing.T) {
+			session := loginUser(t, "user2")
+			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_codeowner/src/branch/master/README.md"), http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
+			assert.Equal(t, "@user5", doc.Find(".file-codeowners a").Text())
+
+			_, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+				OldBranch: repo.DefaultBranch,
+				NewBranch: "file-owners",
+				Files: []*files_service.ChangeRepoFile{{
+					Operation:     "update",
+					TreePath:      "CODEOWNERS",
+					ContentReader: strings.NewReader("## review-request=false\n[Docs] @user8 @org3/team1\n*.md\n"),
+				}},
+			})
+			require.NoError(t, err)
+			resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_codeowner/src/branch/file-owners/README.md"), http.StatusOK)
+			doc = NewHTMLParser(t, resp.Body)
+			assert.Equal(t, "@user8", doc.Find(".file-codeowners a[href='/user8']").Text())
+			assert.Equal(t, "@org3/team1", doc.Find(".file-codeowners a[href='/org3/teams/team1']").Text())
+			resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_codeowner/src/branch/file-owners/CODEOWNERS"), http.StatusOK)
+			doc = NewHTMLParser(t, resp.Body)
+			assert.Zero(t, doc.Find(".file-codeowners").Length())
+		})
 
 		readmeBranchOptions := func(branch, content string) *files_service.ChangeRepoFilesOptions {
 			return &files_service.ChangeRepoFilesOptions{
