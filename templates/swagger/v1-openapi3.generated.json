@@ -445,6 +445,19 @@
         },
         "description": "EmailList"
       },
+      "ExternalAccountList": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/ExternalAccount"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "description": "ExternalAccountList"
+      },
       "FileDeleteResponse": {
         "content": {
           "application/json": {
@@ -6409,6 +6422,24 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "ExternalAccount": {
+        "description": "ExternalAccount an account on a git service whose migrated content is attributed to a user",
+        "properties": {
+          "external_id": {
+            "description": "The user's ID on the git service",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ExternalID"
+          },
+          "service": {
+            "description": "Name of the git service, e.g. \"github\"",
+            "type": "string",
+            "x-go-name": "Service"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "ExternalTracker": {
         "description": "ExternalTracker represents settings for external tracker",
         "properties": {
@@ -7744,33 +7775,6 @@
             "x-go-name": "URL"
           }
         },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "LinkExternalLoginOption": {
-        "description": "LinkExternalLoginOption options to link a user to an account on an external\nservice, so that content migrated from that service is attributed to the user",
-        "properties": {
-          "external_id": {
-            "description": "The user's ID on the external service",
-            "type": "string",
-            "x-go-name": "ExternalID"
-          },
-          "login_source_id": {
-            "description": "The authentication source the link belongs to, 0 when there is none.\nA non-zero value must be an existing authentication source.",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "LoginSourceID"
-          },
-          "provider": {
-            "description": "The name of the external service, e.g. \"bitbucketserver\". Migrations look\nusers up by the service name of the migration source.",
-            "type": "string",
-            "x-go-name": "Provider"
-          }
-        },
-        "required": [
-          "provider",
-          "external_id"
-        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -12496,44 +12500,139 @@
         ]
       }
     },
-    "/admin/users/{username}/external-logins": {
-      "post": {
-        "description": "Migrations attribute issues, pull requests and comments to the local user linked to the original author. Linking again an account that is already linked to the same user succeeds. A login_source_id of 0 means the account does not belong to an authentication source; the external_id must then be unique among all providers using 0, otherwise 409 is returned. A non-zero login_source_id must be an existing authentication source.",
-        "operationId": "adminLinkExternalLogin",
+    "/admin/users/{username}/external-accounts": {
+      "get": {
+        "operationId": "adminListUserExternalAccounts",
         "parameters": [
           {
-            "description": "username of the user to link",
+            "description": "username of the user",
             "in": "path",
             "name": "username",
             "required": true,
             "schema": {
               "type": "string"
             }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LinkExternalLoginOption"
-              }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
             }
           },
-          "required": true,
-          "x-originalParamName": "body"
-        },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
-          "204": {
-            "$ref": "#/components/responses/empty"
-          },
-          "409": {
-            "description": "the external account is already linked to another user"
+          "200": {
+            "$ref": "#/components/responses/ExternalAccountList"
           },
           "default": {
             "$ref": "#/components/responses/error"
           }
         },
-        "summary": "Link a user to an account on an external service",
+        "summary": "List the external accounts whose migrated content is attributed to a user",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/users/{username}/external-accounts/{service}/{external_id}": {
+      "delete": {
+        "description": "Only affects future migrations, already attributed content keeps the user. Future migrations still attribute the account to a user who signed in with it.",
+        "operationId": "adminUnlinkUserExternalAccount",
+        "parameters": [
+          {
+            "description": "username of the user",
+            "in": "path",
+            "name": "username",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the git service, e.g. github",
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "the user's ID on the git service",
+            "in": "path",
+            "name": "external_id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Stop attributing content migrated from an external account to a user",
+        "tags": [
+          "admin"
+        ]
+      },
+      "put": {
+        "description": "Attributes migrated issues, pull requests, comments, reviews, reactions and releases of the external account that are not yet attributed to a user, now and in future migrations. The account is matched on every instance of the service, and services that do not record user IDs, like CodeCommit, have nothing to attribute. Linking an account that is linked to another user returns 409.",
+        "operationId": "adminLinkUserExternalAccount",
+        "parameters": [
+          {
+            "description": "username of the user",
+            "in": "path",
+            "name": "username",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the git service, e.g. github",
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "the user's ID on the git service",
+            "in": "path",
+            "name": "external_id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Attribute content migrated from an external account to a user",
         "tags": [
           "admin"
         ]

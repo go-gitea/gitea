@@ -12,6 +12,9 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/glob"
@@ -367,47 +370,44 @@ func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
-func TestAPIAdminLinkExternalLogin(t *testing.T) {
+func TestAPIAdminExternalAccounts(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteAdmin)
-	opt := api.LinkExternalLoginOption{Provider: "bitbucketserver", ExternalID: "4242"}
+	repo := &repo_model.Repository{OwnerID: 2, Name: "migrated", LowerName: "migrated", OriginalServiceType: api.GithubService}
+	require.NoError(t, db.Insert(t.Context(), repo))
+	issue := &issues_model.Issue{RepoID: repo.ID, Index: 1, OriginalAuthor: "octocat", OriginalAuthorID: 7}
+	require.NoError(t, db.Insert(t.Context(), issue))
+	require.NoError(t, db.Insert(t.Context(), &issues_model.Reaction{Type: "+1", IssueID: issue.ID, UserID: 2}))
+	require.NoError(t, db.Insert(t.Context(), &issues_model.Reaction{Type: "+1", IssueID: issue.ID, OriginalAuthor: "octocat", OriginalAuthorID: 7}))
+	require.NoError(t, db.Insert(t.Context(), &user_model.ExternalLoginUser{ExternalID: "8", LoginSourceID: 1, Provider: "github", UserID: 4}))
 
-	req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/external-logins", opt).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
-	userID, err := user_model.GetUserIDByExternalUserID(t.Context(), "bitbucketserver", "4242")
+	url := "/api/v1/admin/users/user2/external-accounts"
+	MakeRequest(t, NewRequest(t, "PUT", url+"/github/7").AddTokenAuth(token), http.StatusNoContent)
+	assert.EqualValues(t, 2, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID}).PosterID)
+	unittest.AssertCount(t, &issues_model.Reaction{IssueID: issue.ID}, 1)
+	userID, err := user_model.GetUserIDByExternalUserID(t.Context(), api.GithubService, 7)
 	require.NoError(t, err)
-	assert.Equal(t, user2.ID, userID)
+	assert.EqualValues(t, 2, userID)
 
-	// the Security page still renders for the linked user
-	session := loginUser(t, "user2")
-	session.MakeRequest(t, NewRequest(t, "GET", "/user/settings/security"), http.StatusOK)
+	issue = &issues_model.Issue{RepoID: repo.ID, Index: 2, OriginalAuthor: "octocat", OriginalAuthorID: 7}
+	require.NoError(t, db.Insert(t.Context(), issue))
+	MakeRequest(t, NewRequest(t, "PUT", url+"/github/7").AddTokenAuth(token), http.StatusNoContent)
+	assert.EqualValues(t, 2, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID}).PosterID)
+	MakeRequest(t, NewRequest(t, "PUT", url+"/gitlab/7").AddTokenAuth(token), http.StatusNoContent)
 
-	// linking again is idempotent
-	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/external-logins", opt).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
+	resp := MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(token), http.StatusOK)
+	assert.Equal(t, []api.ExternalAccount{{Service: "github", ExternalID: 7}, {Service: "gitlab", ExternalID: 7}}, DecodeJSON(t, resp, []api.ExternalAccount{}))
 
-	// an account linked to a user cannot be linked to another one
-	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/external-logins", opt).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusConflict)
+	for path, status := range map[string]int{
+		"/user4/external-accounts/github/7":  http.StatusConflict,
+		"/user2/external-accounts/github/8":  http.StatusConflict,
+		"/user2/external-accounts/git/9":     http.StatusUnprocessableEntity,
+		"/user2/external-accounts/github/9x": http.StatusUnprocessableEntity,
+		"/org3/external-accounts/github/9":   http.StatusUnprocessableEntity,
+	} {
+		MakeRequest(t, NewRequest(t, "PUT", "/api/v1/admin/users"+path).AddTokenAuth(token), status)
+	}
 
-	// the same id of another provider in the same scope is refused rather than overwritten
-	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/external-logins",
-		api.LinkExternalLoginOption{Provider: "github", ExternalID: "4242"}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusConflict)
-
-	// the authentication source has to exist
-	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/external-logins",
-		api.LinkExternalLoginOption{Provider: "bitbucketserver", ExternalID: "1", LoginSourceID: 99999}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
-
-	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/external-logins", api.LinkExternalLoginOption{Provider: "bitbucketserver"}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
-	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/no-such-user/external-logins", opt).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-
-	// not an admin
-	token2 := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteAdmin)
-	req = NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/external-logins", api.LinkExternalLoginOption{Provider: "x", ExternalID: "1"}).AddTokenAuth(token2)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, NewRequest(t, "DELETE", url+"/github/7").AddTokenAuth(token), http.StatusNoContent)
+	MakeRequest(t, NewRequest(t, "DELETE", url+"/github/7").AddTokenAuth(token), http.StatusNotFound)
 }

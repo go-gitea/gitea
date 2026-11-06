@@ -36,7 +36,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 	}
 
 	const batchSize = 100
-	for page := 0; ; page++ {
+	for page := 1; ; page++ {
 		select {
 		case <-ctx.Done():
 			log.Warn("UpdateMigrationPosterIDByGitService(%s) cancelled", tp.Name())

@@ -88,6 +88,8 @@ var (
 	UserWebAuthRemove               = define("user:webauth:remove", "Removed WebAuthn key {credential} from user {scope}.")
 	UserExternalLoginAdd            = define("user:externallogin:add", "Added external login {external_id} for user {scope} using provider {provider}.")
 	UserExternalLoginRemove         = define("user:externallogin:remove", "Removed external login from authentication source {auth_source_id} for user {scope}.")
+	UserExternalAccountLink         = define("user:externalaccount:link", "Linked {service} account {external_id} to user {scope}.")
+	UserExternalAccountUnlink       = define("user:externalaccount:unlink", "Unlinked {service} account {external_id} from user {scope}.")
 	UserOpenIDAdd                   = define("user:openid:add", "Associated OpenID {openid} to user {scope}.")
 	UserOpenIDRemove                = define("user:openid:remove", "Removed OpenID {openid} from user {scope}.")
 	UserAccessTokenAdd              = define("user:accesstoken:add", "Added access token {token} for user {scope} with scope {token_scope}.")

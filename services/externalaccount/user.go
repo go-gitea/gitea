@@ -9,13 +9,16 @@ import (
 	"strings"
 
 	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 
 	"github.com/markbates/goth"
+	"xorm.io/builder"
 )
 
 func toExternalLoginUser(authSourceID int64, user *user_model.User, gothUser goth.User) *user_model.ExternalLoginUser {
@@ -53,17 +56,18 @@ func LinkAccountToUser(ctx context.Context, authSourceID int64, user *user_model
 
 	externalID := externalLoginUser.ExternalID
 
-	return UpdateMigrationsByProvider(ctx, gothUser.Provider, externalID, user.ID)
-}
-
-// UpdateMigrationsByProvider attributes migrated content of the external user to the local user,
-// if the provider is a supported git service.
-func UpdateMigrationsByProvider(ctx context.Context, provider, externalID string, userID int64) error {
+	var tp structs.GitServiceType
 	for _, s := range structs.SupportedFullGitService {
-		if strings.EqualFold(s.Name(), provider) {
-			return UpdateMigrationsByType(ctx, s, externalID, userID)
+		if strings.EqualFold(s.Name(), gothUser.Provider) {
+			tp = s
+			break
 		}
 	}
+
+	if tp.Name() != "" {
+		return UpdateMigrationsByType(ctx, tp, externalID, user.ID)
+	}
+
 	return nil
 }
 
@@ -96,4 +100,44 @@ func UpdateMigrationsByType(ctx context.Context, tp structs.GitServiceType, exte
 		return err
 	}
 	return issues_model.UpdateReviewsMigrationsByType(ctx, tp, externalUserID, userID)
+}
+
+func LinkMigratedAccount(ctx context.Context, user *user_model.User, tp structs.GitServiceType, externalID int64) error {
+	if !user.IsIndividual() && !user.IsTypeBot() {
+		return util.ErrorWrap(util.ErrUnprocessableContent, "the user must be an individual or a bot")
+	}
+	externalUserID := strconv.FormatInt(externalID, 10)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		link, has, err := db.Get[user_model.ExternalAccountLink](ctx, builder.Eq{"service_type": tp, "external_id": externalID})
+		if err != nil {
+			return err
+		}
+		loginOfOther, err := db.Exist[user_model.ExternalLoginUser](ctx,
+			builder.Eq{"provider": tp.Name(), "external_id": externalUserID}.And(builder.Neq{"user_id": user.ID}))
+		if err != nil {
+			return err
+		}
+		if loginOfOther || (has && link.UserID != user.ID) {
+			return util.NewAlreadyExistErrorf("the external account is linked to another user")
+		}
+		if !has {
+			if err := db.Insert(ctx, &user_model.ExternalAccountLink{ServiceType: tp, ExternalID: externalID, UserID: user.ID}); err != nil {
+				return err
+			}
+			audit.Record(ctx, audit_model.UserExternalAccountLink, user, "service", tp.Name(), "external_id", externalID)
+		}
+		return UpdateMigrationsByType(ctx, tp, externalUserID, user.ID)
+	})
+}
+
+func UnlinkMigratedAccount(ctx context.Context, user *user_model.User, tp structs.GitServiceType, externalID int64) error {
+	deleted, err := db.DeleteByBean(ctx, &user_model.ExternalAccountLink{ServiceType: tp, ExternalID: externalID, UserID: user.ID})
+	if err != nil {
+		return err
+	}
+	if deleted == 0 {
+		return util.ErrNotExist
+	}
+	audit.Record(ctx, audit_model.UserExternalAccountUnlink, user, "service", tp.Name(), "external_id", externalID)
+	return nil
 }

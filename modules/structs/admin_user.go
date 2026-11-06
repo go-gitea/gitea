@@ -36,21 +36,6 @@ type CreateUserOption struct {
 	Created *time.Time `json:"created_at"`
 }
 
-// LinkExternalLoginOption options to link a user to an account on an external
-// service, so that content migrated from that service is attributed to the user
-type LinkExternalLoginOption struct {
-	// The name of the external service, e.g. "bitbucketserver". Migrations look
-	// users up by the service name of the migration source.
-	// required: true
-	Provider string `json:"provider" binding:"Required;MaxSize(25)"`
-	// The user's ID on the external service
-	// required: true
-	ExternalID string `json:"external_id" binding:"Required;MaxSize(255)"`
-	// The authentication source the link belongs to, 0 when there is none.
-	// A non-zero value must be an existing authentication source.
-	LoginSourceID int64 `json:"login_source_id"`
-}
-
 // EditUserOption edit user options
 type EditUserOption struct {
 	// required: true
@@ -93,4 +78,12 @@ type EditUserOption struct {
 	Visibility VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
 	// The user type
 	Type UserTypeString `json:"type" binding:"In(User,Organization,Bot)"`
+}
+
+// ExternalAccount an account on a git service whose migrated content is attributed to a user
+type ExternalAccount struct {
+	// Name of the git service, e.g. "github"
+	Service string `json:"service"`
+	// The user's ID on the git service
+	ExternalID int64 `json:"external_id"`
 }

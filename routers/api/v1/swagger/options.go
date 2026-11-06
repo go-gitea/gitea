@@ -223,9 +223,6 @@ type swaggerParameterBodies struct {
 	UserBadgeOption api.UserBadgeOption
 
 	// in:body
-	LinkExternalLoginOption api.LinkExternalLoginOption
-
-	// in:body
 	CreateVariableOption api.CreateVariableOption
 
 	// in:body

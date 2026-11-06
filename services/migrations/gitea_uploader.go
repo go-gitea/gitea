@@ -93,6 +93,7 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 
 // CreateRepo creates a repository
 func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Repository, opts base.MigrateOptions) error {
+	g.gitServiceType = opts.GitServiceType
 	owner, err := user_model.GetUserByName(ctx, g.repoOwner)
 	if err != nil {
 		return err
@@ -1088,7 +1089,7 @@ func (g *GiteaLocalUploader) remapLocalUser(ctx context.Context, source user_mod
 func (g *GiteaLocalUploader) remapExternalUser(ctx context.Context, source user_model.ExternalUserMigrated) (userid int64, err error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
-		userid, err = user_model.GetUserIDByExternalUserID(ctx, g.gitServiceType.Name(), strconv.FormatInt(source.GetExternalID(), 10))
+		userid, err = user_model.GetUserIDByExternalUserID(ctx, g.gitServiceType, source.GetExternalID())
 		if err != nil {
 			log.Error("GetUserIDByExternalUserID: %v", err)
 			return 0, err
