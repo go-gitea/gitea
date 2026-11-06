@@ -823,6 +823,23 @@ func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *
 	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
 }
 
+// MergeBlockedByUnresolvedConversations returns true if merge is blocked by unresolved code conversations
+func MergeBlockedByUnresolvedConversations(ctx context.Context, protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
+	if !protectBranch.BlockOnUnresolvedConversations {
+		return false
+	}
+	unresolvedExist, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
+		And("type = ?", CommentTypeCode).
+		And("resolve_doer_id = ?", 0).
+		Exist(new(Comment))
+	if err != nil {
+		log.Error("MergeBlockedByUnresolvedConversations: %v", err)
+		return true
+	}
+
+	return unresolvedExist
+}
+
 // InsertPullRequests inserted pull requests
 func InsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {

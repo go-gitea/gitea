@@ -307,6 +307,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.ProtectedFilePatterns = f.ProtectedFilePatterns
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
+	protectBranch.BlockOnUnresolvedConversations = f.BlockOnUnresolvedConversations
 	protectBranch.BlockAdminMergeOverride = f.BlockAdminMergeOverride
 
 	if err = pull_service.CreateOrUpdateProtectedBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{

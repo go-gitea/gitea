@@ -295,14 +295,15 @@ type pullMergeBoxData struct {
 	hasStatusCheckBlocker bool
 	IsPullBranchDeletable bool
 
-	isBlockedByApprovals              bool
-	isBlockedByRejection              bool
-	isBlockedByOfficialReviewRequests bool
-	isBlockedByCodeowners             bool
-	isBlockedByOutdatedBranch         bool
-	isBlockedByChangedProtectedFiles  bool
-	requireSigned, willSign           bool
-	signingKeyMergeDisplay            string
+	isBlockedByApprovals               bool
+	isBlockedByRejection               bool
+	isBlockedByOfficialReviewRequests  bool
+	isBlockedByCodeowners              bool
+	isBlockedByOutdatedBranch          bool
+	isBlockedByUnresolvedConversations bool
+	isBlockedByChangedProtectedFiles   bool
+	requireSigned, willSign            bool
+	signingKeyMergeDisplay             string
 
 	infoCommitBlockers     pullMergeBoxInfoItemCollection
 	infoProtectionBlockers pullMergeBoxInfoItemCollection
