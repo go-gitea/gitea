@@ -33,7 +33,7 @@ import (
 const maxChecksumSize = sha512.Size*2 + 1
 
 const (
-	mavenMetadataFile = "maven-metadata.xml"
+	mavenMetadataFile = maven_module.MetadataFileName
 	extensionMD5      = ".md5"
 	extensionSHA1     = ".sha1"
 	extensionSHA256   = ".sha256"
