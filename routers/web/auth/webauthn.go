@@ -154,8 +154,7 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 		return
 	}
 
-	remember := false // TODO: implement remember me
-	handleSignInFull(ctx, user, remember)
+	handleSignInFull(ctx, user, ctx.FormBool("remember"))
 	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }
 

@@ -137,10 +137,10 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 		return
 	}
 
-	oauth2LinkAccount(ctx, u, linkAccountData, signInForm.Remember)
+	oauth2LinkAccount(ctx, u, linkAccountData)
 }
 
-func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData *LinkAccountData, remember bool) {
+func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData *LinkAccountData) {
 	oauth2SignInSync(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser)
 	if ctx.Written() {
 		return
@@ -160,7 +160,7 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 			return
 		}
 
-		handleSignIn(ctx, u, remember)
+		handleSignIn(ctx, u, oauth2Remember(ctx))
 		return
 	}
 
@@ -169,7 +169,7 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 		return
 	}
 
-	handleTwoFactorRequired(ctx, u, remember, map[string]any{
+	handleTwoFactorRequired(ctx, u, oauth2Remember(ctx), map[string]any{
 		"linkAccount":           true,
 		session.KeySignInMethod: session.SignInMethodOAuth2,
 	})
@@ -259,7 +259,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
-	handleSignIn(ctx, u, false)
+	handleSignIn(ctx, u, oauth2Remember(ctx))
 }
 
 func completePendingLinks(ctx *context.Context, user *user_model.User) error {

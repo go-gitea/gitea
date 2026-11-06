@@ -24,7 +24,7 @@ func (source *Source) Callout(request *http.Request, response http.ResponseWrite
 
 	url, err := gothic.GetAuthURL(response, request)
 	if err == nil {
-		http.Redirect(response, request, url, http.StatusTemporaryRedirect)
+		http.Redirect(response, request, url, http.StatusSeeOther)
 	}
 	return err
 }

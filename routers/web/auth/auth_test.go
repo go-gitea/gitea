@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/util"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 
 	"github.com/markbates/goth"
@@ -181,21 +182,45 @@ func TestWebAuthOAuth2(t *testing.T) {
 	})
 }
 
-func TestAutoSignInStaleCookie(t *testing.T) {
+func TestAutoSignIn(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	at, token, err := auth_service.CreateAuthTokenForUserID(t.Context(), 2)
-	require.NoError(t, err)
-	current, currentToken, err := auth_service.RegenerateAuthToken(t.Context(), at)
-	require.NoError(t, err)
-
-	ctx, resp := contexttest.MockContext(t, "/user/login")
-	ctx.Req.AddCookie(&http.Cookie{Name: setting.CookieRememberName, Value: at.ID + ":" + token})
-	succeeded, err := autoSignIn(ctx)
-	require.NoError(t, err)
-	require.False(t, succeeded)
-	for _, cookie := range resp.Result().Cookies() {
-		assert.NotEqual(t, setting.CookieRememberName, cookie.Name)
+	autoSignInWithCookie := func(t *testing.T, cookie string) (*context.Context, *httptest.ResponseRecorder, bool) {
+		ctx, resp := contexttest.MockContext(t, "/user/login", contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid")})
+		ctx.Req.AddCookie(&http.Cookie{Name: setting.CookieRememberName, Value: cookie})
+		succeeded, err := autoSignIn(ctx)
+		require.NoError(t, err)
+		return ctx, resp, succeeded
 	}
-	_, err = auth_service.CheckAuthToken(t.Context(), current.ID+":"+currentToken)
-	require.NoError(t, err)
+
+	t.Run("StaleCookie", func(t *testing.T) {
+		at, token, err := auth_service.CreateAuthTokenForUserID(t.Context(), 2, "")
+		require.NoError(t, err)
+		current, currentToken, err := auth_service.RegenerateAuthToken(t.Context(), at)
+		require.NoError(t, err)
+
+		_, resp, succeeded := autoSignInWithCookie(t, at.ID+":"+token)
+		require.False(t, succeeded)
+		for _, cookie := range resp.Result().Cookies() {
+			assert.NotEqual(t, setting.CookieRememberName, cookie.Name)
+		}
+		_, err = auth_service.CheckAuthToken(t.Context(), current.ID+":"+currentToken)
+		require.NoError(t, err)
+	})
+
+	t.Run("RestoresSignInMethod", func(t *testing.T) {
+		at, token, err := auth_service.CreateAuthTokenForUserID(t.Context(), 2, session.SignInMethodOAuth2)
+		require.NoError(t, err)
+		ctx, _, succeeded := autoSignInWithCookie(t, at.ID+":"+token)
+		require.True(t, succeeded)
+		assert.Equal(t, session.SignInMethodOAuth2, ctx.Session.Get(session.KeySignInMethod))
+	})
+
+	t.Run("RememberMeNeverRejectsCookie", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.LogInRememberMe, "never")()
+		at, token, err := auth_service.CreateAuthTokenForUserID(t.Context(), 2, "")
+		require.NoError(t, err)
+		_, resp, succeeded := autoSignInWithCookie(t, at.ID+":"+token)
+		require.False(t, succeeded)
+		assert.Contains(t, resp.Header().Get("Set-Cookie"), setting.CookieRememberName+"=;")
+	})
 }

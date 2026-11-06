@@ -65,6 +65,7 @@ test('security key signs in as second factor and as passkey', async ({page, requ
 
   await page.context().clearCookies();
   await page.goto('/user/login');
-  await page.getByText('Sign in with a passkey').click();
+  await page.getByRole('button', {name: 'Sign in with a passkey'}).click();
   await expect(page).toHaveURL(signedIn);
+  expect((await page.context().cookies()).map((cookie) => cookie.name)).toContain('gitea_remember');
 });

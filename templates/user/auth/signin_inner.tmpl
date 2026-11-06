@@ -22,14 +22,7 @@
 				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
 			</div>
 			{{end}}
-			{{if not .LinkAccountMode}}
-			<div class="inline field">
-				<div class="ui checkbox">
-					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
-					<input name="remember" type="checkbox">
-				</div>
-			</div>
-			{{end}}
+			{{template "user/auth/remember_me" .}}
 
 			{{template "user/auth/captcha" .}}
 
@@ -42,6 +35,7 @@
 					{{end}}
 				</button>
 			</div>
+			{{template "user/auth/signin_passkey" .}}
 			{{if or (not .DisablePassword) .LinkAccountMode}}
 			<div class="field tw-text-center">
 				<a href="{{AppSubUrl}}/user/forgot_password">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
@@ -49,34 +43,25 @@
 			{{end}}
 		</form>
 		{{end}}{{/*end if .EnablePasswordSignInForm*/}}
-		{{$showExternalAuthMethods := or .OAuth2Providers .EnableSSPI}}
-		{{if and $showExternalAuthMethods .EnablePasswordSignInForm}}
+		{{$passwordFree := or .OAuth2Providers (and .EnablePasskeyAuth (not .EnablePasswordSignInForm))}}
+		{{if or $passwordFree .EnableSSPI}}
+			{{if .EnablePasswordSignInForm}}
 			<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
-		{{end}}
-		{{if $showExternalAuthMethods}}
-			{{template "user/auth/external_auth_methods" .}}
+			{{end}}
+			<form class="ui form" action="{{AppSubUrl}}/user/oauth2" method="post">
+				{{if $passwordFree}}{{template "user/auth/remember_me" .}}{{end}}
+				{{if not .EnablePasswordSignInForm}}{{template "user/auth/signin_passkey" .}}{{end}}
+				{{template "user/auth/external_auth_methods" .}}
+			</form>
 		{{end}}
 	</div>
 </div>
 
-{{if or .EnablePasskeyAuth .ShowRegistrationButton}}
+{{if .ShowRegistrationButton}}
 <div class="ui container fluid">
-	<div class="ui segment flex-relaxed-list tw-items-center">
-		{{if .EnablePasskeyAuth}}
-		<div class="item signin-passkey-container">
-			<div class="tw-flex tw-flex-col tw-items-center">
-				{{template "user/auth/webauthn_error" .}}
-				<button type="button" class="btn interact-link signin-passkey tw-p-1">{{ctx.Locale.Tr "auth.signin_passkey"}}</button>
-			</div>
-		</div>
-		{{end}}
-
-		{{if .ShowRegistrationButton}}
-			<div class="item">
-				<span>{{ctx.Locale.Tr "auth.need_account"}}</span>
-				<a href="{{AppSubUrl}}/user/sign_up">{{ctx.Locale.Tr "auth.sign_up_now"}}</a>
-			</div>
-		{{end}}
+	<div class="ui segment tw-text-center">
+		<span>{{ctx.Locale.Tr "auth.need_account"}}</span>
+		<a href="{{AppSubUrl}}/user/sign_up">{{ctx.Locale.Tr "auth.sign_up_now"}}</a>
 	</div>
 </div>
 {{end}}

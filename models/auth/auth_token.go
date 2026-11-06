@@ -23,6 +23,7 @@ type AuthToken struct { //nolint:revive // export stutter
 
 	PreviousTokenHash string             // Identifies stale cookies without authenticating them.
 	RotatedUnix       timeutil.TimeStamp // Bounds the grace window for stale cookies.
+	SignInMethod      string
 }
 
 func init() {

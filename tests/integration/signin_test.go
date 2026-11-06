@@ -75,31 +75,44 @@ func TestSigninWithRememberMe(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	baseURL, _ := url.Parse(setting.AppURL)
 
-	session := emptyTestSession(t)
-	req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-		"user_name": user.Name,
-		"password":  userPassword,
-		"remember":  "on",
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	for _, tc := range []struct {
+		mode, remember, checkbox string
+		remembered               bool
+	}{
+		{mode: "checked", remember: "on", checkbox: "input[name=remember][checked]", remembered: true},
+		{mode: "unchecked", remember: "", checkbox: "input[name=remember]:not([checked])", remembered: false},
+		{mode: "never", remember: "on", remembered: false},
+		{mode: "always", remember: "", remembered: true},
+	} {
+		t.Run(tc.mode, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.LogInRememberMe, tc.mode)()
+			doc := NewHTMLParser(t, MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK).Body)
+			AssertHTMLElement(t, doc, "input[name=remember]", tc.checkbox != "")
+			if tc.checkbox != "" {
+				AssertHTMLElement(t, doc, tc.checkbox, true)
+				resp := MakeRequest(t, NewRequestWithValues(t, "POST", "/user/login", map[string]string{"user_name": user.Name, "password": "wrong"}), http.StatusOK)
+				AssertHTMLElement(t, NewHTMLParser(t, resp.Body), "input[name=remember][checked]", false)
+			}
 
-	c := session.GetRawCookie(setting.CookieRememberName)
-	assert.NotNil(t, c)
+			session := emptyTestSession(t)
+			session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+				"user_name": user.Name,
+				"password":  userPassword,
+				"remember":  tc.remember,
+			}), http.StatusSeeOther)
+			c := session.GetRawCookie(setting.CookieRememberName)
+			require.Equal(t, tc.remembered, c != nil)
+			if !tc.remembered {
+				return
+			}
 
-	session = emptyTestSession(t)
-
-	// Without session the settings page should not be reachable
-	req = NewRequest(t, "GET", "/user/settings")
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
-	req = NewRequest(t, "GET", "/user/login")
-	// Set the remember me cookie for the login GET request
-	session.jar.SetCookies(baseURL, []*http.Cookie{c})
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
-	// With session the settings page should be reachable
-	req = NewRequest(t, "GET", "/user/settings")
-	session.MakeRequest(t, req, http.StatusOK)
+			session = emptyTestSession(t)
+			session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusSeeOther)
+			session.jar.SetCookies(baseURL, []*http.Cookie{c})
+			session.MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusSeeOther)
+			session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+		})
+	}
 }
 
 func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
@@ -120,6 +133,7 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 			resp := MakeRequest(t, req, http.StatusOK)
 			doc := NewHTMLParser(t, resp.Body)
 			AssertHTMLElement(t, doc, "form[action='/user/login']", enabled)
+			AssertHTMLElement(t, doc, "form:has(.signin-passkey) input[name=remember]", true)
 
 			postStatus := http.StatusForbidden
 			if enabled {

@@ -110,6 +110,7 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 	ctx.Data["Code"] = code
+	prepareRememberMeData(ctx)
 
 	if nil != ctx.Doer {
 		ctx.Data["user_signed_in"] = true

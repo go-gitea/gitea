@@ -1549,7 +1549,7 @@ func testOAuthSourceSpecialChars(t *testing.T) {
 	testOAuth2 := func(t *testing.T, uri string, statusCode int) {
 		req := NewRequest(t, "GET", uri)
 		resp := MakeRequest(t, req, statusCode)
-		if statusCode == http.StatusTemporaryRedirect {
+		if statusCode == http.StatusSeeOther {
 			assert.NotEmpty(t, resp.Header().Get("Location"))
 		} else {
 			assert.Empty(t, resp.Header().Get("Location"))
@@ -1558,19 +1558,19 @@ func testOAuthSourceSpecialChars(t *testing.T) {
 
 	req := MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
 	doc := NewHTMLParser(t, req.Body)
-	var oauth2Links []string
+	var providers []string
 	doc.Find(".external-login-link").Each(func(i int, s *goquery.Selection) {
-		oauth2Links = append(oauth2Links, s.AttrOr("href", ""))
+		providers = append(providers, s.AttrOr("value", ""))
 	})
-	assert.ElementsMatch(t, []string{
-		"/user/oauth2/test%20space",
-		"/user/oauth2/test+plus",
-	}, oauth2Links)
+	assert.ElementsMatch(t, []string{"test space", "test+plus"}, providers)
+	for _, provider := range providers {
+		MakeRequest(t, NewRequestWithValues(t, "POST", "/user/oauth2", map[string]string{"provider": provider}), http.StatusSeeOther)
+	}
 
-	testOAuth2(t, "/user/oauth2/test%20space", http.StatusTemporaryRedirect)
+	testOAuth2(t, "/user/oauth2/test%20space", http.StatusSeeOther)
 	testOAuth2(t, "/user/oauth2/test+space", http.StatusNotFound)
 
-	testOAuth2(t, "/user/oauth2/test+plus", http.StatusTemporaryRedirect)
-	testOAuth2(t, "/user/oauth2/test%2Bplus", http.StatusTemporaryRedirect)
+	testOAuth2(t, "/user/oauth2/test+plus", http.StatusSeeOther)
+	testOAuth2(t, "/user/oauth2/test%2Bplus", http.StatusSeeOther)
 	testOAuth2(t, "/user/oauth2/test%20plus", http.StatusNotFound)
 }
