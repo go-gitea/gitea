@@ -15,7 +15,7 @@ type Downloader interface {
 	GetRepoInfo(ctx context.Context) (*Repository, error)
 	GetTopics(ctx context.Context) ([]string, error)
 	GetMilestones(ctx context.Context) ([]*Milestone, error)
-	GetReleases(ctx context.Context) ([]*Release, error)
+	GetReleases(ctx context.Context) ([]*Release, error) // oldest first, so inserting them in order keeps the source's order of equally dated releases
 	GetLabels(ctx context.Context) ([]*Label, error)
 	GetIssues(ctx context.Context, page, perPage int) ([]*Issue, bool, error)
 	GetComments(ctx context.Context, commentable Commentable) ([]*Comment, bool, error)

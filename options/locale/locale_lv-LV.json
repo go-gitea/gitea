@@ -621,7 +621,6 @@
   "settings.permission_no_access": "Nav piekļuves",
   "settings.permission_read": "Skatīšanās",
   "settings.permission_write": "Skatīšanās un raksīšanas",
-  "settings.access_token_desc": "Atzīmētie pilnvaras apgabali ierobežo autentifikāciju tikai atbilstošiem <a %s>API</a> izsaukumiem. Sīkāka informācija pieejama <a %s>dokumentācijā</a>.",
   "settings.at_least_one_permission": "Nepieciešams norādīt vismaz vienu tiesību, lai izveidotu pilnvaru",
   "settings.permissions_list": "Tiesības:",
   "settings.manage_oauth2_applications": "Pārvaldīt OAuth2 lietotnes",

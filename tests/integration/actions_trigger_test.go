@@ -1157,7 +1157,7 @@ jobs:
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// unlabeled
-		err = issue_service.RemoveLabel(t.Context(), pullIssue, user2, label)
+		err = issue_service.ClearLabels(t.Context(), pullIssue, user2)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 

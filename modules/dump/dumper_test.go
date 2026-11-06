@@ -47,9 +47,11 @@ func TestPrepareFileNameAndType(t *testing.T) {
 	test("a.zip", "tar.gz", "a.zip", "tar.gz")
 	test("a.zip", "no-such", "", "")
 
-	test("a.tar.gz", "", "a.tar.gz", "zip")
+	test("a.tar.gz", "", "a.tar.gz", "tar.gz")
 	test("a.tar.gz", "tar.gz", "a.tar.gz", "tar.gz")
 	test("a.tar.gz", "no-such", "", "")
+
+	test("a.b", "", "a.b", "zip")
 }
 
 func TestIsSubDir(t *testing.T) {
