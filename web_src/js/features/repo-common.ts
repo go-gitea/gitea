@@ -18,6 +18,10 @@ async function onDownloadArchive(e: Event) {
   try {
     for (let tryCount = 0; ;tryCount++) {
       const response = await POST(el.href);
+      if (response.redirected) {
+        window.location.assign(response.url); // eg: the login page when anonymous archive downloading is blocked as "expensive"
+        return;
+      }
       if (!response.ok) throw new Error(`Invalid server response: ${response.status}`);
 
       const data = await response.json();
