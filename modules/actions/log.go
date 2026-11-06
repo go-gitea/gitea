@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/models/dbfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"

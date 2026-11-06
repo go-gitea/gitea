@@ -4,24 +4,9 @@
 			{{$provider.IconHTML 24}} {{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
 		</a>
 	{{end}}
-	{{if .EnableOpenIDSignIn}}
-		<a class="ui button external-login-link tw-gap-3" data-require-appurl-check="true" rel="nofollow" href="{{AppSubUrl}}/user/login/openid">
-			{{svg "fontawesome-openid" 24}} {{ctx.Locale.Tr "sign_in_with_provider" "OpenID"}}
-		</a>
-	{{end}}
 	{{if .EnableSSPI}}
 		<a class="ui button external-login-link tw-gap-3" rel="nofollow" href="{{AppSubUrl}}/user/login?auth_with_sspi=1">
 			{{svg "fontawesome-windows" 24}} Windows SSPI
 		</a>
 	{{end}}
-
-	<!-- TODO: support external auth remember me -->
-	<!-- {{if not .LinkAccountMode}}
-		<div class="tw-flex tw-flex-col tw-gap-3 tw-pt-3 tw-items-center">
-			<div class="ui checkbox">
-				<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
-				<input id="external-auth-remember" name="external-auth-remember" type="checkbox">
-			</div>
-		</div>
-	{{end}} -->
 </div>

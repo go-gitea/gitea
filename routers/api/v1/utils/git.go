@@ -52,7 +52,7 @@ func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, in
 		}
 	}
 	if refCommit.RefName == "" {
-		if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.ObjectFormatName), inputRef, minCommitIDLen...) {
+		if git.IsStringValidObjectID(git.ObjectFormatFromName(repo.ObjectFormatName), inputRef, minCommitIDLen...) {
 			refCommit.RefName = git.RefNameFromCommit(inputRef)
 		}
 	}

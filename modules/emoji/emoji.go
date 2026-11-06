@@ -8,24 +8,23 @@ import (
 	"sort"
 	"strings"
 	"sync/atomic"
+	"unicode/utf8"
 
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
-// Gemoji is a set of emoji data.
-type Gemoji []Emoji
-
 // Emoji represents a single emoji and associated data.
 type Emoji struct {
-	Emoji          string
-	Description    string
-	Aliases        []string
-	UnicodeVersion string
-	SkinTones      bool
+	Emoji   string   `json:"emoji"`
+	Aliases []string `json:"aliases"`
 }
 
 type globalVarsStruct struct {
+	emojis         []Emoji
 	codeMap        map[string]int    // emoji Unicode code to its emoji data.
 	aliasMap       map[string]int    // the alias to its emoji data.
 	trie           *util.TrieNode    // trie for finding emoji positions.
@@ -43,8 +42,13 @@ func globalVars() *globalVarsStruct {
 	}
 	// although there can be concurrent calls, the result should be the same, and there is no performance problem
 	vars = &globalVarsStruct{}
-	vars.codeMap = make(map[string]int, len(GemojiData))
-	vars.aliasMap = make(map[string]int, len(GemojiData))
+	if data, err := public.AssetFS().ReadFile("assets/emoji.json"); err != nil {
+		log.Error("Unable to read assets/emoji.json: %v", err)
+	} else if err = json.Unmarshal(data, &vars.emojis); err != nil {
+		log.Error("Unable to parse assets/emoji.json: %v", err)
+	}
+	vars.codeMap = make(map[string]int, len(vars.emojis))
+	vars.aliasMap = make(map[string]int, len(vars.emojis))
 	vars.trie = &util.TrieNode{}
 
 	// process emoji codes and aliases
@@ -52,11 +56,11 @@ func globalVars() *globalVarsStruct {
 	aliasPairs := make([]string, 0)
 
 	// sort from largest to small so we match combined emoji first
-	sort.Slice(GemojiData, func(i, j int) bool {
-		return len(GemojiData[i].Emoji) > len(GemojiData[j].Emoji)
+	sort.Slice(vars.emojis, func(i, j int) bool {
+		return len(vars.emojis[i].Emoji) > len(vars.emojis[j].Emoji)
 	})
 
-	for idx, emoji := range GemojiData {
+	for idx, emoji := range vars.emojis {
 		if emoji.Emoji == "" || len(emoji.Aliases) == 0 {
 			continue
 		}
@@ -95,29 +99,34 @@ func globalVars() *globalVarsStruct {
 }
 
 // FromCode retrieves the emoji data based on the provided Unicode code
-// e.g.: "\u2618" will return the Gemoji data for "shamrock".
+// e.g.: "\u2618" will return the emoji data for "shamrock".
 func FromCode(code string) *Emoji {
-	i, ok := globalVars().codeMap[code]
+	vars := globalVars()
+	i, ok := vars.codeMap[code]
+	if !ok {
+		i, ok = vars.codeMap[removeSkinTones(code)]
+	}
 	if !ok {
 		return nil
 	}
 
-	return &GemojiData[i]
+	return &vars.emojis[i]
 }
 
 // FromAlias retrieves the emoji data based on the provided alias in the form "alias" or ":alias:"
-// e.g.: "shamrock" or ":shamrock:" will return the Gemoji data for "shamrock".
+// e.g.: "shamrock" or ":shamrock:" will return the emoji data for "shamrock".
 func FromAlias(alias string) *Emoji {
 	if strings.HasPrefix(alias, ":") && strings.HasSuffix(alias, ":") {
 		alias = alias[1 : len(alias)-1]
 	}
 
-	i, ok := globalVars().aliasMap[alias]
+	vars := globalVars()
+	i, ok := vars.aliasMap[alias]
 	if !ok {
 		return nil
 	}
 
-	return &GemojiData[i]
+	return &vars.emojis[i]
 }
 
 // ReplaceCodes replaces all emoji codes with the first corresponding emoji alias in the form of ":alias:"
@@ -139,8 +148,36 @@ func FindEmojiSubmatchIndex(s string) []int {
 			continue
 		}
 		if matchLen := vars.trie.Match(s, i); matchLen > 0 {
-			return []int{i, i + matchLen}
+			return []int{i, i + skinTonedLen(vars, s[i:], matchLen)}
 		}
 	}
 	return nil
+}
+
+func isSkinTone(r rune) bool {
+	return r >= 0x1f3fb && r <= 0x1f3ff
+}
+
+func removeSkinTones(s string) string {
+	return strings.Map(func(r rune) rune { return util.Iif(isSkinTone(r), -1, r) }, s)
+}
+
+// skinTonedLen extends a match at the start of s over skin tones, which the emoji data omits
+func skinTonedLen(vars *globalVarsStruct, s string, matchLen int) int {
+	if r, _ := utf8.DecodeRuneInString(s[matchLen:]); !isSkinTone(r) {
+		return matchLen
+	}
+	tonelessLen := vars.trie.Match(removeSkinTones(s[:min(len(s), 2*len(vars.emojis[0].Emoji))]), 0)
+	end := 0
+	for end < len(s) {
+		r, size := utf8.DecodeRuneInString(s[end:])
+		if !isSkinTone(r) {
+			if tonelessLen == 0 {
+				break
+			}
+			tonelessLen -= size
+		}
+		end += size
+	}
+	return end
 }

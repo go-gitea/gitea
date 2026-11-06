@@ -67,11 +67,11 @@ func TestWatchRepo(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, WatchRepo(t.Context(), user, repo, true))
+	assert.NoError(t, WatchRepoAuto(t.Context(), user, repo, true))
 	unittest.AssertExistsAndLoadBean(t, &Watch{RepoID: repo.ID, UserID: user.ID})
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 
-	assert.NoError(t, WatchRepo(t.Context(), user, repo, false))
+	assert.NoError(t, WatchRepoAuto(t.Context(), user, repo, false))
 	unittest.AssertNotExistsBean(t, &Watch{RepoID: repo.ID, UserID: user.ID})
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 }
@@ -96,26 +96,19 @@ func TestMetas(t *testing.T) {
 		},
 	}
 
-	testSuccess := func(expectedStyle string) {
+	for _, style := range []string{"", markup.IssueNameStyleAlphanumeric, markup.IssueNameStyleNumeric, markup.IssueNameStyleRegexp} {
+		externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = style
 		repo.Units = []*RepoUnit{&externalTracker}
 		repo.commonRenderingMetas = nil
 		metas := repo.ComposeCommentMetas(t.Context())
-		assert.Equal(t, expectedStyle, metas["style"])
+		if style == "" {
+			style = markup.IssueNameStyleNumeric
+		}
+		assert.Equal(t, style, metas["style"])
 		assert.Equal(t, "testRepo", metas["repo"])
 		assert.Equal(t, "testOwner", metas["user"])
-		assert.Equal(t, "https://someurl.com/{user}/{repo}/{issue}", metas["format"])
+		assert.Equal(t, "https://someurl.com/{user}/{repo}/{issue}", metas["externalTrackerLinkFormat"])
 	}
-
-	testSuccess(markup.IssueNameStyleNumeric)
-
-	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleAlphanumeric
-	testSuccess(markup.IssueNameStyleAlphanumeric)
-
-	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleNumeric
-	testSuccess(markup.IssueNameStyleNumeric)
-
-	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleRegexp
-	testSuccess(markup.IssueNameStyleRegexp)
 
 	repo, err := GetRepositoryByID(t.Context(), 3)
 	assert.NoError(t, err)
@@ -185,6 +178,8 @@ func TestComposeSSHCloneURL(t *testing.T) {
 	assert.Equal(t, "git@domain:user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
 	setting.Repository.UseCompatSSHURI = true
 	assert.Equal(t, "ssh://git@domain/user/repo.git", ComposeSSHCloneURL(&user_model.User{Name: "doer"}, "user", "repo"))
+	setting.Repository.UseCompatSSHURI = false
+	assert.Equal(t, "ssh://git@domain/user/repo.git", ComposeSSHCloneURI(nil, "user", "repo"))
 	// test SSH_DOMAIN while use non-standard SSH port
 	setting.SSH.Port = 123
 	setting.Repository.UseCompatSSHURI = false
@@ -209,29 +204,21 @@ func TestComposeSSHCloneURL(t *testing.T) {
 }
 
 func TestIsUsableRepoName(t *testing.T) {
-	assert.NoError(t, IsUsableRepoName("a"))
-	assert.NoError(t, IsUsableRepoName("-1_."))
-	assert.NoError(t, IsUsableRepoName(".profile"))
+	for _, name := range []string{"a", "-1_.", ".profile"} {
+		assert.NoError(t, IsUsableRepoName(name))
+	}
 
-	assert.Error(t, IsUsableRepoName("-"))
-	assert.Error(t, IsUsableRepoName("🌞"))
-	assert.Error(t, IsUsableRepoName("the/repo"))
-	assert.Error(t, IsUsableRepoName("the..repo"))
-	assert.Error(t, IsUsableRepoName("foo.wiki"))
-	assert.Error(t, IsUsableRepoName("foo.git"))
-	assert.Error(t, IsUsableRepoName("foo.RSS"))
+	for _, name := range []string{"-", "🌞", "the/repo", "the..repo", "foo.wiki", "foo.git", "foo.RSS"} {
+		assert.Error(t, IsUsableRepoName(name))
+	}
 }
 
 func TestIsValidSSHAccessRepoName(t *testing.T) {
-	assert.True(t, IsValidSSHAccessRepoName("a"))
-	assert.True(t, IsValidSSHAccessRepoName("-1_."))
-	assert.True(t, IsValidSSHAccessRepoName(".profile"))
-	assert.True(t, IsValidSSHAccessRepoName("foo.wiki"))
+	for _, name := range []string{"a", "-1_.", ".profile", "foo.wiki"} {
+		assert.True(t, IsValidSSHAccessRepoName(name))
+	}
 
-	assert.False(t, IsValidSSHAccessRepoName("-"))
-	assert.False(t, IsValidSSHAccessRepoName("🌞"))
-	assert.False(t, IsValidSSHAccessRepoName("the/repo"))
-	assert.False(t, IsValidSSHAccessRepoName("the..repo"))
-	assert.False(t, IsValidSSHAccessRepoName("foo.git"))
-	assert.False(t, IsValidSSHAccessRepoName("foo.RSS"))
+	for _, name := range []string{"-", "🌞", "the/repo", "the..repo", "foo.git", "foo.RSS"} {
+		assert.False(t, IsValidSSHAccessRepoName(name))
+	}
 }

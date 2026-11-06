@@ -1,8 +1,7 @@
 import {svg} from '../../svg.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {createElementFromHTML} from '../../utils/dom.ts';
-import {showFomanticModal} from '../../modules/fomantic/modal.ts';
-import {hideToastsAll} from '../../modules/toast.ts';
+import {showModal} from '../../modules/modal.ts';
 
 const {i18n} = window.config;
 
@@ -12,27 +11,24 @@ type ConfirmModalOptions = {
   confirmButtonColor?: 'primary' | 'red' | 'green' | 'blue';
 };
 
-export function createConfirmModal({header = '', content = '', confirmButtonColor = 'primary'}:ConfirmModalOptions = {}): HTMLElement {
+export function createConfirmModal({header = '', content = '', confirmButtonColor = 'primary'}:ConfirmModalOptions = {}): HTMLDialogElement {
   const headerHtml = header ? html`<div class="header">${header}</div>` : '';
   return createElementFromHTML(html`
-    <div class="ui g-modal-confirm modal">
+    <dialog class="modal-dialog">
       ${htmlRaw(headerHtml)}
       <div class="content">${content}</div>
       <div class="actions">
         <button class="ui cancel button">${htmlRaw(svg('octicon-x'))} ${i18n.modal_cancel}</button>
-        <button class="ui ${confirmButtonColor} ok button">${htmlRaw(svg('octicon-check'))} ${i18n.modal_confirm}</button>
+        <button class="ui ${confirmButtonColor} ok button" autofocus>${htmlRaw(svg('octicon-check'))} ${i18n.modal_confirm}</button>
       </div>
-    </div>
+    </dialog>
   `.trim());
 }
 
-export function confirmModal(modal: HTMLElement | ConfirmModalOptions): Promise<boolean> {
-  if (!(modal instanceof HTMLElement)) modal = createConfirmModal(modal);
-  // hide existing toasts when we need to show a new modal, otherwise the toasts only interfere the UI
-  // it's fine to do so because the modal is triggered by user's explicit action, so the user should already have read the toast messages
-  hideToastsAll();
+export function confirmModal(modal: HTMLDialogElement | ConfirmModalOptions): Promise<boolean> {
+  if (!(modal instanceof HTMLDialogElement)) modal = createConfirmModal(modal);
   return new Promise((resolve) => {
-    showFomanticModal(modal, {
+    showModal(modal, {
       onApprove() {
         resolve(true);
       },

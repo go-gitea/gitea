@@ -16,7 +16,6 @@ import (
 )
 
 func fillResultNameRev(ctx context.Context, repo git.RepositoryFacade, results []*LFSResult) error {
-	// Should really use a go-git function here but name-rev is not completed and recapitulating it is not simple
 	wg := errgroup.Group{}
 	cmd := gitcmd.NewCommand("name-rev", "--stdin", "--name-only", "--always").WithRepo(repo)
 	stdin, stdinClose := cmd.MakeStdinPipe()

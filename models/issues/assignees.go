@@ -9,7 +9,6 @@ import (
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -72,6 +71,10 @@ type AssignedIssuesOptions struct {
 	db.ListOptions
 	AssigneeID  int64
 	RepoOwnerID int64
+}
+
+func (opts *AssignedIssuesOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts *AssignedIssuesOptions) ToConds() builder.Cond {
@@ -167,22 +170,4 @@ func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (re
 	}
 
 	return found, nil
-}
-
-// MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
-func MakeIDsFromAPIAssigneesToAdd(ctx context.Context, oneAssignee string, multipleAssignees []string) ([]int64, error) {
-	var requestAssignees []string
-
-	// Keeping the old assigning method for compatibility reasons
-	if oneAssignee != "" && !util.SliceContainsString(multipleAssignees, oneAssignee) {
-		requestAssignees = append(requestAssignees, oneAssignee)
-	}
-
-	// Prevent empty assignees
-	if len(multipleAssignees) > 0 && multipleAssignees[0] != "" {
-		requestAssignees = append(requestAssignees, multipleAssignees...)
-	}
-
-	// Get the IDs of all assignees
-	return user_model.GetUserIDsByNames(ctx, requestAssignees, false)
 }

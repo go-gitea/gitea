@@ -5,7 +5,7 @@ name: cache-prune
 
 on:
   schedule:
-    - cron: "37 2 * * *" # every day at 02:37 UTC
+    - cron: "37 */6 * * *" # every six hours at :37
   workflow_dispatch:
   workflow_call:
 
@@ -24,15 +24,25 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      # Deletes least recently used first, the order GitHub itself evicts in, which takes
-      # superseded generations first as those stop being restored once a newer one exists.
+      # Keep the newest generation per key, restores never reach the older ones.
+      - name: delete superseded caches
+        run: |
+          gh cache list --limit 1000 --json id,key,ref,createdAt |
+            jq -r 'group_by([.ref, (.key | sub("(-go[0-9.]+)?-[0-9a-f]{40,64}(-[0-9]+-[0-9]+)?$"; ""))])[]
+              | sort_by(.createdAt)[:-1][] | "\(.id) \(.key)"' |
+            while read -r id key; do
+              echo "deleting $key"
+              gh cache delete "$id" || true
+            done
+
+      # Deletes least recently used first, the order GitHub itself evicts in.
       - name: delete caches over the size limit
         run: |
           caches=$(gh cache list --limit 1000 --sort last_accessed_at --order asc --json id,key,sizeInBytes)
           size=$(jq '[.[].sizeInBytes] | add // 0' <<< "$caches")
           echo "cache usage: $((size / 1000000)) MB"
-          while [ "$size" -gt 6500000000 ] && read -r id bytes key; do
+          while [ "$size" -gt 6000000000 ] && read -r id bytes key; do
             echo "deleting $key"
-            gh cache delete "$id"
+            gh cache delete "$id" || true
             size=$((size - bytes))
           done <<< "$(jq -r '.[] | "\(.id) \(.sizeInBytes) \(.key)"' <<< "$caches")"

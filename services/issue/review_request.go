@@ -103,6 +103,10 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 			return nil
 		}
 
+		if !issue.Repo.IsArchived && doer.ID == reviewer.ID && lastReview != nil && lastReview.Type == issues_model.ReviewTypeApprove {
+			return nil
+		}
+
 		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Doer can't choose reviewer",
 			UserID: doer.ID,

@@ -39,10 +39,11 @@ func CreateArchive(ctx context.Context, repo RepositoryFacade, repoName, format 
 
 // CreateBundle create bundle content to the target path
 func CreateBundle(ctx context.Context, repo RepositoryFacade, commit string, out io.Writer) error {
-	// TODO: use the following steps instead of creating a temp file, also need to iterate and clean up outdated refs
-	// git update-ref refs/bundle/temp-{timestamp} {commit}
-	// git bundle create - refs/bundle/temp-{timestamp}
-	// git update-ref -d refs/bundle/temp-{timestamp}
+	// TODO: use the following steps instead of creating a temp repo, also need to iterate and clean up outdated refs
+	// the temp ref has to be under refs/heads/*, and a clone only checks out with a HEAD, which needs the temp repo
+	// git update-ref refs/heads/bundle-temp-{timestamp} {commit}
+	// git bundle create - refs/heads/bundle-temp-{timestamp}
+	// git update-ref -d refs/heads/bundle-temp-{timestamp}
 	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-bundle")
 	if err != nil {
 		return err
@@ -69,18 +70,5 @@ func CreateBundle(ctx context.Context, repo RepositoryFacade, commit string, out
 		return err
 	}
 
-	tmpFile := filepath.Join(tmpDir, "bundle")
-	_, _, err = gitTmpCmd().AddArguments("bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(ctx)
-	if err != nil {
-		return err
-	}
-
-	fi, err := os.Open(tmpFile)
-	if err != nil {
-		return err
-	}
-	defer fi.Close()
-
-	_, err = io.Copy(out, fi)
-	return err
+	return gitTmpCmd().AddArguments("bundle", "create", "-", "bundle", "HEAD").WithStdoutCopy(out).RunWithStderr(ctx)
 }

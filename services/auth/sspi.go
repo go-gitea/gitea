@@ -9,18 +9,18 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"uuid"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/auth/source/sspi"
 	gitea_context "gitea.dev/services/context"
-
-	gouuid "github.com/google/uuid"
 )
 
 const (
@@ -86,7 +86,6 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		store.GetData()["Flash"] = map[string]string{
 			"ErrorMsg": err.Error(),
 		}
-		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
 		// in this case, the Verify function is called in Gitea's web context
 		// FIXME: it doesn't look good to render the page here, why not redirect?
@@ -118,10 +117,13 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 			log.Error("CreateUser: %v", err)
 			return nil, err
 		}
+	} else if !user.IsIndividual() {
+		log.Trace("SSPI Authorization: user %q is not an individual, ignoring", username)
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	if s.CreateSession {
-		handleSignIn(w, req, sess, user)
+		handleSignInNonInteractive(w, req, sess, user)
 	}
 
 	log.Trace("SSPI Authorization: Logged in user %-v", user)
@@ -143,7 +145,7 @@ func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
 	if len(sources) > 1 {
 		return nil, errors.New("more than one active login source of type SSPI found")
 	}
-	return sources[0].Cfg.(*sspi.Source), nil
+	return auth.MustSourceCfg[*sspi.Source](sources[0]), nil
 }
 
 func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
@@ -156,7 +158,7 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
 func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (*user_model.User, error) {
-	email := gouuid.New().String() + "@localhost.localdomain"
+	email := uuid.New().String() + "@localhost.localdomain"
 	user := &user_model.User{
 		Name:     username,
 		Email:    email,
@@ -171,6 +173,8 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return nil, err
 	}
+
+	audit.RecordAs(ctx, user_model.NewAuthSourceUser(), audit_model.UserCreate, user)
 
 	return user, nil
 }

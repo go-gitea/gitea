@@ -31,6 +31,8 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	// for example, when previewing file "/gitea/owner/repo/src/branch/features/feat-123/doc/CHANGE.md", then filePath is "doc/CHANGE.md"
 	// and the urlPathContext is "/gitea/owner/repo/src/branch/features/feat-123/doc"
 
+	ctx.SetHeaderContentSecurityPolicyGeneral()
+
 	if mode == "" || mode == "markdown" {
 		// raw Markdown doesn't do any special handling
 		// TODO: raw markdown doesn't do any link processing, so "urlPathContext" doesn't take effect
@@ -62,6 +64,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		treePath = path.Dir(filePath)                       // it is "doc" if filePath is "doc/CHANGE.md"
 		refPath = strings.Join(fields[3:], "/")             // it is "branch/features/feat-12/doc"
 		refPath = strings.TrimSuffix(refPath, "/"+treePath) // now we get the correct branch path: "branch/features/feat-12"
+		refPath = util.PathEscapeSegments(refPath)
 	} else if fields = strings.SplitN(repoLinkPath, "/", 3); len(fields) == 2 {
 		repoOwnerName, repoName = fields[0], fields[1]
 	}

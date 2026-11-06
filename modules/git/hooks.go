@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -119,15 +119,19 @@ func createDelegateHooks(hookDir string) (err error) {
 		oldHookPath := filepath.Join(hookDir, hookName)
 		newHookPath := filepath.Join(hookDir, hookName+".d", "gitea")
 
-		if err := os.MkdirAll(filepath.Join(hookDir, hookName+".d"), os.ModePerm); err != nil {
-			return fmt.Errorf("create hooks dir '%s': %w", filepath.Join(hookDir, hookName+".d"), err)
+		hookDDir := filepath.Join(hookDir, hookName+".d")
+		if err := os.MkdirAll(hookDDir, 0o755); err != nil {
+			return fmt.Errorf("create hooks dir '%s': %w", hookDDir, err)
+		}
+		if err := os.Chmod(hookDDir, 0o755); err != nil {
+			return fmt.Errorf("chmod hooks dir '%s': %w", hookDDir, err)
 		}
 
 		// WARNING: This will override all old server-side hooks
 		if err = util.RemoveWithRetry(oldHookPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("unable to pre-remove old hook file '%s' prior to rewriting: %w ", oldHookPath, err)
 		}
-		if err = os.WriteFile(oldHookPath, []byte(hookTpls[i]), 0o777); err != nil {
+		if err = os.WriteFile(oldHookPath, []byte(hookTpls[i]), 0o755); err != nil {
 			return fmt.Errorf("write old hook file '%s': %w", oldHookPath, err)
 		}
 
@@ -138,7 +142,7 @@ func createDelegateHooks(hookDir string) (err error) {
 		if err = util.RemoveWithRetry(newHookPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("unable to pre-remove new hook file '%s' prior to rewriting: %w", newHookPath, err)
 		}
-		if err = os.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0o777); err != nil {
+		if err = os.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0o755); err != nil {
 			return fmt.Errorf("write new hook file '%s': %w", newHookPath, err)
 		}
 
@@ -152,7 +156,7 @@ func createDelegateHooks(hookDir string) (err error) {
 
 func checkExecutable(filename string) bool {
 	// windows has no concept of a executable bit
-	if runtime.GOOS == "windows" {
+	if consts.IsWindows {
 		return true
 	}
 	fileInfo, err := os.Stat(filename)

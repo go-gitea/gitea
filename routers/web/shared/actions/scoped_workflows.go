@@ -181,7 +181,7 @@ func deriveScopedStatusContexts(prefix, displayName string, content []byte, even
 		if job == nil {
 			continue
 		}
-		jobName := util.EllipsisDisplayString(job.Name, 255) // run creation truncates job names the same way
+		jobName := job.DisplayName()
 		for _, ev := range eventNames {
 			ctxName := actions_module.ScopedWorkflowStatusContextName(prefix, displayName, jobName, ev)
 			if seen.Contains(ctxName) {

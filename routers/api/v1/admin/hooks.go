@@ -137,7 +137,7 @@ func CreateHook(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Hook"
 
-	form := web.GetForm(ctx).(*api.CreateHookOption)
+	form := web.GetForm[*api.CreateHookOption](ctx)
 
 	utils.AddSystemHook(ctx, form)
 }
@@ -166,7 +166,7 @@ func EditHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	form := web.GetForm(ctx).(*api.EditHookOption)
+	form := web.GetForm[*api.EditHookOption](ctx)
 
 	// TODO in body params
 	hookID := ctx.PathParamInt64("id")

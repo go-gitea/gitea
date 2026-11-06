@@ -74,7 +74,7 @@ func runKeys(ctx context.Context, c *cli.Command) error {
 
 	setup(ctx, c.Bool("debug"))
 
-	authorizedString, extra := private.AuthorizedPublicKeyByContent(ctx, content)
+	authorizedString, extra := private.AuthorizedPublicKeyForSSH(ctx, content)
 	// do not use handleCliResponseExtra or cli.NewExitError, if it exists immediately, it breaks some tests like Test_CmdKeys
 	if extra.Error != nil {
 		return extra.Error

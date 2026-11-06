@@ -110,49 +110,40 @@ func TestPackageAPI(t *testing.T) {
 		assert.Equal(t, user.Name, p.Creator.UserName)
 	})
 
-	t.Run("DeleteEntirePackage", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	for _, c := range []struct {
+		name        string
+		packageName string
+		suffix      string
+	}{
+		{"DeleteEntirePackage", "test-package-entire-delete", ""},
+		{"DeletePackageVersion", "test-package-version-delete", "/1.0.1"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		packageName := "test-package-entire-delete"
-		for _, version := range []string{"1.0.1", "1.0.2"} {
-			url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/file.bin", user.Name, packageName, version)
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusCreated)
-		}
+			for _, version := range []string{"1.0.1", "1.0.2"} {
+				url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/file.bin", user.Name, c.packageName, version)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+					AddBasicAuth(user.Name)
+				MakeRequest(t, req, http.StatusCreated)
+			}
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s", user.Name, packageName)).
-			AddTokenAuth(tokenWritePackage)
-		MakeRequest(t, req, http.StatusNoContent)
+			url := fmt.Sprintf("/api/v1/packages/%s/generic/%s", user.Name, c.packageName) + c.suffix
+			req := NewRequest(t, "DELETE", url).
+				AddTokenAuth(tokenWritePackage)
+			MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s", user.Name, packageName)).
-			AddTokenAuth(tokenReadPackage)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
+			req = NewRequest(t, "GET", url).
+				AddTokenAuth(tokenReadPackage)
+			MakeRequest(t, req, http.StatusNotFound)
 
-	t.Run("DeletePackageVersion", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		packageName := "test-package-version-delete"
-		for _, version := range []string{"1.0.1", "1.0.2"} {
-			url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/file.bin", user.Name, packageName, version)
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusCreated)
-		}
-
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.1", user.Name, packageName)).
-			AddTokenAuth(tokenWritePackage)
-		MakeRequest(t, req, http.StatusNoContent)
-
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.1", user.Name, packageName)).
-			AddTokenAuth(tokenReadPackage)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.2", user.Name, packageName)).
-			AddTokenAuth(tokenReadPackage)
-		MakeRequest(t, req, http.StatusOK)
-	})
+			if c.suffix != "" {
+				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.2", user.Name, c.packageName)).
+					AddTokenAuth(tokenReadPackage)
+				MakeRequest(t, req, http.StatusOK)
+			}
+		})
+	}
 
 	t.Run("ListPackageVersions", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -293,7 +284,8 @@ func TestPackageAccess(t *testing.T) {
 	limitedOrgNoMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
 	publicOrgNoMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
-	uploadPackage := func(doer, owner *user_model.User, filename string, expectedStatus int) {
+	uploadPackage := func(t *testing.T, doer, owner *user_model.User, filename string, expectedStatus int) {
+		t.Helper()
 		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/%s.bin", owner.Name, filename)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
 		if doer != nil {
@@ -314,6 +306,20 @@ func TestPackageAccess(t *testing.T) {
 	type Target struct {
 		Owner          *user_model.User
 		ExpectedStatus int
+	}
+
+	unauthorizedTargets := []Target{
+		{admin, http.StatusUnauthorized},
+		{inactive, http.StatusUnauthorized},
+		{user, http.StatusUnauthorized},
+		{limitedUser, http.StatusUnauthorized},
+		{privateUser, http.StatusUnauthorized},
+		{privateOrgMember, http.StatusUnauthorized},
+		{limitedOrgMember, http.StatusUnauthorized},
+		{publicOrgMember, http.StatusUnauthorized},
+		{privateOrgNoMember, http.StatusUnauthorized},
+		{limitedOrgNoMember, http.StatusUnauthorized},
+		{publicOrgNoMember, http.StatusUnauthorized},
 	}
 
 	t.Run("Upload", func(t *testing.T) {
@@ -344,36 +350,12 @@ func TestPackageAccess(t *testing.T) {
 			{ // Without credentials no upload should be possible
 				Doer:     nil,
 				Filename: "nil",
-				Targets: []Target{
-					{admin, http.StatusUnauthorized},
-					{inactive, http.StatusUnauthorized},
-					{user, http.StatusUnauthorized},
-					{limitedUser, http.StatusUnauthorized},
-					{privateUser, http.StatusUnauthorized},
-					{privateOrgMember, http.StatusUnauthorized},
-					{limitedOrgMember, http.StatusUnauthorized},
-					{publicOrgMember, http.StatusUnauthorized},
-					{privateOrgNoMember, http.StatusUnauthorized},
-					{limitedOrgNoMember, http.StatusUnauthorized},
-					{publicOrgNoMember, http.StatusUnauthorized},
-				},
+				Targets:  unauthorizedTargets,
 			},
 			{ // Inactive users can't upload anywhere
 				Doer:     inactive,
 				Filename: "inactive",
-				Targets: []Target{
-					{admin, http.StatusUnauthorized},
-					{inactive, http.StatusUnauthorized},
-					{user, http.StatusUnauthorized},
-					{limitedUser, http.StatusUnauthorized},
-					{privateUser, http.StatusUnauthorized},
-					{privateOrgMember, http.StatusUnauthorized},
-					{limitedOrgMember, http.StatusUnauthorized},
-					{publicOrgMember, http.StatusUnauthorized},
-					{privateOrgNoMember, http.StatusUnauthorized},
-					{limitedOrgNoMember, http.StatusUnauthorized},
-					{publicOrgNoMember, http.StatusUnauthorized},
-				},
+				Targets:  unauthorizedTargets,
 			},
 			{ // Normal users can upload to self and orgs in which they are members and have package write access
 				Doer:     user,
@@ -395,8 +377,10 @@ func TestPackageAccess(t *testing.T) {
 		}
 
 		for _, c := range cases {
-			for _, t := range c.Targets {
-				uploadPackage(c.Doer, t.Owner, c.Filename, t.ExpectedStatus)
+			for _, target := range c.Targets {
+				t.Run(fmt.Sprintf("%s-%s", c.Filename, target.Owner.Name), func(t *testing.T) {
+					uploadPackage(t, c.Doer, target.Owner, c.Filename, target.ExpectedStatus)
+				})
 			}
 		}
 	})
@@ -442,20 +426,8 @@ func TestPackageAccess(t *testing.T) {
 				},
 			},
 			{ // Inactive users have no access
-				Doer: inactive,
-				Targets: []Target{
-					{admin, http.StatusUnauthorized},
-					{inactive, http.StatusUnauthorized},
-					{user, http.StatusUnauthorized},
-					{limitedUser, http.StatusUnauthorized},
-					{privateUser, http.StatusUnauthorized},
-					{privateOrgMember, http.StatusUnauthorized},
-					{limitedOrgMember, http.StatusUnauthorized},
-					{publicOrgMember, http.StatusUnauthorized},
-					{privateOrgNoMember, http.StatusUnauthorized},
-					{limitedOrgNoMember, http.StatusUnauthorized},
-					{publicOrgNoMember, http.StatusUnauthorized},
-				},
+				Doer:    inactive,
+				Targets: unauthorizedTargets,
 			},
 			{ // Normal users can access self, public or limited users/orgs and private orgs in which they are members
 				Doer: user,

@@ -62,9 +62,10 @@ func ParseScopedWorkflows(ctx context.Context, gitRepo *git.Repository, sourceCo
 func MatchScopedWorkflows(
 	ctx context.Context,
 	parsed []*ParsedScopedWorkflow,
+	sourceCommitSHA string,
 	consumerGitRepo *git.Repository,
 	consumerCommit *git.Commit,
-	triggedEvent webhook_module.HookEventType,
+	inputEvent webhook_module.HookEventType,
 	payload api.Payloader,
 ) (matched, filtered []*DetectedWorkflow) {
 	for _, p := range parsed {
@@ -74,11 +75,12 @@ func MatchScopedWorkflows(
 				continue
 			}
 			dwf := &DetectedWorkflow{
-				EntryName:    p.EntryName,
-				TriggerEvent: evt,
-				Content:      p.Content,
+				EntryName:       p.EntryName,
+				TriggerEvent:    evt,
+				Content:         p.Content,
+				SourceCommitSHA: sourceCommitSHA,
 			}
-			switch detectWorkflowMatch(ctx, consumerGitRepo, consumerCommit, triggedEvent, payload, evt) {
+			switch detectWorkflowMatch(ctx, consumerGitRepo, consumerCommit, inputEvent, payload, evt) {
 			case detectMatched:
 				matched = append(matched, dwf)
 			case detectFilteredOut:

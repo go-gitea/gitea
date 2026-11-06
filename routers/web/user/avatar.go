@@ -27,7 +27,7 @@ func AvatarByUsernameSize(ctx *context.Context) {
 	if user == nil {
 		var err error
 		if user, err = user_model.GetUserByName(ctx, username); err != nil {
-			ctx.NotFoundOrServerError("GetUserByName", user_model.IsErrUserNotExist, err)
+			ctx.ServerError("GetUserByName", err)
 			return
 		}
 	}

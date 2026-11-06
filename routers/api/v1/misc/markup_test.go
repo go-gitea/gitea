@@ -7,32 +7,21 @@ import (
 	go_context "context"
 	"io"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unittest"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
-	context_service "gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 const AppURL = "http://localhost:3000/"
-
-func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		FixtureFiles: []string{"repository.yml", "user.yml"},
-	})
-	os.Exit(m.Run())
-}
 
 func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expectedBody string, expectedCode int) {
 	setting.AppURL = AppURL
@@ -49,13 +38,11 @@ func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expe
 		FilePath: filePath,
 	}
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markup")
-	ctx.Repo = &context_service.Repository{}
-	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	web.SetForm(ctx, &options)
 	Markup(ctx)
 	assert.Equal(t, expectedBody, resp.Body.String())
 	assert.Equal(t, expectedCode, resp.Code)
-	resp.Body.Reset()
+	assert.Contains(t, resp.Header().Get("Content-Security-Policy"), "script-src * 'nonce-")
 }
 
 func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody string, responseCode int) {
@@ -76,11 +63,10 @@ func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody
 	Markdown(ctx)
 	assert.Equal(t, responseBody, resp.Body.String())
 	assert.Equal(t, responseCode, resp.Code)
-	resp.Body.Reset()
+	assert.Contains(t, resp.Header().Get("Content-Security-Policy"), "script-src * 'nonce-")
 }
 
 func TestAPI_RenderGFM(t *testing.T) {
-	unittest.PrepareTestEnv(t)
 	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
 			return username == "r-lyeh"
@@ -157,17 +143,11 @@ Here are some links to the most important topics. You can find the full list of 
 	}
 
 	input := "[Link](test.md)\n![Image](image.png)"
-	testRenderMarkdown(t, "gfm", false, input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/test.md" rel="nofollow">Link</a>
+	response := `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/test.md" rel="nofollow">Link</a>
 <a href="http://localhost:3000/user2/repo1/src/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
-`, http.StatusOK)
-
-	testRenderMarkdown(t, "gfm", false, input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/user2/repo1/src/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
-`, http.StatusOK)
-
-	testRenderMarkup(t, "gfm", false, "", input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/user2/repo1/src/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
-`, http.StatusOK)
+`
+	testRenderMarkdown(t, "gfm", false, input, response, http.StatusOK)
+	testRenderMarkup(t, "gfm", false, "", input, response, http.StatusOK)
 
 	testRenderMarkup(t, "file", false, "path/new-file.md", input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/path/test.md" rel="nofollow">Link</a>
 <a href="http://localhost:3000/user2/repo1/src/branch/main/path/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/path/image.png" alt="Image"/></a></p>

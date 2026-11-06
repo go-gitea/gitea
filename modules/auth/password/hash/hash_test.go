@@ -75,7 +75,18 @@ func TestHashing(t *testing.T) {
 		for _, algorithmName := range hashAlgorithmsToTest {
 			t.Run(algorithmName, func(t *testing.T) {
 				t.Parallel() // CPU-bound; these subtests only read the shared hasher registry
-				output, err := Parse(algorithmName).Hash(password, salt)
+				algorithm := *Parse(algorithmName)
+				switch algorithm.PasswordSaltHasher.(type) {
+				case *Argon2Hasher:
+					algorithm.PasswordSaltHasher = NewArgon2Hasher("2$64$8$50")
+				case *BcryptHasher:
+					algorithm.PasswordSaltHasher = NewBcryptHasher("4")
+				case *PBKDF2Hasher:
+					algorithm.PasswordSaltHasher = NewPBKDF2Hasher("1$50")
+				case *ScryptHasher:
+					algorithm.PasswordSaltHasher = NewScryptHasher("16$16$2$50")
+				}
+				output, err := algorithm.Hash(password, salt)
 				if shouldPass {
 					assert.NoError(t, err)
 					assert.NotEmpty(t, output, "output for %s was empty", algorithmName)
@@ -83,7 +94,7 @@ func TestHashing(t *testing.T) {
 					assert.Error(t, err)
 				}
 
-				assert.Equal(t, Parse(algorithmName).VerifyPassword(password, output, salt), shouldPass)
+				assert.Equal(t, algorithm.VerifyPassword(password, output, salt), shouldPass)
 			})
 		}
 	}

@@ -15,7 +15,7 @@ func acceptTransfer(ctx *context.Context) {
 		ctx.JSONRedirect(ctx.Repo.Repository.Link())
 		return
 	}
-	handleActionError(ctx, err)
+	handleRepoActionError(ctx, err)
 }
 
 func rejectTransfer(ctx *context.Context) {
@@ -25,7 +25,7 @@ func rejectTransfer(ctx *context.Context) {
 		ctx.JSONRedirect(ctx.Repo.Repository.Link())
 		return
 	}
-	handleActionError(ctx, err)
+	handleRepoActionError(ctx, err)
 }
 
 func ActionTransfer(ctx *context.Context) {

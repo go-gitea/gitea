@@ -18,11 +18,11 @@
 									<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off" required>
 								</div>
 							</div>
-							<button class="ui primary button tw-ml-2">{{ctx.Locale.Tr "add"}}</button>
+							<button type="submit" class="ui primary button tw-ml-2">{{ctx.Locale.Tr "add"}}</button>
 						</form>
 						<div class="tw-inline-block">
-							<button class="ui primary button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{ctx.Locale.Tr "add_all"}}</button>
-							<button class="ui red button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.remove_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{ctx.Locale.Tr "remove_all"}}</button>
+							<button type="button" class="ui primary button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{ctx.Locale.Tr "add_all"}}</button>
+							<button type="button" class="ui red button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.remove_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{ctx.Locale.Tr "remove_all"}}</button>
 						</div>
 					</div>
 				{{end}}

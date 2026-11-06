@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
+	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/contexttest"
 
@@ -100,10 +101,8 @@ func TestWebAuthOAuth2(t *testing.T) {
 
 	t.Run("RedirectSingleProvider", func(t *testing.T) {
 		enablePassword := &setting.Service.EnablePasswordSignInForm
-		enableOpenID := &setting.Service.EnableOpenIDSignIn
 		enablePasskey := &setting.Service.EnablePasskeyAuth
 		defer test.MockVariableValue(enablePassword, false)()
-		defer test.MockVariableValue(enableOpenID, false)()
 		defer test.MockVariableValue(enablePasskey, false)()
 
 		testSignIn := func(t *testing.T, link string, expectedCode int, expectedRedirect string) {
@@ -117,14 +116,12 @@ func TestWebAuthOAuth2(t *testing.T) {
 		testSignIn(t, "/user/login", http.StatusSeeOther, "/user/oauth2/dummy+auth%27s%20source")
 		testSignIn(t, "/user/login?redirect_to=/", http.StatusSeeOther, "/user/oauth2/dummy+auth%27s%20source?redirect_to=%2F")
 
-		*enablePassword, *enableOpenID, *enablePasskey = true, false, false
+		*enablePassword, *enablePasskey = true, false
 		testSignIn(t, "/user/login", http.StatusOK, "")
-		*enablePassword, *enableOpenID, *enablePasskey = false, true, false
-		testSignIn(t, "/user/login", http.StatusOK, "")
-		*enablePassword, *enableOpenID, *enablePasskey = false, false, true
+		*enablePassword, *enablePasskey = false, true
 		testSignIn(t, "/user/login", http.StatusOK, "")
 
-		*enablePassword, *enableOpenID, *enablePasskey = false, false, false
+		*enablePassword, *enablePasskey = false, false
 		addOAuth2Source(t, "dummy-auth-source-2", oauth2.Source{})
 		testSignIn(t, "/user/login", http.StatusOK, "")
 	})
@@ -184,18 +181,21 @@ func TestWebAuthOAuth2(t *testing.T) {
 	})
 }
 
-func TestOpenIDRequireTwoFactor(t *testing.T) {
+func TestAutoSignInStaleCookie(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-openid")}
+	at, token, err := auth_service.CreateAuthTokenForUserID(t.Context(), 2)
+	require.NoError(t, err)
+	current, currentToken, err := auth_service.RegenerateAuthToken(t.Context(), at)
+	require.NoError(t, err)
 
-	user32 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 32}) // has a webauthn credential
-	ctx, resp := contexttest.MockContext(t, "/user/openid/connect", mockOpt)
-	openIDRequireTwoFactor(ctx, user32, false, "https://example.com/id")
-	assert.Equal(t, "/user/webauthn", test.RedirectURL(resp))
-	unittest.AssertNotExistsBean(t, &user_model.UserOpenID{UID: user32.ID}) // not attached before the key answered
-
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	ctx, _ = contexttest.MockContext(t, "/user/openid/connect", mockOpt)
-	openIDRequireTwoFactor(ctx, user2, false, "https://example.com/id")
-	assert.False(t, ctx.Written())
+	ctx, resp := contexttest.MockContext(t, "/user/login")
+	ctx.Req.AddCookie(&http.Cookie{Name: setting.CookieRememberName, Value: at.ID + ":" + token})
+	succeeded, err := autoSignIn(ctx)
+	require.NoError(t, err)
+	require.False(t, succeeded)
+	for _, cookie := range resp.Result().Cookies() {
+		assert.NotEqual(t, setting.CookieRememberName, cookie.Name)
+	}
+	_, err = auth_service.CheckAuthToken(t.Context(), current.ID+":"+currentToken)
+	require.NoError(t, err)
 }

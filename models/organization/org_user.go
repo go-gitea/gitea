@@ -56,6 +56,13 @@ func GetOrganizationCount(ctx context.Context, u *user_model.User) (int64, error
 		Count(new(OrgUser))
 }
 
+func GetUserOrganizations(ctx context.Context, uid int64) (ret []*Organization, err error) {
+	err = db.GetEngine(ctx).Select("`user`.*").
+		Join("INNER", "org_user", "org_user.org_id = `user`.id").
+		Where("org_user.uid=?", uid).Find(&ret)
+	return ret, err
+}
+
 // IsOrganizationOwner returns true if given user is in the owner team.
 func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 	ownerTeam, err := GetOwnerTeam(ctx, orgID)
@@ -67,20 +74,6 @@ func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 		return false, err
 	}
 	return IsTeamMember(ctx, orgID, ownerTeam.ID, uid)
-}
-
-// IsOrganizationAdmin returns true if given user is in the owner team or an admin team.
-func IsOrganizationAdmin(ctx context.Context, orgID, uid int64) (bool, error) {
-	teams, err := GetUserOrgTeams(ctx, orgID, uid)
-	if err != nil {
-		return false, err
-	}
-	for _, t := range teams {
-		if t.HasAdminAccess() {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // IsOrganizationMember returns true if given user is member of organization.

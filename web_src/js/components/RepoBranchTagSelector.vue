@@ -2,6 +2,7 @@
 import {computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch, type ShallowRef} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {showErrorToast} from '../modules/toast.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {GET} from '../modules/fetch.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {queryElemChildren} from '../utils/dom.ts';
@@ -17,7 +18,7 @@ type ListItem = {
 
 type SelectedTab = 'branches' | 'tags';
 
-type TabLoadingStates = Record<SelectedTab, '' | 'loading' | 'done'>
+type TabLoadingStates = Record<SelectedTab, '' | 'loading' | 'done'>;
 
 const props = defineProps<{
   elRoot: HTMLElement;
@@ -65,6 +66,14 @@ const enableFeed = props.elRoot.getAttribute('data-enable-feed') === 'true';
 
 const searchFieldPlaceholder = computed(() => selectedTab.value === 'branches' ? textFilterBranch : textFilterTag);
 
+const showCreateNewRef = computed(() => {
+  if (!allowCreateNewRef || !searchTerm.value) {
+    return false;
+  }
+  // FIXME: not quite right here, it mixes "branch" and "tag" names
+  return allItems.value.every((item: ListItem) => item.refShortName !== searchTerm.value);
+});
+
 const filteredItems = computed<ListItem[]>(() => {
   const searchTermLower = searchTerm.value.toLowerCase();
   const items = allItems.value.filter((item: ListItem) => {
@@ -74,22 +83,13 @@ const filteredItems = computed<ListItem[]>(() => {
     return item.refShortName.toLowerCase().includes(searchTermLower);
   });
 
-  // TODO: fix this anti-pattern: side-effects-in-computed-properties
-  activeItemIndex.value = !items.length && showCreateNewRef.value ? 0 : -1; // eslint-disable-line vue/no-side-effects-in-computed-properties
+  activeItemIndex.value = !items.length && showCreateNewRef.value ? 0 : -1; // eslint-disable-line vue/no-side-effects-in-computed-properties -- TODO: move this side effect out of the computed
   return items;
 });
 
 const showNoResults = computed(() => {
   if (tabLoadingStates.value[selectedTab.value] !== 'done') return false;
   return !filteredItems.value.length && !showCreateNewRef.value;
-});
-
-const showCreateNewRef = computed(() => {
-  if (!allowCreateNewRef || !searchTerm.value) {
-    return false;
-  }
-  // FIXME: not quite right here, it mixes "branch" and "tag" names
-  return !allItems.value.some((item: ListItem) => item.refShortName === searchTerm.value);
 });
 
 const createNewRefFormActionUrl = computed(() => {
@@ -127,15 +127,15 @@ function selectItem(item: ListItem) {
     currentRefType.value = item.refType;
     currentRefShortName.value = item.refShortName;
     elDropdown.value.closest('form')!.action = refFormActionTemplate
-      .replace('{RepoLink}', currentRepoLink)
-      .replace('{RefType}', pathEscapeSegments(item.refType))
-      .replace('{RefShortName}', pathEscapeSegments(item.refShortName));
+      .replace('{RepoLink}', () => currentRepoLink)
+      .replace('{RefType}', () => pathEscapeSegments(item.refType))
+      .replace('{RefShortName}', () => pathEscapeSegments(item.refShortName));
   } else {
-    window.location.href = refLinkTemplate
-      .replace('{RepoLink}', currentRepoLink)
-      .replace('{RefType}', pathEscapeSegments(item.refType))
-      .replace('{RefShortName}', pathEscapeSegments(item.refShortName))
-      .replace('{TreePath}', pathEscapeSegments(currentTreePath));
+    window.location.assign(refLinkTemplate
+      .replace('{RepoLink}', () => currentRepoLink)
+      .replace('{RefType}', () => pathEscapeSegments(item.refType))
+      .replace('{RefShortName}', () => pathEscapeSegments(item.refShortName))
+      .replace('{TreePath}', () => pathEscapeSegments(currentTreePath)));
   }
 }
 
@@ -174,7 +174,7 @@ function keydown(e: KeyboardEvent) {
       return;
     }
     activeItemIndex.value = nextIndex;
-    getActiveItem()!.scrollIntoView({block: 'nearest'});
+    getActiveItem().scrollIntoView({block: 'nearest'});
   } else if (e.key === 'Enter') {
     e.preventDefault();
     getActiveItem()?.click();
@@ -208,7 +208,7 @@ async function loadTabItems() {
     tabLoadingStates.value = {...tabLoadingStates.value, [tab]: 'done'};
   } catch (e) {
     tabLoadingStates.value = {...tabLoadingStates.value, [tab]: ''};
-    showErrorToast(`Network error when fetching items for ${tab}, error: ${e}`);
+    showErrorToast(`Network error when fetching items for ${tab}, error: ${errorMessage(e)}`);
     console.error(e);
   }
 }
@@ -233,12 +233,12 @@ async function loadTabItems() {
         <input name="search" ref="elSearchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
       </div>
       <div v-if="showTabBranches" class="branch-tag-tab">
-        <a class="branch-tag-item muted" :class="{active: selectedTab === 'branches'}" href="#" @click="handleTabSwitch('branches')">
+        <button type="button" class="btn branch-tag-item" :class="{active: selectedTab === 'branches'}" @click="handleTabSwitch('branches')">
           <svg-icon name="octicon-git-branch" :size="16" class="tw-mr-1"/>{{ textBranches }}
-        </a>
-        <a v-if="showTabTags" class="branch-tag-item muted" :class="{active: selectedTab === 'tags'}" href="#" @click="handleTabSwitch('tags')">
+        </button>
+        <button v-if="showTabTags" type="button" class="btn branch-tag-item" :class="{active: selectedTab === 'tags'}" @click="handleTabSwitch('tags')">
           <svg-icon name="octicon-tag" :size="16" class="tw-mr-1"/>{{ textTags }}
-        </a>
+        </button>
       </div>
       <div class="branch-tag-divider"/>
       <div class="scrolling menu" ref="elScrollContainer">

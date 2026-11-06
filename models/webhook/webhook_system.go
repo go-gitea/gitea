@@ -20,6 +20,10 @@ type ListSystemWebhookOptions struct {
 	IsSystem optional.Option[bool]
 }
 
+func (opts ListSystemWebhookOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts ListSystemWebhookOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"webhook.repo_id": 0}, builder.Eq{"webhook.owner_id": 0})

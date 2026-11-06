@@ -138,7 +138,7 @@ func EnumeratePackages(ctx *context.Context) {
 			return
 		}
 
-		versionMetadata := pd.Metadata.(*conda_module.VersionMetadata)
+		versionMetadata := packages_model.DescriptorMetadata[*conda_module.VersionMetadata](pd)
 
 		pi := &PackageInfo{
 			Name:          pd.PackageProperties.GetByName(conda_module.PropertyName),

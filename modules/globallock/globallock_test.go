@@ -7,9 +7,7 @@ import (
 	"context"
 	"sync"
 	"testing"
-	"time"
-
-	"gitea.dev/modules/test"
+	"testing/synctest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,15 +15,18 @@ import (
 
 func TestLockAndDo(t *testing.T) {
 	t.Run("redis", func(t *testing.T) {
-		defer test.MockVariableValue(&redisLockExpiry, 5*time.Second)() // Close waits for the extend goroutine's next tick
 		locker := newTestRedisLocker(t)
 		defaultLocker.Store(new(locker))
 		testLockAndDo(t)
-		require.NoError(t, locker.(*redisLocker).Close())
+		rl, ok := locker.(*redisLocker)
+		require.True(t, ok)
+		require.NoError(t, rl.Close())
 	})
 	t.Run("memory", func(t *testing.T) {
-		defaultLocker.Store(new(NewMemoryLocker()))
-		testLockAndDo(t)
+		synctest.Test(t, func(t *testing.T) {
+			defaultLocker.Store(new(NewMemoryLocker()))
+			testLockAndDo(t)
+		})
 	})
 }
 

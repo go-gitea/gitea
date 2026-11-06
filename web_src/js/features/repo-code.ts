@@ -1,6 +1,7 @@
 import {svg} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
+import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 function changeHash(hash: string) {
   if (window.history.pushState) {
@@ -58,6 +59,7 @@ function selectRange(range: string): Element | null {
     stopLineNum = tmp;
     range = `${stop}-${start}`;
   }
+  if (startLineNum < 1) return null;
 
   const first = elLineNums[startLineNum - 1] ?? null;
   for (let i = startLineNum - 1; i <= stopLineNum - 1 && i < elLineNums.length; i++) {
@@ -141,6 +143,5 @@ export function initRepoCodeView() {
       showLineButton();
     }
   };
-  onHashChange();
-  window.addEventListener('hashchange', onHashChange);
+  registerAsyncHashChangeListener(onHashChange);
 }

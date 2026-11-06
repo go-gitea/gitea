@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
@@ -63,7 +64,7 @@ func ParseJSONRedirect(buf []byte) (ret struct {
 }
 
 func IsNormalPageCompleted(s string) bool {
-	return strings.Contains(s, `<footer class="page-footer"`) && strings.Contains(s, `</html>`)
+	return strings.Contains(s, `<footer class="page-footer"`) && strings.HasSuffix(strings.TrimSpace(s), `</html>`)
 }
 
 func MockVariableValue[T any](p *T, v ...T) (reset func()) {
@@ -160,29 +161,47 @@ type TestingT interface {
 	TempDir() string
 }
 
+var externalServiceCheckResult sync.Map
+
 func ExternalServiceHTTP(t TestingT, envVarName, def string) string {
 	t.Helper()
-	val := util.IfZero(os.Getenv(envVarName), def)
-	if val == "" {
+	extSvc := util.IfZero(os.Getenv(envVarName), def)
+	if extSvc == "" {
 		if AllowSkipExternalService() {
 			t.Skipf("skipping test because %s is not set", envVarName)
 		} else {
 			t.Fatalf("%s is not set, but skipping is not allowed in CI", envVarName)
 		}
 	}
-	// minio's endpoint is "host:port" pattern
-	testURL := util.Iif(strings.Contains(val, "://"), val, "http://"+val)
-	resp, err := http.Get(testURL)
-	if err != nil {
-		if AllowSkipExternalService() {
-			t.Skipf("skipping test because %s is not ready", val)
-		} else {
-			t.Fatalf("%s is not ready, but skipping is not allowed in CI", val)
+
+	// only need to check once, if there are saved check result, just use it
+	lastCheckErrAny, lastCheckExists := externalServiceCheckResult.Load(extSvc)
+	var lastCheckErr error
+	if !lastCheckExists {
+		{
+			// minio's endpoint is "host:port" pattern
+			testURL := util.Iif(strings.Contains(extSvc, "://"), extSvc, "http://"+extSvc)
+			// do a quick check with short timeout
+			client := &http.Client{Timeout: 2 * time.Second}
+			resp, err := client.Get(testURL)
+			if err == nil {
+				_ = resp.Body.Close()
+			}
+			lastCheckErr = err
 		}
+		externalServiceCheckResult.Store(extSvc, lastCheckErr)
 	} else {
-		_ = resp.Body.Close()
+		lastCheckErr, _ = lastCheckErrAny.(error)
 	}
-	return val
+
+	if lastCheckErr != nil {
+		if AllowSkipExternalService() {
+			t.Skipf("skipping test because %s is not ready", extSvc)
+		} else {
+			t.Fatalf("%s is not ready, but skipping is not allowed in CI", extSvc)
+		}
+	}
+	return extSvc
 }
 
 var normalizeHTMLSpacesRegexp = sync.OnceValue(func() (ret struct {

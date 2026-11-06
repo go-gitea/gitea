@@ -19,6 +19,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	debian_module "gitea.dev/modules/packages/debian"
+	api "gitea.dev/modules/structs"
 	packages_cleanup_service "gitea.dev/services/packages/cleanup"
 	"gitea.dev/tests"
 
@@ -58,6 +59,10 @@ func TestPackageDebian(t *testing.T) {
 		}
 		aw.WriteHeader(hdr)
 		aw.Write(cbuf.Bytes())
+
+		// if you'd like to do some tests manually, uncomment the WriteFile line, then you will get some "deb" package files:
+		// OWNER= PASS= DIST= COMP= ; curl -X PUT "http://$OWNER:$PASS@localhost:3000/api/packages/$OWNER/debian/pool/$DIST/$COMP/upload" -T /tmp/gitea_test_debian_gitea_1.0.3_amd64.deb
+		// _ = os.WriteFile("/tmp/gitea_test_debian_"+name+"_"+version+"_"+architecture+".deb", buf.Bytes(), 0o644)
 		return &buf
 	}
 
@@ -111,6 +116,19 @@ func TestPackageDebian(t *testing.T) {
 							assert.IsType(t, &debian_module.Metadata{}, pd.Metadata)
 							assert.Equal(t, packageName, pd.Package.Name)
 							assert.Equal(t, packageVersion, pd.Version.Version)
+
+							req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/debian/%s/%s/files", user.Name, packageName, packageVersion)).
+								AddBasicAuth(user.Name)
+							apiFiles := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.PackageFile{})
+							var fileProperties []map[string]string
+							for _, apiFile := range apiFiles {
+								fileProperties = append(fileProperties, apiFile.Properties)
+							}
+							assert.Contains(t, fileProperties, map[string]string{
+								debian_module.PropertyDistribution: distribution,
+								debian_module.PropertyComponent:    component,
+								debian_module.PropertyArchitecture: architecture,
+							})
 
 							pfs, err := packages.GetFilesByVersionID(t.Context(), pv.ID)
 							assert.NoError(t, err)

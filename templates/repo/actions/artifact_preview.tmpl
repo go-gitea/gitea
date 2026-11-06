@@ -1,0 +1,63 @@
+{{template "base/head" .}}
+{{$data := .ArtifactPreviewData}}
+<div class="page-content repository actions">
+	<div class="ui fluid container">
+		{{template "base/alert" .}}
+		<div class="action-view-header">
+			<a class="action-view-back" href="{{$data.RunURL}}">
+				{{svg "octicon-arrow-left" 14}}
+				{{if $data.RunAttempt}}
+					{{ctx.Locale.Tr "actions.artifacts.back_to_run_attempt" $data.RunIndex $data.RunAttempt}}
+				{{else}}
+					{{ctx.Locale.Tr "actions.artifacts.back_to_run" $data.RunIndex}}
+				{{end}}
+			</a>
+			<div class="action-info-summary">
+				<h2 class="action-info-summary-title-text">{{ctx.Locale.Tr "preview"}}: {{$data.ArtifactName}}</h2>
+				<a class="ui small compact button" href="{{$data.DownloadURL}}">
+					{{svg "octicon-download"}}
+					{{ctx.Locale.Tr "repo.download_file"}}
+				</a>
+			</div>
+		</div>
+		<div class="flex-container">
+			<div class="flex-container-nav">
+				<div class="ui fluid vertical menu">
+					<div class="header item">{{ctx.Locale.Tr "files"}}</div>
+					{{range $file := $data.PreviewFiles}}
+						{{if $file.Link}}
+							<a class="item flex-text-block artifact-preview-item {{if $file.Selected}}active{{end}}" style="--depth: {{$file.Depth}}" href="{{$file.Link}}" title="{{$file.Path}}">
+								{{svg "octicon-file"}}
+								<span class="gt-ellipsis">{{$file.Name}}</span>
+							</a>
+						{{else}}
+							<div class="item flex-text-block artifact-preview-item" style="--depth: {{$file.Depth}}" title="{{$file.Path}}">
+								{{svg "octicon-file-directory"}}
+								<span class="gt-ellipsis">{{$file.Name}}</span>
+							</div>
+						{{end}}
+					{{else}}
+						<div class="item">{{ctx.Locale.Tr "actions.artifacts.preview_no_files"}}</div>
+					{{end}}
+				</div>
+			</div>
+			<div class="flex-container-main">
+				{{if $data.PreviewTooLarge}}
+					<div class="ui warning message">{{ctx.Locale.Tr "actions.artifacts.preview_artifact_too_large"}}</div>
+				{{end}}
+				{{if $data.RequestedPathMissing}}
+					<div class="ui warning message">{{ctx.Locale.Tr "actions.artifacts.preview_file_not_found"}}</div>
+				{{end}}
+				{{if $data.PreviewFilesTruncated}}
+					<div class="ui info message">{{ctx.Locale.Tr "actions.artifacts.preview_file_list_truncated"}}</div>
+				{{end}}
+				{{if $data.PreviewContentURL}}
+					<div class="ui fitted segment">
+						<iframe class="external-render-iframe" data-src="{{$data.PreviewContentURL}}" data-global-init="initExternalRenderIframe" referrerpolicy="no-referrer"></iframe>
+					</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

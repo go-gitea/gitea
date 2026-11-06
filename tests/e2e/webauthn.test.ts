@@ -1,3 +1,4 @@
+import {platform} from 'node:process';
 import {test, expect, type Page} from '@playwright/test';
 import {apiCreateUser, loginUser, randomString, testUserPassword} from './utils.ts';
 
@@ -5,7 +6,7 @@ const signedIn = /^(?!.*\/user\/(login|webauthn))/; // the target of a finished 
 
 async function registerKey(page: Page, nickname: string) {
   await page.goto('/user/settings/security');
-  await page.getByLabel('Nickname').fill(nickname);
+  await page.getByRole('textbox', {name: 'Nickname'}).fill(nickname);
   await page.getByRole('button', {name: 'Add Security Key'}).click();
 }
 
@@ -14,12 +15,12 @@ async function signInWithPassword(page: Page, username: string) {
   await page.goto('/user/login');
   await page.getByLabel('Username or Email Address').fill(username);
   await page.getByLabel('Password').fill(testUserPassword);
-  await page.getByRole('button', {name: 'Sign In'}).click();
+  await page.getByRole('button', {name: 'Sign In', exact: true}).click();
 }
 
 // regression: credProtect level 3 hid the credential from the second-factor login
 test('security key survives credProtect', async ({page, request, browserName}) => {
-  test.skip(browserName !== 'chromium', 'only the CDP authenticator emulates credProtect'); // eslint-disable-line playwright/no-skipped-test
+  test.skip(browserName !== 'chromium', 'only the CDP authenticator emulates credProtect'); // eslint-disable-line playwright/no-skipped-test -- conditional skip, the reason is in the message
 
   const username = `e2e-credprotect-${randomString(8)}`;
   await apiCreateUser(request, username);
@@ -48,7 +49,9 @@ test('security key survives credProtect', async ({page, request, browserName}) =
 });
 
 // this authenticator has no credProtect, so it cannot replace the test above
-test('security key signs in as second factor and as passkey', async ({page, request}) => {
+test('security key signs in as second factor and as passkey', async ({page, request, browserName}) => {
+  test.skip(browserName === 'webkit' && platform === 'linux', 'linux webkit has no webauthn, playwright only stubs PublicKeyCredential'); // eslint-disable-line playwright/no-skipped-test -- conditional skip, the reason is in the message
+
   const username = `e2e-passkey-${randomString(8)}`;
   await apiCreateUser(request, username);
   await page.context().credentials.install();
@@ -62,6 +65,6 @@ test('security key signs in as second factor and as passkey', async ({page, requ
 
   await page.context().clearCookies();
   await page.goto('/user/login');
-  await page.getByText('Passkey').click();
+  await page.getByText('Sign in with a passkey').click();
   await expect(page).toHaveURL(signedIn);
 });

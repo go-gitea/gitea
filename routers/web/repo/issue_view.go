@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/references"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/templates/vars"
@@ -38,6 +39,7 @@ import (
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
 	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
 	user_service "gitea.dev/services/user"
 )
 
@@ -74,11 +76,7 @@ func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *u
 			return roleDesc, nil
 		}
 		// Otherwise (poster is site admin), check if poster is the real repo admin.
-		isRealRepoAdmin, err := access_model.IsUserRealRepoAdmin(ctx, repo, poster)
-		if err != nil {
-			return roleDesc, err
-		}
-		if isRealRepoAdmin {
+		if access_model.IsUserRealRepoAdmin(ctx, repo, poster) {
 			roleDesc.RoleInRepo = issues_model.RoleRepoOwner
 			return roleDesc, nil
 		}
@@ -168,29 +166,35 @@ func addParticipant(poster *user_model.User, participants []*user_model.User) []
 	return append(participants, poster)
 }
 
-func filterXRefComments(ctx *context.Context, issue *issues_model.Issue) error {
-	// Remove comments that the user has no permissions to see
+// combineXRefComments keeps only the first reference from each issue, carrying over the action of later ones
+func combineXRefComments(issue *issues_model.Issue) {
+	first := make(map[int64]*issues_model.Comment)
 	for i := 0; i < len(issue.Comments); {
 		c := issue.Comments[i]
-		if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
-			var err error
-			// Set RefRepo for description in template
-			c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
-			if err != nil {
-				return err
-			}
-			perm, err := access_model.GetDoerRepoPermission(ctx, c.RefRepo, ctx.Doer)
-			if err != nil {
-				return err
-			}
-			if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
-				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
-				continue
-			}
+		if !issues_model.CommentTypeIsRef(c.Type) || c.RefIssueID == 0 {
+			i++
+			continue
 		}
-		i++
+		prev, ok := first[c.RefIssueID]
+		if !ok {
+			first[c.RefIssueID] = c
+			i++
+			continue
+		}
+		switch {
+		case c.RefAction == references.XRefActionNeutered: // a removed mention never overrides a live one
+		case prev.RefAction == references.XRefActionNeutered:
+			prev.RefAction, prev.RefCommentID = c.RefAction, c.RefCommentID
+		case c.RefAction != references.XRefActionNone:
+			prev.RefAction = c.RefAction
+		}
+		issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
 	}
-	return nil
+}
+
+// project workflows post as the user who triggered them, the metadata keeps their changes apart
+func sameCommentMetaData(a, b *issues_model.CommentMetaData) bool {
+	return a == b || (a != nil && b != nil && *a == *b)
 }
 
 // combineLabelComments combine the nearby label comments as one.
@@ -202,8 +206,9 @@ func combineLabelComments(issue *issues_model.Issue) {
 			prev = issue.Comments[i-1]
 		}
 		if i == 0 || cur.Type != issues_model.CommentTypeLabel ||
-			(prev != nil && prev.PosterID != cur.PosterID) ||
-			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) {
+			(prev != nil && (prev.PosterID != cur.PosterID || prev.OriginalAuthor != cur.OriginalAuthor)) ||
+			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) ||
+			(prev != nil && !sameCommentMetaData(prev.CommentMetaData, cur.CommentMetaData)) {
 			if cur.Type == issues_model.CommentTypeLabel && cur.Label != nil {
 				if cur.Content != "1" {
 					cur.RemovedLabels = append(cur.RemovedLabels, cur.Label)
@@ -263,7 +268,7 @@ func combineLabelComments(issue *issues_model.Issue) {
 func prepareIssueViewLoad(ctx *context.Context) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
+		ctx.ServerError("GetIssueByIndex", err)
 		return nil
 	}
 	issue.Repo = ctx.Repo.Repository
@@ -338,7 +343,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanRead(unit.TypeProjects)
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	if err := issue.LoadAttributes(ctx); err != nil {
@@ -346,10 +351,12 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := filterXRefComments(ctx, issue); err != nil {
-		ctx.ServerError("filterXRefComments", err)
+	var err error
+	if issue.Comments, err = issue_service.FilterReadableComments(ctx, ctx.Doer, ctx.Repo.Permission, issue, issue.Comments); err != nil {
+		ctx.ServerError("FilterReadableComments", err)
 		return
 	}
+	combineXRefComments(issue)
 
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, emoji.ReplaceAliases(issue.Title))
 
@@ -403,7 +410,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
+	ctx.Data["IsRepoAdmin"] = ctx.Repo.Permission.IsAdmin()
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefName(issue.Ref).ShortName()
 
@@ -499,8 +506,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 		data.willSign = sign
 		data.signingKeyMergeDisplay = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {
-			if asymkey_service.IsErrWontSign(err) {
-				wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
+			if errWontSign, ok := err.(*asymkey_service.ErrWontSign); ok {
+				wontSignReason = string(errWontSign.Reason)
 			} else {
 				wontSignReason = "error"
 				if !errors.Is(err, util.ErrNotExist) {
@@ -560,8 +567,9 @@ func prepareIssueViewSidebarTimeTracker(ctx *context.Context, issue *issues_mode
 
 	if ctx.IsSigned {
 		// Deal with the stopwatch
-		ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx, ctx.Doer.ID, issue.ID)
-		if !ctx.Data["IsStopwatchRunning"].(bool) {
+		isStopwatchRunning := issues_model.StopwatchExists(ctx, ctx.Doer.ID, issue.ID)
+		ctx.Data["IsStopwatchRunning"] = isStopwatchRunning
+		if !isStopwatchRunning {
 			exists, _, swIssue, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("HasUserStopwatch", err)
@@ -594,7 +602,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxDeleteBranch(ctx *context.Cont
 		isPullBranchDeletable, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
 	}
 
-	if isPullBranchDeletable && pull.HasMerged {
+	if isPullBranchDeletable && prInfo.issue.IsClosed {
 		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pull.HeadRepoID, pull.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
@@ -728,13 +736,6 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadAssigneeUserAndTeam", err)
 				return
 			}
-		} else if comment.Type == issues_model.CommentTypeRemoveDependency || comment.Type == issues_model.CommentTypeAddDependency {
-			if err = comment.LoadDepIssueDetails(ctx); err != nil {
-				if !issues_model.IsErrIssueNotExist(err) {
-					ctx.ServerError("LoadDepIssueDetails", err)
-					return
-				}
-			}
 		} else if comment.Type.HasContentSupport() {
 			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
 				FootnoteContextID: strconv.FormatInt(comment.ID, 10),
@@ -752,12 +753,12 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			if comment.Review == nil {
 				continue
 			}
+			if comment.Poster.ID == comment.Review.ReviewerID {
+				comment.Review.Reviewer = comment.Poster
+			}
 			if err = comment.Review.LoadAttributes(ctx); err != nil {
-				if !user_model.IsErrUserNotExist(err) {
-					ctx.ServerError("Review.LoadAttributes", err)
-					return
-				}
-				comment.Review.Reviewer = user_model.NewGhostUser()
+				ctx.ServerError("Review.LoadAttributes", err)
+				return
 			}
 			if err = comment.Review.LoadCodeComments(ctx); err != nil {
 				ctx.ServerError("Review.LoadCodeComments", err)
@@ -793,15 +794,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
-			if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-				for _, commit := range comment.Commits {
-					if commit.Status == nil {
-						continue
-					}
-					commit.Status.HideActionsURL(ctx)
-					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
-				}
-			}
+			git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, comment.Commits)
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {
@@ -883,14 +876,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 				return
 			}
 			if perm.CanWrite(unit.TypeCode) {
-				// Check if branch is not protected
-				if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
-					if protected, err := git_model.IsBranchProtected(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
-						log.Error("IsProtectedBranch: %v", err)
-					} else if !protected {
-						canDelete = true
-						ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
+				if err := repo_service.CanDeleteBranchWithPermission(ctx, pull.HeadRepo, pull.HeadBranch, ctx.Doer, perm); err != nil {
+					if errors.Is(err, util.ErrPermissionDenied) {
+						log.Trace("CanDeleteBranch: %v", err)
+					} else {
+						log.Error("CanDeleteBranch: %v", err)
 					}
+				} else {
+					canDelete = true
+					ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
 				}
 				canWriteToHeadRepo = true
 			}
@@ -948,7 +942,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	// Otherwise, there is nothing to do, because the PR view page already contains enough information.
 	data.ShowMergeBox = !pull.HasMerged || data.IsPullBranchDeletable
 
-	isRepoAdmin := ctx.IsSigned && (ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
+	isRepoAdmin := ctx.Repo.Permission.IsAdmin()
 
 	// admin can merge without checks, writer can merge when checks succeed
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)

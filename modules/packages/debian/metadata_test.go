@@ -110,21 +110,14 @@ func TestParsePackage(t *testing.T) {
 				w.Write(buf.Bytes())
 				w.Close()
 
-				data := createArchive(map[string][]byte{"control.tar" + c.Extension: cbuf.Bytes()})
-
-				p, err := ParsePackage(data)
-				assert.NotNil(t, p)
-				assert.NoError(t, err)
-				assert.Equal(t, "gitea", p.Name)
-
-				t.Run("TrailingSlash", func(t *testing.T) {
-					data := createArchive(map[string][]byte{"control.tar" + c.Extension + "/": cbuf.Bytes()})
+				for _, suffix := range []string{"", "/"} {
+					data := createArchive(map[string][]byte{"control.tar" + c.Extension + suffix: cbuf.Bytes()})
 
 					p, err := ParsePackage(data)
 					assert.NotNil(t, p)
 					assert.NoError(t, err)
 					assert.Equal(t, "gitea", p.Name)
-				})
+				}
 			})
 		}
 	})

@@ -4,16 +4,12 @@
 package forms
 
 import (
-	"net/http"
-
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/context"
-
-	"gitea.com/go-chi/binding"
 )
 
 type CommitCommonForm struct {
+	middleware.FormDefaultValidator
 	TreePath      string `binding:"MaxSize(500)"`
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
@@ -22,11 +18,6 @@ type CommitCommonForm struct {
 	LastCommit    string
 	Signoff       bool
 	CommitEmail   string
-}
-
-func (f *CommitCommonForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 type CommitCommonFormInterface interface {
@@ -38,20 +29,24 @@ func (f *CommitCommonForm) GetCommitCommonForm() *CommitCommonForm {
 }
 
 type EditRepoFileForm struct {
+	middleware.FormDefaultValidator
 	CommitCommonForm
 	Content optional.Option[string]
 }
 
 type DeleteRepoFileForm struct {
+	middleware.FormDefaultValidator
 	CommitCommonForm
 }
 
 type UploadRepoFileForm struct {
+	middleware.FormDefaultValidator
 	CommitCommonForm
 	Files []string
 }
 
 type CherryPickForm struct {
+	middleware.FormDefaultValidator
 	CommitCommonForm
 	Revert bool
 }

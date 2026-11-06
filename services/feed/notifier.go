@@ -16,8 +16,8 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/repository"
-	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -109,15 +109,7 @@ func (a *actionNotifier) CreateIssueComment(ctx context.Context, doer *user_mode
 		IsPrivate: issue.Repo.IsPrivate,
 	}
 
-	truncatedContent, truncatedRight := util.EllipsisDisplayStringX(comment.Content, 200)
-	if truncatedRight != "" {
-		// in case the content is in a Latin family language, we remove the last broken word.
-		lastSpaceIdx := strings.LastIndex(truncatedContent, " ")
-		if lastSpaceIdx != -1 && (len(truncatedContent)-lastSpaceIdx < 15) {
-			truncatedContent = truncatedContent[:lastSpaceIdx] + "…"
-		}
-	}
-	act.Content = fmt.Sprintf("%d|%s", issue.Index, truncatedContent)
+	act.Content = fmt.Sprintf("%d|%s", issue.Index, markdown.FeedExcerpt(ctx, comment.Content))
 
 	if issue.IsPull {
 		act.OpType = activities_model.ActionCommentPull
@@ -172,7 +164,7 @@ func (a *actionNotifier) RenameRepository(ctx context.Context, doer *user_model.
 	}
 }
 
-func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
 	if err := NotifyWatchers(ctx, &activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -180,7 +172,7 @@ func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_mode
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		Content:   path.Join(oldOwnerName, repo.Name),
+		Content:   path.Join(oldOwner.Name, repo.Name),
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
@@ -229,7 +221,7 @@ func (a *actionNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 				actions = append(actions, &activities_model.Action{
 					ActUserID: review.Reviewer.ID,
 					ActUser:   review.Reviewer,
-					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comm.Content, "\n")[0]),
+					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, markdown.FeedExcerpt(ctx, comm.Content)),
 					OpType:    activities_model.ActionCommentPull,
 					RepoID:    review.Issue.RepoID,
 					Repo:      review.Issue.Repo,
@@ -245,7 +237,7 @@ func (a *actionNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 		action := &activities_model.Action{
 			ActUserID: review.Reviewer.ID,
 			ActUser:   review.Reviewer,
-			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comment.Content, "\n")[0]),
+			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, markdown.FeedExcerpt(ctx, comment.Content)),
 			RepoID:    review.Issue.RepoID,
 			Repo:      review.Issue.Repo,
 			IsPrivate: review.Issue.Repo.IsPrivate,

@@ -24,6 +24,8 @@ var (
 	ErrMissingPdbStream      = util.NewInvalidArgumentErrorf("missing PDB stream")
 )
 
+const maxPdbTotalSize = 256 * 1024 * 1024
+
 type PortablePdb struct {
 	Name    string
 	ID      string
@@ -46,6 +48,7 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 	}
 
 	var pdbs PortablePdbList
+	remaining := int64(maxPdbTotalSize)
 
 	err = func() error {
 		for _, file := range archive.File {
@@ -63,13 +66,14 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 					return err
 				}
 
-				buf, err := packages.CreateHashedBufferFromReader(f)
+				buf, err := packages.CreateHashedBufferFromReader(packages.NewLimitedReader(f, remaining))
 
 				_ = f.Close()
 
 				if err != nil {
 					return err
 				}
+				remaining -= buf.Size()
 
 				id, err := ParseDebugHeaderID(buf)
 				if err != nil {

@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"gitea.dev/models/db"
-	"gitea.dev/modules/setting"
 )
 
 // CheckDatabaseConnection checks the database connection
@@ -45,15 +44,5 @@ func HasPostInstallationUsers(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 
-	// if there are 2 or more users in database, we consider there are users created after installation
-	threshold := 2
-	if !setting.IsProd {
-		// to debug easily, with non-prod RUN_MODE, we only check the count to 1
-		threshold = 1
-	}
-	res, err := x.Table("user").Cols("id").Limit(threshold).Query()
-	if err != nil {
-		return false, err
-	}
-	return len(res) >= threshold, nil
+	return x.Table("user").Exist()
 }

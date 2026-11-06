@@ -11,13 +11,12 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"uuid"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
-
-	gouuid "github.com/google/uuid"
 )
 
 // ErrUploadNotExist represents a "UploadNotExist" kind of error.
@@ -60,7 +59,7 @@ func (upload *Upload) LocalPath() string {
 // NewUpload creates a new upload object.
 func NewUpload(ctx context.Context, name string, buf []byte, file multipart.File) (_ *Upload, err error) {
 	upload := &Upload{
-		UUID: gouuid.New().String(),
+		UUID: uuid.New().String(),
 		Name: name,
 	}
 

@@ -84,17 +84,14 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	baseRepoPath := gitrepo.RepoLocalPath(pr.BaseRepo.CodeStorageRepo())
 	headRepoPath := gitrepo.RepoLocalPath(pr.HeadRepo.CodeStorageRepo())
 
-	if err := git.InitRepositoryLocal(ctx, tmpBasePath, false, pr.BaseRepo.ObjectFormatName); err != nil {
+	if err := git.InitRepositoryLocal(ctx, tmpBasePath, false, pr.BaseRepo.ObjectFormatName, ""); err != nil {
 		return nil, nil, fmt.Errorf("InitRepository[PR:%d]: %w", pr.ID, err)
 	}
 
 	remoteRepoName := "head_repo"
 
-	fetchArgs := gitcmd.TrustedCmdArgs{"--no-tags"}
-	if git.DefaultFeatures().CheckVersionAtLeast("2.25.0") {
-		// Writing the commit graph can be slow and is not needed here
-		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
-	}
+	// writing the commit graph can be slow and is not needed here
+	fetchArgs := gitcmd.TrustedCmdArgs{"--no-tags", "--no-write-commit-graph"}
 
 	// addCacheRepo adds git alternatives for the cacheRepoPath in the repoPath
 	addCacheRepo := func(repoPath, cacheRepoPath string) error {

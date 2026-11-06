@@ -1,0 +1,12 @@
+<div class="ui multiple search selection dropdown">
+	<input type="hidden" name="{{.Name}}" value="{{.Value}}">
+	<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
+	<div class="menu">
+		{{range .Teams}}
+			<div class="item" data-value="{{.ID}}">
+				{{svg "octicon-people"}}
+				{{.Name}}
+			</div>
+		{{end}}
+	</div>
+</div>

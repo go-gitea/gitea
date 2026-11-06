@@ -14,7 +14,6 @@ kbd {
   background-color: var(--color-box-body);
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow-kbd);
 }
 
 .global-shortcut-wrapper > kbd {

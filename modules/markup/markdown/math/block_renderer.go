@@ -17,8 +17,8 @@ import (
 // Block render output:
 // 	<pre class="code-block is-loading"><code class="language-math">...</code></pre>
 //
-// Keep in mind that there is another "code block" render in "func (r *GoldmarkRender) highlightingRenderer"
-// "highlightingRenderer" outputs the math block with extra "chroma" class:
+// Keep in mind that there is another "code block" render in "func (r *HTMLRenderer) renderCodeBlock"
+// "renderCodeBlock" outputs the math block with extra "chroma" class:
 // 	<pre class="code-block is-loading"><code class="chroma language-math">...</code></pre>
 //
 // Special classes:
@@ -49,7 +49,7 @@ func (r *BlockRenderer) writeLines(w util.BufWriter, source []byte, n gast.Node)
 }
 
 func (r *BlockRenderer) renderBlock(w util.BufWriter, source []byte, node gast.Node, entering bool) (gast.WalkStatus, error) {
-	n := node.(*Block)
+	n := node.(*Block) //nolint:forcetypeassert // registered for KindBlock only
 	if entering {
 		codeHTML := giteaUtil.Iif[template.HTML](n.Inline, "", `<pre class="code-block is-loading">`) + `<code class="language-math">`
 		_, _ = w.WriteString(string(r.renderInternal.ProtectSafeAttrs(codeHTML)))

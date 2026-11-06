@@ -18,7 +18,7 @@ export function request(url: string, {method = 'GET', data, headers = {}, ...oth
   if (!headers.has('content-type') && contentType) {
     headers.set('content-type', contentType);
   }
-  return fetch(url, { // eslint-disable-line no-restricted-globals
+  return fetch(url, { // eslint-disable-line no-restricted-globals -- this is the wrapper the rule points to
     method,
     headers,
     ...other,

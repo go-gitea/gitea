@@ -13,7 +13,7 @@
 						{{template "repo/editor/common_breadcrumb" .}}
 					</div>
 					<div class="field">
-						{{template "repo/upload" .}}
+						{{template "repo/upload" dict "UploadOptions" $.UploadOptions}}
 					</div>
 					{{template "repo/editor/commit_form" .}}
 				</form>

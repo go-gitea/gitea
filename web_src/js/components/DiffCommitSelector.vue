@@ -12,31 +12,39 @@ type Commit = {
   committer_or_author_name: string,
   time: string,
   short_sha: string,
-}
+};
 
 type CommitListResult = {
   commits: Array<Commit>,
   last_review_commit_sha: string,
   locale: Record<string, string>,
-}
+};
 
 const elRoot = useTemplateRef('elRoot') as Readonly<ShallowRef<HTMLDivElement>>;
 const elExpandBtn = useTemplateRef('elExpandBtn') as Readonly<ShallowRef<HTMLButtonElement>>;
 const elShowAllChanges = useTemplateRef('elShowAllChanges') as Readonly<ShallowRef<HTMLDivElement>>;
+const elMenu = useTemplateRef('elMenu') as Readonly<ShallowRef<HTMLDivElement>>;
 
 const elMount = document.querySelector('#diff-commit-select')!;
 const queryParams = elMount.getAttribute('data-queryparams');
 const issueLink = elMount.getAttribute('data-issuelink');
 const mergeBase = elMount.getAttribute('data-merge-base');
+const beforeCommit = elMount.getAttribute('data-before-commit');
+const afterCommit = elMount.getAttribute('data-after-commit');
 const uniqueIdMenu = generateElemId('diff-commit-selector-menu-');
 const uniqueIdShowAll = generateElemId('diff-commit-selector-show-all-');
 
 const menuVisible = shallowRef(false);
 const isLoading = shallowRef(false);
-const locale = shallowRef<Record<string, string>>({filter_changes_by_commit: elMount.getAttribute('data-filter_changes_by_commit')!});
+const locale = shallowRef<Record<string, string>>({filter_changes_by_commit: elMount.getAttribute('data-text-filter-changes-by-commit')!});
 const commits = ref<Array<Commit>>([]); // deep, the commit objects are mutated in place
 const hoverActivated = shallowRef(false);
 const lastReviewCommitSha = shallowRef<string | null>(null);
+const activeRange = shallowRef<[number, number] | null>(null);
+
+function isActive(idx: number) {
+  return activeRange.value !== null && activeRange.value[0] <= idx && idx <= activeRange.value[1];
+}
 
 const commitsSinceLastReview = computed(() => {
   if (lastReviewCommitSha.value) {
@@ -140,6 +148,8 @@ async function toggleMenu() {
   nextTick(() => {
     if (menuVisible.value) {
       focusElem(elShowAllChanges.value, elExpandBtn.value);
+      const elActive = elMenu.value.querySelector<HTMLElement>('.item.active');
+      if (elActive) elMenu.value.scrollTop = elActive.offsetTop - elMenu.value.clientHeight / 2; // scrollIntoView would also scroll the page
     } else {
       focusElem(elExpandBtn.value, elShowAllChanges.value);
     }
@@ -154,12 +164,14 @@ async function fetchCommits() {
   commits.value.push(...results.commits);
   commits.value.reverse();
   lastReviewCommitSha.value = results.last_review_commit_sha || null;
-  if (lastReviewCommitSha.value && !commits.value.some((x) => x.id === lastReviewCommitSha.value)) {
+  if (lastReviewCommitSha.value && commits.value.every((x) => x.id !== lastReviewCommitSha.value)) {
     // the lastReviewCommit is not available (probably due to a force push)
     // reset the last review commit sha
     lastReviewCommitSha.value = null;
   }
   locale.value = {...locale.value, ...results.locale};
+  const end = commits.value.findIndex((x) => x.id === afterCommit);
+  if (end >= 0) activeRange.value = [commits.value.findIndex((x) => x.id === beforeCommit) + 1, end]; // starts at 0 when beforeCommit is outside the list
 }
 
 function showAllChanges() {
@@ -228,7 +240,7 @@ function commitClickedShift(commit: Commit) {
       <svg-icon name="octicon-git-commit"/>
     </button>
     <!-- this dropdown is not managed by Fomantic UI, so it needs some classes like "transition" explicitly -->
-    <div class="left menu transition" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+    <div class="left menu transition" ref="elMenu" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
       <div class="loading-indicator is-loading" v-if="isLoading"/>
       <div v-if="!isLoading" class="item" :id="uniqueIdShowAll" ref="elShowAllChanges" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
         <div class="gt-ellipsis">
@@ -257,7 +269,8 @@ function commitClickedShift(commit: Commit) {
       <template v-for="(commit, idx) in commits" :key="commit.id">
         <div
           class="item" role="menuitem"
-          :class="{selected: commit.selected, hovered: commit.hovered}"
+          :class="{selected: commit.selected, hovered: commit.hovered, active: isActive(idx)}"
+          :aria-current="isActive(idx) || undefined"
           :data-commit-idx="idx"
           @keydown.enter.exact="commitClicked(commit.id)"
           @keydown.enter.shift.exact="commitClickedShift(commit)"
@@ -279,7 +292,8 @@ function commitClickedShift(commit: Commit) {
               </span>
             </div>
           </div>
-          <div class="tw-font-mono">
+          <div class="tw-font-mono flex-text-block">
+            <svg-icon name="octicon-check" :size="14" v-if="isActive(idx)"/>
             {{ commit.short_sha }}
           </div>
         </div>
@@ -290,6 +304,7 @@ function commitClickedShift(commit: Commit) {
 <style scoped>
   .ui.dropdown.diff-commit-selector .menu {
     margin-top: 0.25em;
+    padding: 0;
     overflow-x: hidden;
     max-height: 450px;
   }
@@ -305,7 +320,10 @@ function commitClickedShift(commit: Commit) {
     flex-direction: row;
     line-height: 1.4;
     gap: 0.25em;
+    width: auto;
+    margin: 0;
     padding: 7px 14px !important;
+    border-radius: 0;
   }
 
   .ui.dropdown.diff-commit-selector .menu > .item:not(:first-child),
@@ -323,6 +341,10 @@ function commitClickedShift(commit: Commit) {
 
   .ui.dropdown.diff-commit-selector .menu > .item.selected {
     background-color: var(--color-accent);
+  }
+
+  .ui.dropdown.diff-commit-selector .menu > .item.active {
+    font-weight: var(--font-weight-medium);
   }
 
   .ui.dropdown.diff-commit-selector .menu .commit-list-summary {

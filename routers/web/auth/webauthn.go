@@ -31,12 +31,13 @@ func WebAuthn(ctx *context.Context) {
 	}
 
 	// Ensure user is in a 2FA session.
-	if ctx.Session.Get("twofaUid") == nil {
+	idSess, ok := ctx.Session.Get("twofaUid").(int64)
+	if !ok {
 		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
 		return
 	}
 
-	hasTwoFactor, err := auth.HasTwoFactorByUID(ctx, ctx.Session.Get("twofaUid").(int64))
+	hasTwoFactor, err := auth.HasTwoFactorByUID(ctx, idSess)
 	if err != nil {
 		ctx.ServerError("HasTwoFactorByUID", err)
 		return
@@ -153,7 +154,7 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 		return
 	}
 
-	remember := ctx.Req.Header.Get("X-Gitea-Device-Remember") == "true"
+	remember := false // TODO: implement remember me
 	handleSignInFull(ctx, user, remember)
 	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }
@@ -265,7 +266,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 		return
 	}
 
-	remember := ctx.Session.Get("twofaRemember").(bool)
+	remember := ctx.Session.Get("twofaRemember").(bool) //nolint:forcetypeassert // must exist
 	handleSignInFull(ctx, user, remember)
 	_ = ctx.Session.Delete("twofaUid")
 	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))

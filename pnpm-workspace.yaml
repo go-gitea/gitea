@@ -2,5 +2,4 @@ savePrefix: ''
 updateNotifier: false
 ignoreScripts: true
 minimumReleaseAge: 0
-confirmModulesPurge: false
 verifyDepsBeforeRun: false

@@ -18,6 +18,7 @@ const allowedTypes = [
 type CommitType = typeof allowedTypes[number];
 
 const allowedTypesList = allowedTypes.join(', ');
+const nonBreakingTypes = new Set<CommitType>(['build', 'chore', 'ci', 'docs', 'style', 'test']);
 const titlePattern = new RegExp(`^(${allowedTypes.join('|')})(\\([\\w/.-]+\\))?(!)?: .+$`);
 
 function parsePrTitle(title: string): {type: CommitType, scope: string, breaking: boolean} | null {
@@ -86,10 +87,15 @@ function lintPrTitle(): void {
     console.error('Missing PR_TITLE');
     exit(1);
   }
-  if (!parsePrTitle(env.PR_TITLE)) {
+  const parsed = parsePrTitle(env.PR_TITLE);
+  if (!parsed) {
     console.error(`Invalid PR title: ${env.PR_TITLE}`);
     console.error('Expected format: type(scope): subject (scope optional, append "!" for breaking changes)');
     console.error(`Allowed types: ${allowedTypesList}`);
+    exit(1);
+  }
+  if (parsed.breaking && nonBreakingTypes.has(parsed.type)) {
+    console.error(`Type "${parsed.type}" cannot be marked as breaking (remove "!" from the title)`);
     exit(1);
   }
 }
@@ -103,14 +109,14 @@ async function setPrLabels(): Promise<void> {
 
   const labelsUrl = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/issues/${env.PR_NUMBER}/labels`;
 
-  async function request(url: string, method = 'GET', body?: unknown, ignoreStatus?: number): Promise<Response> {
+  async function request(url: string, method = 'GET', body?: Record<string, unknown>, ignoreStatus?: number): Promise<Response> {
     const response = await fetch(url, {
       method,
       headers: {
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${env.GITHUB_TOKEN}`,
         'X-GitHub-Api-Version': '2022-11-28',
-        ...(Boolean(body) && {'Content-Type': 'application/json'}),
+        ...(body && {'Content-Type': 'application/json'}),
       },
       body: body ? JSON.stringify(body) : undefined,
     });

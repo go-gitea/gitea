@@ -58,16 +58,13 @@ func Search(ctx *context.APIContext) {
 	uid := ctx.FormInt64("uid")
 	var users []*user_model.User
 	var maxResults int64
-	var err error
-
-	switch uid {
-	case user_model.GhostUserID:
-		maxResults = 1
-		users = []*user_model.User{user_model.NewGhostUser()}
-	case user_model.ActionsUserID:
-		maxResults = 1
-		users = []*user_model.User{user_model.NewActionsUser()}
-	default:
+	if uid < 0 {
+		_, sysUser, _ := user_model.GetPossibleUserByID(ctx, uid)
+		if sysUser != nil && sysUser.ID == uid {
+			maxResults = 1
+			users = []*user_model.User{sysUser}
+		}
+	} else {
 		opts := user_model.SearchUserOptions{
 			Actor:         ctx.Doer,
 			Keyword:       ctx.FormTrim("q"),
@@ -76,7 +73,7 @@ func Search(ctx *context.APIContext) {
 			SearchByEmail: true,
 			ListOptions:   listOptions,
 		}
-		opts.ApplyPublicOnly(ctx.PublicOnly)
+		var err error
 		users, maxResults, err = user_model.SearchUsers(ctx, opts)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, map[string]any{
@@ -112,8 +109,8 @@ func GetInfo(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/User"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		// fake ErrUserNotExist error message to not leak information about existence
@@ -153,8 +150,8 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserHeatmapData"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 	if err != nil {
@@ -196,8 +193,8 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActivityFeedsList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	listOptions := utils.GetListOptions(ctx)
@@ -210,7 +207,6 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 		Date:            ctx.FormString("date"),
 		ListOptions:     listOptions,
 	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

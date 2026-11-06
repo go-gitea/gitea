@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - main
+      - release/v*
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -19,8 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: go-gitea/giteabot@1d822239e9110b50c36192edb3c85883cf12efb3 # v1.0.5
+      - uses: go-gitea/giteabot@15b18fdedd98a80d0968d0bd9db3a9428814b808 # v1.5.1
         with:
           github_token: ${{ secrets.GITEABOT_TOKEN }}
           gitea_fork: giteabot/gitea
-          checks: backport
+          checks: backport,backport_conflict_free

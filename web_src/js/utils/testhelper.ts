@@ -1,24 +1,15 @@
-// there could be different "testing" concepts, for example: backend's "setting.IsInTesting"
-// even if backend is in testing mode, frontend could be complied in production mode
-// so this function only checks if the frontend is in unit testing mode (usually from *.test.ts files)
-export function isInFrontendUnitTest() {
-  return import.meta.env.MODE === 'test';
-}
+import {onTestFinished} from 'vitest';
 
-/** strip common indentation from a string and trim it */
-export function dedent(str: string) {
-  const match = str.match(/^[ \t]*(?=\S)/gm);
-  if (!match) return str;
-
-  let minIndent = Infinity;
-  for (const indent of match) {
-    minIndent = Math.min(minIndent, indent.length);
-  }
-  if (minIndent === 0 || minIndent === Infinity) {
-    return str;
-  }
-
-  return str.replace(new RegExp(`^[ \\t]{${minIndent}}`, 'gm'), '').trim();
+/** Record and block navigations, as a real browser forbids stubbing "window.location" */
+export function captureNavigations() {
+  const navigations: Array<{url: string, type: NavigationType}> = [];
+  const onNavigate = (e: NavigateEvent) => {
+    navigations.push({url: e.destination.url, type: e.navigationType});
+    e.preventDefault();
+  };
+  window.navigation.addEventListener('navigate', onNavigate);
+  onTestFinished(() => window.navigation.removeEventListener('navigate', onNavigate));
+  return navigations;
 }
 
 export function normalizeTestHtml(s: string) {

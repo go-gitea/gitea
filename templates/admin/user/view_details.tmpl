@@ -9,9 +9,6 @@
 				{{if .User.IsAdmin}}
 					<span class="ui basic label">{{ctx.Locale.Tr "admin.users.admin"}}</span>
 				{{end}}
-				{{if .User.IsTypeBot}}
-					<span class="ui basic label">{{ctx.Locale.Tr "admin.users.bot"}}</span>
-				{{end}}
 			</div>
 			<div class="item-body">
 				<b>{{ctx.Locale.Tr "admin.users.auth_source"}}:</b>

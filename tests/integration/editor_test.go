@@ -39,6 +39,13 @@ func TestEditor(t *testing.T) {
 			testEditFile(t, sessionUser2, "user2", "repo1", "master", "README.md", "Hello, World (direct)\n")
 			testEditFileToNewBranch(t, sessionUser2, "user2", "repo1", "master", "feature/test", "README.md", "Hello, World (commit-to-new-branch)\n")
 		})
+		t.Run("EditorconfigOfBranch", func(t *testing.T) {
+			testCreateFile(t, sessionUser2, "user2", "repo1", "master", "editorconfig", ".editorconfig", "[*]\nindent_size = 2\n")
+			for _, link := range []string{"/user2/repo1/src/branch/editorconfig/README.md", "/user2/repo1/blame/branch/editorconfig/README.md"} {
+				resp := sessionUser2.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK)
+				AssertHTMLElement(t, NewHTMLParser(t, resp.Body), ".tab-size-2", true)
+			}
+		})
 		t.Run("PatchFile", testEditorPatchFile)
 		t.Run("DeleteFile", func(t *testing.T) {
 			viewLink := "/user2/repo1/src/branch/branch2/README.md"
@@ -84,12 +91,15 @@ func testCreateFile(t *testing.T, session *TestSession, user, repo, baseBranchNa
 
 func testEditorProtectedBranch(t *testing.T) {
 	session := loginUser(t, "user2")
+	assert.JSONEq(t, `{"errorMessage":"Required approvals cannot be negative.","renderFormat":"html","errorFields":["required_approvals"]}`,
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{"rule_name": "master", "required_approvals": "-1"}), http.StatusBadRequest).Body.String())
+
 	// Change the "master" branch to "protected"
 	req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
 		"rule_name":   "master",
 		"enable_push": "true",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 	flashMsg := session.GetCookieFlashMessage()
 	assert.Equal(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
 
@@ -105,7 +115,7 @@ func testEditorProtectedBranch(t *testing.T) {
 		"unprotected_file_patterns": "docs/*.md",
 		"enable_push":               "true",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 	flashMsg = session.GetCookieFlashMessage()
 	assert.Equal(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
 
@@ -388,7 +398,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		// Archive the repository
 		req := NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "settings"),
 			map[string]string{
-				"repo_name": repo,
+				"repo_name": user + "/" + repo,
 				"action":    "archive",
 			},
 		)
@@ -402,7 +412,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		// Unfork the repository
 		req = NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "settings"),
 			map[string]string{
-				"repo_name": repo,
+				"repo_name": user + "/" + repo,
 				"action":    "convert_fork",
 			},
 		)
@@ -423,7 +433,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		uploadForm := htmlDoc.doc.Find(".repo-file-upload.form-fetch-action")
 		formAction := uploadForm.AttrOr("action", "")
 		assert.Equal(t, fmt.Sprintf("/%s/%s-1/_upload/%s/%s?from_base_branch=%s&foo=bar", user, repo, branch, filePath, branch), formAction)
-		uploadLink := uploadForm.Find(".dropzone").AttrOr("data-link-url", "")
+		uploadLink := uploadForm.Find(".dropzone").AttrOr("data-upload-url", "")
 		assert.Equal(t, fmt.Sprintf("/%s/%s-1/upload-file", user, repo), uploadLink)
 		newBranchName := uploadForm.Find("input[name=new_branch_name]").AttrOr("value", "")
 		assert.Equal(t, user+"-patch-1", newBranchName)

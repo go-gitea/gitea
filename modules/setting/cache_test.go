@@ -69,3 +69,14 @@ ADAPTER = memcache
 		})
 	}
 }
+
+func TestCacheItemTTLSeconds(t *testing.T) {
+	defer test.MockVariableValue(&CacheService)()
+	for ttl, want := range map[string]int64{"-1": -1, "500ms": 1} {
+		cfg, err := NewConfigProviderFromData("[cache]\nITEM_TTL = " + ttl + "\n[cache.last_commit]\nITEM_TTL = " + ttl)
+		assert.NoError(t, err)
+		loadCacheFrom(cfg)
+		assert.Equal(t, want, CacheService.TTLSeconds())
+		assert.Equal(t, want, LastCommitCacheTTLSeconds())
+	}
+}

@@ -529,7 +529,7 @@ func UpdateIssueMentions(ctx context.Context, issueID int64, mentions []*user_mo
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
 func UpdateIssueDeadline(ctx context.Context, issue *Issue, deadlineUnix timeutil.TimeStamp, doer *user_model.User) (err error) {
-	// if the deadline hasn't changed do nothing
+	// if the deadline hasn't changed, do nothing
 	if issue.DeadlineUnix == deadlineUnix {
 		return nil
 	}
@@ -539,11 +539,11 @@ func UpdateIssueDeadline(ctx context.Context, issue *Issue, deadlineUnix timeuti
 		if err = UpdateIssueCols(ctx, &Issue{ID: issue.ID, DeadlineUnix: deadlineUnix}, "deadline_unix"); err != nil {
 			return err
 		}
-
 		// Make the comment
 		if _, err = createDeadlineComment(ctx, doer, issue, deadlineUnix); err != nil {
-			return fmt.Errorf("createRemovedDueDateComment: %w", err)
+			return fmt.Errorf("createDeadlineComment: %w", err)
 		}
+		issue.DeadlineUnix = deadlineUnix
 		return nil
 	})
 }
@@ -626,16 +626,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 				unittype = unit.TypePullRequests
 			}
 			for _, team := range teams {
-				if team.HasAdminAccess() {
-					checked = append(checked, team.ID)
-					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
-					continue
-				}
-				has, err := db.Exist[organization.TeamUnit](ctx, builder.Eq{"org_id": issue.Repo.Owner.ID, "team_id": team.ID, "`type`": unittype})
-				if err != nil {
-					return nil, fmt.Errorf("get team units (%d): %w", team.ID, err)
-				}
-				if has {
+				if team.UnitEnabled(ctx, unittype) {
 					checked = append(checked, team.ID)
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 				}

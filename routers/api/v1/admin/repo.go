@@ -32,18 +32,10 @@ func CreateRepo(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateRepoOption)
+	form := web.GetForm[*api.CreateRepoOption](ctx)
 
 	repo.CreateUserRepo(ctx, ctx.ContextUser, *form)
 }

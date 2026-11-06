@@ -29,9 +29,17 @@ func Init() {
 	WebAuthn = &webauthn.WebAuthn{
 		Config: &webauthn.Config{
 			RPDisplayName:         setting.AppName,
-			RPID:                  setting.Domain,
+			RPID:                  setting.AppDomain,
 			RPOrigins:             []string{appURL},
 			AttestationPreference: protocol.PreferNoAttestation, // Gitea never verifies attestation
+			// WebKit (Safari on iOS and macOS) returns an unsolicited "appid" client
+			// extension output even when the relying party did not request it. Since the
+			// webauthn library upgrade to v0.18, the default policy fails such ceremonies
+			// ('Client returned the appid extension output which was not requested'), breaking
+			// every passkey and security-key login from Safari on iOS. Ignore unsolicited
+			// extension outputs, the same policy other relying parties adopted for the
+			// same WebKit behavior.
+			ExtensionsUnsolicitedOutputPolicy: protocol.UnsolicitedOutputPolicyIgnore,
 		},
 	}
 }

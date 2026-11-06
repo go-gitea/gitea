@@ -133,10 +133,6 @@
 				<dd>{{svg (Iif .Service.AllowOnlyExternalRegistration "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.show_registration_button"}}</dt>
 				<dd>{{svg (Iif .Service.ShowRegistrationButton "octicon-check" "octicon-x")}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.enable_openid_signup"}}</dt>
-				<dd>{{svg (Iif .Service.EnableOpenIDSignUp "octicon-check" "octicon-x")}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.enable_openid_signin"}}</dt>
-				<dd>{{svg (Iif .Service.EnableOpenIDSignIn "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.require_sign_in_view"}}</dt>
 				<dd>{{svg (Iif .Service.RequireSignInViewStrict "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.mail_notify"}}</dt>
@@ -223,7 +219,7 @@
 							<div class="ui tiny input">
 								<input type="email" name="email" placeholder="{{ctx.Locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
 							</div>
-							<button class="ui tiny primary button">{{ctx.Locale.Tr "admin.config.send_test_mail_submit"}}</button>
+							<button type="submit" class="ui tiny primary button">{{ctx.Locale.Tr "admin.config.send_test_mail_submit"}}</button>
 						</form>
 					</dd>
 				{{end}}
@@ -237,7 +233,7 @@
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.cache_adapter"}}</dt>
 				<dd>{{.CacheAdapter}}</dd>
-				{{if eq .CacheAdapter "memory"}}
+				{{if or (eq .CacheAdapter "memory") (eq .CacheAdapter "twoqueue")}}
 					<dt>{{ctx.Locale.Tr "admin.config.cache_interval"}}</dt>
 					<dd>{{.CacheInterval}} {{ctx.Locale.Tr "tool.raw_seconds"}}</dd>
 				{{end}}
@@ -249,7 +245,7 @@
 				<dt class="flex-text-block tw-py-1">{{ctx.Locale.Tr "admin.config.cache_test"}}</dt>
 				<dd class="tw-py-0">
 					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test_cache" method="post">
-						<button class="ui tiny primary button">{{ctx.Locale.Tr "test"}}</button>
+						<button type="submit" class="ui tiny primary button">{{ctx.Locale.Tr "test"}}</button>
 					</form>
 				</dd>
 			</dl>
