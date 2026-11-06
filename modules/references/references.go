@@ -44,8 +44,6 @@ var (
 	// crossReferenceCommitPattern matches a string that references a commit in a different repository
 	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
 	crossReferenceCommitPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)@([0-9a-f]{7,64})(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
-	// spaceTrimmedPattern let's find the trailing space
-	spaceTrimmedPattern = regexp.MustCompile(`(?:.*[0-9a-zA-Z-_])\s`)
 	// timeLogPattern matches string for time tracking
 	timeLogPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@([0-9]+([\.,][0-9]+)?(w|d|m|h))+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 
@@ -232,12 +230,7 @@ func FindAllMentionsBytes(content []byte) []RefSpan {
 			break
 		}
 		ret = append(ret, RefSpan{Start: match[2] + pos, End: match[3] + pos})
-		notrail := spaceTrimmedPattern.FindSubmatchIndex(content[match[2]+pos : match[3]+pos])
-		if notrail == nil {
-			pos = match[3] + pos
-		} else {
-			pos = match[3] + pos + notrail[1] - notrail[3]
-		}
+		pos += match[3]
 	}
 	return ret
 }
