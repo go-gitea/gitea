@@ -285,6 +285,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			TargetCommitish: "master",
 			Name:            "First Release",
 			Body:            "A test release",
+			Latest:          true,
 			Created:         time.Date(2019, 11, 9, 16, 49, 21, 0, time.UTC),
 			Published:       time.Date(2019, 11, 12, 20, 12, 10, 0, time.UTC),
 			PublisherID:     1669571,
