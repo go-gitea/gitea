@@ -21,7 +21,6 @@ type testBindingForm struct {
 }
 
 func TestBuildValidationErrorForUser(t *testing.T) {
-	// every classification must reach its own message instead of the panicking "default" branch
 	t.Run("Range", func(t *testing.T) {
 		form := &testBindingForm{Hours: 2000}
 		errs := validation.Binder().Validate(t.Context(), form)

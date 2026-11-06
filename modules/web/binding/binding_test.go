@@ -165,12 +165,12 @@ func TestBind(t *testing.T) {
 			body:     "int=x&int8=128&uint=-1&uint8=256&bool=maybe&int_pointer=x&map=x",
 			expected: Everything{},
 			errs: Errors{
-				{FieldNames: []string{"Int"}, Classification: ErrTypeCast, Message: "Value could not be parsed as integer"},
-				{FieldNames: []string{"Int8"}, Classification: ErrTypeCast, Message: "Value could not be parsed as integer"},
-				{FieldNames: []string{"Uint"}, Classification: ErrTypeCast, Message: "Value could not be parsed as unsigned integer"},
-				{FieldNames: []string{"Uint8"}, Classification: ErrTypeCast, Message: "Value could not be parsed as unsigned integer"},
-				{FieldNames: []string{"Bool"}, Classification: ErrTypeCast, Message: "Value could not be parsed as boolean"},
-				{FieldNames: []string{"IntPointer"}, Classification: ErrTypeCast, Message: "Value could not be parsed as integer"},
+				{FieldNames: []string{"Int"}, Classification: errTypeCast, Message: "Value could not be parsed as integer"},
+				{FieldNames: []string{"Int8"}, Classification: errTypeCast, Message: "Value could not be parsed as integer"},
+				{FieldNames: []string{"Uint"}, Classification: errTypeCast, Message: "Value could not be parsed as unsigned integer"},
+				{FieldNames: []string{"Uint8"}, Classification: errTypeCast, Message: "Value could not be parsed as unsigned integer"},
+				{FieldNames: []string{"Bool"}, Classification: errTypeCast, Message: "Value could not be parsed as boolean"},
+				{FieldNames: []string{"IntPointer"}, Classification: errTypeCast, Message: "Value could not be parsed as integer"},
 				{FieldNames: []string{"Map"}, Classification: errDeserialization, Message: "unsupported type: map"},
 			},
 		},
@@ -305,7 +305,7 @@ func TestValidate(t *testing.T) {
 			data: &struct {
 				Float float64 `binding:"TrimSpace"`
 			}{Float: 1.5},
-			errs: Errors{{FieldNames: []string{"Float"}, Classification: ErrTypeCast, Message: "TrimSpace"}},
+			errs: Errors{{FieldNames: []string{"Float"}, Classification: errTypeCast, Message: "TrimSpace"}},
 		},
 	}
 	for _, tc := range cases {
