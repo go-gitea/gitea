@@ -72,7 +72,7 @@
 			{{end}}
 		</div>
 		{{if .Assignees}}
-		<div class="issue-card-bottom-part tw-justify-end tw-gap-1">
+		<div class="issue-card-bottom-part tw-justify-end">
 			{{range .Assignees}}
 				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 24}}</a>
 			{{end}}
