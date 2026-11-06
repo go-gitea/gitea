@@ -71,4 +71,5 @@ func ClearSessionKeysForSignIn(sess SessionStore) {
 	_ = sess.Delete("linkAccount")
 	_ = sess.Delete("linkAccountData")
 	_ = sess.Delete("openidPendingURI")
+	_ = sess.Delete(session.KeySignInMethod)
 }
