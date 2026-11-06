@@ -253,6 +253,12 @@ func getCompareURL(ctx context.Context, repo *repo_model.Repository, gitRepo *gi
 }
 
 func pushNewBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
+	if repo.IsEmpty {
+		if err := SyncBranchesToDB(ctx, repo, pusher.ID, gitRepo, []string{opts.RefName()}); err != nil {
+			return nil, fmt.Errorf("pushNewBranch: %w", err)
+		}
+	}
+
 	l, err := newCommit.CommitsBeforeLimit(ctx, gitRepo, 10)
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
