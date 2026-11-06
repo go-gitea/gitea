@@ -2487,7 +2487,6 @@
   "repo.settings.choose_branch": "Choose a branch…",
   "repo.settings.no_protected_branch": "There are no protected branches.",
   "repo.settings.edit_protected_branch": "Edit",
-  "repo.settings.protected_branch_required_rule_name": "Required rule name",
   "repo.settings.protected_branch_duplicate_rule_name": "Duplicate rule name",
   "repo.settings.protected_branch_required_approvals_min": "Required approvals cannot be negative.",
   "repo.settings.tags": "Tags",
