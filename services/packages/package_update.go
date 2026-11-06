@@ -17,20 +17,26 @@ import (
 	"gitea.dev/modules/util"
 )
 
-func LinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *repo_model.Repository, doer *user_model.User) error {
+func checkCanLinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *repo_model.Repository, doer *user_model.User) error {
 	if pkg.OwnerID != repo.OwnerID {
 		return util.ErrPermissionDenied
 	}
-	if pkg.RepoID > 0 {
-		return util.ErrInvalidArgument
-	}
-
 	perms, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
 	}
 	if !perms.CanWrite(unit.TypePackages) {
 		return util.ErrPermissionDenied
+	}
+	return nil
+}
+
+func LinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *repo_model.Repository, doer *user_model.User) error {
+	if pkg.RepoID > 0 {
+		return util.ErrInvalidArgument
+	}
+	if err := checkCanLinkToRepository(ctx, pkg, repo, doer); err != nil {
+		return err
 	}
 
 	if err := packages_model.SetRepositoryLink(ctx, pkg.ID, repo.ID); err != nil {
@@ -77,4 +83,24 @@ func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer
 		return util.ErrPermissionDenied
 	}
 	return packages_model.UnlinkRepository(ctx, pkg.ID)
+}
+
+// UpdateRepositoryLink links the package to repo, replacing an existing link, or removes the link if repo is nil
+func UpdateRepositoryLink(ctx context.Context, pkg *packages_model.Package, repo *repo_model.Repository, doer *user_model.User) error {
+	if repo == nil {
+		if pkg.RepoID == 0 {
+			return nil
+		}
+		return UnlinkFromRepository(ctx, pkg, doer)
+	}
+	if pkg.RepoID == repo.ID {
+		return nil
+	}
+	if pkg.RepoID != 0 && !canDoerManagePackage(ctx, pkg, doer) {
+		return util.ErrPermissionDenied
+	}
+	if err := checkCanLinkToRepository(ctx, pkg, repo, doer); err != nil {
+		return err
+	}
+	return packages_model.SetRepositoryLink(ctx, pkg.ID, repo.ID)
 }
