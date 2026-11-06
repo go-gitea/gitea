@@ -47,6 +47,7 @@ type WorkflowInfo struct {
 	EntryName string
 	ErrMsg    string
 	Workflow  *act_model.Workflow
+	Reusable  bool // only triggered by workflow_call
 }
 
 type workflowBadge struct {
@@ -226,11 +227,13 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			workflows = append(workflows, workflow)
 			continue
 		}
-		if _, err := actions.GetEventsFromContent(content); err != nil {
+		events, err := actions.GetEventsFromContent(content)
+		if err != nil {
 			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 			workflows = append(workflows, workflow)
 			continue
 		}
+		workflow.Reusable = len(events) == 0 && slices.Contains(wf.On(), "workflow_call") // events never include workflow_call
 		workflow.Workflow = wf
 		// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
 		hasJobWithoutNeeds := false
@@ -262,7 +265,11 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 		workflows = append(workflows, workflow)
 	}
 
+	reusableWorkflows := slices.DeleteFunc(slices.Clone(workflows), func(w WorkflowInfo) bool { return !w.Reusable })
 	ctx.Data["workflows"] = workflows
+	ctx.Data["ReusableWorkflows"] = reusableWorkflows
+	ctx.Data["CurWorkflowIsReusable"] = ctx.FormInt64("scoped_workflow_source_repo_id") == 0 &&
+		slices.ContainsFunc(reusableWorkflows, func(w WorkflowInfo) bool { return w.EntryName == curWorkflowID })
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 	ctx.Data["RepoID"] = ctx.Repo.Repository.ID
 	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.Permission.IsAdmin()

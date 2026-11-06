@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -72,22 +71,6 @@ var IssueTemplateCandidates = []string{
 	".github/issue_template.md",
 	".github/issue_template.yaml",
 	".github/issue_template.yml",
-}
-
-// MustAllowUserComment checks to make sure if an issue is locked.
-// If locked and user has permissions to write to the repository,
-// then the comment is allowed, else it is blocked
-func MustAllowUserComment(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
-		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.Link())
-		return
-	}
 }
 
 // MustEnableIssues check if repository enable internal issues
@@ -181,14 +164,15 @@ func retrieveProjectsInternal(ctx *context.Context, repo *repo_model.Repository)
 }
 
 // GetActionIssue will return the issue which is used in the context.
-func GetActionIssue(ctx *context.Context) *issues_model.Issue {
+func GetActionIssue(ctx *context.Context, accessModeOpt ...perm.AccessMode) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
 		return nil
 	}
 	issue.Repo = ctx.Repo.Repository
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+	accessMode := util.OptionalArg(accessModeOpt, perm.AccessModeRead)
+	if !ctx.Repo.Permission.CanAccess(accessMode, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues)) {
 		ctx.NotFound(nil)
 		return nil
 	}
@@ -199,34 +183,20 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 	return issue
 }
 
-func getActionIssues(ctx *context.Context) issues_model.IssueList {
-	commaSeparatedIssueIDs := ctx.FormString("issue_ids")
-	if len(commaSeparatedIssueIDs) == 0 {
-		return nil
-	}
-	issueIDs := make([]int64, 0, 10)
-	for stringIssueID := range strings.SplitSeq(commaSeparatedIssueIDs, ",") {
-		issueID, err := strconv.ParseInt(stringIssueID, 10, 64)
-		if err != nil {
-			ctx.ServerError("ParseInt", err)
-			return nil
-		}
-		issueIDs = append(issueIDs, issueID)
-	}
+func getActionIssues(ctx *context.Context, accessMode perm.AccessMode) issues_model.IssueList {
+	issueIDs := ctx.FormStringInt64s("issue_ids")
 	issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
 		ctx.ServerError("GetIssuesByIDs", err)
 		return nil
 	}
-	// Check access rights for all issues
-	issueUnitEnabled := ctx.Repo.Permission.CanRead(unit.TypeIssues)
-	prUnitEnabled := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
 	for _, issue := range issues {
 		if issue.RepoID != ctx.Repo.Repository.ID {
 			ctx.NotFound(errors.New("some issue's RepoID is incorrect"))
 			return nil
 		}
-		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
+		issue.Repo = ctx.Repo.Repository
+		if !ctx.Repo.Permission.CanAccess(accessMode, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues)) {
 			ctx.NotFound(nil)
 			return nil
 		}
@@ -401,7 +371,7 @@ func UpdateIssueDeadline(ctx *context.Context) {
 
 // UpdateIssueMilestone change issue's milestone
 func UpdateIssueMilestone(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}
@@ -434,7 +404,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 
 // UpdateIssueAssignee change issue's or pull's assignee
 func UpdateIssueAssignee(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}
