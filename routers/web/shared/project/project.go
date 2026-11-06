@@ -13,6 +13,8 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	project_service "gitea.dev/services/projects"
+
+	"xorm.io/builder"
 )
 
 // findProject loads the "id" path param, scoped to whichever owner the route assigned:
@@ -194,6 +196,17 @@ func MoveIssues(ctx *context.Context) {
 			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
 			return
 		}
+	}
+
+	// project write alone lets a doer move cards, so only the confidential rule applies here, not issue read access
+	hiddenIssues, err := issues_model.FindHiddenConfidentialIssues(ctx, ctx.Doer, builder.In("issue.id", issueIDs))
+	if err != nil {
+		ctx.ServerError("FindHiddenConfidentialIssues", err)
+		return
+	}
+	if len(hiddenIssues) > 0 {
+		ctx.NotFound(nil)
+		return
 	}
 
 	if err = project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {

@@ -4170,6 +4170,11 @@
             "type": "boolean",
             "x-go-name": "Closed"
           },
+          "confidential": {
+            "description": "whether the issue is confidential",
+            "type": "boolean",
+            "x-go-name": "Confidential"
+          },
           "due_date": {
             "format": "date-time",
             "type": "string",
@@ -5612,6 +5617,11 @@
           "body": {
             "type": "string",
             "x-go-name": "Body"
+          },
+          "confidential": {
+            "description": "whether the issue is confidential",
+            "type": "boolean",
+            "x-go-name": "Confidential"
           },
           "content_version": {
             "description": "The current version of the issue content to detect conflicts during editing",
@@ -7318,6 +7328,11 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "Comments"
+          },
+          "confidential": {
+            "description": "Whether the issue is confidential (visible only to the poster, assignees and users with write access)",
+            "type": "boolean",
+            "x-go-name": "Confidential"
           },
           "content_version": {
             "description": "The version of the issue content for optimistic locking",

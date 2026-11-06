@@ -368,6 +368,9 @@ func NewIssuePost(ctx *context.Context) {
 		Content:     content,
 		Ref:         form.Ref,
 	}
+	if form.Confidential == "true" {
+		issue.IsConfidential = true
+	}
 
 	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectIDs); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {

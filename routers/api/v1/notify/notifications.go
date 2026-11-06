@@ -23,10 +23,16 @@ func NewAvailable(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/NotificationCount"
 
-	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+	opts := &activities_model.FindNotificationOptions{
 		UserID: ctx.Doer.ID,
+		Viewer: ctx.Doer,
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
-	})
+	}
+	if err := opts.ResolveHiddenIssues(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	total, err := db.Count[activities_model.Notification](ctx, opts)
 	if err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
@@ -44,8 +50,13 @@ func getFindNotificationOptions(ctx *context.APIContext) *activities_model.FindN
 	opts := &activities_model.FindNotificationOptions{
 		ListOptions:       utils.GetListOptions(ctx),
 		UserID:            ctx.Doer.ID,
+		Viewer:            ctx.Doer,
 		UpdatedBeforeUnix: before,
 		UpdatedAfterUnix:  since,
+	}
+	if err := opts.ResolveHiddenIssues(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return nil
 	}
 	if !ctx.FormBool("all") {
 		statuses := ctx.FormStrings("status-types")

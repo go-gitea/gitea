@@ -44,6 +44,10 @@ func NewNotifier() notify_service.Notifier {
 }
 
 func (m *webhookNotifier) IssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	if issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	if err := issue.LoadPoster(ctx); err != nil {
 		log.Error("LoadPoster: %v", err)
 		return
@@ -177,6 +181,10 @@ func (m *webhookNotifier) MigrateRepository(ctx context.Context, doer, u *user_m
 }
 
 func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
+	if issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	action := api.HookIssueAssigned
 	changes := &api.ChangesPayload{}
 	if removed {
@@ -225,6 +233,10 @@ func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 }
 
 func (m *webhookNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
+	if issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	var err error
 	if issue.IsPull {
@@ -265,6 +277,10 @@ func (m *webhookNotifier) IssueChangeTitle(ctx context.Context, doer *user_model
 }
 
 func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
+	if issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	var err error
 	if issue.IsPull {
@@ -307,6 +323,10 @@ func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 }
 
 func (m *webhookNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
+	if issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("issue.LoadRepo: %v", err)
 		return
@@ -329,6 +349,10 @@ func (m *webhookNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 }
 
 func (m *webhookNotifier) DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	if issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(ctx); err != nil {
@@ -392,6 +416,10 @@ func (m *webhookNotifier) NewPullRequest(ctx context.Context, pull *issues_model
 }
 
 func (m *webhookNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
+	if issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
 		return
@@ -444,6 +472,10 @@ func (m *webhookNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 		log.Error("LoadIssue: %v", err)
 		return
 	}
+	if c.Issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", c.Issue.ID)
+		return
+	}
 
 	if err := c.Issue.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
@@ -481,6 +513,10 @@ func (m *webhookNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 func (m *webhookNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
+	if issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	var eventType webhook_module.HookEventType
 	var pullRequest *api.PullRequest
 	if issue.IsPull {
@@ -518,6 +554,10 @@ func (m *webhookNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 	comment.Issue = nil // reload issue to ensure it has the latest data, especially the number of comments
 	if err = comment.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
+		return
+	}
+	if comment.Issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", comment.Issue.ID)
 		return
 	}
 
@@ -590,6 +630,10 @@ func (m *webhookNotifier) DeleteWikiPage(ctx context.Context, doer *user_model.U
 func (m *webhookNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label,
 ) {
+	if issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	var err error
 
 	if err = issue.LoadRepo(ctx); err != nil {
@@ -634,6 +678,10 @@ func (m *webhookNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 }
 
 func (m *webhookNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
+	if issue.IsConfidential {
+		log.Debug("webhook: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	var hookAction api.HookIssueAction
 	var err error
 	if issue.MilestoneID > 0 {

@@ -25,7 +25,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 8
+	issueIndexerLatestVersion = 9
 )
 
 const unicodeNormalizeName = "unicodeNormalize"
@@ -70,6 +70,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	numberFieldMapping.IncludeInAll = false
 
 	docMapping.AddFieldMappingsAt("is_public", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("is_confidential", boolFieldMapping)
 
 	docMapping.AddFieldMappingsAt("title", textFieldMapping)
 	docMapping.AddFieldMappingsAt("content", textFieldMapping)
@@ -288,6 +289,21 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			options.UpdatedAfterUnix,
 			options.UpdatedBeforeUnix,
 			"updated_unix"))
+	}
+
+	if options.Visibility.NeedsFilter() {
+		visibleQueries := []query.Query{inner_bleve.BoolFieldQuery(false, "is_confidential")}
+		if options.Visibility != nil {
+			if options.Visibility.ViewerID > 0 {
+				visibleQueries = append(visibleQueries,
+					inner_bleve.NumericEqualityQuery(options.Visibility.ViewerID, "poster_id"),
+					inner_bleve.NumericEqualityQuery(options.Visibility.ViewerID, "assignee_ids"))
+			}
+			for _, repoID := range options.Visibility.WriterRepoIDs {
+				visibleQueries = append(visibleQueries, inner_bleve.NumericEqualityQuery(repoID, "repo_id"))
+			}
+		}
+		queries = append(queries, bleve.NewDisjunctionQuery(visibleQueries...))
 	}
 
 	var indexerQuery query.Query = bleve.NewConjunctionQuery(queries...)

@@ -639,6 +639,38 @@ var cases = []*testIndexerCase{
 			}), result.Total)
 		},
 	},
+	confidentialCase("confidential hidden", nil, 2003),
+	confidentialCase("confidential poster", &internal.VisibilityFilter{ViewerID: 77}, 2001, 2003),
+	confidentialCase("confidential assignee", &internal.VisibilityFilter{ViewerID: 79}, 2002, 2003),
+	confidentialCase("confidential writer repo", &internal.VisibilityFilter{WriterRepoIDs: []int64{confidentialRepoID}}, 2001, 2002, 2003),
+	confidentialCase("confidential unrestricted", &internal.VisibilityFilter{Unrestricted: true}, 2001, 2002, 2003, 2004),
+}
+
+const confidentialRepoID = 9001
+
+// confidentialCase searches two repos holding confidential and public issues under the given visibility.
+func confidentialCase(name string, visibility *internal.VisibilityFilter, expectedIDs ...int64) *testIndexerCase {
+	return &testIndexerCase{
+		Name: name,
+		ExtraData: []*internal.IndexerData{
+			{ID: 2001, RepoID: confidentialRepoID, Title: "confidential by poster", IsConfidential: true, PosterID: 77, NoAssignee: true},
+			{ID: 2002, RepoID: confidentialRepoID, Title: "confidential by assignee", IsConfidential: true, PosterID: 78, AssigneeIDs: []int64{79}},
+			{ID: 2003, RepoID: confidentialRepoID, Title: "public issue", PosterID: 78, NoAssignee: true},
+			{ID: 2004, RepoID: confidentialRepoID + 1, Title: "confidential in other repo", IsConfidential: true, PosterID: 78, NoAssignee: true},
+		},
+		SearchOptions: &internal.SearchOptions{
+			RepoIDs:    []int64{confidentialRepoID, confidentialRepoID + 1},
+			Visibility: visibility,
+		},
+		Expected: func(t *testing.T, _ map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			ids := make([]int64, 0, len(result.Hits))
+			for _, hit := range result.Hits {
+				ids = append(ids, hit.ID)
+			}
+			assert.ElementsMatch(t, expectedIDs, ids)
+			assert.Equal(t, int64(len(expectedIDs)), result.Total)
+		},
+	}
 }
 
 type testIndexerCase struct {
@@ -750,7 +782,7 @@ func waitData(t *testing.T, indexer internal.Indexer, total int64) {
 		require.NoError(t, refresher.Refresh(t.Context()))
 	}
 	assert.Eventually(t, func() bool {
-		result, err := indexer.Search(t.Context(), &internal.SearchOptions{Paginator: &db.ListOptions{}})
+		result, err := indexer.Search(t.Context(), &internal.SearchOptions{Paginator: &db.ListOptions{}, Visibility: &internal.VisibilityFilter{Unrestricted: true}})
 		require.NoError(t, err)
 		return result.Total == total
 	}, 10*time.Second, 100*time.Millisecond, "expected total=%d", total)

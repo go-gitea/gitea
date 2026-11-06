@@ -55,6 +55,12 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
+	scope := issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission)
+	if err := issues_model.MilestoneList(miles).SubtractHiddenIssues(ctx, scope); err != nil {
+		ctx.ServerError("SubtractHiddenIssues", err)
+		return
+	}
+
 	stats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}), keyword)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
@@ -246,6 +252,12 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		}
 
 		ctx.ServerError("GetMilestoneByID", err)
+		return
+	}
+
+	scope := issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission)
+	if err := (issues_model.MilestoneList{milestone}).SubtractHiddenIssues(ctx, scope); err != nil {
+		ctx.ServerError("SubtractHiddenIssues", err)
 		return
 	}
 

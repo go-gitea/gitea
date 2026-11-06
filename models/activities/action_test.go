@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAction_GetRepoPath(t *testing.T) {
@@ -151,4 +152,66 @@ func TestDeleteIssueActions(t *testing.T) {
 	unittest.AssertCount(t, &activities_model.Action{}, 2)
 	assert.NoError(t, activities_model.DeleteIssueActions(t.Context(), issue.RepoID, issue.ID, issue.Index))
 	unittest.AssertCount(t, &activities_model.Action{}, 0)
+}
+
+func TestGetFeedsConfidential(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	hiddenViewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	insertIssue := func(index int64, confidential bool) *issue_model.Issue {
+		issue := &issue_model.Issue{RepoID: repo.ID, Repo: repo, Index: index, PosterID: owner.ID, Title: "t", IsConfidential: confidential}
+		require.NoError(t, db.Insert(ctx, issue))
+		require.NoError(t, db.Insert(ctx, &activities_model.Action{
+			UserID: owner.ID, ActUserID: owner.ID, RepoID: repo.ID, OpType: activities_model.ActionCreateIssue,
+			Content: fmt.Sprintf("%d|t", index),
+		}))
+		return issue
+	}
+	secret := insertIssue(9001, true)
+	insertIssue(9002, false)
+
+	feedContents := func(opts activities_model.GetFeedsOptions) []string {
+		actions, count, err := activities_model.GetFeeds(ctx, opts)
+		require.NoError(t, err)
+		contents := make([]string, 0, len(actions))
+		for _, action := range actions {
+			contents = append(contents, action.Content)
+		}
+		assert.Equal(t, int64(len(contents)), count)
+		return contents
+	}
+	ownDashboard := func(actor *user_model.User) activities_model.GetFeedsOptions {
+		return activities_model.GetFeedsOptions{RequestedUser: actor, Actor: actor, IncludePrivate: true}
+	}
+	ownerProfile := func(actor *user_model.User) activities_model.GetFeedsOptions {
+		return activities_model.GetFeedsOptions{RequestedUser: owner, Actor: actor, IncludePrivate: true}
+	}
+	repoFeed := func(actor *user_model.User) activities_model.GetFeedsOptions {
+		return activities_model.GetFeedsOptions{RequestedRepo: repo, Actor: actor, IncludePrivate: true}
+	}
+
+	// the owner is not hidden from the issue, but a hidden viewer viewing own dashboard must still be filtered
+	assert.Contains(t, feedContents(ownDashboard(owner)), "9001|t")
+	assert.Contains(t, feedContents(ownerProfile(admin)), "9001|t")
+	for _, opts := range []activities_model.GetFeedsOptions{ownerProfile(hiddenViewer), repoFeed(hiddenViewer), repoFeed(nil)} {
+		contents := feedContents(opts)
+		assert.NotContains(t, contents, "9001|t")
+		assert.Contains(t, contents, "9002|t")
+	}
+
+	// own-dashboard branch: actions of the hidden viewer's own dashboard about the confidential issue
+	require.NoError(t, db.Insert(ctx, &activities_model.Action{
+		UserID: hiddenViewer.ID, ActUserID: owner.ID, RepoID: repo.ID, OpType: activities_model.ActionCommentIssue, Content: "9001|t",
+	}))
+	assert.NotContains(t, feedContents(ownDashboard(hiddenViewer)), "9001|t")
+	assert.Contains(t, feedContents(repoFeed(admin)), "9001|t")
+
+	// publishing shows the entries again without touching the rows
+	_, err := db.GetEngine(ctx).ID(secret.ID).Cols("is_confidential").Update(&issue_model.Issue{IsConfidential: false})
+	require.NoError(t, err)
+	assert.Contains(t, feedContents(repoFeed(hiddenViewer)), "9001|t")
 }

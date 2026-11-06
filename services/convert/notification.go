@@ -36,7 +36,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 	if !perm.HasAnyUnitAccessOrPublicAccess() {
 		return result
 	}
-	result.Repository = ToRepo(ctx, n.Repository, perm)
+	result.Repository = ToAPIRepo(ctx, n.Repository, perm, n.User)
 	// This permission is not correct and we should not be reporting it
 	for repository := result.Repository; repository != nil; repository = repository.Parent {
 		repository.Permissions = nil

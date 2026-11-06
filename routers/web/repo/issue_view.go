@@ -137,7 +137,12 @@ func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.Depende
 			}
 			repoPerms[blocker.RepoID] = perm
 		}
-		if perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
+		visible, err := issues_model.IsIssueVisible(ctx, &blocker.Issue, ctx.Doer, perm)
+		if err != nil {
+			ctx.ServerError("IsIssueVisible", err)
+			return nil, nil
+		}
+		if visible {
 			canRead = append(canRead, blocker)
 		} else {
 			notPermitted = append(notPermitted, blocker)
@@ -146,6 +151,36 @@ func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.Depende
 	sortDependencyInfo(canRead)
 	sortDependencyInfo(notPermitted)
 	return canRead, notPermitted
+}
+
+// markHiddenRefIssues flags reference comments whose referencing issue is confidential and hidden from the doer
+func markHiddenRefIssues(ctx *context.Context, comments issues_model.CommentList) error {
+	repoPerms := map[int64]access_model.Permission{ctx.Repo.Repository.ID: ctx.Repo.Permission}
+	for _, c := range comments {
+		if !issues_model.CommentTypeIsRef(c.Type) || c.RefIssueID == 0 {
+			continue
+		}
+		refIssue, err := issues_model.GetIssueByID(ctx, c.RefIssueID)
+		if err != nil {
+			return err
+		}
+		perm, ok := repoPerms[refIssue.RepoID]
+		if !ok {
+			if err = refIssue.LoadRepo(ctx); err != nil {
+				return err
+			}
+			if perm, err = access_model.GetDoerRepoPermission(ctx, refIssue.Repo, ctx.Doer); err != nil {
+				return err
+			}
+			repoPerms[refIssue.RepoID] = perm
+		}
+		visible, err := issues_model.IsIssueVisible(ctx, refIssue, ctx.Doer, perm)
+		if err != nil {
+			return err
+		}
+		c.RefIssueHidden = !visible
+	}
+	return nil
 }
 
 func sortDependencyInfo(blockers []*issues_model.DependencyInfo) {
@@ -272,6 +307,12 @@ func prepareIssueViewLoad(ctx *context.Context) *issues_model.Issue {
 		return nil
 	}
 	issue.Repo = ctx.Repo.Repository
+	if !issue.IsPull { // pull requests are never confidential, and their read access is checked later
+		if err = issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+			ctx.ServerError("CheckIssueVisible", err)
+			return nil
+		}
+	}
 	ctx.Data["Issue"] = issue
 
 	if err = issue.LoadPullRequest(ctx); err != nil {
@@ -357,6 +398,10 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 	combineXRefComments(issue)
+	if err = markHiddenRefIssues(ctx, issue.Comments); err != nil {
+		ctx.ServerError("markHiddenRefIssues", err)
+		return
+	}
 
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, emoji.ReplaceAliases(issue.Title))
 
@@ -411,6 +456,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.Repo.Permission.IsAdmin()
+	ctx.Data["CanChangeConfidential"] = !issue.IsPull && ctx.Repo.Permission.CanWrite(unit.TypeIssues) && !ctx.Repo.Repository.IsArchived
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefName(issue.Ref).ShortName()
 

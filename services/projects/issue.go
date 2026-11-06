@@ -302,10 +302,11 @@ func LoadLinkedPullRequests(ctx context.Context, issuesMap map[int64]issues_mode
 }
 
 // NumClosedIssues return counter of closed issues assigned to a project
-func loadNumClosedIssues(ctx context.Context, p *project_model.Project) error {
+func loadNumClosedIssues(ctx context.Context, p *project_model.Project, scope *issues_model.VisibilityScope) error {
 	cnt, err := db.GetEngine(ctx).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
 		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).
+		And(scope.Cond()).
 		Cols("issue_id").
 		Count()
 	if err != nil {
@@ -316,10 +317,11 @@ func loadNumClosedIssues(ctx context.Context, p *project_model.Project) error {
 }
 
 // NumOpenIssues return counter of open issues assigned to a project
-func loadNumOpenIssues(ctx context.Context, p *project_model.Project) error {
+func loadNumOpenIssues(ctx context.Context, p *project_model.Project, scope *issues_model.VisibilityScope) error {
 	cnt, err := db.GetEngine(ctx).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
 		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
+		And(scope.Cond()).
 		Cols("issue_id").
 		Count()
 	if err != nil {
@@ -341,10 +343,14 @@ func LoadIssueNumbersForProjects(ctx context.Context, projects []*project_model.
 func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Project, doer *user_model.User) error {
 	// for repository project, just get the numbers
 	if project.OwnerID == 0 {
-		if err := loadNumClosedIssues(ctx, project); err != nil {
+		scope, err := issues_model.BuildVisibilityScope(ctx, doer, []int64{project.RepoID}, false)
+		if err != nil {
 			return err
 		}
-		if err := loadNumOpenIssues(ctx, project); err != nil {
+		if err := loadNumClosedIssues(ctx, project, scope); err != nil {
+			return err
+		}
+		if err := loadNumOpenIssues(ctx, project, scope); err != nil {
 			return err
 		}
 		project.NumIssues = project.NumClosedIssues + project.NumOpenIssues

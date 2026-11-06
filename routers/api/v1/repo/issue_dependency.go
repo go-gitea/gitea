@@ -7,6 +7,7 @@ package repo
 import (
 	"net/http"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -73,7 +74,8 @@ func GetIssueDependencies(ctx *context.APIContext) {
 	blockerIssues := make([]*issues_model.Issue, 0, min(listOptions.PageSize, setting.API.MaxResponseItems))
 
 	// Get the issues this issue depends on, i.e. the `<#b>`: `<issue> <- <#b>`
-	blockersInfo, total, err := issue.BlockedByDependencies(ctx, listOptions)
+	// All of them are loaded so hidden confidential issues can be dropped before paging.
+	blockersInfo, _, err := issue.BlockedByDependencies(ctx, db.ListOptions{})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -126,9 +128,18 @@ func GetIssueDependencies(ctx *context.APIContext) {
 				confidentialBlocker.Issue.Repo = &confidentialBlocker.Repository
 				blocker = confidentialBlocker
 			}
+		} else if visible, err := issues_model.IsIssueVisible(ctx, &blocker.Issue, ctx.Doer, perm); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		} else if !visible {
+			continue
 		}
 		blockerIssues = append(blockerIssues, &blocker.Issue)
 	}
+
+	total := int64(len(blockerIssues))
+	skip := min((listOptions.Page-1)*listOptions.PageSize, len(blockerIssues))
+	blockerIssues = blockerIssues[skip:min(skip+listOptions.PageSize, len(blockerIssues))]
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blockerIssues))
@@ -317,11 +328,8 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	repoPerms := make(map[int64]access_model.Permission)
 	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 
-	for i, depMeta := range deps {
-		if i < skip || i >= maxNum {
-			continue
-		}
-
+	var readable []*issues_model.Issue
+	for _, depMeta := range deps {
 		// Get the permissions for this repository
 		// If the repo ID exists in the map, return the exist permissions
 		// else get the permission and add it to the map
@@ -339,14 +347,24 @@ func GetIssueBlocks(ctx *context.APIContext) {
 			repoPerms[depMeta.RepoID] = perm
 		}
 
-		if !perm.CanReadIssuesOrPulls(depMeta.Issue.IsPull) {
+		visible, err := issues_model.IsIssueVisible(ctx, &depMeta.Issue, ctx.Doer, perm)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !visible {
 			continue
 		}
 
 		depMeta.Issue.Repo = &depMeta.Repository
-		issues = append(issues, &depMeta.Issue)
+		readable = append(readable, &depMeta.Issue)
 	}
 
+	if skip < len(readable) {
+		issues = readable[skip:min(maxNum, len(readable))]
+	}
+
+	ctx.SetTotalCountHeader(int64(len(readable)))
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
 
@@ -487,6 +505,14 @@ func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Is
 		return nil
 	}
 	issue.Repo = repo
+	repoPerm := getPermissionForRepo(ctx, repo)
+	if repoPerm == nil {
+		return nil
+	}
+	if err := issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, *repoPerm); err != nil {
+		ctx.APIErrorAuto(err)
+		return nil
+	}
 	return issue
 }
 

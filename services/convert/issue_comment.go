@@ -14,6 +14,9 @@ import (
 	"gitea.dev/modules/util"
 )
 
+// ConfidentialRefPlaceholder replaces the body of a reference to a confidential issue the viewer cannot see
+const ConfidentialRefPlaceholder = "referenced a confidential issue"
+
 // ToAPIComment converts a issues_model.Comment to the api.Comment format for API usage
 func ToAPIComment(ctx context.Context, repo *repo_model.Repository, c *issues_model.Comment) *api.Comment {
 	return &api.Comment{
@@ -134,6 +137,16 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 			log.Error("GetIssueByID(%d): %v", c.RefIssueID, err)
 			return nil
 		}
+		visible, err := issues_model.IsIssueVisibleForDoer(ctx, issue, doer)
+		if err != nil {
+			log.Error("IsIssueVisibleForDoer(%d): %v", c.RefIssueID, err)
+		}
+		if err != nil || !visible {
+			comment.Body = ConfidentialRefPlaceholder
+			comment.RefCommitSHA = ""
+			comment.RefAction = ""
+			return comment
+		}
 		comment.RefIssue = ToAPIIssue(ctx, doer, issue)
 	}
 
@@ -185,7 +198,13 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 	}
 
 	if c.DependentIssue != nil {
-		comment.DependentIssue = ToAPIIssue(ctx, doer, c.DependentIssue)
+		visible, err := issues_model.IsIssueVisibleForDoer(ctx, c.DependentIssue, doer)
+		if err != nil {
+			log.Error("IsIssueVisibleForDoer(%d): %v", c.DependentIssue.ID, err)
+		}
+		if err == nil && visible {
+			comment.DependentIssue = ToAPIIssue(ctx, doer, c.DependentIssue)
+		}
 	}
 
 	return comment

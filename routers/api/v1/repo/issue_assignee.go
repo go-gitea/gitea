@@ -212,6 +212,10 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 		ctx.APIErrorInternal(err)
 		return
 	}
+	if err := issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
 
 	status := http.StatusOK
 	if isAdd {

@@ -192,6 +192,14 @@ a.ui.ui.ui.grey.label:hover {
   color: var(--color-white);
 }
 
+/* the solid orange and yellow labels fail text contrast, the message palette passes in every theme */
+.ui.ui.ui.warning.label {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  box-shadow: inset 0 0 0 1px var(--color-warning-border);
+  color: var(--color-warning-text);
+}
+
 /* "horizontal label" is actually "fat label" which has enough padding spaces to be used standalone in headers */
 .ui.horizontal.label {
   margin: 0 0.5em 0 0;

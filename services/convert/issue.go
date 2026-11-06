@@ -48,19 +48,20 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	}
 
 	apiIssue := &api.Issue{
-		ID:          issue.ID,
-		Index:       issue.Index,
-		Poster:      ToAuthor(ctx, issue.Poster, issue.OriginalAuthor, doer),
-		Title:       issue.Title,
-		Body:        issue.Content,
-		Attachments: toAttachments(ctx, issue.Repo, issue.Attachments, getDownloadURL),
-		Ref:         issue.Ref,
-		State:       issue.State(),
-		IsLocked:    issue.IsLocked,
-		Comments:    issue.NumComments,
-		Created:     issue.CreatedUnix.AsTime(),
-		Updated:     issue.UpdatedUnix.AsTime(),
-		PinOrder:    util.Iif(issue.PinOrder == -1, 0, issue.PinOrder), // -1 means loaded with no pin order
+		ID:           issue.ID,
+		Index:        issue.Index,
+		Poster:       ToAuthor(ctx, issue.Poster, issue.OriginalAuthor, doer),
+		Title:        issue.Title,
+		Body:         issue.Content,
+		Attachments:  toAttachments(ctx, issue.Repo, issue.Attachments, getDownloadURL),
+		Ref:          issue.Ref,
+		State:        issue.State(),
+		IsLocked:     issue.IsLocked,
+		Confidential: issue.IsConfidential,
+		Comments:     issue.NumComments,
+		Created:      issue.CreatedUnix.AsTime(),
+		Updated:      issue.UpdatedUnix.AsTime(),
+		PinOrder:     util.Iif(issue.PinOrder == -1, 0, issue.PinOrder), // -1 means loaded with no pin order
 
 		TimeEstimate:   issue.TimeEstimate,
 		ContentVersion: issue.ContentVersion,
@@ -219,6 +220,15 @@ func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_mod
 			continue
 		}
 
+		visible, err := issues_model.IsIssueVisible(ctx, issue, doer, perm)
+		if err != nil {
+			log.Error("IsIssueVisible(%d): %v", issue.ID, err)
+			continue
+		}
+		if !visible {
+			continue
+		}
+
 		result = append(result, api.StopWatch{
 			Created:       sw.CreatedUnix.AsTime(),
 			Seconds:       sw.Seconds(),
@@ -248,6 +258,14 @@ func ToTrackedTimeList(ctx context.Context, doer *user_model.User, tl issues_mod
 			continue
 		}
 		if !perm.CanReadIssuesOrPulls(t.Issue.IsPull) {
+			continue
+		}
+		visible, err := issues_model.IsIssueVisible(ctx, t.Issue, doer, perm)
+		if err != nil {
+			log.Error("IsIssueVisible(%d): %v", t.Issue.ID, err)
+			continue
+		}
+		if !visible {
 			continue
 		}
 		result = append(result, ToTrackedTime(ctx, doer, t))

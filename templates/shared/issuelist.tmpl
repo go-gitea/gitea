@@ -19,6 +19,7 @@
 				<div class="item-header">
 					<div>
 						<a class="list-item-large-title" href="{{if $issue.Link}}{{$issue.Link}}{{else}}{{$root.Link}}/{{$issue.Index}}{{end}}">{{$issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+						{{if $issue.IsConfidential}}<span class="ui warning label">{{svg "octicon-eye-closed" 14}} {{ctx.Locale.Tr "repo.issues.confidential"}}</span>{{end}}
 						{{if $issue.IsPull}}
 							{{if (index $root.CommitStatuses $issue.PullRequest.ID)}}
 								<span class="tw-align-[1px]">{{/* make the "flex" children align with parent "inline" */}}

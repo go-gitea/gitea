@@ -54,10 +54,16 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	perPage := util.IfZero(ctx.FormInt("perPage"), 20) // this value is never used or exposed ....
 	queryStatus := util.Iif(pageType == "read", activities_model.NotificationStatusRead, activities_model.NotificationStatusUnread)
 
-	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+	countOpts := activities_model.FindNotificationOptions{
 		UserID: ctx.Doer.ID,
+		Viewer: ctx.Doer,
 		Status: []activities_model.NotificationStatus{queryStatus},
-	})
+	}
+	if err := countOpts.ResolveHiddenIssues(ctx); err != nil {
+		ctx.ServerError("ResolveHiddenIssues", err)
+		return
+	}
+	total, err := db.Count[activities_model.Notification](ctx, countOpts)
 	if err != nil {
 		ctx.ServerError("ErrGetNotificationCount", err)
 		return
@@ -71,14 +77,20 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	}
 
 	statuses := []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
-	nls, err := db.Find[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+	findOpts := activities_model.FindNotificationOptions{
 		ListOptions: db.ListOptions{
 			PageSize: perPage,
 			Page:     page,
 		},
 		UserID: ctx.Doer.ID,
+		Viewer: ctx.Doer,
 		Status: statuses,
-	})
+	}
+	if err := findOpts.ResolveHiddenIssues(ctx); err != nil {
+		ctx.ServerError("ResolveHiddenIssues", err)
+		return
+	}
+	nls, err := db.Find[activities_model.Notification](ctx, findOpts)
 	if err != nil {
 		ctx.ServerError("db.Find[activities_model.Notification]", err)
 		return
@@ -262,11 +274,17 @@ func NotificationSubscriptions(ctx *context.Context) {
 		}
 	}
 
+	visibility, err := issues_model.BuildVisibilityScopeByCond(ctx, ctx.Doer, nil)
+	if err != nil {
+		ctx.ServerError("BuildVisibilityScopeByCond", err)
+		return
+	}
 	count, err := issues_model.CountIssues(ctx, &issues_model.IssuesOptions{
 		SubscriberID: ctx.Doer.ID,
 		IsClosed:     showClosed,
 		IsPull:       issueTypeBool,
 		LabelIDs:     labelIDs,
+		Visibility:   visibility,
 	})
 	if err != nil {
 		ctx.ServerError("CountIssues", err)
@@ -282,6 +300,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		IsClosed:     showClosed,
 		IsPull:       issueTypeBool,
 		LabelIDs:     labelIDs,
+		Visibility:   visibility,
 	})
 	if err != nil {
 		ctx.ServerError("Issues", err)
@@ -432,10 +451,17 @@ func NotificationWatching(ctx *context.Context) {
 
 // NewAvailable returns the notification counts
 func NewAvailable(ctx *context.Context) {
-	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+	opts := activities_model.FindNotificationOptions{
 		UserID: ctx.Doer.ID,
+		Viewer: ctx.Doer,
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
-	})
+	}
+	if err := opts.ResolveHiddenIssues(ctx); err != nil {
+		log.Error("ResolveHiddenIssues: %v", err)
+		ctx.JSON(http.StatusOK, structs.NotificationCount{New: 0})
+		return
+	}
+	total, err := db.Count[activities_model.Notification](ctx, opts)
 	if err != nil {
 		log.Error("db.Count[activities_model.Notification]", err)
 		ctx.JSON(http.StatusOK, structs.NotificationCount{New: 0})

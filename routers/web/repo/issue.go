@@ -176,6 +176,10 @@ func GetActionIssue(ctx *context.Context, accessModeOpt ...perm.AccessMode) *iss
 		ctx.NotFound(nil)
 		return nil
 	}
+	if err := issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.ServerError("CheckIssueVisible", err)
+		return nil
+	}
 	if err = issue.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return nil
@@ -197,6 +201,13 @@ func getActionIssues(ctx *context.Context, accessMode perm.AccessMode) issues_mo
 		}
 		issue.Repo = ctx.Repo.Repository
 		if !ctx.Repo.Permission.CanAccess(accessMode, util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues)) {
+			ctx.NotFound(nil)
+			return nil
+		}
+		if visible, err := issues_model.IsIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+			ctx.ServerError("IsIssueVisible", err)
+			return nil
+		} else if !visible {
 			ctx.NotFound(nil)
 			return nil
 		}
@@ -232,6 +243,14 @@ func GetIssueInfo(ctx *context.Context) {
 			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
+	}
+
+	if visible, err := issues_model.IsIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.HTTPError(http.StatusInternalServerError, "IsIssueVisible", err.Error())
+		return
+	} else if !visible {
+		ctx.HTTPError(http.StatusNotFound)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
@@ -352,6 +371,11 @@ func UpdateIssueDeadline(ctx *context.Context) {
 		} else {
 			ctx.HTTPError(http.StatusInternalServerError, "GetIssueByIndex", err.Error())
 		}
+		return
+	}
+
+	if err := issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.ServerError("CheckIssueVisible", err)
 		return
 	}
 

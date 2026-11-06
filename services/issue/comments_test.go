@@ -32,3 +32,14 @@ func TestFilterReadableCommentsChecksUnitOfSameRepoTargets(t *testing.T) {
 	assert.Same(t, repo, issueDependency.RefRepo)
 	assert.Same(t, repo, issueDependency.DependentIssue.Repo)
 }
+
+func TestFilterReadableCommentsDropsHiddenConfidentialDependency(t *testing.T) {
+	var perm access_model.Permission
+	perm.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: unit.TypeIssues}}, perm_model.AccessModeRead)
+	for _, typ := range []issues_model.CommentType{issues_model.CommentTypeAddDependency, issues_model.CommentTypeRemoveDependency} {
+		dep := &issues_model.Comment{Type: typ, DependentIssue: &issues_model.Issue{RepoID: 1, IsConfidential: true}}
+		comments, err := FilterReadableComments(t.Context(), nil, perm, &issues_model.Issue{RepoID: 1, Repo: &repo_model.Repository{ID: 1}}, issues_model.CommentList{dep})
+		require.NoError(t, err)
+		assert.Empty(t, comments)
+	}
+}

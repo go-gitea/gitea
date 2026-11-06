@@ -428,8 +428,10 @@ func (g *GiteaLocalUploader) CreateIssues(ctx context.Context, issues ...*base.I
 			IsLocked:    issue.IsLocked,
 			MilestoneID: milestoneID,
 			Labels:      labels,
-			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
-			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
+			// pull requests are created in CreatePullRequests and never confidential
+			IsConfidential: issue.IsConfidential,
+			CreatedUnix:    timeutil.TimeStamp(issue.Created.Unix()),
+			UpdatedUnix:    timeutil.TimeStamp(issue.Updated.Unix()),
 		}
 
 		if err := g.remapUser(ctx, issue, &is); err != nil {

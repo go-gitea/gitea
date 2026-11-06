@@ -15,6 +15,8 @@ import (
 	shared_label "gitea.dev/routers/web/shared/label"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
+
+	"xorm.io/builder"
 )
 
 // RetrieveLabels find all the labels of an organization
@@ -26,6 +28,15 @@ func RetrieveLabels(ctx *context.Context) {
 	}
 	for _, l := range labels {
 		l.CalOpenIssues()
+	}
+	scope, err := issues_model.BuildVisibilityScopeByCond(ctx, ctx.Doer, builder.Eq{"owner_id": ctx.Org.Organization.ID})
+	if err != nil {
+		ctx.ServerError("BuildVisibilityScopeByCond", err)
+		return
+	}
+	if err := issues_model.SubtractHiddenIssuesFromLabels(ctx, labels, scope); err != nil {
+		ctx.ServerError("SubtractHiddenIssuesFromLabels", err)
+		return
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)

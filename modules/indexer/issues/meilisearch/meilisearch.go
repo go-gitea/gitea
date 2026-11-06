@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 6
+	issueIndexerLatestVersion = 7
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -65,6 +65,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 		FilterableAttributes: []string{
 			"repo_id",
 			"is_public",
+			"is_confidential",
 			"is_pull",
 			"is_closed",
 			"is_archived",
@@ -227,6 +228,21 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.UpdatedBeforeUnix.Has() {
 		query.And(inner_meilisearch.NewFilterLte("updated_unix", options.UpdatedBeforeUnix.Value()))
+	}
+
+	if options.Visibility.NeedsFilter() {
+		q := &inner_meilisearch.FilterOr{}
+		q.Or(inner_meilisearch.NewFilterEq("is_confidential", false))
+		if options.Visibility != nil {
+			if options.Visibility.ViewerID > 0 {
+				q.Or(inner_meilisearch.NewFilterEq("poster_id", options.Visibility.ViewerID))
+				q.Or(inner_meilisearch.NewFilterEq("assignee_ids", options.Visibility.ViewerID))
+			}
+			if len(options.Visibility.WriterRepoIDs) > 0 {
+				q.Or(inner_meilisearch.NewFilterIn("repo_id", options.Visibility.WriterRepoIDs...))
+			}
+		}
+		query.And(q)
 	}
 
 	if options.SortBy == "" {

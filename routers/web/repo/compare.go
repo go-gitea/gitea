@@ -769,6 +769,9 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 
 		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, diffBlobExcerptData.PullIssueIndex)
+		if err == nil {
+			err = issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission)
+		}
 		if err != nil {
 			log.Error("GetIssueByIndex error: %v", err)
 		} else if issue.IsPull {

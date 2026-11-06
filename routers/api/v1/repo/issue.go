@@ -180,6 +180,12 @@ func SearchIssues(ctx *context.APIContext) {
 
 	limit := util.IfZero(ctx.FormInt("limit"), setting.API.DefaultPagingNum)
 
+	visibility, err := issues_model.BuildVisibilityScope(ctx, ctx.Doer, repoIDs, allPublic)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	searchOpt := &issue_indexer.SearchOptions{
 		Paginator: &db.ListOptions{
 			PageSize: limit,
@@ -193,6 +199,7 @@ func SearchIssues(ctx *context.APIContext) {
 		IncludedAnyLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
 		SortBy:              issue_indexer.SortByCreatedDesc,
+		Visibility:          issue_indexer.ToVisibilityFilter(visibility),
 	}
 
 	if since != 0 {
@@ -234,7 +241,7 @@ func SearchIssues(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
+	issues, err := issues_model.GetVisibleIssuesByIDs(ctx, ids, visibility)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -392,13 +399,15 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
+	visibility := issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission)
 	searchOpt := &issue_indexer.SearchOptions{
-		Paginator: &listOptions,
-		Keyword:   keyword,
-		RepoIDs:   []int64{ctx.Repo.Repository.ID},
-		IsPull:    isPull,
-		IsClosed:  isClosed,
-		SortBy:    issue_indexer.SortByCreatedDesc,
+		Paginator:  &listOptions,
+		Keyword:    keyword,
+		RepoIDs:    []int64{ctx.Repo.Repository.ID},
+		IsPull:     isPull,
+		IsClosed:   isClosed,
+		SortBy:     issue_indexer.SortByCreatedDesc,
+		Visibility: issue_indexer.ToVisibilityFilter(visibility),
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
@@ -439,7 +448,7 @@ func ListIssues(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
+	issues, err := issues_model.GetVisibleIssuesByIDs(ctx, ids, visibility)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -570,13 +579,14 @@ func CreateIssue(ctx *context.APIContext) {
 
 	form := web.GetForm[*api.CreateIssueOption](ctx)
 	issue := &issues_model.Issue{
-		RepoID:   ctx.Repo.Repository.ID,
-		Repo:     ctx.Repo.Repository,
-		Title:    form.Title,
-		PosterID: ctx.Doer.ID,
-		Poster:   ctx.Doer,
-		Content:  form.Body,
-		Ref:      form.Ref,
+		RepoID:         ctx.Repo.Repository.ID,
+		Repo:           ctx.Repo.Repository,
+		Title:          form.Title,
+		PosterID:       ctx.Doer.ID,
+		Poster:         ctx.Doer,
+		Content:        form.Body,
+		Ref:            form.Ref,
+		IsConfidential: form.Confidential,
 	}
 
 	assigneeIDs := make([]int64, 0)
@@ -693,6 +703,14 @@ func EditIssue(ctx *context.APIContext) {
 	if form.ContentVersion != nil && *form.ContentVersion != issue.ContentVersion {
 		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged.Error())
 		return
+	}
+
+	// the permission check precedes every mutation so a refused change leaves the issue untouched
+	if form.Confidential != nil {
+		if err = issue_service.ChangeConfidential(ctx, issue, ctx.Doer, ctx.Repo.Permission, *form.Confidential); err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
 	}
 
 	if len(form.Title) > 0 {
@@ -969,6 +987,29 @@ func getRepoIssueByIndexForDoer(ctx *context.APIContext, index int64) *issues_mo
 		ctx.APIErrorNotFound()
 		return nil
 	}
+	if err := issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.APIErrorAuto(err)
+		return nil
+	}
 	issue.Repo = ctx.Repo.Repository
 	return issue
+}
+
+// checkCommentIssueVisible answers "comment does not exist" and returns false when the comment's issue is hidden from the doer.
+func checkCommentIssueVisible(ctx *context.APIContext, comment *issues_model.Comment) bool {
+	if comment.Issue == nil {
+		if err := comment.LoadIssue(ctx); err != nil {
+			ctx.APIErrorInternal(err)
+			return false
+		}
+	}
+	if err := issues_model.CheckIssueVisible(ctx, comment.Issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		if issues_model.IsErrIssueNotExist(err) {
+			ctx.APIErrorAuto(issues_model.ErrCommentNotExist{ID: comment.ID})
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return false
+	}
+	return true
 }

@@ -16,7 +16,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-const issueIndexerLatestVersion = 4
+const issueIndexerLatestVersion = 5
 
 var _ internal.Indexer = &Indexer{}
 
@@ -43,6 +43,7 @@ const (
 			"id": { "type": "integer", "index": true },
 			"repo_id": { "type": "integer", "index": true },
 			"is_public": { "type": "boolean", "index": true },
+			"is_confidential": { "type": "boolean", "index": true },
 
 			"title": {  "type": "text", "index": true },
 			"content": { "type": "text", "index": true },
@@ -221,6 +222,20 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	sortBy := []es.SortField{
 		parseSortBy(options.SortBy),
 		{Field: "id", Desc: true},
+	}
+
+	if options.Visibility.NeedsFilter() {
+		q := es.NewBoolQuery()
+		q.Should(es.TermQuery("is_confidential", false))
+		if options.Visibility != nil {
+			if options.Visibility.ViewerID > 0 {
+				q.Should(es.TermQuery("poster_id", options.Visibility.ViewerID), es.TermQuery("assignee_ids", options.Visibility.ViewerID))
+			}
+			if len(options.Visibility.WriterRepoIDs) > 0 {
+				q.Should(es.TermsQuery("repo_id", es.ToAnySlice(options.Visibility.WriterRepoIDs)...))
+			}
+		}
+		query.Must(q) // should-only bool: at least one clause must match
 	}
 
 	// See https://stackoverflow.com/questions/35206409/elasticsearch-2-1-result-window-is-too-large-index-max-result-window/35221900

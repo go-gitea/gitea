@@ -110,6 +110,12 @@ func SearchGlobalIssues(ctx *context.Context) {
 		limit = setting.API.MaxResponseItems
 	}
 
+	visibility, err := issues_model.BuildVisibilityScope(ctx, ctx.Doer, repoIDs, allPublic)
+	if err != nil {
+		ctx.ServerError("BuildVisibilityScope", err)
+		return
+	}
+
 	searchOpt := &issue_indexer.SearchOptions{
 		Paginator: &db.ListOptions{
 			Page:     ctx.FormInt("page"),
@@ -124,6 +130,7 @@ func SearchGlobalIssues(ctx *context.Context) {
 		MilestoneIDs:        includedMilestones,
 		ProjectIDs:          includedProjectIDs,
 		SortBy:              issue_indexer.SortByCreatedDesc,
+		Visibility:          issue_indexer.ToVisibilityFilter(visibility),
 	}
 
 	if since != 0 {
@@ -161,7 +168,7 @@ func SearchGlobalIssues(ctx *context.Context) {
 		ctx.ServerError("SearchIssues", err)
 		return
 	}
-	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
+	issues, err := issues_model.GetVisibleIssuesByIDs(ctx, ids, visibility)
 	if err != nil {
 		ctx.ServerError("FindIssuesByIDs", err)
 		return
@@ -254,16 +261,18 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		return
 	}
 
+	visibility := issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission)
 	searchOpt := &issue_indexer.SearchOptions{
 		Paginator: &db.ListOptions{
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:  keyword,
-		RepoIDs:  []int64{ctx.Repo.Repository.ID},
-		IsPull:   isPull,
-		IsClosed: isClosed,
-		SortBy:   issue_indexer.SortByCreatedDesc,
+		Keyword:    keyword,
+		RepoIDs:    []int64{ctx.Repo.Repository.ID},
+		IsPull:     isPull,
+		IsClosed:   isClosed,
+		SortBy:     issue_indexer.SortByCreatedDesc,
+		Visibility: issue_indexer.ToVisibilityFilter(visibility),
 	}
 
 	projectIDs := parseProjectIDsFromQuery(ctx)
@@ -303,7 +312,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		ctx.HTTPError(http.StatusInternalServerError, "SearchIssues", err.Error())
 		return
 	}
-	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
+	issues, err := issues_model.GetVisibleIssuesByIDs(ctx, ids, visibility)
 	if err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
 		return
@@ -448,6 +457,9 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 
 	prepareIssueFilterExclusiveOrderScopes(ctx, preparedLabelFilter.AllLabels)
 
+	visibility := issues_model.NewVisibilityScopeForRepo(ctx.Doer, repo.ID, ctx.Repo.Permission)
+	confidentialFilter := ctx.FormOptionalBool("confidential")
+
 	var keywordMatchedIssueIDs []int64
 	var issueStats *issues_model.IssueStats
 	statsOpts := &issues_model.IssuesOptions{
@@ -462,6 +474,8 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		ReviewedID:        reviewedID,
 		IsPull:            isPullOption,
 		IssueIDs:          nil,
+		Visibility:        visibility,
+		Confidential:      confidentialFilter,
 	}
 
 	if keyword != "" {
@@ -541,15 +555,17 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 			SortType:          sortType,
 			IssueIDs:          keywordMatchedIssueIDs,
+			Visibility:        visibility,
+			Confidential:      confidentialFilter,
 		})
 		if err != nil {
 			ctx.ServerError("DBIndexer.Search", err)
 			return
 		}
 		issueIDs := issue_indexer.SearchResultToIDSlice(searchResult)
-		issues, err = issues_model.GetIssuesByIDs(ctx, issueIDs, true)
+		issues, err = issues_model.GetVisibleIssuesByIDs(ctx, issueIDs, visibility)
 		if err != nil {
-			ctx.ServerError("GetIssuesByIDs", err)
+			ctx.ServerError("GetVisibleIssuesByIDs", err)
 			return
 		}
 	}
@@ -621,7 +637,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		return
 	}
 
-	pinned, err := issues_model.GetPinnedIssues(ctx, repo.ID, isPullOption.Value())
+	pinned, err := issues_model.GetPinnedIssues(ctx, repo.ID, isPullOption.Value(), visibility)
 	if err != nil {
 		ctx.ServerError("GetPinnedIssues", err)
 		return
@@ -642,6 +658,11 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterUsername"] = posterUsername
 	ctx.Data["Keyword"] = keyword
+	ctx.Data["ConfidentialFilter"] = confidentialFilter
+	ctx.Data["ConfidentialQuery"] = ""
+	if confidentialFilter.Has() {
+		ctx.Data["ConfidentialQuery"] = strconv.FormatBool(confidentialFilter.Value())
+	}
 	ctx.Data["IsShowClosed"] = isShowClosed
 	switch {
 	case isShowClosed.Value():

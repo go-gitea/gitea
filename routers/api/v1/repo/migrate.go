@@ -209,7 +209,7 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, migratedRepo, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
+	ctx.JSON(http.StatusCreated, convert.ToAPIRepo(ctx, migratedRepo, access_model.Permission{AccessMode: perm.AccessModeAdmin}, ctx.Doer))
 }
 
 func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err error) {

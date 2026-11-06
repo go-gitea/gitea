@@ -236,6 +236,18 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		}
 	}
 
+	if !user_model.DoerIsSiteAdminFullAccess(opts.Actor) {
+		var requestedRepoID int64
+		if opts.RequestedRepo != nil {
+			requestedRepoID = opts.RequestedRepo.ID
+		}
+		hiddenCond, err := hiddenConfidentialActionsCond(ctx, opts.Actor, cond, requestedRepoID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("GetFeeds: %w", err)
+		}
+		cond = cond.And(hiddenCond)
+	}
+
 	actions := make([]*Action, 0, opts.PageSize)
 	var count int64
 	opts.SetDefaultValues()

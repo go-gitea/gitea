@@ -243,6 +243,13 @@ func FilterReadableComments(ctx context.Context, doer *user_model.User, perm acc
 			c.RefRepo = target.repo
 			if c.DependentIssue != nil {
 				c.DependentIssue.Repo = target.repo
+				visible, err := issues_model.IsIssueVisible(ctx, c.DependentIssue, doer, target.perm)
+				if err != nil {
+					return nil, err
+				}
+				if !visible {
+					continue
+				}
 			}
 		}
 		readable = append(readable, c)

@@ -5,6 +5,7 @@ package activities
 
 import (
 	"context"
+	"fmt"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -29,6 +30,24 @@ type FindNotificationOptions struct {
 	Source            []NotificationSource
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
+	// Viewer is the user the notifications are shown to; call ResolveHiddenIssues to omit threads of confidential issues hidden from them.
+	Viewer *user_model.User
+
+	hiddenIssueIDs []int64
+}
+
+// ResolveHiddenIssues finds the confidential issues of the listed user's notifications that are hidden from Viewer.
+func (opts *FindNotificationOptions) ResolveHiddenIssues(ctx context.Context) error {
+	hidden, err := issues_model.FindHiddenConfidentialIssues(ctx, opts.Viewer,
+		builder.In("issue.id", builder.Select("issue_id").From("notification").Where(builder.Eq{"user_id": opts.UserID})))
+	if err != nil {
+		return fmt.Errorf("ResolveHiddenIssues: %w", err)
+	}
+	opts.hiddenIssueIDs = opts.hiddenIssueIDs[:0]
+	for _, issue := range hidden {
+		opts.hiddenIssueIDs = append(opts.hiddenIssueIDs, issue.ID)
+	}
+	return nil
 }
 
 // ToCond will convert each condition into a xorm-Cond
@@ -58,6 +77,9 @@ func (opts FindNotificationOptions) ToConds() builder.Cond {
 	}
 	if opts.UpdatedBeforeUnix != 0 {
 		cond = cond.And(builder.Lte{"notification.updated_unix": opts.UpdatedBeforeUnix})
+	}
+	if len(opts.hiddenIssueIDs) > 0 {
+		cond = cond.And(builder.NotIn("notification.issue_id", opts.hiddenIssueIDs))
 	}
 	return cond
 }
@@ -165,6 +187,14 @@ func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 			continue
 		}
 		if !issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypeIssues) {
+			continue
+		}
+		visible, err := issues_model.IsIssueVisibleForDoer(ctx, issue, user)
+		if err != nil {
+			log.Error("createOrUpdateIssueNotifications: skip user %d for issue %d: %v", userID, issue.ID, err)
+			continue
+		}
+		if !visible {
 			continue
 		}
 
