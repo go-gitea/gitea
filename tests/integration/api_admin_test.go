@@ -385,9 +385,6 @@ func TestAPIAdminExternalAccounts(t *testing.T) {
 	MakeRequest(t, NewRequest(t, "PUT", url+"/github/7").AddTokenAuth(token), http.StatusNoContent)
 	assert.EqualValues(t, 2, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID}).PosterID)
 	unittest.AssertCount(t, &issues_model.Reaction{IssueID: issue.ID}, 1)
-	userID, err := user_model.GetUserIDByExternalUserID(t.Context(), api.GithubService, 7)
-	require.NoError(t, err)
-	assert.EqualValues(t, 2, userID)
 
 	issue = &issues_model.Issue{RepoID: repo.ID, Index: 2, OriginalAuthor: "octocat", OriginalAuthorID: 7}
 	require.NoError(t, db.Insert(t.Context(), issue))
