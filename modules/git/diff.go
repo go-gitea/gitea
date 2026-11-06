@@ -5,7 +5,6 @@ package git
 
 import (
 	"bufio"
-	"bytes"
 	"cmp"
 	"context"
 	"fmt"
@@ -315,7 +314,7 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(stdoutReader)
-			scanner.Split(scanNullTerminated)
+			scanner.Split(util.BufioScannerSplit(0))
 			for scanner.Scan() {
 				if path := scanner.Text(); path != "" {
 					affectedFiles = append(affectedFiles, path)
@@ -329,16 +328,6 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 	}
 
 	return affectedFiles, err
-}
-
-func scanNullTerminated(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if i := bytes.IndexByte(data, 0); i >= 0 {
-		return i + 1, data[:i], nil
-	}
-	if atEOF && len(data) > 0 {
-		return len(data), data, nil
-	}
-	return 0, nil, nil
 }
 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
