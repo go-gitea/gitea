@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/base"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/references"
 
@@ -17,6 +18,7 @@ import (
 )
 
 func setCommitLinkContent(anchor *html.Node, prefix, refs, rest string) {
+	anchor.Attr = append(anchor.Attr, html.Attribute{Key: "class", Val: "commit"}) // plain, so markdown strips it and commit messages keep it for CSS
 	anchor.FirstChild.Data = prefix
 	code := &html.Node{Type: html.ElementNode, Data: atom.Code.String()}
 	code.AppendChild(&html.Node{Type: html.TextNode, Data: refs})
@@ -27,7 +29,7 @@ func setCommitLinkContent(anchor *html.Node, prefix, refs, rest string) {
 }
 
 func createCommitLink(ctx *RenderContext, href, prefix, sha string) *html.Node {
-	anchor := createLink(ctx, href, "", "commit")
+	anchor := createLink(ctx, href, "", "")
 	setCommitLinkContent(anchor, prefix, base.ShortSha(sha), "")
 	return anchor
 }
@@ -41,7 +43,7 @@ func otherRepoPrefix(ctx *RenderContext, owner, repo string) string {
 
 // compare refs can also be branch or tag names, so only full SHAs are shortened
 func shortCompareRef(ref string) string {
-	if (len(ref) == 40 || len(ref) == 64) && strings.Trim(ref, "0123456789abcdef") == "" {
+	if git.IsStringValidObjectID(nil, ref) {
 		return base.ShortSha(ref)
 	}
 	return ref
@@ -60,11 +62,11 @@ func shortenCommitLink(ctx *RenderContext, anchor *html.Node) {
 	if siteURL == nil {
 		return
 	}
-	var refs, rest, class string
+	var refs, rest string
 	if match := globalVars().compareURLPattern.FindStringSubmatch(siteURL.RepoSubPath); match != nil {
-		refs, rest, class = shortCompareRef(match[1])+match[2]+shortCompareRef(match[3]), match[4], "compare"
+		refs, rest = shortCompareRef(match[1])+match[2]+shortCompareRef(match[3]), match[4]
 	} else if match := globalVars().commitURLPattern.FindStringSubmatch(siteURL.RepoSubPath); match != nil {
-		refs, rest, class = base.ShortSha(match[1]), match[2], "commit"
+		refs, rest = base.ShortSha(match[1]), match[2]
 	} else {
 		return
 	}
@@ -73,7 +75,6 @@ func shortenCommitLink(ctx *RenderContext, anchor *html.Node) {
 	}
 	// quoting the link keeps its URL instead of the short text
 	anchor.Attr = slices.DeleteFunc(anchor.Attr, func(attr html.Attribute) bool { return attr.Key == "data-markdown-generated-content" })
-	anchor.Attr = append(anchor.Attr, ctx.RenderInternal.NodeSafeAttr("class", class))
 	setCommitLinkContent(anchor, otherRepoPrefix(ctx, siteURL.OwnerName, siteURL.RepoName), refs, rest)
 }
 
