@@ -199,11 +199,6 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 ) {
 	ctx = withMethod(ctx, "IssueChangeLabels")
 
-	hookEvent := webhook_module.HookEventIssueLabel
-	if issue.IsPull {
-		hookEvent = webhook_module.HookEventPullRequestLabel
-	}
-
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
 		return
@@ -218,7 +213,18 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 		changes.RemovedLabels = convert.ToLabelList(removedLabels, issue.Repo, doer)
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated, changes)
+	notifyIssueChange(ctx, doer, issue, labelHookEvent(issue), api.HookIssueLabelUpdated, changes)
+}
+
+func (n *actionsNotifier) IssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	notifyIssueChange(withMethod(ctx, "IssueClearLabels"), doer, issue, labelHookEvent(issue), api.HookIssueLabelCleared, nil)
+}
+
+func labelHookEvent(issue *issues_model.Issue) webhook_module.HookEventType {
+	if issue.IsPull {
+		return webhook_module.HookEventPullRequestLabel
+	}
+	return webhook_module.HookEventIssueLabel
 }
 
 func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction, changes *api.ChangesPayload) {

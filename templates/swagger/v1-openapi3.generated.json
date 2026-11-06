@@ -3676,6 +3676,7 @@
             "example": [
               "all",
               "read:activitypub",
+              "write:commitstatus",
               "read:issue",
               "write:misc",
               "read:notification",

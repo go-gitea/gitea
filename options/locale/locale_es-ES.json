@@ -605,7 +605,6 @@
   "settings.permission_no_access": "Sin acceso",
   "settings.permission_read": "Leídas",
   "settings.permission_write": "Lectura y Escritura",
-  "settings.access_token_desc": "Los permisos de los tokens seleccionados limitan la autorización sólo a las rutas <a %s>API</a> correspondientes. Lea la <a %s>documentación</a> para más información.",
   "settings.at_least_one_permission": "Debe seleccionar al menos un permiso para crear un token",
   "settings.permissions_list": "Permisos:",
   "settings.manage_oauth2_applications": "Administrar aplicaciones OAuth2",
