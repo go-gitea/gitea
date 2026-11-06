@@ -32,6 +32,7 @@ type ContributionType = 'commits' | 'additions' | 'deletions';
 type ChartType = 'main' | 'contributor';
 
 const oneWeek = 7 * 24 * 60 * 60 * 1000;
+const {i18n} = window.config;
 
 const customEventListener: Plugin = {
   id: 'customEventListener',
@@ -73,6 +74,7 @@ type ContributorInfo = {
   name: string,
   avatar_link: string,
   home_link: string,
+  is_bot?: boolean,
 };
 
 type ContributorStats = ContributorInfo & {weeks: DayData[]};
@@ -424,7 +426,7 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
             <img loading="lazy" class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
           </a>
           <div class="tw-ml-2">
-            <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
+            <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}<span v-if="contributor.is_bot" class="ui basic label tw-py-0 tw-ml-1">{{ i18n.bot }}</span></h4></a>
             <h4 v-else class="contributor-name">
               {{ contributor.name }}
             </h4>

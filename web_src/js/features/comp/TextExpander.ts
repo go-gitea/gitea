@@ -96,7 +96,7 @@ export function initTextExpander(expander: TextExpanderElement) {
 
         const ul = document.createElement('ul');
         ul.classList.add('suggestions');
-        for (const {value, name, fullname, avatar} of matches) {
+        for (const {value, name, fullname, avatar, is_bot} of matches) {
           const li = document.createElement('li');
           li.setAttribute('role', 'option');
           li.setAttribute('data-value', `${key}${value}`);
@@ -116,6 +116,7 @@ export function initTextExpander(expander: TextExpanderElement) {
             fullnameSpan.textContent = fullname;
             li.append(fullnameSpan);
           }
+          if (is_bot) li.append(createElementFromAttrs('span', {class: 'ui basic label tw-py-0'}, window.config.i18n.bot));
 
           ul.append(li);
         }

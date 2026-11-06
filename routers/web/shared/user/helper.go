@@ -16,6 +16,7 @@ type SearchUserInfo struct {
 	UserName   string `json:"username"`
 	AvatarLink string `json:"avatar_link"`
 	FullName   string `json:"full_name"`
+	IsBot      bool   `json:"is_bot,omitempty"`
 }
 
 type SearchUserResponse struct {
@@ -43,7 +44,7 @@ func ToSearchUserResponse(ctx context.Context, self *user.User, users []*user.Us
 	infos := MakeSelfOnTop(self, users)
 	resp := &SearchUserResponse{Results: make([]*SearchUserInfo, len(infos))}
 	for i, u := range infos {
-		resp.Results[i] = &SearchUserInfo{UserID: u.ID, UserName: u.Name, AvatarLink: u.AvatarLink(ctx)}
+		resp.Results[i] = &SearchUserInfo{UserID: u.ID, UserName: u.Name, AvatarLink: u.AvatarLink(ctx), IsBot: u.IsTypeBot()}
 		resp.Results[i].FullName = u.FullName
 	}
 	return resp

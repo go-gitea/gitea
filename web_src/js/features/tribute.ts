@@ -42,6 +42,7 @@ export function attachTribute(element: HTMLElement) {
           <img alt src="${item.original.avatar}" width="21" height="21"/>
           <span class="name">${item.original.name}</span>
           ${htmlRaw(fullNameHtml)}
+          ${htmlRaw(item.original.is_bot ? html`<span class="ui basic label tw-py-0">${window.config.i18n.bot}</span>` : '')}
         </div>
       `;
     },

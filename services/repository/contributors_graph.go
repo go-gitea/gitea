@@ -48,6 +48,7 @@ type ContributorData struct {
 	Login        string              `json:"login"` // Login name of the contributor in case it exists
 	AvatarLink   string              `json:"avatar_link"`
 	HomeLink     string              `json:"home_link"`
+	IsBot        bool                `json:"is_bot,omitempty"`
 	TotalCommits int64               `json:"total_commits"`
 	Weeks        map[int64]*WeekData `json:"weeks"`
 }
@@ -249,6 +250,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.StringCache, ca
 					Login:      u.LowerName,
 					AvatarLink: u.AvatarLinkWithSize(ctx, 0),
 					HomeLink:   u.HomeLink(),
+					IsBot:      u.IsTypeBot(),
 					Weeks:      make(map[int64]*WeekData),
 				}
 			}

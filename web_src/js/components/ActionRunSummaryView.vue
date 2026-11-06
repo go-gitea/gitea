@@ -25,6 +25,7 @@ const props = defineProps<{
 }>();
 
 const locale = props.locale;
+const {i18n} = window.config;
 const {currentRun: run} = toRefs(props.store.viewData);
 
 const isRerun = computed(() => run.value.runAttempt > 1);
@@ -40,6 +41,7 @@ const triggerUser = computed(() => {
       name: currentAttempt.triggerUserName,
       link: currentAttempt.triggerUserLink,
       avatar: currentAttempt.triggerUserAvatar,
+      isBot: currentAttempt.triggerUserIsBot,
     };
   }
   const pusher = run.value.commit.pusher;
@@ -47,6 +49,7 @@ const triggerUser = computed(() => {
     name: pusher.displayName,
     link: pusher.link,
     avatar: pusher.avatarLink,
+    isBot: pusher.isBot,
   } : null;
 });
 
@@ -89,6 +92,7 @@ onBeforeUnmount(() => {
               :alt="triggerUser.name"
             >
             <span>{{ triggerUser.name }}</span>
+            <span v-if="triggerUser.isBot" class="ui basic label tw-py-0">{{ i18n.bot }}</span>
           </component>
           <a v-if="run.pullRequest" class="action-run-summary-pr silenced" :href="run.pullRequest.link">{{ run.pullRequest.index }}</a>
           <span v-else-if="run.commit.branch.name" class="action-run-summary-branch-label tw-max-w-full">

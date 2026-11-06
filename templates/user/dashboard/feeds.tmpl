@@ -11,6 +11,7 @@
 					{{else}}
 						{{.ShortActUserName ctx}}
 					{{end}}
+					{{template "shared/user/user_type_label" .ActUser}}
 					{{if .GetOpType.InActions "create_repo"}}
 						{{ctx.Locale.Tr "action.create_repo" (.GetRepoLink ctx) (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "rename_repo"}}

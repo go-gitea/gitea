@@ -177,6 +177,14 @@ func (ut *RenderUtils) UserTypeLabel(u *user_model.User) template.HTML {
 	return htmlutil.HTMLFormat(` <span class="ui basic label tw-py-0 tw-align-baseline">%s</span>`, ut.locale().TrString("concept_user_bot"))
 }
 
+// UserDisplayName is the display name with its bot label, for names passed into locale strings
+func (ut *RenderUtils) UserDisplayName(u *user_model.User) template.HTML {
+	if u == nil {
+		return ""
+	}
+	return htmlutil.HTMLFormat("%s%s", u.GetDisplayName(), ut.UserTypeLabel(u))
+}
+
 func filenameIsImage(filename string) bool {
 	mimeType := mime.TypeByExtension(filepath.Ext(filename))
 	return strings.HasPrefix(mimeType, "image/")

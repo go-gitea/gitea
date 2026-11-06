@@ -25,7 +25,7 @@
 						</span>
 					</td>
 					<td><a href="{{.VersionWebLink}}">{{.Version.Version}}</a></td>
-					<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
+					<td>{{template "shared/user/namelink" .Creator}}</td>
 					<td>{{FormatByteSize .CalculateBlobSize}}</td>
 					<td>{{DateUtils.AbsoluteShort .Version.CreatedUnix}}</td>
 				</tr>

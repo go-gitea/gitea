@@ -9,6 +9,7 @@ export type Mention = {
   name: string,
   fullname: string,
   avatar: string,
+  is_bot?: boolean,
 };
 
 export type RequestData = FormData | URLSearchParams | Record<string, unknown> | unknown[];

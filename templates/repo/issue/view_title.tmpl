@@ -133,9 +133,9 @@
 					{{if .Issue.OriginalAuthor}}
 						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr .Issue.OriginalAuthor}}
 					{{else if gt .Issue.Poster.ID 0}}
-						{{ctx.Locale.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink .Issue.Poster.GetDisplayName}}
+						{{ctx.Locale.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink (ctx.RenderUtils.UserDisplayName .Issue.Poster)}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr .Issue.Poster.GetDisplayName}}
+						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr (ctx.RenderUtils.UserDisplayName .Issue.Poster)}}
 					{{end}}
 					·
 					{{ctx.Locale.TrN .Issue.NumComments "repo.issues.num_comments_1" "repo.issues.num_comments" .Issue.NumComments}}
