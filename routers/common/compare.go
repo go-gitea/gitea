@@ -33,6 +33,7 @@ func (cr *CompareRouterReq) DirectComparison() bool {
 	return cr.CompareSeparator == ".."
 }
 
+// ParseHead parses a pull request head into owner, repository, and ref names.
 func ParseHead(head string) (headOwnerName, headRepoName, headRef string) {
 	paths := strings.SplitN(head, ":", 2)
 	if len(paths) == 1 {
