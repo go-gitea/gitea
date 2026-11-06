@@ -100,8 +100,11 @@ type CodeOwnerRule struct {
 
 	Rule     *regexp2.Regexp // it supports negative lookahead, does better for end users
 	Negative bool
-	Users    []*user_model.User
-	Teams    []*org_model.Team
+
+	// TODO: these objects should not be loaded here, but rather lazily when needed.
+	// The parsed rule should only contain the user/team names.
+	Users []*user_model.User
+	Teams []*org_model.Team
 }
 
 func ParseCodeOwnersLine(ctx context.Context, tokens []string) (rule *CodeOwnerRule, warnings []string) {
