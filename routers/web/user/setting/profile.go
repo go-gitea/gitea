@@ -227,8 +227,7 @@ func Repos(ctx *context.Context) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
-	ctxUser := ctx.Doer
-	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{OwnerID: ctxUser.ID, Private: true, ListOptions: opts})
+	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{OwnerID: ctx.Doer.ID, Private: true, ListOptions: opts})
 	if err != nil {
 		ctx.ServerError("GetUserRepositories", err)
 		return
@@ -243,7 +242,6 @@ func Repos(ctx *context.Context) {
 	}
 
 	ctx.Data["Repos"] = repos
-	ctx.Data["ContextUser"] = ctxUser
 	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsRepositories)

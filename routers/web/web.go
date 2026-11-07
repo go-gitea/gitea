@@ -850,7 +850,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/repos", func() {
 			m.Get("", admin.Repos)
-			m.Combo("/unadopted")
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
