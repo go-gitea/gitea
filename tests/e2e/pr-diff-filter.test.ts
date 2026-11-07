@@ -19,7 +19,7 @@ test('diff sidebar filtering and folded file navigation', async ({page, request}
     {operation: 'delete', path: 'gone.txt'},
     {operation: 'create', path: 'src/b.ts', content: 'b\n'},
     {operation: 'create', path: 'src/.eslintrc', content: 'e\n'},
-    {operation: 'create', path: 'styles/x.css', content: 'x\n'},
+    {operation: 'create', path: 'styles/x.css', content: 'x\n'.repeat(150)},
     {operation: 'create', path: 'Makefile', content: 'm\n'},
   ], {branch: 'main', newBranch: 'feat', headers});
   const prIndex = await apiCreatePR(request, user, repo, 'feat', 'main', 'diff filter test', {headers});
