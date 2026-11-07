@@ -687,7 +687,7 @@ func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
 type pullFilesRange struct {
 	prViewInfo       *pullRequestViewInfo
 	beforeCommit     *git.Commit
-	afterCommit      *git.Commit // nil when a single commit was force-pushed out of the pull request
+	afterCommit      *git.Commit
 	isSingleCommit   bool
 	isShowAllCommits bool
 }
@@ -712,8 +712,9 @@ func setSingleCommitNavContext(ctx *context.Context, commits []*git.Commit, comm
 	}
 }
 
-// preparePullFilesRange resolves the commits shown on the "files" page, empty IDs mean the merge base or the head commit
-func preparePullFilesRange(ctx *context.Context, issue *issues_model.Issue, beforeCommitID, afterCommitID string) *pullFilesRange {
+// preparePullFilesRange resolves the commits shown on the "files" page, empty IDs mean the merge base or the head commit.
+// A single commit that was force-pushed out of the pull request redirects to the repository commit page, or is not found for a stream.
+func preparePullFilesRange(ctx *context.Context, issue *issues_model.Issue, beforeCommitID, afterCommitID string, isPage bool) *pullFilesRange {
 	prViewInfo := newPullRequestViewInfo()
 	prViewInfo.prepareViewInfo(ctx, issue)
 	if ctx.Written() {
@@ -748,8 +749,9 @@ func preparePullFilesRange(ctx *context.Context, issue *issues_model.Issue, befo
 			return nil
 		}
 	}
-	if r.afterCommit == nil && r.isSingleCommit {
-		return r
+	if r.afterCommit == nil && r.isSingleCommit && isPage {
+		ctx.Redirect(ctx.Repo.RepoLink + "/commit/" + afterCommitID) // timeline commits outlive force pushes
+		return nil
 	}
 	if r.afterCommit == nil {
 		ctx.NotFound(nil)
@@ -793,12 +795,8 @@ func viewPullFiles(ctx *context.Context, beforeCommitIDParam, afterCommitIDParam
 	pull := issue.PullRequest
 	gitRepo := ctx.Repo.GitRepo
 
-	filesRange := preparePullFilesRange(ctx, issue, beforeCommitIDParam, afterCommitIDParam)
+	filesRange := preparePullFilesRange(ctx, issue, beforeCommitIDParam, afterCommitIDParam, true)
 	if ctx.Written() {
-		return
-	}
-	if filesRange.afterCommit == nil {
-		ctx.Redirect(ctx.Repo.RepoLink + "/commit/" + afterCommitIDParam) // timeline commits outlive force pushes
 		return
 	}
 	isShowAllCommits, isSingleCommit := filesRange.isShowAllCommits, filesRange.isSingleCommit

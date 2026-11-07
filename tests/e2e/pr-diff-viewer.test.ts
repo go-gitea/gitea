@@ -121,9 +121,10 @@ test('diff viewer review', async ({page, request}) => {
   await expect(edited.locator('.render-content')).toHaveText('edited-comment');
 
   // react
-  await edited.locator('.select-reaction').first().click();
-  await edited.locator('.select-reaction .item.emoji[data-reaction-content="+1"]').first().click();
-  await expect(edited.locator('.bottom-reactions .reaction-count')).toHaveText('1');
+  const reactions = edited.getByRole('group', {name: 'Reactions'});
+  await reactions.getByRole('button', {name: 'Reactions', exact: true}).click();
+  await page.getByRole('menuitem', {name: '+1', exact: true}).click();
+  await expect(reactions.getByRole('button', {name: /^\+1:/})).toContainText('1');
 
   // quote reply
   await openMenuItem(edited, 'Quote reply');

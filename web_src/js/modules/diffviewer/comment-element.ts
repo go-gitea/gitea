@@ -115,12 +115,14 @@ function buildReactions(comment: ViewerComment, ctx: CommentContext): HTMLElemen
   }).join('');
   const container = createElementFromHTML<HTMLElement>(html`<div class="bottom-reactions" role="group" aria-label="${locale.reactions}">${htmlRaw(picker + labels)}</div>`);
   if (canReact) {
-    container.addEventListener('click', (e) => {
+    const onClick = (e: Event) => {
       const item = (e.target as Element).closest<HTMLElement>('[data-reaction-content]');
       if (!item) return;
       container.querySelector('.select-reaction')?._tippy?.hide();
       ctx.onToggleReaction(item, comment, item.getAttribute('data-reaction-content')!);
-    });
+    };
+    container.addEventListener('click', onClick);
+    container.querySelector('.tippy-target')!.addEventListener('click', onClick); // the popup is moved out of the bar
   }
   return container;
 }

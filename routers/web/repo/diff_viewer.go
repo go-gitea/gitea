@@ -142,12 +142,8 @@ func PullFilesStream(ctx *context.Context) {
 	if !ok {
 		return
 	}
-	filesRange := preparePullFilesRange(ctx, issue, ctx.FormString("from"), ctx.FormString("to"))
+	filesRange := preparePullFilesRange(ctx, issue, ctx.FormString("from"), ctx.FormString("to"), false)
 	if ctx.Written() {
-		return
-	}
-	if filesRange.afterCommit == nil {
-		ctx.NotFound(nil)
 		return
 	}
 	rule := filesRange.prViewInfo.ProtectedBranchRule
