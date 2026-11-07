@@ -17,7 +17,6 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -28,10 +27,6 @@ import (
 	"xorm.io/builder"
 )
 
-func getOrgTeamLockKey(orgID int64) string {
-	return fmt.Sprintf("org_team_%d", orgID)
-}
-
 // recordTeamAudit emits a team-related audit event scoped to the owning organization.
 func recordTeamAudit(ctx context.Context, action audit_model.Action, team *organization.Team, metadata ...any) {
 	audit.Record(ctx, action, audit.ScopeFromUserID(ctx, team.OrgID), metadata...)
@@ -41,6 +36,13 @@ func recordTeamAudit(ctx context.Context, action audit_model.Action, team *organ
 // owning organization.
 func recordTeamMemberAudit(ctx context.Context, action audit_model.Action, team *organization.Team, member *user_model.User) {
 	recordTeamAudit(ctx, action, team, "team", team.Name, "member", member.Name)
+}
+
+func teamWriteError(ctx context.Context, team *organization.Team, err error) error {
+	if existing, _ := organization.GetTeam(ctx, team.OrgID, team.LowerName); existing != nil && existing.ID != team.ID {
+		return organization.ErrTeamAlreadyExist{OrgID: team.OrgID, Name: team.LowerName}
+	}
+	return err
 }
 
 // NewTeam creates a record of new team.
@@ -62,24 +64,7 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		return organization.ErrOrgNotExist{ID: t.OrgID}
 	}
 
-	releaser, err := globallock.Lock(ctx, getOrgTeamLockKey(t.OrgID))
-	if err != nil {
-		return err
-	}
-	defer releaser()
-
 	t.LowerName = strings.ToLower(t.Name)
-	has, err = db.Exist[organization.Team](ctx, builder.Eq{
-		"org_id":     t.OrgID,
-		"lower_name": t.LowerName,
-	})
-	if err != nil {
-		return err
-	}
-	if has {
-		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
-	}
-
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		if err = db.Insert(ctx, t); err != nil {
 			return err
@@ -107,7 +92,7 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		_, err = db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID)
 		return err
 	}); err != nil {
-		return err
+		return teamWriteError(ctx, t, err)
 	}
 
 	recordTeamAudit(ctx, audit_model.OrganizationTeamAdd, t, "team", t.Name)
@@ -125,25 +110,8 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		t.Description = t.Description[:255]
 	}
 
-	releaser, err := globallock.Lock(ctx, getOrgTeamLockKey(t.OrgID))
-	if err != nil {
-		return err
-	}
-	defer releaser()
-
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		t.LowerName = strings.ToLower(t.Name)
-		has, err := db.Exist[organization.Team](ctx, builder.Eq{
-			"org_id":     t.OrgID,
-			"lower_name": t.LowerName,
-		}.And(builder.Neq{"id": t.ID}),
-		)
-		if err != nil {
-			return err
-		} else if has {
-			return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
-		}
-
 		sess := db.GetEngine(ctx)
 		if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
 			"can_create_org_repo", "authorize", "includes_all_repositories", "visibility").Update(t); err != nil {
@@ -192,7 +160,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 
 		return nil
 	}); err != nil {
-		return err
+		return teamWriteError(ctx, t, err)
 	}
 
 	recordTeamAudit(ctx, audit_model.OrganizationTeamUpdate, t, "team", t.Name)

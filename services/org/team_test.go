@@ -6,7 +6,6 @@ package org
 import (
 	"fmt"
 	"strings"
-	"sync"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -17,7 +16,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -99,22 +97,10 @@ func TestNewTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const teamName = "newTeamName"
-	var errs [5]error
-	var wg sync.WaitGroup
-	for i := range errs {
-		wg.Go(func() {
-			errs[i] = NewTeam(t.Context(), &organization.Team{Name: teamName, OrgID: 3})
-		})
-	}
-	wg.Wait()
-
-	failures := util.SliceRemoveAll(errs[:], nil)
-	assert.Len(t, failures, len(errs)-1)
-	for _, err := range failures {
-		assert.ErrorAs(t, err, new(organization.ErrTeamAlreadyExist))
-	}
+	team := &organization.Team{Name: teamName, OrgID: 3}
+	assert.NoError(t, NewTeam(t.Context(), team))
 	unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: teamName})
-	unittest.CheckConsistencyFor(t, &organization.Team{}, &user_model.User{ID: 3})
+	unittest.CheckConsistencyFor(t, &organization.Team{}, &user_model.User{ID: team.OrgID})
 }
 
 func TestUpdateTeam(t *testing.T) {

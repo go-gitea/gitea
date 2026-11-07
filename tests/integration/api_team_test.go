@@ -126,8 +126,8 @@ func TestAPITeam(t *testing.T) {
 		checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, expectedTeamUnitsMap)
 		teamID := apiTeam.ID
 
-		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), api.EditTeamOption{Name: "team13NotCreators"}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).AddTokenAuth(token), http.StatusConflict)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), api.EditTeamOption{Name: "team13NotCreators"}).AddTokenAuth(token), http.StatusConflict)
 
 		// Edit team.
 		editDescription := "team 1"
