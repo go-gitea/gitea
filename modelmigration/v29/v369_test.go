@@ -12,9 +12,9 @@ import (
 )
 
 type actionRunWithLegacyConcurrency struct {
-	ID                int64  `xorm:"pk autoincr"`
-	RepoID            int64  `xorm:"index(repo_concurrency)"`
-	ConcurrencyGroup  string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"`
+	ID                int64 `xorm:"pk autoincr"`
+	RepoID            int64
+	ConcurrencyGroup  string `xorm:"NOT NULL DEFAULT ''"`
 	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`
 }
 
