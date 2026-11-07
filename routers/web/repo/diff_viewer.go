@@ -23,6 +23,7 @@ type diffViewerConfig struct {
 	CommentsURL      string `json:"commentsUrl,omitempty"`
 	IssueLink        string `json:"issueLink,omitempty"`
 	RepoLink         string `json:"repoLink,omitempty"` // to browse the commits, empty for the wiki which can't
+	RawLink          string `json:"rawLink"`            // the files of the commits are loaded from "{RawLink}/raw/commit/{sha}/{path}"
 	BeforeCommitID   string `json:"beforeCommitId,omitempty"`
 	AfterCommitID    string `json:"afterCommitId"`
 	HeadCommitID     string `json:"headCommitId,omitempty"`   // of the pull request, the viewed files are tracked by it
@@ -41,6 +42,7 @@ type diffViewerOptions struct {
 	streamPath     string
 	streamQuery    url.Values
 	gitRepoLink    string // the repo the commits are browsed in, the head repo for compare, empty for the wiki which can't
+	rawLink        string // where the files of the commits are loaded from, see diffViewerConfig.RawLink
 	beforeCommitID string // empty for a root commit
 	afterCommitID  string
 }
@@ -54,6 +56,7 @@ func prepareDiffViewer(ctx *context.Context, opts diffViewerOptions) *diffViewer
 	config := &diffViewerConfig{
 		StreamURL:        opts.streamPath + "?" + opts.streamQuery.Encode(),
 		RepoLink:         opts.gitRepoLink,
+		RawLink:          opts.rawLink,
 		BeforeCommitID:   opts.beforeCommitID,
 		AfterCommitID:    opts.afterCommitID,
 		IsSplit:          GetDiffViewStyle(ctx) == gitdiff.DiffStyleSplit,

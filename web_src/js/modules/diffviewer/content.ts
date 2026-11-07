@@ -7,10 +7,10 @@ import type {DiffViewerConfig} from './types.ts';
 
 const lfsSniffLength = 8000; // like git, content with a NUL byte in its first bytes is binary
 
-// a file of the commit before ("old") or after ("new") the changes, only for configs with a repo link
+// a file of the commit before ("old") or after ("new") the changes, the "src" pages need a repo link
 export function fileUrl(config: DiffViewerConfig, view: 'src' | 'raw' | 'media', side: DiffSide, path: string): string {
   const commitId = side === 'old' ? config.beforeCommitId! : config.afterCommitId;
-  return `${config.repoLink}/${view}/commit/${encodeURIComponent(commitId)}/${pathEscapeSegments(path)}`;
+  return `${view === 'src' ? config.repoLink : config.rawLink}/${view}/commit/${encodeURIComponent(commitId)}/${pathEscapeSegments(path)}`;
 }
 
 async function fetchLines(config: DiffViewerConfig, url: string, tooLargeMessage: string): Promise<string[]> {

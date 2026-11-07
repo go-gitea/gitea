@@ -873,6 +873,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitIDParam, afterCommitIDParam
 		streamPath:     issue.Link() + "/files/stream",
 		streamQuery:    streamQuery,
 		gitRepoLink:    ctx.Repo.RepoLink,
+		rawLink:        ctx.Repo.RepoLink,
 		beforeCommitID: beforeCommitID,
 		afterCommitID:  afterCommitID,
 	})

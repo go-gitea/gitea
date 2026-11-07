@@ -67,11 +67,18 @@ test('diff viewer', async ({page, request}) => {
   // the other diff pages use the same viewer
   await page.goto(`/${user}/${repo}/commit/${commitSha}`);
   await expectFileRendered(page, 'src/a.ts', 3);
-  const wikiPage = await request.post(`${baseUrl()}/api/v1/repos/${user}/${repo}/wiki/new`, {headers, data: {title: 'Home', content_base64: btoa('wiki line\n')}});
+  const wikiLines = Array.from({length: 30}, (_, i) => `wiki line ${i + 1}`);
+  const wikiPage = await request.post(`${baseUrl()}/api/v1/repos/${user}/${repo}/wiki/new`, {headers, data: {title: 'Home', content_base64: btoa(`${wikiLines.join('\n')}\n`)}});
   expect(wikiPage.ok()).toBe(true);
+  wikiLines[29] = 'changed wiki line';
+  const wikiEdit = await request.patch(`${baseUrl()}/api/v1/repos/${user}/${repo}/wiki/page/Home`, {headers, data: {title: 'Home', content_base64: btoa(`${wikiLines.join('\n')}\n`)}});
+  expect(wikiEdit.ok()).toBe(true);
   const revisions = await (await request.get(`${baseUrl()}/api/v1/repos/${user}/${repo}/wiki/revisions/Home`, {headers})).json();
   await page.goto(`/${user}/${repo}/wiki/commit/${revisions.commits[0].sha}`);
-  await expectFileRendered(page, 'Home.md', 1);
+  const wikiFile = await expectFileRendered(page, 'Home.md', 1);
+  // the context is expanded from the wiki's files
+  await wikiFile.locator('tr.tag-code').first().locator('[data-expand="up"]').click();
+  await expect(wikiFile.locator('tr[data-new="7"]')).toHaveCount(1);
 });
 
 test('diff viewer review', async ({page, request}) => {

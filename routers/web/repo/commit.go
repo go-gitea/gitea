@@ -281,7 +281,7 @@ func Diff(ctx *context.Context) {
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.PathParam("sha")
 	gitRepo := ctx.Repo.GitRepo // don't access ctx.Repo.GitRepo anymore, because it might not be right for wiki repo
-	viewerOpts := diffViewerOptions{streamPath: ctx.Repo.RepoLink + "/diff/stream", gitRepoLink: ctx.Repo.RepoLink}
+	viewerOpts := diffViewerOptions{streamPath: ctx.Repo.RepoLink + "/diff/stream", gitRepoLink: ctx.Repo.RepoLink, rawLink: ctx.Repo.RepoLink}
 	if ctx.Data["PageIsWiki"] != nil {
 		var err error
 		gitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
@@ -289,7 +289,7 @@ func Diff(ctx *context.Context) {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
 		}
-		viewerOpts = diffViewerOptions{streamPath: ctx.Repo.RepoLink + "/wiki/diff/stream"} // the wiki has no file pages to link
+		viewerOpts = diffViewerOptions{streamPath: ctx.Repo.RepoLink + "/wiki/diff/stream", rawLink: ctx.Repo.RepoLink + "/wiki"} // the wiki has no file pages to link
 	}
 
 	commit, err := gitRepo.GetCommit(ctx, commitID)

@@ -293,6 +293,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	prepareDiffViewer(ctx, diffViewerOptions{
 		streamPath:     ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.PathParam("*")) + "/diff/stream",
 		gitRepoLink:    ci.HeadRepo.Link(),
+		rawLink:        ci.HeadRepo.Link(),
 		beforeCommitID: beforeCommitID,
 		afterCommitID:  headCommitID,
 	})

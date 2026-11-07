@@ -7,6 +7,7 @@ export type DiffViewerConfig = {
   commentsUrl?: string;
   issueLink?: string;
   repoLink?: string; // to browse the commits, the wiki can't
+  rawLink: string; // the files of the commits are loaded from "{rawLink}/raw/commit/{sha}/{path}"
   beforeCommitId?: string;
   afterCommitId: string;
   headCommitId?: string; // of the pull request, the viewed files are tracked by it

@@ -594,6 +594,35 @@ func WikiPages(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplWikiPages)
 }
 
+// WikiRawCommit serves a file of the wiki at a commit, by its git path, for the diff viewer
+func WikiRawCommit(ctx *context.Context) {
+	wikiGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
+	if err != nil {
+		ctx.ServerError("RepositoryFromRequestContextOrOpen", err)
+		return
+	}
+	var entry *git.TreeEntry
+	commit, err := wikiGitRepo.GetCommit(ctx, ctx.PathParam("sha"))
+	if err == nil {
+		entry, err = commit.GetTreeEntryByPath(ctx, wikiGitRepo, ctx.PathParam("*"))
+	}
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(nil)
+		} else {
+			ctx.ServerError("GetTreeEntryByPath", err)
+		}
+		return
+	}
+	if entry.IsDir() {
+		ctx.NotFound(nil)
+		return
+	}
+	if err = common.ServeBlob(ctx.Base, ctx.Repo.Repository, entry.Name(), entry.Blob(wikiGitRepo), nil); err != nil {
+		ctx.ServerError("ServeBlob", err)
+	}
+}
+
 // WikiRaw outputs raw blob requested by user (image for example)
 func WikiRaw(ctx *context.Context) {
 	wikiGitRepo, commit, err := findWikiRepoCommit(ctx)

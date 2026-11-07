@@ -192,10 +192,10 @@ export class DiffViewer {
     return entry.renderedLines;
   }
 
-  // the files of the commits can be loaded for text diffs when the repo has file pages, the wiki doesn't
+  // the files of the commits can be loaded for text diffs
   canLoadContent(entry: DiffFile): boolean {
     const {file} = entry;
-    return Boolean(this.config.repoLink) && !file.isBinary && !file.lfs && !file.submodule && !file.tooLarge && !entry.missing && entry.hunks.length > 0;
+    return !file.isBinary && !file.lfs && !file.submodule && !file.tooLarge && !entry.missing && entry.hunks.length > 0;
   }
 
   isExpandable(entry: DiffFile): boolean {
@@ -305,7 +305,7 @@ export class DiffViewer {
     const source = this.buildSource(entry);
     // a re-render keeps the escaping and the view the user switched to
     if (oldSource) source.classList.toggle('unicode-escaped', oldSource.classList.contains('unicode-escaped'));
-    const kind = renderedKind(entry, this.config);
+    const kind = renderedKind(entry);
     if (!kind) {
       body.replaceChildren(source);
     } else {
@@ -375,7 +375,7 @@ export class DiffViewer {
   lfsNotice(entry: DiffFile): string | null {
     const {locale} = this;
     if (entry.lfsState === null) {
-      if (renderedKind(entry, this.config) === 'image') return locale.binNotShown; // compared by the image diff
+      if (renderedKind(entry) === 'image') return locale.binNotShown; // compared by the image diff
       const {old: oldObject, new: newObject} = entry.file.lfs!;
       const size = Math.max(oldObject?.exists ? oldObject.size : 0, newObject?.exists ? newObject.size : 0);
       if (this.config.maxFileSize >= 0 && size > this.config.maxFileSize) entry.lfsState = 'tooLarge';
@@ -434,7 +434,7 @@ export class DiffViewer {
   }
 
   buildFileElement(entry: DiffFile): HTMLElement {
-    const box = buildFileBox(entry, this.config, this.locale, renderedKind(entry, this.config) !== null);
+    const box = buildFileBox(entry, this.config, this.locale, renderedKind(entry) !== null);
     entry.element = box;
     applyFolded(entry, entry.folded);
     box.querySelector('.fold-file')!.addEventListener('click', () => this.setFolded(entry, !entry.folded));

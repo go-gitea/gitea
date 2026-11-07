@@ -1594,6 +1594,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
 		m.Get("/diff/stream", repo.WikiDiffStream)
+		m.Get("/raw/commit/{sha:[a-f0-9]{7,64}}/*", repo.WikiRawCommit)
 		m.Get("/raw/*", repo.WikiRaw)
 	}, optSignIn, context.RepoAssignment, repo.MustEnableWiki, reqUnitWikiReader, func(ctx *context.Context) {
 		ctx.Data["PageIsWiki"] = true

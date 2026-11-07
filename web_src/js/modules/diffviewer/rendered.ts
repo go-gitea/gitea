@@ -11,9 +11,9 @@ import type {DiffViewerConfig, DiffViewerLocale} from './types.ts';
 type ImageSide = {path: string; mime: string; size: number} | null;
 
 // the kind of view shown besides the source
-export function renderedKind(entry: DiffFile, config: DiffViewerConfig): 'image' | 'csv' | null {
+export function renderedKind(entry: DiffFile): 'image' | 'csv' | null {
   const {file} = entry;
-  if (!config.repoLink || entry.missing || file.tooLarge || file.submodule) return null; // the wiki can't load the files
+  if (entry.missing || file.tooLarge || file.submodule) return null;
   if (file.oldImage || file.newImage) return 'image';
   const ext = extname(file.name).toLowerCase();
   if (!file.isBinary && !file.lfs && (ext === '.csv' || ext === '.tsv')) return 'csv';
