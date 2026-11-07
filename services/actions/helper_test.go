@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"errors"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -17,6 +18,53 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAdmitJob(t *testing.T) {
+	checked, evaluated := 0, 0
+	badRunsOn := func() error { checked++; return errors.New("bad runs-on") }
+	evaluate := func(job *actions_model.ActionRunJob) func() error {
+		return func() error { evaluated++; job.IsConcurrencyEvaluated = true; return nil }
+	}
+	slots := maxParallelSlots{}
+	newJob := func() *actions_model.ActionRunJob {
+		return &actions_model.ActionRunJob{JobID: "build", Status: actions_model.StatusWaiting, MaxParallel: 1, RawConcurrency: "group: g"}
+	}
+
+	first := newJob()
+	invalid, cancelled, err := admitJob(t.Context(), first, slots, nil, evaluate(first))
+	require.NoError(t, err)
+	require.NoError(t, invalid)
+	assert.Empty(t, cancelled)
+	assert.Equal(t, actions_model.StatusWaiting, first.Status)
+	assert.Equal(t, 1, evaluated)
+
+	// the slot is taken: a starved job neither checks its runs-on nor evaluates its concurrency
+	starved := newJob()
+	invalid, _, err = admitJob(t.Context(), starved, slots, badRunsOn, evaluate(starved))
+	require.NoError(t, err)
+	require.NoError(t, invalid)
+	assert.Equal(t, actions_model.StatusBlocked, starved.Status)
+	assert.Equal(t, 0, checked)
+	assert.Equal(t, 1, evaluated)
+
+	failed := newJob()
+	invalid, _, err = admitJob(t.Context(), failed, maxParallelSlots{}, badRunsOn, evaluate(failed))
+	require.NoError(t, err)
+	assert.ErrorContains(t, invalid, "bad runs-on")
+	assert.Equal(t, actions_model.StatusFailure, failed.Status)
+	assert.NotZero(t, failed.Stopped)
+	assert.Equal(t, 1, evaluated)
+
+	// a job without `concurrency:` has nothing to evaluate
+	plain := newJob()
+	plain.RawConcurrency = ""
+	_, _, err = admitJob(t.Context(), plain, maxParallelSlots{}, nil, evaluate(plain))
+	require.NoError(t, err)
+	assert.Equal(t, 1, evaluated)
+
+	_, _, err = admitJob(t.Context(), newJob(), maxParallelSlots{}, nil, func() error { return errors.New("bad concurrency") })
+	assert.ErrorContains(t, err, "bad concurrency")
+}
 
 func TestDispatchInputsForRunJobs(t *testing.T) {
 	// a child carries the callee's `on: workflow_call`, so only a top-level job answers for the run

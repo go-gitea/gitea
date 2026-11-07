@@ -4,16 +4,13 @@
 package actions
 
 import (
-	"errors"
 	"net/http"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
-	shared_user "gitea.dev/routers/web/shared/user"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -27,57 +24,28 @@ const (
 )
 
 type variablesCtx struct {
-	BelongingScope    actions_model.BelongingScope
-	IsRepo            bool
-	IsOrg             bool
-	IsUser            bool
-	IsGlobal          bool
+	*settingsScope
 	VariablesTemplate templates.TplName
 	RedirectLink      string
 }
 
 func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
-	if ctx.Data["PageIsRepoSettings"] == true {
-		return &variablesCtx{
-			BelongingScope:    actions_model.BelongingScopeRepo(ctx.Repo.Repository.ID),
-			IsRepo:            true,
-			VariablesTemplate: tplRepoVariables,
-			RedirectLink:      ctx.Repo.RepoLink + "/settings/actions/variables",
-		}, nil
+	scope, err := getSettingsScope(ctx)
+	if err != nil {
+		return nil, err
 	}
-
-	if ctx.Data["PageIsOrgSettings"] == true {
-		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-			ctx.ServerError("RenderUserOrgHeader", err)
-			return nil, nil //nolint:nilnil // error is already handled by ctx.ServerError
-		}
-		return &variablesCtx{
-			BelongingScope:    actions_model.BelongingScopeOwner(ctx.Org.Organization.ID),
-			IsOrg:             true,
-			VariablesTemplate: tplOrgVariables,
-			RedirectLink:      ctx.Org.OrgLink + "/settings/actions/variables",
-		}, nil
+	vCtx := &variablesCtx{settingsScope: scope, RedirectLink: scope.LinkPrefix + "/variables"}
+	switch {
+	case scope.IsRepo:
+		vCtx.VariablesTemplate = tplRepoVariables
+	case scope.IsOrg:
+		vCtx.VariablesTemplate = tplOrgVariables
+	case scope.IsUser:
+		vCtx.VariablesTemplate = tplUserVariables
+	case scope.IsAdmin:
+		vCtx.VariablesTemplate = tplAdminVariables
 	}
-
-	if ctx.Data["PageIsUserSettings"] == true {
-		return &variablesCtx{
-			BelongingScope:    actions_model.BelongingScopeOwner(ctx.Doer.ID),
-			IsUser:            true,
-			VariablesTemplate: tplUserVariables,
-			RedirectLink:      setting.AppSubURL + "/user/settings/actions/variables",
-		}, nil
-	}
-
-	if ctx.Data["PageIsAdmin"] == true {
-		return &variablesCtx{
-			BelongingScope:    actions_model.BelongingScopeGlobal(),
-			IsGlobal:          true,
-			VariablesTemplate: tplAdminVariables,
-			RedirectLink:      setting.AppSubURL + "/-/admin/actions/variables",
-		}, nil
-	}
-
-	return nil, errors.New("unable to set Variables context")
+	return vCtx, nil
 }
 
 func Variables(ctx *context.Context) {

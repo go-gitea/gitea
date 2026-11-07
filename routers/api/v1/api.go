@@ -96,7 +96,6 @@ import (
 	"gitea.dev/routers/api/v1/token"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/common"
-	"gitea.dev/services/actions"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -967,7 +966,7 @@ func Routes() *web.Router {
 		m *web.Router,
 		reqReaderCheck func(ctx *context.APIContext),
 		reqManagerCheck func(ctx *context.APIContext),
-		act actions.API,
+		act shared.API,
 	) {
 		m.Group("/actions", func() {
 			m.Group("/secrets", func() {
