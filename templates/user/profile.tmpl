@@ -15,6 +15,7 @@
 					{{end}}
 					{{template "user/heatmap" .}}
 					{{template "user/dashboard/feeds" .}}
+					{{template "base/paginate" .}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
 						{{template "shared/repo/search" .}}

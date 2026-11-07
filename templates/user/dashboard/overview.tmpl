@@ -1,0 +1,18 @@
+<div class="dashboard-overview tw-flex tw-flex-col tw-gap-4">
+	{{range .OverviewLists}}
+		{{template "user/dashboard/overview_list" .}}
+	{{end}}
+	<div>
+		<h4 class="ui top attached header flex-left-right">
+			<span class="flex-text-inline">{{svg "octicon-rss"}}{{ctx.Locale.Tr "home.overview.recent_activity"}}</span>
+			<a class="tw-text-text-light tw-font-normal flex-text-inline" href="?tab=activity">{{ctx.Locale.Tr "home.overview.view_activity"}}{{svg "octicon-chevron-right"}}</a>
+		</h4>
+		<div class="ui attached segment">
+			{{if .Feeds}}
+				{{template "user/dashboard/feeds" .}}
+			{{else}}
+				{{template "user/dashboard/guide" .}}
+			{{end}}
+		</div>
+	</div>
+</div>

@@ -1,0 +1,51 @@
+{{$root := ctx.RootData}}
+<div class="dashboard-overview-list">
+	<h4 class="ui top attached header flex-left-right">
+		<span class="flex-text-inline">{{svg .Icon}}{{ctx.Locale.Tr .Title}}<span class="ui small label">{{.Total}}</span></span>
+		<a class="tw-text-text-light tw-font-normal flex-text-inline" href="{{.Link}}">{{ctx.Locale.Tr "home.overview.view_all"}}{{svg "octicon-chevron-right"}}</a>
+	</h4>
+	<div class="ui attached segment">
+		<div class="flex-divided-list items-with-main">
+			{{range $issue := .Issues}}
+				<div class="item">
+					<div class="item-leading">{{template "shared/issueicon" $issue}}</div>
+					<div class="item-main">
+						<div class="item-header">
+							<div>
+								<a class="list-item-large-title" href="{{$issue.Link}}">{{$issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+								{{if and $issue.IsPull (index $root.CommitStatuses $issue.PullRequest.ID)}}
+									<span class="tw-align-[1px]">{{template "repo/commit_statuses" dict "Status" (index $root.CommitLastStatus $issue.PullRequest.ID) "Statuses" (index $root.CommitStatuses $issue.PullRequest.ID)}}</span>
+								{{end}}
+							</div>
+						</div>
+						<div class="item-body tw-gap-2">
+							<a class="index" href="{{$issue.Link}}">{{$issue.Repo.FullName}}#{{$issue.Index}}</a>
+							<span>{{DateUtils.TimeSince $issue.UpdatedUnix}}</span>
+							{{if $issue.IsPull}}
+								{{$approve := call $root.ApprovalCounts $issue.ID "approve"}}
+								{{$reject := call $root.ApprovalCounts $issue.ID "reject"}}
+								{{$waiting := call $root.ApprovalCounts $issue.ID "waiting"}}
+								{{if gt $approve 0}}
+									<span class="approvals green flex-text-inline">{{svg "octicon-check" 14}}{{ctx.Locale.TrN $approve "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approve}}</span>
+								{{end}}
+								{{if gt $reject 0}}
+									<span class="rejects red flex-text-inline">{{svg "octicon-diff" 14}}{{ctx.Locale.TrN $reject "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $reject}}</span>
+								{{end}}
+								{{if gt $waiting 0}}
+									<span class="waiting flex-text-inline">{{svg "octicon-eye" 14}}{{ctx.Locale.TrN $waiting "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waiting}}</span>
+								{{end}}
+							{{end}}
+						</div>
+					</div>
+					{{if $issue.NumComments}}
+						<div class="item-trailing">
+							<a class="muted flex-text-block tw-text-text-light" href="{{$issue.Link}}">{{svg "octicon-comment" 16}}{{$issue.NumComments}}</a>
+						</div>
+					{{end}}
+				</div>
+			{{else}}
+				<p class="tw-text-text-light">{{ctx.Locale.Tr "home.overview.empty"}}</p>
+			{{end}}
+		</div>
+	</div>
+</div>

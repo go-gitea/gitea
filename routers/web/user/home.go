@@ -91,9 +91,17 @@ func Dashboard(ctx *context.Context) {
 		page = 1
 	}
 
+	tab, err := dashboardTab(ctx)
+	if err != nil {
+		ctx.ServerError("dashboardTab", err)
+		return
+	}
+
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Locale.TrString("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
+	ctx.Data["DashboardTab"] = tab
+	ctx.Data["PageIsDashboardOverview"] = tab == setting.DashboardTabOverview
 	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
@@ -107,6 +115,15 @@ func Dashboard(ctx *context.Context) {
 	ctx.PageData["dashboardRepoList"] = map[string]any{
 		"searchLimit": setting.UI.User.RepoPagingNum,
 		"uid":         uid,
+	}
+
+	if tab == setting.DashboardTabOverview {
+		prepareDashboardOverview(ctx, ctxUser)
+		if ctx.Written() {
+			return
+		}
+		ctx.HTML(http.StatusOK, tplDashboard)
+		return
 	}
 
 	prepareHeatmapURL(ctx)
@@ -439,44 +456,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	searchMode := ctx.FormString("search_mode")
 
-	// Search all repositories which
-	//
-	// As user:
-	// - Owns the repository.
-	// - Have collaborator permissions in repository.
-	//
-	// As org:
-	// - Owns the repository.
-	//
-	// As team:
-	// - Team org's owns the repository.
-	// - Team has read permission to repository.
-	repoOpts := repo_model.SearchRepoOptions{
-		Actor:       ctx.Doer,
-		OwnerID:     ctxUser.ID,
-		Private:     true,
-		AllPublic:   false,
-		AllLimited:  false,
-		Collaborate: optional.None[bool](),
-		UnitType:    unitType,
-		Archived:    optional.Some(false),
-	}
-	if opts.Team != nil {
-		repoOpts.TeamID = opts.Team.ID
-	}
-	accessibleRepos := container.Set[int64]{}
-	{
-		ids, _, err := repo_model.SearchRepositoryIDs(ctx, repoOpts)
-		if err != nil {
-			ctx.ServerError("SearchRepositoryIDs", err)
-			return
-		}
-		accessibleRepos.AddMultiple(ids...)
-		opts.RepoIDs = ids
-		if len(opts.RepoIDs) == 0 {
-			// no repos found, don't let the indexer return all repos
-			opts.RepoIDs = []int64{0}
-		}
+	var err error
+	opts.RepoIDs, err = dashboardRepoIDs(ctx, ctxUser, unitType)
+	if err != nil {
+		ctx.ServerError("dashboardRepoIDs", err)
+		return
 	}
 	if ctx.Doer.ID == ctxUser.ID && filterMode != issues_model.FilterModeYourRepositories {
 		// If the doer is the same as the context user, which means the doer is viewing his own dashboard,
@@ -485,21 +469,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		// So we need search issues in all public repos.
 		opts.AllPublic = true
 	}
-
-	switch filterMode {
-	case issues_model.FilterModeAll:
-	case issues_model.FilterModeYourRepositories:
-	case issues_model.FilterModeAssign:
-		opts.AssigneeID = strconv.FormatInt(ctx.Doer.ID, 10)
-	case issues_model.FilterModeCreate:
-		opts.PosterID = strconv.FormatInt(ctx.Doer.ID, 10)
-	case issues_model.FilterModeMention:
-		opts.MentionedID = ctx.Doer.ID
-	case issues_model.FilterModeReviewRequested:
-		opts.ReviewRequestedID = ctx.Doer.ID
-	case issues_model.FilterModeReviewed:
-		opts.ReviewedID = ctx.Doer.ID
-	}
+	applyIssueFilterMode(opts, filterMode, ctx.Doer.ID)
 
 	// keyword holds the search term entered into the search field.
 	keyword := strings.Trim(ctx.FormString("q"), " ")
@@ -593,25 +563,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.ServerError("ApprovalCounts", err)
 		return
 	}
-	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
-		counts, ok := approvalCounts[issueID]
-		if !ok || len(counts) == 0 {
-			return 0
-		}
-		reviewTyp := issues_model.ReviewTypeApprove
-		switch typ {
-		case "reject":
-			reviewTyp = issues_model.ReviewTypeReject
-		case "waiting":
-			reviewTyp = issues_model.ReviewTypeRequest
-		}
-		for _, count := range counts {
-			if count.Type == reviewTyp {
-				return count.Count
-			}
-		}
-		return 0
-	}
+	ctx.Data["ApprovalCounts"] = makeApprovalCountsFunc(approvalCounts)
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["IssueStats"] = issueStats
