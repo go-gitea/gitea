@@ -12,7 +12,9 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -50,16 +52,30 @@ func stopTasksByStatuses(ctx context.Context, opts actions_model.FindTaskOptions
 
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
 	jobs, err := actions_model.CancelPreviousJobs(ctx, repoID, ref, workflowID, event)
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
-	EmitJobsIfReadyByJobs(jobs)
+	notifyAndEmitFinishedJobs(ctx, jobs)
 	return err
 }
 
 func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) error {
 	jobs, err := actions_model.CleanRepoScheduleTasks(ctx, repo)
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
-	EmitJobsIfReadyByJobs(jobs)
+	notifyAndEmitFinishedJobs(ctx, jobs)
 	return err
+}
+
+// SwitchSchedulesToDefaultBranch cancels the running schedule runs of the old default branch
+// and replaces the schedules with the ones on the current default branch
+func SwitchSchedulesToDefaultBranch(ctx context.Context, repo *repo_model.Repository, oldDefaultBranch string) {
+	if err := actions_model.DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
+		log.Error("DeleteScheduleTaskByRepo: %v", err)
+	}
+	if err := CancelPreviousJobs(ctx, repo.ID, git.RefNameFromBranch(oldDefaultBranch).String(), "", webhook_module.HookEventSchedule); err != nil {
+		log.Error("CancelPreviousJobs: %v", err)
+	}
+	if repo.UnitEnabled(ctx, unit_model.TypeActions) {
+		if err := DetectAndHandleSchedules(ctx, repo); err != nil {
+			log.Error("DetectAndHandleSchedules: %v", err)
+		}
+	}
 }
 
 func shouldBlockJobByConcurrency(ctx context.Context, job *actions_model.ActionRunJob) (bool, error) {
@@ -171,8 +187,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 		remove()
 	}
 
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
-	EmitJobsIfReadyByJobs(jobs)
+	notifyAndEmitFinishedJobs(ctx, jobs)
 
 	return nil
 }
@@ -193,8 +208,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		log.Warn("cancel abandoned jobs: %v", err)
 	}
 
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, updatedJobs)
-	EmitJobsIfReadyByJobs(updatedJobs)
+	notifyAndEmitFinishedJobs(ctx, updatedJobs)
 
 	return nil
 }

@@ -7,8 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"path"
+	"slices"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
@@ -20,6 +22,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
@@ -276,11 +279,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		return nil, err
 	}
 
-	status, conclusion := ToRunActionsStatus(job.Run, job.Status)
-	var runnerID int64
-	var runnerName string
-	var steps []*api.ActionWorkflowStep
-
+	var runner *actions_model.ActionRunner
 	if effectiveTaskID := job.EffectiveTaskID(); effectiveTaskID != 0 {
 		if task == nil {
 			task, _, err = db.GetByID[actions_model.ActionTask](ctx, effectiveTaskID)
@@ -290,28 +289,68 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		}
 
 		if task != nil {
-			if task.Steps == nil {
-				task.Steps, err = actions_model.GetTaskStepsByTaskID(ctx, task.ID)
-				if err != nil {
-					return nil, err
-				}
-				task.Steps = util.SliceNilAsEmpty(task.Steps)
+			if err := (actions_model.TaskList{task}).LoadSteps(ctx); err != nil {
+				return nil, err
 			}
-			runnerID = task.RunnerID
-			if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
-				runnerName = runner.Name
-			}
-			for i, step := range task.Steps {
-				stepStatus, stepConclusion := ToActionsStatus(step.Status)
-				steps = append(steps, &api.ActionWorkflowStep{
-					Name:        step.Name,
-					Number:      int64(i),
-					Status:      stepStatus,
-					Conclusion:  stepConclusion,
-					StartedAt:   step.Started.AsTime().UTC(),
-					CompletedAt: step.Stopped.AsTime().UTC(),
-				})
-			}
+			runner, _, _ = db.GetByID[actions_model.ActionRunner](ctx, task.RunnerID)
+		}
+	}
+	return toActionWorkflowJob(ctx, repo, task, runner, job), nil
+}
+
+// ToActionWorkflowJobs requires job.Run.Repo to be loaded
+func ToActionWorkflowJobs(ctx context.Context, jobs []*actions_model.ActionRunJob) ([]*api.ActionWorkflowJob, error) {
+	tasks, err := actions_model.GetTasksMapByIDs(ctx, container.FilterSlice(jobs, func(job *actions_model.ActionRunJob) (int64, bool) {
+		taskID := job.EffectiveTaskID()
+		return taskID, taskID != 0
+	}))
+	if err != nil {
+		return nil, err
+	}
+	taskList := actions_model.TaskList(slices.Collect(maps.Values(tasks)))
+	if err := taskList.LoadSteps(ctx); err != nil {
+		return nil, err
+	}
+	runners, err := actions_model.GetRunnersMapByIDs(ctx, container.FilterSlice(taskList, func(task *actions_model.ActionTask) (int64, bool) {
+		return task.RunnerID, task.RunnerID != 0
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*api.ActionWorkflowJob, len(jobs))
+	for i, job := range jobs {
+		task := tasks[job.EffectiveTaskID()]
+		var runner *actions_model.ActionRunner
+		if task != nil {
+			runner = runners[task.RunnerID]
+		}
+		result[i] = toActionWorkflowJob(ctx, job.Run.Repo, task, runner, job)
+	}
+	return result, nil
+}
+
+func toActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task *actions_model.ActionTask, runner *actions_model.ActionRunner, job *actions_model.ActionRunJob) *api.ActionWorkflowJob {
+	status, conclusion := ToRunActionsStatus(job.Run, job.Status)
+	var runnerID int64
+	var runnerName string
+	var steps []*api.ActionWorkflowStep
+
+	if task != nil && job.EffectiveTaskID() != 0 {
+		runnerID = task.RunnerID
+		if runner != nil {
+			runnerName = runner.Name
+		}
+		for i, step := range task.Steps {
+			stepStatus, stepConclusion := ToActionsStatus(step.Status)
+			steps = append(steps, &api.ActionWorkflowStep{
+				Name:        step.Name,
+				Number:      int64(i),
+				Status:      stepStatus,
+				Conclusion:  stepConclusion,
+				StartedAt:   step.Started.AsTime().UTC(),
+				CompletedAt: step.Stopped.AsTime().UTC(),
+			})
 		}
 	}
 
@@ -336,7 +375,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		CreatedAt:   job.Created.AsTime().UTC(),
 		StartedAt:   job.Started.AsTime().UTC(),
 		CompletedAt: job.Stopped.AsTime().UTC(),
-	}, nil
+	}
 }
 
 func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, refName git.RefName, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
@@ -518,7 +557,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 }
 
 // ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact
-func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArtifact) (*api.ActionArtifact, error) {
+func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArtifact) *api.ActionArtifact {
 	url := fmt.Sprintf("%s/actions/artifacts/%d", repo.APIURL(), art.ID)
 
 	return &api.ActionArtifact{
@@ -536,10 +575,10 @@ func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArti
 			RepositoryID: art.RepoID,
 			HeadSha:      art.CommitSHA,
 		},
-	}, nil
+	}
 }
 
-func ToActionRunner(ctx context.Context, runner *actions_model.ActionRunner) *api.ActionRunner {
+func ToActionRunner(runner *actions_model.ActionRunner) *api.ActionRunner {
 	status := runner.Status()
 	apiStatus := "offline"
 	if runner.IsOnline() {

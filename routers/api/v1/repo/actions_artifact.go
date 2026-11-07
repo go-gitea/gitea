@@ -58,10 +58,8 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ArtifactsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	artifactName := ctx.Req.URL.Query().Get("name")
 	repoID, runID := ctx.Repo.Repository.ID, ctx.PathParamInt64("run")
@@ -83,12 +81,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 
 	res.Entries = make([]*api.ActionArtifact, len(artifacts))
 	for i := range artifacts {
-		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		res.Entries[i] = convertedArtifact
+		res.Entries[i] = convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
 	}
 
 	ctx.JSON(http.StatusOK, &res)
@@ -120,10 +113,8 @@ func GetArtifacts(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ArtifactsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	repoID := ctx.Repo.Repository.ID
 	artifactName := ctx.Req.URL.Query().Get("name")
@@ -144,12 +135,7 @@ func GetArtifacts(ctx *context.APIContext) {
 
 	res.Entries = make([]*api.ActionArtifact, len(artifacts))
 	for i := range artifacts {
-		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		res.Entries[i] = convertedArtifact
+		res.Entries[i] = convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
 	}
 
 	ctx.JSON(http.StatusOK, &res)
@@ -181,10 +167,8 @@ func GetArtifact(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Artifact"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
 	if ctx.Written() {
@@ -192,12 +176,7 @@ func GetArtifact(ctx *context.APIContext) {
 	}
 
 	if actions_service.IsArtifactV4(art) {
-		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, art)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		ctx.JSON(http.StatusOK, convertedArtifact)
+		ctx.JSON(http.StatusOK, convert.ToActionArtifact(ctx.Repo.Repository, art))
 		return
 	}
 	// v3 not supported due to not having one unique id
@@ -230,10 +209,8 @@ func DeleteArtifact(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: "No Content"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
 	if ctx.Written() {
@@ -293,10 +270,8 @@ func DownloadArtifact(ctx *context.APIContext) {
 	// responses:
 	//   "302":
 	//     description: redirect to the blob download
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
 	if ctx.Written() {

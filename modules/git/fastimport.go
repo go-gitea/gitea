@@ -27,6 +27,7 @@ type FastImportFile struct {
 
 type FastImportCommit struct {
 	Ref     string
+	Parent  string
 	Message string
 	Files   []FastImportFile
 
@@ -72,6 +73,9 @@ func ForceFastImport(ctx context.Context, repo RepositoryFacade, commits []FastI
 
 		msg := util.IfZero(c.Message, fmt.Sprintf("test commit %d", i+1))
 		_, _ = fmt.Fprintf(buf, "data %d\n%s\n", len(msg), msg)
+		if c.Parent != "" {
+			_, _ = fmt.Fprintf(buf, "from %s\n", c.Parent)
+		}
 
 		for _, f := range c.Files {
 			mode := util.IfZero(f.Mode, EntryModeBlob)

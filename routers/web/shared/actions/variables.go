@@ -60,8 +60,7 @@ func Variables(ctx *context.Context) {
 	}
 
 	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		OwnerID: vCtx.OwnerID,
-		RepoID:  vCtx.RepoID,
+		BelongingScope: vCtx.BelongingScope,
 	})
 	if err != nil {
 		ctx.ServerError("FindVariables", err)
@@ -87,7 +86,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm[*forms.EditVariableForm](ctx)
 
-	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
+	v, err := actions_service.CreateVariable(ctx, vCtx.BelongingScope, form.Name, form.Data, form.Description)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -131,25 +130,9 @@ func VariableUpdate(ctx *context.Context) {
 
 func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *actions_model.ActionVariable {
 	opts := actions_model.FindVariablesOpts{
-		IDs: []int64{id},
+		IDs:            []int64{id},
+		BelongingScope: vCtx.BelongingScope,
 	}
-	switch {
-	case vCtx.IsRepo:
-		opts.RepoID = vCtx.RepoID
-		if opts.RepoID == 0 {
-			panic("RepoID is 0")
-		}
-	case vCtx.IsOrg, vCtx.IsUser:
-		opts.OwnerID = vCtx.OwnerID
-		if opts.OwnerID == 0 {
-			panic("OwnerID is 0")
-		}
-	case vCtx.IsAdmin:
-		// do nothing
-	default:
-		panic("invalid actions variable")
-	}
-
 	got, err := actions_model.FindVariables(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindVariables", err)

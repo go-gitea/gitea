@@ -9,9 +9,9 @@
 <body>
 	<p>
 		{{if .IsPull}}
-			{{.locale.Tr "mail.issue_assigned.pull" .Doer.Name $link $repo_url}}
+			{{.locale.Tr "mail.issue_assigned.pull" .Doer.DisplayNameWithFullName $link $repo_url}}
 		{{else}}
-			{{.locale.Tr "mail.issue_assigned.issue" .Doer.Name $link $repo_url}}
+			{{.locale.Tr "mail.issue_assigned.issue" .Doer.DisplayNameWithFullName $link $repo_url}}
 		{{end}}
 	</p>
 	{{if .CanReply}}<p>{{.locale.Tr "mail.reply_directly"}}.</p>{{end}}

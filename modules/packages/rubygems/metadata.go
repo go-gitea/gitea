@@ -8,8 +8,11 @@ import (
 	"compress/gzip"
 	"io"
 	"regexp"
+	"slices"
+	"strings"
 	"sync"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -23,6 +26,8 @@ var (
 	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
 	// ErrInvalidVersion indicates an invalid version in the metadata.gz file
 	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
+	// ErrInvalidMetadata indicates metadata that would corrupt the generated index
+	ErrInvalidMetadata = util.NewInvalidArgumentErrorf("package metadata is invalid")
 )
 
 var globalVars = sync.OnceValue(func() (ret struct {
@@ -176,7 +181,7 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 	defer zr.Close()
 
 	var spec gemspec
-	if err := yaml.NewDecoder(zr).Decode(&spec); err != nil {
+	if err := yaml.NewDecoder(packages.NewLimitedReader(zr, packages.MaxMetadataSize)).Decode(&spec); err != nil {
 		return nil, err
 	}
 
@@ -218,6 +223,19 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 		} else {
 			m.DevelopmentDependencies = append(m.DevelopmentDependencies, dep)
 		}
+	}
+
+	values := []string{m.Platform}
+	reqs := slices.Concat(m.RequiredRubyVersion, m.RequiredRubygemsVersion)
+	for _, dep := range slices.Concat(m.RuntimeDependencies, m.DevelopmentDependencies) {
+		values = append(values, dep.Name)
+		reqs = append(reqs, dep.Version...)
+	}
+	for _, req := range reqs {
+		values = append(values, req.Restriction, req.Version)
+	}
+	if slices.ContainsFunc(values, func(s string) bool { return strings.ContainsAny(s, "\r\n") }) {
+		return nil, ErrInvalidMetadata // the compact index is line-based, a line break would forge entries
 	}
 
 	return &Package{

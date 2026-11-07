@@ -85,7 +85,6 @@ func TestRender_IssueIndexPattern(t *testing.T) {
 	test("#abcd")
 	test("test#1234")
 	test("#1234test")
-	test("#abcd")
 	test("test!1234")
 	test("!1234test")
 	test(" test !1234test")
@@ -158,6 +157,11 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 	// should render with :
 	test("#1234: test", "%s: test", "#", 1234)
 	test("wow (#54321: test)", "wow (%s: test)", "#", 54321)
+
+	// should render next to non-ASCII characters
+	test("修复#1。见（#2）", "修复%s。见（%s）", "#", 1, 2)
+	test("「#3」と“#4”、#5～#6🎉", "「%s」と“%s”、%s～%s🎉", "#", 3, 4, 5, 6)
+	test("见 #7修复，#8", "见 #7修复，%s", "#", 8)
 }
 
 func TestRender_IssueIndexPattern3(t *testing.T) {
@@ -257,16 +261,7 @@ func TestRender_IssueIndexPattern_NoShortPattern(t *testing.T) {
 	testRenderIssueIndexPattern(t, "#1", "#1", NewTestRenderContext(metas))
 	testRenderIssueIndexPattern(t, "#1312", "#1312", NewTestRenderContext(metas))
 	testRenderIssueIndexPattern(t, "!1", "!1", NewTestRenderContext(metas))
-}
 
-func TestRender_PostProcessIssueTitle(t *testing.T) {
-	setting.AppURL = TestAppURL
-	metas := map[string]string{
-		"format": "https://someurl.com/{user}/{repo}/{index}",
-		"user":   "someUser",
-		"repo":   "someRepo",
-		"style":  IssueNameStyleNumeric,
-	}
 	actual := PostProcessIssueTitle(NewTestRenderContext(metas), "#1")
 	assert.Equal(t, template.HTML("#1"), actual)
 }

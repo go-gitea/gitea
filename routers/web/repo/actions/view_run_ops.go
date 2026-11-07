@@ -149,9 +149,7 @@ func Approve(ctx *context_module.Context) {
 		return
 	}
 	if _, err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
-		ctx.NotFoundOrServerError("ApproveRuns", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("ApproveRuns", err)
 		return
 	}
 
@@ -186,7 +184,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return
 	}
-	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitStatuses)
 	if err != nil {
 		ctx.ServerError("GetRunsFromCommitStatuses", err)
 		return
@@ -205,9 +203,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 	}
 
 	if _, err := actions_service.ApproveRuns(ctx, repo, ctx.Doer, runIDs); err != nil {
-		ctx.NotFoundOrServerError("ApproveRuns", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("ApproveRuns", err)
 		return
 	}
 

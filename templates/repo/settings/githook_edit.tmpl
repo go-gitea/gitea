@@ -1,6 +1,6 @@
 {{template "repo/settings/layout_head" (dict "pageClass" "repository settings edit githook")}}
 	<div class="repo-setting-content">
-		<form class="ui form" action="{{.Link}}" method="post">
+		<form class="ui form" action="{{.Link}}" method="post" data-global-init="initRepoSettingsGitHook">
 			<h4 class="ui top attached header flex-left-right">
 				{{.Hook.Name}}
 				<div class="tw-font-normal tw-font-sans tw-text-base">

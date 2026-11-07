@@ -119,6 +119,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 				&commonStorageCheckOptions{
 					storer: storage.LFS,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
+						// HINT: LFS-INTERNAL-PATH-PATTERN
 						// The oid of an LFS stored object is the name but with all the path.Separators removed
 						oid := strings.ReplaceAll(strings.ReplaceAll(path, "\\", ""), "/", "")
 						exists, err := git.ExistsLFSObject(ctx, oid)

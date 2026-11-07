@@ -95,7 +95,6 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 		}
 		results[id] = &JobResult{
 			Needs:   job.Needs(),
-			Result:  pc.jobResults[id],
 			Outputs: nil, // resolved at expansion time, not at plan time
 		}
 	}
@@ -129,7 +128,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			// Keep accepting empty exclude mappings for workflow compatibility, although GitHub rejects them.
 			matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).MatrixCombinations()
 			if err != nil {
-				return nil, fmt.Errorf("getMatrixes: %w", err)
+				return nil, fmt.Errorf("Parse: %w", err)
 			}
 			if combos, err = buildMatrixCombos(id, job, matrixes, pc.gitContext, results, pc.vars, pc.inputs); err != nil {
 				return nil, err
@@ -138,7 +137,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 		for _, combo := range combos {
 			swf := workflow.CloneHeader()
 			if err := swf.SetJob(id, combo); err != nil {
-				return nil, fmt.Errorf("SetJob: %w", err)
+				return nil, fmt.Errorf("Parse: %w", err)
 			}
 			ret = append(ret, swf)
 		}
@@ -170,7 +169,7 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 	}
 	matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).MatrixCombinations()
 	if err != nil {
-		return nil, fmt.Errorf("getMatrixes: %w", err)
+		return nil, fmt.Errorf("ExpandMatrixWithNeeds: %w", err)
 	}
 	if len(matrixes) > maxCombinations {
 		return nil, fmt.Errorf("matrix expands to %d combinations, exceeding the limit of %d", len(matrixes), maxCombinations)
@@ -293,7 +292,6 @@ func WithInputs(inputs map[string]any) ParseOption {
 }
 
 type parseContext struct {
-	jobResults map[string]string
 	gitContext *model.GithubContext
 	vars       map[string]string
 	inputs     map[string]any

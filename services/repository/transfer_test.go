@@ -78,32 +78,26 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, hasAccess)
 
-	t.Run("RevokeAccessAfterRejection", func(t *testing.T) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-		assert.NoError(t, repo.LoadOwner(t.Context()))
-		assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
-		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-		assert.NoError(t, err)
-		assert.True(t, hasAccess)
-		assert.NoError(t, RejectRepositoryTransfer(t.Context(), repo, recipient))
-		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-		assert.NoError(t, err)
-		assert.False(t, hasAccess)
-	})
-	t.Run("RevokeAccessAfterCancel", func(t *testing.T) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-		assert.NoError(t, repo.LoadOwner(t.Context()))
-		assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
-		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-		assert.NoError(t, err)
-		assert.True(t, hasAccess)
-		transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
-		assert.NoError(t, err)
-		assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
-		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-		assert.NoError(t, err)
-		assert.False(t, hasAccess)
-	})
+	for _, name := range []string{"RevokeAccessAfterRejection", "RevokeAccessAfterCancel"} {
+		t.Run(name, func(t *testing.T) {
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+			assert.NoError(t, repo.LoadOwner(t.Context()))
+			assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
+			hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+			assert.NoError(t, err)
+			assert.True(t, hasAccess)
+			if name == "RevokeAccessAfterRejection" {
+				assert.NoError(t, RejectRepositoryTransfer(t.Context(), repo, recipient))
+			} else {
+				transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
+				assert.NoError(t, err)
+				assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
+			}
+			hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+			assert.NoError(t, err)
+			assert.False(t, hasAccess)
+		})
+	}
 	t.Run("KeepOriginAccessOnStop", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 		assert.NoError(t, repo.LoadOwner(t.Context()))

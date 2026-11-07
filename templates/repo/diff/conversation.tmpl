@@ -1,12 +1,17 @@
 {{if len .comments}}
-	{{$comment := index .comments 0}}
-	{{$resolved := $comment.IsResolved}}
-	{{$invalid := $comment.Invalidated}}
-	{{$resolveDoer := $comment.ResolveDoer}}
-	{{$hasReview := and $comment.Review}}
-	{{$isReviewPending := and $hasReview (eq $comment.Review.Type 0)}}
-	{{$referenceUrl := printf "%s#%s" $.Issue.Link $comment.HashTag}}
-	<div class="conversation-holder" data-path="{{$comment.TreePath}}" data-side="{{if lt $comment.Line 0}}left{{else}}right{{end}}" data-idx="{{$comment.UnsignedLine}}">
+	{{$root := ctx.RootData}}
+	{{$comments := $.comments}}
+	{{$firstComment := index $comments 0}}
+	{{$resolved := $firstComment.IsResolved}}
+	{{$invalid := $firstComment.Invalidated}}
+	{{$resolveDoer := $firstComment.ResolveDoer}}
+	{{$hasReview := and $firstComment.Review}}
+	{{$isReviewPending := and $hasReview (eq $firstComment.Review.Type 0)}}
+	{{$referenceUrl := printf "%s#%s" $root.Issue.Link $firstComment.HashTag}}
+	{{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived)}}
+	{{$canMarkAsResolved := and $root.CanMarkConversation $hasReview (not $isReviewPending)}}
+	{{$repoLink := $root.RepoLink}}
+	<div class="conversation-holder" data-path="{{$firstComment.TreePath}}" data-side="{{if lt $firstComment.Line 0}}left{{else}}right{{end}}" data-idx="{{$firstComment.UnsignedLine}}">
 		{{if $resolved}}
 			<div class="resolved-placeholder">
 				<div class="flex-text-block tw-flex-wrap tw-text-text-light">
@@ -23,19 +28,19 @@
 					{{end}}
 				</div>
 				<div class="flex-text-block">
-					<button type="button" id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="btn tiny show-outdated">
+					<button type="button" id="show-outdated-{{$firstComment.ID}}" data-comment="{{$firstComment.ID}}" class="btn tiny show-outdated">
 						{{svg "octicon-unfold" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
 					</button>
-					<button type="button" id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="btn tiny hide-outdated tw-hidden">
+					<button type="button" id="hide-outdated-{{$firstComment.ID}}" data-comment="{{$firstComment.ID}}" class="btn tiny hide-outdated tw-hidden">
 						{{svg "octicon-fold" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
 					</button>
 				</div>
 			</div>
 		{{end}}
-		<div id="code-comments-{{$comment.ID}}" class="field comment-code-cloud {{if $resolved}}tw-hidden{{end}}">
+		<div id="code-comments-{{$firstComment.ID}}" class="field comment-code-cloud {{if $resolved}}tw-hidden{{end}}">
 			<div class="comment-list">
 				<div class="ui comments">
-					{{template "repo/diff/comments" dict "root" $ "comments" .comments}}
+					{{template "repo/diff/comments" dict "comments" $comments}}
 				</div>
 			</div>
 			<div class="flex-text-block tw-mt-2 tw-flex-wrap tw-justify-end">
@@ -47,8 +52,8 @@
 						{{svg "octicon-arrow-down" 12}} {{ctx.Locale.Tr "repo.issues.next"}}
 					</button>
 				</div>
-				{{if and $.CanMarkConversation $hasReview (not $isReviewPending)}}
-					<button type="button" class="ui icon tiny basic button resolve-conversation" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+				{{if $canMarkAsResolved}}
+					<button type="button" class="ui icon tiny basic button resolve-conversation" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$firstComment.ID}}" data-update-url="{{$repoLink}}/issues/resolve_conversation">
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.un_resolve_conversation"}}
 						{{else}}
@@ -56,13 +61,13 @@
 						{{end}}
 					</button>
 				{{end}}
-				{{if and $.SignedUserID (not $.Repository.IsArchived)}}
+				{{if $canAddComment}}
 					<button type="button" class="comment-form-reply ui primary icon tiny button">
 						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 					</button>
 				{{end}}
 			</div>
-			{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" $comment.ReviewID "root" $ "comment" $comment}}
+			{{template "repo/diff/comment_form" dict "ReplyReviewComment" $firstComment}}
 		</div>
 	</div>
 {{else}}

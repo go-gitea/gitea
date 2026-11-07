@@ -17,6 +17,9 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 	if len(task.Steps) == 0 {
 		return fullStepsOfEmptySteps(task)
 	}
+	if task.Steps[0].IsReported() {
+		return task.Steps // the runner reports its own setup and cleanup steps
+	}
 
 	// firstStep is the first step that has run or running, not include preStep.
 	// For example,

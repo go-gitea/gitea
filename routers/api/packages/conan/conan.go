@@ -125,7 +125,7 @@ func Authenticate(ctx *context.Context) {
 		return
 	}
 
-	packageScope := auth_service.GetAccessScope(ctx.Data)
+	packageScope := auth_service.GetAccessScope(ctx.Doer, ctx.Data)
 	if has, err := packageScope.HasAnyScope(
 		auth_model.AccessTokenScopeReadPackage,
 		auth_model.AccessTokenScopeWritePackage,
@@ -154,7 +154,7 @@ func CheckCredentials(ctx *context.Context) {
 		return
 	}
 
-	packageScope := auth_service.GetAccessScope(ctx.Data)
+	packageScope := auth_service.GetAccessScope(ctx.Doer, ctx.Data)
 	if has, err := packageScope.HasAnyScope(
 		auth_model.AccessTokenScopeReadPackage,
 		auth_model.AccessTokenScopeWritePackage,

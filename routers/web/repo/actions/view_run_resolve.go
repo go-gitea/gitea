@@ -192,9 +192,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		jobID := ctx.PathParamInt64("job")
 		selectedJob, err = actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetRunJobByRepoAndID", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetRunJobByRunAndID", err)
 			return nil, nil, nil
 		}
 	}
@@ -209,27 +207,21 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		// Explicit attempt number in the URL — user is viewing a historical attempt.
 		attempt, err = actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetRunAttemptByRunIDAndAttempt", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetRunAttemptByRunIDAndAttemptNum", err)
 			return nil, nil, nil
 		}
 	case selectedJob != nil && selectedJob.RunAttemptID > 0:
 		// No explicit attempt in the URL, but the requested job belongs to a known attempt — resolve via the job.
 		attempt, err = actions_model.GetRunAttemptByRepoAndID(ctx, selectedJob.RepoID, selectedJob.RunAttemptID)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetRunAttemptByRepoAndID", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetRunAttemptByRepoAndID", err)
 			return nil, nil, nil
 		}
 	default:
 		// No attempt context at all — show the latest attempt (nil for legacy runs).
 		attempt, _, err = run.GetLatestAttempt(ctx)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetLatestAttempt", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
+			ctx.ServerError("GetLatestAttempt", err)
 			return nil, nil, nil
 		}
 	}

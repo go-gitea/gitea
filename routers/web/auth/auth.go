@@ -56,9 +56,6 @@ type CommonAuthOptions struct {
 func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
-
-	// for OpenID Connect
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 
 	if opt.EnableCaptcha {
@@ -78,49 +75,54 @@ func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 
 // autoSignIn reads cookie and try to auto-login.
 func autoSignIn(ctx *context.Context) (bool, error) {
-	isSucceed := false
-	defer func() {
-		if !isSucceed {
-			ctx.DeleteSiteCookie(setting.CookieRememberName)
-		}
-	}()
+	cookieTokenValue := ctx.GetSiteCookie(setting.CookieRememberName)
+	if cookieTokenValue == "" {
+		return false, nil
+	}
 
 	if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
 		log.Error("Failed to delete expired auth tokens: %v", err)
 	}
 
-	t, err := auth_service.CheckAuthToken(ctx, ctx.GetSiteCookie(setting.CookieRememberName))
-	if err != nil {
-		switch err {
-		case auth_service.ErrAuthTokenInvalidFormat, auth_service.ErrAuthTokenExpired:
-			return false, nil
+	deleteCookie := true
+	defer func() {
+		if deleteCookie {
+			ctx.DeleteSiteCookie(setting.CookieRememberName)
 		}
-		return false, err
-	}
-	if t == nil {
+	}()
+
+	t, err := auth_service.CheckAuthToken(ctx, cookieTokenValue)
+	if errors.Is(err, auth_service.ErrAuthTokenStale) {
+		deleteCookie = false
 		return false, nil
+	} else if errors.Is(err, auth_service.ErrAuthTokenInvalidFormat) || errors.Is(err, auth_service.ErrAuthTokenExpired) {
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
 
 	u, err := user_model.GetUserByID(ctx, t.UserID)
-	if err != nil {
-		if !user_model.IsErrUserNotExist(err) {
-			return false, fmt.Errorf("GetUserByID: %w", err)
-		}
+	if user_model.IsErrUserNotExist(err) {
 		return false, nil
+	} else if err != nil {
+		return false, fmt.Errorf("GetUserByID: %w", err)
 	}
+
 	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 	if err != nil {
 		return false, fmt.Errorf("HasTwoFactorOrWebAuthn: %w", err)
 	}
 
-	isSucceed = true
-
 	nt, token, err := auth_service.RegenerateAuthToken(ctx, t)
-	if err != nil {
+	if errors.Is(err, auth_service.ErrAuthTokenStale) {
+		deleteCookie = false
+		return false, nil
+	} else if err != nil {
 		return false, err
 	}
 
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
+	deleteCookie = false
 
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
@@ -130,7 +132,7 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 	}
 
 	if err := resetLocale(ctx, u); err != nil {
-		return false, err
+		log.Error("Failed to reset locale for user %d: %v", u.ID, err)
 	}
 
 	return true, nil
@@ -225,7 +227,6 @@ func performAutoLoginOAuth2(ctx *context.Context, data *preparedSignInData) bool
 	// If only 1 OAuth provider is present and other login methods are disabled, redirect to the OAuth provider.
 	onlySingleOAuth2 := len(data.oauth2Providers) == 1 &&
 		!setting.Service.EnablePasswordSignInForm &&
-		!setting.Service.EnableOpenIDSignIn &&
 		!setting.Service.EnablePasskeyAuth &&
 		!data.enableSSPI
 
@@ -374,6 +375,9 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 
 func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	if remember {
+		if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
+			log.Error("Failed to delete expired auth tokens: %v", err)
+		}
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
 			ctx.ServerError("CreateAuthTokenForUserID", err)
@@ -439,6 +443,14 @@ func extractUserNameFromOAuth2(gothUser *goth.User) (string, error) {
 	default: // OAuth2UsernameUserid
 		return gothUser.UserID, nil
 	}
+}
+
+func oauth2IdentityMatchesUser(gothUser *goth.User, u *user_model.User) bool {
+	if gothUser.Email != "" && strings.EqualFold(gothUser.Email, u.Email) {
+		return true
+	}
+	uname, err := extractUserNameFromOAuth2(gothUser)
+	return err == nil && uname != "" && strings.EqualFold(uname, u.Name)
 }
 
 // HandleSignOut resets the session and sets the cookies
@@ -640,6 +652,9 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 						}
 						return false
 					}
+				}
+				if !oauth2IdentityMatchesUser(&possibleLinkAccountData.GothUser, user) {
+					break // name or email came from the sign-up form, report the conflict instead of linking
 				}
 				// TODO: probably we should respect 'remember' user's choice...
 				oauth2LinkAccount(ctx, user, possibleLinkAccountData, true)

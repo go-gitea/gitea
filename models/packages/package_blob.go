@@ -123,7 +123,7 @@ func GetTotalUnreferencedBlobSize(ctx context.Context) (int64, error) {
 
 // IsBlobAccessibleForUser tests if the user has access to the blob
 func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model.User) (bool, error) {
-	if user.IsAdmin {
+	if user_model.DoerIsSiteAdminFullAccess(user) {
 		return true, nil
 	}
 	ownerVisibilities := []structs.VisibleType{structs.VisibleTypePublic}
@@ -153,6 +153,9 @@ func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model
 			Or(builder.Eq{"`user`.type": user_model.UserTypeOrganization}.
 				And(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): maxTeamAuthorize}.Or(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): maxTeamUnitAccessMode}))),
 	)
+	if !user_model.DoerCanViewPrivate(user) {
+		cond = cond.And(builder.Eq{"`user`.visibility": structs.VisibleTypePublic})
+	}
 
 	return db.GetEngine(ctx).
 		Table("package_blob").

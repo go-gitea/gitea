@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	actions_model "gitea.dev/models/actions"
 	"gitea.dev/modules/setting"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
@@ -14,6 +15,7 @@ import (
 
 // settingsScope is the repo, owner or instance an actions settings page manages
 type settingsScope struct {
+	actions_model.BelongingScope
 	OwnerID int64 // 0 for a repo or the instance
 	RepoID  int64
 	IsRepo  bool
@@ -27,16 +29,18 @@ type settingsScope struct {
 func getSettingsScope(ctx *context.Context) (*settingsScope, error) {
 	switch {
 	case ctx.Data["PageIsRepoSettings"] == true:
-		return &settingsScope{RepoID: ctx.Repo.Repository.ID, IsRepo: true, LinkPrefix: ctx.Repo.RepoLink + "/settings/actions"}, nil
+		repoID := ctx.Repo.Repository.ID
+		return &settingsScope{BelongingScope: actions_model.BelongingScopeRepo(repoID), RepoID: repoID, IsRepo: true, LinkPrefix: ctx.Repo.RepoLink + "/settings/actions"}, nil
 	case ctx.Data["PageIsOrgSettings"] == true:
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 			return nil, fmt.Errorf("getSettingsScope: %w", err)
 		}
-		return &settingsScope{OwnerID: ctx.Org.Organization.ID, IsOrg: true, LinkPrefix: ctx.Org.OrgLink + "/settings/actions"}, nil
+		ownerID := ctx.Org.Organization.ID
+		return &settingsScope{BelongingScope: actions_model.BelongingScopeOwner(ownerID), OwnerID: ownerID, IsOrg: true, LinkPrefix: ctx.Org.OrgLink + "/settings/actions"}, nil
 	case ctx.Data["PageIsUserSettings"] == true:
-		return &settingsScope{OwnerID: ctx.Doer.ID, IsUser: true, LinkPrefix: setting.AppSubURL + "/user/settings/actions"}, nil
+		return &settingsScope{BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID), OwnerID: ctx.Doer.ID, IsUser: true, LinkPrefix: setting.AppSubURL + "/user/settings/actions"}, nil
 	case ctx.Data["PageIsAdmin"] == true:
-		return &settingsScope{IsAdmin: true, LinkPrefix: setting.AppSubURL + "/-/admin/actions"}, nil
+		return &settingsScope{BelongingScope: actions_model.BelongingScopeGlobal(), IsAdmin: true, LinkPrefix: setting.AppSubURL + "/-/admin/actions"}, nil
 	}
 	return nil, errors.New("getSettingsScope: not an actions settings page")
 }

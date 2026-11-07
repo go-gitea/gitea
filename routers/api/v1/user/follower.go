@@ -5,7 +5,6 @@
 package user
 
 import (
-	"errors"
 	"net/http"
 
 	user_model "gitea.dev/models/user"
@@ -83,8 +82,8 @@ func ListFollowers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listUserFollowers(ctx, ctx.ContextUser)
 }
@@ -149,8 +148,8 @@ func ListFollowing(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listUserFollowing(ctx, ctx.ContextUser)
 }
@@ -177,8 +176,8 @@ func CheckMyFollowing(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	checkUserFollowing(ctx, ctx.Doer, ctx.ContextUser.ID)
 }
@@ -202,8 +201,8 @@ func CheckFollowing(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	target := GetUserByPathParam(ctx, "target") // FIXME: it is not right to call this function, it should load the "target" directly
 	if ctx.Written() {
@@ -212,7 +211,6 @@ func CheckFollowing(ctx *context.APIContext) {
 	checkUserFollowing(ctx, ctx.ContextUser, target.ID)
 }
 
-// Follow follow a user
 func Follow(ctx *context.APIContext) {
 	// swagger:operation PUT /user/following/{username} user userCurrentPutFollow
 	// ---
@@ -226,23 +224,16 @@ func Follow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if err := user_model.FollowUser(ctx, ctx.Doer, ctx.ContextUser); err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
 }
 
-// Unfollow unfollow a user
 func Unfollow(ctx *context.APIContext) {
 	// swagger:operation DELETE /user/following/{username} user userCurrentDeleteFollow
 	// ---
@@ -256,11 +247,11 @@ func Unfollow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if err := user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

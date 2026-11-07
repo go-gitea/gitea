@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -87,9 +86,7 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, run.CommitSHA)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("GetCommit", err)
 		return
 	}
 	rpath, entries, err := actions.ListWorkflows(ctx, ctx.Repo.GitRepo, commit)
@@ -688,7 +685,7 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 	}
 
 	for _, cursor := range cursors {
-		if !cursor.Expanded {
+		if !cursor.Expanded || cursor.Step < 0 || cursor.Step >= len(steps) {
 			continue
 		}
 
@@ -761,9 +758,7 @@ func Logs(ctx *context_module.Context) {
 	jobID := ctx.PathParamInt64("job")
 
 	if err := common.DownloadActionsRunJobLogsWithID(ctx.Base, ctx.Repo.Repository, run.ID, jobID); err != nil {
-		ctx.NotFoundOrServerError("DownloadActionsRunJobLogsWithID", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("DownloadActionsRunJobLogsWithID", err)
 	}
 }
 
@@ -771,9 +766,7 @@ func Logs(ctx *context_module.Context) {
 func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.ActionRun) {
 	sourceRepo, err := repo_model.GetRepositoryByID(ctx, run.WorkflowRepoID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRepositoryByID", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("GetRepositoryByID", err)
 		return
 	}
 
@@ -796,9 +789,7 @@ func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.Acti
 
 	commit, err := sourceGitRepo.GetCommit(ctx, run.WorkflowCommitSHA)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("GetCommit", err)
 		return
 	}
 	rpath, entries, err := actions.ListScopedWorkflows(ctx, sourceGitRepo, commit)

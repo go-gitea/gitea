@@ -42,15 +42,7 @@ func ActionsListRepositoryWorkflows(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActionWorkflowList"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "500":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	workflows, err := convert.ListActionWorkflows(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository)
@@ -87,25 +79,13 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActionWorkflow"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "500":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	workflowID := ctx.PathParam("workflow_id")
 	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -180,12 +160,8 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRunsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	workflowID := ctx.PathParam("workflow_id")
 	scopedWorkflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
@@ -238,23 +214,13 @@ func ActionsDisableWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: No Content
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
 	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, false)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -301,14 +267,8 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RunDetails"
 	//   "204":
 	//     description: No Content, if return_run_details is missing or false
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
 	opt := web.GetForm[*api.CreateActionWorkflowDispatch](ctx)
@@ -389,25 +349,13 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: No Content
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
 	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, true)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 

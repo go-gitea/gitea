@@ -4,14 +4,12 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/optional"
-	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/v1/shared"
 	"gitea.dev/routers/common"
 	actions_service "gitea.dev/services/actions"
@@ -44,10 +42,8 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     description: output blob content
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	jobID := ctx.PathParamInt64("job_id")
 	curJob, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobID)
@@ -86,14 +82,8 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
 
 	cancelWorkflowRun(ctx, false)
 }
@@ -127,14 +117,8 @@ func ForceCancelWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
 
 	cancelWorkflowRun(ctx, true)
 }
@@ -189,14 +173,8 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
 
 	run := getCurrentRepoActionRunByID(ctx)
 	if ctx.Written() {
@@ -247,8 +225,8 @@ func GetWorkflowRunLogs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     description: Logs archive
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	run := getCurrentRepoActionRunByID(ctx)
 	if ctx.Written() {
@@ -337,10 +315,8 @@ func GetWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	run := getCurrentRepoActionRunByID(ctx)
 	if ctx.Written() {
@@ -381,10 +357,8 @@ func GetWorkflowRunAttempt(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	run, attempt := getCurrentRepoActionRunAttemptByNumber(ctx)
 	if ctx.Written() {
@@ -425,16 +399,8 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
 	if ctx.Written() {
@@ -442,7 +408,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 	}
 
 	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, jobs); err != nil {
-		handleWorkflowRerunError(ctx, err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -478,16 +444,8 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
 	if ctx.Written() {
@@ -502,7 +460,7 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 	}
 
 	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, failedJobs); err != nil {
-		handleWorkflowRerunError(ctx, err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -540,16 +498,8 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/WorkflowJob"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
 	if ctx.Written() {
@@ -566,7 +516,7 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	targetJob := jobs[jobIdx]
 	newAttempt, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, []*actions_model.ActionRunJob{targetJob})
 	if err != nil {
-		handleWorkflowRerunError(ctx, err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -581,7 +531,7 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	}
 	rerunJob, err := actions_model.GetRunJobByAttemptJobID(ctx, run.ID, newAttempt.ID, targetJob.AttemptJobID)
 	if err != nil {
-		handleWorkflowRerunError(ctx, err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -591,20 +541,6 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, convertedJob)
-}
-
-func handleWorkflowRerunError(ctx *context.APIContext, err error) {
-	if errors.Is(err, util.ErrInvalidArgument) {
-		ctx.APIError(http.StatusBadRequest, err.Error())
-		return
-	} else if errors.Is(err, util.ErrAlreadyExist) {
-		ctx.APIError(http.StatusConflict, err.Error())
-		return
-	} else if errors.Is(err, util.ErrNotExist) {
-		ctx.APIError(http.StatusNotFound, err.Error())
-		return
-	}
-	ctx.APIErrorInternal(err)
 }
 
 // ListWorkflowRunJobs Lists all jobs for a workflow run.
@@ -654,12 +590,8 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	repoID, runID := ctx.Repo.Repository.ID, ctx.PathParamInt64("run")
 
@@ -723,10 +655,8 @@ func ListWorkflowRunAttemptJobs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	run, attempt := getCurrentRepoActionRunAttemptByNumber(ctx)
 	if ctx.Written() {
@@ -762,10 +692,8 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJob"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	jobID := ctx.PathParamInt64("job_id")
 	job, has, err := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
@@ -813,10 +741,8 @@ func DeleteActionRun(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: "No Content"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	run := getCurrentRepoActionRunByID(ctx)
 	if ctx.Written() {

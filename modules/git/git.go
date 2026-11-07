@@ -68,12 +68,12 @@ func DefaultFeatures() *Features {
 func loadGitVersionFeatures() (*Features, error) {
 	stdout, _, runErr := gitcmd.NewCommand("version").RunStdString(context.Background())
 	if runErr != nil {
-		return nil, runErr
+		return nil, fmt.Errorf(`failed to run command "git version": %w`, runErr)
 	}
 
 	ver, err := parseGitVersionLine(strings.TrimSpace(stdout))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(`failed to parse output of command "git version": %w`, err)
 	}
 
 	features := &Features{gitVersion: ver}
@@ -104,7 +104,11 @@ func parseGitVersionLine(s string) (*version.Version, error) {
 	if len(versionFields) > 3 {
 		versionFields = versionFields[:3]
 	}
-	return version.NewVersion(strings.Join(versionFields, "."))
+	ver, err := version.NewVersion(strings.Join(versionFields, "."))
+	if err != nil {
+		return nil, fmt.Errorf("invalid git version: %q: %w", s, err)
+	}
+	return ver, nil
 }
 
 func checkGitVersionCompatibility(gitVer *version.Version) error {

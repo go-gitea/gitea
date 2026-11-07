@@ -43,6 +43,10 @@ func TestMathRender(t *testing.T) {
 			`<p><code class="language-math">a</code> <code class="language-math">b</code></p>` + nl,
 		},
 		{
+			`\(x^2\)is \(x^2\)123 a\(b\)c`,
+			`<p><code class="language-math">x^2</code>is <code class="language-math">x^2</code>123 a<code class="language-math">b</code>c</p>` + nl,
+		},
+		{
 			`$a$.`,
 			`<p><code class="language-math">a</code>.</p>` + nl,
 		},

@@ -508,9 +508,7 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 	}
 	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("resolveArtifactAttemptIDFromQuery", err)
 		return
 	}
 	artifactName := ctx.PathParam("artifact_name")
@@ -528,9 +526,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	}
 	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("resolveArtifactAttemptIDFromQuery", err)
 		return
 	}
 	artifactName := ctx.PathParam("artifact_name")

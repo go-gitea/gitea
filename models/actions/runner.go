@@ -207,6 +207,14 @@ func init() {
 	db.RegisterModel(&ActionRunner{})
 }
 
+func GetRunnersMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionRunner, error) {
+	runners := make(map[int64]*ActionRunner, len(ids))
+	if len(ids) == 0 {
+		return runners, nil
+	}
+	return runners, db.GetEngine(ctx).In("id", ids).Find(&runners)
+}
+
 // FindRunnerOptions
 // ownerID == 0 and repoID == 0 means any runner including global runners
 // repoID != 0 and WithAvailable == false means any runner for the given repo

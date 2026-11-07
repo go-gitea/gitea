@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -55,7 +56,7 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
-	//   "404":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	comment := getIssueCommentSafe(ctx)
@@ -102,7 +103,7 @@ func ListIssueCommentAttachments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AttachmentList"
-	//   "404":
+	//   default:
 	//     "$ref": "#/responses/error"
 	comment := getIssueCommentSafe(ctx)
 	if comment == nil {
@@ -156,18 +157,8 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/error"
-	//   "413":
-	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	// Check if comment exists and load comment
 	comment := getIssueCommentSafe(ctx)
@@ -267,12 +258,8 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
-	//   "404":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 	attach := getIssueCommentAttachmentSafeWrite(ctx)
 	if attach == nil {
 		return
@@ -327,10 +314,8 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 	attach := getIssueCommentAttachmentSafeWrite(ctx)
 	if attach == nil {
 		return
@@ -344,21 +329,13 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 }
 
 func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return nil
 	}
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return nil
-	}
-	if comment.Issue == nil || comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIError(http.StatusNotFound, "no matching issue comment found")
-		return nil
-	}
-
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+		ctx.APIErrorNotFound()
 		return nil
 	}
 
@@ -379,7 +356,7 @@ func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Att
 }
 
 func canUserWriteIssueCommentAttachment(ctx *context.APIContext, comment *issues_model.Comment) bool {
-	canEditComment := ctx.IsSigned && (ctx.Doer.ID == comment.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()) && ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)
+	canEditComment := issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeWrite)
 	if !canEditComment {
 		ctx.APIError(http.StatusForbidden, "user should have permission to edit comment")
 		return false

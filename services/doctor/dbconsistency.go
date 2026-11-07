@@ -108,9 +108,8 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 		// find tracked times without existing issues/pulls
 		genericOrphanCheck("Orphaned TrackedTimes without existing issue",
 			"tracked_time", "issue", "tracked_time.issue_id=issue.id"),
-		// find attachments without existing issues or releases
 		{
-			Name:    "Orphaned Attachments without existing issues or releases",
+			Name:    "Orphaned Attachments without existing issues, comments or releases",
 			Counter: repo_model.CountOrphanedAttachments,
 			Fixer:   asFixer(repo_model.DeleteOrphanedAttachments),
 		},
@@ -120,27 +119,6 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 			Counter:      repo_model.CountNullArchivedRepository,
 			Fixer:        repo_model.FixNullArchivedRepository,
 			FixedMessage: "Fixed",
-		},
-		// find label comments with empty labels
-		{
-			Name:         "Label comments with empty labels",
-			Counter:      issues_model.CountCommentTypeLabelWithEmptyLabel,
-			Fixer:        issues_model.FixCommentTypeLabelWithEmptyLabel,
-			FixedMessage: "Fixed",
-		},
-		// find label comments with labels from outside the repository
-		{
-			Name:         "Label comments with labels from outside the repository",
-			Counter:      issues_model.CountCommentTypeLabelWithOutsideLabels,
-			Fixer:        issues_model.FixCommentTypeLabelWithOutsideLabels,
-			FixedMessage: "Removed",
-		},
-		// find issue_label with labels from outside the repository
-		{
-			Name:         "IssueLabels with Labels from outside the repository",
-			Counter:      issues_model.CountIssueLabelWithOutsideLabels,
-			Fixer:        issues_model.FixIssueLabelWithOutsideLabels,
-			FixedMessage: "Removed",
 		},
 		{
 			Name:         "Action with created_unix set as an empty string",

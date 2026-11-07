@@ -50,7 +50,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
 		Index:       issue.Index,
-		Poster:      ToUser(ctx, issue.Poster, doer),
+		Poster:      ToAuthor(ctx, issue.Poster, issue.OriginalAuthor, doer),
 		Title:       issue.Title,
 		Body:        issue.Content,
 		Attachments: toAttachments(ctx, issue.Repo, issue.Attachments, getDownloadURL),

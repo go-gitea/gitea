@@ -89,22 +89,3 @@ func calculateDuration(started, stopped timeutil.TimeStamp, status Status, fallb
 	}
 	return max(timeSince(s), 0).Truncate(time.Second)
 }
-
-// best effort function to convert an action schedule to action run, to be used in GenerateGiteaContext
-func (s *ActionSchedule) ToActionRun() *ActionRun {
-	return &ActionRun{
-		Title:         s.Title,
-		RepoID:        s.RepoID,
-		Repo:          s.Repo,
-		OwnerID:       s.OwnerID,
-		WorkflowID:    s.WorkflowID,
-		TriggerUserID: s.TriggerUserID,
-		TriggerUser:   s.TriggerUser,
-		Ref:           s.Ref,
-		CommitSHA:     s.CommitSHA,
-		Event:         s.Event,
-		EventPayload:  s.EventPayload,
-		Created:       s.Created,
-		Updated:       s.Updated,
-	}
-}

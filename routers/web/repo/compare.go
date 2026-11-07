@@ -296,7 +296,14 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 		}
 	}
 
-	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), fileOnly)
+	compareInfo, err := git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
+		BaseRepo:    baseRepo,
+		BaseGitRepo: ctx.Repo.GitRepo,
+		BaseRef:     baseRef,
+		HeadRepo:    headRepo,
+		HeadGitRepo: headGitRepo,
+		HeadRef:     headRef,
+	}, compareReq.DirectComparison(), fileOnly)
 	if err != nil {
 		return err
 	}
@@ -384,12 +391,15 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	ctx.Data["BeforeCommitID"] = ci.CompareBase
 	ctx.Data["AfterCommitID"] = headCommitID
 
-	// follow GitHub's behavior: autofill the form and expand
 	newPrFormTitle := ctx.FormTrim("title")
 	newPrFormBody := ctx.FormTrim("body")
-	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand") || ctx.FormBool("quick_pull") || newPrFormTitle != "" || newPrFormBody != ""
 	ctx.Data["TitleQuery"] = newPrFormTitle
 	ctx.Data["BodyQuery"] = newPrFormBody
+
+	// follow GitHub's behavior: autofill the form and expand
+	prefillParams := issuePrefillQuery(ctx)
+	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand") || ctx.FormBool("quick_pull") ||
+		newPrFormTitle != "" || newPrFormBody != "" || prefillParams != ""
 
 	if headCommitID == ci.CompareBase {
 		config := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
@@ -623,7 +633,7 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 
 		if !cpi.nothingToCompare {
 			// Setup information for new form.
-			pageMetaData := retrieveRepoIssueMetaData(ctx, ctx.Repo.Repository, nil, true)
+			pageMetaData := retrieveRepoIssueMetaDataWithPrefill(ctx, ctx.Repo.Repository, true)
 			if ctx.Written() {
 				return
 			}
@@ -666,7 +676,6 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypePullRequests)
@@ -734,7 +743,7 @@ func ExcerptBlob(ctx *context.Context) {
 		ctx.ServerError("GetCommit", err)
 		return
 	}
-	blob, err := commit.GetBlobByPath(ctx, ctx.Repo.GitRepo, filePath)
+	blob, err := commit.GetBlobByPath(ctx, gitRepo, filePath)
 	if err != nil {
 		ctx.ServerError("GetBlobByPath", err)
 		return

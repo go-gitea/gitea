@@ -5,9 +5,7 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
@@ -21,7 +19,6 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/routers/web/feed"
 	"gitea.dev/routers/web/org"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
@@ -35,15 +32,7 @@ const (
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
 func OwnerProfile(ctx *context.Context) {
-	if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
-		feed.ShowUserFeedRSS(ctx)
-		return
-	}
-	if strings.Contains(ctx.Req.Header.Get("Accept"), "application/atom+xml") {
-		feed.ShowUserFeedAtom(ctx)
-		return
-	}
-
+	// HINT: USER-TYPE-GLOSSARY: in the future it needs to handle more user types correctly
 	if ctx.ContextUser.IsOrganization() {
 		org.Home(ctx)
 	} else {
@@ -52,12 +41,6 @@ func OwnerProfile(ctx *context.Context) {
 }
 
 func userProfile(ctx *context.Context) {
-	// check view permissions
-	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-		ctx.NotFound(fmt.Errorf("%s", ctx.ContextUser.Name))
-		return
-	}
-
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
 
@@ -168,10 +151,6 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-		// a public-only API token must not surface private activity, even for its own owner
-		if showPrivate && context.TokenIsPublicOnly(ctx) {
-			showPrivate = false
-		}
 		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
@@ -326,13 +305,6 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 // ActionUserFollow is for follow/unfollow user request
 func ActionUserFollow(ctx *context.Context) {
-	isOrg := ctx.ContextUser.IsOrganization()
-	if isOrg && !organization.HasOrgOrUserVisible(ctx, ctx.ContextUser, ctx.Doer) ||
-		!isOrg && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-		ctx.NotFound(nil)
-		return
-	}
-
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
@@ -340,25 +312,22 @@ func ActionUserFollow(ctx *context.Context) {
 	case "unfollow":
 		err = user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
-
 	if err != nil {
-		log.Error("Failed to apply action %q: %v", ctx.FormString("action"), err)
-		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
+		ctx.ServerError("ActionUserFollow", err)
 		return
 	}
+
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
-	if ctx.ContextUser.IsIndividual() {
-		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
-		return
-	} else if ctx.ContextUser.IsOrganization() {
+
+	// HINT: USER-TYPE-GLOSSARY: follow the logic in OwnerProfile
+	if ctx.ContextUser.IsOrganization() {
 		ctx.Data["Org"] = ctx.ContextUser
-		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+		ctx.Data["IsFollowing"] = user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 		ctx.HTML(http.StatusOK, tplFollowUnfollow)
-		return
+	} else {
+		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
 	}
-	log.Error("Failed to apply action %q: unsupported context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
-	ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 }

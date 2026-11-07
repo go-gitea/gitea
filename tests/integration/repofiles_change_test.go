@@ -382,87 +382,73 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 }
 
 func TestChangeRepoFilesForUpdate(t *testing.T) {
-	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx, _ := contexttest.MockContext(t, "user2/repo1")
-		ctx.SetPathParam("id", "1")
-		contexttest.LoadRepo(t, ctx, 1)
-		contexttest.LoadRepoCommit(t, ctx)
-		contexttest.LoadUser(t, ctx, 2)
-		contexttest.LoadGitRepo(t, ctx)
-		defer ctx.Repo.GitRepo.Close()
+	for _, name := range []string{"update", "with file move", "without branch names"} {
+		t.Run(name, func(t *testing.T) {
+			// setup
+			onGiteaRun(t, func(t *testing.T, u *url.URL) {
+				ctx, _ := contexttest.MockContext(t, "user2/repo1")
+				ctx.SetPathParam("id", "1")
+				contexttest.LoadRepo(t, ctx, 1)
+				contexttest.LoadRepoCommit(t, ctx)
+				contexttest.LoadUser(t, ctx, 2)
+				contexttest.LoadGitRepo(t, ctx)
+				defer ctx.Repo.GitRepo.Close()
 
-		repo := ctx.Repo.Repository
-		doer := ctx.Doer
-		opts := getUpdateRepoFilesOptions(repo)
+				repo := ctx.Repo.Repository
+				doer := ctx.Doer
+				opts := getUpdateRepoFilesOptions(repo)
+				switch name {
+				case "with file move":
+					opts.Files[0].FromTreePath = "README.md"
+					opts.Files[0].TreePath = "README_new.md" // new file name, README_new.md
+				case "without branch names":
+					opts.OldBranch = ""
+					opts.NewBranch = ""
+				}
 
-		// test
-		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
+				// test
+				filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 
-		// asserts
-		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(ctx, repo)
-		defer gitRepo.Close()
+				// asserts
+				assert.NoError(t, err)
+				gitRepo, _ := git.OpenRepository(ctx, repo)
+				defer gitRepo.Close()
 
-		commit, _ := gitRepo.GetBranchCommit(t.Context(), opts.NewBranch)
-		lastCommit, _ := commit.GetCommitByPath(t.Context(), gitRepo, opts.Files[0].TreePath)
-		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
-		assert.Equal(t, expectedFileResponse.Content, filesResponse.Files[0])
-		assert.Equal(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
-		assert.Equal(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
-		assert.Equal(t, expectedFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
-		assert.Equal(t, expectedFileResponse.Commit.Author.Name, filesResponse.Commit.Author.Name)
-	})
-}
-
-func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
-	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx, _ := contexttest.MockContext(t, "user2/repo1")
-		ctx.SetPathParam("id", "1")
-		contexttest.LoadRepo(t, ctx, 1)
-		contexttest.LoadRepoCommit(t, ctx)
-		contexttest.LoadUser(t, ctx, 2)
-		contexttest.LoadGitRepo(t, ctx)
-		defer ctx.Repo.GitRepo.Close()
-
-		repo := ctx.Repo.Repository
-		doer := ctx.Doer
-		opts := getUpdateRepoFilesOptions(repo)
-		opts.Files[0].FromTreePath = "README.md"
-		opts.Files[0].TreePath = "README_new.md" // new file name, README_new.md
-
-		// test
-		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
-
-		// asserts
-		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(ctx, repo)
-		defer gitRepo.Close()
-
-		commit, _ := gitRepo.GetBranchCommit(t.Context(), opts.NewBranch)
-		lastCommit, _ := commit.GetCommitByPath(t.Context(), gitRepo, opts.Files[0].TreePath)
-		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
-		// assert that the old file no longer exists in the last commit of the branch
-		fromEntry, err := commit.GetTreeEntryByPath(ctx, gitRepo, opts.Files[0].FromTreePath)
-		switch err.(type) {
-		case git.ErrNotExist:
-			// correct, continue
-		default:
-			t.Fatalf("expected git.ErrNotExist, got:%v", err)
-		}
-		toEntry, err := commit.GetTreeEntryByPath(ctx, gitRepo, opts.Files[0].TreePath)
-		assert.NoError(t, err)
-		assert.Nil(t, fromEntry)  // Should no longer exist here
-		assert.NotNil(t, toEntry) // Should exist here
-		// assert SHA has remained the same but paths use the new file name
-		assert.Equal(t, expectedFileResponse.Content.SHA, filesResponse.Files[0].SHA)
-		assert.Equal(t, expectedFileResponse.Content.Name, filesResponse.Files[0].Name)
-		assert.Equal(t, expectedFileResponse.Content.Path, filesResponse.Files[0].Path)
-		assert.Equal(t, expectedFileResponse.Content.URL, filesResponse.Files[0].URL)
-		assert.Equal(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
-		assert.Equal(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
-	})
+				commit, _ := gitRepo.GetBranchCommit(t.Context(), repo.DefaultBranch)
+				lastCommit, _ := commit.GetCommitByPath(t.Context(), gitRepo, opts.Files[0].TreePath)
+				expectedFileResponse := getExpectedFileResponseForRepoFilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
+				if name == "with file move" {
+					// assert that the old file no longer exists in the last commit of the branch
+					fromEntry, err := commit.GetTreeEntryByPath(ctx, gitRepo, opts.Files[0].FromTreePath)
+					switch err.(type) {
+					case git.ErrNotExist:
+						// correct, continue
+					default:
+						t.Fatalf("expected git.ErrNotExist, got:%v", err)
+					}
+					toEntry, err := commit.GetTreeEntryByPath(ctx, gitRepo, opts.Files[0].TreePath)
+					assert.NoError(t, err)
+					assert.Nil(t, fromEntry)  // Should no longer exist here
+					assert.NotNil(t, toEntry) // Should exist here
+					// assert SHA has remained the same but paths use the new file name
+					assert.Equal(t, expectedFileResponse.Content.SHA, filesResponse.Files[0].SHA)
+					assert.Equal(t, expectedFileResponse.Content.Name, filesResponse.Files[0].Name)
+					assert.Equal(t, expectedFileResponse.Content.Path, filesResponse.Files[0].Path)
+					assert.Equal(t, expectedFileResponse.Content.URL, filesResponse.Files[0].URL)
+				} else {
+					assert.Equal(t, expectedFileResponse.Content, filesResponse.Files[0])
+				}
+				if name != "without branch names" {
+					assert.Equal(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
+					assert.Equal(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
+					if name == "update" {
+						assert.Equal(t, expectedFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
+						assert.Equal(t, expectedFileResponse.Commit.Author.Name, filesResponse.Commit.Author.Name)
+					}
+				}
+			})
+		})
+	}
 }
 
 func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
@@ -494,39 +480,6 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 		}
 		assert.Len(t, filesResponse.Files, 4)
 		assert.Equal(t, expectedFileResponse.Files, filesResponse.Files)
-	})
-}
-
-// Test opts with branch names removed, should get same results as above test
-func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
-	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx, _ := contexttest.MockContext(t, "user2/repo1")
-		ctx.SetPathParam("id", "1")
-		contexttest.LoadRepo(t, ctx, 1)
-		contexttest.LoadRepoCommit(t, ctx)
-		contexttest.LoadUser(t, ctx, 2)
-		contexttest.LoadGitRepo(t, ctx)
-		defer ctx.Repo.GitRepo.Close()
-
-		repo := ctx.Repo.Repository
-		doer := ctx.Doer
-		opts := getUpdateRepoFilesOptions(repo)
-		opts.OldBranch = ""
-		opts.NewBranch = ""
-
-		// test
-		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
-
-		// asserts
-		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(ctx, repo)
-		defer gitRepo.Close()
-
-		commit, _ := gitRepo.GetBranchCommit(t.Context(), repo.DefaultBranch)
-		lastCommit, _ := commit.GetCommitByPath(t.Context(), gitRepo, opts.Files[0].TreePath)
-		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
-		assert.Equal(t, expectedFileResponse.Content, filesResponse.Files[0])
 	})
 }
 

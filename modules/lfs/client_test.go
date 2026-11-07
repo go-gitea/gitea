@@ -8,12 +8,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewClient(t *testing.T) {
 	u, _ := url.Parse("file:///test")
 	c := newClient(u, nil)
-	assert.IsType(t, &FilesystemClient{}, c)
+	require.IsType(t, &FilesystemClient{}, c)
+	localPath, err := c.(*FilesystemClient).objectPath("invalid") //nolint:forcetypeassert // type is expected
+	assert.Empty(t, localPath)
+	assert.ErrorIs(t, err, ErrInvalidOIDFormat)
 
 	u, _ = url.Parse("https://test.com/lfs")
 	c = newClient(u, nil)

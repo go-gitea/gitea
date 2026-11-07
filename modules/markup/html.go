@@ -153,8 +153,6 @@ func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content st
 		issueIndexPatternProcessor,
 		commitCrossReferencePatternProcessor,
 		hashCurrentPatternProcessor,
-		emojiShortCodeProcessor,
-		emojiProcessor,
 		linkProcessor,
 	}
 
@@ -175,6 +173,9 @@ func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content st
 		node.DataAtom = atom.A
 		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}, {Key: "class", Val: "muted title-full-link"}}
 		node.FirstChild, node.LastChild = ch, ch
+		for n := node.FirstChild; n != nil; {
+			n = visitNode(ctx, emojiProcessors, n)
+		}
 	})
 	rendered := postProcessHTML(ctx, procs, htmlutil.EscapeString(content))
 	return htmlutil.HTMLFormat(`<span class="title-full-link-hover">%s</span>`, rendered)
@@ -355,6 +356,8 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		return visitNodeImg(ctx, node)
 	} else if node.Data == "video" {
 		return visitNodeVideo(ctx, node)
+	} else if node.Data == "source" {
+		return visitNodePictureSource(ctx, node)
 	}
 
 	if node.Data == "a" {
@@ -363,10 +366,11 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		// because the content there is not processable, for example: the content is a commit id or a full URL.
 		procs = emojiProcessors
 	}
+	next := node.NextSibling
 	for n := node.FirstChild; n != nil; {
 		n = visitNode(ctx, procs, n)
 	}
-	return node.NextSibling
+	return next
 }
 
 // createKeyword() renders a highlighted version of an action keyword
