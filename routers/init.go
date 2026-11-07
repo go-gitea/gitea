@@ -122,6 +122,10 @@ func InitWebInstalled(ctx context.Context) {
 	translation.InitLocales(ctx)
 
 	setting.LoadSettings()
+	if !git.IsValidObjectFormat(setting.Repository.DefaultObjectFormat) {
+		log.Warn("[repository] DEFAULT_OBJECT_FORMAT %q is not supported, using sha1", setting.Repository.DefaultObjectFormat)
+		setting.Repository.DefaultObjectFormat = git.Sha1ObjectFormat.Name()
+	}
 	mustInit(storage.Init)
 
 	mailer.NewContext(ctx)
