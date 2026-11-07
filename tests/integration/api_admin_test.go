@@ -22,6 +22,8 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/services/auth/source/ldap"
+	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -370,41 +372,43 @@ func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
-func TestAPIAdminExternalAccounts(t *testing.T) {
+func TestAPIAdminLinkExternalLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteAdmin)
-	repo := &repo_model.Repository{OwnerID: 2, Name: "migrated", LowerName: "migrated", OriginalServiceType: api.GithubService}
+	ldapSource := &auth_model.Source{Type: auth_model.LDAP, Name: "link-ldap", IsActive: true, Cfg: &ldap.Source{}}
+	require.NoError(t, auth_model.CreateSource(t.Context(), ldapSource))
+	addOAuth2Source(t, "github", oauth2.Source{})
+	oauth2Source := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{Name: "github"})
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 5, LoginType: auth_model.OAuth2, LoginSource: oauth2Source.ID, LoginName: "77"}, "login_type", "login_source", "login_name"))
+	repo := &repo_model.Repository{OwnerID: 2, Name: "migrated", LowerName: "migrated", OriginalServiceType: api.BitbucketServerService}
 	require.NoError(t, db.Insert(t.Context(), repo))
-	issue := &issues_model.Issue{RepoID: repo.ID, Index: 1, OriginalAuthor: "octocat", OriginalAuthorID: 7}
+	issue := &issues_model.Issue{RepoID: repo.ID, Index: 1, OriginalAuthor: "bbs-user", OriginalAuthorID: 4242}
 	require.NoError(t, db.Insert(t.Context(), issue))
 	require.NoError(t, db.Insert(t.Context(), &issues_model.Reaction{Type: "+1", IssueID: issue.ID, UserID: 2}))
-	require.NoError(t, db.Insert(t.Context(), &issues_model.Reaction{Type: "+1", IssueID: issue.ID, OriginalAuthor: "octocat", OriginalAuthorID: 7}))
-	require.NoError(t, db.Insert(t.Context(), &user_model.ExternalLoginUser{ExternalID: "8", LoginSourceID: 1, Provider: "github", UserID: 4}))
-
-	url := "/api/v1/admin/users/user2/external-accounts"
-	MakeRequest(t, NewRequest(t, "PUT", url+"/github/7").AddTokenAuth(token), http.StatusNoContent)
-	assert.EqualValues(t, 2, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID}).PosterID)
-	unittest.AssertCount(t, &issues_model.Reaction{IssueID: issue.ID}, 1)
-
-	issue = &issues_model.Issue{RepoID: repo.ID, Index: 2, OriginalAuthor: "octocat", OriginalAuthorID: 7}
-	require.NoError(t, db.Insert(t.Context(), issue))
-	MakeRequest(t, NewRequest(t, "PUT", url+"/github/7").AddTokenAuth(token), http.StatusNoContent)
-	assert.EqualValues(t, 2, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID}).PosterID)
-	MakeRequest(t, NewRequest(t, "PUT", url+"/gitlab/7").AddTokenAuth(token), http.StatusNoContent)
-
-	resp := MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(token), http.StatusOK)
-	assert.Equal(t, []api.ExternalAccount{{Service: "github", ExternalID: 7}, {Service: "gitlab", ExternalID: 7}}, DecodeJSON(t, resp, []api.ExternalAccount{}))
-
-	for path, status := range map[string]int{
-		"/user4/external-accounts/github/7":  http.StatusConflict,
-		"/user2/external-accounts/github/8":  http.StatusConflict,
-		"/user2/external-accounts/git/9":     http.StatusUnprocessableEntity,
-		"/user2/external-accounts/github/9x": http.StatusUnprocessableEntity,
-		"/org3/external-accounts/github/9":   http.StatusUnprocessableEntity,
-	} {
-		MakeRequest(t, NewRequest(t, "PUT", "/api/v1/admin/users"+path).AddTokenAuth(token), status)
+	require.NoError(t, db.Insert(t.Context(), &issues_model.Reaction{Type: "+1", IssueID: issue.ID, OriginalAuthor: "bbs-user", OriginalAuthorID: 4242}))
+	link := func(username string, opt api.LinkExternalLoginOption, status int) {
+		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/admin/users/"+username+"/external-logins", opt).AddTokenAuth(token), status)
 	}
 
-	MakeRequest(t, NewRequest(t, "DELETE", url+"/github/7").AddTokenAuth(token), http.StatusNoContent)
-	MakeRequest(t, NewRequest(t, "DELETE", url+"/github/7").AddTokenAuth(token), http.StatusNotFound)
+	opt := api.LinkExternalLoginOption{Provider: "BitbucketServer", ExternalID: "04242", LoginSourceID: ldapSource.ID}
+	link("user2", opt, http.StatusNoContent)
+	link("user2", opt, http.StatusNoContent)
+	unittest.AssertCount(t, &user_model.ExternalLoginUser{ExternalID: "4242", LoginSourceID: ldapSource.ID, Provider: "bitbucketserver", UserID: 2}, 1)
+	assert.EqualValues(t, 2, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID}).PosterID)
+	unittest.AssertCount(t, &issues_model.Reaction{IssueID: issue.ID}, 1)
+	loginUser(t, "user2").MakeRequest(t, NewRequest(t, "GET", "/user/settings/security"), http.StatusOK)
+
+	link("user4", opt, http.StatusConflict)
+	link("user4", api.LinkExternalLoginOption{Provider: "gitlab", ExternalID: "4242", LoginSourceID: ldapSource.ID}, http.StatusConflict)
+	link("user2", api.LinkExternalLoginOption{Provider: "github", ExternalID: "77", LoginSourceID: oauth2Source.ID}, http.StatusConflict)
+	for _, invalid := range []api.LinkExternalLoginOption{
+		{Provider: "gitlab", ExternalID: "1", LoginSourceID: oauth2Source.ID},
+		{Provider: "git", ExternalID: "1", LoginSourceID: ldapSource.ID},
+		{Provider: "github", ExternalID: "0", LoginSourceID: ldapSource.ID},
+		{Provider: "github", ExternalID: "1"},
+		{Provider: "github", ExternalID: "1", LoginSourceID: 99999},
+	} {
+		link("user4", invalid, http.StatusUnprocessableEntity)
+	}
+	link("org3", api.LinkExternalLoginOption{Provider: "github", ExternalID: "1", LoginSourceID: ldapSource.ID}, http.StatusUnprocessableEntity)
 }

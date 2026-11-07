@@ -55,10 +55,3 @@ type swaggerResponseBadgeList struct {
 	// in:body
 	Body []api.Badge `json:"body"`
 }
-
-// ExternalAccountList
-// swagger:response ExternalAccountList
-type swaggerResponseExternalAccountList struct {
-	// in:body
-	Body []api.ExternalAccount `json:"body"`
-}

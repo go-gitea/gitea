@@ -93,6 +93,13 @@ conditional `UPDATE` or a lock.
 - Pass already opened repositories down or use `git.RepositoryFromContextOrOpen`
   rather than reopening them or spawning extra `git` processes.
 
+### Authentication sources and migrated authors
+
+- `auth.GetSourceByID` returns the built-in local source for ID 0 instead of an error.
+- For OAuth2, `User.LoginName` and `external_login_user.external_id` hold the provider's user ID.
+- OAuth2 sign-in stores the source name as `external_login_user.provider`, but migrations look
+  users up by service name, so they only match when the source is named after the service.
+
 ## Dependencies
 
 Go dependencies are managed with [Go Modules](https://go.dev/ref/mod).

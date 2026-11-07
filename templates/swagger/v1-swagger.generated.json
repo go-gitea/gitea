@@ -1087,117 +1087,35 @@
         }
       }
     },
-    "/admin/users/{username}/external-accounts": {
-      "get": {
+    "/admin/users/{username}/external-logins": {
+      "post": {
+        "description": "Records the external account under an authentication source, so migrations from provider attribute its issues, pull requests and comments to the user. Relinking the same user succeeds. For OAuth2 sources the link also allows signing in, and the source has to be named like the provider.",
+        "consumes": [
+          "application/json"
+        ],
         "produces": [
           "application/json"
         ],
         "tags": [
           "admin"
         ],
-        "summary": "List the external accounts whose migrated content is attributed to a user",
-        "operationId": "adminListUserExternalAccounts",
+        "summary": "Link a user to an account on an external service",
+        "operationId": "adminLinkExternalLogin",
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user to link",
             "name": "username",
             "in": "path",
             "required": true
           },
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results",
-            "name": "limit",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/ExternalAccountList"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        }
-      }
-    },
-    "/admin/users/{username}/external-accounts/{service}/{external_id}": {
-      "put": {
-        "description": "Attributes migrated issues, pull requests, comments, reviews, reactions and releases of the external account that are not yet attributed to a user, now and in future migrations. The account is matched on every instance of the service, and services that do not record user IDs, like CodeCommit, have nothing to attribute. Linking an account that is linked to another user returns 409.",
-        "tags": [
-          "admin"
-        ],
-        "summary": "Attribute content migrated from an external account to a user",
-        "operationId": "adminLinkUserExternalAccount",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username of the user",
-            "name": "username",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the git service, e.g. github",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "the user's ID on the git service",
-            "name": "external_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        }
-      },
-      "delete": {
-        "description": "Only affects future migrations, already attributed content keeps the user. Future migrations still attribute the account to a user who signed in with it.",
-        "tags": [
-          "admin"
-        ],
-        "summary": "Stop attributing content migrated from an external account to a user",
-        "operationId": "adminUnlinkUserExternalAccount",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username of the user",
-            "name": "username",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the git service, e.g. github",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "the user's ID on the git service",
-            "name": "external_id",
-            "in": "path",
-            "required": true
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LinkExternalLoginOption"
+            }
           }
         ],
         "responses": {
@@ -29031,24 +28949,6 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
-    "ExternalAccount": {
-      "description": "ExternalAccount an account on a git service whose migrated content is attributed to a user",
-      "type": "object",
-      "properties": {
-        "external_id": {
-          "description": "The user's ID on the git service",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ExternalID"
-        },
-        "service": {
-          "description": "Name of the git service, e.g. \"github\"",
-          "type": "string",
-          "x-go-name": "Service"
-        }
-      },
-      "x-go-package": "gitea.dev/modules/structs"
-    },
     "ExternalTracker": {
       "description": "ExternalTracker represents settings for external tracker",
       "type": "object",
@@ -30374,6 +30274,34 @@
           "description": "URL is the reference URL for the license",
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "LinkExternalLoginOption": {
+      "description": "LinkExternalLoginOption options to link a user to an external account for migrated content attribution",
+      "type": "object",
+      "required": [
+        "provider",
+        "external_id",
+        "login_source_id"
+      ],
+      "properties": {
+        "external_id": {
+          "description": "The user's numeric ID on the external service",
+          "type": "string",
+          "x-go-name": "ExternalID"
+        },
+        "login_source_id": {
+          "description": "The ID of the authentication source the external account belongs to",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LoginSourceID"
+        },
+        "provider": {
+          "description": "The migration service name, e.g. \"bitbucketserver\"",
+          "type": "string",
+          "x-go-name": "Provider"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34174,15 +34102,6 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Email"
-        }
-      }
-    },
-    "ExternalAccountList": {
-      "description": "ExternalAccountList",
-      "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/ExternalAccount"
         }
       }
     },

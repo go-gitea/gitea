@@ -127,6 +127,20 @@ func RemoveExternalLoginByExternalID(ctx context.Context, loginSourceID int64, e
 	return err
 }
 
+// GetUserIDByExternalUserID get user id according to provider and userID
+func GetUserIDByExternalUserID(ctx context.Context, provider, userID string) (int64, error) {
+	var id int64
+	_, err := db.GetEngine(ctx).Table("external_login_user").
+		Select("user_id").
+		Where("provider=?", provider).
+		And("external_id=?", userID).
+		Get(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
 // UpdateExternalUserByExternalID updates an external user's information
 func UpdateExternalUserByExternalID(ctx context.Context, external *ExternalLoginUser) error {
 	has, err := db.Exist[ExternalLoginUser](ctx, builder.Eq{
