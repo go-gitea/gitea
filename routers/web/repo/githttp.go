@@ -205,6 +205,11 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		}
 	}
 
+	if repoExist && repo.IsBeingCreated() {
+		ctx.PlainText(http.StatusForbidden, "Repository is still being created, please retry later")
+		return nil
+	}
+
 	if !repoExist {
 		if !receivePack {
 			ctx.PlainText(http.StatusNotFound, "Repository not found")
