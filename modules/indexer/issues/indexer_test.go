@@ -225,6 +225,14 @@ func searchIssueByID(t *testing.T) {
 			expectedIDs: []int64{12, 20},
 		},
 		{
+			opts:        *ToSearchOptions("for", &issues.IssuesOptions{TimerTrackerID: 1}),
+			expectedIDs: []int64{1},
+		},
+		{
+			opts:        *ToSearchOptions("for", &issues.IssuesOptions{TimerTrackerID: 3}),
+			expectedIDs: []int64{},
+		},
+		{
 			// user 20 approved the issue 20, so return nothing
 			opts: SearchOptions{
 				ReviewRequestedID: optional.Some(int64(20)),
