@@ -107,6 +107,6 @@ func MoveBranchProtectionConfigToJSON(ctx context.Context, x base.EngineMigratio
 	if err != nil {
 		return err
 	}
-	// SQLite rebuilds the table when dropping columns, so restore its unique index.
+	// DropTableColumns drops the indexes covering the dropped columns on SQLite, so restore the unique index.
 	return x.Sync(new(protectedBranchV358))
 }
