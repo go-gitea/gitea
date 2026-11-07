@@ -6,7 +6,9 @@ package user
 import (
 	"net/http"
 
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -42,8 +44,16 @@ func UpdateUserSettings(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserSettings"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.UserSettingsOptions](ctx)
+
+	if form.FullName != nil && *form.FullName != ctx.Doer.FullName &&
+		user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
+		ctx.APIError(http.StatusForbidden, "full name is not allowed to be changed")
+		return
+	}
 
 	opts := &user_service.UpdateOptions{
 		FullName:            optional.FromPtr(form.FullName),
