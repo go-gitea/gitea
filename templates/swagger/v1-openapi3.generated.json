@@ -12011,6 +12011,7 @@
             "schema": {
               "enum": [
                 "alpine",
+                "arch",
                 "cargo",
                 "chef",
                 "composer",
@@ -12031,6 +12032,7 @@
                 "rubygems",
                 "swift",
                 "terraform",
+                "terraform-module",
                 "vagrant"
               ],
               "type": "string"
@@ -16295,6 +16297,7 @@
             "schema": {
               "enum": [
                 "alpine",
+                "arch",
                 "cargo",
                 "chef",
                 "composer",
@@ -16315,6 +16318,7 @@
                 "rubygems",
                 "swift",
                 "terraform",
+                "terraform-module",
                 "vagrant"
               ],
               "type": "string"
