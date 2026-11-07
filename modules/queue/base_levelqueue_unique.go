@@ -21,7 +21,7 @@ type baseLevelQueueUnique struct {
 	cfg  *BaseConfig
 	db   *leveldb.DB
 
-	muBase sync.Mutex // the levelqueue.UniqueQueue is not thread-safe, there is no mutex protecting the underlying queue&set together
+	muBase sync.Mutex // protects multi-step queue+set operations, e.g. the length check followed by a push
 }
 
 var (
