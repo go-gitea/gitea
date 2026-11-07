@@ -273,7 +273,7 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		"", nil,
 	)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	if err := comment.LoadPoster(ctx); err != nil {
@@ -545,7 +545,7 @@ func CreatePullReview(ctx *context.APIContext) {
 			opts.CommitID,
 			nil,
 		); err != nil {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 	}
@@ -556,7 +556,7 @@ func CreatePullReview(ctx *context.APIContext) {
 		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) || issues_model.IsContentEmptyErr(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
@@ -650,7 +650,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) || issues_model.IsContentEmptyErr(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}

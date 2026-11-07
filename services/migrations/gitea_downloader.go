@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -351,6 +352,17 @@ func (g *GiteaDownloader) GetReleases(ctx context.Context) ([]*base.Release, err
 			break
 		}
 	}
+
+	if slices.ContainsFunc(releases, func(release *base.Release) bool { return !release.Draft && !release.Prerelease }) {
+		latest, resp, err := g.client.Releases.GetLatestRelease(g.ctx, g.repoOwner, g.repoName)
+		if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
+			return nil, err
+		}
+		for _, release := range releases {
+			release.Latest = err == nil && release.TagName == latest.TagName
+		}
+	}
+	slices.Reverse(releases)
 	return releases, nil
 }
 

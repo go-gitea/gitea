@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"sync"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/setting"
@@ -36,10 +37,12 @@ const (
 )
 
 // ColumnColorPattern is a regexp witch can validate ColumnColor
-var ColumnColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+var ColumnColorPattern = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+})
 
 func validateColumnColor(color string) error {
-	if len(color) != 0 && !ColumnColorPattern.MatchString(color) {
+	if len(color) != 0 && !ColumnColorPattern().MatchString(color) {
 		return util.ErrorWrap(util.ErrUnprocessableContent, "invalid column color %q, expected a 6-digit hex string like #FF0000", color)
 	}
 	return nil
