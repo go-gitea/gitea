@@ -9,6 +9,7 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -433,4 +434,18 @@ func TestRecalculateReviewsOfficial(t *testing.T) {
 	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
 	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
 	assert.True(t, review.Official)
+}
+
+func TestTeamReviewRequestOfficial(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12})
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	comment, err := issues_model.AddTeamReviewRequest(t.Context(), issue, unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}), &user_model.User{ID: 2}, false)
+	assert.NoError(t, err)
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: comment.ReviewID}).Official)
+
+	assert.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: issue.RepoID, RuleName: "master", EnableApprovalsWhitelist: true}))
+	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: comment.ReviewID}).Official)
 }
