@@ -11,7 +11,6 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -51,8 +50,6 @@ func (err ErrTwoFactorNotEnrolled) Error() string {
 func (err ErrTwoFactorNotEnrolled) Unwrap() error {
 	return util.ErrNotExist
 }
-
-var ErrTwoFactorTooManyAttempts = errors.New("too many failed two-factor attempts")
 
 const (
 	totpMaxAttempts = 5
@@ -131,50 +128,59 @@ func (t *TwoFactor) validateTOTP(passcode string) (bool, error) {
 	return totp.Validate(passcode, secretStr), nil
 }
 
+type TwoFactorResult int
+
+const (
+	TwoFactorResultValid TwoFactorResult = iota + 1
+	TwoFactorResultInvalid
+	TwoFactorResultTooManyAttempts
+)
+
 // ValidateAndConsumeTOTP validates the passcode and atomically records it as used so that the
-// same passcode cannot be redeemed more than once (RFC 6238 §5.2). It returns false for an
-// invalid passcode as well as for a replay, including the case where a concurrent request with
-// the same passcode won the race first, and ErrTwoFactorTooManyAttempts once the account has used
-// up its attempts. All TOTP login surfaces must go through this helper.
-func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string) (bool, error) {
+// same passcode cannot be redeemed more than once (RFC 6238 §5.2). Invalid passcodes and replays
+// return TwoFactorResultInvalid; exhausted attempts return TwoFactorResultTooManyAttempts.
+// All TOTP login surfaces must go through this helper.
+func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string) (result TwoFactorResult, err error) {
 	if passcode == "" {
-		return false, nil // password-only Basic auth clients must not use up the attempts
+		// password-only Basic auth clients must not use up the attempts
+		return TwoFactorResultInvalid, nil
 	}
 	// the lock spans check, validation and counting so that concurrent requests cannot exceed the limit
 	attemptsKey := fmt.Sprintf("twofa_attempts_%d", t.UID)
-	release, err := globallock.Lock(ctx, attemptsKey)
-	if err != nil {
-		return false, err
-	}
-	defer release()
-	value, _ := cache.GetCache().Get(attemptsKey)
-	attempts, _ := strconv.Atoi(value)
-	if attempts >= totpMaxAttempts {
-		return false, ErrTwoFactorTooManyAttempts
-	}
-
-	ok, err := t.validateTOTP(passcode)
-	if err != nil {
-		return false, err
-	}
-	if ok {
-		// Conditional update: only a row whose stored passcode differs from this one is updated, so a
-		// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
-		// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
-		t.LastUsedPasscode = passcode
-		n, err := db.GetEngine(ctx).ID(t.ID).
-			Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
-			Cols("last_used_passcode").Update(t)
-		if err != nil {
-			return false, err
+	err = globallock.LockAndDo(ctx, attemptsKey, func(ctx context.Context) error {
+		value, _ := cache.GetCache().Get(attemptsKey)
+		attempts, _ := strconv.Atoi(value)
+		if attempts >= totpMaxAttempts {
+			result = TwoFactorResultTooManyAttempts
+			return nil
 		}
-		ok = n == 1
-	}
-	if !ok {
-		return false, cache.GetCache().Put(attemptsKey, strconv.Itoa(attempts+1), totpAttemptsTTL)
-	}
-	cache.Remove(attemptsKey)
-	return true, nil
+
+		valid, err := t.validateTOTP(passcode)
+		if err != nil {
+			return err
+		}
+		if valid {
+			// Conditional update: only a row whose stored passcode differs from this one is updated, so a
+			// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
+			// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
+			t.LastUsedPasscode = passcode
+			n, err := db.GetEngine(ctx).ID(t.ID).
+				Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
+				Cols("last_used_passcode").Update(t)
+			if err != nil {
+				return err
+			}
+			valid = n == 1
+		}
+		if !valid {
+			result = TwoFactorResultInvalid
+			return cache.GetCache().Put(attemptsKey, strconv.Itoa(attempts+1), totpAttemptsTTL)
+		}
+		cache.Remove(attemptsKey)
+		result = TwoFactorResultValid
+		return nil
+	})
+	return result, err
 }
 
 // NewTwoFactor creates a new two-factor authentication token.

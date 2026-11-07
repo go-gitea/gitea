@@ -62,14 +62,13 @@ func TwoFactorPost(ctx *context.Context) {
 	}
 
 	// Validate the passcode and atomically consume it to prevent reuse/replay.
-	ok, err := twofa.ValidateAndConsumeTOTP(ctx, form.Passcode)
-	tooManyAttempts := errors.Is(err, auth.ErrTwoFactorTooManyAttempts)
-	if err != nil && !tooManyAttempts {
+	tfaResult, err := twofa.ValidateAndConsumeTOTP(ctx, form.Passcode)
+	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	if ok {
+	if tfaResult == auth.TwoFactorResultValid {
 		remember := ctx.Session.Get("twofaRemember").(bool) //nolint:forcetypeassert // must exist
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
@@ -91,8 +90,8 @@ func TwoFactorPost(ctx *context.Context) {
 		audit.RecordAs(ctx, u, audit_model.UserAuthenticationFailTwoFactor, u)
 		log.Warn("Failed authentication attempt for %s from %s: invalid two-factor passcode", u.Name, ctx.RemoteAddr())
 	}
-
-	ctx.RenderWithErrDeprecated(ctx.Tr(util.Iif(tooManyAttempts, "auth.twofa_too_many_attempts", "auth.twofa_passcode_incorrect")), tplTwofa, forms.TwoFactorAuthForm{})
+	errMsg := ctx.Tr(util.Iif(tfaResult == auth.TwoFactorResultTooManyAttempts, "auth.twofa_too_many_attempts", "auth.twofa_passcode_incorrect"))
+	ctx.RenderWithErrDeprecated(errMsg, tplTwofa, forms.TwoFactorAuthForm{})
 }
 
 // TwoFactorScratch shows the scratch code form for two-factor authentication.

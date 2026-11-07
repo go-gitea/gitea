@@ -4,7 +4,6 @@
 package auth_test
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -36,23 +35,27 @@ func TestTwoFactorLifecycle(t *testing.T) {
 		require.NoError(t, err)
 
 		// first use of a valid passcode succeeds
-		ok, err := tfa.ValidateAndConsumeTOTP(t.Context(), passcode)
+		result, err := tfa.ValidateAndConsumeTOTP(t.Context(), passcode)
 		require.NoError(t, err)
-		assert.True(t, ok)
+		assert.Equal(t, auth_model.TwoFactorResultValid, result)
 
 		// replaying the same passcode is refused, even when still inside the TOTP validity window
 		reloaded, err := auth_model.GetTwoFactorByUID(t.Context(), tfa.UID)
 		require.NoError(t, err)
-		ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), passcode)
+		result, err = reloaded.ValidateAndConsumeTOTP(t.Context(), passcode)
 		require.NoError(t, err)
-		assert.False(t, ok)
+		assert.Equal(t, auth_model.TwoFactorResultInvalid, result)
 
 		var limited atomic.Int32
 		var wg sync.WaitGroup
 		for range 10 {
 			wg.Go(func() {
-				if _, err := reloaded.ValidateAndConsumeTOTP(t.Context(), "0000000"); errors.Is(err, auth_model.ErrTwoFactorTooManyAttempts) {
+				result, err := reloaded.ValidateAndConsumeTOTP(t.Context(), "0000000")
+				assert.NoError(t, err)
+				if result == auth_model.TwoFactorResultTooManyAttempts {
 					limited.Add(1)
+				} else {
+					assert.Equal(t, auth_model.TwoFactorResultInvalid, result)
 				}
 			})
 		}
@@ -60,14 +63,14 @@ func TestTwoFactorLifecycle(t *testing.T) {
 		assert.EqualValues(t, 6, limited.Load())
 		nextPasscode, err := totp.GenerateCode(key.Secret(), time.Now().Add(30*time.Second))
 		require.NoError(t, err)
-		ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), nextPasscode)
-		require.ErrorIs(t, err, auth_model.ErrTwoFactorTooManyAttempts)
-		assert.False(t, ok)
+		result, err = reloaded.ValidateAndConsumeTOTP(t.Context(), nextPasscode)
+		require.NoError(t, err)
+		assert.Equal(t, auth_model.TwoFactorResultTooManyAttempts, result)
 
 		cache.Remove(fmt.Sprintf("twofa_attempts_%d", tfa.UID))
-		ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), nextPasscode)
+		result, err = reloaded.ValidateAndConsumeTOTP(t.Context(), nextPasscode)
 		require.NoError(t, err)
-		assert.True(t, ok)
+		assert.Equal(t, auth_model.TwoFactorResultValid, result)
 	})
 
 	t.Run("DisableTwoFactor", func(t *testing.T) {
