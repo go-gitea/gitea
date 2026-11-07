@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 
 	"gitea.dev/modules/reqctx"
@@ -109,25 +108,30 @@ func parseForwardedProtoValue(val string) (string, bool) {
 	return "", false
 }
 
-// GuessCurrentAppURL tries to guess the current full public URL (with sub-path) by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
-// TODO: should rename it to GuessCurrentPublicURL in the future
-func GuessCurrentAppURL(ctx context.Context) string {
-	return GuessCurrentHostURL(ctx) + setting.AppSubURL + "/"
-}
-
-// GuessCurrentRootURL returns the request's ROOT_URL entry, defaulting to the first
+// GuessCurrentRootURL returns the ROOT_URL entry of the request's host, else the detected public URL. It always has a '/' suffix
 func GuessCurrentRootURL(ctx context.Context) string {
-	if appURL := GuessCurrentAppURL(ctx); slices.Contains(setting.AlternativeRootURLs, appURL) {
-		return appURL
+	req, ok := ctx.Value(contextKeyRequest).(*http.Request)
+	if !ok || ctx.Value(contextKeySupportPublicURL) != true {
+		return setting.AppURL
 	}
-	return setting.AppURL
+	for _, rootURL := range setting.AlternativeRootURLs {
+		_, hostAndPath, _ := strings.Cut(rootURL, "://")
+		if host, _, _ := strings.Cut(hostAndPath, "/"); strings.EqualFold(host, req.Host) {
+			return rootURL
+		}
+	}
+	return detectPublicHostURL(req) + setting.AppSubURL + "/"
 }
 
-// GuessCurrentHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
+// GuessCurrentHostURL returns GuessCurrentRootURL without sub-path, there is no trailing slash.
 func GuessCurrentHostURL(ctx context.Context) string {
+	return strings.TrimSuffix(GuessCurrentRootURL(ctx), setting.AppSubURL+"/")
+}
+
+// detectPublicHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
+func detectPublicHostURL(req *http.Request) string {
 	// "never" means always trust ROOT_URL and skip any request header detection.
-	detectPublicURL := setting.PublicURLDetection != setting.PublicURLNever && ctx.Value(contextKeySupportPublicURL) == true
-	if !detectPublicURL {
+	if setting.PublicURLDetection == setting.PublicURLNever {
 		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}
 	// Try the best guess to get the current host URL (will be used for public URL) by http headers.
@@ -139,10 +143,6 @@ func GuessCurrentHostURL(ctx context.Context) string {
 	// Without more information, Gitea is impossible to distinguish between case 2 and case 3, then case 2 would result in
 	// wrong guess like guessed public URL becomes "http://gitea:3000/" behind a "https" reverse proxy, which is not accessible by end users.
 	// So we introduced "PUBLIC_URL_DETECTION" option, to control the guessing behavior to satisfy different use cases.
-	req, ok := ctx.Value(contextKeyRequest).(*http.Request)
-	if !ok {
-		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
-	}
 	reqScheme := getRequestScheme(req)
 	if reqScheme == "" {
 		// if no reverse proxy header, try to use "Host" header for absolute URL
@@ -169,7 +169,7 @@ func GuessCurrentHostDomain(ctx context.Context) string {
 // * Otherwise, it returns the current host URL + link, the link itself should have correct sub-path (AppSubURL) if needed.
 func MakeAbsoluteURL(ctx context.Context, link string) string {
 	if link == "" {
-		return GuessCurrentAppURL(ctx)
+		return GuessCurrentRootURL(ctx)
 	}
 	if !IsRelativeURL(link) {
 		return link
@@ -210,8 +210,7 @@ func detectURLRoutePath(ctx context.Context, s string) (routePath string, ut url
 	if strings.HasPrefix(urlLower, strings.ToLower(setting.AppURL)) {
 		return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaAbsolute
 	}
-	guessedCurURL := GuessCurrentAppURL(ctx)
-	if strings.HasPrefix(urlLower, strings.ToLower(guessedCurURL)) {
+	if strings.HasPrefix(urlLower, strings.ToLower(GuessCurrentRootURL(ctx))) {
 		return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaAbsolute
 	}
 	return "", urlTypeUnknown

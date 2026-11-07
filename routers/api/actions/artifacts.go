@@ -197,7 +197,7 @@ type artifactRoutes struct {
 }
 
 func (ar artifactRoutes) buildArtifactURL(ctx *ArtifactContext, runID int64, artifactHash, suffix string) string {
-	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.TrimSuffix(ar.prefix, "/") +
+	uploadURL := strings.TrimSuffix(httplib.GuessCurrentRootURL(ctx), "/") + strings.TrimSuffix(ar.prefix, "/") +
 		strings.ReplaceAll(artifactRouteBase, "{run_id}", strconv.FormatInt(runID, 10)) +
 		"/" + artifactHash + "/" + suffix
 	return uploadURL

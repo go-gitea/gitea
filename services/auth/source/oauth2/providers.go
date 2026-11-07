@@ -170,18 +170,16 @@ func GetOAuth2Providers(ctx context.Context, isActive optional.Option[bool]) ([]
 
 // RegisterProviderWithGothic register a OAuth2 provider in goth lib
 func RegisterProviderWithGothic(providerName string, source *Source) error {
-	provider, err := createProvider(providerName, setting.AppURL, source)
-	if err != nil {
-		return err
-	}
-	providers := []goth.Provider{provider}
-	for _, rootURL := range setting.AlternativeRootURLs {
-		altProvider, err := createProvider(providerName, rootURL, source)
+	var providers []goth.Provider
+	for i, rootURL := range append([]string{setting.AppURL}, setting.AlternativeRootURLs...) {
+		provider, err := createProvider(providerName, rootURL, source)
 		if err != nil {
 			return err
 		}
-		altProvider.SetName(rootURL + providerName)
-		providers = append(providers, altProvider)
+		if i > 0 {
+			provider.SetName(rootURL + providerName)
+		}
+		providers = append(providers, provider)
 	}
 
 	gothRWMutex.Lock()

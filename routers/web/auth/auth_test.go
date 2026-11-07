@@ -134,6 +134,7 @@ func TestWebAuthOAuth2(t *testing.T) {
 
 	t.Run("OIDC", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.AlternativeRootURLs, []string{"http://alt-host/"})()
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLAuto)()
 		var mockServer *httptest.Server
 		var tokenRedirectURI string
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

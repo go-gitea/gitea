@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/gob"
 	"net/http"
+	"slices"
 	"sync"
 	"uuid"
 
@@ -43,7 +44,7 @@ func Init(ctx context.Context) error {
 
 	gothic.GetProviderName = func(req *http.Request) (string, error) {
 		providerName := req.Header.Get(ProviderHeaderKey)
-		if rootURL := httplib.GuessCurrentRootURL(req.Context()); rootURL != setting.AppURL {
+		if rootURL := httplib.GuessCurrentRootURL(req.Context()); slices.Contains(setting.AlternativeRootURLs, rootURL) {
 			providerName = rootURL + providerName
 		}
 		return providerName, nil

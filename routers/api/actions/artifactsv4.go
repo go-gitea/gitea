@@ -166,7 +166,7 @@ func (r *artifactV4Routes) buildSignature(endpoint, expires, artifactName string
 
 func (r *artifactV4Routes) buildArtifactURL(ctx *ArtifactContext, endpoint, artifactName string, taskID, artifactID int64) string {
 	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
-	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.TrimSuffix(r.prefix, "/") +
+	uploadURL := strings.TrimSuffix(httplib.GuessCurrentRootURL(ctx), "/") + strings.TrimSuffix(r.prefix, "/") +
 		"/" + endpoint +
 		"?sig=" + base64.RawURLEncoding.EncodeToString(r.buildSignature(endpoint, expires, artifactName, taskID, artifactID)) +
 		"&expires=" + url.QueryEscape(expires) +

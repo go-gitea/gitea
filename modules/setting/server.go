@@ -130,7 +130,11 @@ func loadServerDomainAndURL(sec ConfigSection, protocol string) {
 	AppURL, appURL = parseRootURL(rootURL)
 	AlternativeRootURLs = util.SplitTrimSpace(alternativeRootURLs, ",")
 	for i, alternativeRootURL := range AlternativeRootURLs {
-		AlternativeRootURLs[i], _ = parseRootURL(alternativeRootURL)
+		var parsed *url.URL
+		AlternativeRootURLs[i], parsed = parseRootURL(alternativeRootURL)
+		if (parsed.Scheme != string(HTTP) && parsed.Scheme != string(HTTPS)) || parsed.Host == "" || strings.TrimSuffix(parsed.Path, "/") != strings.TrimSuffix(appURL.Path, "/") {
+			log.Fatal("Invalid ROOT_URL entry %q: it needs http or https, a host and the sub-path of the first entry", alternativeRootURL)
+		}
 	}
 
 	// AppSubURL should start with '/' and end without '/', such as '/{subpath}'.
