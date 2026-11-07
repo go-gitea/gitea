@@ -10,6 +10,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
@@ -38,6 +39,10 @@ func CreateCodeComment(ctx *context.Context) {
 		return
 	}
 	if !issue.IsPull {
+		return
+	}
+	if issue_service.IsLockedForDoer(issue, ctx.Repo.Permission) {
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}
 
@@ -69,7 +74,7 @@ func CreateCodeComment(ctx *context.Context) {
 		attachments,
 	)
 	if err != nil {
-		ctx.ServerError("CreateCodeComment", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
@@ -161,7 +166,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["comments"] = comments
@@ -180,6 +185,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
+	ctx.Data["ReviewCommitID"] = pullHeadCommitID // it's questionable why it only needs the head commit ID but not correct "AfterCommitID" (single commit review)
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
@@ -195,6 +201,10 @@ func SubmitReview(ctx *context.Context) {
 		return
 	}
 	if !issue.IsPull {
+		return
+	}
+	if issue_service.IsLockedForDoer(issue, ctx.Repo.Permission) {
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}
 	if ctx.HasError() {
@@ -238,7 +248,7 @@ func SubmitReview(ctx *context.Context) {
 		} else if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
 			ctx.Status(http.StatusUnprocessableEntity)
 		} else {
-			ctx.ServerError("SubmitReview", err)
+			ctx.JSONErrorAuto(err)
 		}
 		return
 	}
@@ -306,7 +316,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 
 // UpdatePullReviewRequest add or remove review request
 func UpdatePullReviewRequest(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeRead)
 	if ctx.Written() {
 		return
 	}

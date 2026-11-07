@@ -88,7 +88,7 @@ func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Contex
 			WithPayload(&api.PullRequestPayload{
 				Action:      api.HookIssueEdited,
 				Index:       issue.Index,
-				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+				PullRequest: convert.ToPayloadPullRequest(ctx, issue.PullRequest, nil),
 				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 				Sender:      convert.ToUser(ctx, doer, nil),
 			}).
@@ -120,7 +120,7 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, doer, nil),
 			CommitID:    commitID,
@@ -199,11 +199,6 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 ) {
 	ctx = withMethod(ctx, "IssueChangeLabels")
 
-	hookEvent := webhook_module.HookEventIssueLabel
-	if issue.IsPull {
-		hookEvent = webhook_module.HookEventPullRequestLabel
-	}
-
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
 		return
@@ -218,7 +213,18 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 		changes.RemovedLabels = convert.ToLabelList(removedLabels, issue.Repo, doer)
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated, changes)
+	notifyIssueChange(ctx, doer, issue, labelHookEvent(issue), api.HookIssueLabelUpdated, changes)
+}
+
+func (n *actionsNotifier) IssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	notifyIssueChange(withMethod(ctx, "IssueClearLabels"), doer, issue, labelHookEvent(issue), api.HookIssueLabelCleared, nil)
+}
+
+func labelHookEvent(issue *issues_model.Issue) webhook_module.HookEventType {
+	if issue.IsPull {
+		return webhook_module.HookEventPullRequestLabel
+	}
+	return webhook_module.HookEventIssueLabel
 }
 
 func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction, changes *api.ChangesPayload) {
@@ -240,7 +246,7 @@ func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues
 		payload := &api.PullRequestPayload{
 			Action:      action,
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 			Sender:      convert.ToUser(ctx, doer, nil),
 			Changes:     changes,
@@ -374,7 +380,7 @@ func (n *actionsNotifier) NewPullRequest(ctx context.Context, pull *issues_model
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueOpened,
 			Index:       pull.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, pull, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, pull, nil),
 			Repository:  convert.ToRepo(ctx, pull.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, pull.Issue.Poster, nil),
 		}).
@@ -450,11 +456,12 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 		return
 	}
 
-	newPullRequestReviewNotifyInput(review.Issue.Repo, review.Reviewer, reviewHookType, review.CommitID, pr).
+	newNotifyInput(review.Issue.Repo, review.Reviewer, reviewHookType).
+		WithPullRequest(pr).
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueReviewed,
 			Index:       review.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, review.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, review.Reviewer, nil),
 			Review: &api.ReviewPayload{
@@ -488,7 +495,7 @@ func (n *actionsNotifier) PullRequestReviewRequest(ctx context.Context, doer *us
 		WithPayload(&api.PullRequestPayload{
 			Action:            action,
 			Index:             issue.Index,
-			PullRequest:       convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			PullRequest:       convert.ToPayloadPullRequest(ctx, issue.PullRequest, nil),
 			RequestedReviewer: convert.ToUser(ctx, reviewer, nil),
 			Repository:        convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:            convert.ToUser(ctx, doer, nil),
@@ -525,7 +532,7 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 	// Merge pull request calls issue.changeStatus so we need to handle separately.
 	apiPullRequest := &api.PullRequestPayload{
 		Index:       pr.Issue.Index,
-		PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+		PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
 		Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
 		Sender:      convert.ToUser(ctx, doer, nil),
 		Action:      api.HookIssueClosed,
@@ -695,7 +702,7 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 			Before:      before,
 			After:       after,
 			Index:       pr.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
@@ -726,7 +733,7 @@ func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doe
 					From: oldBranch,
 				},
 			},
-			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).

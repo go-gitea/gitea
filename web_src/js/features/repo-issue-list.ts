@@ -1,42 +1,35 @@
-import {toggleElem, queryElems, isElemVisible} from '../utils/dom.ts';
+import {toggleElem, queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {performFetchAction} from '../modules/fetch-action.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 import type {SortableEvent} from 'sortablejs';
 
 type IssuePoster = {avatar_link: string, full_name: string, username: string};
 type ProcessedIssuePoster = {type: 'html', html: string};
 type IssuePosterResponse = {results: IssuePoster[]};
 
-function initRepoIssueListCheckboxes() {
-  const issueSelectAll = document.querySelector<HTMLInputElement>('.issue-checkbox-all');
-  if (!issueSelectAll) return; // logged out state
-  const issueCheckboxes = document.querySelectorAll<HTMLInputElement>('.issue-checkbox');
+function initRepoIssueListCheckboxes(issueSelectAll: HTMLInputElement) {
+  const container = issueSelectAll.closest('.page-content')!;
+  const issueCheckboxes = container.querySelectorAll<HTMLInputElement>('.issue-checkbox');
+  const issueFilters = container.querySelector<HTMLElement>('#issue-filters')!;
+  const issueActions = container.querySelector<HTMLElement>('#issue-actions')!;
 
   const syncIssueSelectionState = () => {
     const checkedCheckboxes = Array.from(issueCheckboxes).filter((el) => el.checked);
     const anyChecked = Boolean(checkedCheckboxes.length);
     const allChecked = anyChecked && checkedCheckboxes.length === issueCheckboxes.length;
 
-    if (allChecked) {
-      issueSelectAll.checked = true;
-      issueSelectAll.indeterminate = false;
-    } else if (anyChecked) {
-      issueSelectAll.checked = false;
-      issueSelectAll.indeterminate = true;
-    } else {
-      issueSelectAll.checked = false;
-      issueSelectAll.indeterminate = false;
-    }
+    issueSelectAll.checked = allChecked;
+    issueSelectAll.indeterminate = anyChecked && !allChecked;
     // if any issue is selected, show the action panel, otherwise show the filter panel
-    toggleElem('#issue-filters', !anyChecked);
-    toggleElem('#issue-actions', anyChecked);
+    toggleElem(issueFilters, !anyChecked);
+    toggleElem(issueActions, anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
-    const panels = document.querySelectorAll<HTMLElement>('#issue-filters, #issue-actions');
-    const visiblePanel = Array.from(panels).find((el) => isElemVisible(el))!;
+    const visiblePanel = anyChecked ? issueActions : issueFilters;
     const toolbarLeft = visiblePanel.querySelector('.issue-list-toolbar-left')!;
     toolbarLeft.prepend(issueSelectAll);
   };
@@ -52,15 +45,14 @@ function initRepoIssueListCheckboxes() {
     syncIssueSelectionState();
   });
 
-  queryElems(document, '.issue-action', (el) => el.addEventListener('click',
+  queryElems(container, '.issue-action', (el) => el.addEventListener('click',
     async (e: MouseEvent) => {
       e.preventDefault();
 
       const url = el.getAttribute('data-url')!;
       let action = el.getAttribute('data-action')!;
       const elementId = el.getAttribute('data-element-id')!;
-      const issueIDList: string[] = Array.from(document.querySelectorAll('.issue-checkbox:checked'), (el) => (el.getAttribute('data-issue-id')!));
-      const issueIDs = issueIDList.join(',');
+      const issueIDs = Array.from(container.querySelectorAll('.issue-checkbox:checked'), (el) => el.getAttribute('data-issue-id')!).join(',');
       if (!issueIDs) return;
 
       // for label toggle
@@ -166,14 +158,7 @@ async function pinMoveEnd(e: SortableEvent) {
   await POST(url, {data: {id, position: e.newIndex! + 1}});
 }
 
-function initIssuePinSort() {
-  const pinDiv = document.querySelector<HTMLElement>('#issue-pins');
-
-  if (pinDiv === null) return;
-
-  // If the User is not a Repo Admin, we don't need to proceed
-  if (!pinDiv.hasAttribute('data-is-repo-admin')) return;
-
+function initIssuePinSort(pinDiv: HTMLElement) {
   initPinRemoveButton();
 
   // If only one issue pinned, we don't need to make this Sortable
@@ -190,12 +175,7 @@ function initIssuePinSort() {
 }
 
 export function initRepoIssueList() {
-  if (document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) {
-    initRepoIssueListCheckboxes();
-    queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
-    initIssuePinSort();
-  } else if (document.querySelector('.page-content.dashboard.issues')) {
-    // user or org home: issue list, pull request list
-    queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
-  }
+  registerGlobalInitFunc('initRepoIssueListCheckboxes', initRepoIssueListCheckboxes);
+  registerGlobalInitFunc('initDropdownUserRemoteSearch', initDropdownUserRemoteSearch);
+  registerGlobalInitFunc('initIssuePinSort', initIssuePinSort);
 }

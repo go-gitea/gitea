@@ -6,12 +6,14 @@
 package repo
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"html"
 	"html/template"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -367,10 +369,16 @@ func (prInfo *pullRequestViewInfo) prepareViewFillInfo(ctx *context.Context, bas
 func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Context, baseRef git.RefName) {
 	var err error
 	pull := prInfo.issue.PullRequest
-	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false, false)
+	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
+		BaseRepo:    ctx.Repo.Repository,
+		BaseGitRepo: ctx.Repo.GitRepo,
+		BaseRef:     baseRef,
+		HeadRepo:    ctx.Repo.Repository,
+		HeadGitRepo: ctx.Repo.GitRepo,
+		HeadRef:     git.RefName(pull.GetGitHeadRefName()),
+	}, false, false)
 	if err != nil {
-		isKnownErrorForBroken := errors.Is(err, util.ErrNotExist) || gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath)
-		if !isKnownErrorForBroken {
+		if !errors.Is(err, util.ErrNotExist) && !gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) {
 			log.Error("GetCompareInfo: %v", err)
 		}
 		prInfo.IsPullRequestBroken = true
@@ -679,9 +687,29 @@ func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
 type pullFilesRange struct {
 	prViewInfo       *pullRequestViewInfo
 	beforeCommit     *git.Commit
-	afterCommit      *git.Commit
+	afterCommit      *git.Commit // nil when a single commit was force-pushed out of the pull request
 	isSingleCommit   bool
 	isShowAllCommits bool
+}
+
+// setSingleCommitNavContext exposes the reviewed commit and its neighbors.
+func setSingleCommitNavContext(ctx *context.Context, commits []*git.Commit, commit *git.Commit) {
+	idx := slices.IndexFunc(commits, func(c *git.Commit) bool { return bytes.Equal(c.ID.RawValue(), commit.ID.RawValue()) })
+	if idx < 0 {
+		return
+	}
+
+	ctx.Data["SingleCommit"] = commit
+	ctx.Data["SingleCommitIndex"] = len(commits) - idx
+	ctx.Data["SingleCommitCount"] = len(commits)
+
+	// The commit list is newest-first while a reviewer walks it oldest-first, so the indexes are mirrored.
+	if idx+1 < len(commits) {
+		ctx.Data["SingleCommitPrevID"] = commits[idx+1].ID.String()
+	}
+	if idx > 0 {
+		ctx.Data["SingleCommitNextID"] = commits[idx-1].ID.String()
+	}
 }
 
 // preparePullFilesRange resolves the commits shown on the "files" page, empty IDs mean the merge base or the head commit
@@ -698,9 +726,14 @@ func preparePullFilesRange(ctx *context.Context, issue *issues_model.Issue, befo
 	}
 
 	headCommitID := prCompareInfo.HeadCommitID
-	r := &pullFilesRange{prViewInfo: prViewInfo, isSingleCommit: beforeCommitID == "" && afterCommitID != ""}
-	// FIXME: when afterCommitID==headCommitID, isSingleCommit and isShowAllCommits can be both true, which doesn't seem right
-	r.isShowAllCommits = (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
+	// show all commits when:
+	// * both before and after commit IDs are empty (default view)
+	// * before commit ID is the PR's base commit and after commit ID is the PR's head commit (default view)
+	// * there is only one commit in the PR and after commit ID is the PR's head commit (single-commit view)
+	isShowAllCommits := (beforeCommitID == "" && afterCommitID == "") ||
+		(beforeCommitID == prCompareInfo.CompareBase && afterCommitID == headCommitID) ||
+		(beforeCommitID == "" && afterCommitID == headCommitID && len(prCompareInfo.Commits) == 1)
+	r := &pullFilesRange{prViewInfo: prViewInfo, isShowAllCommits: isShowAllCommits, isSingleCommit: beforeCommitID == "" && afterCommitID != "" && !isShowAllCommits}
 
 	// "commits list" is half-open, half-closed: (base, head]
 	// * base commit is not in the list
@@ -714,6 +747,9 @@ func preparePullFilesRange(ctx *context.Context, issue *issues_model.Issue, befo
 			ctx.ServerError("GetCommit(afterCommitID)", err)
 			return nil
 		}
+	}
+	if r.afterCommit == nil && r.isSingleCommit {
+		return r
 	}
 	if r.afterCommit == nil {
 		ctx.NotFound(nil)
@@ -761,13 +797,24 @@ func viewPullFiles(ctx *context.Context, beforeCommitIDParam, afterCommitIDParam
 	if ctx.Written() {
 		return
 	}
-	isShowAllCommits := filesRange.isShowAllCommits
+	if filesRange.afterCommit == nil {
+		ctx.Redirect(ctx.Repo.RepoLink + "/commit/" + afterCommitIDParam) // timeline commits outlive force pushes
+		return
+	}
+	isShowAllCommits, isSingleCommit := filesRange.isShowAllCommits, filesRange.isSingleCommit
 	beforeCommitID, afterCommitID := filesRange.beforeCommit.ID.String(), filesRange.afterCommit.ID.String()
-	ctx.Data["IsShowingOnlySingleCommit"] = filesRange.isSingleCommit
+	prCompareInfo := &filesRange.prViewInfo.CompareInfo
+	// it's questionable why single commit review can be submitted, but the range commits review cannot be submitted
+	ctx.Data["CanSubmitReview"] = isShowAllCommits || isSingleCommit
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
-	ctx.Data["CompareInfo"] = &filesRange.prViewInfo.CompareInfo
+	ctx.Data["CompareInfo"] = prCompareInfo
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
+	ctx.Data["ReviewCommitID"] = afterCommitID // the review happens on the "after commit" (the latest commit in the range)
+
+	if isSingleCommit {
+		setSingleCommitNavContext(ctx, prCompareInfo.Commits, filesRange.afterCommit)
+	}
 
 	diffCommonOptions := gitdiff.DiffCommonOptions{
 		BeforeCommitID:     beforeCommitID,
@@ -821,7 +868,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitIDParam, afterCommitIDParam
 
 	// the stream diffs the commits of the page, even if the PR changes meanwhile
 	streamQuery := url.Values{"to": {afterCommitID}}
-	if !filesRange.isSingleCommit {
+	if !isSingleCommit {
 		streamQuery.Set("from", beforeCommitID)
 	}
 	viewerConfig := prepareDiffViewer(ctx, diffViewerOptions{
@@ -832,7 +879,8 @@ func viewPullFiles(ctx *context.Context, beforeCommitIDParam, afterCommitIDParam
 		afterCommitID:  afterCommitID,
 	})
 	viewerConfig.IssueLink = issue.Link()
-	viewerConfig.HeadCommitID = filesRange.prViewInfo.CompareInfo.HeadCommitID
+	viewerConfig.HeadCommitID = prCompareInfo.HeadCommitID
+	viewerConfig.ReviewCommitID = afterCommitID
 	// like the stream's whitespace option, the setting isn't persisted for anonymous users
 	viewerConfig.CommentsURL = issue.Link() + "/files/comments?" + url.Values{"show-outdated": {strconv.FormatBool(GetShowOutdatedComments(ctx))}}.Encode()
 	viewerConfig.CanReviewFiles = ctx.IsSigned && !ctx.Repo.Repository.IsArchived && isShowAllCommits
@@ -854,12 +902,13 @@ func viewPullFiles(ctx *context.Context, beforeCommitIDParam, afterCommitIDParam
 	ctx.Data["IsIssuePoster"] = ctx.Doer != nil && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	// For files changed page
 	PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
 	}
+
+	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
 	if isShowAllCommits && pull.Flow == issues_model.PullRequestFlowGithub {
@@ -1262,7 +1311,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 	ci := comparePageInfo.compareInfo
-	if ci.CompareBase == "" {
+	if ci.CompareBase == "" || ci.DirectComparison() {
 		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
 		return
 	}

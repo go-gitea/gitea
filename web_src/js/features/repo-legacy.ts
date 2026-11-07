@@ -41,6 +41,7 @@ export function initRepository() {
   registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
   registerGlobalInitFunc('initRepoPullRequestUpdate', initRepoPullRequestUpdate);
   registerGlobalInitFunc('initRepoCitationPanel', initRepoCitationPanel);
+  registerGlobalInitFunc('initRepoNew', initRepoNew);
 
   // TODO: need to refactor more legacy if-querySelector-based "init" code to "data-global-xxx" framework in the future.
   const pageContent = document.querySelector('.page-content.repository');
@@ -51,7 +52,6 @@ export function initRepository() {
   initRepoCommentForm();
 
   initRepoMilestone();
-  initRepoNew();
 
   initRepoCloneButtons();
   initRepoSettings();

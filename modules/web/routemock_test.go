@@ -28,43 +28,31 @@ func TestRouteMock(t *testing.T) {
 	}
 	r.Get("/foo", middleware1, RouterMockPoint("mock-point"), middleware2, handler)
 
-	// normal request
-	recorder := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "http://localhost:8000/foo", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.Len(t, recorder.Header(), 3)
-	assert.Equal(t, "m1", recorder.Header().Get("X-Test-Middleware1"))
-	assert.Equal(t, "m2", recorder.Header().Get("X-Test-Middleware2"))
-	assert.Equal(t, "h", recorder.Header().Get("X-Test-Handler"))
-	RouteMockReset()
-
-	// mock at "mock-point"
-	RouteMock("mock-point", func(resp http.ResponseWriter, req *http.Request) {
-		resp.Header().Set("X-Test-MockPoint", "a")
-		resp.WriteHeader(http.StatusOK)
-	})
-	recorder = httptest.NewRecorder()
-	req, err = http.NewRequest(http.MethodGet, "http://localhost:8000/foo", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.Len(t, recorder.Header(), 2)
-	assert.Equal(t, "m1", recorder.Header().Get("X-Test-Middleware1"))
-	assert.Equal(t, "a", recorder.Header().Get("X-Test-MockPoint"))
-	RouteMockReset()
-
-	// mock at MockAfterMiddlewares
-	RouteMock(MockAfterMiddlewares, func(resp http.ResponseWriter, req *http.Request) {
-		resp.Header().Set("X-Test-MockPoint", "b")
-		resp.WriteHeader(http.StatusOK)
-	})
-	recorder = httptest.NewRecorder()
-	req, err = http.NewRequest(http.MethodGet, "http://localhost:8000/foo", nil)
-	assert.NoError(t, err)
-	r.ServeHTTP(recorder, req)
-	assert.Len(t, recorder.Header(), 3)
-	assert.Equal(t, "m1", recorder.Header().Get("X-Test-Middleware1"))
-	assert.Equal(t, "m2", recorder.Header().Get("X-Test-Middleware2"))
-	assert.Equal(t, "b", recorder.Header().Get("X-Test-MockPoint"))
-	RouteMockReset()
+	for _, tc := range []struct {
+		mockPoint, mockValue string
+		headers              [][2]string
+	}{
+		// normal request
+		{headers: [][2]string{{"X-Test-Middleware1", "m1"}, {"X-Test-Middleware2", "m2"}, {"X-Test-Handler", "h"}}},
+		// mock at "mock-point"
+		{mockPoint: "mock-point", mockValue: "a", headers: [][2]string{{"X-Test-Middleware1", "m1"}, {"X-Test-MockPoint", "a"}}},
+		// mock at MockAfterMiddlewares
+		{mockPoint: MockAfterMiddlewares, mockValue: "b", headers: [][2]string{{"X-Test-Middleware1", "m1"}, {"X-Test-Middleware2", "m2"}, {"X-Test-MockPoint", "b"}}},
+	} {
+		if tc.mockPoint != "" {
+			RouteMock(tc.mockPoint, func(resp http.ResponseWriter, req *http.Request) {
+				resp.Header().Set("X-Test-MockPoint", tc.mockValue)
+				resp.WriteHeader(http.StatusOK)
+			})
+		}
+		recorder := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "http://localhost:8000/foo", nil)
+		assert.NoError(t, err)
+		r.ServeHTTP(recorder, req)
+		assert.Len(t, recorder.Header(), len(tc.headers))
+		for _, header := range tc.headers {
+			assert.Equal(t, header[1], recorder.Header().Get(header[0]))
+		}
+		RouteMockReset()
+	}
 }

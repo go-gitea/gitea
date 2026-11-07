@@ -82,7 +82,6 @@ making this template fragile, hard to read and maintain. */}}
 								<div class="comment-header-right">
 									{{template "repo/issue/view_content/show_role" dict "ShowRole" $comment.ShowRole}}
 									{{if not $repo.IsArchived}}
-										{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $repoLink $comment.ID)}}
 										{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
 									{{end}}
 								</div>
@@ -102,10 +101,11 @@ making this template fragile, hard to read and maintain. */}}
 									{{template "repo/issue/view_content/attachments" dict "Attachments" $comment.Attachments "RenderedContent" $comment.RenderedContent}}
 								{{end}}
 							</div>
-							{{$reactions := $comment.Reactions.GroupByType}}
-							{{if $reactions}}
-								{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $repoLink $comment.ID) "Reactions" $reactions}}
-							{{end}}
+							{{template "shared/reactions" dict
+								"AllowedReactions" $root.AllowedIssueReactions
+								"ActionURL" (printf "%s/comments/%d/reactions" $repoLink $comment.ID)
+								"Reactions" $comment.Reactions.GroupByType
+							}}
 						</div>
 					</div>
 				{{end}}

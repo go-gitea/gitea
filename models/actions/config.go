@@ -6,10 +6,10 @@ package actions
 import (
 	"context"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
 
 	"xorm.io/xorm/convert"
@@ -30,7 +30,7 @@ type OwnerActionsConfig struct {
 var _ convert.ConversionFrom = (*OwnerActionsConfig)(nil)
 
 func (cfg *OwnerActionsConfig) FromDB(bytes []byte) error {
-	_ = json.Unmarshal(bytes, cfg)
+	db.UnmarshalFromDB(bytes, cfg)
 	cfg.TokenPermissionMode, _ = util.EnumValue(cfg.TokenPermissionMode)
 	return nil
 }

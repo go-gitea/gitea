@@ -1,7 +1,7 @@
 import {test, expect} from '@playwright/test';
 import {apiChangeFiles, apiCreateFiles, apiCreatePR, apiCreateRepo, apiCreateReview, apiCreateUser, apiUserHeaders, loginUser, randomString} from './utils.ts';
 
-test('diff sidebar filtering', async ({page, request}) => {
+test('diff sidebar filtering and folded file navigation', async ({page, request}) => {
   const user = `df-${randomString(8)}`;
   await apiCreateUser(request, user);
   const headers = apiUserHeaders(user);
@@ -42,6 +42,12 @@ test('diff sidebar filtering', async ({page, request}) => {
   const boxesWidth = (await page.locator('#diff-viewer').boundingBox())!.width;
   const treeWidth = (await tree.boundingBox())!.width;
   expect(boxesWidth).toBeGreaterThan(treeWidth * 2);
+
+  await page.getByLabel('Diff Options').click();
+  await page.getByRole('menuitem', {name: 'Collapse all files'}).click();
+  await tree.getByRole('link', {name: 'x.css'}).click();
+  const cssFileHeader = page.getByRole('link', {name: 'styles/x.css', exact: true});
+  await expect.poll(async () => (await cssFileHeader.boundingBox())!.y).toBeLessThan(page.viewportSize()!.height / 2);
 
   // search filters tree and file boxes
   await search.fill('a.ts');

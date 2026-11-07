@@ -8,6 +8,7 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	npm_module "gitea.dev/modules/packages/npm"
 	"gitea.dev/modules/setting"
@@ -41,50 +42,20 @@ import (
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
-		scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-		if hasApiTokenScope {
-			{ // request authenticated by a scoped token; enforce package scope restrictions
-				scopeMatched := false
-				var err error
-				switch accessMode {
-				case perm.AccessModeRead:
-					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeReadPackage)
-					if err != nil {
-						ctx.HTTPError(http.StatusInternalServerError, "HasScope", err.Error())
-						return
-					}
-				case perm.AccessModeWrite:
-					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeWritePackage)
-					if err != nil {
-						ctx.HTTPError(http.StatusInternalServerError, "HasScope", err.Error())
-						return
-					}
-				}
-				if !scopeMatched {
-					ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
-					ctx.HTTPError(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
-					return
-				}
-
-				// check if scope only applies to public resources
-				publicOnly, err := scope.PublicOnly()
-				if err != nil {
-					ctx.HTTPError(http.StatusForbidden, "tokenRequiresScope", "parsing public resource scope failed: "+err.Error())
-					return
-				}
-
-				if publicOnly {
-					// a public-only token must not reach limited-visibility owners either,
-					// matching how orgs/users are enforced elsewhere in this file
-					if ctx.Package != nil && !ctx.Package.Owner.Visibility.IsPublic() {
-						ctx.HTTPError(http.StatusForbidden, "reqToken", "token scope is limited to public packages")
-						return
-					}
-				}
+		if scope, ok := user_model.GetDoerTokenScope(ctx.Doer); ok {
+			scopeMatched, err := scope.HasScope(auth_model.GetRequiredScopes(auth_model.GetScopeLevelFromAccessMode(accessMode), auth_model.AccessTokenScopeCategoryPackage)...)
+			if err != nil {
+				ctx.HTTPError(http.StatusInternalServerError, "HasScope", err.Error())
+				return
+			}
+			if !scopeMatched {
+				ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
+				ctx.HTTPError(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+				return
 			}
 		}
 
-		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+		if ctx.Package.AccessMode < accessMode {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
 			ctx.HTTPError(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
 			return

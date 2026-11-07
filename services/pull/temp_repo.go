@@ -7,6 +7,7 @@ package pull
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -103,8 +104,8 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		if err != nil {
 			return fmt.Errorf("unable to open %s file in %s: %w", altFileRelPath, filepath.Base(repoPath), err)
 		}
-		defer f.Close()
-		if _, err := fmt.Fprintln(f, newAltLine); err != nil {
+		_, err = fmt.Fprintln(f, newAltLine)
+		if err = errors.Join(err, f.Close()); err != nil {
 			return fmt.Errorf("unable to write %s file in %s: %w", altFileRelPath, filepath.Base(repoPath), err)
 		}
 		return nil

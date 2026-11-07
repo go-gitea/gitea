@@ -10,6 +10,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	packages_model "gitea.dev/models/packages"
+	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -338,6 +339,22 @@ func IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues
 	}
 }
 
+func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.IssueChangeProjects(ctx, doer, issue, addedProjectIDs, removedProjectIDs)
+	}
+}
+
+func IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID int64, newColumn *project_model.Column) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.IssueChangeProjectColumn(ctx, doer, issue, oldColumnID, newColumn)
+	}
+}
+
 // CreateRepository notifies create repository to notifiers
 func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	defer recoverPanic()
@@ -366,11 +383,11 @@ func MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo
 }
 
 // TransferRepository notifies create repository to notifiers
-func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
 	defer recoverPanic()
 
 	for _, notifier := range notifiers {
-		notifier.TransferRepository(ctx, doer, repo, oldOwnerName)
+		notifier.TransferRepository(ctx, doer, repo, oldOwner)
 	}
 }
 

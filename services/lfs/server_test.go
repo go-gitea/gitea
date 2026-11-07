@@ -29,37 +29,34 @@ func TestAuthenticate(t *testing.T) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	getUserToken := func(op string, userID int64, repo *repo_model.Repository) string {
-		s, _ := GetLFSAuthTokenWithBearer(AuthTokenOptions{Op: op, UserID: userID, RepoID: repo.ID})
+	getUserToken := func(op string, userID int64, repo *repo_model.Repository, extDoerData string) string {
+		s, _ := GetLFSAuthTokenWithBearer(AuthTokenOptions{Op: op, UserID: userID, RepoID: repo.ID, UserExtDoerData: extDoerData})
 		_, token, _ := strings.Cut(s, " ")
 		return token
 	}
 
 	t.Run("handleLFSToken", func(t *testing.T) {
-		u, err := handleLFSToken(ctx, "", repo1, perm_model.AccessModeRead)
-		require.Error(t, err)
-		assert.Nil(t, u)
+		for _, token := range []string{"", "invalid"} {
+			u, err := handleLFSToken(ctx, token, repo1, perm_model.AccessModeRead)
+			require.Error(t, err)
+			assert.Nil(t, u)
+		}
 
-		u, err = handleLFSToken(ctx, "invalid", repo1, perm_model.AccessModeRead)
-		require.Error(t, err)
-		assert.Nil(t, u)
-
-		u, err = handleLFSToken(ctx, getUserToken("download", 2, repo1), repo1, perm_model.AccessModeRead)
+		u, err := handleLFSToken(ctx, getUserToken("download", 2, repo1, ""), repo1, perm_model.AccessModeRead)
 		require.NoError(t, err)
 		assert.EqualValues(t, 2, u.ID)
 	})
 
 	t.Run("authenticate", func(t *testing.T) {
 		const prefixBearer = "Bearer "
-		token := getUserToken("download", 2, repo1)
+		token := getUserToken("download", 2, repo1, "")
 		assert.False(t, authenticate(ctx, repo1, "", true, false))
 		assert.False(t, authenticate(ctx, repo1, prefixBearer+"invalid", true, false))
 		assert.True(t, authenticate(ctx, repo1, prefixBearer+token, true, false))
 	})
 
 	handleLFSTokenTestPerm := func(op string, userID int64, repo *repo_model.Repository, accessMode perm_model.AccessMode) error {
-		token := getUserToken(op, userID, repo)
-		u, err := handleLFSToken(ctx, token, repo, accessMode)
+		u, err := handleLFSToken(ctx, getUserToken(op, userID, repo, ""), repo, accessMode)
 		if err == nil {
 			assert.Equal(t, userID, u.ID)
 		}
@@ -108,17 +105,12 @@ func TestAuthenticate(t *testing.T) {
 		key, err := deploykey_model.AddDeployKeyToken(t.Context(), repo1.ID, "lfs", perm_model.AccessModeRead)
 		require.NoError(t, err)
 		doer := user_model.NewDeployKeyUserWithKeyID(key.ID)
-		getDoerToken := func(op string) string {
-			s, _ := GetLFSAuthTokenWithBearer(AuthTokenOptions{Op: op, UserID: doer.ID, UserExtDoerData: doer.ExtDoerData.EncodeToString(), RepoID: repo1.ID})
-			_, token, _ := strings.Cut(s, " ")
-			return token
-		}
 
-		u, err := handleLFSToken(ctx, getDoerToken("download"), repo1, perm_model.AccessModeRead)
+		u, err := handleLFSToken(ctx, getUserToken("download", doer.ID, repo1, doer.ExtDoerData.EncodeToString()), repo1, perm_model.AccessModeRead)
 		require.NoError(t, err)
 		assert.Equal(t, user_model.DeployKeyUserID, u.ID)
 
-		_, err = handleLFSToken(ctx, getDoerToken("upload"), repo1, perm_model.AccessModeWrite)
+		_, err = handleLFSToken(ctx, getUserToken("upload", doer.ID, repo1, doer.ExtDoerData.EncodeToString()), repo1, perm_model.AccessModeWrite)
 		assert.ErrorContains(t, err, "no permission to access the repository")
 	})
 }

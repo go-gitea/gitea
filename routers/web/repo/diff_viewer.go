@@ -25,8 +25,9 @@ type diffViewerConfig struct {
 	RepoLink         string `json:"repoLink,omitempty"` // to browse the commits, empty for the wiki which can't
 	BeforeCommitID   string `json:"beforeCommitId,omitempty"`
 	AfterCommitID    string `json:"afterCommitId"`
-	HeadCommitID     string `json:"headCommitId,omitempty"` // new comments are attached to it, even when older commits are shown
-	EditFileLink     string `json:"editFileLink,omitempty"` // the file path is appended
+	HeadCommitID     string `json:"headCommitId,omitempty"`   // of the pull request, the viewed files are tracked by it
+	ReviewCommitID   string `json:"reviewCommitId,omitempty"` // new comments are attached to it, the after commit of a pull request page
+	EditFileLink     string `json:"editFileLink,omitempty"`   // the file path is appended
 	EditReturnURI    string `json:"editReturnUri,omitempty"`
 	IsSplit          bool   `json:"isSplit"`
 	CanReviewFiles   bool   `json:"canReviewFiles"`

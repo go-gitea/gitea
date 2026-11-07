@@ -395,103 +395,57 @@ func TestGenerateMessageIDForIssue(t *testing.T) {
 	_, _, pullIssue, _ := prepareMailerTest(t)
 	pullIssue.IsPull = true
 
-	type args struct {
+	for _, testCase := range []struct {
+		name       string
 		issue      *issues_model.Issue
 		comment    *issues_model.Comment
 		actionType activities_model.ActionType
-	}
-	tests := []struct {
-		name   string
-		args   args
-		prefix string
+		prefix     string
 	}{
 		{
-			name: "Open Issue",
-			args: args{
-				issue:      issue,
-				actionType: activities_model.ActionCreateIssue,
-			},
-			prefix: fmt.Sprintf("<%s/issues/%d@%s>", issue.Repo.FullName(), issue.Index, setting.AppDomain),
+			"Open Issue", issue, nil, activities_model.ActionCreateIssue,
+			fmt.Sprintf("<%s/issues/%d@%s>", issue.Repo.FullName(), issue.Index, setting.AppDomain),
 		},
 		{
-			name: "Open Pull",
-			args: args{
-				issue:      pullIssue,
-				actionType: activities_model.ActionCreatePullRequest,
-			},
-			prefix: fmt.Sprintf("<%s/pulls/%d@%s>", issue.Repo.FullName(), issue.Index, setting.AppDomain),
+			"Open Pull", pullIssue, nil, activities_model.ActionCreatePullRequest,
+			fmt.Sprintf("<%s/pulls/%d@%s>", issue.Repo.FullName(), issue.Index, setting.AppDomain),
 		},
 		{
-			name: "Comment Issue",
-			args: args{
-				issue:      issue,
-				comment:    comment,
-				actionType: activities_model.ActionCommentIssue,
-			},
-			prefix: fmt.Sprintf("<%s/issues/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.AppDomain),
+			"Comment Issue", issue, comment, activities_model.ActionCommentIssue,
+			fmt.Sprintf("<%s/issues/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.AppDomain),
 		},
 		{
-			name: "Comment Pull",
-			args: args{
-				issue:      pullIssue,
-				comment:    comment,
-				actionType: activities_model.ActionCommentPull,
-			},
-			prefix: fmt.Sprintf("<%s/pulls/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.AppDomain),
+			"Comment Pull", pullIssue, comment, activities_model.ActionCommentPull,
+			fmt.Sprintf("<%s/pulls/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.AppDomain),
 		},
 		{
-			name: "Close Issue",
-			args: args{
-				issue:      issue,
-				actionType: activities_model.ActionCloseIssue,
-			},
-			prefix: fmt.Sprintf("<%s/issues/%d/close/", issue.Repo.FullName(), issue.Index),
+			"Close Issue", issue, nil, activities_model.ActionCloseIssue,
+			fmt.Sprintf("<%s/issues/%d/close/", issue.Repo.FullName(), issue.Index),
 		},
 		{
-			name: "Close Pull",
-			args: args{
-				issue:      pullIssue,
-				actionType: activities_model.ActionClosePullRequest,
-			},
-			prefix: fmt.Sprintf("<%s/pulls/%d/close/", issue.Repo.FullName(), issue.Index),
+			"Close Pull", pullIssue, nil, activities_model.ActionClosePullRequest,
+			fmt.Sprintf("<%s/pulls/%d/close/", issue.Repo.FullName(), issue.Index),
 		},
 		{
-			name: "Reopen Issue",
-			args: args{
-				issue:      issue,
-				actionType: activities_model.ActionReopenIssue,
-			},
-			prefix: fmt.Sprintf("<%s/issues/%d/reopen/", issue.Repo.FullName(), issue.Index),
+			"Reopen Issue", issue, nil, activities_model.ActionReopenIssue,
+			fmt.Sprintf("<%s/issues/%d/reopen/", issue.Repo.FullName(), issue.Index),
 		},
 		{
-			name: "Reopen Pull",
-			args: args{
-				issue:      pullIssue,
-				actionType: activities_model.ActionReopenPullRequest,
-			},
-			prefix: fmt.Sprintf("<%s/pulls/%d/reopen/", issue.Repo.FullName(), issue.Index),
+			"Reopen Pull", pullIssue, nil, activities_model.ActionReopenPullRequest,
+			fmt.Sprintf("<%s/pulls/%d/reopen/", issue.Repo.FullName(), issue.Index),
 		},
 		{
-			name: "Merge Pull",
-			args: args{
-				issue:      pullIssue,
-				actionType: activities_model.ActionMergePullRequest,
-			},
-			prefix: fmt.Sprintf("<%s/pulls/%d/merge/", issue.Repo.FullName(), issue.Index),
+			"Merge Pull", pullIssue, nil, activities_model.ActionMergePullRequest,
+			fmt.Sprintf("<%s/pulls/%d/merge/", issue.Repo.FullName(), issue.Index),
 		},
 		{
-			name: "Ready Pull",
-			args: args{
-				issue:      pullIssue,
-				actionType: activities_model.ActionPullRequestReadyForReview,
-			},
-			prefix: fmt.Sprintf("<%s/pulls/%d/ready/", issue.Repo.FullName(), issue.Index),
+			"Ready Pull", pullIssue, nil, activities_model.ActionPullRequestReadyForReview,
+			fmt.Sprintf("<%s/pulls/%d/ready/", issue.Repo.FullName(), issue.Index),
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := generateMessageIDForIssue(tt.args.issue, tt.args.comment, tt.args.actionType)
-			assert.True(t, strings.HasPrefix(got, tt.prefix), "%v, want %v", got, tt.prefix)
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := generateMessageIDForIssue(testCase.issue, testCase.comment, testCase.actionType)
+			assert.True(t, strings.HasPrefix(got, testCase.prefix), "%v, want %v", got, testCase.prefix)
 		})
 	}
 }

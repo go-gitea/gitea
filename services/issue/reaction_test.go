@@ -36,15 +36,6 @@ func TestIssueAddReaction(t *testing.T) {
 	addReaction(t, user1, issue, nil, "heart")
 
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue.ID})
-}
-
-func TestIssueAddDuplicateReaction(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-
-	addReaction(t, user1, issue, nil, "heart")
 
 	reaction, err := CreateIssueReaction(t.Context(), user1, issue, "heart")
 	assert.Error(t, err)
@@ -52,17 +43,8 @@ func TestIssueAddDuplicateReaction(t *testing.T) {
 
 	existingR := unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue.ID})
 	assert.Equal(t, existingR.ID, reaction.ID)
-}
 
-func TestIssueDeleteReaction(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-
-	addReaction(t, user1, issue, nil, "heart")
-
-	err := issues_model.DeleteIssueReaction(t.Context(), user1.ID, issue.ID, "heart")
+	err = issues_model.DeleteIssueReaction(t.Context(), user1.ID, issue.ID, "heart")
 	assert.NoError(t, err)
 
 	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue.ID})
@@ -90,9 +72,7 @@ func TestIssueReactionCount(t *testing.T) {
 	addReaction(t, user4, issue, nil, "heart")
 	addReaction(t, ghost, issue, nil, "-1")
 
-	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{
-		IssueID: issue.ID,
-	})
+	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{IssueIDOnly: issue.ID})
 	assert.NoError(t, err)
 	assert.Len(t, reactionsList, 7)
 	_, err = reactionsList.LoadUsers(t.Context(), repo)
@@ -101,7 +81,7 @@ func TestIssueReactionCount(t *testing.T) {
 	reactions := reactionsList.GroupByType()
 	assert.Len(t, reactions["heart"], 4)
 	assert.Equal(t, 2, reactions["heart"].GetMoreUserCount())
-	assert.Equal(t, user1.Name+", "+user2.Name, reactions["heart"].GetFirstUsers())
+	assert.Equal(t, "user1 (User One), user2 (< U<se>r Tw<o > ><)", reactions["heart"].GetFirstUsers())
 	assert.True(t, reactions["heart"].HasUser(1))
 	assert.False(t, reactions["heart"].HasUser(5))
 	assert.False(t, reactions["heart"].HasUser(0))
@@ -119,6 +99,9 @@ func TestIssueCommentAddReaction(t *testing.T) {
 	addReaction(t, user1, nil, comment, "heart")
 
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: comment.IssueID, CommentID: comment.ID})
+	assert.NoError(t, issues_model.DeleteCommentReaction(t.Context(), user1.ID, comment.IssueID, comment.ID, "heart"))
+
+	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: comment.IssueID, CommentID: comment.ID})
 }
 
 func TestIssueCommentDeleteReaction(t *testing.T) {
@@ -136,26 +119,11 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	addReaction(t, org3, nil, comment, "heart")
 	addReaction(t, user4, nil, comment, "+1")
 
-	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{
-		IssueID:   comment.IssueID,
-		CommentID: comment.ID,
-	})
+	reactionsList, _, err := issues_model.FindReactions(t.Context(), issues_model.FindReactionsOptions{CommentID: comment.ID})
 	assert.NoError(t, err)
 	assert.Len(t, reactionsList, 4)
 
 	reactions := reactionsList.GroupByType()
 	assert.Len(t, reactions["heart"], 3)
 	assert.Len(t, reactions["+1"], 1)
-}
-
-func TestIssueCommentReactionCount(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
-
-	addReaction(t, user1, nil, comment, "heart")
-	assert.NoError(t, issues_model.DeleteCommentReaction(t.Context(), user1.ID, comment.IssueID, comment.ID, "heart"))
-
-	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: comment.IssueID, CommentID: comment.ID})
 }

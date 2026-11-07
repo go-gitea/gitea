@@ -26,105 +26,103 @@ import (
 func TestAPIGetTrackedTimes(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-	assert.NoError(t, issue2.LoadRepo(t.Context()))
+	t.Run("issue times", func(t *testing.T) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+		assert.NoError(t, issue2.LoadRepo(t.Context()))
 
-	session := loginUser(t, user2.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times", user2.Name, issue2.Repo.Name, issue2.Index).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	apiTimes := DecodeJSON(t, resp, api.TrackedTimeList{})
-	expect, err := issues_model.GetTrackedTimes(t.Context(), &issues_model.FindTrackedTimesOptions{IssueID: issue2.ID})
-	assert.NoError(t, err)
-	assert.Len(t, apiTimes, 3)
-
-	for i, time := range expect {
-		assert.Equal(t, time.ID, apiTimes[i].ID)
-		assert.Equal(t, issue2.Title, apiTimes[i].Issue.Title)
-		assert.Equal(t, issue2.ID, apiTimes[i].IssueID)
-		assert.Equal(t, time.Created.Unix(), apiTimes[i].Created.Unix())
-		assert.Equal(t, time.Time, apiTimes[i].Time)
-		user, err := user_model.GetUserByID(t.Context(), time.UserID)
-		assert.NoError(t, err)
-		assert.Equal(t, user.Name, apiTimes[i].UserName)
-	}
-
-	// test filter
-	since := "2000-01-01T00%3A00%3A02%2B00%3A00"  // 946684802
-	before := "2000-01-01T00%3A00%3A12%2B00%3A00" // 946684812
-
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times?since=%s&before=%s", user2.Name, issue2.Repo.Name, issue2.Index, since, before).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	filterAPITimes := DecodeJSON(t, resp, api.TrackedTimeList{})
-	assert.Len(t, filterAPITimes, 2)
-	assert.Equal(t, int64(3), filterAPITimes[0].ID)
-	assert.Equal(t, int64(6), filterAPITimes[1].ID)
-}
-
-// TestAPIGetTrackedTimesNonExistentUserFilter ensures filtering by a user that
-// does not exist returns a clean 404 instead of panicking (nil pointer dereference).
-func TestAPIGetTrackedTimesNonExistentUserFilter(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-	assert.NoError(t, issue2.LoadRepo(t.Context()))
-
-	session := loginUser(t, user2.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadRepository)
-
-	for _, tc := range []struct {
-		name string
-		url  string
-	}{
-		{"repository level", fmt.Sprintf("/api/v1/repos/%s/%s/times?user=nonexistentuser", user2.Name, issue2.Repo.Name)},
-		{"issue level", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/times?user=nonexistentuser", user2.Name, issue2.Repo.Name, issue2.Index)},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			req := NewRequest(t, "GET", tc.url).AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusNotFound)
-
-			assert.True(t, json.Valid(resp.Body.Bytes()), "response body must be a single JSON value, got: %s", resp.Body.Bytes())
-
-			var apiError api.APIError
-			DecodeJSON(t, resp, &apiError)
-			assert.Contains(t, apiError.Message, "user does not exist")
-		})
-	}
-
-	t.Run("existing user", func(t *testing.T) {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/times?user=%s", user2.Name, issue2.Repo.Name, user2.Name).AddTokenAuth(token)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times", user2.Name, issue2.Repo.Name, issue2.Index).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, api.TrackedTimeList{})
-	})
-}
+		apiTimes := DecodeJSON(t, resp, api.TrackedTimeList{})
+		expect, err := issues_model.GetTrackedTimes(t.Context(), &issues_model.FindTrackedTimesOptions{IssueID: issue2.ID})
+		assert.NoError(t, err)
+		assert.Len(t, apiTimes, 3)
 
-func TestAPIUserTrackedTimesOmitsInaccessiblePrivateIssues(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
-	privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	assert.True(t, privateRepo.IsPrivate)
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: privateRepo.ID})
-	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), privateRepo, user, perm.AccessModeRead))
-	_, err := issues_model.AddTime(t.Context(), user, issue, 60, time.Time{})
-	assert.NoError(t, err)
-	assert.NoError(t, repo_service.DeleteCollaboration(t.Context(), privateRepo, user))
-
-	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadUser)
-	req := NewRequest(t, "GET", "/api/v1/user/times").AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	trackedTimes := DecodeJSON(t, resp, api.TrackedTimeList{})
-	for _, trackedTime := range trackedTimes {
-		if assert.NotNil(t, trackedTime.Issue) {
-			assert.NotEqual(t, issue.ID, trackedTime.Issue.ID)
+		for i, time := range expect {
+			assert.Equal(t, time.ID, apiTimes[i].ID)
+			assert.Equal(t, issue2.Title, apiTimes[i].Issue.Title)
+			assert.Equal(t, issue2.ID, apiTimes[i].IssueID)
+			assert.Equal(t, time.Created.Unix(), apiTimes[i].Created.Unix())
+			assert.Equal(t, time.Time, apiTimes[i].Time)
+			user, err := user_model.GetUserByID(t.Context(), time.UserID)
+			assert.NoError(t, err)
+			assert.Equal(t, user.Name, apiTimes[i].UserName)
 		}
-	}
+
+		// test filter
+		since := "2000-01-01T00%3A00%3A02%2B00%3A00"  // 946684802
+		before := "2000-01-01T00%3A00%3A12%2B00%3A00" // 946684812
+
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times?since=%s&before=%s", user2.Name, issue2.Repo.Name, issue2.Index, since, before).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		filterAPITimes := DecodeJSON(t, resp, api.TrackedTimeList{})
+		assert.Len(t, filterAPITimes, 2)
+		assert.Equal(t, int64(3), filterAPITimes[0].ID)
+		assert.Equal(t, int64(6), filterAPITimes[1].ID)
+	})
+
+	// TestAPIGetTrackedTimesNonExistentUserFilter ensures filtering by a user that
+	// does not exist returns a clean 404 instead of panicking (nil pointer dereference).
+	t.Run("nonexistent user filter", func(t *testing.T) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+		assert.NoError(t, issue2.LoadRepo(t.Context()))
+
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadRepository)
+
+		for _, tc := range []struct {
+			name string
+			url  string
+		}{
+			{"repository level", fmt.Sprintf("/api/v1/repos/%s/%s/times?user=nonexistentuser", user2.Name, issue2.Repo.Name)},
+			{"issue level", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/times?user=nonexistentuser", user2.Name, issue2.Repo.Name, issue2.Index)},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				req := NewRequest(t, "GET", tc.url).AddTokenAuth(token)
+				resp := MakeRequest(t, req, http.StatusNotFound)
+
+				assert.True(t, json.Valid(resp.Body.Bytes()), "response body must be a single JSON value, got: %s", resp.Body.Bytes())
+
+				var apiError api.APIError
+				DecodeJSON(t, resp, &apiError)
+				assert.Contains(t, apiError.Message, "user does not exist")
+			})
+		}
+
+		t.Run("existing user", func(t *testing.T) {
+			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/times?user=%s", user2.Name, issue2.Repo.Name, user2.Name).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			DecodeJSON(t, resp, api.TrackedTimeList{})
+		})
+	})
+
+	t.Run("omit inaccessible private issues", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+		privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+		assert.True(t, privateRepo.IsPrivate)
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: privateRepo.ID})
+		assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), privateRepo, user, perm.AccessModeRead))
+		_, err := issues_model.AddTime(t.Context(), user, issue, 60, time.Time{})
+		assert.NoError(t, err)
+		assert.NoError(t, repo_service.DeleteCollaboration(t.Context(), privateRepo, user))
+
+		token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadUser)
+		req := NewRequest(t, "GET", "/api/v1/user/times").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		trackedTimes := DecodeJSON(t, resp, api.TrackedTimeList{})
+		for _, trackedTime := range trackedTimes {
+			if assert.NotNil(t, trackedTime.Issue) {
+				assert.NotEqual(t, issue.ID, trackedTime.Issue.ID)
+			}
+		}
+	})
 }
 
 func TestAPIDeleteTrackedTime(t *testing.T) {

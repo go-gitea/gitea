@@ -4,7 +4,8 @@ import {GET, POST} from '../modules/fetch.ts';
 import {createElementFromHTML, showElem} from '../utils/dom.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
+import {hideModal, showModal} from '../modules/modal.ts';
+import {confirmModal} from './comp/ConfirmModal.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import type {JQueryElem} from '../types.ts';
 
@@ -14,8 +15,8 @@ let i18nTextDeleteFromHistory: string;
 let i18nTextDeleteFromHistoryConfirm: string;
 
 function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
-  const elDetailDialog = createElementFromHTML(html`
-    <div class="ui modal content-history-detail-dialog">
+  const elDetailDialog = createElementFromHTML<HTMLDialogElement>(html`
+    <dialog class="modal-dialog content-history-detail-dialog">
       <div class="header flex-left-right">
         <div>${htmlRaw(itemTitleHtml)}</div>
         <div class="ui dropdown dialog-header-options tw-mx-4 tw-hidden">
@@ -28,9 +29,8 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
         <button type="button" class="close-modal"></button>
       </div>
       <div class="comment-diff-data is-loading"></div>
-    </div>
+    </dialog>
   `);
-  document.body.append(elDetailDialog);
   const elOptionsDropdown = elDetailDialog.querySelector('.ui.dropdown.dialog-header-options')!;
   const $fomanticDropdownOptions = fomanticQuery(elOptionsDropdown);
   $fomanticDropdownOptions.dropdown({
@@ -39,8 +39,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
     async onChange(_value: string, _text: string, $item: JQueryElem) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
-        // TODO: to use confirmModal instead of window.confirm, need to support multiple modals on the same page first.
-        if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
+        if (await confirmModal({content: i18nTextDeleteFromHistoryConfirm, confirmButtonColor: 'red'})) {
           try {
             const params = new URLSearchParams();
             params.append('comment_id', commentId);
@@ -50,7 +49,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
             const resp = await response.json();
 
             if (resp.ok) {
-              hideFomanticModal(elDetailDialog);
+              hideModal(elDetailDialog);
             } else {
               showErrorToast(resp.message);
             }
@@ -67,7 +66,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
       $fomanticDropdownOptions.dropdown('clear', true);
     },
   });
-  showFomanticModal(elDetailDialog, {
+  showModal(elDetailDialog, {
     async onShow() {
       try {
         const params = new URLSearchParams();

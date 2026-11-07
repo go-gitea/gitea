@@ -380,7 +380,7 @@ export class DiffComments {
       side: target.side === 'new' ? 'proposed' : 'previous',
       line: String(target.line),
       path: target.path,
-      latest_commit_id: this.host.config.headCommitId!,
+      latest_commit_id: this.host.config.reviewCommitId!,
     });
     if (singleReview) body.set('single_review', 'true');
     if (replyReviewId) body.set('reply', String(replyReviewId));

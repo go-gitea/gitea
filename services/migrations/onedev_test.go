@@ -4,35 +4,65 @@
 package migrations
 
 import (
-	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/util"
 
-	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOneDevVersionResponseSizeLimit(t *testing.T) {
+func TestOneDevServerVersion(t *testing.T) {
+	type respMapType map[string]struct {
+		code int
+		body string
+	}
+	var respMap atomic.Pointer[respMapType]
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write(bytes.Repeat([]byte("1"), maxOneDevVersionResponseSize+1))
+		resp, ok := (*respMap.Load())[r.URL.Path]
+		w.WriteHeader(util.Iif(ok, resp.code, http.StatusNotFound))
+		_, _ = io.WriteString(w, resp.body)
 	}))
 	defer server.Close()
 
 	baseURL, err := url.Parse(server.URL)
 	assert.NoError(t, err)
-	download := &OneDevDownloader{baseURL: baseURL, client: server.Client()}
-	var version *version.Version
-	err = download.callAPI(t.Context(), "/~api/version/server", nil, &version)
-	assert.Error(t, err)
+	downloader := func() *OneDevDownloader { return &OneDevDownloader{baseURL: baseURL, client: server.Client()} }
+
+	t.Run("LegacyEndpoint", func(t *testing.T) {
+		respMap.Store(&respMapType{"/~api/version/server": {code: http.StatusOK, body: "12.0.1"}})
+		d := downloader()
+		v, err := d.getServerVersion(t.Context())
+		assert.NoError(t, err)
+		assert.Equal(t, "12.0.1", v.String())
+		respMap.Store(&respMapType{}) // remove the legacy endpoint, next call should still succeed by using cached version
+		v, err = d.getServerVersion(t.Context())
+		assert.NoError(t, err)
+		assert.Equal(t, "12.0.1", v.String())
+	})
+
+	t.Run("NewEndpoint", func(t *testing.T) {
+		respMap.Store(&respMapType{"/~api/server/version": {code: http.StatusOK, body: "16.9.7"}})
+		v, err := downloader().getServerVersion(t.Context())
+		assert.NoError(t, err)
+		assert.Equal(t, "16.9.7", v.String())
+	})
+
+	t.Run("NoEndpoint", func(t *testing.T) {
+		respMap.Store(&respMapType{})
+		_, err := downloader().getServerVersion(t.Context())
+		assert.ErrorContains(t, err, "server version request failed")
+	})
 }
 
 func TestOneDevDownloadRepo(t *testing.T) {

@@ -6,6 +6,7 @@ import {toggleElem} from '../utils/dom.ts';
 import {diffTreeStore, filterDiffTree, filteredFileNames, extensionFilterToUrl, type DiffFileTreeLocale} from '../modules/diff-file.ts';
 import {onMounted, onUnmounted, computed, watch} from 'vue';
 import {localUserSettings} from '../modules/user-settings.ts';
+import {registerAsyncHashChangeListener, removeAsyncHashChangeListener} from '../modules/hashchange.ts';
 
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
@@ -32,13 +33,12 @@ onMounted(() => {
   // while the tree is hidden there is no control to clear a filter restored from the URL
   if (!store.fileTreeIsVisible) store.activeExtensions = 'all';
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
-  hashChangeListener();
-  window.addEventListener('hashchange', hashChangeListener);
+  registerAsyncHashChangeListener(hashChangeListener);
 });
 
 onUnmounted(() => {
   document.querySelector('.diff-toggle-file-tree-button')!.removeEventListener('click', toggleVisibility);
-  window.removeEventListener('hashchange', hashChangeListener);
+  removeAsyncHashChangeListener(hashChangeListener);
 });
 
 function hashChangeListener() {

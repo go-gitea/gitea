@@ -77,7 +77,7 @@ func IsErrRepoAlreadyExist(err error) bool {
 }
 
 func (err ErrRepoAlreadyExist) Error() string {
-	return fmt.Sprintf("repository already exists [uname: %s, name: %s]", err.Uname, err.Name)
+	return fmt.Sprintf("repository already exists [owner: %s, repo: %s]", err.Uname, err.Name)
 }
 
 func (err ErrRepoAlreadyExist) Unwrap() error {

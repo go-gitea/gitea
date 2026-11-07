@@ -143,7 +143,14 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	ctx.Data["HeadRepo"] = headRepo
 	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
 
-	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), cpi.fileOnly)
+	compareInfo, err := git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
+		BaseRepo:    baseRepo,
+		BaseGitRepo: ctx.Repo.GitRepo,
+		BaseRef:     baseRef,
+		HeadRepo:    headRepo,
+		HeadGitRepo: headGitRepo,
+		HeadRef:     headRef,
+	}, compareReq.DirectComparison(), cpi.fileOnly)
 	if err != nil {
 		return err
 	}
@@ -521,7 +528,6 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypePullRequests)

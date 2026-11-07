@@ -9,7 +9,8 @@ export type DiffViewerConfig = {
   repoLink?: string; // to browse the commits, the wiki can't
   beforeCommitId?: string;
   afterCommitId: string;
-  headCommitId?: string; // of the pull request, new comments are attached to it
+  headCommitId?: string; // of the pull request, the viewed files are tracked by it
+  reviewCommitId?: string; // new comments are attached to it
   editFileLink?: string;
   editReturnUri?: string;
   isSplit: boolean;

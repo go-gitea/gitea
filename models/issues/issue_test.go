@@ -16,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
@@ -52,79 +53,211 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 	testSuccess(18, []int64{6, 8, 7}, []int64{6, 7})
 }
 
-func Test_GetIssueIDsByRepoID(t *testing.T) {
+func TestIssueQueries(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	ids, err := issues_model.GetIssueIDsByRepoID(t.Context(), 1)
-	assert.NoError(t, err)
-	assert.Len(t, ids, 5)
-}
-
-func TestIssueAPIURL(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	err := issue.LoadAttributes(t.Context())
-
-	assert.NoError(t, err)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/issues/1", issue.APIURL(t.Context()))
-}
-
-func TestGetIssuesByIDs(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	testSuccess := func(expectedIssueIDs, nonExistentIssueIDs []int64) {
-		issues, err := issues_model.GetIssuesByIDs(t.Context(), append(expectedIssueIDs, nonExistentIssueIDs...), true)
+	t.Run("GetIssueIDsByRepoID", func(t *testing.T) {
+		ids, err := issues_model.GetIssueIDsByRepoID(t.Context(), 1)
 		assert.NoError(t, err)
-		actualIssueIDs := make([]int64, len(issues))
-		for i, issue := range issues {
-			actualIssueIDs[i] = issue.ID
-		}
-		assert.Equal(t, expectedIssueIDs, actualIssueIDs)
-	}
-	testSuccess([]int64{1, 2, 3}, []int64{})
-	testSuccess([]int64{1, 2, 3}, []int64{unittest.NonexistentID})
-	testSuccess([]int64{3, 2, 1}, []int64{})
-}
+		assert.Len(t, ids, 5)
+	})
 
-func TestGetParticipantIDsByIssue(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("IssueAPIURL", func(t *testing.T) {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		err := issue.LoadAttributes(t.Context())
 
-	checkParticipants := func(issueID int64, userIDs []int) {
-		issue, err := issues_model.GetIssueByID(t.Context(), issueID)
 		assert.NoError(t, err)
-		participants, err := issue.GetParticipantIDsByIssue(t.Context())
-		if assert.NoError(t, err) {
-			participantsIDs := make([]int, len(participants))
-			for i, uid := range participants {
-				participantsIDs[i] = int(uid)
+		assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/issues/1", issue.APIURL(t.Context()))
+	})
+
+	t.Run("GetIssuesByIDs", func(t *testing.T) {
+		testSuccess := func(expectedIssueIDs, nonExistentIssueIDs []int64) {
+			issues, err := issues_model.GetIssuesByIDs(t.Context(), append(expectedIssueIDs, nonExistentIssueIDs...), true)
+			assert.NoError(t, err)
+			actualIssueIDs := make([]int64, len(issues))
+			for i, issue := range issues {
+				actualIssueIDs[i] = issue.ID
 			}
-			sort.Ints(participantsIDs)
-			sort.Ints(userIDs)
-			assert.Equal(t, userIDs, participantsIDs)
+			assert.Equal(t, expectedIssueIDs, actualIssueIDs)
 		}
-	}
+		testSuccess([]int64{1, 2, 3}, []int64{})
+		testSuccess([]int64{1, 2, 3}, []int64{unittest.NonexistentID})
+		testSuccess([]int64{3, 2, 1}, []int64{})
+	})
 
-	// User 1 is issue1 poster (see fixtures/issue.yml)
-	// User 2 only labeled issue1 (see fixtures/comment.yml)
-	// Users 3 and 5 made actual comments (see fixtures/comment.yml)
-	// User 3 is inactive, thus not active participant
-	checkParticipants(1, []int{1, 5})
+	t.Run("GetParticipantIDsByIssue", func(t *testing.T) {
+		checkParticipants := func(issueID int64, userIDs []int) {
+			issue, err := issues_model.GetIssueByID(t.Context(), issueID)
+			assert.NoError(t, err)
+			participants, err := issue.GetParticipantIDsByIssue(t.Context())
+			if assert.NoError(t, err) {
+				participantsIDs := make([]int, len(participants))
+				for i, uid := range participants {
+					participantsIDs[i] = int(uid)
+				}
+				sort.Ints(participantsIDs)
+				sort.Ints(userIDs)
+				assert.Equal(t, userIDs, participantsIDs)
+			}
+		}
+
+		// User 1 is issue1 poster (see fixtures/issue.yml)
+		// User 2 only labeled issue1 (see fixtures/comment.yml)
+		// Users 3 and 5 made actual comments (see fixtures/comment.yml)
+		// User 3 is inactive, thus not active participant
+		checkParticipants(1, []int{1, 5})
+	})
+
+	t.Run("Issues", func(t *testing.T) {
+		publicOnlyUser2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		publicOnlyUser2.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:issue")
+		for _, test := range []struct {
+			Opts             issues_model.IssuesOptions
+			ExpectedIssueIDs []int64
+		}{
+			{
+				issues_model.IssuesOptions{
+					AssigneeID: "1",
+					SortType:   "oldest",
+				},
+				[]int64{1, 6},
+			},
+			{
+				issues_model.IssuesOptions{
+					RepoCond: builder.In("repo_id", 1, 3),
+					SortType: "oldest",
+					Paginator: &db.ListOptions{
+						Page:     1,
+						PageSize: 4,
+					},
+				},
+				[]int64{1, 2, 3, 5},
+			},
+			{
+				issues_model.IssuesOptions{
+					LabelIDs: []int64{1},
+					Paginator: &db.ListOptions{
+						Page:     1,
+						PageSize: 4,
+					},
+				},
+				[]int64{2, 1},
+			},
+			{
+				issues_model.IssuesOptions{
+					LabelIDs: []int64{1, 2},
+					Paginator: &db.ListOptions{
+						Page:     1,
+						PageSize: 4,
+					},
+				},
+				[]int64{}, // issues with **both** label 1 and 2, none of these issues matches, TODO: add more tests
+			},
+			{
+				issues_model.IssuesOptions{
+					MilestoneIDs: []int64{1},
+				},
+				[]int64{2},
+			},
+			{
+				issues_model.IssuesOptions{
+					SubscriberID: 11,
+				},
+				[]int64{11, 5, 9, 8, 3, 2, 1},
+			},
+			{
+				issues_model.IssuesOptions{
+					RepoCond: builder.In("repo_id", 1, 2),
+					Doer:     publicOnlyUser2,
+					IsPull:   optional.Some(false),
+					SortType: "oldest",
+				},
+				[]int64{1, 5},
+			},
+		} {
+			issues, err := issues_model.Issues(t.Context(), &test.Opts)
+			assert.NoError(t, err)
+			if assert.Len(t, issues, len(test.ExpectedIssueIDs)) {
+				for i, issue := range issues {
+					assert.Equal(t, test.ExpectedIssueIDs[i], issue.ID)
+				}
+			}
+		}
+	})
+
+	t.Run("Issue_loadTotalTimes", func(t *testing.T) {
+		ms, err := issues_model.GetIssueByID(t.Context(), 2)
+		assert.NoError(t, err)
+		assert.NoError(t, ms.LoadTotalTimes(t.Context()))
+		assert.Equal(t, int64(3682), ms.TotalTrackedTime)
+	})
+
+	t.Run("Issue_ResolveMentions", func(t *testing.T) {
+		testSuccess := func(owner, repo, doer string, mentions []string, expected []int64) {
+			o := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: owner})
+			r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: o.ID, LowerName: repo})
+			issue := &issues_model.Issue{RepoID: r.ID}
+			d := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: doer})
+			resolved, err := issues_model.ResolveIssueMentionsByVisibility(t.Context(), issue, d, mentions)
+			assert.NoError(t, err)
+			ids := make([]int64, len(resolved))
+			for i, user := range resolved {
+				ids[i] = user.ID
+			}
+			slices.Sort(ids)
+			assert.Equal(t, expected, ids)
+		}
+
+		// Public repo, existing user
+		testSuccess("user2", "repo1", "user1", []string{"user5"}, []int64{5})
+		// Public repo, non-existing user
+		testSuccess("user2", "repo1", "user1", []string{"nonexisting"}, []int64{})
+		// Public repo, doer
+		testSuccess("user2", "repo1", "user1", []string{"user1"}, []int64{})
+		// Private repo, team member
+		testSuccess("org17", "big_test_private_4", "user20", []string{"user2"}, []int64{2})
+		// Private repo, not a team member
+		testSuccess("org17", "big_test_private_4", "user20", []string{"user5"}, []int64{})
+		// Private repo, whole team
+		testSuccess("org17", "big_test_private_4", "user15", []string{"org17/owners"}, []int64{18})
+	})
+
+	t.Run("MilestoneList_LoadTotalTrackedTimes", func(t *testing.T) {
+		miles := issues_model.MilestoneList{
+			unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}),
+		}
+
+		assert.NoError(t, miles.LoadTotalTrackedTimes(t.Context()))
+
+		assert.Equal(t, int64(3682), miles[0].TotalTrackedTime)
+	})
+
+	t.Run("LoadTotalTrackedTime", func(t *testing.T) {
+		milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
+
+		assert.NoError(t, milestone.LoadTotalTrackedTime(t.Context()))
+
+		assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
+	})
+
+	t.Run("CountIssues", func(t *testing.T) {
+		count, err := issues_model.CountIssues(t.Context(), &issues_model.IssuesOptions{})
+		assert.NoError(t, err)
+		assert.EqualValues(t, 22, count)
+	})
 }
 
 func TestIssue_ClearLabels(t *testing.T) {
-	tests := []struct {
-		issueID int64
-		doerID  int64
-	}{
-		{1, 2}, // non-pull-request, has labels
-		{2, 2}, // pull-request, has labels
-		{3, 2}, // pull-request, has no labels
-	}
-	for _, test := range tests {
+	for _, issueID := range []int64{
+		1, // non-pull-request, has labels
+		2, // pull-request, has labels
+		3, // pull-request, has no labels
+	} {
 		assert.NoError(t, unittest.PrepareTestDatabase())
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: test.issueID})
-		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.doerID})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueID})
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		assert.NoError(t, issues_model.ClearIssueLabels(t.Context(), issue, doer))
-		unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: test.issueID})
+		unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: issueID})
 	}
 }
 
@@ -146,81 +279,6 @@ func TestUpdateIssueCols(t *testing.T) {
 	assert.Equal(t, newTitle, updatedIssue.Title)
 	assert.Equal(t, prevContent, updatedIssue.Content)
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
-}
-
-func TestIssues(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	for _, test := range []struct {
-		Opts             issues_model.IssuesOptions
-		ExpectedIssueIDs []int64
-	}{
-		{
-			issues_model.IssuesOptions{
-				AssigneeID: "1",
-				SortType:   "oldest",
-			},
-			[]int64{1, 6},
-		},
-		{
-			issues_model.IssuesOptions{
-				RepoCond: builder.In("repo_id", 1, 3),
-				SortType: "oldest",
-				Paginator: &db.ListOptions{
-					Page:     1,
-					PageSize: 4,
-				},
-			},
-			[]int64{1, 2, 3, 5},
-		},
-		{
-			issues_model.IssuesOptions{
-				LabelIDs: []int64{1},
-				Paginator: &db.ListOptions{
-					Page:     1,
-					PageSize: 4,
-				},
-			},
-			[]int64{2, 1},
-		},
-		{
-			issues_model.IssuesOptions{
-				LabelIDs: []int64{1, 2},
-				Paginator: &db.ListOptions{
-					Page:     1,
-					PageSize: 4,
-				},
-			},
-			[]int64{}, // issues with **both** label 1 and 2, none of these issues matches, TODO: add more tests
-		},
-		{
-			issues_model.IssuesOptions{
-				MilestoneIDs: []int64{1},
-			},
-			[]int64{2},
-		},
-		{
-			issues_model.IssuesOptions{
-				SubscriberID: 11,
-			},
-			[]int64{11, 5, 9, 8, 3, 2, 1},
-		},
-	} {
-		issues, err := issues_model.Issues(t.Context(), &test.Opts)
-		assert.NoError(t, err)
-		if assert.Len(t, issues, len(test.ExpectedIssueIDs)) {
-			for i, issue := range issues {
-				assert.Equal(t, test.ExpectedIssueIDs[i], issue.ID)
-			}
-		}
-	}
-}
-
-func TestIssue_loadTotalTimes(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	ms, err := issues_model.GetIssueByID(t.Context(), 2)
-	assert.NoError(t, err)
-	assert.NoError(t, ms.LoadTotalTimes(t.Context()))
-	assert.Equal(t, int64(3682), ms.TotalTrackedTime)
 }
 
 func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *issues_model.Issue {
@@ -262,38 +320,6 @@ func TestIssue_InsertIssue(t *testing.T) {
 	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
 	_, err = db.DeleteByID[issues_model.Issue](t.Context(), issue.ID)
 	assert.NoError(t, err)
-}
-
-func TestIssue_ResolveMentions(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	testSuccess := func(owner, repo, doer string, mentions []string, expected []int64) {
-		o := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: owner})
-		r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: o.ID, LowerName: repo})
-		issue := &issues_model.Issue{RepoID: r.ID}
-		d := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: doer})
-		resolved, err := issues_model.ResolveIssueMentionsByVisibility(t.Context(), issue, d, mentions)
-		assert.NoError(t, err)
-		ids := make([]int64, len(resolved))
-		for i, user := range resolved {
-			ids[i] = user.ID
-		}
-		slices.Sort(ids)
-		assert.Equal(t, expected, ids)
-	}
-
-	// Public repo, existing user
-	testSuccess("user2", "repo1", "user1", []string{"user5"}, []int64{5})
-	// Public repo, non-existing user
-	testSuccess("user2", "repo1", "user1", []string{"nonexisting"}, []int64{})
-	// Public repo, doer
-	testSuccess("user2", "repo1", "user1", []string{"user1"}, []int64{})
-	// Private repo, team member
-	testSuccess("org17", "big_test_private_4", "user20", []string{"user2"}, []int64{2})
-	// Private repo, not a team member
-	testSuccess("org17", "big_test_private_4", "user20", []string{"user5"}, []int64{})
-	// Private repo, whole team
-	testSuccess("org17", "big_test_private_4", "user15", []string{"org17/owners"}, []int64{18})
 }
 
 func TestResourceIndex(t *testing.T) {
@@ -351,33 +377,6 @@ func TestCorrectIssueStats(t *testing.T) {
 	// Now check the values.
 	assert.NoError(t, err)
 	assert.EqualValues(t, issueStats.OpenCount, issueAmount)
-}
-
-func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	miles := issues_model.MilestoneList{
-		unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}),
-	}
-
-	assert.NoError(t, miles.LoadTotalTrackedTimes(t.Context()))
-
-	assert.Equal(t, int64(3682), miles[0].TotalTrackedTime)
-}
-
-func TestLoadTotalTrackedTime(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
-
-	assert.NoError(t, milestone.LoadTotalTrackedTime(t.Context()))
-
-	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
-}
-
-func TestCountIssues(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	count, err := issues_model.CountIssues(t.Context(), &issues_model.IssuesOptions{})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 22, count)
 }
 
 func TestIssueLoadAttributes(t *testing.T) {

@@ -53,16 +53,14 @@ export function buildCommentElement(comment: ViewerComment, ctx: CommentContext)
       </div>
     </div>
   `);
-  const headerRight = el.querySelector('.comment-header-right')!;
-  if (data.canComment && data.reactions.length) headerRight.append(buildReactionPicker(comment, ctx));
-  headerRight.append(buildContextMenu(comment, ctx));
+  el.querySelector('.comment-header-right')!.append(buildContextMenu(comment, ctx));
   const markup = el.querySelector<HTMLElement>('.render-content')!;
   if (comment.canEdit) markup.setAttribute('data-can-edit', 'true');
   if (comment.bodyHtml) markup.innerHTML = comment.bodyHtml; // rendered and sanitized by the server
   else markup.append(createElementFromAttrs('span', {class: 'no-content'}, locale.noContent));
   el.querySelector('.raw-content')!.textContent = comment.body;
   if (comment.attachments.length) el.querySelector('.comment-body')!.append(buildAttachments(comment, locale));
-  if (comment.reactions.length) el.querySelector('.comment-container')!.append(buildReactions(comment, ctx));
+  if (comment.reactions.length || (data.canComment && data.reactions.length)) el.querySelector('.comment-container')!.append(buildReactions(comment, ctx));
   showContentHistoryMenuIfEdited(el, comment.id);
   return el;
 }
@@ -92,41 +90,38 @@ function buildAttachments(comment: ViewerComment, locale: DiffViewerLocale): HTM
   return container;
 }
 
-// mirrors templates/repo/issue/view_content/add_reaction.tmpl
-function buildReactionPicker(comment: ViewerComment, ctx: CommentContext): HTMLElement {
-  const picker = createElementFromHTML<HTMLElement>(html`
-    <div class="item action ui dropdown jump pointing top right select-reaction" aria-label="${ctx.locale.reactions}">
-      <a class="muted">${svgRaw('octicon-smiley')}</a>
-      <div class="menu">${htmlRaw(ctx.data.reactions.map((reaction) => html`
-        <a class="item emoji" data-tooltip-content="${reaction.content}" aria-label="${reaction.content}" data-reaction-content="${reaction.content}">${htmlRaw(reaction.emojiHtml)}</a>
-      `).join(''))}
-      </div>
-    </div>
-  `);
-  picker.addEventListener('click', (e) => {
-    const item = (e.target as Element).closest<HTMLElement>('[data-reaction-content]');
-    if (item) ctx.onToggleReaction(item, comment, item.getAttribute('data-reaction-content')!);
-  });
-  return picker;
-}
-
-// mirrors templates/repo/issue/view_content/reactions.tmpl
+// mirrors templates/shared/reactions.tmpl, the picker menu is opened by the global "onReactionPickerClick"
 function buildReactions(comment: ViewerComment, ctx: CommentContext): HTMLElement {
   const {data, locale} = ctx;
-  const container = createElementFromAttrs('div', {class: 'bottom-reactions', role: 'group', 'aria-label': locale.reactions});
-  for (const reaction of comment.reactions) {
+  const canReact = data.canComment && data.reactions.length > 0;
+  const hasReacted = (content: string) => comment.reactions.some((reaction) => reaction.content === content && reaction.hasReacted);
+  const picker = canReact ? html`
+    <button type="button" class="select-reaction" data-global-click="onReactionPickerClick" aria-label="${locale.reactions}">${svgRaw('octicon-smiley')}</button>
+    <div class="tippy-target">
+      <div class="reaction-picker">${htmlRaw(data.reactions.map((reaction) => html`
+        <a class="item emoji" role="menuitem" data-tooltip-content="${reaction.content}" aria-label="${reaction.content}" data-reaction-content="${reaction.content}" data-has-reacted="${hasReacted(reaction.content)}">${htmlRaw(reaction.emojiHtml)}</a>
+      `).join(''))}</div>
+    </div>
+  ` : '';
+  const labels = comment.reactions.map((reaction) => {
     const title = reaction.users + (reaction.moreCount > 0 ? ` ${trString(locale.reactionsMore, reaction.moreCount)}` : '');
-    const button = createElementFromHTML<HTMLElement>(html`
-      <a role="button" class="ui label basic${reaction.hasReacted ? ' primary' : ''}${data.isSigned ? '' : ' disabled'}"
-        data-tooltip-content title="${title}" aria-label="${reaction.content}: ${title}" data-tooltip-placement="bottom-start">
+    return html`
+      <a role="button" class="ui label basic${canReact ? '' : ' disabled'}" data-tooltip-content="${title}" aria-label="${reaction.content}: ${title}"
+        data-tooltip-placement="bottom-start" data-reaction-content="${reaction.content}" data-has-reacted="${reaction.hasReacted}">
         <span class="reaction">${htmlRaw(reaction.emojiHtml)}</span>
-        <span class="reaction-count">${reaction.count}</span>
+        <span>${reaction.count}</span>
       </a>
-    `);
-    if (data.isSigned) button.addEventListener('click', () => ctx.onToggleReaction(button, comment, reaction.content));
-    container.append(button);
+    `;
+  }).join('');
+  const container = createElementFromHTML<HTMLElement>(html`<div class="bottom-reactions" role="group" aria-label="${locale.reactions}">${htmlRaw(picker + labels)}</div>`);
+  if (canReact) {
+    container.addEventListener('click', (e) => {
+      const item = (e.target as Element).closest<HTMLElement>('[data-reaction-content]');
+      if (!item) return;
+      container.querySelector('.select-reaction')?._tippy?.hide();
+      ctx.onToggleReaction(item, comment, item.getAttribute('data-reaction-content')!);
+    });
   }
-  if (data.canComment && data.reactions.length) container.append(buildReactionPicker(comment, ctx));
   return container;
 }
 

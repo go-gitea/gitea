@@ -8,12 +8,14 @@ import (
 	"testing"
 
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestManager(t *testing.T) {
-	setting.AppDataPath = t.TempDir()
+	defer test.MockVariableValue(&setting.AppDataPath, t.TempDir())()
+	defer test.MockVariableValue(&manager, &Manager{Queues: make(map[int64]ManagedWorkerPoolQueue)})()
 
 	newQueueFromConfig := func(name, cfg string) (*WorkerPoolQueue[int], error) {
 		cfgProvider, err := setting.NewConfigProviderFromData(cfg)

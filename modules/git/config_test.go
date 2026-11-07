@@ -23,6 +23,8 @@ func gitConfigContains(sub string) bool {
 }
 
 func TestGitConfig(t *testing.T) {
+	defer test.MockVariableValue(&setting.Git.HomePath, t.TempDir())()
+
 	ctx := t.Context()
 	assert.False(t, gitConfigContains("key-a"))
 
@@ -61,7 +63,9 @@ func TestGitConfig(t *testing.T) {
 }
 
 func TestSyncGitConfig(t *testing.T) {
-	defer test.MockVariableValue(&setting.GitConfig)()
+	defer test.MockVariableValue(&setting.Git.HomePath, t.TempDir())()
+	defer test.MockVariableValue(&setting.GitConfig.Options, map[string]string{})()
+	defer test.MockVariableValue(&GlobalConfig)()
 
 	assert.Empty(t, setting.GitConfig.Options)
 	assert.NoError(t, configSet(t.Context(), "gc.reflogExpire", "90"))

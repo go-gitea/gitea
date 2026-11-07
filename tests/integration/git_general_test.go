@@ -33,6 +33,7 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/services/automergequeue"
 	"gitea.dev/tests"
 
 	"github.com/kballard/go-shellquote"
@@ -552,8 +553,8 @@ func doProtectBranchExt(ctx APITestContext, ruleName string, opts doProtectBranc
 		}
 
 		// Send the request to update branch protection settings
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), formData)
-		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
+		link := fmt.Sprintf("/%s/%s/settings/branches", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame))
+		assert.Equal(t, link, test.RedirectURL(ctx.Session.MakeRequest(t, NewRequestWithValues(t, "POST", link+"/edit", formData), http.StatusOK)))
 
 		// Check if the "master" branch has been locked successfully
 		flashMsg := ctx.Session.GetCookieFlashMessage()
@@ -817,8 +818,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 
 		// Call API to add Success status for commit
 		t.Run("CreateStatus", doAPICreateCommitStatusTest(ctx, commitID, commitstatus.CommitStatusSuccess, "testci"))
-		// wait to let gitea merge stuff
-		time.Sleep(time.Second)
+		require.NoError(t, automergequeue.AutoMergeQueue.FlushWithContext(t.Context(), 5*time.Second))
 
 		// test pr status
 		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)

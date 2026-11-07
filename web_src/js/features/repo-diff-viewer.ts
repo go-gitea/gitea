@@ -1,6 +1,8 @@
+import {createApp} from 'vue';
 import {DiffViewer} from '../modules/diffviewer/viewer.ts';
-import {initDiffFileTree} from './repo-diff-filetree.ts';
-import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
+import DiffFileTree from '../components/DiffFileTree.vue';
+import DiffCommitSelector from '../components/DiffCommitSelector.vue';
+import type {DiffFileTreeLocale} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
@@ -33,14 +35,19 @@ function initDiffHeaderPopupMenu(btn: HTMLElement) {
   });
 }
 
+function initDiffFileTree(el: HTMLElement) {
+  const locale = JSON.parse(el.getAttribute('data-locale')!) as DiffFileTreeLocale;
+  createApp(DiffFileTree, {locale}).mount(el);
+}
+
 export async function initRepoDiffViewer(): Promise<void> {
   const el = document.querySelector<HTMLElement>('#diff-viewer');
   if (!el) return;
   registerGlobalInitFunc('initDiffHeaderPopupMenu', initDiffHeaderPopupMenu);
   registerGlobalInitFunc('initDiffFileImageDiff', initImageDiff);
   registerGlobalInitFunc('initDiffFileViewToggle', initDiffFileViewToggle);
-  initDiffFileTree();
-  initDiffCommitSelect();
+  registerGlobalInitFunc('initDiffFileTree', initDiffFileTree);
+  registerGlobalInitFunc('initDiffCommitSelect', (el: HTMLElement) => { createApp(DiffCommitSelector).mount(el) });
   const viewer = new DiffViewer(el, window.config.pageData.diffViewer!);
   document.querySelector('#expand-files-btn')?.addEventListener('click', () => viewer.setAllFolded(false));
   document.querySelector('#collapse-files-btn')?.addEventListener('click', () => viewer.setAllFolded(true));
