@@ -3,7 +3,7 @@ import {POST} from '../fetch.ts';
 import {trN, trString} from '../i18n.ts';
 import {parseHunks, type DiffSide} from './parse.ts';
 import {diffTreeFiles, diffTreeStore, diffTreeStoreSetViewed, filteredFileNames, type DiffTreeEntry} from '../diff-file.ts';
-import {createElementFromAttrs, isElemVisible, onInputDebounce, toggleElem} from '../../utils/dom.ts';
+import {createElementFromAttrs, createElementFromHTML, isElemVisible, onInputDebounce, toggleElem} from '../../utils/dom.ts';
 import {getCurrentLocale, sleep} from '../../utils.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {svgRaw, type SvgName} from '../../svg.ts';
@@ -163,8 +163,28 @@ export class DiffViewer {
     if (entry.highlighter && entry.element && entry.renderedLines) {
       // the file was rendered before its grammar loaded
       entry.invalidateHighlighting();
-      this.renderBody(entry);
+      this.rehighlight(entry);
     }
+  }
+
+  // updates the rendered lines in place, replacing the rows would lose a click in flight on them and the selection
+  rehighlight(entry: DiffFile): void {
+    const source = entry.element!.querySelector<HTMLElement>('.code-diff');
+    if (!source?.querySelector('table')) return;
+    const {html: lineHtml} = this.renderLines(entry);
+    for (const code of source.querySelectorAll<HTMLElement>('code.code-inner[data-line]')) code.innerHTML = lineHtml[Number(code.getAttribute('data-line'))];
+    if (entry.highlighter?.language) source.setAttribute('data-language', entry.highlighter.language);
+    // the loaded content tells where the tail gap ends, its buttons are only replaced when they differ
+    const tail = Array.from(source.querySelectorAll<HTMLElement>('tr.tag-code')).find((row) => Number(row.getAttribute('data-hunk')) === entry.hunks.length);
+    if (!tail) return;
+    const buttons = this.expanderButtons(entry).get(entry.hunks.length);
+    if (!buttons) {
+      tail.remove();
+      return;
+    }
+    const directions = (el: Element) => Array.from(el.querySelectorAll('[data-expand]'), (button) => button.getAttribute('data-expand')).join(',');
+    const cell = tail.querySelector('.lines-num')!;
+    if (directions(cell) !== directions(createElementFromHTML(buttons))) cell.innerHTML = buttons;
   }
 
   // the content of every line in hunk order, highlighted and with the changed words of paired lines marked
@@ -243,7 +263,7 @@ export class DiffViewer {
     }
     if (entry.element) {
       entry.renderedLines = null;
-      this.renderBody(entry);
+      this.rehighlight(entry);
     }
   }
 

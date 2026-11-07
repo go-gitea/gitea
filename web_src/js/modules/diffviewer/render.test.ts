@@ -40,6 +40,10 @@ test('renderRows', () => {
   expect(split[1].querySelectorAll('.add-code-comment[data-side="old"]')).toHaveLength(0);
   expect(split[3].querySelectorAll('.add-code-comment')).toHaveLength(2);
   expect(split[3].querySelector('.lines-code-new .code-inner')?.textContent).toEqual('B');
+  // the code cells know their line for updates in place
+  const lineIndices = (trs: Element[]) => trs.flatMap((tr) => Array.from(tr.querySelectorAll('.code-inner[data-line]'), (code) => code.getAttribute('data-line')));
+  expect(lineIndices(unified)).toEqual(['0', '1', '2', '3']);
+  expect(lineIndices(split)).toEqual(['0', '0', '1', '1', '2', '3']); // context lines are on both sides
 });
 
 test('wordDiffRanges', () => {
