@@ -150,6 +150,20 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	}
 
 	org := organization.OrgFromUser(o)
+	canViewRoles := user_model.DoerCanViewPrivate(ctx.Doer) && (ctx.Doer.ID == ctx.ContextUser.ID || ctx.Doer.IsAdmin)
+	if !canViewRoles && user_model.DoerCanViewPrivate(ctx.Doer) && !ctx.Doer.IsRestricted {
+		isDoerMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		canViewRoles = isDoerMember
+	}
+	if !canViewRoles { // like GitHub, only the user, site admins and unrestricted org members see roles
+		ctx.JSON(http.StatusOK, op)
+		return
+	}
+
 	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
