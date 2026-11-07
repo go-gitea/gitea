@@ -53,7 +53,7 @@ func ComputeTaskTokenPermissions(ctx context.Context, task *ActionTask, targetRe
 	isSameRepo := task.Job.RepoID == targetRepo.ID
 	restrictCrossRepoAccess := task.IsForkPullRequest || !isSameRepo
 	if restrictCrossRepoAccess {
-		effectivePerms = repo_model.ClampActionsTokenPermissions(effectivePerms, repo_model.MakeRestrictedPermissions())
+		effectivePerms = repo_model.ClampActionsTokenPermissions(effectivePerms, repo_model.MakeCrossRepoAccessPermissions())
 	}
 
 	return effectivePerms, nil
