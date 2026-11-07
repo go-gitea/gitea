@@ -29,7 +29,7 @@ func ToAPIRelease(ctx context.Context, repo *repo_model.Repository, r *repo_mode
 		IsImmutable:  r.IsImmutable,
 		CreatedAt:    r.CreatedUnix.AsTime(),
 		PublishedAt:  util.Iif(r.IsDraft, nil, r.PublishedUnix.AsTimePtr()),
-		Publisher:    ToUser(ctx, r.Publisher, nil),
+		Publisher:    ToAuthor(ctx, r.Publisher, r.OriginalAuthor, nil),
 		Attachments:  ToAPIAttachments(ctx, repo, r.Attachments),
 	}
 }

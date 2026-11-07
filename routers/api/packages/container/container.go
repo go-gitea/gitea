@@ -153,7 +153,7 @@ func DetermineSupport(ctx *context.Context) {
 // If the current user is anonymous, the ghost user is used unless RequireSignInView is enabled.
 func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
-	packageScope := auth_service.GetAccessScope(ctx.Data)
+	packageScope := auth_service.GetAccessScope(ctx.Doer, ctx.Data)
 	if u == nil {
 		if setting.Service.RequireSignInViewStrict {
 			APIUnauthorizedError(ctx)
@@ -588,6 +588,8 @@ func PutManifest(ctx *context.Context) {
 			apiErrorDefined(ctx, namedError)
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
+		} else if errors.Is(err, util.ErrInvalidArgument) {
+			apiErrorDefined(ctx, errManifestInvalid.WithMessage(err.Error()))
 		} else if errors.Is(err, packages_service.ErrQuotaTotalCount) || errors.Is(err, packages_service.ErrQuotaTypeSize) || errors.Is(err, packages_service.ErrQuotaTotalSize) {
 			apiError(ctx, http.StatusForbidden, err)
 		} else {

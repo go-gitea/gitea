@@ -18,72 +18,21 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	tests := []struct {
-		name    string
-		options []ParseOption
-		wantErr bool
-	}{
-		{
-			name:    "multiple_jobs",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "multiple_matrix",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "has_needs",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "has_with",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "has_secrets",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "empty_step",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "job_name_with_matrix",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "prefixed_newline",
-			options: nil,
-			wantErr: false,
-		},
-		{
-			name:    "continue_on_error_expr",
-			options: nil,
-			wantErr: false,
-		},
-	}
-	invalidFileTests := []struct {
-		name string
-	}{
-		{name: "null_job_implicit"},
-		{name: "null_job_explicit"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			content := ReadTestdata(t, tt.name+".in.yaml")
-			want := ReadTestdata(t, tt.name+".out.yaml")
-			got, err := Parse(content, append([]ParseOption{WithGitContext(&model.GithubContext{})}, tt.options...)...)
-			if tt.wantErr {
-				require.Error(t, err)
-			}
+	for _, name := range []string{
+		"multiple_jobs",
+		"multiple_matrix",
+		"has_needs",
+		"has_with",
+		"has_secrets",
+		"empty_step",
+		"job_name_with_matrix",
+		"prefixed_newline",
+		"continue_on_error_expr",
+	} {
+		t.Run(name, func(t *testing.T) {
+			content := ReadTestdata(t, name+".in.yaml")
+			want := ReadTestdata(t, name+".out.yaml")
+			got, err := Parse(content, WithGitContext(&model.GithubContext{}))
 			require.NoError(t, err)
 
 			builder := &strings.Builder{}
@@ -102,9 +51,9 @@ func TestParse(t *testing.T) {
 		})
 	}
 
-	for _, tt := range invalidFileTests {
-		t.Run(tt.name, func(t *testing.T) {
-			content := ReadTestdata(t, tt.name+".in.yaml")
+	for _, name := range []string{"null_job_implicit", "null_job_explicit"} {
+		t.Run(name, func(t *testing.T) {
+			content := ReadTestdata(t, name+".in.yaml")
 			require.NotPanics(t, func() {
 				_, err := Parse(content)
 				require.Error(t, err)
@@ -460,6 +409,8 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 		{"empty vector", "\n  version: ${{ fromJson(needs.setup.outputs.empty) }}\n", `Matrix vector "version" does not contain any values`},
 		{"empty include", "\n  include: ${{ fromJson(needs.setup.outputs.empty) }}\n", "Matrix must define at least one vector"},
 		{"whole matrix not a mapping", " ${{ fromJson(needs.setup.outputs.empty) }}\n", `Matrix "" is not a map of matrix keys to values`},
+		{"unresolved need", "\n  v: ${{ fromJson(needs.missing.outputs.v) }}\n", "evaluate matrix"},
+		{"invalid strategy field", "\n  os: [linux]\nmax-parallel: ${{ fromJSON('bad') }}\n", "evaluate strategy"},
 	} {
 		t.Run(tt.name+" errors", func(t *testing.T) {
 			_, err := expand(t, tt.matrix)
@@ -473,16 +424,6 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 		require.Len(t, got, 1)
 		assert.Equal(t, "build", got[0].Name)
 		assert.Equal(t, 1, got[0].Strategy.JobTotal)
-	})
-
-	t.Run("unresolved need errors", func(t *testing.T) {
-		_, err := expand(t, "\n  v: ${{ fromJson(needs.missing.outputs.v) }}\n")
-		require.ErrorContains(t, err, "evaluate matrix")
-	})
-
-	t.Run("invalid strategy field errors", func(t *testing.T) {
-		_, err := expand(t, "\n  os: [linux]\nmax-parallel: ${{ fromJSON('bad') }}\n")
-		require.ErrorContains(t, err, "evaluate strategy")
 	})
 
 	// The combination count comes from a runtime output, so it must be rejected before one Job per

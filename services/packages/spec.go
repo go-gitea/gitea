@@ -36,7 +36,14 @@ func (*SpecRenderUsageManual) RenderSetupManual(ctx context.Context, pkg *packag
 	return ""
 }
 
+type SpecPublicPropertyNames struct{}
+
+func (*SpecPublicPropertyNames) PublicPropertyNames() []string {
+	return nil
+}
+
 type specDefault struct {
+	SpecPublicPropertyNames
 	SpecGetViewPackageVersionData
 	SpecOnBeforeRemovePackageAll
 	SpecOnBeforeRemovePackageVersion

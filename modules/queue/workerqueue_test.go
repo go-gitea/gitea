@@ -4,6 +4,7 @@
 package queue
 
 import (
+	"fmt"
 	"slices"
 	"strconv"
 	"sync"
@@ -76,40 +77,32 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 	}
 
 	runCount := 2 // we can run these tests even hundreds times to see its stability
-	t.Run("1/1", func(t *testing.T) {
-		for range runCount {
-			test(t, setting.QueueSettings{BatchLength: 1, MaxWorkers: 1})
-		}
-	})
-	t.Run("3/1", func(t *testing.T) {
-		for range runCount {
-			test(t, setting.QueueSettings{BatchLength: 3, MaxWorkers: 1})
-		}
-	})
-	t.Run("4/5", func(t *testing.T) {
-		for range runCount {
-			test(t, setting.QueueSettings{BatchLength: 4, MaxWorkers: 5})
-		}
-	})
+	for _, queueSetting := range []setting.QueueSettings{
+		{BatchLength: 1, MaxWorkers: 1},
+		{BatchLength: 3, MaxWorkers: 1},
+		{BatchLength: 4, MaxWorkers: 5},
+	} {
+		t.Run(fmt.Sprintf("%d/%d", queueSetting.BatchLength, queueSetting.MaxWorkers), func(t *testing.T) {
+			for range runCount {
+				test(t, queueSetting)
+			}
+		})
+	}
 }
 
 func TestWorkerPoolQueuePersistence(t *testing.T) {
 	runCount := 2 // we can run these tests even hundreds times to see its stability
-	t.Run("1/1", func(t *testing.T) {
-		for range runCount {
-			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 1, MaxWorkers: 1, Length: 100})
-		}
-	})
-	t.Run("3/1", func(t *testing.T) {
-		for range runCount {
-			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 3, MaxWorkers: 1, Length: 100})
-		}
-	})
-	t.Run("4/5", func(t *testing.T) {
-		for range runCount {
-			testWorkerPoolQueuePersistence(t, setting.QueueSettings{BatchLength: 4, MaxWorkers: 5, Length: 100})
-		}
-	})
+	for _, queueSetting := range []setting.QueueSettings{
+		{BatchLength: 1, MaxWorkers: 1, Length: 100},
+		{BatchLength: 3, MaxWorkers: 1, Length: 100},
+		{BatchLength: 4, MaxWorkers: 5, Length: 100},
+	} {
+		t.Run(fmt.Sprintf("%d/%d", queueSetting.BatchLength, queueSetting.MaxWorkers), func(t *testing.T) {
+			for range runCount {
+				testWorkerPoolQueuePersistence(t, queueSetting)
+			}
+		})
+	}
 }
 
 func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSettings) {
@@ -184,37 +177,23 @@ func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
 		return nil
 	}
 
-	q, _ := newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 1, Length: 100}, handler, false)
-	stop := runWorkerPoolQueue(q)
-	for i := range 5 {
-		assert.NoError(t, q.Push(i))
+	for _, workerCount := range []int{1, 3} {
+		q, _ := newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: workerCount, Length: 100}, handler, false)
+		stop := runWorkerPoolQueue(q)
+		for i := range workerCount * 5 {
+			assert.NoError(t, q.Push(i))
+		}
+
+		time.Sleep(50 * time.Millisecond)
+		assert.Equal(t, workerCount, q.GetWorkerNumber())
+		assert.Equal(t, workerCount, q.GetWorkerActiveNumber())
+		time.Sleep(500 * time.Millisecond)
+		assert.Equal(t, workerCount, q.GetWorkerNumber())
+		assert.Equal(t, 0, q.GetWorkerActiveNumber())
+		time.Sleep(workerIdleDuration)
+		assert.Equal(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
+		stop()
 	}
-
-	time.Sleep(50 * time.Millisecond)
-	assert.Equal(t, 1, q.GetWorkerNumber())
-	assert.Equal(t, 1, q.GetWorkerActiveNumber())
-	time.Sleep(500 * time.Millisecond)
-	assert.Equal(t, 1, q.GetWorkerNumber())
-	assert.Equal(t, 0, q.GetWorkerActiveNumber())
-	time.Sleep(workerIdleDuration)
-	assert.Equal(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
-	stop()
-
-	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 3, Length: 100}, handler, false)
-	stop = runWorkerPoolQueue(q)
-	for i := range 15 {
-		assert.NoError(t, q.Push(i))
-	}
-
-	time.Sleep(50 * time.Millisecond)
-	assert.Equal(t, 3, q.GetWorkerNumber())
-	assert.Equal(t, 3, q.GetWorkerActiveNumber())
-	time.Sleep(500 * time.Millisecond)
-	assert.Equal(t, 3, q.GetWorkerNumber())
-	assert.Equal(t, 0, q.GetWorkerActiveNumber())
-	time.Sleep(workerIdleDuration)
-	assert.Equal(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
-	stop()
 }
 
 func TestWorkerPoolQueueShutdown(t *testing.T) {

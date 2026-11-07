@@ -55,7 +55,7 @@
 		</div>
 	</div>
 
-	<div class="ui small modal" id="delete-principal">
+	<dialog class="modal-dialog" id="delete-principal">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.ssh_principal_deletion"}}
@@ -64,5 +64,5 @@
 			<p>{{ctx.Locale.Tr "settings.ssh_principal_deletion_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
-	</div>
+	</dialog>
 {{end}}

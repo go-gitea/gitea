@@ -9,6 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/routers"
@@ -25,6 +28,17 @@ func TestRepoDownloadArchive(t *testing.T) {
 	defer test.MockVariableValue(&web.GzipMinSize, 10)()
 	defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
 
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, git.ForceFastImport(t.Context(), repo.CodeStorageRepo(), []git.FastImportCommit{{
+		Ref: "refs/heads/archive-test",
+		Files: []git.FastImportFile{
+			{Path: "a.txt", Content: "root text file\n"},
+			{Path: "aaa.doc", Content: "root document\n"},
+			{Path: "x/b.txt", Content: "nested text file\n"},
+			{Path: "x/y/a.txt", Content: "deeply nested text file\n"},
+		},
+	}}))
+
 	t.Run("NoDuplicateCompression", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/archive/master.zip")
 		req.Header.Set("Accept-Encoding", "gzip")
@@ -37,7 +51,7 @@ func TestRepoDownloadArchive(t *testing.T) {
 
 	t.Run("Conditional", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Repository.StreamArchives, true)()
-		archiveURL := "/user2/glob/archive/master.tar.gz"
+		archiveURL := "/user2/repo1/archive/archive-test.tar.gz"
 		etag := MakeRequest(t, NewRequest(t, "GET", archiveURL), http.StatusOK).Header().Get("ETag")
 		assert.True(t, strings.HasPrefix(etag, `W/"`))
 		MakeRequest(t, NewRequest(t, "GET", archiveURL).SetHeader("If-None-Match", etag), http.StatusNotModified)
@@ -55,22 +69,22 @@ func TestRepoDownloadArchive(t *testing.T) {
 	t.Run("SubPath", func(t *testing.T) {
 		// When using "archiving and caching" approach, archiving with paths will always use streaming and never be cached
 		defer test.MockVariableValue(&setting.Repository.StreamArchives, false)() // this can be removed if there is always streaming mode
-		req := NewRequest(t, "GET", "/user2/glob/archive/master.tar.gz?path=aaa.doc&path=x/y")
+		req := NewRequest(t, "GET", "/user2/repo1/archive/archive-test.tar.gz?path=aaa.doc&path=x/y")
 		resp := MakeRequest(t, req, http.StatusOK)
 		content, err := test.ReadAllTarGzContent(resp.Body)
 		require.NoError(t, err)
-		assert.Empty(t, content["glob/a.txt"])
-		assert.NotEmpty(t, content["glob/aaa.doc"])
-		assert.Empty(t, content["glob/x/b.txt"])
-		assert.NotEmpty(t, content["glob/x/y/a.txt"])
+		assert.Empty(t, content["repo1/a.txt"])
+		assert.NotEmpty(t, content["repo1/aaa.doc"])
+		assert.Empty(t, content["repo1/x/b.txt"])
+		assert.NotEmpty(t, content["repo1/x/y/a.txt"])
 
-		req = NewRequest(t, "GET", "/user2/glob/archive/master.tar.gz")
+		req = NewRequest(t, "GET", "/user2/repo1/archive/archive-test.tar.gz")
 		resp = MakeRequest(t, req, http.StatusOK)
 		content, err = test.ReadAllTarGzContent(resp.Body)
 		require.NoError(t, err)
-		assert.NotEmpty(t, content["glob/a.txt"])
-		assert.NotEmpty(t, content["glob/aaa.doc"])
-		assert.NotEmpty(t, content["glob/x/b.txt"])
-		assert.NotEmpty(t, content["glob/x/y/a.txt"])
+		assert.NotEmpty(t, content["repo1/a.txt"])
+		assert.NotEmpty(t, content["repo1/aaa.doc"])
+		assert.NotEmpty(t, content["repo1/x/b.txt"])
+		assert.NotEmpty(t, content["repo1/x/y/a.txt"])
 	})
 }

@@ -13,7 +13,9 @@ permissions: {}
 jobs:
   tag:
     runs-on: ubuntu-latest
-    environment: release-signing
+    environment:
+      name: release-signing
+      deployment: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

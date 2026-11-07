@@ -1,0 +1,9 @@
+Access-Control-Expose-Headers: X-Total-Count
+Cache-Control: max-age=0, private, must-revalidate
+Content-Length: 872
+Content-Type: application/json;charset=utf-8
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Total-Count: 1
+
+[{"id":3,"html_url":"https://forgejo.example/alice/test_repo/issues/1#issuecomment-3","pull_request_url":"","issue_url":"https://forgejo.example/alice/test_repo/issues/1","user":{"id":2,"login":"bob","login_name":"","source_id":0,"full_name":"","email":"bob@noreply.forgejo.example","avatar_url":"https://forgejo.example/avatars/4b9bb80620f03eb3719e0a061c14283d","html_url":"https://forgejo.example/bob","language":"","is_admin":false,"last_login":"0001-01-01T00:00:00Z","created":"2026-09-25T01:13:51Z","restricted":false,"active":false,"prohibit_login":false,"location":"","pronouns":"","website":"","description":"","visibility":"public","followers_count":0,"following_count":0,"starred_repos_count":0,"username":"bob"},"original_author":"","original_author_id":0,"body":"a comment","assets":[],"created_at":"2026-09-25T01:13:56Z","updated_at":"2026-09-25T01:13:56Z"}]

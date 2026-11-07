@@ -1,6 +1,6 @@
 - Never assume, verify before claiming
 - List development targets with `make help`
-- Read relevant developer documentation in the `docs` folder
+- Before working on code, read the `docs` guides for every area touched: `guidelines-backend.md` for Go, `guidelines-frontend.md` for TS, CSS and Vue, both for templates, `testing.md` for tests, `development.md` for config options and migrations, `guidelines-refactoring.md` for refactors
 - PR descriptions: minimal, only what and why, no task or file listings. Include screenshots for UI changes, before and after when modifying existing UI. Aim for less than 1000 characters
 - Reference issues and PRs by full URL, not by number
 - Use Conventional Commits for commit messages and PR titles, plus Gitea's `enhance` type for user-facing enhancements

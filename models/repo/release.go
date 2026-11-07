@@ -201,6 +201,10 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 	}
 
 	for i := range attachments {
+		if attachments[i].IssueID != 0 || attachments[i].CommentID != 0 || attachments[i].ReleaseID != 0 {
+			return util.NewPermissionDeniedErrorf("attachment is already linked")
+		}
+
 		if attachments[i].RepoID == 0 && attachments[i].CreatedUnix < LegacyAttachmentMissingRepoIDCutoff {
 			attachments[i].RepoID = rel.RepoID
 			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Cols("repo_id").Update(attachments[i]); err != nil {
@@ -346,18 +350,32 @@ func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 	return tags, sess.Find(&tags)
 }
 
-// GetLatestReleaseByRepoID returns the latest release for a repository
-func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, error) {
-	cond := builder.NewCond().
-		And(builder.Eq{"repo_id": repoID}).
-		And(builder.Eq{"is_draft": false}).
-		And(builder.Eq{"is_prerelease": false}).
-		And(builder.Eq{"is_tag": false})
+func (r *Release) CanBeLatest() bool {
+	return !r.IsDraft && !r.IsPrerelease && !r.IsTag
+}
 
+func latestReleaseCond(repoID int64) builder.Cond {
+	return FindReleasesOptions{RepoID: repoID, IsPreRelease: optional.Some(false)}.ToConds()
+}
+
+func GetLatestRelease(ctx context.Context, repo *Repository) (*Release, error) {
+	if repo.LatestReleaseID != 0 {
+		rel, has, err := db.Get[Release](ctx, latestReleaseCond(repo.ID).And(builder.Eq{"id": repo.LatestReleaseID}))
+		if err != nil {
+			return nil, err
+		} else if has {
+			return rel, nil
+		}
+	}
+	return GetLatestReleaseByRepoID(ctx, repo.ID)
+}
+
+// GetLatestReleaseByRepoID returns the newest published stable release of a repository by date
+func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, error) {
 	rel := new(Release)
 	has, err := db.GetEngine(ctx).
 		Desc("created_unix", "id").
-		Where(cond).
+		Where(latestReleaseCond(repoID)).
 		Get(rel)
 	if err != nil {
 		return nil, err
@@ -366,6 +384,27 @@ func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, erro
 	}
 
 	return rel, nil
+}
+
+func SetLatestReleaseID(ctx context.Context, repo *Repository, releaseID int64) error {
+	repo.LatestReleaseID = releaseID
+	_, err := db.GetEngine(ctx).ID(repo.ID).Where(builder.Neq{"latest_release_id": releaseID}).
+		Cols("latest_release_id").NoAutoTime().Update(repo)
+	return err
+}
+
+func UnsetLatestReleaseID(ctx context.Context, repo *Repository, releaseID int64) error {
+	if releaseID == 0 {
+		return nil
+	}
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{"id": repo.ID, "latest_release_id": releaseID}).
+		Cols("latest_release_id").NoAutoTime().Update(&Repository{LatestReleaseID: 0}); err != nil {
+		return err
+	}
+	if repo.LatestReleaseID == releaseID {
+		repo.LatestReleaseID = 0
+	}
+	return nil
 }
 
 type releaseMetaSearch struct {

@@ -1,12 +1,9 @@
 interface JQuery {
   fomanticExt: {
     onDropdownAfterFiltered?: (this: HTMLElement) => void,
-    onModalBeforeHidden?: (this: HTMLElement) => void,
   }; // fomantic extension
   api: any, // fomantic
-  dimmer: any, // fomantic
   dropdown: any; // fomantic
-  modal: any; // fomantic
   transition: any, // fomantic
 }
 
@@ -47,6 +44,7 @@ interface Window {
         name: string,
       }>,
       dashboardRepoList?: Record<string, unknown>,
+      projectWorkflows?: import('./components/ProjectWorkflowStore.ts').ProjectWorkflowData,
     },
     notificationSettings: {
       MinTimeout: number,

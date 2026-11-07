@@ -1,7 +1,7 @@
 import {test, expect} from '@playwright/test';
 import {apiCreateFiles, apiCreatePR, apiCreateRepo, apiCreateUser, apiUserHeaders, loginUser, randomString} from './utils.ts';
 
-test('diff sidebar filtering', async ({page, request}) => {
+test('diff sidebar filtering and folded file navigation', async ({page, request}) => {
   const user = `df-${randomString(8)}`;
   await apiCreateUser(request, user);
   const headers = apiUserHeaders(user);
@@ -12,7 +12,7 @@ test('diff sidebar filtering', async ({page, request}) => {
     {path: 'src/a.ts', content: 'a\n'},
     {path: 'src/b.ts', content: 'b\n'},
     {path: 'src/.eslintrc', content: 'e\n'}, // dotfiles count as "No extension"
-    {path: 'styles/x.css', content: 'x\n'},
+    {path: 'styles/x.css', content: 'x\n'.repeat(150)},
     {path: 'docs/intro.md', content: 'r\n'},
     {path: 'Makefile', content: 'm\n'},
   ], {branch: 'main', newBranch: 'feat', headers});
@@ -33,6 +33,12 @@ test('diff sidebar filtering', async ({page, request}) => {
   const boxesWidth = (await page.locator('#diff-file-boxes').boundingBox())!.width;
   const treeWidth = (await tree.boundingBox())!.width;
   expect(boxesWidth).toBeGreaterThan(treeWidth * 2);
+
+  await page.getByLabel('Diff Options').click();
+  await page.getByRole('menuitem', {name: 'Collapse all files'}).click();
+  await tree.getByRole('link', {name: 'x.css'}).click();
+  const cssFileHeader = page.getByRole('link', {name: 'styles/x.css', exact: true});
+  await expect.poll(async () => (await cssFileHeader.boundingBox())!.y).toBeLessThan(page.viewportSize()!.height / 2);
 
   // search filters tree and file boxes
   await search.fill('a.ts');

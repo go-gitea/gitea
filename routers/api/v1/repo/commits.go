@@ -58,10 +58,8 @@ func GetSingleCommit(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Commit"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
@@ -154,10 +152,8 @@ func GetAllCommits(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/EmptyRepository"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	since := ctx.FormString("since")
 	until := ctx.FormString("until")
@@ -354,8 +350,8 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/string"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	sha := ctx.PathParam("sha")
 	diffType := git.RawDiffType(ctx.PathParam("diffType"))
 
@@ -395,8 +391,8 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequest"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	pr, err := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.PathParam("sha"))
 	if err != nil {

@@ -317,28 +317,19 @@ func (repo *Repository) CommitsByFileAndRange(ctx context.Context, opts CommitsB
 // CommitsBetween returns a list that contains commits between [after, before). After is the first item in the slice.
 // If "before" and "after" are not related, it returns the all commits for the "after" commit.
 func (repo *Repository) CommitsBetween(ctx context.Context, afterRef, beforeRef RefName, limit int, optSkip ...int) ([]*Commit, error) {
-	gitCmd := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("rev-list").WithRepo(repo)
-		if limit >= 0 {
-			cmd.AddOptionValues("--max-count", strconv.Itoa(limit))
-		}
-		if len(optSkip) > 0 {
-			cmd.AddOptionValues("--skip", strconv.Itoa(optSkip[0]))
-		}
-		return cmd
+	cmd := gitcmd.NewCommand("rev-list").WithRepo(repo)
+	if limit >= 0 {
+		cmd.AddOptionValues("--max-count", strconv.Itoa(limit))
 	}
-	var stdout []byte
-	var err error
+	if len(optSkip) > 0 {
+		cmd.AddOptionValues("--skip", strconv.Itoa(optSkip[0]))
+	}
 	if beforeRef == "" {
-		stdout, _, err = gitCmd().AddDynamicArguments(afterRef.String()).RunStdBytes(ctx)
+		cmd.AddDynamicArguments(afterRef.String())
 	} else {
-		stdout, _, err = gitCmd().AddDynamicArguments(beforeRef.String() + ".." + afterRef.String()).RunStdBytes(ctx)
-		if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
-			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
-			// if the beforeRef and afterRef are not related (no merge base), just get all commits pushed by afterRef
-			stdout, _, err = gitCmd().AddDynamicArguments(afterRef.String()).RunStdBytes(ctx)
-		}
+		cmd.AddDynamicArguments(beforeRef.String() + ".." + afterRef.String())
 	}
+	stdout, _, err := cmd.RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -416,8 +407,26 @@ func (repo *Repository) GetCommitsFromIDs(ctx context.Context, commitIDs []strin
 	return commits
 }
 
-// IsCommitInBranch check if the commit is on the branch
+// IsCommitInRepo checks if the commit exists in the repository.
+func IsCommitInRepo(ctx context.Context, repo gitrepo.RepositoryFacade, commitID string) (bool, error) {
+	// "--quiet" makes it exit with 1 and no output if the commit doesn't exist
+	_, _, err := gitcmd.NewCommand("rev-parse", "--verify", "--quiet").
+		AddDynamicArguments(commitID + "^{commit}").
+		WithRepo(repo).
+		RunStdString(ctx)
+	if gitcmd.IsErrorExitCode(err, 1) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// IsCommitInBranch checks if the commit is on the branch.
+// It returns false (no error) if the commit doesn't exist or isn't on the branch.
 func IsCommitInBranch(ctx context.Context, repo gitrepo.RepositoryFacade, commitID, branch string) (r bool, err error) {
+	if exist, err := IsCommitInRepo(ctx, repo, commitID); err != nil || !exist {
+		return false, err
+	}
+
 	stdout, _, err := gitcmd.NewCommand("branch", "--contains").
 		AddDynamicArguments(commitID, branch).
 		WithRepo(repo).
@@ -425,7 +434,7 @@ func IsCommitInBranch(ctx context.Context, repo gitrepo.RepositoryFacade, commit
 	if err != nil {
 		return false, err
 	}
-	return len(stdout) > 0, err
+	return len(stdout) > 0, nil
 }
 
 // GetCommitBranchStart returns the commit where the branch diverged
