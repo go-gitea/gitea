@@ -91,10 +91,11 @@ func RegenerateAuthToken(ctx context.Context, t *auth_model.AuthToken) (*auth_mo
 	return newToken, token, nil
 }
 
-func CreateAuthTokenForUserID(ctx context.Context, userID int64) (*auth_model.AuthToken, string, error) {
+func CreateAuthTokenForUserID(ctx context.Context, userID int64, signInMethod string) (*auth_model.AuthToken, string, error) {
 	t := &auth_model.AuthToken{
-		UserID:      userID,
-		ExpiresUnix: timeutil.TimeStampNow().AddDuration(time.Duration(setting.LogInRememberDays*24) * time.Hour),
+		UserID:       userID,
+		ExpiresUnix:  timeutil.TimeStampNow().AddDuration(time.Duration(setting.LogInRememberDays*24) * time.Hour),
+		SignInMethod: signInMethod,
 	}
 
 	t.ID = util.CryptoRandomString(10)

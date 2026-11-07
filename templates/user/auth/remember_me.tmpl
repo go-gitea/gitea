@@ -1,0 +1,8 @@
+{{if .ShowRememberMe}}
+<div class="inline field">
+	<div class="ui checkbox">
+		<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
+		<input name="remember" type="checkbox" {{if .RememberMeChecked}}checked{{end}}>
+	</div>
+</div>
+{{end}}

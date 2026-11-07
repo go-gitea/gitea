@@ -59,6 +59,7 @@ var (
 	SecretKey                          string
 	InternalToken                      string // internal access token
 	LogInRememberDays                  int
+	LogInRememberMe                    string
 	CookieRememberName                 string
 	ReverseProxyAuthUser               string
 	ReverseProxyAuthEmail              string
@@ -144,6 +145,7 @@ func generateSaveInternalToken(rootCfg ConfigProvider) {
 func loadSecurityFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("security")
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(31)
+	LogInRememberMe = sec.Key("LOGIN_REMEMBER_ME").In("checked", []string{"never", "unchecked", "checked", "always"})
 	SecretKey = loadSecret(sec, "SECRET_KEY_URI", "SECRET_KEY")
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832

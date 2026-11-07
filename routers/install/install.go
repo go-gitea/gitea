@@ -478,7 +478,7 @@ func initAdminUser(ctx *context.Context, form *forms.InstallForm) bool {
 
 	audit.RecordAs(ctx, adminUser, audit_model.UserCreate, adminUser)
 
-	nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, adminUser.ID)
+	nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, adminUser.ID, "")
 	if err != nil {
 		ctx.ServerError("CreateAuthTokenForUserID", err)
 		return false

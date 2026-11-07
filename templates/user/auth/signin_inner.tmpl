@@ -22,14 +22,7 @@
 				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
 			</div>
 			{{end}}
-			{{if not .LinkAccountMode}}
-			<div class="inline field">
-				<div class="ui checkbox">
-					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
-					<input name="remember" type="checkbox">
-				</div>
-			</div>
-			{{end}}
+			{{template "user/auth/remember_me" .}}
 
 			{{template "user/auth/captcha" .}}
 
@@ -49,12 +42,15 @@
 			{{end}}
 		</form>
 		{{end}}{{/*end if .EnablePasswordSignInForm*/}}
-		{{$showExternalAuthMethods := or .OAuth2Providers .EnableSSPI}}
-		{{if and $showExternalAuthMethods .EnablePasswordSignInForm}}
+		{{$passwordFree := or .OAuth2Providers (and .EnablePasskeyAuth (not .EnablePasswordSignInForm))}}
+		{{if or $passwordFree .EnableSSPI}}
+			{{if .EnablePasswordSignInForm}}
 			<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
-		{{end}}
-		{{if $showExternalAuthMethods}}
-			{{template "user/auth/external_auth_methods" .}}
+			{{end}}
+			<form class="ui form" action="{{AppSubUrl}}/user/oauth2" method="post">
+				{{if $passwordFree}}{{template "user/auth/remember_me" .}}{{end}}
+				{{template "user/auth/external_auth_methods" .}}
+			</form>
 		{{end}}
 	</div>
 </div>

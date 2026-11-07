@@ -565,6 +565,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Get("/user/login", auth.SignIn)
 	m.Group("/user", func() {
 		m.Post("/login", web.Bind[*forms.SignInForm](), auth.SignInPost)
+		m.Post("/oauth2", auth.SignInOAuthPost)
 		m.Get("/sign_up", auth.SignUp)
 		m.Post("/sign_up", web.Bind[*forms.RegisterForm](), auth.SignUpPost)
 		m.Get("/link_account", auth.LinkAccount)

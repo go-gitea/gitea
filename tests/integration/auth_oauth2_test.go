@@ -335,7 +335,7 @@ func TestAuthOAuth2Flows(t *testing.T) {
 				addOAuth2Source(t, tc.SourceName, newOIDCSource(srv, tc.IsAdmin, tc.IsRestricted))
 				unittest.AssertNotExistsBean(t, &user_model.User{Name: tc.SourceName})
 				session := emptyTestSession(t)
-				resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+tc.SourceName), http.StatusTemporaryRedirect)
+				resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+tc.SourceName), http.StatusSeeOther)
 
 				location := resp.Header().Get("Location")
 				u, err := url.Parse(location)
@@ -410,7 +410,8 @@ func TestAuthOAuth2Flows(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &user_model.ExternalLoginUser{ExternalID: sub, LoginSourceID: authSource.ID}, unittest.OrderBy("external_id ASC"))
 
 		session := emptyTestSession(t)
-		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
+		req := NewRequestWithValues(t, "POST", "/user/oauth2", map[string]string{"provider": sourceName, "remember": "on"})
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
 
 		location := resp.Header().Get("Location")
 		u, err := url.Parse(location)
@@ -427,7 +428,7 @@ func TestAuthOAuth2Flows(t *testing.T) {
 		passcode, err := totp.GenerateCode(otpKey.Secret(), time.Now())
 		require.NoError(t, err)
 
-		req := NewRequestWithValues(t, "POST", "/user/two_factor", map[string]string{
+		req = NewRequestWithValues(t, "POST", "/user/two_factor", map[string]string{
 			"passcode": passcode,
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
@@ -436,6 +437,8 @@ func TestAuthOAuth2Flows(t *testing.T) {
 		assert.Equal(t, localUser.ID, externalLink.UserID)
 
 		session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+		assert.NotNil(t, session.GetRawCookie(setting.CookieRememberName))
+		unittest.AssertExistsAndLoadBean(t, &auth_model.AuthToken{UserID: localUser.ID, SignInMethod: "oauth2"})
 	})
 
 	// a security key must be challenged on every path that issues a session, not just the password login
@@ -450,7 +453,7 @@ func TestAuthOAuth2Flows(t *testing.T) {
 
 		assertOAuth2Challenged := func(t *testing.T, sourceName string) {
 			session := emptyTestSession(t)
-			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
+			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusSeeOther)
 			u, err := url.Parse(resp.Header().Get("Location"))
 			require.NoError(t, err)
 			state := u.Query().Get("state")
@@ -586,7 +589,7 @@ func doOIDCSignIn(t *testing.T, sourceName string) {
 	session := emptyTestSession(t)
 
 	// Step 1: initiate login
-	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusSeeOther)
 
 	// Step 2: extract the UUID state that Gitea embedded in the redirect URL.
 	location := resp.Header().Get("Location")

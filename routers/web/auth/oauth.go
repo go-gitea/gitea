@@ -37,9 +37,21 @@ import (
 	go_oauth2 "golang.org/x/oauth2"
 )
 
-// SignInOAuth handles the OAuth2 login buttons
+// SignInOAuth handles direct OAuth2 login links, which ignore remember-me because anyone can craft them
 func SignInOAuth(ctx *context.Context) {
-	authName := ctx.PathParam("provider")
+	signInOAuth(ctx, ctx.PathParam("provider"), false)
+}
+
+func SignInOAuthPost(ctx *context.Context) {
+	signInOAuth(ctx, ctx.FormString("provider"), ctx.FormBool("remember"))
+}
+
+func oauth2Remember(ctx *context.Context) bool {
+	remember, _ := ctx.Session.Get("oauth2Remember").(bool)
+	return remember
+}
+
+func signInOAuth(ctx *context.Context, authName string, remember bool) {
 	authSource, err := auth.GetActiveOAuth2SourceByAuthName(ctx, authName)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
@@ -47,6 +59,10 @@ func SignInOAuth(ctx *context.Context) {
 	}
 
 	rememberAuthRedirectLink(ctx)
+	if err := ctx.Session.Set("oauth2Remember", remember); err != nil {
+		ctx.ServerError("Session.Set", err)
+		return
+	}
 
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
 	user, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
@@ -427,6 +443,11 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
+		if err := rememberSignIn(ctx, u.ID, oauth2Remember(ctx)); err != nil {
+			ctx.ServerError("rememberSignIn", err)
+			return
+		}
+
 		if err := resetLocale(ctx, u); err != nil {
 			ctx.ServerError("resetLocale", err)
 			return
@@ -443,7 +464,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		}
 	}
 
-	handleTwoFactorRequired(ctx, u, false, map[string]any{session.KeySignInMethod: session.SignInMethodOAuth2})
+	handleTwoFactorRequired(ctx, u, oauth2Remember(ctx), map[string]any{session.KeySignInMethod: session.SignInMethodOAuth2})
 }
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful

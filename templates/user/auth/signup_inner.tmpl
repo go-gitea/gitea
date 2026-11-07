@@ -49,12 +49,13 @@
 					</button>
 				</div>
 			{{end}}
-			{{$showExternalAuthMethods := or .OAuth2Providers .EnableSSPI}}
-			{{if $showExternalAuthMethods}}
-				<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
-				{{template "user/auth/external_auth_methods" .}}
-			{{end}}
 		</form>
+		{{if or .OAuth2Providers .EnableSSPI}}
+			<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
+			<form action="{{AppSubUrl}}/user/oauth2" method="post">
+				{{template "user/auth/external_auth_methods" .}}
+			</form>
+		{{end}}
 	</div>
 </div>
 

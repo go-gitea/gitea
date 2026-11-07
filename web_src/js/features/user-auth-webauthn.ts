@@ -23,7 +23,8 @@ export function initUserAuthWebAuthn() {
   }
 
   if (elSignInPasskeyBtn) {
-    elSignInPasskeyBtn.addEventListener('click', loginPasskey);
+    const elRemember = Array.from(document.querySelectorAll<HTMLInputElement>('input[name=remember]')).at(-1); // the nearest one above the passkey button
+    elSignInPasskeyBtn.addEventListener('click', () => loginPasskey(Boolean(elRemember?.checked)));
   }
 
   if (elPrompt) {
@@ -31,7 +32,7 @@ export function initUserAuthWebAuthn() {
   }
 }
 
-async function loginPasskey() {
+async function loginPasskey(remember: boolean) {
   const res = await GET(`${appSubUrl}/user/webauthn/passkey/assertion`);
   if (!res.ok) {
     webAuthnError('unknown');
@@ -57,7 +58,7 @@ async function loginPasskey() {
     const sig = new Uint8Array(credResp.signature);
     const userHandle = new Uint8Array(credResp.userHandle ?? []);
 
-    const res = await POST(`${appSubUrl}/user/webauthn/passkey/login`, {
+    const res = await POST(`${appSubUrl}/user/webauthn/passkey/login?remember=${remember}`, {
       data: {
         id: credential.id,
         rawId: encodeURLEncodedBase64(rawId),

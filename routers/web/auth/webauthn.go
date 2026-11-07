@@ -12,6 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 	wa "gitea.dev/modules/auth/webauthn"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/context"
@@ -154,7 +155,11 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 		return
 	}
 
-	remember := false // TODO: implement remember me
+	remember := ctx.FormBool("remember")
+	if ctx.Session.Get("linkAccount") != nil { // the link page has no checkbox, the SSO sign-in being linked decides
+		remember = oauth2Remember(ctx)
+		_ = ctx.Session.Set(session.KeySignInMethod, session.SignInMethodOAuth2)
+	}
 	handleSignInFull(ctx, user, remember)
 	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }

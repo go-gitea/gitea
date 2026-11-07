@@ -371,7 +371,7 @@
   "auth.disable_register_prompt": "Registration is disabled. Please contact your site administrator.",
   "auth.disable_register_mail": "Email confirmation for registration is disabled.",
   "auth.manual_activation_only": "Contact your site administrator to complete activation.",
-  "auth.remember_me": "Remember This Device",
+  "auth.remember_me": "Remember me",
   "auth.remember_me.compromised": "The login token is not valid anymore which may indicate a compromised account. Please check your account for unusual activities.",
   "auth.forgot_password_title": "Forgot Password",
   "auth.forgot_password": "Forgot password?",

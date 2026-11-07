@@ -90,6 +90,9 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 			ctx.DeleteSiteCookie(setting.CookieRememberName)
 		}
 	}()
+	if setting.LogInRememberMe == "never" {
+		return false, nil
+	}
 
 	t, err := auth_service.CheckAuthToken(ctx, cookieTokenValue)
 	if errors.Is(err, auth_service.ErrAuthTokenStale) {
@@ -127,6 +130,7 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+		session.KeySignInMethod:         t.SignInMethod,
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
 	}
@@ -261,6 +265,7 @@ func prepareSignInPageData(ctx *context.Context) (ret preparedSignInData) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = ret.enableSSPI
+	prepareRememberMeData(ctx)
 
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin,
@@ -373,18 +378,31 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 	redirectAfterAuth(ctx)
 }
 
-func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
-	if remember {
-		if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
-			log.Error("Failed to delete expired auth tokens: %v", err)
-		}
-		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
-		if err != nil {
-			ctx.ServerError("CreateAuthTokenForUserID", err)
-			return
-		}
+func prepareRememberMeData(ctx *context.Context) {
+	ctx.Data["ShowRememberMe"] = setting.LogInRememberMe == "checked" || setting.LogInRememberMe == "unchecked"
+	ctx.Data["RememberMeChecked"] = util.Iif(ctx.Req.Method == http.MethodPost, ctx.FormBool("remember"), setting.LogInRememberMe == "checked")
+}
 
-		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
+func rememberSignIn(ctx *context.Context, userID int64, remember bool) error {
+	if setting.LogInRememberMe == "never" || !remember && setting.LogInRememberMe != "always" {
+		return nil
+	}
+	if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
+		log.Error("Failed to delete expired auth tokens: %v", err)
+	}
+	signInMethod, _ := ctx.Session.Get(session.KeySignInMethod).(string)
+	nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, userID, signInMethod)
+	if err != nil {
+		return err
+	}
+	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
+	return nil
+}
+
+func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
+	if err := rememberSignIn(ctx, u.ID, remember); err != nil {
+		ctx.ServerError("rememberSignIn", err)
+		return
 	}
 
 	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
@@ -656,8 +674,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 				if !oauth2IdentityMatchesUser(&possibleLinkAccountData.GothUser, user) {
 					break // name or email came from the sign-up form, report the conflict instead of linking
 				}
-				// TODO: probably we should respect 'remember' user's choice...
-				oauth2LinkAccount(ctx, user, possibleLinkAccountData, true)
+				oauth2LinkAccount(ctx, user, possibleLinkAccountData)
 				return false // user is already created here, all redirects are handled
 			case setting.OAuth2AccountLinkingLogin:
 				showLinkingLogin(ctx, possibleLinkAccountData.AuthSourceID, possibleLinkAccountData.GothUser)

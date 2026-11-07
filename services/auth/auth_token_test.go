@@ -40,7 +40,7 @@ func TestCheckAuthToken(t *testing.T) {
 	t.Run("Expired", func(t *testing.T) {
 		timeutil.MockSet(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
 
-		at, token, err := CreateAuthTokenForUserID(t.Context(), 2)
+		at, token, err := CreateAuthTokenForUserID(t.Context(), 2, "")
 		assert.NoError(t, err)
 		assert.NotNil(t, at)
 		assert.NotEmpty(t, token)
@@ -55,7 +55,7 @@ func TestCheckAuthToken(t *testing.T) {
 	})
 
 	t.Run("InvalidHash", func(t *testing.T) {
-		at, token, err := CreateAuthTokenForUserID(t.Context(), 2)
+		at, token, err := CreateAuthTokenForUserID(t.Context(), 2, "")
 		assert.NoError(t, err)
 		assert.NotNil(t, at)
 		assert.NotEmpty(t, token)
@@ -70,7 +70,7 @@ func TestCheckAuthToken(t *testing.T) {
 	})
 
 	t.Run("Valid", func(t *testing.T) {
-		at, token, err := CreateAuthTokenForUserID(t.Context(), 2)
+		at, token, err := CreateAuthTokenForUserID(t.Context(), 2, "")
 		assert.NoError(t, err)
 		assert.NotNil(t, at)
 		assert.NotEmpty(t, token)
@@ -89,7 +89,7 @@ func TestRegenerateAuthToken(t *testing.T) {
 	timeutil.MockSet(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
 	defer timeutil.MockUnset()
 
-	at, token, err := CreateAuthTokenForUserID(t.Context(), 2)
+	at, token, err := CreateAuthTokenForUserID(t.Context(), 2, "")
 	assert.NoError(t, err)
 	assert.NotNil(t, at)
 	assert.NotEmpty(t, token)

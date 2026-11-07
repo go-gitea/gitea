@@ -20,14 +20,7 @@
 							<label for="password">{{ctx.Locale.Tr "settings.new_password"}}</label>
 							<input id="password" name="password" type="password"  value="{{.password}}" autocomplete="new-password" autofocus required>
 						</div>
-						{{if not .user_signed_in}}
-						<div class="inline field">
-							<div class="ui checkbox">
-								<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
-								<input name="remember" type="checkbox">
-							</div>
-						</div>
-						{{end}}
+						{{if not .user_signed_in}}{{template "user/auth/remember_me" .}}{{end}}
 						{{if .has_two_factor}}
 						<h4 class="ui dividing header">
 							{{ctx.Locale.Tr "twofa"}}
