@@ -146,6 +146,10 @@ func PullFilesStream(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	if filesRange.afterCommit == nil {
+		ctx.NotFound(nil)
+		return
+	}
 	rule := filesRange.prViewInfo.ProtectedBranchRule
 	var patterns []glob.Glob
 	if rule != nil {

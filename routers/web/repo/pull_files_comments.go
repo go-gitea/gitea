@@ -180,11 +180,14 @@ func PullFilesComments(ctx *context.Context) {
 
 // getPendingCodeCommentCount returns whether the doer has a pending review and how many code comments it has
 func getPendingCodeCommentCount(ctx *context.Context, issue *issues_model.Issue) (hasPendingReview bool, count int64, err error) {
+	if !ctx.IsSigned {
+		return false, 0, nil
+	}
 	review, err := issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
 	if err != nil && !issues_model.IsErrReviewNotExist(err) {
 		return false, 0, err
 	}
-	if review == nil { // also for anonymous users
+	if review == nil {
 		return false, 0, nil
 	}
 	count, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{Type: issues_model.CommentTypeCode, ReviewID: review.ID, IssueID: issue.ID})
