@@ -560,7 +560,7 @@ func matchPullRequestEvent(ctx context.Context, gitRepo *git.Repository, commit 
 		headCommit = commit
 		err        error
 	)
-	if evt.Name == GithubEventPullRequestTarget && (len(acts["paths"]) > 0 || len(acts["paths-ignore"]) > 0) {
+	if (len(acts["paths"]) > 0 || len(acts["paths-ignore"]) > 0) && commit.ID.String() != prPayload.PullRequest.Head.Sha {
 		headCommit, err = gitRepo.GetCommit(ctx, prPayload.PullRequest.Head.Sha)
 		if err != nil {
 			log.Error("GetCommit [ref: %s]: %v", prPayload.PullRequest.Head.Sha, err)

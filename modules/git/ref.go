@@ -20,6 +20,8 @@ const (
 	// PullPrefix is the base directory of the pull information of git.
 	PullPrefix = "refs/pull/"
 	pullSuffix = "/head"
+
+	hiddenRefPrefix = "refs/gitea"
 )
 
 // refNamePatternInvalid is regular expression with unallowed characters in git reference name
@@ -97,6 +99,21 @@ func RefNameFromCommit(shortName string) RefName {
 
 func RefNameFromPullIndex(prIndex int64) RefName {
 	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + pullSuffix)
+}
+
+// MergeRefNameFromPullIndex is the test merge of an open pull request
+func MergeRefNameFromPullIndex(prIndex int64) RefName {
+	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + "/merge")
+}
+
+// MergedRefNameFromPullIndex keeps the merged commit after the base branch is deleted or rewritten
+func MergedRefNameFromPullIndex(prIndex int64) RefName {
+	return RefName(hiddenRefPrefix + "/pull/" + strconv.FormatInt(prIndex, 10) + "/merged")
+}
+
+// RunRefNameFromRunID keeps a run's test merge after refs/pull/<index>/merge moved on
+func RunRefNameFromRunID(runID int64) RefName {
+	return RefName(hiddenRefPrefix + "/run/" + strconv.FormatInt(runID, 10))
 }
 
 func (ref RefName) String() string {
