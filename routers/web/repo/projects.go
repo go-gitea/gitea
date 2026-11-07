@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/shared/issue"
 	project_shared "gitea.dev/routers/web/shared/project"
 	shared_user "gitea.dev/routers/web/shared/user"
@@ -321,15 +322,21 @@ func ViewProject(ctx *context.Context) {
 		milestoneIDs = []int64{db.NoConditionID}
 	}
 
-	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &issues_model.IssuesOptions{
-		RepoIDs:      []int64{ctx.Repo.Repository.ID},
-		LabelIDs:     preparedLabelFilter.SelectedLabelIDs,
-		AssigneeID:   assigneeID,
-		MilestoneIDs: milestoneIDs,
-	})
-	if err != nil {
-		ctx.ServerError("LoadIssuesOfColumns", err)
-		return
+	// the route only requires the projects unit, so narrow to the kinds the doer can read
+	isPull, canReadAny := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, "")
+	var issuesMap map[int64]issues_model.IssueList
+	if canReadAny {
+		issuesMap, err = project_service.LoadIssuesFromProject(ctx, project, &issues_model.IssuesOptions{
+			RepoIDs:      []int64{ctx.Repo.Repository.ID},
+			IsPull:       isPull,
+			LabelIDs:     preparedLabelFilter.SelectedLabelIDs,
+			AssigneeID:   assigneeID,
+			MilestoneIDs: milestoneIDs,
+		})
+		if err != nil {
+			ctx.ServerError("LoadIssuesOfColumns", err)
+			return
+		}
 	}
 	for _, column := range columns {
 		column.NumIssues = int64(len(issuesMap[column.ID]))

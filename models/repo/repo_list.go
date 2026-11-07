@@ -172,8 +172,8 @@ type SearchRepoOptions struct {
 	// True -> include just collaborative (the "OwnerID" is not really an owner, it just means a collaborator who doesn't own the repo)
 	// False -> include just non-collaborative (the repo must be in the owner's name space)
 	Collaborate optional.Option[bool]
-	// What type of unit the user can be collaborative in,
-	// it is ignored if Collaborate is False.
+	// What type of unit the actor and the collaborating owner must be able to access,
+	// the owner part is ignored if Collaborate is False.
 	// TypeInvalid means any unit type.
 	UnitType unit.Type
 	// None -> include forks AND non-forks
@@ -370,7 +370,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 
 	if opts.Private {
 		if opts.Actor != nil && !opts.Actor.IsAdmin {
-			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
+			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, opts.UnitType))
 		}
 	} else {
 		// Not looking at private organisations and users
@@ -513,7 +513,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	}
 
 	if opts.Actor != nil && opts.Actor.IsRestricted {
-		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
+		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, opts.UnitType))
 	}
 
 	if opts.Archived.Has() {

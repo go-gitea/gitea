@@ -62,6 +62,7 @@ type SearchIssuesRepoIDsOptions struct {
 	Doer      *user_model.User
 	OwnerName string
 	TeamName  string
+	IsPull    optional.Option[bool] // None searches both issues and pull requests
 }
 
 // SearchIssuesRepoIDs resolves the repository filter of an issue search. allPublic makes the indexer
@@ -93,7 +94,12 @@ func SearchIssuesRepoIDs(ctx context.Context, opts SearchIssuesRepoIDsOptions) (
 
 	// SearchRepoOptions.AllPublic and AllLimited only apply under an owner filter, so the indexer covers them
 	allPublic = opts.OwnerName == ""
+	// the indexer takes one repository filter for both kinds, so an untyped search needs both units readable
+	searchOpts.UnitType = util.Iif(opts.IsPull.ValueOrDefault(false), unit.TypePullRequests, unit.TypeIssues)
 	cond := repo_model.SearchRepositoryCondition(searchOpts)
+	if !opts.IsPull.Has() && opts.Doer != nil && !opts.Doer.IsAdmin {
+		cond = cond.And(repo_model.AccessibleRepositoryCondition(opts.Doer, unit.TypePullRequests))
+	}
 	if allPublic {
 		if !user_model.DoerCanViewPrivate(opts.Doer) {
 			return []int64{0}, allPublic, nil // sees nothing beyond is_public, so skip the query

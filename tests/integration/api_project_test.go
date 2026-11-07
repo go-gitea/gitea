@@ -99,6 +99,12 @@ func TestAPIProjects(t *testing.T) {
 		require.NoError(t, err)
 		projectsWriter := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteRepository)
 		MakeRequest(t, NewRequest(t, "POST", "/api/v1/repos/org3/repo3/projects/2/columns/5/issues/6").AddTokenAuth(projectsWriter), http.StatusNotFound)
+
+		require.NoError(t, db.Insert(t.Context(), &project_model.ProjectIssue{IssueID: 6, ProjectID: 2, ProjectColumnID: 5}))
+		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/org3/repo3/projects/2/columns/5/issues").AddTokenAuth(projectsWriter), http.StatusOK)
+		assert.Empty(t, *DecodeJSON(t, resp, &[]api.Issue{}))
+		resp = loginUser(t, "user4").MakeRequest(t, NewRequest(t, "GET", "/org3/repo3/projects/2"), http.StatusOK)
+		assert.NotContains(t, resp.Body.String(), "issue6")
 	})
 }
 
