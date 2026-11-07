@@ -44,6 +44,11 @@
 				<label for="description">{{ctx.Locale.Tr "actions.runners.description"}}</label>
 				<input id="description" name="description" value="{{.Runner.Description}}">
 			</div>
+			<div class="field">
+				<label for="priority">{{ctx.Locale.Tr "actions.runners.priority"}}</label>
+				<input id="priority" name="priority" type="number" value="{{.Runner.Priority}}">
+				<span class="help">{{ctx.Locale.Tr "actions.runners.priority_help"}}</span>
+			</div>
 
 			<div class="divider"></div>
 

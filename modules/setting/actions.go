@@ -43,6 +43,8 @@ var (
 		// transaction at once per Gitea instance, to avoid a thundering herd when many
 		// runners poll together. It is a per-process limit, not a cluster-wide one.
 		MaxConcurrentTaskPicks int `ini:"MAX_CONCURRENT_TASK_PICKS"`
+		// PreferredRunnerGrace is how long a job waits for a higher-priority runner before others may take it. 0 disables runner priority.
+		PreferredRunnerGrace time.Duration `ini:"PREFERRED_RUNNER_GRACE"`
 
 		ArtifactPreviewMaxSize int64 `ini:"ARTIFACT_PREVIEW_MAX_SIZE"`
 	}{
