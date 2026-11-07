@@ -49,11 +49,10 @@ type comparePageInfoType struct {
 	allowCreatePull  bool
 	rootRepo         *repo_model.Repository // the base repo was forked from it
 	ownForkRepo      *repo_model.Repository // the doer's fork of the base repo
-	fileOnly         bool                   // only the diff is needed, not the commits
 }
 
-// parseCompareInfo parse compare info between two commit for preparing comparing references
-func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, compareParam string) error {
+// parseCompareInfo parse compare info between two commit for preparing comparing references, fileOnly skips loading the commits
+func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, compareParam string, fileOnly bool) error {
 	baseRepo := ctx.Repo.Repository
 
 	// 1 Parse compare router param
@@ -150,7 +149,7 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 		HeadRepo:    headRepo,
 		HeadGitRepo: headGitRepo,
 		HeadRef:     headRef,
-	}, compareReq.DirectComparison(), cpi.fileOnly)
+	}, compareReq.DirectComparison(), fileOnly)
 	if err != nil {
 		return err
 	}
@@ -317,8 +316,7 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 
 func parseComparePageInfo(ctx *context.Context, compareParam string, fileOnly bool) *comparePageInfoType {
 	comparePageInfo := newComparePageInfo()
-	comparePageInfo.fileOnly = fileOnly
-	err := comparePageInfo.parseCompareInfo(ctx, compareParam)
+	err := comparePageInfo.parseCompareInfo(ctx, compareParam, fileOnly)
 	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 		ctx.NotFound(nil)
 		return nil
@@ -439,7 +437,7 @@ func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
 	// The route captures `basehead` separately so the `.diff`/`.patch` suffix is
 	// stripped from the catch-all `*` param parseCompareInfo would otherwise read.
 	cpi := newComparePageInfo()
-	if err := cpi.parseCompareInfo(ctx, ctx.PathParam("basehead")); err != nil {
+	if err := cpi.parseCompareInfo(ctx, ctx.PathParam("basehead"), false); err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 			ctx.NotFound(nil)
 		} else {

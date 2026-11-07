@@ -73,7 +73,6 @@ type diffViewerReactionType struct {
 }
 
 type diffViewerComments struct {
-	IsSigned          bool                     `json:"isSigned"`
 	CanComment        bool                     `json:"canComment"`
 	CanResolve        bool                     `json:"canResolve"`
 	CanReferenceIssue bool                     `json:"canReferenceIssue"`
@@ -117,7 +116,6 @@ func PullFilesComments(ctx *context.Context) {
 	canComment := ctx.IsSigned && !repo.IsArchived
 	canWrite := ctx.Repo.Permission.IsAdmin() || ctx.Repo.Permission.CanWriteIssuesOrPulls(true)
 	data := diffViewerComments{
-		IsSigned:          ctx.IsSigned,
 		CanComment:        canComment,
 		CanReferenceIssue: canComment && !unit.TypeIssues.UnitGlobalDisabled(),
 		IssueHTMLURL:      issue.HTMLURL(ctx),

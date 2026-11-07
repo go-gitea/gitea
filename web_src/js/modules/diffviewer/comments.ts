@@ -39,7 +39,7 @@ const targetKey = (target: LineTarget) => `${target.path}|${target.side}|${targe
 export class DiffComments {
   host: CommentsHost;
   data: CommentsData = {
-    isSigned: false, canComment: false, canResolve: false, canReferenceIssue: false, hasPendingReview: false, pendingCount: 0,
+    canComment: false, canResolve: false, canReferenceIssue: false, hasPendingReview: false, pendingCount: 0,
     issueHtmlUrl: '', repoLink: '', reactions: [], comments: [],
   };
   byPath = new Map<string, ViewerComment[]>();

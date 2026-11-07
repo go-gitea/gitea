@@ -64,7 +64,6 @@ export type ViewerComment = {
 
 // the response of the comments route in routers/web/repo/pull_files_comments.go
 export type CommentsData = {
-  isSigned: boolean;
   canComment: boolean;
   canResolve: boolean;
   canReferenceIssue: boolean;
