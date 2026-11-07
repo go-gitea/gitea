@@ -29,7 +29,7 @@ func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
 		if !branch.IsDeleted {
 			continue
 		}
-		branch.DeletedBy = usersMap[branch.DeletedByID]
+		branch.DeletedBy = user_model.GetPossibleUserFromMap(branch.DeletedByID, usersMap)
 		if branch.DeletedBy == nil {
 			branch.DeletedBy = user_model.NewGhostUser()
 		}
@@ -48,13 +48,10 @@ func (branches BranchList) LoadPusher(ctx context.Context) error {
 		return err
 	}
 	for _, branch := range branches {
-		if branch.PusherID <= 0 {
+		if branch.PusherID == 0 {
 			continue
 		}
-		branch.Pusher = usersMap[branch.PusherID]
-		if branch.Pusher == nil {
-			branch.Pusher = user_model.NewGhostUser()
-		}
+		branch.Pusher = user_model.GetPossibleUserFromMap(branch.PusherID, usersMap)
 	}
 	return nil
 }

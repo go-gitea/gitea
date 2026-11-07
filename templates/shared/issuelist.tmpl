@@ -53,9 +53,9 @@
 					{{if $issue.OriginalAuthor}}
 						{{ctx.Locale.Tr $issue.GetLastEventLabelFake $timeStr $issue.OriginalAuthor}}
 					{{else if gt $issue.Poster.ID 0}}
-						{{ctx.Locale.Tr $issue.GetLastEventLabel $timeStr $issue.Poster.HomeLink $issue.Poster.GetDisplayName}}
+						{{ctx.Locale.Tr $issue.GetLastEventLabel $timeStr $issue.Poster.HomeLink (ctx.RenderUtils.UserDisplayName $issue.Poster)}}
 					{{else}}
-						{{ctx.Locale.Tr $issue.GetLastEventLabelFake $timeStr $issue.Poster.GetDisplayName}}
+						{{ctx.Locale.Tr $issue.GetLastEventLabelFake $timeStr (ctx.RenderUtils.UserDisplayName $issue.Poster)}}
 					{{end}}
 					</div>
 

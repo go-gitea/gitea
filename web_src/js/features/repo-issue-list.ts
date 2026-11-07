@@ -1,4 +1,4 @@
-import {toggleElem, queryElems} from '../utils/dom.ts';
+import {toggleElem, queryElems, createUserLabel} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {createSortable} from '../modules/sortable.ts';
@@ -8,7 +8,7 @@ import {performFetchAction} from '../modules/fetch-action.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import type {SortableEvent} from 'sortablejs';
 
-type IssuePoster = {avatar_link: string, full_name: string, username: string};
+type IssuePoster = {avatar_link: string, full_name: string, username: string, is_bot: boolean};
 type ProcessedIssuePoster = {type: 'html', html: string};
 type IssuePosterResponse = {results: IssuePoster[]};
 
@@ -123,7 +123,7 @@ function initDropdownUserRemoteSearch(el: Element) {
         for (const item of resp.results) {
           const htmlAvatar = html`<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20">`;
           const htmlFullName = item.full_name ? html`<span class="username-fullname">(${item.full_name})</span>` : '';
-          const htmlItemInner = html`<span class="username-display">${htmlRaw(htmlAvatar)}<span>${item.username}</span>${htmlRaw(htmlFullName)}</span>`;
+          const htmlItemInner = html`<span class="username-display">${htmlRaw(htmlAvatar)}<span>${item.username}</span>${htmlRaw(htmlFullName)}${htmlRaw(item.is_bot ? createUserLabel().outerHTML : '')}</span>`;
           if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
           const htmlItem = html`<div class="item" data-value="${item.username}">${htmlRaw(htmlItemInner)}</div>`;
           processedResults.push({type: 'html', html: htmlItem});

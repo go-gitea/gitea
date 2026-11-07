@@ -177,7 +177,7 @@ func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull boo
 
 	return users, db.GetEngine(ctx).
 		Where(cond).
-		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
+		Cols("id", "name", "full_name", "type", "avatar", "avatar_email", "use_custom_avatar").
 		OrderBy("name").
 		Limit(30).
 		Find(&users)

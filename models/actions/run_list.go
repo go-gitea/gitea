@@ -217,7 +217,7 @@ func GetActors(ctx context.Context, repoID int64) ([]*user_model.User, error) {
 	return actors, db.GetEngine(ctx).Where(builder.In("id", builder.Select("`action_run`.trigger_user_id").From("`action_run`").
 		GroupBy("`action_run`.trigger_user_id").
 		Where(builder.Eq{"`action_run`.repo_id": repoID}))).
-		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
+		Cols("id", "name", "full_name", "type", "avatar", "avatar_email", "use_custom_avatar").
 		OrderBy(user_model.GetOrderByName()).
 		Find(&actors)
 }

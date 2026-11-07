@@ -17,6 +17,7 @@ type Mention struct {
 	Name     string `json:"name"`
 	FullName string `json:"fullname"`
 	Avatar   string `json:"avatar"`
+	IsBot    bool   `json:"is_bot"`
 }
 
 // Collector builds a deduplicated list of Mention entries.
@@ -41,6 +42,7 @@ func (c *Collector) AddUsers(ctx context.Context, users []*user_model.User) {
 				Name:     u.Name,
 				FullName: u.FullName,
 				Avatar:   u.AvatarLink(ctx),
+				IsBot:    u.IsTypeBot(),
 			})
 		}
 	}

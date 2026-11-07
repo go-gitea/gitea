@@ -96,7 +96,7 @@
 									<span class="gt-ellipsis branch-name">{{.DBBranch.Name}}</span>
 									<button type="button" class="btn interact-fg tw-px-1" data-clipboard-text="{{.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_branch"}}">{{svg "octicon-copy" 14}}</button>
 								</div>
-								<p class="info">{{ctx.Locale.Tr "repo.branch.deleted_by" .DBBranch.DeletedBy.Name}} {{DateUtils.TimeSince .DBBranch.DeletedUnix}}</p>
+								<p class="info">{{ctx.Locale.Tr "repo.branch.deleted_by" (ctx.RenderUtils.UserDisplayName .DBBranch.DeletedBy)}} {{DateUtils.TimeSince .DBBranch.DeletedUnix}}</p>
 							{{else}}
 								<div class="flex-text-block">
 									<a class="gt-ellipsis branch-name" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>

@@ -125,7 +125,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 					{{if $resolved}}
 						<div class="ui grey text">
 							{{svg "octicon-check" 16 "tw-mr-1"}}
-							<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
+							<b>{{$resolveDoer.Name}}</b>{{template "shared/user/user_type_label" $resolveDoer}} {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
 						</div>
 					{{end}}
 				</div>

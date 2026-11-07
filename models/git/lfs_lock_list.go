@@ -44,8 +44,8 @@ func (locks LFSLockList) LoadOwner(ctx context.Context) error {
 		return fmt.Errorf("find users: %w", err)
 	}
 	for _, v := range locks {
-		v.Owner = users[v.OwnerID]
-		if v.Owner == nil { // not exist
+		v.Owner = user_model.GetPossibleUserFromMap(v.OwnerID, users)
+		if v.Owner == nil {
 			v.Owner = user_model.NewGhostUser()
 		}
 	}

@@ -6,12 +6,12 @@
 			{{template "package/shared/visibility_badge" dict "Package" .PackageDescriptor.Package "Owner" .PackageDescriptor.Owner}}
 		</span>
 	</div>
-	<div>
+	<div class="muted-links">
 		{{$timeStr := DateUtils.TimeSince .PackageDescriptor.Version.CreatedUnix}}
 		{{if .HasRepositoryAccess}}
-		{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink .PackageDescriptor.Creator.GetDisplayName .PackageDescriptor.Repository.Link .PackageDescriptor.Repository.FullName}}
+		{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (ctx.RenderUtils.UserDisplayName .PackageDescriptor.Creator) .PackageDescriptor.Repository.Link .PackageDescriptor.Repository.FullName}}
 		{{else}}
-		{{ctx.Locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink .PackageDescriptor.Creator.GetDisplayName}}
+		{{ctx.Locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (ctx.RenderUtils.UserDisplayName .PackageDescriptor.Creator)}}
 		{{end}}
 	</div>
 </div>
