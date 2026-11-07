@@ -149,6 +149,13 @@ func getRepoIssueComment(ctx *context.Context, commentID int64) *issues_model.Co
 		ctx.NotFound(nil)
 		return nil
 	}
+	if hidden, err := comment.IsPendingReviewHiddenFrom(ctx, ctx.Doer); err != nil {
+		ctx.ServerError("IsPendingReviewHiddenFrom", err)
+		return nil
+	} else if hidden {
+		ctx.NotFound(nil)
+		return nil
+	}
 	return comment
 }
 

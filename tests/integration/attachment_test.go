@@ -15,9 +15,13 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	route_web "gitea.dev/routers/web"
 	"gitea.dev/services/context"
@@ -307,4 +311,34 @@ func testDeleteAttachmentPermissions(t *testing.T) {
 
 	// test deleting release attachment from another repo
 	testDeleteReleaseAttachment(t, ownerSession, "/user2/repo2", crossRepoUUID, http.StatusBadRequest)
+}
+
+func TestPendingReviewAttachment(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// comment 4 on pull request user2/repo1#2 belongs to the pending review 4 of user1
+	attachment := &repo_model.Attachment{UUID: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a99", RepoID: 1, IssueID: 2, CommentID: 4, UploaderID: 1, Name: "draft.png"}
+	require.NoError(t, db.Insert(t.Context(), attachment))
+	_, err := storage.Attachments.Save(attachment.RelativePath(), strings.NewReader("draft"), -1)
+	require.NoError(t, err)
+	_, err = db.Exec(t.Context(), "UPDATE project SET card_type = ? WHERE id = 1", project_model.CardTypeImagesAndText)
+	require.NoError(t, err)
+
+	reviewer, owner, anonymous := loginUser(t, "user1"), loginUser(t, "user2"), emptyTestSession(t)
+	ownerToken := getTokenForLoggedInUser(t, owner, auth_model.AccessTokenScopeReadIssue)
+	assertVisible := func(t *testing.T, visible bool) {
+		status := util.Iif(visible, http.StatusOK, http.StatusNotFound)
+		reviewer.MakeRequest(t, NewRequest(t, "GET", "/attachments/"+attachment.UUID), http.StatusOK)
+		owner.MakeRequest(t, NewRequest(t, "GET", "/attachments/"+attachment.UUID), status)
+		anonymous.MakeRequest(t, NewRequest(t, "GET", "/attachments/"+attachment.UUID), status)
+		owner.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/comments/4/attachments"), status)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/issues/comments/4/assets").AddTokenAuth(ownerToken), status)
+		board := anonymous.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/projects/1"), http.StatusOK).Body.String()
+		assert.Equal(t, visible, strings.Contains(board, attachment.UUID))
+	}
+
+	t.Run("Pending", func(t *testing.T) { assertVisible(t, false) })
+	_, err = db.Exec(t.Context(), "UPDATE review SET type = ? WHERE id = 4", issues_model.ReviewTypeComment)
+	require.NoError(t, err)
+	t.Run("Submitted", func(t *testing.T) { assertVisible(t, true) })
 }
