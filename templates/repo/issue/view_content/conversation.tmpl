@@ -1,7 +1,5 @@
-{{/* TODO: At the moment, two kinds of request handler call this template:
-* ExcerptBlob -> blob_excerpt.tmpl -> this
-* Other compare and diff pages -> ... -> {section_unified.tmpl|section_split.tmpl} -> this)
-The variables in "ctx.Data" are different in each case, making this template fragile, hard to read and maintain. */}}
+{{/* TODO: the issue view and the code comment actions (renderConversation) render this template with different "ctx.Data",
+making this template fragile, hard to read and maintain. */}}
 {{if len .comments}}
 	{{$firstComment := index .comments 0 -}}
 	{{$invalid := $firstComment.Invalidated -}}
@@ -48,18 +46,10 @@ The variables in "ctx.Data" are different in each case, making this template fra
 				{{end}}
 			</div>
 		</div>
-		{{$diff := (CommentMustAsDiff ctx $firstComment)}}
-		{{if $diff}}
-			{{$file := (index $diff.Files 0)}}
+		{{if $firstComment.Patch}}
 			<div id="code-preview-{{$firstComment.ID}}" class="ui table segment {{if $resolved}}tw-hidden{{end}}">
-				<div class="diff-file-box file-content {{TabSizeClass $editorconfig $file.Name}}">
-					<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
-						<table>
-							<tbody>
-								{{template "repo/diff/section_unified" dict "file" $file}}
-							</tbody>
-						</table>
-					</div>
+				<div class="diff-file-box file-content {{TabSizeClass $editorconfig $firstComment.TreePath}}">
+					{{ctx.RenderUtils.RenderDiffSnippet $firstComment.Patch $firstComment.TreePath}}
 				</div>
 			</div>
 		{{end}}

@@ -1,0 +1,1 @@
+{"name":"BNF","flags":"m","ensureNL":false,"rules":{"root":[["(<)([ -;=?-~]+)(>)",{"g":["p","nc","p"]},null],["::=","o",null],["[^<>:]+","",null],[".","",null]]}}

@@ -1,0 +1,1 @@
+{"name":"Lighttpd configuration file","flags":"m","ensureNL":false,"rules":{"root":[["#.*\\n","c1",null],["/\\S*","n",null],["[a-zA-Z._-]+","k",null],["\\d+\\.\\d+\\.\\d+\\.\\d+(?:/\\d+)?","m",null],["[0-9]+","m",null],["=>|=~|\\+=|==|=|\\+","o",null],["\\$[A-Z]+","nb",null],["[(){}\\[\\],]","p",null],["\"([^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"","s2",null],["\\s+","",null]]}}

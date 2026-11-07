@@ -1,0 +1,1 @@
+{"name":"Bash Session","flags":"m","ensureNL":true,"rules":{"root":[["^((?:\\[[^]]+@[^]]+\\]\\s?)?[#$%>])(\\s*)(.*\\n?)",{"g":["gp","",{"u":"bash"}]},null],["^.+\\n?","go",null]]},"using":["bash"]}

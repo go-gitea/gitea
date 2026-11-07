@@ -12,6 +12,7 @@ import (
 	"html"
 	"html/template"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -27,7 +28,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/emoji"
-	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/glob"
@@ -53,7 +53,6 @@ import (
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
-	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -685,6 +684,14 @@ func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
 	return nil
 }
 
+type pullFilesRange struct {
+	prViewInfo       *pullRequestViewInfo
+	beforeCommit     *git.Commit
+	afterCommit      *git.Commit
+	isSingleCommit   bool
+	isShowAllCommits bool
+}
+
 // setSingleCommitNavContext exposes the reviewed commit and its neighbors.
 func setSingleCommitNavContext(ctx *context.Context, commits []*git.Commit, commit *git.Commit) {
 	idx := slices.IndexFunc(commits, func(c *git.Commit) bool { return bytes.Equal(c.ID.RawValue(), commit.ID.RawValue()) })
@@ -705,30 +712,18 @@ func setSingleCommitNavContext(ctx *context.Context, commits []*git.Commit, comm
 	}
 }
 
-// ViewPullFiles render pull request changed files list page
-func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
-	var err error
-
-	ctx.Data["PageIsPullList"] = true
-	ctx.Data["PageIsPullFiles"] = true
-
-	issue, ok := getPullInfo(ctx)
-	if !ok {
-		return
-	}
-	pull := issue.PullRequest
-
-	gitRepo := ctx.Repo.GitRepo
-
+// preparePullFilesRange resolves the commits shown on the "files" page, empty IDs mean the merge base or the head commit.
+// A single commit that was force-pushed out of the pull request redirects to the repository commit page, or is not found for a stream.
+func preparePullFilesRange(ctx *context.Context, issue *issues_model.Issue, beforeCommitID, afterCommitID string, isPage bool) *pullFilesRange {
 	prViewInfo := newPullRequestViewInfo()
 	prViewInfo.prepareViewInfo(ctx, issue)
 	if ctx.Written() {
-		return
+		return nil
 	}
 	prCompareInfo := &prViewInfo.CompareInfo
 	if prCompareInfo.HeadCommitID == "" {
 		ctx.NotFound(nil)
-		return
+		return nil
 	}
 
 	headCommitID := prCompareInfo.HeadCommitID
@@ -739,73 +734,84 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	isShowAllCommits := (beforeCommitID == "" && afterCommitID == "") ||
 		(beforeCommitID == prCompareInfo.CompareBase && afterCommitID == headCommitID) ||
 		(beforeCommitID == "" && afterCommitID == headCommitID && len(prCompareInfo.Commits) == 1)
-	isSingleCommit := beforeCommitID == "" && afterCommitID != "" && !isShowAllCommits
-
-	// it's questionable why single commit review can be submitted, but the range commits review cannot be submitted
-	ctx.Data["CanSubmitReview"] = isShowAllCommits || isSingleCommit
-	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
+	r := &pullFilesRange{prViewInfo: prViewInfo, isShowAllCommits: isShowAllCommits, isSingleCommit: beforeCommitID == "" && afterCommitID != "" && !isShowAllCommits}
 
 	// "commits list" is half-open, half-closed: (base, head]
 	// * base commit is not in the list
 	// * if the PR is empty, the list is also empty (head commit is not in the list)
-
+	var err error
 	afterCommitID = util.IfZero(afterCommitID, headCommitID)
-	afterCommit := indexCommit(prCompareInfo.Commits, afterCommitID)
-	if afterCommit == nil && afterCommitID == headCommitID {
-		afterCommit, err = gitRepo.GetCommit(ctx, afterCommitID)
+	r.afterCommit = indexCommit(prCompareInfo.Commits, afterCommitID)
+	if r.afterCommit == nil && afterCommitID == headCommitID {
+		r.afterCommit, err = ctx.Repo.GitRepo.GetCommit(ctx, afterCommitID)
 		if err != nil {
 			ctx.ServerError("GetCommit(afterCommitID)", err)
-			return
+			return nil
 		}
 	}
-	if afterCommit == nil && isSingleCommit {
+	if r.afterCommit == nil && r.isSingleCommit && isPage {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commit/" + afterCommitID) // timeline commits outlive force pushes
-		return
+		return nil
 	}
-	if afterCommit == nil {
+	if r.afterCommit == nil {
 		ctx.NotFound(nil)
-		return
+		return nil
 	}
 
-	var beforeCommit *git.Commit
-	if isSingleCommit {
-		beforeCommit, err = afterCommit.Parent(ctx, ctx.Repo.GitRepo, 0)
+	if r.isSingleCommit {
+		r.beforeCommit, err = r.afterCommit.Parent(ctx, ctx.Repo.GitRepo, 0)
 		if err != nil {
 			ctx.ServerError("afterCommit.Parent", err)
-			return
+			return nil
 		}
-		beforeCommitID = beforeCommit.ID.String()
 	} else {
 		beforeCommitID = util.IfZero(beforeCommitID, prCompareInfo.CompareBase)
-		beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
-		if beforeCommit == nil && beforeCommitID == prCompareInfo.CompareBase {
+		r.beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
+		if r.beforeCommit == nil && beforeCommitID == prCompareInfo.CompareBase {
 			// base commit is not in the list of the pull request commits
-			beforeCommit, err = gitRepo.GetCommit(ctx, beforeCommitID)
+			r.beforeCommit, err = ctx.Repo.GitRepo.GetCommit(ctx, beforeCommitID)
 			if err != nil {
 				ctx.ServerError("GetCommit(beforeCommitID)", err)
-				return
+				return nil
 			}
 		}
 	}
-	if beforeCommit == nil {
+	if r.beforeCommit == nil {
 		ctx.NotFound(nil)
+		return nil
+	}
+	return r
+}
+
+// viewPullFiles renders the "files" page of the commit range
+func viewPullFiles(ctx *context.Context, beforeCommitIDParam, afterCommitIDParam string) {
+	ctx.Data["PageIsPullList"] = true
+	ctx.Data["PageIsPullFiles"] = true
+
+	issue, ok := getPullInfo(ctx)
+	if !ok {
 		return
 	}
+	pull := issue.PullRequest
+	gitRepo := ctx.Repo.GitRepo
 
+	filesRange := preparePullFilesRange(ctx, issue, beforeCommitIDParam, afterCommitIDParam, true)
+	if ctx.Written() {
+		return
+	}
+	isShowAllCommits, isSingleCommit := filesRange.isShowAllCommits, filesRange.isSingleCommit
+	beforeCommitID, afterCommitID := filesRange.beforeCommit.ID.String(), filesRange.afterCommit.ID.String()
+	prCompareInfo := &filesRange.prViewInfo.CompareInfo
+	// it's questionable why single commit review can be submitted, but the range commits review cannot be submitted
+	ctx.Data["CanSubmitReview"] = isShowAllCommits || isSingleCommit
+	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 	ctx.Data["CompareInfo"] = prCompareInfo
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
 	ctx.Data["ReviewCommitID"] = afterCommitID // the review happens on the "after commit" (the latest commit in the range)
 
 	if isSingleCommit {
-		setSingleCommitNavContext(ctx, prCompareInfo.Commits, afterCommit)
-	}
-
-	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
-	files := ctx.FormStrings("files")
-	fileOnly := ctx.FormBool("file-only")
-	if fileOnly && (len(files) == 2 || len(files) == 1) {
-		maxLines, maxFiles = -1, -1
+		setSingleCommitNavContext(ctx, prCompareInfo.Commits, filesRange.afterCommit)
 	}
 
 	diffCommonOptions := gitdiff.DiffCommonOptions{
@@ -813,28 +819,31 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		AfterCommitID:      afterCommitID,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)),
 	}
-	diffOptions := &gitdiff.DiffOptions{
-		DiffCommonOptions: diffCommonOptions,
-		SkipTo:            ctx.FormString("skip-to"),
-		MaxLines:          maxLines,
-		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:          maxFiles,
-	}
-
-	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepo, &diffCommonOptions)
 	if err != nil {
-		ctx.ServerError("GetDiff", err)
+		ctx.ServerError("GetDiffShortStat", err)
+		return
+	}
+	ctx.Data["DiffShortStat"] = diffShortStat
+	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
+	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
+
+	// note: use mergeBase is set to false because we already have the merge base from the pull request info
+	diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, beforeCommitID, afterCommitID)
+	if err != nil {
+		ctx.ServerError("GetDiffTree", err)
 		return
 	}
 
-	// if we're not logged in or only a single commit (or commit range) is shown we
-	// have to load only the diff and not get the viewed information
-	// as the viewed information is designed to be loaded only on latest PR
-	// diff and if you're signed in.
+	// the viewed state is designed for the whole PR diff and signed-in users only
 	var reviewState *pull_model.ReviewState
 	var numViewedFiles int
 	if ctx.IsSigned && isShowAllCommits {
-		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
+		fileNames := make([]string, 0, len(diffTree.Files))
+		for _, file := range diffTree.Files {
+			fileNames = append(fileNames, file.HeadPath)
+		}
+		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, fileNames, afterCommitID)
 		if err != nil {
 			ctx.ServerError("SyncUserSpecificDiff", err)
 			return
@@ -843,83 +852,37 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 			numViewedFiles = reviewState.GetViewedFileCount()
 		}
 	}
-
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, &diffCommonOptions)
-	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
-		return
-	}
-	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["NumViewedFiles"] = numViewedFiles
-
 	ctx.PageData["prReview"] = map[string]any{
 		"numberOfFiles":       diffShortStat.NumFiles,
 		"numberOfViewedFiles": numViewedFiles,
 	}
 
-	if err = diff.LoadComments(ctx, issue, ctx.Doer, GetShowOutdatedComments(ctx)); err != nil {
-		ctx.ServerError("LoadComments", err)
-		return
+	var filesViewedState map[string]pull_model.ViewedState
+	if reviewState != nil {
+		filesViewedState = reviewState.UpdatedFiles
 	}
+	prepareDiffFileTree(ctx, diffTree, filesViewedState)
 
-	allComments := issues_model.CommentList{}
-	for _, file := range diff.Files {
-		for _, section := range file.Sections {
-			for _, line := range section.Lines {
-				allComments = append(allComments, line.Comments...)
-			}
-		}
+	// the stream diffs the commits of the page, even if the PR changes meanwhile
+	streamQuery := url.Values{"to": {afterCommitID}}
+	if !isSingleCommit {
+		streamQuery.Set("from", beforeCommitID)
 	}
-	if err := allComments.LoadAttachments(ctx); err != nil {
-		ctx.ServerError("LoadAttachments", err)
-		return
-	}
-
-	pb := prViewInfo.ProtectedBranchRule
-	if prViewInfo.ProtectedBranchRule != nil {
-		protectedFilePatterns := pb.GetProtectedFilePatterns()
-		if len(protectedFilePatterns) != 0 {
-			for _, file := range diff.Files {
-				file.IsProtected = pb.IsProtectedFile(protectedFilePatterns, file.Name)
-			}
-		}
-	}
-
-	if !fileOnly {
-		// note: use mergeBase is set to false because we already have the merge base from the pull request info
-		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, beforeCommitID, afterCommitID)
-		if err != nil {
-			ctx.ServerError("GetDiffTree", err)
-			return
-		}
-		var filesViewedState map[string]pull_model.ViewedState
-		if reviewState != nil {
-			filesViewedState = reviewState.UpdatedFiles
-		}
-
-		renderedIconPool := fileicon.NewRenderedIconPool()
-		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, filesViewedState)
-		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
-		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
-		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
-	}
-
-	ctx.Data["Diff"] = diff
-	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
-		BaseLink:       ctx.Repo.RepoLink + "/blob_excerpt",
-		PullIssueIndex: pull.Index,
-		DiffStyle:      GetDiffViewStyle(ctx),
-		AfterCommitID:  afterCommitID,
-	}
-	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
-	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
-
-	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
-		ctx.ServerError("CanMarkConversation", err)
-		return
-	}
-
-	setCompareContext(ctx, beforeCommit, afterCommit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	viewerConfig := prepareDiffViewer(ctx, diffViewerOptions{
+		streamPath:     issue.Link() + "/files/stream",
+		streamQuery:    streamQuery,
+		gitRepoLink:    ctx.Repo.RepoLink,
+		rawLink:        ctx.Repo.RepoLink,
+		beforeCommitID: beforeCommitID,
+		afterCommitID:  afterCommitID,
+	})
+	viewerConfig.IssueLink = issue.Link()
+	viewerConfig.HeadCommitID = prCompareInfo.HeadCommitID
+	viewerConfig.ReviewCommitID = afterCommitID
+	// like the stream's whitespace option, the setting isn't persisted for anonymous users
+	viewerConfig.CommentsURL = issue.Link() + "/files/comments?" + url.Values{"show-outdated": {strconv.FormatBool(GetShowOutdatedComments(ctx))}}.Encode()
+	viewerConfig.CanReviewFiles = ctx.IsSigned && !ctx.Repo.Repository.IsArchived && isShowAllCommits
 
 	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
@@ -928,27 +891,11 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
-	var numPendingCodeComments int64
-	var currentPendingReview *issues_model.Review
-	if ctx.Doer != nil {
-		currentPendingReview, err = issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
-		if err != nil && !issues_model.IsErrReviewNotExist(err) {
-			ctx.ServerError("GetCurrentReview", err)
-			return
-		}
-		if currentPendingReview != nil {
-			numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
-				Type:     issues_model.CommentTypeCode,
-				ReviewID: currentPendingReview.ID,
-				IssueID:  issue.ID,
-			})
-			if err != nil {
-				ctx.ServerError("CountComments", err)
-				return
-			}
-		}
+	_, numPendingCodeComments, err := getPendingCodeCommentCount(ctx, issue)
+	if err != nil {
+		ctx.ServerError("getPendingCodeCommentCount", err)
+		return
 	}
-	ctx.Data["CurrentReview"] = currentPendingReview
 	ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
 
 	ctx.Data["IsIssuePoster"] = ctx.Doer != nil && issue.IsPoster(ctx.Doer.ID)
@@ -963,9 +910,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["AllowedIssueReactions"] = setting.UI.Reactions
 	upload.AddUploadContext(ctx, "comment")
 
-	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
-		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
-	}
 	if isShowAllCommits && pull.Flow == issues_model.PullRequestFlowGithub {
 		if err := pull.LoadHeadRepo(ctx); err != nil {
 			ctx.ServerError("LoadHeadRepo", err)
@@ -980,12 +924,9 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 					return
 				}
 
-				if issues_model.CanMaintainerWriteToBranch(ctx, headPerm, pull.HeadBranch, ctx.Doer) {
-					ctx.Data["CanEditFile"] = true
-					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-					ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
-					ctx.Data["HeadBranchName"] = pull.HeadBranch
-					ctx.Data["BackToLink"] = setting.AppSubURL + ctx.Req.URL.RequestURI()
+				if issues_model.CanMaintainerWriteToBranch(ctx, headPerm, pull.HeadBranch, ctx.Doer) && pull.HeadRepo.CanContentChange() {
+					viewerConfig.EditFileLink = pull.HeadRepo.Link() + "/_edit/" + util.PathEscapeSegments(pull.HeadBranch) + "/"
+					viewerConfig.EditReturnURI = setting.AppSubURL + ctx.Req.URL.RequestURI()
 				}
 			}
 		}
@@ -1363,7 +1304,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	form := web.GetForm[*forms.CreateIssueForm](ctx)
 	repo := ctx.Repo.Repository
 	comparePageInfo := newComparePageInfo()
-	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
+	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"), false)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return

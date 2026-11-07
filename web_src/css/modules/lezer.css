@@ -1,0 +1,34 @@
+/* syntax highlighting classes from @lezer/highlight classHighlighter, shared by the code editor and the diff viewer */
+.lezer-highlight .tok-keyword,
+.lezer-highlight .tok-atom { color: var(--color-syntax-keyword); }
+.lezer-highlight .tok-bool { color: var(--color-syntax-bool); }
+.lezer-highlight .tok-variableName { color: var(--color-syntax-variable); }
+.lezer-highlight .tok-variableName2 { color: var(--color-syntax-keyword); }
+.lezer-highlight .tok-propertyName { color: var(--color-syntax-property); }
+.lezer-highlight .tok-typeName,
+.lezer-highlight .tok-className { color: var(--color-syntax-type); }
+.lezer-highlight .tok-namespace { color: var(--color-syntax-namespace); }
+.lezer-highlight .tok-macroName { color: var(--color-syntax-name); }
+.lezer-highlight .tok-labelName { color: var(--color-syntax-name); }
+.lezer-highlight .tok-number { color: var(--color-syntax-number); }
+.lezer-highlight .tok-string { color: var(--color-syntax-string); }
+.lezer-highlight .tok-string2 { color: var(--color-syntax-regexp); }
+.lezer-highlight .tok-operator { color: var(--color-syntax-operator); }
+.lezer-highlight .tok-punctuation { color: var(--color-syntax-punctuation); }
+.lezer-highlight .tok-comment { color: var(--color-syntax-comment); }
+.lezer-highlight .tok-meta { color: var(--color-syntax-preproc); }
+.lezer-highlight .tok-invalid { color: var(--color-syntax-invalid); }
+.lezer-highlight .tok-link { color: var(--color-syntax-link); }
+.lezer-highlight .tok-heading { color: var(--color-syntax-heading); }
+.lezer-highlight .tok-emphasis { color: var(--color-syntax-emph); font-style: italic; }
+.lezer-highlight .tok-strong { font-weight: var(--font-weight-bold); }
+.lezer-highlight .tok-inserted { color: var(--color-syntax-string); }
+.lezer-highlight .tok-deleted { color: var(--color-syntax-invalid); }
+
+/* language-specific overrides */
+.lezer-highlight[data-language="json"] .tok-propertyName,
+.lezer-highlight[data-language="json5"] .tok-propertyName,
+.lezer-highlight[data-language="yaml"] .tok-propertyName { color: var(--color-syntax-tag); }
+.lezer-highlight[data-language="css"] .tok-propertyName { color: var(--color-syntax-name); }
+.lezer-highlight[data-language="html"] .tok-propertyName,
+.lezer-highlight[data-language="xml"] .tok-propertyName { color: var(--color-syntax-attribute); }

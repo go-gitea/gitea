@@ -4,11 +4,14 @@ import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-che
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
 import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
+import giteaGit from '../../public/assets/img/svg/gitea-git.svg';
 import giteaFavicon from '../../public/assets/img/favicon.svg';
 import giteaRunning from '../../public/assets/img/svg/gitea-running.svg';
 import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
+import octiconArrowDown from '../../public/assets/img/svg/octicon-arrow-down.svg';
 import octiconArrowLeft from '../../public/assets/img/svg/octicon-arrow-left.svg';
 import octiconArrowSwitch from '../../public/assets/img/svg/octicon-arrow-switch.svg';
+import octiconArrowUp from '../../public/assets/img/svg/octicon-arrow-up.svg';
 import octiconBlocked from '../../public/assets/img/svg/octicon-blocked.svg';
 import octiconBold from '../../public/assets/img/svg/octicon-bold.svg';
 import octiconCheck from '../../public/assets/img/svg/octicon-check.svg';
@@ -22,8 +25,10 @@ import octiconCircle from '../../public/assets/img/svg/octicon-circle.svg';
 import octiconClock from '../../public/assets/img/svg/octicon-clock.svg';
 import octiconCode from '../../public/assets/img/svg/octicon-code.svg';
 import octiconColumns from '../../public/assets/img/svg/octicon-columns.svg';
+import octiconComment from '../../public/assets/img/svg/octicon-comment.svg';
 import octiconCopy from '../../public/assets/img/svg/octicon-copy.svg';
 import octiconDash from '../../public/assets/img/svg/octicon-dash.svg';
+import octiconDesktopDownload from '../../public/assets/img/svg/octicon-desktop-download.svg';
 import octiconDiffAdded from '../../public/assets/img/svg/octicon-diff-added.svg';
 import octiconDiffModified from '../../public/assets/img/svg/octicon-diff-modified.svg';
 import octiconDiffRemoved from '../../public/assets/img/svg/octicon-diff-removed.svg';
@@ -39,6 +44,9 @@ import octiconFileRemoved from '../../public/assets/img/svg/octicon-file-removed
 import octiconFileSubmodule from '../../public/assets/img/svg/octicon-file-submodule.svg';
 import octiconFileSymlinkFile from '../../public/assets/img/svg/octicon-file-symlink-file.svg';
 import octiconFilter from '../../public/assets/img/svg/octicon-filter.svg';
+import octiconFold from '../../public/assets/img/svg/octicon-fold.svg';
+import octiconFoldDown from '../../public/assets/img/svg/octicon-fold-down.svg';
+import octiconFoldUp from '../../public/assets/img/svg/octicon-fold-up.svg';
 import octiconGear from '../../public/assets/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg';
 import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg';
@@ -61,6 +69,7 @@ import octiconLink from '../../public/assets/img/svg/octicon-link.svg';
 import octiconListOrdered from '../../public/assets/img/svg/octicon-list-ordered.svg';
 import octiconListUnordered from '../../public/assets/img/svg/octicon-list-unordered.svg';
 import octiconLock from '../../public/assets/img/svg/octicon-lock.svg';
+import octiconMarkGithub from '../../public/assets/img/svg/octicon-mark-github.svg';
 import octiconMeter from '../../public/assets/img/svg/octicon-meter.svg';
 import octiconMilestone from '../../public/assets/img/svg/octicon-milestone.svg';
 import octiconMirror from '../../public/assets/img/svg/octicon-mirror.svg';
@@ -69,6 +78,7 @@ import octiconPlay from '../../public/assets/img/svg/octicon-play.svg';
 import octiconPlus from '../../public/assets/img/svg/octicon-plus.svg';
 import octiconProject from '../../public/assets/img/svg/octicon-project.svg';
 import octiconQuote from '../../public/assets/img/svg/octicon-quote.svg';
+import octiconReply from '../../public/assets/img/svg/octicon-reply.svg';
 import octiconRepo from '../../public/assets/img/svg/octicon-repo.svg';
 import octiconRepoForked from '../../public/assets/img/svg/octicon-repo-forked.svg';
 import octiconRepoTemplate from '../../public/assets/img/svg/octicon-repo-template.svg';
@@ -78,6 +88,7 @@ import octiconSearch from '../../public/assets/img/svg/octicon-search.svg';
 import octiconSidebarCollapse from '../../public/assets/img/svg/octicon-sidebar-collapse.svg';
 import octiconSidebarExpand from '../../public/assets/img/svg/octicon-sidebar-expand.svg';
 import octiconSkip from '../../public/assets/img/svg/octicon-skip.svg';
+import octiconSmiley from '../../public/assets/img/svg/octicon-smiley.svg';
 import octiconStar from '../../public/assets/img/svg/octicon-star.svg';
 import octiconStop from '../../public/assets/img/svg/octicon-stop.svg';
 import octiconStrikethrough from '../../public/assets/img/svg/octicon-strikethrough.svg';
@@ -86,6 +97,7 @@ import octiconTable from '../../public/assets/img/svg/octicon-table.svg';
 import octiconTag from '../../public/assets/img/svg/octicon-tag.svg';
 import octiconTrash from '../../public/assets/img/svg/octicon-trash.svg';
 import octiconTriangleDown from '../../public/assets/img/svg/octicon-triangle-down.svg';
+import octiconUnfold from '../../public/assets/img/svg/octicon-unfold.svg';
 import octiconX from '../../public/assets/img/svg/octicon-x.svg';
 import octiconXCircle from '../../public/assets/img/svg/octicon-x-circle.svg';
 import octiconXCircleFill from '../../public/assets/img/svg/octicon-x-circle-fill.svg';
@@ -98,10 +110,13 @@ const svgs = {
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
   'gitea-favicon': giteaFavicon,
+  'gitea-git': giteaGit,
   'gitea-running': giteaRunning,
   'octicon-archive': octiconArchive,
+  'octicon-arrow-down': octiconArrowDown,
   'octicon-arrow-left': octiconArrowLeft,
   'octicon-arrow-switch': octiconArrowSwitch,
+  'octicon-arrow-up': octiconArrowUp,
   'octicon-blocked': octiconBlocked,
   'octicon-bold': octiconBold,
   'octicon-check': octiconCheck,
@@ -115,8 +130,10 @@ const svgs = {
   'octicon-clock': octiconClock,
   'octicon-code': octiconCode,
   'octicon-columns': octiconColumns,
+  'octicon-comment': octiconComment,
   'octicon-copy': octiconCopy,
   'octicon-dash': octiconDash,
+  'octicon-desktop-download': octiconDesktopDownload,
   'octicon-diff-added': octiconDiffAdded,
   'octicon-diff-modified': octiconDiffModified,
   'octicon-diff-removed': octiconDiffRemoved,
@@ -132,6 +149,9 @@ const svgs = {
   'octicon-file-submodule': octiconFileSubmodule,
   'octicon-file-symlink-file': octiconFileSymlinkFile,
   'octicon-filter': octiconFilter,
+  'octicon-fold': octiconFold,
+  'octicon-fold-down': octiconFoldDown,
+  'octicon-fold-up': octiconFoldUp,
   'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
   'octicon-git-commit': octiconGitCommit,
@@ -154,6 +174,7 @@ const svgs = {
   'octicon-list-ordered': octiconListOrdered,
   'octicon-list-unordered': octiconListUnordered,
   'octicon-lock': octiconLock,
+  'octicon-mark-github': octiconMarkGithub,
   'octicon-meter': octiconMeter,
   'octicon-milestone': octiconMilestone,
   'octicon-mirror': octiconMirror,
@@ -162,6 +183,7 @@ const svgs = {
   'octicon-plus': octiconPlus,
   'octicon-project': octiconProject,
   'octicon-quote': octiconQuote,
+  'octicon-reply': octiconReply,
   'octicon-repo': octiconRepo,
   'octicon-repo-forked': octiconRepoForked,
   'octicon-repo-template': octiconRepoTemplate,
@@ -171,6 +193,7 @@ const svgs = {
   'octicon-sidebar-collapse': octiconSidebarCollapse,
   'octicon-sidebar-expand': octiconSidebarExpand,
   'octicon-skip': octiconSkip,
+  'octicon-smiley': octiconSmiley,
   'octicon-star': octiconStar,
   'octicon-stop': octiconStop,
   'octicon-strikethrough': octiconStrikethrough,
@@ -179,6 +202,7 @@ const svgs = {
   'octicon-tag': octiconTag,
   'octicon-trash': octiconTrash,
   'octicon-triangle-down': octiconTriangleDown,
+  'octicon-unfold': octiconUnfold,
   'octicon-x': octiconX,
   'octicon-x-circle': octiconXCircle,
   'octicon-x-circle-fill': octiconXCircleFill,

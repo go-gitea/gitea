@@ -1,0 +1,1 @@
+{"name":"Xorg","flags":"m","ensureNL":false,"rules":{"root":[["\\s+","w",null],["#.*$","c",null],["((|Sub)Section)(\\s+)(\"\\w+\")",{"g":["kn","se","w","se"]},null],["(End(|Sub)Section)","kn",null],["(\\w+)(\\s+)([^\\n#]+)",{"g":["n","w","s"]},null]]}}

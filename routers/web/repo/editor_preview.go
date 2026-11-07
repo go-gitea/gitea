@@ -33,15 +33,12 @@ func DiffPreviewPost(ctx *context.Context) {
 		ctx.ServerError("GetBlobContent", err)
 		return
 	}
-	diff, err := files_service.GetDiffPreview(ctx, ctx.Repo.Repository, ctx.Repo.BranchName, treePath, oldContent, newContent)
+	patch, err := files_service.GetDiffPreview(ctx, ctx.Repo.Repository, ctx.Repo.BranchName, treePath, oldContent, newContent)
 	if err != nil {
 		ctx.ServerError("GetDiffPreview", err)
 		return
 	}
-
-	if len(diff.Files) != 0 {
-		ctx.Data["File"] = diff.Files[0]
-	}
-
+	ctx.Data["Patch"] = patch
+	ctx.Data["TreePath"] = treePath
 	ctx.HTML(http.StatusOK, tplEditDiffPreview)
 }

@@ -17,3 +17,16 @@ test('codeeditor textarea updates correctly', async ({page, request}) => {
   await page.keyboard.press('Tab');
   await expect(page.locator('textarea[name="content"]')).toHaveValue('  ');
 });
+
+test('codeeditor diff preview', async ({page, request}) => {
+  const repoName = `e2e-codeeditor-${randomString(8)}`;
+  await Promise.all([apiCreateRepo(request, {name: repoName}), login(page)]);
+  await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/_edit/main/README.md`);
+  await expect(page.locator('[data-tab="write"] .editor-loading')).toBeHidden();
+  await page.locator('.cm-content[role="textbox"]').click();
+  await page.keyboard.type('preview line ');
+  await page.locator('a[data-tab="diff"]').click();
+  const diff = page.locator('.tab[data-tab="diff"]');
+  await expect(diff.locator('tr.add-code')).toHaveText(/preview line/);
+  await expect(diff.locator('tr.same-code')).toHaveCount(2);
+});
