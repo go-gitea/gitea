@@ -101,14 +101,19 @@ func RefNameFromPullIndex(prIndex int64) RefName {
 	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + pullSuffix)
 }
 
-// MergeRefNameFromPullIndex is the test merge, removed on close like on GitHub
+// MergeRefNameFromPullIndex is the test merge of an open pull request
 func MergeRefNameFromPullIndex(prIndex int64) RefName {
 	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + "/merge")
 }
 
-// MergedRefNameFromPullIndex hides and keeps the merged commit from git gc
+// MergedRefNameFromPullIndex keeps the merged commit after the base branch is deleted or rewritten
 func MergedRefNameFromPullIndex(prIndex int64) RefName {
 	return RefName(hiddenRefPrefix + "/pull/" + strconv.FormatInt(prIndex, 10) + "/merged")
+}
+
+// RunRefNameFromRunID keeps a run's test merge after refs/pull/<index>/merge moved on
+func RunRefNameFromRunID(runID int64) RefName {
+	return RefName(hiddenRefPrefix + "/run/" + strconv.FormatInt(runID, 10))
 }
 
 func (ref RefName) String() string {

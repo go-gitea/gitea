@@ -859,11 +859,11 @@ func MarkAsMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommi
 	} else if !ok {
 		return false, err
 	}
-	if err := git.RemoveRef(ctx, pr.Issue.Repo, git.MergeRefNameFromPullIndex(pr.Index).String()); err != nil {
-		log.Error("RemoveRef: %v", err)
-	}
 	if err := git.UpdateRef(ctx, pr.Issue.Repo, git.MergedRefNameFromPullIndex(pr.Index).String(), pr.MergedCommitID); err != nil {
-		log.Error("UpdateRef: %v", err)
+		log.Error("UpdateRef for merged head: %v", err)
+	}
+	if err := git.RemoveRef(ctx, pr.Issue.Repo, git.MergeRefNameFromPullIndex(pr.Index).String()); err != nil {
+		log.Error("RemoveRef for test merge: %v", err)
 	}
 
 	err = markAsMergedPostProcess(ctx, pr.ID, merger, wasAutoMerged)

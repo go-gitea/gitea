@@ -47,10 +47,10 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	if pullPayload, err := run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
 		baseRef = pullPayload.PullRequest.Base.Ref
 		headRef = pullPayload.PullRequest.Head.Ref
-		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget { // like GitHub, use the base branch or the test merge
+		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
 			ref, sha = git.BranchPrefix+pullPayload.PullRequest.Base.Ref, pullPayload.PullRequest.Base.Sha
-		} else if run.MergeCommitSHA != "" {
-			ref, sha = git.MergeRefNameFromPullIndex(pullPayload.PullRequest.Index).String(), run.MergeCommitSHA
+		} else if run.TriggerEvent == actions_module.GithubEventPullRequest && !pullPayload.PullRequest.HasMerged && pullPayload.PullRequest.MergedCommitID != nil {
+			ref, sha = git.MergeRefNameFromPullIndex(pullPayload.PullRequest.Index).String(), *pullPayload.PullRequest.MergedCommitID
 		}
 	}
 

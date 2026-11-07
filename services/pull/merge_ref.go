@@ -5,6 +5,7 @@ package pull
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	issues_model "gitea.dev/models/issues"
@@ -36,14 +37,10 @@ func (*mergeRefNotifier) IssueChangeStatus(ctx context.Context, _doer *user_mode
 	}
 }
 
-// UpdateMergeRef refreshes refs/pull/<index>/merge for headCommitID and returns its commit, empty when closed, conflicting or git lacks merge-tree
-func UpdateMergeRef(ctx context.Context, pr *issues_model.PullRequest, headCommitID string) (string, error) {
-	if !git.DefaultFeatures().SupportGitMergeTree || pr.Issue.IsClosed {
+// UpdateMergeRef refreshes refs/pull/<index>/merge and returns its commit, empty when closed, conflicting or git lacks merge-tree
+func UpdateMergeRef(ctx context.Context, pr *issues_model.PullRequest, baseCommitID, headCommitID string) (string, error) {
+	if !git.DefaultFeatures().SupportGitMergeTree {
 		return "", nil
-	}
-	baseCommitID, err := git.GetFullCommitID(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch)
-	if err != nil {
-		return "", err
 	}
 	treeID, conflicted, _, err := git.MergeTree(ctx, pr.BaseRepo, baseCommitID, headCommitID, "")
 	if err != nil || conflicted {
@@ -53,10 +50,20 @@ func UpdateMergeRef(ctx context.Context, pr *issues_model.PullRequest, headCommi
 }
 
 func updateMergeRef(ctx context.Context, pr *issues_model.PullRequest, baseCommitID, headCommitID, treeID string) (string, error) {
+	if err := pr.LoadIssue(ctx); err != nil || pr.Issue.IsClosed {
+		return "", err
+	}
+	timestamp, _, err := gitcmd.NewCommand("log", "-1", "--no-walk=sorted", "--format=%ct").
+		AddDynamicArguments(baseCommitID, headCommitID).WithRepo(pr.BaseRepo).RunStdString(ctx)
+	if err != nil {
+		return "", err
+	}
+	date := "@" + strings.TrimSpace(timestamp) + " +0000" // the newer parent's date, so equal inputs give the same commit
 	stdout, _, err := gitcmd.NewCommand("commit-tree", "--no-gpg-sign", "-p").AddDynamicArguments(baseCommitID).
 		AddArguments("-p").AddDynamicArguments(headCommitID).
 		AddOptionValues("-m", "Merge "+headCommitID+" into "+baseCommitID).
-		AddDynamicArguments(treeID).WithRepo(pr.BaseRepo).RunStdString(ctx)
+		AddDynamicArguments(treeID).WithRepo(pr.BaseRepo).
+		WithEnv(append(os.Environ(), "GIT_AUTHOR_DATE="+date, "GIT_COMMITTER_DATE="+date)).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}

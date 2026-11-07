@@ -131,8 +131,7 @@ func syncGitConfig(ctx context.Context) (err error) {
 		}
 	}
 
-	// after the user's options which replace all values: internal refs only keep objects alive, clients can neither see nor push them
-	if err := configAddNonExist(ctx, "transfer.hideRefs", hiddenRefPrefix); err != nil {
+	if err := configAddNonExist(ctx, "transfer.hideRefs", hiddenRefPrefix); err != nil { // after the user's options, which replace all values
 		return err
 	}
 
