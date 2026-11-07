@@ -726,6 +726,10 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return util.ErrorWrap(ErrNotReadyToMerge, "The head branch is behind the base branch")
 	}
 
+	if issues_model.MergeBlockedByUnresolvedConversations(ctx, pb, pr) {
+		return util.ErrorWrap(ErrNotReadyToMerge, "There are unresolved conversations")
+	}
+
 	if !issue_service.HasAllRequiredCodeownerReviews(ctx, pb, pr) {
 		return util.ErrorWrap(ErrNotReadyToMerge, "There are missing code owner reviews")
 	}

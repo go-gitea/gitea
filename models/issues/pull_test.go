@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -50,6 +51,7 @@ func TestPullRequest(t *testing.T) {
 	t.Run("Migrate_InsertPullRequests", testMigrateInsertPullRequests)
 	t.Run("PullRequestsClosedRecentSortType", testPullRequestsClosedRecentSortType)
 	t.Run("LoadRequestedReviewers", testLoadRequestedReviewers)
+	t.Run("MergeBlockedByUnresolvedConversations", testMergeBlockedByUnresolvedConversations)
 }
 
 func testPullRequestLoadAttributes(t *testing.T) {
@@ -494,4 +496,40 @@ func testCodeOwnerSectionsAndAnnotations(t *testing.T) {
 	require.Len(t, rules, 1)
 	assert.True(t, match(rules[0], "file#name"))
 	assert.False(t, rules[0].ReviewRequest.Value())
+}
+
+func testMergeBlockedByUnresolvedConversations(t *testing.T) {
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	require.NoError(t, pr.LoadIssue(t.Context()))
+	protectBranch := &git_model.ProtectedBranch{}
+
+	// Disabled: never blocks, even with unresolved conversations present.
+	assert.False(t, issues_model.MergeBlockedByUnresolvedConversations(t.Context(), protectBranch, pr))
+
+	protectBranch.BlockOnUnresolvedConversations = true
+
+	// Enabled, no code conversations: not blocked.
+	assert.False(t, issues_model.MergeBlockedByUnresolvedConversations(t.Context(), protectBranch, pr))
+
+	unresolved := &issues_model.Comment{
+		Type:     issues_model.CommentTypeCode,
+		PosterID: pr.Issue.PosterID,
+		IssueID:  pr.IssueID,
+		Content:  "unresolved conversation",
+	}
+	require.NoError(t, db.Insert(t.Context(), unresolved))
+	defer func() {
+		_, err := db.DeleteByID[issues_model.Comment](t.Context(), unresolved.ID)
+		require.NoError(t, err)
+	}()
+
+	// Enabled, unresolved code conversation present: blocked.
+	assert.True(t, issues_model.MergeBlockedByUnresolvedConversations(t.Context(), protectBranch, pr))
+
+	unresolved.ResolveDoerID = pr.Issue.PosterID
+	_, err := db.GetEngine(t.Context()).ID(unresolved.ID).Cols("resolve_doer_id").Update(unresolved)
+	require.NoError(t, err)
+
+	// Enabled, conversation resolved: not blocked.
+	assert.False(t, issues_model.MergeBlockedByUnresolvedConversations(t.Context(), protectBranch, pr))
 }

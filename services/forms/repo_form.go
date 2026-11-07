@@ -152,39 +152,40 @@ type RepoSettingForm struct {
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
 	middleware.FormDefaultValidator
-	RuleName                      string `binding:"Required"`
-	RuleID                        int64
-	EnablePush                    string
-	WhitelistUsers                string
-	WhitelistTeams                string
-	EnableForcePush               string
-	ForcePushAllowlistUsers       string
-	ForcePushAllowlistTeams       string
-	EnableDeletion                string
-	DeletionAllowlistUsers        string
-	DeletionAllowlistTeams        string
-	EnableMergeWhitelist          bool
-	MergeWhitelistUsers           string
-	MergeWhitelistTeams           string
-	EnableBypassAllowlist         bool
-	BypassAllowlistUsers          string
-	BypassAllowlistTeams          string
-	EnableStatusCheck             bool
-	StatusCheckContexts           string
-	RequiredApprovals             int64
-	EnableApprovalsWhitelist      bool
-	ApprovalsWhitelistUsers       string
-	ApprovalsWhitelistTeams       string
-	BlockOnRejectedReviews        bool
-	BlockOnOfficialReviewRequests bool
-	BlockOnCodeownerReviews       bool
-	BlockOnOutdatedBranch         bool
-	DismissStaleApprovals         bool
-	IgnoreStaleApprovals          bool
-	RequireSignedCommits          bool
-	ProtectedFilePatterns         string
-	UnprotectedFilePatterns       string
-	BlockAdminMergeOverride       bool
+	RuleName                       string `binding:"Required"`
+	RuleID                         int64
+	EnablePush                     string
+	WhitelistUsers                 string
+	WhitelistTeams                 string
+	EnableForcePush                string
+	ForcePushAllowlistUsers        string
+	ForcePushAllowlistTeams        string
+	EnableDeletion                 string
+	DeletionAllowlistUsers         string
+	DeletionAllowlistTeams         string
+	EnableMergeWhitelist           bool
+	MergeWhitelistUsers            string
+	MergeWhitelistTeams            string
+	EnableBypassAllowlist          bool
+	BypassAllowlistUsers           string
+	BypassAllowlistTeams           string
+	EnableStatusCheck              bool
+	StatusCheckContexts            string
+	RequiredApprovals              int64
+	EnableApprovalsWhitelist       bool
+	ApprovalsWhitelistUsers        string
+	ApprovalsWhitelistTeams        string
+	BlockOnRejectedReviews         bool
+	BlockOnOfficialReviewRequests  bool
+	BlockOnCodeownerReviews        bool
+	BlockOnOutdatedBranch          bool
+	BlockOnUnresolvedConversations bool
+	DismissStaleApprovals          bool
+	IgnoreStaleApprovals           bool
+	RequireSignedCommits           bool
+	ProtectedFilePatterns          string
+	UnprotectedFilePatterns        string
+	BlockAdminMergeOverride        bool
 }
 
 // WebhookForm form for changing web hook
