@@ -6,6 +6,8 @@ package org
 import (
 	"testing"
 
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -47,13 +49,19 @@ func TestOrg(t *testing.T) {
 
 	t.Run("DeleteOrganization", func(t *testing.T) {
 		org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
+		group, err := actions_model.CreateRunnerGroup(t.Context(), org.ID, "gpu")
+		require.NoError(t, err)
+		require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunnerAccess{GroupID: group.ID, RepoID: 1}))
 		assert.NoError(t, DeleteOrganization(t.Context(), org, false))
 		unittest.AssertNotExistsBean(t, &organization.Organization{ID: 6})
 		unittest.AssertNotExistsBean(t, &organization.OrgUser{OrgID: 6})
 		unittest.AssertNotExistsBean(t, &organization.Team{OrgID: 6})
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerGroup{ID: group.ID})
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerAccess{GroupID: group.ID})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 		org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-		err := DeleteOrganization(t.Context(), org, false)
+		err = DeleteOrganization(t.Context(), org, false)
 		assert.Error(t, err)
 		assert.True(t, repo_model.IsErrUserOwnRepos(err))
 

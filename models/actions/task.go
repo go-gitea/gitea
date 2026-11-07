@@ -266,6 +266,29 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *Actio
 	if db.InTransaction(ctx) {
 		return nil, nil, errors.New("CreateTaskForRunner must not be called within a database transaction")
 	}
+	jobCond := builder.NewCond()
+	if runner.RepoID != 0 {
+		jobCond = builder.Eq{"repo_id": runner.RepoID}
+	} else if runner.OwnerID != 0 {
+		jobCond = builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": runner.OwnerID}))
+	}
+	if err := (RunnerList{runner}).LoadGroups(ctx); err != nil {
+		return nil, nil, err
+	}
+	runsOnGroups := []string{""}
+	accessCond := builder.NewCond()
+	if runner.GroupID != 0 {
+		if runner.Group != nil {
+			runsOnGroups = append(runsOnGroups, runner.Group.runsOnSelectors()...)
+		}
+		accessCond = builder.Exists(builder.Select("1").From("action_runner_group").
+			Where(builder.Eq{"id": runner.GroupID, "includes_all_repositories": true})).
+			Or(builder.In("repo_id", builder.Select("repo_id").From("action_runner_access").
+				Where(builder.Eq{"group_id": runner.GroupID})))
+	}
+	groupCond := builder.Eq{"`action_run_job`.runs_on_group": runsOnGroups}.And(accessCond)
+	claimCond := builder.And(jobCond, accessCond, builder.Exists(builder.Select("1").From("action_runner").
+		Where(builder.Eq{"id": runner.ID, "group_id": runner.GroupID, "is_disabled": false}.And(builder.Eq{"deleted": 0}.Or(builder.IsNull{"deleted"})))))
 
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
@@ -276,7 +299,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *Actio
 	var cursorUpdated timeutil.TimeStamp
 	var cursorID int64
 	for {
-		sess := JobQueueOptions{RepoID: runner.RepoID, OwnerID: runner.OwnerID, Status: StatusWaiting}.session(ctx)
+		sess := JobQueueOptions{RepoID: runner.RepoID, OwnerID: runner.OwnerID, Status: StatusWaiting}.session(ctx).And(groupCond)
 		if cursorID > 0 {
 			sess.And(builder.Or(
 				builder.Gt{"updated": cursorUpdated},
@@ -296,10 +319,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *Actio
 		}
 
 		for _, v := range jobs {
-			if !runner.CanMatchLabels(v.RunsOn) {
+			if !runner.CanRunJob(v.RunsOnGroup, v.RunsOn) {
 				continue
 			}
-			task, cancelled, err := claimJobForRunner(ctx, runner, v)
+			task, cancelled, err := claimJobForRunner(ctx, runner, v, claimCond)
 			if cancelled {
 				cancelledJobs = append(cancelledJobs, v)
 			}
@@ -318,8 +341,8 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *Actio
 // claimJobForRunner attempts to atomically claim job for runner inside its own
 // transaction. Returns the task on success, cancelled when the job's repository
 // has Actions disabled, or neither when another runner wins the optimistic-lock
-// race (the caller should try the next candidate job).
-func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob) (*ActionTask, bool, error) {
+// race or claimCond no longer holds (the caller should try the next candidate job).
+func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob, claimCond builder.Cond) (*ActionTask, bool, error) {
 	var resultTask *ActionTask
 	var cancelled bool
 
@@ -388,7 +411,7 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 		}
 
 		job.TaskID = task.ID
-		n, err := UpdateRunJob(ctx, job, builder.And(builder.Eq{"task_id": 0}, builder.Eq{"status": StatusWaiting}))
+		n, err := UpdateRunJob(ctx, job, builder.And(builder.Eq{"task_id": 0}, builder.Eq{"status": StatusWaiting}, claimCond))
 		if err != nil {
 			return err
 		}

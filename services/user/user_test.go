@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
@@ -68,6 +69,9 @@ func TestDeleteUser(t *testing.T) {
 
 	t.Run("CleanupOrphanedTables", func(t *testing.T) {
 		assert.NoError(t, unittest.PrepareTestDatabase())
+		group, err := actions_model.CreateRunnerGroup(t.Context(), 24, "gpu")
+		require.NoError(t, err)
+		require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunnerAccess{GroupID: group.ID, RepoID: 1}))
 
 		// assert they exist before deletion
 		unittest.AssertExistsAndLoadBean(t, &auth.TwoFactor{UID: 24})
@@ -76,10 +80,17 @@ func TestDeleteUser(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueWatch{UserID: 2})
 
 		// delete users
-		for _, userID := range []int64{24, 32, 2} {
-			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
-			assert.NoError(t, DeleteUser(t.Context(), user, true))
-		}
+		user24 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 24})
+		assert.NoError(t, DeleteUser(t.Context(), user24, true))
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerGroup{ID: group.ID})
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerAccess{GroupID: group.ID})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		user32 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 32})
+		assert.NoError(t, DeleteUser(t.Context(), user32, true))
+
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		assert.NoError(t, DeleteUser(t.Context(), user2, true))
 
 		// assert they do not exist after deletion
 		unittest.AssertNotExistsBean(t, &auth.TwoFactor{UID: 24})

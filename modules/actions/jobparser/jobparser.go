@@ -250,11 +250,11 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombinatio
 			if rawRunsOn.Kind != 0 && runsOnProblem(&rawRunsOn) != "" {
 				combo.RawRunsOn = rawRunsOn
 			} else {
-				runsOn := model.RunsOnFromNode(rawRunsOn)
+				runsOn, group := model.RunsOnLabelsFromNode(rawRunsOn), model.RunsOnGroupFromNode(rawRunsOn)
 				for i := range runsOn {
 					runsOn[i] = escapeExpressions(runsOn[i])
 				}
-				combo.RawRunsOn = model.RunsOnNode(runsOn, "")
+				combo.RawRunsOn = model.RunsOnNode(runsOn, escapeExpressions(group))
 			}
 		}
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
