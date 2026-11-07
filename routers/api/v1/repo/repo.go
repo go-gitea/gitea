@@ -912,7 +912,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	if (opts.HasReleases != nil || opts.ImmutableReleases != nil) && !unit_model.TypeReleases.UnitGlobalDisabled() {
 		if opts.HasReleases != nil && !*opts.HasReleases {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
-		} else if opts.HasReleases != nil || repo.UnitEnabled(ctx, unit_model.TypeReleases) { // immutable_releases alone must not enable the unit
+		} else if opts.HasReleases != nil || repo.UnitEnabled(ctx, unit_model.TypeReleases) {
 			unit := repo.MustGetUnit(ctx, unit_model.TypeReleases)
 			config := unit.ReleasesConfig()
 			optional.AssignPtrValue(new(bool), &config.ImmutableReleases, opts.ImmutableReleases)

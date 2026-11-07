@@ -165,6 +165,10 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 	}
 
+	if err := repo_model.CheckImmutableTagConflicts(ctx, repo.ID, newOwner.Name, repo.Name); err != nil {
+		return err
+	}
+
 	oldOwner := repo.Owner
 	oldOwnerName = oldOwner.Name
 
@@ -385,6 +389,10 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 			Uname: repo.OwnerName,
 			Name:  newRepoName,
 		}
+	}
+
+	if err := repo_model.CheckImmutableTagConflicts(ctx, repo.ID, repo.OwnerName, newRepoName); err != nil {
+		return err
 	}
 
 	newCodeRepo := gitrepo.CodeRepoByName(repo.OwnerName, newRepoName)

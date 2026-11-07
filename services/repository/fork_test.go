@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -16,6 +17,7 @@ import (
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestForkRepository(t *testing.T) {
@@ -56,6 +58,14 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
+	t.Run("ReservedTag", func(t *testing.T) {
+		claim := &repo_model.ImmutableTag{RepoID: unittest.NonexistentID, LowerOwnerName: user2.LowerName, LowerRepoName: "test", TagName: "v1.1"}
+		require.NoError(t, db.Insert(t.Context(), claim))
+		_, err := ForkRepository(t.Context(), user2, user2, ForkRepoOptions{BaseRepo: repo10, Name: "test"})
+		assert.ErrorIs(t, err, repo_model.ErrImmutableTag)
+		unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerID: user2.ID, LowerName: "test"})
+		require.NoError(t, db.DeleteBeans(t.Context(), claim))
+	})
 	t.Run("Success", func(t *testing.T) {
 		// a successful fork
 

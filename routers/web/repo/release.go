@@ -484,7 +484,7 @@ func NewReleasePost(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.release.tag_name_invalid"))
 		case release_service.IsErrProtectedTagName(err):
 			ctx.JSONError(ctx.Tr("repo.release.tag_name_protected"))
-		case errors.Is(err, release_service.ErrImmutableTag):
+		case errors.Is(err, repo_model.ErrImmutableTag):
 			ctx.JSONError(ctx.Tr("repo.release.tag_name_immutable"))
 		default:
 			ctx.ServerError("handleTagReleaseError", err)
@@ -660,7 +660,7 @@ func EditReleasePost(ctx *context.Context) {
 		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments, makeLatest); err != nil {
 		if errors.Is(err, release_service.ErrImmutableRelease) {
 			ctx.JSONError(ctx.Tr("repo.release.immutable_locked"))
-		} else if errors.Is(err, release_service.ErrImmutableTag) {
+		} else if errors.Is(err, repo_model.ErrImmutableTag) {
 			ctx.JSONError(ctx.Tr("repo.release.tag_name_immutable"))
 		} else {
 			ctx.JSONErrorAuto(err)
@@ -709,7 +709,7 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, isDelTag); err != nil {
 		if release_service.IsErrProtectedTagName(err) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
-		} else if errors.Is(err, release_service.ErrImmutableTag) {
+		} else if errors.Is(err, repo_model.ErrImmutableTag) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_immutable_delete"))
 		} else {
 			ctx.Flash.Error("DeleteReleaseByID: " + err.Error())

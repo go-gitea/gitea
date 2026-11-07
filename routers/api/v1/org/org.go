@@ -353,7 +353,7 @@ func Rename(ctx *context.APIContext) {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}

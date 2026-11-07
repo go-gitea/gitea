@@ -12,6 +12,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/private"
@@ -31,6 +32,7 @@ type preReceiveContext struct {
 	canWriteCodeUnitCached *bool
 	canCreatePullRequest   *bool
 	protectedTags          []*git_model.ProtectedTag
+	immutableTags          container.Set[string]
 }
 
 func (ctx *preReceiveContext) canWriteCodeUnit() bool {
@@ -320,18 +322,26 @@ func preReceiveTag(ctx *preReceiveContext, newCommitID string, refFullName git.R
 
 	tagName := refFullName.TagName()
 
-	// a live release owns its tag name, a claimed name can never be created or moved again
-	immutable, err := repo_model.HasImmutableRelease(ctx, ctx.Repo.Repository.ID, tagName)
-	if err == nil && !immutable && !git.IsEmptyCommitID(newCommitID) {
-		immutable, err = repo_model.IsTagImmutable(ctx, ctx.Repo.Repository, tagName)
+	var err error
+	if ctx.immutableTags == nil {
+		if ctx.immutableTags, err = repo_model.GetImmutableTagNames(ctx, ctx.Repo.Repository); err != nil {
+			ctx.PrivateInternalErrorf("Unable to get immutable tags: %v", err)
+			return
+		}
 	}
-	if err != nil {
-		ctx.PrivateInternalErrorf("unable to check immutable tag %s: %v", tagName, err)
-		return
-	}
-	if immutable {
-		ctx.PrivateUserErrorf(http.StatusForbidden, "Tag %s is immutable", tagName)
-		return
+	// a claimed name can never be created or moved again, and its tag is deletable once its release is gone
+	if ctx.immutableTags.Contains(tagName) {
+		immutable := !git.IsEmptyCommitID(newCommitID)
+		if !immutable {
+			if immutable, err = repo_model.HasImmutableRelease(ctx, ctx.Repo.Repository.ID, tagName); err != nil {
+				ctx.PrivateInternalErrorf("Unable to check immutable release %s: %v", tagName, err)
+				return
+			}
+		}
+		if immutable {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Tag %s is immutable", tagName)
+			return
+		}
 	}
 
 	if ctx.protectedTags == nil {

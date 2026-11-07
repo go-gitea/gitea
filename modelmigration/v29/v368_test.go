@@ -21,9 +21,10 @@ func TestAddImmutableReleases(t *testing.T) {
 
 	type ImmutableTag struct {
 		ID             int64  `xorm:"pk autoincr"`
+		RepoID         int64  `xorm:"INDEX(r) NOT NULL"`
 		LowerOwnerName string `xorm:"UNIQUE(s) NOT NULL"`
 		LowerRepoName  string `xorm:"UNIQUE(s) NOT NULL"`
-		TagName        string `xorm:"UNIQUE(s) NOT NULL"`
+		TagName        string `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
 	}
 
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Release))
@@ -51,14 +52,16 @@ func TestAddImmutableReleases(t *testing.T) {
 
 	require.NoError(t, AddImmutableReleases(t.Context(), x))
 
-	_, err = x.Insert(&ImmutableTag{LowerOwnerName: "o", LowerRepoName: "r", TagName: "v1.0"})
+	_, err = x.Insert(&ImmutableTag{RepoID: 1, LowerOwnerName: "o", LowerRepoName: "r", TagName: "v1.0"})
 	require.NoError(t, err)
 
-	_, err = x.Insert(&ImmutableTag{LowerOwnerName: "o", LowerRepoName: "r", TagName: "v1.0"})
+	_, err = x.Insert(&ImmutableTag{RepoID: 2, LowerOwnerName: "o", LowerRepoName: "r", TagName: "v1.0"})
 	assert.Error(t, err)
 
-	_, err = x.Insert(&ImmutableTag{LowerOwnerName: "o", LowerRepoName: "r2", TagName: "v1.0"})
+	_, err = x.Insert(&ImmutableTag{RepoID: 1, LowerOwnerName: "o", LowerRepoName: "r2", TagName: "v1.0"})
 	assert.NoError(t, err)
+
+	assert.NotNil(t, migrationtest.LoadTableSchemasMap(t, x)["immutable_tag"].GetColumn("repo_id"))
 
 	release := migrationtest.LoadTableSchemasMap(t, x)["release"]
 	require.NotNil(t, release)

@@ -112,7 +112,6 @@ func (cfg *IssuesConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
-// ReleasesConfig describes releases config
 type ReleasesConfig struct {
 	ImmutableReleases bool
 }
