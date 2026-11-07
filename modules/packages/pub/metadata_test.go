@@ -63,7 +63,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("MissingPubspecFile", func(t *testing.T) {
 		data := createArchive(map[string][]byte{"dummy.txt": {}})
 
-		pp, err := ParsePackage(data)
+		pp, err := ParsePackage(data, 0)
 		assert.Nil(t, pp)
 		assert.ErrorIs(t, err, ErrMissingPubspecFile)
 	})
@@ -71,7 +71,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("PubspecFileTooLarge", func(t *testing.T) {
 		data := createArchive(map[string][]byte{"pubspec.yaml": make([]byte, 200*1024)})
 
-		pp, err := ParsePackage(data)
+		pp, err := ParsePackage(data, 0)
 		assert.Nil(t, pp)
 		assert.ErrorIs(t, err, ErrPubspecFileTooLarge)
 	})
@@ -79,7 +79,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("InvalidPubspecFile", func(t *testing.T) {
 		data := createArchive(map[string][]byte{"pubspec.yaml": {}})
 
-		pp, err := ParsePackage(data)
+		pp, err := ParsePackage(data, 0)
 		assert.Nil(t, pp)
 		assert.Error(t, err)
 	})
@@ -87,7 +87,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("Valid", func(t *testing.T) {
 		data := createArchive(map[string][]byte{"pubspec.yaml": []byte(pubspecContent)})
 
-		pp, err := ParsePackage(data)
+		pp, err := ParsePackage(data, 0)
 		assert.NoError(t, err)
 		assert.NotNil(t, pp)
 		assert.Empty(t, pp.Metadata.Readme)
@@ -96,7 +96,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("ValidWithReadme", func(t *testing.T) {
 		data := createArchive(map[string][]byte{"pubspec.yaml": []byte(pubspecContent), "README.md": []byte("readme")})
 
-		pp, err := ParsePackage(data)
+		pp, err := ParsePackage(data, 0)
 		assert.NoError(t, err)
 		assert.NotNil(t, pp)
 		assert.Equal(t, "readme", pp.Metadata.Readme)

@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -393,10 +394,6 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 	return nil, ErrInvalidPackage
 }
 
-// maxNpmTarballScanBytes caps the decompressed tarball bytes inspectTarball
-// will read; defends against gzip bombs.
-const maxNpmTarballScanBytes = int64(32 * 1024 * 1024) // 32 MiB
-
 // maxNpmPackageJSONBytes caps the package.json bytes decoded from the tarball.
 const maxNpmPackageJSONBytes = int64(1 * 1024 * 1024) // 1 MiB
 
@@ -413,7 +410,7 @@ func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 		Scripts map[string]string `json:"scripts"`
 		Gypfile any               `json:"gypfile"`
 	}
-	tr := tar.NewReader(io.LimitReader(gr, maxNpmTarballScanBytes))
+	tr := tar.NewReader(packages.NewArchiveLimitedReader(gr, int64(len(data))))
 	for {
 		hdr, err := tr.Next()
 		if err != nil {

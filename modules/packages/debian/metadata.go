@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 	"gitea.dev/modules/zstd"
@@ -135,10 +136,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				return nil, GlobalVars().ErrUnsupportedCompression
 			}
 
-			// bound the decompressed control archive: it holds only the small control file
-			// and maintainer scripts, so a much larger stream is a decompression bomb
-			const maxControlTarSize = 32 * 1024 * 1024
-			tr := tar.NewReader(io.LimitReader(inner, maxControlTarSize))
+			tr := tar.NewReader(packages.NewLimitedReader(inner, packages.MaxMetadataSize))
 			for {
 				hd, err := tr.Next()
 				if err == io.EOF {

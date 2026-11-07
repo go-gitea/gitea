@@ -76,7 +76,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("MissingPKGINFOFile", func(t *testing.T) {
 		data := createPackage("dummy.txt", []byte{})
 
-		pp, err := ParsePackage(data)
+		pp, err := ParsePackage(data, 0)
 		assert.Nil(t, pp)
 		assert.ErrorIs(t, err, ErrMissingPKGINFOFile)
 	})
@@ -84,7 +84,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("InvalidPKGINFOFile", func(t *testing.T) {
 		data := createPackage(".PKGINFO", []byte{})
 
-		pp, err := ParsePackage(data)
+		pp, err := ParsePackage(data, 0)
 		assert.Nil(t, pp)
 		assert.ErrorIs(t, err, ErrInvalidName)
 	})
@@ -92,7 +92,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("Valid", func(t *testing.T) {
 		data := createPackage(".PKGINFO", createPKGINFOContent(packageName, packageVersion))
 
-		p, err := ParsePackage(data)
+		p, err := ParsePackage(data, 0)
 		assert.NoError(t, err)
 		assert.NotNil(t, p)
 		// FIXME: the logic is strange in ParsePackage, need to figure out how to calculate the checksum correctly

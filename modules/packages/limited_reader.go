@@ -22,6 +22,11 @@ func NewLimitedReader(r io.Reader, limit int64) io.Reader {
 	return &limitedReader{io.LimitedReader{R: r, N: limit + 1}}
 }
 
+// NewArchiveLimitedReader bounds archive inflation like cargo does, the 100x ratio is 10x above regular packages
+func NewArchiveLimitedReader(r io.Reader, archiveSize int64) io.Reader {
+	return NewLimitedReader(r, max(512*1024*1024, 100*archiveSize))
+}
+
 func (l *limitedReader) Read(p []byte) (int, error) {
 	n, err := l.LimitedReader.Read(p)
 	if l.N == 0 {

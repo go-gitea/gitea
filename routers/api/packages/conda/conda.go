@@ -211,7 +211,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	var pck *conda_module.Package
 	if strings.HasSuffix(filename, ".tar.bz2") {
-		pck, err = conda_module.ParsePackageBZ2(buf)
+		pck, err = conda_module.ParsePackageBZ2(buf, buf.Size())
 	} else {
 		pck, err = conda_module.ParsePackageConda(buf, buf.Size())
 	}

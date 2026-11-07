@@ -40,7 +40,7 @@ func TestParsePackage(t *testing.T) {
 			tw.Close()
 			zw.Close()
 
-			p, err := ParsePackage(&buf)
+			p, err := ParsePackage(&buf, 0)
 			if name == "MissingMetadataFile" {
 				assert.Nil(t, p)
 				assert.ErrorIs(t, err, ErrMissingMetadataFile)
