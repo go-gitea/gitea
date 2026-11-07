@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	issues_model "gitea.dev/models/issues"
@@ -35,11 +36,13 @@ const (
 	secondsByMonth  = 4 * secondsByWeek                  // seconds in a month
 )
 
-var reDuration = regexp.MustCompile(`(?i)^(?:(\d+([\.,]\d+)?)(?:mo))?(?:(\d+([\.,]\d+)?)(?:w))?(?:(\d+([\.,]\d+)?)(?:d))?(?:(\d+([\.,]\d+)?)(?:h))?(?:(\d+([\.,]\d+)?)(?:m))?$`)
+var reDuration = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`(?i)^(?:(\d+([\.,]\d+)?)(?:mo))?(?:(\d+([\.,]\d+)?)(?:w))?(?:(\d+([\.,]\d+)?)(?:d))?(?:(\d+([\.,]\d+)?)(?:h))?(?:(\d+([\.,]\d+)?)(?:m))?$`)
+})
 
 // timeLogToAmount parses time log string and returns amount in seconds
 func timeLogToAmount(str string) int64 {
-	matches := reDuration.FindAllStringSubmatch(str, -1)
+	matches := reDuration().FindAllStringSubmatch(str, -1)
 	if len(matches) == 0 {
 		return 0
 	}
