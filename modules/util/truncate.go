@@ -134,6 +134,9 @@ func TruncateRunes(str string, limit int) string {
 // TruncateStringBytes returns a truncated string with given byte limit,
 // it returns input string if its byte length doesn't exceed the limit.
 func TruncateStringBytes(str string, limit int) string {
+	if len(str) <= limit {
+		return str
+	}
 	l := 0
 	for i, r := range str {
 		rl := utf8.RuneLen(r)
