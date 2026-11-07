@@ -4596,6 +4596,9 @@
             "x-go-name": "Path"
           }
         },
+        "required": [
+          "path"
+        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
