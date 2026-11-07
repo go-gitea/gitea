@@ -806,6 +806,8 @@ func ToActionRunner(runner *actions_model.ActionRunner) *api.ActionRunner {
 	}
 	return &api.ActionRunner{
 		ID:        runner.ID,
+		OwnerID:   runner.OwnerID,
+		RepoID:    runner.RepoID,
 		Name:      runner.Name,
 		Status:    apiStatus,
 		Busy:      status == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE,
