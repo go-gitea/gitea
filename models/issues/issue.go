@@ -697,7 +697,7 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptio
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where("issue_id = ?", issue.ID).
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID)
+		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC, issue.id DESC", issue.RepoID)
 	if opts.Page > 0 {
 		db.SetSessionPagination(sess, &opts)
 	}
@@ -718,7 +718,7 @@ func (issue *Issue) BlockingDependencies(ctx context.Context) (issueDeps []*Depe
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
 		Where("dependency_id = ?", issue.ID).
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID).
+		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC, issue.id DESC", issue.RepoID).
 		Find(&issueDeps)
 
 	for _, depInfo := range issueDeps {
