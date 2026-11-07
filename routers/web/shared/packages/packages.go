@@ -6,18 +6,16 @@ package packages
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	packages_model "gitea.dev/models/packages"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	cargo_service "gitea.dev/services/packages/cargo"
-	container_service "gitea.dev/services/packages/container"
+	packages_cleanup_service "gitea.dev/services/packages/cleanup"
 )
 
 func SetPackagesContext(ctx *context.Context, owner *user_model.User) {
@@ -139,67 +137,10 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 		return
 	}
 
-	if err := pcr.CompiledPattern(); err != nil {
-		ctx.ServerError("CompiledPattern", err)
-		return
-	}
-
-	olderThan := time.Now().AddDate(0, 0, -pcr.RemoveDays)
-
-	packages, err := packages_model.GetPackagesByType(ctx, pcr.OwnerID, pcr.Type)
+	versionsToRemove, err := packages_cleanup_service.PreviewCleanupRule(ctx, pcr)
 	if err != nil {
-		ctx.ServerError("GetPackagesByType", err)
+		ctx.ServerError("PreviewCleanupRule", err)
 		return
-	}
-
-	versionsToRemove := make([]*packages_model.PackageDescriptor, 0, 10)
-
-	for _, p := range packages {
-		pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-			PackageID:  p.ID,
-			IsInternal: optional.Some(false),
-			Sort:       packages_model.SortCreatedDesc,
-		})
-		if err != nil {
-			ctx.ServerError("SearchVersions", err)
-			return
-		}
-		if pcr.KeepCount > 0 {
-			if pcr.KeepCount < len(pvs) {
-				pvs = pvs[pcr.KeepCount:]
-			} else {
-				pvs = nil
-			}
-		}
-		for _, pv := range pvs {
-			if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
-				ctx.ServerError("ShouldBeSkipped", err)
-				return
-			} else if skip {
-				continue
-			}
-
-			toMatch := pv.LowerVersion
-			if pcr.MatchFullName {
-				toMatch = p.LowerName + "/" + pv.LowerVersion
-			}
-			if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
-				continue
-			}
-			if pv.CreatedUnix.AsLocalTime().After(olderThan) {
-				continue
-			}
-			if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
-				continue
-			}
-
-			pd, err := packages_model.GetPackageDescriptor(ctx, pv)
-			if err != nil {
-				ctx.ServerError("GetPackageDescriptor", err)
-				return
-			}
-			versionsToRemove = append(versionsToRemove, pd)
-		}
 	}
 
 	ctx.Data["CleanupRule"] = pcr
