@@ -80,7 +80,16 @@ func serveDiffStream(ctx *context.Context, gitRepo *git.Repository, opts gitdiff
 	opts.Files = ctx.FormStrings("files")
 	opts.MaxSize = setting.Git.MaxDiffViewSize
 	opts.MaxFileSize = util.Iif(ctx.FormBool("full") && len(opts.Files) > 0, -1, setting.Git.MaxDiffViewFileSize)
-	ec, _, _ := ctx.Repo.GetEditorconfig(ctx)
+	afterCommit, err := gitRepo.GetCommit(ctx, opts.AfterCommitID)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("GetCommit", err)
+		}
+		return
+	}
+	ec, _, _ := context.ReadEditorconfig(ctx, gitRepo, afterCommit) // the tab width of the viewed commit, not the default branch's
 	writeLine := func(v any) error {
 		line, err := json.Marshal(v)
 		if err != nil {

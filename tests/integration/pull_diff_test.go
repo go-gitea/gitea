@@ -225,6 +225,19 @@ func TestDiffStream(t *testing.T) {
 		assert.Contains(t, files[0].Hunks, "+"+longLine+"\n")
 	})
 
+	t.Run("Editorconfig", func(t *testing.T) {
+		// the tab width comes from the viewed commit, the default branch has no ".editorconfig"
+		streamURL := fastImport(t,
+			[]git.FastImportFile{{Path: "a.txt", Content: "old\n"}},
+			[]git.FastImportFile{{Path: "a.txt", Content: "new\n"}, {Path: ".editorconfig", Content: "[*.txt]\ntab_width = 2\n"}},
+		)
+		files, _ := requestDiffStream(t, session, streamURL)
+		require.Len(t, files, 2)
+		assert.Equal(t, ".editorconfig", files[0].Name)
+		assert.Equal(t, 4, files[0].TabSize)
+		assert.Equal(t, 2, files[1].TabSize)
+	})
+
 	t.Run("Submodule", func(t *testing.T) {
 		oldCommit, newCommit := strings.Repeat("1", 40), strings.Repeat("2", 40)
 		gitmodules := git.FastImportFile{Path: ".gitmodules", Content: "[submodule \"sub\"]\n\tpath = sub\n\turl = https://gitea.example.com/org/sub.git\n"}
