@@ -203,6 +203,9 @@ func MigratePost(ctx *context.Context) {
 		opts.Comments = false
 		opts.PullRequests = false
 		opts.Releases = false
+		opts.SyncIssues = form.SyncIssues
+		opts.SyncPullRequests = form.SyncPullRequests
+		opts.SyncTopics = form.SyncTopics
 	}
 	if form.Service == structs.CodeCommitService {
 		opts.AWSAccessKeyID = form.AWSAccessKeyID

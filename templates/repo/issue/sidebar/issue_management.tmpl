@@ -1,4 +1,4 @@
-{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
+{{if and .IsRepoAdmin (not .Repository.IsArchived) (not .IsReadOnlyMirror)}}
 	<div class="divider"></div>
 
 	{{/* Pin issue */}}

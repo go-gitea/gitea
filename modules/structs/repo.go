@@ -439,6 +439,11 @@ type MigrateRepoOptions struct {
 	Releases       bool   `json:"releases"`
 	MirrorInterval string `json:"mirror_interval"`
 
+	// only used when mirror is true: sync these on each mirror update, read-only
+	SyncIssues       bool `json:"sync_issues"`
+	SyncPullRequests bool `json:"sync_pull_requests"`
+	SyncTopics       bool `json:"sync_topics"`
+
 	AWSAccessKeyID     string `json:"aws_access_key_id"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`
 }

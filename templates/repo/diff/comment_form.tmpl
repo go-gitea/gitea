@@ -1,6 +1,6 @@
 {{$root := ctx.RootData -}}
 {{$replyReviewComment := $.ReplyReviewComment -}}{{/* can be nil */ -}}
-{{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived) -}}
+{{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived) (not $root.IsReadOnlyMirror) -}}
 {{if $canAddComment}}
 	<form class="ui form {{if $replyReviewComment}}tw-hidden comment-form{{end}}" action="{{$root.Issue.Link}}/files/reviews/comments" method="post">
 		<input type="hidden" name="origin" value="{{if $root.PageIsPullFiles}}diff{{else}}timeline{{end}}">

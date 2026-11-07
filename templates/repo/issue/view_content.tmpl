@@ -38,11 +38,13 @@
 						</div>
 						<div class="comment-header-right">
 							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
-							{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_main" "ConvContentItem" .Issue}}
+							{{if not $.IsReadOnlyMirror}}
+								{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_main" "ConvContentItem" .Issue}}
+							{{end}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
-						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission $.IsIssuePoster}}data-can-edit="true"{{end}}>
+						<div class="render-content markup" {{if and (not $.IsReadOnlyMirror) (or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission $.IsIssuePoster)}}data-can-edit="true"{{end}}>
 							{{if .Issue.RenderedContent}}
 								{{.Issue.RenderedContent}}
 							{{else}}
@@ -66,12 +68,16 @@
 			{{template "repo/issue/view_content/comments" .}}
 			<div class="timeline-item tw-hidden" id="timeline-comments-end"></div>
 
-			{{if and .Issue.IsPull (not $.Repository.IsArchived)}}
+			{{if and .Issue.IsPull (not $.Repository.IsArchived) (not $.IsReadOnlyMirror)}}
 				{{template "repo/issue/view_content/pull_merge_box".}}
 			{{end}}
 
 			{{if .IsSigned}}
-				{{if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived)}}
+				{{if $.IsReadOnlyMirror}}
+					<div class="ui warning message tw-text-center">
+						{{ctx.Locale.Tr "repo.mirror_read_only"}}
+					</div>
+				{{else if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived)}}
 				<div class="timeline-item comment form">
 					<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
 						{{ctx.AvatarUtils.Avatar .SignedUser 40}}

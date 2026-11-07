@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -12,7 +13,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
 	user_model "gitea.dev/models/user"
@@ -493,4 +496,317 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 	}
 
 	return uploader.Finish(ctx)
+}
+
+// SyncRepository syncs new and updated issues and pull requests of a
+// previously migrated repository from its remote
+func SyncRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, opts base.MigrateOptions, messenger base.Messenger) (*repo_model.Repository, error) {
+	downloader, err := newDownloader(ctx, repo.OwnerName, opts)
+	if err != nil {
+		return nil, err
+	}
+	if !downloader.SupportSyncing() {
+		log.Info("syncing is not supported for repositories of type %v, ignored", opts.GitServiceType)
+		return repo, nil
+	}
+
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, opts.RepoName)
+	uploader.gitServiceType = opts.GitServiceType
+	uploader.syncMode = true
+	uploader.repo = repo
+	uploader.sameApp = strings.HasPrefix(repo.OriginalURL, setting.AppURL)
+	uploader.gitRepo, err = git.OpenRepository(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	defer uploader.Close()
+
+	if err := uploader.loadExistingLabelsAndMilestones(ctx); err != nil {
+		return nil, err
+	}
+
+	// each stream resumes from its own watermark so a partly synced one is not skipped;
+	// zero fetches everything, GitHub rejects since=1970-01-01
+	marks, err := newSyncWatermarks(ctx, repo.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := syncRepository(ctx, downloader, uploader, opts, messenger, marks); err != nil {
+		// unlike a failed migration there is nothing to roll back: rolling
+		// back would delete the existing repository
+		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Sync repository (%s/%s) from %s failed: %v", repo.OwnerName, opts.RepoName, opts.OriginalURL, err)); err2 != nil {
+			log.Error("create repository notice failed: ", err2)
+		}
+		return nil, err
+	}
+	return uploader.repo, nil
+}
+
+// syncWatermarks are the per-stream resume points of a sync
+type syncWatermarks struct {
+	issues   time.Time
+	pulls    time.Time
+	comments time.Time
+}
+
+// newSyncWatermarks derives the resume points from the stored data, so a sync needs no extra state
+func newSyncWatermarks(ctx context.Context, repoID int64) (syncWatermarks, error) {
+	issueMax, err := issues_model.GetMaxIssueUpdatedUnix(ctx, repoID, false)
+	if err != nil {
+		return syncWatermarks{}, err
+	}
+	prMax, err := issues_model.GetMaxIssueUpdatedUnix(ctx, repoID, true)
+	if err != nil {
+		return syncWatermarks{}, err
+	}
+	commentMax, err := issues_model.GetMaxCommentUpdatedUnix(ctx, repoID)
+	if err != nil {
+		return syncWatermarks{}, err
+	}
+	return syncWatermarks{
+		issues:   watermarkTime(issueMax),
+		pulls:    watermarkTime(prMax),
+		comments: watermarkTime(commentMax),
+	}, nil
+}
+
+func watermarkTime(unix int64) time.Time {
+	if unix <= 0 {
+		return time.Time{}
+	}
+	return time.Unix(unix, 0)
+}
+
+// syncEntityComments syncs an entity's comments right after it: a later repo-wide pass would strand them
+// if the sync stopped in between, since the next run resumes past the entity
+func syncEntityComments(ctx context.Context, downloader base.Downloader, uploader base.Uploader, commentable base.Commentable, since time.Time) error {
+	comments, _, err := downloader.GetNewComments(ctx, commentable, since)
+	if err != nil {
+		if !base.IsErrNotSupported(err) {
+			return err
+		}
+		log.Warn("syncing comments is not supported, ignored")
+		return nil
+	}
+	return uploader.PatchComments(ctx, comments...)
+}
+
+func syncRepository(ctx context.Context, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger, marks syncWatermarks) error {
+	if messenger == nil {
+		messenger = base.NilMessenger
+	}
+
+	if opts.SyncTopics {
+		// the full list every time: SaveTopics replaces the set, so removed topics go too
+		topics, err := downloader.GetTopics(ctx)
+		if err != nil {
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+		} else if err := uploader.CreateTopics(ctx, topics...); err != nil {
+			return err
+		}
+	}
+
+	commentedIssues, commentedPulls, err := getCommentedEntities(ctx, downloader, opts, marks)
+	if err != nil {
+		return err
+	}
+
+	if opts.Issues {
+		log.Trace("syncing issues")
+		messenger("repo.migrate.syncing_issues")
+		issueBatchSize := uploader.MaxBatchInsertSize("issue")
+
+		// oldest comment first and before the issue stream, so a stopped sync resumes before the ones left
+		synced, err := syncCommentedIssues(ctx, downloader, uploader, commentedIssues, issueBatchSize)
+		if err != nil {
+			return err
+		}
+
+		for i := 1; ; i++ {
+			issues, isEnd, err := downloader.GetNewIssues(ctx, i, issueBatchSize, marks.issues)
+			if err != nil {
+				if !base.IsErrNotSupported(err) {
+					return err
+				}
+				log.Warn("syncing issues is not supported, ignored")
+				break
+			}
+
+			if err := uploader.PatchIssues(ctx, issues...); err != nil {
+				return err
+			}
+			if opts.Comments {
+				for _, issue := range issues {
+					if synced.Contains(issue.Number) {
+						continue
+					}
+					if err := syncEntityComments(ctx, downloader, uploader, issue, marks.comments); err != nil {
+						return err
+					}
+				}
+			}
+
+			if isEnd {
+				break
+			}
+		}
+	}
+
+	// listed first and written oldest-first, so a sync that stops midway resumes from the last pull request written:
+	// writing newest-first would move the watermark past the ones still left
+	if opts.PullRequests {
+		log.Trace("syncing pull requests")
+		messenger("repo.migrate.syncing_pulls")
+		if err := syncPullRequests(ctx, downloader, uploader, opts, marks, commentedPulls); err != nil {
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("syncing pull requests is not supported, ignored")
+		}
+	}
+
+	return uploader.Finish(ctx)
+}
+
+// getCommentedEntities finds the issues and pull requests changed only by a new comment, which the issue and
+// pull request listings can miss; nothing on a first sync, the listings take everything then
+func getCommentedEntities(ctx context.Context, downloader base.Downloader, opts base.MigrateOptions, marks syncWatermarks) (issues, pulls []base.CommentedEntity, err error) {
+	if !opts.Comments || marks.comments.IsZero() || (!opts.Issues && !opts.PullRequests) {
+		return nil, nil, nil
+	}
+	// from the oldest stream watermark, a stream a stopped sync left behind may have comments older than the newest one
+	since := marks.comments
+	if opts.Issues && !marks.issues.IsZero() && marks.issues.Before(since) {
+		since = marks.issues
+	}
+	if opts.PullRequests && !marks.pulls.IsZero() && marks.pulls.Before(since) {
+		since = marks.pulls
+	}
+	entities, err := downloader.GetCommentedEntities(ctx, since)
+	if err != nil {
+		if !base.IsErrNotSupported(err) {
+			return nil, nil, err
+		}
+		return nil, nil, nil
+	}
+	for _, entity := range entities {
+		if entity.IsPull {
+			pulls = append(pulls, entity)
+		} else {
+			issues = append(issues, entity)
+		}
+	}
+	return issues, pulls, nil
+}
+
+// syncCommentedIssues syncs the issues found through their comments with their comments since the oldest new one
+func syncCommentedIssues(ctx context.Context, downloader base.Downloader, uploader base.Uploader, entities []base.CommentedEntity, batchSize int) (container.Set[int64], error) {
+	synced := make(container.Set[int64], len(entities))
+	slices.SortFunc(entities, func(a, b base.CommentedEntity) int {
+		return cmp.Or(a.Until.Compare(b.Until), cmp.Compare(a.Number, b.Number))
+	})
+	for batch := range slices.Chunk(entities, batchSize) {
+		numbers := make([]int64, 0, len(batch))
+		since := make(map[int64]time.Time, len(batch))
+		for _, entity := range batch {
+			numbers = append(numbers, entity.Number)
+			since[entity.Number] = entity.Since
+		}
+		// downloaded before written, like the pull request batches
+		issues, err := downloader.GetIssuesByNumber(ctx, numbers)
+		if err != nil {
+			if base.IsErrNotSupported(err) {
+				return synced, nil
+			}
+			return nil, err
+		}
+		var comments []*base.Comment
+		for _, issue := range issues {
+			issueComments, _, err := downloader.GetNewComments(ctx, issue, since[issue.Number])
+			if err != nil && !base.IsErrNotSupported(err) {
+				return nil, err
+			}
+			comments = append(comments, issueComments...)
+		}
+		if err := uploader.PatchIssues(ctx, issues...); err != nil {
+			return nil, err
+		}
+		if err := uploader.PatchComments(ctx, comments...); err != nil {
+			return nil, err
+		}
+		for _, issue := range issues {
+			synced.Add(issue.Number)
+		}
+	}
+	return synced, nil
+}
+
+func syncPullRequests(ctx context.Context, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, marks syncWatermarks, commented []base.CommentedEntity) error {
+	updates, err := downloader.GetPullRequestUpdates(ctx, marks.pulls)
+	if err != nil {
+		return err
+	}
+	// a pull request with only a new comment sorts at that comment, so the resume order holds
+	commentSince := make(map[int64]time.Time, len(commented))
+	for _, entity := range commented {
+		commentSince[entity.Number] = entity.Since
+		idx := slices.IndexFunc(updates, func(u base.PullRequestUpdate) bool { return u.Number == entity.Number })
+		if idx < 0 {
+			updates = append(updates, base.PullRequestUpdate{Number: entity.Number, Updated: entity.Until})
+		} else if entity.Until.After(updates[idx].Updated) {
+			updates[idx].Updated = entity.Until
+		}
+	}
+	slices.SortFunc(updates, func(a, b base.PullRequestUpdate) int {
+		return cmp.Or(a.Updated.Compare(b.Updated), cmp.Compare(a.Number, b.Number))
+	})
+	numbers := make([]int64, 0, len(updates))
+	for _, update := range updates {
+		numbers = append(numbers, update.Number)
+	}
+
+	for batch := range slices.Chunk(numbers, uploader.MaxBatchInsertSize("pullrequest")) {
+		// everything of a batch is downloaded before any of it is written, a failed download leaves the watermark where it was
+		prs, err := downloader.GetPullRequestsByNumber(ctx, batch)
+		if err != nil {
+			return err
+		}
+		var comments []*base.Comment
+		var reviews []*base.Review
+		for _, pr := range prs {
+			if opts.Comments {
+				// since the pull request watermark, the global comment one may already be past a pull request a stopped sync left
+				since := marks.pulls
+				if commentedSince, ok := commentSince[pr.Number]; ok && commentedSince.Before(since) {
+					since = commentedSince
+				}
+				prComments, _, err := downloader.GetNewComments(ctx, pr, since)
+				if err != nil && !base.IsErrNotSupported(err) {
+					return err
+				}
+				comments = append(comments, prComments...)
+			}
+			prReviews, err := downloader.GetNewReviews(ctx, pr, marks.pulls)
+			if err != nil && !base.IsErrNotSupported(err) {
+				return err
+			}
+			reviews = append(reviews, prReviews...)
+		}
+
+		if err := uploader.PatchPullRequests(ctx, prs...); err != nil {
+			return err
+		}
+		if err := uploader.PatchComments(ctx, comments...); err != nil {
+			return err
+		}
+		for reviewBatch := range slices.Chunk(reviews, uploader.MaxBatchInsertSize("review")) {
+			if err := uploader.PatchReviews(ctx, reviewBatch...); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

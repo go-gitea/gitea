@@ -226,3 +226,28 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 
 	unittest.CheckConsistencyFor(t, &issues_model.Issue{})
 }
+
+func TestUpsertIssueCommentsKeepsEveryReactor(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	reactor := func(id int64, name string) *issues_model.Reaction {
+		return &issues_model.Reaction{Type: "+1", OriginalAuthorID: id, OriginalAuthor: name}
+	}
+	upsert := func(reactions ...*issues_model.Reaction) int64 {
+		comment := &issues_model.Comment{IssueID: issue.ID, PosterID: 1, OriginalID: 4242, Content: "synced", Reactions: reactions}
+		require.NoError(t, issues_model.UpsertIssueComments(t.Context(), []*issues_model.Comment{comment}))
+		return comment.ID
+	}
+	countReactions := func(commentID int64) int64 {
+		n, err := db.GetEngine(t.Context()).Where("comment_id = ?", commentID).Count(&issues_model.Reaction{})
+		require.NoError(t, err)
+		return n
+	}
+
+	id := upsert(reactor(1, "a"), reactor(2, "b"), reactor(3, "c"))
+	assert.EqualValues(t, 3, countReactions(id))
+
+	// a re-fetch replaces the set: removed reactions go, nothing is duplicated
+	assert.Equal(t, id, upsert(reactor(2, "b")))
+	assert.EqualValues(t, 1, countReactions(id))
+}

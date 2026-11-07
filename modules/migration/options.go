@@ -39,6 +39,11 @@ type MigrateOptions struct {
 	MigrateToRepoID int64
 	MirrorInterval  string `json:"mirror_interval"`
 
+	// mirror only: sync these on each mirror update, read-only
+	SyncIssues       bool
+	SyncPullRequests bool
+	SyncTopics       bool
+
 	AWSAccessKeyID     string
 	AWSSecretAccessKey string `json:",omitempty"`
 
