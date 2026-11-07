@@ -5,41 +5,46 @@ package v29
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 
 	"xorm.io/xorm"
 )
 
-func AddImmutableReleases(ctx context.Context, x base.EngineMigration) error {
-	type Release struct {
-		IsImmutable bool `xorm:"NOT NULL DEFAULT false"`
+func AddUniqueTeamNameIndex(_ctx context.Context, x base.EngineMigration) error {
+	type Team struct {
+		ID        int64  `xorm:"pk autoincr"`
+		OrgID     int64  `xorm:"INDEX UNIQUE(s)"`
+		LowerName string `xorm:"UNIQUE(s)"`
+		Name      string
 	}
 
-	type ImmutableTag struct {
-		ID             int64  `xorm:"pk autoincr"`
-		RepoID         int64  `xorm:"INDEX(r) NOT NULL"`
-		LowerOwnerName string `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName  string `xorm:"UNIQUE(s) NOT NULL"`
-		TagName        string `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
-	}
-
-	if err := x.Sync(new(ImmutableTag)); err != nil {
+	var teams []Team
+	if err := x.Where("id NOT IN (SELECT MIN(id) FROM team GROUP BY org_id, lower_name)").Asc("id").Find(&teams); err != nil {
 		return err
 	}
-
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(Release)); err != nil {
-		return err
+	for _, team := range teams {
+		for suffix := team.ID; ; suffix++ {
+			ending := fmt.Sprintf("-%d", suffix)
+			name := util.TruncateStringBytes(team.Name, 255-len(ending)) + ending
+			exists, err := x.Where("org_id = ? AND lower_name = ?", team.OrgID, strings.ToLower(name)).Exist(new(Team))
+			if err != nil {
+				return err
+			}
+			if !exists {
+				if _, err := x.ID(team.ID).Cols("name", "lower_name").Update(&Team{Name: name, LowerName: strings.ToLower(name)}); err != nil {
+					return err
+				}
+				log.Warn("renamed duplicate team id=%d in org id=%d from %q to %q", team.ID, team.OrgID, team.Name, name)
+				break
+			}
+		}
 	}
 
-	exist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "release", "lower_tag_name")
-	if err != nil || !exist { // dropping an absent column fails outside sqlite
-		return err
-	}
-	return base.EngineTransaction(x, func(sess base.Session) error {
-		return base.DropTableColumns(sess, "release", "lower_tag_name")
-	})
+	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(Team))
+	return err
 }

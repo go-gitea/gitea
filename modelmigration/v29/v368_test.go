@@ -4,67 +4,49 @@
 package v29
 
 import (
+	"strings"
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
-	"gitea.dev/modules/setting"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddImmutableReleases(t *testing.T) {
-	type Release struct {
-		ID           int64 `xorm:"pk autoincr"`
-		LowerTagName string
+func TestAddUniqueTeamNameIndex(t *testing.T) {
+	type Team struct {
+		ID              int64 `xorm:"pk autoincr"`
+		OrgID           int64 `xorm:"INDEX"`
+		LowerName, Name string
 	}
 
-	type ImmutableTag struct {
-		ID             int64  `xorm:"pk autoincr"`
-		RepoID         int64  `xorm:"INDEX(r) NOT NULL"`
-		LowerOwnerName string `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName  string `xorm:"UNIQUE(s) NOT NULL"`
-		TagName        string `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
-	}
-
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Release))
-	defer deferable()
+	x, cleanup := migrationtest.PrepareTestEnv(t, 0, new(Team))
+	defer cleanup()
 	if x == nil || t.Failed() {
 		return
 	}
-	_, err := x.Insert(&Release{LowerTagName: "v1.0"})
-	require.NoError(t, err)
 
-	if setting.Database.Type.IsSQLite3() {
-		t.Run("RollsBackFailedColumnRemoval", func(t *testing.T) {
-			_, err := x.Exec("CREATE VIEW release_view AS SELECT id FROM `release`")
-			require.NoError(t, err)
-			require.Error(t, AddImmutableReleases(t.Context(), x))
-			release := &Release{ID: 1}
-			has, err := x.Get(release)
-			require.NoError(t, err)
-			assert.True(t, has)
-			assert.Equal(t, "v1.0", release.LowerTagName)
-			_, err = x.Exec("DROP VIEW release_view")
-			require.NoError(t, err)
-		})
+	_, err := x.Insert(
+		&Team{OrgID: 1, Name: "Team", LowerName: "team"},
+		&Team{OrgID: 1, Name: "Team", LowerName: "team"},
+		&Team{OrgID: 1, Name: "Team-2", LowerName: "team-2"},
+		&Team{OrgID: 2, Name: "Team", LowerName: "team"},
+		&Team{OrgID: 1, Name: strings.Repeat("A", 255), LowerName: strings.Repeat("a", 255)},
+		&Team{OrgID: 1, Name: strings.Repeat("A", 255), LowerName: strings.Repeat("a", 255)},
+	)
+	require.NoError(t, err)
+	for range 2 {
+		require.NoError(t, AddUniqueTeamNameIndex(t.Context(), x))
+		var teams []Team
+		require.NoError(t, x.Asc("id").Find(&teams))
+		require.Equal(t, []Team{
+			{ID: 1, OrgID: 1, Name: "Team", LowerName: "team"},
+			{ID: 2, OrgID: 1, Name: "Team-3", LowerName: "team-3"},
+			{ID: 3, OrgID: 1, Name: "Team-2", LowerName: "team-2"},
+			{ID: 4, OrgID: 2, Name: "Team", LowerName: "team"},
+			{ID: 5, OrgID: 1, Name: strings.Repeat("A", 255), LowerName: strings.Repeat("a", 255)},
+			{ID: 6, OrgID: 1, Name: strings.Repeat("A", 253) + "-6", LowerName: strings.Repeat("a", 253) + "-6"},
+		}, teams)
 	}
-
-	require.NoError(t, AddImmutableReleases(t.Context(), x))
-
-	_, err = x.Insert(&ImmutableTag{RepoID: 1, LowerOwnerName: "o", LowerRepoName: "r", TagName: "v1.0"})
-	require.NoError(t, err)
-
-	_, err = x.Insert(&ImmutableTag{RepoID: 2, LowerOwnerName: "o", LowerRepoName: "r", TagName: "v1.0"})
-	assert.Error(t, err)
-
-	_, err = x.Insert(&ImmutableTag{RepoID: 1, LowerOwnerName: "o", LowerRepoName: "r2", TagName: "v1.0"})
-	assert.NoError(t, err)
-
-	assert.NotNil(t, migrationtest.LoadTableSchemasMap(t, x)["immutable_tag"].GetColumn("repo_id"))
-
-	release := migrationtest.LoadTableSchemasMap(t, x)["release"]
-	require.NotNil(t, release)
-	assert.NotNil(t, release.GetColumn("is_immutable"))
-	assert.Nil(t, release.GetColumn("lower_tag_name"))
+	_, err = x.Insert(&Team{OrgID: 1, Name: "TEAM", LowerName: "team"})
+	require.Error(t, err)
 }
