@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -347,6 +348,11 @@ func Rename(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
+	if !ctx.Doer.IsAdmin && setting.IsOrgFeatureDisabled(setting.OrgFeatureDangerZone) {
+		ctx.APIError(http.StatusForbidden, "Organization danger zone actions are restricted to site administrators")
+		return
+	}
+
 	form := web.GetForm[*api.RenameOrgOption](ctx)
 	orgUser := ctx.Org.Organization.AsUser()
 	if err := user_service.RenameUser(ctx, orgUser, form.NewName, ctx.Doer); err != nil {
@@ -387,6 +393,11 @@ func Edit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.EditOrgOption](ctx)
+	visibility := optional.FromMapLookup(api.VisibilityModes, optional.FromPtr(form.Visibility).Value())
+	if visibility.Has() && visibility.Value() != ctx.Org.Organization.Visibility && (!ctx.Doer.IsAdmin && setting.IsOrgFeatureDisabled(setting.OrgFeatureDangerZone)) {
+		ctx.APIError(http.StatusForbidden, "Organization danger zone actions are restricted to site administrators")
+		return
+	}
 
 	if err := org.UpdateOrgEmailAddress(ctx, ctx.Org.Organization, form.Email); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -402,7 +413,7 @@ func Edit(ctx *context.APIContext) {
 		Description:               optional.FromPtr(form.Description),
 		Website:                   optional.FromPtr(form.Website),
 		Location:                  optional.FromPtr(form.Location),
-		Visibility:                optional.FromMapLookup(api.VisibilityModes, optional.FromPtr(form.Visibility).Value()),
+		Visibility:                visibility,
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
@@ -431,6 +442,11 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   default:
 	//     "$ref": "#/responses/error"
+
+	if setting.IsOrgFeatureDisabled(setting.OrgFeatureDangerZone) && !ctx.Doer.IsAdmin {
+		ctx.APIError(http.StatusForbidden, "Organization danger zone actions are restricted to site administrators")
+		return
+	}
 
 	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 		ctx.APIErrorInternal(err)
