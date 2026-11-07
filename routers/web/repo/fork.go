@@ -229,7 +229,7 @@ func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_serv
 		case errors.Is(err, user_model.ErrBlockedUser):
 			ctx.JSONError(ctx.Tr("repo.fork.blocked_user"))
 		default:
-			ctx.ServerError("ForkPost", err)
+			ctx.JSONErrorAuto(err)
 		}
 		return nil
 	}

@@ -10,7 +10,9 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/private"
@@ -30,6 +32,7 @@ type preReceiveContext struct {
 	canWriteCodeUnitCached *bool
 	canCreatePullRequest   *bool
 	protectedTags          []*git_model.ProtectedTag
+	immutableTags          container.Set[string]
 }
 
 func (ctx *preReceiveContext) canWriteCodeUnit() bool {
@@ -106,7 +109,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case refFullName.IsBranch():
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case refFullName.IsTag():
-			preReceiveTag(ourCtx, refFullName)
+			preReceiveTag(ourCtx, newCommitID, refFullName)
 		case refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
 		default:
@@ -312,15 +315,36 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	}
 }
 
-func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
+func preReceiveTag(ctx *preReceiveContext, newCommitID string, refFullName git.RefName) {
 	if !ctx.assertCanWriteRef(refFullName) {
 		return
 	}
 
 	tagName := refFullName.TagName()
 
+	var err error
+	if ctx.immutableTags == nil {
+		if ctx.immutableTags, err = repo_model.GetImmutableTagNames(ctx, ctx.Repo.Repository); err != nil {
+			ctx.PrivateInternalErrorf("Unable to get immutable tags: %v", err)
+			return
+		}
+	}
+	// a claimed name can never be created or moved again, and its tag is deletable once its release is gone
+	if ctx.immutableTags.Contains(tagName) {
+		immutable := !git.IsEmptyCommitID(newCommitID)
+		if !immutable {
+			if immutable, err = repo_model.HasImmutableRelease(ctx, ctx.Repo.Repository.ID, tagName); err != nil {
+				ctx.PrivateInternalErrorf("Unable to check immutable release %s: %v", tagName, err)
+				return
+			}
+		}
+		if immutable {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Tag %s is immutable", tagName)
+			return
+		}
+	}
+
 	if ctx.protectedTags == nil {
-		var err error
 		ctx.protectedTags, err = git_model.GetProtectedTags(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.PrivateInternalErrorf("Unable to get protected tags: %v", err)

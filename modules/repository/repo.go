@@ -246,10 +246,9 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 		//
 		for _, tag := range inserts {
 			release := repo_model.Release{
-				RepoID:       repo.ID,
-				TagName:      tag.Name,
-				LowerTagName: strings.ToLower(tag.Name),
-				Sha1:         tag.Object.String(),
+				RepoID:  repo.ID,
+				TagName: tag.Name,
+				Sha1:    tag.Object.String(),
 				// NOTE: ignored, The NumCommits value is calculated and cached on demand when the UI requires it.
 				NumCommits:    -1,
 				CreatedUnix:   timeutil.TimeStamp(util.IfZero(tag.CommitDate, tag.Tagger.When).Unix()),
@@ -271,7 +270,8 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 		}
 
 		for _, tag := range updates {
-			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND lower_tag_name = ?", repo.ID, strings.ToLower(tag.Name)).
+			// an immutable release keeps the commit it was published at, a locked tag has none to pin
+			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND tag_name = ? AND NOT (is_immutable = ? AND is_tag = ?)", repo.ID, tag.Name, true, false).
 				Cols("sha1", "created_unix", "published_unix").
 				Update(&repo_model.Release{
 					Sha1:          tag.Object.String(),
@@ -279,6 +279,11 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 					PublishedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
 				}); err != nil {
 				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
+			}
+		}
+		if !repo.IsMirror {
+			if err := repo_model.CheckImmutableTagConflicts(ctx, repo.ID, repo.OwnerName, repo.LowerName); err != nil {
+				return err
 			}
 		}
 		added, deleted, updated = len(inserts), len(deletes), len(updates)

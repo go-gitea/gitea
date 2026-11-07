@@ -2,7 +2,6 @@
   repo_id: 1
   publisher_id: 2
   tag_name: "v1.1"
-  lower_tag_name: "v1.1"
   target: "master"
   title: "testing-release"
   sha1: "65f1bf27bc3bf70f64657658635e66094edbcb4d"
@@ -17,7 +16,6 @@
   repo_id: 40
   publisher_id: 2
   tag_name: "v1.1"
-  lower_tag_name: "v1.1"
   target: "master"
   title: "testing-release"
   sha1: "65f1bf27bc3bf70f64657658635e66094edbcb4d"
@@ -32,7 +30,6 @@
   repo_id: 1
   publisher_id: 2
   tag_name: "delete-tag"
-  lower_tag_name: "delete-tag"
   target: "master"
   title: "delete-tag"
   sha1: "65f1bf27bc3bf70f64657658635e66094edbcb4d"
@@ -47,7 +44,6 @@
   repo_id: 1
   publisher_id: 2
   tag_name: "draft-release"
-  lower_tag_name: "draft-release"
   target: "master"
   title: "draft-release"
   is_draft: true
@@ -59,7 +55,6 @@
   repo_id: 1
   publisher_id: 2
   tag_name: "v1.0"
-  lower_tag_name: "v1.0"
   target: "master"
   title: "pre-release"
   note: "some text for a pre release"
@@ -75,7 +70,6 @@
   repo_id: 57
   publisher_id: 2
   tag_name: "v1.0"
-  lower_tag_name: "v1.0"
   target: "main"
   title: "v1.0"
   sha1: "a8a700e8c644c783ba2c6e742bb81bf91e244bff"
@@ -90,7 +84,6 @@
   repo_id: 57
   publisher_id: 2
   tag_name: "v1.1"
-  lower_tag_name: "v1.1"
   target: "main"
   title: "v1.1"
   sha1: "cef06e48f2642cd0dc9597b4bea09f4b3f74aad6"
@@ -105,7 +98,6 @@
   repo_id: 57
   publisher_id: 2
   tag_name: "v2.0"
-  lower_tag_name: "v2.0"
   target: "main"
   title: "v2.0"
   sha1: "7197b56fdc75b453f47c9110938cb46a303579fd"
@@ -120,7 +112,6 @@
   repo_id: 57
   publisher_id: 2
   tag_name: "non-existing-target-branch"
-  lower_tag_name: "non-existing-target-branch"
   target: "non-existing"
   title: "non-existing-target-branch"
   sha1: "cef06e48f2642cd0dc9597b4bea09f4b3f74aad6"
@@ -135,7 +126,6 @@
   repo_id: 57
   publisher_id: 2
   tag_name: "empty-target-branch"
-  lower_tag_name: "empty-target-branch"
   target: ""
   title: "empty-target-branch"
   sha1: "cef06e48f2642cd0dc9597b4bea09f4b3f74aad6"
@@ -150,7 +140,6 @@
   repo_id: 2
   publisher_id: 2
   tag_name: "v1.1"
-  lower_tag_name: "v1.1"
   target: ""
   title: "v1.1"
   sha1: "205ac761f3326a7ebe416e8673760016450b5cec"

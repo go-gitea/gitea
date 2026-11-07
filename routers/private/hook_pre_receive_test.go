@@ -133,7 +133,7 @@ func testPreReceiveSystemUserTag(t *testing.T) {
 				require.NoError(t, git_model.DeleteProtectedTag(t.Context(), protectedTag))
 			}()
 
-			preReceiveTag(ctx, git.RefNameFromTag("v1.0.0"))
+			preReceiveTag(ctx, "1032bbf17fbc0d9c95bb5418dabe8f8c99278700", git.RefNameFromTag("v1.0.0"))
 			if tc.allowed {
 				assert.False(t, ctx.Written(), resp.Body.String())
 			} else {
