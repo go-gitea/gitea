@@ -33,13 +33,13 @@ var (
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[-\w][-.\w]*?|@[-\w][-.\w]*?/[-\w][-.\w]*?)(?:\s|$|[:,;.?!](\s|$)|'|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	// findValidReferenceIndex checks a non-ASCII trailing character
+	// TODO: REFERENCE-REGEXP-PATTERN: findValidReferenceIndex checks a non-ASCII trailing character
 	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\'|\"|[^\x00-\x7f])([#!][0-9]+)(?:\s|$|\)|\]|\'|\"|[:;,.?!]\s|[:;,.?!]$|[^\x00-\x7f])`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\'|,)`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. org/repo#12345
-	// findValidReferenceIndex checks a non-ASCII trailing character
+	// TODO: REFERENCE-REGEXP-PATTERN: findValidReferenceIndex checks a non-ASCII trailing character
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|[^\x00-\x7f])([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$|[^\x00-\x7f])`)
 	// crossReferenceCommitPattern matches a string that references a commit in a different repository
 	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
@@ -349,7 +349,10 @@ func findValidReferenceIndex(pattern *regexp.Regexp, content []byte, pos int) []
 		for i := range match {
 			match[i] += pos
 		}
-		if r, _ := utf8.DecodeRune(content[match[3]:match[1]]); isReferencePostBoundary(r) {
+		// TODO: REFERENCE-REGEXP-PATTERN: it depends on the regex pattern: the target is in the second capture group.
+		// It is very fragile because the pattern is passed in freely.
+		remaining := content[match[3]:]
+		if r, _ := utf8.DecodeRune(remaining); isReferencePostBoundary(r) {
 			return match
 		}
 		pos = match[3]
