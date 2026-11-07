@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -37,8 +38,9 @@ func TestPullDiff(t *testing.T) {
 	t.Run("SingleCommit", testPullDiffSingleCommit)
 	t.Run("Comments", func(t *testing.T) {
 		session := loginUser(t, "user2")
-		commentIDs := func(showOutdated string) map[int64]bool {
-			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/pulls/2/files/comments?show-outdated="+showOutdated), http.StatusOK)
+		commentIDs := func(showOutdated bool) map[int64]bool {
+			query := url.Values{"show-outdated": {strconv.FormatBool(showOutdated)}}
+			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/pulls/2/files/comments?"+query.Encode()), http.StatusOK)
 			data := DecodeJSON(t, resp, &struct {
 				CanComment bool `json:"canComment"`
 				Comments   []struct {
@@ -58,8 +60,8 @@ func TestPullDiff(t *testing.T) {
 			return ids
 		}
 		// comment 4 belongs to user1's pending review
-		assert.Equal(t, map[int64]bool{5: false, 6: true}, commentIDs("true"))
-		assert.Equal(t, map[int64]bool{5: false}, commentIDs("false"))
+		assert.Equal(t, map[int64]bool{5: false, 6: true}, commentIDs(true))
+		assert.Equal(t, map[int64]bool{5: false}, commentIDs(false))
 
 		// the diff viewer gets an error instead of a redirect, so it can keep the draft
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/pulls/2/files/reviews/comments", map[string]string{"origin": "diff", "side": "proposed", "line": "1", "path": "README.md"})
