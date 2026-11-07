@@ -20,6 +20,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/migration"
+	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
 	actions_service "gitea.dev/services/actions"
 	mirror_service "gitea.dev/services/mirror"
@@ -45,6 +46,7 @@ func testScheduleUpdatePush(t *testing.T) {
 		run := createScheduleRun(t, repo)
 		newCron := "30 5 * * 1,3"
 		pushScheduleChange(t, u, repo, newCron)
+		actions_service.NewNotifier().PushCommits(t.Context(), user, repo, &repo_module.PushUpdateOptions{RefFullName: git.RefNameFromBranch(repo.DefaultBranch), NewCommitID: run.CommitSHA}, repo_module.NewPushCommits())
 		assertRunStatus(t, run, actions_model.StatusWaiting)
 		return newCron
 	})
