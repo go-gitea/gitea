@@ -8,7 +8,7 @@
 - PR descriptions and update comments: Include screenshots for UI changes, before and after side by side. Take them at 4x scale in dark theme, cropped to the changes with some padding, and embed them at half CSS size
 - Reference issues and PRs by full URL, not by number
 - Use Conventional Commits for commit messages and PR titles, plus Gitea's `enhance` type for user-facing enhancements
-- Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
+- Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages and PR descriptions, never `Co-Authored-By` or `Signed-off-by`
 - Attribute agent authorship on one trailing line in issue and PR comments, never as a PR description section
 - Never rewrite git history unless asked, update PRs with new commits and normal push
 - Comments: write almost none, short and preferably same-line, explaining why for a future reader. Never narrate code, the change or the prompt. Preserve existing ones that still apply. If you need to write a paragraph-long comment, rethink your implementation, it is likely too complicated
