@@ -614,7 +614,7 @@ func WikiRawCommit(ctx *context.Context) {
 		}
 		return
 	}
-	if entry.IsDir() {
+	if entry.IsDir() || entry.IsSubModule() {
 		ctx.NotFound(nil)
 		return
 	}
