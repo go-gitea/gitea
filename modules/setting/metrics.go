@@ -9,11 +9,15 @@ var Metrics = struct {
 	Token                    string
 	EnabledIssueByLabel      bool
 	EnabledIssueByRepository bool
+	EnabledRefCount          bool
+	EnabledObjectCount       bool
 }{
 	Enabled:                  false,
 	Token:                    "",
 	EnabledIssueByLabel:      false,
 	EnabledIssueByRepository: false,
+	EnabledRefCount:          true,
+	EnabledObjectCount:       true,
 }
 
 func loadMetricsFrom(rootCfg ConfigProvider) {
