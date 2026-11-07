@@ -19,6 +19,10 @@ func TestBlockExpensive(t *testing.T) {
 		{true, "/{username}/{reponame}/archive/xxx"},
 		{true, "/{username}/{reponame}/graph"},
 		{true, "/{username}/{reponame}/src/xxx"},
+		{false, "/{username}/{reponame}/media/branch/*"},
+		{false, "/{username}/{reponame}/raw/branch/*"},
+		{true, "/{username}/{reponame}/media/commit/*"},
+		{true, "/{username}/{reponame}/raw/blob/{sha}"},
 		{true, "/{username}/{reponame}/wiki/xxx"},
 		{true, "/{username}/{reponame}/activity/xxx"},
 	}

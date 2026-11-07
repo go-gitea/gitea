@@ -35,8 +35,17 @@ func BlockExpensive() func(next http.Handler) http.Handler {
 }
 
 func isRoutePathExpensive(routePattern string) bool {
-	if strings.HasPrefix(routePattern, "/user/") || strings.HasPrefix(routePattern, "/login/") {
-		return false
+	cheapPaths := []string{
+		"/user/",
+		"/login/",
+		// files at a branch head, linked by README images on the repo home page
+		"/{username}/{reponame}/media/branch/",
+		"/{username}/{reponame}/raw/branch/",
+	}
+	for _, path := range cheapPaths {
+		if strings.HasPrefix(routePattern, path) {
+			return false
+		}
 	}
 
 	expensivePaths := []string{
