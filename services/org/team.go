@@ -345,7 +345,7 @@ func removeTeamMember(ctx context.Context, team *organization.Team, user *user_m
 
 	// Delete access to team repositories. If any user or repo is missing, we can continue.
 	for _, repo := range repos {
-		if err := access_model.RecalculateUserAccess(ctx, repo, user.ID); err != nil && !errors.Is(err, util.ErrNotExist) {
+		if err := access_model.RecalculateUserAccess(ctx, repo, user); err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
 

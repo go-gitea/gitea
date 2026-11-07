@@ -174,6 +174,8 @@ func BuildValidationErrorForUser(f any, l translation.Locale, bindingErrs valida
 		errorMessage = l.TrString("form.invalid_group_team_map_error", fieldDisplayName, bindingErrMsg)
 	case validation.ErrInvalidBadgeSlug:
 		errorMessage = l.TrString("form.invalid_slug_error", fieldDisplayName)
+	case binding.ErrTypeCast:
+		errorMessage = l.TrString("form.field_invalid_message", fieldDisplayName, bindingErrMsg)
 	default:
 		setting.PanicInDevOrTesting("unknown binding error classification for field %T.%s: %v, err: %s", f, errorFieldName, classification, bindingErrMsg)
 		var msg string

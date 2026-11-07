@@ -240,23 +240,10 @@ func finalProcessRepoUnitPermission(user *user_model.User, perm *Permission) {
 	origPermUnits := perm.units
 	perm.units = make([]*repo_model.RepoUnit, 0, len(perm.units))
 	for _, u := range origPermUnits {
-		shouldKeep := false
-		for t := range perm.unitsMode {
-			if shouldKeep = u.Type == t; shouldKeep {
-				break
-			}
-		}
-		for t := range perm.anonymousAccessMode {
-			if shouldKeep = shouldKeep || u.Type == t; shouldKeep {
-				break
-			}
-		}
-		for t := range perm.everyoneAccessMode {
-			if shouldKeep = shouldKeep || u.Type == t; shouldKeep {
-				break
-			}
-		}
-		if shouldKeep {
+		_, hasUnitMode := perm.unitsMode[u.Type]
+		_, hasAnonymousMode := perm.anonymousAccessMode[u.Type]
+		_, hasEveryoneMode := perm.everyoneAccessMode[u.Type]
+		if hasUnitMode || hasAnonymousMode || hasEveryoneMode {
 			perm.units = append(perm.units, u)
 		}
 	}
