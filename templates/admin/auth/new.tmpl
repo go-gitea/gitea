@@ -73,6 +73,8 @@
 
 				<div class="field">
 					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "admin.auths.new"}}</button>
+					<button class="ui button ldap dldap" type="button" data-ldap-test-connection>{{ctx.Locale.Tr "admin.auths.test_connection"}}</button>
+					<div class="ui message tw-hidden" data-ldap-test-result></div>
 				</div>
 			</form>
 		</div>
