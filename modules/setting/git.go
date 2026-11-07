@@ -22,7 +22,6 @@ var Git = struct {
 
 	MaxGitDiffLines               int
 	MaxGitDiffLineCharacters      int
-	MaxGitDiffFiles               int
 	MaxDiffViewSize               int64 `ini:"-"`
 	MaxDiffViewFileSize           int64 `ini:"-"`
 	CommitsRangeSize              int   // CommitsRangeSize the default commits range size
@@ -44,7 +43,6 @@ var Git = struct {
 	DisableDiffHighlight:          false,
 	MaxGitDiffLines:               1000,
 	MaxGitDiffLineCharacters:      5000,
-	MaxGitDiffFiles:               100,
 	CommitsRangeSize:              50,
 	BranchesRangeSize:             20,
 	VerbosePush:                   true,
@@ -104,6 +102,9 @@ func loadGitFrom(rootCfg ConfigProvider) {
 		Git.HomePath = filepath.Clean(Git.HomePath)
 	}
 
+	if sec.HasKey("MAX_GIT_DIFF_FILES") {
+		LogStartupProblem(1, log.WARN, "config option `[git].MAX_GIT_DIFF_FILES` present but it is no longer used, the diff viewer and the API show all files")
+	}
 	Git.MaxDiffViewSize = mustBytesWithDefault(sec, "MAX_DIFF_VIEW_SIZE", 50*1024*1024)
 	Git.MaxDiffViewFileSize = mustBytesWithDefault(sec, "MAX_DIFF_VIEW_FILE_SIZE", 256*1024)
 

@@ -36,7 +36,7 @@ func TestGetDiffSkipTo(t *testing.T) {
 		SkipTo:            "b.txt",
 		MaxLines:          setting.Git.MaxGitDiffLines,
 		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:          setting.Git.MaxGitDiffFiles,
+		MaxFiles:          -1,
 	})
 	require.NoError(t, err)
 	require.Len(t, diff.Files, 2)
@@ -224,7 +224,7 @@ index 6961180..9ba1a00 100644
 
 	for _, testcase := range tests {
 		t.Run(testcase.name, func(t *testing.T) {
-			got, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff))
+			got, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, -1, strings.NewReader(testcase.gitdiff))
 			if (err != nil) != testcase.wantErr {
 				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
@@ -268,7 +268,7 @@ index 0000000..6bb8f39
 	}
 	diff = diffBuilder.String()
 	checkLimits := func(maxLines, maxCharacters int, incomplete bool) {
-		result, err := ParsePatch(t.Context(), maxLines, maxCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
+		result, err := ParsePatch(t.Context(), maxLines, maxCharacters, -1, strings.NewReader(diff))
 		if err != nil {
 			t.Errorf("There should not be an error: %v", err)
 		}
@@ -324,7 +324,7 @@ index 0000000..6bb8f39
 --- a/README.md
 +++ b/README.md`,
 	} {
-		_, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(header+`
+		_, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, -1, strings.NewReader(header+`
 @@ -1,3 +1,6 @@
  # gitea-github-migrator
 +
@@ -456,7 +456,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 func TestNoCrashes(t *testing.T) {
 	for _, patch := range []string{"diff --git \n--- a\t\n", "diff --git \"0\n"} {
 		// It shouldn't crash, so don't care about the output.
-		ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(patch))
+		ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, -1, strings.NewReader(patch))
 	}
 }
 
@@ -644,7 +644,7 @@ D test10.txt`
 		BeforeCommitID:    pull.MergeBase,
 		MaxLines:          setting.Git.MaxGitDiffLines,
 		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:          setting.Git.MaxGitDiffFiles,
+		MaxFiles:          -1,
 	}
 	secondReviewDiff, err := GetDiffForAPI(t.Context(), gitRepo, secondReviewDiffOpts)
 	assert.NoError(t, err)
@@ -666,7 +666,7 @@ D test10.txt`
 		BeforeCommitID:    pull.MergeBase,
 		MaxLines:          setting.Git.MaxGitDiffLines,
 		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:          setting.Git.MaxGitDiffFiles,
+		MaxFiles:          -1,
 	}
 	thirdReviewDiff, err := GetDiffForAPI(t.Context(), gitRepo, thirdReviewDiffOpts)
 	assert.NoError(t, err)

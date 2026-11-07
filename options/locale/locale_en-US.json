@@ -3415,7 +3415,6 @@
   "admin.config.git_disable_diff_highlight": "Disable Diff Syntax Highlight",
   "admin.config.git_max_diff_lines": "Max Diff Lines (for a single file)",
   "admin.config.git_max_diff_line_characters": "Max Diff Characters (for a single line)",
-  "admin.config.git_max_diff_files": "Max Diff Files (to be shown)",
   "admin.config.git_gc_args": "GC Arguments",
   "admin.config.git_migrate_timeout": "Migration Timeout",
   "admin.config.git_mirror_timeout": "Mirror Update Timeout",
