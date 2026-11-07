@@ -61,6 +61,11 @@ func (prc *PullRequestContext) CanCreateNewPull() bool {
 	// People who have push access or have forked repository can propose a new pull request.
 	can := prc.baseRepo.CanContentChange() &&
 		(ctx.Repo.Permission.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)))
+	if can {
+		restriction := prc.baseRepo.MustGetUnit(ctx, unit_model.TypePullRequests).PullRequestsConfig().GetCreationRestriction()
+		result, err := access_model.CheckCreationRestriction(ctx, prc.baseRepo, ctx.Doer, unit_model.TypePullRequests, restriction)
+		can = err == nil && result == access_model.CreationAllowed
+	}
 	prc.canCreateNewPull = &can
 	return can
 }
