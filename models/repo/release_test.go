@@ -96,3 +96,23 @@ func Test_FindTagsByCommitIDs(t *testing.T) {
 		assert.EqualValues(t, 1, attach.ReleaseID)
 	})
 }
+
+func TestFindReleasesOrderedByPublication(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// an old-commit release published later must list above a newer-commit one published earlier;
+	// a draft (published_unix = 0) sorts by its created_unix, which lies between the two publication times
+	older := &Release{RepoID: 2, TagName: "order-a", LowerTagName: "order-a", CreatedUnix: 100, PublishedUnix: 5000000000}
+	newer := &Release{RepoID: 2, TagName: "order-b", LowerTagName: "order-b", CreatedUnix: 4000000000, PublishedUnix: 4500000000}
+	draft := &Release{RepoID: 2, TagName: "order-c", LowerTagName: "order-c", IsDraft: true, CreatedUnix: 4800000000}
+	assert.NoError(t, db.Insert(t.Context(), older, newer, draft))
+
+	// no paging, so the fixture release "v1.1" (published in 2000) is included and must sort last
+	rels, err := db.Find[Release](t.Context(), FindReleasesOptions{RepoID: 2, IncludeTags: true, IncludeDrafts: true})
+	assert.NoError(t, err)
+	tags := make([]string, 0, len(rels))
+	for _, rel := range rels {
+		tags = append(tags, rel.TagName)
+	}
+	assert.Equal(t, []string{"order-a", "order-c", "order-b", "v1.1"}, tags)
+}
