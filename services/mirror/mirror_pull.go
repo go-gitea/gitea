@@ -329,6 +329,10 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			return false
 		}
 	}
+	if err := syncDefaultBranch(ctx, m); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: failed to sync default branch: %s", m.Repo, util.SanitizeCredentialURLs(err.Error()))
+		return false
+	}
 
 	for _, result := range results {
 		// Discard GitHub pull requests, i.e. refs/pull/*
@@ -414,6 +418,28 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
 
 	return true
+}
+
+func syncDefaultBranch(ctx context.Context, m *repo_model.Mirror) error {
+	stdout, _, err := gitcmd.NewCommand("ls-remote", "--symref").
+		AddDynamicArguments(m.GetRemoteName(), "HEAD").
+		WithTimeout(time.Duration(setting.Git.Timeout.Mirror) * time.Second).
+		WithRepo(m.Repo).RunStdString(ctx)
+	if err != nil {
+		return fmt.Errorf("syncDefaultBranch: %w", err)
+	}
+	for line := range strings.SplitSeq(stdout, "\n") {
+		ref, target, ok := strings.Cut(line, "\t")
+		if !ok || target != "HEAD" {
+			continue
+		}
+		branch, ok := strings.CutPrefix(ref, "ref: "+git.BranchPrefix)
+		if !ok || !git.IsBranchExist(ctx, m.Repo, branch) {
+			continue
+		}
+		return repo_service.SetRepoDefaultBranch(ctx, m.Repo, branch)
+	}
+	return nil
 }
 
 func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, results []*repo_module.SyncResult) bool {
