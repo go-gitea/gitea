@@ -630,6 +630,7 @@
           {
             "enum": [
               "alpine",
+              "arch",
               "cargo",
               "chef",
               "composer",
@@ -650,6 +651,7 @@
               "rubygems",
               "swift",
               "terraform",
+              "terraform-module",
               "vagrant"
             ],
             "type": "string",
@@ -4728,6 +4730,7 @@
           {
             "enum": [
               "alpine",
+              "arch",
               "cargo",
               "chef",
               "composer",
@@ -4748,6 +4751,7 @@
               "rubygems",
               "swift",
               "terraform",
+              "terraform-module",
               "vagrant"
             ],
             "type": "string",
@@ -26255,6 +26259,7 @@
           "x-go-name": "EnableForcePush"
         },
         "enable_force_push_allowlist": {
+          "description": "EnableForcePushAllowlist only takes effect when enable_force_push is true",
           "type": "boolean",
           "x-go-name": "EnableForcePushAllowlist"
         },
@@ -27022,6 +27027,9 @@
     "CreatePullReviewComment": {
       "description": "CreatePullReviewComment represent a review comment for creation api",
       "type": "object",
+      "required": [
+        "path"
+      ],
       "properties": {
         "body": {
           "type": "string",

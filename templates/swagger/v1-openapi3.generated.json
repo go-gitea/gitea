@@ -3802,6 +3802,7 @@
             "x-go-name": "EnableForcePush"
           },
           "enable_force_push_allowlist": {
+            "description": "EnableForcePushAllowlist only takes effect when enable_force_push is true",
             "type": "boolean",
             "x-go-name": "EnableForcePushAllowlist"
           },
@@ -4589,6 +4590,9 @@
             "x-go-name": "Path"
           }
         },
+        "required": [
+          "path"
+        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -12023,6 +12027,7 @@
             "schema": {
               "enum": [
                 "alpine",
+                "arch",
                 "cargo",
                 "chef",
                 "composer",
@@ -12043,6 +12048,7 @@
                 "rubygems",
                 "swift",
                 "terraform",
+                "terraform-module",
                 "vagrant"
               ],
               "type": "string"
@@ -16307,6 +16313,7 @@
             "schema": {
               "enum": [
                 "alpine",
+                "arch",
                 "cargo",
                 "chef",
                 "composer",
@@ -16327,6 +16334,7 @@
                 "rubygems",
                 "swift",
                 "terraform",
+                "terraform-module",
                 "vagrant"
               ],
               "type": "string"

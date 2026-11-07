@@ -15,17 +15,24 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 )
 
-// regexp is based on go-license, excluding README and NOTICE
-// https://github.com/google/go-licenses/blob/master/licenses/find.go
-// also defined in vite.config.ts
-var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
-
-// primaryLicenseRe matches exact primary license filenames without suffixes.
-// When a directory has both primary and variant files (e.g. LICENSE and
-// LICENSE.docs), only the primary files are kept.
-var primaryLicenseRe = regexp.MustCompile(`^(?i)(LICEN[SC]E|COPYING)$`)
+var globalVars = sync.OnceValue(func() (ret struct {
+	licenseRe        *regexp.Regexp
+	primaryLicenseRe *regexp.Regexp
+},
+) {
+	// regexp is based on go-license, excluding README and NOTICE
+	// https://github.com/google/go-licenses/blob/master/licenses/find.go
+	// also defined in vite.config.ts
+	ret.licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
+	// primaryLicenseRe matches exact primary license filenames without suffixes.
+	// When a directory has both primary and variant files (e.g. LICENSE and
+	// LICENSE.docs), only the primary files are kept.
+	ret.primaryLicenseRe = regexp.MustCompile(`^(?i)(LICEN[SC]E|COPYING)$`)
+	return ret
+})
 
 // ignoredNames are LicenseEntry.Name values to exclude from the output.
 var ignoredNames = map[string]bool{
@@ -144,7 +151,7 @@ func scanDirForLicenses(dir, modulePath, moduleRoot string) []LicenseEntry {
 			continue
 		}
 		name := entry.Name()
-		if !licenseRe.MatchString(name) {
+		if !globalVars().licenseRe.MatchString(name) {
 			continue
 		}
 		if excludedExt[strings.ToLower(filepath.Ext(name))] {
@@ -181,7 +188,7 @@ func scanDirForLicenses(dir, modulePath, moduleRoot string) []LicenseEntry {
 		var primary []LicenseEntry
 		for _, e := range entries {
 			fileName := e.Path[strings.LastIndex(e.Path, "/")+1:]
-			if primaryLicenseRe.MatchString(fileName) {
+			if globalVars().primaryLicenseRe.MatchString(fileName) {
 				primary = append(primary, e)
 			}
 		}

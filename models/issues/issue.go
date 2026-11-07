@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"gitea.dev/models/db"
 	project_model "gitea.dev/models/project"
@@ -112,10 +113,15 @@ type Issue struct {
 	TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
-var (
-	issueTasksPat     = regexp.MustCompile(`(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`)
-	issueTasksDonePat = regexp.MustCompile(`(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	issueTasksPat     *regexp.Regexp
+	issueTasksDonePat *regexp.Regexp
+},
+) {
+	ret.issueTasksPat = regexp.MustCompile(`(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`)
+	ret.issueTasksDonePat = regexp.MustCompile(`(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`)
+	return ret
+})
 
 // IssueIndex represents the issue index table
 type IssueIndex db.ResourceIndex
@@ -463,12 +469,12 @@ func (issue *Issue) IsPoster(uid int64) bool {
 
 // GetTasks returns the amount of tasks in the issues content
 func (issue *Issue) GetTasks() int {
-	return len(issueTasksPat.FindAllStringIndex(issue.Content, -1))
+	return len(globalVars().issueTasksPat.FindAllStringIndex(issue.Content, -1))
 }
 
 // GetTasksDone returns the amount of completed tasks in the issues content
 func (issue *Issue) GetTasksDone() int {
-	return len(issueTasksDonePat.FindAllStringIndex(issue.Content, -1))
+	return len(globalVars().issueTasksDonePat.FindAllStringIndex(issue.Content, -1))
 }
 
 // GetLastEventTimestamp returns the last user visible event timestamp, either the creation of this issue or the close.

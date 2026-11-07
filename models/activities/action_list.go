@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -162,12 +161,7 @@ func (actions ActionList) LoadIssues(ctx context.Context) error {
 	issueNum := 0
 	for _, action := range actions {
 		if action.IsIssueEvent() {
-			infos := action.GetIssueInfos()
-			if len(infos) == 0 {
-				continue
-			}
-			index, _ := strconv.ParseInt(infos[0], 10, 64)
-			if index > 0 {
+			if index := action.getIssueIndex(); index > 0 {
 				conditions = conditions.Or(builder.Eq{
 					"repo_id": action.RepoID,
 					"`index`": index,
