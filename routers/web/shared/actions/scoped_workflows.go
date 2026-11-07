@@ -148,17 +148,6 @@ func ScopedWorkflows(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, swCtx.Template)
 }
 
-// parsePatternLines splits a textarea value into trimmed, non-empty status-check patterns (one per line).
-func parsePatternLines(raw string) []string {
-	var patterns []string
-	for line := range strings.SplitSeq(raw, "\n") {
-		if p := strings.TrimSpace(line); p != "" {
-			patterns = append(patterns, p)
-		}
-	}
-	return patterns
-}
-
 // deriveScopedStatusContexts returns the commit-status contexts a scoped workflow is expected to post on a consumer:
 // "<source FullName>: <display> / <job> (<event>)" for each parsed job (matrix-expanded, matching run creation) and triggering event.
 // Job names that depend on run-context expressions cannot resolve here (no run context) and appear as authored; a glob pattern still matches them.
@@ -328,7 +317,7 @@ func ScopedWorkflowSetRequired(ctx *context.Context) {
 	}
 	configs := make(map[string]*actions_model.ScopedWorkflowConfig)
 	for _, workflowID := range ctx.FormStrings("workflow_ids") {
-		patterns := parsePatternLines(ctx.FormString("required_patterns[" + workflowID + "]"))
+		patterns := util.SplitTrimSpace(ctx.FormString("required_patterns["+workflowID+"]"), "\n")
 		required := requiredSet.Contains(workflowID)
 		if required && len(patterns) == 0 {
 			ctx.JSONError(ctx.Tr("actions.scoped_workflows.required.patterns_empty"))

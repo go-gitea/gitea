@@ -187,7 +187,7 @@ func (*NullNotifier) RenameRepository(ctx context.Context, doer *user_model.User
 }
 
 // TransferRepository places a place holder function
-func (*NullNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+func (*NullNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
 }
 
 // SyncPushCommits places a place holder function

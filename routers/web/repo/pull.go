@@ -370,7 +370,14 @@ func (prInfo *pullRequestViewInfo) prepareViewFillInfo(ctx *context.Context, bas
 func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Context, baseRef git.RefName) {
 	var err error
 	pull := prInfo.issue.PullRequest
-	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false, false)
+	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
+		BaseRepo:    ctx.Repo.Repository,
+		BaseGitRepo: ctx.Repo.GitRepo,
+		BaseRef:     baseRef,
+		HeadRepo:    ctx.Repo.Repository,
+		HeadGitRepo: ctx.Repo.GitRepo,
+		HeadRef:     git.RefName(pull.GetGitHeadRefName()),
+	}, false, false)
 	if err != nil {
 		if !errors.Is(err, util.ErrNotExist) && !gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) {
 			log.Error("GetCompareInfo: %v", err)
