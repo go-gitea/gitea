@@ -22,13 +22,13 @@ If your report turns out to be a duplicate, you will be credited in the original
 
 ### Report requirements
 
-When filing the report please document it properly. Report must include:
-- Version or a range of versions it was successfully tested against. If reproduced against main branch, commit hash is also acceptable. Improper versions like `latest` are not acceptable.
+When filing the report please document it. Report must include:
+- Version or a range of versions it was successfully tested against. If reproduced against main branch, commit hash is also acceptable. Ambiguous versions like `latest` are not acceptable.
 - Settings used, especially if diverging from default
 - Reproduction steps from freshly installed instance. If the fault is only reproducible through upgrade from older version, reproduction should state that.
 
 Take your time to format it properly as it'll be much easier to read.
-Report should be filed against `gitea.dev` package.
+When submitting an advisory, it should have `gitea.dev` go package as package name.cd
 
 ### Triage process
 
