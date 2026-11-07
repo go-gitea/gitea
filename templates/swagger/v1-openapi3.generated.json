@@ -3802,6 +3802,7 @@
             "x-go-name": "EnableForcePush"
           },
           "enable_force_push_allowlist": {
+            "description": "EnableForcePushAllowlist only takes effect when enable_force_push is true",
             "type": "boolean",
             "x-go-name": "EnableForcePushAllowlist"
           },
@@ -4672,6 +4673,14 @@
             "description": "Whether to create the release as a draft",
             "type": "boolean",
             "x-go-name": "IsDraft"
+          },
+          "make_latest": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MakeLatest"
+              }
+            ],
+            "description": "\"true\" sets the release as the latest, \"false\" keeps the current latest, \"legacy\" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date"
           },
           "name": {
             "description": "The display title of the release",
@@ -5930,6 +5939,14 @@
             "description": "Whether to change the draft status",
             "type": "boolean",
             "x-go-name": "IsDraft"
+          },
+          "make_latest": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MakeLatest"
+              }
+            ],
+            "description": "\"true\" sets the release as the latest, \"false\" keeps the current latest, \"legacy\" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date"
           },
           "name": {
             "description": "The new display title of the release",
@@ -7758,6 +7775,14 @@
         },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
+      },
+      "MakeLatest": {
+        "enum": [
+          "true",
+          "false",
+          "legacy"
+        ],
+        "type": "string"
       },
       "MarkdownOption": {
         "description": "MarkdownOption markdown options",
@@ -11986,6 +12011,7 @@
             "schema": {
               "enum": [
                 "alpine",
+                "arch",
                 "cargo",
                 "chef",
                 "composer",
@@ -12006,6 +12032,7 @@
                 "rubygems",
                 "swift",
                 "terraform",
+                "terraform-module",
                 "vagrant"
               ],
               "type": "string"
@@ -16270,6 +16297,7 @@
             "schema": {
               "enum": [
                 "alpine",
+                "arch",
                 "cargo",
                 "chef",
                 "composer",
@@ -16290,6 +16318,7 @@
                 "rubygems",
                 "swift",
                 "terraform",
+                "terraform-module",
                 "vagrant"
               ],
               "type": "string"
@@ -30726,7 +30755,7 @@
             "$ref": "#/components/responses/error"
           }
         },
-        "summary": "Gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at",
+        "summary": "Gets the release set as latest, else the most recent non-prerelease, non-draft release of a repository by created_at",
         "tags": [
           "repository"
         ]

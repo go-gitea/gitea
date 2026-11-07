@@ -22,7 +22,6 @@ import (
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/auth/openid"
 	"gitea.dev/modules/auth/password/hash"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
@@ -838,10 +837,7 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 			}
 
 			// trim user agent string to a reasonable length, if necessary
-			userAgent := strings.TrimSpace(meta.InitialUserAgent)
-			if len(userAgent) > 255 {
-				userAgent = userAgent[:255]
-			}
+			userAgent := util.TruncateRunes(strings.TrimSpace(meta.InitialUserAgent), 255)
 			if err = SetUserSetting(ctx, u.ID, SignupUserAgent, userAgent); err != nil {
 				return err
 			}
@@ -1439,32 +1435,6 @@ func GetIndividualUserByLoginSource(ctx context.Context, loginType auth.Type, lo
 		user = nil
 	}
 	return user, has, err
-}
-
-// GetUserByOpenID returns the user object by given OpenID if exists.
-func GetUserByOpenID(ctx context.Context, uri string) (*User, error) {
-	if len(uri) == 0 {
-		return nil, ErrUserNotExist{Name: uri}
-	}
-
-	uri, err := openid.Normalize(uri)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Trace("Normalized OpenID URI: " + uri)
-
-	// Otherwise, check in openid table
-	oid := &UserOpenID{}
-	has, err := db.GetEngine(ctx).Where("uri=?", uri).Get(oid)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		return GetUserByID(ctx, oid.UID)
-	}
-
-	return nil, ErrUserNotExist{Name: uri}
 }
 
 // GetAdminUser returns the first administrator

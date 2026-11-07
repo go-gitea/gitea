@@ -32,6 +32,7 @@ import (
 	"gitea.dev/modules/packages/rpm"
 	"gitea.dev/modules/packages/rubygems"
 	"gitea.dev/modules/packages/swift"
+	"gitea.dev/modules/packages/terraform_module"
 	"gitea.dev/modules/packages/vagrant"
 
 	"github.com/hashicorp/go-version"
@@ -209,8 +210,10 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 		metadata = &rubygems.Metadata{}
 	case TypeSwift:
 		metadata = &swift.Metadata{}
+	case TypeTerraformModule:
+		metadata = &terraform_module.Metadata{}
 	case TypeTerraformState:
-		// terraform packages have no metadata
+		// terraform state packages have no metadata
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:
