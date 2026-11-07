@@ -49,12 +49,8 @@ func Migrate(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "409":
-	//     description: The repository with the same name already exists.
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.MigrateRepoOptions](ctx)
 

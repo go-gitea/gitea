@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/modules/web/routing"
 	"gitea.dev/modules/web/types"
+	tfmodule "gitea.dev/routers/api/packages/terraform_module"
 	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/admin"
 	"gitea.dev/routers/web/auth"
@@ -261,7 +262,6 @@ func Routes() *web.Router {
 	routes.BeforeRouting(user.UsernamePreRoute)
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.Methods("GET, HEAD", "/assets/site-manifest.json", misc.SiteManifest)
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, public.AssetsCors(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
@@ -358,20 +358,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	optExploreSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
 	// middleware: only apply CrossOriginProtection
 	crossOriginProtect := verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: false})
-
-	openIDSignInEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignIn {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
-
-	openIDSignUpEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignUp {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
 
 	oauth2Enabled := func(ctx *context.Context) {
 		if !setting.OAuth2.Enabled {
@@ -541,6 +527,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
 		m.Get("/passkey-endpoints", passkeyEndpoints)
+		m.Get("/terraform.json", packagesEnabled, tfmodule.ServiceDiscovery)
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 
@@ -569,7 +556,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/issues", func() {
 		m.Get("", user.Issues)
-		m.Get("/search", repo.SearchIssues)
+		m.Get("/search", repo.SearchGlobalIssues)
 	}, reqSignIn)
 
 	m.Get("/pulls", reqSignIn, user.Pulls)
@@ -580,21 +567,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Get("/user/login", auth.SignIn)
 	m.Group("/user", func() {
 		m.Post("/login", web.Bind[*forms.SignInForm](), auth.SignInPost)
-		m.Group("", func() {
-			m.Combo("/login/openid").
-				Get(auth.SignInOpenID).
-				Post(web.Bind[*forms.SignInOpenIDForm](), auth.SignInOpenIDPost)
-		}, openIDSignInEnabled)
-		m.Group("/openid", func() {
-			m.Combo("/connect").
-				Get(auth.ConnectOpenID).
-				Post(web.Bind[*forms.ConnectOpenIDForm](), auth.ConnectOpenIDPost)
-			m.Group("/register", func() {
-				m.Combo("").
-					Get(auth.RegisterOpenID, openIDSignUpEnabled).
-					Post(web.Bind[*forms.SignUpOpenIDForm](), auth.RegisterOpenIDPost)
-			}, openIDSignUpEnabled)
-		}, openIDSignInEnabled)
 		m.Get("/sign_up", auth.SignUp)
 		m.Post("/sign_up", web.Bind[*forms.RegisterForm](), auth.SignUpPost)
 		m.Get("/link_account", auth.LinkAccount)
@@ -635,7 +607,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
-		m.Post("", web.Bind[*forms.UpdateProfileForm](), user_setting.ProfilePost)
+		m.Post("", user_setting.ProfilePost)
 		m.Post("/update_preferences", user_setting.UpdatePreferences)
 		m.Get("/change_password", auth.MustChangePassword)
 		m.Post("/change_password", web.Bind[*forms.MustChangePasswordForm](), auth.MustChangePasswordPost)
@@ -672,11 +644,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/rename", security.WebauthnRename)
 				m.Post("/delete", security.WebauthnDelete)
 			})
-			m.Group("/openid", func() {
-				m.Post("", web.Bind[*forms.AddOpenIDForm](), security.OpenIDPost)
-				m.Post("/delete", security.DeleteOpenID)
-				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
-			}, openIDSignInEnabled)
 			m.Post("/account_link", security.DeleteAccountLink)
 		})
 
@@ -695,7 +662,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("").Get(user_setting.Applications).
 				Post(user_setting.ApplicationsPost)
 			m.Post("/delete", user_setting.DeleteApplication)
-			m.Post("/regenerate", user_setting.RegenerateAccessToken)
+			m.Post("/regenerate", user_setting.ApplicationsRegenerateToken)
 		})
 
 		m.Combo("/keys").Get(user_setting.Keys).
@@ -824,6 +791,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
 			m.Post("/{userid}/access_tokens", admin.NewBotTokenPost)
 			m.Post("/{userid}/access_tokens/delete", admin.DeleteBotToken)
+			m.Post("/{userid}/access_tokens/regenerate", admin.RegenerateBotToken)
 			m.Post("/{userid}/orgs/{org_id}/remove", admin.RemoveUserFromOrg)
 			m.Post("/{userid}/orgs/remove-all", admin.RemoveUserFromAllOrgs)
 		})
@@ -916,10 +884,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/-/ownername.png/{username}", user.AvatarByUsernameSize)
 		m.Get("/-/ownername.keys/{username}", user.ShowSSHKeys)
 		m.Get("/-/ownername.gpg/{username}", user.ShowGPGKeys)
-		m.Get("/-/ownername.rss/{username}", feed.ShowUserFeedRSS)
-		m.Get("/-/ownername.atom/{username}", feed.ShowUserFeedAtom)
+		// tokens only authenticate feeds, the other variants render data outside any token scope
+		m.Get("/-/ownername.rss/{username}", webAuth.AllowBasic, feed.ShowUserFeedRSS)
+		m.Get("/-/ownername.atom/{username}", webAuth.AllowBasic, feed.ShowUserFeedAtom)
 		m.Get("/{username}", user.OwnerProfile)
-	}, webAuth.AllowBasic, optSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer())
+	}, optSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer())
 
 	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), context.ReqContextUserVisibleToDoer(), user.ActionUserFollow)
 
@@ -927,8 +896,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	reqRepoCodeWriter := context.RequireUnitWriter(unit.TypeCode)
 	reqRepoReleaseWriter := context.RequireUnitWriter(unit.TypeReleases)
 	reqRepoReleaseReader := context.RequireUnitReader(unit.TypeReleases)
-	reqRepoIssuesOrPullsWriter := context.RequireUnitWriter(unit.TypeIssues, unit.TypePullRequests)
-	reqRepoIssuesOrPullsReader := context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoProjectsReader := context.RequireUnitReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireUnitWriter(unit.TypeProjects)
 	reqRepoActionsReader := context.RequireUnitReader(unit.TypeActions)
@@ -1123,6 +1090,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Get("", user.ViewPackageVersion)
 						m.Post("", reqPackageAccess(perm.AccessModeWrite), user.PackageVersionDelete)
 						m.Get("/{version_sub}", user.ViewPackageVersion)
+						m.Get("/modules/{submodule}", user.ViewPackageVersion)
 						m.Group("/terraform", func() {
 							m.Post("/lock", user.ActionPackageTerraformLock)
 							m.Post("/unlock", user.ActionPackageTerraformUnlock)
@@ -1216,7 +1184,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/branches", func() {
 			m.Get("/", repo_setting.ProtectedBranchRules)
 			m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
-				Post(web.Bind[*forms.ProtectBranchForm](), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
+				Post(context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
 			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
 			m.Post("/priority", context.RepoMustNotBeArchived(), repo_setting.UpdateBranchProtectionPriories)
 		})
@@ -1348,7 +1316,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/milestones", repo.Milestones)
 		m.Get("/milestone/{id}", repo.MilestoneIssuesAndPulls)
 		m.Get("/issues/suggestions", repo.IssueSuggestions)
-	}, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader) // issue/pull attachments, labels, milestones
+	}, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests)) // issue/pull attachments, labels, milestones
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
 
 	m.Group("/{username}/{reponame}/{type:issues}", func() {
@@ -1382,7 +1350,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/add", repo.AddDependency)
 					m.Post("/delete", repo.RemoveDependency)
 				})
-				m.Combo("/comments").Post(repo.MustAllowUserComment, web.Bind[*forms.CreateCommentForm](), repo.NewComment)
+				m.Combo("/comments").Post(web.Bind[*forms.CreateCommentForm](), repo.NewComment)
 				m.Group("/times", func() {
 					m.Post("/add", web.Bind[*forms.AddTimeManuallyForm](), repo.AddTimeManually)
 					m.Post("/{timeid}/delete", repo.DeleteTime)
@@ -1394,21 +1362,21 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				})
 				m.Post("/time_estimate", repo.UpdateIssueTimeEstimate)
 				m.Post("/reactions/{action}", web.Bind[*forms.ReactionForm](), repo.ChangeIssueReaction)
-				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind[*forms.IssueLockForm](), repo.LockIssue)
-				m.Post("/unlock", reqRepoIssuesOrPullsWriter, repo.UnlockIssue)
+				m.Post("/lock", web.Bind[*forms.IssueLockForm](), repo.LockIssue)
+				m.Post("/unlock", repo.UnlockIssue)
 				m.Post("/delete", reqRepoAdmin, repo.DeleteIssue)
 				m.Post("/content-history/soft-delete", repo.SoftDeleteContentHistory)
 			})
 
 			m.Post("/attachments", repo.UploadIssueAttachment)
-			m.Post("/attachments/remove", repo.DeleteAttachment)
+			m.Post("/attachments/remove", repo.DeletePendingAttachment)
 
-			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
-			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
-			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
-			m.Post("/projects/column", reqRepoIssuesOrPullsWriter, reqRepoProjectsWriter, repo.UpdateIssueProjectColumn)
-			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
-			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
+			m.Post("/labels", repo.UpdateIssueLabel)
+			m.Post("/milestone", repo.UpdateIssueMilestone)
+			m.Post("/projects", reqRepoProjectsReader, repo.UpdateIssueProject)
+			m.Post("/projects/column", reqRepoProjectsWriter, repo.UpdateIssueProjectColumn)
+			m.Post("/assignee", repo.UpdateIssueAssignee)
+			m.Post("/status", repo.UpdateIssueStatus)
 			m.Post("/delete", reqRepoAdmin, repo.BatchDeleteIssues)
 			m.Delete("/unpin/{index}", reqRepoAdmin, repo.IssueUnpin)
 			m.Post("/move_pin", reqRepoAdmin, repo.IssuePinMove)
@@ -1421,14 +1389,14 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/{action}", web.Bind[*forms.ReactionForm](), repo.ChangeCommentReaction)
-		}, reqRepoIssuesOrPullsReader) // edit issue/pull comment
+		}) // edit issue/pull comment
 
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind[*forms.CreateLabelForm](), repo.NewLabel)
 			m.Post("/edit", web.Bind[*forms.CreateLabelForm](), repo.UpdateLabel)
 			m.Post("/delete", repo.DeleteLabel)
 			m.Post("/initialize", web.Bind[*forms.InitializeLabelsForm](), repo.InitializeLabels)
-		}, reqRepoIssuesOrPullsWriter)
+		}, context.RequireUnitWriter(unit.TypeIssues, unit.TypePullRequests))
 
 		m.Group("/milestones", func() {
 			m.Combo("/new").Get(repo.NewMilestone).
@@ -1437,7 +1405,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{id}/edit", web.Bind[*forms.CreateMilestoneForm](), repo.EditMilestonePost)
 			m.Post("/{id}/{action}", repo.ChangeMilestoneStatus)
 			m.Post("/delete", repo.DeleteMilestone)
-		}, reqRepoIssuesOrPullsWriter)
+		}, context.RequireUnitWriter(unit.TypeIssues, unit.TypePullRequests))
 
 		// FIXME: many "pulls" requests are sent to "issues" endpoints incorrectly, need to move these routes to the proper place
 		m.Group("/issues", func() {
@@ -1530,7 +1498,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/generate-notes", web.Bind[*forms.GenerateReleaseNotesForm](), repo.GenerateReleaseNotes)
 			m.Post("/delete", repo.DeleteRelease)
 			m.Post("/attachments", repo.UploadReleaseAttachment)
-			m.Post("/attachments/remove", repo.DeleteAttachment)
+			m.Post("/attachments/remove", repo.DeletePendingAttachment)
 		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter)
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 	// end "/{username}/{reponame}": repo releases

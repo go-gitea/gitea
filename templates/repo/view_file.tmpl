@@ -23,6 +23,14 @@
 				{{end}}
 			{{end}}
 		</div>
+		{{if .FileCodeOwners}}
+		<div class="file-codeowners ui segment flex-text-block tw-flex-wrap">
+			{{svg "octicon-shield-check" 16}} <span>{{ctx.Locale.Tr "repo.codeowners"}}</span>
+			{{range $one := .FileCodeOwners}}
+				<a href="{{$one.CodeOwnerLink}}">{{$one.CodeOwnerName}}</a>
+			{{end}}
+		</div>
+		{{end}}
 	{{end}}
 
 	<h4 class="file-header ui top attached header flex-left-right">

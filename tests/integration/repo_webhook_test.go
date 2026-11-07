@@ -821,6 +821,14 @@ func Test_WebhookRepository(t *testing.T) {
 		assert.Equal(t, "org3/"+newName, payloads[1].Repository.FullName)
 		require.NotNil(t, payloads[1].Changes.Name)
 		assert.Equal(t, "repo_new", payloads[1].Changes.Name.From)
+
+		req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/transfer", &api.TransferRepoOption{NewOwner: "org3"}).
+			AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository))
+		MakeRequest(t, req, http.StatusAccepted)
+
+		require.Len(t, payloads, 3)
+		assert.Equal(t, api.HookRepoTransferred, payloads[2].Action)
+		assert.Equal(t, "user2", payloads[2].Changes.Owner.From.User.UserName)
 	})
 }
 

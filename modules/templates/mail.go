@@ -8,7 +8,6 @@ import (
 	"html/template"
 	"io"
 	"net/url"
-	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -104,8 +103,6 @@ func mailBodyFuncMap() template.FuncMap {
 	}
 }
 
-var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
-
 func newMailRenderer() (*MailRender, error) {
 	subjectTemplates := texttmpl.New("")
 	subjectTemplates.Funcs(mailSubjectTextFuncMap())
@@ -155,7 +152,7 @@ func newMailRenderer() (*MailRender, error) {
 			}
 			var subjectContent []byte
 			bodyContent := content
-			loc := mailSubjectSplit.FindIndex(content)
+			loc := globalVars().mailSubjectSplit.FindIndex(content)
 			if loc != nil {
 				subjectContent, bodyContent = content[0:loc[0]], content[loc[1]:]
 			}

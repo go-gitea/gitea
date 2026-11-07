@@ -602,7 +602,7 @@ func TestIssueReaction(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/react"), map[string]string{
 		"content": "8ball",
 	})
-	session.MakeRequest(t, req, http.StatusInternalServerError)
+	session.MakeRequest(t, req, http.StatusForbidden)
 	req = NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/react"), map[string]string{
 		"content": "eyes",
 	})

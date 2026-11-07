@@ -13,7 +13,6 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,8 +29,6 @@ func EnumKey(values []any) string {
 	sort.Strings(strs)
 	return strings.Join(strs, "|")
 }
-
-var rxSwaggerEnum = regexp.MustCompile(`swagger:enum\s+(\w+)`)
 
 // ScanSwaggerEnumTypes walks .go files under each dir and returns a map from
 // a canonical value-set key (see EnumKey) to the Go type names declared with
@@ -146,7 +143,7 @@ func registerEnumAnnotation(doc *ast.CommentGroup, specs []ast.Spec, enumTypes m
 	if doc == nil {
 		return nil
 	}
-	matches := rxSwaggerEnum.FindStringSubmatch(doc.Text())
+	matches := globalVars().rxSwaggerEnum.FindStringSubmatch(doc.Text())
 	if len(matches) < 2 {
 		return nil
 	}

@@ -152,16 +152,16 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 		log.Error("%-v Unable to write .git/info/sparse-checkout file in %s: %v", ctx.pr, ctx.tmpBasePath, err)
 		return fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %w", err)
 	}
-	defer sparseCheckoutListFile.Close() // we will close it earlier but we need to ensure it is closed if there is an error
 
-	if err := getDiffTree(ctx, ctx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch, sparseCheckoutListFile); err != nil {
-		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, tmpRepoBaseBranch, tmpRepoTrackingBranch, err)
-		return fmt.Errorf("getDiffTree: %w", err)
+	diffErr := getDiffTree(ctx, ctx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch, sparseCheckoutListFile)
+	closeErr := sparseCheckoutListFile.Close()
+	if diffErr != nil {
+		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, tmpRepoBaseBranch, tmpRepoTrackingBranch, diffErr)
+		return fmt.Errorf("getDiffTree: %w", diffErr)
 	}
-
-	if err := sparseCheckoutListFile.Close(); err != nil {
-		log.Error("%-v Unable to close .git/info/sparse-checkout file in %s: %v", ctx.pr, ctx.tmpBasePath, err)
-		return fmt.Errorf("Unable to close .git/info/sparse-checkout file in tmpBasePath: %w", err)
+	if closeErr != nil {
+		log.Error("%-v Unable to close .git/info/sparse-checkout file in %s: %v", ctx.pr, ctx.tmpBasePath, closeErr)
+		return fmt.Errorf("Unable to close .git/info/sparse-checkout file in tmpBasePath: %w", closeErr)
 	}
 
 	setConfig := func(key, value string) error {
@@ -220,7 +220,7 @@ func getDiffTree(ctx context.Context, repo git.RepositoryFacade, baseBranch, hea
 			for scanner.Scan() {
 				treePath := scanner.Text()
 				// escape '*', '?', '[', spaces and '!' prefix
-				treePath = escapedSymbols.ReplaceAllString(treePath, `\$1`)
+				treePath = escapedSymbols().ReplaceAllString(treePath, `\$1`)
 				// no necessary to escape the first '#' symbol because the first symbol is '/'
 				if _, err := fmt.Fprintf(out, "/%s\n", treePath); err != nil {
 					return err
