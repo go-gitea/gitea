@@ -244,6 +244,7 @@ test('diff viewer file kinds', async ({page, request}) => {
     {operation: 'create', path: 'package-lock.json', content: '{}\n'},
   ], 'main', 'feat');
   const prIndex = await apiCreatePR(request, user, repo, 'feat', 'main', 'kinds', {headers});
+  await apiCreateReview(request, user, repo, prIndex, {comments: [{path: 'doc.dat', body: 'lfs-pointer-comment', new_position: 2}], headers});
   await loginUser(page, user);
   await page.goto(`/${user}/${repo}/pulls/${prIndex}/files`);
 
@@ -264,6 +265,9 @@ test('diff viewer file kinds', async ({page, request}) => {
   await expect(lfs.locator('.diff-file-header .ui.label').filter({hasText: 'LFS'})).toHaveCount(1);
   await expect(lfs.locator('tr.del-code .code-inner')).toHaveText('beta');
   await expect(lfs.locator('tr.add-code .code-inner')).toHaveText('gamma');
+  // the comments are on the pointer's lines, they are shown above the objects' diff
+  await expect(lfs.locator('tbody > tr').first().locator('.diff-conversation')).toContainText('lfs-pointer-comment');
+  await expect(lfs.locator('.add-code-comment')).toHaveCount(0);
   const lfsImage = page.locator('.diff-file-box[data-new-filename="logo.lfs.png"]');
   await expect(lfsImage.locator('.image-diff')).toHaveAttribute('data-path-after', /\/media\/commit\/[0-9a-f]+\/logo\.lfs\.png$/);
   await expect(lfsImage.locator('.image-diff .bounds-info-before .bounds-info-width')).toHaveText('1px');

@@ -145,14 +145,19 @@ export class DiffComments {
   // inserts the threads and open composers below their lines, in the split view each side has its own cell
   // previous is the replaced diff of a file rendered again
   renderAnnotations(entry: DiffFile, previous: Element | null = null): void {
-    // the diff of LFS objects can't be commented, the comments are about the pointer
-    const body = entry.lfsState === null ? entry.element?.querySelector('.code-diff > table > tbody') : null;
-    if (!body) return;
-    for (const row of body.querySelectorAll(':scope > tr.add-comment')) row.remove();
-    for (const button of body.querySelectorAll('.add-code-comment.tw-invisible')) button.classList.remove('tw-invisible');
+    const source = entry.element?.querySelector('.code-diff');
+    if (!source) return;
+    let body = source.querySelector(':scope > table > tbody');
+    for (const row of body?.querySelectorAll(':scope > tr.add-comment') ?? []) row.remove();
+    for (const button of body?.querySelectorAll('.add-code-comment.tw-invisible') ?? []) button.classList.remove('tw-invisible');
     const threads = this.threadsOf(entry);
     const drafts = [...this.drafts.values()].filter(({target}) => target.path === entry.file.name);
     if (!threads.size && !drafts.length) return;
+    // a notice instead of the lines still gets the threads above it
+    if (!body) {
+      body = createElementFromAttrs('tbody', null);
+      source.prepend(createElementFromAttrs('table', {class: 'chroma'}, body));
+    }
     // comments being edited are kept, the editor of the edit handler belongs to their element
     const editing = new Map<number, HTMLElement>();
     for (const zone of (previous ?? body).querySelectorAll('.edit-content-zone:not(.tw-hidden)')) {
@@ -160,8 +165,9 @@ export class DiffComments {
       editing.set(Number(commentEl.getAttribute('data-comment-id')), commentEl);
     }
 
+    // the lines of LFS files are their pointers, the shown diff of the objects has other lines, so their threads go above it
     const rows = new Map<string, HTMLElement>();
-    for (const row of body.children as HTMLCollectionOf<HTMLElement>) {
+    for (const row of entry.file.lfs ? [] : body.children as HTMLCollectionOf<HTMLElement>) {
       for (const side of ['old', 'new'] as const) {
         const line = row.getAttribute(`data-${side}`);
         if (line) rows.set(`${side}|${line}`, row);
