@@ -3,21 +3,6 @@
 				{{template "package/shared/cleanup_rules/list" .}}
 				{{template "package/shared/cargo" .}}
 
-				<h4 class="ui top attached header">
-					{{ctx.Locale.Tr "packages.owner.settings.debian.title"}}
-				</h4>
-				<div class="ui attached segment">
-					<div class="ui form">
-						<div class="field">
-							<label>{{ctx.Locale.Tr "packages.owner.settings.debian.keypair.description"}}</label>
-						</div>
-						<form class="field" action="{{.OrgLink}}/settings/packages/debian/regenerate_keypair" method="post">
-							<button type="submit" class="ui primary button">{{ctx.Locale.Tr "packages.owner.settings.debian.keypair"}}</button>
-						</form>
-						<div class="field">
-							<label>{{ctx.Locale.Tr "packages.registry.documentation" "Debian" "https://docs.gitea.com/usage/packages/debian/"}}</label>
-						</div>
-					</div>
-				</div>
+				{{template "package/shared/debian" dict "ActionURL" (printf "%s/settings/packages/debian/regenerate_keypair" .OrgLink)}}
 			</div>
 {{template "org/settings/layout_footer" .}}

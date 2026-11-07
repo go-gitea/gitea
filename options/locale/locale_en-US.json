@@ -3763,7 +3763,7 @@
   "packages.owner.settings.cleanuprules.success.delete": "Cleanup rule has been deleted.",
   "packages.owner.settings.debian.title": "Debian Package Registry",
   "packages.owner.settings.debian.keypair": "Regenerate signing key and repository metadata",
-  "packages.owner.settings.debian.keypair.description": "Debian Trixie's sqv verifier may reject older repository signing keys. This replaces the Debian signing key and rebuilds all existing Release, Release.gpg, and InRelease metadata. Uploaded .deb files are not changed; clients must use the new repository key.",
+  "packages.owner.settings.debian.keypair.description": "Debian Trixie (13) and newer use sqv to verify repository signatures. sqv may reject signing keys that older Debian releases accepted, preventing clients from updating this repository's package indexes. Regenerating the key re-signs the repository metadata but does not change uploaded .deb files. Clients must be configured to trust the new repository key.",
   "packages.owner.settings.debian.keypair.success": "The Debian signing key was regenerated and repository metadata was re-signed.",
   "packages.owner.settings.debian.keypair.error": "Failed to regenerate the Debian signing key and repository metadata: %s",
   "packages.owner.settings.chef.title": "Chef Registry",
