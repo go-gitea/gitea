@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web/middleware"
 )
 
@@ -60,7 +61,7 @@ func parseRequestIDFromRequestHeader(req *http.Request) string {
 		return "-"
 	}
 	if len(requestID) > maxRequestIDByteLength {
-		requestID = requestID[:maxRequestIDByteLength] + "..."
+		requestID = util.TruncateStringBytes(requestID, maxRequestIDByteLength) + "..."
 	}
 	return requestID
 }

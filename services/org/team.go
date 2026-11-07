@@ -110,9 +110,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		return util.NewInvalidArgumentErrorf("empty team name")
 	}
 
-	if len(t.Description) > 255 {
-		t.Description = t.Description[:255]
-	}
+	t.Description = util.TruncateRunes(t.Description, 255)
 
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		t.LowerName = strings.ToLower(t.Name)
