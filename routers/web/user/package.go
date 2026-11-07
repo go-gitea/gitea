@@ -259,7 +259,7 @@ func ViewPackageVersion(ctx *context.Context) {
 
 		ctx.Data["Groups"] = util.Sorted(groups.Values())
 		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
-	case packages_model.TypeContainer:
+	case packages_model.TypeContainer, packages_model.TypeFlatpak:
 		imageMetadata := pd.Metadata
 		if versionSub != "" {
 			imageMetadata, err = viewPackageContainerImage(ctx, pd, versionSub)
@@ -275,7 +275,7 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	var pvs []*packages_model.PackageVersion
 	var pvsTotal int64
-	if pd.Package.Type == packages_model.TypeContainer {
+	if pd.Package.Type == packages_model.TypeContainer || pd.Package.Type == packages_model.TypeFlatpak {
 		pvs, pvsTotal, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
 			Paginator: db.NewAbsoluteListOptions(0, 5),
 			PackageID: pd.Package.ID,
@@ -358,7 +358,7 @@ func ListPackageVersions(ctx *context.Context) {
 		pvs   []*packages_model.PackageVersion
 	)
 	switch p.Type {
-	case packages_model.TypeContainer:
+	case packages_model.TypeContainer, packages_model.TypeFlatpak:
 		tagged := ctx.FormTrim("tagged")
 
 		ctx.Data["Tagged"] = tagged

@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	container_module "gitea.dev/modules/packages/container"
 	notify_service "gitea.dev/services/notify"
@@ -36,6 +37,8 @@ type manifestCreationInfo struct {
 	Reference  string
 	IsTagged   bool
 	Properties map[string]string
+	// set while processing the manifest
+	PackageType packages_model.Type
 }
 
 func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
@@ -102,6 +105,9 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 	if err != nil {
 		return "", err
 	}
+	if mci.PackageType, err = imagePackageType(ctx, mci, metadata.Labels[container_module.LabelFlatpakRef] != ""); err != nil {
+		return "", err
+	}
 	if _, err = buf.Seek(0, io.SeekStart); err != nil {
 		return "", err
 	}
@@ -166,10 +172,14 @@ func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *p
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		return "", err
 	}
+	var err error
+	if mci.PackageType, err = imagePackageType(ctx, mci, false); err != nil {
+		return "", err
+	}
 
 	contentStore := packages_module.NewContentStore()
 	var txRet processManifestTxRet
-	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
+	err = db.WithTx(ctx, func(ctx context.Context) (err error) {
 		metadata := &container_module.Metadata{
 			Type:      container_module.TypeOCI,
 			Manifests: make([]*container_module.Manifest, 0, len(index.Manifests)),
@@ -228,11 +238,34 @@ func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *p
 	return handleCreateManifestResult(ctx, err, mci, contentStore, &txRet)
 }
 
+// imagePackageType keeps an existing image's type, so an index or an unlabelled push joins it,
+// and stores a new image as a Flatpak if its config carries the Flatpak ref label.
+func imagePackageType(ctx context.Context, mci *manifestCreationInfo, isFlatpak bool) (packages_model.Type, error) {
+	for _, pt := range []packages_model.Type{packages_model.TypeFlatpak, packages_model.TypeContainer} {
+		exists, err := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{
+			OwnerID:    mci.Owner.ID,
+			Type:       pt,
+			Name:       packages_model.SearchValue{ExactMatch: true, Value: mci.Image},
+			IsInternal: optional.Some(false),
+		})
+		if err != nil {
+			return "", fmt.Errorf("imagePackageType: %w", err)
+		}
+		if exists {
+			return pt, nil
+		}
+	}
+	if isFlatpak {
+		return packages_model.TypeFlatpak, nil
+	}
+	return packages_model.TypeContainer, nil
+}
+
 func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, metadata *container_module.Metadata) (*packages_model.PackageVersion, error) {
 	created := true
 	p := &packages_model.Package{
 		OwnerID:   mci.Owner.ID,
-		Type:      packages_model.TypeContainer,
+		Type:      mci.PackageType,
 		Name:      strings.ToLower(mci.Image),
 		LowerName: strings.ToLower(mci.Image),
 	}
@@ -397,7 +430,7 @@ func createManifestBlob(ctx context.Context, contentStore *packages_module.Conte
 
 	oldManifestFiles, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     mci.Owner.ID,
-		PackageType: packages_model.TypeContainer,
+		PackageType: mci.PackageType,
 		VersionID:   pv.ID,
 		Query:       container_module.ManifestFilename,
 	})
