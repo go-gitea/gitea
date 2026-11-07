@@ -4,7 +4,7 @@
 - Before designing a feature or behavior, check prior art in GitHub and GitLab
 - Don't add code for theoretical edge cases, only for ones that can realistically occur
 - Write docs concisely and user-facing, skip implementation details
-- PR descriptions: minimal, only what and why, no task or file listings. Aim for less than 1000 characters
+- PR descriptions: minimal, only what and why, no task or file listings, no headings. Aim for less than 1000 characters. References go at the end of the description like "Fixes: <url>".
 - PR descriptions and update comments: Include screenshots for UI changes, before and after side by side. Take them at 4x scale in dark theme, cropped to the changes with some padding, and embed them at half CSS size
 - Reference issues and PRs by full URL, not by number
 - Use Conventional Commits for commit messages and PR titles, plus Gitea's `enhance` type for user-facing enhancements
