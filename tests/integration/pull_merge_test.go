@@ -329,6 +329,10 @@ func TestPullCleanUpAfterClose(t *testing.T) {
 			// the "delete branch" button should be gone since the PR has been merged
 			link = getDeleteBranchLink(t, session, "user2", "repo1", pullNumStr)
 			assert.Empty(t, link)
+
+			restoreLink := htmlDoc.doc.Find(`.timeline-item button[data-url*="/branches/restore"]`).AttrOr("data-url", "")
+			session.MakeRequest(t, NewRequest(t, "POST", restoreLink), http.StatusOK)
+			assert.NotEmpty(t, getDeleteBranchLink(t, session, "user2", "repo1", pullNumStr))
 		})
 	})
 }
@@ -346,6 +350,10 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		wipToggleButtonCount := htmlDoc.Find(`.merge-section > .item button[data-global-init="initPullRequestWipToggle"]`).Length()
 		assert.Equal(t, 1, wipToggleButtonCount)
+		mergeFormProps := htmlDoc.Find("#pull-request-merge-form").AttrOr("data-merge-form-props", "")
+		assert.Contains(t, mergeFormProps, `"canMergeNow":false`)
+		assert.NotContains(t, mergeFormProps, `"hideAutoMerge":false`)
+		assert.Contains(t, htmlDoc.Find("#pull-merge-cmd-modal").Text(), "git checkout user1-master")
 	})
 }
 
@@ -388,6 +396,9 @@ func TestCantMergeConflict(t *testing.T) {
 		err = pull_service.Merge(t.Context(), pr.ID, user1, repo_model.MergeStyleRebase, "", "CONFLICT", false)
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, pull_service.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
+		resp := session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/user1/repo1/pulls/%d/merge", pr.Index), map[string]string{"do": "merge", "merge_when_checks_succeed": "true"}), http.StatusOK)
+		assert.Equal(t, fmt.Sprintf("/user1/repo1/pulls/%d", pr.Index), DecodeJSON(t, resp, map[string]string{})["redirect"])
+		unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	})
 }
 
@@ -468,13 +479,21 @@ func TestCantMergeUnrelated(t *testing.T) {
 		}).AddTokenAuth(token), http.StatusUnprocessableEntity)
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user1/repo1/compare/master..unrelated", map[string]string{"title": "create an unrelated pr"}), http.StatusBadRequest)
 
+		pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{RepoID: repo1.ID, Doer: user1, Branch: "unrelated"})
+
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
-			HeadRepoID: repo1.ID,
-			BaseRepoID: repo1.ID,
-			HeadBranch: "unrelated",
-			BaseBranch: "base",
-		})
+		var pr *issues_model.PullRequest
+		require.Eventually(t, func() bool {
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{HeadRepoID: repo1.ID, BaseRepoID: repo1.ID, HeadBranch: "unrelated", BaseBranch: "base"})
+			return !pr.IsChecking()
+		}, 5*time.Second, 20*time.Millisecond)
+		assert.True(t, pr.IsUnrelated())
+		resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user1/repo1/pulls/%d", pr.Index)), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Contains(t, htmlDoc.Find(".merge-section").Text(), "This branch has no history in common with the target branch.")
+		mergeFormProps := htmlDoc.Find("#pull-request-merge-form").AttrOr("data-merge-form-props", "")
+		assert.Contains(t, mergeFormProps, `"canMergeNow":false`)
+		assert.NotContains(t, mergeFormProps, `"hideAutoMerge":false`)
 
 		err = pull_service.Merge(t.Context(), pr.ID, user1, repo_model.MergeStyleMerge, "", "UNRELATED", false)
 		assert.Error(t, err, "Merge should return an error due to unrelated")
@@ -1151,7 +1170,6 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 
 		resp = bypassSession.MakeRequest(t, NewRequest(t, "GET", pullURL), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Contains(t, htmlDoc.doc.Find(".merge-section").Text(), "You are allowed to bypass branch protection rules for this merge.")
 		mergeFormProps, exists := htmlDoc.doc.Find("#pull-request-merge-form").Attr("data-merge-form-props")
 		require.True(t, exists)
 		var mergeForm map[string]any

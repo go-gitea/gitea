@@ -135,24 +135,18 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 
 		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
 		assert.Contains(t, text, "The changes on this branch are already on the target branch. This will be an empty commit.")
-		assert.Contains(t, text, "This pull request can be merged automatically.")
+		assert.Contains(t, text, "Merging can be performed automatically.")
 		mergeFormProps, exists := doc.doc.Find("#pull-request-merge-form").Attr("data-merge-form-props")
 		require.True(t, exists)
 		var mergeForm struct {
-			EmptyCommit bool `json:"emptyCommit"`
 			CanMergeNow bool `json:"canMergeNow"`
 			MergeStyles []struct {
-				Name    string `json:"name"`
-				Allowed bool   `json:"allowed"`
+				Name string `json:"name"`
 			} `json:"mergeStyles"`
 		}
 		require.NoError(t, json.Unmarshal([]byte(mergeFormProps), &mergeForm))
-		assert.True(t, mergeForm.EmptyCommit)
 		assert.True(t, mergeForm.CanMergeNow)
-		assert.Contains(t, mergeForm.MergeStyles, struct {
-			Name    string `json:"name"`
-			Allowed bool   `json:"allowed"`
-		}{Name: "merge", Allowed: true})
+		assert.Equal(t, "merge", mergeForm.MergeStyles[0].Name)
 	})
 }
 

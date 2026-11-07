@@ -251,6 +251,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		// Store old commit ID for review staleness checking
 		oldHeadCommitID := pr.HeadCommitID
 
+		if err := pull_service.DisableAutoMergeIfNotWriter(ctx, pusher, pr, "pushed_by_non_writer"); err != nil {
+			log.Error("DisableAutoMergeIfNotWriter: %v", err)
+		}
 		pr.HeadCommitID = opts.NewCommitIDs[i]
 		if err = pull_service.UpdateRefForAgit(ctx, pr); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)

@@ -20,6 +20,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -294,6 +295,9 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
 		return err
 	}
+	if err := DisableAutoMergeIfNotWriter(ctx, doer, pr, "base_changed"); err != nil {
+		return err
+	}
 
 	// Set new target branch
 	oldBranch := pr.BaseBranch
@@ -360,6 +364,32 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	})
 }
 
+// RemoveScheduledAutoMerge cancels a previously scheduled pull request
+func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, reason string) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if n, err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
+			return err
+		} else if n == 0 {
+			return nil
+		}
+		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
+		return err
+	})
+}
+
+func DisableAutoMergeIfNotWriter(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) error {
+	if exist, _, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID); err != nil || !exist {
+		return err
+	}
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return err
+	}
+	if perm, err := access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer); err != nil || perm.CanWrite(unit.TypeCode) {
+		return err
+	}
+	return RemoveScheduledAutoMerge(ctx, doer, pr, reason)
+}
+
 type TestPullRequestOptions struct {
 	RepoID      int64
 	Doer        *user_model.User
@@ -393,6 +423,11 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			pr.HeadRepo = repo // avoid loading again
 			if pr.Flow == issues_model.PullRequestFlowGithub {
+				if opts.IsSync && pr.IsFromFork() { // same-repo pushers can write, Actions and deploy key pushers have no user permission
+					if err := DisableAutoMergeIfNotWriter(ctx, opts.Doer, pr, "pushed_by_non_writer"); err != nil {
+						log.Error("DisableAutoMergeIfNotWriter: %v", err)
+					}
+				}
 				if err := PushToBaseRepo(ctx, pr); err != nil {
 					log.Error("PushToBaseRepo: %v", err)
 					continue
