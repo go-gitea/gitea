@@ -295,6 +295,10 @@ type pullMergeBoxData struct {
 	hasStatusCheckBlocker bool
 	IsPullBranchDeletable bool
 
+	// ConflictResolutionURL is set to the conflict-resolver link when the doer
+	// has write access to the head branch and the PR has conflicted files.
+	ConflictResolutionURL string
+
 	isBlockedByApprovals              bool
 	isBlockedByRejection              bool
 	isBlockedByOfficialReviewRequests bool

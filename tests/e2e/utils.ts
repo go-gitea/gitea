@@ -84,6 +84,18 @@ export async function apiCreateFiles(requestContext: APIRequestContext, owner: s
   }), 'apiCreateFiles');
 }
 
+/** Update an existing file in a repository. Fetches the current SHA automatically. */
+export async function apiUpdateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, {branch, message}: {branch?: string; message?: string} = {}) {
+  // Retrieve the file's current SHA (required by the PUT endpoint).
+  const ref = branch ? `?ref=${encodeURIComponent(branch)}` : '';
+  const infoResp = await requestContext.get(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}${ref}`, {headers: apiHeaders()});
+  const {sha} = await infoResp.json() as {sha: string};
+  await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
+    headers: apiHeaders(),
+    data: {content: Buffer.from(content, 'utf8').toString('base64'), sha, branch, message},
+  }), 'apiUpdateFile');
+}
+
 export async function apiCloseIssue(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
   await apiRetry(() => requestContext.patch(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}`, {
     headers: headers || apiHeaders(),
