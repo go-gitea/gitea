@@ -5,7 +5,7 @@
 - Don't add code for theoretical edge cases, only for ones that can realistically occur
 - Write docs concisely and user-facing, skip implementation details
 - PR descriptions: minimal, only what and why, no task or file listings. Aim for less than 1000 characters
-- Include screenshots for UI changes, before and after side by side when modifying existing UI. Take them at 4x scale in dark theme, cropped to the changes with some padding, and embed them at half CSS size
+- PR descriptions and update comments: Include screenshots for UI changes, before and after side by side when modifying existing UI. Take them at 4x scale in dark theme, cropped to the changes with some padding, and embed them at half CSS size
 - Reference issues and PRs by full URL, not by number
 - Use Conventional Commits for commit messages and PR titles, plus Gitea's `enhance` type for user-facing enhancements
 - Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
