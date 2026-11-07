@@ -22,7 +22,7 @@ If your report turns out to be a duplicate, you will be credited in the original
 
 ### Report requirements
 
-When filing the report please document it. Report must include:
+When filing the report please document it. Reports must include:
 
 - Version or a range of versions it was successfully tested against. If reproduced against main branch, commit hash is also acceptable. Ambiguous versions like `latest` are not acceptable.
 - Settings used, especially if diverging from default
