@@ -12,8 +12,6 @@ import (
 	"strconv"
 	"unicode"
 
-	giteautil "gitea.dev/modules/util"
-
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -22,6 +20,10 @@ import (
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 )
+
+func canKeepRune(r rune) bool {
+	return r == '-' || unicode.In(r, unicode.L, unicode.M, unicode.Nd, unicode.Nl, unicode.Pc, unicode.Other_Alphabetic)
+}
 
 // CleanValue will clean a value to make it safe to be an id
 // This function is quite different from the original goldmark function
@@ -32,7 +34,7 @@ func CleanValue(value []byte) []byte {
 		switch {
 		case r == ' ':
 			return '-'
-		case r == '-' || giteautil.IsWordRune(r):
+		case canKeepRune(r):
 			return unicode.ToLower(r)
 		}
 		return -1

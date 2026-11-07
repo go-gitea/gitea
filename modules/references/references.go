@@ -334,6 +334,11 @@ func FindAllIssueReferences(content string) []IssueReference {
 	return rawToIssueReferenceList(findAllIssueReferencesBytes(contentBytes, []string{}, nil))
 }
 
+func isReferencePostBoundary(r rune) bool {
+	isWordChar := unicode.In(r, unicode.L, unicode.M, unicode.Nd, unicode.Nl, unicode.Pc, unicode.Other_Alphabetic, unicode.Join_Control)
+	return !isWordChar
+}
+
 // findValidReferenceIndex returns the first match from pos that isn't followed by a word character
 func findValidReferenceIndex(pattern *regexp.Regexp, content []byte, pos int) []int {
 	for pos < len(content) {
@@ -344,7 +349,7 @@ func findValidReferenceIndex(pattern *regexp.Regexp, content []byte, pos int) []
 		for i := range match {
 			match[i] += pos
 		}
-		if r, _ := utf8.DecodeRune(content[match[3]:match[1]]); !util.IsWordRune(r) && !unicode.Is(unicode.Join_Control, r) {
+		if r, _ := utf8.DecodeRune(content[match[3]:match[1]]); isReferencePostBoundary(r) {
 			return match
 		}
 		pos = match[3]
