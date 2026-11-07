@@ -63,18 +63,10 @@ func (graph *Graph) AddGlyph(row, column int, flowID int64, color int, glyph byt
 	}
 	flow.AddGlyph(row, column, glyph)
 
-	if row < graph.MinRow {
-		graph.MinRow = row
-	}
-	if row > graph.MaxRow {
-		graph.MaxRow = row
-	}
-	if column < graph.MinColumn {
-		graph.MinColumn = column
-	}
-	if column > graph.MaxColumn {
-		graph.MaxColumn = column
-	}
+	graph.MinRow = min(graph.MinRow, row)
+	graph.MaxRow = max(graph.MaxRow, row)
+	graph.MinColumn = min(graph.MinColumn, column)
+	graph.MaxColumn = max(graph.MaxColumn, column)
 }
 
 // AddCommit adds a commit at row, column on flowID with the provided data
@@ -174,18 +166,10 @@ func (flow *Flow) Color16() int {
 
 // AddGlyph adds glyph at row and column
 func (flow *Flow) AddGlyph(row, column int, glyph byte) {
-	if row < flow.MinRow {
-		flow.MinRow = row
-	}
-	if row > flow.MaxRow {
-		flow.MaxRow = row
-	}
-	if column < flow.MinColumn {
-		flow.MinColumn = column
-	}
-	if column > flow.MaxColumn {
-		flow.MaxColumn = column
-	}
+	flow.MinRow = min(flow.MinRow, row)
+	flow.MaxRow = max(flow.MaxRow, row)
+	flow.MinColumn = min(flow.MinColumn, column)
+	flow.MaxColumn = max(flow.MaxColumn, column)
 
 	flow.Glyphs = append(flow.Glyphs, Glyph{
 		row,

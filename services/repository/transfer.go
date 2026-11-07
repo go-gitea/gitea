@@ -57,7 +57,10 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 		return err
 	}
 
-	oldOwnerName := repo.OwnerName
+	if err := repo.LoadOwner(ctx); err != nil {
+		return err
+	}
+	oldOwner := repo.Owner
 	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
 	if err != nil {
 		return err
@@ -77,9 +80,6 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 			return util.ErrPermissionDenied
 		}
 
-		if err := repo.LoadOwner(ctx); err != nil {
-			return err
-		}
 		for _, team := range repoTransfer.Teams {
 			if repoTransfer.Recipient.ID != team.OrgID {
 				return fmt.Errorf("team %d does not belong to organization", team.ID)
@@ -92,7 +92,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	}
 	releaser()
 
-	notify_service.TransferRepository(ctx, doer, repo, oldOwnerName)
+	notify_service.TransferRepository(ctx, doer, repo, oldOwner)
 
 	return nil
 }
@@ -460,7 +460,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	var isDirectTransfer bool
-	oldOwnerName := repo.OwnerName
+	oldOwner := repo.Owner
 	pagesUpdated, releasePagesState, err := pages_service.LockLifecycleState(ctx)
 	if err != nil {
 		return err
@@ -501,7 +501,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 			if err := db.Insert(ctx, &repo_model.Collaboration{RepoID: repo.ID, UserID: newOwner.ID, Mode: perm.AccessModeRead}); err != nil {
 				return err
 			}
-			if err := access_model.RecalculateUserAccess(ctx, repo, newOwner.ID); err != nil {
+			if err := access_model.RecalculateUserAccess(ctx, repo, newOwner); err != nil {
 				return err
 			}
 		}
@@ -514,7 +514,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	if isDirectTransfer {
-		notify_service.TransferRepository(ctx, doer, repo, oldOwnerName)
+		notify_service.TransferRepository(ctx, doer, repo, oldOwner)
 	} else {
 		// notify users who are able to accept / reject transfer
 		notify_service.RepoPendingTransfer(ctx, doer, newOwner, repo)

@@ -270,45 +270,36 @@ func TestAPIMergePull(t *testing.T) {
 		t.Run("Normal", func(t *testing.T) {
 			newBranch := "test-pull-1"
 			prDTO := createTestBranchPR(t, newBranch)
-			performMerge(t, prDTO.Index, map[string]any{"do": "merge"})
+			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": false})
 			checkBranchExists(t, newBranch, http.StatusOK)
 			// try to merge again, make sure we cannot perform a merge on the same PR
 			performMerge(t, prDTO.Index, map[string]any{"do": "merge"}, http.StatusMethodNotAllowed)
 		})
 
-		t.Run("DeleteBranchAfterMergePassedByFormField", func(t *testing.T) {
+		t.Run("DeleteBranchAfterMergeByDefault", func(t *testing.T) {
 			newBranch := "test-pull-2"
 			prDTO := createTestBranchPR(t, newBranch)
-			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
+			performMerge(t, prDTO.Index, map[string]any{"do": "merge"})
 			checkBranchExists(t, newBranch, http.StatusNotFound)
 		})
 
-		updateRepoUnitDefaultDeleteBranchAfterMerge := func(t *testing.T, repo *repo_model.Repository, value bool) {
+		t.Run("DeleteBranchAfterMergeDisabledByRepoSettings", func(t *testing.T) {
 			prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
 			require.NoError(t, err)
-
-			prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge = value
+			prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge = false
 			require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, []repo_model.RepoUnit{{
 				RepoID: repo.ID,
 				Type:   unit_model.TypePullRequests,
 				Config: prUnit.PullRequestsConfig(),
 			}}, nil))
-		}
 
-		t.Run("DeleteBranchAfterMergePassedByRepoSettings", func(t *testing.T) {
-			newBranch := "test-pull-3"
-			prDTO := createTestBranchPR(t, newBranch)
-			updateRepoUnitDefaultDeleteBranchAfterMerge(t, repo, true)
-			performMerge(t, prDTO.Index, map[string]any{"do": "merge"})
-			checkBranchExists(t, newBranch, http.StatusNotFound)
-		})
+			keptPR := createTestBranchPR(t, "test-pull-3")
+			performMerge(t, keptPR.Index, map[string]any{"do": "merge"})
+			checkBranchExists(t, "test-pull-3", http.StatusOK)
 
-		t.Run("DeleteBranchAfterMergeFormFieldIsSetButNotRepoSettings", func(t *testing.T) {
-			newBranch := "test-pull-4"
-			prDTO := createTestBranchPR(t, newBranch)
-			updateRepoUnitDefaultDeleteBranchAfterMerge(t, repo, false)
-			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
-			checkBranchExists(t, newBranch, http.StatusNotFound)
+			deletedPR := createTestBranchPR(t, "test-pull-4")
+			performMerge(t, deletedPR.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
+			checkBranchExists(t, "test-pull-4", http.StatusNotFound)
 		})
 
 		t.Run("SquashMergePreservesFormMessage", func(t *testing.T) {

@@ -31,7 +31,7 @@ on:
       checks:
         description: Comma-separated list of non-backport checks to run
         required: false
-        default: backport_branches,labels,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions
+        default: backport_branches,backport_conflict_free,labels,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions
 
 permissions: {}
 
@@ -50,7 +50,7 @@ jobs:
       pull-requests: write
       statuses: write
     steps:
-      - uses: go-gitea/giteabot@b830f7aa810e43afc1b2f8e8968a30754e6ff5d3 # v1.4.1
+      - uses: go-gitea/giteabot@15b18fdedd98a80d0968d0bd9db3a9428814b808 # v1.5.1
         with:
           github_token: ${{ secrets.GITEABOT_TOKEN }}
-          checks: ${{ github.event.inputs.checks || 'backport_branches,labels,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions' }}
+          checks: ${{ github.event.inputs.checks || 'backport_branches,backport_conflict_free,labels,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions' }}

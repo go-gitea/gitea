@@ -5,93 +5,91 @@ package v29
 
 import (
 	"context"
+	"encoding/binary"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
 )
 
-type pagesSite struct {
-	Deleted               bool   `xorm:"NOT NULL DEFAULT false INDEX(deleted_updated)"`
-	Enabled               bool   `xorm:"NOT NULL DEFAULT false"`
-	SourceType            string `xorm:"VARCHAR(16) NOT NULL DEFAULT '' INDEX(source_type_next)"`
-	SourceBranch          string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	SourcePath            string `xorm:"VARCHAR(1024) NOT NULL DEFAULT ''"`
-	SourceCommitID        string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	SourceNextCheckUnix   int64  `xorm:"NOT NULL DEFAULT 0 INDEX(source_type_next)"`
-	SourceErrorCode       string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	CurrentVersionID      int64  `xorm:"NOT NULL DEFAULT 0"`
-	VersionRetentionCount int    `xorm:"NOT NULL DEFAULT 10"`
-	PagesUpdatedUnixNano  int64  `xorm:"NOT NULL INDEX(updated_repo) INDEX(deleted_updated)"`
-	RepoID                int64  `xorm:"pk INDEX(updated_repo) INDEX(deleted_updated)"`
-}
-
-func (pagesSite) TableName() string { return "pages_site" }
-
-type pagesVersion struct {
-	ID                int64              `xorm:"pk autoincr"`
-	RepoID            int64              `xorm:"NOT NULL UNIQUE(repo_digest) INDEX"`
-	TarGzSHA256       string             `xorm:"'tar_gz_sha256' CHAR(64) NOT NULL UNIQUE(repo_digest)"`
-	OriginType        string             `xorm:"VARCHAR(16) NOT NULL"`
-	OriginActionRunID int64              `xorm:"NOT NULL DEFAULT 0"`
-	Comment           string             `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	KeepForever       bool               `xorm:"NOT NULL DEFAULT false"`
-	CreatedUnix       timeutil.TimeStamp `xorm:"created NOT NULL"`
-}
-
-func (pagesVersion) TableName() string { return "pages_version" }
-
-type pagesInstance struct {
-	ID                    int64              `xorm:"pk autoincr"`
-	RootURL               string             `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
-	RootUpdatedUnixNano   int64              `xorm:"NOT NULL DEFAULT 0"`
-	LastCommunicationUnix timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
-	TokenHash             string             `xorm:"VARCHAR(64) NOT NULL UNIQUE"`
-}
-
-func (pagesInstance) TableName() string { return "pages_instance" }
-
-type pagesDomain struct {
-	ID                     int64  `xorm:"pk autoincr"`
-	RepoID                 int64  `xorm:"NOT NULL INDEX(repo_state) INDEX(state_repo)"`
-	Host                   string `xorm:"VARCHAR(253) NOT NULL UNIQUE"`
-	TXTToken               string `xorm:"VARCHAR(64) NOT NULL"`
-	State                  string `xorm:"VARCHAR(16) NOT NULL INDEX(repo_state) INDEX(state_repo)"`
-	TXTResult              string `xorm:"VARCHAR(32) NOT NULL"`
-	TXTLastSuccessUnixNano int64  `xorm:"NOT NULL DEFAULT 0"`
-	TXTLastCheckUnix       int64  `xorm:"NOT NULL DEFAULT 0 INDEX(txt_last_check)"`
-	CreatedUnixNano        int64  `xorm:"NOT NULL"`
-}
-
-func (pagesDomain) TableName() string { return "pages_domain" }
-
-type pagesInstanceSite struct {
-	InstanceID                   int64  `xorm:"pk INDEX(repo_instance)"`
-	RepoID                       int64  `xorm:"pk INDEX(repo_instance)"`
-	AppliedPagesUpdatedUnixNano  int64  `xorm:"NOT NULL DEFAULT 0"`
-	AppliedRootUpdatedUnixNano   int64  `xorm:"NOT NULL DEFAULT 0"`
-	AppliedRequireGiteaTXTRecord bool   `xorm:"NOT NULL DEFAULT false"`
-	ConfigApplied                bool   `xorm:"NOT NULL DEFAULT false"`
-	ActualTarGzSHA256            string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-	DefaultPublished             bool   `xorm:"NOT NULL DEFAULT false"`
-	CustomPublished              bool   `xorm:"NOT NULL DEFAULT false"`
-	ErrorCode                    string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
-}
-
-func (pagesInstanceSite) TableName() string { return "pages_instance_site" }
-
-// AddPagesTables creates the Pages tables.
-func AddPagesTables(_ context.Context, x base.EngineMigration) error {
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-		IgnoreConstrains:  true,
-	},
-		new(pagesSite),
-		new(pagesVersion),
-		new(pagesInstance),
-		new(pagesDomain),
-		new(pagesInstanceSite),
-	)
+// unmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
+// possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
+func unmarshalHandleDoubleEncode(bs []byte, v any) error {
+	if len(bs) == 0 {
+		// json.Unmarshal will report errors if input is empty (nil or zero-length)
+		// It seems that XORM ignores the nil but still passes zero-length string into this function
+		// To be consistent, we should treat all empty inputs as success
+		return nil
+	}
+	err := json.Unmarshal(bs, v)
+	if err != nil {
+		ok := true
+		rs := []byte{}
+		temp := make([]byte, 2)
+		for _, rn := range string(bs) {
+			if rn > 0xffff {
+				ok = false
+				break
+			}
+			binary.LittleEndian.PutUint16(temp, uint16(rn))
+			rs = append(rs, temp...)
+		}
+		if ok {
+			if len(rs) > 1 && rs[0] == 0xff && rs[1] == 0xfe {
+				rs = rs[2:]
+			}
+			err = json.Unmarshal(rs, v)
+		}
+	}
+	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
+		err = json.Unmarshal(bs[2:], v)
+	}
 	return err
+}
+
+func normalizeLegacyConfigJSON(config string) string {
+	if config == "" || json.Valid(util.UnsafeStringToBytes(config)) {
+		return config
+	}
+
+	m := map[any]any{}
+	err := unmarshalHandleDoubleEncode(util.UnsafeStringToBytes(config), &m)
+	if err != nil {
+		return config
+	}
+	if bs, err := json.Marshal(m); err == nil {
+		return string(bs)
+	}
+	return config
+}
+
+func NormalizeLegacyConfigJSON(ctx context.Context, x base.EngineMigration) error {
+	type RepoUnit struct {
+		ID     int64
+		Config string
+	}
+	type LoginSource struct {
+		ID  int64
+		Cfg string
+	}
+	return base.EngineTransaction(x, func(sess base.Session) error {
+		if err := base.IterateTableByColumn(ctx, x, sess, "id", nil, func(_ context.Context, unit *RepoUnit) error {
+			config := normalizeLegacyConfigJSON(unit.Config)
+			if config == unit.Config {
+				return nil
+			}
+			_, err := sess.ID(unit.ID).Cols("config").Update(&RepoUnit{Config: config})
+			return err
+		}); err != nil {
+			return err
+		}
+		return base.IterateTableByColumn(ctx, x, sess, "id", nil, func(_ context.Context, source *LoginSource) error {
+			config := normalizeLegacyConfigJSON(source.Cfg)
+			if config == source.Cfg {
+				return nil
+			}
+			_, err := sess.ID(source.ID).Cols("cfg").Update(&LoginSource{Cfg: config})
+			return err
+		})
+	})
 }
