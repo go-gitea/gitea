@@ -44,8 +44,6 @@ gitea-theme-meta-info {
   --color-secondary-dark-9: color-mix(in srgb, var(--color-secondary) 39%, var(--color-text-dark));
   --color-secondary-dark-10: color-mix(in srgb, var(--color-secondary) 32%, var(--color-text-dark));
   --color-secondary-dark-11: color-mix(in srgb, var(--color-secondary) 25%, var(--color-text-dark));
-  --color-secondary-dark-12: color-mix(in srgb, var(--color-secondary) 20%, var(--color-text-dark));
-  --color-secondary-dark-13: color-mix(in srgb, var(--color-secondary) 19%, var(--color-text-dark));
   --color-secondary-light-1: color-mix(in srgb, var(--color-secondary) 84%, black);
   --color-secondary-light-2: color-mix(in srgb, var(--color-secondary) 70%, black);
   --color-secondary-light-3: color-mix(in srgb, var(--color-secondary) 50%, black);
@@ -221,7 +219,7 @@ gitea-theme-meta-info {
   --color-input-background: color-mix(in srgb, var(--color-secondary) 39%, black);
   --color-input-toggle-background: color-mix(in srgb, var(--color-secondary) 78%, black);
   --color-input-border: var(--color-secondary-dark-1);
-  --color-light: color-mix(in srgb, var(--color-shadow-opaque) 16%, transparent);
+  --color-light: #0b0b0c28;
   --color-light-border: #f3f3f428;
   --color-hover: #f3f3f419;
   --color-hover-opaque: color-mix(in srgb, var(--color-secondary) 56%, black);
@@ -233,8 +231,7 @@ gitea-theme-meta-info {
   --color-markup-code-inline: #f3f3f428;
   --color-button: color-mix(in srgb, var(--color-secondary) 39%, black);
   --color-code-bg: color-mix(in srgb, var(--color-body) 74%, black);
-  --color-shadow: color-mix(in srgb, var(--color-shadow-opaque) 35%, transparent);
-  --color-shadow-opaque: color-mix(in srgb, var(--color-secondary) 17%, black);
+  --color-shadow: #0b0b0c58;
   --color-secondary-bg: color-mix(in srgb, var(--color-secondary) 72%, black);
   --color-expand-button: color-mix(in srgb, var(--color-secondary) 80%, black);
   --color-placeholder-text: var(--color-text-light-3);
@@ -263,7 +260,6 @@ gitea-theme-meta-info {
   --color-danger: var(--color-red);
   --color-transparency-grid-light: #2a2a2a;
   --color-transparency-grid-dark: #1a1a1a;
-  --color-workflow-edge-hover: color-mix(in srgb, var(--color-secondary) 78%, var(--color-text-dark));
   --color-syntax-keyword: #ff8854;
   --color-syntax-bool: #25bbc9;
   --color-syntax-control: #dd9e17;
