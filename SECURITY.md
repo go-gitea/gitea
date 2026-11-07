@@ -25,7 +25,7 @@ If your report turns out to be a duplicate, you will be credited in the original
 When filing the report please document it. Reports must include:
 
 - Version or a range of versions it was successfully tested against. If reproducible against the `main` branch, a commit hash is also acceptable. Ambiguous versions like `latest` are not acceptable.
-- Settings used, especially if diverging from default
+- Settings used, especially when they diverge from the defaults
 - Reproduction steps from freshly installed instance. If the fault is only reproducible through upgrade from older version, reproduction should state that.
 
 Take your time to format it properly as it'll be much easier to read.
