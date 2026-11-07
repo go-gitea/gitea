@@ -144,7 +144,7 @@ func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, cnt)
 
-		// the payload of a removed item can be queued again
+		// a removed payload must not stay reserved in the set, or this returns ErrAlreadyInQueue
 		assert.NoError(t, q.PushItem(ctx, []byte("item-0")))
 	})
 }
