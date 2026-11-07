@@ -314,27 +314,21 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	return attachmentPaths, err
 }
 
-// CanSelfChangeOrAccessContent checks whether the doer can access the content:
-// * If the doer is the content poster, then the doer can access the content if they have read access to issues.
-// * If the doer is not the content poster, then the doer can access the content if they have the required access mode to the unit type (issues or pull requests).
-// * If the issue is locked, then the doer can only access the content if they have write access.
+// CanSelfChangeOrAccessContent checks whether the doer can access the content, its poster only needs read access, locked issues need write access
 func CanSelfChangeOrAccessContent(doer *user_model.User, doerPerm access_model.Permission, refIssue *issues_model.Issue, contentPosterID int64, accessMode perm.AccessMode) bool {
 	unitType := util.Iif(refIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
 	if doer == nil || !doerPerm.CanAccess(perm.AccessModeRead, unitType) {
 		return false
 	}
-	ok := doer.ID == contentPosterID || doerPerm.CanAccess(accessMode, unitType)
-	if !ok {
-		return false
-	}
-	// TODO: the UI can also be updated in the future to hide the "edit" menu
-	if refIssue.IsLocked && !doerPerm.CanWrite(unitType) {
-		return false
-	}
-	return true
+	return (doer.ID == contentPosterID || doerPerm.CanAccess(accessMode, unitType)) && !IsLockedForDoer(refIssue, doerPerm)
 }
 
-// IsLockedForDoer returns whether the lock keeps a doer with perm from commenting
+// CanEditIssue checks whether the doer can edit the issue itself, a migrated issue is not its importer's own
+func CanEditIssue(doer *user_model.User, doerPerm access_model.Permission, issue *issues_model.Issue) bool {
+	return CanSelfChangeOrAccessContent(doer, doerPerm, issue, util.Iif(issue.OriginalAuthorID == 0, issue.PosterID, 0), perm.AccessModeWrite)
+}
+
+// IsLockedForDoer returns whether the lock keeps a doer with perm from commenting and editing
 func IsLockedForDoer(issue *issues_model.Issue, perm access_model.Permission) bool {
 	return issue.IsLocked && !perm.CanWriteIssuesOrPulls(issue.IsPull)
 }

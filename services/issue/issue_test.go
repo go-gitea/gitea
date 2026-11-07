@@ -57,6 +57,13 @@ func TestCanSelfChangeOrAccessContent(t *testing.T) {
 	}
 }
 
+func TestCanEditIssueExcludesMigrationImporter(t *testing.T) {
+	var permission access_model.Permission
+	permission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: unit.TypeIssues}}, perm.AccessModeRead)
+	assert.True(t, CanEditIssue(&user_model.User{ID: 1}, permission, &issues_model.Issue{PosterID: 1}))
+	assert.False(t, CanEditIssue(&user_model.User{ID: 1}, permission, &issues_model.Issue{PosterID: 1, OriginalAuthorID: 2}))
+}
+
 func TestGetRefEndNamesAndURLs(t *testing.T) {
 	issues := []*issues_model.Issue{
 		{ID: 1, Ref: "refs/heads/branch1"},

@@ -681,7 +681,7 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.Doer.ID) && !canWrite {
+	if !issue_service.CanEditIssue(ctx.Doer, ctx.Repo.Permission, issue) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}

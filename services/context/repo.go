@@ -268,12 +268,9 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 
 // CanUseTimetracker returns whether a user can use the timetracker.
 func (r *Repository) CanUseTimetracker(ctx context.Context, issue *issues_model.Issue, user *user_model.User) bool {
-	// Checking for following:
-	// 1. Is timetracker enabled
-	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	isAssigned, _ := issues_model.IsUserAssignedToIssue(ctx, issue, user.ID)
-	return r.Repository.IsTimetrackerEnabled(ctx) && (!r.Repository.AllowOnlyContributorsToTrackTime(ctx) ||
-		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
+	return r.Repository.IsTimetrackerEnabled(ctx) && (r.Permission.CanWriteIssuesOrPulls(issue.IsPull) ||
+		!issue.IsLocked && (!r.Repository.AllowOnlyContributorsToTrackTime(ctx) || issue.IsPoster(user.ID) || isAssigned))
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
