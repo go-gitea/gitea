@@ -1,6 +1,6 @@
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
-
+HASH := \#
 GO ?= go
 SHASUM ?= shasum -a 256
 
@@ -385,10 +385,11 @@ test-check:
 		exit 1; \
 	fi
 
-.PHONY: test-backend\#%
-test-backend\#%:
+TEST_BACKEND_GOALS := $(filter test-backend$(HASH)%,$(MAKECMDGOALS))
+.PHONY: $(TEST_BACKEND_GOALS)
+$(TEST_BACKEND_GOALS): test-backend$(HASH)%:
 	@echo "Running go test with -tags '$(TAGS)'..."
-	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' -run '$(subst .,/,$*)' $(GO_TEST_PACKAGES)
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' -run '$*' $(GO_TEST_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -443,9 +444,10 @@ test-integration: $(EXECUTABLE)
 test-integration-compile:
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null gitea.dev/tests/integration
 
-.PHONY: test-integration\#%
-test-integration\#%: $(EXECUTABLE)
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run '$(subst .,/,$*)' gitea.dev/tests/integration
+TEST_INTEGRATION_GOALS := $(filter test-integration$(HASH)%,$(MAKECMDGOALS))
+.PHONY: $(TEST_INTEGRATION_GOALS)
+$(TEST_INTEGRATION_GOALS): test-integration$(HASH)%: $(EXECUTABLE)
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run '$*' gitea.dev/tests/integration
 
 .PHONY: test-migration
 test-migration: migrations.integration.test migrations.individual.test

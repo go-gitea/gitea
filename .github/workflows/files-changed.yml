@@ -15,8 +15,6 @@ on:
         value: ${{ jobs.detect.outputs.templates }}
       docker:
         value: ${{ jobs.detect.outputs.docker }}
-      dockerfile:
-        value: ${{ jobs.detect.outputs.dockerfile }}
       swagger:
         value: ${{ jobs.detect.outputs.swagger }}
       yaml:
@@ -42,7 +40,6 @@ jobs:
       actions: ${{ steps.changes.outputs.actions }}
       templates: ${{ steps.changes.outputs.templates }}
       docker: ${{ steps.changes.outputs.docker }}
-      dockerfile: ${{ steps.changes.outputs.dockerfile }}
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
       json: ${{ steps.changes.outputs.json }}
@@ -103,15 +100,10 @@ jobs:
 
             docker:
               - ".github/workflows/pull-docker-dryrun.yml"
-              - ".github/actions/docker-dryrun/**"
               - "Dockerfile"
               - "Dockerfile.rootless"
               - "docker/**"
               - "Makefile"
-
-            dockerfile:
-              - "Dockerfile"
-              - "Dockerfile.rootless"
 
             swagger:
               - "templates/swagger/*.json"

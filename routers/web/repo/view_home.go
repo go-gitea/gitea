@@ -205,9 +205,9 @@ func prepareHomeSidebarLatestRelease(ctx *context.Context) {
 		return
 	}
 
-	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
+	release, err := repo_model.GetLatestRelease(ctx, ctx.Repo.Repository)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.ServerError("GetLatestReleaseByRepoID", err)
+		ctx.ServerError("GetLatestRelease", err)
 		return
 	}
 
