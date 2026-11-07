@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 	"uuid"
 
@@ -666,7 +667,9 @@ func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *g
 	return nil
 }
 
-var escapedSymbols = regexp.MustCompile(`([*[?! \\])`)
+var escapedSymbols = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`([*[?! \\])`)
+})
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
 func IsUserAllowedToMerge(ctx context.Context, pr *issues_model.PullRequest, p access_model.Permission, user *user_model.User) (bool, error) {

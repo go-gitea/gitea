@@ -81,7 +81,7 @@ jobs:
           args: --tag ${{ github.ref_name }} ${{ steps.range.outputs.range }}
       - name: create github release
         env:
-          GH_CLI_VERSION: 2.103.2 # renovate: datasource=github-releases depName=cli/cli extractVersion=^v(?<version>.+)$
+          GH_CLI_VERSION: 2.103.3 # renovate: datasource=github-releases depName=cli/cli extractVersion=^v(?<version>.+)$
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
@@ -140,12 +140,12 @@ jobs:
           annotations: |
             org.opencontainers.image.authors="maintainers@gitea.io"
       - name: Login to Docker Hub
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to GHCR using PAT
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}

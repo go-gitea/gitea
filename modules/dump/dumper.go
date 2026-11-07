@@ -34,15 +34,11 @@ func PrepareFileNameAndType(argFile, argType string) (outFileName, outType strin
 		outType = argType
 		outFileName = fmt.Sprintf("gitea-dump-%d.%s", timeutil.TimeStampNow(), outType)
 	} else if argType == "" {
-		if filepath.Ext(outFileName) == "" {
-			outType = SupportedOutputTypes[0]
-			outFileName = argFile
-		} else {
-			for _, t := range SupportedOutputTypes {
-				if strings.HasSuffix(argFile, "."+t) {
-					outFileName = argFile
-					outType = t
-				}
+		outFileName, outType = argFile, SupportedOutputTypes[0]
+		for _, t := range SupportedOutputTypes {
+			if strings.HasSuffix(argFile, "."+t) {
+				outType = t
+				break
 			}
 		}
 	} else {

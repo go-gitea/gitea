@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/actionslib/pkg/model"
 
@@ -75,7 +76,9 @@ func ParseWorkflowCallConfig(content []byte) (*model.WorkflowCall, error) {
 const SecretsInherit = "inherit"
 
 // callerSecretValueRegexp matches the `${{ secrets.NAME }}` form expected for each value in a caller's `secrets:` mapping.
-var callerSecretValueRegexp = regexp.MustCompile(`^\s*\$\{\{\s*secrets\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}\s*$`)
+var callerSecretValueRegexp = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^\s*\$\{\{\s*secrets\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}\s*$`)
+})
 
 // ParseCallerSecrets decodes a caller's "secrets:" YAML node into one of two forms:
 //   - inherit == true: the caller wrote `secrets: inherit`; mapping is nil
@@ -101,7 +104,7 @@ func ParseCallerSecrets(node yaml.Node) (inherit bool, mapping map[string]string
 		if err := v.Decode(&sv); err != nil {
 			return false, nil, fmt.Errorf("decode secret %q: %w", k.Value, err)
 		}
-		matches := callerSecretValueRegexp.FindStringSubmatch(sv)
+		matches := callerSecretValueRegexp().FindStringSubmatch(sv)
 		if len(matches) != 2 {
 			return false, nil, fmt.Errorf("caller secret %q value must be of the form ${{ secrets.NAME }}", k.Value)
 		}
