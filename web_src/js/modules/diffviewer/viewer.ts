@@ -8,6 +8,7 @@ import {getCurrentLocale, sleep} from '../../utils.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {svgRaw, type SvgName} from '../../svg.ts';
 import {showErrorToast} from '../toast.ts';
+import {registerAsyncHashChangeListener} from '../hashchange.ts';
 import {errorMessage} from '../errors.ts';
 import {streamDiff, type DiffStreamFile} from './stream.ts';
 import {highlightLines, loadHighlighter, type Segment} from './highlight.ts';
@@ -96,7 +97,7 @@ export class DiffViewer {
     watch(() => store.filenameFilterQuery, onInputDebounce(() => this.updateVisibleEntries()));
     watch(() => [store.activeExtensions, store.activeStatuses, store.commentedOnly && store.commentFiles], () => this.updateVisibleEntries(), {deep: true});
     this.hashPending = false;
-    window.addEventListener('hashchange', () => this.scrollToHash());
+    registerAsyncHashChangeListener(() => this.scrollToHash());
     // a link to the current hash doesn't change it, but its target may be scrolled out of the rendered files
     document.addEventListener('click', (e) => {
       if ((e.target as Element).closest('a[href^="#"]')?.getAttribute('href') === window.location.hash) this.scrollToHash();
