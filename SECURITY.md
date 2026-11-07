@@ -29,7 +29,7 @@ When filing the report please document it. Report must include:
 - Reproduction steps from freshly installed instance. If the fault is only reproducible through upgrade from older version, reproduction should state that.
 
 Take your time to format it properly as it'll be much easier to read.
-When submitting an advisory, it should have `gitea.dev` go package as package name.cd
+When submitting an advisory, it should have the `gitea.dev` go package as package `name.cd`
 
 ### Triage process
 
