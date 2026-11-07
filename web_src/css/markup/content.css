@@ -322,6 +322,13 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   display: flow-root; /* keep borders clear of floated images */
 }
 
+.markup img.mention-avatar {
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: text-bottom;
+  margin-inline-end: 0.25em;
+}
+
 .markup img[align="right"],
 .markup video[align="right"] {
   padding-inline-start: 20px;

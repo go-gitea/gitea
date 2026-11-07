@@ -55,8 +55,8 @@ func TestMain(m *testing.M) {
 	setting.SetupGiteaTestEnv()
 	setting.Markdown.RenderOptionsComment.ShortIssuePattern = true
 	markup.Init(&markup.RenderHelperFuncs{
-		IsUsernameMentionable: func(ctx context.Context, username string) bool {
-			return username == "mention-user"
+		ResolveUserMention: func(ctx context.Context, username string) (bool, string) {
+			return username == "mention-user", ""
 		},
 	})
 	os.Exit(m.Run())

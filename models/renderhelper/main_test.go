@@ -24,8 +24,8 @@ func TestMain(m *testing.M) {
 		SetUp: func() error {
 			markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 			markup.Init(&markup.RenderHelperFuncs{
-				IsUsernameMentionable: func(ctx context.Context, username string) bool {
-					return username == "user2"
+				ResolveUserMention: func(ctx context.Context, username string) (bool, string) {
+					return username == "user2", ""
 				},
 			})
 			return nil
