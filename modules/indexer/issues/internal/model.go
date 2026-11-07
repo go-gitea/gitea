@@ -159,4 +159,7 @@ const (
 	//                    Although it's possible to support it by adding project.ProjectIssue.Sorting to the indexer,
 	//                    but what if the issue belongs to multiple projects?
 	//                    Since it's unsupported to search issues with keyword in project page, we don't need to support it.
+	//
+	// - "name" / "namedesc":
+	//                    The indexer only stores the issue title as an analyzed full-text field, not a sortable one.
 )
