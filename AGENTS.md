@@ -1,7 +1,7 @@
 - Never assume, verify before claiming
 - List development targets with `make help`
 - Before working on code, read the `docs` guides for every area touched: `guidelines-backend.md` for Go, `guidelines-frontend.md` for TS, CSS and Vue, both for templates, `testing.md` for tests, `development.md` for config options and migrations, `guidelines-refactoring.md` for refactors
-- Before designing a feature or behavior, check prior art in GitHub and GitLab, preferring the former
+- Before designing a feature or behavior, check prior art in GitHub and GitLab
 - Don't add code for theoretical edge cases, only for ones that can realistically occur
 - Write docs concisely and user-facing, skip implementation details
 - PR descriptions: minimal, only what and why, no task or file listings. Aim for less than 1000 characters
