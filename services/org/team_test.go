@@ -17,6 +17,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -98,42 +99,21 @@ func TestNewTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const teamName = "newTeamName"
-	team := &organization.Team{Name: teamName, OrgID: 3}
-	assert.NoError(t, NewTeam(t.Context(), team))
-	unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: teamName})
-	unittest.CheckConsistencyFor(t, &organization.Team{}, &user_model.User{ID: team.OrgID})
-}
-
-func TestNewTeamConcurrentDuplicate(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	const teamName = "concurrentDuplicateTeam"
-	const workers = 5
+	var errs [5]error
 	var wg sync.WaitGroup
-	errs := make([]error, workers)
-
-	for i := range workers {
-		wg.Add(1)
-		go func(idx int) {
-			defer wg.Done()
-			errs[idx] = NewTeam(t.Context(), &organization.Team{Name: teamName, OrgID: 3})
-		}(i)
+	for i := range errs {
+		wg.Go(func() {
+			errs[i] = NewTeam(t.Context(), &organization.Team{Name: teamName, OrgID: 3})
+		})
 	}
 	wg.Wait()
 
-	successCount := 0
-	alreadyExistCount := 0
-	for _, err := range errs {
-		if err == nil {
-			successCount++
-		} else if organization.IsErrTeamAlreadyExist(err) {
-			alreadyExistCount++
-		} else {
-			t.Fatalf("unexpected error: %v", err)
-		}
+	failures := util.SliceRemoveAll(errs[:], nil)
+	assert.Len(t, failures, len(errs)-1)
+	for _, err := range failures {
+		assert.ErrorAs(t, err, new(organization.ErrTeamAlreadyExist))
 	}
-	assert.Equal(t, 1, successCount)
-	assert.Equal(t, workers-1, alreadyExistCount)
+	unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: teamName})
 	unittest.CheckConsistencyFor(t, &organization.Team{}, &user_model.User{ID: 3})
 }
 
