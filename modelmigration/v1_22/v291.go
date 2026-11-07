@@ -4,12 +4,14 @@
 package v1_22
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddCommentIDIndexofAttachment(x base.EngineMigration) error {
+func AddCommentIDIndexofAttachment(_ context.Context, x base.EngineMigration) error {
 	type Attachment struct {
 		CommentID int64 `xorm:"INDEX"`
 	}

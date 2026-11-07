@@ -4,12 +4,13 @@
 package v1_14
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddSortingColToProjectBoard(x base.EngineMigration) error {
+func AddSortingColToProjectBoard(_ context.Context, x base.EngineMigration) error {
 	type ProjectBoard struct {
 		Sorting int8 `xorm:"NOT NULL DEFAULT 0"`
 	}

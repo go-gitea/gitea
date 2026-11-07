@@ -24,6 +24,7 @@ const (
 	AccessTokenScopeCategoryIssue
 	AccessTokenScopeCategoryRepository
 	AccessTokenScopeCategoryUser
+	AccessTokenScopeCategoryCommitStatus
 )
 
 // AllAccessTokenScopeCategories contains all access token scope categories
@@ -37,6 +38,7 @@ var AllAccessTokenScopeCategories = []AccessTokenScopeCategory{
 	AccessTokenScopeCategoryIssue,
 	AccessTokenScopeCategoryRepository,
 	AccessTokenScopeCategoryUser,
+	AccessTokenScopeCategoryCommitStatus,
 }
 
 // AccessTokenScopeLevel represents the access levels without a given scope category
@@ -54,7 +56,8 @@ type AccessTokenScope string
 // for all categories, write implies read
 const (
 	AccessTokenScopeAll        AccessTokenScope = "all"
-	AccessTokenScopePublicOnly AccessTokenScope = "public-only" // limited to public orgs/repos
+	AccessTokenScopeNone       AccessTokenScope = "no-token-scope" // no token permission scopes, so no API permissions
+	AccessTokenScopePublicOnly AccessTokenScope = "public-only"    // limited to public orgs/repos
 
 	AccessTokenScopeReadActivityPub  AccessTokenScope = "read:activitypub"
 	AccessTokenScopeWriteActivityPub AccessTokenScope = "write:activitypub"
@@ -82,6 +85,9 @@ const (
 
 	AccessTokenScopeReadUser  AccessTokenScope = "read:user"
 	AccessTokenScopeWriteUser AccessTokenScope = "write:user"
+
+	AccessTokenScopeReadCommitStatus  AccessTokenScope = "read:commitstatus"
+	AccessTokenScopeWriteCommitStatus AccessTokenScope = "write:commitstatus"
 )
 
 // accessTokenScopeBitmap represents a bitmap of access token scopes.
@@ -118,11 +124,14 @@ const (
 	accessTokenScopeReadIssueBits  accessTokenScopeBitmap = 1 << iota
 	accessTokenScopeWriteIssueBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadIssueBits
 
-	accessTokenScopeReadRepositoryBits  accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteRepositoryBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadRepositoryBits
+	accessTokenScopeReadRepositoryBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadCommitStatusBits
+	accessTokenScopeWriteRepositoryBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadRepositoryBits | accessTokenScopeWriteCommitStatusBits
 
 	accessTokenScopeReadUserBits  accessTokenScopeBitmap = 1 << iota
 	accessTokenScopeWriteUserBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadUserBits
+
+	accessTokenScopeReadCommitStatusBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteCommitStatusBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadCommitStatusBits
 
 	// The current implementation only supports up to 64 token scopes.
 	// If we need to support > 64 scopes,
@@ -142,11 +151,13 @@ var allAccessTokenScopes = []AccessTokenScope{
 	AccessTokenScopeWriteIssue, AccessTokenScopeReadIssue,
 	AccessTokenScopeWriteRepository, AccessTokenScopeReadRepository,
 	AccessTokenScopeWriteUser, AccessTokenScopeReadUser,
+	AccessTokenScopeWriteCommitStatus, AccessTokenScopeReadCommitStatus,
 }
 
 // allAccessTokenScopeBits contains all access token scopes.
 var allAccessTokenScopeBits = map[AccessTokenScope]accessTokenScopeBitmap{
 	AccessTokenScopeAll:               accessTokenScopeAllBits,
+	AccessTokenScopeNone:              0,
 	AccessTokenScopePublicOnly:        accessTokenScopePublicOnlyBits,
 	AccessTokenScopeReadActivityPub:   accessTokenScopeReadActivityPubBits,
 	AccessTokenScopeWriteActivityPub:  accessTokenScopeWriteActivityPubBits,
@@ -166,6 +177,8 @@ var allAccessTokenScopeBits = map[AccessTokenScope]accessTokenScopeBitmap{
 	AccessTokenScopeWriteRepository:   accessTokenScopeWriteRepositoryBits,
 	AccessTokenScopeReadUser:          accessTokenScopeReadUserBits,
 	AccessTokenScopeWriteUser:         accessTokenScopeWriteUserBits,
+	AccessTokenScopeReadCommitStatus:  accessTokenScopeReadCommitStatusBits,
+	AccessTokenScopeWriteCommitStatus: accessTokenScopeWriteCommitStatusBits,
 }
 
 // readAccessTokenScopes maps a scope category to the read permission scope
@@ -180,6 +193,7 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 		AccessTokenScopeCategoryIssue:        AccessTokenScopeReadIssue,
 		AccessTokenScopeCategoryRepository:   AccessTokenScopeReadRepository,
 		AccessTokenScopeCategoryUser:         AccessTokenScopeReadUser,
+		AccessTokenScopeCategoryCommitStatus: AccessTokenScopeReadCommitStatus,
 	},
 	Write: {
 		AccessTokenScopeCategoryActivityPub:  AccessTokenScopeWriteActivityPub,
@@ -191,6 +205,7 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 		AccessTokenScopeCategoryIssue:        AccessTokenScopeWriteIssue,
 		AccessTokenScopeCategoryRepository:   AccessTokenScopeWriteRepository,
 		AccessTokenScopeCategoryUser:         AccessTokenScopeWriteUser,
+		AccessTokenScopeCategoryCommitStatus: AccessTokenScopeWriteCommitStatus,
 	},
 }
 
@@ -209,11 +224,6 @@ func GetRequiredScopes(level AccessTokenScopeLevel, scopeCategories ...AccessTok
 		scopes = append(scopes, accessTokenScopes[level][cat])
 	}
 	return scopes
-}
-
-// ContainsCategory checks if a list of categories contains a specific category
-func ContainsCategory(categories []AccessTokenScopeCategory, category AccessTokenScopeCategory) bool {
-	return slices.Contains(categories, category)
 }
 
 // GetScopeLevelFromAccessMode converts permission access mode to scope level
@@ -241,18 +251,8 @@ func (s AccessTokenScope) parse() (accessTokenScopeBitmap, error) {
 	// The following is the more performant equivalent of 'for _, v := range strings.Split(remainingScope, ",")' as this is hot code
 	remainingScopes := string(s)
 	for len(remainingScopes) > 0 {
-		i := strings.IndexByte(remainingScopes, ',')
 		var v string
-		if i < 0 {
-			v = remainingScopes
-			remainingScopes = ""
-		} else if i+1 >= len(remainingScopes) {
-			v = remainingScopes[:i]
-			remainingScopes = ""
-		} else {
-			v = remainingScopes[:i]
-			remainingScopes = remainingScopes[i+1:]
-		}
+		v, remainingScopes, _ = strings.Cut(remainingScopes, ",")
 		singleScope := AccessTokenScope(v)
 		if singleScope == "" {
 			continue
@@ -286,12 +286,14 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 	if err != nil {
 		return "", err
 	}
-
+	if bitmap == 0 && slices.Contains(s.StringSlice(), string(AccessTokenScopeNone)) {
+		return AccessTokenScopeNone, nil
+	}
 	return bitmap.toScope(), nil
 }
 
 func (s AccessTokenScope) HasPermissionScope() bool {
-	return s != "" && s != AccessTokenScopePublicOnly
+	return s != "" && s != AccessTokenScopeNone && s != AccessTokenScopePublicOnly
 }
 
 // PublicOnly checks if this token scope is limited to public resources

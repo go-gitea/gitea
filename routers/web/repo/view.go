@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strings"
 	"time"
 
 	activities_model "gitea.dev/models/activities"
@@ -29,6 +28,7 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
@@ -128,7 +128,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		verification := asymkey_service.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
+			return repo_model.HasAccessToRepoCodeUnit(ctx, ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return false
@@ -143,9 +143,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
-		if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
-			git_model.CommitStatusesHideActionsURL(ctx, statuses)
-		}
+		git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
 		ctx.Data["LatestCommitStatuses"] = statuses
@@ -160,14 +158,14 @@ func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, r
 
 	done := make(chan struct{})
 	go func() {
-		sb := &strings.Builder{}
+		sb := &htmlutil.HTMLBuilder{}
 		if markup.RendererNeedPostProcess(renderer) {
 			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.EscapeOptionsForView())
 		} else {
 			escaped = &charset.EscapeStatus{}
-			_, _ = io.Copy(sb, markupRd)
+			_, _ = io.Copy(sb.OriginWriter(), markupRd)
 		}
-		output = template.HTML(sb.String())
+		output = sb.HTMLString()
 		close(done)
 	}()
 
@@ -344,11 +342,11 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 	if page <= 0 {
 		page = 1
 	}
-	pager := context.NewPagination(int64(total), setting.ItemsPerPage, page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(int64(total)).PerPageLimit(setting.ItemsPerPage).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	items, err := getter(db.ListOptions{
-		Page:     pager.Paginater.Current(),
+		Page:     pager.Paginator.Current(),
 		PageSize: setting.ItemsPerPage,
 	})
 	if err != nil {
@@ -402,7 +400,7 @@ func Forks(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(total, pageSize, page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(pageSize).CurPage(page).Build()
 	ctx.Data["ShowRepoOwnerAvatar"] = true
 	ctx.Data["ShowRepoOwnerOnList"] = true
 	ctx.Data["Page"] = pager

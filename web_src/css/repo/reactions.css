@@ -1,30 +1,61 @@
 .bottom-reactions {
   display: flex;
-  gap: 6px;
-  margin: 0 1em 1em;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 14px 14px;
 }
 
 .timeline-item .conversation-holder .bottom-reactions {
-  margin: 1em 0 0 24px;
+  margin: 14px 0 0 24px;
   padding-bottom: 8px;
 }
 
+.releases .bottom-reactions {
+  margin: 14px 0 0;
+}
+
+.bottom-reactions .select-reaction,
 .bottom-reactions .ui.label {
-  padding: 2px 6px;
-  font-weight: var(--font-weight-normal);
+  height: 28px;
 }
 
-.bottom-reactions .ui.label.primary {
-  background-color: var(--color-reaction-active-bg) !important;
+.bottom-reactions .select-reaction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  padding: 0;
+  border-radius: var(--border-radius-full);
+  border: 1px solid var(--color-light-border);
+  background: var(--color-reaction-bg);
+  color: var(--color-text-light-1);
 }
 
-.bottom-reactions .ui.label:hover {
-  background-color: var(--color-reaction-hover-bg) !important;
+.bottom-reactions .select-reaction:hover,
+.bottom-reactions .select-reaction[aria-expanded="true"] {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.bottom-reactions .ui.label {
+  padding: 0 8px;
+  background: transparent;
+}
+
+.bottom-reactions .ui.basic.label[data-has-reacted="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-reaction-active-bg);
+  color: var(--color-text);
+}
+
+.bottom-reactions .ui.label:not(.disabled):hover {
+  background: var(--color-reaction-hover-bg);
 }
 
 .bottom-reactions .ui.label.disabled {
   cursor: default;
   opacity: 1;
+  pointer-events: auto;
 }
 
 .bottom-reactions .ui.label .reaction {
@@ -37,34 +68,22 @@
   aspect-ratio: 1;
 }
 
-.bottom-reactions .reaction-count {
-  margin-left: 4px;
-}
-
-.ui.dropdown.select-reaction .menu.visible {
-  display: grid !important;
-  grid-template-columns: repeat(4, 1fr);
-  padding: 4px;
-}
-
-.ui.dropdown.select-reaction .menu > .item {
-  width: 34px;
-  height: 34px;
-  font-size: 16px;
-  border-radius: var(--border-radius);
+.reaction-picker {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.tippy-box .reaction-picker .item {
   justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  font-size: 17.5px;
 }
 
-.bottom-reactions .select-reaction {
-  padding: 0 10px;
-}
-
-.bottom-reactions .select-reaction:not(.active) {
-  visibility: hidden;
-}
-
-.bottom-reactions:hover .select-reaction {
-  visibility: visible;
+.tippy-box .reaction-picker .item[data-has-reacted="true"] {
+  background: var(--color-reaction-active-bg);
 }

@@ -16,8 +16,8 @@ import (
 	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
+	"gitea.dev/modules/zstd"
 
-	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
 
@@ -34,6 +34,8 @@ const (
 	RepositoryVersion = "_repository"
 
 	AnyArch = "any"
+
+	maxPKGINFOSize = 1024 * 1024
 )
 
 var (
@@ -153,6 +155,9 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				return nil, err
 			}
 		} else if !strings.HasPrefix(filename, ".") {
+			if strings.ContainsAny(hd.Name, "\n\r") {
+				continue // a newline would forge extra lines in the pacman index
+			}
 			if err := files.Add(hd.Name); err != nil {
 				return nil, err
 			}
@@ -175,7 +180,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 func ParsePackageInfo(r io.Reader) (*Package, error) {
 	p := &Package{}
 
-	s := bufio.NewScanner(r)
+	s := bufio.NewScanner(packages.NewLimitedReader(r, maxPKGINFOSize))
 	for s.Scan() {
 		line := s.Text()
 

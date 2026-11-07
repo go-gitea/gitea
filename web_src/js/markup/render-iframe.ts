@@ -42,7 +42,7 @@ function getRealBackgroundColor(el: HTMLElement) {
   return '';
 }
 
-export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
+export function initExternalRenderIframe(iframe: HTMLIFrameElement) {
   const iframeSrcUrl = iframe.getAttribute('data-src')!;
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
 
@@ -53,6 +53,10 @@ export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
     if (cmd === 'resize') {
       iframe.style.height = `${e.data.iframeHeight}px`;
     } else if (cmd === 'open-link') {
+      if (!navigator.userActivation.isActive) {
+        console.error(`iframe attempted to open link without user activation: ${e.data.openLink}`);
+        return;
+      }
       navigateToIframeLink(e.data.openLink, e.data.anchorTarget);
     } else {
       throw new Error(`Unknown gitea iframe cmd: ${cmd}`);

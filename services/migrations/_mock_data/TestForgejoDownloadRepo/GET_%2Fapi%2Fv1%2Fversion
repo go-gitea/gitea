@@ -1,0 +1,7 @@
+Cache-Control: max-age=0, private, must-revalidate
+Content-Length: 53
+Content-Type: application/json;charset=utf-8
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+
+{"version":"17.0.0-dev-576-994e539b55+gitea-1.22.0"}

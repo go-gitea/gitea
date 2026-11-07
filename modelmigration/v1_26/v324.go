@@ -4,12 +4,13 @@
 package v1_26
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func FixClosedMilestoneCompleteness(x base.EngineMigration) error {
+func FixClosedMilestoneCompleteness(_ context.Context, x base.EngineMigration) error {
 	// Update all milestones to recalculate completeness with the new logic:
 	// - Closed milestones with 0 issues should show 100%
 	// - All other milestones should calculate based on closed/total ratio

@@ -7,6 +7,11 @@ runs:
   steps:
     - shell: bash
       run: |
+        avail=$(df --output=avail -BG / | tr -dc '0-9')
+        if [ "$avail" -ge 50 ]; then
+          echo "skipping cleanup, ${avail}G free"
+          exit 0
+        fi
         echo "free space before cleanup:"
         df -h /
         for dir in /usr/local/lib/android /usr/local/.ghcup /opt/ghc /usr/share/dotnet; do

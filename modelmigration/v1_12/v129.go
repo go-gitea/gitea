@@ -3,9 +3,13 @@
 
 package v1_12
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func PurgeUnusedDependencies(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func PurgeUnusedDependencies(_ context.Context, x base.EngineMigration) error {
 	if _, err := x.Exec("DELETE FROM issue_dependency WHERE issue_id NOT IN (SELECT id FROM issue)"); err != nil {
 		return err
 	}

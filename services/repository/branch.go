@@ -7,9 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
-	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -19,6 +19,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -28,7 +30,6 @@ import (
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
-	webhook_module "gitea.dev/modules/webhook"
 	actions_service "gitea.dev/services/actions"
 	notify_service "gitea.dev/services/notify"
 	release_service "gitea.dev/services/release"
@@ -50,6 +51,7 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 type Branch struct {
 	DBBranch          *git_model.Branch
 	IsProtected       bool
+	CanDelete         bool
 	IsIncluded        bool
 	CommitsAhead      int
 	CommitsBehind     int
@@ -58,7 +60,7 @@ type Branch struct {
 }
 
 // LoadBranches loads branches from the repository limited by page & pageSize.
-func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch optional.Option[bool], keyword string, page, pageSize int) (defaultBranchOptional *Branch, _ []*Branch, _ int64, _ error) {
+func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, permissionInRepo access_model.Permission, isDeletedBranch optional.Option[bool], keyword string, page, pageSize int) (defaultBranchOptional *Branch, _ []*Branch, _ int64, _ error) {
 	defaultDBBranchOptional, err := git_model.GetBranchExisting(ctx, repo.ID, repo.DefaultBranch)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return nil, nil, 0, err
@@ -91,16 +93,18 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	if err != nil {
 		return nil, nil, 0, err
 	}
+	pullRequestTargetBranch := repo.GetPullRequestTargetBranch(ctx)
 
 	repoIDToRepo := map[int64]*repo_model.Repository{}
 	repoIDToRepo[repo.ID] = repo
 
 	repoIDToGitRepo := map[int64]*git.Repository{}
 	repoIDToGitRepo[repo.ID] = gitRepo
+	canDeleteProtectedBranches := make(map[int64]bool, len(rules))
 
 	branches := make([]*Branch, 0, len(dbBranches))
 	for i := range dbBranches {
-		branch, err := loadOneBranch(ctx, repo, dbBranches[i], &rules, repoIDToRepo, repoIDToGitRepo)
+		branch, err := loadOneBranch(ctx, repo, dbBranches[i], &rules, repoIDToRepo, repoIDToGitRepo, doer, permissionInRepo, canDeleteProtectedBranches, pullRequestTargetBranch)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
 		}
@@ -109,7 +113,7 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 
 	if defaultDBBranchOptional != nil {
 		// Always add the default branch
-		defaultBranchOptional, err = loadOneBranch(ctx, repo, defaultDBBranchOptional, &rules, repoIDToRepo, repoIDToGitRepo)
+		defaultBranchOptional, err = loadOneBranch(ctx, repo, defaultDBBranchOptional, &rules, repoIDToRepo, repoIDToGitRepo, doer, permissionInRepo, canDeleteProtectedBranches, pullRequestTargetBranch)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
 		}
@@ -170,12 +174,26 @@ func DelRepoDivergenceFromCache(ctx context.Context, repoID int64) error {
 func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *git_model.Branch, protectedBranches *git_model.ProtectedBranchRules,
 	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository,
+	doer *user_model.User,
+	permissionInRepo access_model.Permission,
+	canDeleteProtectedBranches map[int64]bool,
+	pullRequestTargetBranch string,
 ) (*Branch, error) {
 	log.Trace("loadOneBranch: '%s'", dbBranch.Name)
 
 	branchName := dbBranch.Name
 	p := protectedBranches.GetFirstMatched(branchName)
 	isProtected := p != nil
+	canDelete := !dbBranch.IsDeleted && repo.DefaultBranch != branchName && pullRequestTargetBranch != branchName
+	if isProtected && canDelete {
+		p.Repo = repo
+		canUserDelete, ok := canDeleteProtectedBranches[p.ID]
+		if !ok {
+			canUserDelete = p.CanUserDelete(ctx, doer, permissionInRepo)
+			canDeleteProtectedBranches[p.ID] = canUserDelete
+		}
+		canDelete = canDelete && canUserDelete
+	}
 
 	var divergence *git.DivergeObject
 
@@ -247,6 +265,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 	return &Branch{
 		DBBranch:          dbBranch,
 		IsProtected:       isProtected,
+		CanDelete:         canDelete,
 		IsIncluded:        isIncluded,
 		CommitsAhead:      divergence.Ahead,
 		CommitsBehind:     divergence.Behind,
@@ -288,7 +307,8 @@ func checkBranchName(ctx context.Context, gitRepo *git.Repository, name string) 
 // It will check whether the branches of the repository have never been synced before.
 // If so, it will sync all branches of the repository.
 // Otherwise, it will sync the branches that need to be updated.
-func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.Repository, branchNames, commitIDs []string) error {
+// It also initializes an empty repository and repairs a default branch missing in git.
+func SyncBranchesToDB(ctx context.Context, repo *repo_model.Repository, pusherID int64, gitRepo *git.Repository, branchNames []string) error {
 	// Some designs that make the code look strange but are made for performance optimization purposes:
 	// 1. Sync branches in a batch to reduce the number of DB queries.
 	// 2. Lazy load commit information since it may be not necessary.
@@ -300,63 +320,77 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 	// For the first batch, it will hit optimization 3.
 	// For other batches, it will hit optimization 4.
 
-	if len(branchNames) != len(commitIDs) {
-		return errors.New("branchNames and commitIDs length not match")
+	// In case there are concurrent pushes, we need to lock the sync operation for the same repository
+	// and always use the latest branch information in the database.
+	releaser, err := globallock.Lock(ctx, fmt.Sprintf("repo_branch_sync_%d", repo.ID))
+	if err != nil {
+		return err
 	}
+	defer releaser()
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		branches, err := git_model.GetBranches(ctx, repoID, branchNames, true)
+	wasEmpty, oldDefaultBranch := repo.IsEmpty, repo.DefaultBranch
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		if err := syncDefaultBranch(ctx, repo, gitRepo); err != nil {
+			return err
+		}
+		dbBranches, err := git_model.GetBranches(ctx, repo.ID, branchNames, true)
 		if err != nil {
 			return fmt.Errorf("git_model.GetBranches: %v", err)
 		}
 
-		if len(branches) == 0 {
-			// if user haven't visit UI but directly push to a branch after upgrading from 1.20 -> 1.21,
+		if len(dbBranches) == 0 {
+			// if user haven't visited UI but directly push to a branch after upgrading from 1.20 -> 1.21,
 			// we cannot simply insert the branch but need to check we have branches or not
-			hasBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
-				RepoID:          repoID,
+			hasAnyActiveBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
+				RepoID:          repo.ID,
 				IsDeletedBranch: optional.Some(false),
 			}.ToConds())
 			if err != nil {
 				return err
 			}
-			if !hasBranch {
-				if _, err = repo_module.SyncRepoBranches(ctx, repoID, pusherID); err != nil {
-					return fmt.Errorf("repo_module.SyncRepoBranches %d failed: %v", repoID, err)
+			if !hasAnyActiveBranch {
+				if _, _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, pusherID); err != nil {
+					return fmt.Errorf("repo_module.SyncRepoBranchesWithRepo %d failed: %v", repo.ID, err)
 				}
 				return nil
 			}
 		}
 
-		branchMap := make(map[string]*git_model.Branch, len(branches))
-		for _, branch := range branches {
-			branchMap[branch.Name] = branch
+		dbBranchMap := make(map[string]*git_model.Branch, len(dbBranches))
+		for _, branch := range dbBranches {
+			dbBranchMap[branch.Name] = branch
 		}
 
 		newBranches := make([]*git_model.Branch, 0, len(branchNames))
 
-		for i, branchName := range branchNames {
-			commitID := commitIDs[i]
-			branch, exist := branchMap[branchName]
-			if exist && branch.CommitID == commitID && !branch.IsDeleted {
+		for _, branchName := range branchNames {
+			branch, existInDb := dbBranchMap[branchName]
+			commit, err := gitRepo.GetCommit(ctx, git.RefNameFromBranch(branchName).String())
+			if git.IsErrNotExist(err) {
+				if existInDb && !branch.IsDeleted {
+					if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, branchName, pusherID); err != nil {
+						log.Error("SyncBranchesToDB: mark branch %d:%s deleted: %v", repo.ID, branchName, err)
+					}
+				}
+				continue
+			} else if err != nil {
+				log.Error("SyncBranchesToDB: get commit id of %s: %v", branchName, err)
+				continue
+			}
+			if existInDb && branch.CommitID == commit.ID.String() && !branch.IsDeleted {
 				continue
 			}
 
-			commit, err := gitRepo.GetCommit(ctx, commitID)
-			if err != nil {
-				return fmt.Errorf("get commit of %s failed: %v", branchName, err)
-			}
-
-			if exist {
-				if _, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit); err != nil {
-					return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
+			if existInDb {
+				if _, err := git_model.UpdateBranch(ctx, repo.ID, pusherID, branchName, commit); err != nil {
+					return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repo.ID, branchName, err)
 				}
 				continue
 			}
 
 			// if database have branches but not this branch, it means this is a new branch
 			newBranches = append(newBranches, &git_model.Branch{
-				RepoID:        repoID,
+				RepoID:        repo.ID,
 				Name:          branchName,
 				CommitID:      commit.ID.String(),
 				CommitMessage: commit.MessageTitle(),
@@ -370,6 +404,46 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 		}
 		return nil
 	})
+	if err != nil {
+		repo.IsEmpty, repo.DefaultBranch = wasEmpty, oldDefaultBranch
+		return err
+	}
+	if !wasEmpty && repo.DefaultBranch == oldDefaultBranch && slices.Contains(branchNames, repo.DefaultBranch) {
+		if err := git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+			log.Error("SyncBranchesToDB: set HEAD of %s: %v", repo.FullName(), err)
+		}
+	}
+	return nil
+}
+
+func syncDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
+	freshRepo, err := repo_model.GetRepositoryByID(ctx, repo.ID) // read under the lock, another push may have changed it meanwhile
+	if err != nil {
+		return err
+	}
+	repo.IsEmpty, repo.DefaultBranch = freshRepo.IsEmpty, freshRepo.DefaultBranch
+	defaultBranch, err := findDefaultBranch(ctx, repo, gitRepo)
+	if err != nil || defaultBranch == "" || (!repo.IsEmpty && defaultBranch == repo.DefaultBranch) {
+		return err
+	}
+	if err = git.SetDefaultBranch(ctx, repo, defaultBranch); err != nil {
+		return err
+	}
+	repo.IsEmpty, repo.DefaultBranch = false, defaultBranch
+	return repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "is_empty", "default_branch")
+}
+
+// findDefaultBranch matches GitLab's Gitaly GetDefaultBranch
+func findDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) (string, error) {
+	for _, branch := range []string{repo.DefaultBranch, "main", "master"} {
+		if _, err := gitRepo.GetBranchCommitID(ctx, branch); err == nil {
+			return branch, nil
+		} else if !errors.Is(err, util.ErrNotExist) {
+			return "", err
+		}
+	}
+	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--count=1", "--format=%(refname:strip=2)", git.BranchPrefix).WithRepo(repo).RunStdString(ctx)
+	return strings.TrimSuffix(stdout, "\n"), err
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
@@ -447,7 +521,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	if err != nil {
 		return "", err
 	}
-	if rule != nil && !rule.CanUserPush(ctx, doer) {
+	if rule != nil && !rule.CanUserPush(ctx, doer, perm) {
 		return "", git_model.ErrBranchIsProtected
 	}
 
@@ -458,21 +532,6 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		}
 
 		if isDefault {
-			// if default branch changed, we need to delete all schedules and cron jobs
-			if err := actions_model.DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
-				log.Error("DeleteCronTaskByRepo: %v", err)
-			}
-			// cancel running cron jobs of this repository and delete old schedules
-			if err := actions_service.CancelPreviousJobs(
-				ctx,
-				repo.ID,
-				from,
-				"",
-				webhook_module.HookEventSchedule,
-			); err != nil {
-				log.Error("CancelPreviousJobs: %v", err)
-			}
-
 			err2 = git.SetDefaultBranch(ctx, repo, to)
 			if err2 != nil {
 				return err2
@@ -482,6 +541,10 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return nil
 	}); err != nil {
 		return "", err
+	}
+
+	if isDefault {
+		actions_service.SwitchSchedulesToDefaultBranch(ctx, repo, from)
 	}
 
 	notify_service.DeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
@@ -545,24 +608,31 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default or pull request target")
 
 func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
-	unitPRConfig := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
-	if branchName == repo.DefaultBranch || branchName == unitPRConfig.DefaultTargetBranch {
-		return ErrBranchIsDefault
-	}
-
 	perm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return err
 	}
-	if !perm.CanWrite(unit.TypeCode) {
+	return CanDeleteBranchWithPermission(ctx, repo, branchName, doer, perm)
+}
+
+// CanDeleteBranchWithPermission checks whether a branch can be deleted using an already loaded repository permission.
+func CanDeleteBranchWithPermission(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User, permissionInRepo access_model.Permission) error {
+	if branchName == repo.DefaultBranch || branchName == repo.GetPullRequestTargetBranch(ctx) {
+		return ErrBranchIsDefault
+	}
+	if !permissionInRepo.CanWrite(unit.TypeCode) {
 		return util.NewPermissionDeniedErrorf("permission denied to access repo %d unit %s", repo.ID, unit.TypeCode.LogString())
 	}
 
-	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, branchName)
+	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
 	}
-	if isProtected {
+	if protectedBranch != nil {
+		protectedBranch.Repo = repo
+		if protectedBranch.CanUserDelete(ctx, doer, permissionInRepo) {
+			return nil
+		}
 		return git_model.ErrBranchIsProtected
 	}
 	return nil
@@ -709,24 +779,12 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newB
 			return err
 		}
 
-		if err := actions_model.DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
-			log.Error("DeleteCronTaskByRepo: %v", err)
-		}
-		// cancel running cron jobs of this repository and delete old schedules
-		if err := actions_service.CancelPreviousJobs(
-			ctx,
-			repo.ID,
-			oldDefaultBranchName,
-			"",
-			webhook_module.HookEventSchedule,
-		); err != nil {
-			log.Error("CancelPreviousJobs: %v", err)
-		}
-
 		return git.SetDefaultBranch(ctx, repo, newBranchName)
 	}); err != nil {
 		return err
 	}
+
+	actions_service.SwitchSchedulesToDefaultBranch(ctx, repo, oldDefaultBranchName)
 
 	if !repo.IsEmpty {
 		if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{

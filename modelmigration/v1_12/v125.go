@@ -4,12 +4,13 @@
 package v1_12
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddReviewMigrateInfo(x base.EngineMigration) error {
+func AddReviewMigrateInfo(_ context.Context, x base.EngineMigration) error {
 	type Review struct {
 		OriginalAuthor   string
 		OriginalAuthorID int64

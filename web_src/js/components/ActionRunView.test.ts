@@ -1,4 +1,5 @@
 import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
+import {AnsiLineRenderer} from '../render/ansi.ts';
 
 test('LogLineMessage', () => {
   const cases = {
@@ -31,10 +32,11 @@ test('LogLineMessage', () => {
     '::add-matcher::foo': '<span class="log-msg log-cmd-hidden">foo</span>',
     '::remove-matcher foo::': '<span class="log-msg log-cmd-hidden"> foo::</span>', // not correctly parsed, but we don't need it
   };
+  const ansi = new AnsiLineRenderer();
   for (const [input, html] of Object.entries(cases)) {
     const line = {index: 0, timestamp: 0, message: input};
     const cmd = parseLogLineCommand(line);
-    const el = createLogLineMessage(line, cmd);
+    const el = createLogLineMessage(ansi, line, cmd);
     expect(el.outerHTML).toBe(html);
   }
 });

@@ -36,12 +36,21 @@ type Release struct {
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	PublishedAt time.Time `json:"published_at"`
+	PublishedAt *time.Time `json:"published_at"`
 	// The user who published the release
 	Publisher *User `json:"author"`
 	// The files attached to the release
 	Attachments []*Attachment `json:"assets"`
 }
+
+// swagger:enum MakeLatest
+type MakeLatest string
+
+const (
+	MakeLatestTrue   MakeLatest = "true"
+	MakeLatestFalse  MakeLatest = "false"
+	MakeLatestLegacy MakeLatest = "legacy"
+)
 
 // CreateReleaseOption options when creating a release
 type CreateReleaseOption struct {
@@ -59,6 +68,8 @@ type CreateReleaseOption struct {
 	IsDraft bool `json:"draft"`
 	// Whether to mark the release as a prerelease
 	IsPrerelease bool `json:"prerelease"`
+	// "true" sets the release as the latest, "false" keeps the current latest, "legacy" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date
+	MakeLatest MakeLatest `json:"make_latest" binding:"In(,true,false,legacy)"`
 }
 
 // EditReleaseOption options when editing a release
@@ -75,4 +86,6 @@ type EditReleaseOption struct {
 	IsDraft *bool `json:"draft"`
 	// Whether to change the prerelease status
 	IsPrerelease *bool `json:"prerelease"`
+	// "true" sets the release as the latest, "false" keeps the current latest, "legacy" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date
+	MakeLatest MakeLatest `json:"make_latest" binding:"In(,true,false,legacy)"`
 }

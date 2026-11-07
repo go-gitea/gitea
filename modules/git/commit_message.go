@@ -171,23 +171,24 @@ func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
 
 	addAuthor(c.Author.Name, c.Author.Email, commitIdentityRoleAuthor)
 	for _, coAuthorValue := range trailerCoAuthors {
-		addr, err := mail.ParseAddress(coAuthorValue)
-		coAuthorName, coAuthorEmail := coAuthorValue, ""
-		if err == nil {
-			coAuthorName, coAuthorEmail = addr.Name, addr.Address
-		}
+		coAuthorName, coAuthorEmail := parseCommitIdentityValue(coAuthorValue)
 		addAuthor(coAuthorName, coAuthorEmail, commitIdentityRoleCoAuthor)
 	}
 	return c.allAuthors
 }
 
-func (c *Commit) CoAuthorIdentities() (coAuthors []*CommitIdentity) {
-	all := c.AllAuthorIdentities()
-	if len(all) == 0 {
-		return nil
+func (c *Commit) CommitterIsAuthor() bool {
+	return c.Committer.Name == c.Author.Name && c.Committer.Email == c.Author.Email
+}
+
+// Git identities are not RFC 5322 addresses: net/mail rejects names like "dependabot[bot]", so fall back to the angle-addr.
+func parseCommitIdentityValue(value string) (name, email string) {
+	if addr, err := mail.ParseAddress(value); err == nil {
+		return addr.Name, addr.Address
 	}
-	if all[0].role == commitIdentityRoleAuthor {
-		return all[1:]
+	begin, end := strings.LastIndex(value, "<"), strings.LastIndex(value, ">")
+	if begin == -1 || end < begin {
+		return value, ""
 	}
-	return all
+	return strings.TrimSpace(value[:begin]), strings.TrimSpace(value[begin+1 : end])
 }

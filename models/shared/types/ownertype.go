@@ -19,7 +19,7 @@ func (o OwnerType) LocaleString(locale translation.Locale) string {
 	case OwnerTypeSystemGlobal:
 		return locale.TrString("concept_system_global")
 	case OwnerTypeIndividual:
-		return locale.TrString("concept_user_individual")
+		return locale.TrString("concept_user_user")
 	case OwnerTypeRepository:
 		return locale.TrString("concept_code_repository")
 	case OwnerTypeOrganization:

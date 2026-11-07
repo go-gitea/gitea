@@ -24,42 +24,29 @@ func TestAdminUserDelete(t *testing.T) {
 		require.NoError(t, db.TruncateBeans(t.Context(), &auth_model.AccessToken{}))
 	}()
 
-	setupTestUser := func(t *testing.T) {
-		unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})
-		err := microcmdUserCreate().Run(t.Context(), []string{"create", "--username", "testuser", "--email", "testuser@gitea.local", "--random-password"})
-		require.NoError(t, err)
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{"delete user by id", []string{"delete-test", "--id", ""}},
+		{"delete user by username", []string{"delete-test", "--username", "testuser"}},
+		{"delete user by email", []string{"delete-test", "--email", "testuser@gitea.local"}},
+		{"delete user by all 3 attributes", []string{"delete", "--id", "", "--username", "testuser", "--email", "testuser@gitea.local"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})
+			err := microcmdUserCreate().Run(t.Context(), []string{"create", "--username", "testuser", "--email", "testuser@gitea.local", "--random-password"})
+			require.NoError(t, err)
+
+			if tc.args[1] == "--id" {
+				user := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
+				tc.args[2] = strconv.FormatInt(user.ID, 10)
+			}
+			err = microcmdUserDelete().Run(ctx, tc.args)
+			require.NoError(t, err)
+			unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})
+		})
 	}
-
-	t.Run("delete user by id", func(t *testing.T) {
-		setupTestUser(t)
-
-		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
-		err := microcmdUserDelete().Run(ctx, []string{"delete-test", "--id", strconv.FormatInt(u.ID, 10)})
-		require.NoError(t, err)
-		unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})
-	})
-	t.Run("delete user by username", func(t *testing.T) {
-		setupTestUser(t)
-
-		err := microcmdUserDelete().Run(ctx, []string{"delete-test", "--username", "testuser"})
-		require.NoError(t, err)
-		unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})
-	})
-	t.Run("delete user by email", func(t *testing.T) {
-		setupTestUser(t)
-
-		err := microcmdUserDelete().Run(ctx, []string{"delete-test", "--email", "testuser@gitea.local"})
-		require.NoError(t, err)
-		unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})
-	})
-	t.Run("delete user by all 3 attributes", func(t *testing.T) {
-		setupTestUser(t)
-
-		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
-		err := microcmdUserDelete().Run(ctx, []string{"delete", "--id", strconv.FormatInt(u.ID, 10), "--username", "testuser", "--email", "testuser@gitea.local"})
-		require.NoError(t, err)
-		unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})
-	})
 }
 
 func TestAdminUserDeleteFailure(t *testing.T) {

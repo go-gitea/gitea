@@ -5,13 +5,13 @@ package actions
 
 import (
 	"context"
-	"crypto/subtle"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
@@ -22,8 +22,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	lru "github.com/hashicorp/golang-lru/v2"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
 )
 
@@ -66,25 +64,8 @@ type ActionTask struct {
 // it only decides whether the runner is reachable, not whether the task should be killed.
 const taskReportTimeout = time.Minute
 
-var successfulTokenTaskCache *lru.Cache[string, any]
-
 func init() {
-	db.RegisterModel(new(ActionTask), func() error {
-		if setting.SuccessfulTokensCacheSize > 0 {
-			var err error
-			successfulTokenTaskCache, err = lru.New[string, any](setting.SuccessfulTokensCacheSize)
-			if err != nil {
-				return fmt.Errorf("unable to allocate Task cache: %v", err)
-			}
-		} else {
-			successfulTokenTaskCache = nil
-		}
-		return nil
-	})
-}
-
-func (task *ActionTask) Duration() time.Duration {
-	return calculateDuration(task.Started, task.Stopped, task.Status, task.Updated)
+	db.RegisterModel(new(ActionTask))
 }
 
 func (task *ActionTask) IsStopped() bool {
@@ -171,6 +152,38 @@ func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
 	return &task, nil
 }
 
+// GetTasksMapByIDs returns the found tasks keyed by ID, silently omitting IDs that no longer exist.
+func GetTasksMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionTask, error) {
+	tasks := make(map[int64]*ActionTask, len(ids))
+	if len(ids) == 0 {
+		return tasks, nil
+	}
+	return tasks, db.GetEngine(ctx).In("id", ids).Find(&tasks)
+}
+
+// GetTaskRunnerNames returns runner names keyed by task ID without loading task logs.
+func GetTaskRunnerNames(ctx context.Context, taskIDs []int64) (map[int64]string, error) {
+	names := make(map[int64]string, len(taskIDs))
+	if len(taskIDs) == 0 {
+		return names, nil
+	}
+	var rows []struct {
+		ID   int64
+		Name string
+	}
+	err := db.GetEngine(ctx).Table("action_task").
+		Join("INNER", "action_runner", "action_runner.id = action_task.runner_id").
+		In("action_task.id", taskIDs).
+		Select("action_task.id, action_runner.name").Find(&rows)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		names[row.ID] = row.Name
+	}
+	return names, nil
+}
+
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
 	errNotExist := fmt.Errorf("task with token %q: %w", token, util.ErrNotExist)
 	if token == "" {
@@ -186,21 +199,21 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 		}
 	}
 
+	cacheKey := "actions:" + token
 	lastEight := token[len(token)-8:]
-
-	if id := getTaskIDFromCache(token); id > 0 {
+	if cached, _ := auth_model.TokenCache().Get(cacheKey); cached != nil {
 		task := &ActionTask{
 			TokenLastEight: lastEight,
 		}
 		// Re-get the task from the db in case it has been deleted in the intervening period
-		has, err := db.GetEngine(ctx).ID(id).Get(task)
+		has, err := db.GetEngine(ctx).ID(cached.TokenID).Get(task)
 		if err != nil {
 			return nil, err
 		}
-		if has {
+		if has && util.CryptoConstTimeEqual(task.TokenHash, cached.TokenHash) {
 			return task, nil
 		}
-		successfulTokenTaskCache.Remove(token)
+		auth_model.TokenCache().Remove(cacheKey)
 	}
 
 	var tasks []*ActionTask
@@ -214,10 +227,8 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 
 	for _, t := range tasks {
 		tempHash := auth_model.HashToken(token, t.TokenSalt)
-		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
-			if successfulTokenTaskCache != nil {
-				successfulTokenTaskCache.Add(token, t.ID)
-			}
+		if util.CryptoConstTimeEqual(t.TokenHash, tempHash) {
+			auth_model.TokenCache().Add(cacheKey, &auth_model.TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
 			return t, nil
 		}
 	}
@@ -251,21 +262,10 @@ var pickTaskBatchSize = 100
 // atomically claims it. It iterates through all matching jobs so that a
 // concurrent claim by another runner (which would lose the optimistic lock on
 // job #1) does not leave the remaining jobs permanently unassigned.
-func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
+func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *ActionTask, cancelledJobs []*ActionRunJob, err error) {
 	if db.InTransaction(ctx) {
-		return nil, false, errors.New("CreateTaskForRunner must not be called within a database transaction")
+		return nil, nil, errors.New("CreateTaskForRunner must not be called within a database transaction")
 	}
-	e := db.GetEngine(ctx)
-
-	jobCond := builder.NewCond()
-	if runner.RepoID != 0 {
-		jobCond = builder.Eq{"repo_id": runner.RepoID}
-	} else if runner.OwnerID != 0 {
-		jobCond = builder.In("repo_id", builder.Select("`repository`.id").From("repository").
-			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
-			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
-	}
-	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond)
 
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
@@ -276,53 +276,66 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	var cursorUpdated timeutil.TimeStamp
 	var cursorID int64
 	for {
-		cond := baseCond
+		sess := JobQueueOptions{RepoID: runner.RepoID, OwnerID: runner.OwnerID, Status: StatusWaiting}.session(ctx)
 		if cursorID > 0 {
-			cond = cond.And(builder.Or(
+			sess.And(builder.Or(
 				builder.Gt{"updated": cursorUpdated},
 				builder.And(builder.Eq{"updated": cursorUpdated}, builder.Gt{"id": cursorID}),
 			))
 		}
 
 		var jobs []*ActionRunJob
-		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
-			return nil, false, err
+		if err := sess.Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
+			return nil, cancelledJobs, err
+		}
+		// A short page means no waiting jobs remain beyond it.
+		isLastPage := len(jobs) < pickTaskBatchSize
+		if !isLastPage {
+			last := jobs[len(jobs)-1] // read before a lost claim bumps Updated
+			cursorUpdated, cursorID = last.Updated, last.ID
 		}
 
 		for _, v := range jobs {
 			if !runner.CanMatchLabels(v.RunsOn) {
 				continue
 			}
-			task, ok, err := claimJobForRunner(ctx, runner, v)
-			if err != nil {
-				return nil, false, err
+			task, cancelled, err := claimJobForRunner(ctx, runner, v)
+			if cancelled {
+				cancelledJobs = append(cancelledJobs, v)
 			}
-			if ok {
-				return task, true, nil
+			if err != nil || task != nil {
+				return task, cancelledJobs, err
 			}
-			// Another runner claimed this job concurrently; try the next one.
+			// Another runner claimed this job concurrently, or it was cancelled. Try the next one.
 		}
 
-		// A short page means no waiting jobs remain beyond it.
-		if len(jobs) < pickTaskBatchSize {
-			return nil, false, nil
+		if isLastPage {
+			return nil, cancelledJobs, nil
 		}
-		last := jobs[len(jobs)-1]
-		cursorUpdated, cursorID = last.Updated, last.ID
 	}
 }
 
 // claimJobForRunner attempts to atomically claim job for runner inside its own
-// transaction. Returns (task, true, nil) on success, or (nil, false, nil) when
-// another runner wins the optimistic-lock race (the caller should try the next
-// candidate job).
+// transaction. Returns the task on success, cancelled when the job's repository
+// has Actions disabled, or neither when another runner wins the optimistic-lock
+// race (the caller should try the next candidate job).
 func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob) (*ActionTask, bool, error) {
 	var resultTask *ActionTask
+	var cancelled bool
 
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
 		if err := job.LoadAttributes(ctx); err != nil {
+			return err
+		}
+		if err := job.Run.Repo.LoadUnits(ctx); err != nil {
+			return err
+		}
+		if !job.Run.Repo.UnitEnabled(ctx, unit.TypeActions) {
+			job.Status, job.Stopped = StatusCancelled, timeutil.TimeStampNow()
+			affected, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0, "status": StatusWaiting}, "status", "stopped")
+			cancelled = err == nil && affected == 1
 			return err
 		}
 
@@ -390,13 +403,10 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 		return nil
 	})
 
-	if errors.Is(err, errJobAlreadyClaimed) {
-		return nil, false, nil
-	}
-	if err != nil {
+	if err != nil && !errors.Is(err, errJobAlreadyClaimed) {
 		return nil, false, err
 	}
-	return resultTask, true, nil
+	return resultTask, cancelled, nil
 }
 
 // ReleaseTaskForRunner reverts a freshly-claimed but undelivered task: it deletes
@@ -469,6 +479,11 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
 	}
+	reportedSteps := state.ReportedSteps
+	if err := validateReportedSteps(reportedSteps); err != nil {
+		log.Warn("Ignore the steps reported for task %d: %v", state.Id, err)
+		reportedSteps = nil
+	}
 
 	// Only one request can update the task because the final state needs to be calculated with all job states.
 	// Otherwise, concurrent requests with transaction will make the SQL read stale job state and result in wrong final state.
@@ -478,7 +493,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 		return nil, err
 	}
 	task := &ActionTask{}
-	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+	applyState := func(ctx context.Context) error {
 		if has, err := db.GetEngine(ctx).ID(taskID).Get(task); err != nil {
 			return err
 		} else if !has {
@@ -492,6 +507,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return nil
 		}
 
+		now := timeutil.TimeStampNow()
 		// state.Result is not unspecified means the task is finished
 		if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 			if task.Status == StatusCancelling {
@@ -500,7 +516,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			} else {
 				task.Status = StatusFromResult(state.Result)
 			}
-			task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
+			task.Stopped = now
 			if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
 				return err
 			}
@@ -514,7 +530,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 		} else {
 			// Force update ActionTask.Updated to avoid the task being judged as a zombie task
-			task.Updated = timeutil.TimeStampNow()
+			task.Updated = now
 			if err := UpdateTask(ctx, task, "updated"); err != nil {
 				return err
 			}
@@ -524,25 +540,23 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return err
 		}
 
+		if len(reportedSteps) > 0 {
+			return updateReportedSteps(ctx, task, reportedSteps, now)
+		}
+		if slices.ContainsFunc(task.Steps, (*ActionTaskStep).IsReported) {
+			return nil // the indexes of the steps of the workflow file no longer match the stored steps
+		}
 		for _, step := range task.Steps {
-			var result runnerv1.Result
-			if v, ok := stepStates[step.Index]; ok {
-				result = v.Result
-				step.LogIndex = v.LogIndex
-				step.LogLength = v.LogLength
-				step.Started = convertTimestamp(v.StartedAt)
-				step.Stopped = convertTimestamp(v.StoppedAt)
-			}
-			if result != runnerv1.Result_RESULT_UNSPECIFIED {
-				step.Status = StatusFromResult(result)
-			} else if step.Started != 0 {
-				step.Status = StatusRunning
-			}
+			step.applyState(stepStates[step.Index], now)
 			if _, err := db.GetEngine(ctx).ID(step.ID).Update(step); err != nil {
 				return err
 			}
 		}
 		return nil
+	}
+	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+		// A half-written report leaves the task done with a running job, which no retry repairs.
+		return db.WithTx(ctx, applyState)
 	})
 	return task, err
 }
@@ -617,13 +631,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	}
 
 	for _, step := range task.Steps {
-		if !step.Status.IsDone() {
-			step.Status = status
-			if step.Started == 0 {
-				step.Started = now
-			}
-			step.Stopped = now
-		}
+		step.stop(status, now)
 		if _, err := e.ID(step.ID).Update(step); err != nil {
 			return err
 		}
@@ -642,13 +650,6 @@ func FindOldTasksToExpire(ctx context.Context, olderThan timeutil.TimeStamp, lim
 		Find(&tasks)
 }
 
-func convertTimestamp(timestamp *timestamppb.Timestamp) timeutil.TimeStamp {
-	if timestamp.GetSeconds() == 0 && timestamp.GetNanos() == 0 {
-		return timeutil.TimeStamp(0)
-	}
-	return timeutil.TimeStamp(timestamp.AsTime().Unix())
-}
-
 func logFileName(repoFullName string, taskID int64) string {
 	ret := fmt.Sprintf("%s/%02x/%d.log", repoFullName, taskID%256, taskID)
 
@@ -657,19 +658,4 @@ func logFileName(repoFullName string, taskID int64) string {
 	}
 
 	return ret
-}
-
-func getTaskIDFromCache(token string) int64 {
-	if successfulTokenTaskCache == nil {
-		return 0
-	}
-	tInterface, ok := successfulTokenTaskCache.Get(token)
-	if !ok {
-		return 0
-	}
-	t, ok := tInterface.(int64)
-	if !ok {
-		return 0
-	}
-	return t
 }

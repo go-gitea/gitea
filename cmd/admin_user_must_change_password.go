@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -59,6 +58,6 @@ func runMustChangePassword(ctx context.Context, c *cli.Command) error {
 	}
 
 	// codeql[disable-next-line=go/clear-text-logging]
-	fmt.Printf("Updated %d users setting MustChangePassword to %t\n", n, mustChangePassword)
+	cprintf(c, "Updated %d users setting MustChangePassword to %t\n", n, mustChangePassword)
 	return nil
 }

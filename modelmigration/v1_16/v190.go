@@ -4,12 +4,13 @@
 package v1_16
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddAgitFlowPullRequest(x base.EngineMigration) error {
+func AddAgitFlowPullRequest(_ context.Context, x base.EngineMigration) error {
 	type PullRequestFlow int
 
 	type PullRequest struct {

@@ -1,4 +1,4 @@
-<div class="ui small modal" id="reference-issue-modal">
+<dialog class="modal-dialog" id="reference-issue-modal">
 	<div class="header">
 		{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}
 	</div>
@@ -20,8 +20,8 @@
 				<textarea name="content"></textarea>
 			</div>
 			<div class="flex-text-block tw-justify-end">
-				<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.create"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.issues.create"}}</button>
 			</div>
 		</form>
 	</div>
-</div>
+</dialog>

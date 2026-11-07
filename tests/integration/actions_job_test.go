@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -27,7 +27,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	actions_service "gitea.dev/services/actions"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -260,6 +259,7 @@ jobs:
       output_2: ${{ steps.gen_output.outputs.output_2 }}
       output_3: ${{ steps.gen_output.outputs.output_3 }}
     strategy:
+      fail-fast: false
       matrix:
         version: [1, 2, 3]
     steps:
@@ -369,7 +369,7 @@ func TestRunnerDisableEnable(t *testing.T) {
 			MakeRequest(t, req, http.StatusOK)
 
 			testData.runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-			testData.runner.fetchNoTask(t, 2*time.Second)
+			testData.runner.fetchNoTask(t)
 
 			req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), false).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
@@ -397,7 +397,6 @@ func TestRunnerDisableEnable(t *testing.T) {
 
 			// Trigger a second run so there is a pending job after we re-enable the runner
 			triggerRunnerDisableEnableRun(t, user2, token, testData.repo, "second-push.txt")
-			time.Sleep(500 * time.Millisecond) // allow workflow run to be created
 
 			req := newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), true).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
@@ -467,21 +466,29 @@ func getRepoRunnerID(t *testing.T, authToken, ownerName, repoName string) int64 
 }
 
 func TestActionsGiteaContext(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		user2Session := loginUser(t, user2.Name)
-		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	for _, ephemeral := range []bool{false, true} {
+		t.Run(strconv.FormatBool(ephemeral), func(t *testing.T) {
+			onGiteaRun(t, func(t *testing.T, u *url.URL) {
+				user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+				user2Session := loginUser(t, user2.Name)
+				user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-		apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-gitea-context", false)
-		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+				apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-gitea-context", false)
+				baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
+				user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+				runner := newMockRunner()
+				runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, ephemeral)
 
-		// init the workflow
-		wfTreePath := ".gitea/workflows/pull.yml"
-		wfFileContent := `name: Pull Request
+				if ephemeral {
+					// verify CleanupEphemeralRunners does not remove this runner
+					err := actions_service.CleanupEphemeralRunners(t.Context())
+					assert.NoError(t, err)
+				}
+
+				// init the workflow
+				wfTreePath := ".gitea/workflows/pull.yml"
+				wfFileContent := `name: Pull Request
 on: pull_request
 jobs:
   wf1-job:
@@ -489,213 +496,132 @@ jobs:
     steps:
       - run: echo 'test the pull'
 `
-		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
-		// user2 creates a pull request
-		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "user2/patch-1",
-				Message:       "create user2-patch.txt",
-				Author: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Committer: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
-			},
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user2-fix")),
-		})(t)
-		apiPull, err := doAPICreatePullRequest(user2APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, "user2/patch-1")(t)
-		assert.NoError(t, err)
-		task := runner.fetchTask(t)
-		gtCtx := task.Context.GetFields()
-		actionTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id})
-		actionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: actionTask.JobID})
-		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: actionRunJob.RunID})
-		assert.NoError(t, actionRun.LoadAttributes(t.Context()))
-
-		assert.Equal(t, user2.Name, gtCtx["actor"].GetStringValue())
-		assert.Equal(t, setting.AppURL+"api/v1", gtCtx["api_url"].GetStringValue())
-		assert.Equal(t, apiPull.Base.Ref, gtCtx["base_ref"].GetStringValue())
-		runEvent := map[string]any{}
-		assert.NoError(t, json.Unmarshal([]byte(actionRun.EventPayload), &runEvent))
-		assert.True(t, reflect.DeepEqual(gtCtx["event"].GetStructValue().AsMap(), runEvent))
-		assert.Equal(t, actionRun.TriggerEvent, gtCtx["event_name"].GetStringValue())
-		assert.Equal(t, apiPull.Head.Ref, gtCtx["head_ref"].GetStringValue())
-		assert.Equal(t, actionRunJob.JobID, gtCtx["job"].GetStringValue())
-		assert.Equal(t, actionRun.Ref, gtCtx["ref"].GetStringValue())
-		assert.Equal(t, (git.RefName(actionRun.Ref)).ShortName(), gtCtx["ref_name"].GetStringValue())
-		assert.False(t, gtCtx["ref_protected"].GetBoolValue())
-		assert.Equal(t, string((git.RefName(actionRun.Ref)).RefType()), gtCtx["ref_type"].GetStringValue())
-		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
-		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
-		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
-		assert.Equal(t, strconv.FormatInt(actionRunJob.RunID, 10), gtCtx["run_id"].GetStringValue())
-		assert.Equal(t, strconv.FormatInt(actionRun.Index, 10), gtCtx["run_number"].GetStringValue())
-		assert.Equal(t, strconv.FormatInt(actionRunJob.Attempt, 10), gtCtx["run_attempt"].GetStringValue())
-		assert.Equal(t, "Actions", gtCtx["secret_source"].GetStringValue())
-		assert.Equal(t, setting.AppURL, gtCtx["server_url"].GetStringValue())
-		assert.Equal(t, actionRun.CommitSHA, gtCtx["sha"].GetStringValue())
-		assert.Equal(t, actionRun.WorkflowID, gtCtx["workflow"].GetStringValue())
-		assert.Equal(t, setting.Actions.DefaultActionsURL.URL(), gtCtx["gitea_default_actions_url"].GetStringValue())
-		token := gtCtx["token"].GetStringValue()
-		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
-	})
-}
-
-// Ephemeral
-func TestActionsGiteaContextEphemeral(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		user2Session := loginUser(t, user2.Name)
-		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-gitea-context", false)
-		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, true)
-
-		// verify CleanupEphemeralRunners does not remove this runner
-		err := actions_service.CleanupEphemeralRunners(t.Context())
-		assert.NoError(t, err)
-
-		// init the workflow
-		wfTreePath := ".gitea/workflows/pull.yml"
-		wfFileContent := `name: Pull Request
-on: pull_request
-jobs:
-  wf1-job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'test the pull'
-  wf2-job:
+				if ephemeral {
+					wfFileContent += `  wf2-job:
     runs-on: ubuntu-latest
     steps:
       - run: echo 'test the pull'
 `
-		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
-		// user2 creates a pull request
-		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "user2/patch-1",
-				Message:       "create user2-patch.txt",
-				Author: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Committer: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
-			},
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user2-fix")),
-		})(t)
-		apiPull, err := doAPICreatePullRequest(user2APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, "user2/patch-1")(t)
-		assert.NoError(t, err)
-		task := runner.fetchTask(t)
-		gtCtx := task.Context.GetFields()
-		actionTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id})
-		actionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: actionTask.JobID})
-		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: actionRunJob.RunID})
-		assert.NoError(t, actionRun.LoadAttributes(t.Context()))
+				}
+				opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
+				createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
+				// user2 creates a pull request
+				doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
+					FileOptions: api.FileOptions{
+						NewBranchName: "user2/patch-1",
+						Message:       "create user2-patch.txt",
+						Author: api.Identity{
+							Name:  user2.Name,
+							Email: user2.Email,
+						},
+						Committer: api.Identity{
+							Name:  user2.Name,
+							Email: user2.Email,
+						},
+						Dates: api.CommitDateOptions{
+							Author:    time.Now(),
+							Committer: time.Now(),
+						},
+					},
+					ContentBase64: base64.StdEncoding.EncodeToString([]byte("user2-fix")),
+				})(t)
+				apiPull, err := doAPICreatePullRequest(user2APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, "user2/patch-1")(t)
+				assert.NoError(t, err)
+				task := runner.fetchTask(t)
+				gtCtx := task.Context.GetFields()
+				actionTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id})
+				actionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: actionTask.JobID})
+				actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: actionRunJob.RunID})
+				assert.NoError(t, actionRun.LoadAttributes(t.Context()))
 
-		assert.Equal(t, user2.Name, gtCtx["actor"].GetStringValue())
-		assert.Equal(t, setting.AppURL+"api/v1", gtCtx["api_url"].GetStringValue())
-		assert.Equal(t, apiPull.Base.Ref, gtCtx["base_ref"].GetStringValue())
-		runEvent := map[string]any{}
-		assert.NoError(t, json.Unmarshal([]byte(actionRun.EventPayload), &runEvent))
-		assert.True(t, reflect.DeepEqual(gtCtx["event"].GetStructValue().AsMap(), runEvent))
-		assert.Equal(t, actionRun.TriggerEvent, gtCtx["event_name"].GetStringValue())
-		assert.Equal(t, apiPull.Head.Ref, gtCtx["head_ref"].GetStringValue())
-		assert.Equal(t, actionRunJob.JobID, gtCtx["job"].GetStringValue())
-		assert.Equal(t, actionRun.Ref, gtCtx["ref"].GetStringValue())
-		assert.Equal(t, (git.RefName(actionRun.Ref)).ShortName(), gtCtx["ref_name"].GetStringValue())
-		assert.False(t, gtCtx["ref_protected"].GetBoolValue())
-		assert.Equal(t, string((git.RefName(actionRun.Ref)).RefType()), gtCtx["ref_type"].GetStringValue())
-		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
-		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
-		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
-		assert.Equal(t, strconv.FormatInt(actionRunJob.RunID, 10), gtCtx["run_id"].GetStringValue())
-		assert.Equal(t, strconv.FormatInt(actionRun.Index, 10), gtCtx["run_number"].GetStringValue())
-		assert.Equal(t, strconv.FormatInt(actionRunJob.Attempt, 10), gtCtx["run_attempt"].GetStringValue())
-		assert.Equal(t, "Actions", gtCtx["secret_source"].GetStringValue())
-		assert.Equal(t, setting.AppURL, gtCtx["server_url"].GetStringValue())
-		assert.Equal(t, actionRun.CommitSHA, gtCtx["sha"].GetStringValue())
-		assert.Equal(t, actionRun.WorkflowID, gtCtx["workflow"].GetStringValue())
-		assert.Equal(t, setting.Actions.DefaultActionsURL.URL(), gtCtx["gitea_default_actions_url"].GetStringValue())
-		token := gtCtx["token"].GetStringValue()
-		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
+				assert.Equal(t, user2.Name, gtCtx["actor"].GetStringValue())
+				assert.Equal(t, setting.AppURL+"api/v1", gtCtx["api_url"].GetStringValue())
+				assert.Equal(t, apiPull.Base.Ref, gtCtx["base_ref"].GetStringValue())
+				runEvent := map[string]any{}
+				assert.NoError(t, json.Unmarshal([]byte(actionRun.EventPayload), &runEvent))
+				assert.True(t, reflect.DeepEqual(gtCtx["event"].GetStructValue().AsMap(), runEvent))
+				assert.Equal(t, actionRun.TriggerEvent, gtCtx["event_name"].GetStringValue())
+				assert.Equal(t, apiPull.Head.Ref, gtCtx["head_ref"].GetStringValue())
+				assert.Equal(t, actionRunJob.JobID, gtCtx["job"].GetStringValue())
+				assert.Equal(t, actionRun.Ref, gtCtx["ref"].GetStringValue())
+				assert.Equal(t, git.RefName(actionRun.Ref).ShortName(), gtCtx["ref_name"].GetStringValue())
+				assert.False(t, gtCtx["ref_protected"].GetBoolValue())
+				assert.Equal(t, "branch", gtCtx["ref_type"].GetStringValue())
+				assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
+				assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
+				assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
+				assert.Equal(t, strconv.FormatInt(actionRunJob.RunID, 10), gtCtx["run_id"].GetStringValue())
+				assert.Equal(t, strconv.FormatInt(actionRun.Index, 10), gtCtx["run_number"].GetStringValue())
+				assert.Equal(t, strconv.FormatInt(actionRunJob.Attempt, 10), gtCtx["run_attempt"].GetStringValue())
+				assert.Equal(t, "Actions", gtCtx["secret_source"].GetStringValue())
+				assert.Equal(t, setting.AppURL, gtCtx["server_url"].GetStringValue())
+				assert.Equal(t, actionRun.CommitSHA, gtCtx["sha"].GetStringValue())
+				assert.Equal(t, actionRun.WorkflowID, gtCtx["workflow"].GetStringValue())
+				assert.Equal(t, setting.Actions.DefaultActionsURL.URL(), gtCtx["gitea_default_actions_url"].GetStringValue())
+				token := gtCtx["token"].GetStringValue()
+				assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
 
-		// verify CleanupEphemeralRunners does not remove this runner
-		err = actions_service.CleanupEphemeralRunners(t.Context())
-		assert.NoError(t, err)
+				if ephemeral {
+					// verify CleanupEphemeralRunners does not remove this runner
+					err = actions_service.CleanupEphemeralRunners(t.Context())
+					assert.NoError(t, err)
 
-		resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
-			TasksVersion: 0,
-		}))
-		assert.NoError(t, err)
-		assert.Nil(t, resp.Msg.Task)
+					resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), &runnerv1.FetchTaskRequest{
+						TasksVersion: 0,
+					})
+					assert.NoError(t, err)
+					assert.Nil(t, resp.Task)
 
-		// verify CleanupEphemeralRunners does not remove this runner
-		err = actions_service.CleanupEphemeralRunners(t.Context())
-		assert.NoError(t, err)
+					// verify CleanupEphemeralRunners does not remove this runner
+					err = actions_service.CleanupEphemeralRunners(t.Context())
+					assert.NoError(t, err)
 
-		_, err = runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
-			State: &runnerv1.TaskState{
-				Id:     actionTask.ID,
-				Result: runnerv1.Result_RESULT_SUCCESS,
-			},
-		}))
-		assert.NoError(t, err)
+					_, err = runner.client.runnerServiceClient.UpdateTask(t.Context(), &runnerv1.UpdateTaskRequest{
+						State: &runnerv1.TaskState{
+							Id:     actionTask.ID,
+							Result: runnerv1.Result_RESULT_SUCCESS,
+						},
+					})
+					assert.NoError(t, err)
 
-		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
-			TasksVersion: 0,
-		}))
-		assert.Error(t, err)
-		assert.Nil(t, resp)
+					resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), &runnerv1.FetchTaskRequest{
+						TasksVersion: 0,
+					})
+					assert.Error(t, err)
+					assert.Nil(t, resp)
 
-		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
-			TasksVersion: 0,
-		}))
-		assert.Error(t, err)
-		assert.Nil(t, resp)
+					resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), &runnerv1.FetchTaskRequest{
+						TasksVersion: 0,
+					})
+					assert.Error(t, err)
+					assert.Nil(t, resp)
 
-		// create a runner that picks a job and get force cancelled
-		runnerToBeRemoved := newMockRunner()
-		runnerToBeRemoved.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner-to-be-removed", []string{"ubuntu-latest"}, true)
+					// create a runner that picks a job and get force cancelled
+					runnerToBeRemoved := newMockRunner()
+					runnerToBeRemoved.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner-to-be-removed", []string{"ubuntu-latest"}, true)
 
-		taskToStopAPIObj := runnerToBeRemoved.fetchTask(t)
+					taskToStopAPIObj := runnerToBeRemoved.fetchTask(t)
 
-		taskToStop := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskToStopAPIObj.Id})
+					taskToStop := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskToStopAPIObj.Id})
 
-		// verify CleanupEphemeralRunners does not remove the custom crafted runner
-		err = actions_service.CleanupEphemeralRunners(t.Context())
-		assert.NoError(t, err)
+					// verify CleanupEphemeralRunners does not remove the custom crafted runner
+					err = actions_service.CleanupEphemeralRunners(t.Context())
+					assert.NoError(t, err)
 
-		runnerToRemove := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: taskToStop.RunnerID})
+					runnerToRemove := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: taskToStop.RunnerID})
 
-		err = actions_model.StopTask(t.Context(), taskToStop.ID, actions_model.StatusFailure)
-		assert.NoError(t, err)
+					err = actions_model.StopTask(t.Context(), taskToStop.ID, actions_model.StatusFailure)
+					assert.NoError(t, err)
 
-		// verify CleanupEphemeralRunners does remove the custom crafted runner
-		err = actions_service.CleanupEphemeralRunners(t.Context())
-		assert.NoError(t, err)
+					// verify CleanupEphemeralRunners does remove the custom crafted runner
+					err = actions_service.CleanupEphemeralRunners(t.Context())
+					assert.NoError(t, err)
 
-		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: runnerToRemove.ID})
-	})
+					unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: runnerToRemove.ID})
+				}
+			})
+		})
+	}
 }
 
 func createActionsTestRepo(t *testing.T, authToken, repoName string, isPrivate bool) *api.Repository {

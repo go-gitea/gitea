@@ -88,9 +88,9 @@ func runGenerateAccessToken(ctx context.Context, c *cli.Command) error {
 	}
 
 	if c.Bool("raw") {
-		fmt.Printf("%s\n", t.Token)
+		cprintln(c, t.Token)
 	} else {
-		fmt.Printf("Access token was successfully created: %s\n", t.Token)
+		cprintf(c, "Access token was successfully created: %s\n", t.Token)
 	}
 
 	return nil

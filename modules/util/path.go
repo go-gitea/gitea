@@ -10,8 +10,28 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
+
+	"gitea.dev/modules/consts"
 )
+
+var PathNameValidator = sync.OnceValue(func() (ret struct {
+	InvalidChars *regexp.Regexp
+	InvalidNames *regexp.Regexp
+},
+) {
+	ret.InvalidChars = regexp.MustCompile(`(?i)[<>:"/\\|?*\x{0000}-\x{001F}]`)
+	// invalid filename contents, based on https://github.com/sindresorhus/filename-reserved-regex
+	// "COM10" needs to be opened with UNC "\\.\COM10" on Windows, so itself is valid
+	ret.InvalidNames = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com\d|lpt\d)$`)
+	return ret
+})
+
+func PathBaseStem(s string) string {
+	return strings.TrimSuffix(path.Base(s), path.Ext(s))
+}
 
 // PathJoinRel joins the path elements into a single path, each element is cleaned by path.Clean separately.
 // It only returns the following values (like path.Join), any redundant part (empty, relative dots, slashes) is removed.
@@ -75,7 +95,7 @@ const filepathSeparator = string(os.PathSeparator)
 func FilePathJoinAbs(base string, sub ...string) string {
 	// POSIX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
 	// to keep the behavior consistent, we do not allow `\` in file names, replace all `\` with `/`
-	if !isOSWindows {
+	if !consts.IsWindows {
 		base = strings.ReplaceAll(base, "\\", filepathSeparator)
 	}
 	if !filepath.IsAbs(base) {
@@ -92,7 +112,7 @@ func FilePathJoinAbs(base string, sub ...string) string {
 		if s == "" {
 			continue
 		}
-		if isOSWindows {
+		if consts.IsWindows {
 			elems = append(elems, filepath.Clean(filepathSeparator+s))
 		} else {
 			elems = append(elems, filepath.Clean(filepathSeparator+strings.ReplaceAll(s, "\\", filepathSeparator)))
@@ -203,7 +223,7 @@ func listDirRecursively(result *[]string, fsDir, recordParentPath string, opts *
 	}
 	defer dir.Close()
 
-	fis, err := dir.Readdir(0)
+	fis, err := dir.ReadDir(0)
 	if err != nil {
 		return err
 	}
@@ -266,7 +286,7 @@ func fileURLToPathInternal(u *url.URL, isWindows bool) (string, error) {
 // FileURLToPath extracts the path information from a file://... url.
 // It returns an error only if the URL is not a file URL.
 func FileURLToPath(u *url.URL) (string, error) {
-	return fileURLToPathInternal(u, isOSWindows)
+	return fileURLToPathInternal(u, consts.IsWindows)
 }
 
 // HomeDir returns path of '~'(in Linux) on Windows,
@@ -275,7 +295,7 @@ func HomeDir() (home string, err error) {
 	// TODO: some users run Gitea with mismatched uid  and "HOME=xxx" (they set HOME=xxx by environment manually)
 	// TODO: when running gitea as a sub command inside git, the HOME directory is not the user's home directory
 	// so at the moment we can not use `user.Current().HomeDir`
-	if isOSWindows {
+	if consts.IsWindows {
 		home = os.Getenv("USERPROFILE")
 		if home == "" {
 			home = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
@@ -340,7 +360,7 @@ func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
 		}
 	}
 
-	if name[6] == '.' {
+	if len(name) > 6 && name[6] == '.' {
 		return len(ext), true
 	}
 

@@ -39,7 +39,7 @@ func link(href, class, contents string) string {
 }
 
 var numericMetas = map[string]string{
-	"format":                       "https://someurl.com/{user}/{repo}/{index}",
+	"externalTrackerLinkFormat":    "https://someurl.com/{user}/{repo}/{index}",
 	"user":                         "someUser",
 	"repo":                         "someRepo",
 	"style":                        IssueNameStyleNumeric,
@@ -47,7 +47,7 @@ var numericMetas = map[string]string{
 }
 
 var alphanumericMetas = map[string]string{
-	"format":                       "https://someurl.com/{user}/{repo}/{index}",
+	"externalTrackerLinkFormat":    "https://someurl.com/{user}/{repo}/{index}",
 	"user":                         "someUser",
 	"repo":                         "someRepo",
 	"style":                        IssueNameStyleAlphanumeric,
@@ -55,10 +55,10 @@ var alphanumericMetas = map[string]string{
 }
 
 var regexpMetas = map[string]string{
-	"format": "https://someurl.com/{user}/{repo}/{index}",
-	"user":   "someUser",
-	"repo":   "someRepo",
-	"style":  IssueNameStyleRegexp,
+	"externalTrackerLinkFormat": "https://someurl.com/{user}/{repo}/{index}",
+	"user":                      "someUser",
+	"repo":                      "someRepo",
+	"style":                     IssueNameStyleRegexp,
 }
 
 // these values should match the TestOrgRepo const above
@@ -85,7 +85,6 @@ func TestRender_IssueIndexPattern(t *testing.T) {
 	test("#abcd")
 	test("test#1234")
 	test("#1234test")
-	test("#abcd")
 	test("test!1234")
 	test("!1234test")
 	test(" test !1234test")
@@ -219,21 +218,27 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 	}
 
 	test("abc ISSUE-123 def", "abc %s def",
-		"ISSUE-(\\d+)",
+		`ISSUE-(\d+)`,
 		[]string{"123"},
 		[]string{"ISSUE-123"},
 	)
 
 	test("abc (ISSUE 123) def", "abc %s def",
-		"\\(ISSUE (\\d+)\\)",
+		`\(ISSUE (\d+)\)`,
 		[]string{"123"},
 		[]string{"(ISSUE 123)"},
 	)
 
 	test("abc ISSUE-123 def", "abc %s def",
-		"(ISSUE-(\\d+))",
+		`(ISSUE-(\d+))`,
 		[]string{"ISSUE-123"},
 		[]string{"ISSUE-123"},
+	)
+
+	test("123456: TEST-123456", "%s %s",
+		`(\d+):|TEST-(\d+)`,
+		[]string{"123456", "123456"},
+		[]string{"123456:", "TEST-123456"},
 	)
 
 	testRenderIssueIndexPattern(t, "will not match", "will not match", NewTestRenderContext(regexpMetas))
@@ -251,16 +256,7 @@ func TestRender_IssueIndexPattern_NoShortPattern(t *testing.T) {
 	testRenderIssueIndexPattern(t, "#1", "#1", NewTestRenderContext(metas))
 	testRenderIssueIndexPattern(t, "#1312", "#1312", NewTestRenderContext(metas))
 	testRenderIssueIndexPattern(t, "!1", "!1", NewTestRenderContext(metas))
-}
 
-func TestRender_PostProcessIssueTitle(t *testing.T) {
-	setting.AppURL = TestAppURL
-	metas := map[string]string{
-		"format": "https://someurl.com/{user}/{repo}/{index}",
-		"user":   "someUser",
-		"repo":   "someRepo",
-		"style":  IssueNameStyleNumeric,
-	}
 	actual := PostProcessIssueTitle(NewTestRenderContext(metas), "#1")
 	assert.Equal(t, template.HTML("#1"), actual)
 }

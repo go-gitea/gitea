@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -41,8 +40,8 @@ type SearchUserOptions struct {
 	Keyword       string
 	Types         []UserType
 	UID           int64
-	LoginName     string // this option should be used only for admin user
-	SourceID      int64  // this option should be used only for admin user
+	LoginName     string                 // this option should be used only for admin user
+	SourceID      optional.Option[int64] // this option should be used only for admin user, Some(0) means local users
 	OrderBy       db.SearchOrderBy
 	Visible       []structs.VisibleType
 	Actor         *User // The user doing the search
@@ -55,30 +54,15 @@ type SearchUserOptions struct {
 	IsRestricted       optional.Option[bool]
 	IsTwoFactorEnabled optional.Option[bool]
 	IsProhibitLogin    optional.Option[bool]
-	IncludeReserved    bool
 }
 
-func (opts *SearchUserOptions) ApplyPublicOnly(publicOnly bool) {
-	if publicOnly {
-		opts.Visible = []structs.VisibleType{structs.VisibleTypePublic}
-	}
+func (opts *SearchUserOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) db.Session {
 	var cond builder.Cond
 	cond = builder.In("type", opts.Types)
-	if opts.IncludeReserved {
-		switch {
-		case slices.Contains(opts.Types, UserTypeIndividual):
-			cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
-				builder.Eq{"type": UserTypeBot},
-			).Or(
-				builder.Eq{"type": UserTypeRemoteUser},
-			)
-		case slices.Contains(opts.Types, UserTypeOrganization):
-			cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
-		}
-	}
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -116,8 +100,8 @@ func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) db.Session
 		cond = cond.And(builder.Eq{"id": opts.UID})
 	}
 
-	if opts.SourceID > 0 {
-		cond = cond.And(builder.Eq{"login_source": opts.SourceID})
+	if opts.SourceID.Has() {
+		cond = cond.And(builder.Eq{"login_source": opts.SourceID.Value()})
 	}
 	if opts.LoginName != "" {
 		cond = cond.And(builder.Eq{"login_name": opts.LoginName})
@@ -187,23 +171,17 @@ func SearchUsers(ctx context.Context, opts SearchUserOptions) (users []*User, _ 
 
 // BuildCanSeeUserCondition creates a condition which can be used to restrict results to users/orgs the actor can see
 func BuildCanSeeUserCondition(actor *User) builder.Cond {
-	if actor != nil {
-		// If Admin - they see all users!
-		if !actor.IsAdmin {
-			// Users can see an organization they are a member of
-			cond := builder.In("`user`.id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": actor.ID}))
-			if !actor.IsRestricted {
-				// Not-Restricted users can see public and limited users/organizations
-				cond = cond.Or(builder.In("`user`.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
-			}
-			// Don't forget about self
-			return cond.Or(builder.Eq{"`user`.id": actor.ID})
+	canViewPrivate := DoerCanViewPrivate(actor)
+	cond := builder.NewCond()
+	if actor != nil && !actor.IsAdmin && (canViewPrivate || actor.IsRestricted) {
+		cond = builder.In("`user`.id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": actor.ID}))
+		if !actor.IsRestricted {
+			cond = cond.Or(builder.In("`user`.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 		}
-
-		return nil
+		cond = cond.Or(builder.Eq{"`user`.id": actor.ID})
 	}
-
-	// Force visibility for privacy
-	// Not logged in - only public users
-	return builder.In("`user`.visibility", structs.VisibleTypePublic)
+	if !canViewPrivate {
+		cond = cond.And(builder.In("`user`.visibility", structs.VisibleTypePublic))
+	}
+	return cond
 }

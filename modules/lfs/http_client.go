@@ -29,12 +29,12 @@ type HTTPClient struct {
 	transfers map[string]TransferAdapter
 }
 
-// BatchSize returns the preferred size of batchs to process
+// BatchSize returns the preferred size of batches to process
 func (c *HTTPClient) BatchSize() int {
 	return setting.LFSClient.BatchSize
 }
 
-func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient {
+func newHTTPClient(endpoint *url.URL, httpTransport http.RoundTripper) *HTTPClient {
 	if httpTransport == nil {
 		httpTransport = &http.Transport{
 			Proxy: proxy.Proxy(),
@@ -67,18 +67,18 @@ func (c *HTTPClient) transferNames() []string {
 	return keys
 }
 
-func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Pointer) (*BatchResponse, error) {
+func (c *HTTPClient) batch(ctx context.Context, operation, ref string, objects []Pointer) (*BatchResponse, error) {
 	log.Trace("BATCH operation with objects: %v", objects)
 
 	url := c.endpoint + "/objects/batch"
 
-	// Original:  In some lfs server implementations, they require the ref attribute. #32838
-	// `ref` is an "optional object describing the server ref that the objects belong to"
-	// but some (incorrect) lfs servers like aliyun require it, so maybe adding an empty ref here doesn't break the correct ones.
+	// `ref` is optional, but some servers like aliyun require it, while others like Hugging Face reject an empty or null one
 	// https://github.com/git-lfs/git-lfs/blob/a32a02b44bf8a511aa14f047627c49e1a7fd5021/docs/api/batch.md?plain=1#L37
-	//
-	// UPDATE: it can't use "empty ref" here because it breaks others like https://github.com/go-gitea/gitea/issues/33453
-	request := &BatchRequest{operation, c.transferNames(), nil, objects}
+	// Related issues: #32838, #33453, #39891
+	request := &BatchRequest{Operation: operation, Transfers: c.transferNames(), Objects: objects}
+	if ref != "" {
+		request.Ref = &Reference{Name: ref}
+	}
 
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
@@ -113,17 +113,17 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 }
 
 // Download reads the specific LFS object from the LFS server
-func (c *HTTPClient) Download(ctx context.Context, objects []Pointer, callback DownloadCallback) error {
-	return c.performOperation(ctx, objects, callback, nil)
+func (c *HTTPClient) Download(ctx context.Context, ref string, objects []Pointer, callback DownloadCallback) error {
+	return c.performOperation(ctx, ref, objects, callback, nil)
 }
 
 // Upload sends the specific LFS object to the LFS server
 func (c *HTTPClient) Upload(ctx context.Context, objects []Pointer, callback UploadCallback) error {
-	return c.performOperation(ctx, objects, nil, callback)
+	return c.performOperation(ctx, "", objects, nil, callback)
 }
 
 // performOperation takes a slice of LFS object pointers, batches them, and performs the upload/download operations concurrently in each batch
-func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc DownloadCallback, uc UploadCallback) error {
+func (c *HTTPClient) performOperation(ctx context.Context, ref string, objects []Pointer, dc DownloadCallback, uc UploadCallback) error {
 	if len(objects) == 0 {
 		return nil
 	}
@@ -133,7 +133,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 		operation = "upload"
 	}
 
-	result, err := c.batch(ctx, operation, objects)
+	result, err := c.batch(ctx, operation, ref, objects)
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func createRequest(ctx context.Context, method, url string, headers map[string]s
 }
 
 // performRequest sends a request, optionally performs a callback on the request and returns the response.
-// If the status code is 200, the response is returned, and it will contain a non-nil Body.
+// If the status code is in the 2xx range, the response is returned, and it will contain a non-nil Body.
 // Otherwise, it will return an error, and the Body will be nil or closed.
 func performRequest(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {
 	log.Trace("performRequest: %s", req.URL)
@@ -264,7 +264,7 @@ func performRequest(ctx context.Context, client *http.Client, req *http.Request)
 		return res, err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		defer res.Body.Close()
 		return res, handleErrorResponse(res)
 	}

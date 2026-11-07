@@ -22,8 +22,8 @@ func TestMigrationJSON_IssueOK(t *testing.T) {
 func TestMigrationJSON_IssueFail(t *testing.T) {
 	issues := make([]*Issue, 0, 10)
 	err := Load("file_format_testdata/issue_b.json", &issues, true)
-	if _, ok := err.(*jsonschema.ValidationError); ok {
-		errors := strings.Split(err.(*jsonschema.ValidationError).GoString(), "\n")
+	if validationErr, ok := err.(*jsonschema.ValidationError); ok {
+		errors := strings.Split(validationErr.GoString(), "\n")
 		assert.Contains(t, errors[1], "missing properties")
 		assert.Contains(t, errors[1], "poster_id")
 	} else {

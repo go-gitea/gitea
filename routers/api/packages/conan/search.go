@@ -72,7 +72,7 @@ func SearchPackagesV2(ctx *context.Context) {
 }
 
 func searchPackages(ctx *context.Context, searchAllRevisions bool) {
-	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
+	rref := getRecipeReference(ctx)
 
 	if !searchAllRevisions && rref.Revision == "" {
 		lastRevision, err := conan_model.GetLastRecipeRevision(ctx, ctx.Package.Owner.ID, rref)

@@ -30,7 +30,7 @@ func Test_AddUniqueIndexForProjectIssue(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, cnt)
 
-	assert.NoError(t, AddUniqueIndexForProjectIssue(x))
+	assert.NoError(t, AddUniqueIndexForProjectIssue(t.Context(), x))
 
 	cnt, err = x.Table("project_issue").Where("project_id=1 AND issue_id=1").Count()
 	assert.NoError(t, err)

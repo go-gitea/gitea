@@ -13,6 +13,7 @@ import (
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func fullWorkflowContent(part string) []byte {
@@ -25,6 +26,30 @@ jobs:
     steps:
       - run: echo hello
 `)
+}
+
+func TestReadWorkflowEventsStaticErrors(t *testing.T) {
+	for content, static := range map[string]bool{
+		"on: push\njobs: {}": true,
+		"on: push\njobs: {test: {runs-on: x, needs: absent}}":                                             true,
+		"on: push\njobs: {one: {runs-on: x, needs: two}, two: {runs-on: x, needs: one}}":                  true,
+		"on: push\njobs: {test: {runs-on: x, strategy: {matrix: {os: []}}}}":                              true,
+		"on: push\nrun-name: ${{ secrets.TOKEN }}\njobs: {test: {runs-on: x}}":                            true,
+		"on: push\njobs: {test: {steps: [{run: echo}]}}":                                                  true,
+		"on: push\nrun-name: ${{ fromJSON(inputs.x) }}\njobs: {test: {runs-on: x, steps: [{run: echo}]}}": false,
+	} {
+		_, gotStatic, err := readWorkflowEvents([]byte(content))
+		require.Error(t, err, content)
+		assert.Equal(t, static, gotStatic, content)
+	}
+	for _, content := range []string{
+		"on: push\njobs: {test: {runs-on: x, steps: [{run: echo}]}}",
+		"on: push\nrun-name: ${{ github.ref }}\njobs: {test: {runs-on: x}}",
+		"on: push\njobs: {call: {uses: ./.gitea/workflows/called.yml}}",
+	} {
+		_, _, err := readWorkflowEvents([]byte(content))
+		assert.NoError(t, err, content)
+	}
 }
 
 func TestIsWorkflow(t *testing.T) {
@@ -160,9 +185,16 @@ func TestDetectMatched(t *testing.T) {
 		{
 			desc:         "HookEventPullRequest(pull_request) `label_updated` action matches GithubEventPullRequest(pull_request) with `label` activity type",
 			triggedEvent: webhook_module.HookEventPullRequest,
-			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated},
+			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated, Changes: &api.ChangesPayload{AddedLabels: []*api.Label{{ID: 1, Name: "label"}}}},
 			yamlOn:       "on:\n  pull_request:\n    types: [labeled]",
 			expected:     detectMatched,
+		},
+		{
+			desc:         "HookEventPullRequestLabel(pull_request_label) label removal doesn't match GithubEventPullRequest(pull_request) with `labeled` activity type",
+			triggedEvent: webhook_module.HookEventPullRequestLabel,
+			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated, Changes: &api.ChangesPayload{RemovedLabels: []*api.Label{{ID: 1}}}},
+			yamlOn:       "on:\n  pull_request:\n    types: [labeled]",
+			expected:     detectNotApplicable,
 		},
 		{
 			desc:         "HookEventPullRequestReviewComment(pull_request_review_comment) matches GithubEventPullRequestReviewComment(pull_request_review_comment)",
@@ -184,6 +216,13 @@ func TestDetectMatched(t *testing.T) {
 			payload:      &api.ReleasePayload{Action: api.HookReleasePublished},
 			yamlOn:       "on:\n  release:\n    types: [published]",
 			expected:     detectMatched,
+		},
+		{
+			desc:         "HookEventRelease(release) doesn't match an invalid activity type pattern",
+			triggedEvent: webhook_module.HookEventRelease,
+			payload:      &api.ReleasePayload{Action: api.HookReleasePublished},
+			yamlOn:       "on:\n  release:\n    types: [\"[\"]",
+			expected:     detectNotApplicable,
 		},
 		{
 			desc:         "HookEventPackage(package) `created` action doesn't match GithubEventRegistryPackage(registry_package) with `updated` activity type",
@@ -249,6 +288,24 @@ func TestDetectMatched(t *testing.T) {
 }
 
 func TestMatchIssuesEvent(t *testing.T) {
+	labelChangesPayload := func() *api.IssuePayload {
+		return &api.IssuePayload{
+			Action: api.HookIssueLabelUpdated,
+			Issue: &api.Issue{
+				Labels: []*api.Label{
+					{ID: 789, Name: "new-label"},
+				},
+			},
+			Changes: &api.ChangesPayload{
+				AddedLabels: []*api.Label{
+					{ID: 789, Name: "new-label"},
+				},
+				RemovedLabels: []*api.Label{
+					{ID: 123, Name: "deleted-label"},
+				},
+			},
+		}
+	}
 	testCases := []struct {
 		desc      string
 		payload   *api.IssuePayload
@@ -326,67 +383,22 @@ func TestMatchIssuesEvent(t *testing.T) {
 			eventType: "unlabeled",
 		},
 		{
-			desc: "Both adding and removing labels should trigger labeled event",
-			payload: &api.IssuePayload{
-				Action: api.HookIssueLabelUpdated,
-				Issue: &api.Issue{
-					Labels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-				},
-				Changes: &api.ChangesPayload{
-					AddedLabels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-					RemovedLabels: []*api.Label{
-						{ID: 123, Name: "deleted-label"},
-					},
-				},
-			},
+			desc:      "Both adding and removing labels should trigger labeled event",
+			payload:   labelChangesPayload(),
 			yamlOn:    "on:\n  issues:\n    types: [labeled]",
 			expected:  true,
 			eventType: "labeled",
 		},
 		{
-			desc: "Both adding and removing labels should trigger unlabeled event",
-			payload: &api.IssuePayload{
-				Action: api.HookIssueLabelUpdated,
-				Issue: &api.Issue{
-					Labels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-				},
-				Changes: &api.ChangesPayload{
-					AddedLabels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-					RemovedLabels: []*api.Label{
-						{ID: 123, Name: "deleted-label"},
-					},
-				},
-			},
+			desc:      "Both adding and removing labels should trigger unlabeled event",
+			payload:   labelChangesPayload(),
 			yamlOn:    "on:\n  issues:\n    types: [unlabeled]",
 			expected:  true,
 			eventType: "unlabeled",
 		},
 		{
-			desc: "Both adding and removing labels should trigger both events",
-			payload: &api.IssuePayload{
-				Action: api.HookIssueLabelUpdated,
-				Issue: &api.Issue{
-					Labels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-				},
-				Changes: &api.ChangesPayload{
-					AddedLabels: []*api.Label{
-						{ID: 789, Name: "new-label"},
-					},
-					RemovedLabels: []*api.Label{
-						{ID: 123, Name: "deleted-label"},
-					},
-				},
-			},
+			desc:      "Both adding and removing labels should trigger both events",
+			payload:   labelChangesPayload(),
 			yamlOn:    "on:\n  issues:\n    types: [labeled, unlabeled]",
 			expected:  true,
 			eventType: "multiple",

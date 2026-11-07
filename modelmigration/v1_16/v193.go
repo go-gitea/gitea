@@ -3,9 +3,13 @@
 
 package v1_16
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddRepoIDForAttachment(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddRepoIDForAttachment(_ context.Context, x base.EngineMigration) error {
 	type Attachment struct {
 		ID         int64  `xorm:"pk autoincr"`
 		UUID       string `xorm:"uuid UNIQUE"`

@@ -4,6 +4,7 @@
 package v1_17
 
 import (
+	"context"
 	"encoding/base32"
 	"fmt"
 
@@ -11,7 +12,7 @@ import (
 	"gitea.dev/modules/timeutil"
 )
 
-func StoreWebauthnCredentialIDAsBytes(x base.EngineMigration) error {
+func StoreWebauthnCredentialIDAsBytes(_ context.Context, x base.EngineMigration) error {
 	// Create webauthnCredential table
 	type webauthnCredential struct {
 		ID           int64 `xorm:"pk autoincr"`

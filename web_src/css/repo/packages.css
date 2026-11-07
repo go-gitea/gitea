@@ -9,6 +9,24 @@
   width: calc(100% - 250px - 16px);
 }
 
+.packages-content-left .markup {
+  margin: var(--gap-block) 0;
+}
+
+.packages-content-left .markup pre.code-block {
+  margin: 0;
+}
+
+.package-manual-vars {
+  display: flex;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+.package-manual-vars select {
+  border-radius: var(--border-radius);
+}
+
 .packages-content-right {
   margin: 0 !important;
   width: 250px;

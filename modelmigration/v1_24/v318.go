@@ -4,12 +4,14 @@
 package v1_24
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddRepoUnitAnonymousAccessMode(x base.EngineMigration) error {
+func AddRepoUnitAnonymousAccessMode(_ context.Context, x base.EngineMigration) error {
 	type RepoUnit struct { //revive:disable-line:exported
 		AnonymousAccessMode int `xorm:"NOT NULL DEFAULT 0"`
 	}

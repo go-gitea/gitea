@@ -4,23 +4,30 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"path"
 	"testing"
 
+	"gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func assertLinkPageComplete(t *testing.T, session *TestSession, link string) {
+func assertLinkPageComplete(t *testing.T, session *TestSession, link string, containStrings ...string) {
+	t.Helper()
 	req := NewRequest(t, "GET", link)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "Page did not complete: "+link)
+	for _, s := range containStrings {
+		assert.Contains(t, resp.Body.String(), s, "Page does not contain expected string: "+s)
+	}
 }
 
 func TestLinks(t *testing.T) {
@@ -31,6 +38,42 @@ func TestLinks(t *testing.T) {
 	t.Run("NoLoginNotExist", testLinksNoLoginNotExist)
 	t.Run("AsUser", testLinksAsUser)
 	t.Run("RepoCommon", testLinksRepoCommon)
+	t.Run("ApiJson", testLinksApiJson)
+}
+
+func testLinksApiJson(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppVer, "1.2.3")()
+	defer test.MockVariableValue(&setting.AppSubURL)()
+	t.Run("Swagger", func(t *testing.T) {
+		for _, subURL := range []string{"", "/sub"} {
+			setting.AppSubURL = subURL
+			resp := MakeRequest(t, NewRequest(t, "GET", "/swagger.v1.json"), http.StatusOK)
+			decoded := DecodeJSON(t, resp, &struct {
+				BasePath string `json:"basePath"`
+				Info     struct {
+					Version string `json:"version"`
+				}
+			}{})
+			assert.Equal(t, subURL+"/api/v1", decoded.BasePath)
+			assert.Equal(t, "1.2.3", decoded.Info.Version)
+		}
+	})
+	t.Run("OpenAPI3", func(t *testing.T) {
+		for _, subURL := range []string{"", "/sub"} {
+			setting.AppSubURL = subURL
+			resp := MakeRequest(t, NewRequest(t, "GET", "/openapi3.v1.json"), http.StatusOK)
+			decoded := DecodeJSON(t, resp, &struct {
+				Servers []struct {
+					URL string `json:"url"`
+				} `json:"servers"`
+				Info struct {
+					Version string `json:"version"`
+				}
+			}{})
+			assert.Equal(t, subURL+"/api/v1", decoded.Servers[0].URL)
+			assert.Equal(t, "1.2.3", decoded.Info.Version)
+		}
+	})
 }
 
 func testLinksNoLogin(t *testing.T) {
@@ -56,6 +99,7 @@ func testLinksNoLogin(t *testing.T) {
 		assertLinkPageComplete(t, nil, link)
 	}
 	MakeRequest(t, NewRequest(t, "GET", "/.well-known/security.txt"), http.StatusOK)
+	MakeRequest(t, NewRequest(t, "GET", "/ssh_info"), http.StatusOK)
 }
 
 func testLinksRedirectsNoLogin(t *testing.T) {
@@ -91,6 +135,7 @@ func testLinksNoLoginNotExist(t *testing.T) {
 }
 
 func testLinksAsUser(t *testing.T) {
+	// TOOD: it is questionable whether it's worth to keep these tests, these endpoints should have their own tests
 	session := loginUser(t, "user2")
 	links := []string{
 		"/explore/repos",
@@ -130,6 +175,7 @@ func testLinksAsUser(t *testing.T) {
 		"/user2",
 		"/user2?tab=stars",
 		"/user2?tab=activity",
+		"/user2?tab=organizations",
 		"/user/settings",
 		"/user/settings/account",
 		"/user/settings/security",
@@ -146,6 +192,11 @@ func testLinksAsUser(t *testing.T) {
 	reqAPI := NewRequestf(t, "GET", "/api/v1/users/user2/repos")
 	respAPI := MakeRequest(t, reqAPI, http.StatusOK)
 	apiRepos := DecodeJSON(t, respAPI, []*api.Repository{})
+	assert.NotEmpty(t, apiRepos)
+
+	defer test.MockVariableValue(&setting.DisableGitHooks, false)()
+	_, err := db.GetEngine(t.Context()).ID(2).Cols("allow_git_hook").Update(&user_model.User{AllowGitHook: true})
+	require.NoError(t, err)
 	repoLinks := []string{
 		"",
 		"/issues",
@@ -156,49 +207,51 @@ func testLinksAsUser(t *testing.T) {
 		"/settings/collaboration",
 		"/settings/branches",
 		"/settings/hooks",
-		// FIXME: below links should return 200 but 404 ??
-		//"/settings/hooks/git",
-		//"/settings/hooks/git/pre-receive",
-		//"/settings/hooks/git/update",
-		//"/settings/hooks/git/post-receive",
+
+		"/settings/hooks/git",
+		"/settings/hooks/git/pre-receive",
+		"/settings/hooks/git/update",
+		"/settings/hooks/git/post-receive",
+
 		"/settings/keys",
 		"/releases",
 		"/releases/new",
-		//"/wiki/_pages",
+		"/wiki/?action=_pages",
 		"/wiki/?action=_new",
 		"/activity",
 	}
-	for _, repo := range apiRepos {
-		for _, link := range repoLinks {
-			link = fmt.Sprintf("/user2/%s%s", repo.Name, link)
-			assertLinkPageComplete(t, session, link)
-		}
+	for _, link := range repoLinks {
+		assertLinkPageComplete(t, session, "/user2/repo1"+link)
 	}
 }
 
 func testLinksRepoCommon(t *testing.T) {
 	// repo1 has enabled almost features, so we can test most links
 	repoLink := "/user2/repo1"
-	links := []string{
-		"/actions",
-		"/packages",
-		"/projects",
+
+	err := db.Insert(t.Context(), &actions.ActionRun{Title: "", RepoID: 1})
+	require.NoError(t, err)
+
+	links := map[string][]string{
+		"/actions":  {"(empty commit message)"},
+		"/packages": {},
+		"/projects": {},
 	}
 
 	// anonymous user
-	for _, link := range links {
-		assertLinkPageComplete(t, nil, repoLink+link)
+	for link, strs := range links {
+		assertLinkPageComplete(t, nil, repoLink+link, strs...)
 	}
 
 	// admin/owner user
 	session := loginUser(t, "user1")
-	for _, link := range links {
-		assertLinkPageComplete(t, session, repoLink+link)
+	for link, strs := range links {
+		assertLinkPageComplete(t, session, repoLink+link, strs...)
 	}
 
 	// non-admin non-owner user
 	session = loginUser(t, "user2")
-	for _, link := range links {
-		assertLinkPageComplete(t, session, repoLink+link)
+	for link, strs := range links {
+		assertLinkPageComplete(t, session, repoLink+link, strs...)
 	}
 }

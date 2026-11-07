@@ -5,6 +5,7 @@ package web
 
 import (
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -16,16 +17,21 @@ import (
 )
 
 type RouterPathGroup struct {
-	r         *Router
-	pathParam string
-	matchers  []*routerPathMatcher
+	r           *Router
+	pathParam   string
+	matchers    []*routerPathMatcher
+	unescape    bool
+	middlewares []any
 }
 
 func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	chiCtx := chi.RouteContext(req.Context())
 	path := chiCtx.URLParam(g.pathParam)
+	if g.unescape {
+		path, _ = url.PathUnescape(path)
+	}
 	for _, m := range g.matchers {
-		if m.matchPath(chiCtx, path) {
+		if m.matchPath(chiCtx, path, g.unescape) {
 			chiCtx.RoutePatterns = append(chiCtx.RoutePatterns, m.pattern)
 			executeMiddlewaresHandler(resp, req, m.middlewares, m.handlerFunc)
 			return
@@ -50,7 +56,11 @@ func (g *RouterPathGroup) MatchPath(methods, pattern string, h ...any) {
 }
 
 func (g *RouterPathGroup) MatchPattern(methods string, pattern *RouterPathGroupPattern, h ...any) {
-	g.matchers = append(g.matchers, newRouterPathMatcher(methods, pattern, h...))
+	g.matchers = append(g.matchers, newRouterPathMatcher(methods, pattern, g.middlewares, h...))
+}
+
+func (g *RouterPathGroup) UseUnescapedPath() {
+	g.unescape = true
 }
 
 type routerPathParam struct {
@@ -68,7 +78,7 @@ type routerPathMatcher struct {
 	handlerFunc http.HandlerFunc
 }
 
-func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string) bool {
+func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string, unescaped bool) bool {
 	if !p.methods.Contains(chiCtx.RouteMethod) {
 		return false
 	}
@@ -102,6 +112,9 @@ func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string) bool {
 		if p.params[i].pathSepEnd {
 			val = strings.TrimSuffix(val, "/")
 		}
+		if unescaped {
+			val = url.PathEscape(val)
+		}
 		chiCtx.URLParams.Add(p.params[i].name, val)
 	}
 	return true
@@ -115,8 +128,8 @@ func isValidMethod(name string) bool {
 	return false
 }
 
-func newRouterPathMatcher(methods string, patternRegexp *RouterPathGroupPattern, h ...any) *routerPathMatcher {
-	middlewares, handlerFunc, hasPreMiddlewares := wrapMiddlewareAndHandler(nil, patternRegexp.middlewares, h)
+func newRouterPathMatcher(methods string, patternRegexp *RouterPathGroupPattern, uses []any, h ...any) *routerPathMatcher {
+	middlewares, handlerFunc, hasPreMiddlewares := wrapMiddlewareAndHandler(uses, patternRegexp.middlewares, h)
 	if hasPreMiddlewares {
 		panic("pre-middlewares are not supported in router path matcher")
 	}

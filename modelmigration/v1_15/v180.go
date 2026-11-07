@@ -4,6 +4,8 @@
 package v1_15
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
@@ -11,7 +13,7 @@ import (
 	"xorm.io/builder"
 )
 
-func DeleteMigrationCredentials(x base.EngineMigration) (err error) {
+func DeleteMigrationCredentials(_ context.Context, x base.EngineMigration) (err error) {
 	// Task represents a task
 	type Task struct {
 		ID             int64

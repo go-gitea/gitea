@@ -105,6 +105,20 @@ type swaggerResponseHookList struct {
 	Body []api.Hook `json:"body"`
 }
 
+// HookDelivery
+// swagger:response HookDelivery
+type swaggerResponseHookDelivery struct {
+	// in:body
+	Body api.HookDelivery `json:"body"`
+}
+
+// HookDeliveryList
+// swagger:response HookDeliveryList
+type swaggerResponseHookDeliveryList struct {
+	// in:body
+	Body []api.HookDelivery `json:"body"`
+}
+
 // GitHook
 // swagger:response GitHook
 type swaggerResponseGitHook struct {
@@ -248,7 +262,7 @@ type swaggerCommitList struct {
 	PerPage int `json:"X-PerPage"`
 
 	// Total commit count
-	Total int `json:"X-Total"`
+	Total int `json:"X-Total-Count"`
 
 	// Total number of pages
 	PageCount int `json:"X-PageCount"`
@@ -266,11 +280,11 @@ type swaggerChangedFileList struct {
 	// The current page
 	Page int `json:"X-Page"`
 
-	// Commits per page
+	// Files per page
 	PerPage int `json:"X-PerPage"`
 
-	// Total commit count
-	Total int `json:"X-Total"`
+	// Total file count
+	Total int `json:"X-Total-Count"`
 
 	// Total number of pages
 	PageCount int `json:"X-PageCount"`
@@ -287,13 +301,6 @@ type swaggerChangedFileList struct {
 type swaggerNote struct {
 	// in: body
 	Body api.Note `json:"body"`
-}
-
-// EmptyRepository
-// swagger:response EmptyRepository
-type swaggerEmptyRepository struct {
-	// in: body
-	Body api.APIError `json:"body"`
 }
 
 // FileResponse

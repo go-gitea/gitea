@@ -5,6 +5,7 @@ package repo
 
 import (
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -13,9 +14,9 @@ import (
 // LockIssue locks an issue. This would limit commenting abilities to
 // users with write access to the repo.
 func LockIssue(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.IssueLockForm)
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
+	form := web.GetForm[*forms.IssueLockForm](ctx)
+	issue := GetActionIssue(ctx, perm.AccessModeWrite)
+	if issue == nil {
 		return
 	}
 
@@ -38,8 +39,8 @@ func LockIssue(ctx *context.Context) {
 
 // UnlockIssue unlocks a previously locked issue.
 func UnlockIssue(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
+	issue := GetActionIssue(ctx, perm.AccessModeWrite)
+	if issue == nil {
 		return
 	}
 

@@ -16,7 +16,7 @@ export async function initAdminSelfCheck() {
       now: String(Date.now()), // TODO: check time difference between server and client
     }),
   });
-  const json: Record<string, any> = await resp.json();
+  const json: {problems: string[] | null} = await resp.json();
   toggleElem(elCheckByFrontend, Boolean(json.problems?.length));
   for (const problem of json.problems ?? []) {
     const elProblem = document.createElement('div');

@@ -4,18 +4,20 @@
 package v1_25
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/setting"
 
 	"xorm.io/xorm/schemas"
 )
 
-func UseLongTextInSomeColumnsAndFixBugs(x base.EngineMigration) error {
+func UseLongTextInSomeColumnsAndFixBugs(ctx context.Context, x base.EngineMigration) error {
 	if !setting.Database.Type.IsMySQL() {
 		return nil // Only mysql need to change from text to long text, for other databases, they are the same
 	}
 
-	if err := base.ModifyColumn(x, "review_state", &schemas.Column{
+	if err := base.ModifyColumn(ctx, x, "review_state", &schemas.Column{
 		Name: "updated_files",
 		SQLType: schemas.SQLType{
 			Name: "LONGTEXT",
@@ -27,7 +29,7 @@ func UseLongTextInSomeColumnsAndFixBugs(x base.EngineMigration) error {
 		return err
 	}
 
-	if err := base.ModifyColumn(x, "package_property", &schemas.Column{
+	if err := base.ModifyColumn(ctx, x, "package_property", &schemas.Column{
 		Name: "value",
 		SQLType: schemas.SQLType{
 			Name: "LONGTEXT",
@@ -39,7 +41,7 @@ func UseLongTextInSomeColumnsAndFixBugs(x base.EngineMigration) error {
 		return err
 	}
 
-	return base.ModifyColumn(x, "notice", &schemas.Column{
+	return base.ModifyColumn(ctx, x, "notice", &schemas.Column{
 		Name: "description",
 		SQLType: schemas.SQLType{
 			Name: "LONGTEXT",

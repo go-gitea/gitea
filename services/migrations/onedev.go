@@ -5,6 +5,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -74,28 +75,20 @@ type OneDevDownloader struct {
 	maxIssueIndex int64
 	userMap       map[int64]*onedevUser
 	milestoneMap  map[int64]string
+
+	cachedServerVersion *version.Version
 }
 
 // NewOneDevDownloader creates a new downloader
-func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, password, repoPath string) *OneDevDownloader {
-	httpTransport := NewMigrationHTTPTransport()
-	downloader := &OneDevDownloader{
+func NewOneDevDownloader(_ context.Context, baseURL *url.URL, username, password, repoPath string) *OneDevDownloader {
+	return &OneDevDownloader{
 		baseURL:  baseURL,
 		repoPath: repoPath,
-		client: &http.Client{
-			Transport: roundTripperFunc(
-				func(req *http.Request) (*http.Response, error) {
-					if username != "" && password != "" {
-						req.SetBasicAuth(username, password)
-					}
-					return httpTransport.RoundTrip(req.WithContext(ctx))
-				}),
-		},
+
+		client:       newMigrationHTTPClient(baseURL.String(), basicAuthorization(username, password)),
 		userMap:      make(map[int64]*onedevUser),
 		milestoneMap: make(map[int64]string),
 	}
-
-	return downloader
 }
 
 // String implements Stringer
@@ -110,10 +103,10 @@ func (d *OneDevDownloader) LogString() string {
 	return fmt.Sprintf("<OneDevDownloader %s [%d]/%s>", d.baseURL, d.repoID, d.repoPath)
 }
 
-func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, parameter map[string]string, result any) error {
+func (d *OneDevDownloader) makeRequest(ctx context.Context, endpoint string, parameter map[string]string) (*http.Response, error) {
 	u, err := d.baseURL.Parse(endpoint)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if parameter != nil {
@@ -126,49 +119,73 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	return d.client.Do(req)
+}
 
-	resp, err := d.client.Do(req)
+func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, parameter map[string]string, result any) error {
+	resp, err := d.makeRequest(ctx, endpoint, parameter)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	// special case to read OneDev server version, which is not valid JSON
-	if presult, ok := result.(**version.Version); ok {
-		bytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		vers, err := version.NewVersion(string(bytes))
-		if err != nil {
-			return err
-		}
-		*presult = vers
-		return nil
-	}
-
 	decoder := json.NewDecoder(resp.Body)
 	return decoder.Decode(&result)
+}
+
+func (d *OneDevDownloader) getServerVersionByEndpoint(ctx context.Context, endpoint string) (*version.Version, error) {
+	resp, err := d.makeRequest(ctx, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("OneDev server version request failed: %s", resp.Status)
+	}
+	// This patch doesn't change the situation, "decoder.Decode(&result)" in callAPI still reads the entire body.
+	// Also, the methods like GetMilestones can read plenty of responses into memory even if each single is small.
+	bytes, err := io.ReadAll(io.LimitReader(resp.Body, 1024))
+	if err != nil {
+		return nil, err
+	}
+	ver, err := version.NewVersion(string(bytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse OneDev server version %q: %w", string(bytes), err)
+	}
+	return ver, nil
+}
+
+// getServerVersion reads the OneDev server version.
+func (d *OneDevDownloader) getServerVersion(ctx context.Context) (_ *version.Version, retErr error) {
+	if d.cachedServerVersion != nil {
+		return d.cachedServerVersion, nil
+	}
+	// OneDev moved the endpoint from /~api/version/server to /~api/server/version in 16.8, so both are tried, the new first.
+	oneDevVersionEndpoints := []string{"/~api/server/version", "/~api/version/server"}
+	for _, endpoint := range oneDevVersionEndpoints {
+		ver, err := d.getServerVersionByEndpoint(ctx, endpoint)
+		if err == nil {
+			d.cachedServerVersion = ver
+			return ver, nil
+		}
+		retErr = errors.Join(err, fmt.Errorf("failed to get OneDev server version via %s: %w", endpoint, err))
+	}
+	return nil, retErr
 }
 
 // GetRepoInfo returns repository information
 func (d *OneDevDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, error) {
 	// check OneDev server version
-	var serverVersion *version.Version
-	err := d.callAPI(
-		ctx,
-		"/~api/version/server",
-		nil,
-		&serverVersion,
-	)
+	serverVersion, err := d.getServerVersion(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get OneDev server version; OneDev %s or newer required", OneDevRequiredVersion)
+		return nil, fmt.Errorf("OneDev %s or newer is required: %w", OneDevRequiredVersion, err)
 	}
 	requiredVersion, _ := version.NewVersion(OneDevRequiredVersion)
 	if serverVersion.LessThan(requiredVersion) {
-		return nil, fmt.Errorf("OneDev %s or newer required; currently running OneDev %s", OneDevRequiredVersion, serverVersion)
+		return nil, fmt.Errorf("OneDev version %s is too old, %s or newer is required", serverVersion, OneDevRequiredVersion)
 	}
 
 	info := make([]struct {

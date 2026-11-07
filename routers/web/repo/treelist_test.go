@@ -28,6 +28,12 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 			HeadPath: "file1",
 			HeadMode: git.EntryModeBlob,
 		},
+		{
+			Status:   "renamed",
+			BasePath: "file2-old",
+			HeadPath: "file2",
+			HeadMode: git.EntryModeBlob,
+		},
 	}}, map[string]pull_model.ViewedState{
 		"dir-a/dir-a-x/file-deep": pull_model.Viewed,
 	})
@@ -60,6 +66,15 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 					FullName:    "file1",
 					NameHash:    "60b27f004e454aca81b0480209cce5081ec52390",
 					DiffStatus:  "added",
+					FileIcon:    mockIconForFile(`svg-mfi-file`),
+				},
+				{
+					EntryMode:   "",
+					DisplayName: "file2",
+					FullName:    "file2",
+					OldFullName: "file2-old",
+					NameHash:    "cb99b709a1978bd205ab9dfd4c5aaa1fc91c7523",
+					DiffStatus:  "renamed",
 					FileIcon:    mockIconForFile(`svg-mfi-file`),
 				},
 			},

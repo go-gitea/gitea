@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-const isOSWindows = runtime.GOOS == "windows"
-
 func CallerFuncName(optSkipParent ...int) string {
 	pc := make([]uintptr, 1)
 	skipParent := 0

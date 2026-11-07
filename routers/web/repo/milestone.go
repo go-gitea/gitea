@@ -88,8 +88,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestone)
@@ -105,7 +104,7 @@ func NewMilestone(ctx *context.Context) {
 
 // NewMilestonePost response for creating milestone
 func NewMilestonePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
+	form := web.GetForm[*forms.CreateMilestoneForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
@@ -136,7 +135,7 @@ func NewMilestonePost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
 }
 
-// EditMilestone render edting milestone page
+// EditMilestone render editing milestone page
 func EditMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
@@ -159,9 +158,9 @@ func EditMilestone(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
-// EditMilestonePost response for edting milestone
+// EditMilestonePost response for editing milestone
 func EditMilestonePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
+	form := web.GetForm[*forms.CreateMilestoneForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
@@ -199,7 +198,7 @@ func EditMilestonePost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
 }
 
-// ChangeMilestoneStatus response for change a milestone's status
+// ChangeMilestoneStatus response for changing a milestone's status
 func ChangeMilestoneStatus(ctx *context.Context) {
 	var toClose bool
 	switch ctx.PathParam("action") {
@@ -260,7 +259,12 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool]())
+	isPull, ok := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, ctx.FormString("type"))
+	if !ok {
+		ctx.HTTPError(http.StatusForbidden, "no permission to read issues or pulls")
+		return
+	}
+	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, isPull)
 
 	ret := issue.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret.IssueTemplates) > 0

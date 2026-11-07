@@ -3,12 +3,16 @@
 
 package v1_14
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
+
+	"gitea.dev/modelmigration/base"
+)
 
 // RemoveInvalidLabels looks through the database to look for comments and issue_labels
 // that refer to labels do not belong to the repository or organization that repository
 // that the issue is in
-func RemoveInvalidLabels(x base.EngineMigration) error {
+func RemoveInvalidLabels(_ context.Context, x base.EngineMigration) error {
 	type Comment struct {
 		ID      int64 `xorm:"pk autoincr"`
 		Type    int   `xorm:"INDEX"`

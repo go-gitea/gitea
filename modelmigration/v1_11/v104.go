@@ -4,10 +4,12 @@
 package v1_11
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 )
 
-func RemoveLabelUneededCols(x base.EngineMigration) error {
+func RemoveLabelUneededCols(_ context.Context, x base.EngineMigration) error {
 	// Make sure the columns exist before dropping them
 	type Label struct {
 		QueryString string

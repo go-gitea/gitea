@@ -11,22 +11,20 @@ import (
 )
 
 func TestDecodeEnvSectionKey(t *testing.T) {
-	ok, section, key := decodeEnvSectionKey("SEC__KEY")
-	assert.True(t, ok)
-	assert.Equal(t, "sec", section)
-	assert.Equal(t, "KEY", key)
+	for _, tc := range []struct {
+		input, section, key string
+	}{
+		{"SEC__KEY", "sec", "KEY"},
+		{"sec__key", "sec", "key"},
+		{"LOG_0x2E_CONSOLE__STDERR", "log.console", "STDERR"},
+	} {
+		ok, section, key := decodeEnvSectionKey(tc.input)
+		assert.True(t, ok)
+		assert.Equal(t, tc.section, section)
+		assert.Equal(t, tc.key, key)
+	}
 
-	ok, section, key = decodeEnvSectionKey("sec__key")
-	assert.True(t, ok)
-	assert.Equal(t, "sec", section)
-	assert.Equal(t, "key", key)
-
-	ok, section, key = decodeEnvSectionKey("LOG_0x2E_CONSOLE__STDERR")
-	assert.True(t, ok)
-	assert.Equal(t, "log.console", section)
-	assert.Equal(t, "STDERR", key)
-
-	ok, section, key = decodeEnvSectionKey("SEC")
+	ok, section, key := decodeEnvSectionKey("SEC")
 	assert.False(t, ok)
 	assert.Empty(t, section)
 	assert.Empty(t, key)
@@ -36,19 +34,15 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 	prefix := "GITEA__"
 	suffix := "__FILE"
 
-	ok, section, key, file := decodeEnvironmentKey(prefix, suffix, "SEC__KEY")
-	assert.False(t, ok)
-	assert.Empty(t, section)
-	assert.Empty(t, key)
-	assert.False(t, file)
+	for _, input := range []string{"SEC__KEY", "GITEA__SEC"} {
+		ok, section, key, file := decodeEnvironmentKey(prefix, suffix, input)
+		assert.False(t, ok)
+		assert.Empty(t, section)
+		assert.Empty(t, key)
+		assert.False(t, file)
+	}
 
-	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC")
-	assert.False(t, ok)
-	assert.Empty(t, section)
-	assert.Empty(t, key)
-	assert.False(t, file)
-
-	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA____KEY")
+	ok, section, key, file := decodeEnvironmentKey(prefix, suffix, "GITEA____KEY")
 	assert.True(t, ok)
 	assert.Empty(t, section)
 	assert.Equal(t, "KEY", key)
@@ -103,20 +97,18 @@ key = old
 	assert.True(t, changed)
 	assert.Equal(t, "value-from-file", cfg.Section("sec").Key("key").String())
 
-	cfg, _ = NewConfigProviderFromData("")
-	_ = os.WriteFile(tmpFile, []byte("value-from-file\n"), 0o644)
-	EnvironmentToConfig(cfg, []string{"GITEA__sec__key__FILE=" + tmpFile})
-	assert.Equal(t, "value-from-file", cfg.Section("sec").Key("key").String())
-
-	cfg, _ = NewConfigProviderFromData("")
-	_ = os.WriteFile(tmpFile, []byte("value-from-file\r\n"), 0o644)
-	EnvironmentToConfig(cfg, []string{"GITEA__sec__key__FILE=" + tmpFile})
-	assert.Equal(t, "value-from-file", cfg.Section("sec").Key("key").String())
-
-	cfg, _ = NewConfigProviderFromData("")
-	_ = os.WriteFile(tmpFile, []byte("value-from-file\n\n"), 0o644)
-	EnvironmentToConfig(cfg, []string{"GITEA__sec__key__FILE=" + tmpFile})
-	assert.Equal(t, "value-from-file\n", cfg.Section("sec").Key("key").String())
+	for _, tc := range []struct {
+		content, want string
+	}{
+		{"value-from-file\n", "value-from-file"},
+		{"value-from-file\r\n", "value-from-file"},
+		{"value-from-file\n\n", "value-from-file\n"},
+	} {
+		cfg, _ = NewConfigProviderFromData("")
+		_ = os.WriteFile(tmpFile, []byte(tc.content), 0o644)
+		EnvironmentToConfig(cfg, []string{"GITEA__sec__key__FILE=" + tmpFile})
+		assert.Equal(t, tc.want, cfg.Section("sec").Key("key").String())
+	}
 }
 
 func TestEnvironmentToConfigSubSecKey(t *testing.T) {

@@ -3,9 +3,13 @@
 
 package v1_21
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddVersionToActionRunTable(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddVersionToActionRunTable(_ context.Context, x base.EngineMigration) error {
 	type ActionRun struct {
 		Version int `xorm:"version default 0"`
 	}

@@ -3,9 +3,13 @@
 
 package v1_10
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddEmailNotificationEnabledToUser(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddEmailNotificationEnabledToUser(_ context.Context, x base.EngineMigration) error {
 	// User see models/user.go
 	type User struct {
 		EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`

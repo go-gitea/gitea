@@ -3,9 +3,13 @@
 
 package v1_12
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddRequireSignedCommits(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddRequireSignedCommits(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		RequireSignedCommits bool `xorm:"NOT NULL DEFAULT false"`
 	}

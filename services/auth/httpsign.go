@@ -77,9 +77,6 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		log.Error("GetUserByID:  %v", err)
 		return nil, err
 	}
-
-	store.GetData()["IsApiToken"] = true
-
 	log.Trace("HTTP Sign: Logged in user %-v", u)
 
 	return u, nil
@@ -170,13 +167,13 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 	// Now for each of the certificate valid principals
 	for _, principal := range cert.ValidPrincipals {
 		// Look in the db for the public key
-		publicKey, err := asymkey_model.SearchPublicKeyByContentExact(r.Context(), principal)
+		publicKey, err := asymkey_model.SearchPrincipalKey(r.Context(), principal)
 		if asymkey_model.IsErrKeyNotExist(err) {
 			// No public key matches this principal - try the next principal
 			continue
 		} else if err != nil {
 			// this error will be a db error therefore we can't solve this and we should abort
-			log.Error("SearchPublicKeyByContentExact: %v", err)
+			log.Error("SearchPrincipalKey: %v", err)
 			return nil, err
 		}
 
@@ -197,7 +194,11 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 // doVerify iterates across the provided public keys attempting the verify the current request against each key in turn
 func doVerify(verifier httpsig.Verifier, sshPublicKeys []ssh.PublicKey) error {
 	for _, publicKey := range sshPublicKeys {
-		cryptoPubkey := publicKey.(ssh.CryptoPublicKey).CryptoPublicKey()
+		cryptoPublicKey, ok := publicKey.(ssh.CryptoPublicKey)
+		if !ok {
+			continue
+		}
+		cryptoPubkey := cryptoPublicKey.CryptoPublicKey()
 
 		var algos []httpsig.Algorithm
 

@@ -3,9 +3,13 @@
 
 package v1_19
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddIndexForHookTask(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddIndexForHookTask(_ context.Context, x base.EngineMigration) error {
 	type HookTask struct {
 		ID     int64  `xorm:"pk autoincr"`
 		HookID int64  `xorm:"index"`

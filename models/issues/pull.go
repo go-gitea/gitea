@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"time"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -24,7 +23,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	"github.com/dlclark/regexp2/v2"
 	"xorm.io/builder"
 )
 
@@ -202,15 +200,10 @@ func (pr *PullRequest) String() string {
 	return s.String()
 }
 
-// MustHeadUserName returns the HeadRepo's username if failed return blank
-func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
-	if err := pr.LoadHeadRepo(ctx); err != nil {
-		if !repo_model.IsErrRepoNotExist(err) {
-			log.Error("LoadHeadRepo: %v", err)
-		} else {
-			log.Warn("LoadHeadRepo %d but repository does not exist: %v", pr.HeadRepoID, err)
-		}
-		return ""
+// OptionalHeadUserName returns the HeadRepo's username if failed return blank
+func (pr *PullRequest) OptionalHeadUserName(ctx context.Context) string {
+	if err := pr.LoadHeadRepo(ctx); err != nil && !errors.Is(err, util.ErrNotExist) {
+		log.Error("LoadHeadRepo: %v", err)
 	}
 	if pr.HeadRepo == nil {
 		return ""
@@ -221,16 +214,10 @@ func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
 // LoadAttributes loads pull request attributes from database
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
-	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = user_model.GetUserByID(ctx, pr.MergerID)
-		if user_model.IsErrUserNotExist(err) {
-			pr.MergerID = user_model.GhostUserID
-			pr.Merger = user_model.NewGhostUser()
-		} else if err != nil {
-			return fmt.Errorf("getUserByID [%d]: %w", pr.MergerID, err)
-		}
+	if pr.Merger == nil && pr.MergerID != 0 {
+		pr.MergerID, pr.Merger, err = user_model.GetPossibleUserByID(ctx, pr.MergerID)
+		return err
 	}
-
 	return nil
 }
 
@@ -389,7 +376,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 	reviewersWritten := 0
 
 	for _, review := range reviews {
-		if maxReviewers > 0 && reviewersWritten > maxReviewers {
+		if maxReviewers > 0 && reviewersWritten >= maxReviewers {
 			break
 		}
 
@@ -415,7 +402,22 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 
 // GetGitHeadRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefName but not string
-	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
+	return git.RefNameFromPullIndex(pr.Index).String()
+}
+
+func (pr *PullRequest) GetInstructionsCliArgs() (ret struct {
+	BaseBranchArg  string
+	HeadBranchArg  string
+	LocalBranchArg string
+},
+) {
+	ret.BaseBranchArg = util.ShellEscape(pr.BaseBranch)
+	ret.HeadBranchArg = util.ShellEscape(pr.HeadBranch)
+	ret.LocalBranchArg = ret.HeadBranchArg
+	if pr.HeadRepo != nil && pr.HeadRepoID != pr.BaseRepoID {
+		ret.LocalBranchArg = util.ShellEscape(pr.HeadRepo.OwnerName) + "-" + ret.HeadBranchArg
+	}
+	return ret
 }
 
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
@@ -821,162 +823,6 @@ func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *
 	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
 }
 
-// GetCodeOwnersFromContent returns the code owners configuration
-// Return empty slice if files missing
-// Return warning messages on parsing errors
-// We're trying to do the best we can when parsing a file.
-// Invalid lines are skipped. Non-existent users and teams too.
-func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRule, []string) {
-	if len(data) == 0 {
-		return nil, nil
-	}
-
-	rules := make([]*CodeOwnerRule, 0)
-	lines := strings.Split(data, "\n")
-	warnings := make([]string, 0)
-
-	for i, line := range lines {
-		tokens := TokenizeCodeOwnersLine(line)
-		if len(tokens) == 0 {
-			continue
-		} else if len(tokens) < 2 {
-			warnings = append(warnings, fmt.Sprintf("Line: %d: incorrect format", i+1))
-			continue
-		}
-		rule, wr := ParseCodeOwnersLine(ctx, tokens)
-		for _, w := range wr {
-			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", i+1, w))
-		}
-		if rule == nil {
-			continue
-		}
-
-		rules = append(rules, rule)
-	}
-
-	return rules, warnings
-}
-
-// codeOwnerMatchTimeout bounds a single pattern match so a crafted pattern
-// cannot stall via catastrophic backtracking. See also the aggregate budget
-// enforced by the caller across the whole rules×files match loop.
-const codeOwnerMatchTimeout = 150 * time.Millisecond
-
-type CodeOwnerRule struct {
-	Rule     *regexp2.Regexp // it supports negative lookahead, does better for end users
-	Negative bool
-	Users    []*user_model.User
-	Teams    []*org_model.Team
-}
-
-func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, []string) {
-	var err error
-	rule := &CodeOwnerRule{
-		Users:    make([]*user_model.User, 0),
-		Teams:    make([]*org_model.Team, 0),
-		Negative: strings.HasPrefix(tokens[0], "!"),
-	}
-
-	warnings := make([]string, 0)
-
-	// Strip leading "!" for negative rules, then strip leading "/" since
-	// git returns relative paths (e.g. "docs/foo.md" not "/docs/foo.md")
-	// and the regex is already anchored with ^...$, so the "/" is redundant.
-	pattern := strings.TrimPrefix(tokens[0], "!")
-	pattern = strings.TrimPrefix(pattern, "/")
-	expr := fmt.Sprintf("^%s$", pattern)
-	rule.Rule, err = regexp2.Compile(expr, regexp2.None)
-	if err != nil {
-		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
-		return nil, warnings
-	}
-	// Bound matching time so user-supplied patterns cannot stall PR creation via catastrophic backtracking.
-	rule.Rule.MatchTimeout = codeOwnerMatchTimeout
-
-	for _, user := range tokens[1:] {
-		user = strings.TrimPrefix(user, "@")
-
-		// Only @org/team can contain slashes
-		if strings.Contains(user, "/") {
-			s := strings.Split(user, "/")
-			if len(s) != 2 {
-				warnings = append(warnings, "incorrect codeowner group: "+user)
-				continue
-			}
-			orgName := s[0]
-			teamName := s[1]
-
-			org, err := org_model.GetOrgByName(ctx, orgName)
-			if err != nil {
-				warnings = append(warnings, "incorrect codeowner organization: "+user)
-				continue
-			}
-			teams, err := org.LoadTeams(ctx)
-			if err != nil {
-				warnings = append(warnings, "incorrect codeowner team: "+user)
-				continue
-			}
-
-			for _, team := range teams {
-				if team.Name == teamName {
-					rule.Teams = append(rule.Teams, team)
-				}
-			}
-		} else {
-			u, err := user_model.GetUserByName(ctx, user)
-			if err != nil {
-				warnings = append(warnings, "incorrect codeowner user: "+user)
-				continue
-			}
-			rule.Users = append(rule.Users, u)
-		}
-	}
-
-	if (len(rule.Users) == 0) && (len(rule.Teams) == 0) {
-		warnings = append(warnings, "no users/groups matched")
-		return nil, warnings
-	}
-
-	return rule, warnings
-}
-
-func TokenizeCodeOwnersLine(line string) []string {
-	if len(line) == 0 {
-		return nil
-	}
-
-	line = strings.TrimSpace(line)
-	line = strings.ReplaceAll(line, "\t", " ")
-
-	tokens := make([]string, 0)
-
-	escape := false
-	token := ""
-	for _, char := range line {
-		if escape {
-			token += string(char)
-			escape = false
-		} else if string(char) == "\\" {
-			escape = true
-		} else if string(char) == "#" {
-			break
-		} else if string(char) == " " {
-			if len(token) > 0 {
-				tokens = append(tokens, token)
-				token = ""
-			}
-		} else {
-			token += string(char)
-		}
-	}
-
-	if len(token) > 0 {
-		tokens = append(tokens, token)
-	}
-
-	return tokens
-}
-
 // InsertPullRequests inserted pull requests
 func InsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -1011,4 +857,17 @@ func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string)
 	}
 
 	return pr, nil
+}
+
+// GetPullRequestRequestedReviewerIDs returns IDs of reviewers currently requested for the given pull request.
+func GetPullRequestRequestedReviewerIDs(ctx context.Context, issueID int64) ([]int64, error) {
+	userIDs := make([]int64, 0, 5)
+	return userIDs, db.GetEngine(ctx).
+		Table("review").
+		Cols("reviewer_id").
+		Where("issue_id=?", issueID).
+		And("type=?", ReviewTypeRequest).
+		And("reviewer_id > 0").
+		Distinct("reviewer_id").
+		Find(&userIDs)
 }

@@ -1,0 +1,22 @@
+{{$repoFullName := .RepoFullName}}
+{{$repoOperationLink := .RepoOperationLink}}
+{{$repoOperationAction := .RepoOperationAction}}
+{{$repoOperationText := .RepoOperationText}}
+<form class="ui form form-fetch-action" action="{{$repoOperationLink}}" method="post">
+	<input type="hidden" name="action" value="{{$repoOperationAction}}">
+	<div class="field">
+		<label>{{ctx.Locale.Tr "repo.settings.enter_repo_name_to_confirm"}} <span class="tw-text-red">{{$repoFullName}}</span></label>
+	</div>
+	<div class="required field">
+		<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+		<input name="repo_name" required>
+	</div>
+	{{if eq $repoOperationAction "transfer"}}
+		<div class="required field">
+			<label>{{ctx.Locale.Tr "repo.settings.transfer_owner"}}</label>
+			<input name="new_owner_name" required>
+		</div>
+	{{end}}
+	{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" $repoOperationText)}}
+</form>
+

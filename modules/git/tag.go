@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"sort"
+	"time"
 
 	"gitea.dev/modules/util"
 )
@@ -21,6 +22,8 @@ type Tag struct {
 	Type      string
 	Tagger    *Signature
 	Signature *CommitSignature
+
+	CommitDate time.Time // committer date of Object, only GetTagInfos resolves it
 }
 
 func parsePayloadSignature(data []byte, messageStart int) (payload, msg, sign string) {

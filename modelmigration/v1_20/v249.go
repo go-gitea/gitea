@@ -4,6 +4,8 @@
 package v1_20
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 
@@ -40,6 +42,6 @@ func (a *Action) TableIndices() []*schemas.Index {
 	return indices
 }
 
-func ImproveActionTableIndices(x base.EngineMigration) error {
+func ImproveActionTableIndices(_ context.Context, x base.EngineMigration) error {
 	return x.Sync(new(Action))
 }

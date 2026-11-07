@@ -4,12 +4,14 @@
 package v1_26
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddDisabledToActionRunner(x base.EngineMigration) error {
+func AddDisabledToActionRunner(_ context.Context, x base.EngineMigration) error {
 	type ActionRunner struct {
 		IsDisabled bool `xorm:"is_disabled NOT NULL DEFAULT false"`
 	}

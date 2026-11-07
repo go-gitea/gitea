@@ -4,6 +4,8 @@
 package v1_27
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
@@ -17,7 +19,7 @@ func (mirrorWithLastSyncUnix) TableName() string {
 	return "mirror"
 }
 
-func AddLastSyncUnixToMirror(x base.EngineMigration) error {
+func AddLastSyncUnixToMirror(_ context.Context, x base.EngineMigration) error {
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 	}, new(mirrorWithLastSyncUnix))

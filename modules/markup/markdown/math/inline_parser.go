@@ -91,6 +91,7 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 	} else {
 		startMarkLen = 2
 		stopMark = parser.endBytesParentheses
+		checkSurrounding = false // explicit delimiters like "$`...`$", adjacent text is unambiguous
 	}
 
 	if line[0] == '$' && !parser.enableInlineDollar && (len(line) == 1 || line[1] != '`') {
@@ -160,12 +161,12 @@ func trimBlock(node *Inline, block text.Reader) {
 	}
 
 	// trim first space and last space
-	first := node.FirstChild().(*ast.Text)
+	first := node.FirstChild().(*ast.Text) //nolint:forcetypeassert // an inline math node only holds text children
 	if !(!first.Segment.IsEmpty() && block.Source()[first.Segment.Start] == ' ') {
 		return
 	}
 
-	last := node.LastChild().(*ast.Text)
+	last := node.LastChild().(*ast.Text) //nolint:forcetypeassert // an inline math node only holds text children
 	if !(!last.Segment.IsEmpty() && block.Source()[last.Segment.Stop-1] == ' ') {
 		return
 	}

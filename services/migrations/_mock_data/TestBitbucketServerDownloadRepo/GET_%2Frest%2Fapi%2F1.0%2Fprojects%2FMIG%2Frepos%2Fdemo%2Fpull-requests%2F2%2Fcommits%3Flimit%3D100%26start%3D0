@@ -1,0 +1,13 @@
+Cache-Control: no-cache, no-transform
+Content-Length: 628
+Content-Security-Policy-Report-Only: script-src http://localhost:7990/bitbucket/s/ 'nonce-U5OUdU3Hi1/+nlNGoIe5d424Gfs='; default-src 'self'; base-uri 'self'; img-src data: *; style-src 'self' 'unsafe-inline'; frame-src 'self' https://www.youtube-nocookie.com/embed/ https://www.loom.com/embed/ https://player.vimeo.com/video/; connect-src 'self'; report-uri /bitbucket/rest/csp/latest/csp-report;
+Content-Type: application/json;charset=UTF-8
+Vary: X-AUSERNAME
+Vary: X-AUSERID
+Vary: Cookie
+X-Arequestid: @8H2NK9x1265x329x0
+X-Auserid: 2
+X-Ausername: admin
+X-Content-Type-Options: nosniff
+
+{"values":[{"id":"a84b8e075f3071e08052c7d9f8dbfd8d679b11c7","displayId":"a84b8e075f3","author":{"name":"admin","emailAddress":"admin@example.com","active":true,"displayName":"Administrator","id":2,"slug":"admin","type":"NORMAL"},"authorTimestamp":1792553779000,"committer":{"name":"admin","emailAddress":"admin@example.com","active":true,"displayName":"Administrator","id":2,"slug":"admin","type":"NORMAL"},"committerTimestamp":1792553779000,"message":"merged change","parents":[{"id":"a41991381bd1e6944b3422cd1dc933b65c74cf67","displayId":"a41991381bd"}]}],"size":1,"isLastPage":true,"start":0,"limit":100,"nextPageStart":null}

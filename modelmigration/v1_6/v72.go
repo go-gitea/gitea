@@ -4,13 +4,14 @@
 package v1_6
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddReview(x base.EngineMigration) error {
+func AddReview(_ context.Context, x base.EngineMigration) error {
 	// Review see models/review.go
 	type Review struct {
 		ID          int64 `xorm:"pk autoincr"`

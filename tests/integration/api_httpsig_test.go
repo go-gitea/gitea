@@ -16,6 +16,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/42wim/httpsig"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -50,91 +51,92 @@ fhTNAzWwZoQ91aHdAAAAFHUwMDIyMTQ2QGljdHMtcC1ueC03AQIDBAUG
 	httpsigCertificate = `ssh-rsa-cert-v01@openssh.com AAAAHHNzaC1yc2EtY2VydC12MDFAb3BlbnNzaC5jb20AAAAgiR7SU8gmZLhopx4Y03nOXVuAb+4fyMcJYjMGcE1Z2oEAAAADAQABAAABAQCqOZB5vkRvXFXups1/0StDRdG8plbNSwsWEnNnP4Bvurxa0+z3W9B8GLKnDiLw5MbpbMNyBlpXw13GfuIeciy10DWTz0xUbiy3J3KabCaT36asIw2y7k6Z0jL0UBnrVENwq5/lUbZYqSZ4rRU744wkhh8TULpzM14npQCZwg6aEbG+MwjzddQ72fR+3BPBrKn5dTmmu8rH99O+U+Nuto81Tg7PA+NUupcHOmhdiEGq49plgVFXK98Vks5tiybL4GuzFyWgyX73Dg/QBMn2eMHt1EMv5Gs3i6GFhKKGo4rjDi9qI6PX5oDR4LTNe6cR8td8YhVD8WFZwLLl/vaYyIqdAAAAAAAAAAEAAAABAAAABXVzZXIxAAAACQAAAAV1c2VyMQAAAABimoIOAAAAAMCWkRMAAAAAAAAAggAAABVwZXJtaXQtWDExLWZvcndhcmRpbmcAAAAAAAAAF3Blcm1pdC1hZ2VudC1mb3J3YXJkaW5nAAAAAAAAABZwZXJtaXQtcG9ydC1mb3J3YXJkaW5nAAAAAAAAAApwZXJtaXQtcHR5AAAAAAAAAA5wZXJtaXQtdXNlci1yYwAAAAAAAAAAAAABlwAAAAdzc2gtcnNhAAAAAwEAAQAAAYEAm+AwtXTBZyeqV1qOxjMU3Ibc5iR2M3zerGfRQDxUeIozC3xpIvqJbzjDuRapdf8hpxn2xC0GtUusuLIUr4/+Svs1BUnJhF2H9xnK/O0aopS5MpNekUvnBzQdbvO8Ux2xE2mt58giXhkEaXeCEODSqG++OZsA2e40AR/AGRJ4OdDofMvH4vLJAQQc2mKdYpYL8xu+NC+7nsenx1etpsqtEl3gmvqCVI6t9uhVPMvlbGt9h/AN3u7ToF2T3bdk1TZbcdkvR9ljvETIuy32ksAETX8tc7vm30edK+nn/GMeWCgjM+MFm9Uh1NRkvNNJozo5SJy0DkWETTJUsEdfry5VQ3IjqhWqQ0m4/mDlTmsEdEdWqpUiqWZLd9w7jgT8fanuglZyIu2fj8fyqjPjiws5S2P0Uvi28UKQ1nH01UYj/kuakU3BNzN1IqDf3tARP9fjKV/dCBqb1ZAOtyC2GyhGuGzNwEi+woUwq+sTeV0/hqVSb3hSitXHzcfRMRyOK82BAAABlAAAAAxyc2Etc2hhMi01MTIAAAGAMBfgZFvz4BdxriGKYd6eRhMo6hf+I8S9uzNRsflJXHuA+HR9ExIm/Q9JjKmfThQzNyGGBOBILaDU205SAJuG+kk3SieSQDd75ZQd8YmNlCc+516AriOsTiyVCupnf3I2euTjMZqEZbJcBbkBljppTOWQVN7xxE8QakDfGhg0+RjJE9wYOTmkKpDBfII5Nw8V5DoOD7kNEpXYqHdy/8lVxpqUYNIP1J0dNP4f6qBcZcM1PDA12q8zwIGqSNNjf2UXY/Nr8nv9CnK4fB8NDOPKTBa4cm48BGbvM/X0l6dYKswuZ9Np8lw+y6+GxTgznGCrkzMmuEV4FzSq4xHp41H2L2MTwUkwYaeyG1VP6aWkvn6zPkSxaaJDfQX7CAFe17IhIGXR0UPLjKjh35nDLzMWb/W6/W1lK9YkZNHXSf7Z9m9MUAZN7yQgOggGsuYEW4imZxvZizMd+fdDu9mbhr0FDis89I7MSJDnyYRE9FXS7p3QpppBwGcss/9yV3JV3Bjc`
 )
 
-func TestHTTPSigPubKey(t *testing.T) {
-	// Add our public key to user1
-	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.SSH.MinimumKeySizeCheck, false)()
-	session := loginUser(t, "user1")
-	token := url.QueryEscape(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser))
-	keyType := "ssh-rsa"
-	keyContent := "AAAAB3NzaC1yc2EAAAADAQABAAABAQCqOZB5vkRvXFXups1/0StDRdG8plbNSwsWEnNnP4Bvurxa0+z3W9B8GLKnDiLw5MbpbMNyBlpXw13GfuIeciy10DWTz0xUbiy3J3KabCaT36asIw2y7k6Z0jL0UBnrVENwq5/lUbZYqSZ4rRU744wkhh8TULpzM14npQCZwg6aEbG+MwjzddQ72fR+3BPBrKn5dTmmu8rH99O+U+Nuto81Tg7PA+NUupcHOmhdiEGq49plgVFXK98Vks5tiybL4GuzFyWgyX73Dg/QBMn2eMHt1EMv5Gs3i6GFhKKGo4rjDi9qI6PX5oDR4LTNe6cR8td8YhVD8WFZwLLl/vaYyIqd"
-	rawKeyBody := api.CreateKeyOption{
-		Title: "test-key",
-		Key:   keyType + " " + keyContent,
-	}
-	req := NewRequestWithJSON(t, "POST", "/api/v1/user/keys", rawKeyBody).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
-
-	// parse our private key and create the httpsig request
-	sshSigner, _ := ssh.ParsePrivateKey([]byte(httpsigPrivateKey))
-	keyID := ssh.FingerprintSHA256(sshSigner.PublicKey())
-
-	// create the request
-	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
-	req = NewRequest(t, "GET", "/api/v1/admin/users").
-		AddTokenAuth(token)
-
-	signer, _, err := httpsig.NewSSHSigner(sshSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)"}, httpsig.Signature, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// sign the request
-	err = signer.SignRequest(keyID, req.Request, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// make the request
-	MakeRequest(t, req, http.StatusOK)
-}
-
-func TestHTTPSigCert(t *testing.T) {
-	// Add our public key to user1
+func TestHTTPSig(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
 
-	req := NewRequestWithValues(t, "POST", "/user/settings/keys", map[string]string{
-		"content": "user1",
-		"title":   "principal",
-		"type":    "principal",
+	t.Run("pub-key", func(t *testing.T) {
+		// Add our public key to user1
+		defer test.MockVariableValue(&setting.SSH.MinimumKeySizeCheck, false)()
+		token := url.QueryEscape(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser))
+		keyType := "ssh-rsa"
+		keyContent := "AAAAB3NzaC1yc2EAAAADAQABAAABAQCqOZB5vkRvXFXups1/0StDRdG8plbNSwsWEnNnP4Bvurxa0+z3W9B8GLKnDiLw5MbpbMNyBlpXw13GfuIeciy10DWTz0xUbiy3J3KabCaT36asIw2y7k6Z0jL0UBnrVENwq5/lUbZYqSZ4rRU744wkhh8TULpzM14npQCZwg6aEbG+MwjzddQ72fR+3BPBrKn5dTmmu8rH99O+U+Nuto81Tg7PA+NUupcHOmhdiEGq49plgVFXK98Vks5tiybL4GuzFyWgyX73Dg/QBMn2eMHt1EMv5Gs3i6GFhKKGo4rjDi9qI6PX5oDR4LTNe6cR8td8YhVD8WFZwLLl/vaYyIqd"
+		rawKeyBody := api.CreateKeyOption{
+			Title: "test-key",
+			Key:   keyType + " " + keyContent,
+		}
+		req := NewRequestWithJSON(t, "POST", "/api/v1/user/keys", rawKeyBody).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// parse our private key and create the httpsig request
+		sshSigner, _ := ssh.ParsePrivateKey([]byte(httpsigPrivateKey))
+		keyID := ssh.FingerprintSHA256(sshSigner.PublicKey())
+
+		// create the request
+		token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
+		req = NewRequest(t, "GET", "/api/v1/admin/users").
+			AddTokenAuth(token)
+
+		signer, _, err := httpsig.NewSSHSigner(sshSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)"}, httpsig.Signature, 10)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// sign the request
+		err = signer.SignRequest(keyID, req.Request, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// make the request
+		MakeRequest(t, req, http.StatusOK)
 	})
+	t.Run("cert", func(t *testing.T) {
+		// Add our public key to user1
+		req := NewRequestWithValues(t, "POST", "/user/settings/keys", map[string]string{
+			"content": "user1",
+			"title":   "principal",
+			"type":    "principal",
+		})
 
-	session.MakeRequest(t, req, http.StatusSeeOther)
-	pkcert, _, _, _, err := ssh.ParseAuthorizedKey([]byte(httpsigCertificate))
-	if err != nil {
-		t.Fatal(err)
-	}
+		session.MakeRequest(t, req, http.StatusSeeOther)
+		pkcert, _, _, _, err := ssh.ParseAuthorizedKey([]byte(httpsigCertificate))
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// parse our private key and create the httpsig request
-	sshSigner, _ := ssh.ParsePrivateKey([]byte(httpsigPrivateKey))
-	keyID := "gitea"
+		// parse our private key and create the httpsig request
+		sshSigner, _ := ssh.ParsePrivateKey([]byte(httpsigPrivateKey))
+		keyID := "gitea"
 
-	// create our certificate signer using the ssh signer and our certificate
-	certSigner, err := ssh.NewCertSigner(pkcert.(*ssh.Certificate), sshSigner)
-	if err != nil {
-		t.Fatal(err)
-	}
+		// create our certificate signer using the ssh signer and our certificate
+		cert, ok := pkcert.(*ssh.Certificate)
+		require.True(t, ok)
+		certSigner, err := ssh.NewCertSigner(cert, sshSigner)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// create the request
-	req = NewRequest(t, "GET", "/api/v1/admin/users")
+		// create the request
+		req = NewRequest(t, "GET", "/api/v1/admin/users")
 
-	// add our cert to the request
-	certString := base64.RawStdEncoding.EncodeToString(pkcert.(*ssh.Certificate).Marshal())
-	req.SetHeader("x-ssh-certificate", certString)
+		// add our cert to the request
+		certString := base64.RawStdEncoding.EncodeToString(cert.Marshal())
+		req.SetHeader("x-ssh-certificate", certString)
 
-	signer, _, err := httpsig.NewSSHSigner(certSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)", "x-ssh-certificate"}, httpsig.Signature, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
+		signer, _, err := httpsig.NewSSHSigner(certSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)", "x-ssh-certificate"}, httpsig.Signature, 10)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// sign the request
-	err = signer.SignRequest(keyID, req.Request, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+		// sign the request
+		err = signer.SignRequest(keyID, req.Request, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// make the request
-	MakeRequest(t, req, http.StatusOK)
+		// make the request
+		MakeRequest(t, req, http.StatusOK)
+	})
 }

@@ -4,6 +4,7 @@
 package v1_14
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 
@@ -16,7 +17,7 @@ import (
 	"xorm.io/builder"
 )
 
-func RecalculateUserEmptyPWD(x base.EngineMigration) (err error) {
+func RecalculateUserEmptyPWD(_ context.Context, x base.EngineMigration) (err error) {
 	const (
 		algoBcrypt = "bcrypt"
 		algoScrypt = "scrypt"

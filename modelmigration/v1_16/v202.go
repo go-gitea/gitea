@@ -4,12 +4,13 @@
 package v1_16
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func CreateUserSettingsTable(x base.EngineMigration) error {
+func CreateUserSettingsTable(_ context.Context, x base.EngineMigration) error {
 	type UserSetting struct {
 		ID           int64  `xorm:"pk autoincr"`
 		UserID       int64  `xorm:"index unique(key_userid)"`              // to load all of someone's settings

@@ -47,5 +47,5 @@ func Test_AddIndexToActionTaskStoppedLogExpired(t *testing.T) {
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ActionTask))
 	defer deferable()
 
-	assert.NoError(t, AddIndexToActionTaskStoppedLogExpired(x))
+	assert.NoError(t, AddIndexToActionTaskStoppedLogExpired(t.Context(), x))
 }

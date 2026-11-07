@@ -4,6 +4,7 @@
 package v1_12
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"time"
@@ -15,7 +16,7 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-func AddCommitDivergenceToPulls(x base.EngineMigration) error {
+func AddCommitDivergenceToPulls(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		ID        int64 `xorm:"pk autoincr"`
 		OwnerID   int64 `xorm:"UNIQUE(s) index"`

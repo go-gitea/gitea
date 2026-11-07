@@ -25,16 +25,7 @@ type contextKey struct{}
 
 var ContextKey any = &contextKey{}
 
-// Locale represents an interface to translation
-type Locale interface {
-	Language() string
-	TrString(string, ...any) string
-
-	Tr(key string, args ...any) template.HTML
-	TrN(cnt any, key1, keyN string, args ...any) template.HTML
-
-	PrettyNumber(v any) string
-}
+type Locale = i18n.LocaleTranslation
 
 // LangType represents a lang type
 type LangType struct {

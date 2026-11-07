@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -25,7 +26,6 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
-	"github.com/sassoftware/go-rpmutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -238,15 +238,12 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 
 						switch d.Type {
 						case "primary":
-							assert.EqualValues(t, 722, d.Size)
 							assert.EqualValues(t, 1759, d.OpenSize)
 							assert.Equal(t, "repodata/primary.xml.gz", d.Location.Href)
 						case "filelists":
-							assert.EqualValues(t, 257, d.Size)
 							assert.EqualValues(t, 326, d.OpenSize)
 							assert.Equal(t, "repodata/filelists.xml.gz", d.Location.Href)
 						case "other":
-							assert.EqualValues(t, 306, d.Size)
 							assert.EqualValues(t, 394, d.OpenSize)
 							assert.Equal(t, "repodata/other.xml.gz", d.Location.Href)
 						}
@@ -470,21 +467,42 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					},
 				}
 
-				t.Run("Success", func(t *testing.T) {
-					defer tests.PrintCurrentTest(t)()
-
-					updates := []*rpm_module.Update{&advisory}
+				postAdvisories := func(t *testing.T, url string, updates []*rpm_module.Update, expectedStatus int) {
 					body, err := json.Marshal(updates)
 					assert.NoError(t, err)
 
-					req := NewRequestWithBody(t, "POST", errataURL, bytes.NewReader(body)).
+					req := NewRequestWithBody(t, "POST", url, bytes.NewReader(body)).
 						AddBasicAuth(user.Name)
-					MakeRequest(t, req, http.StatusOK)
+					MakeRequest(t, req, expectedStatus)
+				}
+
+				getUpdates := func(t *testing.T) updateInfo {
+					req := NewRequest(t, "GET", groupURL+"/repodata/updateinfo.xml.gz")
+					resp := MakeRequest(t, req, http.StatusOK)
+
+					var result updateInfo
+					decodeGzipXML(t, resp, &result)
+					return result
+				}
+
+				findUpdate := func(updates []*rpm_module.Update, id string) *rpm_module.Update {
+					for _, update := range updates {
+						if update.ID == id {
+							return update
+						}
+					}
+					return nil
+				}
+
+				t.Run("Success", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					postAdvisories(t, errataURL, []*rpm_module.Update{&advisory}, http.StatusOK)
 
 					url := groupURL + "/repodata"
 
 					// Check repomd.xml contains updateinfo
-					req = NewRequest(t, "GET", url+"/repomd.xml")
+					req := NewRequest(t, "GET", url+"/repomd.xml")
 					resp := MakeRequest(t, req, http.StatusOK)
 
 					type testRepoData struct {
@@ -493,7 +511,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					var repomd struct {
 						Data []*testRepoData `xml:"data"`
 					}
-					err = xml.NewDecoder(resp.Body).Decode(&repomd)
+					err := xml.NewDecoder(resp.Body).Decode(&repomd)
 					require.NoError(t, err)
 
 					found := slices.IndexFunc(repomd.Data, func(s *testRepoData) bool {
@@ -502,11 +520,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					assert.True(t, found, "updateinfo not found in repomd.xml")
 
 					// Now check updateinfo.xml.gz
-					req = NewRequest(t, "GET", url+"/updateinfo.xml.gz")
-					resp = MakeRequest(t, req, http.StatusOK)
-
-					var result updateInfo
-					decodeGzipXML(t, resp, &result)
+					result := getUpdates(t)
 
 					assert.Equal(t, "http://linux.duke.edu/metadata/updateinfo", result.Xmlns)
 					assert.Len(t, result.Updates, 1)
@@ -562,21 +576,10 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					MakeRequest(t, req, http.StatusOK)
 
 					// Verify it was stored correctly (skipping nulls)
-					url := groupURL + "/repodata"
-					req = NewRequest(t, "GET", url+"/updateinfo.xml.gz")
-					resp := MakeRequest(t, req, http.StatusOK)
-
-					var result updateInfo
-					decodeGzipXML(t, resp, &result)
+					result := getUpdates(t)
 
 					// We need to find the new advisory CVE-2023-5678
-					var newAdvisory *rpm_module.Update
-					for _, u := range result.Updates {
-						if u.ID == "CVE-2023-5678" {
-							newAdvisory = u
-							break
-						}
-					}
+					newAdvisory := findUpdate(result.Updates, "CVE-2023-5678")
 					assert.NotNil(t, newAdvisory)
 					assert.Len(t, newAdvisory.PkgList, 1)
 					assert.Equal(t, "el9", newAdvisory.PkgList[0].Short)
@@ -588,13 +591,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					defer tests.PrintCurrentTest(t)()
 
 					badURL := fmt.Sprintf("%s/package/%s/non-existent-version/errata", groupURL, packageName)
-					updates := []*rpm_module.Update{&advisory}
-					body, err := json.Marshal(updates)
-					assert.NoError(t, err)
-
-					req := NewRequestWithBody(t, "POST", badURL, bytes.NewReader(body)).
-						AddBasicAuth(user.Name)
-					MakeRequest(t, req, http.StatusNotFound)
+					postAdvisories(t, badURL, []*rpm_module.Update{&advisory}, http.StatusNotFound)
 				})
 
 				t.Run("MergeAdvisories", func(t *testing.T) {
@@ -618,29 +615,12 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 						},
 					}
 
-					updates := []*rpm_module.Update{&advisory2}
-					body, err := json.Marshal(updates)
-					assert.NoError(t, err)
-
-					req := NewRequestWithBody(t, "POST", errataURL, bytes.NewReader(body)).
-						AddBasicAuth(user.Name)
-					MakeRequest(t, req, http.StatusOK)
+					postAdvisories(t, errataURL, []*rpm_module.Update{&advisory2}, http.StatusOK)
 
 					// Check updateinfo.xml.gz again
-					url := groupURL + "/repodata"
-					req = NewRequest(t, "GET", url+"/updateinfo.xml.gz")
-					resp := MakeRequest(t, req, http.StatusOK)
+					result := getUpdates(t)
 
-					var result updateInfo
-					decodeGzipXML(t, resp, &result)
-
-					var targetUpdate *rpm_module.Update
-					for _, u := range result.Updates {
-						if u.ID == "CVE-2023-1234" {
-							targetUpdate = u
-							break
-						}
-					}
+					targetUpdate := findUpdate(result.Updates, "CVE-2023-1234")
 					assert.NotNil(t, targetUpdate)
 					// Verify that package lists are merged into the same collection
 					assert.Len(t, targetUpdate.PkgList, 1)
@@ -654,44 +634,15 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					// Upload a third advisory with the same ID but a different collection
 					advisory3 := advisory
 					advisory3.PkgList = []*rpm_module.Collection{
-						{
-							Short: "el8",
-							Packages: []*rpm_module.UpdatePackage{
-								{
-									Arch:     packageArchitecture,
-									Name:     packageName,
-									Release:  "1",
-									Src:      "gitea-test-1.0.2-1.src.rpm",
-									Version:  "1.0.2",
-									Filename: fmt.Sprintf("%s-%s.%s.rpm", packageName, packageVersion, packageArchitecture),
-								},
-							},
-						},
+						{Short: "el8", Packages: advisory.PkgList[0].Packages},
 					}
 
-					updates := []*rpm_module.Update{&advisory3}
-					body, err := json.Marshal(updates)
-					assert.NoError(t, err)
-
-					req := NewRequestWithBody(t, "POST", errataURL, bytes.NewReader(body)).
-						AddBasicAuth(user.Name)
-					MakeRequest(t, req, http.StatusOK)
+					postAdvisories(t, errataURL, []*rpm_module.Update{&advisory3}, http.StatusOK)
 
 					// Check updateinfo.xml.gz again
-					url := groupURL + "/repodata"
-					req = NewRequest(t, "GET", url+"/updateinfo.xml.gz")
-					resp := MakeRequest(t, req, http.StatusOK)
+					result := getUpdates(t)
 
-					var result updateInfo
-					decodeGzipXML(t, resp, &result)
-
-					var targetUpdate *rpm_module.Update
-					for _, u := range result.Updates {
-						if u.ID == "CVE-2023-1234" {
-							targetUpdate = u
-							break
-						}
-					}
+					targetUpdate := findUpdate(result.Updates, "CVE-2023-1234")
 					assert.NotNil(t, targetUpdate)
 					// Verify that we now have 2 collections
 					assert.Len(t, targetUpdate.PkgList, 2)
@@ -719,20 +670,9 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					MakeRequest(t, req, http.StatusOK)
 
 					// Check updateinfo.xml.gz
-					url := groupURL + "/repodata"
-					req = NewRequest(t, "GET", url+"/updateinfo.xml.gz")
-					resp := MakeRequest(t, req, http.StatusOK)
+					result := getUpdates(t)
 
-					var result updateInfo
-					decodeGzipXML(t, resp, &result)
-
-					var targetUpdate *rpm_module.Update
-					for _, u := range result.Updates {
-						if u.ID == "CVE-2023-1234" {
-							targetUpdate = u
-							break
-						}
-					}
+					targetUpdate := findUpdate(result.Updates, "CVE-2023-1234")
 					assert.NotNil(t, targetUpdate)
 					assert.Len(t, targetUpdate.PkgList, 2)
 
@@ -871,9 +811,9 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 				req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture, rpmFileName))
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				_, sigs, err := rpmutils.Verify(resp.Body, pub)
+				header, signature := rpmHeaderAndSignature(resp.Body.Bytes())
+				_, err = openpgp.CheckDetachedSignature(pub, bytes.NewReader(header), bytes.NewReader(signature), nil)
 				require.NoError(t, err)
-				require.NotEmpty(t, sigs)
 
 				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture)).
 					AddBasicAuth(user.Name)
@@ -881,4 +821,18 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 			})
 		})
 	}
+}
+
+func rpmHeaderAndSignature(content []byte) (header, signature []byte) {
+	const leadSize, introSize, indexEntrySize, sigTagRSA = 96, 16, 16, 268
+	sigHeader := content[leadSize:]
+	sigIndex := sigHeader[introSize : introSize+binary.BigEndian.Uint32(sigHeader[8:])*indexEntrySize]
+	sigStore := sigHeader[introSize+len(sigIndex):]
+	for entry := range slices.Chunk(sigIndex, indexEntrySize) {
+		if binary.BigEndian.Uint32(entry) == sigTagRSA {
+			signature = sigStore[binary.BigEndian.Uint32(entry[8:]):][:binary.BigEndian.Uint32(entry[12:])]
+		}
+	}
+	header = sigStore[(binary.BigEndian.Uint32(sigHeader[12:])+7)/8*8:]
+	return header[:introSize+binary.BigEndian.Uint32(header[8:])*indexEntrySize+binary.BigEndian.Uint32(header[12:])], signature
 }

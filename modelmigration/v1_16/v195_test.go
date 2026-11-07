@@ -29,7 +29,7 @@ func Test_AddTableCommitStatusIndex(t *testing.T) {
 	defer deferable()
 
 	// Run the migration
-	if err := AddTableCommitStatusIndex(x); err != nil {
+	if err := AddTableCommitStatusIndex(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

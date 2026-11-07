@@ -62,7 +62,7 @@ func Test_FixCommitStatusTargetURLToUseRunAndJobID(t *testing.T) {
 	)
 	defer deferable()
 
-	require.NoError(t, FixCommitStatusTargetURLToUseRunAndJobID(x))
+	require.NoError(t, FixCommitStatusTargetURLToUseRunAndJobID(t.Context(), x))
 
 	cases := []struct {
 		table string

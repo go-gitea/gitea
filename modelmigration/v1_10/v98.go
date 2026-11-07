@@ -3,9 +3,13 @@
 
 package v1_10
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddOriginalAuthorOnMigratedReleases(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddOriginalAuthorOnMigratedReleases(_ context.Context, x base.EngineMigration) error {
 	type Release struct {
 		ID               int64
 		OriginalAuthor   string

@@ -3,9 +3,13 @@
 
 package v1_10
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func ChangeSomeColumnsLengthOfExternalLoginUser(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func ChangeSomeColumnsLengthOfExternalLoginUser(_ context.Context, x base.EngineMigration) error {
 	type ExternalLoginUser struct {
 		AccessToken       string `xorm:"TEXT"`
 		AccessTokenSecret string `xorm:"TEXT"`

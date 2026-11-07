@@ -4,11 +4,13 @@
 package v1_21
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func CreateActionTasksVersionTable(x base.EngineMigration) error {
+func CreateActionTasksVersionTable(_ context.Context, x base.EngineMigration) error {
 	type ActionTasksVersion struct {
 		ID          int64 `xorm:"pk autoincr"`
 		OwnerID     int64 `xorm:"UNIQUE(owner_repo)"`

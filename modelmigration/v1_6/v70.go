@@ -4,6 +4,7 @@
 package v1_6
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-func AddIssueDependencies(x base.EngineMigration) (err error) {
+func AddIssueDependencies(_ context.Context, x base.EngineMigration) (err error) {
 	type IssueDependency struct {
 		ID           int64     `xorm:"pk autoincr"`
 		UserID       int64     `xorm:"NOT NULL"`

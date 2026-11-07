@@ -4,12 +4,13 @@
 package v1_12
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddResolveDoerIDCommentColumn(x base.EngineMigration) error {
+func AddResolveDoerIDCommentColumn(_ context.Context, x base.EngineMigration) error {
 	type Comment struct {
 		ResolveDoerID int64
 	}

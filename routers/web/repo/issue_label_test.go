@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/base"
@@ -22,7 +23,7 @@ import (
 )
 
 func TestIssueLabel(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	t.Run("RetrieveLabels", testRetrieveLabels)
 	t.Run("NewLabel", testNewLabel)
 	t.Run("NewLabelInvalidColor", testNewLabelInvalidColor)
@@ -51,14 +52,23 @@ func testInitializeLabels(t *testing.T) {
 }
 
 func testRetrieveLabels(t *testing.T) {
+	issueLabel := &issues_model.IssueLabel{IssueID: 6, LabelID: 3}
+	assert.NoError(t, db.Insert(t.Context(), issueLabel))
+	defer func() {
+		_, err := db.DeleteByBean(t.Context(), issueLabel)
+		assert.NoError(t, err)
+	}()
+
 	for _, testCase := range []struct {
-		RepoID           int64
-		Sort             string
-		ExpectedLabelIDs []int64
+		RepoID              int64
+		Sort                string
+		ExpectedLabelIDs    []int64
+		ExpectedOrgLabelIDs []int64
 	}{
-		{1, "", []int64{1, 2}},
-		{1, "leastissues", []int64{2, 1}},
-		{2, "", []int64{}},
+		{1, "", []int64{1, 2}, nil},
+		{1, "leastissues", []int64{2, 1}, nil},
+		{2, "", nil, nil},
+		{3, "mostissues", []int64{10}, []int64{3, 4}},
 	} {
 		ctx, _ := contexttest.MockContext(t, "user/repo/issues")
 		contexttest.LoadUser(t, ctx, 2)
@@ -66,13 +76,15 @@ func testRetrieveLabels(t *testing.T) {
 		ctx.Req.Form.Set("sort", testCase.Sort)
 		RetrieveLabelsForList(ctx)
 		assert.False(t, ctx.Written())
-		labels, ok := ctx.Data["Labels"].([]*issues_model.Label)
-		assert.True(t, ok)
-		if assert.Len(t, labels, len(testCase.ExpectedLabelIDs)) {
-			for i, label := range labels {
-				assert.Equal(t, testCase.ExpectedLabelIDs[i], label.ID)
+		labelIDs := func(key string) (ids []int64) {
+			labels, _ := ctx.Data[key].([]*issues_model.Label)
+			for _, label := range labels {
+				ids = append(ids, label.ID)
 			}
+			return ids
 		}
+		assert.Equal(t, testCase.ExpectedLabelIDs, labelIDs("Labels"))
+		assert.Equal(t, testCase.ExpectedOrgLabelIDs, labelIDs("OrgLabels"))
 	}
 }
 
@@ -187,7 +199,7 @@ func testUpdateIssueLabelToggle(t *testing.T) {
 		{"toggle", []int64{1, 3}, 1, false},
 		{"toggle", []int64{1, 2}, 2, true},
 	} {
-		unittest.PrepareTestEnv(t)
+		assert.NoError(t, unittest.PrepareTestDatabase())
 		ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, 1)

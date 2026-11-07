@@ -14,6 +14,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 
 	"github.com/gogs/go-gogs-client"
 )
@@ -62,9 +63,7 @@ type GogsDownloader struct {
 	baseURL            string
 	repoOwner          string
 	repoName           string
-	userName           string
-	password           string
-	token              string
+	transport          http.RoundTripper
 	openIssuesFinished bool
 	openIssuesPages    int
 }
@@ -83,35 +82,21 @@ func (g *GogsDownloader) LogString() string {
 
 // NewGogsDownloader creates a gogs Downloader via gogs API
 func NewGogsDownloader(_ context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
-	downloader := GogsDownloader{
+	return &GogsDownloader{
 		baseURL:   baseURL,
-		userName:  userName,
-		password:  password,
-		token:     token,
+		transport: newMigrationHTTPClient(baseURL, util.Iif(token != "", "token "+token, basicAuthorization(userName, password))).Transport,
 		repoOwner: repoOwner,
 		repoName:  repoName,
 	}
-	return &downloader
-}
-
-type roundTripperFunc func(req *http.Request) (*http.Response, error)
-
-func (rt roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return rt(r)
 }
 
 func (g *GogsDownloader) client(ctx context.Context) *gogs.Client {
 	// Gogs client lacks the context support, so we use a custom transport
 	// Then each request uses a dedicated client with its own context
-	httpTransport := NewMigrationHTTPTransport()
-	gogsClient := gogs.NewClient(g.baseURL, g.token)
+	gogsClient := gogs.NewClient(g.baseURL, "")
 	gogsClient.SetHTTPClient(&http.Client{
 		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if g.password != "" {
-				// Gogs client lacks the support for basic auth, this is the only way to set it
-				req.SetBasicAuth(g.userName, g.password)
-			}
-			return httpTransport.RoundTrip(req.WithContext(ctx))
+			return g.transport.RoundTrip(req.WithContext(ctx))
 		}),
 	})
 	return gogsClient

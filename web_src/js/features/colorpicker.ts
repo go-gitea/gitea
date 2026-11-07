@@ -1,7 +1,7 @@
 import {createTippy} from '../modules/tippy.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
-export async function initColorPickers() {
+export function initColorPickers() {
   let imported = false;
   registerGlobalInitFunc('initColorPicker', async (el) => {
     if (!imported) {

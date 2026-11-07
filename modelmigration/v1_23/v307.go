@@ -4,11 +4,13 @@
 package v1_23
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func FixMilestoneNoDueDate(x base.EngineMigration) error {
+func FixMilestoneNoDueDate(_ context.Context, x base.EngineMigration) error {
 	type Milestone struct {
 		DeadlineUnix timeutil.TimeStamp
 	}

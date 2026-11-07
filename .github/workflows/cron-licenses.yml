@@ -5,6 +5,8 @@ on:
   #   - cron: "7 0 * * 1" # every Monday at 00:07 UTC
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   cron-licenses:
     runs-on: ubuntu-latest
@@ -17,6 +19,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
       - run: make generate-gitignore
         timeout-minutes: 40
       - name: push translations to repo

@@ -4,6 +4,7 @@
 package v1_18
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
@@ -12,7 +13,7 @@ import (
 	"xorm.io/builder"
 )
 
-func UpdateOpenMilestoneCounts(x base.EngineMigration) error {
+func UpdateOpenMilestoneCounts(_ context.Context, x base.EngineMigration) error {
 	var openMilestoneIDs []int64
 	err := x.Table("milestone").Select("id").Where(builder.Neq{"is_closed": 1}).Find(&openMilestoneIDs)
 	if err != nil {

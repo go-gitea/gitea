@@ -98,6 +98,26 @@ func TestAPICompareBranches(t *testing.T) {
 	})
 }
 
+func TestAPIComparePublicOnlyToken(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+		pr := createOutdatedPR(t, user, org26)
+		require.NoError(t, pr.LoadBaseRepo(t.Context()))
+		require.NoError(t, pr.LoadHeadRepo(t.Context()))
+
+		require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(),
+			&repo_model.Repository{ID: pr.HeadRepo.ID, IsPrivate: true}, "is_private"))
+
+		compareURL := "/api/v1/repos/" + pr.BaseRepo.FullName() + "/compare/" + pr.BaseBranch + "..." + pr.HeadRepo.OwnerName + ":" + pr.HeadBranch
+		fullToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadRepository)
+		MakeRequest(t, NewRequest(t, "GET", compareURL).AddTokenAuth(fullToken), http.StatusOK)
+
+		publicOnlyToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
+		MakeRequest(t, NewRequest(t, "GET", compareURL).AddTokenAuth(publicOnlyToken), http.StatusNotFound)
+	})
+}
+
 func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user2")
@@ -123,30 +143,23 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 			assert.True(t, strings.HasPrefix(body, "From "), "patch output should start with a format-patch header, got: %q", body[:min(40, len(body))])
 		})
 
-		t.Run("CommitToCommitDiff", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f?output=diff").AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusOK)
-			assert.Contains(t, resp.Body.String(), "diff --git ")
-		})
-
-		t.Run("BranchToCommitDiff", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
+		for _, testCase := range []struct {
+			name string
+			url  string
+		}{
+			{"CommitToCommitDiff", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f?output=diff"},
 			// 8babce96... is the head of remove-files-b; pairing it with add-csv guarantees a non-empty diff.
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...8babce967f21b9dfa6987f943b91093dac58a4f0?output=diff").AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusOK)
-			assert.Contains(t, resp.Body.String(), "diff --git ")
-		})
+			{"BranchToCommitDiff", "/api/v1/repos/user2/repo20/compare/add-csv...8babce967f21b9dfa6987f943b91093dac58a4f0?output=diff"},
+			{"TwoDotSeparator", "/api/v1/repos/user2/repo20/compare/add-csv..remove-files-b?output=diff"},
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
 
-		t.Run("TwoDotSeparator", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv..remove-files-b?output=diff").AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusOK)
-			assert.Contains(t, resp.Body.String(), "diff --git ")
-		})
+				req := NewRequest(t, "GET", testCase.url).AddTokenAuth(token)
+				resp := MakeRequest(t, req, http.StatusOK)
+				assert.Contains(t, resp.Body.String(), "diff --git ")
+			})
+		}
 
 		t.Run("SlashedBranchName", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()

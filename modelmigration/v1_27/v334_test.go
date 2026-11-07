@@ -26,7 +26,7 @@ func TestAddCancellingSupportToActionRunner(t *testing.T) {
 	_, err := x.Insert(&ActionRunner{Name: "runner"})
 	require.NoError(t, err)
 
-	require.NoError(t, AddCancellingSupportToActionRunner(x))
+	require.NoError(t, AddCancellingSupportToActionRunner(t.Context(), x))
 
 	var hasCancellingSupport bool
 	has, err := x.SQL("SELECT has_cancelling_support FROM action_runner WHERE id = ?", 1).Get(&hasCancellingSupport)

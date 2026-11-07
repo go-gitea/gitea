@@ -4,7 +4,11 @@
 package integration
 
 import (
+	"compress/gzip"
+	"crypto/sha1"
+	"crypto/sha512"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,6 +22,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/packages/npm"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +48,14 @@ func TestPackageNpm(t *testing.T) {
 	repoURL := "http://localhost:3000/gitea/test.git"
 	repoDirectory := "package-subdir"
 
-	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
+	attachmentBytes := test.WriteTarCompression(gzip.NewWriter, map[string]string{
+		"package/package.json": `{"name":"` + packageName + `","version":"` + packageVersion + `","scripts":{"postinstall":"echo hi"}}`,
+	}).Bytes()
+	attachmentData := base64.StdEncoding.EncodeToString(attachmentBytes)
+	sha1Sum := sha1.Sum(attachmentBytes)
+	sha1SumHex := hex.EncodeToString(sha1Sum[:])
+	sha512Sum := sha512.Sum512(attachmentBytes)
+	integrity := "sha512-" + base64.StdEncoding.EncodeToString(sha512Sum[:])
 
 	buildUpload := func(version string) string {
 		return `{
@@ -65,8 +77,8 @@ func TestPackageNpm(t *testing.T) {
         	  "` + packageBinName + `": "` + packageBinPath + `"
       	  },
 					"dist": {
-					  "integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
-					  "shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
+					  "integrity": "` + integrity + `",
+					  "shasum": "` + sha1SumHex + `"
 					},
 					"repository": {
 						"type": "` + repoType + `",
@@ -82,19 +94,37 @@ func TestPackageNpm(t *testing.T) {
 						"soy-milk": {
 							"optional": true
 						}
+					},
+					"scripts": {
+						"postinstall": "echo hi"
+					},
+					"engines": {
+						"node": ">=22.7.0",
+						"npm": ">=10.8.2"
+					},
+					"cpu": ["x64", "arm64"],
+					"os": ["linux", "darwin"],
+					"libc": ["glibc"],
+					"directories": {
+						"doc": "./doc",
+						"man": "./man"
+					},
+					"funding": "https://example.com/fund",
+					"acceptDependencies": {
+						"left-pad": "1.x"
 					}
 			  }
 			},
 			"_attachments": {
 			  "` + packageName + `-` + version + `.tgz": {
-				"data": "` + data + `"
+				"data": "` + attachmentData + `"
 			  }
 			}
 		  }`
 	}
 
-	root := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.QueryEscape(packageName))
-	tagsRoot := fmt.Sprintf("/api/packages/%s/npm/-/package/%s/dist-tags", user.Name, url.QueryEscape(packageName))
+	root := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.PathEscape(packageName))
+	tagsRoot := fmt.Sprintf("/api/packages/%s/npm/-/package/%s/dist-tags", user.Name, url.PathEscape(packageName))
 	filename := fmt.Sprintf("%s-%s.tgz", strings.Split(packageName, "/")[1], packageVersion)
 
 	t.Run("Upload", func(t *testing.T) {
@@ -126,7 +156,7 @@ func TestPackageNpm(t *testing.T) {
 
 		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(192), pb.Size)
+		assert.EqualValues(t, len(attachmentBytes), pb.Size)
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
@@ -140,23 +170,25 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		rootPaths := []string{
+			"/api/packages/user2/npm/@scope/test-package",
+			"/api/packages/user2/npm/@scope%2Ftest-package",
+			"/api/packages/user2/npm/%40scope%2ftest-package",
+		}
+		for _, root := range rootPaths {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			b, _ := base64.StdEncoding.DecodeString(attachmentData)
+			assert.Equal(t, b, resp.Body.Bytes())
 
-		b, _ := base64.StdEncoding.DecodeString(data)
-		assert.Equal(t, b, resp.Body.Bytes())
-
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).
-			AddTokenAuth(token)
-		resp = MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, b, resp.Body.Bytes())
-
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, b, resp.Body.Bytes())
+		}
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(2), pvs[0].DownloadCount)
+		assert.EqualValues(t, 6, pvs[0].DownloadCount)
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {
@@ -185,13 +217,54 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageDescription, pmv.Description)
 		assert.Equal(t, packageAuthor, pmv.Author.Name)
 		assert.Equal(t, packageBinPath, pmv.Bin[packageBinName])
-		assert.Equal(t, "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==", pmv.Dist.Integrity)
-		assert.Equal(t, "aaa7eaf852a948b0aa05afeda35b1badca155d90", pmv.Dist.Shasum)
-		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
+		assert.Equal(t, integrity, pmv.Dist.Integrity)
+		assert.Equal(t, sha1SumHex, pmv.Dist.Shasum)
+		assert.Equal(t, fmt.Sprintf("%sapi/packages/%s/npm/%s/-/%s", setting.AppURL, user.Name, packageName, filename), pmv.Dist.Tarball)
 		assert.Equal(t, repoType, result.Repository.Type)
 		assert.Equal(t, repoURL, result.Repository.URL)
 		assert.Equal(t, map[string]string{"tea": "2.x", "soy-milk": "1.2"}, pmv.PeerDependencies)
 		assert.Equal(t, map[string]any{"soy-milk": map[string]any{"optional": true}}, pmv.PeerDependenciesMeta)
+		assert.True(t, pmv.HasInstallScript)
+		assert.False(t, pmv.HasShrinkwrap)
+		assert.Equal(t, map[string]string{"node": ">=22.7.0", "npm": ">=10.8.2"}, pmv.Engines)
+		assert.Equal(t, []string{"x64", "arm64"}, pmv.CPU)
+		assert.Equal(t, []string{"linux", "darwin"}, pmv.OS)
+		assert.Equal(t, []string{"glibc"}, pmv.Libc)
+		assert.Equal(t, map[string]string{"doc": "./doc", "man": "./man"}, pmv.Directories)
+		assert.Equal(t, "https://example.com/fund", pmv.Funding)
+		assert.Equal(t, map[string]string{"left-pad": "1.x"}, pmv.AcceptDependencies)
+		assert.Empty(t, pmv.Deprecated)
+
+		req = NewRequest(t, "GET", root).AddTokenAuth(token).SetHeader("If-None-Match", resp.Header().Get("ETag"))
+		MakeRequest(t, req, http.StatusNotModified)
+	})
+
+	t.Run("PingWhoami", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		registry := fmt.Sprintf("/api/packages/%s/npm/-/", user.Name)
+		MakeRequest(t, NewRequest(t, "GET", registry+"ping"), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "GET", registry+"whoami"), http.StatusUnauthorized)
+		resp := MakeRequest(t, NewRequest(t, "GET", registry+"whoami").AddTokenAuth(token), http.StatusOK)
+		assert.JSONEq(t, `{"username":"`+user.Name+`"}`, resp.Body.String())
+	})
+
+	t.Run("PackageVersionMetadata", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		for _, selector := range []string{packageVersion, packageTag} {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, selector)).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			pmv := DecodeJSON(t, resp, &npm.PackageMetadataVersion{})
+			assert.Equal(t, fmt.Sprintf("%s@%s", packageName, packageVersion), pmv.ID)
+			assert.Equal(t, npm.Repository{Type: repoType, URL: repoURL, Directory: repoDirectory}, pmv.Repository)
+		}
+
+		for _, missing := range []string{"9.9.9", "no-such-tag"} {
+			req := NewRequest(t, "GET", root+"/"+missing).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNotFound)
+		}
 	})
 
 	t.Run("AddTag", func(t *testing.T) {
@@ -232,22 +305,6 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageVersion, result[packageTag2])
 	})
 
-	t.Run("PackageMetadataDistTags", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", root).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
-
-		assert.Len(t, result.DistTags, 2)
-		assert.Contains(t, result.DistTags, packageTag)
-		assert.Equal(t, packageVersion, result.DistTags[packageTag])
-		assert.Contains(t, result.DistTags, packageTag2)
-		assert.Equal(t, packageVersion, result.DistTags[packageTag2])
-	})
-
 	t.Run("DeleteTag", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -261,6 +318,12 @@ func TestPackageNpm(t *testing.T) {
 		test(t, http.StatusBadRequest, "1.0")
 		test(t, http.StatusOK, "dummy")
 		test(t, http.StatusOK, packageTag2)
+		test(t, http.StatusOK, packageTag)
+
+		resp := MakeRequest(t, NewRequest(t, "GET", tagsRoot).AddTokenAuth(token), http.StatusOK)
+		assert.Equal(t, map[string]string{packageTag: packageVersion}, DecodeJSON(t, resp, map[string]string{}))
+		resp = MakeRequest(t, NewRequest(t, "GET", root+"/"+packageTag).AddTokenAuth(token), http.StatusOK)
+		assert.Equal(t, packageVersion, DecodeJSON(t, resp, &npm.PackageMetadataVersion{}).Version)
 	})
 
 	t.Run("Search", func(t *testing.T) {
@@ -315,6 +378,132 @@ func TestPackageNpm(t *testing.T) {
 `, rendered)
 	})
 
+	t.Run("Deprecate", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		deprecationMessage := "critical bug fixed in v0.2.3"
+		buildDeprecate := func(message string) string {
+			return `{
+				"_id": "` + packageName + `",
+				"name": "` + packageName + `",
+				"versions": {
+					"` + packageVersion + `": {
+						"name": "` + packageName + `",
+						"version": "` + packageVersion + `",
+						"deprecated": "` + message + `"
+					}
+				}
+			}`
+		}
+
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildDeprecate(deprecationMessage))).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", root).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
+
+		assert.Contains(t, result.Versions, packageVersion)
+		assert.Equal(t, deprecationMessage, result.Versions[packageVersion].Deprecated)
+
+		// Empty deprecation message clears the flag (undeprecate).
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(buildDeprecate(""))).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", root).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		result = DecodeJSON(t, resp, &npm.PackageMetadata{})
+		assert.Empty(t, result.Versions[packageVersion].Deprecated)
+
+		// Unknown versions are silently skipped (idempotent); the known
+		// version is still updated.
+		mixedBody := `{
+			"_id": "` + packageName + `",
+			"name": "` + packageName + `",
+			"versions": {
+				"` + packageVersion + `": {
+					"name": "` + packageName + `",
+					"version": "` + packageVersion + `",
+					"deprecated": "` + deprecationMessage + `"
+				},
+				"99.99.99": {
+					"name": "` + packageName + `",
+					"version": "99.99.99",
+					"deprecated": "ghost"
+				}
+			}
+		}`
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(mixedBody)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", root).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		result = DecodeJSON(t, resp, &npm.PackageMetadata{})
+		assert.Equal(t, deprecationMessage, result.Versions[packageVersion].Deprecated)
+		assert.NotContains(t, result.Versions, "99.99.99")
+
+		// Restore the cleared state for subsequent subtests.
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(buildDeprecate(""))).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		// A user who has no write access to the URL owner's packages must
+		// be rejected by reqPackageAccess before deprecatePackage runs.
+		otherUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		otherToken := "Bearer " + getTokenForLoggedInUser(t, loginUser(t, otherUser.Name), auth_model.AccessTokenScopeWritePackage)
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(buildDeprecate(deprecationMessage))).
+			AddTokenAuth(otherToken)
+		MakeRequest(t, req, http.StatusUnauthorized)
+	})
+
+	t.Run("UploadHasShrinkwrapClaim", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// The tarball in `data` does not contain npm-shrinkwrap.json.
+		// Even when the client claims _hasShrinkwrap: true, the
+		// authoritative tarball scan must overrule the claim.
+		claimPackageName := "@scope/test-shrinkwrap-claim"
+		claimVersion := "1.0.0"
+		claimRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.PathEscape(claimPackageName))
+		body := `{
+			"_id": "` + claimPackageName + `",
+			"name": "` + claimPackageName + `",
+			"versions": {
+				"` + claimVersion + `": {
+					"name": "` + claimPackageName + `",
+					"version": "` + claimVersion + `",
+					"_hasShrinkwrap": true,
+					"dist": {
+						"integrity": "` + integrity + `",
+						"shasum": "` + sha1SumHex + `"
+					}
+				}
+			},
+			"_attachments": {
+				"` + claimPackageName + `-` + claimVersion + `.tgz": {
+					"data": "` + attachmentData + `"
+				}
+			}
+		}`
+		req := NewRequestWithBody(t, "PUT", claimRoot, strings.NewReader(body)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", claimRoot).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
+		require.Contains(t, result.Versions, claimVersion)
+		assert.False(t, result.Versions[claimVersion].HasShrinkwrap, "client-claimed _hasShrinkwrap must be overridden by tarball scan")
+
+		// Clean up so the subsequent Delete subtest's version counts match.
+		req = NewRequest(t, "DELETE", claimRoot+"/-rev/dummy").AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+	})
+
 	t.Run("Delete", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -339,7 +528,7 @@ func TestPackageNpm(t *testing.T) {
 			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/%s/-rev/dummy", root, packageVersion, filename))
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/%s/-rev/dummy", root, packageVersion, filename)).
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/-rev/dummy", root, filename)).
 				AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
 

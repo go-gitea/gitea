@@ -4,12 +4,13 @@
 package v1_11
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func FeatureChangeTargetBranch(x base.EngineMigration) error {
+func FeatureChangeTargetBranch(_ context.Context, x base.EngineMigration) error {
 	type Comment struct {
 		OldRef string
 		NewRef string

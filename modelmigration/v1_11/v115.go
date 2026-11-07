@@ -4,6 +4,7 @@
 package v1_11
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
 	"io"
@@ -18,7 +19,7 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-func RenameExistingUserAvatarName(x base.EngineMigration) error {
+func RenameExistingUserAvatarName(_ context.Context, x base.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

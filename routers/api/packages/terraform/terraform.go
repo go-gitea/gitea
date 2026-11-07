@@ -70,11 +70,7 @@ func streamState(ctx *context.Context, name, serial string) {
 		ctx.Req.Method,
 	)
 	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, helper.PackageErrorStatus(err), err)
 		return
 	}
 
@@ -140,6 +136,15 @@ func UploadState(ctx *context.Context) {
 		return
 	}
 	defer buf.Close()
+
+	if err := packages_service.CheckSizeQuotaExceeded(ctx, ctx.Doer, ctx.Package.Owner, packages_model.TypeTerraformState, buf.Size()); err != nil {
+		if errors.Is(err, packages_service.ErrQuotaTypeSize) || errors.Is(err, packages_service.ErrQuotaTotalSize) {
+			apiError(ctx, http.StatusForbidden, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
 
 	state, err := terraform_module.ParseState(buf)
 	if err != nil {

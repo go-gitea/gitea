@@ -38,6 +38,7 @@ func PrepareFilterIssueLabels(ctx *context.Context, repoID int64, owner *user_mo
 			ctx.ServerError("GetLabelsByRepoID", err)
 			return ret
 		}
+		issues_model.SortLabelsForDisplay(repoLabels)
 		allLabels = append(allLabels, repoLabels...)
 	}
 
@@ -47,22 +48,18 @@ func PrepareFilterIssueLabels(ctx *context.Context, repoID int64, owner *user_mo
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return ret
 		}
+		issues_model.SortLabelsForDisplay(orgLabels)
 		allLabels = append(allLabels, orgLabels...)
 	}
 
 	// Get the exclusive scope for every label ID
-	labelExclusiveScopes := make([]string, 0, len(ret.SelectedLabelIDs))
-	for _, labelID := range ret.SelectedLabelIDs {
-		foundExclusiveScope := false
+	labelExclusiveScopes := make([]string, len(ret.SelectedLabelIDs))
+	for i, labelID := range ret.SelectedLabelIDs {
 		for _, label := range allLabels {
 			if label.ID == labelID || label.ID == -labelID {
-				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
-				foundExclusiveScope = true
+				labelExclusiveScopes[i] = label.ExclusiveScope()
 				break
 			}
-		}
-		if !foundExclusiveScope {
-			labelExclusiveScopes = append(labelExclusiveScopes, "")
 		}
 	}
 

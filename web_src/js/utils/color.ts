@@ -1,20 +1,24 @@
 import {colord} from 'colord';
 import type {AnyColor} from 'colord';
 
-/** Returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance */
+/** Undoes the sRGB transfer function, channel is in 0..255 range. */
+function linearizeChannel(channel: number): number {
+  const srgb = channel / 255;
+  return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+}
+
+/** Returns relative luminance for a SRGB color - https://www.w3.org/TR/WCAG20/#relativeluminancedef */
 // Keep this in sync with modules/util/color.go
 function getRelativeLuminance(color: AnyColor): number {
   const {r, g, b} = colord(color).toRgb();
-  return (0.2126729 * r + 0.7151522 * g + 0.072175 * b) / 255;
+  return 0.2126 * linearizeChannel(r) + 0.7152 * linearizeChannel(g) + 0.0722 * linearizeChannel(b);
 }
 
 function useLightText(backgroundColor: AnyColor): boolean {
-  return getRelativeLuminance(backgroundColor) < 0.453;
+  return getRelativeLuminance(backgroundColor) < 0.36; // matches APCA better than WCAG's own 0.179
 }
 
 /** Given a background color, returns a black or white foreground color with the highest contrast ratio. */
-// In the future, the APCA contrast function, or CSS `contrast-color` will be better.
-// https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
 export function contrastColor(backgroundColor: AnyColor): string {
   return useLightText(backgroundColor) ? '#fff' : '#000';
 }

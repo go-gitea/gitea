@@ -4,12 +4,14 @@
 package v1_11
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm/schemas"
 )
 
-func ChangeReviewContentToText(x base.EngineMigration) error {
+func ChangeReviewContentToText(_ context.Context, x base.EngineMigration) error {
 	switch x.Dialect().URI().DBType {
 	case schemas.MYSQL:
 		_, err := x.Exec("ALTER TABLE review MODIFY COLUMN content TEXT")

@@ -38,7 +38,8 @@ func TestRedisBroker(t *testing.T) {
 	// RedisBroker tears down its per-topic Redis subscription and internal
 	// state once the last local subscriber cancels.
 	t.Run("CancelCleansTopicState", func(t *testing.T) {
-		b := newBroker(t).(*RedisBroker)
+		b, isRedisBroker := newBroker(t).(*RedisBroker)
+		require.True(t, isRedisBroker)
 		ch, cancel := b.Subscribe(t.Name())
 		cancel()
 
@@ -58,7 +59,6 @@ func TestRedisBroker(t *testing.T) {
 
 		ch, cancel := subscriber.Subscribe(t.Name())
 		defer cancel()
-		waitSubscribed(t, subscriber, t.Name())
 
 		publisher.Publish(t.Name(), []byte("cross-process"))
 

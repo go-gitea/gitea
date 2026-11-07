@@ -97,7 +97,7 @@ func CreateHook(ctx *context.APIContext) {
 	utils.AddOwnerHook(
 		ctx,
 		ctx.Doer,
-		web.GetForm(ctx).(*api.CreateHookOption),
+		web.GetForm[*api.CreateHookOption](ctx),
 	)
 }
 
@@ -128,7 +128,7 @@ func EditHook(ctx *context.APIContext) {
 	utils.EditOwnerHook(
 		ctx,
 		ctx.Doer,
-		web.GetForm(ctx).(*api.EditHookOption),
+		web.GetForm[*api.EditHookOption](ctx),
 		ctx.PathParamInt64("id"),
 	)
 }

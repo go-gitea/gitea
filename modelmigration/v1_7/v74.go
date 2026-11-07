@@ -3,9 +3,13 @@
 
 package v1_7
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddApprovalWhitelistsToProtectedBranches(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddApprovalWhitelistsToProtectedBranches(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		ApprovalsWhitelistUserIDs []int64 `xorm:"JSON TEXT"`
 		ApprovalsWhitelistTeamIDs []int64 `xorm:"JSON TEXT"`

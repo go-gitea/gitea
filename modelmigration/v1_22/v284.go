@@ -4,12 +4,14 @@
 package v1_22
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddIgnoreStaleApprovalsColumnToProtectedBranchTable(x base.EngineMigration) error {
+func AddIgnoreStaleApprovalsColumnToProtectedBranchTable(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		IgnoreStaleApprovals bool `xorm:"NOT NULL DEFAULT false"`
 	}

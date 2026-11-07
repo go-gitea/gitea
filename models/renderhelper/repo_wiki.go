@@ -36,9 +36,9 @@ func (r *RepoWiki) ResolveLink(link, preferLinkType string) (finalLink string) {
 	case markup.LinkTypeRoot:
 		finalLink = r.ctx.ResolveLinkRoot(link)
 	case markup.LinkTypeMedia, markup.LinkTypeRaw:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki/raw", r.opts.currentRefSubURL), r.opts.currentTreePath, link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki/raw", r.opts.currentRefSubURL), util.PathEscapeSegments(r.opts.currentTreePath), link)
 	default:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki", r.opts.currentRefSubURL), r.opts.currentTreePath, link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki", r.opts.currentRefSubURL), util.PathEscapeSegments(r.opts.currentTreePath), link)
 	}
 	return finalLink
 }

@@ -4,6 +4,7 @@
 package v1_27
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -46,7 +47,7 @@ func (lfsLockWithCreated) TableName() string {
 // when the MSSQL session language is not English, breaking external account
 // linking and LFS lock creation. New installs already use DATETIME2, so only
 // legacy MSSQL columns need converting.
-func FixLegacyMSSQLDateTimeColumns(x base.EngineMigration) error {
+func FixLegacyMSSQLDateTimeColumns(ctx context.Context, x base.EngineMigration) error {
 	if x.Dialect().URI().DBType != schemas.MSSQL {
 		return nil
 	}
@@ -70,7 +71,7 @@ func FixLegacyMSSQLDateTimeColumns(x base.EngineMigration) error {
 		if column == nil {
 			return fmt.Errorf("column %s does not exist in table %s", c.column, table.Name)
 		}
-		if err := base.ModifyColumn(x, table.Name, column); err != nil {
+		if err := base.ModifyColumn(ctx, x, table.Name, column); err != nil {
 			return fmt.Errorf("modify %s.%s: %w", table.Name, c.column, err)
 		}
 	}

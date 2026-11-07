@@ -24,7 +24,7 @@ If your report turns out to be a duplicate, you will be credited in the original
 
 Due to the sensitive nature of security information, you can use the below GPG public key to encrypt your mail body.
 
-The PGP key is valid until July 4, 2026.
+The PGP key is valid until July 23, 2027.
 
 ```
 Key ID: 6FCD2D5B

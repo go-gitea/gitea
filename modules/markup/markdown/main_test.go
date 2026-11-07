@@ -4,7 +4,6 @@
 package markdown
 
 import (
-	"os"
 	"testing"
 
 	"gitea.dev/modules/markup"
@@ -12,7 +11,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	setting.IsInTesting = true
+	setting.SetupGiteaTestEnv()
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
-	os.Exit(m.Run())
+	m.Run()
 }

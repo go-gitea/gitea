@@ -7,7 +7,6 @@ package git
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,9 +15,9 @@ import (
 	"sync"
 	"time"
 
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
@@ -71,6 +70,11 @@ func OpenRepository(catFileBatchCtx context.Context, repo RepositoryFacade) (*Re
 	gitRepo := &Repository{
 		RepositoryBase: RepositoryBase{tagCache: newObjectCache[*Tag](), repoFacade: repo, catFileBatchCtx: catFileBatchCtx},
 	}
+	gitRepo.RepositoryBase.LastCommitCache = &LastCommitCache{
+		repo:  gitRepo,
+		ttlFn: setting.LastCommitCacheTTLSeconds,
+		cache: cache.GetCache(),
+	}
 	if err = openRepositoryInternal(gitRepo); err != nil {
 		return nil, err
 	}
@@ -114,7 +118,7 @@ func IsRepoURLAccessible(ctx context.Context, url string) bool {
 }
 
 // InitRepositoryLocal initializes a new Git repository.
-func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, objectFormatName string) error {
+func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, objectFormatName, initialBranch string) error {
 	err := os.MkdirAll(localRepoPath, os.ModePerm)
 	if err != nil {
 		return err
@@ -127,6 +131,9 @@ func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, o
 	}
 	if DefaultFeatures().SupportHashSha256 {
 		cmd.AddOptionValues("--object-format", objectFormatName)
+	}
+	if initialBranch != "" {
+		cmd.AddOptionValues("--initial-branch", initialBranch)
 	}
 
 	if bare {
@@ -177,7 +184,6 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	}
 
 	cmd := gitcmd.NewCommand().AddArguments("clone")
-	HandleGitCmdHTTPRedirection(cmd, from, to)
 	if opts.SkipTLSVerify {
 		cmd.AddArguments("-c", "http.sslVerify=false")
 	}
@@ -214,26 +220,12 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 		opts.Timeout = -1
 	}
 
-	envs := os.Environ()
-	if opts.Env != nil {
-		envs = opts.Env
-	} else {
-		u, err := url.Parse(from)
-		if err == nil {
-			envs = proxy.EnvWithProxy(u)
-		}
-	}
-
-	return cmd.
-		WithTimeout(opts.Timeout).
-		WithEnv(envs).
-		RunWithStderr(ctx)
+	return cmd.WithTimeout(opts.Timeout).WithEnv(opts.Env).RunWithStderr(ctx)
 }
 
 // PushOptions options when push to remote
 type PushOptions struct {
 	Remote         string
-	LocalRefName   string
 	Branch         string
 	Force          bool
 	ForceWithLease string
@@ -255,13 +247,7 @@ func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 	}
 	remoteBranchArgs := []string{opts.Remote}
 	if len(opts.Branch) > 0 {
-		var refspec string
-		if opts.LocalRefName != "" {
-			refspec = fmt.Sprintf("%s:%s", opts.LocalRefName, opts.Branch)
-		} else {
-			refspec = opts.Branch
-		}
-		remoteBranchArgs = append(remoteBranchArgs, refspec)
+		remoteBranchArgs = append(remoteBranchArgs, opts.Branch)
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
@@ -273,8 +259,6 @@ func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err
-		} else if strings.Contains(stderr, "matches more than one") {
-			return &ErrMoreThanOne{StdOut: stdout, StdErr: stderr, Err: err}
 		}
 		return fmt.Errorf("push failed: %w - %s\n%s", err, stderr, stdout)
 	}

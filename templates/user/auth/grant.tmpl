@@ -12,6 +12,7 @@
 				{{end}}
 				{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}<br>
 				{{ctx.Locale.Tr "auth.authorize_application_with_scopes" (HTMLFormat "<b>%s</b>" .Scope)}}
+				{{if .AddedScopes}}<br>{{ctx.Locale.Tr "auth.authorize_application_new_scopes" (HTMLFormat "<b>%s</b>" (StringUtils.Join .AddedScopes " "))}}{{end}}
 			</p>
 		</div>
 		<div class="ui attached segment">

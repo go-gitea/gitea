@@ -3,9 +3,13 @@
 
 package v1_8
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddUserDefaultTheme(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddUserDefaultTheme(_ context.Context, x base.EngineMigration) error {
 	type User struct {
 		Theme string `xorm:"VARCHAR(30) NOT NULL DEFAULT ''"`
 	}

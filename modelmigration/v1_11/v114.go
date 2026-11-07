@@ -4,12 +4,13 @@
 package v1_11
 
 import (
+	"context"
 	"net/url"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func SanitizeOriginalURL(x base.EngineMigration) error {
+func SanitizeOriginalURL(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		ID          int64
 		OriginalURL string `xorm:"VARCHAR(2048)"`

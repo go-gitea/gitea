@@ -91,7 +91,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 		"CloneURL.HTTPS": cloneLink.HTTPS,
 		"OwnerName":      repo.OwnerName,
 	}
-	res, err := vars.Expand(string(data), match)
+	res, err := vars.ExpandCurlyBrace(string(data), match)
 	if err != nil {
 		// here we could just log the error and continue the rendering
 		log.Error("unable to expand template vars for repo README: %s, err: %v", opts.Readme, err)
@@ -144,15 +144,16 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
+	repo.DefaultBranch = util.IfZero(opts.DefaultBranch, setting.Repository.DefaultBranch)
+	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
+
 	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
+	if err = git.InitRepository(ctx, repo, repo.ObjectFormatName, repo.DefaultBranch); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = git.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
-	repo.DefaultBranch = util.IfZero(opts.DefaultBranch, setting.Repository.DefaultBranch)
-	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
 	if !opts.AutoInit {
 		repo.IsEmpty = true
 	}
@@ -177,10 +178,6 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 		if err = initRepoCommit(ctx, tmpDir, repo, u); err != nil {
 			return fmt.Errorf("initRepoCommit: %w", err)
 		}
-	}
-
-	if err = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
-		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
 
 	// Re-fetch the repository from database before updating it (keep changes that were done earlier with SQL)
@@ -308,16 +305,15 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	}
 
 	// 6 - update licenses
-	var licenses []string
 	if len(opts.License) > 0 {
-		licenses = append(licenses, opts.License)
-
+		licenses := make([]repo_model.DetectedLicense, 0, 1)
 		var stdout string
 		stdout, _, err = gitcmd.NewCommand("rev-parse", "HEAD").WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return nil, fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
 		}
+		licenses = append(licenses, repo_model.DetectedLicense{SPDXID: opts.License, LicensePath: LicenseLegacyFile})
 		if err = repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
 			return nil, err
 		}
@@ -425,9 +421,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 			}
 		}
 
-		if isAdmin, err := access_model.IsUserRepoAdmin(ctx, repo, doer); err != nil {
-			return fmt.Errorf("IsUserRepoAdmin: %w", err)
-		} else if !isAdmin {
+		if !access_model.IsUserRepoAdmin(ctx, repo, doer) {
 			// Make creator repo admin if it wasn't assigned automatically
 			if err = AddOrUpdateCollaborator(ctx, repo, doer, perm.AccessModeAdmin); err != nil {
 				return fmt.Errorf("AddCollaborator: %w", err)
@@ -439,7 +433,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 	}
 
 	if setting.Service.AutoWatchNewRepos {
-		if err = repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
+		if err = repo_model.WatchRepoAuto(ctx, doer, repo, true); err != nil {
 			return fmt.Errorf("WatchRepo: %w", err)
 		}
 	}

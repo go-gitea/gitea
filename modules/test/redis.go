@@ -7,23 +7,19 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 )
 
-const (
-	testRedisHost    = "127.0.0.1"
-	testRedisPort    = "6379"
-	testRedisAddr    = testRedisHost + ":" + testRedisPort
-	testRedisConnStr = "redis://" + testRedisAddr + "/0"
-)
+const testRedisAddr = "127.0.0.1:6379"
 
-// waitRedisReady reports whether redis accepts connections within dur. Redis
-// binds its listener last during startup, so a successful dial means it can
-// serve. A plain dial, not a redis PING: the client retries its pool on a
+// waitRedisReady reports whether redis accepts connections on addr within dur.
+// Redis binds its listener last during startup, so a successful dial means it
+// can serve. A plain dial, not a redis PING: the client retries its pool on a
 // refused connect, which makes the "is one already running" probe take ~1s.
-func waitRedisReady(dur time.Duration) bool {
-	for start := time.Now(); ; time.Sleep(50 * time.Millisecond) {
-		conn, err := net.DialTimeout("tcp", testRedisAddr, time.Second)
+func waitRedisReady(network, addr string, dur time.Duration) bool {
+	for start := time.Now(); ; time.Sleep(5 * time.Millisecond) {
+		conn, err := net.DialTimeout(network, addr, time.Second)
 		if err == nil {
 			_ = conn.Close()
 			return true
@@ -34,35 +30,33 @@ func waitRedisReady(dur time.Duration) bool {
 	}
 }
 
-func redisServerCmd(t TestingT) *exec.Cmd {
+// PrepareTestRedis returns a connection string to a running redis, reusing one
+// already listening on the well-known port, otherwise starting one for the
+// duration of the test.
+func PrepareTestRedis(t TestingT) string {
+	if waitRedisReady("tcp", testRedisAddr, 0) {
+		return "redis://" + testRedisAddr + "/0"
+	}
 	redisServerProg, err := exec.LookPath("redis-server")
 	if err != nil {
-		return nil
-	}
-	return &exec.Cmd{
-		Path:   redisServerProg,
-		Args:   []string{redisServerProg, "--bind", testRedisHost, "--port", testRedisPort},
-		Dir:    t.TempDir(),
-		Stdin:  os.Stdin,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
-}
-
-// PrepareTestRedis returns a connection string to a running redis, starting one
-// for the duration of the test if the port is free.
-func PrepareTestRedis(t TestingT) string {
-	if waitRedisReady(0) {
-		return testRedisConnStr
-	}
-	redisServer := redisServerCmd(t)
-	if redisServer == nil {
 		if AllowSkipExternalService() {
 			t.Skipf("redis-server command not found, skipped")
 		} else {
 			t.Fatalf("no redis server or command, but skipping is not allowed")
 		}
-		return testRedisConnStr
+		return ""
+	}
+	// listen on a socket of our own rather than a port, so that packages running
+	// in parallel can neither reach nor tear down each other's server
+	dir := t.TempDir()
+	socket := filepath.Join(dir, "redis.sock")
+	redisServer := &exec.Cmd{
+		Path:   redisServerProg,
+		Args:   []string{redisServerProg, "--port", "0", "--unixsocket", socket},
+		Dir:    dir,
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
 	}
 	if err := redisServer.Start(); err != nil {
 		t.Fatalf("failed to start redis-server: %v", err)
@@ -71,8 +65,8 @@ func PrepareTestRedis(t TestingT) string {
 		_ = redisServer.Process.Signal(os.Interrupt)
 		_ = redisServer.Wait()
 	})
-	if !waitRedisReady(5 * time.Second) {
+	if !waitRedisReady("unix", socket, 5*time.Second) {
 		t.Fatalf("failed to start redis-server")
 	}
-	return testRedisConnStr
+	return "redis+socket://" + socket
 }

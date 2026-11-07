@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInTransaction(t *testing.T) {
@@ -41,7 +42,10 @@ func TestTxContext(t *testing.T) {
 		assert.NoError(t, committer.Commit())
 	}
 
-	{ // reuse the transaction created by TxContext and commit it
+	for _, finish := range []func(db.Committer) error{
+		db.Committer.Commit, // reuse the transaction created by TxContext and commit it
+		db.Committer.Close,  // reuse the transaction created by TxContext and close it
+	} {
 		ctx, committer, err := db.TxContext(t.Context())
 		engine := db.GetEngine(ctx)
 		assert.NoError(t, err)
@@ -51,24 +55,9 @@ func TestTxContext(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, db.InTransaction(ctx))
 			assert.Equal(t, engine, db.GetEngine(ctx))
-			assert.NoError(t, committer.Commit())
+			assert.NoError(t, finish(committer))
 		}
-		assert.NoError(t, committer.Commit())
-	}
-
-	{ // reuse the transaction created by TxContext and close it
-		ctx, committer, err := db.TxContext(t.Context())
-		engine := db.GetEngine(ctx)
-		assert.NoError(t, err)
-		assert.True(t, db.InTransaction(ctx))
-		{
-			ctx, committer, err := db.TxContext(ctx)
-			assert.NoError(t, err)
-			assert.True(t, db.InTransaction(ctx))
-			assert.Equal(t, engine, db.GetEngine(ctx))
-			assert.NoError(t, committer.Close())
-		}
-		assert.NoError(t, committer.Close())
+		assert.NoError(t, finish(committer))
 	}
 
 	{ // reuse the transaction created by WithTx
@@ -107,7 +96,8 @@ func TestContextSafety(t *testing.T) {
 			_ = db.GetEngine(ctx).Iterate(&TestModel1{}, func(i int, bean any) error {
 				// here: db.GetEngine(ctx) is always the unclosed "Iterate" *Session with autoResetStatement=false,
 				// and the internal states (including "cond" and others) are always there and not be reset in this callback.
-				m1 := bean.(*TestModel1)
+				m1, ok := bean.(*TestModel1)
+				require.True(t, ok)
 				assert.EqualValues(t, i+1, m1.ID)
 
 				// here: XORM bug, it fails because the SQL becomes "WHERE id=-1", "WHERE id=-1 AND id=-2", "WHERE id=-1 AND id=-2 AND id=-3" ...

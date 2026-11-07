@@ -1,5 +1,5 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
-import {renderAnsiInto} from '../render/ansi.ts';
+import type {AnsiLineRenderer} from '../render/ansi.ts';
 import {reactive} from 'vue';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {IntervalId} from '../types.ts';
@@ -76,11 +76,11 @@ function decodeLineMessage(line: LogLine, cmd: LogLineCommand | null): string {
   if (cmd.name === 'command') return msg; // "command" is only an output tag, do not parse or escape it
   // "##[cmd]" also escapes ";" and "]" which delimit its header, "::cmd::" does not
   if (!cmd.prefix.startsWith('::')) msg = msg.replace(/%3B/g, ';').replace(/%5D/g, ']');
-  // renderAnsiInto breaks a line per "\r", so "%0D%0A" is one break. "%25" last keeps "%250A" literal
+  // a line breaks per "\r" when rendered, so "%0D%0A" is one break. "%25" last keeps "%250A" literal
   return msg.replace(/(?:%0D)?%0A/g, '\n').replace(/%0D/g, '\r').replace(/%25/g, '%');
 }
 
-export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
+export function createLogLineMessage(ansi: AnsiLineRenderer, line: LogLine, cmd: LogLineCommand | null) {
   const logMsgAttrs = {class: 'log-msg'};
   if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd.name}`; // make it easier to add styles to some commands like "error"
 
@@ -90,10 +90,10 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   if (label) {
     logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
     const msgSpan = document.createElement('span');
-    renderAnsiInto(msgSpan, ` ${msgContent.trimStart()}`);
+    ansi.renderLine(msgSpan, ` ${msgContent.trimStart()}`);
     logMsg.append(msgSpan);
   } else {
-    renderAnsiInto(logMsg, msgContent);
+    ansi.renderLine(logMsg, msgContent);
   }
   return logMsg;
 }

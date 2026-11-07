@@ -4,12 +4,14 @@
 package v1_23
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddPriorityToProtectedBranch(x base.EngineMigration) error {
+func AddPriorityToProtectedBranch(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		Priority int64 `xorm:"NOT NULL DEFAULT 0"`
 	}

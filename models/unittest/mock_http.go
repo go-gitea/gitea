@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -30,6 +31,8 @@ type MockServerOptions struct {
 	// useful when the client prepends a prefix the real upstream does not use
 	// (e.g. go-github prepends "/api/v3").
 	StripPrefix string
+	// FixtureName overrides the fixture file name, for APIs where method and path don't identify the request.
+	FixtureName func(r *http.Request, body []byte) string
 }
 
 // NewMockWebServer returns a test HTTP server that records upstream responses on demand
@@ -66,16 +69,22 @@ func NewMockWebServer(t *testing.T, liveServerBaseURL, testDataDir string, liveM
 		}
 		log.Info("mock server: %s %s", r.Method, reqPath)
 
+		reqBody, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
 		fixturePath := fmt.Sprintf("%s/%s_%s", testDataDir, r.Method, url.QueryEscape(reqPath))
 		if strings.Contains(r.URL.Path, ".git/") {
 			fixturePath = fmt.Sprintf("%s/%s_%s", testDataDir, r.Method, url.QueryEscape(r.URL.Path))
+		}
+		if opt.FixtureName != nil {
+			fixturePath = fmt.Sprintf("%s/%s", testDataDir, opt.FixtureName(r, reqBody))
 		}
 
 		if liveMode {
 			require.NoError(t, os.MkdirAll(testDataDir, 0o755))
 
 			liveURL := liveServerBaseURL + strings.TrimPrefix(reqPath, opt.StripPrefix)
-			req, err := http.NewRequest(r.Method, liveURL, r.Body)
+			req, err := http.NewRequest(r.Method, liveURL, strings.NewReader(string(reqBody)))
 			require.NoError(t, err, "building upstream request to %s", liveURL)
 			for name, values := range r.Header {
 				if strings.EqualFold(name, "accept-encoding") {
@@ -95,6 +104,10 @@ func NewMockWebServer(t *testing.T, liveServerBaseURL, testDataDir string, liveM
 			require.NoError(t, err, "creating fixture %s", fixturePath)
 			defer out.Close()
 
+			if resp.StatusCode != http.StatusOK {
+				_, err = fmt.Fprintf(out, "HTTP/1.1 %d %s\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+				require.NoError(t, err, "writing fixture header for %s", liveURL)
+			}
 			for _, name := range slices.Sorted(maps.Keys(resp.Header)) {
 				if slices.Contains(ignoredHeaders, strings.ToLower(name)) {
 					continue
@@ -117,14 +130,21 @@ func NewMockWebServer(t *testing.T, liveServerBaseURL, testDataDir string, liveM
 
 		replayed := strings.ReplaceAll(string(raw), liveServerBaseURL, mockURL)
 		headers, body, _ := strings.Cut(replayed, "\n\n")
+		code := http.StatusOK
 		for line := range strings.SplitSeq(headers, "\n") {
+			if strings.HasPrefix(line, "HTTP/") {
+				parts := strings.SplitN(line, " ", 3)
+				require.Len(t, parts, 3)
+				code, _ = strconv.Atoi(parts[1])
+				continue
+			}
 			name, value, ok := strings.Cut(line, ": ")
 			if !ok || strings.EqualFold(name, "Content-Length") {
 				continue
 			}
 			w.Header().Set(name, value)
 		}
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(code)
 		_, err = w.Write([]byte(body))
 		require.NoError(t, err)
 	})
