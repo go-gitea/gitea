@@ -240,11 +240,6 @@ func SearchIssues(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	issues, err = common.FilterReadableIssues(ctx, ctx.Doer, issues, repoIDs)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
 
 	ctx.SetLinkHeader(total, limit)
 	ctx.SetTotalCountHeader(total)

@@ -167,11 +167,6 @@ func SearchGlobalIssues(ctx *context.Context) {
 		ctx.ServerError("FindIssuesByIDs", err)
 		return
 	}
-	issues, err = common.FilterReadableIssues(ctx, ctx.Doer, issues, repoIDs)
-	if err != nil {
-		ctx.ServerError("FilterReadableIssues", err)
-		return
-	}
 
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, issues))
