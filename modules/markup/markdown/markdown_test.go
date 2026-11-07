@@ -555,8 +555,8 @@ space</p>
 		input := `http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb
 http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash`
 
-		expected := `<p><a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a>
-<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a></p>
+		expected := `<p><a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">user/repo@<code>88fc37a3c0</code></a>
+<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">user/repo@<code>88fc37a3c0...12fc37a3c0</code>#hash</a></p>
 `
 		result, err := markdown.RenderString(markup.NewTestRenderContext(localMetas), input)
 		assert.NoError(t, err)
