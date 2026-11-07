@@ -74,7 +74,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}
 
 	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
-	tasks, err := db.Find[actions_model.ActionTask](ctx, actions_model.FindTaskOptions{RepoID: repoID})
+	tasks, err := db.Find[actions_model.ActionTask](ctx, actions_model.FindTaskByRepoOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
 	}
