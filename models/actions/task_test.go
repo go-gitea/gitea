@@ -275,9 +275,13 @@ func TestReleaseTaskForRunner(t *testing.T) {
 			}
 			require.NoError(t, db.Insert(t.Context(), run))
 
+			disabledRun := &ActionRun{RepoID: 2, TriggerUserID: 2}
+			require.NoError(t, db.Insert(t.Context(), disabledRun))
+			disabledJob := &ActionRunJob{RunID: disabledRun.ID, RepoID: 2, Status: StatusWaiting, RunsOn: []string{"ubuntu-latest"}}
+			require.NoError(t, db.Insert(t.Context(), disabledJob))
+
 			if tt.batchSize != 0 {
 				// Five waiting jobs the runner cannot run, then one it can.
-				// With a page size of 2 the matching job only appears on the third page.
 				for i := range 5 {
 					mismatch := &ActionRunJob{
 						RunID:     run.ID,
@@ -315,11 +319,13 @@ func TestReleaseTaskForRunner(t *testing.T) {
 			}
 			runner.GenerateAndFillToken()
 			require.NoError(t, db.Insert(t.Context(), runner))
+			require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: run.RepoID, Type: unit.TypeActions}))
 
-			task, ok, err := CreateTaskForRunner(t.Context(), runner)
+			task, cancelledJobs, err := CreateTaskForRunner(t.Context(), runner)
 			require.NoError(t, err)
-			require.True(t, ok)
 			require.NotNil(t, task)
+			require.Len(t, cancelledJobs, 1)
+			assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: disabledJob.ID}).Status)
 
 			claimed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
 			if tt.batchSize != 0 {
@@ -359,15 +365,16 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 		WorkflowPayload: []byte("jobs: {job: {}}"),
 	}
 	require.NoError(t, db.Insert(t.Context(), job))
+	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: run.RepoID, Type: unit.TypeActions}))
 
 	group, err := CreateRunnerGroup(t.Context(), 0, "gpu")
 	require.NoError(t, err)
 	runner := &ActionRunner{UUID: "grouped", GroupID: group.ID, TokenHash: "grouped"}
 	require.NoError(t, db.Insert(t.Context(), runner))
 
-	_, ok, err := CreateTaskForRunner(t.Context(), runner)
+	task, _, err := CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
-	require.False(t, ok, "a group without granted repositories serves nothing")
+	require.Nil(t, task, "a group without granted repositories serves nothing")
 
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID}).OwnerID
 	available := func(opts FindRunnerOptions) bool {
@@ -378,9 +385,9 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 	}
 	assert.False(t, available(FindRunnerOptions{OwnerID: repoOwner}))
 	require.NoError(t, UpdateRunnerGroup(t.Context(), group, false, []int64{2, 2}, []int64{runner.ID}))
-	_, ok, err = CreateTaskForRunner(t.Context(), runner)
+	task, _, err = CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
-	require.False(t, ok)
+	require.Nil(t, task)
 	assert.False(t, available(FindRunnerOptions{RepoID: run.RepoID}))
 	assert.True(t, available(FindRunnerOptions{OwnerID: repoOwner}))
 
@@ -392,16 +399,16 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 	require.NoError(t, err)
 	assert.Greater(t, afterVersion, beforeVersion)
 
-	task, ok, err := CreateTaskForRunner(t.Context(), runner)
+	task, _, err = CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
-	require.True(t, ok)
+	require.NotNil(t, task)
 	assert.Equal(t, job.ID, task.JobID)
 
 	require.NoError(t, ReleaseTaskForRunner(t.Context(), task))
 	require.NoError(t, UpdateRunnerGroup(t.Context(), group, true, []int64{-1}, []int64{runner.ID}), "a stale selection is ignored with all repositories")
-	task, ok, err = CreateTaskForRunner(t.Context(), runner)
+	task, _, err = CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
-	require.True(t, ok, "a group including all repositories serves unlisted ones")
+	require.NotNil(t, task, "a group including all repositories serves unlisted ones")
 	assert.Equal(t, job.ID, task.JobID)
 	assert.True(t, available(FindRunnerOptions{RepoID: run.RepoID}))
 }
@@ -446,16 +453,16 @@ func TestCreateTaskForRunnerRechecksRunnerScopeAtClaim(t *testing.T) {
 			require.NoError(t, err)
 		}
 		hook.change = func() { set(change.applied) }
-		_, ok, err := CreateTaskForRunner(t.Context(), runner)
+		task, _, err := CreateTaskForRunner(t.Context(), runner)
 		require.NoError(t, err)
 		require.Nil(t, hook.change)
-		assert.False(t, ok, change.query)
+		assert.Nil(t, task, change.query)
 		set(change.reverted)
 	}
 
-	_, ok, err := CreateTaskForRunner(t.Context(), runner)
+	task, _, err := CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
-	assert.True(t, ok)
+	assert.NotNil(t, task)
 }
 
 type beforeTaskClaim struct{ change func() }

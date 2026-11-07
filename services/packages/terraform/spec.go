@@ -15,6 +15,7 @@ import (
 )
 
 type Specialization struct {
+	packages_service.SpecPublicPropertyNames
 	packages_service.SpecRenderUsageManual
 }
 

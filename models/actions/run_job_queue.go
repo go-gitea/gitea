@@ -27,13 +27,12 @@ func (opts JobQueueOptions) session(ctx context.Context) *xorm.Session {
 		sess = sess.And(builder.Eq{"`action_run_job`.repo_id": opts.RepoID})
 	}
 	if opts.OwnerID > 0 {
-		sess = sess.Join("INNER", "repository", "repository.id = `action_run_job`.repo_id AND repository.owner_id = ?", opts.OwnerID)
+		sess = sess.And(builder.In("`action_run_job`.repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": opts.OwnerID})))
 	}
 	return sess.And(opts.statusCond())
 }
 
 var (
-	// keep in sync with CreateTaskForRunner
 	queuedJobsCond = builder.Eq{"`action_run_job`.status": StatusWaiting, "`action_run_job`.task_id": 0}
 	// a cancelling job still occupies its runner
 	runningJobsCond = builder.In("`action_run_job`.status", StatusRunning, StatusCancelling)

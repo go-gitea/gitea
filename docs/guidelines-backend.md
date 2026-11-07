@@ -88,6 +88,11 @@ conditional `UPDATE` or a lock.
   struct conditions and inserts of more than 1000 rows.
 - Paginated queries need a unique tiebreaker like `id` for a stable order.
 
+### Git
+
+- Pass already opened repositories down or use `git.RepositoryFromContextOrOpen`
+  rather than reopening them or spawning extra `git` processes.
+
 ## Dependencies
 
 Go dependencies are managed with [Go Modules](https://go.dev/ref/mod).

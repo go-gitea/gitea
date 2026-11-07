@@ -3663,6 +3663,7 @@
             "example": [
               "all",
               "read:activitypub",
+              "write:commitstatus",
               "read:issue",
               "write:misc",
               "read:notification",
@@ -4671,6 +4672,14 @@
             "description": "Whether to create the release as a draft",
             "type": "boolean",
             "x-go-name": "IsDraft"
+          },
+          "make_latest": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MakeLatest"
+              }
+            ],
+            "description": "\"true\" sets the release as the latest, \"false\" keeps the current latest, \"legacy\" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date"
           },
           "name": {
             "description": "The display title of the release",
@@ -5929,6 +5938,14 @@
             "description": "Whether to change the draft status",
             "type": "boolean",
             "x-go-name": "IsDraft"
+          },
+          "make_latest": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MakeLatest"
+              }
+            ],
+            "description": "\"true\" sets the release as the latest, \"false\" keeps the current latest, \"legacy\" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date"
           },
           "name": {
             "description": "The new display title of the release",
@@ -7758,6 +7775,14 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "MakeLatest": {
+        "enum": [
+          "true",
+          "false",
+          "legacy"
+        ],
+        "type": "string"
+      },
       "MarkdownOption": {
         "description": "MarkdownOption markdown options",
         "properties": {
@@ -7977,7 +8002,8 @@
               "codebase",
               "codecommit",
               "bitbucketserver",
-              "forgejo"
+              "forgejo",
+              "bitbucket"
             ],
             "type": "string",
             "x-go-name": "Service"
@@ -8505,6 +8531,14 @@
             "description": "The name of the package file",
             "type": "string",
             "x-go-name": "Name"
+          },
+          "properties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The type specific properties locating the package file, e.g. the distribution and component of a Debian package",
+            "type": "object",
+            "x-go-name": "Properties"
           },
           "sha1": {
             "description": "The SHA1 hash of the package file",
@@ -14495,13 +14529,12 @@
             }
           },
           {
-            "description": "id of the label to delete",
+            "description": "id of the label to delete, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -14531,13 +14564,12 @@
             }
           },
           {
-            "description": "id of the label to get",
+            "description": "id of the label to get, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -14567,13 +14599,12 @@
             }
           },
           {
-            "description": "id of the label to edit",
+            "description": "id of the label to edit, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -26668,13 +26699,12 @@
             }
           },
           {
-            "description": "id of the label to delete",
+            "description": "id of the label to delete, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -26713,13 +26743,12 @@
             }
           },
           {
-            "description": "id of the label to get",
+            "description": "id of the label to get, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -26758,13 +26787,12 @@
             }
           },
           {
-            "description": "id of the label to edit",
+            "description": "id of the label to edit, or its name when not numeric",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "format": "int64",
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -30722,7 +30750,7 @@
             "$ref": "#/components/responses/error"
           }
         },
-        "summary": "Gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at",
+        "summary": "Gets the release set as latest, else the most recent non-prerelease, non-draft release of a repository by created_at",
         "tags": [
           "repository"
         ]

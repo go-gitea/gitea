@@ -367,25 +367,10 @@ func ViewProject(ctx *context.Context) {
 		ctx.Data["issuesAttachmentMap"] = issuesAttachmentMap
 	}
 
-	linkedPrsMap := make(map[int64][]*issues_model.Issue)
-	for _, issuesList := range issuesMap {
-		for _, issue := range issuesList {
-			var referencedIDs []int64
-			for _, comment := range issue.Comments {
-				if comment.RefIssueID != 0 && comment.RefIsPull {
-					referencedIDs = append(referencedIDs, comment.RefIssueID)
-				}
-			}
-
-			if len(referencedIDs) > 0 {
-				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-					IssueIDs: referencedIDs,
-					IsPull:   optional.Some(true),
-				}); err == nil {
-					linkedPrsMap[issue.ID] = linkedPrs
-				}
-			}
-		}
+	linkedPrsMap, err := project_service.LoadLinkedPullRequests(ctx, issuesMap, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("LoadLinkedPullRequests", err)
+		return
 	}
 
 	// TODO: Add option to filter also by repository specific labels
@@ -396,18 +381,13 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	// Get the exclusive scope for every label ID
-	labelExclusiveScopes := make([]string, 0, len(preparedLabelFilter.SelectedLabelIDs))
-	for _, labelID := range preparedLabelFilter.SelectedLabelIDs {
-		foundExclusiveScope := false
+	labelExclusiveScopes := make([]string, len(preparedLabelFilter.SelectedLabelIDs))
+	for i, labelID := range preparedLabelFilter.SelectedLabelIDs {
 		for _, label := range labels {
 			if label.ID == labelID || label.ID == -labelID {
-				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
-				foundExclusiveScope = true
+				labelExclusiveScopes[i] = label.ExclusiveScope()
 				break
 			}
-		}
-		if !foundExclusiveScope {
-			labelExclusiveScopes = append(labelExclusiveScopes, "")
 		}
 	}
 
