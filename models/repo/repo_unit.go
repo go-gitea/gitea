@@ -121,6 +121,7 @@ type PullRequestsConfig struct {
 	AllowSquash                   bool
 	AllowFastForwardOnly          bool
 	AllowManualMerge              bool
+	AllowAgitPullRequests         bool
 	AutodetectManualMerge         bool
 	AllowMergeUpdate              bool
 	AllowRebaseUpdate             bool
@@ -140,6 +141,7 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 		AllowSquash:                true,
 		AllowFastForwardOnly:       true,
 		AllowMergeUpdate:           true,
+		AllowAgitPullRequests:      true,
 		AllowRebaseUpdate:          true,
 		DefaultUpdateStyle:         UpdateStyleMerge,
 		DefaultAllowMaintainerEdit: true,
