@@ -125,10 +125,16 @@ func EllipsisTruncateRunes(str string, limit int) (left, right string) {
 // TruncateRunes returns a truncated string with given rune limit,
 // it returns input string if its rune length doesn't exceed the limit.
 func TruncateRunes(str string, limit int) string {
-	if utf8.RuneCountInString(str) < limit {
+	if len(str) <= limit {
 		return str
 	}
-	return string([]rune(str)[:limit])
+	for i := range str {
+		limit -= 1
+		if limit < 0 {
+			return str[:i]
+		}
+	}
+	return str
 }
 
 // TruncateStringBytes returns a truncated string with given byte limit,
@@ -137,13 +143,11 @@ func TruncateStringBytes(str string, limit int) string {
 	if len(str) <= limit {
 		return str
 	}
-	l := 0
 	for i, r := range str {
-		rl := utf8.RuneLen(r)
-		if l+rl > limit {
+		limit -= utf8.RuneLen(r)
+		if limit < 0 {
 			return str[:i]
 		}
-		l += rl
 	}
 	return str
 }

@@ -837,7 +837,7 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 			}
 
 			// trim user agent string to a reasonable length, if necessary
-			userAgent := util.TruncateStringBytes(strings.TrimSpace(meta.InitialUserAgent), 255)
+			userAgent := util.TruncateRunes(strings.TrimSpace(meta.InitialUserAgent), 255)
 			if err = SetUserSetting(ctx, u.ID, SignupUserAgent, userAgent); err != nil {
 				return err
 			}
