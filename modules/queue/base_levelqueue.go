@@ -63,5 +63,5 @@ func (q *baseLevelQueue) Close() error {
 }
 
 func (q *baseLevelQueue) RemoveAll(ctx context.Context) error {
-	return q.removeAllItems()
+	return q.internal.RemoveAll()
 }

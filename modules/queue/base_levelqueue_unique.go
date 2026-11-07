@@ -65,5 +65,7 @@ func (q *baseLevelQueueUnique) Close() error {
 }
 
 func (q *baseLevelQueueUnique) RemoveAll(ctx context.Context) error {
-	return q.removeAllItems()
+	q.muBase.Lock()
+	defer q.muBase.Unlock()
+	return q.internal.RemoveAll()
 }
