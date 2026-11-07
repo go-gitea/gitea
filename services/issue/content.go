@@ -30,7 +30,9 @@ func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 		return err
 	}
 
-	notify_service.IssueChangeContent(ctx, doer, issue, oldContent)
+	if oldContent != content {
+		notify_service.IssueChangeContent(ctx, doer, issue, oldContent)
+	}
 
 	return nil
 }

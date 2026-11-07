@@ -1095,6 +1095,7 @@ jobs:
 		pullIssue := &issues_model.Issue{
 			RepoID:   repo.ID,
 			Title:    "A test PR",
+			Content:  "original",
 			PosterID: user2.ID,
 			Poster:   user2,
 			IsPull:   true,
@@ -1116,9 +1117,24 @@ jobs:
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// edited
+		latestChanges := func() *api.ChangesPayload {
+			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID}, unittest.OrderBy("id DESC"))
+			var payload api.PullRequestPayload
+			require.NoError(t, json.Unmarshal([]byte(run.EventPayload), &payload))
+			require.NotNil(t, payload.Changes)
+			return payload.Changes
+		}
 		err = issue_service.ChangeContent(t.Context(), pullIssue, user2, "test", 0)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+		assert.Equal(t, &api.ChangesFromPayload{From: "original"}, latestChanges().Body)
+		runCount := unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID})
+		require.NoError(t, issue_service.ChangeContent(t.Context(), pullIssue, user2, "test", pullIssue.ContentVersion))
+		assert.Equal(t, runCount, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+
+		require.NoError(t, issue_service.ChangeTitle(t.Context(), pullIssue, user2, "A renamed PR"))
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+		assert.Equal(t, &api.ChangesFromPayload{From: "A test PR"}, latestChanges().Title)
 
 		// closed
 		err = issue_service.CloseIssue(t.Context(), pullIssue, user2, "")
@@ -1218,6 +1234,13 @@ jobs:
 		_, err = issue_service.ReviewRequest(t.Context(), pullIssue, user2, nil, user4, false)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		testCreateBranch(t, ctx.Session, repo.OwnerName, repo.Name, "branch/main", "other-base", http.StatusSeeOther)
+		require.NoError(t, pull_service.ChangeTargetBranch(t.Context(), pullRequest, user2, "other-base"))
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+		changes := latestChanges()
+		assert.Equal(t, &api.ChangesFromPayload{From: "main"}, changes.Ref)
+		assert.Equal(t, &api.ChangesBasePayload{Ref: api.ChangesFromPayload{From: "main"}, Sha: api.ChangesFromPayload{From: addWorkflow.Commit.SHA}}, changes.Base)
 	})
 }
 

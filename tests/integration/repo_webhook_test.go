@@ -348,6 +348,13 @@ func Test_WebhookRelease(t *testing.T) {
 		assert.Equal(t, "v0.0.99", payloads[0].Release.TagName)
 		assert.False(t, payloads[0].Release.IsDraft)
 		assert.False(t, payloads[0].Release.IsPrerelease)
+		assert.Nil(t, payloads[0].Changes)
+
+		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/user2/repo1/releases/%d", payloads[0].Release.ID), &api.EditReleaseOption{Title: "renamed"}).AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll))
+		MakeRequest(t, req, http.StatusOK)
+		assert.Len(t, payloads, 2)
+		assert.Equal(t, api.HookReleaseUpdated, payloads[1].Action)
+		assert.Equal(t, &api.ChangesPayload{Name: &api.ChangesFromPayload{From: "v0.0.99"}}, payloads[1].Changes)
 	})
 }
 
