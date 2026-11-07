@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"github.com/markbates/goth"
 	"golang.org/x/oauth2"
@@ -25,7 +26,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		return nil
 	}
 
-	provider, err := createProvider(source.AuthSource.Name, source)
+	provider, err := createProvider(source.AuthSource.Name, setting.AppURL, source)
 	if err != nil {
 		return err
 	}

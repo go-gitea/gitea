@@ -571,7 +571,7 @@ func buildOIDCEndSessionURL(ctx *context.Context, doer *user_model.User) string 
 	params.Set("client_id", oauth2Cfg.ClientID)
 
 	// AWS Cognito uses "logout_uri" instead of the standard "post_logout_redirect_uri"
-	redirectURI := httplib.GuessCurrentAppURL(ctx)
+	redirectURI := httplib.GuessCurrentRootURL(ctx)
 	if oauth2Cfg.Provider == oauth2.ProviderNameAwsCognito {
 		params.Set("logout_uri", redirectURI)
 	} else {

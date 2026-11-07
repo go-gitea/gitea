@@ -170,16 +170,22 @@ func GetOAuth2Providers(ctx context.Context, isActive optional.Option[bool]) ([]
 
 // RegisterProviderWithGothic register a OAuth2 provider in goth lib
 func RegisterProviderWithGothic(providerName string, source *Source) error {
-	provider, err := createProvider(providerName, source)
-
-	if err == nil && provider != nil {
-		gothRWMutex.Lock()
-		defer gothRWMutex.Unlock()
-
-		goth.UseProviders(provider)
+	var providers []goth.Provider
+	for i, rootURL := range append([]string{setting.AppURL}, setting.AlternativeRootURLs...) {
+		provider, err := createProvider(providerName, rootURL, source)
+		if err != nil {
+			return err
+		}
+		if i > 0 {
+			provider.SetName(rootURL + providerName)
+		}
+		providers = append(providers, provider)
 	}
 
-	return err
+	gothRWMutex.Lock()
+	defer gothRWMutex.Unlock()
+	goth.UseProviders(providers...)
+	return nil
 }
 
 // RemoveProviderFromGothic removes the given OAuth2 provider from the goth lib
@@ -188,6 +194,9 @@ func RemoveProviderFromGothic(providerName string) {
 	defer gothRWMutex.Unlock()
 
 	delete(goth.GetProviders(), providerName)
+	for _, rootURL := range setting.AlternativeRootURLs {
+		delete(goth.GetProviders(), rootURL+providerName)
+	}
 }
 
 // ClearProviders clears all OAuth2 providers from the goth lib
@@ -221,8 +230,8 @@ func GetOIDCEndSessionEndpoint(providerName string) string {
 var ErrAuthSourceNotActivated = errors.New("auth source is not activated")
 
 // used to create different types of goth providers
-func createProvider(providerName string, source *Source) (goth.Provider, error) {
-	callbackURL := setting.AppURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
+func createProvider(providerName, rootURL string, source *Source) (goth.Provider, error) {
+	callbackURL := rootURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
 
 	var provider goth.Provider
 	var err error

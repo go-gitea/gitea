@@ -433,7 +433,7 @@ func getRequestContext(ctx *context.Context) *requestContext {
 		User:          ownerName,
 		Repo:          repoName,
 		Authorization: ctx.Req.Header.Get("Authorization"),
-		RepoGitURL:    httplib.GuessCurrentAppURL(ctx) + url.PathEscape(ownerName) + "/" + url.PathEscape(repoName+".git"),
+		RepoGitURL:    httplib.GuessCurrentRootURL(ctx) + url.PathEscape(ownerName) + "/" + url.PathEscape(repoName+".git"),
 	}
 }
 
