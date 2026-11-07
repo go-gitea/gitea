@@ -15,7 +15,10 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	org_model "gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -377,7 +380,20 @@ func pullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	for _, u := range uniqUsers {
+		if u.IsOrganization() {
+			// organizations can't be requested as reviewers
+			continue
+		}
 		if u.ID != issue.Poster.ID && !contain(latestReviews, u) {
+			// CODEOWNERS may name anyone, but only users who can read the pull requests
+			// may be requested, as for a manual review request.
+			permReviewer, err := access_model.GetIndividualUserRepoPermission(ctx, pr.BaseRepo, u)
+			if err != nil {
+				return nil, err
+			}
+			if !permReviewer.CanAccessAny(perm.AccessModeRead, unit.TypePullRequests) {
+				continue
+			}
 			comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster, true)
 			if err != nil {
 				log.Warn("Failed add review user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
@@ -395,6 +411,13 @@ func pullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	for _, t := range uniqTeams {
+		// only teams of the repository owner can be requested, as for a manual review request
+		if t.OrgID != pr.BaseRepo.OwnerID {
+			continue
+		}
+		if pr.BaseRepo.IsPrivate && !org_model.HasTeamRepo(ctx, t.OrgID, t.ID, pr.BaseRepo.ID) {
+			continue
+		}
 		reviewed, err := teamMemberHasReviewed(ctx, pr.IssueID, t)
 		if err != nil {
 			return nil, err
