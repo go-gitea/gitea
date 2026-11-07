@@ -937,7 +937,7 @@ func getAllCommitStatus(ctx context.Context, doer *user_model.User, gitRepo *git
 		return nil, nil, shaErr
 	}
 
-	statuses, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
+	statuses, err = GetLatestPullCommitStatuses(ctx, pr.BaseRepo.ID, sha)
 	for _, status := range statuses {
 		status.Repo = pr.BaseRepo // the repo is already loaded, spare the permission lookup a query
 	}

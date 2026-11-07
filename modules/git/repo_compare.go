@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -50,8 +49,6 @@ func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head s
 	}
 	return w.numLines, nil
 }
-
-var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(ctx context.Context, compareArg string, w io.Writer) error {
@@ -119,7 +116,7 @@ func (repo *Repository) ReadPatchCommit(prID int64) (commitSHA string, err error
 	scanner := bufio.NewScanner(loadPatch)
 	scanner.Scan()
 	// Parse the Patch stats, sometimes Migration returns a 404 for the patch file
-	commitSHAGroups := patchCommits.FindStringSubmatch(scanner.Text())
+	commitSHAGroups := globalVars().patchCommits.FindStringSubmatch(scanner.Text())
 	if len(commitSHAGroups) != 0 {
 		commitSHA = commitSHAGroups[1]
 	} else {

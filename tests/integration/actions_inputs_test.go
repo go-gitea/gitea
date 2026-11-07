@@ -11,11 +11,15 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	pull_service "gitea.dev/services/pull"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWorkflowWithInputsContext(t *testing.T) {
@@ -73,6 +77,15 @@ jobs:
 		task := wRunner.fetchTask(t)
 		_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
 		assert.Equal(t, "Build APP on windows", run.Title)
+
+		statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, run.CommitSHA, db.ListOptionsAll)
+		require.NoError(t, err)
+		require.Len(t, statuses, 1)
+		assert.Equal(t, "Test Inputs Context / build (workflow_dispatch)", statuses[0].Context)
+
+		pullStatuses, err := pull_service.GetLatestPullCommitStatuses(t.Context(), repo.ID, run.CommitSHA)
+		require.NoError(t, err)
+		assert.Empty(t, pullStatuses)
 	})
 }
 

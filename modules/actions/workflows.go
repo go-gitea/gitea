@@ -165,11 +165,12 @@ func ScopedWorkflowStatusContextName(prefix, displayName, jobName, event string)
 	return strings.TrimSpace(fmt.Sprintf("%s: %s", prefix, WorkflowStatusContextName(displayName, jobName, event)))
 }
 
-// ShouldEventCreateCommitStatus reports whether a run triggered by the given workflow `on:` event posts a commit status,
+// IsPullRequestCheckEvent reports whether a run triggered by the given workflow `on:` event posts a commit status that pull requests count,
 // so its context can serve as a required status check.
-// TODO: this allowlist duplicates the truth in services/actions.getCommitStatusEventNameAndCommitID, which decides the actual event string and whether a status is posted.
-// The two are kept in sync by hand and can drift; unify them into a single source so adding a status-producing event in one place automatically updates the other.
-func ShouldEventCreateCommitStatus(event string) bool {
+// TODO: this allowlist duplicates the truth in services/actions.getCommitStatusEventNameAndCommitID, which decides the actual event string and whether a status is posted,
+// and in services/pull.GetLatestPullCommitStatuses, which decides whether pull requests count it.
+// They are kept in sync by hand and can drift, unify them into a single source so adding a status-producing event in one place automatically updates the others.
+func IsPullRequestCheckEvent(event string) bool {
 	switch event {
 	case "push", "pull_request", "pull_request_target", "pull_request_review", "pull_request_review_comment", "release":
 		return true
