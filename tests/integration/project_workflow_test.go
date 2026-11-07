@@ -84,7 +84,7 @@ func TestProjectWorkflowsWeb(t *testing.T) {
 		assert.Contains(t, NewHTMLParser(t, resp.Body).Find(".timeline-item.event .comment-text-line").Text(), "Project workflow Item added to project")
 
 		req = NewRequestWithJSON(t, "POST", link+"/3/move", map[string]any{
-			"issues": []map[string]any{{"issueID": created.ID, "sorting": 0}},
+			"issueID": created.ID, "prevIssueID": 0,
 		})
 		session.MakeRequest(t, req, http.StatusOK)
 
