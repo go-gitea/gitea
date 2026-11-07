@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/modules/web/routing"
 	"gitea.dev/modules/web/types"
+	tfmodule "gitea.dev/routers/api/packages/terraform_module"
 	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/admin"
 	"gitea.dev/routers/web/auth"
@@ -526,6 +527,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
 		m.Get("/passkey-endpoints", passkeyEndpoints)
+		m.Get("/terraform.json", packagesEnabled, tfmodule.ServiceDiscovery)
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 
@@ -1088,6 +1090,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Get("", user.ViewPackageVersion)
 						m.Post("", reqPackageAccess(perm.AccessModeWrite), user.PackageVersionDelete)
 						m.Get("/{version_sub}", user.ViewPackageVersion)
+						m.Get("/modules/{submodule}", user.ViewPackageVersion)
 						m.Group("/terraform", func() {
 							m.Post("/lock", user.ActionPackageTerraformLock)
 							m.Post("/unlock", user.ActionPackageTerraformUnlock)
@@ -1366,7 +1369,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			})
 
 			m.Post("/attachments", repo.UploadIssueAttachment)
-			m.Post("/attachments/remove", repo.DeleteAttachment)
+			m.Post("/attachments/remove", repo.DeletePendingAttachment)
 
 			m.Post("/labels", repo.UpdateIssueLabel)
 			m.Post("/milestone", repo.UpdateIssueMilestone)
@@ -1495,7 +1498,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/generate-notes", web.Bind[*forms.GenerateReleaseNotesForm](), repo.GenerateReleaseNotes)
 			m.Post("/delete", repo.DeleteRelease)
 			m.Post("/attachments", repo.UploadReleaseAttachment)
-			m.Post("/attachments/remove", repo.DeleteAttachment)
+			m.Post("/attachments/remove", repo.DeletePendingAttachment)
 		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter)
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 	// end "/{username}/{reponame}": repo releases
