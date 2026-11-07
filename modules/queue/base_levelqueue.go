@@ -5,10 +5,8 @@ package queue
 
 import (
 	"context"
-	"sync/atomic"
 
 	"gitea.dev/modules/nosql"
-	"gitea.dev/modules/queue/lqinternal"
 
 	"gitea.com/lunny/levelqueue"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -16,7 +14,7 @@ import (
 
 type baseLevelQueue struct {
 	*baseLevelQueueCommonImpl
-	internal atomic.Pointer[levelqueue.Queue]
+	internal *levelqueue.Queue
 
 	conn string
 	cfg  *BaseConfig
@@ -41,12 +39,11 @@ func newBaseLevelQueueSimple(cfg *BaseConfig) (baseQueue, error) {
 		return nil, err
 	}
 	q := &baseLevelQueue{conn: conn, cfg: cfg, db: db}
-	lq, err := levelqueue.NewQueue(db, []byte(cfg.QueueFullName), false)
+	q.internal, err = levelqueue.NewQueue(db, []byte(cfg.QueueFullName), false)
 	if err != nil {
 		return nil, err
 	}
-	q.internal.Store(lq)
-	q.baseLevelQueueCommonImpl = baseLevelQueueCommon(q.cfg, nil, func() baseLevelQueuePushPoper { return q.internal.Load() })
+	q.baseLevelQueueCommonImpl = baseLevelQueueCommon(q.cfg, nil, q.internal)
 	return q, nil
 }
 
@@ -55,24 +52,16 @@ func (q *baseLevelQueue) HasItem(ctx context.Context, data []byte) (bool, error)
 }
 
 func (q *baseLevelQueue) Len(ctx context.Context) (int, error) {
-	return int(q.internal.Load().Len()), nil
+	return int(q.internal.Len()), nil
 }
 
 func (q *baseLevelQueue) Close() error {
-	err := q.internal.Load().Close()
+	err := q.internal.Close()
 	_ = nosql.GetManager().CloseLevelDB(q.conn)
 	q.db = nil // the db is not managed by us, it's managed by the nosql manager
 	return err
 }
 
 func (q *baseLevelQueue) RemoveAll(ctx context.Context) error {
-	lqinternal.RemoveLevelQueueKeys(q.db, []byte(q.cfg.QueueFullName))
-	lq, err := levelqueue.NewQueue(q.db, []byte(q.cfg.QueueFullName), false)
-	if err != nil {
-		return err
-	}
-	old := q.internal.Load()
-	q.internal.Store(lq)
-	_ = old.Close() // Not ideal for concurrency. Luckily, the levelqueue only sets its db=nil because it doesn't manage the db, so far so good
-	return nil
+	return q.internal.RemoveAll()
 }
