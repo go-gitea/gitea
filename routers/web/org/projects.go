@@ -381,18 +381,13 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	// Get the exclusive scope for every label ID
-	labelExclusiveScopes := make([]string, 0, len(preparedLabelFilter.SelectedLabelIDs))
-	for _, labelID := range preparedLabelFilter.SelectedLabelIDs {
-		foundExclusiveScope := false
+	labelExclusiveScopes := make([]string, len(preparedLabelFilter.SelectedLabelIDs))
+	for i, labelID := range preparedLabelFilter.SelectedLabelIDs {
 		for _, label := range labels {
 			if label.ID == labelID || label.ID == -labelID {
-				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
-				foundExclusiveScope = true
+				labelExclusiveScopes[i] = label.ExclusiveScope()
 				break
 			}
-		}
-		if !foundExclusiveScope {
-			labelExclusiveScopes = append(labelExclusiveScopes, "")
 		}
 	}
 

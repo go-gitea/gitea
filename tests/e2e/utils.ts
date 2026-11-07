@@ -247,6 +247,17 @@ export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, pass
   if (status !== 302 && status !== 303) throw new Error(`login as ${username} failed: HTTP ${status}`);
 }
 
+export async function assertClipboardText(page: Page, text: string) {
+  // Firefox rejects a read that overlaps the page's still pending clipboard write
+  await expect.poll(() => page.evaluate(async () => {
+    try {
+      return await navigator.clipboard.readText();
+    } catch {
+      return null;
+    }
+  })).toBe(text);
+}
+
 export async function assertNoJsError(page: Page) {
   await expect(page.locator('.js-global-error')).toHaveCount(0);
 }
