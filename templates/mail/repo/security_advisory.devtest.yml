@@ -1,0 +1,8 @@
+Subject: "[user/repo] New private vulnerability report: XSS in markdown preview"
+TextKey: mail.security_advisory.reported.text
+DoerName: DoerName
+Summary: XSS in markdown preview
+Link: http://localhost/user/repo/security/advisories/abcd-efgh-ijkl
+RepoName: user/repo
+RepoLink: http://localhost/user/repo
+Content: The markdown preview does not sanitize links.

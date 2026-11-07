@@ -512,6 +512,23 @@
 					</div>
 				</div>
 
+				{{$isSecurityAdvisoriesEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeSecurityAdvisories}}
+				{{$isSecurityAdvisoriesGlobalDisabled := ctx.Consts.RepoUnitTypeSecurityAdvisories.UnitGlobalDisabled}}
+				{{$securityAdvisoriesUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeSecurityAdvisories}}
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.security_advisories"}}</label>
+					<div class="ui checkbox{{if $isSecurityAdvisoriesGlobalDisabled}} disabled{{end}}"{{if $isSecurityAdvisoriesGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
+						<input class="enable-system" name="enable_security_advisories" type="checkbox" data-target="#security_advisories_box" {{if $isSecurityAdvisoriesEnabled}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.security_advisories_desc"}}</label>
+					</div>
+				</div>
+				<div class="field{{if not $isSecurityAdvisoriesEnabled}} disabled{{end}} tw-pl-4" id="security_advisories_box">
+					<div class="ui checkbox">
+						<input name="private_vulnerability_reporting" type="checkbox" {{if $securityAdvisoriesUnit.SecurityAdvisoriesConfig.PrivateVulnerabilityReporting}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.private_vulnerability_reporting_desc"}}</label>
+					</div>
+				</div>
+
 				{{if not .IsMirror}}
 					<div class="divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypePullRequests}}

@@ -172,6 +172,12 @@ func (wc wechatworkConvertor) Release(p *api.ReleasePayload) (WechatworkPayload,
 	return newWechatworkMarkdownPayload(text), nil
 }
 
+func (wc wechatworkConvertor) RepositoryAdvisory(p *api.RepositoryAdvisoryPayload) (WechatworkPayload, error) {
+	text, _ := getRepositoryAdvisoryPayloadInfo(p, noneLinkFormatter, true)
+
+	return newWechatworkMarkdownPayload(text), nil
+}
+
 func (wc wechatworkConvertor) Package(p *api.PackagePayload) (WechatworkPayload, error) {
 	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
 

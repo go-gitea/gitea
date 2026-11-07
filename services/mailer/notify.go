@@ -9,7 +9,9 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
+	advisory_model "gitea.dev/models/advisory"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -199,6 +201,24 @@ func (m *mailNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) 
 	}
 
 	MailNewRelease(ctx, rel)
+}
+
+func (m *mailNotifier) NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
+	MailSecurityAdvisoryReported(ctx, doer, a)
+}
+
+func (m *mailNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, _ advisory_model.State) {
+	if a.State == advisory_model.StatePublished {
+		MailSecurityAdvisoryPublished(ctx, doer, a)
+	}
+}
+
+func (m *mailNotifier) NewSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, c *advisory_model.Comment) {
+	MailSecurityAdvisoryComment(ctx, doer, a, c)
+}
+
+func (m *mailNotifier) SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, u *user_model.User, team *organization.Team) {
+	MailSecurityAdvisoryCollaboratorAdded(ctx, doer, a, u, team)
 }
 
 func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {

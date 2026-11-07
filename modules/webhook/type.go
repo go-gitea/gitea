@@ -32,10 +32,13 @@ const (
 	HookEventRelease                   HookEventType = "release"
 	HookEventPackage                   HookEventType = "package"
 	HookEventStatus                    HookEventType = "status"
+	HookEventRepositoryAdvisory        HookEventType = "repository_advisory"
 	// once a new event added here, please also added to AllEvents() function
 
 	// FIXME: This event should be a group of pull_request_review_xxx events
 	HookEventPullRequestReview HookEventType = "pull_request_review"
+	// delivered as repository_advisory, see RequiresExplicitSelection
+	HookEventRepositoryAdvisoryReported HookEventType = "repository_advisory_reported"
 	// Actions event only
 	HookEventSchedule    HookEventType = "schedule"
 	HookEventWorkflowRun HookEventType = "workflow_run"
@@ -68,9 +71,15 @@ func AllEvents() []HookEventType {
 		HookEventRelease,
 		HookEventPackage,
 		HookEventStatus,
+		HookEventRepositoryAdvisory,
 		HookEventWorkflowRun,
 		HookEventWorkflowJob,
 	}
+}
+
+// RequiresExplicitSelection excludes the event from "all events" because private reports contain undisclosed vulnerabilities
+func (h HookEventType) RequiresExplicitSelection() bool {
+	return h == HookEventRepositoryAdvisoryReported
 }
 
 // Event returns the HookEventType as an event string
@@ -89,6 +98,8 @@ func (h HookEventType) Event() string {
 		return "pull_request_rejected"
 	case HookEventPullRequestReviewComment:
 		return "pull_request_comment"
+	case HookEventRepositoryAdvisoryReported:
+		return "repository_advisory"
 	default:
 		return string(h)
 	}

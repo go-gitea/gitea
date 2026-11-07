@@ -7,8 +7,10 @@ import (
 	"context"
 
 	actions_model "gitea.dev/models/actions"
+	advisory_model "gitea.dev/models/advisory"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
@@ -262,6 +264,42 @@ func DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 
 	for _, notifier := range notifiers {
 		notifier.DeleteRelease(ctx, doer, rel)
+	}
+}
+
+// NewSecurityAdvisoryReport notifies a private vulnerability report to notifiers
+func NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.NewSecurityAdvisoryReport(ctx, doer, a)
+	}
+}
+
+// SecurityAdvisoryStateChanged notifies an advisory state change, e.g. publishing, to notifiers
+func SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, oldState advisory_model.State) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.SecurityAdvisoryStateChanged(ctx, doer, a, oldState)
+	}
+}
+
+// SecurityAdvisoryCollaboratorAdded notifies a user or team granted access to an advisory to notifiers
+func SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.SecurityAdvisoryCollaboratorAdded(ctx, doer, a, user, team)
+	}
+}
+
+// NewSecurityAdvisoryComment notifies an advisory comment to notifiers
+func NewSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, c *advisory_model.Comment) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.NewSecurityAdvisoryComment(ctx, doer, a, c)
 	}
 }
 

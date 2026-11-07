@@ -161,6 +161,12 @@ func (m matrixConvertor) Release(p *api.ReleasePayload) (MatrixPayload, error) {
 	return m.newPayload(text)
 }
 
+func (m matrixConvertor) RepositoryAdvisory(p *api.RepositoryAdvisoryPayload) (MatrixPayload, error) {
+	text, _ := getRepositoryAdvisoryPayloadInfo(p, htmlLinkFormatter, true)
+
+	return m.newPayload(text)
+}
+
 // Push implements payloadConvertor Push method
 func (m matrixConvertor) Push(p *api.PushPayload) (MatrixPayload, error) {
 	var commitDesc string
