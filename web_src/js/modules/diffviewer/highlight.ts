@@ -1,4 +1,4 @@
-import {buildLanguageDescriptions, importCodemirror} from '../codeeditor/main.ts';
+import {buildLanguageDescriptions, importCodemirrorLanguages} from '../codeeditor/main.ts';
 import {basename as fileBasename} from '../../utils.ts';
 import {loadChromaLexer} from './chroma.ts';
 
@@ -13,8 +13,9 @@ const maxHighlightLength = 512 * 1024;
 let languagesPromise: ReturnType<typeof loadLanguages> | null = null;
 const highlighters = new Map<string, Promise<LineHighlighter | null>>();
 
+// the parsers are shared with the code editor, which isn't loaded for highlighting
 async function loadLanguages() {
-  const cm = await importCodemirror();
+  const cm = await importCodemirrorLanguages();
   return {cm, languages: buildLanguageDescriptions(cm)};
 }
 

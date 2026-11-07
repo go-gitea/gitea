@@ -43,31 +43,40 @@ export type CodemirrorEditor = {
 
 type LinguistLanguage = {name: string; extensions: string[]; filenames: string[]};
 
+export type CodemirrorLanguageModules = Awaited<ReturnType<typeof importCodemirrorLanguages>>;
 export type CodemirrorModules = Awaited<ReturnType<typeof importCodemirror>>;
 
-export async function importCodemirror() {
-  const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap, linguist] = await Promise.all([
-    import('@codemirror/autocomplete'),
-    import('@codemirror/commands'),
+// the language parsers and the highlighter, enough to highlight code without an editor
+export async function importCodemirrorLanguages() {
+  const [language, languageData, highlight, linguist] = await Promise.all([
     import('@codemirror/language'),
     import('@codemirror/language-data'),
+    import('@lezer/highlight'),
+    import('../../../../assets/codemirror-languages.json'),
+  ]);
+  return {language, languageData, highlight, linguistLanguages: linguist.default as LinguistLanguage[]};
+}
+
+export async function importCodemirror() {
+  const [languages, autocomplete, commands, lint, search, state, view, indentMarkers, vscodeKeymap] = await Promise.all([
+    importCodemirrorLanguages(),
+    import('@codemirror/autocomplete'),
+    import('@codemirror/commands'),
     import('@codemirror/lint'),
     import('@codemirror/search'),
     import('@codemirror/state'),
     import('@codemirror/view'),
-    import('@lezer/highlight'),
     import('@replit/codemirror-indentation-markers'),
     import('@replit/codemirror-vscode-keymap'),
-    import('../../../../assets/codemirror-languages.json'),
   ]);
-  return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap, linguistLanguages: linguist.default as LinguistLanguage[]};
+  return {...languages, autocomplete, commands, lint, search, state, view, indentMarkers, vscodeKeymap};
 }
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const filenameUnion = (filenames: string[]) =>
   filenames.length ? new RegExp(`^(${filenames.map(escapeRegex).join('|')})$`) : undefined;
 
-export function buildLanguageDescriptions(cm: CodemirrorModules): LanguageDescription[] {
+export function buildLanguageDescriptions(cm: CodemirrorLanguageModules): LanguageDescription[] {
   const list: LanguageDescription[] = [
     ...buildBaseLanguages(cm),
     cm.language.LanguageDescription.of({
@@ -111,7 +120,7 @@ export function buildLanguageDescriptions(cm: CodemirrorModules): LanguageDescri
 const customNames = new Set(['Dockerfile', 'Markdown']);
 
 let baseLanguagesCache: LanguageDescription[] | null = null;
-function buildBaseLanguages(cm: CodemirrorModules): LanguageDescription[] {
+function buildBaseLanguages(cm: CodemirrorLanguageModules): LanguageDescription[] {
   if (baseLanguagesCache) return baseLanguagesCache;
   const loadByName = new Map<string, LanguageDescription['load']>(
     cm.languageData.languages.map((l: LanguageDescription) => [l.name, l.load.bind(l)]),
