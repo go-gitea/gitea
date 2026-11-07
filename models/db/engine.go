@@ -25,7 +25,7 @@ import (
 var (
 	xormEngine          *xorm.Engine
 	registeredModels    []any
-	registeredInitFuncs []func() error
+	registeredInitFuncs []func(context.Context, EngineMigration) error
 )
 
 // SQLSession represents a common interface for engine and session to execute SQLs
@@ -108,11 +108,13 @@ var (
 	_ EngineMigration = (*xorm.Engine)(nil)
 )
 
-// RegisterModel registers model, if initFuncs provided, it will be invoked after data model sync
-func RegisterModel(bean any, initFunc ...func() error) {
+// RegisterModel registers model, if initFuncs provided, they will be invoked after data model sync
+func RegisterModel(bean any, initFuncs ...func(context.Context, EngineMigration) error) {
 	registeredModels = append(registeredModels, bean)
-	if len(registeredInitFuncs) > 0 && initFunc[0] != nil {
-		registeredInitFuncs = append(registeredInitFuncs, initFunc[0])
+	for _, initFunc := range initFuncs {
+		if initFunc != nil {
+			registeredInitFuncs = append(registeredInitFuncs, initFunc)
+		}
 	}
 }
 

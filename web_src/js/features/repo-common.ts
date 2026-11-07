@@ -52,7 +52,9 @@ export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
   return tmpl.replace('{url}', () => needEncode ? encodeURIComponent(url) : url);
 }
 
-function initRepoCloneButtonsCombo(parent: Element) {
+function initRepoCloneButtonsCombo(parent: Element, onPanelChange?: () => void) {
+  initRepoCloneCodespaceTabs(parent, onPanelChange);
+
   // the clone section is not rendered at all when no git transport (HTTPS/SSH) is available
   const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url');
   if (!elCloneUrlInput) return;
@@ -127,17 +129,54 @@ function initRepoCloneButtonsCombo(parent: Element) {
   });
 }
 
+export function initRepoCloneCodespaceTabs(parent: Element, onPanelChange?: () => void) {
+  const cloneTab = parent.querySelector<HTMLButtonElement>('.repo-clone-main');
+  const codespacesTab = parent.querySelector<HTMLButtonElement>('.repo-codespaces-main');
+  const cloneSection = parent.querySelector<HTMLElement>('.repo-clone-section');
+  const codespacesSection = parent.querySelector<HTMLElement>('.repo-codespaces-section');
+  if (!cloneTab || !codespacesTab || !cloneSection || !codespacesSection) return;
+
+  const showClone = (visible: boolean) => {
+    cloneTab.classList.toggle('active', visible);
+    codespacesTab.classList.toggle('active', !visible);
+    cloneTab.setAttribute('aria-selected', String(visible));
+    codespacesTab.setAttribute('aria-selected', String(!visible));
+    cloneTab.tabIndex = visible ? 0 : -1;
+    codespacesTab.tabIndex = visible ? -1 : 0;
+    cloneSection.hidden = !visible;
+    codespacesSection.hidden = visible;
+    onPanelChange?.();
+  };
+
+  cloneTab.addEventListener('click', () => showClone(true));
+  codespacesTab.addEventListener('click', () => showClone(false));
+  cloneTab.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    codespacesTab.click();
+    codespacesTab.focus();
+  });
+  codespacesTab.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowLeft') return;
+    event.preventDefault();
+    cloneTab.click();
+    cloneTab.focus();
+  });
+}
+
 function initRepoClonePanel(btn: HTMLButtonElement) {
   const elPanel = btn.nextElementSibling!;
+  let tippyInstance: ReturnType<typeof createTippy>;
   // "init" must be before the "createTippy" otherwise the "tippy-target" will be removed from the document
-  initRepoCloneButtonsCombo(elPanel);
-  createTippy(btn, {
+  initRepoCloneButtonsCombo(elPanel, () => tippyInstance.popperInstance!.update());
+  tippyInstance = createTippy(btn, {
     content: elPanel,
     trigger: 'click',
     placement: 'bottom-end',
     interactive: true,
     hideOnClick: true,
     arrow: false,
+    limitSizeToViewport: {vertical: true},
   });
 }
 

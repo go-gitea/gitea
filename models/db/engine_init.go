@@ -129,7 +129,7 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 	}
 
 	for _, initFunc := range registeredInitFuncs {
-		if err := initFunc(); err != nil {
+		if err := initFunc(ctx, xormEngine); err != nil {
 			return fmt.Errorf("initFunc failed: %w", err)
 		}
 	}

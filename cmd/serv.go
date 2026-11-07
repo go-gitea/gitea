@@ -173,12 +173,16 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		}
 		var authSuccessMsg string
 		switch key.Type {
+		case asymkey_model.KeyTypeUser:
+			authSuccessMsg = "Hi there, " + user.Name + "! You've successfully authenticated with the SSH key named " + key.Name + "."
 		case asymkey_model.KeyTypeDeploy:
 			authSuccessMsg = "Hi there! You've successfully authenticated with an SSH deploy key."
 		case asymkey_model.KeyTypePrincipal:
 			authSuccessMsg = "Hi there! You've successfully authenticated with the SSH principal " + key.Content + "."
+		case asymkey_model.KeyTypeCodespace:
+			authSuccessMsg = "Hi there! You've successfully authenticated with the codespace key named " + key.Name + "."
 		default:
-			authSuccessMsg = "Hi there, " + user.Name + "! You've successfully authenticated with the SSH key named " + key.Name + "."
+			return fail(ctx, "Unsupported key type", "Unsupported key type %d for key %d", key.Type, key.ID)
 		}
 		_, _ = fmt.Fprintf(c.ErrWriter, "%s\n%s",
 			authSuccessMsg,

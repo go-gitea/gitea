@@ -26,6 +26,7 @@ import (
 	"gitea.dev/services/agit"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/audit"
+	codespace_service "gitea.dev/services/codespace"
 	org_service "gitea.dev/services/org"
 	"gitea.dev/services/packages"
 	container_service "gitea.dev/services/packages/container"
@@ -169,6 +170,10 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		// FIXME: We also need to tell the session manager to log them out too.
 		websocket_service.PublishLogout(u.ID, "")
 
+		if err := codespace_service.DeleteUserResources(ctx, u.ID); err != nil {
+			return err
+		}
+
 		// Delete all repos belonging to this user
 		// Now this is not within a transaction because there are internal transactions within the DeleteRepository
 		// BUT: the db will still be consistent even if a number of repos have already been deleted.
@@ -226,43 +231,30 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		// Note: A user owns any repository or belongs to any organization
-		//	cannot perform delete operation. This causes a race with the purge above
-		//  however consistency requires that we ensure that this is the case
-
-		// Check ownership of repository.
-		count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: u.ID})
-		if err != nil {
-			return fmt.Errorf("GetRepositoryCount: %w", err)
-		} else if count > 0 {
-			return repo_model.ErrUserOwnRepos{UID: u.ID}
+	if !purge {
+		if err := checkDeleteUserPreconditions(ctx, u); err != nil {
+			return err
 		}
+	}
+	if err := codespace_service.WithUserResourcesDeleted(ctx, u.ID, func(ctx context.Context) error {
+		return db.WithTx(ctx, func(ctx context.Context) error {
+			// Note: A user owns any repository or belongs to any organization
+			//	cannot perform delete operation. This causes a race with the purge above
+			//  however consistency requires that we ensure that this is the case
+			if err := checkDeleteUserPreconditions(ctx, u); err != nil {
+				return err
+			}
 
-		// Check membership of organization.
-		count, err = organization.GetOrganizationCount(ctx, u)
-		if err != nil {
-			return fmt.Errorf("GetOrganizationCount: %w", err)
-		} else if count > 0 {
-			return organization.ErrUserHasOrgs{UID: u.ID}
-		}
+			if err := deleteUser(ctx, u, purge); err != nil {
+				return fmt.Errorf("DeleteUser: %w", err)
+			}
 
-		// Check ownership of packages.
-		if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
-			return fmt.Errorf("HasOwnerPackages: %w", err)
-		} else if ownsPackages {
-			return packages_model.ErrUserOwnPackages{UID: u.ID}
-		}
-
-		if err := deleteUser(ctx, u, purge); err != nil {
-			return fmt.Errorf("DeleteUser: %w", err)
-		}
-
-		// Finally delete any unlinked attachments, this will also delete the attached files
-		if err := deleteUserUnlinkedAttachments(ctx, u); err != nil {
-			return fmt.Errorf("deleteUserUnlinkedAttachments: %w", err)
-		}
-		return nil
+			// Finally delete any unlinked attachments, this will also delete the attached files
+			if err := deleteUserUnlinkedAttachments(ctx, u); err != nil {
+				return fmt.Errorf("deleteUserUnlinkedAttachments: %w", err)
+			}
+			return nil
+		})
 	}); err != nil {
 		return err
 	}
@@ -291,6 +283,32 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 
 	audit.Record(ctx, audit_model.UserDelete, u)
 
+	return nil
+}
+
+func checkDeleteUserPreconditions(ctx context.Context, u *user_model.User) error {
+	// Check ownership of repository.
+	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: u.ID})
+	if err != nil {
+		return fmt.Errorf("GetRepositoryCount: %w", err)
+	} else if count > 0 {
+		return repo_model.ErrUserOwnRepos{UID: u.ID}
+	}
+
+	// Check membership of organization.
+	count, err = organization.GetOrganizationCount(ctx, u)
+	if err != nil {
+		return fmt.Errorf("GetOrganizationCount: %w", err)
+	} else if count > 0 {
+		return organization.ErrUserHasOrgs{UID: u.ID}
+	}
+
+	// Check ownership of packages.
+	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
+		return fmt.Errorf("HasOwnerPackages: %w", err)
+	} else if ownsPackages {
+		return packages_model.ErrUserOwnPackages{UID: u.ID}
+	}
 	return nil
 }
 
