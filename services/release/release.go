@@ -19,9 +19,11 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context/upload"
@@ -169,8 +171,33 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 	return created, nil
 }
 
+// UpdateLatestRelease follows GitHub's make_latest, except that omitting it lets a newly published release become the latest only if it is the newest by date
+func UpdateLatestRelease(ctx context.Context, repo *repo_model.Repository, rel *repo_model.Release, wasEligible bool, makeLatest api.MakeLatest) error {
+	switch {
+	case makeLatest == api.MakeLatestTrue && rel.CanBeLatest():
+		return repo_model.SetLatestReleaseID(ctx, repo, rel.ID)
+	case makeLatest == api.MakeLatestLegacy:
+		return repo_model.UnsetLatestReleaseID(ctx, repo, repo.LatestReleaseID)
+	case repo.LatestReleaseID == rel.ID && !rel.CanBeLatest():
+		return repo_model.UnsetLatestReleaseID(ctx, repo, rel.ID)
+	case wasEligible || !rel.CanBeLatest(), repo.LatestReleaseID == 0 && makeLatest != api.MakeLatestFalse:
+		return nil
+	}
+	newest, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{ListOptions: db.ListOptions{PageSize: 2}, RepoID: repo.ID, IsPreRelease: optional.Some(false)})
+	if err != nil || newest[0].ID != rel.ID {
+		return err
+	}
+	if makeLatest != api.MakeLatestFalse {
+		return repo_model.UnsetLatestReleaseID(ctx, repo, repo.LatestReleaseID)
+	}
+	if repo.LatestReleaseID != 0 || len(newest) == 1 {
+		return nil
+	}
+	return repo_model.SetLatestReleaseID(ctx, repo, newest[1].ID)
+}
+
 // CreateRelease creates a new release of repository.
-func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, attachmentUUIDs []string, msg string) error {
+func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, attachmentUUIDs []string, msg string, makeLatest api.MakeLatest) error {
 	has, err := repo_model.IsReleaseExist(ctx, rel.RepoID, rel.TagName)
 	if err != nil {
 		return err
@@ -191,6 +218,10 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 	}
 
 	if err = repo_model.AddReleaseAttachments(ctx, rel.ID, attachmentUUIDs); err != nil {
+		return err
+	}
+
+	if err = UpdateLatestRelease(ctx, rel.Repo, rel, false, makeLatest); err != nil {
 		return err
 	}
 
@@ -261,7 +292,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 // delAttachmentUUIDs accept a slice of attachments' uuids which will be deleted from the release
 // editAttachments accept a map of attachment uuid to new attachment name which will be updated with attachments.
 func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, rel *repo_model.Release,
-	addAttachmentUUIDs, delAttachmentUUIDs []string, editAttachments map[string]string,
+	addAttachmentUUIDs, delAttachmentUUIDs []string, editAttachments map[string]string, makeLatest api.MakeLatest,
 ) error {
 	if rel.ID == 0 {
 		return errors.New("UpdateRelease only accepts an exist release")
@@ -286,6 +317,10 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err = repo_model.UpdateRelease(ctx, rel); err != nil {
+			return err
+		}
+
+		if err = UpdateLatestRelease(ctx, rel.Repo, rel, oldRelease.CanBeLatest(), makeLatest); err != nil {
 			return err
 		}
 
@@ -411,6 +446,10 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		if err := repo_model.UpdateRelease(ctx, rel); err != nil {
 			return fmt.Errorf("Update: %w", err)
 		}
+	}
+
+	if err := repo_model.UnsetLatestReleaseID(ctx, repo, rel.ID); err != nil {
+		return fmt.Errorf("DeleteReleaseByID: %w", err)
 	}
 
 	rel.Repo = repo

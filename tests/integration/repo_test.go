@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -329,13 +330,6 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 		{Path: "docs/README", Content: "This is docs/README"},
 	}
 
-	combineFiles := func(slices ...[]git.FastImportFile) (res []git.FastImportFile) {
-		for _, s := range slices {
-			res = append(res, s...)
-		}
-		return res
-	}
-
 	err := git.ForceFastImport(t.Context(), repo56.CodeStorageRepo(), []git.FastImportCommit{
 		{Ref: "refs/heads/master", Message: "init master", Files: []git.FastImportFile{{Path: "README.md", Content: "The cake is a lie."}}},
 		{Ref: "refs/heads/txt", Message: "init txt", Files: []git.FastImportFile{{Path: "README.txt", Content: "My spoon is too big."}}},
@@ -364,18 +358,18 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 			{Mode: symlink, Path: "trampoline", Content: "README.md"},
 		}},
 		{Ref: "refs/heads/sp-ace", Message: "init sp-ace", Files: []git.FastImportFile{{Path: "read me", Content: "The cake is a lie."}}},
-		{Ref: "refs/heads/fallbacks", Message: "init fallbacks", Files: combineFiles(allGitea, allGithub, allRoot, allDocs)},
-		{Ref: "refs/heads/fallbacks2", Message: "init fallbacks2", Files: combineFiles(allGitea[1:], allGithub, allRoot, allDocs)},
-		{Ref: "refs/heads/fallbacks3", Message: "init fallbacks3", Files: combineFiles(allGitea[2:], allGithub, allRoot, allDocs)},
-		{Ref: "refs/heads/fallbacks4", Message: "init fallbacks4", Files: combineFiles(allGithub, allRoot, allDocs)},
-		{Ref: "refs/heads/fallbacks5", Message: "init fallbacks5", Files: combineFiles(allGithub[1:], allRoot, allDocs)},
-		{Ref: "refs/heads/fallbacks6", Message: "init fallbacks6", Files: combineFiles(allGithub[2:], allRoot, allDocs)},
-		{Ref: "refs/heads/fallbacks7", Message: "init fallbacks7", Files: combineFiles(allRoot, allDocs)},
-		{Ref: "refs/heads/fallbacks8", Message: "init fallbacks8", Files: combineFiles(allRoot[1:], allDocs)},
-		{Ref: "refs/heads/fallbacks9", Message: "init fallbacks9", Files: combineFiles(allRoot[2:], allDocs)},
-		{Ref: "refs/heads/fallbacks10", Message: "init fallbacks10", Files: combineFiles(allDocs)},
-		{Ref: "refs/heads/fallbacks11", Message: "init fallbacks11", Files: combineFiles(allDocs[1:])},
-		{Ref: "refs/heads/fallbacks12", Message: "init fallbacks12", Files: combineFiles(allDocs[2:])},
+		{Ref: "refs/heads/fallbacks", Message: "init fallbacks", Files: slices.Concat(allGitea, allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks2", Message: "init fallbacks2", Files: slices.Concat(allGitea[1:], allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks3", Message: "init fallbacks3", Files: slices.Concat(allGitea[2:], allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks4", Message: "init fallbacks4", Files: slices.Concat(allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks5", Message: "init fallbacks5", Files: slices.Concat(allGithub[1:], allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks6", Message: "init fallbacks6", Files: slices.Concat(allGithub[2:], allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks7", Message: "init fallbacks7", Files: slices.Concat(allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks8", Message: "init fallbacks8", Files: slices.Concat(allRoot[1:], allDocs)},
+		{Ref: "refs/heads/fallbacks9", Message: "init fallbacks9", Files: slices.Concat(allRoot[2:], allDocs)},
+		{Ref: "refs/heads/fallbacks10", Message: "init fallbacks10", Files: slices.Concat(allDocs)},
+		{Ref: "refs/heads/fallbacks11", Message: "init fallbacks11", Files: slices.Concat(allDocs[1:])},
+		{Ref: "refs/heads/fallbacks12", Message: "init fallbacks12", Files: slices.Concat(allDocs[2:])},
 		{Ref: "refs/heads/fallbacks-broken-symlinks", Message: "init fallbacks-broken-symlinks", Files: []git.FastImportFile{
 			{Mode: symlink, Path: ".gitea/README.md", Content: "non-existent-file"},
 			{Mode: symlink, Path: ".github/README.md", Content: "non-existent-file"},
