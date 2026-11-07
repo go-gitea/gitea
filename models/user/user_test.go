@@ -200,12 +200,49 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{37})
 
 	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: optional.Some(true)},
-		[]int64{24})
+		[]int64{24, 32})
 
 	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
 	testUserSuccess(user_model.SearchUserOptions{Actor: restrictedUser}, []int64{29})
 	restrictedUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:user")
 	testUserSuccess(user_model.SearchUserOptions{Actor: restrictedUser}, []int64{29})
+}
+
+func TestSearchUsersTwoFactor(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	for _, userID := range []int64{2, 24, 32} {
+		for _, enabled := range []bool{false, true} {
+			users, count, err := user_model.SearchUsers(t.Context(), user_model.SearchUserOptions{
+				Types:              []user_model.UserType{user_model.UserTypeIndividual},
+				UID:                userID,
+				IsTwoFactorEnabled: optional.Some(enabled),
+			})
+			require.NoError(t, err)
+			if enabled == (userID != 2) {
+				require.Len(t, users, 1)
+				assert.Equal(t, userID, users[0].ID)
+				assert.EqualValues(t, 1, count)
+			} else {
+				assert.Empty(t, users)
+				assert.Zero(t, count)
+			}
+		}
+	}
+
+	require.NoError(t, db.Insert(t.Context(), &auth.WebAuthnCredential{UserID: 24, Name: "TOTP and security key"}))
+	require.NoError(t, db.Insert(t.Context(), &auth.WebAuthnCredential{UserID: 32, Name: "Second security key"}))
+	for page, userID := range []int64{24, 32} {
+		users, count, err := user_model.SearchUsers(t.Context(), user_model.SearchUserOptions{
+			Types:              []user_model.UserType{user_model.UserTypeIndividual},
+			OrderBy:            "id ASC",
+			ListOptions:        db.ListOptions{Page: page + 1, PageSize: 1},
+			IsTwoFactorEnabled: optional.Some(true),
+		})
+		require.NoError(t, err)
+		require.Len(t, users, 1)
+		assert.Equal(t, userID, users[0].ID)
+		assert.EqualValues(t, 2, count)
+	}
 }
 
 func TestEmailNotificationPreferences(t *testing.T) {
