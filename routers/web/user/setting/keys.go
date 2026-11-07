@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/audit"
@@ -364,4 +365,22 @@ func loadKeysData(ctx *context.Context) {
 
 	ctx.Data["VerifyingID"] = ctx.FormString("verify_gpg")
 	ctx.Data["VerifyingFingerprint"] = ctx.FormString("verify_ssh")
+
+	managedKeypair, err := user_model.GetSSHKeypairByOwner(ctx, ctx.Doer.ID)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		ctx.ServerError("GetSSHKeypairByOwner", err)
+		return
+	}
+	ctx.Data["ManagedSSHKey"] = managedKeypair
+}
+
+func RegenerateSSHKeypair(ctx *context.Context) {
+	keypair, err := user_model.CreateSSHKeypair(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("CreateSSHKeypair", err)
+		return
+	}
+	audit.RecordScoped(ctx, ctx.Doer, nil, audit.ManagedSSHKeyGenerate, "fingerprint", keypair.Fingerprint)
+	ctx.Flash.Success(ctx.Tr("settings.managed_ssh_generated"))
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/keys")
 }

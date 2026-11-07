@@ -27,6 +27,8 @@ export const initRepoMigration = () => registerGlobalInitFunc('initGitMigrateFor
     showElem(lfsEndpoint!);
   });
   lfs?.addEventListener('change', setLFSSettingsVisibility);
+  const sshKeyField = elForm.querySelector<HTMLElement>('.ssh-key-field');
+  if (sshKeyField) initSSHKeyField(elForm, sshKeyField);
 
   const elCloneAddr = elForm.querySelector<HTMLInputElement>('input[name="clone_addr"]');
   const elRepoName = elForm.querySelector<HTMLInputElement>('input[name="repo_name"]');
@@ -73,3 +75,24 @@ export const initRepoMigration = () => registerGlobalInitFunc('initGitMigrateFor
     hideElem(lfsEndpoint!);
   }
 });
+
+// mirrors giturl.IsSSH: an ssh:// URL or SCP syntax, user@host:path without a slash before the colon
+function isSSHURL(url: string): boolean {
+  if (url.includes('://')) return url.toLowerCase().startsWith('ssh://');
+  const at = url.indexOf('@'), colon = url.indexOf(':');
+  return at !== -1 && colon > at && !url.slice(0, colon).includes('/');
+}
+
+function initSSHKeyField(form: HTMLFormElement, field: HTMLElement) {
+  const cloneAddr = form.querySelector<HTMLInputElement>('input[name="clone_addr"]')!;
+  const updateSSH = () => {
+    const isSSH = isSSHURL(cloneAddr.value.trim());
+    for (const userpassField of form.querySelectorAll('.auth-userpass-field')) {
+      if (isSSH) for (const input of userpassField.querySelectorAll('input')) input.value = '';
+      toggleElem(userpassField, !isSSH);
+    }
+    toggleElem(field, isSSH);
+  };
+  cloneAddr.addEventListener('input', updateSSH);
+  updateSSH();
+}

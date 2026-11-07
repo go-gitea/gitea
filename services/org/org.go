@@ -40,6 +40,7 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 		&org_model.TeamInvite{OrgID: org.ID},
 		&secret_model.Secret{OwnerID: org.ID},
 		&user_model.Blocking{BlockerID: org.ID},
+		&user_model.Setting{UserID: org.ID},
 		&actions_model.ActionRunner{OwnerID: org.ID},
 		&actions_model.ActionRunnerToken{OwnerID: org.ID},
 		&actions_model.ActionScopedWorkflowSource{OwnerID: org.ID},

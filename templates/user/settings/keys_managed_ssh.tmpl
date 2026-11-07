@@ -1,0 +1,20 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "settings.managed_ssh_title"}}
+	<div class="ui right">
+		{{if .ManagedSSHKey}}
+		<button type="button" class="ui red tiny button link-action" data-url="{{.Link}}" data-modal-confirm="{{ctx.Locale.Tr "settings.managed_ssh_regenerate_confirm"}}">{{ctx.Locale.Tr "settings.managed_ssh_regenerate"}}</button>
+		{{else}}
+		<button type="button" class="ui primary tiny button link-action" data-url="{{.Link}}">{{ctx.Locale.Tr "settings.managed_ssh_generate"}}</button>
+		{{end}}
+	</div>
+</h4>
+<div class="ui attached segment">
+	<p>{{ctx.Locale.Tr "settings.managed_ssh_desc"}}</p>
+	{{if .ManagedSSHKey}}
+	<div class="flex-text-block">
+		<code class="tw-break-anywhere">{{.ManagedSSHKey.PublicKey}}</code>
+		<button type="button" class="ui compact button" data-clipboard-text="{{.ManagedSSHKey.PublicKey}}" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
+	</div>
+	<div class="tw-mt-2 tw-text-text-light-2">{{.ManagedSSHKey.Fingerprint}}</div>
+	{{end}}
+</div>

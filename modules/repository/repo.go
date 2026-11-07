@@ -29,11 +29,11 @@ var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
 
 // WikiRemoteURL returns accessible repository URL for wiki if exists.
 // Otherwise, it returns an empty string.
-func WikiRemoteURL(ctx context.Context, remote string) string {
+func WikiRemoteURL(ctx context.Context, remote string, envs []string) string {
 	remote = strings.TrimSuffix(remote, ".git")
 	for _, suffix := range commonWikiURLSuffixes {
 		wikiURL := remote + suffix
-		if git.IsRepoURLAccessible(ctx, wikiURL) {
+		if git.IsRepoURLAccessible(ctx, wikiURL, envs) {
 			return wikiURL
 		}
 	}

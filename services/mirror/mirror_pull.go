@@ -11,6 +11,7 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	giturl "gitea.dev/modules/git/url"
@@ -28,14 +29,41 @@ import (
 )
 
 // UpdateAddress writes new address to Git repository and database
-func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
+func UpdateAddress(ctx context.Context, doer *user_model.User, m *repo_model.Mirror, addr string) error {
 	u, err := giturl.ParseGitURL(addr)
 	if err != nil {
 		return fmt.Errorf("invalid addr: %v", err)
 	}
+	util.RemoveURLCredentials(u.URL)
+
+	// a running sync must not fetch the new address with the old key
+	releaser, err := globallock.Lock(ctx, getRepoPullMirrorLockKey(m.RepoID))
+	if err != nil {
+		return err
+	}
+	defer releaser()
 
 	remoteName := m.GetRemoteName()
 	repo := m.GetRepository(ctx)
+
+	// a key stays bound to the address it was chosen for, a new or unbound SSH address takes it only from a doer who may use it
+	oldURL, err := git.ParseRemoteAddressURL(ctx, repo, remoteName)
+	if err == nil {
+		util.RemoveURLCredentials(oldURL.URL)
+	}
+	changed := err != nil || oldURL.String() != u.String()
+	if changed && m.UseOwnerSSHKey || u.Scheme == "ssh" && (changed || !m.UseOwnerSSHKey) {
+		if err := repo.LoadOwner(ctx); err != nil {
+			return err
+		}
+		if m.UseOwnerSSHKey, err = repo_service.UseOwnerSSHKey(ctx, doer, repo.Owner, addr); err != nil {
+			return err
+		}
+		if err := repo_model.UpdateMirrorUseOwnerSSHKey(ctx, m); err != nil {
+			return err
+		}
+	}
+
 	// Remove old remote
 	err = git.ManagedRemoteRemove(ctx, repo, remoteName)
 	if err != nil && !git.IsRemoteNotExistError(err) {
@@ -48,7 +76,12 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
+		envs, cleanup, err := repo_service.ManagedSSHEnv(ctx, repo, m.UseOwnerSSHKey, addr)
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr, envs)
 		// Remove old remote of wiki
 		err = git.ManagedRemoteRemove(ctx, repo.WikiStorageRepo(), remoteName)
 		if err != nil && !git.IsRemoteNotExistError(err) {
@@ -61,14 +94,12 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		}
 	}
 
-	// erase authentication before storing in database
-	u.User = nil
 	m.Repo.OriginalURL = u.String()
 	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
 }
 
-func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration) error {
-	stdout, _, pruneErr := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithRepo(gitRepo).RunStdString(ctx)
+func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration, envs []string) error {
+	stdout, _, pruneErr := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithRepo(gitRepo).RunStdString(ctx)
 	if pruneErr != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
 		stderrMessage := util.SanitizeCredentialURLs(pruneErr.Stderr())
@@ -111,9 +142,9 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		return nil, false
 	}
 	// re-validate on every sync: the host may now resolve to an internal IP (rebinding) or the
-	// allow/block list may have changed. ssh/file are skipped (not an HTTP SSRF vector).
+	// allow/block list may have changed. file is skipped (no network access).
 	switch remoteURL.URL.Scheme {
-	case "http", "https", "git":
+	case "http", "https", "git", "ssh":
 		if allowErr := migrations.IsMigrateURLAllowed(remoteURL.String(), m.Repo.MustOwner(ctx)); allowErr != nil {
 			log.Error("SyncMirrors [repo: %-v]: remote URL is not allowed: %v", m.Repo, allowErr)
 			return nil, false
@@ -121,13 +152,20 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
+	envs, cleanup, sshErr := repo_service.ManagedSSHEnv(ctx, m.Repo, m.UseOwnerSSHKey, remoteURL.String())
+	if sshErr != nil {
+		log.Error("SyncMirrors [repo: %-v]: managed SSH key: %v", m.Repo, sshErr)
+		return nil, false
+	}
+	defer cleanup()
+
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
 		cmd := gitcmd.NewCommand("fetch", "--tags")
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
-		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
+		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
 	}
 
 	var err error
@@ -142,7 +180,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			log.Warn("SyncMirrors [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 			err = nil
 			// Attempt prune
-			pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName(), m.Repo.CodeStorageRepo(), timeout)
+			pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName(), m.Repo.CodeStorageRepo(), timeout, envs)
 			if pruneErr == nil {
 				// Successful prune - reattempt mirror
 				fetchStdout, fetchStderr, err = cmdFetch().WithRepo(m.Repo).RunStdString(ctx)
@@ -204,7 +242,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
-		return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
+		return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
@@ -222,7 +260,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 				err = nil
 
 				// Attempt prune
-				pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName()+".wiki", m.Repo.WikiStorageRepo(), timeout)
+				pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName()+".wiki", m.Repo.WikiStorageRepo(), timeout, envs)
 				if pruneErr == nil {
 					// Successful prune - reattempt mirror
 					stdout, stderr, err = cmdRemoteUpdatePrune().WithRepo(m.Repo.WikiStorageRepo()).RunStdString(ctx)
@@ -310,8 +348,8 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
 	m.LastSyncUnix = m.UpdatedUnix
-	if err = repo_model.UpdateMirror(ctx, m); err != nil {
-		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirror with next update date: %v", m.Repo, err)
+	if err = repo_model.UpdateMirrorSyncStatus(ctx, m); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirrorSyncStatus with next update date: %v", m.Repo, err)
 		return false
 	}
 

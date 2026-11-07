@@ -179,6 +179,11 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("update owner: %w", err)
 	}
 
+	// mirror addresses were chosen under the old owner, the new owner's key must not follow them unasked
+	if err := repo_model.UnbindOwnerSSHKey(ctx, repo.ID); err != nil {
+		return fmt.Errorf("unbind owner SSH key: %w", err)
+	}
+
 	// Remove redundant collaborators.
 	collaborators, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: repo.ID})
 	if err != nil {

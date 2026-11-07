@@ -10,14 +10,15 @@
 				{{template "repo/migrate/common-init" (dict "ServiceType" .service)}}
 				{{template "repo/migrate/common-clone-addr" (dict "AllowImportLocal" ctx.RootData.SignedUser.CanImportLocal)}}
 
-				<div class="inline field">
+				<div class="inline field auth-userpass-field">
 					<label>{{ctx.Locale.Tr "username"}}</label>
 					<input name="auth_username">
 				</div>
-				<div class="inline field">
+				<div class="inline field auth-userpass-field">
 					<label>{{ctx.Locale.Tr "password"}}</label>
 					<input name="auth_password" type="password">
 				</div>
+				{{template "repo/migrate/ssh_options" .}}
 
 				{{template "repo/migrate/common-options" .}}
 

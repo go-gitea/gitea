@@ -48,3 +48,9 @@ type swaggerResponseDeployKeyList struct {
 	// in:body
 	Body []api.DeployKey `json:"body"`
 }
+
+// swagger:response ManagedSSHKey
+type swaggerResponseManagedSSHKey struct {
+	// in:body
+	Body api.ManagedSSHKey `json:"body"`
+}

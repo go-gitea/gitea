@@ -17,6 +17,7 @@ type MigrateOptions struct {
 	AuthPasswordEncrypted string `json:"auth_password_encrypted,omitempty"`
 	AuthToken             string `json:"-"`
 	AuthTokenEncrypted    string `json:"auth_token_encrypted,omitempty"`
+	UseOwnerSSHKey        bool   `json:"use_owner_ssh_key,omitempty"` // an SSH CloneAddr authenticates with the repository owner's managed SSH key
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
@@ -35,6 +36,12 @@ type Mirror struct {
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
+
+	UseOwnerSSHKey bool `xorm:"NOT NULL DEFAULT false"` // an SSH remote authenticates with the managed SSH key of the repository's current owner
+}
+
+func (m *Mirror) IsSSHRemoteAddress() bool {
+	return giturl.IsSSH(m.RemoteAddress)
 }
 
 func init() {
@@ -89,7 +96,7 @@ func GetMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
 
 // UpdateMirror updates the mirror
 func UpdateMirror(ctx context.Context, m *Mirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
+	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Omit("use_owner_ssh_key").Update(m) // only UpdateAddress binds a key, together with the remote
 	return err
 }
 
@@ -97,6 +104,25 @@ func UpdateMirror(ctx context.Context, m *Mirror) error {
 func TouchMirror(ctx context.Context, m *Mirror) error {
 	m.UpdatedUnix = timeutil.TimeStampNow()
 	_, err := db.GetEngine(ctx).ID(m.ID).Cols("updated_unix").Update(m)
+	return err
+}
+
+func UpdateMirrorSyncStatus(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("updated_unix", "next_update_unix", "last_sync_unix").Update(m)
+	return err
+}
+
+func UpdateMirrorUseOwnerSSHKey(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("use_owner_ssh_key").Update(m)
+	return err
+}
+
+// UnbindOwnerSSHKey stops the repository's mirrors from authenticating with its owner's managed SSH key until a doer allowed to binds it again
+func UnbindOwnerSSHKey(ctx context.Context, repoID int64) error {
+	if _, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Cols("use_owner_ssh_key").Update(&Mirror{}); err != nil {
+		return err
+	}
+	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Cols("use_owner_ssh_key").Update(&PushMirror{})
 	return err
 }
 
