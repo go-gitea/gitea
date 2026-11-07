@@ -129,7 +129,7 @@ func TruncateRunes(str string, limit int) string {
 		return str
 	}
 	for i := range str {
-		limit -= 1
+		limit--
 		if limit < 0 {
 			return str[:i]
 		}
