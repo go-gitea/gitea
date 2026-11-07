@@ -227,6 +227,36 @@ func TestIssueViews(t *testing.T) {
 		checkIssues(2)
 	})
 
+	t.Run("SearchIssuesExcludeDependencies", func(t *testing.T) {
+		// issue 1 is blocked by pull 2 and blocks pull 3, issue 7 of the private repo2 is blocked by issue 1
+		require.NoError(t, db.Insert(t.Context(), []*issues_model.IssueDependency{
+			{UserID: 2, IssueID: 1, DependencyID: 2},
+			{UserID: 2, IssueID: 3, DependencyID: 1},
+			{UserID: 2, IssueID: 7, DependencyID: 1},
+		}))
+		defer func() { require.NoError(t, db.TruncateBeans(t.Context(), &issues_model.IssueDependency{})) }()
+
+		searchIDs := func(session *TestSession, link string) (ids []int64) {
+			resp := session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK)
+			for _, issue := range DecodeJSON(t, resp, []*api.Issue{}) {
+				ids = append(ids, issue.ID)
+			}
+			return ids
+		}
+		user2 := loginUser(t, "user2")
+		assert.Equal(t, []int64{11}, searchIDs(user2, "/user2/repo1/issues/search?type=all&exclude_dependencies_of=1"))
+
+		ids := searchIDs(user2, "/issues/search?type=all&owner=user2&exclude_dependencies_of=1")
+		assert.Contains(t, ids, int64(11))
+		assert.NotContains(t, ids, int64(1))
+		assert.NotContains(t, ids, int64(2))
+		assert.NotContains(t, ids, int64(3))
+
+		assert.NotContains(t, searchIDs(user2, "/issues/search?type=all&owner=user2&exclude_dependencies_of=7"), int64(1))
+		// user4 can't read issue 7, so its dependencies must not be revealed by the search results
+		assert.Contains(t, searchIDs(loginUser(t, "user4"), "/issues/search?type=all&owner=user2&exclude_dependencies_of=7"), int64(1))
+	})
+
 	t.Run("GetIssueInfo", func(t *testing.T) {
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})

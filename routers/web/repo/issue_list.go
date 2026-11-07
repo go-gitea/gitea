@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
@@ -42,6 +43,36 @@ func parseProjectIDsFromQuery(ctx *context.Context) []int64 {
 	// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet
 	// Although here parses the project parameter as a slice, the "search" logic is wrong
 	return ctx.FormStringInt64s("project")
+}
+
+// getExcludedDependencyIssueIDs returns the issue given by "exclude_dependencies_of" and the issues already linked to it
+// as dependencies, so that the "add dependency" search doesn't offer them. Nothing is excluded if the doer can't read the issue.
+func getExcludedDependencyIssueIDs(ctx *context.Context) ([]int64, error) {
+	issueID := ctx.FormInt64("exclude_dependencies_of")
+	if issueID <= 0 {
+		return nil, nil
+	}
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
+	if issues_model.IsErrIssueNotExist(err) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	if err = issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+	issuePerm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, ctx.Doer)
+	if err != nil {
+		return nil, err
+	}
+	if !issuePerm.CanReadIssuesOrPulls(issue.IsPull) {
+		return nil, nil
+	}
+	ids, err := issues_model.GetLinkedDependencyIssueIDs(ctx, issue.ID)
+	if err != nil {
+		return nil, err
+	}
+	return append(ids, issue.ID), nil
 }
 
 // SearchGlobalIssues searches for issues across the repositories that the user has access to
@@ -156,11 +187,18 @@ func SearchGlobalIssues(ctx *context.Context) {
 	//        it's indeed an regression, but I think it is worth to support filtering by indexer first.
 	_ = ctx.FormInt64("priority_repo_id")
 
+	excludedIDs, err := getExcludedDependencyIssueIDs(ctx)
+	if err != nil {
+		ctx.ServerError("getExcludedDependencyIssueIDs", err)
+		return
+	}
+
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
 		ctx.ServerError("SearchIssues", err)
 		return
 	}
+	ids = slices.DeleteFunc(ids, func(id int64) bool { return slices.Contains(excludedIDs, id) })
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
 		ctx.ServerError("FindIssuesByIDs", err)
@@ -298,11 +336,18 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		searchOpt.MentionID = optional.Some(mentionedByID)
 	}
 
+	excludedIDs, err := getExcludedDependencyIssueIDs(ctx)
+	if err != nil {
+		ctx.HTTPError(http.StatusInternalServerError, "getExcludedDependencyIssueIDs", err.Error())
+		return
+	}
+
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, "SearchIssues", err.Error())
 		return
 	}
+	ids = slices.DeleteFunc(ids, func(id int64) bool { return slices.Contains(excludedIDs, id) })
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())

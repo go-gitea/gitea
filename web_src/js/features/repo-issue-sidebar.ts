@@ -55,9 +55,10 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
 
   const issuePageInfo = parseIssuePageInfo();
   const crossRepoSearch = elDropdown.getAttribute('data-issue-cross-repo-search');
-  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
+  const excludeParam = `exclude_dependencies_of=${elDropdown.getAttribute('data-issue-id')}`;
+  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}&${excludeParam}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}&${excludeParam}`;
   }
   fomanticQuery(elDropdown).dropdown({
     fullTextSearch: true,
@@ -66,11 +67,8 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
       rawResponse: true, // backend responds an array, prevent fomantic api from converting it to an object
       onResponse(response: Issue[]) {
         const filteredResponse: FomanticApiResponse<{value: number, name: string}> = {success: true, results: []};
-        const currIssueId = elDropdown.getAttribute('data-issue-id');
         // Parse the response from the api to work with our dropdown
         for (const issue of response) {
-          // Don't list current issue in the dependency list.
-          if (String(issue.id) === currIssueId) continue;
           filteredResponse.results.push({
             value: issue.id,
             name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,
