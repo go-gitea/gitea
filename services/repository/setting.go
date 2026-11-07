@@ -19,6 +19,8 @@ func UpdateRepositoryUnits(ctx context.Context, repo *repo_model.Repository, uni
 	disableActions := slices.Contains(deleteUnitTypes, unit.TypeActions)
 
 	err = db.WithTx(ctx, func(ctx context.Context) error {
+		units = slices.DeleteFunc(units, func(u repo_model.RepoUnit) bool { return u.Config == nil && repo.UnitEnabled(ctx, u.Type) }) // keep their stored config
+
 		// Delete existing settings of units before adding again
 		for _, u := range units {
 			deleteUnitTypes = append(deleteUnitTypes, u.Type)
