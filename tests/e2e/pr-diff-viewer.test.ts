@@ -52,6 +52,7 @@ test('diff viewer', async ({page, request}) => {
   // the line "+" and the line numbers open independent composers
   await fileA.locator('tr[data-new="2"] .lines-code').hover();
   await fileA.locator('tr[data-new="2"] .add-code-comment').click();
+  await expect(fileA.locator('.diff-viewer-draft')).toHaveCount(1); // the draft's row moves the next line
   await fileA.locator('tr[data-new="3"] .lines-num-new').click();
   await expect(fileA.locator('.diff-viewer-draft')).toHaveCount(2);
   await expect(fileA.locator('.diff-viewer-draft markdown-toolbar[for]')).toHaveCount(2);
