@@ -72,9 +72,10 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 		chain[2].WorkflowSourceRepoID = 5
 		chain[2].WorkflowSourceCommitSHA = "second-commit"
 
-		require.NoError(t, checkCallerChainOf(t, chain[2]))
-		require.ErrorContains(t, checkResolvedCallerCycle(t.Context(), chain[2], mustGetAncestorCallers(t, chain[2]), 4, "first-commit", ".gitea/workflows/a.yml"), "cycle detected")
-		require.NoError(t, checkResolvedCallerCycle(t.Context(), chain[2], mustGetAncestorCallers(t, chain[2]), 4, "other-commit", ".gitea/workflows/a.yml"))
+		ancestors := mustGetAncestorCallers(t, chain[2])
+		require.NoError(t, checkCallerChain(chain[2], ancestors))
+		require.ErrorContains(t, checkResolvedCallerCycle(t.Context(), chain[2], ancestors, 4, "first-commit", ".gitea/workflows/a.yml"), "cycle detected")
+		require.NoError(t, checkResolvedCallerCycle(t.Context(), chain[2], ancestors, 4, "other-commit", ".gitea/workflows/a.yml"))
 	})
 }
 

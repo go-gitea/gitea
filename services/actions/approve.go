@@ -95,12 +95,11 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					}
 					continue
 				}
-				invalid := invalidRunsOn(job)
-				failedRunsOn, jobsToCancel, err := admitJob(ctx, job, slots, invalid, nil)
+				runsOnErr, jobsToCancel, err := admitJob(ctx, job, slots, func() error { return invalidRunsOn(job) }, nil)
 				if err != nil {
 					return err
 				}
-				if failedRunsOn {
+				if runsOnErr != nil {
 					n, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
 					if err != nil {
 						return err
@@ -108,7 +107,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					if n > 0 {
 						updatedJobs = append(updatedJobs, job)
 					}
-					if err := upsertJobErrorSummary(ctx, job, "runs-on", invalid); err != nil {
+					if err := upsertJobErrorSummary(ctx, job, "runs-on", runsOnErr); err != nil {
 						return err
 					}
 					continue

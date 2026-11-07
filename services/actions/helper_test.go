@@ -20,35 +20,46 @@ import (
 )
 
 func TestAdmitJob(t *testing.T) {
-	evaluated := 0
-	evaluate := func() error { evaluated++; return nil }
+	checked, evaluated := 0, 0
+	badRunsOn := func() error { checked++; return errors.New("bad runs-on") }
+	evaluate := func(job *actions_model.ActionRunJob) func() error {
+		return func() error { evaluated++; job.IsConcurrencyEvaluated = true; return nil }
+	}
 	slots := maxParallelSlots{}
 	newJob := func() *actions_model.ActionRunJob {
-		return &actions_model.ActionRunJob{JobID: "build", Status: actions_model.StatusWaiting, MaxParallel: 1}
+		return &actions_model.ActionRunJob{JobID: "build", Status: actions_model.StatusWaiting, MaxParallel: 1, RawConcurrency: "group: g"}
 	}
 
 	first := newJob()
-	failed, cancelled, err := admitJob(t.Context(), first, slots, nil, evaluate)
+	invalid, cancelled, err := admitJob(t.Context(), first, slots, nil, evaluate(first))
 	require.NoError(t, err)
-	assert.False(t, failed)
+	require.NoError(t, invalid)
 	assert.Empty(t, cancelled)
 	assert.Equal(t, actions_model.StatusWaiting, first.Status)
 	assert.Equal(t, 1, evaluated)
 
-	// the slot is taken: a starved job neither fails on runs-on nor evaluates its concurrency
+	// the slot is taken: a starved job neither checks its runs-on nor evaluates its concurrency
 	starved := newJob()
-	failed, _, err = admitJob(t.Context(), starved, slots, errors.New("bad runs-on"), evaluate)
+	invalid, _, err = admitJob(t.Context(), starved, slots, badRunsOn, evaluate(starved))
 	require.NoError(t, err)
-	assert.False(t, failed)
+	require.NoError(t, invalid)
 	assert.Equal(t, actions_model.StatusBlocked, starved.Status)
+	assert.Equal(t, 0, checked)
 	assert.Equal(t, 1, evaluated)
 
-	invalid := newJob()
-	failed, _, err = admitJob(t.Context(), invalid, maxParallelSlots{}, errors.New("bad runs-on"), evaluate)
+	failed := newJob()
+	invalid, _, err = admitJob(t.Context(), failed, maxParallelSlots{}, badRunsOn, evaluate(failed))
 	require.NoError(t, err)
-	assert.True(t, failed)
-	assert.Equal(t, actions_model.StatusFailure, invalid.Status)
-	assert.NotZero(t, invalid.Stopped)
+	assert.ErrorContains(t, invalid, "bad runs-on")
+	assert.Equal(t, actions_model.StatusFailure, failed.Status)
+	assert.NotZero(t, failed.Stopped)
+	assert.Equal(t, 1, evaluated)
+
+	// a job without `concurrency:` has nothing to evaluate
+	plain := newJob()
+	plain.RawConcurrency = ""
+	_, _, err = admitJob(t.Context(), plain, maxParallelSlots{}, nil, evaluate(plain))
+	require.NoError(t, err)
 	assert.Equal(t, 1, evaluated)
 
 	_, _, err = admitJob(t.Context(), newJob(), maxParallelSlots{}, nil, func() error { return errors.New("bad concurrency") })

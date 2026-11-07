@@ -264,33 +264,29 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		runJob.RawConcurrency = string(rawConcurrency)
 	}
 	evaluateConcurrency := func() error {
-		if runJob.RawConcurrency == "" {
-			return nil
-		}
-		if err := EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs); err != nil {
-			return fmt.Errorf("evaluate job concurrency: %w", err)
+		return EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs)
+	}
+	checkRunsOn := func() error {
+		if runsOnProblem != "" {
+			return errors.New(runsOnProblem)
 		}
 		return nil
 	}
 
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
 	if runJob.Status == actions_model.StatusWaiting {
-		var invalidRunsOn error
-		if runsOnProblem != "" {
-			invalidRunsOn = errors.New(runsOnProblem)
-		}
-		failedRunsOn, jobsToCancel, err := admitJob(ctx, runJob, slots, invalidRunsOn, evaluateConcurrency)
+		invalidRunsOn, jobsToCancel, err := admitJob(ctx, runJob, slots, checkRunsOn, evaluateConcurrency)
 		if err != nil {
 			return nil, nil, false, err
 		}
-		if failedRunsOn {
+		if invalidRunsOn != nil {
 			invalidKey, invalidErr = "runs-on", invalidRunsOn
 		}
 		cancelledConcurrencyJobs = jobsToCancel
-	} else if len(needs) == 0 && run.NeedApproval {
+	} else if runJob.RawConcurrency != "" && len(needs) == 0 && run.NeedApproval {
 		// a job enters its group at its gate, ApproveRuns gates an approval-blocked one with this evaluation
 		if err := evaluateConcurrency(); err != nil {
-			return nil, nil, false, err
+			return nil, nil, false, fmt.Errorf("evaluate job concurrency: %w", err)
 		}
 	}
 

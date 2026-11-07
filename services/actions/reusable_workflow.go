@@ -201,11 +201,11 @@ func qualifyRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.R
 //   - rejects cycles (caller.CallUses appearing in any ancestor's CallUses)
 //   - enforces MaxReusableCallLevels on the number of ancestors above `caller`
 func checkCallerChain(caller *actions_model.ActionRunJob, ancestors []*actions_model.ActionRunJob) error {
+	if len(ancestors) > MaxReusableCallLevels {
+		return errCallLevelExceeded(caller.CallUses)
+	}
 	visited := container.SetOf(canonicalCallUses(caller))
-	for i, ancestor := range ancestors {
-		if i+1 > MaxReusableCallLevels {
-			return errCallLevelExceeded(caller.CallUses)
-		}
+	for _, ancestor := range ancestors {
 		if ancestor.IsReusableCaller && ancestor.CallUses != "" && !visited.Add(canonicalCallUses(ancestor)) {
 			return fmt.Errorf("reusable workflow call cycle detected: %q", ancestor.CallUses)
 		}
