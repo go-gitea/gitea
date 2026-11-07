@@ -19,4 +19,5 @@ const (
 	TraceAttrDbSQL       = "db.sql"
 	TraceAttrGitCommand  = "git.command"
 	TraceAttrHTTPRoute   = "http.route"
+	TraceAttrLongRunning = "http.long_running"
 )

@@ -6,6 +6,7 @@ package gtprof
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -174,4 +175,36 @@ func GetTracer() *Tracer {
 func GetContextSpan(ctx context.Context) *TraceSpan {
 	ts, _ := ctx.Value(contextKeySpan).(*TraceSpan)
 	return ts
+}
+
+// Name returns the span name
+func (s *TraceSpan) Name() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.name
+}
+
+// Duration returns the duration of an ended span
+func (s *TraceSpan) Duration() time.Duration {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.endTime.Sub(s.startTime)
+}
+
+// Attributes returns the attributes as strings
+func (s *TraceSpan) Attributes() map[string]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	ret := make(map[string]string, len(s.attributes))
+	for _, a := range s.attributes {
+		ret[a.Key] = a.Value.AsString()
+	}
+	return ret
+}
+
+// Children returns the child spans
+func (s *TraceSpan) Children() []*TraceSpan {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return slices.Clone(s.children)
 }
