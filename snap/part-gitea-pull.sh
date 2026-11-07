@@ -16,14 +16,14 @@ else
 fi
 
 # How it works:
-# * release-nightly-snapcraft.yml builds the snap on every push to the default branch (e.g.: main during 1.27 dev period)
+# * the nightly-snap job in release-nightly.yml builds the snap when the default branch (e.g.: main during 1.27 dev period) has new commits
 # * "override-pull" step gets the latest tag by date (e.g.: v1.26.1)
 # * use "snap info gitea" to get the latest released tag, which is the version in the "latest/candidate" channel
 #   * if the latest tag is not released yet, checkout that tag and build it with grade "stable",
 #     the workflow publishes it to "latest/stable" and "latest/candidate"
 #   * otherwise, build the main branch with grade "devel", the workflow publishes it to "latest/edge"
 # * "override-build" step uses build script from the checked out commit to build
-# This approach highly depends on the "main" branch's push: a new tag is only published by the next push after it.
+# This approach highly depends on new commits to the "main" branch: a new tag is only published by the next build after it.
 
 # To debug the logic:
 # * last_committed_tag=v1.26.1 last_released_tag=v1.26.0 ./snap/part-gitea-pull.sh
