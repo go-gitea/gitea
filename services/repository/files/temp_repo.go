@@ -275,10 +275,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 		"GIT_COMMITTER_DATE="+committerDate.Format(time.RFC3339),
 	)
 
-	messageBytes := new(bytes.Buffer)
-	_, _ = messageBytes.WriteString(opts.CommitMessage)
-	_, _ = messageBytes.WriteString("\n")
-
+	message := opts.CommitMessage
 	cmdCommitTree := gitcmd.NewCommand("commit-tree").AddDynamicArguments(opts.TreeHash)
 	if opts.ParentCommitID != "" {
 		cmdCommitTree.AddOptionValues("-p", opts.ParentCommitID)
@@ -299,9 +296,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 		cmdCommitTree.AddOptionFormat("-S%s", key.KeyID)
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
-				_, _ = messageBytes.WriteString("\n" + git.CoAuthoredByTrailer + ": ")
-				_, _ = messageBytes.WriteString(committerSig.String())
-				_, _ = messageBytes.WriteString("\n")
+				message = git.CommitMessageAddTrailer(message, git.CoAuthoredByTrailer, committerSig.String())
 			}
 			committerSig = signer
 		}
@@ -310,10 +305,11 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	}
 
 	if opts.SignOff {
-		// Signed-off-by
-		_, _ = messageBytes.WriteString("\n")
-		_, _ = messageBytes.WriteString("Signed-off-by: ")
-		_, _ = messageBytes.WriteString(committerSig.String())
+		message = git.CommitMessageAddTrailer(message, "Signed-off-by", committerSig.String())
+	}
+	message, err := git.PrepareObjectMessage(git.ObjectCommit, message)
+	if err != nil {
+		return "", err
 	}
 
 	env = append(env,
@@ -326,7 +322,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 		WithEnv(env).
 		WithRepo(t.gitRepo).
 		WithStdoutBuffer(stdout).
-		WithStdinBytes(messageBytes.Bytes()).
+		WithStdinBytes([]byte(message)).
 		RunWithStderr(ctx); err != nil {
 		return "", fmt.Errorf("unable to commit-tree in temporary repo: %s, error: %w", t.repo.FullName(), err)
 	}

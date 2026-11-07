@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
 	"uuid"
 
 	"gitea.dev/models/db"
@@ -178,41 +177,6 @@ func expandDefaultMergeMessage(template string, varsMap map[string]string) (mess
 // GetDefaultMergeMessage returns default message used when merging pull request
 func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
 	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, nil)
-}
-
-func AddCommitMessageTailer(message, tailerKey, tailerValue string) string {
-	tailerLine := tailerKey + ": " + tailerValue
-	message = strings.ReplaceAll(message, "\r\n", "\n")
-	message = strings.ReplaceAll(message, "\r", "\n")
-	if strings.Contains(message, "\n"+tailerLine+"\n") || strings.HasSuffix(message, "\n"+tailerLine) {
-		return message
-	}
-
-	if !strings.HasSuffix(message, "\n") {
-		message += "\n"
-	}
-	pos1 := strings.LastIndexByte(message[:len(message)-1], '\n')
-	pos2 := -1
-	if pos1 != -1 {
-		pos2 = strings.IndexByte(message[pos1:], ':')
-		if pos2 != -1 {
-			pos2 += pos1
-		}
-	}
-	var lastLineKey string
-	if pos1 != -1 && pos2 != -1 {
-		lastLineKey = message[pos1+1 : pos2]
-	}
-
-	isLikelyTailerLine := lastLineKey != "" && unicode.IsUpper(rune(lastLineKey[0])) && strings.Contains(message, "-")
-	for i := 0; isLikelyTailerLine && i < len(lastLineKey); i++ {
-		r := rune(lastLineKey[i])
-		isLikelyTailerLine = unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-'
-	}
-	if !strings.HasSuffix(message, "\n\n") && !isLikelyTailerLine {
-		message += "\n"
-	}
-	return message + tailerLine
 }
 
 // ErrInvalidMergeStyle represents an error if merging with disabled merge strategy
@@ -478,15 +442,6 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		return "", ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
-	// OK we should cache our current head and origin/headbranch
-	mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "HEAD")
-	if err != nil {
-		return "", fmt.Errorf("failed to get full commit id for HEAD: %w", err)
-	}
-	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "original_"+tmpRepoBaseBranch)
-	if err != nil {
-		return "", fmt.Errorf("failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
-	}
 	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch)
 	if err != nil {
 		return "", fmt.Errorf("failed to get full commit id for the new merge: %w", err)
@@ -496,7 +451,11 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	// I think in the interests of data safety - failures to push to the lfs should prevent
 	// the merge as you can always remerge.
 	if setting.LFS.StartServer {
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
+		mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "original_"+tmpRepoBaseBranch)
+		if err != nil {
+			return "", fmt.Errorf("failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
+		}
+		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, mergeCommitID, mergeBaseSHA, pr); err != nil {
 			return "", err
 		}
 	}
@@ -565,6 +524,30 @@ func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
 		return fmt.Errorf("git commit %v: %w\n%s", ctx.pr, err, ctx.outbuf.String())
 	}
 	return nil
+}
+
+func commitMergeTree(ctx *mergeContext, mergeStyle repo_model.MergeStyle, message string, author *git.Signature, parents ...string) error {
+	if strings.TrimSpace(message) == "" {
+		return util.NewInvalidArgumentErrorf("empty commit message")
+	}
+	treeID, hasConflicts, conflictFiles, err := git.MergeTree(ctx, ctx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch, "")
+	if gitcmd.IsStderr(err, gitcmd.StderrUnrelatedHistories) {
+		return ErrMergeUnrelatedHistories{Style: mergeStyle, Err: err}
+	} else if err != nil {
+		return err
+	} else if hasConflicts {
+		return ErrMergeConflicts{Style: mergeStyle, StdOut: strings.Join(conflictFiles, "\n")}
+	}
+	commitID, err := git.CommitTree(ctx, ctx.tmpRepo, author, ctx.committer, treeID, git.CommitTreeOpts{
+		Parents:   parents,
+		Message:   message,
+		Key:       ctx.signKey,
+		NoGPGSign: ctx.signKey == nil,
+	})
+	if err != nil {
+		return err
+	}
+	return git.UpdateRef(ctx, ctx.tmpRepo, git.BranchPrefix+tmpRepoBaseBranch, commitID.String())
 }
 
 func addCommitSigningOptions(cmd *gitcmd.Command, signKey *git.SigningKey) {
