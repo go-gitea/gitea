@@ -23,10 +23,16 @@ func (source *Source) Callout(request *http.Request, response http.ResponseWrite
 	defer gothRWMutex.RUnlock()
 
 	url, err := gothic.GetAuthURL(response, request)
-	if err == nil {
-		http.Redirect(response, request, url, http.StatusTemporaryRedirect)
+	if err != nil {
+		return err
 	}
-	return err
+
+	if url, err = source.beginPKCE(request, url); err != nil { // Store the verifier after gothic regenerates the session.
+		return err
+	}
+
+	http.Redirect(response, request, url, http.StatusTemporaryRedirect)
+	return nil
 }
 
 // Callback handles OAuth callback, resolve to a goth user and send back to original url
@@ -38,7 +44,7 @@ func (source *Source) Callback(request *http.Request, response http.ResponseWrit
 	gothRWMutex.RLock()
 	defer gothRWMutex.RUnlock()
 
-	user, err := gothic.CompleteUserAuth(response, request)
+	user, err := gothic.CompleteUserAuth(response, source.injectPKCEVerifier(request))
 	if err != nil {
 		return user, err
 	}
