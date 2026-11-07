@@ -78,13 +78,8 @@ func Runners(ctx *context.Context) {
 		Sort:   ctx.Req.URL.Query().Get("sort"),
 		Filter: ctx.Req.URL.Query().Get("q"),
 	}
-	if rCtx.IsRepo {
-		opts.RepoID = rCtx.RepoID
-		opts.WithAvailable = true
-	} else if rCtx.IsOrg || rCtx.IsUser {
-		opts.OwnerID = rCtx.OwnerID
-		opts.WithAvailable = true
-	}
+	opts.OwnerID, opts.RepoID = rCtx.OwnerID, rCtx.RepoID
+	opts.WithAvailable = !rCtx.IsAdmin
 
 	runners, count, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
@@ -377,25 +372,10 @@ func RunnerBulkActionPost(ctx *context.Context) {
 func findActionsRunner(ctx *context.Context, rCtx *runnersCtx) *actions_model.ActionRunner {
 	runnerID := ctx.PathParamInt64("runnerid")
 	opts := &actions_model.FindRunnerOptions{
-		IDs: []int64{runnerID},
+		IDs:     []int64{runnerID},
+		OwnerID: rCtx.OwnerID,
+		RepoID:  rCtx.RepoID,
 	}
-	switch {
-	case rCtx.IsRepo:
-		opts.RepoID = rCtx.RepoID
-		if opts.RepoID == 0 {
-			panic("repoID is 0")
-		}
-	case rCtx.IsOrg, rCtx.IsUser:
-		opts.OwnerID = rCtx.OwnerID
-		if opts.OwnerID == 0 {
-			panic("ownerID is 0")
-		}
-	case rCtx.IsAdmin:
-		// do nothing
-	default:
-		panic("invalid actions runner context")
-	}
-
 	got, err := db.Find[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindRunner", err)

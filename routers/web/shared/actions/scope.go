@@ -26,21 +26,33 @@ type settingsScope struct {
 	LinkPrefix string
 }
 
+func newSettingsScope(belonging actions_model.BelongingScope, linkPrefix string) *settingsScope {
+	scope := &settingsScope{BelongingScope: belonging, LinkPrefix: linkPrefix}
+	scope.OwnerID, scope.RepoID = belonging.GetOwnerRepoIDs()
+	return scope
+}
+
 func getSettingsScope(ctx *context.Context) (*settingsScope, error) {
 	switch {
 	case ctx.Data["PageIsRepoSettings"] == true:
-		repoID := ctx.Repo.Repository.ID
-		return &settingsScope{BelongingScope: actions_model.BelongingScopeRepo(repoID), RepoID: repoID, IsRepo: true, LinkPrefix: ctx.Repo.RepoLink + "/settings/actions"}, nil
+		scope := newSettingsScope(actions_model.BelongingScopeRepo(ctx.Repo.Repository.ID), ctx.Repo.RepoLink+"/settings/actions")
+		scope.IsRepo = true
+		return scope, nil
 	case ctx.Data["PageIsOrgSettings"] == true:
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 			return nil, fmt.Errorf("getSettingsScope: %w", err)
 		}
-		ownerID := ctx.Org.Organization.ID
-		return &settingsScope{BelongingScope: actions_model.BelongingScopeOwner(ownerID), OwnerID: ownerID, IsOrg: true, LinkPrefix: ctx.Org.OrgLink + "/settings/actions"}, nil
+		scope := newSettingsScope(actions_model.BelongingScopeOwner(ctx.Org.Organization.ID), ctx.Org.OrgLink+"/settings/actions")
+		scope.IsOrg = true
+		return scope, nil
 	case ctx.Data["PageIsUserSettings"] == true:
-		return &settingsScope{BelongingScope: actions_model.BelongingScopeOwner(ctx.Doer.ID), OwnerID: ctx.Doer.ID, IsUser: true, LinkPrefix: setting.AppSubURL + "/user/settings/actions"}, nil
+		scope := newSettingsScope(actions_model.BelongingScopeOwner(ctx.Doer.ID), setting.AppSubURL+"/user/settings/actions")
+		scope.IsUser = true
+		return scope, nil
 	case ctx.Data["PageIsAdmin"] == true:
-		return &settingsScope{BelongingScope: actions_model.BelongingScopeGlobal(), IsAdmin: true, LinkPrefix: setting.AppSubURL + "/-/admin/actions"}, nil
+		scope := newSettingsScope(actions_model.BelongingScopeGlobal(), setting.AppSubURL+"/-/admin/actions")
+		scope.IsAdmin = true
+		return scope, nil
 	}
 	return nil, errors.New("getSettingsScope: not an actions settings page")
 }
