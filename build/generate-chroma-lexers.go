@@ -257,9 +257,14 @@ func main() {
 		log.Fatalf("Unable to create %s: %v", outputDir, err)
 	}
 	var index []lexerIndexEntry
+	fileNames := map[string]string{}
 	for name := range wanted {
 		file := converted[name]
 		entry := lexerIndexEntry{Name: name, File: fileName(name), Aliases: file.config.Aliases, Filenames: append(slices.Clone(file.config.Filenames), file.config.AliasFilenames...)}
+		if other, ok := fileNames[entry.File]; ok {
+			log.Fatalf("Lexers %q and %q map to the same file %q", other, name, entry.File)
+		}
+		fileNames[entry.File] = name
 		data, err := json.MarshalDeterministic(file)
 		if err != nil {
 			log.Fatalf("Unable to marshal %s: %v", name, err)

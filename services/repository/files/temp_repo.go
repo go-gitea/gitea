@@ -350,7 +350,6 @@ func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.U
 	return nil
 }
 
-// DiffIndex returns a Diff of the current index to the head
 // DiffIndex returns the patch of the index against HEAD
 func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (string, error) {
 	stdout, _, err := gitcmd.NewCommand("diff-index", "--cached", "-p", "HEAD").WithTimeout(30 * time.Second).WithRepo(t.gitRepo).RunStdString(ctx)

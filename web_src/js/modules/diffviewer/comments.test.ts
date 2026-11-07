@@ -15,10 +15,10 @@ test('threadsOf', () => {
   const comments = new DiffComments(host);
   const comment = (id: number, path: string, side: 'old' | 'new', line: number) => ({id, path, side, line} as ViewerComment);
   comments.byPath = new Map([
-    ['new.txt', [comment(1, 'new.txt', 'new', 4), comment(2, 'new.txt', 'old', 4), comment(3, 'new.txt', 'new', 4), comment(4, 'new.txt', 'new', 1), comment(5, 'new.txt', 'new', 99)]],
+    ['new.txt', [comment(1, 'new.txt', 'new', 4), comment(2, 'new.txt', 'old', 4), comment(3, 'new.txt', 'new', 4), comment(4, 'new.txt', 'new', 1), comment(5, 'new.txt', 'new', 99), comment(7, 'new.txt', 'new', 98)]],
     ['old.txt', [comment(6, 'old.txt', 'old', 3)]],
   ]);
   const threads = [...comments.threadsOf(entry).values()].map(({target, comments}) => `${target.side}:${target.line}=${comments.map((c) => c.id).join(',')}`);
-  // both sides of a line are separate threads, the hidden line 1 waits for its gap, line 99 is outside the diff, the old name counts
-  expect(threads).toEqual(['new:4=1,3', 'old:4=2', 'new:0=5', 'old:3=6']);
+  // both sides of a line are separate threads, the hidden line 1 waits for its gap, lines 98 and 99 outside the diff stay separate, the old name counts
+  expect(threads).toEqual(['new:4=1,3', 'old:4=2', 'new:99=5', 'new:98=7', 'old:3=6']);
 });

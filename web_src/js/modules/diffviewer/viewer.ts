@@ -195,7 +195,7 @@ export class DiffViewer {
   // the files of the commits can be loaded for text diffs when the repo has file pages, the wiki doesn't
   canLoadContent(entry: DiffFile): boolean {
     const {file} = entry;
-    return Boolean(this.config.repoLink) && !file.isBinary && !file.lfs && !file.tooLarge && !entry.missing && entry.hunks.length > 0;
+    return Boolean(this.config.repoLink) && !file.isBinary && !file.lfs && !file.submodule && !file.tooLarge && !entry.missing && entry.hunks.length > 0;
   }
 
   isExpandable(entry: DiffFile): boolean {

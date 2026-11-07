@@ -106,13 +106,12 @@ export class DiffComments {
     return this.commentsAt(entry.file.name, entry.file.oldName);
   }
 
-  // the threads of the shown lines, comments on lines outside the diff go to line 0, comments in hidden gaps wait for their expansion
+  // the threads of the shown lines, comments on lines outside the diff are shown above the first row, comments in hidden gaps wait for their expansion
   threadsOf(entry: DiffFile): Map<string, Thread> {
     const threads = new Map<string, Thread>();
     for (const comment of this.commentsFor(entry)) {
       if (this.host.hiddenGap(entry, comment.side, comment.line)) continue;
-      const inDiff = entry.rowIndex(comment.side, comment.line) >= 0;
-      const target = {path: entry.file.name, side: comment.side, line: inDiff ? comment.line : 0};
+      const target = {path: entry.file.name, side: comment.side, line: comment.line};
       const key = targetKey(target);
       const thread = threads.get(key);
       if (thread) thread.comments.push(comment);
@@ -131,7 +130,7 @@ export class DiffComments {
     const result: ViewerComment[] = [];
     for (const entry of this.host.visibleEntries) {
       const threads = [...this.threadsOf(entry).values()].map(({target, comments}) => {
-        return {row: target.line ? entry.rowIndex(target.side, target.line) : -1, first: comments[0]};
+        return {row: entry.rowIndex(target.side, target.line), first: comments[0]};
       });
       threads.sort((a, b) => a.row - b.row);
       result.push(...threads.map((thread) => thread.first));
@@ -168,7 +167,7 @@ export class DiffComments {
         if (line) rows.set(`${side}|${line}`, row);
       }
     }
-    // the annotations below a row, grouped by side, the ones of line 0 go above the first row
+    // the annotations below a row, grouped by side, the ones of lines outside the diff go above the first row
     const groups = new Map<HTMLElement | null, Record<DiffSide, HTMLElement[]>>();
     const add = (side: DiffSide, line: number, content: HTMLElement) => {
       const anchor = rows.get(`${side}|${line}`) ?? null;

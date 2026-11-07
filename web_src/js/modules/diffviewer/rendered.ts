@@ -2,6 +2,7 @@ import {html, htmlRaw} from '../../utils/html.ts';
 import {createElementFromAttrs} from '../../utils/dom.ts';
 import {extname, formatBytes} from '../../utils.ts';
 import {trString} from '../i18n.ts';
+import {errorMessage} from '../errors.ts';
 import {CsvParseError, createCsvDiff, determineDelimiter, parseCsv, renderCsvDiff} from './csvdiff.ts';
 import {fileUrl} from './content.ts';
 import type {DiffFile} from './entry.ts';
@@ -109,11 +110,8 @@ export async function renderCsvView(entry: DiffFile, container: HTMLElement, loa
     const sections = createCsvDiff(rows(content.old, file.oldName), rows(content.new, file.name), entry.hunks);
     container.innerHTML = html`<table class="chroma tw-w-full"><tr><td>${htmlRaw(renderCsvDiff(sections))}</td></tr></table>`;
   } catch (error) {
-    if (!(error instanceof CsvParseError)) {
-      message(window.config.i18n.error_occurred);
-      throw error;
-    }
-    message(error.fieldCount ? trString(locale.csvFieldCount, error.line) : trString(locale.csvUnexpected, error.line, error.column));
+    if (error instanceof CsvParseError) message(error.fieldCount ? trString(locale.csvFieldCount, error.line) : trString(locale.csvUnexpected, error.line, error.column));
+    else message(errorMessage(error));
   } finally {
     container.classList.remove('is-loading');
   }
