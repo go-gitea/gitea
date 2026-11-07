@@ -9,18 +9,15 @@ import (
 	"strings"
 
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
 )
 
 func IssuePullPosters(ctx *context.Context) {
-	isPullList := ctx.PathParam("type") == "pulls"
-	// the issues routes also admit pull request readers
-	if !ctx.Repo.Permission.CanReadIssuesOrPulls(isPullList) {
-		ctx.NotFound(nil)
-		return
-	}
+	// the issues route also admits readers of only pull requests, who may list those posters instead
+	isPullList := ctx.PathParam("type") == "pulls" || !ctx.Repo.Permission.CanRead(unit.TypeIssues)
 	issuePosters(ctx, isPullList)
 }
 

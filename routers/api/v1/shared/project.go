@@ -1580,12 +1580,18 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 		return
 	}
 
+	// a repository route only requires the projects unit, so narrow to the kinds the doer can read
+	var isPull optional.Option[bool]
+	canReadAny := true
+	if scope.Repo != nil {
+		isPull, canReadAny = common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, "")
+	}
 	issueIDs, err := project_model.GetColumnIssueIDs(ctx, column)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if len(issueIDs) == 0 {
+	if len(issueIDs) == 0 || !canReadAny {
 		ctx.SetTotalCountHeader(0)
 		ctx.JSON(http.StatusOK, []*api.Issue{})
 		return
@@ -1599,13 +1605,6 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 		SortType:   "project-column-sorting",
 	}
 	if scope.Repo != nil {
-		// Projects read alone must not expose issues or pulls whose unit the doer cannot read
-		isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(optional.None[bool]())
-		if !ok {
-			ctx.SetTotalCountHeader(0)
-			ctx.JSON(http.StatusOK, []*api.Issue{})
-			return
-		}
 		issuesOpts.RepoIDs = []int64{scope.Repo.ID}
 		issuesOpts.IsPull = isPull
 	} else {

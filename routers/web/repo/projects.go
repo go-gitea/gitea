@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/shared/issue"
 	project_shared "gitea.dev/routers/web/shared/project"
 	shared_user "gitea.dev/routers/web/shared/user"
@@ -321,9 +322,10 @@ func ViewProject(ctx *context.Context) {
 		milestoneIDs = []int64{db.NoConditionID}
 	}
 
+	// the route only requires the projects unit, so narrow to the kinds the doer can read
+	isPull, canReadAny := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, "")
 	var issuesMap map[int64]issues_model.IssueList
-	// Projects read alone must not expose issues or pulls whose unit the doer cannot read
-	if isPull, ok := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(optional.None[bool]()); ok {
+	if canReadAny {
 		issuesMap, err = project_service.LoadIssuesFromProject(ctx, project, &issues_model.IssuesOptions{
 			RepoIDs:      []int64{ctx.Repo.Repository.ID},
 			IsPull:       isPull,
