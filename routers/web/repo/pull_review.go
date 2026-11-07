@@ -105,7 +105,7 @@ func CreateCodeComment(ctx *context.Context) {
 		attachments,
 	)
 	if err != nil {
-		ctx.ServerError("CreateCodeComment", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
@@ -280,7 +280,7 @@ func SubmitReview(ctx *context.Context) {
 		} else if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
 			ctx.Status(http.StatusUnprocessableEntity)
 		} else {
-			ctx.ServerError("SubmitReview", err)
+			ctx.JSONErrorAuto(err)
 		}
 		return
 	}

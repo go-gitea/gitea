@@ -6,6 +6,7 @@ package asymkey
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -110,7 +111,7 @@ func writeAuthorizedStringForKey(key *PublicKey, w io.Writer) (keyValid bool, er
 }
 
 // appendAuthorizedKeysToFile appends new SSH keys' content to authorized_keys file.
-func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
+func appendAuthorizedKeysToFile(keys ...*PublicKey) (err error) {
 	// Don't need to rewrite this file if builtin SSH server is enabled.
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
@@ -136,7 +137,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { err = errors.Join(err, f.Close()) }()
 
 	// Note: chmod command does not support in Windows.
 	if !consts.IsWindows {

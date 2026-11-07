@@ -756,12 +756,12 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			if comment.Review == nil {
 				continue
 			}
+			if comment.Poster.ID == comment.Review.ReviewerID {
+				comment.Review.Reviewer = comment.Poster
+			}
 			if err = comment.Review.LoadAttributes(ctx); err != nil {
-				if !user_model.IsErrUserNotExist(err) {
-					ctx.ServerError("Review.LoadAttributes", err)
-					return
-				}
-				comment.Review.Reviewer = user_model.NewGhostUser()
+				ctx.ServerError("Review.LoadAttributes", err)
+				return
 			}
 			if err = comment.Review.LoadCodeComments(ctx); err != nil {
 				ctx.ServerError("Review.LoadCodeComments", err)

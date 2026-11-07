@@ -87,15 +87,7 @@ func SearchPackages(ctx context.Context, opts *PackageSearchOptions) ([]*package
 	if err != nil {
 		return nil, err
 	}
-	pfds := make([]*packages.PackageFileDescriptor, 0, len(pkgFiles))
-	for _, pf := range pkgFiles {
-		pfd, err := packages.GetPackageFileDescriptor(ctx, pf)
-		if err != nil {
-			return nil, err
-		}
-		pfds = append(pfds, pfd)
-	}
-	return pfds, nil
+	return packages.GetPackageFileDescriptors(ctx, pkgFiles)
 }
 
 // GetDistributions gets all available distributions

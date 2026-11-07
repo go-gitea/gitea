@@ -3,7 +3,7 @@ import {GET} from '../modules/fetch.ts';
 import {createApp} from 'vue';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
-import type {Issue, TimeoutId} from '../types.ts';
+import type {Issue, IssuePathInfo, TimeoutId} from '../types.ts';
 
 type IssueInfo = {
   convertedIssue: Issue,
@@ -21,9 +21,9 @@ async function getIssueInfo(url: string): Promise<IssueInfo> {
   return data;
 }
 
-async function showRefIssuePopup(link: HTMLAnchorElement) {
+async function showRefIssuePopup(link: HTMLAnchorElement, info: IssuePathInfo) {
   const [data, {default: ContextPopup}] = await Promise.all([
-    getIssueInfo(`${link.pathname}/info`),
+    getIssueInfo(`${window.config.appSubUrl}/${info.ownerName}/${info.repoName}/${info.pathType}/${info.indexString}/info`),
     import('../components/ContextPopup.vue'),
   ]);
   const el = document.createElement('div');
@@ -49,7 +49,8 @@ async function showRefIssuePopup(link: HTMLAnchorElement) {
 export function initRefIssueContextPopup() {
   const selector = 'a[href]:not([data-ref-issue-popup]):not(.ref-external-issue)';
   addDelegatedEventListener<HTMLAnchorElement, MouseEvent>(document, 'mouseover', selector, (link) => {
-    if (!parseIssueHref(link.getAttribute('href')!)) return;
+    const issuePathInfo = parseIssueHref(link.getAttribute('href')!);
+    if (!issuePathInfo) return;
     if (!link.classList.contains('ref-issue') && !link.closest('[data-ref-issue-container]')) return;
     if (getAttachedTippyInstance(link)) return;
     link.setAttribute('data-ref-issue-popup', '');
@@ -64,7 +65,7 @@ export function initRefIssueContextPopup() {
     timer = setTimeout(async () => {
       link.removeEventListener('mouseleave', cancel);
       try {
-        await showRefIssuePopup(link);
+        await showRefIssuePopup(link, issuePathInfo);
       } catch (err) {
         console.error('Failed to load issue info:', err);
         link.removeAttribute('data-ref-issue-popup');

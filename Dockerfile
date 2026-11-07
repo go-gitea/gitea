@@ -52,7 +52,7 @@ FROM docker.io/library/alpine:3.24 AS gitea
 
 EXPOSE 22 3000
 
-RUN apk --no-cache add \
+RUN apk --no-cache upgrade && apk --no-cache add \
     bash \
     ca-certificates \
     curl \
