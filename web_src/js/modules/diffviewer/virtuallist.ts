@@ -54,6 +54,7 @@ export class VirtualList<T extends object> {
       },
       overscan: 3,
       gap: 8,
+      useAnimationFrameWithResizeObserver: true, // mounting from inside the observer's delivery resizes its items, which is an observer loop
       onChange: () => this.queueMount(),
     });
     this.#virtualizer._didMount();
