@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"sync"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -35,10 +36,15 @@ const (
 	tplAuthEdit templates.TplName = "admin/auth/edit"
 )
 
-var (
-	separatorAntiPattern = regexp.MustCompile(`[^\w-\.]`)
-	langCodePattern      = regexp.MustCompile(`^[a-z]{2}-[A-Z]{2}$`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	separatorAntiPattern *regexp.Regexp
+	langCodePattern      *regexp.Regexp
+},
+) {
+	ret.separatorAntiPattern = regexp.MustCompile(`[^\w-\.]`)
+	ret.langCodePattern = regexp.MustCompile(`^[a-z]{2}-[A-Z]{2}$`)
+	return ret
+})
 
 // Authentications show authentication config page
 func Authentications(ctx *context.Context) {
@@ -204,12 +210,12 @@ func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi
 		ctx.Data["Err_SSPISeparatorReplacement"] = true
 		return nil, errors.New(ctx.Locale.TrString("form.require_error", ctx.Locale.TrString("form.SSPISeparatorReplacement")))
 	}
-	if separatorAntiPattern.MatchString(form.SSPISeparatorReplacement) {
+	if globalVars().separatorAntiPattern.MatchString(form.SSPISeparatorReplacement) {
 		ctx.Data["Err_SSPISeparatorReplacement"] = true
 		return nil, errors.New(ctx.Locale.TrString("form.alpha_dash_dot_error", ctx.Locale.TrString("form.SSPISeparatorReplacement")))
 	}
 
-	if form.SSPIDefaultLanguage != "" && !langCodePattern.MatchString(form.SSPIDefaultLanguage) {
+	if form.SSPIDefaultLanguage != "" && !globalVars().langCodePattern.MatchString(form.SSPIDefaultLanguage) {
 		ctx.Data["Err_SSPIDefaultLanguage"] = true
 		return nil, errors.New(ctx.Locale.TrString("form.lang_select_error"))
 	}

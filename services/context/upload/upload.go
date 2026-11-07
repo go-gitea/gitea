@@ -10,6 +10,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
@@ -38,7 +39,9 @@ func (err ErrFileTypeForbidden) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-var wildcardTypeRe = regexp.MustCompile(`^[a-z]+/\*$`)
+var wildcardTypeRe = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^[a-z]+/\*$`)
+})
 
 // Verify validates whether a file is allowed to be uploaded. If buf is empty, it will just check if the file
 // has an allowed file extension.
@@ -80,7 +83,7 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 		if mimeType == allowEntry {
 			return nil // mime type is allowed
 		}
-		if wildcardTypeRe.MatchString(allowEntry) && strings.HasPrefix(mimeType, allowEntry[:len(allowEntry)-1]) {
+		if wildcardTypeRe().MatchString(allowEntry) && strings.HasPrefix(mimeType, allowEntry[:len(allowEntry)-1]) {
 			return nil // wildcard match, e.g. image/*
 		}
 	}
