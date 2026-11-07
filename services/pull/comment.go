@@ -39,7 +39,7 @@ func preparePushPullCommentPushActionContent(ctx context.Context, pr *issues_mod
 	return data, len(data.CommitIDs) > 0, err
 }
 
-func reconcileOldCommitCommentsForForcePush(ctx context.Context, oldCommitComments []*issues_model.Comment, newData *issues_model.PushActionContent) (needDeleteCommentIDs []int64) {
+func reconcileOldCommitComments(ctx context.Context, oldCommitComments []*issues_model.Comment, newData *issues_model.PushActionContent, isForcePush bool) (needDeleteCommentIDs []int64) {
 	newPushCommitIDMaps := container.SetOf(newData.CommitIDs...)
 	for _, oldCommitComment := range oldCommitComments {
 		oldData, err := oldCommitComment.GetPushActionContent()
@@ -51,39 +51,38 @@ func reconcileOldCommitCommentsForForcePush(ctx context.Context, oldCommitCommen
 			continue
 		}
 
-		// remove the old comment's commit IDs which are not in the new "force" push
-		oldData.CommitIDs = slices.DeleteFunc(oldData.CommitIDs, func(oldCommitID string) bool { return !newPushCommitIDMaps.Contains(oldCommitID) })
-		// if old comment doesn't contain any commit ID after the force push, then it can be deleted
-		if len(oldData.CommitIDs) == 0 {
-			needDeleteCommentIDs = append(needDeleteCommentIDs, oldCommitComment.ID)
-			continue
-		}
-		// remove new comment's commit IDs which are already in old comment
-		for _, oldCommitID := range oldData.CommitIDs {
-			newData.CommitIDs = slices.DeleteFunc(newData.CommitIDs, func(newCommitID string) bool { return newCommitID == oldCommitID })
-		}
+		if isForcePush {
+			// remove the old comment's commit IDs which are not in the new "force" push
+			oldData.CommitIDs = slices.DeleteFunc(oldData.CommitIDs, func(oldCommitID string) bool { return !newPushCommitIDMaps.Contains(oldCommitID) })
+			// if old comment doesn't contain any commit ID after the force push, then it can be deleted
+			if len(oldData.CommitIDs) == 0 {
+				needDeleteCommentIDs = append(needDeleteCommentIDs, oldCommitComment.ID)
+				continue
+			}
 
-		// update the old comment's content (the commit IDs have been changed)
-		updatedOldContent, _ := json.Marshal(oldData)
-		_, err = db.GetEngine(ctx).ID(oldCommitComment.ID).Cols("content").NoAutoTime().Update(&issues_model.Comment{Content: string(updatedOldContent)})
-		if err != nil {
-			log.Error("Update Comment content failed: %v", err)
+			// update the old comment's content (the commit IDs have been changed)
+			updatedOldContent, _ := json.Marshal(oldData)
+			_, err = db.GetEngine(ctx).ID(oldCommitComment.ID).Cols("content").NoAutoTime().Update(&issues_model.Comment{Content: string(updatedOldContent)})
+			if err != nil {
+				log.Error("Update Comment content failed: %v", err)
+			}
 		}
+		// remove new comment's commit IDs which are already in old comment, e.g. when the pull request was created before its push was handled
+		newData.CommitIDs = slices.DeleteFunc(newData.CommitIDs, func(newCommitID string) bool { return slices.Contains(oldData.CommitIDs, newCommitID) })
 	}
 	return needDeleteCommentIDs
 }
 
-func cleanUpOldCommitCommentsForNewForcePush(ctx context.Context, pr *issues_model.PullRequest, data *issues_model.PushActionContent) error {
-	// All old non-force-push commit comments will be deleted if they are not in the new commit list.
+func cleanUpOldCommitComments(ctx context.Context, pr *issues_model.PullRequest, data *issues_model.PushActionContent, isForcePush bool) error {
 	var oldCommitComments []*issues_model.Comment
-	err := db.GetEngine(ctx).Table("comment").
+	err := db.GetEngine(ctx).Table("comment").Cols("id", "type", "content").
 		Where("issue_id = ?", pr.IssueID).And("type = ?", issues_model.CommentTypePullRequestPush).
 		Find(&oldCommitComments)
 	if err != nil {
 		return err
 	}
 
-	needDeleteCommentIDs := reconcileOldCommitCommentsForForcePush(ctx, oldCommitComments, data)
+	needDeleteCommentIDs := reconcileOldCommitComments(ctx, oldCommitComments, data, isForcePush)
 	if len(needDeleteCommentIDs) == 0 {
 		return nil
 	}
@@ -121,11 +120,8 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 	}
 
 	comment, err = db.WithTx2(ctx, func(ctx context.Context) (comment *issues_model.Comment, err error) {
-		if isForcePush {
-			err := cleanUpOldCommitCommentsForNewForcePush(ctx, pr, &data)
-			if err != nil {
-				log.Error("CleanUpOldCommitComments failed: %v", err)
-			}
+		if err := cleanUpOldCommitComments(ctx, pr, &data, isForcePush); err != nil {
+			log.Error("CleanUpOldCommitComments failed: %v", err)
 		}
 
 		if len(data.CommitIDs) > 0 {
