@@ -5,6 +5,7 @@ package context
 
 import (
 	"context"
+	"encoding/base64"
 	"html"
 	"html/template"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
@@ -97,6 +99,21 @@ func (c TemplateContext) AppFullLink(link ...string) template.URL {
 		return template.URL(s)
 	}
 	return template.URL(s + "/" + strings.TrimPrefix(link[0], "/"))
+}
+
+func (c TemplateContext) SiteManifestURL() template.URL {
+	ctx := c.parentContext()
+	absoluteAssetURL := strings.TrimSuffix(httplib.MakeAbsoluteURL(ctx, setting.StaticURLPrefix), "/")
+	manifest, _ := json.Marshal(map[string]any{
+		"name":       setting.AppName,
+		"short_name": setting.AppName,
+		"start_url":  httplib.GuessCurrentAppURL(ctx),
+		"icons": []map[string]string{
+			{"src": absoluteAssetURL + "/assets/img/logo.png", "type": "image/png", "sizes": "512x512"},
+			{"src": absoluteAssetURL + "/assets/img/logo.svg", "type": "image/svg+xml", "sizes": "512x512"},
+		},
+	})
+	return template.URL("data:application/manifest+json;base64," + base64.StdEncoding.EncodeToString(manifest))
 }
 
 func (c TemplateContext) ScriptImport(path string, typ ...string) template.HTML {

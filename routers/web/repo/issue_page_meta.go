@@ -436,6 +436,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 			Review:    review,
 			ItemID:    review.ReviewerID,
 		}
+		// HINT: REVIEWER-ID-NEGATIVE: ItemID < 0 means "team id"
 		if review.ReviewerTeamID > 0 {
 			tmp.IsTeam = true
 			tmp.ItemID = -review.ReviewerTeamID
@@ -457,23 +458,20 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 	}
 
 	if len(pullReviews) > 0 {
-		// Drop all non-existing users and teams from the reviews
+		if err := reviews.LoadReviewers(ctx); err != nil {
+			ctx.ServerError("LoadReviewers", err)
+			return
+		}
 		currentPullReviewers := make([]*repoReviewerSelection, 0, len(pullReviews))
 		for _, item := range pullReviews {
 			if item.Review.ReviewerID > 0 {
 				if err := item.Review.LoadReviewer(ctx); err != nil {
-					if user_model.IsErrUserNotExist(err) {
-						continue
-					}
 					ctx.ServerError("LoadReviewer", err)
 					return
 				}
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
 				if err := item.Review.LoadReviewerTeam(ctx); err != nil {
-					if organization.IsErrTeamNotExist(err) {
-						continue
-					}
 					ctx.ServerError("LoadReviewerTeam", err)
 					return
 				}

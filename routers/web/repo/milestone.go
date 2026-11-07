@@ -14,7 +14,6 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/context"
@@ -260,9 +259,11 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	// the route only requires one of the issues or pulls units, so only list the readable kind
-	isPull, _ := ctx.Repo.Permission.ReadableIssuesOrPullsFilter(optional.None[bool]())
-	ctx.Data["MilestonePostersLink"] = ctx.Repo.RepoLink + util.Iif(isPull.Value(), "/pulls/posters", "/issues/posters")
+	isPull, ok := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, ctx.FormString("type"))
+	if !ok {
+		ctx.HTTPError(http.StatusForbidden, "no permission to read issues or pulls")
+		return
+	}
 	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, isPull)
 
 	ret := issue.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)

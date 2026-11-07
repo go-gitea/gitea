@@ -39,14 +39,8 @@ func GetContext(ctx context.Context) *Context {
 	if pCtx, ok := ctx.(*Context); ok {
 		return pCtx
 	}
-	pCtxInterface := ctx.Value(ProcessContextKey)
-	if pCtxInterface == nil {
-		return nil
-	}
-	if pCtx, ok := pCtxInterface.(*Context); ok {
-		return pCtx
-	}
-	return nil
+	pCtx, _ := ctx.Value(ProcessContextKey).(*Context)
+	return pCtx
 }
 
 // GetPID returns the PID for this context

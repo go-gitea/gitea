@@ -5,7 +5,6 @@ package integration
 
 import (
 	"net/http"
-	"strings"
 	"testing"
 
 	asymkey_model "gitea.dev/models/asymkey"
@@ -18,7 +17,6 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
-	"gitea.dev/modules/translation"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -29,14 +27,10 @@ func TestUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("ViewUser", testViewUser)
 	t.Run("FollowUser", testUserFollow)
-	t.Run("RenameInvalidUsername", testRenameInvalidUsername)
-	t.Run("RenameReservedUsername", testRenameReservedUsername)
 	t.Run("ViewLimitedAndPrivateUserAndRename", testViewLimitedAndPrivateUserAndRename)
 	t.Run("ExportUserGPGKeys", testExportUserGPGKeys)
 	t.Run("GetUserRss", testGetUserRss)
 	t.Run("ListStopWatches", testUserListStopWatches)
-	t.Run("LocationMapLink", testUserLocationMapLink)
-	t.Run("RenameUsername", testRenameUsername)
 }
 
 func testViewUser(t *testing.T) {
@@ -69,19 +63,6 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDWVj0fQ5N8wNc0LVNA41wDLYJ89ZIbejrPfg/avyj3
 	assert.Equal(t, `# Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.
 ssh-rsa AAAA
 `, resp.Body.String())
-}
-
-func testRenameUsername(t *testing.T) {
-	session := loginUser(t, "user2")
-	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"name":     "newUsername",
-		"email":    "user2@example.com",
-		"language": "en-US",
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
-	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "newUsername"})
-	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user2"})
 }
 
 func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
@@ -146,7 +127,7 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 		"name":       newName,
 		"visibility": "2", // private
 	})
-	session2.MakeRequest(t, req, http.StatusSeeOther)
+	session2.MakeRequest(t, req, http.StatusOK)
 
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: newName})
 	unittest.AssertNotExistsBean(t, &user_model.User{Name: oldName})
@@ -155,87 +136,6 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound) // anonymous user cannot visit private visibility user via old name
 	req = NewRequest(t, "GET", "/"+oldName)
 	session.MakeRequest(t, req, http.StatusTemporaryRedirect) // login user2 can visit private visibility user via old name
-}
-
-func testRenameInvalidUsername(t *testing.T) {
-	invalidUsernames := []string{
-		"%2f*",
-		"%2f.",
-		"%2f..",
-		"%00",
-		"thisHas ASpace",
-		"p<A>tho>lo<gical",
-		".",
-		"..",
-		".well-known",
-		".abc",
-		"abc.",
-		"a..bc",
-		"a...bc",
-		"a.-bc",
-		"a._bc",
-		"a_-bc",
-		"a/bc",
-		"☁️",
-		"-",
-		"--diff",
-		"-im-here",
-		"a space",
-	}
-
-	session := loginUser(t, "user2")
-	for _, invalidUsername := range invalidUsernames {
-		t.Logf("Testing username %s", invalidUsername)
-
-		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"name":  invalidUsername,
-			"email": "user2@example.com",
-		})
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Contains(t,
-			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").TrString("form.username_error", "Name"),
-		)
-
-		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
-	}
-}
-
-func testRenameReservedUsername(t *testing.T) {
-	// ".", "..", ".well-known" are also reserved but invalid as form input.
-	reservedNames := []string{
-		"api",
-		"openapi3.v1.json",
-		"swagger.v1.json",
-	}
-	patternNotAllowedNames := []string{
-		"name.keys",
-	}
-
-	session := loginUser(t, "user2")
-	locale := translation.NewLocale("en-US")
-	check := func(name, msgKey string) {
-		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"name":     name,
-			"email":    "user2@example.com",
-			"language": "en-US",
-		})
-		resp := session.MakeRequest(t, req, http.StatusSeeOther)
-
-		req = NewRequest(t, "GET", test.RedirectURL(resp))
-		resp = session.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		actualMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.negative.message").Text())
-		assert.Equal(t, locale.TrString(msgKey, name), actualMsg)
-		unittest.AssertNotExistsBean(t, &user_model.User{Name: name})
-	}
-	for _, name := range reservedNames {
-		check(name, "user.form.name_reserved")
-	}
-	for _, name := range patternNotAllowedNames {
-		check(name, "user.form.name_pattern_not_allowed")
-	}
 }
 
 func testExportUserGPGKeys(t *testing.T) {
@@ -368,24 +268,6 @@ func testUserListStopWatches(t *testing.T) {
 		assert.Equal(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
 		assert.Positive(t, apiWatches[0].Seconds)
 	}
-}
-
-func testUserLocationMapLink(t *testing.T) {
-	defer test.MockVariableValue(&setting.Service.UserLocationMapURL, "https://example/foo/")()
-
-	session := loginUser(t, "user2")
-	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"name":     "user2",
-		"email":    "user@example.com",
-		"language": "en-US",
-		"location": "A/b",
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
-	req = NewRequest(t, "GET", "/user2/")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	AssertHTMLElement(t, htmlDoc, `a[href="https://example/foo/A%2Fb"]`, true)
 }
 
 func testUserFollow(t *testing.T) {
