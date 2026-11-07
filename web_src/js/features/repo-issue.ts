@@ -92,6 +92,14 @@ export function initRepoIssueFilterItemLabel() {
   queryElems(document, '.ui.dropdown.label-filter', initRepoIssueLabelFilter);
 }
 
+// the counter of the "Review" button on the PR files page
+export function setPendingCommentCounter(num: number) {
+  const counter = document.querySelector('.review-box-button .review-comments-counter');
+  if (!counter) return;
+  counter.setAttribute('data-pending-comment-number', String(num));
+  counter.textContent = String(num);
+}
+
 export function initRepoIssueCommentDelete() {
   registerGlobalEventFunc('click', 'onConvContentDelete', async (deleteButton) => {
     if (!await confirmModal({content: deleteButton.getAttribute('data-locale')!, confirmButtonColor: 'red'})) return;
@@ -115,12 +123,7 @@ export function initRepoIssueCommentDelete() {
     // Check if this was a pending comment for a review, and if so, update the pending comment counter in the review box button.
     if (deletedComment?.querySelector('.pending-label')) {
       const reviewCounter = document.querySelector('.review-box-button .review-comments-counter');
-      if (reviewCounter) {
-        let num = parseInt(reviewCounter.getAttribute('data-pending-comment-number') || '') - 1 || 0;
-        num = Math.max(num, 0);
-        reviewCounter.setAttribute('data-pending-comment-number', String(num));
-        reviewCounter.textContent = String(num);
-      }
+      if (reviewCounter) setPendingCommentCounter(Math.max(parseInt(reviewCounter.getAttribute('data-pending-comment-number') || '') - 1 || 0, 0));
     }
 
     // If the conversation holder has no more comments, remove it.

@@ -1,6 +1,7 @@
 import {registerGlobalInitFunc} from '../observer.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {trString} from '../i18n.ts';
+import {getCurrentLocale} from '../../utils.ts';
 import {parseHunks} from './parse.ts';
 import {loadHighlighter} from './highlight.ts';
 import {detectEscapes, loadEscapeTables} from './escape.ts';
@@ -25,7 +26,7 @@ export function initDiffSnippet(): void {
     const lines = hunks.flatMap((hunk) => hunk.lines);
     const [highlighter, escapeTables] = await Promise.all([
       config.disableHighlight ? null : loadHighlighter(config.filename),
-      config.detectAmbiguous ? loadEscapeTables(document.documentElement.lang) : null,
+      config.detectAmbiguous ? loadEscapeTables(getCurrentLocale()) : null,
     ]);
     const escapes = lines.map((line) => (escapeTables ? detectEscapes(line.content, escapeTables, (char, confusable) => trString(config.ambiguousCharacter, char, confusable)) : null));
     const lineHtml = linesToHtml(lines, highlightHunkLines(lines, highlighter), pairChangedLines(hunks), escapes);

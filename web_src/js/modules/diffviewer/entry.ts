@@ -24,6 +24,7 @@ export class DiffFile {
   #linePairs: Int32Array | null = null;
   #rowIndex: Record<DiffSide, Map<number, number>> | null = null;
   #rowCount: number | null = null;
+  #lines: DiffLine[] | null = null;
   #gaps: Gap[] | null = null;
 
   constructor(file: DiffStreamFile, hunks: DiffHunk[], missing: boolean, folded: boolean) {
@@ -43,7 +44,8 @@ export class DiffFile {
   }
 
   get lines(): DiffLine[] {
-    return this.#hunks.flatMap((hunk) => hunk.lines);
+    this.#lines ??= this.#hunks.flatMap((hunk) => hunk.lines);
+    return this.#lines;
   }
 
   // after the hunks were changed in place, like by expanding a gap
@@ -52,6 +54,7 @@ export class DiffFile {
     this.#linePairs = null;
     this.#rowIndex = null;
     this.#rowCount = null;
+    this.#lines = null;
     this.#gaps = null;
   }
 

@@ -4,7 +4,7 @@ import {trN, trString} from '../i18n.ts';
 import {parseHunks, type DiffSide} from './parse.ts';
 import {diffTreeFiles, diffTreeStore, diffTreeStoreSetViewed, filteredFileNames, type DiffTreeEntry} from '../diff-file.ts';
 import {createElementFromAttrs, isElemVisible, onInputDebounce, toggleElem} from '../../utils/dom.ts';
-import {sleep} from '../../utils.ts';
+import {getCurrentLocale, sleep} from '../../utils.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {svgRaw, type SvgName} from '../../svg.ts';
 import {showErrorToast} from '../toast.ts';
@@ -275,7 +275,7 @@ export class DiffViewer {
   }
 
   async loadEscapeTables(): Promise<void> {
-    this.escapeTables = await loadEscapeTables(document.documentElement.lang);
+    this.escapeTables = await loadEscapeTables(getCurrentLocale());
   }
 
   estimateHeight(entry: DiffFile): number {

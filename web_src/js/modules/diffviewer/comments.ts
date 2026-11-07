@@ -9,6 +9,7 @@ import {diffTreeFiles, diffTreeStore, type DiffTreeCommentFile, type DiffTreeCom
 import {initComboMarkdownEditor, type ComboMarkdownEditor} from '../../features/comp/ComboMarkdownEditor.ts';
 import {confirmModal} from '../../features/comp/ConfirmModal.ts';
 import {appendQuote, EventCommentContentSaved, extractSelectedMarkdown} from '../../features/repo-issue-edit.ts';
+import {setPendingCommentCounter} from '../../features/repo-issue.ts';
 import {showErrorToast} from '../toast.ts';
 import {errorMessage} from '../errors.ts';
 import {buildCommentElement} from './comment-element.ts';
@@ -92,14 +93,7 @@ export class DiffComments {
       return;
     }
     for (const entry of this.host.entries) this.renderAnnotations(entry);
-    this.updatePendingCounter();
-  }
-
-  updatePendingCounter(): void {
-    const counter = document.querySelector('.review-box-button .review-comments-counter');
-    if (!counter) return;
-    counter.setAttribute('data-pending-comment-number', String(this.data.pendingCount));
-    counter.textContent = String(this.data.pendingCount);
+    setPendingCommentCounter(this.data.pendingCount);
   }
 
   // comments keep the name a file had before it was renamed

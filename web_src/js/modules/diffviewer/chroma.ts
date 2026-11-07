@@ -189,8 +189,11 @@ export class ChromaLexer {
       if (match[0].length) zeroLengthMatches = 0;
       pos += match[0].length;
       this.mutate(rule.mutator, stack, state);
-      const groups = Array.from(match, (group) => group ?? '');
-      this.emit(rule.emitter, groups, out, deadline);
+      if (rule.emitter === null || typeof rule.emitter === 'string') {
+        if (match[0]) out.push([match[0], rule.emitter ?? '']);
+      } else {
+        this.emit(rule.emitter, Array.from(match, (group) => group ?? ''), out, deadline);
+      }
     }
     if (pos < end) out.push([text.slice(pos, end), '']);
     // the token with the added newline is cut
