@@ -96,12 +96,14 @@ func SettingsCtxData(ctx *context.Context) {
 			}
 			ctx.Data["CodeIndexerStatus"] = status
 		}
-		status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeStats)
-		if err != nil {
-			ctx.ServerError("repo.indexer_status", err)
-			return
+		if !setting.Repository.DisableLanguageStats {
+			status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeStats)
+			if err != nil {
+				ctx.ServerError("repo.indexer_status", err)
+				return
+			}
+			ctx.Data["StatsIndexerStatus"] = status
 		}
-		ctx.Data["StatsIndexerStatus"] = status
 	}
 	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
@@ -754,6 +756,10 @@ func handleSettingsPostAdminIndex(ctx *context.Context) {
 
 	switch form.RequestReindexType {
 	case "stats":
+		if setting.Repository.DisableLanguageStats {
+			ctx.HTTPError(http.StatusForbidden)
+			return
+		}
 		if err := stats.UpdateRepoIndexer(ctx.Repo.Repository); err != nil {
 			ctx.ServerError("UpdateStatsRepondexer", err)
 			return

@@ -756,46 +756,50 @@
 				</div>
 			</form>
 
-			<div class="divider"></div>
-			<form class="ui form" method="post">
-				<input type="hidden" name="action" value="admin_index">
-				{{if .IsRepoIndexerEnabled}}
-					<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_code_indexer"}}</h4>
-					<div class="inline fields">
-						<label>{{ctx.Locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
-						<span class="field">
-							{{if .CodeIndexerStatus}}
-								<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.CodeIndexerStatus.CommitSha}}">
-									{{ShortSha .CodeIndexerStatus.CommitSha}}
-								</a>
-							{{else}}
-									<span>{{ctx.Locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
-							{{end}}
-						</span>
-						<div class="field">
-							<button type="submit" class="ui primary button" name="request_reindex_type" value="code">{{ctx.Locale.Tr "repo.settings.reindex_button"}}</button>
+			{{if or .IsRepoIndexerEnabled .StatsIndexerStatus}}
+				<div class="divider"></div>
+				<form class="ui form" method="post">
+					<input type="hidden" name="action" value="admin_index">
+					{{if .IsRepoIndexerEnabled}}
+						<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_code_indexer"}}</h4>
+						<div class="inline fields">
+							<label>{{ctx.Locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+							<span class="field">
+								{{if .CodeIndexerStatus}}
+									<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.CodeIndexerStatus.CommitSha}}">
+										{{ShortSha .CodeIndexerStatus.CommitSha}}
+									</a>
+								{{else}}
+										<span>{{ctx.Locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
+								{{end}}
+							</span>
+							<div class="field">
+								<button type="submit" class="ui primary button" name="request_reindex_type" value="code">{{ctx.Locale.Tr "repo.settings.reindex_button"}}</button>
+							</div>
 						</div>
-					</div>
-				{{end}}
-				<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_stats_indexer"}}</h4>
-				<div class="inline fields">
-					{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
-						<label>{{ctx.Locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
 					{{end}}
-					<span class="field">
-						{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
-							<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.StatsIndexerStatus.CommitSha}}">
-								{{ShortSha .StatsIndexerStatus.CommitSha}}
-							</a>
-						{{else}}
-							<span>{{ctx.Locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
-						{{end}}
-					</span>
-					<div class="field">
-						<button type="submit" class="ui primary button" name="request_reindex_type" value="stats">{{ctx.Locale.Tr "repo.settings.reindex_button"}}</button>
-					</div>
-				</div>
-			</form>
+					{{if .StatsIndexerStatus}}
+						<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_stats_indexer"}}</h4>
+						<div class="inline fields">
+							{{if .StatsIndexerStatus.CommitSha}}
+								<label>{{ctx.Locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+							{{end}}
+							<span class="field">
+								{{if .StatsIndexerStatus.CommitSha}}
+									<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.StatsIndexerStatus.CommitSha}}">
+										{{ShortSha .StatsIndexerStatus.CommitSha}}
+									</a>
+								{{else}}
+									<span>{{ctx.Locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
+								{{end}}
+							</span>
+							<div class="field">
+								<button type="submit" class="ui primary button" name="request_reindex_type" value="stats">{{ctx.Locale.Tr "repo.settings.reindex_button"}}</button>
+							</div>
+						</div>
+					{{end}}
+				</form>
+			{{end}}
 		</div>
 		{{end}}
 

@@ -10,6 +10,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 // Indexer defines an interface to index repository stats
@@ -24,6 +25,9 @@ var indexer Indexer
 
 // Init initialize the repo indexer
 func Init() error {
+	if setting.Repository.DisableLanguageStats {
+		return nil
+	}
 	indexer = &DBIndexer{}
 
 	if err := initStatsQueue(); err != nil {
