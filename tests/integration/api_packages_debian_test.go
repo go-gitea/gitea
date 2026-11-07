@@ -23,8 +23,10 @@ import (
 	packages_cleanup_service "gitea.dev/services/packages/cleanup"
 	"gitea.dev/tests"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/blakesmith/ar"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageDebian(t *testing.T) {
@@ -251,6 +253,53 @@ func TestPackageDebian(t *testing.T) {
 			})
 		})
 	}
+
+	t.Run("KeyRotation", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		oldPrivateKey, err := user_model.GetUserSetting(t.Context(), user.ID, debian_module.SettingKeyPrivate)
+		require.NoError(t, err)
+		oldPublicKey, err := user_model.GetUserSetting(t.Context(), user.ID, debian_module.SettingKeyPublic)
+		require.NoError(t, err)
+
+		packageFileURL := fmt.Sprintf("%s/pool/test/main/%s_%s_all.deb", rootURL, packageName, packageVersion)
+		packageFileBefore := MakeRequest(t, NewRequest(t, "GET", packageFileURL), http.StatusOK).Body.Bytes()
+
+		session := loginUser(t, user.Name)
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/settings/packages"), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "Debian Package Registry")
+		session.MakeRequest(t, NewRequest(t, "POST", "/user/settings/packages/debian/regenerate_keypair"), http.StatusSeeOther)
+
+		newPrivateKey, err := user_model.GetUserSetting(t.Context(), user.ID, debian_module.SettingKeyPrivate)
+		require.NoError(t, err)
+		newPublicKey, err := user_model.GetUserSetting(t.Context(), user.ID, debian_module.SettingKeyPublic)
+		require.NoError(t, err)
+		assert.NotEqual(t, oldPrivateKey, newPrivateKey)
+		assert.NotEqual(t, oldPublicKey, newPublicKey)
+
+		repositoryKey := MakeRequest(t, NewRequest(t, "GET", rootURL+"/repository.key"), http.StatusOK)
+		assert.Equal(t, newPublicKey, repositoryKey.Body.String())
+		publicKeyRing, err := openpgp.ReadArmoredKeyRing(strings.NewReader(newPublicKey))
+		require.NoError(t, err)
+		release := MakeRequest(t, NewRequest(t, "GET", rootURL+"/dists/test/Release"), http.StatusOK)
+		signature := MakeRequest(t, NewRequest(t, "GET", rootURL+"/dists/test/Release.gpg"), http.StatusOK)
+		_, err = openpgp.CheckArmoredDetachedSignature(publicKeyRing, bytes.NewReader(release.Body.Bytes()), bytes.NewReader(signature.Body.Bytes()), nil)
+		require.NoError(t, err)
+
+		packageFileAfter := MakeRequest(t, NewRequest(t, "GET", packageFileURL), http.StatusOK).Body.Bytes()
+		assert.Equal(t, packageFileBefore, packageFileAfter)
+
+		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3, Type: user_model.UserTypeOrganization})
+		oldOrgPrivateKey, err := user_model.GetUserSetting(t.Context(), org.ID, debian_module.SettingKeyPrivate)
+		require.NoError(t, err)
+		resp = session.MakeRequest(t, NewRequest(t, "GET", "/org/org3/settings/packages"), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "Debian Package Registry")
+		session.MakeRequest(t, NewRequest(t, "POST", "/org/org3/settings/packages/debian/regenerate_keypair"), http.StatusSeeOther)
+		newOrgPrivateKey, err := user_model.GetUserSetting(t.Context(), org.ID, debian_module.SettingKeyPrivate)
+		require.NoError(t, err)
+		assert.NotEmpty(t, newOrgPrivateKey)
+		assert.NotEqual(t, oldOrgPrivateKey, newOrgPrivateKey)
+	})
 
 	t.Run("Delete", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
