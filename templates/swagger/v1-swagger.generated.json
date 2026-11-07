@@ -30496,7 +30496,8 @@
             "codecommit",
             "bitbucketserver",
             "forgejo",
-            "bitbucket"
+            "bitbucket",
+            "gerrit"
           ],
           "x-go-name": "Service"
         },
