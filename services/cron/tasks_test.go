@@ -61,3 +61,12 @@ func TestScheduleHasSeconds(t *testing.T) {
 		})
 	}
 }
+
+func TestValidPagesSchedule(t *testing.T) {
+	for _, schedule := range []string{"@every 30s", "@every 500ms", "* * * * * *"} {
+		assert.False(t, validPagesSchedule(schedule), schedule)
+	}
+	for _, schedule := range []string{"@every 1m", "@every 5m", "* * * * *", "@hourly"} {
+		assert.True(t, validPagesSchedule(schedule), schedule)
+	}
+}

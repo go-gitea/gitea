@@ -1,0 +1,58 @@
+{{template "admin/layout_head" (dict "pageClass" "admin pages")}}
+<div class="admin-setting-content">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "admin.pages.title"}} ({{ctx.Locale.Tr "admin.total" .PagesInstanceCount}})
+		<div class="ui right">
+			<form class="form-fetch-action ignore-dirty" method="post" action="{{.Link}}">
+				<input type="hidden" name="action" value="create">
+				<button class="ui primary tiny button" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "admin.pages.create_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "admin.pages.create_confirm_desc"}}">{{ctx.Locale.Tr "admin.pages.create"}}</button>
+			</form>
+		</div>
+	</h4>
+	{{if .PagesOneTimeToken}}
+		<div class="ui attached warning message">
+			<div class="header">{{ctx.Locale.Tr "admin.pages.token"}}</div>
+			<p>{{ctx.Locale.Tr "admin.pages.token.warning"}}</p>
+			<div class="ui fluid action input">
+				<input type="text" value="{{.PagesOneTimeToken}}" readonly aria-label="{{ctx.Locale.Tr "admin.pages.token"}}">
+				<button type="button" class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.PagesOneTimeToken}}">{{svg "octicon-copy" 14}}</button>
+			</div>
+		</div>
+	{{end}}
+	<div class="ui attached table segment">
+		<table class="ui very basic selectable table unstackable">
+			<thead>
+				<tr>
+					<th class="collapsing">ID</th>
+					<th class="tw-w-1/2 tw-text-center">{{ctx.Locale.Tr "admin.pages.root_url"}}</th>
+					<th class="tw-w-1/2 tw-text-center">{{ctx.Locale.Tr "admin.pages.last_communication"}}</th>
+					<th class="collapsing tw-text-right">{{ctx.Locale.Tr "admin.notices.op"}}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range $instance := .PagesInstances}}
+					<tr>
+						<td class="collapsing">{{$instance.ID}}</td>
+						<td class="tw-text-center">
+							{{if $instance.RootURL}}
+								<a class="tw-break-anywhere" href="{{$instance.RootURL}}" target="_blank" rel="noopener noreferrer">{{$instance.RootURL}}</a>
+							{{else}}
+								<span class="tw-text-text-light">{{ctx.Locale.Tr "admin.pages.waiting_registration"}}</span>
+							{{end}}
+						</td>
+						<td class="tw-text-center">{{if $instance.LastCommunicationUnix}}{{DateUtils.TimeSince $instance.LastCommunicationUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
+						<td class="collapsing tw-text-right">
+							<div class="tw-flex tw-gap-2 tw-justify-end">
+								<a class="link-action" href aria-label="{{ctx.Locale.Tr "admin.pages.reset"}}" data-tooltip-content="{{ctx.Locale.Tr "admin.pages.reset"}}" data-url="{{$.Link}}?action=reset&amp;instance_id={{$instance.ID}}" data-modal-confirm-header="{{ctx.Locale.Tr "admin.pages.reset_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "admin.pages.reset_confirm_desc"}}">{{svg "octicon-sync"}}</a>
+								<a class="link-action negative tw-text-red" href aria-label="{{ctx.Locale.Tr "admin.pages.remove"}}" data-tooltip-content="{{ctx.Locale.Tr "admin.pages.remove"}}" data-url="{{$.Link}}?action=remove&amp;instance_id={{$instance.ID}}" data-modal-confirm-header="{{ctx.Locale.Tr "admin.pages.remove_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "admin.pages.remove_confirm_desc"}}">{{svg "octicon-trash"}}</a>
+							</div>
+						</td>
+					</tr>
+				{{else}}
+					<tr><td class="tw-text-center" colspan="4">{{ctx.Locale.Tr "admin.pages.empty"}}</td></tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+</div>
+{{template "admin/layout_footer" .}}

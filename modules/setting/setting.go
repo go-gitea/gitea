@@ -147,6 +147,9 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	if err := loadPackagesFrom(cfg); err != nil {
 		return err
 	}
+	if err := loadPagesFrom(cfg); err != nil {
+		return err
+	}
 	if err := loadActionsFrom(cfg); err != nil {
 		return err
 	}

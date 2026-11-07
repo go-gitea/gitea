@@ -1,0 +1,149 @@
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings pages")}}
+<div class="repo-setting-content" data-global-init="initRepoPagesSettings">
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.settings.pages.build.title"}}</h4>
+	<div class="ui attached segment">
+		{{if .Repository.IsPrivate}}
+			<div class="ui warning message">{{ctx.Locale.Tr "repo.settings.pages.private_source_public_site"}}</div>
+		{{end}}
+		{{if and .PagesHasSite .PagesSourceError}}
+			<div class="ui warning message">
+				<div class="header">{{ctx.Locale.Tr "repo.settings.pages.build.source_error"}}</div>
+				<p>{{.PagesSourceError}}</p>
+			</div>
+		{{end}}
+
+		<form class="ui form" method="post">
+			<input type="hidden" name="action" value="save">
+			<div class="inline field">
+				<label>{{ctx.Locale.Tr "repo.settings.pages.enabled"}}</label>
+				<div class="ui checkbox">
+					<input type="checkbox" name="enabled" value="true" {{if .PagesSite.Enabled}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.pages.enabled.description"}}</label>
+				</div>
+			</div>
+			<div class="field">
+				<label for="pages-source-type">{{ctx.Locale.Tr "repo.settings.pages.source"}}</label>
+				<select class="ui selection dropdown" id="pages-source-type" name="source_type" required>
+					<option value="" disabled {{if not .PagesHasSite}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pages.source.choose"}}</option>
+					<option value="artifact" {{if eq .PagesSite.SourceType "artifact"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pages.source.artifact"}}</option>
+					<option value="branch" {{if eq .PagesSite.SourceType "branch"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pages.source.branch"}}</option>
+				</select>
+			</div>
+
+			<div class="{{if ne .PagesSite.SourceType "artifact"}}tw-hidden{{end}}" data-pages-source-panel="artifact">
+				<div class="field">
+					<label for="pages-actions-branch">{{ctx.Locale.Tr "repo.settings.pages.actions.branch"}}</label>
+					<input id="pages-actions-branch" name="source_branch" value="{{if eq .PagesSite.SourceType "artifact"}}{{.PagesSite.SourceBranch}}{{end}}" placeholder="main" {{if ne .PagesSite.SourceType "artifact"}}disabled{{end}}>
+					<p class="help">{{ctx.Locale.Tr "repo.settings.pages.actions.help"}} <a href="{{.RepoLink}}/actions">{{ctx.Locale.Tr "repo.settings.pages.actions.link"}}</a></p>
+				</div>
+			</div>
+			<div class="{{if ne .PagesSite.SourceType "branch"}}tw-hidden{{end}}" data-pages-source-panel="branch">
+				<div class="field">
+					<label>{{ctx.Locale.Tr "repo.settings.pages.branch"}}</label>
+					{{$pagesSourceBranch := .Repository.DefaultBranch}}
+					{{if and (eq .PagesSite.SourceType "branch") .PagesSite.SourceBranch}}{{$pagesSourceBranch = .PagesSite.SourceBranch}}{{end}}
+					<input type="hidden" id="pages-source-branch" name="source_branch" value="{{$pagesSourceBranch}}" {{if ne .PagesSite.SourceType "branch"}}disabled{{end}}>
+					{{template "repo/branch_dropdown" dict
+						"Repository" .Repository
+						"CurrentRefType" "branch"
+						"CurrentRefShortName" $pagesSourceBranch
+						"RefInputID" "pages-source-branch"
+						"ShowTabBranches" true
+					}}
+				</div>
+				<div class="field">
+					<label for="pages-source-path">{{ctx.Locale.Tr "repo.settings.pages.path"}}</label>
+					<input id="pages-source-path" name="source_path" value="{{if eq .PagesSite.SourceType "branch"}}{{.PagesSite.SourcePath}}{{end}}" placeholder="docs" {{if ne .PagesSite.SourceType "branch"}}disabled{{end}}>
+					<p class="help">{{ctx.Locale.Tr "repo.settings.pages.path.help"}}</p>
+				</div>
+			</div>
+			<div class="field">
+				<label for="pages-version-retention-count">{{ctx.Locale.Tr "repo.settings.pages.retention"}}</label>
+				<input class="tw-w-auto" id="pages-version-retention-count" name="version_retention_count" type="number" min="{{.PagesMinVersionRetentionCount}}" max="{{.PagesMaxVersionRetentionCount}}" value="{{.PagesSite.VersionRetentionCount}}" required>
+				<p class="help">{{ctx.Locale.Tr "repo.settings.pages.retention.help"}}</p>
+			</div>
+			<button class="ui primary button" type="submit">{{ctx.Locale.Tr "repo.settings.pages.save"}}</button>
+		</form>
+	</div>
+
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.settings.pages.domain.title"}}</h4>
+	<div class="ui attached segment">
+		{{if not .PagesHasSite}}
+			<div class="ui message">{{ctx.Locale.Tr "repo.settings.pages.domain.configure_source"}}</div>
+		{{else if .PagesPendingDomain}}
+			<div class="ui warning message">
+				<div class="header">{{ctx.Locale.Tr "repo.settings.pages.domain.pending" .PagesPendingDomain.Host}}</div>
+				<p>{{ctx.Locale.Tr "repo.settings.pages.domain.pending.description"}}</p>
+				{{if .PagesActiveDomain}}<p>{{ctx.Locale.Tr "repo.settings.pages.domain.pending.current" .PagesActiveDomain.Host}}</p>{{end}}
+				<div class="flex-text-block tw-mb-2">
+					<strong>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.name"}}</strong>
+					<code id="pages-domain-txt-name">{{.PagesPendingDomain.TXTName}}</code>
+					<button type="button" class="btn interact-fg tw-px-1" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#pages-domain-txt-name" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
+				</div>
+				<div class="flex-text-block">
+					<strong>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.value"}}</strong>
+					<code id="pages-domain-txt-value">{{.PagesPendingDomain.TXTToken}}</code>
+					<button type="button" class="btn interact-fg tw-px-1" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#pages-domain-txt-value" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
+				</div>
+				<p>{{.PagesPendingDomain.TXTText}}</p>
+				{{if .PagesPendingDomain.TXTLastCheckUnix}}<p>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.last_check" (DateUtils.FullTime .PagesPendingDomain.TXTLastCheckUnix)}}</p>{{end}}
+			</div>
+			<button type="button" class="ui red button link-action" data-url="{{.RepoLink}}/settings/pages?action=remove-domain&amp;domain_id={{.PagesPendingDomain.ID}}" data-fetch-sync="$body" data-modal-confirm-header="{{ctx.Locale.Tr "repo.settings.pages.domain.remove_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "repo.settings.pages.domain.remove_confirm_desc" .PagesPendingDomain.Host}}">{{ctx.Locale.Tr "repo.settings.pages.domain.remove"}}</button>
+		{{else if .PagesReleasingDomain}}
+			<div class="ui info message">
+				<div class="header">{{ctx.Locale.Tr "repo.settings.pages.domain.releasing" .PagesReleasingDomain.Host}}</div>
+				<p>{{ctx.Locale.Tr "repo.settings.pages.domain.releasing.description"}}</p>
+			</div>
+		{{else}}
+			<form class="ui form" method="post">
+				<input type="hidden" name="action" value="add-domain">
+				<div class="field">
+					<label for="pages-domain">{{ctx.Locale.Tr "repo.settings.pages.domain"}}</label>
+					<input id="pages-domain" name="host" value="{{if .PagesActiveDomain}}{{.PagesActiveDomain.Host}}{{end}}" placeholder="www.example.com" required>
+				</div>
+				<button class="ui primary button" type="submit">{{if .PagesActiveDomain}}{{ctx.Locale.Tr "repo.settings.pages.domain.change"}}{{else}}{{ctx.Locale.Tr "repo.settings.pages.domain.add"}}{{end}}</button>
+			</form>
+		{{end}}
+
+		{{if .PagesActiveDomain}}
+			<div class="ui divider"></div>
+			<div class="flex-divided-list items-with-main">
+				<div class="item">
+					<div class="item-main">
+						<div class="item-title tw-break-anywhere">
+							{{.PagesActiveDomain.Host}}
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.settings.pages.domain.state.active"}}</span>
+						</div>
+					</div>
+					<div class="item-trailing">
+						<button type="button" class="ui red tiny button link-action" data-url="{{.RepoLink}}/settings/pages?action=remove-domain&amp;domain_id={{.PagesActiveDomain.ID}}" data-fetch-sync="$body" data-modal-confirm-header="{{ctx.Locale.Tr "repo.settings.pages.domain.remove_confirm"}}" data-modal-confirm-content="{{ctx.Locale.Tr "repo.settings.pages.domain.remove_confirm_desc" .PagesActiveDomain.Host}}">{{ctx.Locale.Tr "repo.settings.pages.domain.remove"}}</button>
+					</div>
+				</div>
+			</div>
+
+			{{if not .PagesRequireGiteaTXTRecord}}
+				<div class="ui info message">{{ctx.Locale.Tr "repo.settings.pages.domain.policy_disabled"}}</div>
+			{{else if eq .PagesActiveDomain.TXTResult "valid"}}
+				<div class="ui positive message">
+					<p>{{ctx.Locale.Tr "repo.settings.pages.domain.ownership_valid"}}</p>
+					{{if .PagesActiveDomain.TXTLastCheckUnix}}<p>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.last_check" (DateUtils.FullTime .PagesActiveDomain.TXTLastCheckUnix)}}</p>{{end}}
+				</div>
+			{{else}}
+				<div class="ui warning message">
+					<p>{{ctx.Locale.Tr "repo.settings.pages.domain.ownership_invalid" .PagesActiveDomain.TXTText}}</p>
+					{{if .PagesActiveDomain.TXTLastCheckUnix}}<p>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.last_check" (DateUtils.FullTime .PagesActiveDomain.TXTLastCheckUnix)}}</p>{{end}}
+					{{if .PagesActiveDomain.TXTLastSuccessUnix}}<p>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.last_success_grace" (DateUtils.FullTime .PagesActiveDomain.TXTLastSuccessUnix)}}</p>{{end}}
+					<div class="flex-text-block tw-mb-2">
+						<strong>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.name"}}</strong><code id="pages-active-domain-txt-name">{{.PagesActiveDomain.TXTName}}</code>
+						<button type="button" class="btn interact-fg tw-px-1" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#pages-active-domain-txt-name" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
+					</div>
+					<div class="flex-text-block">
+						<strong>{{ctx.Locale.Tr "repo.settings.pages.domain.txt.value"}}</strong><code id="pages-active-domain-txt-value">{{.PagesActiveDomain.TXTToken}}</code>
+						<button type="button" class="btn interact-fg tw-px-1" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#pages-active-domain-txt-value" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
+					</div>
+				</div>
+			{{end}}
+		{{end}}
+	</div>
+</div>
+{{template "repo/settings/layout_footer" .}}

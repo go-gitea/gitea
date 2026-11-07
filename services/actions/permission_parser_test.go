@@ -90,11 +90,21 @@ statuses: read`
 
 	result := parseRawPermissionsExplicit(&rawPerms)
 	require.NotNil(t, result)
+	assert.False(t, result.Pages)
 
 	// No asserts for permissions set on purpose
 }
 
 func TestParseRawPermissions_Priority(t *testing.T) {
+	t.Run("pages-write-is-independent", func(t *testing.T) {
+		var rawPerms yaml.Node
+		require.NoError(t, yaml.Unmarshal([]byte("pages: write\nid-token: write"), &rawPerms))
+		result := parseRawPermissionsExplicit(&rawPerms)
+		require.NotNil(t, result)
+		assert.True(t, result.Pages)
+		assert.True(t, result.IDToken)
+	})
+
 	t.Run("granular-wins-over-contents", func(t *testing.T) {
 		yamlContent := `
 contents: read

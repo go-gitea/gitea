@@ -82,6 +82,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   let fileUuidDict: FileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
   const opts: Dropzone.DropzoneOptions = {
     url: dropzoneEl.getAttribute('data-upload-url')!,
+    dictDefaultMessage: dropzoneEl.getAttribute('data-text-default-message')!,
     dictInvalidFileType: dropzoneEl.getAttribute('data-text-invalid-input-type')!,
     dictFileTooBig: dropzoneEl.getAttribute('data-text-file-too-big')!,
     timeout: 0,

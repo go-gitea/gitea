@@ -107,6 +107,7 @@ type Repository struct {
 	HasReleases                   bool             `json:"has_releases"`
 	HasPackages                   bool             `json:"has_packages"`
 	HasActions                    bool             `json:"has_actions"`
+	PagesCurrentVersion           *PagesVersion    `json:"pages_current_version,omitempty"`
 	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
 	AllowMerge                    bool             `json:"allow_merge_commits"`
 	AllowRebase                   bool             `json:"allow_rebase"`

@@ -1,15 +1,32 @@
 /* because dropzone css is imported after our css, so use double class selector to override dropzone styles */
 .dropzone.dropzone {
+  min-height: 0;
+  border-radius: var(--border-radius-medium);
+}
+
+.dropzone.dropzone:not(.dropzone-compact) {
   border: 2px dashed var(--color-secondary);
   background: none;
   box-shadow: none;
   padding: 0;
-  border-radius: var(--border-radius-medium);
-  min-height: 0;
 }
 
 .dropzone.dropzone .dz-message {
   margin: 10px 0;
+}
+
+.dropzone.dropzone-compact .dz-message,
+.dropzone.dropzone-compact.dz-started .dz-message {
+  display: block;
+  margin: 0;
+}
+
+.dropzone.dropzone-compact .dz-default.dz-message .dz-button {
+  color: inherit;
+}
+
+.dropzone.dropzone-compact .dz-preview {
+  display: none;
 }
 
 .dropzone.dropzone .dz-preview .dz-success-mark svg,

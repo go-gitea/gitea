@@ -36,7 +36,7 @@ func newMigrateStorageCommand() *cli.Command {
 				Name:    "type",
 				Aliases: []string{"t"},
 				Value:   "",
-				Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log', 'actions-artifacts'",
+				Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log', 'actions-artifacts', 'pages'",
 			},
 			&cli.StringFlag{
 				Name:    "storage",
@@ -214,6 +214,14 @@ func migrateActionsArtifacts(ctx context.Context, dstStorage storage.ObjectStora
 	})
 }
 
+func migratePages(_ context.Context, dstStorage storage.ObjectStorage) error {
+	return storage.Pages.IterateObjects("", func(objectPath string, object storage.Object) error {
+		defer object.Close()
+		_, err := storage.Copy(dstStorage, objectPath, storage.Pages, objectPath)
+		return err
+	})
+}
+
 func runMigrateStorage(ctx context.Context, cmd *cli.Command) error {
 	if err := initDB(ctx); err != nil {
 		return err
@@ -295,6 +303,7 @@ func runMigrateStorage(ctx context.Context, cmd *cli.Command) error {
 		"packages":          migratePackages,
 		"actions-log":       migrateActionsLog,
 		"actions-artifacts": migrateActionsArtifacts,
+		"pages":             migratePages,
 	}
 
 	tp := strings.ToLower(cmd.String("type"))

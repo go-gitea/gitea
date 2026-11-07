@@ -100,6 +100,8 @@ type uploadOptions struct {
 	UploadMaxFiles  int
 	UploadMaxSize   int64
 	NeedUuidLink    bool // issue/comment Markdown editor needs the uuid link to be copiable
+	Compact         bool
+	DefaultMessage  string
 }
 
 // AddUploadContext renders template values for dropzone
@@ -130,6 +132,17 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 			UploadMaxFiles:  setting.Attachment.MaxFiles,
 			UploadMaxSize:   setting.Attachment.MaxSize,
 			NeedUuidLink:    true,
+		}
+	case "pages":
+		const mebibyte = 1024 * 1024
+		ctx.Data["UploadOptions"] = uploadOptions{
+			UploadUrl:       ctx.Repo.RepoLink + "/settings/pages/versions/upload",
+			UploadRemoveUrl: ctx.Repo.RepoLink + "/settings/pages/versions/upload/remove",
+			UploadAccepts:   ".gz,.tgz,application/gzip,application/x-gzip",
+			UploadMaxFiles:  1,
+			UploadMaxSize:   (setting.Pages.MaxTarGzSize-1)/mebibyte + 1,
+			Compact:         true,
+			DefaultMessage:  ctx.Locale.TrString("repo.settings.pages.upload.submit"),
 		}
 	default:
 		setting.PanicInDevOrTesting("Invalid upload type: %s", uploadType)

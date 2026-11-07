@@ -6,6 +6,7 @@
 * CurrentTreePath
 * RefLinkTemplate: redirect to the link when a branch/tag is selected
 * RefFormActionTemplate: change the parent form's action when a branch/tag is selected
+* RefInputID: write the selected branch/tag name to this input instead of navigating
 * DropdownFixedText: the text to show in the dropdown (mainly used by "release page"), if empty, the text will be the branch/tag name
 * ShowTabBranches
 * ShowTabTagsTab
@@ -36,6 +37,7 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 
 	data-ref-link-template="{{.RefLinkTemplate}}"
 	data-ref-form-action-template="{{.RefFormActionTemplate}}"
+	data-ref-input-id="{{.RefInputID}}"
 	data-dropdown-fixed-text="{{.DropdownFixedText}}"
 	data-show-tab-branches="{{.ShowTabBranches}}"
 	data-show-tab-tags="{{.ShowTabTags}}"
