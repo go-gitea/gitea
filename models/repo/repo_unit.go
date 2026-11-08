@@ -96,39 +96,21 @@ func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
-// CreationRestriction describes who is allowed to create issues/pull requests against a repository unit.
-type CreationRestriction string
-
 const (
 	// CreationRestrictionReader allows any user with read access to the unit to create issues/pull requests (default, legacy behavior)
-	CreationRestrictionReader CreationRestriction = "reader"
+	CreationRestrictionReader = "reader"
 	// CreationRestrictionMember restricts creation to effective collaborators (owner, team members, explicit collaborators) with at least read access
-	CreationRestrictionMember CreationRestriction = "member"
+	CreationRestrictionMember = "member"
 	// CreationRestrictionWriter restricts creation to effective collaborators with at least write access
-	CreationRestrictionWriter CreationRestriction = "writer"
+	CreationRestrictionWriter = "writer"
 )
-
-// String returns the string representation of the restriction value.
-func (r CreationRestriction) String() string {
-	return string(r)
-}
-
-// IsValid reports whether the restriction value is one of the known constants
-func (r CreationRestriction) IsValid() bool {
-	switch r {
-	case CreationRestrictionReader, CreationRestrictionMember, CreationRestrictionWriter:
-		return true
-	default:
-		return false
-	}
-}
 
 // IssuesConfig describes issues config
 type IssuesConfig struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableDependencies               bool
-	CreationRestriction              CreationRestriction
+	CreationRestriction              string
 }
 
 func DefaultIssuesConfig() *IssuesConfig {
@@ -167,7 +149,7 @@ type PullRequestsConfig struct {
 	DefaultSquashMergeMessage     SquashMergeMessage
 	DefaultAllowMaintainerEdit    bool
 	DefaultTargetBranch           string
-	CreationRestriction           CreationRestriction
+	CreationRestriction           string
 }
 
 func DefaultPullRequestsConfig() *PullRequestsConfig {

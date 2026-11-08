@@ -11,7 +11,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-func CheckCreationRestriction(perm access.Permission, unitType unit.Type, restriction repo_model.CreationRestriction) error {
+func CheckCreationRestriction(perm access.Permission, unitType unit.Type, restriction string) error {
 	if restriction == repo_model.CreationRestrictionMember {
 		if !perm.CanRead(unitType) {
 			return issues.Errors().MustRepoUnitReader
