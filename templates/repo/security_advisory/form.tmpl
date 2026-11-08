@@ -39,7 +39,7 @@
 			<h4 class="ui dividing header">{{ctx.Locale.Tr "repo.security_advisories.severity"}}</h4>
 			<div class="field">
 				<label>{{ctx.Locale.Tr "repo.security_advisories.severity_manual"}}</label>
-				<div class="ui selection dropdown">
+				<div class="ui selection dropdown security-advisory-severity">
 					<input type="hidden" name="severity" value="{{.Content.Severity}}">
 					<div class="text"></div>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -52,8 +52,8 @@
 				</div>
 				<p class="help">{{ctx.Locale.Tr "repo.security_advisories.severity_help"}}</p>
 			</div>
-			{{template "repo/security_advisory/form_cvss" dict "Name" "cvss_v4_vector" "Label" "CVSS 4.0" "Prefix" "CVSS:4.0/" "Vector" .Content.CvssV4Vector "Metrics" .CVSSMetricsV40 "PreviewLink" .CVSSPreviewLink}}
-			{{template "repo/security_advisory/form_cvss" dict "Name" "cvss_v3_vector" "Label" "CVSS 3.1" "Prefix" "CVSS:3.1/" "Vector" .Content.CvssV3Vector "Metrics" .CVSSMetricsV31 "PreviewLink" .CVSSPreviewLink}}
+			{{template "repo/security_advisory/form_cvss" dict "Name" "cvss_v4_vector" "Label" "CVSS 4.0" "SpecLink" "https://www.first.org/cvss/v4.0/specification-document" "Prefix" "CVSS:4.0/" "Vector" .Content.CvssV4Vector "Metrics" .CVSSMetricsV40 "PreviewLink" .CVSSPreviewLink}}
+			{{template "repo/security_advisory/form_cvss" dict "Name" "cvss_v3_vector" "Label" "CVSS 3.1" "SpecLink" "https://www.first.org/cvss/v3.1/specification-document" "Prefix" "CVSS:3.1/" "Vector" .Content.CvssV3Vector "Metrics" .CVSSMetricsV31 "PreviewLink" .CVSSPreviewLink}}
 
 			<h4 class="ui dividing header">{{ctx.Locale.Tr "repo.security_advisories.details"}}</h4>
 			<div class="field">

@@ -1,4 +1,5 @@
 import {POST} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 import {debounce} from '../utils/func.ts';
@@ -79,7 +80,7 @@ function initCvssCalculator(container: HTMLElement) {
     const vector = composeCvssVector(prefix, baseKeys, metrics);
     if (!vector) return;
     input.value = vector;
-    updatePreview();
+    input.dispatchEvent(new Event('input', {bubbles: true}));
   });
   input.addEventListener('input', () => {
     syncButtons();
@@ -87,6 +88,19 @@ function initCvssCalculator(container: HTMLElement) {
   });
   syncButtons();
   updatePreview();
+}
+
+/** The backend rejects a manual severity together with a CVSS vector, which determines the severity then */
+function initSeverityLock(form: HTMLFormElement) {
+  const dropdown = form.querySelector<HTMLElement>('.security-advisory-severity')!;
+  const vectors = Array.from(form.querySelectorAll<HTMLInputElement>('.security-advisory-cvss input[name]'));
+  const sync = (clear: boolean) => {
+    const hasVector = vectors.some((el) => el.value.trim());
+    dropdown.classList.toggle('disabled', hasVector);
+    if (hasVector && clear) fomanticQuery(dropdown).dropdown('set selected', '');
+  };
+  for (const el of vectors) el.addEventListener('input', () => sync(true));
+  sync(false);
 }
 
 function initRows(form: HTMLFormElement) {
@@ -103,6 +117,7 @@ function initRows(form: HTMLFormElement) {
 export function initRepoSecurityAdvisory() {
   registerGlobalInitFunc('initSecurityAdvisoryForm', (form: HTMLFormElement) => {
     initRows(form);
+    initSeverityLock(form);
     for (const el of form.querySelectorAll<HTMLElement>('.security-advisory-cvss')) initCvssCalculator(el);
   });
   registerGlobalInitFunc('initSecurityAdvisoryUserSearch', attachSearchUserBox);

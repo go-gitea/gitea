@@ -280,43 +280,45 @@
 						<button type="button" class="tw-mt-1 fluid ui button show-modal" data-modal="#security-advisory-close-modal">
 							{{svg "octicon-x-circle"}} {{ctx.Locale.Tr "repo.security_advisories.action.closed"}}
 						</button>
-						<div class="ui small modal" id="security-advisory-close-modal">
+						<dialog class="modal-dialog" id="security-advisory-close-modal">
 							<div class="header">{{ctx.Locale.Tr "repo.security_advisories.close.title"}}</div>
-							<form class="content ui form form-fetch-action" method="post" action="{{$advisory.Link}}/state">
-								<input type="hidden" name="state" value="closed">
-								<div class="grouped fields">
-									<div class="field">
-										<div class="ui radio checkbox">
-											<input type="radio" name="close_reason" value="invalid" checked>
-											<label>{{ctx.Locale.Tr "repo.security_advisories.close_reason.invalid"}}</label>
-										</div>
-									</div>
-									<div class="field">
-										<div class="ui radio checkbox">
-											<input type="radio" name="close_reason" value="duplicate" {{if not .DuplicateCandidates}}disabled{{end}}>
-											<label>{{ctx.Locale.Tr "repo.security_advisories.close_reason.duplicate"}}</label>
-										</div>
-									</div>
-								</div>
-								{{if .DuplicateCandidates}}
-									<div class="field">
-										<label>{{ctx.Locale.Tr "repo.security_advisories.close.original"}}</label>
-										<div class="ui fluid search selection dropdown">
-											<input type="hidden" name="duplicate_of">
-											<div class="default text">{{ctx.Locale.Tr "repo.security_advisories.close.original"}}</div>
-											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-											<div class="menu">
-												{{range .DuplicateCandidates}}
-													<div class="item" data-value="{{.Identifier}}"><span class="tw-font-mono">{{.Identifier}}</span>&nbsp;{{.Summary}}</div>
-												{{end}}
+							<form class="ui form form-fetch-action" method="post" action="{{$advisory.Link}}/state">
+								<div class="content">
+									<input type="hidden" name="state" value="closed">
+									<div class="grouped fields">
+										<div class="field">
+											<div class="ui radio checkbox">
+												<input type="radio" name="close_reason" value="invalid" checked>
+												<label>{{ctx.Locale.Tr "repo.security_advisories.close_reason.invalid"}}</label>
 											</div>
 										</div>
-										<p class="help">{{ctx.Locale.Tr "repo.security_advisories.close.duplicate_help"}}</p>
+										<div class="field">
+											<div class="ui radio checkbox">
+												<input type="radio" name="close_reason" value="duplicate" {{if not .DuplicateCandidates}}disabled{{end}}>
+												<label>{{ctx.Locale.Tr "repo.security_advisories.close_reason.duplicate"}}</label>
+											</div>
+										</div>
 									</div>
-								{{end}}
+									{{if .DuplicateCandidates}}
+										<div class="field">
+											<label>{{ctx.Locale.Tr "repo.security_advisories.close.original"}}</label>
+											<div class="ui fluid search selection dropdown">
+												<input type="hidden" name="duplicate_of">
+												<div class="default text">{{ctx.Locale.Tr "repo.security_advisories.close.original"}}</div>
+												{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+												<div class="menu">
+													{{range .DuplicateCandidates}}
+														<div class="item" data-value="{{.Identifier}}"><span class="tw-font-mono">{{.Identifier}}</span>&nbsp;{{.Summary}}</div>
+													{{end}}
+												</div>
+											</div>
+											<p class="help">{{ctx.Locale.Tr "repo.security_advisories.close.duplicate_help"}}</p>
+										</div>
+									{{end}}
+								</div>
 								{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.security_advisories.action.closed"))}}
 							</form>
-						</div>
+						</dialog>
 					{{end}}
 					{{if not $advisory.IsPublic}}
 						<button type="button" class="tw-mt-1 fluid ui red basic button link-action" data-url="{{$advisory.Link}}/delete" data-modal-confirm="{{ctx.Locale.Tr "repo.security_advisories.delete_confirm"}}">

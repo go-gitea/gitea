@@ -1415,6 +1415,7 @@
   "repo.security_advisories.form_desc": "Describe the vulnerability, the affected versions and how to fix it.",
   "repo.security_advisories.cvss.no_score": "No score",
   "repo.security_advisories.cvss.calculator": "Calculator",
+  "repo.security_advisories.cvss.specification": "Specification",
   "repo.security_advisories.summary": "Summary",
   "repo.security_advisories.description": "Description",
   "repo.security_advisories.original_report": "Original report, as accepted from the reporter",

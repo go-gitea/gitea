@@ -1,5 +1,5 @@
 <div class="field security-advisory-cvss" data-cvss-prefix="{{.Prefix}}" data-preview-url="{{.PreviewLink}}">
-	<label>{{.Label}}</label>
+	<label class="flex-text-inline">{{.Label}} <a class="tw-font-normal" href="{{.SpecLink}}" target="_blank" rel="noopener noreferrer">{{ctx.Locale.Tr "repo.security_advisories.cvss.specification"}}</a></label>
 	<div class="ui segment">
 		<details {{if .Vector}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "repo.security_advisories.cvss.calculator"}}</summary>

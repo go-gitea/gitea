@@ -22,7 +22,7 @@
 			{{end}}
 		</div>
 
-		<div class="list-header flex-text-block tw-flex-wrap">
+		<div class="list-header flex-text-block tw-flex-wrap tw-mt-4">
 			<div class="small-menu-items ui compact tiny menu list-header-toggle">
 				{{range .StateTabs}}
 					<a class="item{{if eq $.State .Name}} active{{end}}" href="{{QueryBuild $queryLink "state" .Name}}">
