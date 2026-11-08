@@ -130,7 +130,8 @@ func errorAsTranslatable(err error) *errorTranslatableWrapper {
 
 // TODO: refactor ErrorAsTranslatable in the future, use ErrorUnwrapForUser or ErrorUnwrapForHTML as much as possible
 func ErrorAsTranslatable(err error) ErrorTranslatable {
-	if e := errorAsTranslatable(err); e != nil {
+	e := errorAsTranslatable(err)
+	if e != nil { // avoid golang nil interface wrapper
 		return e
 	}
 	return nil
