@@ -45,7 +45,7 @@ func columnIssueIDs(column *Column) []int64 {
 
 // LockProject serializes concurrent card moves of a project, avoiding row-lock deadlocks between them.
 func LockProject(ctx context.Context, projectID int64) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project` SET id=id WHERE id=?", projectID)
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project` SET title=title WHERE id=?", projectID)
 	return err
 }
 
