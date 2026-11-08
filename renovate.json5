@@ -20,7 +20,7 @@
     "semanticCommitType": "fix", // overrides packageRules
   },
   "postUpgradeTasks": {
-    "commands": ["make tidy", "make svg", "make generate-codemirror-languages"],
+    "commands": ["make tidy", "make svg", "make generate-codemirror-languages", "make generate-shiki-languages"],
     "installTools": {
       "golang": {},
       "node": {},
@@ -31,6 +31,7 @@
       "go.sum",
       "assets/go-licenses.json",
       "assets/codemirror-languages.json",
+      "web_src/js/modules/diffviewer/shiki-languages.ts",
       "public/assets/img/svg/**",
       "options/fileicon/**",
     ],

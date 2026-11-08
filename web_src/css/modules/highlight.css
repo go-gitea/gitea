@@ -1,0 +1,42 @@
+/* syntax highlighting classes, emitted by @lezer/highlight's classHighlighter in the code editor and by the shiki theme of the diff viewer */
+.code-highlight .tok-keyword,
+.code-highlight .tok-atom { color: var(--color-syntax-keyword); }
+.code-highlight .tok-bool { color: var(--color-syntax-bool); }
+.code-highlight .tok-variableName { color: var(--color-syntax-variable); }
+.code-highlight .tok-variableName2 { color: var(--color-syntax-keyword); }
+.code-highlight .tok-propertyName { color: var(--color-syntax-property); }
+.code-highlight .tok-typeName,
+.code-highlight .tok-className { color: var(--color-syntax-type); }
+.code-highlight .tok-namespace { color: var(--color-syntax-namespace); }
+.code-highlight .tok-macroName { color: var(--color-syntax-name); }
+.code-highlight .tok-labelName { color: var(--color-syntax-name); }
+.code-highlight .tok-number { color: var(--color-syntax-number); }
+.code-highlight .tok-string { color: var(--color-syntax-string); }
+.code-highlight .tok-string2 { color: var(--color-syntax-regexp); }
+.code-highlight .tok-operator { color: var(--color-syntax-operator); }
+.code-highlight .tok-punctuation { color: var(--color-syntax-punctuation); }
+.code-highlight .tok-comment { color: var(--color-syntax-comment); }
+.code-highlight .tok-meta { color: var(--color-syntax-preproc); }
+.code-highlight .tok-invalid { color: var(--color-syntax-invalid); }
+.code-highlight .tok-link { color: var(--color-syntax-link); }
+.code-highlight .tok-heading { color: var(--color-syntax-heading); }
+.code-highlight .tok-emphasis { color: var(--color-syntax-emph); font-style: italic; }
+.code-highlight .tok-strong { font-weight: var(--font-weight-bold); }
+.code-highlight .tok-inserted { color: var(--color-syntax-string); }
+.code-highlight .tok-deleted { color: var(--color-syntax-invalid); }
+
+/* classes of the diff viewer's TextMate scopes without a lezer equivalent */
+.code-highlight .tok-control { color: var(--color-syntax-control); }
+.code-highlight .tok-escape { color: var(--color-syntax-escape); }
+.code-highlight .tok-function { color: var(--color-syntax-name); }
+.code-highlight .tok-tag { color: var(--color-syntax-tag); }
+.code-highlight .tok-attribute { color: var(--color-syntax-attribute); }
+.code-highlight .tok-decorator { color: var(--color-syntax-decorator); }
+
+/* language-specific overrides of the code editor */
+.code-highlight[data-language="json"] .tok-propertyName,
+.code-highlight[data-language="json5"] .tok-propertyName,
+.code-highlight[data-language="yaml"] .tok-propertyName { color: var(--color-syntax-tag); }
+.code-highlight[data-language="css"] .tok-propertyName { color: var(--color-syntax-name); }
+.code-highlight[data-language="html"] .tok-propertyName,
+.code-highlight[data-language="xml"] .tok-propertyName { color: var(--color-syntax-attribute); }

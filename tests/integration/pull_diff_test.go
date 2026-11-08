@@ -181,6 +181,7 @@ func TestDiffStream(t *testing.T) {
 	require.Len(t, files, 1)
 	assert.Equal(t, "README.md", files[0].Name)
 	assert.Equal(t, "added", files[0].Type)
+	assert.Equal(t, "Markdown", files[0].Language)
 	assert.Contains(t, files[0].Hunks, "+# repo1")
 
 	files, _ = requestDiffStream(t, session, "/user2/repo1/wiki/diff/stream?after=a5bbc0fd39a696feabed2d4cccaf05abbcaf3b02")

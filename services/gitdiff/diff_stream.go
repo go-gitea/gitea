@@ -134,6 +134,9 @@ func StreamDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffStreamOp
 			}
 			file.Language = attrs.GetLanguage().Value()
 		}
+		if file.Language == "" && !file.IsBinary {
+			file.Language = analyze.GetCodeLanguage(file.Name, hunks.Bytes())
+		}
 		if file.Submodule != nil {
 			fillSubmoduleLinks(ctx, opts.RepoLink, gitRepo, file, beforeCommit, afterCommit)
 		}

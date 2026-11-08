@@ -29,6 +29,9 @@
     "@replit/codemirror-lang-svelte": "6.0.0",
     "@replit/codemirror-vscode-keymap": "6.0.2",
     "@resvg/resvg-wasm": "2.6.2",
+    "@shikijs/core": "4.6.0",
+    "@shikijs/engine-javascript": "4.6.0",
+    "@shikijs/langs-precompiled": "4.6.0",
     "@tanstack/virtual-core": "3.17.11",
     "@vitejs/plugin-vue": "6.0.10",
     "asciinema-player": "3.17.0",
@@ -64,6 +67,7 @@
     "vue": "3.5.44"
   },
   "devDependencies": {
+    "shiki": "4.6.0",
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
     "@eslint/json": "2.1.1",
     "@playwright/test": "1.64.1",

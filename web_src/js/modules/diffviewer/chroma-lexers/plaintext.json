@@ -1,1 +1,0 @@
-{"name":"plaintext","flags":"m","ensureNL":false,"rules":{"root":[[".+","",null],["\\n","",null]]}}

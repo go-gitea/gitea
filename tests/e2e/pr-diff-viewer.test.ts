@@ -41,7 +41,7 @@ test('diff viewer', async ({page, request}) => {
 
   await page.goto(`/${user}/${repo}/pulls/${prIndex}/files`);
   const fileA = await expectFileRendered(page, 'src/a.ts', 3);
-  // highlighted by the code editor's grammar
+  // highlighted by the TextMate grammar
   await expect(fileA.locator('.tok-keyword').first()).toHaveText('const');
 
   // the existing comment renders like the legacy conversation
@@ -295,9 +295,9 @@ test('diff viewer highlighting and escaping', async ({page, request}) => {
   await loginUser(page, user);
   await page.goto(`/${user}/${repo}/pulls/${prIndex}/files`);
 
-  // zig has no CodeMirror grammar, it's highlighted by chroma's lexer
+  // the language is detected by the server, the grammar is loaded on demand
   const zig = page.locator('.diff-file-box[data-new-filename="main.zig"]');
-  await expect(zig.locator('.chroma .kr, .chroma .k').first()).toHaveText(/^(pub|fn|return)$/);
+  await expect(zig.locator('.tok-keyword').first()).toHaveText(/^(pub|fn)$/);
 
   // the zero width space is escaped, and can be shown as is
   const hidden = page.locator('.diff-file-box[data-new-filename="hidden.txt"]');

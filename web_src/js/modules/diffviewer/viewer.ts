@@ -122,7 +122,7 @@ export class DiffViewer {
 
   // waits briefly for the first file's grammar and the comments, so the first paint usually has them, and for the rest it needs
   async firstPaint(status: Element, file: DiffStreamFile, escapeTablesPromise: Promise<void> | null, commentsPromise: Promise<void>): Promise<void> {
-    const highlighterPromise = this.config.disableHighlight ? null : loadHighlighter(file.name, file.language);
+    const highlighterPromise = this.config.disableHighlight ? null : loadHighlighter(file.language);
     await Promise.all([Promise.race([Promise.all([highlighterPromise, commentsPromise]), sleep(300)]), escapeTablesPromise]);
     status.remove();
     this.updateVisibleEntries();
@@ -161,7 +161,7 @@ export class DiffViewer {
       entry.highlighter = null;
       return;
     }
-    entry.highlighter = await loadHighlighter(entry.file.name, entry.file.language);
+    entry.highlighter = await loadHighlighter(entry.file.language);
     if (entry.highlighter && entry.element && entry.renderedLines) {
       // the file was rendered before its grammar loaded
       entry.invalidateHighlighting();
@@ -175,7 +175,6 @@ export class DiffViewer {
     if (!source?.querySelector('table')) return;
     const {html: lineHtml} = this.renderLines(entry);
     for (const code of source.querySelectorAll<HTMLElement>('code.code-inner[data-line]')) code.innerHTML = lineHtml[Number(code.getAttribute('data-line'))];
-    if (entry.highlighter?.language) source.setAttribute('data-language', entry.highlighter.language);
     // the loaded content tells where the tail gap ends, its buttons are only replaced when they differ
     const tail = Array.from(source.querySelectorAll<HTMLElement>('tr.tag-code')).find((row) => Number(row.getAttribute('data-hunk')) === entry.hunks.length);
     if (!tail) return;
@@ -368,8 +367,7 @@ export class DiffViewer {
       const rows = this.config.isSplit ?
         html`${htmlRaw(splitColgroup)}<tbody>${htmlRaw(renderSplitRows(hunks, lineHtml, entry.linePairs(), opts))}</tbody>` :
         html`${htmlRaw(unifiedColgroup)}<tbody>${htmlRaw(renderUnifiedRows(hunks, lineHtml, opts))}</tbody>`;
-      source.classList.add('lezer-highlight');
-      if (entry.highlighter?.language) source.setAttribute('data-language', entry.highlighter.language);
+      source.classList.add('code-highlight');
       source.innerHTML = html`<table class="chroma">${htmlRaw(rows)}</table>`;
       return source;
     }

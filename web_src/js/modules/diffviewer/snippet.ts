@@ -10,7 +10,7 @@ import {escapeButton, highlightHunkLines, linesToHtml, pairChangedLines, renderU
 // the "data-config" of RenderDiffSnippet in modules/templates/util_render.go
 type SnippetConfig = {
   patch: string;
-  filename: string;
+  language: string;
   disableHighlight: boolean;
   detectAmbiguous: boolean;
   ambiguousRunesLine: string;
@@ -25,14 +25,13 @@ export function initDiffSnippet(): void {
     const hunks = parseHunks(config.patch);
     const lines = hunks.flatMap((hunk) => hunk.lines);
     const [highlighter, escapeTables] = await Promise.all([
-      config.disableHighlight ? null : loadHighlighter(config.filename),
+      config.disableHighlight ? null : loadHighlighter(config.language),
       config.detectAmbiguous ? loadEscapeTables(getCurrentLocale()) : null,
     ]);
     const escapes = lines.map((line) => (escapeTables ? detectEscapes(line.content, escapeTables, (char, confusable) => trString(config.ambiguousCharacter, char, confusable)) : null));
     const lineHtml = linesToHtml(lines, highlightHunkLines(lines, highlighter), pairChangedLines(hunks), escapes);
     const rows = renderUnifiedRows(hunks, lineHtml, {addCommentLabel: null, expanders: new Map(), escapeButtons: escapes.map((escape) => escapeButton(escape, config))});
-    el.classList.add('lezer-highlight');
-    if (highlighter?.language) el.setAttribute('data-language', highlighter.language);
+    el.classList.add('code-highlight');
     el.innerHTML = html`<table class="chroma">${htmlRaw(unifiedColgroup)}<tbody>${htmlRaw(rows)}</tbody></table>`;
   });
 }

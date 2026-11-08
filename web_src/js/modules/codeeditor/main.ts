@@ -169,7 +169,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, config.filename);
 
   const container = document.createElement('div');
-  container.className = 'code-editor-container lezer-highlight';
+  container.className = 'code-editor-container code-highlight';
   container.setAttribute('data-language', matchedLang?.name.toLowerCase() || '');
   // Replace the loading placeholder with the editor container in one operation
   // to avoid a flash where neither element is in the DOM.
