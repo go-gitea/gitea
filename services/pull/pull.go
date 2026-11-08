@@ -61,8 +61,11 @@ func NewPullRequest(ctx context.Context, basePerm access_model.Permission, opts 
 		return err
 	}
 
-	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
-		return user_model.ErrBlockedUser
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) {
+		return util.ErrorWrapTranslatable(user_model.ErrBlockedUser, "repo.creation_blocked_by_owner")
+	}
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
+		return util.ErrorWrapTranslatable(user_model.ErrBlockedUser, "repo.creation_blocked_by_assignee")
 	}
 
 	restriction := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().CreationRestriction
