@@ -101,7 +101,7 @@ const (
 	CreationRestrictionReader = "reader"
 	// CreationRestrictionMember restricts creation to effective collaborators (owner, team members, explicit collaborators) with at least read access
 	CreationRestrictionMember = "member"
-	// CreationRestrictionWriter restricts creation to effective collaborators with at least write access
+	// CreationRestrictionWriter restricts creation to users with at least write access
 	CreationRestrictionWriter = "writer"
 )
 
