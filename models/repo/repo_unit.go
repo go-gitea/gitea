@@ -118,12 +118,14 @@ func DefaultIssuesConfig() *IssuesConfig {
 		EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
 		AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
 		EnableDependencies:               setting.Service.DefaultEnableDependencies,
+		CreationRestriction:              CreationRestrictionReader,
 	}
 }
 
 func (cfg *IssuesConfig) FromDB(bs []byte) error {
 	*cfg = *DefaultIssuesConfig()
 	db.UnmarshalFromDB(bs, cfg)
+	cfg.CreationRestriction = util.IfZero(cfg.CreationRestriction, CreationRestrictionReader)
 	return nil
 }
 

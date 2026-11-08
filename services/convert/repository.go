@@ -71,6 +71,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 			EnableTimeTracker:                config.EnableTimetracker,
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
 			EnableIssueDependencies:          config.EnableDependencies,
+			CreationRestriction:              new(config.CreationRestriction),
 		}
 	} else if unit, err := repo.GetUnit(ctx, unit_model.TypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
