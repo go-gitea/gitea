@@ -61,6 +61,16 @@ func TestIssues(t *testing.T) {
 
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.Len(t, ctx.Data["Issues"], 1)
+
+	// filtering by a non-existent poster must not match any issue
+	ctx, _ = contexttest.MockContext(t, "issues")
+	contexttest.LoadUser(t, ctx, 2)
+	ctx.Req.Form.Set("state", "closed")
+	ctx.Req.Form.Set("poster", "non-existent-user")
+	Issues(ctx)
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+
+	assert.Empty(t, ctx.Data["Issues"])
 }
 
 func TestPulls(t *testing.T) {
@@ -74,6 +84,16 @@ func TestPulls(t *testing.T) {
 	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 
 	assert.Len(t, ctx.Data["Issues"], 5)
+
+	// filtering by a non-existent assignee must not match unassigned pulls
+	ctx, _ = contexttest.MockContext(t, "pulls")
+	contexttest.LoadUser(t, ctx, 2)
+	ctx.Req.Form.Set("state", "open")
+	ctx.Req.Form.Set("assignee", "non-existent-user")
+	Pulls(ctx)
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+
+	assert.Empty(t, ctx.Data["Issues"])
 }
 
 func TestMilestones(t *testing.T) {

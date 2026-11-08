@@ -56,7 +56,7 @@ func ToSearchUserResponse(ctx context.Context, self *user.User, users []*user.Us
 // Return values:
 // * "": no filter
 // * "{the-id}": match the id
-// * "(none)": match no issue (due to the user doesn't exist)
+// * "(nonexistent)": match no issue (due to the user doesn't exist)
 func GetFilterUserIDByName(ctx context.Context, name string) string {
 	if name == "" {
 		return ""
@@ -66,8 +66,9 @@ func GetFilterUserIDByName(ctx context.Context, name string) string {
 		if id, err := strconv.ParseInt(name, 10, 64); err == nil {
 			return strconv.FormatInt(id, 10)
 		}
-		// The "(none)" is for internal usage only: when doer tries to search non-existing user, use "(none)" to return empty result.
-		return "(none)"
+		// The "(nonexistent)" is for internal usage only: when doer tries to search non-existing user, use "(nonexistent)" to return empty result.
+		// It must not be "(none)", which means "no assignee" in the issue filter.
+		return "(nonexistent)"
 	}
 	return strconv.FormatInt(u.ID, 10)
 }
