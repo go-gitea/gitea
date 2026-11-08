@@ -665,6 +665,9 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.pulls")
 		ctx.Data["PageIsPullList"] = true
+		canCreatePull := ctx.Repo.PullRequestCtx.CanCreateNewPull()
+		ctx.Data["ShowNewPullButton"] = canCreatePull
+		ctx.Data["ShowCompareBranchButton"] = !canCreatePull
 		prepareRecentlyPushedNewBranches(ctx)
 		if ctx.Written() {
 			return
@@ -680,7 +683,7 @@ func Issues(ctx *context.Context) {
 
 		restriction := ctx.Repo.Repository.MustGetUnit(ctx, unit_model.TypeIssues).IssuesConfig().CreationRestriction
 		err := issue_service.CheckCreationRestriction(ctx.Repo.Permission, unit_model.TypeIssues, restriction)
-		ctx.Data["CanCreateIssue"] = err == nil
+		ctx.Data["ShowNewIssueButton"] = !ctx.Repo.Repository.IsArchived && err == nil
 	}
 
 	projectIDs := parseProjectIDsFromQuery(ctx)
