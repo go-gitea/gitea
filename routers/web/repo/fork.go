@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
@@ -212,16 +211,7 @@ func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_serv
 		case repo_model.IsErrRepoAlreadyExist(err):
 			ctx.JSONError(ctx.Tr("repo.settings.new_owner_has_same_repo"))
 		case repo_model.IsErrRepoFilesAlreadyExist(err):
-			switch {
-			case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-				ctx.JSONError(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"))
-			case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-				ctx.JSONError(ctx.Tr("form.repository_files_already_exist.adopt"))
-			case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-				ctx.JSONError(ctx.Tr("form.repository_files_already_exist.delete"))
-			default:
-				ctx.JSONError(ctx.Tr("form.repository_files_already_exist"))
-			}
+			ctx.JSONError(ctx.Tr("form.repository_files_already_exist"))
 		case errors.As(err, &errNameReserved):
 			ctx.JSONError(ctx.Tr("repo.form.name_reserved", errNameReserved.Name))
 		case errors.As(err, &errNamePatternNotAllowed):
