@@ -113,6 +113,20 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	assert.EqualValues(t, comment.UpdatedUnix, reviewComments[0].Updated.Unix())
 	assert.Equal(t, comment.HTMLURL(t.Context()), reviewComments[0].HTMLURL)
 
+	for _, invalidComment := range []api.CreatePullReviewComment{
+		{Body: "missing path", NewLineNum: 1},
+		{Path: "README.md", Body: "missing line"},
+	} {
+		req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
+			Comments: []api.CreatePullReviewComment{
+				{Path: "README.md", Body: "comment before invalid anchor", NewLineNum: 1},
+				invalidComment,
+			},
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+	}
+	unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: pullIssue.ID, Content: "comment before invalid anchor"})
+
 	// test CreatePullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		Body: "body1",
@@ -153,6 +167,7 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	assert.EqualValues(t, "APPROVED", review.State)
 	assert.Equal(t, 3, review.CodeCommentsCount)
 
+	unittest.AssertCount(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview}, 1)
 	reviewComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview})
 	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d", repo.OwnerName, repo.Name, reviewComment.ID), &api.EditIssueCommentOption{Body: "just one nit"}).AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue))
 	MakeRequest(t, req, http.StatusOK)

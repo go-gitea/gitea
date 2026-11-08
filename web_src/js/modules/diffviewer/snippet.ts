@@ -31,6 +31,6 @@ export function initDiffSnippet(): void {
     const lineHtml = linesToHtml(lines, highlightHunkLines(lines, highlighter), pairChangedLines(hunks), escapes);
     const rows = renderUnifiedRows(hunks, lineHtml, {addCommentLabel: null, expanders: new Map(), escapeButtons: escapes.map((escape) => escapeButton(escape, config))});
     el.classList.add('code-highlight');
-    el.innerHTML = html`<table class="chroma">${htmlRaw(unifiedColgroup)}<tbody>${htmlRaw(rows)}</tbody></table>`;
+    el.innerHTML = html`<table class="chroma" data-paste-markdown-skip>${htmlRaw(unifiedColgroup)}<tbody>${htmlRaw(rows)}</tbody></table>`;
   });
 }

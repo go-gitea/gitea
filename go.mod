@@ -7,7 +7,7 @@ toolchain go1.27.3
 require (
 	connectrpc.com/connect/v2 v2.0.2
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
-	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
+	gitea.com/lunny/levelqueue v0.5.1
 	gitea.dev/actionslib v1.5.2
 	gitea.dev/sdk v1.5.0
 	github.com/42wim/httpsig v1.3.0

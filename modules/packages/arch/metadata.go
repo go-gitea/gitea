@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
@@ -38,17 +39,24 @@ const (
 	maxPKGINFOSize = 1024 * 1024
 )
 
+var globalVars = sync.OnceValue(func() (ret struct {
+	namePattern    *regexp.Regexp
+	versionPattern *regexp.Regexp
+},
+) {
+	// https://man.archlinux.org/man/PKGBUILD.5
+	ret.namePattern = regexp.MustCompile(`\A[a-zA-Z0-9@._+-]+\z`)
+	// (epoch:pkgver-pkgrel)
+	ret.versionPattern = regexp.MustCompile(`\A(?:\d:)?[\w.+~]+(?:-[-\w.+~]+)?\z`)
+	return ret
+})
+
 var (
 	ErrMissingPKGINFOFile  = util.NewInvalidArgumentErrorf(".PKGINFO file is missing")
 	ErrUnsupportedFormat   = util.NewInvalidArgumentErrorf("unsupported package container format")
 	ErrInvalidName         = util.NewInvalidArgumentErrorf("package name is invalid")
 	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
 	ErrInvalidArchitecture = util.NewInvalidArgumentErrorf("package architecture is invalid")
-
-	// https://man.archlinux.org/man/PKGBUILD.5
-	namePattern = regexp.MustCompile(`\A[a-zA-Z0-9@._+-]+\z`)
-	// (epoch:pkgver-pkgrel)
-	versionPattern = regexp.MustCompile(`\A(?:\d:)?[\w.+~]+(?:-[-\w.+~]+)?\z`)
 
 	// caps on the accumulated package file list (vars so tests can lower them); far above
 	// any legitimate package, but low enough to stop metadata amplification
@@ -251,10 +259,10 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
-	if !namePattern.MatchString(p.Name) {
+	if !globalVars().namePattern.MatchString(p.Name) {
 		return nil, ErrInvalidName
 	}
-	if !versionPattern.MatchString(p.Version) {
+	if !globalVars().versionPattern.MatchString(p.Version) {
 		return nil, ErrInvalidVersion
 	}
 	if p.FileMetadata.Architecture == "" {

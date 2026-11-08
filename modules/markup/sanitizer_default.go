@@ -31,8 +31,9 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	// Chroma always uses 1-2 letters for style names, we could tolerate it at the moment
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^\w{0,2}$`)).OnElements("span")
 
-	// Line numbers on codepreview
+	// Line numbers and paste behavior on codepreview
 	policy.AllowAttrs("data-line-number").OnElements("span")
+	policy.AllowAttrs("data-paste-markdown-skip").OnElements("table")
 
 	// emoji aliases for dark theme inversion
 	policy.AllowAttrs("data-alias").OnElements("span")

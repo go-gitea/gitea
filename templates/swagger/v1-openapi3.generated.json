@@ -4590,6 +4590,9 @@
             "x-go-name": "Path"
           }
         },
+        "required": [
+          "path"
+        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -12011,6 +12014,7 @@
             "schema": {
               "enum": [
                 "alpine",
+                "arch",
                 "cargo",
                 "chef",
                 "composer",
@@ -12031,6 +12035,7 @@
                 "rubygems",
                 "swift",
                 "terraform",
+                "terraform-module",
                 "vagrant"
               ],
               "type": "string"
@@ -16295,6 +16300,7 @@
             "schema": {
               "enum": [
                 "alpine",
+                "arch",
                 "cargo",
                 "chef",
                 "composer",
@@ -16315,6 +16321,7 @@
                 "rubygems",
                 "swift",
                 "terraform",
+                "terraform-module",
                 "vagrant"
               ],
               "type": "string"

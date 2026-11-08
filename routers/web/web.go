@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/modules/web/routing"
 	"gitea.dev/modules/web/types"
+	tfmodule "gitea.dev/routers/api/packages/terraform_module"
 	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/admin"
 	"gitea.dev/routers/web/auth"
@@ -526,6 +527,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
 		m.Get("/passkey-endpoints", passkeyEndpoints)
+		m.Get("/terraform.json", packagesEnabled, tfmodule.ServiceDiscovery)
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 
@@ -1088,6 +1090,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Get("", user.ViewPackageVersion)
 						m.Post("", reqPackageAccess(perm.AccessModeWrite), user.PackageVersionDelete)
 						m.Get("/{version_sub}", user.ViewPackageVersion)
+						m.Get("/modules/{submodule}", user.ViewPackageVersion)
 						m.Group("/terraform", func() {
 							m.Post("/lock", user.ActionPackageTerraformLock)
 							m.Post("/unlock", user.ActionPackageTerraformUnlock)

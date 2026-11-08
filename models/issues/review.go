@@ -545,6 +545,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 		}
 	}
 
+	if reviewType == ReviewTypePending {
+		return review, nil, committer.Commit()
+	}
+
 	comm, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:        CommentTypeReview,
 		Doer:        doer,

@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/base"
@@ -267,10 +268,12 @@ func (m matrixConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MatrixPayload, 
 	return m.newPayload(text)
 }
 
-var urlRegex = regexp.MustCompile(`<a [^>]*?href="([^">]*?)">(.*?)</a>`)
+var urlRegex = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`<a [^>]*?href="([^">]*?)">(.*?)</a>`)
+})
 
 func getMessageBody(htmlText string) string {
-	htmlText = urlRegex.ReplaceAllString(htmlText, "[$2]($1)")
+	htmlText = urlRegex().ReplaceAllString(htmlText, "[$2]($1)")
 	htmlText = strings.ReplaceAll(htmlText, "<br>", "\n")
 	return htmlText
 }

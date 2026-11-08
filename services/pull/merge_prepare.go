@@ -220,7 +220,7 @@ func getDiffTree(ctx context.Context, repo git.RepositoryFacade, baseBranch, hea
 			for scanner.Scan() {
 				treePath := scanner.Text()
 				// escape '*', '?', '[', spaces and '!' prefix
-				treePath = escapedSymbols.ReplaceAllString(treePath, `\$1`)
+				treePath = escapedSymbols().ReplaceAllString(treePath, `\$1`)
 				// no necessary to escape the first '#' symbol because the first symbol is '/'
 				if _, err := fmt.Fprintf(out, "/%s\n", treePath); err != nil {
 					return err
