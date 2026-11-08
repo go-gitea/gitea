@@ -72,6 +72,7 @@ func TestAPILockIssue(t *testing.T) {
 		req = NewRequest(t, "DELETE", urlStr).AddTokenAuth(token34)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
+
 	t.Run("DoerOnOrganizationRepo", func(t *testing.T) {
 		// the lock and unlock comments are posted by the signed-in user, not by the organization owning the repository
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
