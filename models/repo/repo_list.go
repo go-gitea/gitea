@@ -822,6 +822,8 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID}, DoerTokenRepoCond(opts.Actor))
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
+	} else if opts.Actor != nil && opts.Actor.ID > 0 && !opts.Actor.IsAdmin { // system users like Actions are checked per repo by the caller
+		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 	}
 
 	if len(opts.LowerNames) > 0 {

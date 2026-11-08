@@ -534,3 +534,61 @@ func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
 	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
 	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
 }
+
+func TestGetUserRepositoriesActorAccess(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	// org3 owns private repo3 and repo5 and public repo32; user4 only reaches repo3 through team2
+	list := func(actorID int64, private bool, pageSize int) ([]int64, int64) {
+		var actor *user_model.User
+		switch {
+		case actorID == user_model.ActionsUserID:
+			actor = user_model.NewActionsUserWithTaskID(47)
+		case actorID > 0:
+			actor = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: actorID})
+		}
+		repos, count, err := repo_model.GetUserRepositories(t.Context(), repo_model.SearchRepoOptions{
+			OwnerID:     3,
+			Actor:       actor,
+			Private:     private,
+			ListOptions: db.ListOptions{Page: 1, PageSize: pageSize},
+			OrderBy:     db.SearchOrderByID,
+		})
+		require.NoError(t, err)
+		return repoIDs(repos), count
+	}
+
+	ids, count := list(4, true, 10)
+	assert.Equal(t, []int64{3, 32}, ids)
+	assert.EqualValues(t, 2, count)
+
+	ids, count = list(4, true, 1)
+	assert.Equal(t, []int64{3}, ids)
+	assert.EqualValues(t, 2, count)
+
+	ids, count = list(5, true, 10)
+	assert.Equal(t, []int64{32}, ids)
+	assert.EqualValues(t, 1, count)
+
+	ids, count = list(4, false, 10)
+	assert.Equal(t, []int64{32}, ids)
+	assert.EqualValues(t, 1, count)
+
+	ids, count = list(2, true, 10)
+	assert.Equal(t, []int64{3, 5, 32}, ids)
+	assert.EqualValues(t, 3, count)
+
+	ids, count = list(1, true, 10)
+	assert.Equal(t, []int64{3, 5, 32}, ids)
+	assert.EqualValues(t, 3, count)
+
+	// internal callers pass no actor and must still see every repo
+	ids, count = list(0, true, 10)
+	assert.Equal(t, []int64{3, 5, 32}, ids)
+	assert.EqualValues(t, 3, count)
+
+	// Actions task permissions can't be expressed in SQL, the caller checks them per repo
+	ids, count = list(user_model.ActionsUserID, true, 10)
+	assert.Equal(t, []int64{3, 5, 32}, ids)
+	assert.EqualValues(t, 3, count)
+}
