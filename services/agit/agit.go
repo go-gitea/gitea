@@ -74,7 +74,7 @@ type ProcReceiveOptions struct {
 }
 
 // ProcReceive handle proc receive work
-func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *ProcReceiveOptions) ([]private.HookProcReceiveRefResult, error) {
+func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, perm access.Permission, opts *ProcReceiveOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
@@ -88,10 +88,6 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 	pusher := opts.Doer
 	userName := strings.ToLower(pusher.Name)
-	perm, err := access.GetDoerRepoPermission(ctx, repo, pusher)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get doer repo permission. Error: %w", err)
-	}
 
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
