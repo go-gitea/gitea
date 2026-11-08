@@ -31,3 +31,60 @@ export const POST = (url: string, opts?: RequestOpts) => request(url, {method: '
 export const PATCH = (url: string, opts?: RequestOpts) => request(url, {method: 'PATCH', ...opts});
 export const PUT = (url: string, opts?: RequestOpts) => request(url, {method: 'PUT', ...opts});
 export const DELETE = (url: string, opts?: RequestOpts) => request(url, {method: 'DELETE', ...opts});
+
+class ExclusiveResponse {
+  private readonly promiseResp: Promise<Response>;
+  private readonly exclusiveFetch: ExclusiveFetch;
+  private readonly abortController: AbortController;
+  private onResponseErrorFn: ((resp: Response) => void) | null = null;
+
+  constructor(exclusiveFetch: ExclusiveFetch, abortController: AbortController, promiseResp: Promise<Response>) {
+    this.exclusiveFetch = exclusiveFetch;
+    this.abortController = abortController;
+    this.promiseResp = promiseResp;
+  }
+
+  onResponseError(fn: (resp: Response) => void) {
+    this.onResponseErrorFn = fn;
+  }
+
+  private isAborted() {
+    return this.abortController.signal.aborted || this.exclusiveFetch.currentController !== this.abortController;
+  }
+
+  private async fetchGeneric<T>(fetchFn: (resp: Response) => Promise<T>, userFn: (ret: T) => void): Promise<boolean> {
+    try {
+      const resp = await this.promiseResp;
+      if (this.isAborted()) return false;
+      if (!resp.ok) {
+        this.onResponseErrorFn?.(resp);
+        return false;
+      }
+      const ret = await fetchFn(resp);
+      if (this.isAborted()) return false;
+      userFn(ret);
+      return true;
+    } catch (err) {
+      if (this.isAborted()) return false;
+      throw err;
+    }
+  }
+
+  async fetchText(fn: (text: string) => void): Promise<boolean> {
+    return this.fetchGeneric((resp) => resp.text(), fn);
+  }
+}
+
+export class ExclusiveFetch {
+  public currentController: AbortController | null = null;
+
+  request(url: string, {method = 'GET', data, headers = {}, ...other}: RequestOpts = {}): ExclusiveResponse {
+    if (this.currentController) {
+      this.currentController.abort();
+      this.currentController = null;
+    }
+    const controller = new AbortController();
+    this.currentController = controller;
+    return new ExclusiveResponse(this, controller, request(url, {method, data, headers, ...other, signal: controller.signal}));
+  }
+}
