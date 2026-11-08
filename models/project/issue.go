@@ -43,6 +43,12 @@ func columnIssueIDs(column *Column) []int64 {
 	return []int64{column.ID}
 }
 
+// LockProject serializes concurrent card moves of a project, avoiding row-lock deadlocks between them.
+func LockProject(ctx context.Context, projectID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project` SET id=id WHERE id=?", projectID)
+	return err
+}
+
 // ColumnIssueSorting is an issue's position in a column.
 type ColumnIssueSorting struct {
 	IssueID int64 `xorm:"issue_id"`

@@ -102,6 +102,9 @@ func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *is
 // MoveIssueAfter places the issue after prevIssueID, first for 0, last when it left the column.
 func MoveIssueAfter(ctx context.Context, doer *user_model.User, column *project_model.Column, issue *issues_model.Issue, prevIssueID int64) error {
 	moves, err := db.WithTx2(ctx, func(ctx context.Context) ([]columnMove, error) {
+		if err := project_model.LockProject(ctx, column.ProjectID); err != nil {
+			return nil, err
+		}
 		others, err := project_model.GetColumnIssueSortings(ctx, column, issue.ID)
 		if err != nil {
 			return nil, err
