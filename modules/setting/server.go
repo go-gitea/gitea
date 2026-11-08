@@ -96,6 +96,7 @@ var (
 	UnixSocketPermission       uint32
 	EnablePprof                bool
 	PprofDataPath              string
+	PerfTraceThreshold         time.Duration
 	EnableAcme                 bool
 	AcmeTOS                    bool
 	AcmeLiveDirectory          string
@@ -276,6 +277,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
+	PerfTraceThreshold = sec.Key("PERF_TRACE_THRESHOLD").MustDuration(util.Iif(IsProd, 2000*time.Millisecond, 100*time.Millisecond))
 	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data/tmp/pprof"))
 	if !filepath.IsAbs(PprofDataPath) {
 		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)

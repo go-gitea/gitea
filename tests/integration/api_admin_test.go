@@ -16,6 +16,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/perftrace"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -365,4 +366,24 @@ func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{Email: new("user2@example.org")}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
+}
+
+func TestAPIAdminPerfTraces(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	perftrace.Enable(time.Nanosecond) // record every request
+	defer perftrace.Enable(0)
+	MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/issues"), http.StatusOK)
+
+	adminToken := getUserToken(t, "user1", auth_model.AccessTokenScopeReadAdmin)
+	req := NewRequest(t, "GET", "/api/v1/admin/perf/traces?route=issues&exclude_long_running=true").AddTokenAuth(adminToken)
+	routes := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.PerfTraceRoute{})
+	if assert.NotEmpty(t, routes) {
+		assert.Contains(t, routes[0].Route, "issues")
+		assert.NotEmpty(t, routes[0].Records[0].Root.Children)
+	}
+
+	userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadAdmin)
+	req = NewRequest(t, "GET", "/api/v1/admin/perf/traces").AddTokenAuth(userToken)
+	MakeRequest(t, req, http.StatusForbidden)
 }

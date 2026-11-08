@@ -76,6 +76,9 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 			defer func() {
 				chiCtx := chi.RouteContext(req.Context())
 				span.SetAttributeString(gtprof.TraceAttrHTTPRoute, chiCtx.RoutePattern())
+				if routing.GetRequestRecordInfo(req.Context()).IsLongPolling {
+					span.SetAttributeString(gtprof.TraceAttrLongRunning, "true")
+				}
 				span.End()
 			}()
 
