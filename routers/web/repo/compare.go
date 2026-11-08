@@ -571,7 +571,7 @@ func CompareDiff(ctx *context.Context) {
 	}
 	ctx.Data["PageIsComparePull"] = comparePageInfo.allowCreatePull
 	ctx.Data["IsNothingToCompare"] = comparePageInfo.nothingToCompare
-	ctx.Data["CanCreatePullRequest"] = comparePageInfo.allowCreatePull && !ci.DirectComparison &&
+	ctx.Data["CanCreatePullRequest"] = comparePageInfo.allowCreatePull && !ci.DirectComparison() &&
 		(comparePageInfo.allowEmptyPull || !comparePageInfo.nothingToCompare) &&
 		ctx.Repo.PullRequestCtx.CanCreateNewPull()
 	ctx.HTML(http.StatusOK, tplCompare)
