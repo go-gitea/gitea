@@ -51,6 +51,69 @@ func EmitJobsIfReadyByJobs(jobs []*actions_model.ActionRunJob) {
 	}
 }
 
+// ReEmitUnresolvedRuns re-emits every run whose latest attempt looks stalled
+// by a lost job-completion transition: at least one job finished, but a
+// dependent job is still waiting, blocked or pending. A job completion is
+// normally only propagated through the in-memory jobEmitterQueue, so when
+// that emission is lost (process crash or shutdown before the worker runs,
+// or a completion report lost while the database is recovering) nothing
+// re-evaluates the run's remaining jobs, not even a restart. This sweep
+// re-derives the missing emission from run state instead of trusting the
+// queue. It is idempotent: re-checking a run whose jobs are genuinely still
+// in flight changes nothing, because the resolver only advances a job once
+// all of its needs are done.
+// Runs awaiting approval are left alone: only an approval may release them.
+// Runs whose latest attempt is fully settled, and runs with no finished job
+// yet (nothing could have been lost), are skipped, as are jobs belonging to
+// superseded attempts.
+func ReEmitUnresolvedRuns(ctx context.Context) error {
+	unresolved, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
+		Statuses: []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending},
+	})
+	if err != nil {
+		return fmt.Errorf("find unresolved jobs: %w", err)
+	}
+
+	runIDs := make(container.Set[int64])
+	for _, job := range unresolved {
+		runIDs.Add(job.RunID)
+	}
+	orderedRunIDs := runIDs.Values()
+	slices.Sort(orderedRunIDs)
+
+	for _, runID := range orderedRunIDs {
+		run, exist, err := db.GetByID[actions_model.ActionRun](ctx, runID)
+		if err != nil {
+			log.Warn("Re-emit unresolved run %d: load run: %v", runID, err)
+			continue
+		}
+		if !exist || run.Status.IsDone() || run.IsAwaitingApproval() {
+			continue
+		}
+		jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
+		if err != nil {
+			log.Warn("Re-emit unresolved run %d: load latest attempt jobs: %v", runID, err)
+			continue
+		}
+		var hasDone, hasUnresolved bool
+		for _, job := range jobs {
+			switch {
+			case job.Status.IsDone():
+				hasDone = true
+			case job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending):
+				hasUnresolved = true
+			}
+		}
+		if !hasDone || !hasUnresolved {
+			continue
+		}
+		if err := EmitJobsIfReadyByRun(run.ID); err != nil {
+			log.Error("Re-emit unresolved run %d: %v", run.ID, err)
+		}
+	}
+	return nil
+}
+
 func jobEmitterQueueHandler(items ...*jobUpdate) []*jobUpdate {
 	ctx := graceful.GetManager().ShutdownContext()
 	var ret []*jobUpdate

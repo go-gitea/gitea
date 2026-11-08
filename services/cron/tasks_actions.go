@@ -18,6 +18,7 @@ func initActionsTasks() {
 	registerStopZombieTasks()
 	registerStopEndlessTasks()
 	registerCancelAbandonedJobs()
+	registerReEmitUnresolvedActionRuns()
 	registerScheduleTasks()
 	registerActionsCleanup()
 	registerCleanupActionRuns()
@@ -50,6 +51,22 @@ func registerCancelAbandonedJobs() {
 		Schedule:   "@every 6h",
 	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return actions_service.CancelAbandonedJobs(ctx)
+	})
+}
+
+// registerReEmitUnresolvedActionRuns registers a task that recovers runs
+// stalled by a lost job-completion transition: a job finished, but the
+// in-memory emission that would re-evaluate its dependents never ran, so the
+// dependents stay waiting/blocked/pending forever. Running at startup heals
+// runs stalled by a crash or restart, and the periodic run heals runs whose
+// emission is lost while the server is up.
+func registerReEmitUnresolvedActionRuns() {
+	RegisterTaskFatal("reemit_unresolved_action_runs", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: true,
+		Schedule:   "@every 5m",
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
+		return actions_service.ReEmitUnresolvedRuns(ctx)
 	})
 }
 
