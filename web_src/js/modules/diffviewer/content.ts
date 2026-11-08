@@ -13,20 +13,29 @@ export function fileUrl(config: DiffViewerConfig, view: 'src' | 'raw' | 'media',
   return `${view === 'src' ? config.repoLink : config.rawLink}/${view}/commit/${encodeURIComponent(commitId)}/${pathEscapeSegments(path)}`;
 }
 
-async function fetchLines(config: DiffViewerConfig, url: string, tooLargeMessage: string): Promise<string[]> {
+// the size is counted while reading, a compressed or chunked response has no content-length to check
+async function fetchLines(url: string, maxSize: number, tooLargeMessage: string): Promise<string[]> {
   const response = await fetchOk(url);
-  if (config.maxFileSize >= 0 && Number(response.headers.get('content-length')) > config.maxFileSize) {
-    await response.body?.cancel();
-    throw new Error(tooLargeMessage);
+  if (maxSize < 0) return splitLines(await response.text());
+  const reader = response.body!.getReader();
+  const chunks: Uint8Array<ArrayBuffer>[] = [];
+  let size = 0;
+  for (let result = await reader.read(); !result.done; result = await reader.read()) {
+    size += result.value.length;
+    if (size > maxSize) {
+      await reader.cancel();
+      throw new Error(tooLargeMessage);
+    }
+    chunks.push(result.value);
   }
-  return splitLines(await response.text());
+  return splitLines(await new Blob(chunks).text());
 }
 
-// both versions of a text file
-export async function fetchFileContent(config: DiffViewerConfig, file: DiffStreamFile, tooLargeMessage: string): Promise<FileContent> {
+// both versions of a text file, each up to maxSize bytes (-1 for no limit)
+export async function fetchFileContent(config: DiffViewerConfig, file: DiffStreamFile, maxSize: number, tooLargeMessage: string): Promise<FileContent> {
   const [oldLines, newLines] = await Promise.all([
-    config.beforeCommitId && file.type !== 'added' ? fetchLines(config, fileUrl(config, 'raw', 'old', file.oldName), tooLargeMessage) : null,
-    file.type === 'deleted' ? [] : fetchLines(config, fileUrl(config, 'raw', 'new', file.name), tooLargeMessage),
+    config.beforeCommitId && file.type !== 'added' ? fetchLines(fileUrl(config, 'raw', 'old', file.oldName), maxSize, tooLargeMessage) : null,
+    file.type === 'deleted' ? [] : fetchLines(fileUrl(config, 'raw', 'new', file.name), maxSize, tooLargeMessage),
   ]);
   return {old: oldLines, new: newLines};
 }

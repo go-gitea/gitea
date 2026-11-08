@@ -361,6 +361,10 @@ func CompareDiffStream(ctx *context.Context) {
 		return
 	}
 	ci := comparePageInfo.compareInfo
+	if ci.CompareBase == "" { // nothing to compare, see prepareCompareDiff
+		ctx.NotFound(nil)
+		return
+	}
 	serveDiffStream(ctx, ci.HeadGitRepo, gitdiff.DiffStreamOptions{
 		DiffCommonOptions: gitdiff.DiffCommonOptions{BeforeCommitID: ci.CompareBase, AfterCommitID: ci.HeadCommitID},
 		RepoID:            ci.HeadRepo.ID,

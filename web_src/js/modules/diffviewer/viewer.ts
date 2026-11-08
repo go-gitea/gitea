@@ -136,24 +136,32 @@ export class DiffViewer {
     const entry = new DiffFile(file, parseHunks(file.hunks ?? ''), missing, Boolean(treeItem?.IsViewed || file.isGenerated));
     this.entries.push(entry);
     this.entriesByName.set(file.name, entry);
-    if (treeItem && !missing) {
-      const counts = entry.changeCounts();
-      treeItem.Additions = counts.additions;
-      treeItem.Deletions = counts.deletions;
-    }
+    if (!missing) this.updateTreeCounts(entry);
     if (entry.hunks.length) this.loadEntryHighlighter(entry);
     return entry;
+  }
+
+  updateTreeCounts(entry: DiffFile): void {
+    const treeItem = diffTreeStore().fullNameMap[entry.file.name];
+    if (!treeItem) return;
+    const counts = entry.changeCounts();
+    treeItem.Additions = counts.additions;
+    treeItem.Deletions = counts.deletions;
   }
 
   findEntry(path: string): DiffFile | undefined {
     return this.entriesByName.get(path) ?? this.entries.find((entry) => entry.file.oldName === path);
   }
 
-  // files without changes left after ignoring whitespace aren't streamed, neither are the ones beyond the size limit
+  // files without changes left after ignoring whitespace aren't streamed, neither are the ones beyond the size limit,
+  // they are put in the order of the file tree, which the streamed files already follow
   addMissingEntries(): void {
-    for (const item of diffTreeFiles(diffTreeStore())) {
-      if (!this.entriesByName.has(item.FullName)) this.addEntry(treeEntryToStreamFile(item), true);
-    }
+    const files = diffTreeFiles(diffTreeStore());
+    const missing = files.filter((item) => !this.entriesByName.has(item.FullName));
+    if (!missing.length) return;
+    for (const item of missing) this.addEntry(treeEntryToStreamFile(item), true);
+    const order = new Map(files.map((item, idx) => [item.FullName, idx]));
+    this.entries.sort((a, b) => (order.get(a.file.name) ?? Infinity) - (order.get(b.file.name) ?? Infinity));
   }
 
   async loadEntryHighlighter(entry: DiffFile): Promise<void> {
@@ -256,10 +264,11 @@ export class DiffViewer {
 
   // like the legacy viewer, small files are highlighted as a whole so that multi-line constructs around the hunks are known
   async highlightWithContent(entry: DiffFile): Promise<void> {
-    if (this.config.disableHighlight || entry.contentPromise || !this.canLoadContent(entry)) return;
+    if (this.config.disableHighlight || entry.contentPromise || entry.contentFailed || !this.canLoadContent(entry)) return;
     try {
-      await this.loadContent(entry);
+      await this.loadContent(entry, this.config.maxFileSize);
     } catch {
+      entry.contentFailed = true;
       return; // the hunks stay highlighted on their own
     }
     if (entry.element) {
@@ -268,14 +277,14 @@ export class DiffViewer {
     }
   }
 
-  loadContent(entry: DiffFile): Promise<FileContent> {
-    entry.contentPromise ??= this.fetchContent(entry);
+  loadContent(entry: DiffFile, maxSize: number): Promise<FileContent> {
+    entry.contentPromise ??= this.fetchContent(entry, maxSize);
     return entry.contentPromise;
   }
 
-  async fetchContent(entry: DiffFile): Promise<FileContent> {
+  async fetchContent(entry: DiffFile, maxSize: number): Promise<FileContent> {
     try {
-      entry.setContent(await fetchFileContent(this.config, entry.file, this.locale.fileSuppressed));
+      entry.setContent(await fetchFileContent(this.config, entry.file, maxSize, this.locale.fileSuppressed));
     } catch (error) {
       entry.contentPromise = null; // a later expansion tries again
       throw error;
@@ -284,7 +293,7 @@ export class DiffViewer {
   }
 
   async expand(entry: DiffFile, gapIndex: number, direction: ExpandDirection): Promise<void> {
-    const content = await this.loadContent(entry);
+    const content = await this.loadContent(entry, this.config.maxFileSize);
     const gap = this.gaps(entry).find((candidate) => candidate.index === gapIndex);
     if (gap) expandGap(entry.hunks, gap, direction, content.new);
     entry.invalidateRows();
@@ -344,7 +353,7 @@ export class DiffViewer {
         rendered.innerHTML = imageDiffHtml(entry, this.config, this.locale);
       } else if (!oldRendered) {
         renderCsvView(entry, rendered, async () => {
-          const content = await this.loadContent(entry);
+          const content = await this.loadContent(entry, this.config.csvMaxFileSize || -1); // its own limit, 0 is unlimited
           return {old: content.old?.join('\n') ?? null, new: entry.file.type === 'deleted' ? null : content.new.join('\n')};
         }, this.config.csvMaxFileSize, this.locale);
       }
@@ -406,8 +415,7 @@ export class DiffViewer {
       case 'loading': return locale.loading;
       case 'tooLarge': return locale.fileSuppressed;
       case 'binary': return locale.binNotShown;
-      case 'failed': return locale.loadFailed;
-      case 'diff': case null: return null;
+      case 'failed': case 'diff': case null: return null; // the pointers are diffed when the objects can't be read, like redirects to direct storage
     }
   }
 
@@ -448,6 +456,7 @@ export class DiffViewer {
     entry.file = loaded;
     entry.missing = false;
     entry.hunks = parseHunks(loaded.hunks ?? '');
+    this.updateTreeCounts(entry);
     if (entry.highlighter === undefined) await this.loadEntryHighlighter(entry);
     // the header shows the file's data too, so the element is built again
     this.list.unmount(entry);

@@ -18,6 +18,7 @@ export class DiffFile {
   lfsState: LfsState = null; // the diff of the LFS objects instead of their pointers
   content: FileContent | null = null; // for highlighting and expanding the context
   contentPromise: Promise<FileContent> | null = null; // while it loads
+  contentFailed = false; // loading it for highlighting isn't retried, an expansion is
   renderedLines: RenderedLines | null = null;
   contentSegments: {old: Segment[][] | null; new: Segment[][]} | null = null; // the highlighted content
   #hunks: DiffHunk[];
