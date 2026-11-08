@@ -6,6 +6,7 @@ package private
 import (
 	"errors"
 	"net/http"
+	"slices"
 
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
@@ -23,7 +24,8 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		ctx.Status(http.StatusNotFound)
 		return
 	}
-	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
+	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) ||
+		(slices.ContainsFunc(opts.RefFullNames, git.RefName.IsFor) && !assertCanCreatePullRequest(ctx, opts)) {
 		return
 	}
 

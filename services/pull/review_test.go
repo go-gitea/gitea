@@ -104,4 +104,13 @@ func TestCreateCodeCommentContextOfUnchangedLine(t *testing.T) {
 			assert.True(t, strings.HasSuffix(comment.Patch, "\n old 10\n"), "patch: %q", comment.Patch)
 		})
 	}
+
+	t.Run("ReplyToOtherUsersPendingReview", func(t *testing.T) {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+		require.NoError(t, issue.LoadRepo(ctx))
+		pendingComment, err := pull_service.CreateCodeComment(ctx, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), gitRepo, issue, 17, "test", treePath, true, 0, "", nil)
+		require.NoError(t, err)
+		_, err = pull_service.CreateCodeComment(ctx, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}), gitRepo, issue, 17, "test", treePath, false, pendingComment.ReviewID, "", nil)
+		assert.True(t, issues_model.IsErrReviewNotExist(err), "got: %v", err)
+	})
 }

@@ -141,6 +141,11 @@ func TestAgitPullPush(t *testing.T) {
 			WithDir(dstPath).
 			Run(t.Context())
 		assert.NoError(t, err)
+
+		_, stderr, _ = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/no-such-branch/test-agit-push").
+			WithDir(dstPath).
+			RunStdString(t.Context())
+		assert.Contains(t, stderr, "Unexpected ref: refs/for/no-such-branch/test-agit-push")
 	})
 }
 
