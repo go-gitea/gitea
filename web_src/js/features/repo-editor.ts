@@ -11,7 +11,7 @@ import {dirname} from '../utils.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {showErrorToast} from '../modules/toast.ts';
 
-export function initEditPreviewTab(elForm: HTMLFormElement) {
+function initEditPreviewTab(elForm: HTMLFormElement) {
   const elTabMenu = elForm.querySelector('.repo-editor-menu');
   if (!elTabMenu) return;
 
