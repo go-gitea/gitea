@@ -170,7 +170,7 @@
 
 		{{$showDiffBox := or .CommitCount .DiffShortStat.NumFiles}}
 		{{if and .IsSigned .PageIsComparePull}}
-			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
+			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare)) .PullRequestCtx.CanCreateNewPull}}
 			{{if .IsNothingToCompare}}
 				<div class="ui segment">
 					{{if $allowCreatePR}}

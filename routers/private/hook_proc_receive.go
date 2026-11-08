@@ -4,11 +4,8 @@
 package private
 
 import (
-	"errors"
 	"net/http"
 
-	issues_model "gitea.dev/models/issues"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/agit"
@@ -30,14 +27,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		Doer:           ctx.Doer,
 	})
 	if err != nil {
-		if errors.Is(err, issues_model.ErrMustCollaborator) {
-			ctx.PrivateUserErrorf(http.StatusUnauthorized, "You must be a collaborator to create pull request.")
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.PrivateUserErrorf(http.StatusUnauthorized, "Cannot create pull request because you are blocked by the repository owner.")
-		} else {
-			ctx.PrivateInternalErrorf("agit.ProcReceive failed: %v", err)
-		}
-
+		ctx.PrivateUserErrorAuto(err)
 		return
 	}
 

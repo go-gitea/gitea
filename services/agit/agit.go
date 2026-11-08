@@ -12,6 +12,7 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -87,6 +88,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 	pusher := opts.Doer
 	userName := strings.ToLower(pusher.Name)
+	perm, err := access.GetDoerRepoPermission(ctx, repo, pusher)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get doer repo permission. Error: %w", err)
+	}
 
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
@@ -193,7 +198,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				Issue:       prIssue,
 				PullRequest: pr,
 			}
-			if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
+			if err := pull_service.NewPullRequest(ctx, perm, prOpts); err != nil {
 				return nil, err
 			}
 

@@ -749,32 +749,25 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		} else {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 		}
+
 		if (opts.ExternalTracker == nil || opts.InternalTracker != nil) && !unit_model.TypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
-			var config *repo_model.IssuesConfig
-
+			unit, err := repo.GetUnit(ctx, unit_model.TypeIssues)
+			if err != nil && !errors.Is(err, util.ErrNotExist) {
+				return err
+			}
+			config := unit.IssuesConfig()
 			if opts.InternalTracker != nil {
 				config = &repo_model.IssuesConfig{
 					EnableTimetracker:                opts.InternalTracker.EnableTimeTracker,
 					AllowOnlyContributorsToTrackTime: opts.InternalTracker.AllowOnlyContributorsToTrackTime,
 					EnableDependencies:               opts.InternalTracker.EnableIssueDependencies,
 				}
-			} else if unit, err := repo.GetUnit(ctx, unit_model.TypeIssues); err != nil {
-				// Unit type doesn't exist so we make a new config file with default values
-				config = &repo_model.IssuesConfig{
-					EnableTimetracker:                true,
-					AllowOnlyContributorsToTrackTime: true,
-					EnableDependencies:               true,
+				if opts.InternalTracker.CreationRestriction != nil {
+					config.CreationRestriction = repo_model.CreationRestriction(*opts.InternalTracker.CreationRestriction)
 				}
-			} else {
-				config = unit.IssuesConfig()
 			}
-
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   unit_model.TypeIssues,
-				Config: config,
-			})
+			units = append(units, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeIssues, Config: config})
 		} else {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 		}
@@ -860,6 +853,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			optional.AssignPtrValue(changed, &config.AllowRebaseUpdate, opts.AllowRebaseUpdate)
 			optional.AssignPtrValue(changed, &config.DefaultDeleteBranchAfterMerge, opts.DefaultDeleteBranchAfterMerge)
 			optional.AssignPtrValue(changed, &config.DefaultAllowMaintainerEdit, opts.DefaultAllowMaintainerEdit)
+			if opts.PullRequestsCreationRestriction != nil {
+				config.CreationRestriction = repo_model.CreationRestriction(*opts.PullRequestsCreationRestriction)
+				*changed = true
+			}
 			optional.AssignPtrString(changed, &config.DefaultMergeStyle, opts.DefaultMergeStyle)
 			optional.AssignPtrString(changed, &config.DefaultUpdateStyle, opts.DefaultUpdateStyle)
 			optional.AssignPtrString(changed, &config.DefaultSquashMergeMessage, opts.SquashMergeCommitMessage)
