@@ -5,7 +5,6 @@ package git
 
 import (
 	"context"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -22,27 +21,13 @@ const (
 	pullSuffix = "/head"
 )
 
-// refNamePatternInvalid is regular expression with unallowed characters in git reference name
-// They cannot have ASCII control characters (i.e. bytes whose values are lower than \040, or \177 DEL), space, tilde ~, caret ^, or colon : anywhere.
-// They cannot have question-mark ?, asterisk *, or open bracket [ anywhere
-var refNamePatternInvalid = regexp.MustCompile(
-	`[\000-\037\177 \\~^:?*[]|` + // No absolutely invalid characters
-		`(?:^[/.])|` + // Not HasPrefix("/") or "."
-		`(?:/\.)|` + // no "/."
-		`(?:\.lock$)|(?:\.lock/)|` + // No ".lock/"" or ".lock" at the end
-		`(?:\.\.)|` + // no ".." anywhere
-		`(?://)|` + // no "//" anywhere
-		`(?:@{)|` + // no "@{"
-		`(?:[/.]$)|` + // no terminal '/' or '.'
-		`(?:^@$)`) // Not "@"
-
 // IsValidRefPattern ensures that the provided string could be a valid reference
 func IsValidRefPattern(name string) bool {
-	return !refNamePatternInvalid.MatchString(name)
+	return !globalVars().refNamePatternInvalid.MatchString(name)
 }
 
 func SanitizeRefPattern(name string) string {
-	return refNamePatternInvalid.ReplaceAllString(name, "_")
+	return globalVars().refNamePatternInvalid.ReplaceAllString(name, "_")
 }
 
 // Reference represents a Git ref.

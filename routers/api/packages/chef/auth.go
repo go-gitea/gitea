@@ -22,6 +22,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	user_model "gitea.dev/models/user"
@@ -34,13 +35,19 @@ const (
 	maxTimeDifference = 10 * time.Minute
 )
 
-var (
-	algorithmPattern     = regexp.MustCompile(`algorithm=(\w+)`)
-	versionPattern       = regexp.MustCompile(`version=(\d+\.\d+)`)
-	authorizationPattern = regexp.MustCompile(`\AX-Ops-Authorization-(\d+)`)
+var globalVars = sync.OnceValue(func() (ret struct {
+	algorithmPattern     *regexp.Regexp
+	versionPattern       *regexp.Regexp
+	authorizationPattern *regexp.Regexp
+},
+) {
+	ret.algorithmPattern = regexp.MustCompile(`algorithm=(\w+)`)
+	ret.versionPattern = regexp.MustCompile(`version=(\d+\.\d+)`)
+	ret.authorizationPattern = regexp.MustCompile(`\AX-Ops-Authorization-(\d+)`)
+	return ret
+})
 
-	_ auth.Method = &Auth{}
-)
+var _ auth.Method = &Auth{}
 
 // Documentation:
 // https://docs.chef.io/server/api_chef_server/#required-headers
@@ -139,7 +146,7 @@ func getSignVersion(req *http.Request) (string, error) {
 		return "", util.NewInvalidArgumentErrorf("X-Ops-Sign header missing")
 	}
 
-	m := versionPattern.FindStringSubmatch(hdr)
+	m := globalVars().versionPattern.FindStringSubmatch(hdr)
 	if len(m) != 2 {
 		return "", util.NewInvalidArgumentErrorf("invalid X-Ops-Sign header")
 	}
@@ -152,7 +159,7 @@ func getSignVersion(req *http.Request) (string, error) {
 
 	version := m[1]
 
-	m = algorithmPattern.FindStringSubmatch(hdr)
+	m = globalVars().algorithmPattern.FindStringSubmatch(hdr)
 	if len(m) == 2 && m[1] != "sha1" && !(m[1] == "sha256" && version == "1.3") {
 		return "", util.NewInvalidArgumentErrorf("unsupported algorithm")
 	}
@@ -181,7 +188,7 @@ func verifySignedHeaders(req *http.Request, version string, pub *rsa.PublicKey) 
 func getAuthorizationData(req *http.Request) ([]byte, error) {
 	valueList := make(map[int]string)
 	for k, vs := range req.Header {
-		if m := authorizationPattern.FindStringSubmatch(k); m != nil {
+		if m := globalVars().authorizationPattern.FindStringSubmatch(k); m != nil {
 			index, _ := strconv.Atoi(m[1])
 			var v string
 			if len(vs) == 0 {

@@ -42,12 +42,8 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     description: Not repo writer, user does not have rights to toggle stopwatch
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     description: Cannot start a stopwatch again if it already exists
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := prepareIssueForStopwatch(ctx)
 	if ctx.Written() {
@@ -95,12 +91,8 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     description: Not repo writer, user does not have rights to toggle stopwatch
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     description:  Cannot stop a non-existent stopwatch
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := prepareIssueForStopwatch(ctx)
 	if ctx.Written() {
@@ -147,12 +139,8 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     description: Not repo writer, user does not have rights to toggle stopwatch
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     description:  Cannot cancel a non-existent stopwatch
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := prepareIssueForStopwatch(ctx)
 	if ctx.Written() {

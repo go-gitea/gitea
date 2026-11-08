@@ -42,8 +42,8 @@ func GetGitignoreTemplateInfo(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitignoreTemplateInfo"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	name := util.PathJoinRelX(ctx.PathParam("name"))
 
 	text, err := options.Gitignore(name)

@@ -35,6 +35,7 @@ var (
 )
 
 type Specialization interface {
+	PublicPropertyNames() []string // only properties locating the file, the others are internal and can be large
 	OnBeforeRemovePackageAll(ctx context.Context, doer *user_model.User, pkg *packages_model.Package, pds []*packages_model.PackageDescriptor) error
 	OnBeforeRemovePackageVersion(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) error
 	GetViewPackageVersionData(ctx context.Context, pd *packages_model.PackageDescriptor) (any, error)
@@ -436,6 +437,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
 	case packages_model.TypeSwift:
 		typeSpecificSize = setting.Packages.LimitSizeSwift
+	case packages_model.TypeTerraformModule:
+		typeSpecificSize = setting.Packages.LimitSizeTerraformModule
 	case packages_model.TypeTerraformState:
 		typeSpecificSize = setting.Packages.LimitSizeTerraformState
 	case packages_model.TypeVagrant:

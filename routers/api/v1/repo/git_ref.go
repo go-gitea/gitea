@@ -36,8 +36,8 @@ func GetGitAllRefs(ctx *context.APIContext) {
 	//   "200":
 	// #   "$ref": "#/responses/Reference" TODO: swagger doesn't support different output formats by ref
 	//     "$ref": "#/responses/ReferenceList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	getGitRefsInternal(ctx, "")
 }
@@ -69,8 +69,8 @@ func GetGitRefs(ctx *context.APIContext) {
 	//   "200":
 	// #   "$ref": "#/responses/Reference" TODO: swagger doesn't support different output formats by ref
 	//     "$ref": "#/responses/ReferenceList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	getGitRefsInternal(ctx, ctx.PathParam("*"))
 }

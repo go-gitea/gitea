@@ -122,10 +122,8 @@ func SearchIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
@@ -322,8 +320,8 @@ func ListIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
@@ -374,24 +372,10 @@ func ListIssues(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
-
-	if isPull.Has() && !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull.Value()) {
-		ctx.APIErrorNotFound()
+	isPull, ok := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, ctx.FormString("type"))
+	if !ok {
+		ctx.APIError(http.StatusForbidden, "no permission to read issues or pulls")
 		return
-	}
-
-	if !isPull.Has() {
-		canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
-		canReadPulls := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
-		if !canReadIssues && !canReadPulls {
-			ctx.APIErrorNotFound()
-			return
-		} else if !canReadIssues {
-			isPull = optional.Some(true)
-		} else if !canReadPulls {
-			isPull = optional.Some(false)
-		}
 	}
 
 	// FIXME: we should be more efficient here
@@ -507,8 +491,8 @@ func GetIssue(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
@@ -528,7 +512,7 @@ func loadAssigneeUserIDs(ctx *context.APIContext, oneAssignee string, multipleAs
 		assigneeNames.Add(strings.ToLower(assignee))
 	}
 	assigneeNames.Remove("")
-	assignees, err := user_model.GetDoerUsersByNames(ctx, assigneeNames.Values())
+	assignees, err := user_model.GetRealDoerUsersByNames(ctx, assigneeNames.Values())
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: %s", err))
@@ -581,16 +565,8 @@ func CreateIssue(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "412":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.CreateIssueOption](ctx)
 	issue := &issues_model.Issue{
@@ -689,14 +665,8 @@ func EditIssue(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "412":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm[*api.EditIssueOption](ctx)
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
@@ -872,12 +842,8 @@ func DeleteIssue(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "423":
-	//     "$ref": "#/responses/repoArchivedError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {
 		return
@@ -941,10 +907,8 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/IssueDeadline"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.EditDeadlineOption](ctx)
 	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
 	if issue == nil {

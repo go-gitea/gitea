@@ -17,7 +17,7 @@ import {
   type DayData,
   type DayDataObject,
 } from '../utils/time.ts';
-import {chartJsColors} from '../utils/color.ts';
+import {chartJsColor} from '../utils/color.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
 import {computed, onMounted, shallowRef} from 'vue';
@@ -81,7 +81,7 @@ function toGraphData(data: DayData[]): ChartData<'bar'> {
       {
         data: data.map((i) => ({x: i.week, y: i.commits})),
         label: 'Commits',
-        backgroundColor: chartJsColors['commits'],
+        backgroundColor: chartJsColor('commits'),
         borderWidth: 0,
         tension: 0.3,
       } as unknown as ChartDataset<'bar'>,

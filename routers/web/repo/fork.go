@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -16,7 +17,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
@@ -60,7 +60,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	}
 	var orgs []*organization.Organization
 	for _, org := range ownedOrgs {
-		if forkRepo.OwnerID != org.ID && !repo_model.HasForkedRepo(ctx, org.ID, forkRepo.ID) {
+		if repository.CanUserForkBetweenOwners(forkRepo.OwnerID, org.ID) && !repo_model.HasForkedRepo(ctx, org.ID, forkRepo.ID) {
 			orgs = append(orgs, org)
 		}
 	}
@@ -69,14 +69,10 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	for {
 		if !repository.CanUserForkBetweenOwners(ctx.Doer.ID, traverseParentRepo.OwnerID) {
 			canForkToUser = false
-		} else {
-			for i, org := range orgs {
-				if org.ID == traverseParentRepo.OwnerID {
-					orgs = append(orgs[:i], orgs[i+1:]...)
-					break
-				}
-			}
 		}
+		orgs = slices.DeleteFunc(orgs, func(org *organization.Organization) bool {
+			return !repository.CanUserForkBetweenOwners(org.ID, traverseParentRepo.OwnerID)
+		})
 
 		if !traverseParentRepo.IsFork {
 			break
@@ -215,16 +211,7 @@ func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_serv
 		case repo_model.IsErrRepoAlreadyExist(err):
 			ctx.JSONError(ctx.Tr("repo.settings.new_owner_has_same_repo"))
 		case repo_model.IsErrRepoFilesAlreadyExist(err):
-			switch {
-			case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-				ctx.JSONError(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"))
-			case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-				ctx.JSONError(ctx.Tr("form.repository_files_already_exist.adopt"))
-			case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-				ctx.JSONError(ctx.Tr("form.repository_files_already_exist.delete"))
-			default:
-				ctx.JSONError(ctx.Tr("form.repository_files_already_exist"))
-			}
+			ctx.JSONError(ctx.Tr("form.repository_files_already_exist"))
 		case errors.As(err, &errNameReserved):
 			ctx.JSONError(ctx.Tr("repo.form.name_reserved", errNameReserved.Name))
 		case errors.As(err, &errNamePatternNotAllowed):

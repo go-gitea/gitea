@@ -88,6 +88,11 @@ conditional `UPDATE` or a lock.
   struct conditions and inserts of more than 1000 rows.
 - Paginated queries need a unique tiebreaker like `id` for a stable order.
 
+### Git
+
+- Pass already opened repositories down or use `git.RepositoryFromContextOrOpen`
+  rather than reopening them or spawning extra `git` processes.
+
 ## Dependencies
 
 Go dependencies are managed with [Go Modules](https://go.dev/ref/mod).
@@ -140,8 +145,8 @@ breaking v1.
 
 ### Adding and maintaining API routes
 
-- All possible results (errors, success, and failure messages) must be documented in
-  the swagger comments on the route.
+- Document success responses in the swagger comments on the route. Replace explicit
+  error responses with a `default` response referencing `#/responses/error`.
 - Every JSON request body must be defined as a struct in `modules/structs/` and
   registered in [`routers/api/v1/swagger/options.go`](../routers/api/v1/swagger/options.go).
 - Every JSON response must be defined as a struct in `modules/structs/` and

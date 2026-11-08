@@ -237,16 +237,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), tplSettingsOptions, &form)
 			case repo_model.IsErrRepoFilesAlreadyExist(err):
 				ctx.Data["Err_RepoName"] = true
-				switch {
-				case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tplSettingsOptions, form)
-				case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt"), tplSettingsOptions, form)
-				case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.delete"), tplSettingsOptions, form)
-				default:
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
-				}
+				ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
 			case errors.As(err, &errNamePatternNotAllowed):
 				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplSettingsOptions, &form)
 			default:
@@ -316,7 +307,10 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		handleSettingRemoteAddrError(ctx, err, form)
 		return
 	}
-	if u.User != nil {
+	storedAddr := *u.URL
+	storedAddr.User = nil
+	// the stored credentials are write-only, never let a changed address receive them
+	if u.User != nil && strings.TrimSpace(form.MirrorAddress) == storedAddr.String() {
 		if form.MirrorUsername == "" {
 			form.MirrorUsername = u.User.Username()
 		}
@@ -398,9 +392,9 @@ func handleSettingsPostPushMirrorSync(ctx *context.Context) {
 		return
 	}
 
-	m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
-	if m == nil {
-		ctx.NotFound(nil)
+	m, err := repo_model.GetPushMirrorByRepoID(ctx, repo.ID, form.PushMirrorID)
+	if err != nil {
+		ctx.ServerError("GetPushMirrorByRepoID", err)
 		return
 	}
 
@@ -429,9 +423,9 @@ func handleSettingsPostPushMirrorUpdate(ctx *context.Context) {
 		return
 	}
 
-	m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
-	if m == nil {
-		ctx.NotFound(nil)
+	m, err := repo_model.GetPushMirrorByRepoID(ctx, repo.ID, form.PushMirrorID)
+	if err != nil {
+		ctx.ServerError("GetPushMirrorByRepoID", err)
 		return
 	}
 
@@ -461,27 +455,16 @@ func handleSettingsPostPushMirrorRemove(ctx *context.Context) {
 		return
 	}
 
-	// This section doesn't require repo_name/RepoName to be set in the form, don't show it
-	// as an error on the UI for this action
-	ctx.Data["Err_RepoName"] = nil
-
-	m, _, _ := repo_model.GetPushMirrorByIDAndRepoID(ctx, form.PushMirrorID, repo.ID)
-	if m == nil {
-		ctx.NotFound(nil)
+	m, err := repo_model.GetPushMirrorByRepoID(ctx, repo.ID, form.PushMirrorID)
+	if err != nil {
+		ctx.ServerError("GetPushMirrorByRepoID", err)
 		return
 	}
 
-	if err := mirror_service.RemovePushMirrorRemote(ctx, m); err != nil {
-		ctx.ServerError("RemovePushMirrorRemote", err)
+	if err := mirror_service.DeleteRepoPushMirrorByID(ctx, repo.ID, m.ID); err != nil {
+		ctx.ServerError("DeleteRepoPushMirrorByID", err)
 		return
 	}
-
-	if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
-		ctx.ServerError("DeletePushMirrorByID", err)
-		return
-	}
-
-	audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, repo, "mirror_id", m.ID, "remote_address", m.RemoteAddress)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(repo.Link() + "/settings")
@@ -540,9 +523,6 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 	}
 
 	if err := mirror_service.AddPushMirrorRemote(ctx, m, address); err != nil {
-		if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
-			log.Error("DeletePushMirrors %v", err)
-		}
 		ctx.ServerError("AddPushMirrorRemote", err)
 		return
 	}
@@ -810,7 +790,7 @@ func handleSettingsPostConvert(ctx *context.Context) {
 	if _, err := repo_service.CleanUpMigrateInfo(ctx, repo); err != nil {
 		ctx.ServerError("CleanUpMigrateInfo", err)
 		return
-	} else if err = repo_model.DeleteMirrorByRepoID(ctx, ctx.Repo.Repository.ID); err != nil {
+	} else if err = repo_model.DeleteRepoPullMirror(ctx, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("DeleteMirrorByRepoID", err)
 		return
 	}

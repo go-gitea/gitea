@@ -42,13 +42,6 @@ type swaggerResponseLicenseTemplateInfo struct {
 	Body api.LicenseTemplateInfo `json:"body"`
 }
 
-// StringSlice
-// swagger:response StringSlice
-type swaggerResponseStringSlice struct {
-	// in:body
-	Body []string `json:"body"`
-}
-
 // LabelTemplateList
 // swagger:response LabelTemplateList
 type swaggerResponseLabelTemplateList struct {

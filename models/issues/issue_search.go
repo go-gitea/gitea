@@ -218,10 +218,7 @@ func applyRepoConditions(sess db.Session, opts *IssuesOptions) {
 		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
 	}
 	if opts.AllPublic {
-		if opts.RepoCond == nil {
-			opts.RepoCond = builder.NewCond()
-		}
-		opts.RepoCond = opts.RepoCond.Or(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(repo_model.PublicRepoUnderPublicOwnerCond())))
+		opts.RepoCond = builder.Or(opts.RepoCond, repo_model.PublicRepoUnderPublicOwnerCond())
 	}
 	if opts.RepoCond != nil {
 		sess.And(opts.RepoCond)
@@ -403,22 +400,17 @@ func applyReviewRequestedCondition(sess db.Session, reviewRequestedID int64) {
 		From("team_user").
 		Where(builder.Eq{"team_user.uid": reviewRequestedID})
 
-	// if the review is approved or rejected, it should not be shown in the review requested list
-	maxReview := builder.Select("MAX(r.id)").
-		From("review as r").
-		Where(builder.In("r.type", []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest})).
-		GroupBy("r.issue_id, r.reviewer_id, r.reviewer_team_id")
-
 	subQuery := builder.Select("review.issue_id").
 		From("review").
-		Where(builder.And(
-			builder.Eq{"review.type": ReviewTypeRequest},
-			builder.Or(
-				builder.Eq{"review.reviewer_id": reviewRequestedID},
-				builder.In("review.reviewer_team_id", existInTeamQuery),
-			),
-			builder.In("review.id", maxReview),
-		))
+		Where(builder.Eq{"review.type": ReviewTypeRequest}).
+		And(builder.Or(
+			builder.Eq{"review.reviewer_id": reviewRequestedID},
+			builder.In("review.reviewer_team_id", existInTeamQuery),
+		)).
+		// if the review is approved or rejected, it should not be shown in the review requested list
+		And(builder.NotExists(builder.Select("1").From("review as r").
+			Where(builder.Expr("r.issue_id = review.issue_id AND r.reviewer_id = review.reviewer_id AND r.reviewer_team_id = review.reviewer_team_id AND r.id > review.id").
+				And(builder.In("r.type", []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest})))))
 	sess.Where("issue.poster_id <> ?", reviewRequestedID).
 		And(builder.In("issue.id", subQuery))
 }

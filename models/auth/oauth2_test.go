@@ -9,10 +9,13 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 )
 
@@ -147,6 +150,13 @@ func TestOAuth2ApplicationAndGrant(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1, ClientSecret: app.ClientSecret})
 		assert.True(t, app.ValidateClientSecret([]byte(secret)))
 		assert.False(t, app.ValidateClientSecret([]byte("fewijfowejgfiowjeoifew")))
+
+		defer test.MockVariableValue(&setting.IsInTesting, false)()
+		_, err = app.GenerateClientSecret(t.Context())
+		require.NoError(t, err)
+		cost, err := bcrypt.Cost([]byte(app.ClientSecret))
+		require.NoError(t, err)
+		assert.Equal(t, bcrypt.DefaultCost, cost)
 	})
 
 	t.Run("CreateOAuth2Application", func(t *testing.T) {
@@ -161,6 +171,7 @@ func TestOAuth2ApplicationAndGrant(t *testing.T) {
 func BenchmarkOAuth2Application_GenerateClientSecret(b *testing.B) {
 	assert.NoError(b, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(b, &auth_model.OAuth2Application{ID: 1})
+	defer test.MockVariableValue(&setting.IsInTesting, false)()
 	for b.Loop() {
 		_, _ = app.GenerateClientSecret(b.Context())
 	}
