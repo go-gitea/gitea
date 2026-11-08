@@ -77,14 +77,6 @@ func labelIDs(labels []*issues_model.Label) []int64 {
 	return container.FilterSlice(labels, func(l *issues_model.Label) (int64, bool) { return l.ID, true })
 }
 
-// SeverityFromRating maps a CVSS rating, a score of 0 ("none") has no own severity
-func SeverityFromRating(rating string) advisory_model.Severity {
-	if rating == "none" {
-		return advisory_model.SeverityLow
-	}
-	return advisory_model.ParseSeverity(rating)
-}
-
 func tooLong(maxLength int, values ...string) bool {
 	return slices.ContainsFunc(values, func(s string) bool { return utf8.RuneCountInString(s) > maxLength })
 }
@@ -373,7 +365,7 @@ func scoreSeverity(opts *ContentOptions) (res cvssScores, err error) {
 		if severity != "" {
 			return res, util.NewInvalidArgumentErrorf("severity cannot be set together with a CVSS vector")
 		}
-		res.severity = SeverityFromRating(rating)
+		res.severity = advisory_model.ParseSeverity(rating) // a score of 0 is rated "none", which has no severity like on GitHub
 		return res, nil
 	}
 	if severity == "" {

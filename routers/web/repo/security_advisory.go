@@ -280,7 +280,7 @@ func SecurityAdvisoryCVSSPreview(ctx *context.Context) {
 	}
 	ctx.JSON(http.StatusOK, map[string]any{
 		"score":    r.Score,
-		"severity": ctx.Locale.TrString(advisory_service.SeverityFromRating(r.Rating).LocaleKey()),
+		"severity": ctx.Locale.TrString(advisory_model.ParseSeverity(r.Rating).LocaleKey()),
 	})
 }
 

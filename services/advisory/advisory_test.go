@@ -39,6 +39,16 @@ func TestValidateStateOptions(t *testing.T) {
 	}
 }
 
+func TestScoreSeverity(t *testing.T) {
+	res, err := scoreSeverity(&ContentOptions{CvssV4Vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:N/SC:N/SI:N/SA:N"})
+	require.NoError(t, err)
+	assert.Equal(t, advisory_model.SeverityUnknown, res.severity)
+
+	res, err = scoreSeverity(&ContentOptions{CvssV3Vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"})
+	require.NoError(t, err)
+	assert.Equal(t, advisory_model.SeverityMedium, res.severity)
+}
+
 func TestCollaboratorAndCreditRules(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
