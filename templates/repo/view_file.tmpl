@@ -105,7 +105,7 @@
 			{{else if .IsPlainText}}
 				<pre>{{if .FileContent}}{{.FileContent}}{{end}}</pre>
 			{{else if .FileContent}}
-				<table>
+				<table data-paste-markdown-skip>
 					<tbody>
 					{{range $idx, $code := .FileContent}}
 						{{$line := Eval $idx "+" 1}}
