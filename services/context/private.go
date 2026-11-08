@@ -73,7 +73,7 @@ func (ctx *PrivateContext) PrivateUserErrorf(status int, format string, args ...
 func (ctx *PrivateContext) PrivateUserErrorAuto(err error) {
 	msg, code := util.ErrorUnwrapForUser(err)
 	if msg != "" {
-		ctx.PrivateUserErrorf(code, msg)
+		ctx.PrivateUserErrorf(code, "%s", msg)
 	} else {
 		ctx.privateInternalErrorf(1, "%s", err.Error())
 	}

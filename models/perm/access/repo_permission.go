@@ -50,7 +50,7 @@ func (p *Permission) IsAdmin() bool {
 }
 
 func (p *Permission) IsMemberOrCollaborator() bool {
-	return p.isCollaborator || len(p.orgRepoTeams) > 0
+	return p.IsAdmin() || p.isCollaborator || len(p.orgRepoTeams) > 0
 }
 
 // HasAnyUnitAccess returns true if the user might have at least one access mode to any unit of this repository.

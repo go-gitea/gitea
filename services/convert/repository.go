@@ -60,13 +60,13 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 
 	// check enabled/disabled units
 	hasIssues := false
-	issuesCreationRestriction := string(repo_model.CreationRestrictionReader)
+	issuesCreationRestriction := repo_model.CreationRestrictionReader
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
 	if unit, err := repo.GetUnit(ctx, unit_model.TypeIssues); err == nil {
 		config := unit.IssuesConfig()
 		hasIssues = true
-		issuesCreationRestriction = string(config.CreationRestriction)
+		issuesCreationRestriction = config.CreationRestriction
 		internalTracker = &api.InternalTracker{
 			EnableTimeTracker:                config.EnableTimetracker,
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
@@ -110,7 +110,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	defaultSquashMergeMessage := repo_model.DefaultPullRequestsConfig().DefaultSquashMergeMessage
 	defaultAllowMaintainerEdit := false
 	defaultTargetBranch := ""
-	pullRequestsCreationRestriction := string(repo_model.CreationRestrictionReader)
+	pullRequestsCreationRestriction := repo_model.CreationRestrictionReader
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
@@ -130,7 +130,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		defaultSquashMergeMessage = config.DefaultSquashMergeMessage
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
 		defaultTargetBranch = config.DefaultTargetBranch
-		pullRequestsCreationRestriction = string(config.CreationRestriction)
+		pullRequestsCreationRestriction = config.CreationRestriction
 	}
 	hasProjects := false
 	projectsMode := repo_model.ProjectsModeAll

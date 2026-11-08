@@ -12,7 +12,8 @@ import (
 )
 
 func CheckCreationRestriction(perm access.Permission, unitType unit.Type, restriction string) error {
-	if restriction == repo_model.CreationRestrictionMember {
+	switch restriction {
+	case repo_model.CreationRestrictionMember:
 		if !perm.CanRead(unitType) {
 			return issues.Errors().MustRepoUnitReader
 		}
@@ -20,9 +21,9 @@ func CheckCreationRestriction(perm access.Permission, unitType unit.Type, restri
 			return issues.Errors().MustMemberOrCollaborator
 		}
 		return nil
-	} else if restriction == repo_model.CreationRestrictionWriter {
-		return util.Iif(perm.CanWrite(unitType), nil, issues.Errors().MustRepoUnitReader)
+	case repo_model.CreationRestrictionWriter:
+		return util.Iif(perm.CanWrite(unitType), nil, issues.Errors().MustRepoUnitWriter)
+	default:
+		return util.Iif(perm.CanRead(unitType), nil, issues.Errors().MustRepoUnitReader)
 	}
-	// fallback, default to "reader" restriction
-	return util.Iif(perm.CanRead(unitType), nil, issues.Errors().MustRepoUnitReader)
 }

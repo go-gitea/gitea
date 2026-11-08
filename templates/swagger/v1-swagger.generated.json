@@ -28615,11 +28615,6 @@
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
-        "issues_creation_restriction": {
-          "description": "who is allowed to create issues: \"reader\" (any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
-          "type": "string",
-          "x-go-name": "IssuesCreationRestriction"
-        },
         "mirror_interval": {
           "description": "set to a string like `8h30m0s` to set the mirror interval time",
           "type": "string",
@@ -28657,7 +28652,7 @@
           "x-go-name": "ProjectsMode"
         },
         "pull_requests_creation_restriction": {
-          "description": "who is allowed to create pull requests: \"reader\" (any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
+          "description": "who is allowed to create pull requests: \"reader\" (default, any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
           "type": "string",
           "x-go-name": "PullRequestsCreationRestriction"
         },
@@ -29800,6 +29795,11 @@
           "description": "Let only contributors track time (Built-in issue tracker)",
           "type": "boolean",
           "x-go-name": "AllowOnlyContributorsToTrackTime"
+        },
+        "creation_restriction": {
+          "description": "who is allowed to create issues: \"reader\" (default, any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
+          "type": "string",
+          "x-go-name": "CreationRestriction"
         },
         "enable_issue_dependencies": {
           "description": "Enable dependencies for issues and pull requests (Built-in issue tracker)",

@@ -756,14 +756,15 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			if err != nil && !errors.Is(err, util.ErrNotExist) {
 				return err
 			}
-			config := unit.IssuesConfig()
+			config := repo_model.DefaultIssuesConfig()
+			if err == nil {
+				config = unit.IssuesConfig()
+			}
 			if opts.InternalTracker != nil {
-				config = &repo_model.IssuesConfig{
-					EnableTimetracker:                opts.InternalTracker.EnableTimeTracker,
-					AllowOnlyContributorsToTrackTime: opts.InternalTracker.AllowOnlyContributorsToTrackTime,
-					EnableDependencies:               opts.InternalTracker.EnableIssueDependencies,
-					CreationRestriction:              optional.FromPtr(opts.InternalTracker.CreationRestriction).ValueOrDefault(config.CreationRestriction),
-				}
+				config.EnableTimetracker = opts.InternalTracker.EnableTimeTracker
+				config.AllowOnlyContributorsToTrackTime = opts.InternalTracker.AllowOnlyContributorsToTrackTime
+				config.EnableDependencies = opts.InternalTracker.EnableIssueDependencies
+				config.CreationRestriction = optional.FromPtr(opts.InternalTracker.CreationRestriction).ValueOrDefault(config.CreationRestriction)
 			}
 			units = append(units, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeIssues, Config: config})
 		} else {
