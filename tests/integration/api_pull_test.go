@@ -362,21 +362,30 @@ func TestAPICreatePullBasePermission(t *testing.T) {
 
 		AllowMaintainerEdit: new(false),
 	}
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
-
-	// add user4 to be a collaborator to base repo
 	ctx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, auth_model.AccessTokenScopeWriteRepository)
-	t.Run("AddUser4AsCollaborator", doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeRead))
+	t.Run("Base non-collaborator without head write access is forbidden", func(t *testing.T) {
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 
-	// create again
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
+	t.Run("Base read collaborator without head write access is forbidden", func(t *testing.T) {
+		doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeRead)(t)
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 
-	// Also test that AllowMaintainerEdit is set to false, the default "true" case is covered by TestAPICreatePullSuccess
-	prIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: prTitle})
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: prIssue.ID})
-	assert.False(t, pr.AllowMaintainerEdit)
+	t.Run("Base read collaborator with head write access can create pull request", func(t *testing.T) {
+		doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeRead)(t)
+		headCtx := NewAPITestContext(t, repo11.OwnerName, repo11.Name, auth_model.AccessTokenScopeWriteRepository)
+		doAPIAddCollaborator(headCtx, user4.Name, perm.AccessModeWrite)(t)
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// Also test that AllowMaintainerEdit is set to false, the default "true" case is covered by TestAPICreatePullSuccess
+		prIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: prTitle})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: prIssue.ID})
+		assert.False(t, pr.AllowMaintainerEdit)
+	})
 }
 
 func TestAPICreatePullHeadPermission(t *testing.T) {

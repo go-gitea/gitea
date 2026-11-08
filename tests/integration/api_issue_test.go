@@ -692,7 +692,7 @@ func testAPIIssueProjects(t *testing.T) {
 		Body:     "test body",
 		Projects: []int64{99999},
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusBadRequest)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test project from different repo (project 2 is for repo 3)
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
@@ -700,7 +700,7 @@ func testAPIIssueProjects(t *testing.T) {
 		Body:     "test body",
 		Projects: []int64{2},
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusBadRequest)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	readerToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteIssue)
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{Title: "issue by a reader", Projects: []int64{1}}).AddTokenAuth(readerToken)
