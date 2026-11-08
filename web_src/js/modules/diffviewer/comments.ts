@@ -33,7 +33,8 @@ type Thread = {target: LineTarget; comments: ViewerComment[]};
 
 type Composer = {form: HTMLFormElement; editorPromise: Promise<ComboMarkdownEditor>};
 
-const targetKey = (target: LineTarget) => `${target.path}|${target.side}|${target.line}`;
+const lineKey = (side: DiffSide, line: number | string) => `${side}|${line}`;
+const targetKey = (target: LineTarget) => `${target.path}|${lineKey(target.side, target.line)}`;
 
 // the code comments of a pull request: their threads below the lines, the composers of new comments and replies
 export class DiffComments {
@@ -68,7 +69,7 @@ export class DiffComments {
     for (const file of diffTreeFiles(store)) {
       const comments = this.commentsAt(file.FullName, file.OldFullName);
       if (!comments.length) continue;
-      const threads = Map.groupBy(comments, (comment) => `${comment.side}|${comment.line}`);
+      const threads = Map.groupBy(comments, (comment) => lineKey(comment.side, comment.line));
       const summaries = Array.from(threads.values(), (thread): DiffTreeCommentThread => ({
         id: thread[0].id,
         line: thread[0].line,
@@ -170,13 +171,13 @@ export class DiffComments {
     for (const row of entry.file.lfs ? [] : body.children as HTMLCollectionOf<HTMLElement>) {
       for (const side of ['old', 'new'] as const) {
         const line = row.getAttribute(`data-${side}`);
-        if (line) rows.set(`${side}|${line}`, row);
+        if (line) rows.set(lineKey(side, line), row);
       }
     }
     // the annotations below a row, grouped by side, the ones of lines outside the diff go above the first row
     const groups = new Map<HTMLElement | null, Record<DiffSide, HTMLElement[]>>();
     const add = (side: DiffSide, line: number, content: HTMLElement) => {
-      const anchor = rows.get(`${side}|${line}`) ?? null;
+      const anchor = rows.get(lineKey(side, line)) ?? null;
       let group = groups.get(anchor);
       if (!group) {
         group = {old: [], new: []};

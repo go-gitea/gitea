@@ -1,5 +1,4 @@
 import {watch} from 'vue';
-import {POST} from '../fetch.ts';
 import {trN, trString} from '../i18n.ts';
 import {parseHunks, type DiffSide} from './parse.ts';
 import {diffTreeFiles, diffTreeStore, diffTreeStoreSetViewed, filteredFileNames, type DiffTreeEntry} from '../diff-file.ts';
@@ -10,7 +9,7 @@ import {svgRaw, type SvgName} from '../../svg.ts';
 import {showErrorToast} from '../toast.ts';
 import {registerAsyncHashChangeListener} from '../hashchange.ts';
 import {errorMessage} from '../errors.ts';
-import {streamDiff, type DiffStreamFile} from './stream.ts';
+import {fetchOk, streamDiff, type DiffStreamFile} from './stream.ts';
 import {highlightLines, loadHighlighter, type Segment} from './highlight.ts';
 import {escapeButton, highlightHunkLines, linesToHtml, renderSplitRows, renderUnifiedRows, splitColgroup, unifiedColgroup} from './render.ts';
 import {detectEscapes, loadEscapeTables, type EscapeTables, type LineEscapes} from './escape.ts';
@@ -26,6 +25,7 @@ import type {DiffViewerConfig, DiffViewerLocale} from './types.ts';
 const lineHeight = 20;
 const headerHeight = 42;
 const noticeHeight = 45;
+const expanderIcons: Record<ExpandDirection, SvgName> = {up: 'octicon-fold-up', down: 'octicon-fold-down', all: 'octicon-fold'};
 
 function treeEntryToStreamFile(item: DiffTreeEntry): DiffStreamFile {
   return {name: item.FullName, oldName: item.OldFullName || item.FullName, nameHash: item.NameHash, type: item.DiffStatus, tabSize: 4};
@@ -122,7 +122,7 @@ export class DiffViewer {
 
   // waits briefly for the first file's grammar and the comments, so the first paint usually has them, and for the rest it needs
   async firstPaint(status: Element, file: DiffStreamFile, escapeTablesPromise: Promise<void> | null, commentsPromise: Promise<void>): Promise<void> {
-    const highlighterPromise = this.config.disableHighlight ? null : loadHighlighter(file.language);
+    const highlighterPromise = loadHighlighter(file.language);
     await Promise.all([Promise.race([Promise.all([highlighterPromise, commentsPromise]), sleep(300)]), escapeTablesPromise]);
     status.remove();
     this.updateVisibleEntries();
@@ -165,24 +165,21 @@ export class DiffViewer {
   }
 
   async loadEntryHighlighter(entry: DiffFile): Promise<void> {
-    if (this.config.disableHighlight) {
-      entry.highlighter = null;
-      return;
-    }
     entry.highlighter = await loadHighlighter(entry.file.language);
-    if (entry.highlighter && entry.element && entry.renderedLines) {
-      // the file was rendered before its grammar loaded
-      entry.invalidateHighlighting();
-      this.rehighlight(entry);
-    }
+    if (entry.highlighter && entry.element && entry.renderedLines) this.rehighlight(entry); // the file was rendered before its grammar loaded
   }
 
-  // updates the rendered lines in place, replacing the rows would lose a click in flight on them and the selection
+  // updates the changed lines in place, replacing the rows would lose a click in flight on them and the selection
   rehighlight(entry: DiffFile): void {
+    const previous = entry.renderedLines;
+    entry.invalidateHighlighting();
     const source = entry.element!.querySelector<HTMLElement>('.code-diff');
     if (!source?.querySelector('table')) return;
     const {html: lineHtml} = this.renderLines(entry);
-    for (const code of source.querySelectorAll<HTMLElement>('code.code-inner[data-line]')) code.innerHTML = lineHtml[Number(code.getAttribute('data-line'))];
+    for (const code of source.querySelectorAll<HTMLElement>('code.code-inner[data-line]')) {
+      const idx = Number(code.getAttribute('data-line'));
+      if (previous?.html[idx] !== lineHtml[idx]) code.innerHTML = lineHtml[idx];
+    }
     // the loaded content tells where the tail gap ends, its buttons are only replaced when they differ
     const tail = Array.from(source.querySelectorAll<HTMLElement>('tr.tag-code')).find((row) => Number(row.getAttribute('data-hunk')) === entry.hunks.length);
     if (!tail) return;
@@ -204,12 +201,14 @@ export class DiffViewer {
     if (entry.content) {
       // with the full file, the lines are highlighted with the context of the whole file
       const highlight = (code: string[]) => highlightLines(entry.highlighter, code);
-      entry.contentSegments ??= {old: entry.content.old && highlight(entry.content.old), new: highlight(entry.content.new)};
-      const {old: oldSegments, new: newSegments} = entry.contentSegments;
+      const {old: oldContent, new: newContent} = entry.content;
+      const cached = entry.contentSegments ??= {old: null, new: highlight(newContent)};
+      if (oldContent && !cached.old && lines.some((line) => line.type === 'del')) cached.old = highlight(oldContent); // only deleted lines need the old side
       segments = lines.map((line) => {
-        const lineSegments = line.type === 'del' ? oldSegments?.[line.oldNum - 1] : newSegments[line.newNum - 1];
+        const [lineSegments, lineContent] = line.type === 'del' ?
+          [cached.old?.[line.oldNum - 1], oldContent?.[line.oldNum - 1]] : [cached.new[line.newNum - 1], newContent[line.newNum - 1]];
         // the raw file may be decoded differently than the hunks, like a stripped BOM, then the ranges wouldn't match
-        return lineSegments?.map(([text]) => text).join('') === line.content ? lineSegments : [[line.content, '']];
+        return lineSegments && lineContent === line.content ? lineSegments : [[line.content, '']];
       });
     } else {
       segments = highlightHunkLines(lines, entry.highlighter);
@@ -249,14 +248,13 @@ export class DiffViewer {
       const gap = gapOfLine(gaps, comment.side, comment.line);
       if (gap) hiddenComments.set(gap.index, (hiddenComments.get(gap.index) ?? 0) + 1);
     }
-    const icons: Record<ExpandDirection, SvgName> = {up: 'octicon-fold-up', down: 'octicon-fold-down', all: 'octicon-fold'};
     const buttons = new Map<number, string>();
     for (const gap of gaps) {
       const directions = expandDirections(gap, entry.hunks.length);
       const commentCount = hiddenComments.get(gap.index);
       const badge = commentCount ? html`<span class="code-comment-more" data-tooltip-content="${trN(commentCount, this.locale.numComments1, this.locale.numComments)}">${commentCount}</span>` : '';
       buttons.set(gap.index, html`<div class="code-expander-buttons"${htmlRaw(directions.length === 2 ? ' data-expand-direction="updown"' : '')}>${htmlRaw(badge)}${htmlRaw(directions.map((direction) => html`
-        <button type="button" class="code-expander-button" data-expand="${direction}">${svgRaw(icons[direction])}</button>
+        <button type="button" class="code-expander-button" data-expand="${direction}">${svgRaw(expanderIcons[direction])}</button>
       `).join(''))}</div>`);
     }
     return buttons;
@@ -264,27 +262,28 @@ export class DiffViewer {
 
   // like the legacy viewer, small files are highlighted as a whole so that multi-line constructs around the hunks are known
   async highlightWithContent(entry: DiffFile): Promise<void> {
-    if (this.config.disableHighlight || entry.contentPromise || entry.contentFailed || !this.canLoadContent(entry)) return;
+    if (!this.canLoadContent(entry) || !await loadHighlighter(entry.file.language)) return;
     try {
-      await this.loadContent(entry, this.config.maxFileSize);
+      await this.loadContent(entry);
     } catch {
-      entry.contentFailed = true;
       return; // the hunks stay highlighted on their own
     }
-    if (entry.element) {
-      entry.renderedLines = null;
-      this.rehighlight(entry);
-    }
+    if (entry.element) this.rehighlight(entry);
   }
 
-  loadContent(entry: DiffFile, maxSize: number): Promise<FileContent> {
-    entry.contentPromise ??= this.fetchContent(entry, maxSize);
+  // the CSV view has its own size limit
+  contentLimit(entry: DiffFile): number {
+    return renderedKind(entry) === 'csv' ? this.config.csvMaxFileSize : this.config.maxFileSize;
+  }
+
+  loadContent(entry: DiffFile): Promise<FileContent> {
+    entry.contentPromise ??= this.fetchContent(entry);
     return entry.contentPromise;
   }
 
-  async fetchContent(entry: DiffFile, maxSize: number): Promise<FileContent> {
+  async fetchContent(entry: DiffFile): Promise<FileContent> {
     try {
-      entry.setContent(await fetchFileContent(this.config, entry.file, maxSize, this.locale.fileSuppressed));
+      entry.setContent(await fetchFileContent(this.config, entry.file, this.contentLimit(entry), this.locale.fileSuppressed));
     } catch (error) {
       entry.contentPromise = null; // a later expansion tries again
       throw error;
@@ -293,7 +292,7 @@ export class DiffViewer {
   }
 
   async expand(entry: DiffFile, gapIndex: number, direction: ExpandDirection): Promise<void> {
-    const content = await this.loadContent(entry, this.config.maxFileSize);
+    const content = await this.loadContent(entry);
     const gap = this.gaps(entry).find((candidate) => candidate.index === gapIndex);
     if (gap) expandGap(entry.hunks, gap, direction, content.new);
     entry.invalidateRows();
@@ -330,7 +329,6 @@ export class DiffViewer {
   }
 
   renderBody(entry: DiffFile): void {
-    if (!entry.content) this.highlightWithContent(entry);
     const body = entry.element!.querySelector<HTMLElement>('.diff-file-body')!;
     const oldSource = body.querySelector('.code-diff');
     const source = this.buildSource(entry);
@@ -353,7 +351,7 @@ export class DiffViewer {
         rendered.innerHTML = imageDiffHtml(entry, this.config, this.locale);
       } else if (!oldRendered) {
         renderCsvView(entry, rendered, async () => {
-          const content = await this.loadContent(entry, this.config.csvMaxFileSize || -1); // its own limit, 0 is unlimited
+          const content = await this.loadContent(entry);
           return {old: content.old?.join('\n') ?? null, new: entry.file.type === 'deleted' ? null : content.new.join('\n')};
         }, this.config.csvMaxFileSize, this.locale);
       }
@@ -472,6 +470,7 @@ export class DiffViewer {
       this.setViewed(entry, (e.target as HTMLInputElement).checked);
     });
     this.renderBody(entry);
+    this.highlightWithContent(entry); // once per file, a failed load is only retried by an expansion
     return box;
   }
 
@@ -496,8 +495,7 @@ export class DiffViewer {
     diffTreeStoreSetViewed(diffTreeStore(), entry.file.name, viewed);
     updateViewedFilesSummary(viewed ? 1 : -1);
     try {
-      const response = await POST(`${this.config.issueLink}/viewed-files`, {data: {files: {[entry.file.name]: viewed}, headCommitSHA: this.config.headCommitId}});
-      if (!response.ok) throw new Error(`Failed to update the viewed state: ${response.status}`);
+      await fetchOk(`${this.config.issueLink}/viewed-files`, {method: 'POST', data: {files: {[entry.file.name]: viewed}, headCommitSHA: this.config.headCommitId}});
     } catch (error) {
       showErrorToast(errorMessage(error));
     }

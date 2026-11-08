@@ -134,7 +134,9 @@ func StreamDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffStreamOp
 			}
 			file.Language = attrs.GetLanguage().Value()
 		}
-		if file.Language == "" && !file.IsBinary {
+		if setting.Git.DisableDiffHighlight {
+			file.Language = ""
+		} else if file.Language == "" && !file.IsBinary {
 			file.Language = analyze.GetCodeLanguage(file.Name, hunks.Bytes())
 		}
 		if file.Submodule != nil {
@@ -282,22 +284,25 @@ func isRenderedDiffFile(name string) bool {
 	return false
 }
 
+const maxSniffBlobSize = 1024 * 1024 // reading the first bytes streams the whole blob, which isn't worth it for large files
+
 // blobInfo returns the size of a blob and its image mime type, which is confirmed by sniffing the content if requested
 func blobInfo(ctx context.Context, gitRepo *git.Repository, blobID, imageMime string, sniff bool) (size int64, _ string) {
 	blob, err := gitRepo.GetBlob(blobID)
 	if err != nil {
 		return 0, "" // the file doesn't exist on this side
 	}
-	if !sniff {
-		return blob.Size(ctx), imageMime
+	size = blob.Size(ctx)
+	if !sniff || size > maxSniffBlobSize {
+		return size, imageMime
 	}
 	data, err := blob.GetBlobBytes(ctx, typesniffer.SniffContentSize)
 	if err != nil {
 		log.Error("blobInfo: GetBlobBytes: %v", err)
-		return blob.Size(ctx), ""
+		return size, ""
 	}
 	sniffed := typesniffer.DetectContentType(data)
-	return blob.Size(ctx), util.Iif(sniffed.IsImage(), sniffed.GetMimeType(), "")
+	return size, util.Iif(sniffed.IsImage(), sniffed.GetMimeType(), "")
 }
 
 func parseSubmoduleCommitLine(file *DiffStreamFile, line string) {

@@ -19,23 +19,22 @@ import (
 
 // diffViewerConfig is the page data the client-side diff viewer is driven by
 type diffViewerConfig struct {
-	StreamURL        string `json:"streamUrl"`
-	CommentsURL      string `json:"commentsUrl,omitempty"`
-	IssueLink        string `json:"issueLink,omitempty"`
-	RepoLink         string `json:"repoLink,omitempty"` // to browse the commits, empty for the wiki which can't
-	RawLink          string `json:"rawLink"`            // the files of the commits are loaded from "{RawLink}/raw/commit/{sha}/{path}"
-	BeforeCommitID   string `json:"beforeCommitId,omitempty"`
-	AfterCommitID    string `json:"afterCommitId"`
-	HeadCommitID     string `json:"headCommitId,omitempty"`   // of the pull request, the viewed files are tracked by it
-	ReviewCommitID   string `json:"reviewCommitId,omitempty"` // new comments are attached to it, the after commit of a pull request page
-	EditFileLink     string `json:"editFileLink,omitempty"`   // the file path is appended
-	EditReturnURI    string `json:"editReturnUri,omitempty"`
-	IsSplit          bool   `json:"isSplit"`
-	CanReviewFiles   bool   `json:"canReviewFiles"`
-	MaxFileSize      int64  `json:"maxFileSize"`
-	CsvMaxFileSize   int64  `json:"csvMaxFileSize"`
-	DisableHighlight bool   `json:"disableHighlight"`
-	DetectAmbiguous  bool   `json:"detectAmbiguous"`
+	StreamURL       string `json:"streamUrl"`
+	CommentsURL     string `json:"commentsUrl,omitempty"`
+	IssueLink       string `json:"issueLink,omitempty"`
+	RepoLink        string `json:"repoLink,omitempty"` // to browse the commits, empty for the wiki which can't
+	RawLink         string `json:"rawLink"`            // the files of the commits are loaded from "{RawLink}/raw/commit/{sha}/{path}"
+	BeforeCommitID  string `json:"beforeCommitId,omitempty"`
+	AfterCommitID   string `json:"afterCommitId"`
+	HeadCommitID    string `json:"headCommitId,omitempty"`   // of the pull request, the viewed files are tracked by it
+	ReviewCommitID  string `json:"reviewCommitId,omitempty"` // new comments are attached to it, the after commit of a pull request page
+	EditFileLink    string `json:"editFileLink,omitempty"`   // the file path is appended
+	EditReturnURI   string `json:"editReturnUri,omitempty"`
+	IsSplit         bool   `json:"isSplit"`
+	CanReviewFiles  bool   `json:"canReviewFiles"`
+	MaxFileSize     int64  `json:"maxFileSize"`
+	CsvMaxFileSize  int64  `json:"csvMaxFileSize"`
+	DetectAmbiguous bool   `json:"detectAmbiguous"`
 }
 
 type diffViewerOptions struct {
@@ -54,16 +53,15 @@ func prepareDiffViewer(ctx *context.Context, opts diffViewerOptions) *diffViewer
 	// the stream uses the same whitespace option as the page, which isn't persisted for anonymous users
 	opts.streamQuery.Set("whitespace", GetWhitespaceBehavior(ctx))
 	config := &diffViewerConfig{
-		StreamURL:        opts.streamPath + "?" + opts.streamQuery.Encode(),
-		RepoLink:         opts.gitRepoLink,
-		RawLink:          opts.rawLink,
-		BeforeCommitID:   opts.beforeCommitID,
-		AfterCommitID:    opts.afterCommitID,
-		IsSplit:          GetDiffViewStyle(ctx) == gitdiff.DiffStyleSplit,
-		MaxFileSize:      setting.Git.MaxDiffViewFileSize,
-		CsvMaxFileSize:   setting.UI.CSV.MaxFileSize,
-		DisableHighlight: setting.Git.DisableDiffHighlight,
-		DetectAmbiguous:  setting.UI.AmbiguousUnicodeDetection,
+		StreamURL:       opts.streamPath + "?" + opts.streamQuery.Encode(),
+		RepoLink:        opts.gitRepoLink,
+		RawLink:         opts.rawLink,
+		BeforeCommitID:  opts.beforeCommitID,
+		AfterCommitID:   opts.afterCommitID,
+		IsSplit:         GetDiffViewStyle(ctx) == gitdiff.DiffStyleSplit,
+		MaxFileSize:     setting.Git.MaxDiffViewFileSize,
+		CsvMaxFileSize:  util.Iif(setting.UI.CSV.MaxFileSize > 0, setting.UI.CSV.MaxFileSize, -1), // the CSV setting uses 0 for no limit
+		DetectAmbiguous: setting.UI.AmbiguousUnicodeDetection,
 	}
 	ctx.PageData["diffViewer"] = config
 	return config

@@ -1,7 +1,7 @@
-import {GET} from '../fetch.ts';
+import {request} from '../fetch.ts';
 import {streamDiff, type DiffStreamFile} from './stream.ts';
 
-vi.mock('../fetch.ts', () => ({GET: vi.fn()}));
+vi.mock('../fetch.ts', () => ({request: vi.fn()}));
 
 function respond(text: string) {
   const bytes = new TextEncoder().encode(text);
@@ -11,7 +11,7 @@ function respond(text: string) {
       controller.close();
     },
   });
-  vi.mocked(GET).mockResolvedValue(new Response(body));
+  vi.mocked(request).mockResolvedValue(new Response(body));
 }
 
 test('streamDiff', async () => {
@@ -24,6 +24,6 @@ test('streamDiff', async () => {
   respond('{"name":"a"}\n');
   expect((await streamDiff('/stream', () => {})).failed).toBe(true);
 
-  vi.mocked(GET).mockResolvedValue(new Response('', {status: 404}));
+  vi.mocked(request).mockResolvedValue(new Response('', {status: 404}));
   await expect(streamDiff('/stream', () => {})).rejects.toThrow('404');
 });

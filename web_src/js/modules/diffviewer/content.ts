@@ -44,7 +44,7 @@ export async function fetchFileContent(config: DiffViewerConfig, file: DiffStrea
 export async function fetchLfsHunks(config: DiffViewerConfig, file: DiffStreamFile): Promise<DiffHunk[] | null> {
   const {lfs, oldName, name} = file;
   const urls = [lfs!.old?.exists ? fileUrl(config, 'media', 'old', oldName) : null, lfs!.new?.exists ? fileUrl(config, 'media', 'new', name) : null];
-  const read = async (url: string | null, headers?: HeadersInit) => (url ? new Uint8Array(await (await fetchOk(url, headers)).arrayBuffer()) : new Uint8Array());
+  const read = async (url: string | null, headers?: Record<string, string>) => (url ? new Uint8Array(await (await fetchOk(url, {headers})).arrayBuffer()) : new Uint8Array());
   const starts = await Promise.all(urls.map((url) => read(url, {Range: `bytes=0-${lfsSniffLength - 1}`})));
   if (starts.some((data) => data.subarray(0, lfsSniffLength).includes(0))) return null;
   // a short start is the whole object

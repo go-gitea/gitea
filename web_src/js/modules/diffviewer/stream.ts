@@ -1,4 +1,5 @@
-import {GET} from '../fetch.ts';
+import {request} from '../fetch.ts';
+import type {RequestOpts} from '../../types.ts';
 import type {DiffStatus} from '../diff-file.ts';
 
 type DiffStreamLFSObject = {size: number; exists: boolean};
@@ -28,8 +29,8 @@ export type DiffStreamFile = {
 
 type DiffStreamEnd = {end: true; truncated: boolean; failed: boolean};
 
-export async function fetchOk(url: string, headers?: HeadersInit): Promise<Response> {
-  const response = await GET(url, {headers});
+export async function fetchOk(url: string, opts?: RequestOpts): Promise<Response> {
+  const response = await request(url, opts);
   if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
   return response;
 }
@@ -47,14 +48,9 @@ export async function streamDiff(url: string, onFile: (file: DiffStreamFile) => 
     else onFile(item);
   };
   for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
-    const text = chunk.value;
-    let start = 0;
-    for (let newline = text.indexOf('\n'); newline !== -1; newline = text.indexOf('\n', start)) {
-      handleLine(pending + text.slice(start, newline));
-      pending = '';
-      start = newline + 1;
-    }
-    pending += text.slice(start);
+    const lines = (pending + chunk.value).split('\n');
+    pending = lines.pop()!;
+    for (const line of lines) handleLine(line);
   }
   handleLine(pending);
   return end;

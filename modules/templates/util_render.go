@@ -310,8 +310,7 @@ func (ut *RenderUtils) RenderDiffSnippet(patch, filename string) template.HTML {
 	locale := ut.locale()
 	config, err := json.Marshal(map[string]any{
 		"patch":              patch,
-		"language":           analyze.GetCodeLanguage(filename, []byte(patch)),
-		"disableHighlight":   setting.Git.DisableDiffHighlight,
+		"language":           util.Iif(setting.Git.DisableDiffHighlight, "", analyze.GetCodeLanguage(filename, []byte(patch))),
 		"detectAmbiguous":    setting.UI.AmbiguousUnicodeDetection,
 		"ambiguousRunesLine": locale.TrString("repo.ambiguous_runes_line"),
 		"invisibleRunesLine": locale.TrString("repo.invisible_runes_line"),

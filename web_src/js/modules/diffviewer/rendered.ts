@@ -99,7 +99,7 @@ export async function renderCsvView(entry: DiffFile, container: HTMLElement, loa
   maxFileSize: number, locale: DiffViewerLocale): Promise<void> {
   const message = (text: string) => container.replaceChildren(createElementFromAttrs('div', {class: 'ui center'}, text));
   const {file} = entry;
-  if (maxFileSize > 0 && Math.max(file.oldSize ?? 0, file.newSize ?? 0) > maxFileSize) {
+  if (maxFileSize >= 0 && Math.max(file.oldSize ?? 0, file.newSize ?? 0) > maxFileSize) {
     message(locale.csvTooLarge);
     return;
   }

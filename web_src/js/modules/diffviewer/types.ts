@@ -18,7 +18,6 @@ export type DiffViewerConfig = {
   canReviewFiles: boolean;
   maxFileSize: number;
   csvMaxFileSize: number;
-  disableHighlight: boolean;
   detectAmbiguous: boolean;
 };
 

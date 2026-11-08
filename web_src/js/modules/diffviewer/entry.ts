@@ -5,7 +5,7 @@ import {gapsOf, type Gap} from './expand.ts';
 import {hunksLineCount, pairChangedLines} from './render.ts';
 
 export type FileContent = {old: string[] | null; new: string[]}; // the lines of the whole file, old is null for added files
-export type LfsState = 'loading' | 'tooLarge' | 'binary' | 'diff' | 'failed' | null;
+type LfsState = 'loading' | 'tooLarge' | 'binary' | 'diff' | 'failed' | null;
 export type RenderedLines = {html: string[]; escapeButtons: string[]}; // in hunk order, escapeButtons are the unicode escape toggles
 
 // a file of the diff and the data derived from its hunks, which is dropped when the hunks change
@@ -18,13 +18,13 @@ export class DiffFile {
   lfsState: LfsState = null; // the diff of the LFS objects instead of their pointers
   content: FileContent | null = null; // for highlighting and expanding the context
   contentPromise: Promise<FileContent> | null = null; // while it loads
-  contentFailed = false; // loading it for highlighting isn't retried, an expansion is
   renderedLines: RenderedLines | null = null;
   contentSegments: {old: Segment[][] | null; new: Segment[][]} | null = null; // the highlighted content
   #hunks: DiffHunk[];
   #linePairs: Int32Array | null = null;
   #rowIndex: Record<DiffSide, Map<number, number>> | null = null;
   #rowCount: number | null = null;
+  #changeCounts: {additions: number; deletions: number} | null = null;
   #lines: DiffLine[] | null = null;
   #gaps: Gap[] | null = null;
 
@@ -55,6 +55,7 @@ export class DiffFile {
     this.#linePairs = null;
     this.#rowIndex = null;
     this.#rowCount = null;
+    this.#changeCounts = null;
     this.#lines = null;
     this.#gaps = null;
   }
@@ -72,13 +73,16 @@ export class DiffFile {
   }
 
   changeCounts(): {additions: number; deletions: number} {
-    let additions = 0;
-    let deletions = 0;
-    for (const line of this.lines) {
-      if (line.type === 'add') additions++;
-      else if (line.type === 'del') deletions++;
+    if (!this.#changeCounts) {
+      let additions = 0;
+      let deletions = 0;
+      for (const line of this.lines) {
+        if (line.type === 'add') additions++;
+        else if (line.type === 'del') deletions++;
+      }
+      this.#changeCounts = {additions, deletions};
     }
-    return {additions, deletions};
+    return this.#changeCounts;
   }
 
   // the paired line of each line in hunk order, see pairChangedLines

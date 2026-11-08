@@ -157,6 +157,7 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	// Treat as pull request if both references are branches
 	cpi.allowCreatePull = baseRef.IsBranch() && headRef.IsBranch() && permBase.CanReadIssuesOrPulls(true)
 	cpi.allowCreatePull = cpi.allowCreatePull && compareInfo.CompareBase != ""
+	cpi.nothingToCompare = compareInfo.CompareBase == ""
 	cpi.compareInfo = &compareInfo
 	return nil
 }
@@ -226,8 +227,7 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 // prepareCompareDiff renders compare diff page. TODO: need to refactor it and other "compare diff" related functions together
 func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitespaceBehavior gitcmd.TrustedCmdArgs) {
 	ci := cpi.compareInfo
-	if ci.CompareBase == "" {
-		cpi.nothingToCompare = true
+	if cpi.nothingToCompare {
 		return
 	}
 	repo := ctx.Repo.Repository
@@ -360,11 +360,11 @@ func CompareDiffStream(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ci := comparePageInfo.compareInfo
-	if ci.CompareBase == "" { // nothing to compare, see prepareCompareDiff
+	if comparePageInfo.nothingToCompare {
 		ctx.NotFound(nil)
 		return
 	}
+	ci := comparePageInfo.compareInfo
 	serveDiffStream(ctx, ci.HeadGitRepo, gitdiff.DiffStreamOptions{
 		DiffCommonOptions: gitdiff.DiffCommonOptions{BeforeCommitID: ci.CompareBase, AfterCommitID: ci.HeadCommitID},
 		RepoID:            ci.HeadRepo.ID,

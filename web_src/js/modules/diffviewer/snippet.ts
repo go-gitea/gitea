@@ -11,7 +11,6 @@ import {escapeButton, highlightHunkLines, linesToHtml, pairChangedLines, renderU
 type SnippetConfig = {
   patch: string;
   language: string;
-  disableHighlight: boolean;
   detectAmbiguous: boolean;
   ambiguousRunesLine: string;
   invisibleRunesLine: string;
@@ -25,7 +24,7 @@ export function initDiffSnippet(): void {
     const hunks = parseHunks(config.patch);
     const lines = hunks.flatMap((hunk) => hunk.lines);
     const [highlighter, escapeTables] = await Promise.all([
-      config.disableHighlight ? null : loadHighlighter(config.language),
+      loadHighlighter(config.language),
       config.detectAmbiguous ? loadEscapeTables(getCurrentLocale()) : null,
     ]);
     const escapes = lines.map((line) => (escapeTables ? detectEscapes(line.content, escapeTables, (char, confusable) => trString(config.ambiguousCharacter, char, confusable)) : null));
