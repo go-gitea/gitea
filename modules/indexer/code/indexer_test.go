@@ -61,17 +61,10 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 				{Path: "unicode.txt", Content: unicodeSearchContent},
 			},
 		}}))
-		assert.NoError(t, setupRepositoryIndexes(t.Context(), indexer))
-		// Wait for the index to catch up: ES/OpenSearch make writes visible
-		// only after a refresh (default interval: 1s). Bleve is synchronous
-		// and passes on the first iteration.
-		require.Eventually(t, func() bool {
-			total, _, _, err := indexer.Search(t.Context(), &internal.SearchOptions{
-				Keyword:   "Description",
-				Paginator: &db.ListOptions{Page: 1, PageSize: 1},
-			})
-			return err == nil && total > 0
-		}, 10*time.Second, 100*time.Millisecond, "index did not become searchable")
+		require.NoError(t, setupRepositoryIndexes(t.Context(), indexer))
+		if refresher, ok := indexer.(interface{ Refresh(context.Context) error }); ok {
+			require.NoError(t, refresher.Refresh(t.Context()))
+		}
 
 		keywords := []struct {
 			RepoIDs    []int64

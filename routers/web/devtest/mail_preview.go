@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -19,7 +20,9 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-var mailDarkSchemeQuery = regexp.MustCompile(`@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)`)
+var mailDarkSchemeQuery = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)`)
+})
 
 func mailPreviewMockData(tmplName string) (map[string]any, error) {
 	mockData := map[string]any{}
@@ -51,7 +54,7 @@ func MailPreviewRender(ctx *context.Context) {
 	body = strings.ReplaceAll(body, `src="cid:`, `src="`+setting.AppSubURL+`/devtest/mail-preview-embed/`)
 	// a page can force "color-scheme" on an embedded document but never "prefers-color-scheme"
 	if scheme := ctx.FormString("scheme"); scheme == "light" || scheme == "dark" {
-		body = mailDarkSchemeQuery.ReplaceAllString(body, util.Iif(scheme == "dark", "@media all", "@media not all"))
+		body = mailDarkSchemeQuery().ReplaceAllString(body, util.Iif(scheme == "dark", "@media all", "@media not all"))
 		body = strings.Replace(body, "</head>", "<style>:root {color-scheme: "+scheme+"}</style></head>", 1)
 	}
 	// fragment templates like "mail/base/head" would be sniffed as text/plain otherwise

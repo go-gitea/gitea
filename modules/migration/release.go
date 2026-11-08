@@ -34,6 +34,7 @@ type Release struct {
 	Body            string
 	Draft           bool
 	Prerelease      bool
+	Latest          bool
 	PublisherID     int64  `yaml:"publisher_id"`
 	PublisherName   string `yaml:"publisher_name"`
 	PublisherEmail  string `yaml:"publisher_email"`
