@@ -375,53 +375,6 @@ func Download(ctx *context.Context) {
 	}
 }
 
-// InitiateDownload will enqueue an archival request, as needed.  It may submit
-// a request that's already in-progress, but the archiver service will just
-// kind of drop it on the floor if this is the case.
-func InitiateDownload(ctx *context.Context) {
-	if !checkDownloadTokenScope(ctx) {
-		return
-	}
-
-	paths := ctx.FormStrings("path")
-	if setting.Repository.StreamArchives || len(paths) > 0 {
-		ctx.JSON(http.StatusOK, map[string]any{
-			"complete": true,
-		})
-		return
-	}
-	aReq, err := archiver_service.NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"), paths)
-	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "invalid archive request")
-		return
-	}
-	if aReq == nil {
-		ctx.HTTPError(http.StatusNotFound)
-		return
-	}
-
-	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.Repo.ID, aReq.Type, aReq.CommitID)
-	if err != nil {
-		ctx.ServerError("archiver_service.StartArchive", err)
-		return
-	}
-	if archiver == nil || archiver.Status != repo_model.ArchiverReady {
-		if err := archiver_service.StartArchive(aReq); err != nil {
-			ctx.ServerError("archiver_service.StartArchive", err)
-			return
-		}
-	}
-
-	var completed bool
-	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
-		completed = true
-	}
-
-	ctx.JSON(http.StatusOK, map[string]any{
-		"complete": completed,
-	})
-}
-
 // SearchRepo repositories via options
 func SearchRepo(ctx *context.Context) {
 	page := ctx.FormInt("page")

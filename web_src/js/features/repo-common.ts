@@ -1,41 +1,9 @@
-import {queryElems, toggleElem} from '../utils/dom.ts';
-import {errorMessage} from '../modules/errors.ts';
-import {POST} from '../modules/fetch.ts';
-import {showErrorToast} from '../modules/toast.ts';
-import {sleep} from '../utils.ts';
+import {toggleElem} from '../utils/dom.ts';
 import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
 import {createApp} from 'vue';
 import {createTippy} from '../modules/tippy.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-
-async function onDownloadArchive(e: Event) {
-  e.preventDefault();
-  // there are many places using the "archive-link", eg: the dropdown on the repo code page, the release list
-  const el = (e.target as HTMLElement).closest<HTMLAnchorElement>('a.archive-link[href]')!;
-  const targetLoading = el.closest('.ui.dropdown') ?? el;
-  targetLoading.classList.add('is-loading', 'loading-icon-2px');
-  try {
-    for (let tryCount = 0; ;tryCount++) {
-      const response = await POST(el.href);
-      if (!response.ok) throw new Error(`Invalid server response: ${response.status}`);
-
-      const data = await response.json();
-      if (data.complete) break;
-      await sleep(Math.min((tryCount + 1) * 750, 2000));
-    }
-    window.location.assign(el.href); // the archive is ready, start real downloading
-  } catch (e) {
-    console.error(e);
-    showErrorToast(`Failed to download the archive: ${errorMessage(e)}`, {duration: 2500});
-  } finally {
-    targetLoading.classList.remove('is-loading', 'loading-icon-2px');
-  }
-}
-
-export function initRepoArchiveLinks() {
-  queryElems(document, 'a.archive-link[href]', (el) => el.addEventListener('click', onDownloadArchive));
-}
 
 export function initRepoActivityTopAuthorsChart() {
   const el = document.querySelector('#repo-activity-top-authors-chart');

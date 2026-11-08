@@ -72,10 +72,10 @@ STORAGE_TYPE = minio
 	assert.Equal(t, "gitea", Packages.Storage.MinioConfig.Bucket)
 	assert.Equal(t, "packages/", Packages.Storage.MinioConfig.BasePath)
 
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "gitea", RepoArchive.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.EqualValues(t, "minio", LFS.Storage.Type)
+	assert.Equal(t, "gitea", LFS.Storage.MinioConfig.Bucket)
+	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
 
 	assert.NoError(t, loadActionsFrom(cfg))
 	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
@@ -110,10 +110,10 @@ STORAGE_TYPE = azureblob
 	assert.Equal(t, "gitea", Packages.Storage.AzureBlobConfig.Container)
 	assert.Equal(t, "packages/", Packages.Storage.AzureBlobConfig.BasePath)
 
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "azureblob", RepoArchive.Storage.Type)
-	assert.Equal(t, "gitea", RepoArchive.Storage.AzureBlobConfig.Container)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.AzureBlobConfig.BasePath)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.EqualValues(t, "azureblob", LFS.Storage.Type)
+	assert.Equal(t, "gitea", LFS.Storage.AzureBlobConfig.Container)
+	assert.Equal(t, "lfs/", LFS.Storage.AzureBlobConfig.BasePath)
 
 	assert.NoError(t, loadActionsFrom(cfg))
 	assert.EqualValues(t, "azureblob", Actions.LogStorage.Type)
@@ -157,28 +157,28 @@ func testLocalStoragePath(t *testing.T, appDataPath, iniStr string, cases []test
 
 func Test_getStorageInheritStorageTypeLocal(t *testing.T) {
 	for _, tc := range []struct {
-		name, ini, basePath, archivePath string
+		name, ini, basePath, lfsPath string
 	}{
 		{"Default", `
 [storage]
 STORAGE_TYPE = local
-`, "/appdata", "/appdata/repo-archive"},
+`, "/appdata", "/appdata/lfs"},
 		{"Path", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
-`, "/data/gitea", "/data/gitea/repo-archive"},
+`, "/data/gitea", "/data/gitea/lfs"},
 		{"RelativePath", `
 [storage]
 STORAGE_TYPE = local
 PATH = storages
-`, "/appdata/storages", "/appdata/storages/repo-archive"},
+`, "/appdata/storages", "/appdata/storages/lfs"},
 		{"PathOverride", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
 
-[repo-archive]
+[lfs]
 PATH = /data/gitea/the-archives-dir
 `, "/data/gitea", "/data/gitea/the-archives-dir"},
 		{"PathOverrideEmpty", `
@@ -186,49 +186,48 @@ PATH = /data/gitea/the-archives-dir
 STORAGE_TYPE = local
 PATH = /data/gitea
 
-[repo-archive]
-`, "/data/gitea", "/data/gitea/repo-archive"},
+[lfs]
+`, "/data/gitea", "/data/gitea/lfs"},
 		{"RelativePathOverride", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
 
-[repo-archive]
+[lfs]
 PATH = the-archives-dir
 `, "/data/gitea", "/data/gitea/the-archives-dir"},
 		{"PathOverride3", `
-[storage.repo-archive]
+[storage.lfs]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
 `, "/appdata", "/data/gitea/archives"},
 		{"PathOverride3_5", `
-[storage.repo-archive]
+[storage.lfs]
 STORAGE_TYPE = local
 PATH = a-relative-path
 `, "/appdata", "/appdata/a-relative-path"},
 		{"PathOverride4", `
-[storage.repo-archive]
+[storage.lfs]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
 
-[repo-archive]
+[lfs]
 PATH = /tmp/gitea/archives
 `, "/appdata", "/tmp/gitea/archives"},
 		{"PathOverride5", `
-[storage.repo-archive]
+[storage.lfs]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
 
-[repo-archive]
+[lfs]
 `, "/appdata", "/data/gitea/archives"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			testLocalStoragePath(t, "/appdata", tc.ini, []testLocalStoragePathCase{
 				{loadAttachmentFrom, &Attachment.Storage, tc.basePath + "/attachments"},
-				{loadLFSFrom, &LFS.Storage, tc.basePath + "/lfs"},
 				{loadActionsFrom, &Actions.ArtifactStorage, tc.basePath + "/actions_artifacts"},
 				{loadPackagesFrom, &Packages.Storage, tc.basePath + "/packages"},
-				{loadRepoArchiveFrom, &RepoArchive.Storage, tc.archivePath},
+				{loadLFSFrom, &LFS.Storage, tc.lfsPath},
 				{loadActionsFrom, &Actions.LogStorage, tc.basePath + "/actions_log"},
 				{loadAvatarsFrom, &Avatar.Storage, tc.basePath + "/avatars"},
 				{loadRepoAvatarFrom, &RepoAvatar.Storage, tc.basePath + "/repo-avatars"},
@@ -239,45 +238,45 @@ PATH = /data/gitea/archives
 
 func Test_getStorageInheritStorageTypeLocalPathOverride72(t *testing.T) {
 	testLocalStoragePath(t, "/appdata", `
-[repo-archive]
+[lfs]
 STORAGE_TYPE = local
 PATH = archives
 `, []testLocalStoragePathCase{
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/archives"},
+		{loadLFSFrom, &LFS.Storage, "/appdata/archives"},
 	})
 }
 
 func Test_getStorageConfiguration20(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
-[repo-archive]
+[lfs]
 STORAGE_TYPE = my_storage
 PATH = archives
 `)
 	assert.NoError(t, err)
 
-	assert.Error(t, loadRepoArchiveFrom(cfg))
+	assert.Error(t, loadLFSFrom(cfg))
 }
 
 func Test_getStorageConfiguration21(t *testing.T) {
 	testLocalStoragePath(t, "/appdata", `
-[storage.repo-archive]
+[storage.lfs]
 `, []testLocalStoragePathCase{
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/repo-archive"},
+		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
 	})
 }
 
 func Test_getStorageConfiguration22(t *testing.T) {
 	testLocalStoragePath(t, "/appdata", `
-[storage.repo-archive]
+[storage.lfs]
 PATH = archives
 `, []testLocalStoragePathCase{
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/archives"},
+		{loadLFSFrom, &LFS.Storage, "/appdata/archives"},
 	})
 }
 
 func Test_getStorageConfiguration23(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
-[repo-archive]
+[lfs]
 STORAGE_TYPE = minio
 MINIO_ACCESS_KEY_ID = my_access_key
 MINIO_SECRET_ACCESS_KEY = my_secret_key
@@ -287,15 +286,15 @@ MINIO_SECRET_ACCESS_KEY = my_secret_key
 	_, err = getStorage(cfg, "", "", nil)
 	assert.Error(t, err)
 
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	cp := RepoArchive.Storage.ToShadowCopy()
+	assert.NoError(t, loadLFSFrom(cfg))
+	cp := LFS.Storage.ToShadowCopy()
 	assert.Equal(t, "******", cp.MinioConfig.AccessKeyID)
 	assert.Equal(t, "******", cp.MinioConfig.SecretAccessKey)
 }
 
 func Test_getStorageConfiguration24(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
-[repo-archive]
+[lfs]
 STORAGE_TYPE = my_archive
 
 [storage.my_archive]
@@ -303,12 +302,12 @@ STORAGE_TYPE = my_archive
 PATH = archives
 `)
 	assert.NoError(t, err)
-	assert.Error(t, loadRepoArchiveFrom(cfg))
+	assert.Error(t, loadLFSFrom(cfg))
 }
 
 func Test_getStorageConfiguration25(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
-[repo-archive]
+[lfs]
 STORAGE_TYPE = my_archive
 
 [storage.my_archive]
@@ -317,12 +316,12 @@ STORAGE_TYPE = unknown // should be local or minio
 PATH = archives
 `)
 	assert.NoError(t, err)
-	assert.Error(t, loadRepoArchiveFrom(cfg))
+	assert.Error(t, loadLFSFrom(cfg))
 }
 
 func Test_getStorageConfiguration26(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
-[repo-archive]
+[lfs]
 STORAGE_TYPE = minio
 MINIO_ACCESS_KEY_ID = my_access_key
 MINIO_SECRET_ACCESS_KEY = my_secret_key
@@ -330,25 +329,25 @@ MINIO_SECRET_ACCESS_KEY = my_secret_key
 MINIO_USE_SSL = abc
 `)
 	assert.NoError(t, err)
-	// assert.Error(t, loadRepoArchiveFrom(cfg))
+	// assert.Error(t, loadLFSFrom(cfg))
 	// FIXME: this should return error but now ini package's MapTo() doesn't check type
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	assert.NoError(t, loadLFSFrom(cfg))
 }
 
 func Test_getStorageConfiguration27(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
-[storage.repo-archive]
+[storage.lfs]
 STORAGE_TYPE = minio
 MINIO_ACCESS_KEY_ID = my_access_key
 MINIO_SECRET_ACCESS_KEY = my_secret_key
 MINIO_USE_SSL = true
 `)
 	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.Equal(t, "my_access_key", RepoArchive.Storage.MinioConfig.AccessKeyID)
-	assert.Equal(t, "my_secret_key", RepoArchive.Storage.MinioConfig.SecretAccessKey)
-	assert.True(t, RepoArchive.Storage.MinioConfig.UseSSL)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.Equal(t, "my_access_key", LFS.Storage.MinioConfig.AccessKeyID)
+	assert.Equal(t, "my_secret_key", LFS.Storage.MinioConfig.SecretAccessKey)
+	assert.True(t, LFS.Storage.MinioConfig.UseSSL)
+	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
 }
 
 func Test_getStorageConfiguration28(t *testing.T) {
@@ -361,11 +360,11 @@ MINIO_USE_SSL = true
 MINIO_BASE_PATH = /prefix
 `)
 	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.Equal(t, "my_access_key", RepoArchive.Storage.MinioConfig.AccessKeyID)
-	assert.Equal(t, "my_secret_key", RepoArchive.Storage.MinioConfig.SecretAccessKey)
-	assert.True(t, RepoArchive.Storage.MinioConfig.UseSSL)
-	assert.Equal(t, "/prefix/repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.Equal(t, "my_access_key", LFS.Storage.MinioConfig.AccessKeyID)
+	assert.Equal(t, "my_secret_key", LFS.Storage.MinioConfig.SecretAccessKey)
+	assert.True(t, LFS.Storage.MinioConfig.UseSSL)
+	assert.Equal(t, "/prefix/lfs/", LFS.Storage.MinioConfig.BasePath)
 
 	cfg, err = NewConfigProviderFromData(`
 [storage]
@@ -375,10 +374,10 @@ MINIO_USE_SSL = true
 MINIO_BASE_PATH = /prefix
 `)
 	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.Equal(t, "127.0.0.1", RepoArchive.Storage.MinioConfig.IamEndpoint)
-	assert.True(t, RepoArchive.Storage.MinioConfig.UseSSL)
-	assert.Equal(t, "/prefix/repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.Equal(t, "127.0.0.1", LFS.Storage.MinioConfig.IamEndpoint)
+	assert.True(t, LFS.Storage.MinioConfig.UseSSL)
+	assert.Equal(t, "/prefix/lfs/", LFS.Storage.MinioConfig.BasePath)
 
 	cfg, err = NewConfigProviderFromData(`
 [storage]
@@ -419,29 +418,29 @@ MINIO_BASE_PATH = /lfs
 
 func Test_getStorageConfiguration29(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
-[repo-archive]
+[lfs]
 STORAGE_TYPE = azureblob
 AZURE_BLOB_ACCOUNT_NAME = my_account_name
 AZURE_BLOB_ACCOUNT_KEY = my_account_key
 `)
 	assert.NoError(t, err)
-	// assert.Error(t, loadRepoArchiveFrom(cfg))
+	// assert.Error(t, loadLFSFrom(cfg))
 	// FIXME: this should return error but now ini package's MapTo() doesn't check type
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	assert.NoError(t, loadLFSFrom(cfg))
 }
 
 func Test_getStorageConfiguration30(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
-[storage.repo-archive]
+[storage.lfs]
 STORAGE_TYPE = azureblob
 AZURE_BLOB_ACCOUNT_NAME = my_account_name
 AZURE_BLOB_ACCOUNT_KEY = my_account_key
 `)
 	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.Equal(t, "my_account_name", RepoArchive.Storage.AzureBlobConfig.AccountName)
-	assert.Equal(t, "my_account_key", RepoArchive.Storage.AzureBlobConfig.AccountKey)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.AzureBlobConfig.BasePath)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.Equal(t, "my_account_name", LFS.Storage.AzureBlobConfig.AccountName)
+	assert.Equal(t, "my_account_key", LFS.Storage.AzureBlobConfig.AccountKey)
+	assert.Equal(t, "lfs/", LFS.Storage.AzureBlobConfig.BasePath)
 }
 
 func Test_getStorageConfiguration31(t *testing.T) {
@@ -453,10 +452,10 @@ AZURE_BLOB_ACCOUNT_KEY = my_account_key
 AZURE_BLOB_BASE_PATH = /prefix
 `)
 	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.Equal(t, "my_account_name", RepoArchive.Storage.AzureBlobConfig.AccountName)
-	assert.Equal(t, "my_account_key", RepoArchive.Storage.AzureBlobConfig.AccountKey)
-	assert.Equal(t, "/prefix/repo-archive/", RepoArchive.Storage.AzureBlobConfig.BasePath)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.Equal(t, "my_account_name", LFS.Storage.AzureBlobConfig.AccountName)
+	assert.Equal(t, "my_account_key", LFS.Storage.AzureBlobConfig.AccountKey)
+	assert.Equal(t, "/prefix/lfs/", LFS.Storage.AzureBlobConfig.BasePath)
 
 	cfg, err = NewConfigProviderFromData(`
 [storage]

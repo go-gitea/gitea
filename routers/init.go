@@ -49,7 +49,6 @@ import (
 	pull_service "gitea.dev/services/pull"
 	release_service "gitea.dev/services/release"
 	repo_service "gitea.dev/services/repository"
-	"gitea.dev/services/repository/archiver"
 	"gitea.dev/services/task"
 	"gitea.dev/services/uinotification"
 	"gitea.dev/services/webhook"
@@ -128,7 +127,6 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(cache.Init)
 	mustInit(feed_service.Init)
 	mustInit(uinotification.Init)
-	mustInitCtx(ctx, archiver.Init)
 
 	external.RegisterRenderers()
 	markup.Init(markup_service.FormalRenderHelperFuncs())

@@ -264,21 +264,6 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		return err
 	}
 
-	// Remove archives
-	var archives []*repo_model.RepoArchiver
-	if err = sess.Where("repo_id=?", repoID).Find(&archives); err != nil {
-		return err
-	}
-
-	archivePaths := make([]string, 0, len(archives))
-	for _, v := range archives {
-		archivePaths = append(archivePaths, v.RelativePath())
-	}
-
-	if _, err := db.DeleteByBean(ctx, &repo_model.RepoArchiver{RepoID: repoID}); err != nil {
-		return err
-	}
-
 	if repo.NumForks > 0 {
 		if _, err = sess.Exec("UPDATE `repository` SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
 			log.Error("reset 'fork_id' and 'is_fork': %v", err)
@@ -339,11 +324,6 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
-	}
-
-	// Remove archives
-	for _, archive := range archivePaths {
-		system_model.RemoveStorageWithNotice(ctx, storage.RepoArchives, "Delete repo archive file", archive)
 	}
 
 	// Remove lfs objects

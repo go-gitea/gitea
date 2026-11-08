@@ -65,12 +65,6 @@ var (
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
 
-		// StreamArchives makes Gitea stream git archive files to the client directly instead of creating an archive first.
-		// Ideally all users should use this streaming method. However, at the moment we don't know whether there are
-		// any users who still need the old behavior, so we introduce this option, intentionally not documenting it.
-		// After one or two releases, if no one complains, we will remove this option and always use streaming.
-		StreamArchives bool
-
 		// Repository editor settings
 		Editor struct {
 			LineWrapExtensions []string
@@ -156,7 +150,6 @@ var (
 		DefaultBranch:                           "main",
 		DefaultObjectFormat:                     "sha1",
 		AllowForkWithoutMaximumLimit:            true,
-		StreamArchives:                          true,
 
 		// Repository editor settings
 		Editor: struct {
@@ -390,9 +383,5 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 			Repository.DetectedCharsetScore[charset] = i
 			i++
 		}
-	}
-
-	if err := loadRepoArchiveFrom(rootCfg); err != nil {
-		log.Fatal("loadRepoArchiveFrom: %v", err)
 	}
 }

@@ -148,10 +148,10 @@ func TestAPIAdminAccessAndSSHKeys(t *testing.T) {
 				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, "30", resp.Header().Get("X-Total-Count"))
+			assert.Equal(t, "28", resp.Header().Get("X-Total-Count"))
 
 			crons := DecodeJSON(t, resp, []api.Cron{})
-			assert.Len(t, crons, 30)
+			assert.Len(t, crons, 28)
 		})
 
 		t.Run("Execute", func(t *testing.T) {
@@ -159,10 +159,7 @@ func TestAPIAdminAccessAndSSHKeys(t *testing.T) {
 
 			now := time.Now()
 			token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteAdmin)
-			// Archive cleanup is harmless, because in the test environment there are none
-			// and is thus an NOOP operation and therefore doesn't interfere with any other
-			// tests.
-			req := NewRequest(t, "POST", "/api/v1/admin/cron/archive_cleanup").
+			req := NewRequest(t, "POST", "/api/v1/admin/cron/deleted_branches_cleanup").
 				AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusNoContent)
 
@@ -174,7 +171,7 @@ func TestAPIAdminAccessAndSSHKeys(t *testing.T) {
 			crons := DecodeJSON(t, resp, []api.Cron{})
 
 			for _, cron := range crons {
-				if cron.Name == "archive_cleanup" {
+				if cron.Name == "deleted_branches_cleanup" {
 					assert.True(t, now.Before(cron.Prev))
 				}
 			}

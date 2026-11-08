@@ -5,7 +5,6 @@ package doctor
 
 import (
 	"context"
-	"errors"
 	"io/fs"
 	"strings"
 
@@ -79,13 +78,12 @@ func commonCheckStorage(logger log.Logger, autofix bool, opts *commonStorageChec
 }
 
 type checkStorageOptions struct {
-	All          bool
-	Attachments  bool
-	LFS          bool
-	Avatars      bool
-	RepoAvatars  bool
-	RepoArchives bool
-	Packages     bool
+	All         bool
+	Attachments bool
+	LFS         bool
+	Avatars     bool
+	RepoAvatars bool
+	Packages    bool
 }
 
 // checkStorage will return a doctor check function to check the requested storage types for "orphaned" stored object/files and optionally delete them
@@ -159,24 +157,6 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 			}
 		}
 
-		if opts.RepoArchives || opts.All {
-			if err := commonCheckStorage(logger, autofix,
-				&commonStorageCheckOptions{
-					storer: storage.RepoArchives,
-					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
-						exists, err := repo.ExistsRepoArchiverWithStoragePath(ctx, path)
-						if err == nil || errors.Is(err, util.ErrInvalidArgument) {
-							// invalid arguments mean that the object is not a valid repo archiver and it should be removed
-							return !exists, nil
-						}
-						return !exists, err
-					},
-					name: "repo archive",
-				}); err != nil {
-				return err
-			}
-		}
-
 		if opts.Packages || opts.All {
 			if !setting.Packages.Enabled {
 				logger.Info("Packages isn't enabled (skipped)")
@@ -243,16 +223,6 @@ func init() {
 		Name:                       "storage-avatars",
 		IsDefault:                  false,
 		Run:                        checkStorage(&checkStorageOptions{Avatars: true, RepoAvatars: true}),
-		AbortIfFailed:              false,
-		SkipDatabaseInitialization: false,
-		Priority:                   1,
-	})
-
-	Register(&Check{
-		Title:                      "Check if there are orphaned archives in storage",
-		Name:                       "storage-archives",
-		IsDefault:                  false,
-		Run:                        checkStorage(&checkStorageOptions{RepoArchives: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
 		Priority:                   1,
