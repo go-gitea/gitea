@@ -35,7 +35,7 @@ var Errors = sync.OnceValue(func() (ret struct {
 },
 ) {
 	ret.MustRepoUnitReader = util.NewPermissionDeniedErrorf("user must have read access")
-	ret.MustMemberOrCollaborator = util.NewPermissionDeniedErrorf("user must be a collaborator")
+	ret.MustMemberOrCollaborator = util.NewPermissionDeniedErrorf("user must be a member or collaborator")
 	ret.MustRepoUnitWriter = util.NewPermissionDeniedErrorf("user must have write access")
 	ret.MustHeadRepoCodeWriter = util.NewPermissionDeniedErrorf("user must have write access to the head repository's code")
 	return ret

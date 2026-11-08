@@ -165,6 +165,7 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 		AllowRebaseUpdate:          true,
 		DefaultUpdateStyle:         UpdateStyleMerge,
 		DefaultAllowMaintainerEdit: true,
+		CreationRestriction:        CreationRestrictionReader,
 	}
 	cfg.DefaultDeleteBranchAfterMerge = setting.Repository.PullRequest.DefaultDeleteBranchAfterMerge
 	cfg.DefaultMergeStyle = MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
@@ -178,6 +179,7 @@ func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
 	*cfg = *DefaultPullRequestsConfig()
 	db.UnmarshalFromDB(bs, cfg)
 	cfg.DefaultUpdateStyle = util.IfZero(cfg.DefaultUpdateStyle, UpdateStyleMerge)
+	cfg.CreationRestriction = util.IfZero(cfg.CreationRestriction, CreationRestrictionReader)
 	return nil
 }
 
