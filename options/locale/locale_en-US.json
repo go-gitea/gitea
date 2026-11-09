@@ -3039,6 +3039,7 @@
   "admin.dashboard.stop_zombie_tasks": "Stop actions zombie tasks",
   "admin.dashboard.stop_endless_tasks": "Stop actions endless tasks",
   "admin.dashboard.cancel_abandoned_jobs": "Cancel actions abandoned jobs",
+  "admin.dashboard.reemit_unresolved_action_runs": "Re-emit unresolved action runs",
   "admin.dashboard.start_schedule_tasks": "Start actions schedule tasks",
   "admin.dashboard.sync_branch.started": "Branches Sync started",
   "admin.dashboard.sync_tag.started": "Tags Sync started",
