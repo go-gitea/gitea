@@ -173,6 +173,13 @@ func TestPullCreate(t *testing.T) {
 		assert.Regexp(t, "diff", resp.Body)
 		assert.Regexp(t, `Subject: \[PATCH\] Update README.md`, resp.Body)
 		assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
+
+		// reopening is blocked by a newer pull request for the same branches, which should be linked
+		testIssueClose(t, session, "user2", "repo1", path.Base(url))
+		newURL := test.RedirectURL(testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title"))
+		req = NewRequestWithValues(t, "POST", url+"/comments", map[string]string{"status": "reopen"})
+		session.MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, session.GetCookieFlashMessage().ErrorMsg, `<a href="`+newURL+`">#`+path.Base(newURL)+`</a>`)
 	})
 }
 

@@ -1854,7 +1854,7 @@
   "repo.pulls.push_rejected": "Push Failed: The push was rejected. Review the Git Hooks for this repository.",
   "repo.pulls.push_rejected_summary": "Full Rejection Message",
   "repo.pulls.push_rejected_no_message": "Push Failed: The push was rejected but there was no remote message. Review the Git Hooks for this repository.",
-  "repo.pulls.open_unmerged_pull_exists": "You cannot perform a reopen operation because there is a pending pull request (#%d) with identical properties.",
+  "repo.pulls.open_unmerged_pull_exists_link": "You cannot perform a reopen operation because there is a pending pull request (<a href=\"%s\">#%d</a>) with identical properties.",
   "repo.pulls.status_checking": "Some checks are pending",
   "repo.pulls.status_checks_success": "All checks were successful",
   "repo.pulls.status_checks_warning": "Some checks reported warnings",
