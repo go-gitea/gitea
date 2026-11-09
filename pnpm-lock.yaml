@@ -260,8 +260,8 @@ importers:
         specifier: 2.2.0
         version: 2.2.0(chart.js@4.5.1)
       clippie:
-        specifier: 4.2.1
-        version: 4.2.1
+        specifier: 4.3.1
+        version: 4.3.1
       codemirror-lang-elixir:
         specifier: 4.0.1
         version: 4.0.1
@@ -2073,8 +2073,8 @@ packages:
   citeproc@2.4.63:
     resolution: {integrity: sha512-68F95Bp4UbgZU/DBUGQn0qV3HDZLCdI9+Bb2ByrTaNJDL5VEm9LqaiNaxljsvoaExSLEXe1/r6n2Z06SCzW3/Q==}
 
-  clippie@4.2.1:
-    resolution: {integrity: sha512-+Shk4WLaaBtxTwgaspGnFm/WrtjZCVCKsl66mPglNRj6B+OzgIYnp4LX7EjW1UTG5NfJsW60jxwV8EvqtyrDUA==}
+  clippie@4.3.1:
+    resolution: {integrity: sha512-YGBIrB/O/339z1sl0voeJ/MuRkn7EmLTsZAlHtnZD0i1v6uEFRr6Ju8WQ0faf9n5r/1WYX7s3qFQ7I+syUOX7g==}
 
   codemirror-lang-elixir@4.0.1:
     resolution: {integrity: sha512-z6W/XB4b7TZrp9EZYBGVq93vQfvKbff+1iM8YZaVErL0dguBAeLmVRlEv1NuDZHOP1qjJ3NwyibkUkNWn7q9VQ==}
@@ -6433,7 +6433,7 @@ snapshots:
 
   citeproc@2.4.63: {}
 
-  clippie@4.2.1: {}
+  clippie@4.3.1: {}
 
   codemirror-lang-elixir@4.0.1:
     dependencies:
