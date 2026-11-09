@@ -156,6 +156,7 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 			if refIssue == nil {
 				continue
 			}
+			refIssue.Repo = refRepo
 
 			perm, err := access_model.GetDoerRepoPermission(ctx, refRepo, doer)
 			if err != nil {
@@ -182,7 +183,7 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 			}
 
 			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
-			if err = CreateRefComment(ctx, doer, refRepo, refIssue, repo.ID, message, c.Sha1); err != nil {
+			if err = CreateRefComment(ctx, doer, refIssue, repo.ID, message, c.Sha1); err != nil {
 				if errors.Is(err, user_model.ErrBlockedUser) {
 					continue
 				}
@@ -217,7 +218,6 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 				}
 			}
 
-			refIssue.Repo = refRepo
 			if ref.Action == references.XRefActionCloses && !refIssue.IsClosed {
 				if len(ref.TimeLog) > 0 {
 					if err := issueAddTime(ctx, refIssue, doer, c.Timestamp, ref.TimeLog); err != nil {

@@ -27,13 +27,13 @@ import (
 )
 
 // CreateRefComment creates a commit reference comment to issue.
-func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, commitRepoID int64, content, commitSHA string) error {
+func CreateRefComment(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, commitRepoID int64, content, commitSHA string) error {
 	if len(commitSHA) == 0 {
 		return errors.New("cannot create reference with empty commit SHA")
 	}
 
-	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, repo.OwnerID) {
-		if !access_model.IsUserRepoAdmin(ctx, repo, doer) {
+	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, issue.Repo.OwnerID) {
+		if !access_model.IsUserRepoAdmin(ctx, issue.Repo, doer) {
 			return user_model.ErrBlockedUser
 		}
 	}
@@ -57,7 +57,7 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 	_, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:      issues_model.CommentTypeCommitRef,
 		Doer:      doer,
-		Repo:      repo,
+		Repo:      issue.Repo,
 		Issue:     issue,
 		CommitSHA: commitSHA,
 		Content:   content,
@@ -231,8 +231,8 @@ func FilterReadableComments(ctx context.Context, doer *user_model.User, perm acc
 		switch {
 		case issues_model.CommentTypeIsRef(c.Type):
 			refRepoID, refUnit = c.RefRepoID, util.Iif(c.RefIsPull, unit.TypePullRequests, unit.TypeIssues)
-		case c.Type == issues_model.CommentTypeCommitRef && c.RefRepoID != issue.RepoID:
-			refRepoID, refUnit = c.RefRepoID, unit.TypeCode // RefRepoID is 0 for legacy references, which stay visible
+		case c.Type == issues_model.CommentTypeCommitRef:
+			refRepoID, refUnit = c.RefRepoID, unit.TypeCode
 		case c.Type == issues_model.CommentTypeAddDependency || c.Type == issues_model.CommentTypeRemoveDependency:
 			if err := c.LoadDepIssueDetails(ctx); err != nil && !issues_model.IsErrIssueNotExist(err) {
 				return nil, err
