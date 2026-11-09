@@ -1476,6 +1476,7 @@
   "repo.issues.filter_assignee_any_assignee": "Assigned to anybody",
   "repo.issues.filter_poster": "Author",
   "repo.issues.filter_user_placeholder": "Search users",
+  "repo.issues.filter_user_input_placeholder": "Filter by username…",
   "repo.issues.filter_user_no_select": "All users",
   "repo.issues.filter_type": "Type",
   "repo.issues.filter_type.all_issues": "All issues",
