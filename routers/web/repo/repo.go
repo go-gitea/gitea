@@ -177,16 +177,7 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.repo_name_been_taken"), tpl, form)
 	case repo_model.IsErrRepoFilesAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
-		switch {
-		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
-		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
-		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
-		default:
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tpl, form)
-		}
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 	case errors.As(err, &errNameReserved):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), tpl, form)

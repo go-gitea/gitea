@@ -204,8 +204,6 @@ type SearchRepoOptions struct {
 	// True -> include just has milestones
 	// False -> include just has no milestone
 	HasMilestones optional.Option[bool]
-	// LowerNames represents valid lower names to restrict to
-	LowerNames []string
 	// When specified true, apply some filters over the conditions:
 	// - Don't show forks, when opts.Fork is OptionalBoolNone.
 	// - Do not display repositories that don't have a description, an icon and topics.
@@ -822,10 +820,6 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID}, DoerTokenRepoCond(opts.Actor))
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
-	}
-
-	if len(opts.LowerNames) > 0 {
-		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
 	sess := db.GetEngine(ctx)

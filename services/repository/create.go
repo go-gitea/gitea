@@ -278,7 +278,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		return nil, err
 	}
 	if isExist {
-		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
+		log.Error("Files already exist in %s", repo.FullName())
 		// Don't return directly, we need err in defer to cleanupRepository
 		err = repo_model.ErrRepoFilesAlreadyExist{
 			Uname: repo.OwnerName,
