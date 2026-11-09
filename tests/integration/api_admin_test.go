@@ -144,7 +144,10 @@ func TestAPIAdminAccessAndSSHKeys(t *testing.T) {
 
 			token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
 
-			req := NewRequest(t, "GET", "/api/v1/admin/cron").
+			// limit=50 (MaxResponseItems) to return all cron tasks at once:
+			// the default page size is 30, so without it the body would be
+			// truncated while X-Total-Count reports the real total.
+			req := NewRequest(t, "GET", "/api/v1/admin/cron?limit=50").
 				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
@@ -152,6 +155,12 @@ func TestAPIAdminAccessAndSSHKeys(t *testing.T) {
 
 			crons := DecodeJSON(t, resp, []api.Cron{})
 			assert.Len(t, crons, 31)
+
+			cronNames := make([]string, 0, len(crons))
+			for _, cron := range crons {
+				cronNames = append(cronNames, cron.Name)
+			}
+			assert.Contains(t, cronNames, "reemit_unresolved_action_runs")
 		})
 
 		t.Run("Execute", func(t *testing.T) {
