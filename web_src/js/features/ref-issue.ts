@@ -15,6 +15,7 @@ const issueInfoCache = new Map<string, IssueInfo>();
 async function getIssueInfo(url: string): Promise<IssueInfo | null> {
   if (issueInfoCache.has(url)) return issueInfoCache.get(url)!;
   const resp = await GET(url);
+  // fetch already logs network errors in console, we can ignore network errors here
   if (!resp.ok) return null;
   const data = await resp.json();
   issueInfoCache.set(url, data);
