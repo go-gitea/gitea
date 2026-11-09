@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	auth_model "gitea.dev/models/auth"
@@ -111,7 +112,9 @@ func CheckAcceptMediaType(ctx *context.Context) {
 	}
 }
 
-var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)-(\d*).*`)
+var rangeHeaderRegexp = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`bytes=(\d+)-(\d*).*`)
+})
 
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
@@ -128,7 +131,7 @@ func DownloadHandler(ctx *context.Context) {
 	toByte = meta.Size - 1
 	statusCode := http.StatusOK
 	if rangeHdr := ctx.Req.Header.Get("Range"); rangeHdr != "" {
-		match := rangeHeaderRegexp.FindStringSubmatch(rangeHdr)
+		match := rangeHeaderRegexp().FindStringSubmatch(rangeHdr)
 		if len(match) > 1 {
 			statusCode = http.StatusPartialContent
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
@@ -554,10 +557,9 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		return false
 	}
 
-	canAccess := perm.CanAccess(accessMode, unit.TypeCode)
 	// if it doesn't require sign-in and anonymous user has access, return true
 	// if the user is already signed in (for example: by session auth method), and the doer can access, return true
-	if canAccess && (!requireSigned || ctx.IsSigned) {
+	if perm.CanAccess(accessMode, unit.TypeCode) && ((!requireSigned && !setting.Service.RequireSignInViewStrict) || ctx.IsSigned) {
 		return true
 	}
 

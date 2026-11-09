@@ -238,6 +238,14 @@ export async function loginUser(page: Page, username: string) {
   return login(page, username, testUserPassword);
 }
 
+export async function signInWithPassword(page: Page, username: string) {
+  await page.context().clearCookies();
+  await page.goto('/user/login');
+  await page.getByLabel('Username or Email Address').fill(username);
+  await page.getByLabel('Password').fill(testUserPassword);
+  await page.getByRole('button', {name: 'Sign In', exact: true}).click();
+}
+
 export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, password = env.GITEA_TEST_E2E_PASSWORD) {
   const response = await page.request.post('/user/login', {
     form: {user_name: username, password},
@@ -245,6 +253,17 @@ export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, pass
   });
   const status = response.status();
   if (status !== 302 && status !== 303) throw new Error(`login as ${username} failed: HTTP ${status}`);
+}
+
+export async function assertClipboardText(page: Page, text: string) {
+  // Firefox rejects a read that overlaps the page's still pending clipboard write
+  await expect.poll(() => page.evaluate(async () => {
+    try {
+      return await navigator.clipboard.readText();
+    } catch {
+      return null;
+    }
+  })).toBe(text);
 }
 
 export async function assertNoJsError(page: Page) {

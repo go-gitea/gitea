@@ -81,16 +81,7 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error)
 	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.JSONErrorWithField(ctx.Tr("form.repo_name_been_taken"), "repo_name")
 	case repo_model.IsErrRepoFilesAlreadyExist(err):
-		switch {
-		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-			ctx.JSONErrorWithField(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), "repo_name")
-		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-			ctx.JSONErrorWithField(ctx.Tr("form.repository_files_already_exist.adopt"), "repo_name")
-		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-			ctx.JSONErrorWithField(ctx.Tr("form.repository_files_already_exist.delete"), "repo_name")
-		default:
-			ctx.JSONErrorWithField(ctx.Tr("form.repository_files_already_exist"), "repo_name")
-		}
+		ctx.JSONErrorWithField(ctx.Tr("form.repository_files_already_exist"), "repo_name")
 	case errors.As(err, &errNameReserved):
 		ctx.JSONErrorWithField(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), "repo_name")
 	case errors.As(err, &errNamePatternNotAllowed):

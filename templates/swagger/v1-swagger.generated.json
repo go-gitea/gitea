@@ -630,6 +630,7 @@
           {
             "enum": [
               "alpine",
+              "arch",
               "cargo",
               "chef",
               "composer",
@@ -650,6 +651,7 @@
               "rubygems",
               "swift",
               "terraform",
+              "terraform-module",
               "vagrant"
             ],
             "type": "string",
@@ -667,116 +669,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PackageList"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        }
-      }
-    },
-    "/admin/unadopted": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "List unadopted repositories",
-        "operationId": "adminUnadoptedList",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results",
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
-            "name": "query",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/StringSlice"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        }
-      }
-    },
-    "/admin/unadopted/{owner}/{repo}": {
-      "post": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Adopt unadopted files as a repository",
-        "operationId": "adminAdoptRepository",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        }
-      },
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Delete unadopted files",
-        "operationId": "adminDeleteUnadoptedRepository",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
           },
           "default": {
             "$ref": "#/responses/error"
@@ -4728,6 +4620,7 @@
           {
             "enum": [
               "alpine",
+              "arch",
               "cargo",
               "chef",
               "composer",
@@ -4748,6 +4641,7 @@
               "rubygems",
               "swift",
               "terraform",
+              "terraform-module",
               "vagrant"
             ],
             "type": "string",
@@ -17877,7 +17771,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at",
+        "summary": "Gets the release set as latest, else the most recent non-prerelease, non-draft release of a repository by created_at",
         "operationId": "repoGetLatestRelease",
         "parameters": [
           {
@@ -26255,6 +26149,7 @@
           "x-go-name": "EnableForcePush"
         },
         "enable_force_push_allowlist": {
+          "description": "EnableForcePushAllowlist only takes effect when enable_force_push is true",
           "type": "boolean",
           "x-go-name": "EnableForcePushAllowlist"
         },
@@ -27022,6 +26917,9 @@
     "CreatePullReviewComment": {
       "description": "CreatePullReviewComment represent a review comment for creation api",
       "type": "object",
+      "required": [
+        "path"
+      ],
       "properties": {
         "body": {
           "type": "string",
@@ -27140,6 +27038,17 @@
           "description": "Whether to create the release as a draft",
           "type": "boolean",
           "x-go-name": "IsDraft"
+        },
+        "make_latest": {
+          "description": "\"true\" sets the release as the latest, \"false\" keeps the current latest, \"legacy\" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date",
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "legacy"
+          ],
+          "x-go-enum-desc": "true MakeLatestTrue\nfalse MakeLatestFalse\nlegacy MakeLatestLegacy",
+          "x-go-name": "MakeLatest"
         },
         "name": {
           "description": "The display title of the release",
@@ -28418,6 +28327,17 @@
           "description": "Whether to change the draft status",
           "type": "boolean",
           "x-go-name": "IsDraft"
+        },
+        "make_latest": {
+          "description": "\"true\" sets the release as the latest, \"false\" keeps the current latest, \"legacy\" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date",
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "legacy"
+          ],
+          "x-go-enum-desc": "true MakeLatestTrue\nfalse MakeLatestFalse\nlegacy MakeLatestLegacy",
+          "x-go-name": "MakeLatest"
         },
         "name": {
           "description": "The new display title of the release",
@@ -34633,15 +34553,6 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/StopWatch"
-        }
-      }
-    },
-    "StringSlice": {
-      "description": "StringSlice",
-      "schema": {
-        "type": "array",
-        "items": {
-          "type": "string"
         }
       }
     },

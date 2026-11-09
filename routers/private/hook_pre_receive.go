@@ -28,7 +28,6 @@ type preReceiveContext struct {
 
 	// this context should only contain shared variables, mutable variables like "current branch name" shouldn't be put here
 	canWriteCodeUnitCached *bool
-	canCreatePullRequest   *bool
 	protectedTags          []*git_model.ProtectedTag
 }
 
@@ -63,21 +62,10 @@ func (ctx *preReceiveContext) assertCanWriteRef(refFullName git.RefName) bool {
 	return true
 }
 
-// CanCreatePullRequest returns true if pusher can create pull requests
-func (ctx *preReceiveContext) CanCreatePullRequest() bool {
-	if ctx.canCreatePullRequest == nil {
-		ctx.canCreatePullRequest = new(ctx.Repo.Permission.CanRead(unit.TypePullRequests))
-	}
-	return *ctx.canCreatePullRequest
-}
-
-// AssertCreatePullRequest returns true if can create pull requests
-func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
-	if !ctx.CanCreatePullRequest() {
-		if ctx.Written() {
-			return false
-		}
-		ctx.PrivateUserErrorf(http.StatusForbidden, "User permission denied for creating pull-request.")
+func assertCanCreatePullRequest(ctx *gitea_context.PrivateContext, opts *private.HookOptions) bool {
+	canReadPullRequests := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
+	if !canReadPullRequests || opts.IsWiki {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "%s", util.Iif(canReadPullRequests, "Pull requests are not supported on the wiki.", "User permission denied for creating pull-request."))
 		return false
 	}
 	return true
@@ -341,23 +329,12 @@ func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
 }
 
 func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
-	if !ctx.AssertCreatePullRequest() {
+	if !assertCanCreatePullRequest(ctx.PrivateContext, ctx.opts) {
 		return
-	}
-
-	if ctx.Repo.Repository.IsEmpty {
+	} else if ctx.Repo.Repository.IsEmpty {
 		ctx.PrivateUserErrorf(http.StatusForbidden, "Can't create pull request for an empty repository.")
-		return
-	}
-
-	if ctx.opts.IsWiki {
-		ctx.PrivateUserErrorf(http.StatusForbidden, "Pull requests are not supported on the wiki.")
-		return
-	}
-
-	_, _, err := agit.GetAgitBranchInfo(ctx, ctx.Repo.Repository.ID, refFullName.ForBranchName())
-	if err != nil {
-		if !errors.Is(err, util.ErrNotExist) {
+	} else if _, _, err := agit.GetAgitBranchInfo(ctx, ctx.Repo.Repository.ID, refFullName.ForBranchName()); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Unexpected ref: %s", refFullName)
 		} else {
 			ctx.PrivateInternalErrorf("Unable to get branch info for ref %s: %v", refFullName, err)
