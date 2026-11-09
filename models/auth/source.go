@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -60,14 +61,40 @@ var Names = map[Type]string{
 type Config interface {
 	convert.Conversion
 	SetAuthSource(*Source)
+	GetAuthSource() *Source
 }
 
 type ConfigBase struct {
-	AuthSource *Source
+	AuthSource *Source `json:"-"`
 }
 
-func (p *ConfigBase) SetAuthSource(s *Source) {
-	p.AuthSource = s
+func (c *ConfigBase) SetAuthSource(source *Source) {
+	c.AuthSource = source
+}
+
+func (c *ConfigBase) GetAuthSource() *Source {
+	return c.AuthSource
+}
+
+func UnmarshalAuthSourceConfig(bs []byte, v Config) {
+	if db.UnmarshalFromDB(bs, &v) {
+		return
+	}
+	// This is only a workaround because we don't know whether this unmarshal happens on sign-in page or admin panel.
+	// * Admin should have the chance to edit the auth source in admin panel, so FromDB should not return an error
+	// * The sign-in page should not use the auth source in the next login attempt, but we don't have a clear way to disable it immediately (acceptable)
+	// Actually, corrupted database value is a really rare case, just because AI thinks it should be handled.
+	authSourceID := v.GetAuthSource().ID
+	log.Error("Unable to unmarshal login source id=%d, will mark it as inactive to avoid unexpected sign-in issues", authSourceID)
+	go graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
+		// A small time window to avoid race condition with admin's editing because there is no other way.
+		// The UpdateUnix field is not filled when this function is called.
+		_, err := db.GetEngine(ctx).ID(authSourceID).And("is_active = ? AND updated_unix < ?", true, timeutil.TimeStampNow()-5).
+			Cols("is_active").Update(&Source{IsActive: false})
+		if err != nil {
+			log.Error("Unable to set login source id=%d to inactive: %v", authSourceID, err)
+		}
+	})
 }
 
 // SkipVerifiable configurations provide a IsSkipVerify to check if SkipVerify is set

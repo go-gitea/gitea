@@ -154,10 +154,6 @@ func (*NullNotifier) IssueChangeProjectColumn(ctx context.Context, doer *user_mo
 func (*NullNotifier) CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
-// AdoptRepository places a place holder function
-func (*NullNotifier) AdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
-}
-
 // DeleteRepository places a place holder function
 func (*NullNotifier) DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
 }
@@ -187,7 +183,7 @@ func (*NullNotifier) RenameRepository(ctx context.Context, doer *user_model.User
 }
 
 // TransferRepository places a place holder function
-func (*NullNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+func (*NullNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
 }
 
 // SyncPushCommits places a place holder function

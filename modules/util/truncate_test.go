@@ -129,3 +129,12 @@ func TestTruncateRunes(t *testing.T) {
 	assert.Equal(t, "测试", TruncateRunes("测试", 2))
 	assert.Equal(t, "测试", TruncateRunes("测试", 3))
 }
+
+func TestTruncateStringBytes(t *testing.T) {
+	assert.Equal(t, "a", TruncateStringBytes("ab", 1))
+	assert.Equal(t, "ab", TruncateStringBytes("ab", 2))
+	assert.Empty(t, TruncateStringBytes("测试", 2))
+	assert.Equal(t, "测", TruncateStringBytes("测试", 5))
+	assert.Equal(t, "测试", TruncateStringBytes("测试", 6))
+	assert.Equal(t, "\xff\xff", TruncateStringBytes("\xff\xff", 2))
+}

@@ -92,15 +92,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Retrieve author and committer information
 
-	var cacheAuthor *user_model.User
-	var ok bool
-	if userCache == nil {
-		cacheAuthor = (*user_model.User)(nil)
-		ok = false
-	} else {
-		cacheAuthor, ok = userCache[commit.Author.Email]
-	}
-
+	cacheAuthor, ok := userCache[commit.Author.Email]
 	if ok {
 		apiAuthor = ToUser(ctx, cacheAuthor, nil)
 	} else {
@@ -115,14 +107,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		}
 	}
 
-	var cacheCommitter *user_model.User
-	if userCache == nil {
-		cacheCommitter = (*user_model.User)(nil)
-		ok = false
-	} else {
-		cacheCommitter, ok = userCache[commit.Committer.Email]
-	}
-
+	cacheCommitter, ok := userCache[commit.Committer.Email]
 	if ok {
 		apiCommitter = ToUser(ctx, cacheCommitter, nil)
 	} else {

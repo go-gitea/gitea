@@ -9,6 +9,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -22,6 +23,13 @@ type DBIndexer struct{}
 func (db *DBIndexer) Index(id int64) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("Stats.DB Index Repo[%d]", id))
 	defer finished()
+
+	// the unique queue doesn't stop two workers from indexing the same repository at once
+	releaser, err := globallock.Lock(ctx, fmt.Sprintf("repo_stats_index_%d", id))
+	if err != nil {
+		return err
+	}
+	defer releaser()
 
 	repo, err := repo_model.GetRepositoryByID(ctx, id)
 	if err != nil {

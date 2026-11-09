@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 
 	packages_model "gitea.dev/models/packages"
@@ -24,7 +25,9 @@ import (
 	packages_service "gitea.dev/services/packages"
 )
 
-var packageNameRegex = regexp.MustCompile(`\A[-_+.\w]+\z`)
+var packageNameRegex = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`\A[-_+.\w]+\z`)
+})
 
 const (
 	stateFilename = "tfstate"
@@ -81,7 +84,7 @@ func isValidPackageName(packageName string) bool {
 	if len(packageName) == 1 && !unicode.IsLetter(rune(packageName[0])) && !unicode.IsNumber(rune(packageName[0])) {
 		return false
 	}
-	return packageNameRegex.MatchString(packageName) && packageName != ".."
+	return packageNameRegex().MatchString(packageName) && packageName != ".."
 }
 
 // UploadState uploads the specific terraform package.
