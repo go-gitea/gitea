@@ -243,9 +243,9 @@ func ParseRefSuffix(ref string) (refName, refSuffix string) {
 }
 
 func UpdateRef(ctx context.Context, repo RepositoryFacade, refName, newCommitID string) error {
-	return gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).WithRepo(repo).Run(ctx)
+	return gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).WithRepo(repo).RunWithStderr(ctx)
 }
 
 func RemoveRef(ctx context.Context, repo RepositoryFacade, refName string) error {
-	return gitcmd.NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(refName).WithRepo(repo).Run(ctx)
+	return gitcmd.NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(refName).WithRepo(repo).RunWithStderr(ctx)
 }

@@ -323,7 +323,7 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 			}
 			return scanner.Err()
 		}).
-		Run(ctx)
+		RunWithStderr(ctx)
 	if err != nil {
 		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.LogString(), err)
 	}
