@@ -69,9 +69,8 @@ func CheckTaskIsRunning(ctx context.Context, taskID int64) bool {
 	return task.Status == actions_model.StatusRunning
 }
 
-// OAuth2 implements the Auth interface and authenticates requests
-// (API requests only) by looking for an OAuth token in query parameters or the
-// "Authorization" header.
+// OAuth2 implements the Auth interface and authenticates API requests using the
+// Authorization header.
 type OAuth2 struct{}
 
 // Name represents the name of auth method
@@ -82,21 +81,7 @@ func (o *OAuth2) Name() string {
 // parseToken returns the token from request, and a boolean value
 // representing whether the token exists or not
 func parseToken(req *http.Request) (string, bool) {
-	_ = req.ParseForm()
-	if !setting.DisableQueryAuthToken {
-		// Check token.
-		if token := req.Form.Get("token"); token != "" {
-			return token, true
-		}
-		// Check access token.
-		if token := req.Form.Get("access_token"); token != "" {
-			return token, true
-		}
-	} else if req.Form.Get("token") != "" || req.Form.Get("access_token") != "" {
-		log.Warn("API token sent in query string but DISABLE_QUERY_AUTH_TOKEN=true")
-	}
-
-	// check header token
+	// Check the Authorization header.
 	if auHead := req.Header.Get("Authorization"); auHead != "" {
 		parsed, ok := httpauth.ParseAuthorizationHeader(auHead)
 		if ok && parsed.BearerToken != nil {

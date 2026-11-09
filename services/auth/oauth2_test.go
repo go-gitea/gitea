@@ -5,6 +5,7 @@ package auth
 
 import (
 	"fmt"
+	"net/http/httptest"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -15,6 +16,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestParseTokenUsesAuthorizationHeaderOnly(t *testing.T) {
+	req := httptest.NewRequest("GET", "/api/v1/user?token=query-token&access_token=query-access-token", nil)
+	token, ok := parseToken(req)
+	assert.False(t, ok)
+	assert.Empty(t, token)
+
+	req.Header.Set("Authorization", "token header-token")
+	token, ok = parseToken(req)
+	assert.True(t, ok)
+	assert.Equal(t, "header-token", token)
+}
 
 func TestUserIDFromToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

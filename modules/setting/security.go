@@ -75,7 +75,6 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
-	DisableQueryAuthToken              bool
 	RecordUserSignupMetadata           = false
 	TwoFactorAuthEnforced              = false
 )
@@ -218,15 +217,5 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		}
 	}
 
-	sectionHasDisableQueryAuthToken := sec.HasKey("DISABLE_QUERY_AUTH_TOKEN")
-
-	// TODO: default value should be true in future releases
-	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(false)
-
 	RecordUserSignupMetadata = sec.Key("RECORD_USER_SIGNUP_METADATA").MustBool(false)
-
-	// warn if the setting is set to false explicitly
-	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {
-		log.Warn("Enabling Query API Auth tokens is not recommended. DISABLE_QUERY_AUTH_TOKEN will default to true in gitea 1.23 and will be removed in gitea 1.24.")
-	}
 }

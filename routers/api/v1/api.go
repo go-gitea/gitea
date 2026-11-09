@@ -17,8 +17,6 @@
 //
 //	Security:
 //	- BasicAuth :
-//	- Token :
-//	- AccessToken :
 //	- AuthorizationHeaderToken :
 //	- SudoParam :
 //	- SudoHeader :
@@ -27,16 +25,6 @@
 //	SecurityDefinitions:
 //	BasicAuth:
 //	     type: basic
-//	Token:
-//	     type: apiKey
-//	     name: token
-//	     in: query
-//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
-//	AccessToken:
-//	     type: apiKey
-//	     name: access_token
-//	     in: query
-//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
 //	AuthorizationHeaderToken:
 //	     type: apiKey
 //	     name: Authorization
@@ -928,10 +916,10 @@ func individualPermsChecker(ctx *context.APIContext) {
 	}
 }
 
-// check for and warn against deprecated authentication options
-func checkDeprecatedAuthMethods(ctx *context.APIContext) {
+// warnRejectedAuthMethods warns when a request tries to authenticate with form parameters.
+func warnRejectedAuthMethods(ctx *context.APIContext) {
 	if ctx.FormString("token") != "" || ctx.FormString("access_token") != "" {
-		ctx.Resp.Header().Set("X-Gitea-Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
+		ctx.Resp.Header().Set("X-Gitea-Warning", "API authentication tokens in request parameters are no longer accepted. Use the Authorization header.")
 	}
 }
 
@@ -954,7 +942,7 @@ func Routes() *web.Router {
 
 	m.AfterRouting(context.APIContexter())
 	m.AfterRouting(common.AuditOrigin(audit_model.OriginAPI))
-	m.AfterRouting(checkDeprecatedAuthMethods)
+	m.AfterRouting(warnRejectedAuthMethods)
 
 	// Get user from session if logged in.
 	m.AfterRouting(apiAuth(buildAuthGroup()))
