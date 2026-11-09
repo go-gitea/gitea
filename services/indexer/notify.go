@@ -139,6 +139,10 @@ func (r *indexerNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
 }
 
+func (r *indexerNotifier) IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64) {
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
+}
+
 func (r *indexerNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label,
 ) {

@@ -6,9 +6,11 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -17,6 +19,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	issue_indexer "gitea.dev/modules/indexer/issues"
 	project "gitea.dev/services/projects"
 	"gitea.dev/tests"
 
@@ -97,18 +100,26 @@ func TestUpdateIssueProject(t *testing.T) {
 
 	sess := loginUser(t, "user2")
 
-	t.Run("AssignAndRemove", func(t *testing.T) {
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
-			"id": "1",
-		})
-		sess.MakeRequest(t, req, http.StatusOK)
-		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+	t.Run("RemoveAndAssign", func(t *testing.T) {
+		// a keyword search goes to the issue indexer, which must follow project changes
+		foundInProject := func() bool {
+			ids, _, err := issue_indexer.SearchIssues(t.Context(), &issue_indexer.SearchOptions{Keyword: "second", RepoIDs: []int64{1}, ProjectIDs: []int64{1}})
+			return err == nil && slices.Contains(ids, int64(2))
+		}
 
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
 			"id": "",
 		})
 		sess.MakeRequest(t, req, http.StatusOK)
 		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+		assert.Eventually(t, func() bool { return !foundInProject() }, 10*time.Second, 10*time.Millisecond)
+
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
+			"id": "1",
+		})
+		sess.MakeRequest(t, req, http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+		assert.Eventually(t, foundInProject, 10*time.Second, 10*time.Millisecond)
 	})
 
 	t.Run("AssignOnCreationNeedsWriter", func(t *testing.T) {
