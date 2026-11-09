@@ -429,6 +429,8 @@
 
 				<div class="field">
 					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "admin.auths.update"}}</button>
+					{{if or .Source.IsLDAP .Source.IsDLDAP}}<button class="ui button ldap dldap" type="button" data-ldap-test-connection>{{ctx.Locale.Tr "admin.auths.test_connection"}}</button>{{end}}
+					<div class="ui message tw-hidden" data-ldap-test-result></div>
 					<button type="button" class="ui red button link-action" data-url="{{$.Link}}/delete?id={{.Source.ID}}"
 						data-modal-confirm-header="{{ctx.Locale.Tr "admin.auths.delete_auth_title"}}"
 						data-modal-confirm-content="{{ctx.Locale.Tr "admin.auths.delete_auth_desc"}}"

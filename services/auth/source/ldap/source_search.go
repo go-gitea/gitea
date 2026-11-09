@@ -10,12 +10,15 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 
 	"github.com/go-ldap/ldap/v3"
 )
+
+const ldapDialTimeout = 10 * time.Second // Bounds only TCP dialing, not StartTLS or searches.
 
 // SearchResult : user data
 type SearchResult struct {
@@ -117,11 +120,12 @@ func dial(source *Source) (*ldap.Conn, error) {
 	}
 
 	hostPort := net.JoinHostPort(source.Host, strconv.Itoa(source.Port))
+	dialer := &net.Dialer{Timeout: ldapDialTimeout}
 	if source.SecurityProtocol == SecurityProtocolLDAPS {
-		return ldap.DialURL("ldaps://"+hostPort, ldap.DialWithTLSConfig(tlsConfig))
+		return ldap.DialURL("ldaps://"+hostPort, ldap.DialWithTLSConfig(tlsConfig), ldap.DialWithDialer(dialer))
 	}
 
-	conn, err := ldap.DialURL("ldap://" + hostPort)
+	conn, err := ldap.DialURL("ldap://"+hostPort, ldap.DialWithDialer(dialer))
 	if err != nil {
 		return nil, fmt.Errorf("error during Dial: %w", err)
 	}
