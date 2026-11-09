@@ -6,6 +6,7 @@ package charset
 import (
 	"strings"
 	"testing"
+	"testing/iotest"
 
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
@@ -160,6 +161,11 @@ func TestEscapeControlReader(t *testing.T) {
 			assert.Equal(t, tt.result, outStr)
 		})
 	}
+
+	output := &htmlutil.HTMLBuilder{}
+	_, err := EscapeControlReader(iotest.OneByteReader(strings.NewReader("\xef\xbb\xbftest")), output, &translation.MockLocale{})
+	assert.NoError(t, err)
+	assert.Equal(t, "\xef\xbb\xbftest", output.String())
 }
 
 func TestTrackHtmlTag(t *testing.T) {
@@ -234,4 +240,11 @@ func TestHTMLChunkReader(t *testing.T) {
 	testReadChunks(t, 5, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
 	testReadChunks(t, 6, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
 	testReadChunks(t, 7, input, []textPart{{"<Aé啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
+
+	for chunkSize := 6; chunkSize < 5+len(rune4); chunkSize++ {
+		testReadChunks(t, chunkSize, "<abc>"+rune4, []textPart{{"<abc>", true}, {rune4, false}})
+	}
+	testReadChunks(t, 6, "<abc>"+rune3[:2], []textPart{{"<abc>", true}, {rune3[:2], false}})
+	testReadChunks(t, 7, "<abc>"+rune3[:2]+"<b>", []textPart{{"<abc>", true}, {rune3[:2], false}, {"<b>", true}})
+	testReadChunks(t, 1, rune2, []textPart{{rune2[:1], false}, {rune2[1:], false}})
 }
