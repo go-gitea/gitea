@@ -161,6 +161,11 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 		return err
 	}
+	if baseCommitID, err := git.GetFullCommitID(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch); err != nil {
+		log.Error("GetFullCommitID for %-v: %v", pr, err)
+	} else if _, err := UpdateMergeRef(ctx, pr, baseCommitID, pr.HeadCommitID); err != nil {
+		log.Error("UpdateMergeRef for %-v: %v", pr, err)
+	}
 
 	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
