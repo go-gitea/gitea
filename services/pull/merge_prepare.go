@@ -33,8 +33,7 @@ type mergeContext struct {
 }
 
 // PrepareGitCmd prepares a git command with the correct directory, environment, and output buffers
-// This function can only be called with gitcmd.Run()
-// Do NOT use it with gitcmd.RunStd*() functions, otherwise it will panic
+// Use RunWithStderr because this already configures a stdout buffer.
 func (ctx *mergeContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
 	return cmd.WithEnv(ctx.env).
@@ -211,7 +210,7 @@ func getDiffTree(ctx context.Context, repo git.RepositoryFacade, baseBranch, hea
 	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root")
 	diffOutReader, diffOutReaderClose := cmd.MakeStdoutPipe()
 	defer diffOutReaderClose()
-	err := cmd.AddDynamicArguments(baseBranch, headBranch).
+	return cmd.AddDynamicArguments(baseBranch, headBranch).
 		WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
@@ -228,8 +227,7 @@ func getDiffTree(ctx context.Context, repo git.RepositoryFacade, baseBranch, hea
 			}
 			return scanner.Err()
 		}).
-		Run(ctx)
-	return err
+		RunWithStderr(ctx)
 }
 
 // ErrRebaseConflicts represents an error if rebase fails with a conflict
