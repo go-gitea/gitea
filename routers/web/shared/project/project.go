@@ -154,50 +154,30 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	type movedIssuesForm struct {
-		Issues []struct {
-			IssueID int64 `json:"issueID"`
-			Sorting int64 `json:"sorting"`
-		} `json:"issues"`
-	}
-
-	form := &movedIssuesForm{}
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.ServerError("DecodeMovedIssuesForm", err)
+	form := &struct {
+		IssueID     int64 `json:"issueID"`
+		PrevIssueID int64 `json:"prevIssueID"`
+	}{}
+	if err := json.NewDecoder(ctx.Req.Body).Decode(form); err != nil {
+		ctx.ServerError("DecodeMovedIssueForm", err)
 		return
 	}
 
-	issueIDs := make([]int64, 0, len(form.Issues))
-	sortedIssueIDs := make(map[int64]int64)
-	for _, issue := range form.Issues {
-		issueIDs = append(issueIDs, issue.IssueID)
-		sortedIssueIDs[issue.Sorting] = issue.IssueID
-	}
-	movedIssues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
+	issue, err := issues_model.GetIssueByID(ctx, form.IssueID)
 	if err != nil {
 		ctx.ServerError("GetIssueByID", err)
 		return
 	}
-
-	if len(movedIssues) != len(form.Issues) {
-		ctx.ServerError("some issues do not exist", errors.New("some issues do not exist"))
+	if err = issue.LoadRepo(ctx); err != nil {
+		ctx.ServerError("LoadRepo", err)
 		return
 	}
-
-	if _, err = movedIssues.LoadRepositories(ctx); err != nil {
-		ctx.ServerError("LoadRepositories", err)
+	if !project.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
+		ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
 		return
 	}
-
-	for _, issue := range movedIssues {
-		if !project.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
-			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
-			return
-		}
-	}
-
-	if err = project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {
-		ctx.ServerError("MoveIssuesOnProjectColumn", err)
+	if err = project_service.MoveIssueAfter(ctx, ctx.Doer, column, issue, form.PrevIssueID); err != nil {
+		ctx.ServerError("MoveIssueAfter", err)
 		return
 	}
 
