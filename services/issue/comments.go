@@ -39,7 +39,7 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, issue *issues_
 	}
 
 	// Check if same reference from same commit has already existed.
-	existing, has, err := db.Get[issues_model.Comment](ctx, builder.Eq{
+	has, err := db.Exist[issues_model.Comment](ctx, builder.Eq{
 		"`type`":     issues_model.CommentTypeCommitRef,
 		"issue_id":   issue.ID,
 		"commit_sha": commitSHA,
@@ -47,11 +47,7 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, issue *issues_
 	if err != nil {
 		return fmt.Errorf("check reference comment: %w", err)
 	} else if has {
-		if commitRepoID == issue.RepoID && existing.RefRepoID != issue.RepoID { // the first push may be to a private repo, or to a fork whose deletion would delete this comment
-			_, err = db.GetEngine(ctx).ID(existing.ID).NoAutoTime().Cols("ref_repo_id", "content").
-				Update(&issues_model.Comment{RefRepoID: commitRepoID, Content: content})
-		}
-		return err
+		return nil
 	}
 
 	_, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{

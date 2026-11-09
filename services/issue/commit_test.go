@@ -234,11 +234,6 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 				require.NoError(t, err)
 				assert.Len(t, comments, visibleCount)
 			}
-
-			require.NoError(t, UpdateIssuesCommit(t.Context(), user, issue.Repo, pushCommits, issue.Repo.DefaultBranch))
-			comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID})
-			assert.Equal(t, issue.RepoID, comment.RefRepoID)
-			assert.Contains(t, comment.Content, issue.Repo.Link()+"/commit/")
 		})
 	}
 }
