@@ -182,7 +182,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		return nil, fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
 	}
 	if _, err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
-		return nil, fmt.Errorf("Sync releases from git tags failed: %v", err)
+		return nil, fmt.Errorf("Sync releases from git tags failed: %w", err)
 	}
 
 	// 7 - Update the repository

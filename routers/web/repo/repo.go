@@ -286,7 +286,7 @@ func handleRepoActionError(ctx *context.Context, err error) {
 	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.JSONError(ctx.Tr("error.permission_denied"))
 	default:
-		ctx.ServerError("RepoAction:"+ctx.PathParam("action"), err)
+		ctx.JSONErrorAuto(err)
 	}
 }
 

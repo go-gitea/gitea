@@ -240,6 +240,8 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 				ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
 			case errors.As(err, &errNamePatternNotAllowed):
 				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplSettingsOptions, &form)
+			case errors.Is(err, repo_model.ErrImmutableTag):
+				ctx.RenderWithErrDeprecated(ctx.Tr("repo.release.tag_name_immutable"), tplSettingsOptions, &form)
 			default:
 				ctx.ServerError("ChangeRepositoryName", err)
 			}
@@ -633,7 +635,9 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnableReleases && !unit_model.TypeReleases.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypeReleases, nil))
+		units = append(units, newRepoUnit(repo, unit_model.TypeReleases, &repo_model.ReleasesConfig{
+			ImmutableReleases: form.EnableImmutableReleases,
+		}))
 	} else if !unit_model.TypeReleases.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
 	}
@@ -785,6 +789,10 @@ func handleSettingsPostConvert(ctx *context.Context) {
 		ctx.JSONErrorNotFound()
 		return
 	}
+	if err := repo_model.CheckImmutableTagConflicts(ctx, repo.ID, repo.OwnerName, repo.LowerName); err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
 	repo.IsMirror = false
 
 	if _, err := repo_service.CleanUpMigrateInfo(ctx, repo); err != nil {
@@ -890,7 +898,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.settings.transfer.blocked_user"))
 		} else {
-			ctx.ServerError("TransferOwnership", err)
+			ctx.JSONErrorAuto(err)
 		}
 
 		return
