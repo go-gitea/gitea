@@ -55,7 +55,7 @@ func (repo *Repository) GetDiff(ctx context.Context, compareArg string, w io.Wri
 	return gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
 		WithRepo(repo).
 		WithStdoutCopy(w).
-		Run(ctx)
+		RunWithStderr(ctx)
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
@@ -64,7 +64,7 @@ func (repo *Repository) GetDiffBinary(ctx context.Context, compareArg string, w 
 		AddDynamicArguments(compareArg).
 		WithRepo(repo).
 		WithStdoutCopy(w).
-		Run(ctx)
+		RunWithStderr(ctx)
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
@@ -72,7 +72,7 @@ func (repo *Repository) GetPatch(ctx context.Context, compareArg string, w io.Wr
 	return gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
 		WithRepo(repo).
 		WithStdoutCopy(w).
-		Run(ctx)
+		RunWithStderr(ctx)
 }
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
