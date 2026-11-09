@@ -47,6 +47,10 @@ const diffStatusIcons: Record<DiffStatus, {name: SvgName, class: string}> = {
     <!-- eslint-disable-next-line vue/no-v-html -->
     <span class="tw-contents" v-html="item.FileIcon"/>
     <span class="gt-ellipsis tw-flex-1">{{ item.DisplayName }}</span>
+    <span v-if="item.Additions || item.Deletions" class="tw-text-12 tw-whitespace-nowrap">
+      <span v-if="item.Additions" class="tw-text-diff-added-fg">+{{ item.Additions }}</span>
+      <span v-if="item.Deletions" class="tw-text-diff-removed-fg">-{{ item.Deletions }}</span>
+    </span>
     <SvgIcon v-bind="diffStatusIcons[item.DiffStatus] ?? diffStatusIcons['']"/>
   </a>
 </template>

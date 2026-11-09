@@ -320,14 +320,19 @@ func (r *Repository) GetEditorconfig(ctx context.Context) (cfg *editorconfig.Edi
 			return nil, nil, err
 		}
 	}
-	treeEntry, err := commit.GetTreeEntryByPath(ctx, r.GitRepo, ".editorconfig")
+	return ReadEditorconfig(ctx, r.GitRepo, commit)
+}
+
+// ReadEditorconfig parses the ".editorconfig" file of a commit
+func ReadEditorconfig(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) (cfg *editorconfig.Editorconfig, warning, err error) {
+	treeEntry, err := commit.GetTreeEntryByPath(ctx, gitRepo, ".editorconfig")
 	if err != nil {
 		return nil, nil, err
 	}
-	if treeEntry.Blob(r.GitRepo).Size(ctx) >= setting.UI.MaxDisplayFileSize {
+	if treeEntry.Blob(gitRepo).Size(ctx) >= setting.UI.MaxDisplayFileSize {
 		return nil, nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
 	}
-	reader, err := treeEntry.Blob(r.GitRepo).DataAsync(ctx)
+	reader, err := treeEntry.Blob(gitRepo).DataAsync(ctx)
 	if err != nil {
 		return nil, nil, err
 	}

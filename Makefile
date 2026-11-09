@@ -635,6 +635,10 @@ generate-images: | node_modules ## generate images
 generate-codemirror-languages: | node_modules ## generate codemirror languages
 	node tools/generate-codemirror-languages.ts
 
+.PHONY: generate-shiki-languages
+generate-shiki-languages: | node_modules ## generate the shiki language table of the diff viewer
+	node tools/generate-shiki-languages.ts
+
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage
 	@[ -f gitea ] || make backend

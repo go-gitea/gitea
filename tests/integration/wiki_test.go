@@ -37,9 +37,17 @@ func TestRepoWikiPages(t *testing.T) {
 
 		assert.Equal(t, expectedPagePaths[i], pagePath)
 	})
+}
 
-	req = NewRequest(t, "GET", "/user2/repo1/wiki/blob_excerpt/a5bbc0fd39a696feabed2d4cccaf05abbcaf3b02?last_left=0&last_right=0&left=2&right=2&left_hunk_size=2&right_hunk_size=2&path=Home.md&style=split&direction=up")
-	MakeRequest(t, req, http.StatusOK)
+func TestRepoWikiRawCommit(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	// the diff viewer loads the files of a commit by their git path
+	resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/wiki/raw/commit/a5bbc0fd39a696feabed2d4cccaf05abbcaf3b02/Home.md"), http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "# Home page")
+	MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/wiki/raw/commit/a5bbc0fd39a696feabed2d4cccaf05abbcaf3b02/Missing.md"), http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/wiki/raw/commit/a5bbc0fd39a696feabed2d4cccaf05abbcaf3b02/files"), http.StatusNotFound)
+	// the wiki of a private repo needs a reader
+	MakeRequest(t, NewRequest(t, "GET", "/user2/repo2/wiki/raw/commit/a5bbc0fd39a696feabed2d4cccaf05abbcaf3b02/Home.md"), http.StatusNotFound)
 }
 
 func testRepoWikiCloneHTTP(t *testing.T, u *url.URL) {

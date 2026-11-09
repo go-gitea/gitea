@@ -52,7 +52,7 @@
   position: relative;
 }
 
-.code-diff .conversation-holder .comment-code-cloud {
+.code-diff .diff-conversation .comment-code-cloud {
   max-width: 820px;
 }
 
@@ -66,10 +66,6 @@
 
 .comment-code-cloud .footer {
   padding: 10px 0;
-}
-
-.diff-file-body .comment-form {
-  margin: 0 0 0 3em;
 }
 
 .file-comment {
