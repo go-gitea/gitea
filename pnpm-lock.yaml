@@ -440,9 +440,6 @@ importers:
       stylelint-declaration-strict-value:
         specifier: 1.12.1
         version: 1.12.1(stylelint@18.0.0)
-      stylelint-value-no-unknown-custom-properties:
-        specifier: 6.1.1
-        version: 6.1.1(stylelint@18.0.0)
       svgo:
         specifier: 4.1.0
         version: 4.1.0
@@ -3828,12 +3825,6 @@ packages:
     engines: {node: '>=20.19.0'}
     peerDependencies:
       stylelint: '>=16 <=17'
-
-  stylelint-value-no-unknown-custom-properties@6.1.1:
-    resolution: {integrity: sha512-eQ1zidKD5t9zMEaskjGUY4W47lH76qMlmsDSmCAPEwtaGzB4Ls7ORTfysC1D6hamp2zFC+vN1vpQ+GFz3Tw3lw==}
-    engines: {node: '>=18.12.0'}
-    peerDependencies:
-      stylelint: '>=16'
 
   stylelint@18.0.0:
     resolution: {integrity: sha512-kI10GsHXQvsH/AcklVZdQgwDuxtHi+A+h1Ujzd7h9LDf3e5jQiLQkWFlPtpynX3E6oVWHG1wo9v6dL0Mr+nnSA==}
@@ -8037,12 +8028,6 @@ snapshots:
   stylelint-declaration-strict-value@1.12.1(stylelint@18.0.0):
     dependencies:
       regexp.escape: 2.0.1
-      stylelint: 18.0.0
-
-  stylelint-value-no-unknown-custom-properties@6.1.1(stylelint@18.0.0):
-    dependencies:
-      postcss-value-parser: 4.2.0
-      resolve: 1.22.12
       stylelint: 18.0.0
 
   stylelint@18.0.0:
