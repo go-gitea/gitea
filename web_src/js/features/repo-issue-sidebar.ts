@@ -2,13 +2,10 @@ import {POST} from '../modules/fetch.ts';
 import {queryElems, toggleElem} from '../utils/dom.ts';
 import {IssueSidebarComboList} from './repo-issue-sidebar-combolist.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-import {parseIssuePageInfo} from '../utils.ts';
 import {html} from '../utils/html.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showTemporaryTooltip} from '../modules/tippy.ts';
 import type {FomanticApiResponse, Issue} from '../types.ts';
-
-const {appSubUrl} = window.config;
 
 function initRepoIssueBranchSelector(elSidebar: HTMLElement) {
   // TODO: ISSUE-SIDEBAR-REF-SELECTOR: see "repo/issue/branch_selector_field.tmpl"
@@ -53,17 +50,10 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
   const elDropdown = elSidebar.querySelector('#new-dependency-drop-list');
   if (!elDropdown) return;
 
-  const issuePageInfo = parseIssuePageInfo();
-  const crossRepoSearch = elDropdown.getAttribute('data-issue-cross-repo-search');
-  const excludeParam = `exclude_dependencies_of=${elDropdown.getAttribute('data-issue-id')}`;
-  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}&${excludeParam}`;
-  if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}&${excludeParam}`;
-  }
   fomanticQuery(elDropdown).dropdown({
     fullTextSearch: true,
     apiSettings: {
-      url: issueSearchUrl,
+      url: `${elDropdown.getAttribute('data-search-url')}?q={query}`,
       rawResponse: true, // backend responds an array, prevent fomantic api from converting it to an object
       onResponse(response: Issue[]) {
         const filteredResponse: FomanticApiResponse<{value: number, name: string}> = {success: true, results: []};

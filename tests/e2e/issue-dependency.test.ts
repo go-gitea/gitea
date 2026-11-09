@@ -14,8 +14,8 @@ test('dependency dropdown hides existing dependencies', async ({page}) => {
   for (const response of await Promise.all([addDependency(current.index, blockedBy.index), addDependency(blocking.index, current.index)])) {
     expect(response.ok()).toBe(true);
   }
-  // the cross-repo search also returns issues of repos that other tests create and delete
-  await page.route('**/issues/search?*', async (route) => {
+  // with cross-repository dependencies the candidates include issues of repos that other tests create and delete
+  await page.route('**/dependency/candidates?*', async (route) => {
     const response = await route.fetch();
     const issues: Array<{repository: {full_name: string} | null}> = await response.json();
     await route.fulfill({response, json: issues.filter((issue) => issue.repository?.full_name === `${user}/${repoName}`)});
