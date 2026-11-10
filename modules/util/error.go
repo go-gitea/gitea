@@ -40,11 +40,19 @@ func (w errorForUser) Error() string {
 	return w.msg
 }
 
-func ErrorUnwrapForUser(err error) (string, int) {
-	if e, ok := errors.AsType[errorForUser](err); ok {
-		return err.Error(), e.code
+// TODO: introduce ErrorUnwrapForHTML in the future for web error rendering
+func ErrorUnwrapForUser(err error, locale ...ErrorLocaleTranslator) (msg string, code int) {
+	e, ok := errors.AsType[errorForUser](err)
+	if ok {
+		msg, code = err.Error(), e.code
 	}
-	return "", 0
+	if len(locale) > 0 {
+		if errTr := errorAsTranslatable(err); errTr != nil {
+			msg = locale[0].TrString(errTr.trKey, errTr.trArgs...)
+			code = IfZero(code, 400)
+		}
+	}
+	return msg, code
 }
 
 // errorWrapper provides a simple wrapper for a wrapped error where the wrapped error message plays no part in the error message
@@ -98,6 +106,7 @@ type errorTranslatableWrapper struct {
 
 type ErrorLocaleTranslator interface {
 	Tr(key string, args ...any) template.HTML
+	TrString(key string, args ...any) string
 }
 
 func (w *errorTranslatableWrapper) Error() string { return w.err.Error() }
@@ -112,8 +121,17 @@ func ErrorWrapTranslatable(err error, trKey string, trArgs ...any) ErrorTranslat
 	return &errorTranslatableWrapper{err: err, trKey: trKey, trArgs: trArgs}
 }
 
-func ErrorAsTranslatable(err error) ErrorTranslatable {
+func errorAsTranslatable(err error) *errorTranslatableWrapper {
 	if e, ok := errors.AsType[*errorTranslatableWrapper](err); ok {
+		return e
+	}
+	return nil
+}
+
+// TODO: refactor ErrorAsTranslatable in the future, use ErrorUnwrapForUser or ErrorUnwrapForHTML as much as possible
+func ErrorAsTranslatable(err error) ErrorTranslatable {
+	e := errorAsTranslatable(err)
+	if e != nil { // avoid golang nil interface wrapper
 		return e
 	}
 	return nil

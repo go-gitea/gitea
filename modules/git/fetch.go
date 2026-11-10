@@ -18,7 +18,7 @@ import (
 // Ref: https://www.kernel.org/pub/software/scm/git/docs/git-gc.html
 func FetchRemoteTempCommit(ctx context.Context, repo, remoteRepo RepositoryFacade, commitID string) error {
 	// since it is for temporary use, we don't need to update any ref or lock anything or maintain anything
-	return fetchRemoteCommand(remoteRepo, commitID).WithRepo(repo).Run(ctx)
+	return fetchRemoteCommand(remoteRepo, commitID).WithRepo(repo).RunWithStderr(ctx)
 }
 
 // FetchRemoteCommitUpdateRef fetches a commit from a remote repository and points refName at it

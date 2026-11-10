@@ -151,6 +151,7 @@ type comparePageInfoType struct {
 	compareInfo      *git_service.CompareInfo
 	nothingToCompare bool
 	allowCreatePull  bool
+	allowEmptyPull   bool
 }
 
 func newComparePageInfo() *comparePageInfoType {
@@ -406,7 +407,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 		// if auto-detect manual merge, an empty PR will be closed immediately because it is already on base branch
 		supportEmptyPr := !config.AutodetectManualMerge
 		acrossRepoPr := !ci.IsSameRef()
-		ctx.Data["AllowEmptyPr"] = supportEmptyPr && acrossRepoPr
+		cpi.allowEmptyPull = supportEmptyPr && acrossRepoPr
 
 		cpi.nothingToCompare = true
 		return
@@ -570,6 +571,9 @@ func CompareDiff(ctx *context.Context) {
 	}
 	ctx.Data["PageIsComparePull"] = comparePageInfo.allowCreatePull
 	ctx.Data["IsNothingToCompare"] = comparePageInfo.nothingToCompare
+	ctx.Data["CanCreatePullRequest"] = comparePageInfo.allowCreatePull && !ci.DirectComparison() &&
+		(comparePageInfo.allowEmptyPull || !comparePageInfo.nothingToCompare) &&
+		ctx.Repo.PullRequestCtx.CanCreateNewPull()
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 

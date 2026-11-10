@@ -1,6 +1,6 @@
 {{template "repo/settings/layout_head" (dict "pageClass" "repository settings branches")}}
 	<div class="repo-setting-content">
-		<form class="ui form" action="{{.Link}}" method="post">
+		<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
 				{{if .Rule.RuleName}}
 					{{ctx.Locale.Tr "repo.settings.branch_protection" .Rule.RuleName}}
@@ -145,7 +145,7 @@
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_pull_request_approvals"}}</h5>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_required_approvals"}}</label>
-					<input name="required_approvals" type="number" value="{{.Rule.RequiredApprovals}}">
+					<input name="required_approvals" type="number" min="0" value="{{.Rule.RequiredApprovals}}">
 					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_required_approvals_desc"}}</p>
 				</div>
 				<div class="grouped fields">

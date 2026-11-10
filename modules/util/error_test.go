@@ -32,6 +32,9 @@ func TestErrorTranslatable(t *testing.T) {
 	wrapped, ok = errTr.(*errorTranslatableWrapper)
 	require.True(t, ok)
 	assert.Equal(t, "key", wrapped.trKey)
+
+	errTr = ErrorAsTranslatable(nil)
+	assert.True(t, errTr == nil) //nolint:testifylint // assert golang nil interface wrapper
 }
 
 func TestErrorUnwrapForUser(t *testing.T) {

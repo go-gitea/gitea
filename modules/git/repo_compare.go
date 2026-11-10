@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -51,14 +50,12 @@ func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head s
 	return w.numLines, nil
 }
 
-var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
-
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(ctx context.Context, compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
 		WithRepo(repo).
 		WithStdoutCopy(w).
-		Run(ctx)
+		RunWithStderr(ctx)
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
@@ -67,7 +64,7 @@ func (repo *Repository) GetDiffBinary(ctx context.Context, compareArg string, w 
 		AddDynamicArguments(compareArg).
 		WithRepo(repo).
 		WithStdoutCopy(w).
-		Run(ctx)
+		RunWithStderr(ctx)
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
@@ -75,7 +72,7 @@ func (repo *Repository) GetPatch(ctx context.Context, compareArg string, w io.Wr
 	return gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
 		WithRepo(repo).
 		WithStdoutCopy(w).
-		Run(ctx)
+		RunWithStderr(ctx)
 }
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
@@ -119,7 +116,7 @@ func (repo *Repository) ReadPatchCommit(prID int64) (commitSHA string, err error
 	scanner := bufio.NewScanner(loadPatch)
 	scanner.Scan()
 	// Parse the Patch stats, sometimes Migration returns a 404 for the patch file
-	commitSHAGroups := patchCommits.FindStringSubmatch(scanner.Text())
+	commitSHAGroups := globalVars().patchCommits.FindStringSubmatch(scanner.Text())
 	if len(commitSHAGroups) != 0 {
 		commitSHA = commitSHAGroups[1]
 	} else {
