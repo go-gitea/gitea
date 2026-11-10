@@ -118,7 +118,7 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 		Org:   &Organization{},
 	}
 	ctx.TemplateContext = NewTemplateContextForWeb(ctx, ctx.Base.Req, ctx.Base.Locale)
-	ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
+	ctx.Flash = &middleware.Flash{DataStore: ctx}
 	ctx.SetContextValue(WebContextKey, ctx)
 	httplib.MarkRequestSupportPublicURL(ctx)
 	return ctx
@@ -165,7 +165,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			// if there are new messages in the ctx.Flash, write them into cookie
 			ctx.Resp.Before(func(resp ResponseWriter) {
-				if val := ctx.Flash.Encode(); val != "" {
+				if val := ctx.Flash.EncodeToString(); val != "" {
 					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, val, 0)
 				} else if lastFlashCookie != "" {
 					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, "", -1)

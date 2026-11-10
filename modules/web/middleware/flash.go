@@ -9,20 +9,21 @@ import (
 	"net/url"
 
 	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/util"
 )
 
 // Flash represents a one time data transfer between two requests.
 type Flash struct {
 	DataStore reqctx.RequestDataStore
-	url.Values
+	msgValues url.Values
 
 	// message is in HTML format, and is sanitized when rendering (ref: RenderFlashMessage)
 	ErrorMsg, WarningMsg, InfoMsg, SuccessMsg string
 }
 
 func (f *Flash) set(name, msg string, current ...bool) {
-	if f.Values == nil {
-		f.Values = make(map[string][]string)
+	if f.msgValues == nil {
+		f.msgValues = url.Values{}
 	}
 	showInCurrentPage := len(current) > 0 && current[0]
 	if showInCurrentPage {
@@ -30,8 +31,13 @@ func (f *Flash) set(name, msg string, current ...bool) {
 		f.DataStore.GetData()["Flash"] = f
 	} else {
 		// the message map will be saved into the cookie and be shown in next response (a new page response which decodes the cookie)
-		f.Set(name, msg)
+		// cookie has a size limit, so truncate the message to avoid too long message
+		f.msgValues.Set(name, util.TruncateStringBytes(msg, 256))
 	}
+}
+
+func (f *Flash) EncodeToString() string {
+	return f.msgValues.Encode()
 }
 
 // Error sets error message
@@ -61,7 +67,7 @@ func (f *Flash) Success[T string | template.HTML](msg T, current ...bool) {
 func ParseCookieFlashMessage(val string) *Flash {
 	if vals, _ := url.ParseQuery(val); len(vals) > 0 {
 		return &Flash{
-			Values:     vals,
+			msgValues:  vals,
 			ErrorMsg:   vals.Get("error"),
 			SuccessMsg: vals.Get("success"),
 			InfoMsg:    vals.Get("info"),

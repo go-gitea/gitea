@@ -175,6 +175,8 @@ func (ctx *Context) FlashErrorAuto(err error) {
 	log.Log(1, logLevel, "FlashErrorAuto: server internal error: %v", err)
 
 	userErrorMsg := ctx.buildServerErrorMessageForUser("internal server error", err)
+	// truncate to avoid flash message too long because it uses cookie, the full message is already in logs
+	userErrorMsg = util.TruncateStringBytes(userErrorMsg, 256)
 	ctx.Flash.Error(userErrorMsg)
 }
 
