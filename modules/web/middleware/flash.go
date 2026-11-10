@@ -53,6 +53,7 @@ func flashMessageEncode(m map[string]string, limit int) string {
 		return ""
 	}
 	buf := strings.Builder{}
+	buf.Grow(200) // most messages are short, use a good initial size
 	for k, v := range m {
 		buf.WriteString(k)
 		buf.WriteByte('=')
@@ -69,7 +70,7 @@ func flashMessageDecode(s string) map[string]string {
 		return nil
 	}
 
-	if strings.Index(s, "=") != -1 {
+	if strings.Contains(s, "=") {
 		// legacy format, just parse it as query string
 		vals, err := url.ParseQuery(s)
 		if err != nil {
