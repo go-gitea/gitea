@@ -231,6 +231,10 @@ func TestPackageAPI(t *testing.T) {
 		ap4 := DecodeJSON(t, resp, &api.Package{})
 		assert.Nil(t, ap4.Repository)
 
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/settings/generic/%s", user.Name, packageName))
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.Zero(t, NewHTMLParser(t, resp.Body).Find(`input[name="repo_name"]`).Length())
+
 		assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(t.Context(), privateRepoID))
 	})
 

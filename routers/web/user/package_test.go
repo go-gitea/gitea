@@ -26,18 +26,19 @@ import (
 func TestPackageSettingsLinkRequiresRepoPermission(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
-	repo := &repo_model.Repository{OwnerID: org.ID, OwnerName: org.Name, Name: "package-repo", LowerName: "package-repo", IsPrivate: true}
-	require.NoError(t, db.Insert(t.Context(), repo))
-	require.NoError(t, db.Insert(t.Context(),
-		&repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypeCode},
-		&repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypePackages},
-	))
+	newRepo := func(name string) *repo_model.Repository {
+		repo := &repo_model.Repository{OwnerID: org.ID, OwnerName: org.Name, Name: name, LowerName: name, IsPrivate: true}
+		require.NoError(t, db.Insert(t.Context(), repo))
+		require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypePackages}))
+		return repo
+	}
+	teamRepo, otherRepo := newRepo("team-repo"), newRepo("other-repo")
 	pkg := &packages_model.Package{OwnerID: org.ID, Type: packages_model.TypeGeneric, Name: "package", LowerName: "package"}
 	require.NoError(t, db.Insert(t.Context(), pkg))
 
-	postLink := func(repoName string) int {
+	postLink := func(doerID int64, repoName string) int {
 		ctx, resp := contexttest.MockContext(t, "privated_org/-/packages/settings/generic/package")
-		contexttest.LoadUser(t, ctx, 5) // package writer of the org through team 17
+		contexttest.LoadUser(t, ctx, doerID)
 		ctx.Package = &context.Package{
 			Owner:      org,
 			AccessMode: perm.AccessModeWrite,
@@ -50,14 +51,18 @@ func TestPackageSettingsLinkRequiresRepoPermission(t *testing.T) {
 		return unittest.AssertExistsAndLoadBean(t, &packages_model.Package{ID: pkg.ID}).RepoID
 	}
 
-	assert.Equal(t, http.StatusBadRequest, postLink(repo.Name))
+	assert.Equal(t, http.StatusBadRequest, postLink(5, teamRepo.Name))
 	assert.Zero(t, linkedRepoID())
 
-	require.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: org.ID, TeamID: 17, RepoID: repo.ID}))
-	assert.Equal(t, http.StatusOK, postLink(repo.Name))
-	assert.Equal(t, repo.ID, linkedRepoID())
+	require.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: org.ID, TeamID: 17, RepoID: teamRepo.ID}))
+	assert.Equal(t, http.StatusOK, postLink(5, teamRepo.Name))
+	assert.Equal(t, teamRepo.ID, linkedRepoID())
 
-	// removing the link needs the same rights as the unlink API
-	assert.Equal(t, http.StatusBadRequest, postLink(""))
-	assert.Equal(t, repo.ID, linkedRepoID())
+	assert.Equal(t, http.StatusBadRequest, postLink(5, ""))
+	assert.Equal(t, teamRepo.ID, linkedRepoID())
+
+	assert.Equal(t, http.StatusOK, postLink(1, otherRepo.Name))
+	assert.Equal(t, otherRepo.ID, linkedRepoID())
+
+	assert.Equal(t, http.StatusBadRequest, postLink(5, otherRepo.Name))
 }

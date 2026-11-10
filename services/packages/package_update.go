@@ -93,14 +93,14 @@ func UpdateRepositoryLink(ctx context.Context, pkg *packages_model.Package, repo
 		}
 		return UnlinkFromRepository(ctx, pkg, doer)
 	}
+	if err := checkCanLinkToRepository(ctx, pkg, repo, doer); err != nil {
+		return err
+	}
 	if pkg.RepoID == repo.ID {
 		return nil
 	}
 	if pkg.RepoID != 0 && !canDoerManagePackage(ctx, pkg, doer) {
 		return util.ErrPermissionDenied
-	}
-	if err := checkCanLinkToRepository(ctx, pkg, repo, doer); err != nil {
-		return err
 	}
 	return packages_model.SetRepositoryLink(ctx, pkg.ID, repo.ID)
 }

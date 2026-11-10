@@ -3705,6 +3705,7 @@
   "packages.settings.link.notice1": "Only repositories under the same owner can be linked.",
   "packages.settings.link.notice2": "Linking a repository does not change the package visibility.",
   "packages.settings.link.notice3": "Leaving the field empty will remove the link.",
+  "packages.settings.link.inaccessible": "This package is linked to a repository you do not have access to, so you cannot change the link.",
   "packages.settings.visibility": "Package visibility",
   "packages.settings.visibility.inherit": "Package visibility is inherited from the owner and cannot be changed independently here. To change it, update the visibility settings of the user or organization that owns this package.",
   "packages.settings.visibility.button": "Change owner visibility",

@@ -196,7 +196,9 @@ func UploadPackage(ctx *context.Context) {
 	}
 
 	repo, err := repo_model.GetRepositoryByURLRelax(ctx, npmPackage.Metadata.Repository.URL)
-	if err == nil {
+	if err != nil || repo.OwnerID != ctx.Package.Owner.ID {
+		repo = nil
+	} else {
 		canWrite := repo.OwnerID == ctx.Doer.ID
 
 		if !canWrite {
@@ -268,7 +270,13 @@ func UploadPackage(ctx *context.Context) {
 	}
 
 	if repo != nil {
-		if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
+		pkg, err := packages_model.GetPackageByID(ctx, pv.PackageID)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		// keep a link the publisher may not change instead of failing the upload
+		if err := packages_service.UpdateRepositoryLink(ctx, pkg, repo, ctx.Doer); err != nil && !errors.Is(err, util.ErrPermissionDenied) {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}

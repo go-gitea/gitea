@@ -443,6 +443,8 @@ func PackageSettings(ctx *context.Context) {
 		}
 		if permission.HasAnyUnitAccess() {
 			ctx.Data["LinkedRepoName"] = repo.Name
+		} else {
+			ctx.Data["IsLinkedRepoInaccessible"] = true
 		}
 	}
 
@@ -481,10 +483,8 @@ func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSett
 	if err := packages_service.UpdateRepositoryLink(ctx, pd.Package, repo, ctx.Doer); err != nil {
 		if errors.Is(err, util.ErrPermissionDenied) {
 			ctx.JSONError(ctx.Tr("error.permission_denied"))
-		} else if repo == nil {
-			ctx.JSONError(ctx.Tr("packages.settings.unlink.error"))
 		} else {
-			ctx.JSONError(ctx.Tr("packages.settings.link.error"))
+			ctx.ServerError("UpdateRepositoryLink", err)
 		}
 		return
 	}

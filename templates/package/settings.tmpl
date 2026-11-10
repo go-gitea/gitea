@@ -29,6 +29,9 @@
 		</h4>
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "packages.settings.link.description"}}</p>
+			{{if .IsLinkedRepoInaccessible}}
+			<p>{{ctx.Locale.Tr "packages.settings.link.inaccessible"}}</p>
+			{{else}}
 			<p>- {{ctx.Locale.Tr "packages.settings.link.notice1"}}</p>
 			<p>- {{ctx.Locale.Tr "packages.settings.link.notice2"}}</p>
 			<p>- {{ctx.Locale.Tr "packages.settings.link.notice3"}}</p>
@@ -41,6 +44,7 @@
 				</div>
 				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
 			</form>
+			{{end}}
 		</div>
 		<h4 class="ui top attached error header">
 			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
