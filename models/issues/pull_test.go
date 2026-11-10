@@ -500,36 +500,38 @@ func testCodeOwnerSectionsAndAnnotations(t *testing.T) {
 
 func testMergeBlockedByUnresolvedConversations(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
-	require.NoError(t, pr.LoadIssue(t.Context()))
 	protectBranch := &git_model.ProtectedBranch{}
-
-	// Disabled: never blocks, even with unresolved conversations present.
-	assert.False(t, issues_model.MergeBlockedByUnresolvedConversations(t.Context(), protectBranch, pr))
-
 	protectBranch.BlockOnUnresolvedConversations = true
-
-	// Enabled, no code conversations: not blocked.
-	assert.False(t, issues_model.MergeBlockedByUnresolvedConversations(t.Context(), protectBranch, pr))
-
-	unresolved := &issues_model.Comment{
-		Type:     issues_model.CommentTypeCode,
-		PosterID: pr.Issue.PosterID,
-		IssueID:  pr.IssueID,
-		Content:  "unresolved conversation",
+	isBlocked := func() bool {
+		return issues_model.MergeBlockedByUnresolvedConversations(t.Context(), protectBranch, pr)
 	}
-	require.NoError(t, db.Insert(t.Context(), unresolved))
-	defer func() {
-		_, err := db.DeleteByID[issues_model.Comment](t.Context(), unresolved.ID)
-		require.NoError(t, err)
-	}()
+	addCodeComment := func(review *issues_model.Review) *issues_model.Comment {
+		comment := &issues_model.Comment{Type: issues_model.CommentTypeCode, IssueID: pr.IssueID, ReviewID: review.ID}
+		require.NoError(t, db.Insert(t.Context(), comment))
+		return comment
+	}
 
-	// Enabled, unresolved code conversation present: blocked.
-	assert.True(t, issues_model.MergeBlockedByUnresolvedConversations(t.Context(), protectBranch, pr))
+	review := &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypePending}
+	require.NoError(t, db.Insert(t.Context(), review))
+	head := addCodeComment(review)
+	assert.False(t, isBlocked())
 
-	unresolved.ResolveDoerID = pr.Issue.PosterID
-	_, err := db.GetEngine(t.Context()).ID(unresolved.ID).Cols("resolve_doer_id").Update(unresolved)
+	review.Type = issues_model.ReviewTypeComment
+	_, err := db.GetEngine(t.Context()).ID(review.ID).Cols("type").Update(review)
 	require.NoError(t, err)
+	assert.True(t, isBlocked())
+	assert.False(t, issues_model.MergeBlockedByUnresolvedConversations(t.Context(), &git_model.ProtectedBranch{}, pr))
 
-	// Enabled, conversation resolved: not blocked.
-	assert.False(t, issues_model.MergeBlockedByUnresolvedConversations(t.Context(), protectBranch, pr))
+	head.Invalidated = true
+	require.NoError(t, issues_model.UpdateCommentInvalidate(t.Context(), head))
+	addCodeComment(review)
+	assert.True(t, isBlocked())
+
+	require.NoError(t, issues_model.MarkConversation(t.Context(), head, &user_model.User{ID: 1}, true))
+	assert.False(t, isBlocked())
+
+	otherReview := &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeComment}
+	require.NoError(t, db.Insert(t.Context(), otherReview))
+	addCodeComment(otherReview)
+	assert.True(t, isBlocked())
 }

@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/automergequeue"
 	"gitea.dev/services/gitdiff"
 	notify_service "gitea.dev/services/notify"
 )
@@ -482,4 +483,21 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	notify_service.PullReviewDismiss(ctx, doer, review, comment)
 
 	return comment, nil
+}
+
+func MarkConversation(ctx context.Context, comment *issues_model.Comment, doer *user_model.User, isResolve bool) error {
+	if err := issues_model.MarkConversation(ctx, comment, doer, isResolve); err != nil {
+		return err
+	}
+	if !isResolve || comment.Type != issues_model.CommentTypeCode {
+		return nil
+	}
+	if err := comment.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+		return err
+	}
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, comment.Issue.PullRequest)
+	return nil
 }

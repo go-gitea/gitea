@@ -823,14 +823,19 @@ func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *
 	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
 }
 
-// MergeBlockedByUnresolvedConversations returns true if merge is blocked by unresolved code conversations
+// MergeBlockedByUnresolvedConversations checks the first comment of each submitted conversation, which holds its resolve state
 func MergeBlockedByUnresolvedConversations(ctx context.Context, protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
 	if !protectBranch.BlockOnUnresolvedConversations {
 		return false
 	}
-	unresolvedExist, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
-		And("type = ?", CommentTypeCode).
-		And("resolve_doer_id = ?", 0).
+	unresolvedExist, err := db.GetEngine(ctx).Where("comment.issue_id = ?", pr.IssueID).
+		And("comment.type = ?", CommentTypeCode).
+		And("comment.resolve_doer_id = ?", 0).
+		And(builder.NotExists(builder.Select("1").From("review").
+			Where(builder.Expr("review.id = comment.review_id AND review.type = ?", ReviewTypePending)))).
+		And(builder.NotExists(builder.Select("1").From("comment AS earlier").
+			Where(builder.Expr("earlier.issue_id = comment.issue_id AND earlier.review_id = comment.review_id AND earlier.id < comment.id")).
+			And(builder.Expr("earlier.type = comment.type AND earlier.tree_path = comment.tree_path AND earlier.line = comment.line")))).
 		Exist(new(Comment))
 	if err != nil {
 		log.Error("MergeBlockedByUnresolvedConversations: %v", err)

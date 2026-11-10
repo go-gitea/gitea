@@ -51,38 +51,35 @@ async function reloadMergeBox(el: Element) {
   if (scrollTop) newEl.querySelector<HTMLElement>('.commit-status-list')?.scrollTo({top: scrollTop, behavior: 'instant'});
 }
 
-// Tracks whether the user has started interacting with the merge box (eg: opened the merge
-// dropdown, started typing a commit message). Shared between the timed poller and the
-// event-driven refresh below so neither clobbers an in-progress merge action.
-let mergeBoxInteracted = false;
-
-// Re-fetch and swap the merge box immediately, eg: after resolving/unresolving a code review
-// conversation, so merge blockers reflect the new state without waiting for the next poll.
 export function reloadRepoPullMergeBox() {
-  const el = document.querySelector('.pull-merge-box[data-pull-link]');
-  if (el && !mergeBoxInteracted) reloadMergeBox(el);
+  document.querySelector('.pull-merge-box')?.dispatchEvent(new Event('ce-merge-box-reload'));
 }
 
 function initRepoPullMergeBoxRefresh(el: Element) {
   // The merge box has complex buttons & form, if the user has interacted with any element, don't refresh.
   // Otherwise, the user won't be able to merge or schedule a merge (auto-merge) when the PR status is not ready.
+  let interacted = false;
   const interactionEvents = ['focusin', 'mousedown', 'click', 'keydown', 'input'];
   for (const event of interactionEvents) {
-    el.addEventListener(event, () => { mergeBoxInteracted = true }, {capture: true});
+    el.addEventListener(event, () => { interacted = true }, {capture: true});
   }
 
-  activePageTimerRefresh({
+  const timer = activePageTimerRefresh({
     once: true, // on successful refresh, the data-global-init will re-initialize the element
-    interval: () => mergeBoxInteracted ? 0 : Number(el.getAttribute('data-pull-merge-box-reloading-interval')),
+    interval: () => interacted ? 0 : Number(el.getAttribute('data-pull-merge-box-reloading-interval')),
     async callback() {
-      if (mergeBoxInteracted) return;
+      if (interacted) return;
       await reloadMergeBox(el);
     },
+  });
+  el.addEventListener('ce-merge-box-reload', () => {
+    if (interacted) return;
+    timer.clear();
+    reloadMergeBox(el);
   });
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {
-  mergeBoxInteracted = false;
   registerGlobalEventFunc('click', 'onCommitStatusChecksToggle', onCommitStatusChecksToggle);
   initRepoPullRequestMergeForm(el);
   initRepoPullMergeBoxRefresh(el);

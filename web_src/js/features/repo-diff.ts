@@ -112,7 +112,7 @@ function initRepoDiffConversationForm() {
       if (elConversationHolder) {
         const elNewConversation = createElementFromHTML(data);
         elConversationHolder.replaceWith(elNewConversation);
-        reloadRepoPullMergeBox(); // merge blockers (eg: unresolved conversations) may have changed
+        reloadRepoPullMergeBox();
       } else {
         window.location.reload();
       }
