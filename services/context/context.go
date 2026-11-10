@@ -8,7 +8,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"gitea.dev/models/unit"
@@ -159,7 +158,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			// get the last flash message from cookie
 			lastFlashCookie, lastFlashMsg := middleware.GetSiteCookieFlashMessage(ctx, ctx.Req, CookieNameFlash)
-			if vals, _ := url.ParseQuery(lastFlashCookie); len(vals) > 0 {
+			if lastFlashMsg != nil {
 				ctx.Data["Flash"] = lastFlashMsg // store last Flash message into the template data, to render it
 			}
 

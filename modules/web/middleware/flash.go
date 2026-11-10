@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"html/template"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -67,6 +68,22 @@ func flashMessageDecode(s string) map[string]string {
 	if s == "" {
 		return nil
 	}
+
+	if strings.Index(s, "=") != -1 {
+		// legacy format, just parse it as query string
+		vals, err := url.ParseQuery(s)
+		if err != nil {
+			return nil
+		}
+		m := make(map[string]string, len(vals))
+		for k, v := range vals {
+			if len(v) > 0 {
+				m[k] = v[0]
+			}
+		}
+		return m
+	}
+
 	data, err := base64.RawURLEncoding.DecodeString(s)
 	if err != nil {
 		return nil
@@ -123,7 +140,6 @@ func ParseCookieFlashMessage(val string) *Flash {
 }
 
 func GetSiteCookieFlashMessage(dataStore reqctx.RequestDataStore, req *http.Request, cookieName string) (string, *Flash) {
-	// Get the last flash message from cookie
 	lastFlashCookie := GetSiteCookie(req, cookieName)
 	lastFlashMsg := ParseCookieFlashMessage(lastFlashCookie)
 	if lastFlashMsg != nil {
