@@ -149,7 +149,7 @@ func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, group stri
 		return err
 	}
 
-	// Delete the repository files of this group if there are no packages
+	// Delete the repository files if there are no packages
 	if len(pfs) == 0 {
 		pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
 		if err != nil {
