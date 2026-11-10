@@ -493,7 +493,6 @@
   "repo.watchers": "Tarkkailijat",
   "repo.stargazers": "Tähtiharrastajat",
   "repo.forks": "Haarat",
-  "repo.delete_preexisting_label": "Poista",
   "repo.desc.private": "Yksityinen",
   "repo.desc.public": "Julkinen",
   "repo.desc.template": "Malli",

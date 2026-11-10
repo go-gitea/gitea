@@ -676,116 +676,6 @@
         }
       }
     },
-    "/admin/unadopted": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "List unadopted repositories",
-        "operationId": "adminUnadoptedList",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results",
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
-            "name": "query",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/StringSlice"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        }
-      }
-    },
-    "/admin/unadopted/{owner}/{repo}": {
-      "post": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Adopt unadopted files as a repository",
-        "operationId": "adminAdoptRepository",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        }
-      },
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Delete unadopted files",
-        "operationId": "adminDeleteUnadoptedRepository",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "default": {
-            "$ref": "#/responses/error"
-          }
-        }
-      }
-    },
     "/admin/users": {
       "get": {
         "produces": [
@@ -28651,6 +28541,11 @@
           "type": "string",
           "x-go-name": "ProjectsMode"
         },
+        "pull_requests_creation_restriction": {
+          "description": "who is allowed to create pull requests: \"reader\" (default, any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
+          "type": "string",
+          "x-go-name": "PullRequestsCreationRestriction"
+        },
         "squash_merge_commit_message": {
           "description": "set the default squash merge commit message body: \"PR_BODY\", \"COMMIT_MESSAGES\", or \"BLANK\".",
           "type": "string",
@@ -29790,6 +29685,11 @@
           "description": "Let only contributors track time (Built-in issue tracker)",
           "type": "boolean",
           "x-go-name": "AllowOnlyContributorsToTrackTime"
+        },
+        "creation_restriction": {
+          "description": "who is allowed to create issues: \"reader\" (default, any user with read access), \"member\" (must be a collaborator with read access) or \"writer\" (must be a collaborator with write access).",
+          "type": "string",
+          "x-go-name": "CreationRestriction"
         },
         "enable_issue_dependencies": {
           "description": "Enable dependencies for issues and pull requests (Built-in issue tracker)",
@@ -32450,6 +32350,11 @@
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
+        "issues_creation_restriction": {
+          "description": "who is allowed to create issues: \"reader\", \"member\" or \"writer\"",
+          "type": "string",
+          "x-go-name": "IssuesCreationRestriction"
+        },
         "language": {
           "type": "string",
           "x-go-name": "Language"
@@ -32531,6 +32436,11 @@
         "projects_mode": {
           "type": "string",
           "x-go-name": "ProjectsMode"
+        },
+        "pull_requests_creation_restriction": {
+          "description": "who is allowed to create pull requests: \"reader\", \"member\" or \"writer\"",
+          "type": "string",
+          "x-go-name": "PullRequestsCreationRestriction"
         },
         "release_counter": {
           "type": "integer",
@@ -34663,15 +34573,6 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/StopWatch"
-        }
-      }
-    },
-    "StringSlice": {
-      "description": "StringSlice",
-      "schema": {
-        "type": "array",
-        "items": {
-          "type": "string"
         }
       }
     },

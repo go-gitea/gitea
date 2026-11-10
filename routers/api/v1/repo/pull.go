@@ -535,16 +535,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	if err := pull_service.NewPullRequest(ctx, ctx.Repo.Permission, prOpts); err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
