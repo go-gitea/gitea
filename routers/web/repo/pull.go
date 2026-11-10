@@ -1266,9 +1266,6 @@ func MergePullRequest(ctx *context.Context) {
 
 	if deleteBranchAfterMerge {
 		deleteBranchAfterMergeAndFlashMessage(ctx, pr.ID)
-		if ctx.Written() {
-			return
-		}
 	}
 	ctx.JSONRedirect(issue.Link())
 }
@@ -1474,9 +1471,6 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 	deleteBranchAfterMergeAndFlashMessage(ctx, issue.PullRequest.ID)
-	if ctx.Written() {
-		return
-	}
 	ctx.JSONRedirect(issue.Link())
 }
 

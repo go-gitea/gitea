@@ -515,9 +515,10 @@ func PackageVersionDelete(ctx *context.Context) {
 
 	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pd.Version); err != nil {
 		ctx.FlashErrorAuto(err)
-	} else {
-		ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
+		ctx.Redirect(pd.VersionWebLink())
+		return
 	}
+	ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
 
 	// redirect to the package if there are still versions available
 	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"

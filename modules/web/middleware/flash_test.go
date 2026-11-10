@@ -15,6 +15,7 @@ func TestFlashMessageEncode(t *testing.T) {
 
 	messages := map[string]string{"error": "<div>\n<div>", "success": "🌞"}
 	assert.Equal(t, messages, flashMessageDecode(flashMessageEncode(messages, 100)))
+	assert.Equal(t, map[string]string{"error": "删除分支失败"}, flashMessageDecode(flashMessageEncode(map[string]string{"error": "删除分支\xff失败"}, 100)))
 
 	const limit = 99
 	encoded := flashMessageEncode(map[string]string{"error": strings.Repeat("x", 200)}, limit)

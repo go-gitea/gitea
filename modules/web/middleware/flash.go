@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"gitea.dev/modules/charset"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/util"
 )
@@ -97,7 +96,7 @@ func flashMessageDecode(s string) map[string]string {
 		k, v, _ := strings.Cut(line, "=")
 		if v != "" {
 			v = flashMessageReplacer().decoder.Replace(v)
-			m[k] = util.UnsafeBytesToString(charset.ToUTF8DropErrors(util.UnsafeStringToBytes(v)))
+			m[k] = strings.ToValidUTF8(v, "")
 		}
 	}
 	return m
