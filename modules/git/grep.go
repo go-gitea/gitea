@@ -14,7 +14,7 @@ import (
 )
 
 func GrepSearch(ctx context.Context, repo *Repository, patterns []string, refName string, visit func(string) (bool, error), paths ...string) (incomplete bool, err error) {
-	cmd := gitcmd.NewCommand("grep", "-l", "-z", "-I", "--perl-regexp", "--ignore-case", "--full-name")
+	cmd := gitcmd.NewCommand("grep", "-l", "-z", "-I", "--perl-regexp", "--ignore-case", "--full-name", "--all-match")
 	for _, pattern := range patterns {
 		cmd.AddOptionGrepExpr(pattern)
 	}

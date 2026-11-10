@@ -78,8 +78,11 @@ func PerformSearch(ctx context.Context, gitRepo *git.Repository, opts *SearchOpt
 	var pathMatches []string
 	for _, file := range files {
 		eligible[file.Filename] = file
-		if _, ok := matcher.MatchFile(file.Filename, ""); ok {
-			pathMatches = append(pathMatches, file.Filename)
+		for i := range matcher {
+			if _, ok := matcher[i:i+1].MatchFile(file.Filename, ""); ok {
+				pathMatches = append(pathMatches, file.Filename)
+				break
+			}
 		}
 	}
 	if len(eligible) == 0 {

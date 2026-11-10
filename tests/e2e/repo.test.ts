@@ -44,9 +44,9 @@ test('search code', async ({page, request}) => {
   await input.fill('alphaterm "betaTerm = 1"');
   await input.press('Enter');
   await page.waitForURL(/[?&]q=alphaterm/);
-  await expect(page.locator('.repo-search-result')).toContainText('src/main.go');
+  await expect(page.getByText('src/main.go', {exact: true})).toBeVisible();
   await input.fill('"unterminated');
   await input.press('Enter');
   await page.waitForURL(/[?&]q=%22unterminated/);
-  await expect(page.locator('.ui.error.message')).toContainText('Invalid search query');
+  await expect(page.getByText('Invalid search query')).toBeVisible();
 });
