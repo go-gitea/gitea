@@ -5,6 +5,7 @@ package auth
 
 import (
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -18,7 +19,7 @@ import (
 )
 
 func TestParseTokenUsesAuthorizationHeaderOnly(t *testing.T) {
-	req := httptest.NewRequest("GET", "/api/v1/user?token=query-token&access_token=query-access-token", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/user?token=query-token&access_token=query-access-token", nil)
 	token, ok := parseToken(req)
 	assert.False(t, ok)
 	assert.Empty(t, token)
