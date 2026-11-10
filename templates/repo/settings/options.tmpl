@@ -871,7 +871,7 @@
 						<div class="item-title">{{ctx.Locale.Tr "repo.settings.transfer"}}</div>
 						<div class="item-body">
 							{{if .RepoTransfer}}
-								{{ctx.Locale.Tr "repo.settings.transfer_started" .RepoTransfer.Recipient.DisplayName}}
+								{{ctx.Locale.Tr "repo.settings.transfer_started" (ctx.RenderUtils.UserDisplayName .RepoTransfer.Recipient)}}
 							{{else}}
 								{{ctx.Locale.Tr "repo.settings.transfer_desc"}}
 							{{end}}

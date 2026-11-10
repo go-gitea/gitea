@@ -2,7 +2,7 @@ import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
 import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
 import {parseIssueHref, parseRepoOwnerPathInfo} from '../../utils.ts';
-import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
+import {createElementFromAttrs, createElementFromHTML, createUserLabel} from '../../utils/dom.ts';
 import {getIssueColorClass, getIssueIcon} from '../issue.ts';
 import {errorName} from '../../modules/errors.ts';
 import {debounce} from '../../utils/func.ts';
@@ -96,7 +96,7 @@ export function initTextExpander(expander: TextExpanderElement) {
 
         const ul = document.createElement('ul');
         ul.classList.add('suggestions');
-        for (const {value, name, fullname, avatar} of matches) {
+        for (const {value, name, fullname, avatar, is_bot} of matches) {
           const li = document.createElement('li');
           li.setAttribute('role', 'option');
           li.setAttribute('data-value', `${key}${value}`);
@@ -116,6 +116,7 @@ export function initTextExpander(expander: TextExpanderElement) {
             fullnameSpan.textContent = fullname;
             li.append(fullnameSpan);
           }
+          if (is_bot) li.append(createUserLabel());
 
           ul.append(li);
         }

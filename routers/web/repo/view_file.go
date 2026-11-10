@@ -16,7 +16,6 @@ import (
 	issue_model "gitea.dev/models/issues"
 	org_model "gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
@@ -327,13 +326,10 @@ func prepareFileViewEditorButtons(ctx *context.Context) bool {
 		return false
 	}
 	if lfsLock != nil {
-		u, err := user_model.GetUserByID(ctx, lfsLock.OwnerID)
-		if err != nil {
-			ctx.ServerError("GetTreePathLock", err)
+		if err := lfsLock.LoadOwner(ctx); err != nil {
+			ctx.ServerError("LoadOwner", err)
 			return false
 		}
-		ctx.Data["LFSLockOwner"] = u.Name
-		ctx.Data["LFSLockOwnerHomeLink"] = u.HomeLink()
 		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
 	}
 

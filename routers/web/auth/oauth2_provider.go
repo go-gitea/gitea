@@ -369,7 +369,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.Data["Scope"] = form.Scope
 	ctx.Data["Nonce"] = form.Nonce
 	if user != nil {
-		ctx.Data["ApplicationCreatorLinkHTML"] = template.HTML(fmt.Sprintf(`<a href="%s">@%s</a>`, html.EscapeString(user.HomeLink()), html.EscapeString(user.Name)))
+		ctx.Data["ApplicationCreatorLinkHTML"] = template.HTML(fmt.Sprintf(`<a href="%s">@%s</a>`, html.EscapeString(user.HomeLink()), html.EscapeString(user.Name))) + templates.NewRenderUtils(ctx).UserTypeLabel(user)
 	} else {
 		ctx.Data["ApplicationCreatorLinkHTML"] = template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(setting.AppSubURL+"/"), html.EscapeString(setting.AppName)))
 	}

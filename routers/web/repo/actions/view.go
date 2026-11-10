@@ -372,6 +372,7 @@ type ViewRunAttempt struct {
 	TriggerUserName   string `json:"triggerUserName"`
 	TriggerUserLink   string `json:"triggerUserLink"`
 	TriggerUserAvatar string `json:"triggerUserAvatar"`
+	TriggerUserIsBot  bool   `json:"triggerUserIsBot"`
 }
 
 type ViewPullRequest struct {
@@ -390,6 +391,7 @@ type ViewUser struct {
 	DisplayName string `json:"displayName"`
 	Link        string `json:"link"`
 	AvatarLink  string `json:"avatarLink,omitempty"`
+	IsBot       bool   `json:"isBot"`
 }
 
 type ViewBranch struct {
@@ -650,15 +652,17 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			Latest:            runAttempt.ID == run.LatestAttemptID,
 			TriggeredAt:       runAttempt.Created.AsTime().Unix(),
 			TriggerUserName:   runAttempt.TriggerUser.GetDisplayName(),
-			TriggerUserLink:   runAttempt.TriggerUser.HomeLink(),
+			TriggerUserLink:   util.Iif(runAttempt.TriggerUser.ID > 0, runAttempt.TriggerUser.HomeLink(), ""),
 			TriggerUserAvatar: runAttempt.TriggerUser.AvatarLinkWithSize(ctx, 16),
+			TriggerUserIsBot:  runAttempt.TriggerUser.IsTypeBot(),
 		})
 	}
 
 	pusher := ViewUser{
 		DisplayName: run.TriggerUser.GetDisplayName(),
-		Link:        run.TriggerUser.HomeLink(),
+		Link:        util.Iif(run.TriggerUser.ID > 0, run.TriggerUser.HomeLink(), ""),
 		AvatarLink:  run.TriggerUser.AvatarLinkWithSize(ctx, 16),
+		IsBot:       run.TriggerUser.IsTypeBot(),
 	}
 
 	refInfo := getViewSummaryRefInfo(ctx, run)

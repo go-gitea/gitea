@@ -49,6 +49,7 @@ const props = defineProps<{
 }>();
 
 const locale = props.locale;
+const {i18n} = window.config;
 const store = createActionRunViewStore(props.actionsViewUrl);
 const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
 const visibleJobSummaries = computed(() => {
@@ -224,6 +225,7 @@ onBeforeUnmount(() => {
                   <relative-time :datetime="attempt.triggeredAt" prefix=""/>
                   <span>•</span>
                   <span class="gt-ellipsis">{{ attempt.triggerUserName }}</span>
+                  <span v-if="attempt.triggerUserIsBot" class="ui basic label tw-py-0">{{ i18n.bot }}</span>
                 </div>
               </a>
             </div>

@@ -96,7 +96,7 @@ func TestFindRecentlyPushedNewBranchesUsesPushTime(t *testing.T) {
 	}
 }
 
-func TestDeletedBranchLoadUser(t *testing.T) {
+func TestBranchLoadUsers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{ID: 1})
@@ -113,6 +113,14 @@ func TestDeletedBranchLoadUser(t *testing.T) {
 	branch.LoadDeletedBy(t.Context())
 	assert.NotNil(t, branch.DeletedBy)
 	assert.Equal(t, "Ghost", branch.DeletedBy.Name)
+
+	branches := git_model.BranchList{{IsDeleted: true, DeletedByID: user_model.ActionsUserID, PusherID: user_model.ActionsUserID}, {IsDeleted: true}}
+	assert.NoError(t, branches.LoadDeletedBy(t.Context()))
+	assert.NoError(t, branches.LoadPusher(t.Context()))
+	assert.Equal(t, "gitea-actions", branches[0].DeletedBy.Name)
+	assert.Equal(t, "gitea-actions", branches[0].Pusher.Name)
+	assert.Equal(t, "Ghost", branches[1].DeletedBy.Name)
+	assert.Nil(t, branches[1].Pusher)
 }
 
 func TestRemoveDeletedBranch(t *testing.T) {

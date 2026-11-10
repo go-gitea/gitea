@@ -307,7 +307,7 @@ func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Reposit
 	for _, reaction := range list {
 		if reaction.OriginalAuthor != "" {
 			reaction.User = newMigrationOriginalUser(fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name()))
-		} else if user, ok := userMaps[reaction.UserID]; ok {
+		} else if user := user_model.GetPossibleUserFromMap(reaction.UserID, userMaps); user != nil {
 			reaction.User = user
 		} else {
 			reaction.User = user_model.NewGhostUser()

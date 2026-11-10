@@ -61,7 +61,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	var hasPendingPullRequestMergeTip template.HTML
 	if hasPendingPullRequestMerge {
 		createdPRMergeStr := templates.TimeSince(pendingPullRequestMerge.CreatedUnix)
-		hasPendingPullRequestMergeTip = ctx.Locale.Tr("repo.pulls.auto_merge_has_pending_schedule", pendingPullRequestMerge.Doer.Name, createdPRMergeStr)
+		hasPendingPullRequestMergeTip = ctx.Locale.Tr("repo.pulls.auto_merge_has_pending_schedule", templates.NewRenderUtils(ctx).UserDisplayName(pendingPullRequestMerge.Doer), createdPRMergeStr)
 	}
 
 	var defaultMergeTitle, defaultMergeBody string

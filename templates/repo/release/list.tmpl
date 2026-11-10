@@ -44,17 +44,13 @@
 								{{end}}
 							</div>
 						</div>
-						<p class="tw-text-text-light">
+						<p class="tw-text-text-light muted-links">
 							<span class="author">
 							{{if $release.OriginalAuthor}}
 								{{svg (MigrationIcon $release.Repo.GetOriginalURLHostname) 20 "tw-mr-1"}}{{$release.OriginalAuthor}}
 							{{else if $release.Publisher}}
 								{{ctx.AvatarUtils.Avatar $release.Publisher 20 "tw-mr-1"}}
-								{{if gt $release.PublisherID 0}}
-									<a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName}}</a>
-								{{else}}
-									{{$release.Publisher.GetDisplayName}}
-								{{end}}
+								{{template "shared/user/namelink" $release.Publisher}}
 							{{else}}
 								Ghost
 							{{end}}

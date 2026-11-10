@@ -145,7 +145,7 @@ func TestLFSLockView(t *testing.T) {
 
 		// make sure the display names are different, or the test is meaningless
 		require.NoError(t, repo3.LoadOwner(t.Context()))
-		require.NotEqual(t, user2.DisplayName(), repo3.Owner.DisplayName())
+		require.NotEqual(t, user2.GetDisplayName(), repo3.Owner.GetDisplayName())
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/settings/lfs/locks", repo3.FullName()))
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -161,6 +161,14 @@ func TestLFSLockView(t *testing.T) {
 		// path
 		assert.Equal(t, lockPath, strings.TrimSpace(td.Eq(0).Text()))
 		// owner name
-		assert.Equal(t, user2.DisplayName(), strings.TrimSpace(td.Eq(1).Text()))
+		assert.Equal(t, user2.GetDisplayName(), strings.TrimSpace(td.Eq(1).Text()))
+	})
+
+	t.Run("system owner", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		require.NoError(t, db.Insert(t.Context(), &git.LFSLock{RepoID: repo3.ID, OwnerID: user_model.ActionsUserID, Path: "README.md"}))
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/"+repo3.FullName()+"/src/branch/master/README.md"), http.StatusOK)
+		assert.Equal(t, []string{"gitea-actions", "Bot"}, strings.Fields(NewHTMLParser(t, resp.Body).Find(".file-info-entry[data-tooltip-content]").Text()))
 	})
 }

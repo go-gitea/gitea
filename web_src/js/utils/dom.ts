@@ -286,6 +286,10 @@ export function createElementFromAttrs<T extends HTMLElement>(tagName: string, a
   return el as T;
 }
 
+export function createUserLabel(): HTMLElement {
+  return createElementFromAttrs('span', {class: 'ui basic label tw-py-0'}, window.config.i18n.bot);
+}
+
 export function animateOnce(el: Element, animationClassName: string): Promise<void> {
   return new Promise((resolve) => {
     el.addEventListener('animationend', function onAnimationEnd() {
