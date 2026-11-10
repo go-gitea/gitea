@@ -7,10 +7,12 @@ import (
 	"context"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/services/audit"
 
 	"github.com/markbates/goth"
 	"golang.org/x/oauth2"
@@ -77,6 +79,7 @@ func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *us
 				if err := user_model.UpdateUserCols(ctx, user, "is_active"); err != nil {
 					return err
 				}
+				audit.RecordAs(ctx, user_model.NewAuthSourceUser(), audit_model.UserActive, user, "active", false)
 			}
 
 			// HINT: OAUTH-AUTO-SYNC-USER-ACTIVATION

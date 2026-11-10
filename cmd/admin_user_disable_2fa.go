@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
 
 	"github.com/urfave/cli/v3"
 )
@@ -66,6 +68,7 @@ func runDisableTwoFactor(ctx context.Context, c *cli.Command) error {
 	if err != nil {
 		return err
 	}
+	audit.Record(ctx, audit_model.UserTwoFactorDisable, user)
 
 	cprintf(c, "Disabled 2FA for user %q (removed %d TOTP and %d WebAuthn credential(s))\n", user.Name, totp, webAuthn)
 	return nil

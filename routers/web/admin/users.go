@@ -559,6 +559,7 @@ func EditUserPost(ctx *context.Context) {
 			ctx.ServerError("auth.DisableTwoFactor", err)
 			return
 		}
+		audit.Record(ctx, audit_model.UserTwoFactorDisable, u)
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))

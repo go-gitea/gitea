@@ -8,10 +8,13 @@ import (
 	"strconv"
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +29,7 @@ func TestDisableTwoFactorCommand(t *testing.T) {
 	}()
 
 	t.Run("disable TOTP and WebAuthn", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 		require.NoError(t, microcmdUserCreate().Run(ctx, []string{"create", "--username", "tfuser", "--email", "tfuser@gitea.local", "--random-password"}))
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "tfuser"})
 
@@ -50,6 +54,7 @@ func TestDisableTwoFactorCommand(t *testing.T) {
 		has, err = auth_model.HasTwoFactorOrWebAuthn(ctx, user.ID)
 		require.NoError(t, err)
 		assert.False(t, has)
+		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserTwoFactorDisable, ScopeID: user.ID})
 	})
 
 	t.Run("disable by id", func(t *testing.T) {

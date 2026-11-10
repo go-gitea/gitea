@@ -7,11 +7,14 @@ import (
 	"bufio"
 	"mime"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
 	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -167,5 +170,79 @@ func TestAdminAuditLogExport(t *testing.T) {
 		}
 		require.NoError(t, scanner.Err())
 		assert.True(t, found)
+	})
+}
+
+func TestAuditLogUserEvents(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+	defer test.MockVariableValue(&setting.Service.EnableCaptcha, false)()
+
+	findEvent := func(t *testing.T, action audit_model.Action, scopeID int64) *audit_model.Event {
+		t.Helper()
+		events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{Action: action, ScopeType: audit_model.ScopeUser, ScopeID: scopeID})
+		require.NoError(t, err)
+		require.Len(t, events, 1, "audit events for %s", action)
+		return events[0]
+	}
+
+	t.Run("SignUp", func(t *testing.T) {
+		MakeRequest(t, NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
+			"user_name": "audit-signup",
+			"email":     "audit-signup@example.com",
+			"password":  "examplePassword!1",
+			"retype":    "examplePassword!1",
+		}), http.StatusSeeOther)
+
+		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "audit-signup"})
+		assert.Equal(t, u.ID, findEvent(t, audit_model.UserCreate, u.ID).ActorID)
+	})
+
+	t.Run("EmailPrimary", func(t *testing.T) {
+		email, err := user_model.InsertEmailAddress(t.Context(), &user_model.EmailAddress{UID: 2, Email: "audit-primary@example.com", IsActivated: true})
+		require.NoError(t, err)
+
+		session := loginUser(t, "user2")
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
+			"_method": "PRIMARY",
+			"id":      strconv.FormatInt(email.ID, 10),
+		}), http.StatusSeeOther)
+
+		assert.Equal(t, email.Email, audit_model.DecodeMetadata(findEvent(t, audit_model.UserEmailPrimaryChange, 2).Metadata)["email"])
+	})
+
+	t.Run("APIKeysAndTokens", func(t *testing.T) {
+		session := loginUser(t, "user4")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
+
+		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/user/keys", &api.CreateKeyOption{
+			Title: "audit-key",
+			Key:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEYv1rUQ6Sx6XQNM5o8URz8xvuXaV9bGXfj+OMkh8T0X",
+		}).AddTokenAuth(token), http.StatusCreated)
+		findEvent(t, audit_model.UserKeySSHAdd, 4)
+
+		MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/token").AddTokenAuth(token), http.StatusNoContent)
+		findEvent(t, audit_model.UserAccessTokenRemove, 4)
+	})
+
+	// user24 has TOTP enrolled in the fixtures
+	t.Run("TwoFactorScratchFail", func(t *testing.T) {
+		session := loginUser(t, "user24")
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/two_factor/scratch", map[string]string{
+			"token": "wrong-token",
+		}), http.StatusOK)
+		findEvent(t, audit_model.UserAuthenticationFailTwoFactor, 24)
+	})
+
+	t.Run("AdminResetTwoFactor", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/24/edit", map[string]string{
+			"login_name": "user24",
+			"login_type": "0-0",
+			"email":      "user24@example.com",
+			"active":     "on",
+			"reset_2fa":  "on",
+		}), http.StatusSeeOther)
+		assert.Equal(t, int64(1), findEvent(t, audit_model.UserTwoFactorDisable, 24).ActorID)
 	})
 }
