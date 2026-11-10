@@ -590,9 +590,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }

@@ -12042,9 +12042,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Hook"
-          },
-          "404": {
-            "$ref": "#/components/responses/notFound"
           }
         },
         "summary": "Update a hook",

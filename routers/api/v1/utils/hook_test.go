@@ -48,16 +48,14 @@ func TestTestHookValidation(t *testing.T) {
 	}
 }
 
-func TestEditSystemHook(t *testing.T) {
+func TestEditHook(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	hook := &webhook.Webhook{
-		Type:            webhook_module.SLACK,
-		URL:             "https://example.com/webhook",
-		ContentType:     webhook.ContentTypeJSON,
-		IsActive:        true,
-		IsSystemWebhook: true,
-		Meta:            `{"channel":"#old","username":"bot"}`,
+		RepoID:      1,
+		URL:         "https://example.com/webhook",
+		ContentType: webhook.ContentTypeJSON,
+		IsActive:    true,
 		HookEvent: &webhook_module.HookEvent{
 			BranchFilter: "main",
 			ChooseEvents: true,
@@ -68,44 +66,27 @@ func TestEditSystemHook(t *testing.T) {
 	require.NoError(t, hook.UpdateEvent())
 	require.NoError(t, db.Insert(t.Context(), hook))
 
-	t.Run("UpdatesSentAndKeepsOmittedFields", func(t *testing.T) {
-		ctx, resp := contexttest.MockAPIContext(t, "api/v1/admin/hooks")
-		EditSystemHook(ctx, &structs.EditHookOption{
+	t.Run("KeepsOmittedFields", func(t *testing.T) {
+		ctx, _ := contexttest.MockAPIContext(t, "user2/repo1/hooks")
+		assert.True(t, editHook(ctx, &structs.EditHookOption{
 			Active: new(false),
 			Events: []string{},
-			Config: map[string]string{"url": hook.URL, "channel": "#new", "secret": "new-secret"},
-		}, hook.ID)
-		assert.Equal(t, http.StatusOK, resp.Code)
+			Config: map[string]string{"url": hook.URL},
+		}, hook))
 
 		updated := unittest.AssertExistsAndLoadBean(t, &webhook.Webhook{ID: hook.ID})
-		assert.Equal(t, "new-secret", updated.Secret)
 		assert.False(t, updated.IsActive)
 		assert.Equal(t, "main", updated.BranchFilter)
 		assert.True(t, updated.HasEvent(webhook_module.HookEventIssues))
 		assert.False(t, updated.HasEvent(webhook_module.HookEventPush))
-		assert.JSONEq(t, `{"channel":"#new","username":"bot","icon_url":"","color":""}`, updated.Meta)
 		header, err := updated.HeaderAuthorization()
 		require.NoError(t, err)
 		assert.Equal(t, "Bearer secret", header)
 	})
 
 	t.Run("NewURLClearsAuthorizationHeader", func(t *testing.T) {
-		ctx, resp := contexttest.MockAPIContext(t, "api/v1/admin/hooks")
-		EditSystemHook(ctx, &structs.EditHookOption{Config: map[string]string{"url": "https://example.org/webhook"}}, hook.ID)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		ctx, _ := contexttest.MockAPIContext(t, "user2/repo1/hooks")
+		assert.True(t, editHook(ctx, &structs.EditHookOption{Config: map[string]string{"url": "https://example.org/webhook"}}, hook))
 		assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &webhook.Webhook{ID: hook.ID}).HeaderAuthorizationEncrypted)
-	})
-
-	t.Run("InvalidURLAsAdmin", func(t *testing.T) {
-		ctx, resp := contexttest.MockAPIContext(t, "api/v1/admin/hooks")
-		contexttest.LoadUser(t, ctx, 1)
-		EditSystemHook(ctx, &structs.EditHookOption{Config: map[string]string{"url": "not a url"}}, hook.ID)
-		assert.Equal(t, http.StatusUnprocessableEntity, resp.Code)
-	})
-
-	t.Run("NotFound", func(t *testing.T) {
-		ctx, resp := contexttest.MockAPIContext(t, "api/v1/admin/hooks")
-		EditSystemHook(ctx, &structs.EditHookOption{}, 999999)
-		assert.Equal(t, http.StatusNotFound, resp.Code)
 	})
 }

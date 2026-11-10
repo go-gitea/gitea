@@ -274,14 +274,11 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
-		if webhook.IsErrWebhookNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if !editHook(ctx, form, hook) {
+		ctx.APIErrorInternal(err)
 		return
 	}
 	updated, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
@@ -359,28 +356,21 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 			}
 			w.ContentType = webhook.ToHookContentType(ct)
 		}
-		if secret, ok := form.Config["secret"]; ok {
-			w.Secret = secret
-		}
 
 		if w.Type == webhook_module.SLACK {
-			slackMeta := webhook_service.GetSlackHook(w)
-			for key, field := range map[string]*string{
-				"channel":  &slackMeta.Channel,
-				"username": &slackMeta.Username,
-				"icon_url": &slackMeta.IconURL,
-				"color":    &slackMeta.Color,
-			} {
-				if value, ok := form.Config[key]; ok {
-					*field = value
+			if channel, ok := form.Config["channel"]; ok {
+				meta, err := json.Marshal(&webhook_service.SlackMeta{
+					Channel:  channel,
+					Username: form.Config["username"],
+					IconURL:  form.Config["icon_url"],
+					Color:    form.Config["color"],
+				})
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return false
 				}
+				w.Meta = string(meta)
 			}
-			meta, err := json.Marshal(slackMeta)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return false
-			}
-			w.Meta = string(meta)
 		}
 	}
 
