@@ -6,9 +6,11 @@ package actions
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/glob"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -27,8 +29,46 @@ type ActionScopedWorkflowSource struct {
 	// WorkflowConfigs maps a workflow ID (entry name) to its merge-gate config.
 	WorkflowConfigs map[string]*ScopedWorkflowConfig `xorm:"JSON TEXT 'workflow_configs'"`
 
+	RepoFilter *ScopedWorkflowRepoFilter `xorm:"JSON TEXT 'repo_filter'"`
+
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+}
+
+type ScopedWorkflowRepoFilter struct {
+	IncludeRepos  []string `json:"include_repos,omitempty"`
+	ExcludeRepos  []string `json:"exclude_repos,omitempty"`
+	IncludeTopics []string `json:"include_topics,omitempty"`
+}
+
+func (s *ActionScopedWorkflowSource) AppliesToRepo(repo *repo_model.Repository) bool {
+	f := s.RepoFilter
+	if f == nil {
+		return true
+	}
+	matches := func(patterns []string) bool {
+		for _, pattern := range patterns {
+			g, err := glob.Compile(strings.ToLower(pattern))
+			if err == nil && g.Match(strings.ToLower(repo.Name)) {
+				return true
+			}
+		}
+		return false
+	}
+	if matches(f.ExcludeRepos) {
+		return false
+	}
+	if len(f.IncludeRepos) == 0 && len(f.IncludeTopics) == 0 || matches(f.IncludeRepos) {
+		return true
+	}
+	for _, topic := range repo.Topics {
+		for _, included := range f.IncludeTopics {
+			if strings.EqualFold(topic, included) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // ScopedWorkflowConfig is one scoped workflow's config within a source registration.
@@ -72,15 +112,33 @@ func scopedWorkflowSourceOwnedCond() builder.Cond {
 	return builder.Eq{"owner_id": 0}.Or(builder.Expr("EXISTS (SELECT 1 FROM repository WHERE repository.id = action_scoped_workflow_source.source_repo_id AND repository.owner_id = action_scoped_workflow_source.owner_id)"))
 }
 
-// GetEffectiveScopedWorkflowSources returns the scoped-workflow sources effective for a repo owned by repoOwnerID:
+// GetEffectiveScopedWorkflowSources returns the scoped-workflow sources matching repo:
 // the owner's own sources plus instance-level (owner_id=0) sources.
-func GetEffectiveScopedWorkflowSources(ctx context.Context, repoOwnerID int64) ([]*ActionScopedWorkflowSource, error) {
-	return db.Find[ActionScopedWorkflowSource](ctx, FindScopedWorkflowSourceOpts{OwnerIDs: []int64{0, repoOwnerID}})
+func GetEffectiveScopedWorkflowSources(ctx context.Context, repo *repo_model.Repository) ([]*ActionScopedWorkflowSource, error) {
+	sources, err := db.Find[ActionScopedWorkflowSource](ctx, FindScopedWorkflowSourceOpts{OwnerIDs: []int64{0, repo.OwnerID}})
+	if err != nil {
+		return nil, err
+	}
+	effective := sources[:0]
+	for _, source := range sources {
+		if source.AppliesToRepo(repo) {
+			effective = append(effective, source)
+		}
+	}
+	return effective, nil
 }
 
-// IsScopedWorkflowSourceEffective reports whether sourceRepoID is a scoped-workflow source effective for a repo owned by repoOwnerID.
-func IsScopedWorkflowSourceEffective(ctx context.Context, repoOwnerID, sourceRepoID int64) (bool, error) {
-	return db.Exist[ActionScopedWorkflowSource](ctx, FindScopedWorkflowSourceOpts{OwnerIDs: []int64{0, repoOwnerID}, SourceRepoID: sourceRepoID}.ToConds())
+func IsScopedWorkflowSourceEffective(ctx context.Context, repo *repo_model.Repository, sourceRepoID int64) (bool, error) {
+	sources, err := GetEffectiveScopedWorkflowSources(ctx, repo)
+	if err != nil {
+		return false, err
+	}
+	for _, source := range sources {
+		if source.SourceRepoID == sourceRepoID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // IsWorkflowRequiredInSources reports whether workflowID from sourceRepoID is required by any of the given sources.
@@ -101,9 +159,9 @@ func ScopedStatusContextPrefix(ctx context.Context, sourceRepoID int64) string {
 	return fmt.Sprintf("scoped:%d", sourceRepoID)
 }
 
-// IsScopedWorkflowRequired reports whether workflowID from sourceRepoID is required for a repo owned by consumerOwnerID.
-func IsScopedWorkflowRequired(ctx context.Context, consumerOwnerID, sourceRepoID int64, workflowID string) (bool, error) {
-	sources, err := GetEffectiveScopedWorkflowSources(ctx, consumerOwnerID)
+// IsScopedWorkflowRequired reports whether workflowID from sourceRepoID is required for repo.
+func IsScopedWorkflowRequired(ctx context.Context, repo *repo_model.Repository, sourceRepoID int64, workflowID string) (bool, error) {
+	sources, err := GetEffectiveScopedWorkflowSources(ctx, repo)
 	if err != nil {
 		return false, err
 	}
@@ -111,11 +169,11 @@ func IsScopedWorkflowRequired(ctx context.Context, consumerOwnerID, sourceRepoID
 }
 
 // IsScopedWorkflowOptedOutloads the consumer's effective sources then calls ScopedWorkflowOptedOut
-func IsScopedWorkflowOptedOut(ctx context.Context, cfg *repo_model.ActionsConfig, consumerOwnerID, sourceRepoID int64, workflowID string) (bool, error) {
+func IsScopedWorkflowOptedOut(ctx context.Context, cfg *repo_model.ActionsConfig, repo *repo_model.Repository, sourceRepoID int64, workflowID string) (bool, error) {
 	if !cfg.IsScopedWorkflowDisabled(sourceRepoID, workflowID) {
 		return false, nil
 	}
-	sources, err := GetEffectiveScopedWorkflowSources(ctx, consumerOwnerID)
+	sources, err := GetEffectiveScopedWorkflowSources(ctx, repo)
 	if err != nil {
 		return false, err
 	}
@@ -180,4 +238,20 @@ func RemoveScopedWorkflowSource(ctx context.Context, ownerID, repoID int64) erro
 func RemoveOwnerScopedWorkflowSources(ctx context.Context, repoID int64) error {
 	_, err := db.GetEngine(ctx).Where("owner_id <> 0 AND source_repo_id = ?", repoID).Delete(new(ActionScopedWorkflowSource))
 	return err
+}
+
+func SetScopedWorkflowSourceRepoFilter(ctx context.Context, ownerID, repoID int64, filter *ScopedWorkflowRepoFilter) error {
+	_, err := db.GetEngine(ctx).Where("owner_id = ? AND source_repo_id = ?", ownerID, repoID).Cols("repo_filter").Update(&ActionScopedWorkflowSource{RepoFilter: filter})
+	return err
+}
+
+func (f *ScopedWorkflowRepoFilter) Validate() error {
+	for _, patterns := range [][]string{f.IncludeRepos, f.ExcludeRepos} {
+		for _, pattern := range patterns {
+			if _, err := glob.Compile(strings.ToLower(pattern)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

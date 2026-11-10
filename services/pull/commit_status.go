@@ -179,7 +179,7 @@ func EffectiveRequiredContexts(ctx context.Context, repo *repo_model.Repository,
 		return nil, nil
 	}
 
-	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, repo.OwnerID)
+	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, repo)
 	if err != nil {
 		return nil, fmt.Errorf("GetEffectiveScopedWorkflowSources: %w", err)
 	}

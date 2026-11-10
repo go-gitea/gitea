@@ -26,6 +26,24 @@
 				<button type="submit" class="ui red tiny button">{{ctx.Locale.Tr "remove"}}</button>
 			</form>
 		</div>
+		<form class="ui form form-fetch-action tw-mt-3" method="post" action="{{$.Link}}/repo-filter">
+			<input type="hidden" name="repo_id" value="{{$src.Repo.ID}}">
+			<p>{{if or $src.IncludeRepos $src.ExcludeRepos $src.IncludeTopics}}{{ctx.Locale.Tr "actions.scoped_workflows.filter.active"}}{{else}}{{ctx.Locale.Tr "actions.scoped_workflows.filter.all"}}{{end}}</p>
+			<p class="text grey">{{ctx.Locale.Tr "actions.scoped_workflows.filter.help"}}</p>
+			<div class="field">
+				<label for="scoped-{{$src.Repo.ID}}-include_repos">{{ctx.Locale.Tr "actions.scoped_workflows.filter.include_repos"}}</label>
+				<textarea id="scoped-{{$src.Repo.ID}}-include_repos" name="include_repos" rows="2">{{$src.IncludeRepos}}</textarea>
+			</div>
+			<div class="field">
+				<label for="scoped-{{$src.Repo.ID}}-exclude_repos">{{ctx.Locale.Tr "actions.scoped_workflows.filter.exclude_repos"}}</label>
+				<textarea id="scoped-{{$src.Repo.ID}}-exclude_repos" name="exclude_repos" rows="2">{{$src.ExcludeRepos}}</textarea>
+			</div>
+			<div class="field">
+				<label for="scoped-{{$src.Repo.ID}}-include_topics">{{ctx.Locale.Tr "actions.scoped_workflows.filter.include_topics"}}</label>
+				<textarea id="scoped-{{$src.Repo.ID}}-include_topics" name="include_topics" rows="2">{{$src.IncludeTopics}}</textarea>
+			</div>
+			<button type="submit" class="ui tiny primary button">{{ctx.Locale.Tr "save"}}</button>
+		</form>
 		{{if $src.ScopedWorkflowInfos}}
 			<form class="ui form form-fetch-action tw-mt-3" method="post" action="{{$.Link}}/required" data-global-init="initScopedWorkflowRequired">
 				<input type="hidden" name="repo_id" value="{{$src.Repo.ID}}">

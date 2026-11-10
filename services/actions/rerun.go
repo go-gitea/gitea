@@ -89,8 +89,15 @@ func validateRerun(ctx context.Context, run *actions_model.ActionRun, repo *repo
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 	if run.IsScopedRun {
+		effective, err := actions_model.IsScopedWorkflowSourceEffective(ctx, repo, run.WorkflowRepoID)
+		if err != nil {
+			return err
+		}
+		if !effective {
+			return util.NewInvalidArgumentErrorf("scoped workflow source is not effective for this repository")
+		}
 		// a required scoped workflow can never be opted out, so a stale disabled flag must not block rerun
-		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, cfg, repo.OwnerID, run.WorkflowRepoID, run.WorkflowID)
+		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, cfg, repo, run.WorkflowRepoID, run.WorkflowID)
 		if err != nil {
 			return err
 		}
