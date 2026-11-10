@@ -10,6 +10,7 @@ import (
 	repository_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 // ScopedActions holds the action variants for a resource that can be owned by a
@@ -81,6 +82,49 @@ var (
 		User:   audit_model.UserWebhookRemove,
 		System: audit_model.SystemWebhookRemove,
 	}
+
+	RunnerToken = ScopedActions{
+		Repo:   audit_model.RepositoryRunnerToken,
+		Org:    audit_model.OrganizationRunnerToken,
+		User:   audit_model.UserRunnerToken,
+		System: audit_model.SystemRunnerToken,
+	}
+	RunnerUpdate = ScopedActions{
+		Repo:   audit_model.RepositoryRunnerUpdate,
+		Org:    audit_model.OrganizationRunnerUpdate,
+		User:   audit_model.UserRunnerUpdate,
+		System: audit_model.SystemRunnerUpdate,
+	}
+	RunnerRemove = ScopedActions{
+		Repo:   audit_model.RepositoryRunnerRemove,
+		Org:    audit_model.OrganizationRunnerRemove,
+		User:   audit_model.UserRunnerRemove,
+		System: audit_model.SystemRunnerRemove,
+	}
+
+	VariableAdd = ScopedActions{
+		Repo:   audit_model.RepositoryVariableAdd,
+		Org:    audit_model.OrganizationVariableAdd,
+		User:   audit_model.UserVariableAdd,
+		System: audit_model.SystemVariableAdd,
+	}
+	VariableUpdate = ScopedActions{
+		Repo:   audit_model.RepositoryVariableUpdate,
+		Org:    audit_model.OrganizationVariableUpdate,
+		User:   audit_model.UserVariableUpdate,
+		System: audit_model.SystemVariableUpdate,
+	}
+	VariableRemove = ScopedActions{
+		Repo:   audit_model.RepositoryVariableRemove,
+		Org:    audit_model.OrganizationVariableRemove,
+		User:   audit_model.UserVariableRemove,
+		System: audit_model.SystemVariableRemove,
+	}
+
+	PackageRemove = ScopedActions{
+		Org:  audit_model.OrganizationPackageRemove,
+		User: audit_model.UserPackageRemove,
+	}
 )
 
 // resolveScope maps an (owner, repo) pair to the scoped action and audit scope.
@@ -119,4 +163,26 @@ func RecordScoped(ctx context.Context, owner *user_model.User, repo *repository_
 		Scope:           scope,
 		Metadata:        metaPairs(metadata...),
 	})
+}
+
+// RecordScopedByID is RecordScoped for call sites that only know the owner and
+// repository IDs, using the same zero-value convention: repoID wins when set,
+// and both zero mean the instance.
+func RecordScopedByID(ctx context.Context, ownerID, repoID int64, actions ScopedActions, metadata ...any) {
+	if !setting.AuditRecordEnabled() {
+		return
+	}
+	var owner *user_model.User
+	var repo *repository_model.Repository
+	var err error
+	if repoID != 0 {
+		repo, err = repository_model.GetRepositoryByID(ctx, repoID)
+	} else if ownerID != 0 {
+		owner, err = user_model.GetUserByID(ctx, ownerID)
+	}
+	if err != nil {
+		log.Error("audit: load scope owner=%d repo=%d: %v", ownerID, repoID, err)
+		return
+	}
+	RecordScoped(ctx, owner, repo, actions, metadata...)
 }

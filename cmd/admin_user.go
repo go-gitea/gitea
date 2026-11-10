@@ -9,6 +9,7 @@ import (
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 
 	"github.com/urfave/cli/v3"
 )
@@ -30,7 +31,7 @@ func newUserCommand() *cli.Command {
 		Name:  "user",
 		Usage: "Modify users",
 		Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
-			return cliAuditContext(ctx), nil
+			return audit.WithCLIDoer(ctx), nil
 		},
 		Commands: []*cli.Command{
 			microcmdUserCreate(),

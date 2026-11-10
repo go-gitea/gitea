@@ -5,8 +5,11 @@
 package admin
 
 import (
+	"maps"
 	"net/http"
+	"slices"
 
+	audit_model "gitea.dev/models/audit"
 	system_model "gitea.dev/models/system"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
@@ -16,6 +19,7 @@ import (
 	"gitea.dev/modules/setting/config"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/mailer"
 )
@@ -155,6 +159,9 @@ loop:
 	if err := system_model.SetSettings(ctx, configSettings); err != nil {
 		ctx.ServerError("SetSettings", err)
 		return
+	}
+	for _, key := range slices.Sorted(maps.Keys(configSettings)) {
+		audit.Record(ctx, audit_model.SystemConfigUpdate, nil, "key", key)
 	}
 	config.GetDynGetter().InvalidateCache()
 	ctx.JSONOK()

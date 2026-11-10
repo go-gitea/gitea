@@ -6,6 +6,7 @@ package audit
 import (
 	"context"
 
+	audit_model "gitea.dev/models/audit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/web/middleware"
 )
@@ -33,6 +34,12 @@ func WithImpersonator(ctx context.Context, impersonator *user_model.User) contex
 // calling into services that record audit events themselves.
 func WithDoer(ctx context.Context, doer *user_model.User) context.Context {
 	return context.WithValue(ctx, doerContextKey, doer)
+}
+
+// WithCLIDoer returns a context that records audit events as performed from the
+// command line, for the CLI and the private routes it calls.
+func WithCLIDoer(ctx context.Context) context.Context {
+	return WithDoer(WithOrigin(ctx, audit_model.OriginCLI), user_model.NewCliUser())
 }
 
 // doerFromContext resolves the actor of an audit event: an explicit WithDoer

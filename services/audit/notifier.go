@@ -9,8 +9,10 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
+	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	notify_service "gitea.dev/services/notify"
 )
@@ -151,4 +153,25 @@ func (n *auditNotifier) EditWikiPage(ctx context.Context, doer *user_model.User,
 
 func (n *auditNotifier) DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string) {
 	RecordAs(ctx, doer, audit_model.WikiPageDelete, repo, "page", page)
+}
+
+func (n *auditNotifier) PullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, _ *issues_model.Comment) {
+	if repo := loadIssueRepo(ctx, review.Issue); repo != nil {
+		RecordAs(ctx, doer, audit_model.PullRequestReviewDismiss, repo, "pull_request", issueLabel(review.Issue), "review_id", review.ID)
+	}
+}
+
+func (n *auditNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	RecordAs(ctx, doer, audit_model.RepositoryReleaseRemove, rel.Repo, "release", rel.TagName)
+}
+
+// DeleteRef only records tags; branch deletions are as routine as pushes.
+func (n *auditNotifier) DeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
+	if refFullName.IsTag() {
+		RecordAs(ctx, doer, audit_model.RepositoryTagRemove, repo, "tag", refFullName.TagName())
+	}
+}
+
+func (n *auditNotifier) PackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
+	RecordScoped(WithDoer(ctx, doer), pd.Owner, nil, PackageRemove, "package", pd.Package.Name, "version", pd.Version.Version)
 }

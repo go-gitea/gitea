@@ -7,7 +7,11 @@ import (
 	"io"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/services/audit"
 	myCtx "gitea.dev/services/context"
 	"gitea.dev/services/migrations"
 )
@@ -40,7 +44,12 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		params.Validation,
 	); err != nil {
 		ctx.PrivateInternalErrorf("%v", err)
-	} else {
-		ctx.PlainText(http.StatusOK, "success")
+		return
 	}
+	if repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, params.OwnerName, params.RepoName); err != nil {
+		log.Error("GetRepositoryByOwnerAndName: %v", err)
+	} else {
+		audit.Record(audit.WithCLIDoer(ctx), audit_model.RepositoryCreate, repo)
+	}
+	ctx.PlainText(http.StatusOK, "success")
 }

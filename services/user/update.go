@@ -66,6 +66,7 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 	cols := make([]string, 0, 20)
 
 	oldIsActive, oldIsRestricted, oldIsAdmin, oldVisibility, oldType := u.IsActive, u.IsRestricted, u.IsAdmin, u.Visibility, u.Type
+	oldRepoAdminChangeTeamAccess := u.RepoAdminChangeTeamAccess
 
 	if opts.KeepEmailPrivate.Has() {
 		u.KeepEmailPrivate = opts.KeepEmailPrivate.Value()
@@ -216,6 +217,9 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 	if u.Type != oldType {
 		audit.Record(ctx, audit_model.UserType, u, "user_type", u.Type.DisplayName())
 	}
+	if u.RepoAdminChangeTeamAccess != oldRepoAdminChangeTeamAccess {
+		audit.Record(ctx, audit_model.OrganizationTeamAccess, u, "repo_admin_change_team_access", u.RepoAdminChangeTeamAccess)
+	}
 
 	return nil
 }
@@ -274,6 +278,7 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	if opts.MustChangePassword.Has() {
 		u.MustChangePassword = opts.MustChangePassword.Value()
 	}
+	oldProhibitLogin := u.ProhibitLogin
 	if opts.ProhibitLogin.Has() {
 		u.ProhibitLogin = opts.ProhibitLogin.Value()
 	}
@@ -291,6 +296,9 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	}
 	if loginSourceChanged {
 		audit.Record(ctx, audit_model.UserAuthenticationSource, u, "auth_source", authSourceName)
+	}
+	if u.ProhibitLogin != oldProhibitLogin {
+		audit.Record(ctx, audit_model.UserProhibitLogin, u, "prohibit_login", u.ProhibitLogin)
 	}
 
 	return nil

@@ -118,6 +118,7 @@ func DeployKeyRegenerateToken(ctx *context.Context) {
 		}
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryDeployKeyRegenerate, ctx.Repo.Repository, "deploy_key", key.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.regenerate_deploy_token_success", htmlutil.HTMLFormat("<code>%s</code>", key.Token)))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")

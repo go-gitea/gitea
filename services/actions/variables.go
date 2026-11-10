@@ -8,6 +8,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	secret_service "gitea.dev/services/secrets"
 )
 
@@ -20,6 +21,7 @@ func CreateVariable(ctx context.Context, scope actions_model.BelongingScope, nam
 	if err != nil {
 		return nil, err
 	}
+	audit.RecordScopedByID(ctx, v.OwnerID, v.RepoID, audit.VariableAdd, "variable", v.Name)
 
 	return v, nil
 }
@@ -31,11 +33,19 @@ func UpdateVariableNameData(ctx context.Context, variable *actions_model.ActionV
 
 	variable.Data = util.NormalizeStringEOL(variable.Data)
 
-	return actions_model.UpdateVariableCols(ctx, variable, "name", "data", "description")
+	updated, err := actions_model.UpdateVariableCols(ctx, variable, "name", "data", "description")
+	if updated {
+		audit.RecordScopedByID(ctx, variable.OwnerID, variable.RepoID, audit.VariableUpdate, "variable", variable.Name)
+	}
+	return updated, err
 }
 
-func DeleteVariableByID(ctx context.Context, variableID int64) error {
-	return actions_model.DeleteVariable(ctx, variableID)
+func DeleteVariable(ctx context.Context, variable *actions_model.ActionVariable) error {
+	if err := actions_model.DeleteVariable(ctx, variable.ID); err != nil {
+		return err
+	}
+	audit.RecordScopedByID(ctx, variable.OwnerID, variable.RepoID, audit.VariableRemove, "variable", variable.Name)
+	return nil
 }
 
 func DeleteVariableByName(ctx context.Context, scope actions_model.BelongingScope, name string) error {
@@ -43,8 +53,7 @@ func DeleteVariableByName(ctx context.Context, scope actions_model.BelongingScop
 	if err != nil {
 		return err
 	}
-
-	return actions_model.DeleteVariable(ctx, v.ID)
+	return DeleteVariable(ctx, v)
 }
 
 func GetVariable(ctx context.Context, opts actions_model.FindVariablesOpts) (*actions_model.ActionVariable, error) {
