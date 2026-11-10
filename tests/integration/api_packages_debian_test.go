@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/packages"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -281,6 +282,19 @@ func TestPackageDebian(t *testing.T) {
 
 		assert.Contains(t, body, "Components: "+strings.Join(components, " ")+"\n")
 		assert.Contains(t, body, "Architectures: "+architectures[1]+"\n")
+	})
+
+	t.Run("DeleteVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		token := getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopeWritePackage)
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/debian/%s/%s", user.Name, packageName, packageVersion)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages", rootURL, distributions[1], components[0], architectures[1]))
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.NotContains(t, resp.Body.String(), "Version: "+packageVersion+"\n")
+		assert.Contains(t, resp.Body.String(), "Version: "+packageVersion2+"\n")
 	})
 
 	t.Run("Cleanup", func(t *testing.T) {
