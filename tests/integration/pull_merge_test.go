@@ -407,7 +407,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			Name:    "repo1",
 		})
 
-		err := gitcmd.NewCommand("read-tree", "--empty").WithRepo(repo1).Run(t.Context())
+		var err error = gitcmd.NewCommand("read-tree", "--empty").WithRepo(repo1).RunWithStderr(t.Context())
 		assert.NoError(t, err)
 
 		stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").

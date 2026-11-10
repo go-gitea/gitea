@@ -435,7 +435,7 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 		err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
 			AddDynamicArguments("topic=test-topic").
 			WithDir(dstPath).
-			Run(t.Context())
+			RunWithStderr(t.Context())
 		assert.NoError(t, err)
 
 		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})

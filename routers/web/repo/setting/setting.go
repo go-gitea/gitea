@@ -237,16 +237,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), tplSettingsOptions, &form)
 			case repo_model.IsErrRepoFilesAlreadyExist(err):
 				ctx.Data["Err_RepoName"] = true
-				switch {
-				case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tplSettingsOptions, form)
-				case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt"), tplSettingsOptions, form)
-				case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.delete"), tplSettingsOptions, form)
-				default:
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
-				}
+				ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
 			case errors.As(err, &errNamePatternNotAllowed):
 				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplSettingsOptions, &form)
 			default:

@@ -568,6 +568,9 @@ func (c *Command) RunWithStderr(ctx context.Context) RunStdError {
 	return c.WaitWithStderr()
 }
 
+// Run runs the command and leaves stderr handling to the caller, such as through [Command.MakeStderrPipe].
+// Without a stderr reader, Git's diagnostics are discarded and the error may only report an exit status.
+// Use [Command.RunWithStderr] to include Git's stderr in the returned error.
 func (c *Command) Run(ctx context.Context) (err error) {
 	if err = c.WithParentCallerInfo().Start(ctx); err != nil {
 		return err

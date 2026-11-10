@@ -1128,6 +1128,7 @@ jobs:
 		// closed
 		err = issue_service.CloseIssue(t.Context(), pullIssue, user2, "")
 		assert.NoError(t, err)
+		assert.False(t, git.IsReferenceExist(t.Context(), repo, git.MergeRefNameFromPullIndex(pullRequest.Index).String()))
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// reopened
@@ -1195,6 +1196,10 @@ jobs:
 		assert.NotEmpty(t, addFileResp)
 		sha = addFileResp.Commit.SHA
 		waitCommitStatusAndInsertFakeStatus(t, repo, sha)
+		mergeCommitSHA := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, Event: webhook_module.HookEventPullRequestSync}).WorkflowCommitSHA
+		parents, _, err := gitcmd.NewCommand("rev-parse").AddDynamicArguments(mergeCommitSHA+"^1", mergeCommitSHA+"^2").WithRepo(repo).RunStdString(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, addWorkflow.Commit.SHA+"\n"+sha+"\n", parents)
 
 		// milestoned
 		milestone := &issues_model.Milestone{
@@ -1779,6 +1784,10 @@ jobs:
 		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
 		assert.Equal(t, actions_module.GithubEventPullRequest, actionRun.TriggerEvent)
 		assert.Equal(t, pullRequest.MergedCommitID, actionRun.CommitSHA)
+		mergedCommitID, err := git.GetFullCommitID(t.Context(), baseRepo, git.MergedRefNameFromPullIndex(pullRequest.Index).String())
+		require.NoError(t, err)
+		assert.Equal(t, pullRequest.MergedCommitID, mergedCommitID)
+		assert.False(t, git.IsReferenceExist(t.Context(), baseRepo, git.MergeRefNameFromPullIndex(pullRequest.Index).String()))
 	})
 }
 
@@ -1813,14 +1822,18 @@ jobs:
 
 		// create a PR to modify "dir1/dir1.txt", the workflow will be triggered
 		testEditFileToNewBranch(t, session, "user2", repoName, repo.DefaultBranch, "update-dir1", "dir1/dir1.txt", "11")
+		testEditFileToNewBranch(t, session, "user2", repoName, repo.DefaultBranch, "update-dir2", "dir2/dir2.txt", "22")
+		wfFileContent = strings.ReplaceAll(wfFileContent, "echo 'ci'", "echo 'base workflow'")
+		wfFileContent = strings.ReplaceAll(wfFileContent, "      - 'dir1/**'", "      - 'dir1/**'\n      - '.gitea/workflows/**'")
+		testEditFile(t, session, "user2", repoName, repo.DefaultBranch, ".gitea/workflows/ci.yml", wfFileContent)
 		_, err := doAPICreatePullRequest(apiCtx, "user2", repoName, repo.DefaultBranch, "update-dir1")(t)
 		assert.NoError(t, err)
 		pr1Task := runner.fetchTask(t)
 		_, _, pr1Run := getTaskAndJobAndRunByTaskID(t, pr1Task.Id)
 		assert.Equal(t, webhook_module.HookEventPullRequest, pr1Run.Event)
+		assert.Contains(t, string(pr1Task.WorkflowPayload), "echo 'base workflow'")
 
 		// create a PR to modify "dir2/dir2.txt" then update main branch and rebase, the workflow will not be triggered
-		testEditFileToNewBranch(t, session, "user2", repoName, repo.DefaultBranch, "update-dir2", "dir2/dir2.txt", "22")
 		apiPull, err := doAPICreatePullRequest(apiCtx, "user2", repoName, repo.DefaultBranch, "update-dir2")(t)
 		runner.fetchNoTask(t)
 		assert.NoError(t, err)
