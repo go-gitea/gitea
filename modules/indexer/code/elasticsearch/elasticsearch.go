@@ -38,86 +38,82 @@ func NewIndexer(url, indexerName string) *Indexer {
 
 const (
 	defaultMapping = `{
-	"settings": {
-		"analysis": {
-			"analyzer": {
-				"content_analyzer": {
-					"tokenizer": "content_tokenizer",
-					"filter": [
-						"lowercase"
-					]
-				},
-				"content_short_analyzer": {
-					"tokenizer": "content_short_tokenizer",
-					"filter": [
-						"lowercase"
-					]
-				}
-			},
-			"tokenizer": {
-				"content_tokenizer": {
-					"type": "ngram",
-					"min_gram": 3,
-					"max_gram": 3
-				},
-				"content_short_tokenizer": {
-					"type": "ngram",
-					"min_gram": 1,
-					"max_gram": 2
-				}
-			}
-		}
-	},
-	"mappings": {
-		"properties": {
-			"repo_id": {
-				"type": "long",
-				"index": true
-			},
-			"filename": {
-				"type": "text",
-				"index": true,
-				"analyzer": "content_analyzer",
-				"fields": {
-					"short": {
-						"type": "text",
-						"analyzer": "content_short_analyzer",
-						"index_options": "docs",
-						"norms": false
+		"settings": {
+    		"analysis": {
+      			"analyzer": {
+					"content_analyzer": {
+						"tokenizer": "content_tokenizer",
+						"filter" : ["lowercase"]
 					},
-					"path": {
-						"type": "keyword"
+					"content_short_analyzer": {
+						"tokenizer": "content_short_tokenizer",
+						"filter" : ["lowercase"]
+					}
+      			},
+				"tokenizer": {
+					"content_tokenizer": {
+						"type": "ngram",
+						"min_gram": 3,
+						"max_gram": 3
+					},
+					"content_short_tokenizer": {
+						"type": "ngram",
+						"min_gram": 1,
+						"max_gram": 2
 					}
 				}
-			},
-			"content": {
-				"type": "text",
-				"index": true,
-				"analyzer": "content_analyzer",
-				"fields": {
-					"short": {
-						"type": "text",
-						"analyzer": "content_short_analyzer",
-						"index_options": "docs",
-						"norms": false
+			}
+  		},
+		"mappings": {
+			"properties": {
+				"repo_id": {
+					"type": "long",
+					"index": true
+				},
+				"filename": {
+					"type": "text",
+					"index": true,
+					"analyzer": "content_analyzer",
+					"fields": {
+						"short": {
+							"type": "text",
+							"analyzer": "content_short_analyzer",
+							"index_options": "docs",
+							"norms": false
+						},
+						"path": {
+							"type": "keyword"
+						}
+        			}
+				},
+				"content": {
+					"type": "text",
+					"index": true,
+					"analyzer": "content_analyzer",
+					"fields": {
+						"short": {
+							"type": "text",
+							"analyzer": "content_short_analyzer",
+							"index_options": "docs",
+							"norms": false
+						}
 					}
+				},
+				"commit_id": {
+					"type": "keyword",
+					"index": true
+				},
+				"language": {
+					"type": "keyword",
+					"index": true
+				},
+				"updated_at": {
+					"type": "long",
+					"index": true
 				}
-			},
-			"commit_id": {
-				"type": "keyword",
-				"index": true
-			},
-			"language": {
-				"type": "keyword",
-				"index": true
-			},
-			"updated_at": {
-				"type": "long",
-				"index": true
 			}
 		}
-	}
-}`
+	}`
 )
 
 func (b *Indexer) addUpdate(catFileBatch git.CatFileBatch, sha string, update internal.FileUpdate, repo *repo_model.Repository) (es.BulkOp, error) {
@@ -220,6 +216,8 @@ func extractAggs(searchResult *es.SearchResponse) []*internal.SearchResultLangua
 	}
 	searchResultLanguages := make([]*internal.SearchResultLanguages, 0, 10)
 	for _, bucket := range buckets {
+		// language is mapped as keyword so the key is always a string; if the
+		// mapping ever changes, skip rather than emit an empty-language bucket.
 		key, ok := bucket.Key.(string)
 		if !ok {
 			continue

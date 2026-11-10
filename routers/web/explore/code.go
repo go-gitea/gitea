@@ -13,8 +13,12 @@ import (
 	"gitea.dev/services/context"
 )
 
-const tplExploreCode templates.TplName = "explore/code"
+const (
+	// tplExploreCode explore code page template
+	tplExploreCode templates.TplName = "explore/code"
+)
 
+// Code render explore code page
 func Code(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage {
 		ctx.Redirect(setting.AppSubURL + "/explore")

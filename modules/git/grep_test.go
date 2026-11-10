@@ -37,7 +37,6 @@ func TestGrepSearch(t *testing.T) {
 		{name: "exact cap", patterns: []string{"(*UTF)void"}, limit: 2, expected: []string{"java-hello/main.java", "main.vendor.java"}},
 		{name: "no match", patterns: []string{"(*UTF)no-such-content"}},
 		{name: "dash", patterns: []string{"(*UTF)-v"}, expected: []string{".gitattributes"}},
-		{name: "no patterns"},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			var paths []string

@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -141,6 +142,9 @@ func TestAPISearchCode(t *testing.T) {
 	})
 
 	t.Run("CodeUnitDisabled", func(t *testing.T) {
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo1, nil, []unit.Type{unit.TypeCode}))
+		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/search/code?q=Description").AddTokenAuth(token), http.StatusOK)
+		assert.Zero(t, DecodeJSON(t, resp, &api.CodeSearchResults{}).TotalCount)
 		disabledUnits := unit.DisabledRepoUnitsGet()
 		unit.DisabledRepoUnitsSet(append([]unit.Type{unit.TypeCode}, disabledUnits...))
 		defer unit.DisabledRepoUnitsSet(disabledUnits)

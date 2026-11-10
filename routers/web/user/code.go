@@ -14,8 +14,11 @@ import (
 	"gitea.dev/services/context"
 )
 
-const tplUserCode templates.TplName = "user/code"
+const (
+	tplUserCode templates.TplName = "user/code"
+)
 
+// CodeSearch render user/organization code search page
 func CodeSearch(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.Redirect(ctx.ContextUser.HomeLink())

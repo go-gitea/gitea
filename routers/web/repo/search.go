@@ -16,6 +16,7 @@ import (
 
 const tplSearch templates.TplName = "repo/search"
 
+// Search render repository search page
 func Search(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["Repo"] = ctx.Repo.Repository

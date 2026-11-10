@@ -85,7 +85,8 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, gitRepo
 	diffCmd := gitcmd.NewCommand("diff", "--name-status").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
 	stdout, _, runErr := diffCmd.WithRepo(repo).RunStdString(ctx)
 	if runErr != nil {
-		// The previous commit may have been removed by a force push.
+		// previous commit sha may have been removed by a force push, so
+		// try rebuilding from scratch
 		log.Warn("git diff: %v", runErr)
 		if err := (*globalIndexer.Load()).Delete(ctx, repo.ID); err != nil {
 			return nil, err
@@ -162,7 +163,9 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, gitRepo
 			log.Warn("Unrecognized status: %c (line=%s)", status, line)
 		}
 
-		if len(updatedFilenames) >= 30 { // Stay below Windows' command-line limit.
+		// According to https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/command-line-string-limitation#more-information
+		// the command line length should less than 8191 characters, assume filepath is 256, then 8191/256 = 31, so we use 30
+		if len(updatedFilenames) >= 30 {
 			if err := updateChanges(); err != nil {
 				return nil, err
 			}

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/indexer"
 	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/setting"
@@ -17,7 +16,7 @@ import (
 )
 
 func SearchCode(ctx *context.Context, opts *codesearch.Options) {
-	keyword := ctx.FormString("q")
+	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsRepoIndexerEnabled"] = opts.Engine == codesearch.Indexer
 	if keyword == "" {
@@ -54,9 +53,7 @@ func SearchCode(ctx *context.Context, opts *codesearch.Options) {
 	ctx.Data["SearchResultLanguages"] = result.Languages
 	ctx.Data["RepoMaps"] = result.Repos
 	ctx.Data["CodeSearchIncomplete"] = result.Incomplete
-	pager := context.NewPagerBuilder(ctx).TotalCount(result.Total).PerPageLimit(opts.Paginator.PageSize).CurPage(opts.Paginator.Page).Build()
-	pager.RemoveParam(container.SetOf("search_mode", "l"))
-	ctx.Data["Page"] = pager
+	ctx.Data["Page"] = context.NewPagerBuilder(ctx).TotalCount(result.Total).PerPageLimit(opts.Paginator.PageSize).CurPage(opts.Paginator.Page).Build()
 }
 
 type codeSearchResult struct {

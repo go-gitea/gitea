@@ -40,10 +40,12 @@ type MatchRange = internal.MatchRange
 type SearchOptions = internal.SearchOptions
 
 func HighlightSearchResultCode(filename, language string, lineNums []int, code string, matches ...MatchRange) []*ResultLine {
+	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
 	lexer := highlight.DetectChromaLexerByFileName(filename, language)
 	hl := markMatches(code, string(highlight.RenderCodeByLexer(lexer, code)), matches)
 	highlightedLines := highlight.UnsafeSplitHighlightedLines(template.HTML(hl))
 
+	// The lineNums outputted by render might not match the original lineNums, because "highlight" removes the last `\n`
 	lines := make([]*ResultLine, min(len(highlightedLines), len(lineNums)))
 	for i := range lines {
 		lines[i] = &ResultLine{
@@ -100,6 +102,7 @@ func markMatches(code, highlighted string, matches []MatchRange) string {
 	return marked.String()
 }
 
+// PerformSearch perform a search on a repository
 func PerformSearch(ctx context.Context, opts *SearchOptions) (int64, []*Result, []*SearchResultLanguages, error) {
 	if opts == nil || len(opts.Terms) == 0 {
 		return 0, nil, nil, nil

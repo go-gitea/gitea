@@ -116,19 +116,6 @@ func TestSearchRepo(t *testing.T) {
 		assert.Equal(t, "5", doc.doc.Find(`.lines-num a[href$="#L5"]`).Text())
 		assert.Zero(t, testSearch(t, "/user2/glob/search?q=a.txt", []string{"a.txt"}).doc.Find(".file-code").Length())
 	})
-
-	defer test.MockVariableValue(&setting.UI.RepoSearchPagingNum, 1)()
-	response := MakeRequest(t, NewRequest(t, http.MethodGet, "/user2/glob/search?q=file&search_mode=regexp&l=Go"), http.StatusOK)
-	doc = NewHTMLParser(t, response.Body)
-	paginationLinks := doc.doc.Find(".pagination a[href]")
-	require.Positive(t, paginationLinks.Length())
-	paginationLinks.Each(func(_index int, link *goquery.Selection) {
-		paginationURL, err := url.Parse(link.AttrOr("href", ""))
-		require.NoError(t, err)
-		assert.False(t, paginationURL.Query().Has("search_mode"))
-		assert.False(t, paginationURL.Query().Has("l"))
-		assert.Equal(t, "file", paginationURL.Query().Get("q"))
-	})
 }
 
 func testSearch(t *testing.T, url string, expected []string) *HTMLDoc {
