@@ -247,3 +247,12 @@ func SetUserSettingJSON[T any](ctx context.Context, userID int64, key string, va
 	}
 	return SetUserSetting(ctx, userID, key, util.UnsafeBytesToString(bs))
 }
+
+// GetUserDashboardTab returns the user's default dashboard tab, falling back to the instance default
+func GetUserDashboardTab(ctx context.Context, userID int64) (string, error) {
+	tab, err := GetUserSetting(ctx, userID, SettingsKeyDashboardDefaultTab)
+	if err != nil || !setting_module.IsValidDashboardTab(tab) {
+		return setting_module.UI.User.DefaultDashboardTab, err
+	}
+	return tab, nil
+}

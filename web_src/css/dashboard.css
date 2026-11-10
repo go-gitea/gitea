@@ -47,14 +47,37 @@
   margin: 0 1px; /* Accommodate for Semantic's 1px hacks on .attached elements */
 }
 
-.dashboard .secondary-nav {
-  padding: 1px 12px; /* match .overflow-menu-items in height */
+.dashboard .dashboard-navbar {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
 }
 
-.dashboard .secondary-nav .org-visibility .label {
+.dashboard .dashboard-navbar overflow-menu {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.dashboard .dashboard-navbar-context {
+  border-bottom: 1px solid var(--color-secondary);
+  max-width: 100%;
+}
+
+@media (max-width: 767.98px) {
+  .dashboard .dashboard-navbar overflow-menu {
+    flex-basis: 100%;
+  }
+  .dashboard .dashboard-navbar-context {
+    order: -1;
+    border-bottom: none;
+  }
+}
+
+.dashboard .dashboard-navbar .org-visibility .label {
   margin-left: 5px;
 }
 
-.dashboard .secondary-nav .ui.dropdown {
+.dashboard .dashboard-navbar .ui.dropdown {
   max-width: 100%;
 }
