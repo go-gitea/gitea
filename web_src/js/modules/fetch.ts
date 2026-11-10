@@ -1,5 +1,6 @@
 import {isObject} from '../utils.ts';
 import type {RequestOpts} from '../types.ts';
+import {errorMessage} from './errors.ts';
 
 // fetch wrapper, use below method name functions and the `data` option to pass in data
 // which will automatically set an appropriate headers. For JSON content, only object
@@ -36,7 +37,7 @@ class ExclusiveResponse {
   private readonly promiseResp: Promise<Response>;
   private readonly exclusiveFetch: ExclusiveFetch;
   private readonly abortController: AbortController;
-  private onResponseErrorFn: ((resp: Response) => void) | null = null;
+  private onResponseErrorFn: ((details: {message: string, response?: Response}) => void) | null = null;
 
   constructor(exclusiveFetch: ExclusiveFetch, abortController: AbortController, promiseResp: Promise<Response>) {
     this.exclusiveFetch = exclusiveFetch;
@@ -48,35 +49,48 @@ class ExclusiveResponse {
     return this.abortController.signal.aborted || this.exclusiveFetch.currentController !== this.abortController;
   }
 
-  // fetchGeneric is designed for future usages like "resp.json()", "resp.blob()", etc, they share the same "exclusive" logic
-  private async fetchGeneric<T>(readResp: (resp: Response) => Promise<T>, userFn: (ret: T) => void): Promise<boolean> {
+  private async fetchGeneric<T, R>(readResp: (resp: Response) => Promise<T>, userFn: (ret: T) => R | Promise<R>) : Promise<R | undefined> {
+    let resp: Response | undefined, networkDone = false;
     try {
-      const resp = await this.promiseResp;
-      if (this.isAborted()) return false;
+      resp = await this.promiseResp;
+      if (this.isAborted()) return undefined;
       if (!resp.ok) {
-        this.onResponseErrorFn?.(resp);
-        return false;
+        this.onResponseErrorFn?.({message: `http: ${resp.status} ${resp.statusText}`, response: resp});
+        return undefined;
       }
       const ret = await readResp(resp);
-      if (this.isAborted()) return false;
-      userFn(ret);
-      return true;
+      if (this.isAborted()) return undefined;
+      networkDone = true;
+      return await userFn(ret);
     } catch (err) {
-      if (this.isAborted()) return false;
+      if (this.isAborted()) return undefined;
+      // don't handle user function's exceptions, that's the caller's responsibility
+      if (!networkDone) {
+        this.onResponseErrorFn?.({message: `exception: ${errorMessage(err)}`, response: resp});
+        return undefined;
+      }
       throw err;
+    } finally {
+      if (this.exclusiveFetch.currentController === this.abortController) {
+        this.exclusiveFetch.currentController = null;
+      }
     }
   }
 
   // onResponseError allows the user to set a callback function that will be called when the response is not ok (e.g., 4xx or 5xx status codes).
   // The callback is only called when the request is not-ok and not aborted (the request is the last one).
-  onResponseError(fn: (resp: Response) => void) {
+  onResponseError(fn: (details: {message: string, response?: Response}) => void) {
     this.onResponseErrorFn = fn;
   }
 
   // fetchText reads the response as text and passes it to the provided callback function.
   // The callback is only called when the request is successful and not aborted (the request is the last one).
-  async fetchText(fn: (text: string) => void): Promise<boolean> {
+  async fetchText<R>(fn: (text: string) => R | Promise<R>): Promise<R | undefined> {
     return this.fetchGeneric((resp) => resp.text(), fn);
+  }
+
+  async fetchJson<T, R>(fn: (text: T) => R | Promise<R>): Promise<R | undefined> {
+    return this.fetchGeneric((resp) => resp.json(), fn);
   }
 }
 
@@ -95,5 +109,9 @@ export class ExclusiveFetch {
     const controller = new AbortController();
     this.currentController = controller;
     return new ExclusiveResponse(this, controller, request(url, {method, data, headers, ...other, signal: controller.signal}));
+  }
+
+  isInFlight(): boolean {
+    return this.currentController !== null;
   }
 }

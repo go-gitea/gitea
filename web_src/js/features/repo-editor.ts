@@ -38,7 +38,7 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
     formData.append('text', elTextarea.value);
     formData.append('file_path', elTreePath.value);
     const resp = previewFetch.request(`${repoLink}/markup`, {method: 'POST', data: formData});
-    resp.onResponseError((resp) => showErrorToast(`Failed to render preview: ${resp.status} ${resp.statusText}`));
+    resp.onResponseError((details) => showErrorToast(`Failed to render preview: ${details.message}`));
     await resp.fetchText((data) => renderPreviewPanelContent(elPreviewPanel, data));
   });
 
@@ -50,7 +50,7 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
       const diffUrl = `${repoLink}/_preview/${pathEscapeSegments(branchName)}/${pathEscapeSegments(elTreePath.value)}`;
       // don't use FormData, because FormData sends "\r\n" line endings, backend assumes "\n" line endings
       const resp = diffFetch.request(diffUrl, {method: 'POST', data: new URLSearchParams({content: elTextarea.value})});
-      resp.onResponseError((resp) => showErrorToast(`Failed to render diff: ${resp.status} ${resp.statusText}`));
+      resp.onResponseError((details) => showErrorToast(`Failed to render diff: ${details.message}`));
       await resp.fetchText((data) => elDiffPanel.innerHTML = data);
     });
   }
