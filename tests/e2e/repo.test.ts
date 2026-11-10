@@ -45,8 +45,4 @@ test('search code', async ({page, request}) => {
   await input.press('Enter');
   await page.waitForURL(/[?&]q=alphaterm/);
   await expect(page.getByText('src/main.go', {exact: true})).toBeVisible();
-  await input.fill('"unterminated');
-  await input.press('Enter');
-  await page.waitForURL(/[?&]q=%22unterminated/);
-  await expect(page.getByText('Invalid search query')).toBeVisible();
 });

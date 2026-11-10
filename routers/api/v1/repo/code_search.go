@@ -75,7 +75,6 @@ func respondCodeSearch(ctx *context.APIContext, opts *codesearch.Options) {
 	})
 }
 
-// SearchRepoCode searches the code of a repository
 func SearchRepoCode(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/code/search repository repoSearchCode
 	// ---
@@ -129,7 +128,6 @@ func SearchRepoCode(ctx *context.APIContext) {
 	respondCodeSearch(ctx, opts)
 }
 
-// SearchCode searches the code of all accessible repositories
 func SearchCode(ctx *context.APIContext) {
 	// swagger:operation GET /search/code repository codeSearch
 	// ---

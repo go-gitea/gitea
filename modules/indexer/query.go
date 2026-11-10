@@ -201,15 +201,6 @@ func parseSearchRegexp(pattern string) (string, error) {
 	return decoded.String(), nil
 }
 
-func (q *SearchQuery) Literals() (literals []string) {
-	for _, term := range q.Terms {
-		if term.Kind == SearchTermLiteral {
-			literals = append(literals, term.Text)
-		}
-	}
-	return literals
-}
-
 func (q *SearchQuery) WithoutLanguage() string {
 	return q.withoutLanguage
 }

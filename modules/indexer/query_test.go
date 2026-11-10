@@ -134,8 +134,4 @@ func TestParseSearchQuery(t *testing.T) {
 			assert.Equal(t, withoutLanguage, query.WithoutLanguage())
 		})
 	}
-
-	query, err := ParseSearchQuery(`foo /ba+r/ "x y"`)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"foo", "x y"}, query.Literals())
 }

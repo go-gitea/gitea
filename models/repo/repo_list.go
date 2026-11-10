@@ -756,21 +756,18 @@ func FindCodeSearchRepoIDs(ctx context.Context, doer *user_model.User, fullNames
 	if !isSiteAdmin {
 		cond = cond.And(AccessibleRepositoryCondition(doer, unit.TypeCode), builder.In("`repository`.id", builder.Select("repo_id").From("repo_unit").Where(builder.Eq{"type": unit.TypeCode})))
 	}
-	if len(fullNames) > 0 || len(ownerNames) > 0 {
-		scopeCond := builder.NewCond()
-		for _, fullName := range fullNames {
-			ownerName, repoName, _ := strings.Cut(fullName, "/")
-			scopeCond = scopeCond.Or(builder.And(
-				builder.Eq{"`repository`.lower_name": strings.ToLower(repoName)},
-				ownerNamesCond([]string{ownerName}),
-			))
-		}
-		if len(ownerNames) > 0 {
-			scopeCond = scopeCond.Or(ownerNamesCond(ownerNames))
-		}
-		cond = cond.And(scopeCond)
+	scopeCond := builder.NewCond()
+	for _, fullName := range fullNames {
+		ownerName, repoName, _ := strings.Cut(fullName, "/")
+		scopeCond = scopeCond.Or(builder.And(
+			builder.Eq{"`repository`.lower_name": strings.ToLower(repoName)},
+			ownerNamesCond([]string{ownerName}),
+		))
 	}
-	return SearchRepositoryIDsByCondition(ctx, cond)
+	if len(ownerNames) > 0 {
+		scopeCond = scopeCond.Or(ownerNamesCond(ownerNames))
+	}
+	return SearchRepositoryIDsByCondition(ctx, cond.And(scopeCond))
 }
 
 // PublicRepoUnderPublicOwnerCond restricts to public repos whose owner is publicly visible: the

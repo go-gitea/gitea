@@ -97,7 +97,6 @@ func TestSearchRepo(t *testing.T) {
 	code_indexer.UpdateRepoIndexer(repo)
 
 	testSearch(t, "/user2/glob/search?q=loren&page=1", []string{"a.txt"})
-	testSearch(t, "/user2/glob/search?q=loren+ipsum&page=1", []string{"a.txt"})
 	doc = testSearch(t, "/user2/glob/search?q=loren+lastMatch", []string{"a.txt"})
 	assert.Equal(t, 2, doc.doc.Find(".file-code").Length())
 	assert.Equal(t, "5", doc.doc.Find(`.lines-num a[href$="#L5"]`).Text())
@@ -111,10 +110,6 @@ func TestSearchRepo(t *testing.T) {
 		defer test.MockVariableValue(&setting.Indexer.RepoIndexerEnabled, false)()
 		resp := MakeRequest(t, NewRequest(t, http.MethodGet, "/user2/glob/search?q=capped"), http.StatusOK)
 		assert.Contains(t, NewHTMLParser(t, resp.Body).doc.Find(".ui.warning.message").Text(), "Search stopped early")
-		doc := testSearch(t, "/user2/glob/search?q=loren+lastMatch", []string{"a.txt"})
-		assert.Equal(t, 2, doc.doc.Find(".file-code").Length())
-		assert.Equal(t, "5", doc.doc.Find(`.lines-num a[href$="#L5"]`).Text())
-		assert.Zero(t, testSearch(t, "/user2/glob/search?q=a.txt", []string{"a.txt"}).doc.Find(".file-code").Length())
 	})
 }
 

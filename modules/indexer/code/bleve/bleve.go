@@ -321,17 +321,13 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			}
 		}
 		slices.SortFunc(searchResultLanguages, func(first, second *internal.SearchResultLanguages) int {
-			if first.Count == second.Count {
-				return cmp.Compare(first.Language, second.Language)
-			}
-			return cmp.Compare(second.Count, first.Count)
+			return cmp.Or(cmp.Compare(second.Count, first.Count), cmp.Compare(first.Language, second.Language))
 		})
 		return total, searchResults, searchResultLanguages[:min(10, len(searchResultLanguages))], nil
 	}
 	if len(opts.Language) > 0 {
 		// Use separate query to go get all language counts
-		facetRequest := bleve.NewSearchRequestOptions(facetQuery, 1, 0, false)
-		facetRequest.Fields = []string{"Content", "Language", "CommitID", "UpdatedAt"}
+		facetRequest := bleve.NewSearchRequestOptions(facetQuery, 0, 0, false)
 		facetRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
 
 		var err error

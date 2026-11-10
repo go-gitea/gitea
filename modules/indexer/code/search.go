@@ -126,10 +126,11 @@ func BuildResultFragments(content string, matches []MatchRange) []*ResultFragmen
 			}
 		}
 		end := match.End - 1
+		limit := min(len(content), end+MaxResultFragmentSize+utf8.UTFMax) // fragments are truncated to MaxResultFragmentSize anyway
 		for range 2 {
-			newline := strings.IndexByte(content[end:], '\n')
+			newline := strings.IndexByte(content[end:limit], '\n')
 			if newline < 0 {
-				end = len(content)
+				end = limit
 				break
 			}
 			end += newline + 1

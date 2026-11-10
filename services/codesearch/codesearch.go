@@ -51,8 +51,14 @@ func Search(ctx context.Context, keyword string, opts *Options) (*Result, error)
 	if err != nil {
 		return nil, err
 	}
+	var literals []string
+	for _, term := range query.Terms {
+		if term.Kind == indexer.SearchTermLiteral {
+			literals = append(literals, term.Text)
+		}
+	}
 	switch {
-	case opts.Engine == Indexer && len(query.Literals()) < len(query.Terms):
+	case opts.Engine == Indexer && len(literals) < len(query.Terms):
 		return nil, &indexer.SearchQueryError{Message: "Regular expressions are not supported by the code indexer"}
 	case opts.Engine == GitGrep && query.Language != "":
 		return nil, &indexer.SearchQueryError{Message: "Language qualifiers are not supported by git grep"}
@@ -81,7 +87,7 @@ func Search(ctx context.Context, keyword string, opts *Options) (*Result, error)
 		}
 	}
 	result.Total, result.Results, result.Languages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
-		RepoIDs: repoIDs, Terms: query.Literals(), Language: query.Language, Path: query.Path, Paginator: opts.Paginator,
+		RepoIDs: repoIDs, Terms: literals, Language: query.Language, Path: query.Path, Paginator: opts.Paginator,
 	})
 	if err != nil || opts.RepoID != 0 {
 		return result, err

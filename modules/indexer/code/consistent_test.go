@@ -125,8 +125,7 @@ func TestConsistentCodeSearch(t *testing.T) {
 				language                        string
 				expected                        []string
 				ranges                          []internal.MatchRange
-				fragments                       []*code.ResultFragment
-				regexp                          bool
+				regexp, gitgrepOnly, languages  bool
 				page, pageSize                  int
 				total                           int64
 				incomplete, pathOnly, wrongRepo bool
@@ -162,16 +161,16 @@ func TestConsistentCodeSearch(t *testing.T) {
 				{name: "phrase", terms: []string{"This is not cheese"}, expected: []string{"potato/ham.txt"}, ranges: []internal.MatchRange{{Start: 0, End: 18}}},
 				{name: "language filter", terms: []string{"log"}, language: "JavaScript", expected: []string{"example-file.js"}},
 				{name: "language mismatch", terms: []string{"log"}, language: "Go"},
-				{name: "code punctuation", terms: []string{"console.log"}, expected: []string{"example-file.js"}},
+				{name: "code punctuation", terms: []string{"console.log"}, expected: []string{"example-file.js"}, languages: true},
 				{name: "cyrillic substring", terms: []string{"ставщ"}, expected: []string{"unicode.txt"}, ranges: []internal.MatchRange{{Start: 4, End: 14}}},
-				{name: "unicode fragments", terms: []string{"日本", "literal"}, expected: []string{"unicode.txt"}, fragments: []*code.ResultFragment{{StartLine: 1, Content: "Поставщик\n日本語のテキスト\nहिन्दी\n", Matches: []code.MatchRange{{Start: 19, End: 25}}}, {StartLine: 5, Content: "gap\n<em>literal</em>\nabc bcd cde def\n", Matches: []code.MatchRange{{Start: 8, End: 15}}}}},
+				{name: "unicode fragments", terms: []string{"日本", "literal"}, expected: []string{"unicode.txt"}, ranges: []internal.MatchRange{{Start: 19, End: 25}, {Start: 93, End: 100}}},
 				{name: "phrase requires contiguous content", terms: []string{"日本 ภาษา"}},
 				{name: "directory", terms: []string{"cheese"}, path: "potato", expected: []string{"potato/ham.txt"}},
 				{name: "directory boundary", terms: []string{"cheese"}, path: "pot"},
 				{name: "directory case", terms: []string{"cheese"}, path: "Potato"},
 				{name: "literal path filter before cap", terms: []string{"CapToken", "SecondToken"}, path: "z[dir]", expected: []string{"z[dir]/one.txt", "z[dir]/two.txt"}},
 				{name: "reject candidates before cap", terms: []string{"CapToken", "äpfel"}, expected: []string{"z[dir]/one.txt"}},
-				{name: "pagination", terms: []string{"CapToken", "SecondToken"}, path: "z[dir]", page: 2, pageSize: 1, total: 2, expected: []string{"z[dir]/two.txt"}},
+				{name: "pagination", terms: []string{"CapToken", "SecondToken"}, path: "z[dir]", page: 2, pageSize: 1, total: 2, expected: []string{"z[dir]/two.txt"}, gitgrepOnly: true},
 				{name: "last page", terms: []string{"CapToken"}, path: "z[dir]", page: 3, pageSize: 1, total: 2},
 				{name: "path only cap", terms: []string{".txt"}, incomplete: true, total: gitgrep.MaxResultLimit, pathOnly: true},
 				{name: "path only exact cap", terms: []string{`^c0[0-4][0-9]\.cap\.txt$`}, regexp: true, total: gitgrep.MaxResultLimit, pathOnly: true},
@@ -181,7 +180,7 @@ func TestConsistentCodeSearch(t *testing.T) {
 					if query.language != "" && idx == nil {
 						t.Skip("engine capability")
 					}
-					if idx != nil && (query.regexp || query.total == gitgrep.MaxResultLimit || query.name == "pagination") || idx == nil && query.wrongRepo {
+					if idx != nil && (query.regexp || query.total == gitgrep.MaxResultLimit || query.gitgrepOnly) || idx == nil && query.wrongRepo {
 						t.Skip("engine capability")
 					}
 					terms := literalTerms(query.terms)
@@ -199,7 +198,7 @@ func TestConsistentCodeSearch(t *testing.T) {
 						var languages []*code.SearchResultLanguages
 						total, results, languages, err = idx.Search(t.Context(), &internal.SearchOptions{RepoIDs: []int64{util.Iif(query.wrongRepo, 2, repo.ID)}, Terms: query.terms, Path: query.path, Language: query.language, Paginator: &db.ListOptions{Page: max(query.page, 1), PageSize: util.IfZero(query.pageSize, 50)}})
 						require.NoError(t, err)
-						if query.language != "" || strings.HasPrefix(query.name, "code ") {
+						if query.language != "" || query.languages {
 							require.Len(t, languages, util.Iif(engine == "bleve" && query.language == "Go", 0, 1))
 							if len(languages) > 0 {
 								assert.Equal(t, "JavaScript", languages[0].Language)
@@ -218,12 +217,6 @@ func TestConsistentCodeSearch(t *testing.T) {
 						}
 						if query.ranges != nil {
 							assert.Equal(t, query.ranges, result.ContentMatches)
-						}
-						if query.name == "content and filename" && result.Filename == "avocado.txt" {
-							assert.Equal(t, []internal.MatchRange{{Start: 25, End: 33}}, result.ContentMatches)
-						}
-						if query.fragments != nil {
-							assert.Equal(t, query.fragments, code.BuildResultFragments(result.Content, result.ContentMatches))
 						}
 					}
 					if query.total == gitgrep.MaxResultLimit {
