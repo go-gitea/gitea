@@ -69,7 +69,7 @@ func TestWebAuthnRename(t *testing.T) {
 	rename(cred.ID, "RENAMED credential", http.StatusOK)
 	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: cred.ID, Name: "RENAMED credential"})
 
-	resp := rename(cred.ID, "other CREDENTIAL", http.StatusBadRequest)
+	resp := rename(cred.ID, "other CREDENTIAL", http.StatusConflict)
 	assert.Equal(t, "A security key with the same nickname already exists.", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: cred.ID, Name: "RENAMED credential"})
 

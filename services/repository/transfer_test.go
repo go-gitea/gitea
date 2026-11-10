@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	advisory_model "gitea.dev/models/advisory"
 	"gitea.dev/models/organization"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 var notifySync sync.Once
@@ -52,6 +54,9 @@ func TestTransferOwnership(t *testing.T) {
 	_, err = advisory_model.AddCollaborator(t.Context(), &advisory_model.Collaborator{AdvisoryID: advisory.ID, TeamID: 2})
 	require.NoError(t, err)
 
+	for _, ownerID := range []int64{0, sourceRepo.OwnerID, 1} {
+		require.NoError(t, actions_model.AddScopedWorkflowSource(t.Context(), ownerID, sourceRepo.ID))
+	}
 	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))
 
 	// teams of the old organization lose access to the advisories, users keep it
@@ -61,6 +66,8 @@ func TestTransferOwnership(t *testing.T) {
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{ID: 1})
+	unittest.AssertCount(t, &actions_model.ActionScopedWorkflowSource{SourceRepoID: 3}, 1)
+	unittest.AssertCountByCond(t, "action_scoped_workflow_source", builder.Eq{"owner_id": 0, "source_repo_id": 3}, 1)
 
 	exist, err := git.IsRepositoryExist(t.Context(), sourceRepoBak)
 	assert.NoError(t, err)

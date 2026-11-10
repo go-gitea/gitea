@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -18,6 +19,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/json"
@@ -305,7 +307,8 @@ func checkBranchName(ctx context.Context, gitRepo *git.Repository, name string) 
 // It will check whether the branches of the repository have never been synced before.
 // If so, it will sync all branches of the repository.
 // Otherwise, it will sync the branches that need to be updated.
-func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.Repository, branchNames []string) error {
+// It also initializes an empty repository and repairs a default branch missing in git.
+func SyncBranchesToDB(ctx context.Context, repo *repo_model.Repository, pusherID int64, gitRepo *git.Repository, branchNames []string) error {
 	// Some designs that make the code look strange but are made for performance optimization purposes:
 	// 1. Sync branches in a batch to reduce the number of DB queries.
 	// 2. Lazy load commit information since it may be not necessary.
@@ -319,14 +322,18 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 
 	// In case there are concurrent pushes, we need to lock the sync operation for the same repository
 	// and always use the latest branch information in the database.
-	releaser, err := globallock.Lock(ctx, fmt.Sprintf("repo_branch_sync_%d", repoID))
+	releaser, err := globallock.Lock(ctx, fmt.Sprintf("repo_branch_sync_%d", repo.ID))
 	if err != nil {
 		return err
 	}
 	defer releaser()
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		dbBranches, err := git_model.GetBranches(ctx, repoID, branchNames, true)
+	wasEmpty, oldDefaultBranch := repo.IsEmpty, repo.DefaultBranch
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		if err := syncDefaultBranch(ctx, repo, gitRepo); err != nil {
+			return err
+		}
+		dbBranches, err := git_model.GetBranches(ctx, repo.ID, branchNames, true)
 		if err != nil {
 			return fmt.Errorf("git_model.GetBranches: %v", err)
 		}
@@ -335,15 +342,15 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 			// if user haven't visited UI but directly push to a branch after upgrading from 1.20 -> 1.21,
 			// we cannot simply insert the branch but need to check we have branches or not
 			hasAnyActiveBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
-				RepoID:          repoID,
+				RepoID:          repo.ID,
 				IsDeletedBranch: optional.Some(false),
 			}.ToConds())
 			if err != nil {
 				return err
 			}
 			if !hasAnyActiveBranch {
-				if _, err = repo_module.SyncRepoBranches(ctx, repoID, pusherID); err != nil {
-					return fmt.Errorf("repo_module.SyncRepoBranches %d failed: %v", repoID, err)
+				if _, _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, pusherID); err != nil {
+					return fmt.Errorf("repo_module.SyncRepoBranchesWithRepo %d failed: %v", repo.ID, err)
 				}
 				return nil
 			}
@@ -361,8 +368,8 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 			commit, err := gitRepo.GetCommit(ctx, git.RefNameFromBranch(branchName).String())
 			if git.IsErrNotExist(err) {
 				if existInDb && !branch.IsDeleted {
-					if err := git_model.MarkBranchAsDeleted(ctx, repoID, branchName, pusherID); err != nil {
-						log.Error("SyncBranchesToDB: mark branch %d:%s deleted: %v", repoID, branchName, err)
+					if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, branchName, pusherID); err != nil {
+						log.Error("SyncBranchesToDB: mark branch %d:%s deleted: %v", repo.ID, branchName, err)
 					}
 				}
 				continue
@@ -375,15 +382,15 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 			}
 
 			if existInDb {
-				if _, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit); err != nil {
-					return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
+				if _, err := git_model.UpdateBranch(ctx, repo.ID, pusherID, branchName, commit); err != nil {
+					return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repo.ID, branchName, err)
 				}
 				continue
 			}
 
 			// if database have branches but not this branch, it means this is a new branch
 			newBranches = append(newBranches, &git_model.Branch{
-				RepoID:        repoID,
+				RepoID:        repo.ID,
 				Name:          branchName,
 				CommitID:      commit.ID.String(),
 				CommitMessage: commit.MessageTitle(),
@@ -397,6 +404,46 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 		}
 		return nil
 	})
+	if err != nil {
+		repo.IsEmpty, repo.DefaultBranch = wasEmpty, oldDefaultBranch
+		return err
+	}
+	if !wasEmpty && repo.DefaultBranch == oldDefaultBranch && slices.Contains(branchNames, repo.DefaultBranch) {
+		if err := git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+			log.Error("SyncBranchesToDB: set HEAD of %s: %v", repo.FullName(), err)
+		}
+	}
+	return nil
+}
+
+func syncDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
+	freshRepo, err := repo_model.GetRepositoryByID(ctx, repo.ID) // read under the lock, another push may have changed it meanwhile
+	if err != nil {
+		return err
+	}
+	repo.IsEmpty, repo.DefaultBranch = freshRepo.IsEmpty, freshRepo.DefaultBranch
+	defaultBranch, err := findDefaultBranch(ctx, repo, gitRepo)
+	if err != nil || defaultBranch == "" || (!repo.IsEmpty && defaultBranch == repo.DefaultBranch) {
+		return err
+	}
+	if err = git.SetDefaultBranch(ctx, repo, defaultBranch); err != nil {
+		return err
+	}
+	repo.IsEmpty, repo.DefaultBranch = false, defaultBranch
+	return repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "is_empty", "default_branch")
+}
+
+// findDefaultBranch matches GitLab's Gitaly GetDefaultBranch
+func findDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) (string, error) {
+	for _, branch := range []string{repo.DefaultBranch, "main", "master"} {
+		if _, err := gitRepo.GetBranchCommitID(ctx, branch); err == nil {
+			return branch, nil
+		} else if !errors.Is(err, util.ErrNotExist) {
+			return "", err
+		}
+	}
+	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--count=1", "--format=%(refname:strip=2)", git.BranchPrefix).WithRepo(repo).RunStdString(ctx)
+	return strings.TrimSuffix(stdout, "\n"), err
 }
 
 // CreateNewBranchFromCommit creates a new repository branch

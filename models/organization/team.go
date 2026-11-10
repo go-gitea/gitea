@@ -74,9 +74,9 @@ const OwnerTeamName = "Owners"
 
 // Team represents a organization team.
 type Team struct {
-	ID          int64 `xorm:"pk autoincr"`
-	OrgID       int64 `xorm:"INDEX"`
-	LowerName   string
+	ID          int64  `xorm:"pk autoincr"`
+	OrgID       int64  `xorm:"INDEX UNIQUE(s)"`
+	LowerName   string `xorm:"UNIQUE(s)"`
 	Name        string
 	Description string
 	AccessMode  perm.AccessMode    `xorm:"'authorize'"`

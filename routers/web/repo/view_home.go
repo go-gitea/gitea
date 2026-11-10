@@ -224,14 +224,11 @@ func prepareUpstreamDivergingInfo(ctx *context.Context) {
 	if !ctx.Repo.Repository.IsFork || !ctx.Repo.RefFullName.IsBranch() || ctx.Repo.TreePath != "" {
 		return
 	}
-	upstreamDivergingInfo, err := repo_service.GetUpstreamDivergingInfo(ctx, ctx.Repo.Repository, ctx.Repo.BranchName)
-	if err != nil {
-		if !errors.Is(err, util.ErrNotExist) && !errors.Is(err, util.ErrInvalidArgument) {
-			log.Error("GetUpstreamDivergingInfo: %v", err)
-		}
-		return
+	if upstreamDivergingInfo, err := repo_service.GetUpstreamDivergingInfo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.BranchName); err == nil {
+		ctx.Data["UpstreamDivergingInfo"] = upstreamDivergingInfo
+	} else if !errors.Is(err, util.ErrNotExist) && !errors.Is(err, util.ErrInvalidArgument) && !errors.Is(err, util.ErrPermissionDenied) {
+		log.Error("GetUpstreamDivergingInfo: %v", err)
 	}
-	ctx.Data["UpstreamDivergingInfo"] = upstreamDivergingInfo
 }
 
 func updateContextRepoEmptyAndStatus(ctx *context.Context, empty bool, status repo_model.RepositoryStatus) {

@@ -226,11 +226,7 @@ func CreateTeam(ctx *context.APIContext) {
 	}
 
 	if err := org_service.NewTeam(ctx, team); err != nil {
-		if organization.IsErrTeamAlreadyExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -312,7 +308,7 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if err := org_service.UpdateTeam(ctx, team, isAuthChanged, isIncludeAllChanged); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 

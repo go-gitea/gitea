@@ -35,6 +35,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/issue"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -58,9 +59,28 @@ func (prc *PullRequestContext) CanCreateNewPull() bool {
 		return *prc.canCreateNewPull
 	}
 	ctx := prc.ctx
-	// People who have push access or have forked repository can propose a new pull request.
-	can := prc.baseRepo.CanContentChange() &&
-		(ctx.Repo.Permission.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)))
+	can := ctx.IsSigned && prc.baseRepo.CanContentChange()
+	if can {
+		basePerm, headPerm := ctx.Repo.Permission, ctx.Repo.Permission
+		var err error
+		if prc.baseRepo.ID != ctx.Repo.Repository.ID {
+			basePerm, err = access_model.GetDoerRepoPermission(ctx, prc.baseRepo, ctx.Doer)
+			if err != nil {
+				log.Error("CanCreateNewPull: %v", err)
+				return false
+			}
+		}
+		if prc.headRepo.ID != ctx.Repo.Repository.ID {
+			headPerm, err = access_model.GetDoerRepoPermission(ctx, prc.headRepo, ctx.Doer)
+			if err != nil {
+				log.Error("CanCreateNewPull: %v", err)
+				return false
+			}
+		}
+		restriction := prc.baseRepo.MustGetUnit(ctx, unit_model.TypePullRequests).PullRequestsConfig().CreationRestriction
+		can = issue.CheckCreationRestriction(basePerm, unit_model.TypePullRequests, restriction) == nil &&
+			(basePerm.CanWrite(unit_model.TypePullRequests) || headPerm.CanWrite(unit_model.TypeCode) || repo_model.HasForkedRepo(ctx, ctx.Doer.ID, prc.baseRepo.ID))
+	}
 	prc.canCreateNewPull = &can
 	return can
 }

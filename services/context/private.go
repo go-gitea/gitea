@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	web_types "gitea.dev/modules/web/types"
 )
@@ -56,13 +57,26 @@ func (ctx *PrivateContext) Err() error {
 }
 
 func (ctx *PrivateContext) PrivateInternalErrorf(format string, args ...any) {
+	ctx.privateInternalErrorf(1, format, args...)
+}
+
+func (ctx *PrivateContext) privateInternalErrorf(skip int, format string, args ...any) {
 	s := fmt.Sprintf(format, args...)
-	log.ErrorWithSkip(1, "Internal error: %s", s)
+	log.ErrorWithSkip(skip+1, "Internal error: %s", s)
 	ctx.JSON(http.StatusInternalServerError, private.Response{Err: s})
 }
 
 func (ctx *PrivateContext) PrivateUserErrorf(status int, format string, args ...any) {
 	ctx.JSON(status, private.Response{UserMsg: fmt.Sprintf(format, args...)})
+}
+
+func (ctx *PrivateContext) PrivateUserErrorAuto(err error) {
+	msg, code := util.ErrorUnwrapForUser(err, ctx.Locale)
+	if msg != "" {
+		ctx.PrivateUserErrorf(code, "%s", msg)
+	} else {
+		ctx.privateInternalErrorf(1, "%s", err.Error())
+	}
 }
 
 type privateContextKeyType struct{}

@@ -140,11 +140,6 @@ func NewHTMLWriter(w io.Writer) HTMLWriter {
 	return &htmlWriter{w: w}
 }
 
-func NewHTMLStringWriter() (*strings.Builder, HTMLWriter) {
-	sb := &strings.Builder{}
-	return sb, &htmlWriter{w: sb}
-}
-
 type HTMLBuilder struct {
 	sb strings.Builder
 }
@@ -155,10 +150,6 @@ func (b *HTMLBuilder) Err() error {
 
 func (b *HTMLBuilder) OriginWriter() io.Writer {
 	return &b.sb
-}
-
-func (b *HTMLBuilder) Reset() {
-	b.sb.Reset()
 }
 
 func (b *HTMLBuilder) WriteString(s string) HTMLWriter {

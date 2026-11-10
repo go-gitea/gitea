@@ -40,9 +40,10 @@ const (
 	// delivered as repository_advisory, see RequiresExplicitSelection
 	HookEventRepositoryAdvisoryReported HookEventType = "repository_advisory_reported"
 	// Actions event only
-	HookEventSchedule    HookEventType = "schedule"
-	HookEventWorkflowRun HookEventType = "workflow_run"
-	HookEventWorkflowJob HookEventType = "workflow_job"
+	HookEventSchedule         HookEventType = "schedule"
+	HookEventWorkflowDispatch HookEventType = "workflow_dispatch"
+	HookEventWorkflowRun      HookEventType = "workflow_run"
+	HookEventWorkflowJob      HookEventType = "workflow_job"
 )
 
 func AllEvents() []HookEventType {
