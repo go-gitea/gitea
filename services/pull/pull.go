@@ -55,41 +55,42 @@ type NewPullRequestOptions struct {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
+func NewPullRequest(ctx context.Context, basePerm access_model.Permission, opts *NewPullRequestOptions) error {
 	repo, issue, labelIDs, uuids, pr, assigneeIDs := opts.Repo, opts.Issue, opts.LabelIDs, opts.AttachmentUUIDs, opts.PullRequest, opts.AssigneeIDs
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
 
-	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
-		return user_model.ErrBlockedUser
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) {
+		return util.ErrorWrapTranslatable(user_model.ErrBlockedUser, "repo.creation_blocked_by_owner")
+	}
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
+		return util.ErrorWrapTranslatable(user_model.ErrBlockedUser, "repo.creation_blocked_by_assignee")
 	}
 
-	// user should be a collaborator or a member of the organization for base repo
-	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
-	canAssignProject := canCreate
-	if !canCreate {
-		canCreate, err := repo_model.HasAccessToRepoCodeUnit(ctx, repo, issue.Poster.ID)
+	restriction := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().CreationRestriction
+	err := issue_service.CheckCreationRestriction(basePerm, unit.TypePullRequests, restriction)
+	if err != nil {
+		return err
+	}
+
+	// User should be either a writer to the base repo (or agit flow), or a writer to the head repo.
+	// Otherwise, a head repo reader should not create a pull request into a repo where they don't have write access.
+	canCreateInBaseRepo := basePerm.CanWrite(unit.TypePullRequests) || pr.Flow == issues_model.PullRequestFlowAGit
+	if !canCreateInBaseRepo {
+		if err := pr.LoadHeadRepo(ctx); err != nil {
+			return err
+		}
+		headPerm, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, issue.Poster)
 		if err != nil {
 			return err
 		}
-		canAssignProject = canCreate
-
-		if !canCreate {
-			// or user should have write permission in the head repo
-			if err := pr.LoadHeadRepo(ctx); err != nil {
-				return err
-			}
-			perm, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, issue.Poster)
-			if err != nil {
-				return err
-			}
-			if !perm.CanWrite(unit.TypeCode) {
-				return issues_model.ErrMustCollaborator
-			}
-			canAssignProject = perm.CanWrite(unit.TypeProjects)
+		if !headPerm.CanWrite(unit.TypeCode) {
+			return issues_model.Errors().MustHeadRepoCodeWriter
 		}
 	}
+
+	canAssignProject := basePerm.CanWrite(unit.TypePullRequests) || basePerm.CanWrite(unit.TypeProjects)
 
 	if err := checkPullRequestBranchMergeable(ctx, pr); err != nil {
 		return err
@@ -99,7 +100,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	assignees := make(map[int64]*user_model.User)
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
 	var addedProjectIDs []int64
-	err := db.WithTx(ctx, func(ctx context.Context) error {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
 		err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr)
 		if err != nil {
 			return err

@@ -619,6 +619,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			EnableTimetracker:                form.EnableTimetracker,
 			AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
 			EnableDependencies:               form.EnableIssueDependencies,
+			CreationRestriction:              form.IssuesCreationRestriction,
 		}))
 	} else {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
@@ -663,6 +664,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultSquashMergeMessage:     util.IfZero(repo_model.SquashMergeMessage(form.PullsDefaultSquashMergeMessage), repo_model.DefaultPullRequestsConfig().DefaultSquashMergeMessage),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
+			CreationRestriction:           form.PullsCreationRestriction,
 		}
 		if err := prConfig.ValidateUpdateSettings(); err != nil {
 			ctx.JSONErrorAuto(err)

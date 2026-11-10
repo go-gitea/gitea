@@ -18,6 +18,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -158,7 +159,9 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		basePerm, err := access_model.GetDoerRepoPermission(t.Context(), prOpts.Repo, prOpts.Issue.Poster)
+		require.NoError(t, err)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 
 		// load and compare ActionRun
@@ -221,7 +224,7 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts = &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 
 		// the new pull request is filtered by paths, so no run is created; a skipped commit status is posted instead
@@ -280,7 +283,7 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts = &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 
 		// filtered by paths and no required status check remains, so no run and no skipped commit status
@@ -1109,7 +1112,9 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: repo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		basePerm, err := access_model.GetDoerRepoPermission(t.Context(), prOpts.Repo, prOpts.Issue.Poster)
+		require.NoError(t, err)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 
 		// opened
@@ -1370,7 +1375,9 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: repo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		basePerm, err := access_model.GetDoerRepoPermission(t.Context(), prOpts.Repo, prOpts.Issue.Poster)
+		require.NoError(t, err)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 
 		// submit an approval review as user4

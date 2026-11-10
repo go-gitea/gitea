@@ -172,7 +172,7 @@ func (ctx *Context) ServerError(logMsg string, logErr error) {
 		ctx.notFoundInternal(1, logMsg, logErr)
 		return
 	}
-	if errMsg, httpCode := util.ErrorUnwrapForUser(logErr); errMsg != "" {
+	if errMsg, httpCode := util.ErrorUnwrapForUser(logErr, ctx.Locale); errMsg != "" {
 		ctx.HTTPError(httpCode, errMsg)
 		return
 	}
