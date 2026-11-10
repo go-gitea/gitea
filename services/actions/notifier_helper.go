@@ -68,7 +68,7 @@ type notifyInput struct {
 
 	// optional
 	Ref         git.RefName
-	CommitID    string // the event's commit, as Ref may have moved on when a queued event is handled
+	CommitID    string // Ref may have moved on by the time a queued event is handled
 	Payload     api.Payloader
 	PullRequest *issues_model.PullRequest
 

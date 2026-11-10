@@ -1223,6 +1223,10 @@ jobs:
 		_, err = issue_service.ReviewRequest(t.Context(), pullIssue, user2, nil, user4, false)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		actions_service.NewNotifier().PullRequestSynchronized(t.Context(), user2, pullRequest, "", addWorkflow.Commit.SHA)
+		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, Event: webhook_module.HookEventPullRequestSync, CommitSHA: addWorkflow.Commit.SHA})
+		checkCommitStatusAndInsertFakeStatus(t, repo, addWorkflow.Commit.SHA)
 	})
 }
 

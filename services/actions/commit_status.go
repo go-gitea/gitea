@@ -106,7 +106,16 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 		} else {
 			event = "pull_request"
 		}
-		commitID = run.CommitSHA
+		payload, err := run.GetPullRequestEventPayload()
+		if err != nil {
+			return "", "", fmt.Errorf("GetPullRequestEventPayload: %w", err)
+		}
+		if payload.PullRequest == nil {
+			return "", "", errors.New("pull request is missing in event payload")
+		} else if payload.PullRequest.Head == nil {
+			return "", "", errors.New("head of pull request is missing in event payload")
+		}
+		commitID = payload.PullRequest.Head.Sha
 	case webhook_module.HookEventPullRequestReviewApproved,
 		webhook_module.HookEventPullRequestReviewRejected,
 		webhook_module.HookEventPullRequestReviewComment:

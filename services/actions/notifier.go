@@ -699,6 +699,12 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 		return
 	}
 
+	apiPullRequest := convert.ToPayloadPullRequest(ctx, pr, nil)
+	if apiPullRequest == nil {
+		return
+	}
+	apiPullRequest.Head.Sha = after
+
 	newNotifyInput(pr.Issue.Repo, doer, webhook_module.HookEventPullRequestSync).
 		WithCommitID(after).
 		WithPayload(&api.PullRequestPayload{
@@ -706,7 +712,7 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 			Before:      before,
 			After:       after,
 			Index:       pr.Issue.Index,
-			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
+			PullRequest: apiPullRequest,
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
