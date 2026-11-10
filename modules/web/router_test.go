@@ -129,6 +129,29 @@ func TestPathProcessor(t *testing.T) {
 	testProcess("/<p1:@/x>", "/%40%2fx", map[string]string{"p1": "@%2Fx"})
 }
 
+func TestCompareOutputRoutePattern(t *testing.T) {
+	for _, suffix := range []string{"diff", "patch"} {
+		matcher := newRouterPathMatcher("GET", patternRegexp("/<basehead:[^.].*[^.]|[^.]>."+suffix), nil, http.NotFound)
+		for _, test := range []struct {
+			path        string
+			shouldMatch bool
+			basehead    string
+		}{
+			{path: "/main...diff", shouldMatch: false},
+			{path: "/main...patch", shouldMatch: false},
+			{path: "/main...feature." + suffix, shouldMatch: true, basehead: "main...feature"},
+			{path: "/feature." + suffix, shouldMatch: true, basehead: "feature"},
+		} {
+			chiCtx := chi.NewRouteContext()
+			chiCtx.RouteMethod = "GET"
+			assert.Equal(t, test.shouldMatch, matcher.matchPath(chiCtx, test.path, false), "path: %s", test.path)
+			if test.shouldMatch {
+				assert.Equal(t, test.basehead, chiCtx.URLParam("basehead"), "path: %s", test.path)
+			}
+		}
+	}
+}
+
 func TestRouter(t *testing.T) {
 	type resultStruct = testResult
 	resRecorder := &testRecorder{}
