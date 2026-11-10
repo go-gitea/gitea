@@ -43,7 +43,12 @@ func IsErrUserNotExist(err error) bool {
 }
 
 func (err ErrUserNotExist) Error() string {
-	ret := fmt.Sprintf("user does not exist [uid: %d, name: %s]", err.UID, err.Name)
+	ret := "user does not exist"
+	if err.UID != 0 {
+		ret += fmt.Sprintf(" [id: %d]", err.UID)
+	} else if err.Name != "" {
+		ret += fmt.Sprintf(" [name: %s]", err.Name)
+	}
 	if err.ExtraMsg != "" {
 		ret += ": " + err.ExtraMsg
 	}

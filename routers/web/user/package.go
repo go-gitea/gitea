@@ -496,12 +496,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 		return
 	}
 	if err := packages_service.RemovePackage(ctx, ctx.Doer, pd.Package); err != nil {
-		errTr := util.ErrorAsTranslatable(err)
-		if errTr == nil {
-			ctx.ServerError("RemovePackage", err)
-			return
-		}
-		ctx.Flash.Error(errTr.Translate(ctx.Locale))
+		ctx.FlashErrorAuto(err)
 		ctx.Redirect(pd.PackageSettingsLink())
 		return
 	}
@@ -519,12 +514,7 @@ func PackageVersionDelete(ctx *context.Context) {
 	}
 
 	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pd.Version); err != nil {
-		errTr := util.ErrorAsTranslatable(err)
-		if errTr == nil {
-			ctx.ServerError("RemovePackageVersion", err)
-			return
-		}
-		ctx.Flash.Error(errTr.Translate(ctx.Locale))
+		ctx.FlashErrorAuto(err)
 	} else {
 		ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
 	}

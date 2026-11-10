@@ -4,7 +4,6 @@
 package middleware
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -16,6 +15,8 @@ import (
 type Flash struct {
 	DataStore reqctx.RequestDataStore
 	url.Values
+
+	// message is in HTML format, and is sanitized when rendering (ref: RenderFlashMessage)
 	ErrorMsg, WarningMsg, InfoMsg, SuccessMsg string
 }
 
@@ -33,37 +34,27 @@ func (f *Flash) set(name, msg string, current ...bool) {
 	}
 }
 
-func flashMsgStringOrHTML(msg any) string {
-	switch v := msg.(type) {
-	case string:
-		return v
-	case template.HTML:
-		return string(v)
-	}
-	panic(fmt.Sprintf("unknown type: %T", msg))
-}
-
 // Error sets error message
-func (f *Flash) Error(msg any, current ...bool) {
-	f.ErrorMsg = flashMsgStringOrHTML(msg)
+func (f *Flash) Error[T string | template.HTML](msg T, current ...bool) {
+	f.ErrorMsg = string(msg)
 	f.set("error", f.ErrorMsg, current...)
 }
 
 // Warning sets warning message
-func (f *Flash) Warning(msg any, current ...bool) {
-	f.WarningMsg = flashMsgStringOrHTML(msg)
+func (f *Flash) Warning[T string | template.HTML](msg T, current ...bool) {
+	f.WarningMsg = string(msg)
 	f.set("warning", f.WarningMsg, current...)
 }
 
 // Info sets info message
-func (f *Flash) Info(msg any, current ...bool) {
-	f.InfoMsg = flashMsgStringOrHTML(msg)
+func (f *Flash) Info[T string | template.HTML](msg T, current ...bool) {
+	f.InfoMsg = string(msg)
 	f.set("info", f.InfoMsg, current...)
 }
 
 // Success sets success message
-func (f *Flash) Success(msg any, current ...bool) {
-	f.SuccessMsg = flashMsgStringOrHTML(msg)
+func (f *Flash) Success[T string | template.HTML](msg T, current ...bool) {
+	f.SuccessMsg = string(msg)
 	f.set("success", f.SuccessMsg, current...)
 }
 

@@ -6,8 +6,6 @@ package context
 
 import (
 	"context"
-	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -18,13 +16,11 @@ import (
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/httpcache"
 	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
@@ -234,61 +230,6 @@ func (ctx *Context) GetErrMsg() string {
 		msg = "invalid form data"
 	}
 	return msg
-}
-
-func (ctx *Context) JSONRedirect(redirect string) {
-	ctx.JSON(http.StatusOK, map[string]any{"redirect": redirect})
-}
-
-func (ctx *Context) JSONOK() {
-	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
-}
-
-func buildJsonErrorMap[T string | template.HTML](msg T) map[string]any {
-	switch v := any(msg).(type) {
-	case string:
-		return map[string]any{"errorMessage": v, "renderFormat": "text"}
-	case template.HTML:
-		return map[string]any{"errorMessage": v, "renderFormat": "html"}
-	}
-	panic(fmt.Sprintf("unsupported type: %T", msg))
-}
-
-func (ctx *Context) JSONErrorAuto(err error) {
-	if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-		msg := errTr.Translate(ctx.Locale)
-		ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
-		return
-	}
-	errMsg, httpCode := util.ErrorUnwrapForUser(err)
-	if errMsg != "" {
-		ctx.JSON(httpCode, buildJsonErrorMap(errMsg))
-		return
-	}
-
-	logLevel := util.Iif(httplib.IsClientOrNetworkError(ctx, err), log.DEBUG, log.ERROR)
-	log.Log(1, logLevel, "JSONErrorAuto: server internal error: %v", err)
-
-	userErrorMsg := ctx.buildUserErrorMessage("internal server error", err)
-	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(userErrorMsg))
-}
-
-func (ctx *Context) JSONError[T string | template.HTML](msg T) {
-	ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
-}
-
-func (ctx *Context) JSONErrorWithField[T string | template.HTML](msg T, field string) {
-	m := buildJsonErrorMap(msg)
-	m["errorFields"] = []string{field}
-	ctx.JSON(http.StatusBadRequest, m)
-}
-
-func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
-	msg := util.OptionalArg(optMsg)
-	if msg == "" {
-		msg = ctx.Locale.TrString("error.not_found")
-	}
-	ctx.JSON(http.StatusNotFound, buildJsonErrorMap(msg))
 }
 
 func GetFetchActionForm[T middleware.Form](ctx *Context) (ret T) {
