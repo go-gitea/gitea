@@ -4,11 +4,13 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	git_service "gitea.dev/services/git"
@@ -113,10 +115,46 @@ func CompareDiff(ctx *context.APIContext) {
 		apiCommits = append(apiCommits, apiCommit)
 	}
 
+	mergeBase, err := getCompareMergeBase(ctx, compareInfo)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	var mergeBaseCommit *api.Commit
+	if mergeBase != "" {
+		commit, err := compareInfo.HeadGitRepo.GetCommit(ctx, mergeBase)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		mergeBaseCommit, err = convert.ToCommit(ctx, compareInfo.HeadRepo, compareInfo.HeadGitRepo, commit, userCache, convert.ToCommitOptions{
+			Stat:         true,
+			Verification: verification,
+			Files:        files,
+		})
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
 	ctx.JSON(http.StatusOK, &api.Compare{
-		TotalCommits: len(compareInfo.Commits),
-		Commits:      apiCommits,
+		TotalCommits:    len(compareInfo.Commits),
+		Commits:         apiCommits,
+		MergeBaseCommit: mergeBaseCommit,
 	})
+}
+
+// getCompareMergeBase returns the merge base of the compared commits, empty if they have none
+func getCompareMergeBase(ctx *context.APIContext, compareInfo *git_service.CompareInfo) (string, error) {
+	if !compareInfo.DirectComparison() {
+		return compareInfo.CompareBase, nil
+	}
+	mergeBase, err := git.MergeBase(ctx, compareInfo.HeadRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
+	if errors.Is(err, util.ErrNotExist) {
+		return "", nil
+	}
+	return mergeBase, err
 }
 
 // downloadCompareDiffOrPatch writes a comparison's raw diff or patch to the response.

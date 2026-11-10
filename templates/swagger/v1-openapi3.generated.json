@@ -3495,6 +3495,9 @@
             "type": "array",
             "x-go-name": "Commits"
           },
+          "merge_base_commit": {
+            "$ref": "#/components/schemas/Commit"
+          },
           "total_commits": {
             "format": "int64",
             "type": "integer",

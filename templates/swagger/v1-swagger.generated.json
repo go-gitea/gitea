@@ -25861,6 +25861,9 @@
           },
           "x-go-name": "Commits"
         },
+        "merge_base_commit": {
+          "$ref": "#/definitions/Commit"
+        },
         "total_commits": {
           "type": "integer",
           "format": "int64",
