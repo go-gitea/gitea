@@ -6,7 +6,6 @@ package integration
 import (
 	"fmt"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -100,28 +99,6 @@ func TestUpdateIssueProject(t *testing.T) {
 
 	sess := loginUser(t, "user2")
 
-	t.Run("RemoveAndAssign", func(t *testing.T) {
-		// a keyword search goes to the issue indexer, which must follow project changes
-		foundInProject := func() bool {
-			ids, _, err := issue_indexer.SearchIssues(t.Context(), &issue_indexer.SearchOptions{Keyword: "second", RepoIDs: []int64{1}, ProjectIDs: []int64{1}})
-			return err == nil && slices.Contains(ids, int64(2))
-		}
-
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
-			"id": "",
-		})
-		sess.MakeRequest(t, req, http.StatusOK)
-		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
-		assert.Eventually(t, func() bool { return !foundInProject() }, 10*time.Second, 10*time.Millisecond)
-
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
-			"id": "1",
-		})
-		sess.MakeRequest(t, req, http.StatusOK)
-		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
-		assert.Eventually(t, foundInProject, 10*time.Second, 10*time.Millisecond)
-	})
-
 	t.Run("AssignOnCreationNeedsWriter", func(t *testing.T) {
 		newIssue := func(session *TestSession, title string, status int) {
 			req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/new", map[string]string{"title": title, "project_ids": "1"})
@@ -132,6 +109,27 @@ func TestUpdateIssueProject(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: 1})
 		newIssue(loginUser(t, "user4"), "reader issue", http.StatusNotFound)
 		unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: 1, Title: "reader issue"})
+	})
+
+	t.Run("SearchFollowsProjectChanges", func(t *testing.T) {
+		assertIssue2Found := func(opts issue_indexer.SearchOptions) {
+			t.Helper()
+			opts.Keyword, opts.RepoIDs = "second", []int64{1}
+			assert.EventuallyWithT(t, func(c *assert.CollectT) {
+				ids, _, err := issue_indexer.SearchIssues(t.Context(), &opts)
+				assert.NoError(c, err)
+				assert.Contains(c, ids, int64(2))
+			}, 10*time.Second, 10*time.Millisecond)
+		}
+
+		sess.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{"id": ""}), http.StatusOK)
+		assertIssue2Found(issue_indexer.SearchOptions{NoProjectOnly: true})
+
+		sess.MakeRequest(t, NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{"id": "1"}), http.StatusOK)
+		assertIssue2Found(issue_indexer.SearchOptions{ProjectIDs: []int64{1}})
+
+		sess.MakeRequest(t, NewRequest(t, "POST", "/user2/repo1/projects/1/delete"), http.StatusOK)
+		assertIssue2Found(issue_indexer.SearchOptions{NoProjectOnly: true})
 	})
 }
 
