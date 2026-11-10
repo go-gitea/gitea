@@ -121,7 +121,7 @@ func (ctx *APIContext) APIError(status int, msg string) {
 
 // APIErrorAuto use error check function to determine the response code
 func (ctx *APIContext) APIErrorAuto(err error) {
-	if errMsg, code := util.ErrorUnwrapForUser(err); errMsg != "" {
+	if errMsg, code := util.ErrorUnwrapForUser(err, ctx.Locale); errMsg != "" {
 		ctx.APIError(code, errMsg)
 		return
 	}

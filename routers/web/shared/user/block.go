@@ -70,11 +70,7 @@ func BlockedUsersPost(ctx *context.Context, blocker *user_model.User, redirect s
 	err := blockedUsersPost(ctx, form, blocker)
 	if err == nil {
 		ctx.JSONRedirect(redirect)
-	} else if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-		ctx.JSONError(errTr.Translate(ctx.Locale))
-	} else if errors.Is(err, util.ErrNotExist) {
-		ctx.JSONError(ctx.Locale.Tr("error.not_found"))
 	} else {
-		ctx.ServerError("BlockedUsersPost", err)
+		ctx.JSONErrorAuto(err)
 	}
 }

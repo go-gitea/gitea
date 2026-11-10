@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -339,13 +340,13 @@ func SingleRelease(ctx *context.Context) {
 
 // LatestRelease redirects to the latest release
 func LatestRelease(ctx *context.Context) {
-	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
+	release, err := repo_model.GetLatestRelease(ctx, ctx.Repo.Repository)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound(err)
 			return
 		}
-		ctx.ServerError("GetLatestReleaseByRepoID", err)
+		ctx.ServerError("GetLatestRelease", err)
 		return
 	}
 
@@ -423,11 +424,7 @@ func GenerateReleaseNotes(ctx *context.Context) {
 		PreviousTag: form.PreviousTag,
 	})
 	if err != nil {
-		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-			ctx.JSONError(errTr.Translate(ctx.Locale))
-		} else {
-			ctx.ServerError("GenerateReleaseNotes", err)
-		}
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
@@ -522,7 +519,7 @@ func NewReleasePost(ctx *context.Context) {
 			IsPrerelease: form.Prerelease,
 			IsTag:        false,
 		}
-		if err = release_service.CreateRelease(ctx, ctx.Repo.GitRepo, rel, attachmentUUIDs, newTagMsg); err != nil {
+		if err = release_service.CreateRelease(ctx, ctx.Repo.GitRepo, rel, attachmentUUIDs, newTagMsg, util.Iif(form.MakeLatest, api.MakeLatestTrue, "")); err != nil {
 			handleTagReleaseError(err)
 			return
 		}
@@ -546,7 +543,7 @@ func NewReleasePost(ctx *context.Context) {
 	rel.IsPrerelease = form.Prerelease
 	rel.PublisherID = ctx.Doer.ID
 	rel.IsTag = false
-	if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil); err != nil {
+	if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil, util.Iif(form.MakeLatest, api.MakeLatestTrue, "")); err != nil {
 		handleTagReleaseError(err)
 		return
 	}
@@ -584,6 +581,7 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["title"] = rel.Title
 	ctx.Data["content"] = rel.Note
 	ctx.Data["prerelease"] = rel.IsPrerelease
+	ctx.Data["make_latest"] = ctx.Repo.Repository.LatestReleaseID == rel.ID && rel.CanBeLatest()
 	ctx.Data["IsDraft"] = rel.IsDraft
 
 	rel.Repo = ctx.Repo.Repository
@@ -644,8 +642,15 @@ func EditReleasePost(ctx *context.Context) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
+	var makeLatest api.MakeLatest
+	switch {
+	case form.MakeLatest:
+		makeLatest = api.MakeLatestTrue
+	case ctx.Repo.Repository.LatestReleaseID == rel.ID:
+		makeLatest = api.MakeLatestLegacy
+	}
 	if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo,
-		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
+		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments, makeLatest); err != nil {
 		ctx.JSONErrorAuto(err)
 		return
 	}

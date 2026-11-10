@@ -17,6 +17,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	db_indexer "gitea.dev/modules/indexer/issues/db"
@@ -664,6 +665,9 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.pulls")
 		ctx.Data["PageIsPullList"] = true
+		canCreatePull := ctx.Repo.PullRequestCtx.CanCreateNewPull()
+		ctx.Data["ShowNewPullButton"] = canCreatePull
+		ctx.Data["ShowCompareBranchButton"] = !canCreatePull
 		prepareRecentlyPushedNewBranches(ctx)
 		if ctx.Written() {
 			return
@@ -676,6 +680,10 @@ func Issues(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("repo.issues")
 		ctx.Data["PageIsIssueList"] = true
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+
+		restriction := ctx.Repo.Repository.MustGetUnit(ctx, unit_model.TypeIssues).IssuesConfig().CreationRestriction
+		err := issue_service.CheckCreationRestriction(ctx.Repo.Permission, unit_model.TypeIssues, restriction)
+		ctx.Data["ShowNewIssueButton"] = !ctx.Repo.Repository.IsArchived && err == nil
 	}
 
 	projectIDs := parseProjectIDsFromQuery(ctx)

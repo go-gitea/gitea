@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/modules/web/routing"
 	"gitea.dev/modules/web/types"
+	tfmodule "gitea.dev/routers/api/packages/terraform_module"
 	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/admin"
 	"gitea.dev/routers/web/auth"
@@ -358,20 +359,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// middleware: only apply CrossOriginProtection
 	crossOriginProtect := verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: false})
 
-	openIDSignInEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignIn {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
-
-	openIDSignUpEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignUp {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
-
 	oauth2Enabled := func(ctx *context.Context) {
 		if !setting.OAuth2.Enabled {
 			ctx.HTTPError(http.StatusForbidden)
@@ -540,6 +527,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
 		m.Get("/passkey-endpoints", passkeyEndpoints)
+		m.Get("/terraform.json", packagesEnabled, tfmodule.ServiceDiscovery)
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 
@@ -579,21 +567,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Get("/user/login", auth.SignIn)
 	m.Group("/user", func() {
 		m.Post("/login", web.Bind[*forms.SignInForm](), auth.SignInPost)
-		m.Group("", func() {
-			m.Combo("/login/openid").
-				Get(auth.SignInOpenID).
-				Post(web.Bind[*forms.SignInOpenIDForm](), auth.SignInOpenIDPost)
-		}, openIDSignInEnabled)
-		m.Group("/openid", func() {
-			m.Combo("/connect").
-				Get(auth.ConnectOpenID).
-				Post(web.Bind[*forms.ConnectOpenIDForm](), auth.ConnectOpenIDPost)
-			m.Group("/register", func() {
-				m.Combo("").
-					Get(auth.RegisterOpenID, openIDSignUpEnabled).
-					Post(web.Bind[*forms.SignUpOpenIDForm](), auth.RegisterOpenIDPost)
-			}, openIDSignUpEnabled)
-		}, openIDSignInEnabled)
 		m.Get("/sign_up", auth.SignUp)
 		m.Post("/sign_up", web.Bind[*forms.RegisterForm](), auth.SignUpPost)
 		m.Get("/link_account", auth.LinkAccount)
@@ -671,11 +644,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/rename", security.WebauthnRename)
 				m.Post("/delete", security.WebauthnDelete)
 			})
-			m.Group("/openid", func() {
-				m.Post("", web.Bind[*forms.AddOpenIDForm](), security.OpenIDPost)
-				m.Post("/delete", security.DeleteOpenID)
-				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
-			}, openIDSignInEnabled)
 			m.Post("/account_link", security.DeleteAccountLink)
 		})
 
@@ -734,7 +702,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
-		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
 
 		m.Group("/hooks", func() {
 			m.Get("", user_setting.Webhooks)
@@ -850,7 +817,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/repos", func() {
 			m.Get("", admin.Repos)
-			m.Combo("/unadopted").Get(admin.UnadoptedRepos).Post(admin.AdoptOrDeleteRepository)
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
@@ -1122,6 +1088,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Get("", user.ViewPackageVersion)
 						m.Post("", reqPackageAccess(perm.AccessModeWrite), user.PackageVersionDelete)
 						m.Get("/{version_sub}", user.ViewPackageVersion)
+						m.Get("/modules/{submodule}", user.ViewPackageVersion)
 						m.Group("/terraform", func() {
 							m.Post("/lock", user.ActionPackageTerraformLock)
 							m.Post("/unlock", user.ActionPackageTerraformUnlock)
@@ -1215,7 +1182,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/branches", func() {
 			m.Get("/", repo_setting.ProtectedBranchRules)
 			m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
-				Post(web.Bind[*forms.ProtectBranchForm](), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
+				Post(context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
 			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
 			m.Post("/priority", context.RepoMustNotBeArchived(), repo_setting.UpdateBranchProtectionPriories)
 		})
@@ -1400,7 +1367,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			})
 
 			m.Post("/attachments", repo.UploadIssueAttachment)
-			m.Post("/attachments/remove", repo.DeleteAttachment)
+			m.Post("/attachments/remove", repo.DeletePendingAttachment)
 
 			m.Post("/labels", repo.UpdateIssueLabel)
 			m.Post("/milestone", repo.UpdateIssueMilestone)
@@ -1529,7 +1496,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/generate-notes", web.Bind[*forms.GenerateReleaseNotesForm](), repo.GenerateReleaseNotes)
 			m.Post("/delete", repo.DeleteRelease)
 			m.Post("/attachments", repo.UploadReleaseAttachment)
-			m.Post("/attachments/remove", repo.DeleteAttachment)
+			m.Post("/attachments/remove", repo.DeletePendingAttachment)
 		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter)
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 	// end "/{username}/{reponame}": repo releases

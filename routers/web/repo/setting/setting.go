@@ -237,16 +237,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), tplSettingsOptions, &form)
 			case repo_model.IsErrRepoFilesAlreadyExist(err):
 				ctx.Data["Err_RepoName"] = true
-				switch {
-				case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tplSettingsOptions, form)
-				case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt"), tplSettingsOptions, form)
-				case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.delete"), tplSettingsOptions, form)
-				default:
-					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
-				}
+				ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
 			case errors.As(err, &errNamePatternNotAllowed):
 				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplSettingsOptions, &form)
 			default:
@@ -316,7 +307,10 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		handleSettingRemoteAddrError(ctx, err, form)
 		return
 	}
-	if u.User != nil {
+	storedAddr := *u.URL
+	storedAddr.User = nil
+	// the stored credentials are write-only, never let a changed address receive them
+	if u.User != nil && strings.TrimSpace(form.MirrorAddress) == storedAddr.String() {
 		if form.MirrorUsername == "" {
 			form.MirrorUsername = u.User.Username()
 		}
@@ -625,6 +619,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			EnableTimetracker:                form.EnableTimetracker,
 			AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
 			EnableDependencies:               form.EnableIssueDependencies,
+			CreationRestriction:              form.IssuesCreationRestriction,
 		}))
 	} else {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
@@ -669,6 +664,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultSquashMergeMessage:     util.IfZero(repo_model.SquashMergeMessage(form.PullsDefaultSquashMergeMessage), repo_model.DefaultPullRequestsConfig().DefaultSquashMergeMessage),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
+			CreationRestriction:           form.PullsCreationRestriction,
 		}
 		if err := prConfig.ValidateUpdateSettings(); err != nil {
 			ctx.JSONErrorAuto(err)

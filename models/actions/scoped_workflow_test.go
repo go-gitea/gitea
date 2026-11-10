@@ -48,26 +48,28 @@ func TestGetEffectiveScopedWorkflowSources(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
-	rows := []*ActionScopedWorkflowSource{
-		{OwnerID: 2, SourceRepoID: 100, WorkflowConfigs: nil}, // org 2 registers repo 100 (optional)
-		{OwnerID: 0, SourceRepoID: 100, WorkflowConfigs: map[string]*ScopedWorkflowConfig{"a.yml": {Required: true, Patterns: []string{"p"}}}}, // instance also registers repo 100 (required)
-		{OwnerID: 0, SourceRepoID: 200, WorkflowConfigs: map[string]*ScopedWorkflowConfig{"b.yml": {Required: true, Patterns: []string{"p"}}}}, // instance source 200
-		{OwnerID: 3, SourceRepoID: 300, WorkflowConfigs: map[string]*ScopedWorkflowConfig{"c.yml": {Required: true, Patterns: []string{"p"}}}}, // a different owner's source
-	}
-	for _, r := range rows {
-		require.NoError(t, db.Insert(ctx, r))
+	for _, source := range []*ActionScopedWorkflowSource{
+		{OwnerID: 2, SourceRepoID: 1},
+		{OwnerID: 0, SourceRepoID: 1, WorkflowConfigs: map[string]*ScopedWorkflowConfig{"a.yml": {Required: true}}},
+		{OwnerID: 0, SourceRepoID: 200, WorkflowConfigs: map[string]*ScopedWorkflowConfig{"b.yml": {Required: true}}},
+		{OwnerID: 3, SourceRepoID: 3, WorkflowConfigs: map[string]*ScopedWorkflowConfig{"c.yml": {Required: true}}},
+		{OwnerID: 2, SourceRepoID: 3, WorkflowConfigs: map[string]*ScopedWorkflowConfig{"c.yml": {Required: true}}},
+	} {
+		require.NoError(t, db.Insert(ctx, source))
 	}
 
 	// owner 2 sees its own sources plus instance-level ones, but not owner 3's.
 	owner2, err := GetEffectiveScopedWorkflowSources(ctx, 2)
 	require.NoError(t, err)
 	assert.Len(t, owner2, 3)
+	_, err = GetScopedWorkflowSource(ctx, 2, 3)
+	assert.ErrorIs(t, err, util.ErrNotExist)
 
-	required, err := IsScopedWorkflowRequired(ctx, 2, 100, "a.yml")
+	required, err := IsScopedWorkflowRequired(ctx, 2, 1, "a.yml")
 	require.NoError(t, err)
 	assert.True(t, required, "instance marks a.yml required → required for owner 2 even though org left it optional")
 
-	required, err = IsScopedWorkflowRequired(ctx, 2, 100, "x.yml")
+	required, err = IsScopedWorkflowRequired(ctx, 2, 1, "x.yml")
 	require.NoError(t, err)
 	assert.False(t, required)
 
@@ -76,12 +78,12 @@ func TestGetEffectiveScopedWorkflowSources(t *testing.T) {
 	assert.True(t, required)
 
 	// owner 3's source must not be effective for owner 2.
-	required, err = IsScopedWorkflowRequired(ctx, 2, 300, "c.yml")
+	required, err = IsScopedWorkflowRequired(ctx, 2, 3, "c.yml")
 	require.NoError(t, err)
 	assert.False(t, required)
 
 	// IsScopedWorkflowSourceEffective: owner-level and instance-level sources are effective; another owner's is not.
-	effective, err := IsScopedWorkflowSourceEffective(ctx, 2, 100)
+	effective, err := IsScopedWorkflowSourceEffective(ctx, 2, 1)
 	require.NoError(t, err)
 	assert.True(t, effective, "owner 2's own source")
 
@@ -89,7 +91,7 @@ func TestGetEffectiveScopedWorkflowSources(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, effective, "instance-level source is effective for any owner")
 
-	effective, err = IsScopedWorkflowSourceEffective(ctx, 2, 300)
+	effective, err = IsScopedWorkflowSourceEffective(ctx, 2, 3)
 	require.NoError(t, err)
 	assert.False(t, effective, "owner 3's source is not effective for owner 2")
 
@@ -97,7 +99,7 @@ func TestGetEffectiveScopedWorkflowSources(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, effective, "unknown source repo")
 
-	effective, err = IsScopedWorkflowSourceEffective(ctx, 3, 300)
+	effective, err = IsScopedWorkflowSourceEffective(ctx, 3, 3)
 	require.NoError(t, err)
 	assert.True(t, effective, "owner 3's own source is effective for owner 3")
 }
@@ -107,8 +109,8 @@ func TestScopedWorkflowSourceCRUD(t *testing.T) {
 	ctx := t.Context()
 
 	// add is idempotent
-	require.NoError(t, AddScopedWorkflowSource(ctx, 5, 10))
-	require.NoError(t, AddScopedWorkflowSource(ctx, 5, 10))
+	require.NoError(t, AddScopedWorkflowSource(ctx, 5, 4))
+	require.NoError(t, AddScopedWorkflowSource(ctx, 5, 4))
 	sources, err := GetScopedWorkflowSourcesByOwner(ctx, 5)
 	require.NoError(t, err)
 	assert.Len(t, sources, 1)
@@ -118,20 +120,20 @@ func TestScopedWorkflowSourceCRUD(t *testing.T) {
 		"a.yml": {Required: true, Patterns: []string{"src: a.yml / *"}},
 		"b.yml": {Required: false, Patterns: []string{"src: b.yml / build (push)"}},
 	}
-	require.NoError(t, SetScopedWorkflowSourceConfigs(ctx, 5, 10, configs))
-	src, err := GetScopedWorkflowSource(ctx, 5, 10)
+	require.NoError(t, SetScopedWorkflowSourceConfigs(ctx, 5, 4, configs))
+	src, err := GetScopedWorkflowSource(ctx, 5, 4)
 	require.NoError(t, err)
 	assert.Equal(t, configs, src.WorkflowConfigs)
 
 	// clearing the configs works
-	require.NoError(t, SetScopedWorkflowSourceConfigs(ctx, 5, 10, nil))
-	src, err = GetScopedWorkflowSource(ctx, 5, 10)
+	require.NoError(t, SetScopedWorkflowSourceConfigs(ctx, 5, 4, nil))
+	src, err = GetScopedWorkflowSource(ctx, 5, 4)
 	require.NoError(t, err)
 	assert.Empty(t, src.WorkflowConfigs)
 
 	// remove
-	require.NoError(t, RemoveScopedWorkflowSource(ctx, 5, 10))
-	_, err = GetScopedWorkflowSource(ctx, 5, 10)
+	require.NoError(t, RemoveScopedWorkflowSource(ctx, 5, 4))
+	_, err = GetScopedWorkflowSource(ctx, 5, 4)
 	assert.ErrorIs(t, err, util.ErrNotExist)
 	sources, err = GetScopedWorkflowSourcesByOwner(ctx, 5)
 	require.NoError(t, err)

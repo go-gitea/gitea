@@ -103,7 +103,13 @@ func testGitPush(t *testing.T, u *url.URL) {
 				doGitCreateBranch(gitPath, branchName)(t)
 			}
 			pushed = append(pushed, "master")
-			doGitPushTestRepository(gitPath, "origin", "--all")(t)
+			_, stderr, err := gitcmd.NewCommand("push", "origin", "--all").WithDir(gitPath).RunStdString(t.Context())
+			require.NoError(t, err)
+			assert.NotContains(t, stderr, "Create a new pull request")
+
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 2, LowerName: "repo-to-push"})
+			assert.False(t, repo.IsEmpty)
+			assert.Equal(t, "master", repo.DefaultBranch)
 			return pushed, deleted
 		})
 	})
@@ -139,7 +145,9 @@ func testGitPush(t *testing.T, u *url.URL) {
 			pushed = append(pushed, "master")
 
 			// push all, so that master is not changed
-			doGitPushTestRepository(gitPath, "origin", "--all")(t)
+			_, stderr, err := gitcmd.NewCommand("push", "origin", "--all").WithDir(gitPath).RunStdString(t.Context())
+			require.NoError(t, err)
+			assert.Contains(t, stderr, "Create a new pull request for 'branch-2'")
 
 			return pushed, deleted
 		})

@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
-	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -78,47 +77,22 @@ func uploadAttachment(ctx *context.Context, repoID int64, uploadFunc attachment.
 	})
 }
 
-// DeleteAttachment response for deleting issue's attachment
-func DeleteAttachment(ctx *context.Context) {
+func DeletePendingAttachment(ctx *context.Context) {
 	file := ctx.FormString("file")
 	attach, err := repo_model.GetAttachmentByUUID(ctx, file)
 	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		ctx.ServerError("GetAttachmentByUUID", err)
 		return
 	}
 
-	if !ctx.IsSigned {
+	// only uploader can delete their own pending (unlinked) attachment,
+	// linked attachments are managed by the linked entity (issue, release, etc.) and cannot be deleted directly
+	canDelete := attach.RepoID == ctx.Repo.Repository.ID &&
+		attach.UploaderID == ctx.Doer.ID &&
+		!attach.IsLinked()
+	if !canDelete {
 		ctx.HTTPError(http.StatusForbidden)
 		return
-	}
-
-	if attach.RepoID != ctx.Repo.Repository.ID {
-		ctx.HTTPError(http.StatusBadRequest, "attachment does not belong to this repository")
-		return
-	}
-
-	if ctx.Doer.ID != attach.UploaderID {
-		if attach.IssueID > 0 {
-			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
-			if err != nil {
-				ctx.ServerError("GetIssueByID", err)
-				return
-			}
-			if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		} else if attach.ReleaseID > 0 {
-			if !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		} else {
-			if !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
-		}
 	}
 
 	err = repo_model.DeleteAttachment(ctx, attach, true)

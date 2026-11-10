@@ -1870,11 +1870,6 @@ func Routes() *web.Router {
 				m.Get("", admin.GetAllEmails)
 				m.Get("/search", admin.SearchEmail)
 			})
-			m.Group("/unadopted", func() {
-				m.Get("", admin.ListUnadoptedRepositories)
-				m.Post("/{username}/{reponame}", admin.AdoptRepository)
-				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
-			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(admin.ListHooks).
 					Post(bind(api.CreateHookOption{}), admin.CreateHook)

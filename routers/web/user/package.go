@@ -26,6 +26,7 @@ import (
 	container_module "gitea.dev/modules/packages/container"
 	rpm_module "gitea.dev/modules/packages/rpm"
 	terraform_module "gitea.dev/modules/packages/terraform"
+	tfmod "gitea.dev/modules/packages/terraform_module"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -202,6 +203,16 @@ func ViewPackageVersion(ctx *context.Context) {
 		registryHostURL, _ = url.Parse(setting.AppURL)
 	}
 	ctx.Data["PackageRegistryHost"] = registryHostURL.Host
+
+	if submodule := ctx.PathParam("submodule"); submodule != "" {
+		metadata, ok := pd.Metadata.(*tfmod.Metadata) // the route is shared by all package types
+		if !ok || metadata.Submodules[submodule] == nil {
+			ctx.NotFound(nil)
+			return
+		}
+		ctx.Data["PackageSubmodule"] = submodule
+		ctx.Data["Title"] = pd.Package.Name + " //modules/" + submodule
+	}
 
 	switch pd.Package.Type {
 	case packages_model.TypeAlpine:
@@ -485,12 +496,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 		return
 	}
 	if err := packages_service.RemovePackage(ctx, ctx.Doer, pd.Package); err != nil {
-		errTr := util.ErrorAsTranslatable(err)
-		if errTr == nil {
-			ctx.ServerError("RemovePackage", err)
-			return
-		}
-		ctx.Flash.Error(errTr.Translate(ctx.Locale))
+		ctx.FlashErrorAuto(err)
 		ctx.Redirect(pd.PackageSettingsLink())
 		return
 	}
@@ -508,15 +514,11 @@ func PackageVersionDelete(ctx *context.Context) {
 	}
 
 	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pd.Version); err != nil {
-		errTr := util.ErrorAsTranslatable(err)
-		if errTr == nil {
-			ctx.ServerError("RemovePackageVersion", err)
-			return
-		}
-		ctx.Flash.Error(errTr.Translate(ctx.Locale))
-	} else {
-		ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
+		ctx.FlashErrorAuto(err)
+		ctx.Redirect(pd.VersionWebLink())
+		return
 	}
+	ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
 
 	// redirect to the package if there are still versions available
 	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"

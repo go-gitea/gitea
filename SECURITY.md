@@ -14,11 +14,27 @@ Reports must be filed against a supported version. Before reporting, verify that
 
 ## Reporting a Vulnerability
 
-Please **DO NOT** file a public issue. Instead, report the vulnerability privately by opening a [GitHub security advisory](https://github.com/go-gitea/gitea/security/advisories/new), or optionally by sending your report to `security@gitea.io`.
+Please **DO NOT** file a public issue. Instead, report the vulnerability privately by opening a [GitHub security advisory](https://github.com/go-gitea/gitea/security/advisories/new), or optionally by sending your report to `security@gitea.io`. Former is preferred if given a choice.
 If reporting via GitHub, open an advisory per found issue. You can group the found issues if they relate to a single area (same feature, same fault present in multiple routes) but do not group unrelated reports into one as it makes it much harder to assess and track for duplicates.
 Do not use LLM to write the reports. It's meant for people to read so take your time and use your own words to write it. If you have used LLM to find the bug, be transparent about it and verify that it is not hallucination before submitting the report.
 
 If your report turns out to be a duplicate, you will be credited in the original report.
+
+### Report requirements
+
+When filing the report please document it. Reports must include:
+
+- Version or a range of versions it was successfully tested against. If reproducible against the `main` branch, a commit hash is also acceptable. Ambiguous versions like `latest` are not acceptable.
+- Settings used, especially when they diverge from the defaults
+- Reproduction steps from freshly installed instance. If the fault is only reproducible through upgrade from older version, reproduction should state that.
+
+Take your time to format it properly as it'll be much easier to read. Prefer a concise writing style.
+When submitting an advisory, it should have the `gitea.dev` go package as package `name.cd`
+
+### Triage process
+
+Github does not have any search or tagging in GHSA so in most cases your report will leave triage state when we have a fix for it in works for next release.
+This helps us keep track of items fixed and pending release and separate them from things that we either haven't looked at yet or have not fixed.
 
 ## Protecting Security Information
 
