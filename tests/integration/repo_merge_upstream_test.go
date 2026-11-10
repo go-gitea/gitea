@@ -169,6 +169,10 @@ func TestRepoMergeUpstream(t *testing.T) {
 		t.Run("BasePrivateBlocksSync", func(t *testing.T) {
 			// add a new commit to the base repo, then make the base repo private
 			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "secret.txt", "master", "private-content"))
+			forkBranchMergeUpstreamLink := func() string {
+				return queryMergeUpstreamButtonLink(NewHTMLParser(t, session.MakeRequest(t, NewRequestf(t, "GET", "/%s/test-repo-fork/src/branch/fork-branch", forkUser.Name), http.StatusOK).Body))
+			}
+			require.Eventually(t, func() bool { return forkBranchMergeUpstreamLink() != "" }, 5*time.Second, 100*time.Millisecond)
 			baseRepo.IsPrivate = true
 			_, err := db.GetEngine(t.Context()).ID(baseRepo.ID).Cols("is_private").Update(baseRepo)
 			require.NoError(t, err)
@@ -177,6 +181,15 @@ func TestRepoMergeUpstream(t *testing.T) {
 				Branch: "fork-branch",
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusForbidden)
+			assert.Empty(t, forkBranchMergeUpstreamLink())
+
+			testEditorActionPostRequestError(t, session, fmt.Sprintf("/%s/test-repo-fork/_edit/master/README.md?from_base_branch=master", forkUser.Name), map[string]string{
+				"tree_path":       "README.md",
+				"content":         "edited",
+				"commit_choice":   "commit-to-new-branch",
+				"new_branch_name": "from-private-base",
+			}, "Failed to push branch from-private-base to your repository.")
+			session.MakeRequest(t, NewRequestf(t, "GET", "/%s/test-repo-fork/src/branch/from-private-base", forkUser.Name), http.StatusNotFound)
 		})
 	})
 }

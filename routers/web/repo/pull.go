@@ -420,9 +420,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	statusCheckData := &pullCommitStatusCheckData{}
 	data.StatusCheckData = statusCheckData
 
-	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID, db.ListOptionsAll)
+	commitStatuses, err := pull_service.GetLatestPullCommitStatuses(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID)
 	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
+		log.Error("GetLatestPullCommitStatuses: %v", err)
 	}
 
 	// Effective required contexts = branch-protection contexts + required scoped workflow checks.
@@ -1442,11 +1442,9 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		TeamReviewers:   validateRet.TeamReviewers,
 		ProjectIDs:      projectIDs,
 	}
-	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
+	if err := pull_service.NewPullRequest(ctx, ctx.Repo.Permission, prOpts); err != nil {
 		var pushrejErr *git.ErrPushRejected
 		switch {
-		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
-			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		case errors.As(err, &pushrejErr):
 			message := pushrejErr.Message
 			if len(message) == 0 {
@@ -1463,31 +1461,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 				return
 			}
 			ctx.JSONError(flashError)
-		case errors.Is(err, user_model.ErrBlockedUser):
-			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.pulls.push_rejected"),
-				"Summary": ctx.Tr("repo.pulls.new.blocked_user"),
-			})
-			if err != nil {
-				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
-				return
-			}
-			ctx.JSONError(flashError)
-		case errors.Is(err, issues_model.ErrMustCollaborator):
-			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.pulls.push_rejected"),
-				"Summary": ctx.Tr("repo.pulls.new.must_collaborator"),
-			})
-			if err != nil {
-				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
-				return
-			}
-			ctx.JSONError(flashError)
 		default:
-			// It's an unexpected error.
-			// If it happens, we should add another case to handle it.
-			log.Error("Unexpected error of NewPullRequest: %T %s", err, err)
-			ctx.ServerError("CompareAndPullRequest", err)
+			ctx.JSONErrorAuto(err)
 		}
 		return
 	}

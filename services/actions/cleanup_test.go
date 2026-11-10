@@ -14,6 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -29,7 +30,7 @@ func insertCleanupRun(t *testing.T, index int64, status actions_model.Status, cr
 	run := &actions_model.ActionRun{
 		Title: "cleanup-run", RepoID: repo.ID, OwnerID: repo.OwnerID, WorkflowID: "test.yaml", Index: index,
 		TriggerUserID: 1, Ref: "refs/heads/main",
-		CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0", Event: "push", TriggerEvent: "push",
+		CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0", Event: "pull_request", TriggerEvent: "pull_request",
 		Status: status,
 	}
 	require.NoError(t, db.Insert(t.Context(), run))
@@ -68,8 +69,12 @@ func TestCleanupOldRuns(t *testing.T) {
 		oldRunning := insertCleanupRun(t, 2005, actions_model.StatusRunning, old)
 		oldCanceled := insertCleanupRun(t, 2006, actions_model.StatusCancelled, old)
 		oldSkipped := insertCleanupRun(t, 2007, actions_model.StatusSkipped, old)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		runRef := git.RunRefNameFromRunID(oldSuccess.ID).String()
+		require.NoError(t, git.UpdateRef(t.Context(), repo, runRef, "refs/heads/master"))
 
 		require.NoError(t, CleanupOldRuns(t.Context()))
+		assert.False(t, git.IsReferenceExist(t.Context(), repo, runRef))
 
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRun{ID: oldSuccess.ID})
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRun{ID: oldFailure.ID})

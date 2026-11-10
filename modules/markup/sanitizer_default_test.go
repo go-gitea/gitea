@@ -49,6 +49,8 @@ func TestSanitizer(t *testing.T) {
 		`<p style="bad-color: red">Hello World</p>`, `<p>Hello World</p>`,
 		`<code style="bad-color: red">Hello World</code>`, `<code>Hello World</code>`,
 
+		`<table data-paste-markdown-skip><tr><td>1</td></tr></table>`, `<table data-paste-markdown-skip=""><tr><td>1</td></tr></table>`,
+
 		// Org mode status of list items.
 		`<li class="checked"></li>`, `<li class="checked"></li>`,
 		`<li class="unchecked"></li>`, `<li class="unchecked"></li>`,
