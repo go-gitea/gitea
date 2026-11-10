@@ -6,7 +6,7 @@ package repo
 
 import (
 	"context"
-	"strings"
+	"regexp"
 	"time"
 
 	"gitea.dev/models/db"
@@ -22,10 +22,14 @@ var ErrMirrorNotExist = util.NewNotExistErrorf("Mirror does not exist")
 
 var ErrReadOnlyMirror = util.NewPermissionDeniedErrorf("the repository is a read-only mirror")
 
+// personal issue state routes: web watch and viewed-files, and the API issue subscriptions; anchored on the
+// route shape so repo or topic names like "subscriptions-mirror" or "watch" can't match
+var personalIssueStateRe = regexp.MustCompile(`/(?:issues|pulls)/[0-9]+/(?:watch|viewed-files)$|/repos/[^/]+/[^/]+/issues/[0-9]+/subscriptions(?:/[^/]+)?$`)
+
 // IsPersonalIssueState reports whether a request path only changes the doer's own state on an issue,
 // like watching it or marking files viewed, which stays allowed on a read-only mirror
 func IsPersonalIssueState(path string) bool {
-	return strings.HasSuffix(path, "/watch") || strings.HasSuffix(path, "/viewed-files") || strings.Contains(path, "/subscriptions")
+	return personalIssueStateRe.MatchString(path)
 }
 
 // Mirror represents mirror information of a repository.
