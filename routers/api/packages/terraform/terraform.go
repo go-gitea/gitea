@@ -269,29 +269,7 @@ func DeleteState(ctx *context.Context) {
 		return
 	}
 
-	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		PackageID:  p.ID,
-		IsInternal: optional.None[bool](),
-	})
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	err = packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypePackage, p.ID)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	for _, pv := range pvs {
-		if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	if err := packages_model.DeletePackageByID(ctx, p.ID); err != nil {
+	if err := packages_service.RemovePackage(ctx, ctx.Doer, p); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
