@@ -583,7 +583,36 @@ func DownloadComparePatch(ctx *context.Context) {
 	downloadCompareDiffOrPatch(ctx, true)
 }
 
+func compareRefExists(ctx *context.Context, compareParam string) bool {
+	compareReq := common.ParseCompareRouterParam(compareParam)
+	if compareReq.HeadOriRef == "" {
+		return false
+	}
+
+	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, ctx.Repo.Repository, compareReq)
+	if err != nil {
+		return false
+	}
+	headGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, headRepo)
+	if err != nil {
+		return false
+	}
+	_, err = common.ResolveRefWithSuffix(ctx, headGitRepo, compareReq.HeadOriRef, compareReq.HeadOriRefSuffix)
+	return err == nil
+}
+
 func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
+	compareParam := ctx.PathParam("*")
+	compareReq := common.ParseCompareRouterParam(compareParam)
+	rawSuffix := ".diff"
+	if patch {
+		rawSuffix = ".patch"
+	}
+	if !strings.HasSuffix(compareReq.HeadOriRef, rawSuffix) || compareRefExists(ctx, compareParam) {
+		CompareDiff(ctx)
+		return
+	}
+
 	// The route captures `basehead` separately so the `.diff`/`.patch` suffix is
 	// stripped from the catch-all `*` param parseCompareInfo would otherwise read.
 	cpi := newComparePageInfo()
