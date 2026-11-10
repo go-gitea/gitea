@@ -17,6 +17,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/packages"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -821,6 +822,25 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 			})
 		})
 	}
+
+	t.Run("DeleteKeepsOtherGroups", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		for _, group := range []string{"el8", "el9"} {
+			req := NewRequestWithBody(t, "PUT", rootURL+"/"+group+"/upload", bytes.NewReader(packageRpmContent)).AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+		}
+
+		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/el8/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, NewRequest(t, "GET", rootURL+"/el8/repodata/repomd.xml"), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", rootURL+"/el9/repodata/repomd.xml"), http.StatusOK)
+
+		token := getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopeWritePackage)
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/rpm/%s/%s", user.Name, packageName, packageVersion)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, NewRequest(t, "GET", rootURL+"/el9/repodata/repomd.xml"), http.StatusNotFound)
+	})
 }
 
 func rpmHeaderAndSignature(content []byte) (header, signature []byte) {
