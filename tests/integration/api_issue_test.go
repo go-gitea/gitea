@@ -588,7 +588,7 @@ func testAPIIssueAssignees(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
 		apiErr := DecodeJSON(t, resp, &api.APIError{})
-		assert.Equal(t, "user does not exist [uid: 0, name: does-not-exist]", apiErr.Message)
+		assert.Equal(t, "user does not exist [name: does-not-exist]", apiErr.Message)
 	})
 
 	t.Run("OrganizationAssignee", func(t *testing.T) {
