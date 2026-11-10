@@ -5,6 +5,7 @@ package integration
 
 import (
 	"bufio"
+	"fmt"
 	"mime"
 	"net/http"
 	"strings"
@@ -167,5 +168,78 @@ func TestAdminAuditLogExport(t *testing.T) {
 		}
 		require.NoError(t, scanner.Err())
 		assert.True(t, found)
+	})
+}
+
+func TestAuditLogRepositoryAPIEvents(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeAll)
+	const repoAPI = "/api/v1/repos/user2/repo1"
+
+	assertEvents := func(t *testing.T, scopeType audit_model.ScopeType, scopeID int64, actions ...audit_model.Action) {
+		t.Helper()
+		for _, action := range actions {
+			events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{Action: action, ScopeType: scopeType, ScopeID: scopeID})
+			require.NoError(t, err)
+			assert.Len(t, events, 1, "audit events for %s", action)
+		}
+	}
+
+	t.Run("Webhooks", func(t *testing.T) {
+		hookOption := &api.CreateHookOption{Type: "gitea", Config: api.CreateHookOptionConfig{"url": "http://example.com/hook", "content_type": "json"}}
+
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", repoAPI+"/hooks", hookOption).AddTokenAuth(token), http.StatusCreated)
+		hookURL := fmt.Sprintf("%s/hooks/%d", repoAPI, DecodeJSON(t, resp, &api.Hook{}).ID)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", hookURL, &api.EditHookOption{Active: new(false)}).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "DELETE", hookURL).AddTokenAuth(token), http.StatusNoContent)
+		assertEvents(t, audit_model.ScopeRepository, 1, audit_model.RepositoryWebhookAdd, audit_model.RepositoryWebhookUpdate, audit_model.RepositoryWebhookRemove)
+
+		resp = MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/hooks", hookOption).AddTokenAuth(token), http.StatusCreated)
+		MakeRequest(t, NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/hooks/%d", DecodeJSON(t, resp, &api.Hook{}).ID)).AddTokenAuth(token), http.StatusNoContent)
+		assertEvents(t, audit_model.ScopeOrganization, 3, audit_model.OrganizationWebhookAdd, audit_model.OrganizationWebhookRemove)
+	})
+
+	t.Run("BranchProtection", func(t *testing.T) {
+		MakeRequest(t, NewRequestWithJSON(t, "POST", repoAPI+"/branch_protections", &api.CreateBranchProtectionOption{RuleName: "branch2"}).AddTokenAuth(token), http.StatusCreated)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", repoAPI+"/branch_protections/branch2", &api.EditBranchProtectionOption{EnablePush: new(true)}).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "DELETE", repoAPI+"/branch_protections/branch2").AddTokenAuth(token), http.StatusNoContent)
+		assertEvents(t, audit_model.ScopeRepository, 1, audit_model.RepositoryBranchProtectionAdd, audit_model.RepositoryBranchProtectionUpdate, audit_model.RepositoryBranchProtectionRemove)
+	})
+
+	t.Run("TagProtection", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", repoAPI+"/tag_protections", &api.CreateTagProtectionOption{NamePattern: "v*", WhitelistUsernames: []string{"user2"}}).AddTokenAuth(token), http.StatusCreated)
+		tagURL := fmt.Sprintf("%s/tag_protections/%d", repoAPI, DecodeJSON(t, resp, &api.TagProtection{}).ID)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", tagURL, &api.EditTagProtectionOption{NamePattern: new("release-*")}).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "DELETE", tagURL).AddTokenAuth(token), http.StatusNoContent)
+		assertEvents(t, audit_model.ScopeRepository, 1, audit_model.RepositoryTagProtectionAdd, audit_model.RepositoryTagProtectionUpdate, audit_model.RepositoryTagProtectionRemove)
+	})
+
+	t.Run("DeployKeyAndToken", func(t *testing.T) {
+		MakeRequest(t, NewRequestWithJSON(t, "POST", repoAPI+"/keys", &api.CreateKeyOption{
+			Title: "audit-deploy-key",
+			Key:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEYv1rUQ6Sx6XQNM5o8URz8xvuXaV9bGXfj+OMkh8T0X",
+		}).AddTokenAuth(token), http.StatusCreated)
+		MakeRequest(t, NewRequestWithJSON(t, "POST", repoAPI+"/keys/tokens", &api.CreateDeployKeyTokenOption{Title: "audit-deploy-token"}).AddTokenAuth(token), http.StatusCreated)
+
+		events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{Action: audit_model.RepositoryDeployKeyAdd, ScopeType: audit_model.ScopeRepository, ScopeID: 1})
+		require.NoError(t, err)
+		assert.Len(t, events, 2)
+	})
+
+	t.Run("RepoSettings", func(t *testing.T) {
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", repoAPI, &api.EditRepoOption{DefaultBranch: new("branch2")}).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", repoAPI, &api.EditRepoOption{Archived: new(true)}).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", repoAPI, &api.EditRepoOption{Archived: new(false)}).AddTokenAuth(token), http.StatusOK)
+		assertEvents(t, audit_model.ScopeRepository, 1, audit_model.RepositoryBranchDefault, audit_model.RepositoryArchive, audit_model.RepositoryUnarchive)
+	})
+
+	t.Run("Projects", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", repoAPI+"/projects", &api.CreateProjectOption{Title: "audit-project"}).AddTokenAuth(token), http.StatusCreated)
+		projectURL := fmt.Sprintf("%s/projects/%d", repoAPI, DecodeJSON(t, resp, &api.Project{}).ID)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", projectURL, &api.EditProjectOption{Title: new("audit-project-renamed")}).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "DELETE", projectURL).AddTokenAuth(token), http.StatusNoContent)
+		assertEvents(t, audit_model.ScopeRepository, 1, audit_model.ProjectCreate, audit_model.ProjectUpdate, audit_model.ProjectDelete)
 	})
 }

@@ -698,6 +698,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if oldDefaultBranch != "" {
 		actions_service.SwitchSchedulesToDefaultBranch(ctx, repo, oldDefaultBranch)
+		audit.Record(ctx, audit_model.RepositoryBranchDefault, repo, "default_branch", repo.DefaultBranch)
 	}
 
 	if visibilityChanged {
@@ -962,6 +963,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			if err := actions_service.CleanRepoScheduleTasks(ctx, repo); err != nil {
 				log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 			}
+			audit.Record(ctx, audit_model.RepositoryArchive, repo)
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
 			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
@@ -974,6 +976,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 					log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 				}
 			}
+			audit.Record(ctx, audit_model.RepositoryUnarchive, repo)
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		}
 	}

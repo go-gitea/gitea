@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
@@ -17,6 +18,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	release_service "gitea.dev/services/release"
@@ -444,6 +446,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryTagProtectionAdd, repo, "pattern", protectTag.NamePattern)
 
 	pt, err = git_model.GetProtectedTagByID(ctx, protectTag.ID)
 	if err != nil {
@@ -547,6 +550,7 @@ func EditTagProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryTagProtectionUpdate, repo, "pattern", pt.NamePattern)
 
 	pt, err = git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
@@ -609,6 +613,7 @@ func DeleteTagProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryTagProtectionRemove, repo, "pattern", pt.NamePattern)
 
 	ctx.Status(http.StatusNoContent)
 }

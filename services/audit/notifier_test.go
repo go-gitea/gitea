@@ -27,6 +27,8 @@ func TestAuditNotifier(t *testing.T) {
 	ctx := reqctx.NewRequestContextForTest(t)
 	SetRequestInfo(ctx, audit_model.OriginUI, "127.0.0.1")
 	notifier := new(auditNotifier)
+	migrator := &user_model.User{ID: 3, Name: "migrator"}
+	pr := &issues_model.PullRequest{ID: 13, Issue: &issues_model.Issue{ID: 14, Index: 7, Title: "Merged PR", Poster: doer, Repo: repo, IsPull: true}}
 
 	for _, tc := range []struct {
 		notify func()
@@ -59,6 +61,24 @@ func TestAuditNotifier(t *testing.T) {
 		{
 			func() { notifier.ChangeDefaultBranch(ctx, repo) },
 			audit_model.Event{Action: audit_model.RepositoryBranchDefault},
+		},
+		{
+			func() { notifier.MigrateRepository(ctx, migrator, migrator, repo) },
+			audit_model.Event{Action: audit_model.RepositoryCreate, ActorID: migrator.ID, Origin: audit_model.OriginUI},
+		},
+		{
+			func() { notifier.AutoMergePullRequest(ctx, doer, pr) },
+			audit_model.Event{Action: audit_model.PullRequestMerge, ActorID: doer.ID},
+		},
+		{
+			func() {
+				notifier.PullRequestReview(ctx, pr, &issues_model.Review{Reviewer: doer}, &issues_model.Comment{ID: 31}, nil)
+			},
+			audit_model.Event{Action: audit_model.PullRequestCommentCreate, ActorID: doer.ID, Message: "Added comment 31 to pull request #7 in repository owner/repo."},
+		},
+		{
+			func() { notifier.PullRequestCodeComment(ctx, pr, &issues_model.Comment{ID: 32, Poster: doer}, nil) },
+			audit_model.Event{Action: audit_model.PullRequestCommentCreate, ActorID: doer.ID, Message: "Added comment 32 to pull request #7 in repository owner/repo."},
 		},
 	} {
 		tc.notify()

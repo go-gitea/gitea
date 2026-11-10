@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 	webhook_module "gitea.dev/modules/webhook"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	webhook_service "gitea.dev/services/webhook"
 )
@@ -105,6 +106,7 @@ func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) 
 func AddSystemHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	hook, ok := addHook(ctx, form, 0, 0)
 	if ok {
+		audit.RecordScoped(ctx, nil, nil, audit.WebhookAdd, "webhook", hook.URL)
 		h, err := webhook_service.ToHook(setting.AppSubURL+"/-/admin", hook)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -120,6 +122,7 @@ func AddOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.Cre
 	if !ok {
 		return
 	}
+	audit.RecordScoped(ctx, owner, nil, audit.WebhookAdd, "webhook", hook.URL)
 	apiHook, ok := toAPIHook(ctx, owner.HomeLink(), hook)
 	if !ok {
 		return
@@ -134,6 +137,7 @@ func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	if !ok {
 		return
 	}
+	audit.RecordScoped(ctx, nil, repo.Repository, audit.WebhookAdd, "webhook", hook.URL)
 	apiHook, ok := toAPIHook(ctx, repo.RepoLink, hook)
 	if !ok {
 		return
@@ -281,6 +285,7 @@ func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID in
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.RecordScoped(ctx, nil, nil, audit.WebhookUpdate, "webhook", hook.URL)
 	updated, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -303,6 +308,7 @@ func EditOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.Ed
 	if !editHook(ctx, form, hook) {
 		return
 	}
+	audit.RecordScoped(ctx, owner, nil, audit.WebhookUpdate, "webhook", hook.URL)
 	updated, err := GetOwnerHook(ctx, owner.ID, hookID)
 	if err != nil {
 		return
@@ -324,6 +330,7 @@ func EditRepoHook(ctx *context.APIContext, form *api.EditHookOption, hookID int6
 	if !editHook(ctx, form, hook) {
 		return
 	}
+	audit.RecordScoped(ctx, nil, repo.Repository, audit.WebhookUpdate, "webhook", hook.URL)
 	updated, err := GetRepoHook(ctx, repo.Repository.ID, hookID)
 	if err != nil {
 		return
@@ -406,6 +413,10 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 
 // DeleteOwnerHook deletes the hook owned by the owner.
 func DeleteOwnerHook(ctx *context.APIContext, owner *user_model.User, hookID int64) {
+	hook, err := GetOwnerHook(ctx, owner.ID, hookID)
+	if err != nil {
+		return
+	}
 	if err := webhook.DeleteWebhookByOwnerID(ctx, owner.ID, hookID); err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.APIErrorNotFound()
@@ -414,5 +425,6 @@ func DeleteOwnerHook(ctx *context.APIContext, owner *user_model.User, hookID int
 		}
 		return
 	}
+	audit.RecordScoped(ctx, owner, nil, audit.WebhookRemove, "webhook", hook.URL)
 	ctx.Status(http.StatusNoContent)
 }

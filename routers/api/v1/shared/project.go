@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
@@ -20,6 +21,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/routers/common"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	project_service "gitea.dev/services/projects"
@@ -55,6 +57,14 @@ func (s projectScope) ownerID() int64 {
 		return s.Owner.ID
 	}
 	return 0
+}
+
+// auditScope is the entity project audit events are recorded against.
+func (s projectScope) auditScope() any {
+	if s.Repo != nil {
+		return s.Repo
+	}
+	return s.Owner
 }
 
 // attach preloads the relation the converter needs for HTMLURL, sparing a lookup per project.
@@ -497,6 +507,7 @@ func CreateProject(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectCreate, scope.auditScope(), "project", project.Title, "project_id", project.ID)
 
 	scope.attach(project)
 	ctx.JSON(http.StatusCreated, convert.ToProject(ctx, project, ctx.Doer))
@@ -590,7 +601,8 @@ func EditProject(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	project := projectScopeFromContext(ctx).findProject(ctx)
+	scope := projectScopeFromContext(ctx)
+	project := scope.findProject(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -623,6 +635,7 @@ func EditProject(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectUpdate, scope.auditScope(), "project", project.Title, "project_id", project.ID)
 
 	if err := project_service.LoadIssueNumbersForProject(ctx, project, ctx.Doer); err != nil {
 		ctx.APIErrorInternal(err)
@@ -695,7 +708,8 @@ func DeleteProject(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 
-	project := projectScopeFromContext(ctx).findProject(ctx)
+	scope := projectScopeFromContext(ctx)
+	project := scope.findProject(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -703,6 +717,7 @@ func DeleteProject(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectDelete, scope.auditScope(), "project", project.Title, "project_id", project.ID)
 	ctx.Status(http.StatusNoContent)
 }
 

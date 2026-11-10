@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
@@ -17,6 +18,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/services/audit"
 
 	"xorm.io/builder"
 )
@@ -166,6 +168,8 @@ func DeleteMissingRepositories(ctx context.Context, doer *user_model.User) error
 			if err2 := system_model.CreateRepositoryNotice("Failed to DeleteRepository (%s) [%d]: Error: %v", repo.FullName(), repo.ID, err); err2 != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
+		} else {
+			audit.RecordAs(ctx, doer, audit_model.RepositoryDelete, repo)
 		}
 	}
 	return nil
