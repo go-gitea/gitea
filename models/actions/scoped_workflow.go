@@ -35,12 +35,14 @@ type ActionScopedWorkflowSource struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
+// ScopedWorkflowRepoFilter selects consumer repositories by name and topic.
 type ScopedWorkflowRepoFilter struct {
 	IncludeRepos  []string `json:"include_repos,omitempty"`
 	ExcludeRepos  []string `json:"exclude_repos,omitempty"`
 	IncludeTopics []string `json:"include_topics,omitempty"`
 }
 
+// AppliesToRepo reports whether the source filter matches repo.
 func (s *ActionScopedWorkflowSource) AppliesToRepo(repo *repo_model.Repository) bool {
 	f := s.RepoFilter
 	if f == nil {
@@ -128,6 +130,7 @@ func GetEffectiveScopedWorkflowSources(ctx context.Context, repo *repo_model.Rep
 	return effective, nil
 }
 
+// IsScopedWorkflowSourceEffective reports whether sourceRepoID is effective for repo.
 func IsScopedWorkflowSourceEffective(ctx context.Context, repo *repo_model.Repository, sourceRepoID int64) (bool, error) {
 	sources, err := GetEffectiveScopedWorkflowSources(ctx, repo)
 	if err != nil {
@@ -240,11 +243,13 @@ func RemoveOwnerScopedWorkflowSources(ctx context.Context, repoID int64) error {
 	return err
 }
 
+// SetScopedWorkflowSourceRepoFilter replaces the repository filter for a source registration.
 func SetScopedWorkflowSourceRepoFilter(ctx context.Context, ownerID, repoID int64, filter *ScopedWorkflowRepoFilter) error {
 	_, err := db.GetEngine(ctx).Where("owner_id = ? AND source_repo_id = ?", ownerID, repoID).Cols("repo_filter").Update(&ActionScopedWorkflowSource{RepoFilter: filter})
 	return err
 }
 
+// Validate checks the repository name glob patterns.
 func (f *ScopedWorkflowRepoFilter) Validate() error {
 	for _, patterns := range [][]string{f.IncludeRepos, f.ExcludeRepos} {
 		for _, pattern := range patterns {

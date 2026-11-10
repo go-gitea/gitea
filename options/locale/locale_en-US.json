@@ -3913,7 +3913,7 @@
   "actions.workflow.scoped_required_cannot_disable": "This scoped workflow is required and cannot be disabled.",
   "actions.scoped_workflows.filter.active": "Applies to repositories matching the filters below.",
   "actions.scoped_workflows.filter.all": "Applies to all repositories in this scope.",
-  "actions.scoped_workflows.filter.help": "Leave both include lists empty to include all repositories. Otherwise, match an included name or topic. Excluded names always take precedence. Enter one value per line. Name patterns are case-insensitive globs without an owner (for example, service-*).",
+  "actions.scoped_workflows.filter.help": "Leave both include lists empty to include all repositories. Otherwise, match an included name or topic. Excluded names always take precedence. Enter one value per line. Name patterns are case-insensitive globs without an owner (for example, service-*). Repository admins can change names or topics to bypass filtered required workflows.",
   "actions.scoped_workflows.filter.include_repos": "Included repository names",
   "actions.scoped_workflows.filter.exclude_repos": "Excluded repository names",
   "actions.scoped_workflows.filter.include_topics": "Included topics",

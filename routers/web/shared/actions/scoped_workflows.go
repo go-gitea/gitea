@@ -365,6 +365,7 @@ func ScopedWorkflowRemove(ctx *context.Context) {
 	ctx.JSONRedirect(swCtx.RedirectLink)
 }
 
+// ScopedWorkflowSetRepoFilter saves a registered source’s repository filter.
 func ScopedWorkflowSetRepoFilter(ctx *context.Context) {
 	swCtx, err := getScopedWorkflowsCtx(ctx)
 	if err != nil {
