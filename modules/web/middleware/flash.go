@@ -7,10 +7,8 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/util"
 )
 
 // Flash represents a one time data transfer between two requests.
@@ -37,13 +35,10 @@ func (f *Flash) set(name, msg string, current ...bool) {
 }
 
 func (f *Flash) EncodeToString() string {
-	// modern browsers support 4096 bytes for a cookie
-	ret := util.TruncateStringBytes(f.msgValues.Encode(), 4000)
-	idx := strings.LastIndex(ret, "%")
-	if idx > len(ret)-3 {
-		ret = ret[:idx] // if truncated in the middle of a percent-encoded character, remove the incomplete encoding
-	}
-	return ret
+	// TODO: modern browsers support 4096 bytes for a cookie, however, it's not easy to truncate the cookie string
+	// because SetSiteCookie does another round of "QueryEscape"
+	// So in edge cases, if the message is too long after double-escaped, the error message won't be shown
+	return f.msgValues.Encode()
 }
 
 // Error sets error message
