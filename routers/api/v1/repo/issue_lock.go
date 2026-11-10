@@ -63,7 +63,7 @@ func LockIssue(ctx *context.APIContext) {
 
 	if !issue.IsLocked {
 		opt := &issues_model.IssueLockOptions{
-			Doer:   ctx.ContextUser,
+			Doer:   ctx.Doer,
 			Issue:  issue,
 			Reason: reason,
 		}
@@ -125,7 +125,7 @@ func UnlockIssue(ctx *context.APIContext) {
 
 	if issue.IsLocked {
 		opt := &issues_model.IssueLockOptions{
-			Doer:  ctx.ContextUser,
+			Doer:  ctx.Doer,
 			Issue: issue,
 		}
 
