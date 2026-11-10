@@ -590,6 +590,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -29563,12 +29566,12 @@
           "x-go-name": "Active"
         },
         "authorization_header": {
-          "description": "Authorization header to include in webhook requests",
+          "description": "Authorization header to include in webhook requests, omitted keeps the current value unless the url changes",
           "type": "string",
           "x-go-name": "AuthorizationHeader"
         },
         "branch_filter": {
-          "description": "Branch filter pattern to determine which branches trigger the webhook",
+          "description": "Branch filter pattern to determine which branches trigger the webhook, omitted keeps the current value",
           "type": "string",
           "x-go-name": "BranchFilter"
         },
@@ -29581,7 +29584,7 @@
           "x-go-name": "Config"
         },
         "events": {
-          "description": "List of events that trigger this webhook",
+          "description": "List of events that trigger this webhook, omitted or empty keeps the current events",
           "type": "array",
           "items": {
             "type": "string"

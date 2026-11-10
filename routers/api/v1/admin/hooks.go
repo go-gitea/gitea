@@ -165,6 +165,8 @@ func EditHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm[*api.EditHookOption](ctx)
 

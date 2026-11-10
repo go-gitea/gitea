@@ -274,11 +274,14 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		if webhook.IsErrWebhookNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
 		return
 	}
 	if !editHook(ctx, form, hook) {
-		ctx.APIErrorInternal(err)
 		return
 	}
 	updated, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
@@ -344,6 +347,9 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 				ctx.APIError(http.StatusUnprocessableEntity, "Invalid url")
 				return false
 			}
+			if url != w.URL {
+				w.HeaderAuthorizationEncrypted = "" // the API never reveals the header, so it must not follow the hook to a new url
+			}
 			w.URL = url
 		}
 		if ct, ok := form.Config["content_type"]; ok {
@@ -353,25 +359,32 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 			}
 			w.ContentType = webhook.ToHookContentType(ct)
 		}
+		if secret, ok := form.Config["secret"]; ok {
+			w.Secret = secret
+		}
 
 		if w.Type == webhook_module.SLACK {
-			if channel, ok := form.Config["channel"]; ok {
-				meta, err := json.Marshal(&webhook_service.SlackMeta{
-					Channel:  channel,
-					Username: form.Config["username"],
-					IconURL:  form.Config["icon_url"],
-					Color:    form.Config["color"],
-				})
-				if err != nil {
-					ctx.APIErrorInternal(err)
-					return false
+			slackMeta := webhook_service.GetSlackHook(w)
+			for key, field := range map[string]*string{
+				"channel":  &slackMeta.Channel,
+				"username": &slackMeta.Username,
+				"icon_url": &slackMeta.IconURL,
+				"color":    &slackMeta.Color,
+			} {
+				if value, ok := form.Config[key]; ok {
+					*field = value
 				}
-				w.Meta = string(meta)
 			}
+			meta, err := json.Marshal(slackMeta)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return false
+			}
+			w.Meta = string(meta)
 		}
 	}
 
-	if form.Events != nil {
+	if len(form.Events) > 0 {
 		w.HookEvents = updateHookEvents(form.Events)
 		w.PushOnly = false
 		w.SendEverything = false
