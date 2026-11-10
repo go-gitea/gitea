@@ -33,6 +33,7 @@ type EditOptions struct {
 	State             optional.Option[string]
 	CloseReason       optional.Option[string]
 	DuplicateOf       optional.Option[string] // identifier of the original advisory
+	ShareOriginal     optional.Option[bool]
 }
 
 func (opts EditOptions) editsContent() bool {
@@ -49,7 +50,7 @@ func (opts EditOptions) changesCollaborators() bool {
 }
 
 func (opts EditOptions) changesState() bool {
-	return opts.State.Has() || opts.CloseReason.Has() || opts.DuplicateOf.Has()
+	return opts.State.Has() || opts.CloseReason.Has() || opts.DuplicateOf.Has() || opts.ShareOriginal.Has()
 }
 
 func checkEditPermission(perms advisory_model.Permissions, opts EditOptions) error {
@@ -117,12 +118,12 @@ func EditAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.
 // stateFromEdit returns nil if the state doesn't change
 func stateFromEdit(ctx context.Context, a *advisory_model.Advisory, opts EditOptions) (*StateOptions, error) {
 	if !opts.State.Has() || advisory_model.ParseState(opts.State.Value()) == a.State {
-		if opts.CloseReason.Has() || opts.DuplicateOf.Has() {
+		if opts.CloseReason.Has() || opts.DuplicateOf.Has() || opts.ShareOriginal.Has() {
 			return nil, util.NewInvalidArgumentErrorf("the close reason can only be set when closing the advisory")
 		}
 		return nil, nil //nolint:nilnil // the state doesn't change
 	}
-	stateOpts, err := NewStateOptions(ctx, a, opts.State.Value(), opts.CloseReason.Value(), opts.DuplicateOf.Value())
+	stateOpts, err := NewStateOptions(ctx, a, opts.State.Value(), opts.CloseReason.Value(), opts.DuplicateOf.Value(), opts.ShareOriginal.Value())
 	if err != nil {
 		return nil, err
 	}

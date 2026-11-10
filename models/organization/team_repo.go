@@ -50,10 +50,20 @@ func RemoveTeamRepo(ctx context.Context, teamID, repoID int64) error {
 	return err
 }
 
+// teamUnitAccessCond matches the teams with the given access to any of the units
+func teamUnitAccessCond(mode perm.AccessMode, unitTypes ...unit.Type) builder.Cond {
+	sub := builder.Select("team_id").From("team_unit").
+		Where(builder.Expr("team_unit.team_id = team.id")).
+		And(builder.In("team_unit.type", unitTypes)).
+		And(builder.Expr("team_unit.access_mode >= ?", mode))
+	return builder.Or(builder.Expr("team.authorize >= ?", mode), builder.In("team.id", sub))
+}
+
 func securityTeamIDs(repoID int64) *builder.Builder {
 	return builder.Select("team.id").From("team").
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		Where(builder.Eq{"team_repo.repo_id": repoID, "team.is_security_team": true})
+		Where(builder.Eq{"team_repo.repo_id": repoID, "team.is_security_team": true}.
+			And(teamUnitAccessCond(perm.AccessModeRead, unit.TypeSecurityAdvisories)))
 }
 
 // IsSecurityTeamMember reports whether the user is in a security team which has access to the repository
@@ -81,20 +91,12 @@ func GetTeamsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID int64, m
 }
 
 func getTeamIDsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, unitType unit.Type, unitTypesMore ...unit.Type) (teamIDs []int64, err error) {
-	sub := builder.Select("team_id").From("team_unit").
-		Where(builder.Expr("team_unit.team_id = team.id")).
-		And(builder.In("team_unit.type", append([]unit.Type{unitType}, unitTypesMore...))).
-		And(builder.Expr("team_unit.access_mode >= ?", mode))
-
 	err = db.GetEngine(ctx).
 		Select("team.id").
 		Table("team").
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		And("team_repo.org_id = ? AND team_repo.repo_id = ?", orgID, repoID).
-		And(builder.Or(
-			builder.Expr("team.authorize >= ?", mode),
-			builder.In("team.id", sub),
-		)).
+		And(teamUnitAccessCond(mode, append([]unit.Type{unitType}, unitTypesMore...)...)).
 		Find(&teamIDs)
 	return teamIDs, err
 }

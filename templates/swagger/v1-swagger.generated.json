@@ -29477,7 +29477,7 @@
           "x-go-name": "Description"
         },
         "duplicate_of": {
-          "description": "The identifier of the original advisory when closing as duplicate, its reporter gets access to the original",
+          "description": "The identifier of the original advisory when closing as duplicate",
           "type": "string",
           "x-go-name": "DuplicateOf"
         },
@@ -29500,6 +29500,11 @@
             "critical"
           ],
           "x-go-name": "Severity"
+        },
+        "share_original": {
+          "description": "Lets the reporter of a report closed as duplicate follow the original read-only, without its internal comments.\nOtherwise the reporter only sees the identifier of the original.",
+          "type": "boolean",
+          "x-go-name": "ShareOriginal"
         },
         "state": {
           "description": "The new state, only repository admins can change it",

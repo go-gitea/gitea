@@ -179,7 +179,15 @@ func TestAPISecurityAdvisory(t *testing.T) {
 		assert.Equal(t, "duplicate", closed.CloseReason)
 		assert.Equal(t, original.Identifier, closed.DuplicateOf)
 
-		// the reporter of the duplicate can follow the original, but not edit it
+		// without sharing, the reporter of the duplicate only sees the identifier of the original
+		assert.Equal(t, original.Identifier, advisoryJSON(t, "GET", duplicateURL, outsiderToken, nil, http.StatusOK, &api.RepositoryAdvisory{}).DuplicateOf)
+		advisoryRequest(t, "GET", originalURL+"/comments", outsiderToken, nil, http.StatusNotFound)
+		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"share_original": true}, http.StatusUnprocessableEntity)
+		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "draft"}, http.StatusOK)
+		shareOriginal := map[string]any{"state": "closed", "close_reason": "duplicate", "duplicate_of": original.Identifier, "share_original": true}
+		advisoryRequest(t, "PATCH", duplicateURL, adminToken, shareOriginal, http.StatusOK)
+
+		// the reporter of the duplicate can follow a shared original, but not edit it
 		advisoryRequest(t, "GET", originalURL+"/comments", outsiderToken, nil, http.StatusOK)
 		advisoryRequest(t, "PATCH", originalURL, outsiderToken, map[string]any{"summary": "x"}, http.StatusForbidden)
 		advisoryRequest(t, "PATCH", duplicateURL, adminToken, map[string]any{"state": "draft"}, http.StatusOK)

@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html/template"
 	"slices"
 	"time"
 
@@ -15,12 +14,10 @@ import (
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
-	"gitea.dev/models/renderhelper"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
@@ -60,7 +57,7 @@ func MailSecurityAdvisoryReported(ctx context.Context, doer *user_model.User, a 
 		return
 	}
 	recipients := advisoryMailRecipients(ctx, doer, a, adminIDs, true, canSeeDiscussion)
-	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.reported", a.Description, "")
+	sendAdvisoryMail(doer, a, recipients, "mail.security_advisory.reported", "")
 }
 
 // MailSecurityAdvisoryComment notifies the participants and repository admins about a new comment
@@ -82,7 +79,7 @@ func MailSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *
 	recipients := advisoryMailRecipients(ctx, doer, a, ids, false, func(p advisory_model.Permissions) bool {
 		return util.Iif(c.IsInternal, p.CanSeeInternal, p.CanSeeDiscussion)
 	})
-	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.comment", c.Content, fmt.Sprintf("/comments/%d", c.ID))
+	sendAdvisoryMail(doer, a, recipients, "mail.security_advisory.comment", fmt.Sprintf("/comments/%d", c.ID))
 }
 
 // MailSecurityAdvisoryPublished notifies the participants and credited users about a published advisory
@@ -103,7 +100,7 @@ func MailSecurityAdvisoryPublished(ctx context.Context, doer *user_model.User, a
 		ids.Add(c.UserID)
 	}
 	recipients := advisoryMailRecipients(ctx, doer, a, ids, false, func(p advisory_model.Permissions) bool { return p.CanView })
-	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.published", "", "/published")
+	sendAdvisoryMail(doer, a, recipients, "mail.security_advisory.published", "/published")
 }
 
 // MailSecurityAdvisoryCollaboratorAdded notifies a user or the members of a team granted access to an advisory
@@ -122,7 +119,7 @@ func MailSecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model
 		ids.AddMultiple(user_model.UserList(team.Members).GetUserIDs()...)
 	}
 	recipients := advisoryMailRecipients(ctx, doer, a, ids, true, canSeeDiscussion)
-	sendAdvisoryMail(ctx, doer, a, recipients, "mail.security_advisory.invited", "", fmt.Sprintf("/invited/%d", time.Now().UnixNano()))
+	sendAdvisoryMail(doer, a, recipients, "mail.security_advisory.invited", fmt.Sprintf("/invited/%d", time.Now().UnixNano()))
 }
 
 func loadAdvisoryRepo(ctx context.Context, a *advisory_model.Advisory) bool {
@@ -157,19 +154,10 @@ func advisoryMailRecipients(ctx context.Context, doer *user_model.User, a *advis
 	})
 }
 
-// sendAdvisoryMail renders the markdown content into the mail, the mail with an empty threadSuffix starts the thread
-func sendAdvisoryMail(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, recipients []*user_model.User, localeKey, markdownContent, threadSuffix string) {
+// sendAdvisoryMail only notifies, mails are not end-to-end encrypted, the mail with an empty threadSuffix starts the thread
+func sendAdvisoryMail(doer *user_model.User, a *advisory_model.Advisory, recipients []*user_model.User, localeKey, threadSuffix string) {
 	if len(recipients) == 0 {
 		return
-	}
-	var content template.HTML
-	if markdownContent != "" {
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, a.Repo).WithUseAbsoluteLink(true)
-		var err error
-		if content, err = markdown.RenderString(rctx, markdownContent); err != nil {
-			log.Error("markdown.RenderString(%d): %v", a.RepoID, err)
-			return
-		}
 	}
 
 	langMap := make(map[string][]*user_model.User)
@@ -177,21 +165,24 @@ func sendAdvisoryMail(ctx context.Context, doer *user_model.User, a *advisory_mo
 		langMap[u.Language] = append(langMap[u.Language], u)
 	}
 	for lang, tos := range langMap {
-		mailAdvisoryToLang(doer, a, localeKey, content, threadSuffix, lang, tos)
+		mailAdvisoryToLang(doer, a, localeKey, threadSuffix, lang, tos)
 	}
 }
 
-func mailAdvisoryToLang(doer *user_model.User, a *advisory_model.Advisory, localeKey string, content template.HTML, threadSuffix, lang string, tos []*user_model.User) {
+func mailAdvisoryToLang(doer *user_model.User, a *advisory_model.Advisory, localeKey, threadSuffix, lang string, tos []*user_model.User) {
 	locale := translation.NewLocale(lang)
-	subject := locale.TrString(localeKey+".subject", a.Repo.FullName(), fmt.Sprintf("%s (#%d)", a.Summary, a.Index))
+	title := fmt.Sprintf("#%d", a.Index) // the summary of a non-public advisory can reveal the vulnerability
+	if a.IsPublic() {
+		title = fmt.Sprintf("%s (#%d)", a.Summary, a.Index)
+	}
+	subject := locale.TrString(localeKey+".subject", a.Repo.FullName(), title)
 	mailMeta := map[string]any{
 		"locale":   locale,
 		"Subject":  subject,
 		"TextKey":  localeKey + ".text",
 		"Language": locale.Language(),
 		"DoerName": doer.Name,
-		"Summary":  a.Summary,
-		"Content":  content,
+		"Title":    title,
 		"Link":     a.HTMLURL(),
 		"RepoName": a.Repo.FullName(),
 		"RepoLink": a.Repo.HTMLURL(),

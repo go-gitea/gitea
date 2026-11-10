@@ -11,7 +11,6 @@
 				<h1>
 					{{$advisory.Summary}}
 					<span class="index">#{{$advisory.Index}}</span>
-					<span class="index tw-font-mono">{{$advisory.Identifier}}</span>
 				</h1>
 				<div class="issue-title-buttons">
 					{{if $perms.CanEdit}}
@@ -21,6 +20,7 @@
 			</div>
 			<div class="issue-title-meta flex-text-block">
 				{{template "repo/security_advisory/state_label" $advisory}}
+				<span class="tw-font-mono tw-text-base">{{$advisory.Identifier}}</span>
 				<span class="time-desc">{{.StatusText}}</span>
 			</div>
 		</div>
@@ -85,19 +85,19 @@
 											{{if .IsInternal}}
 												<span class="ui basic label" data-tooltip-content="{{ctx.Locale.Tr "repo.security_advisories.internal_comment_desc"}}">{{svg "octicon-lock" 12}} {{ctx.Locale.Tr "repo.security_advisories.internal_comment"}}</span>
 											{{end}}
-											<div class="item action ui dropdown jump pointing top right context-dropdown">
-												<a class="context-menu muted">{{svg "octicon-kebab-horizontal"}}</a>
+											<div class="item action ui dropdown jump pointing top right">
+												{{svg "octicon-kebab-horizontal"}}
 												<div class="menu">
-													<div class="item context js-aria-clickable" data-clipboard-text="{{$advisory.HTMLURL}}#{{$hashTag}}">{{ctx.Locale.Tr "copy_link"}}</div>
-													<div class="item context js-aria-clickable" data-clipboard-target="#{{$hashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</div>
+													<div class="item js-aria-clickable" data-clipboard-text="{{$advisory.HTMLURL}}#{{$hashTag}}">{{ctx.Locale.Tr "copy_link"}}</div>
+													<div class="item js-aria-clickable" data-clipboard-target="#{{$hashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</div>
 													{{if and $.IsSigned (not $.Repository.IsArchived)}}
-														<div class="item context js-aria-clickable" data-global-click="onConvContentQuoteReply" data-target="{{$hashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
+														<div class="item js-aria-clickable" data-global-click="onConvContentQuoteReply" data-target="{{$hashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
 														{{if or $isPoster $.CanManageSecurityAdvisories}}
 															<div class="divider"></div>
 															{{if $isPoster}}
-																<div class="item context js-aria-clickable" data-global-click="onConvContentEdit">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
+																<div class="item js-aria-clickable" data-global-click="onConvContentEdit">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
 															{{end}}
-															<div class="item context js-aria-clickable" data-global-click="onConvContentDelete" data-comment-hash-tag="{{$hashTag}}" data-url="{{$advisory.Link}}/comments/{{.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+															<div class="item js-aria-clickable" data-global-click="onConvContentDelete" data-comment-hash-tag="{{$hashTag}}" data-url="{{$advisory.Link}}/comments/{{.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
 														{{end}}
 													{{end}}
 												</div>
@@ -266,13 +266,13 @@
 					{{end}}
 				{{end}}
 
-				{{if .CanManageSecurityAdvisories}}
+				{{if and .CanManageSecurityAdvisories (or .StateActions .CanCloseSecurityAdvisory (not $advisory.IsPublic))}}
 					<div class="divider"></div>
 					{{range .StateActions}}
 						<form class="tw-mt-1 form-fetch-action single-button-form" method="post" action="{{$advisory.Link}}/state">
 							<input type="hidden" name="state" value="{{.State}}">
 							<button type="submit" class="fluid ui {{.ButtonClass}} button"{{with .ConfirmKey}} data-modal-confirm="{{ctx.Locale.Tr .}}"{{end}}>
-								{{svg .State.Icon}} {{ctx.Locale.Tr .LabelKey}}
+								{{svg .Icon}} {{ctx.Locale.Tr .LabelKey}}
 							</button>
 						</form>
 					{{end}}
@@ -282,7 +282,7 @@
 						</button>
 						<dialog class="modal-dialog" id="security-advisory-close-modal">
 							<div class="header">{{ctx.Locale.Tr "repo.security_advisories.close.title"}}</div>
-							<form class="ui form form-fetch-action" method="post" action="{{$advisory.Link}}/state">
+							<form class="ui form form-fetch-action" method="post" action="{{$advisory.Link}}/state" data-global-init="initSecurityAdvisoryCloseForm">
 								<div class="content">
 									<input type="hidden" name="state" value="closed">
 									<div class="grouped fields">
@@ -300,19 +300,29 @@
 										</div>
 									</div>
 									{{if .DuplicateCandidates}}
-										<div class="field">
-											<label>{{ctx.Locale.Tr "repo.security_advisories.close.original"}}</label>
-											<div class="ui fluid search selection dropdown">
-												<input type="hidden" name="duplicate_of">
-												<div class="default text">{{ctx.Locale.Tr "repo.security_advisories.close.original"}}</div>
-												{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-												<div class="menu">
-													{{range .DuplicateCandidates}}
-														<div class="item" data-value="{{.Identifier}}"><span class="tw-font-mono">{{.Identifier}}</span>&nbsp;{{.Summary}}</div>
-													{{end}}
+										<div class="tw-hidden" data-close-duplicate-field>
+											<div class="field">
+												<label>{{ctx.Locale.Tr "repo.security_advisories.close.original"}}</label>
+												<div class="ui fluid search selection dropdown">
+													<input type="hidden" name="duplicate_of">
+													<div class="default text">{{ctx.Locale.Tr "repo.security_advisories.close.original"}}</div>
+													{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+													<div class="menu">
+														{{range .DuplicateCandidates}}
+															<div class="item" data-value="{{.Identifier}}"><span class="tw-font-mono">{{.Identifier}}</span>&nbsp;{{.Summary}}</div>
+														{{end}}
+													</div>
 												</div>
 											</div>
-											<p class="help">{{ctx.Locale.Tr "repo.security_advisories.close.duplicate_help"}}</p>
+											{{if $advisory.IsReport}}
+												<div class="field">
+													<div class="ui checkbox">
+														<input type="checkbox" name="share_original">
+														<label>{{ctx.Locale.Tr "repo.security_advisories.close.share_original"}}</label>
+													</div>
+													<p class="help">{{ctx.Locale.Tr "repo.security_advisories.close.share_original_help"}}</p>
+												</div>
+											{{end}}
 										</div>
 									{{end}}
 								</div>

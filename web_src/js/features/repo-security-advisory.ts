@@ -1,7 +1,7 @@
 import {POST} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-import {addDelegatedEventListener} from '../utils/dom.ts';
+import {addDelegatedEventListener, toggleElem} from '../utils/dom.ts';
 import {debounce} from '../utils/func.ts';
 import {attachSearchUserBox} from './comp/SearchUserBox.ts';
 import {attachSearchTeamBox} from './repo-settings.ts';
@@ -114,7 +114,17 @@ function initRows(form: HTMLFormElement) {
   });
 }
 
+function initCloseForm(form: HTMLFormElement) {
+  const originalField = form.querySelector<HTMLElement>('[data-close-duplicate-field]');
+  if (!originalField) return; // no candidates, so the duplicate reason is disabled
+  form.addEventListener('change', (e) => {
+    const radio = e.target as HTMLInputElement;
+    if (radio.name === 'close_reason') toggleElem(originalField, radio.value === 'duplicate');
+  });
+}
+
 export function initRepoSecurityAdvisory() {
+  registerGlobalInitFunc('initSecurityAdvisoryCloseForm', initCloseForm);
   registerGlobalInitFunc('initSecurityAdvisoryForm', (form: HTMLFormElement) => {
     initRows(form);
     initSeverityLock(form);

@@ -24,19 +24,23 @@ func TestValidateStateOptions(t *testing.T) {
 	original := &advisory_model.Advisory{ID: 2, RepoID: 1}
 	duplicate := &advisory_model.Advisory{ID: 3, RepoID: 1, DuplicateOfID: 1}
 	for opts, valid := range map[StateOptions]bool{
-		{State: advisory_model.StateDraft}:                                                                            true,
-		{State: advisory_model.StatePublished}:                                                                        false,
-		{State: advisory_model.StateDraft, CloseReason: advisory_model.CloseReasonInvalid}:                            false,
-		{State: advisory_model.StateClosed}:                                                                           false,
-		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonInvalid}:                           true,
-		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonInvalid, DuplicateOf: original}:    false,
-		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate}:                         false,
-		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original}:  true,
-		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: triage}:    false,
-		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: duplicate}: false,
+		{State: advisory_model.StateDraft}:                                                                                                true,
+		{State: advisory_model.StatePublished}:                                                                                            false,
+		{State: advisory_model.StateDraft, CloseReason: advisory_model.CloseReasonInvalid}:                                                false,
+		{State: advisory_model.StateClosed}:                                                                                               false,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonInvalid}:                                               true,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonInvalid, DuplicateOf: original}:                        false,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate}:                                             false,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original}:                      true,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: triage}:                        false,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: duplicate}:                     false,
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original, ShareOriginal: true}: false, // no report
+		{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonInvalid, ShareOriginal: true}:                          false,
 	} {
 		assert.Equal(t, valid, validateStateOptions(triage, opts) == nil, "%+v", opts)
 	}
+	report := &advisory_model.Advisory{ID: 4, RepoID: 1, State: advisory_model.StateTriage, IsReport: true}
+	assert.NoError(t, validateStateOptions(report, StateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original, ShareOriginal: true}))
 }
 
 func TestScoreSeverity(t *testing.T) {
@@ -98,12 +102,24 @@ func TestCollaboratorAndCreditRules(t *testing.T) {
 		require.NoError(t, err)
 		return perms
 	}
-	closeAsDuplicate := StateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original}
+	closeAsDuplicate := StateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original, ShareOriginal: true}
+
+	// without sharing, the reporter of a duplicate only sees the metadata of the original
+	unshared := newAdvisory(1, &advisory_model.Advisory{State: advisory_model.StateTriage, IsReport: true, ReporterID: 8})
+	require.NoError(t, ChangeState(ctx, admin, unshared, StateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: original}))
+	assert.False(t, reporterPerms().CanView)
+	require.NoError(t, DeleteAdvisory(ctx, admin, unshared))
+
 	first := newAdvisory(1, &advisory_model.Advisory{State: advisory_model.StateTriage, IsReport: true, ReporterID: 8})
 	second := newAdvisory(1, &advisory_model.Advisory{State: advisory_model.StateTriage, IsReport: true, ReporterID: 8})
 	require.NoError(t, ChangeState(ctx, admin, first, closeAsDuplicate))
 	require.NoError(t, ChangeState(ctx, admin, second, closeAsDuplicate))
 	assert.True(t, reporterPerms().CanView)
+
+	// the reporters of the duplicates would lose track of an original that becomes a duplicate itself
+	originalCopy := *original
+	other := newAdvisory(1, &advisory_model.Advisory{State: advisory_model.StateDraft, ReporterID: 2})
+	assert.ErrorIs(t, ChangeState(ctx, admin, &originalCopy, StateOptions{State: advisory_model.StateClosed, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOf: other}), util.ErrInvalidArgument)
 
 	// neither an unset list nor naming them again upgrades read-only collaborators
 	require.NoError(t, EditAdvisory(ctx, admin, original, adminPerms, EditOptions{CollaboratorTeams: optional.Some([]string{})}))

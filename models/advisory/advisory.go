@@ -205,6 +205,7 @@ type Advisory struct {
 	CloseReason       CloseReason            `xorm:"NOT NULL DEFAULT 0"`
 	DuplicateOfID     int64                  `xorm:"NOT NULL DEFAULT 0"`
 	DuplicateOf       *Advisory              `xorm:"-"`
+	IsMetadataOnly    bool                   `xorm:"-"` // the viewer only sees the metadata of this original of a duplicate
 
 	Labels            []*issues_model.Label `xorm:"-"`
 	Vulnerabilities   []*Vulnerability      `xorm:"-"`

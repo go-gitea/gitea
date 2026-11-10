@@ -16,6 +16,8 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
+
+	"xorm.io/builder"
 )
 
 // StateOptions closing an advisory need a reason, duplicates also the original advisory
@@ -23,11 +25,13 @@ type StateOptions struct {
 	State       advisory_model.State
 	CloseReason advisory_model.CloseReason
 	DuplicateOf *advisory_model.Advisory
+	// ShareOriginal lets the reporter of a duplicate report follow the original read-only, otherwise they only see its metadata
+	ShareOriginal bool
 }
 
 // NewStateOptions parses the names, the original of a duplicate is looked up in the repository of the advisory
-func NewStateOptions(ctx context.Context, a *advisory_model.Advisory, state, closeReason, duplicateOf string) (StateOptions, error) {
-	opts := StateOptions{State: advisory_model.ParseState(state), CloseReason: advisory_model.ParseCloseReason(closeReason)}
+func NewStateOptions(ctx context.Context, a *advisory_model.Advisory, state, closeReason, duplicateOf string, shareOriginal bool) (StateOptions, error) {
+	opts := StateOptions{State: advisory_model.ParseState(state), CloseReason: advisory_model.ParseCloseReason(closeReason), ShareOriginal: shareOriginal}
 	if closeReason != "" && opts.CloseReason == advisory_model.CloseReasonNone {
 		return opts, util.NewInvalidArgumentErrorf("invalid close reason %q", closeReason)
 	}
@@ -66,6 +70,9 @@ func validateStateOptions(a *advisory_model.Advisory, opts StateOptions) error {
 	if opts.DuplicateOf != nil && opts.DuplicateOf.DuplicateOfID != 0 {
 		return util.NewInvalidArgumentErrorf("the original advisory is a duplicate itself")
 	}
+	if opts.ShareOriginal && (opts.DuplicateOf == nil || !a.IsReport) {
+		return util.NewInvalidArgumentErrorf("the original can only be shared with the reporter of a duplicate report")
+	}
 	return nil
 }
 
@@ -83,7 +90,7 @@ func ChangeState(ctx context.Context, doer *user_model.User, a *advisory_model.A
 type stateChange struct {
 	oldState         advisory_model.State
 	oldDuplicateOfID int64
-	duplicateOf      *advisory_model.Advisory
+	sharedOriginal   *advisory_model.Advisory
 	revokedAccess    bool
 }
 
@@ -91,7 +98,7 @@ func updateState(ctx context.Context, doer *user_model.User, a *advisory_model.A
 	if err := validateStateOptions(a, opts); err != nil {
 		return nil, err
 	}
-	change := &stateChange{oldState: a.State, oldDuplicateOfID: a.DuplicateOfID, duplicateOf: opts.DuplicateOf}
+	change := &stateChange{oldState: a.State, oldDuplicateOfID: a.DuplicateOfID, sharedOriginal: util.Iif(opts.ShareOriginal, opts.DuplicateOf, nil)}
 	a.State = opts.State
 	now := timeutil.TimeStampNow()
 	var cols []string
@@ -114,6 +121,13 @@ func updateState(ctx context.Context, doer *user_model.User, a *advisory_model.A
 		}
 	}
 	return change, db.WithTx(ctx, func(ctx context.Context) (err error) {
+		if opts.DuplicateOf != nil {
+			if has, err := db.Exist[advisory_model.Advisory](ctx, builder.Eq{"duplicate_of_id": a.ID}); err != nil {
+				return err
+			} else if has {
+				return util.NewInvalidArgumentErrorf("advisories with duplicates cannot be duplicates themselves")
+			}
+		}
 		if err := advisory_model.UpdateAdvisoryState(ctx, a, change.oldState, cols...); err != nil {
 			return err
 		}
@@ -135,18 +149,18 @@ func keepOriginalReport(a *advisory_model.Advisory, opts StateOptions) bool {
 	return true
 }
 
-// notify also lets the reporter of a duplicate follow the original advisory
+// notify also lets the reporter of a duplicate follow the original advisory if it is shared
 func (c *stateChange) notify(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
 	notify_service.SecurityAdvisoryStateChanged(ctx, doer, a, c.oldState)
 	if c.revokedAccess {
 		auditDuplicateAccessRevoked(ctx, doer, a, c.oldDuplicateOfID)
 	}
-	if a.IsReport && c.duplicateOf != nil {
+	if c.sharedOriginal != nil {
 		// the state has been changed already, the reporter just can't follow the original
-		err := grantReporterAccessToOriginal(ctx, doer, a, c.duplicateOf)
+		err := grantReporterAccessToOriginal(ctx, doer, a, c.sharedOriginal)
 		reporterCannotCollaborate := errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, user_model.ErrBlockedUser)
 		if err != nil && !reporterCannotCollaborate {
-			log.Error("the reporter of %d cannot follow the original %d: %v", a.ID, c.duplicateOf.ID, err)
+			log.Error("the reporter of %d cannot follow the original %d: %v", a.ID, c.sharedOriginal.ID, err)
 		}
 	}
 }

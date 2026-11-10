@@ -102,10 +102,19 @@ func SecurityAdvisories(ctx *context.Context) {
 		total += counts[s]
 	}
 
+	isFiltered := opts.Keyword != "" || opts.Severity != advisory_model.SeverityUnknown || len(opts.LabelIDs) > 0 || opts.CloseReason != advisory_model.CloseReasonNone
+	var visibleTotal int64
+	for _, count := range counts {
+		visibleTotal += count
+	}
+
 	ctx.Data["Advisories"] = advisories
+	// the counts are filtered too, so an empty filter result must not claim that the repository has no advisories
+	ctx.Data["HasAnyAdvisory"] = isFiltered || visibleTotal > 0
 	ctx.Data["State"] = state
 	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["SelectedSeverity"] = opts.Severity
+	ctx.Data["CloseReason"] = opts.CloseReason.String()
 	ctx.Data["Severities"] = advisory_model.Severities
 	// the published tab also lists the withdrawn advisories, so it has a neutral icon
 	tabs := []securityAdvisoryStateTab{{"published", "octicon-shield", counts[advisory_model.StatePublished] + counts[advisory_model.StateWithdrawn]}}
@@ -377,6 +386,9 @@ func ViewSecurityAdvisory(ctx *context.Context) {
 // securityAdvisoryStatusText is shown next to the state, only the participants see the reporter
 func securityAdvisoryStatusText(ctx *context.Context, a *advisory_model.Advisory, perms advisory_model.Permissions) template.HTML {
 	switch {
+	case a.DuplicateOf != nil && a.DuplicateOf.IsMetadataOnly:
+		o := a.DuplicateOf
+		return ctx.Tr("repo.security_advisories.closed_as_duplicate_of_metadata", o.Identifier, ctx.Tr("repo.security_advisories.state."+o.State.String()), ctx.Tr(o.Severity.LocaleKey()), templates.TimeSince(o.CreatedUnix))
 	case a.DuplicateOf != nil:
 		return ctx.Tr("repo.security_advisories.closed_as_duplicate_of", a.DuplicateOf.Link(), a.DuplicateOf.Identifier)
 	case a.CloseReason != advisory_model.CloseReasonNone:
@@ -425,15 +437,15 @@ func securityAdvisoryCollaborators(a *advisory_model.Advisory) []securityAdvisor
 }
 
 type securityAdvisoryStateAction struct {
-	State                             advisory_model.State
-	ButtonClass, LabelKey, ConfirmKey string
+	State                                   advisory_model.State
+	Icon, ButtonClass, LabelKey, ConfirmKey string
 }
 
 // securityAdvisoryStateActions are the state buttons, closing has its own form for the reason
 func securityAdvisoryStateActions(current advisory_model.State) []securityAdvisoryStateAction {
 	var actions []securityAdvisoryStateAction
 	for _, target := range current.Transitions() {
-		action := securityAdvisoryStateAction{State: target, LabelKey: "repo.security_advisories.action." + target.String()}
+		action := securityAdvisoryStateAction{State: target, Icon: target.Icon(), LabelKey: "repo.security_advisories.action." + target.String()}
 		switch target {
 		case advisory_model.StatePublished:
 			action.ButtonClass = "primary"
@@ -443,7 +455,7 @@ func securityAdvisoryStateActions(current advisory_model.State) []securityAdviso
 			action.ConfirmKey = "repo.security_advisories.action.withdrawn_confirm"
 		case advisory_model.StateDraft:
 			if current == advisory_model.StateClosed {
-				action.LabelKey = "repo.security_advisories.action.reopen"
+				action.Icon, action.LabelKey = "octicon-issue-reopened", "repo.security_advisories.action.reopen"
 			}
 		}
 		actions = append(actions, action)
@@ -501,8 +513,9 @@ func ChangeSecurityAdvisoryState(ctx *context.Context) {
 	a, _ := advisory_service.RequestAdvisory(ctx)
 	closeReason := ctx.FormString("close_reason")
 	// the modal keeps a chosen original when switching to another reason
-	duplicateOf := util.Iif(closeReason == advisory_model.CloseReasonDuplicate.String(), ctx.FormTrim("duplicate_of"), "")
-	opts, err := advisory_service.NewStateOptions(ctx, a, ctx.FormString("state"), closeReason, duplicateOf)
+	isDuplicate := closeReason == advisory_model.CloseReasonDuplicate.String()
+	duplicateOf := util.Iif(isDuplicate, ctx.FormTrim("duplicate_of"), "")
+	opts, err := advisory_service.NewStateOptions(ctx, a, ctx.FormString("state"), closeReason, duplicateOf, isDuplicate && ctx.FormBool("share_original"))
 	if err != nil {
 		jsonSecurityAdvisoryError(ctx, err)
 		return

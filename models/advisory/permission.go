@@ -123,7 +123,7 @@ func (v Viewer) DiscussionIDs(ctx context.Context, list List) (container.Set[int
 type Permissions struct {
 	CanView          bool
 	CanSeeDiscussion bool
-	CanSeeInternal   bool // internal comments are hidden from the reporter and read-only collaborators
+	CanSeeInternal   bool // internal comments are hidden from read-only collaborators and the reporter, unless granted write access
 	CanEdit          bool // participants can edit until the advisory is published, except read-only collaborators
 	CanManage        bool // see Viewer.CanManage
 }
@@ -138,14 +138,14 @@ func (v Viewer) Permissions(ctx context.Context, a *Advisory) (Permissions, erro
 	if v.IsSecurityTeamMember {
 		return Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: true, CanEdit: !a.IsPublic()}, nil
 	}
-	if v.isOwnReport(a) {
-		return Permissions{CanView: true, CanSeeDiscussion: true, CanEdit: !a.IsPublic()}, nil
-	}
 	collaborating, err := collaboratorAccess(ctx, v.Doer.ID, []int64{a.ID})
 	if err != nil {
 		return Permissions{}, err
 	}
 	writable, isCollaborator := collaborating[a.ID]
+	if v.isOwnReport(a) {
+		return Permissions{CanView: true, CanSeeDiscussion: true, CanSeeInternal: writable, CanEdit: !a.IsPublic()}, nil
+	}
 	return Permissions{
 		CanView:          a.IsPublic() || isCollaborator,
 		CanSeeDiscussion: isCollaborator,
@@ -176,8 +176,8 @@ func (v Viewer) LoadForDisplay(ctx context.Context, list List) (container.Set[in
 	if err := list.LoadAttributes(ctx); err != nil {
 		return nil, fmt.Errorf("LoadForDisplay: LoadAttributes: %w", err)
 	}
-	if err := v.hideUnviewableOriginals(ctx, list); err != nil {
-		return nil, fmt.Errorf("LoadForDisplay: hideUnviewableOriginals: %w", err)
+	if err := v.limitUnviewableOriginals(ctx, list); err != nil {
+		return nil, fmt.Errorf("LoadForDisplay: limitUnviewableOriginals: %w", err)
 	}
 	discussionIDs, err := v.DiscussionIDs(ctx, list)
 	if err != nil {
@@ -190,16 +190,19 @@ func (v Viewer) LoadForDisplay(ctx context.Context, list List) (container.Set[in
 	return discussionIDs, nil
 }
 
-// hideUnviewableOriginals keeps only the close reason of the duplicates whose original the viewer cannot see
-func (v Viewer) hideUnviewableOriginals(ctx context.Context, list List) error {
+// limitUnviewableOriginals keeps only the identifier, state, report date and severity of the originals the viewer cannot see
+func (v Viewer) limitUnviewableOriginals(ctx context.Context, list List) error {
 	originals := container.FilterSlice(list, func(a *Advisory) (*Advisory, bool) { return a.DuplicateOf, a.DuplicateOf != nil })
 	visible, err := v.DiscussionIDs(ctx, originals)
 	if err != nil {
 		return err
 	}
 	for _, a := range list {
-		if a.DuplicateOf != nil && !a.DuplicateOf.IsPublic() && !visible.Contains(a.DuplicateOf.ID) {
-			a.DuplicateOf = nil
+		if o := a.DuplicateOf; o != nil && !o.IsPublic() && !visible.Contains(o.ID) {
+			a.DuplicateOf = &Advisory{
+				ID: o.ID, RepoID: o.RepoID, Repo: o.Repo, Identifier: o.Identifier, Index: o.Index,
+				State: o.State, Severity: o.Severity, CreatedUnix: o.CreatedUnix, IsMetadataOnly: true,
+			}
 		}
 	}
 	return nil

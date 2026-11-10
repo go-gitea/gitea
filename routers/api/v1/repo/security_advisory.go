@@ -448,6 +448,7 @@ func EditSecurityAdvisory(ctx *context.APIContext) {
 		State:             optional.FromPtr(form.State),
 		CloseReason:       optional.FromPtr(form.CloseReason),
 		DuplicateOf:       optional.FromPtr(form.DuplicateOf),
+		ShareOriginal:     optional.FromPtr(form.ShareOriginal),
 	}
 	if form.CVSSVectorString != nil {
 		opts.CvssV3Vector, opts.CvssV4Vector = cvssVectorOptions(*form.CVSSVectorString)

@@ -173,6 +173,22 @@ func TestViewerAccess(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, perms.CanView, "creating a draft as admin grants no access of its own")
 
+	// the reporter of a duplicate sees only the metadata of an original they cannot view
+	duplicate := createAdvisory(t, &advisory_model.Advisory{RepoID: repo.ID, Summary: "duplicate", State: advisory_model.StateClosed, ReporterID: 4, IsReport: true, CloseReason: advisory_model.CloseReasonDuplicate, DuplicateOfID: draft.ID})
+	_, err = advisory_model.Viewer{Doer: user(4)}.LoadForDisplay(ctx, advisory_model.List{duplicate})
+	require.NoError(t, err)
+	require.NotNil(t, duplicate.DuplicateOf)
+	assert.True(t, duplicate.DuplicateOf.IsMetadataOnly)
+	assert.Equal(t, draft.Identifier, duplicate.DuplicateOf.Identifier)
+	assert.Equal(t, advisory_model.StateDraft, duplicate.DuplicateOf.State)
+	assert.Empty(t, duplicate.DuplicateOf.Summary)
+
+	_, err = advisory_model.AddCollaborator(ctx, &advisory_model.Collaborator{AdvisoryID: triage.ID, UserID: 4})
+	require.NoError(t, err)
+	perms, err = advisory_model.Viewer{Doer: user(4)}.Permissions(ctx, triage)
+	require.NoError(t, err)
+	assert.True(t, perms.CanSeeInternal, "a reporter granted write access sees internal comments")
+
 	// leaving the team revokes the access
 	_, err = db.GetEngine(ctx).Exec("DELETE FROM team_user WHERE team_id = 7 AND uid = 15")
 	require.NoError(t, err)

@@ -66,7 +66,16 @@ func RemoveDuplicateReporter(ctx context.Context, advisoryID, reporterID int64) 
 
 // DeleteTeamCollaboratorsByRepoID is used when the repository leaves the organization of the teams
 func DeleteTeamCollaboratorsByRepoID(ctx context.Context, repoID int64) error {
-	_, err := db.GetEngine(ctx).Where("team_id > 0").
+	return deleteTeamCollaborators(ctx, repoID, builder.Gt{"team_id": 0})
+}
+
+// DeleteTeamCollaboratorByRepoID is used when the team loses access to the private repository
+func DeleteTeamCollaboratorByRepoID(ctx context.Context, teamID, repoID int64) error {
+	return deleteTeamCollaborators(ctx, repoID, builder.Eq{"team_id": teamID})
+}
+
+func deleteTeamCollaborators(ctx context.Context, repoID int64, teamCond builder.Cond) error {
+	_, err := db.GetEngine(ctx).Where(teamCond).
 		And(builder.In("advisory_id", builder.Select("id").From("security_advisory").Where(builder.Eq{"repo_id": repoID}))).
 		Delete(new(Collaborator))
 	return err

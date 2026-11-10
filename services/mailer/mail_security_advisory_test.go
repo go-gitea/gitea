@@ -26,7 +26,7 @@ func TestMailSecurityAdvisory(t *testing.T) {
 
 	defer test.MockVariableValue(&setting.MailService, &setting.Mailer{From: "Gitea", FromEmail: "noreply@example.com"})()
 	defer test.MockVariableValue(&setting.AppURL, "https://example.com/")()
-	defer mockMailTemplates(string(tplSecurityAdvisory), "{{.Subject}}", "<p>{{.Summary}}</p>")()
+	defer mockMailTemplates(string(tplSecurityAdvisory), "{{.Subject}}", "<p>{{.Title}}</p>")()
 
 	var sent []*sender_service.Message
 	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) { sent = append(sent, msgs...) })()
@@ -36,6 +36,16 @@ func TestMailSecurityAdvisory(t *testing.T) {
 		}
 		sent = nil
 		return tos
+	}
+	// mails are not end-to-end encrypted, so they must not reveal the vulnerability before it is published
+	assertNoticeOnly := func() {
+		t.Helper()
+		require.NotEmpty(t, sent)
+		for _, m := range sent {
+			for _, secret := range []string{"XSS", "details", "confirmed"} {
+				assert.NotContains(t, m.Subject+m.Body, secret)
+			}
+		}
 	}
 
 	require.NoError(t, db.Insert(ctx, &repo_model.RepoUnit{RepoID: 1, Type: unit.TypeSecurityAdvisories}))
@@ -53,10 +63,12 @@ func TestMailSecurityAdvisory(t *testing.T) {
 
 	// only repository admins get the report, not the advisory collaborator
 	MailSecurityAdvisoryReported(ctx, reporter, a)
+	assertNoticeOnly()
 	rootID := sent[0].Headers["Message-ID"][0]
 	assert.Equal(t, []string{admin.EmailTo()}, popSentTos())
 
 	MailSecurityAdvisoryCollaboratorAdded(ctx, admin, a, collaborator, nil)
+	assertNoticeOnly()
 	assert.NotEqual(t, rootID, sent[0].Headers["Message-ID"][0])
 	assert.Equal(t, []string{rootID}, sent[0].Headers["In-Reply-To"])
 	assert.Equal(t, []string{collaborator.EmailTo()}, popSentTos())
@@ -64,10 +76,12 @@ func TestMailSecurityAdvisory(t *testing.T) {
 	comment := &advisory_model.Comment{AdvisoryID: a.ID, PosterID: admin.ID, Content: "confirmed"}
 	require.NoError(t, db.Insert(ctx, comment))
 	MailSecurityAdvisoryComment(ctx, admin, a, comment)
+	assertNoticeOnly()
 	assert.ElementsMatch(t, []string{reporter.EmailTo(), collaborator.EmailTo()}, popSentTos())
 
 	a.State = advisory_model.StatePublished
 	MailSecurityAdvisoryPublished(ctx, admin, a)
+	assert.Contains(t, sent[0].Subject, "XSS", "the summary of a published advisory is public")
 	assert.ElementsMatch(t, []string{reporter.EmailTo(), collaborator.EmailTo(), credited.EmailTo()}, popSentTos())
 
 	// participants who lost access to the repository are not notified anymore, the owner still is

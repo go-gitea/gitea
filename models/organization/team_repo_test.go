@@ -45,6 +45,14 @@ func TestSecurityTeamMembers(t *testing.T) {
 	_, err := db.GetEngine(ctx).ID(2).Cols("is_security_team").Update(&organization.Team{IsSecurityTeam: true})
 	require.NoError(t, err)
 	assertMember(true, 4, 3)
+
+	// a team with unit permissions also needs the advisories unit
+	_, err = db.GetEngine(ctx).ID(2).Cols("authorize").Update(&organization.Team{AccessMode: perm.AccessModeNone})
+	require.NoError(t, err)
+	assertMember(false, 4, 3)
+	require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: 3, TeamID: 2, Type: unit.TypeSecurityAdvisories, AccessMode: perm.AccessModeRead}))
+	assertMember(true, 4, 3)
+
 	assertMember(false, 4, 5) // the team doesn't include repository 5
 	assertMember(false, 5, 3)
 
