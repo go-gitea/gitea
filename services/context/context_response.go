@@ -6,6 +6,7 @@ package context
 import (
 	"errors"
 	"fmt"
+	"html"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -175,9 +176,7 @@ func (ctx *Context) FlashErrorAuto(err error) {
 	log.Log(1, logLevel, "FlashErrorAuto: server internal error: %v", err)
 
 	userErrorMsg := ctx.buildServerErrorMessageForUser("internal server error", err)
-	// truncate to avoid flash message too long because it uses cookie, the full message is already in logs
-	userErrorMsg = util.TruncateStringBytes(userErrorMsg, 256)
-	ctx.Flash.Error(userErrorMsg)
+	ctx.Flash.Error(html.EscapeString(userErrorMsg)) // flash renders HTML with sanitization, so escape the message to keep original content
 }
 
 func (ctx *Context) JSONRedirect(redirect string) {

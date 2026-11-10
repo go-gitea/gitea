@@ -30,9 +30,10 @@ func (f *Flash) set(name, msg string, current ...bool) {
 		// assign it to the context data, then the template can use ".Flash.XxxMsg" to render the message
 		f.DataStore.GetData()["Flash"] = f
 	} else {
-		// the message map will be saved into the cookie and be shown in next response (a new page response which decodes the cookie)
-		// cookie has a size limit, so truncate the message to avoid too long message
-		f.msgValues.Set(name, util.TruncateStringBytes(msg, 256))
+		// The message map will be saved into the cookie and be shown in next response (a new page response which decodes the cookie)
+		// Cookie has a size limit, so truncate the message to avoid too long message.
+		// Some error messages are rich HTML content (e.g.: push rejection) so we should tolerate a larger size, but still limit it to avoid cookie overflow.
+		f.msgValues.Set(name, util.TruncateStringBytes(msg, 1024))
 	}
 }
 
@@ -67,7 +68,6 @@ func (f *Flash) Success[T string | template.HTML](msg T, current ...bool) {
 func ParseCookieFlashMessage(val string) *Flash {
 	if vals, _ := url.ParseQuery(val); len(vals) > 0 {
 		return &Flash{
-			msgValues:  vals,
 			ErrorMsg:   vals.Get("error"),
 			SuccessMsg: vals.Get("success"),
 			InfoMsg:    vals.Get("info"),
