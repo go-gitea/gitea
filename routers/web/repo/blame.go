@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 )
 
 type blameRow struct {
@@ -79,7 +80,7 @@ func RefBlame(ctx *context.Context) {
 	}
 
 	bypassBlameIgnore, _ := strconv.ParseBool(ctx.FormString("bypass-blame-ignore"))
-	result, err := performBlame(ctx, bypassBlameIgnore)
+	result, err := repo_service.GetBlame(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, bypassBlameIgnore)
 	if err != nil {
 		ctx.NotFound(err)
 		return
@@ -97,85 +98,6 @@ func RefBlame(ctx *context.Context) {
 	SetEditorconfigIfExists(ctx)
 
 	ctx.HTML(http.StatusOK, tplName)
-}
-
-type blameResult struct {
-	Parts                []*git.BlamePart
-	UsesIgnoreRevs       bool
-	FaultyIgnoreRevsFile bool
-}
-
-func performBlame(ctx *context.Context, bypassBlameIgnore bool) (*blameResult, error) {
-	repo := ctx.Repo.Repository
-	gitRepo := ctx.Repo.GitRepo
-	commit := ctx.Repo.Commit
-	file := ctx.Repo.TreePath
-	objectFormat := ctx.Repo.GetObjectFormat()
-
-	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repo, gitRepo, commit, file, bypassBlameIgnore)
-	if err != nil {
-		return nil, err
-	}
-
-	r := &blameResult{}
-	if err := fillBlameResult(blameReader, r); err != nil {
-		_ = blameReader.Close()
-		return nil, err
-	}
-
-	err = blameReader.Close()
-	if err != nil {
-		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
-			// try again without ignored revs
-
-			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repo, gitRepo, commit, file, true)
-			if err != nil {
-				return nil, err
-			}
-
-			r := &blameResult{
-				FaultyIgnoreRevsFile: true,
-			}
-			if err := fillBlameResult(blameReader, r); err != nil {
-				_ = blameReader.Close()
-				return nil, err
-			}
-
-			return r, blameReader.Close()
-		}
-		return nil, err
-	}
-	return r, nil
-}
-
-func fillBlameResult(br *git.BlameReader, r *blameResult) error {
-	r.UsesIgnoreRevs = br.UsesIgnoreRevs()
-
-	previousHelper := make(map[string]*git.BlamePart)
-
-	r.Parts = make([]*git.BlamePart, 0, 5)
-	for {
-		blamePart, err := br.NextPart()
-		if err != nil {
-			return fmt.Errorf("BlameReader.NextPart failed: %w", err)
-		}
-		if blamePart == nil {
-			break
-		}
-
-		if prev, ok := previousHelper[blamePart.Sha]; ok {
-			if blamePart.PreviousSha == "" {
-				blamePart.PreviousSha = prev.PreviousSha
-				blamePart.PreviousPath = prev.PreviousPath
-			}
-		} else {
-			previousHelper[blamePart.Sha] = blamePart
-		}
-
-		r.Parts = append(r.Parts, blamePart)
-	}
-
-	return nil
 }
 
 func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[string]*gituser.UserCommit {
