@@ -18,6 +18,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
   const store = reactive({
     rootFiles: [] as Array<FileTreeItem>,
     selectedItem: props.treePath,
+    viewContentUrl: window.location.pathname + window.location.search,
 
     async loadChildren(treePath: string, subPath: string = '') {
       // there is no git ref if no commits were made yet (an empty repo)
@@ -39,6 +40,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
 
     async loadViewContent(url: string) {
       const u = new URL(url, window.origin);
+      store.viewContentUrl = u.pathname + u.search;
       u.searchParams.set('only_content', 'true');
       const response = await GET(u.href);
       const elViewContent = document.querySelector('.repo-view-content')!;

@@ -16,8 +16,12 @@ onMounted(async () => {
   store.rootFiles = await store.loadChildren('', props.treePath);
   elRoot.value.closest('.is-loading')?.classList?.remove('is-loading');
   window.addEventListener('popstate', (e) => {
-    store.selectedItem = e.state?.treePath || '';
-    if (e.state?.url) store.loadViewContent(e.state.url);
+    if (e.state?.url) {
+      store.selectedItem = e.state.treePath;
+      store.loadViewContent(e.state.url);
+    } else if (window.location.pathname + window.location.search !== store.viewContentUrl) {
+      window.location.reload(); // entries not pushed by the tree, like the initially loaded page or an editor page
+    }
   });
 });
 </script>
