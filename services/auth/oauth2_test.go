@@ -12,22 +12,61 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/services/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseTokenUsesAuthorizationHeaderOnly(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/user?token=query-token&access_token=query-access-token", nil)
-	token, ok := parseToken(req)
-	assert.False(t, ok)
-	assert.Empty(t, token)
+func TestParseTokenQueryParametersRequireCompatibilitySetting(t *testing.T) {
+	tests := []struct {
+		name             string
+		disableQueryAuth bool
+		query            string
+		header           string
+		wantToken        string
+	}{
+		{
+			name:             "query token rejected when disabled",
+			disableQueryAuth: true,
+			query:            "token=query-token",
+		},
+		{
+			name:             "legacy token accepted when explicitly enabled",
+			disableQueryAuth: false,
+			query:            "token=query-token",
+			wantToken:        "query-token",
+		},
+		{
+			name:             "legacy access token accepted when explicitly enabled",
+			disableQueryAuth: false,
+			query:            "access_token=query-access-token",
+			wantToken:        "query-access-token",
+		},
+		{
+			name:             "authorization header remains valid when query auth is disabled",
+			disableQueryAuth: true,
+			query:            "token=query-token",
+			header:           "token header-token",
+			wantToken:        "header-token",
+		},
+	}
 
-	req.Header.Set("Authorization", "token header-token")
-	token, ok = parseToken(req)
-	assert.True(t, ok)
-	assert.Equal(t, "header-token", token)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.DisableQueryAuthToken, testCase.disableQueryAuth)()
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/user?"+testCase.query, nil)
+			if testCase.header != "" {
+				req.Header.Set("Authorization", testCase.header)
+			}
+
+			token, ok := parseToken(req)
+			assert.Equal(t, testCase.wantToken != "", ok)
+			assert.Equal(t, testCase.wantToken, token)
+		})
+	}
 }
 
 func TestUserIDFromToken(t *testing.T) {

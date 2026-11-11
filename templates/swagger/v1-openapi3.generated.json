@@ -11327,6 +11327,12 @@
       }
     },
     "securitySchemes": {
+      "AccessToken": {
+        "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+        "in": "query",
+        "name": "access_token",
+        "type": "apiKey"
+      },
       "AuthorizationHeaderToken": {
         "description": "API tokens must be prepended with \"token\" followed by a space.",
         "in": "header",
@@ -11353,6 +11359,12 @@
         "description": "Must be used in combination with BasicAuth if two-factor authentication is enabled.",
         "in": "header",
         "name": "X-GITEA-OTP",
+        "type": "apiKey"
+      },
+      "Token": {
+        "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+        "in": "query",
+        "name": "token",
         "type": "apiKey"
       }
     }
@@ -37216,6 +37228,12 @@
   "security": [
     {
       "BasicAuth": []
+    },
+    {
+      "Token": []
+    },
+    {
+      "AccessToken": []
     },
     {
       "AuthorizationHeaderToken": []

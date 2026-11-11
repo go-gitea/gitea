@@ -81,6 +81,16 @@ func (o *OAuth2) Name() string {
 // parseToken returns the token from request, and a boolean value
 // representing whether the token exists or not
 func parseToken(req *http.Request) (string, bool) {
+	_ = req.ParseForm()
+	if !setting.DisableQueryAuthToken {
+		if token := req.Form.Get("token"); token != "" {
+			return token, true
+		}
+		if token := req.Form.Get("access_token"); token != "" {
+			return token, true
+		}
+	}
+
 	// Check the Authorization header.
 	if auHead := req.Header.Get("Authorization"); auHead != "" {
 		parsed, ok := httpauth.ParseAuthorizationHeader(auHead)

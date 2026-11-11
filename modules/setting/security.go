@@ -75,6 +75,7 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
+	DisableQueryAuthToken              bool
 	RecordUserSignupMetadata           = false
 	TwoFactorAuthEnforced              = false
 )
@@ -215,6 +216,12 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		if name != "" {
 			PasswordComplexity = append(PasswordComplexity, name)
 		}
+	}
+
+	sectionHasDisableQueryAuthToken := sec.HasKey("DISABLE_QUERY_AUTH_TOKEN")
+	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(true)
+	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {
+		log.Warn("Query API token authentication is enabled by DISABLE_QUERY_AUTH_TOKEN=false and will be removed after two major releases; use the Authorization header instead.")
 	}
 
 	RecordUserSignupMetadata = sec.Key("RECORD_USER_SIGNUP_METADATA").MustBool(false)
