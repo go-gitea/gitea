@@ -11328,7 +11328,7 @@
     },
     "securitySchemes": {
       "AccessToken": {
-        "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+        "description": "This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.",
         "in": "query",
         "name": "access_token",
         "type": "apiKey"
@@ -11362,7 +11362,7 @@
         "type": "apiKey"
       },
       "Token": {
-        "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
+        "description": "This authentication option is deprecated and disabled by default. Set DISABLE_QUERY_AUTH_TOKEN=false temporarily to restore it. Please use AuthorizationHeaderToken instead.",
         "in": "query",
         "name": "token",
         "type": "apiKey"

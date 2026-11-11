@@ -218,11 +218,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		}
 	}
 
-	sectionHasDisableQueryAuthToken := sec.HasKey("DISABLE_QUERY_AUTH_TOKEN")
 	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(true)
-	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {
-		log.Warn("Query API token authentication is enabled by DISABLE_QUERY_AUTH_TOKEN=false and will be removed after two major releases; use the Authorization header instead.")
-	}
 
 	RecordUserSignupMetadata = sec.Key("RECORD_USER_SIGNUP_METADATA").MustBool(false)
 }
