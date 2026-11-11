@@ -459,19 +459,8 @@ func ViewPullMergeBox(ctx *context.Context) {
 }
 
 func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model.Issue) {
-	if issue.IsPull && !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
-		ctx.Data["IssueDependencySearchType"] = "pulls"
-	} else if !issue.IsPull && !ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
-		ctx.Data["IssueDependencySearchType"] = "issues"
-	} else {
-		ctx.Data["IssueDependencySearchType"] = "all"
-	}
-
 	// Check if the user can use the dependencies
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull)
-
-	// check if dependencies can be created across repositories
-	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
 	// Get Dependencies
 	blockedBy, _, err := issue.BlockedByDependencies(ctx, db.ListOptions{})

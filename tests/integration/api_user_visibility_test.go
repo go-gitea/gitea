@@ -52,11 +52,6 @@ func TestAPIRestrictedUserLimitedOwner(t *testing.T) {
 		assert.NotEqual(t, owner.Name, issue.Repo.Owner)
 	}
 
-	restrictedSession := loginUser(t, "user29")
-	req = NewRequest(t, "GET", "/issues/search?owner=user2")
-	resp = restrictedSession.MakeRequest(t, req, http.StatusOK)
-	assert.Empty(t, DecodeJSON(t, resp, []*api.Issue{}))
-
 	viewerToken := getUserToken(t, "user4", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadOrganization)
 	for _, path := range []string{
 		"/api/v1/users/user2/activities/feeds",

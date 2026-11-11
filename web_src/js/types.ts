@@ -33,7 +33,6 @@ export type IssuePageInfo = {
   repoLink: string,
   repoId: number,
   issueNumber: number,
-  issueDependencySearchType: string,
 };
 
 export type Label = {

@@ -42,6 +42,12 @@ func TestCreateIssueDependency(t *testing.T) {
 
 	_ = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeAddDependency, PosterID: user1.ID, IssueID: issue1.ID})
 
+	for issueID, linkedID := range map[int64]int64{issue1.ID: issue2.ID, issue2.ID: issue1.ID} {
+		ids, err := issues_model.GetLinkedDependencyIssueIDs(t.Context(), issueID)
+		assert.NoError(t, err)
+		assert.Equal(t, []int64{linkedID}, ids)
+	}
+
 	// Check if dependencies left is correct
 	left, err := issues_model.IssueNoDependenciesLeft(t.Context(), issue1)
 	assert.NoError(t, err)
