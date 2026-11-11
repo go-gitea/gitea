@@ -17,7 +17,6 @@ import (
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	db_indexer "gitea.dev/modules/indexer/issues/db"
 	"gitea.dev/modules/optional"
@@ -27,7 +26,6 @@ import (
 	"gitea.dev/routers/web/shared/issue"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
 	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
 )
@@ -42,148 +40,6 @@ func parseProjectIDsFromQuery(ctx *context.Context) []int64 {
 	// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet
 	// Although here parses the project parameter as a slice, the "search" logic is wrong
 	return ctx.FormStringInt64s("project")
-}
-
-func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
-	userName := ctx.FormString(queryName)
-	if len(userName) == 0 {
-		return 0
-	}
-
-	user, err := user_model.GetUserByName(ctx, userName)
-	if user_model.IsErrUserNotExist(err) {
-		ctx.NotFound(err)
-		return 0
-	}
-
-	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
-		return 0
-	}
-
-	return user.ID
-}
-
-// SearchRepoIssuesJSON lists the issues of a repository
-// This function was copied from API (decouple the web and API routes),
-// it is only used by frontend to search some dependency or related issues
-func SearchRepoIssuesJSON(ctx *context.Context) {
-	before, since, err := context.GetQueryBeforeSince(ctx.Base)
-	if err != nil {
-		ctx.HTTPError(http.StatusUnprocessableEntity, err.Error())
-		return
-	}
-
-	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
-	keyword := ctx.FormTrim("q")
-
-	var mileIDs []int64
-	if part := strings.Split(ctx.FormString("milestones"), ","); len(part) > 0 {
-		for i := range part {
-			// uses names and fall back to ids
-			// non-existent milestones are discarded
-			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx, ctx.Repo.Repository.ID, part[i])
-			if err == nil {
-				mileIDs = append(mileIDs, mile.ID)
-				continue
-			}
-			if !issues_model.IsErrMilestoneNotExist(err) {
-				ctx.HTTPError(http.StatusInternalServerError, err.Error())
-				return
-			}
-			id, err := strconv.ParseInt(part[i], 10, 64)
-			if err != nil {
-				continue
-			}
-			mile, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, id)
-			if err == nil {
-				mileIDs = append(mileIDs, mile.ID)
-				continue
-			}
-			if issues_model.IsErrMilestoneNotExist(err) {
-				continue
-			}
-			ctx.HTTPError(http.StatusInternalServerError, err.Error())
-		}
-	}
-
-	isPull, ok := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, ctx.FormString("type"))
-	if !ok {
-		ctx.HTTPError(http.StatusForbidden, "no permission to read issues or pulls")
-		return
-	}
-
-	// FIXME: we should be more efficient here
-	createdByID := getUserIDForFilter(ctx, "created_by")
-	if ctx.Written() {
-		return
-	}
-	assignedByID := getUserIDForFilter(ctx, "assigned_by")
-	if ctx.Written() {
-		return
-	}
-	mentionedByID := getUserIDForFilter(ctx, "mentioned_by")
-	if ctx.Written() {
-		return
-	}
-
-	searchOpt := &issue_indexer.SearchOptions{
-		Paginator: &db.ListOptions{
-			Page:     ctx.FormInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-		},
-		Keyword:  keyword,
-		RepoIDs:  []int64{ctx.Repo.Repository.ID},
-		IsPull:   isPull,
-		IsClosed: isClosed,
-		SortBy:   issue_indexer.SortByCreatedDesc,
-	}
-
-	projectIDs := parseProjectIDsFromQuery(ctx)
-	if len(projectIDs) == 1 && projectIDs[0] == -1 {
-		searchOpt.NoProjectOnly = true
-	} else if len(projectIDs) > 0 {
-		searchOpt.ProjectIDs = projectIDs
-	}
-
-	if since != 0 {
-		searchOpt.UpdatedAfterUnix = optional.Some(since)
-	}
-	if before != 0 {
-		searchOpt.UpdatedBeforeUnix = optional.Some(before)
-	}
-
-	// TODO: the "labels" query parameter is never used, so no need to handle it
-
-	if len(mileIDs) == 1 && mileIDs[0] == db.NoConditionID {
-		searchOpt.MilestoneIDs = []int64{0}
-	} else {
-		searchOpt.MilestoneIDs = mileIDs
-	}
-
-	if createdByID > 0 {
-		searchOpt.PosterID = strconv.FormatInt(createdByID, 10)
-	}
-	if assignedByID > 0 {
-		searchOpt.AssigneeID = strconv.FormatInt(assignedByID, 10)
-	}
-	if mentionedByID > 0 {
-		searchOpt.MentionID = optional.Some(mentionedByID)
-	}
-
-	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
-	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "SearchIssues", err.Error())
-		return
-	}
-	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
-	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
-		return
-	}
-
-	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, issues))
 }
 
 func BatchDeleteIssues(ctx *context.Context) {
