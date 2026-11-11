@@ -219,6 +219,7 @@ x
 M 100644 inline protected/normal.md
 data 1
 x
+R base.txt protected/renamed.md
 `
 	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(stdin)).Run(t.Context()))
 
@@ -228,5 +229,5 @@ x
 
 	files, err := GetAffectedFiles(t.Context(), repo, "main", "main~1", "main", nil)
 	require.NoError(t, err)
-	assert.ElementsMatch(t, []string{`protected/we"ird.md`, "protected/中文.md", "protected/normal.md"}, files)
+	assert.ElementsMatch(t, []string{`protected/we"ird.md`, "protected/中文.md", "protected/normal.md", "base.txt", "protected/renamed.md"}, files)
 }
