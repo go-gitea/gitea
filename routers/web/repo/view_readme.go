@@ -168,7 +168,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 
 	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, readmeTargetEntry.Blob(ctx.Repo.GitRepo))
 	if err != nil {
-		ctx.ServerError("getFileReader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer dataRc.Close()
