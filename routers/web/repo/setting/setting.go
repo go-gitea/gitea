@@ -91,21 +91,21 @@ func SettingsCtxData(ctx *context.Context) {
 		if setting.Indexer.RepoIndexerEnabled {
 			status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeCode)
 			if err != nil {
-				ctx.ServerError("repo.indexer_status", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Data["CodeIndexerStatus"] = status
 		}
 		status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeStats)
 		if err != nil {
-			ctx.ServerError("repo.indexer_status", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["StatsIndexerStatus"] = status
 	}
 	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("GetPushMirrorsByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
@@ -206,7 +206,7 @@ func SettingsPost(ctx *context.Context) {
 	case "visibility":
 		handleSettingsPostVisibility(ctx)
 	default:
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 }
 
@@ -241,7 +241,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 			case errors.As(err, &errNamePatternNotAllowed):
 				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplSettingsOptions, &form)
 			default:
-				ctx.ServerError("ChangeRepositoryName", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -256,7 +256,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.IsTemplate = form.Template
 
 	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
-		ctx.ServerError("UpdateRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -269,17 +269,13 @@ func handleSettingsPostMirror(ctx *context.Context) {
 	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	pullMirror, err := repo_model.GetMirrorByRepoID(ctx, ctx.Repo.Repository.ID)
-	if err == repo_model.ErrMirrorNotExist {
-		ctx.NotFound(nil)
-		return
-	}
 	if err != nil {
-		ctx.ServerError("GetMirrorByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	// This section doesn't require repo_name/RepoName to be set in the form, don't show it
@@ -297,7 +293,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 	pullMirror.Interval = interval
 	pullMirror.ScheduleNextUpdate()
 	if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {
-		ctx.ServerError("UpdateMirror", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -330,7 +326,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 	}
 
 	if err := mirror_service.UpdateAddress(ctx, pullMirror, address); err != nil {
-		ctx.ServerError("UpdateAddress", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -362,7 +358,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 	pullMirror.LFS = form.LFS
 	pullMirror.LFSEndpoint = form.LFSEndpoint
 	if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {
-		ctx.ServerError("UpdateMirror", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -373,7 +369,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 func handleSettingsPostMirrorSync(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -388,13 +384,13 @@ func handleSettingsPostPushMirrorSync(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 
 	if !setting.Mirror.Enabled {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	m, err := repo_model.GetPushMirrorByRepoID(ctx, repo.ID, form.PushMirrorID)
 	if err != nil {
-		ctx.ServerError("GetPushMirrorByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -409,7 +405,7 @@ func handleSettingsPostPushMirrorUpdate(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 
 	if !setting.Mirror.Enabled || repo.IsArchived {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -425,13 +421,13 @@ func handleSettingsPostPushMirrorUpdate(ctx *context.Context) {
 
 	m, err := repo_model.GetPushMirrorByRepoID(ctx, repo.ID, form.PushMirrorID)
 	if err != nil {
-		ctx.ServerError("GetPushMirrorByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	m.Interval = interval
 	if err := repo_model.UpdatePushMirrorInterval(ctx, m); err != nil {
-		ctx.ServerError("UpdatePushMirrorInterval", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	// Background why we are adding it to Queue
@@ -451,18 +447,18 @@ func handleSettingsPostPushMirrorRemove(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 
 	if !setting.Mirror.Enabled || repo.IsArchived {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	m, err := repo_model.GetPushMirrorByRepoID(ctx, repo.ID, form.PushMirrorID)
 	if err != nil {
-		ctx.ServerError("GetPushMirrorByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := mirror_service.DeleteRepoPushMirrorByID(ctx, repo.ID, m.ID); err != nil {
-		ctx.ServerError("DeleteRepoPushMirrorByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -475,7 +471,7 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 
 	if setting.Mirror.DisableNewPush || repo.IsArchived {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -518,12 +514,12 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 		RemoteAddress: remoteAddress,
 	}
 	if err := db.Insert(ctx, m); err != nil {
-		ctx.ServerError("InsertPushMirror", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := mirror_service.AddPushMirrorRemote(ctx, m, address); err != nil {
-		ctx.ServerError("AddPushMirrorRemote", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -685,12 +681,12 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
-		ctx.ServerError("UpdateRepositoryUnits", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if repoChanged {
 		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
-			ctx.ServerError("UpdateRepository", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -706,7 +702,7 @@ func handleSettingsPostSigning(ctx *context.Context) {
 	if trustModel != repo.TrustModel {
 		repo.TrustModel = trustModel
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "trust_model"); err != nil {
-			ctx.ServerError("UpdateRepositoryColsNoAutoTime", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -730,7 +726,7 @@ func handleSettingsPostAdmin(ctx *context.Context) {
 	if repo.IsFsckEnabled != form.EnableHealthCheck {
 		repo.IsFsckEnabled = form.EnableHealthCheck
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fsck_enabled"); err != nil {
-			ctx.ServerError("UpdateRepositoryColsNoAutoTime", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -751,7 +747,7 @@ func handleSettingsPostAdminIndex(ctx *context.Context) {
 	switch form.RequestReindexType {
 	case "stats":
 		if err := stats.UpdateRepoIndexer(ctx.Repo.Repository); err != nil {
-			ctx.ServerError("UpdateStatsRepondexer", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	case "code":
@@ -761,7 +757,7 @@ func handleSettingsPostAdminIndex(ctx *context.Context) {
 		}
 		code.UpdateRepoIndexer(ctx.Repo.Repository)
 	default:
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -790,10 +786,10 @@ func handleSettingsPostConvert(ctx *context.Context) {
 	repo.IsMirror = false
 
 	if _, err := repo_service.CleanUpMigrateInfo(ctx, repo); err != nil {
-		ctx.ServerError("CleanUpMigrateInfo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if err = repo_model.DeleteRepoPullMirror(ctx, ctx.Repo.Repository.ID); err != nil {
-		ctx.ServerError("DeleteMirrorByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -812,7 +808,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if err := repo.LoadOwner(ctx); err != nil {
-		ctx.ServerError("Convert Fork", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if repo.FullName() != form.RepoName {
@@ -835,7 +831,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 
 	if err := repo_service.ConvertForkToNormalRepository(ctx, repo); err != nil {
 		log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
-		ctx.ServerError("Convert Fork", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -862,7 +858,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("form.enterred_invalid_owner_name"))
 			return
 		}
-		ctx.ServerError("IsUserExist", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -892,7 +888,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.settings.transfer.blocked_user"))
 		} else {
-			ctx.ServerError("TransferOwnership", err)
+			ctx.ServerErrorAuto(err)
 		}
 
 		return
@@ -920,13 +916,13 @@ func handleSettingsPostCancelTransfer(ctx *context.Context) {
 			ctx.Flash.Error("repo.settings.transfer_abort_invalid")
 			ctx.Redirect(repo.Link() + "/settings")
 		} else {
-			ctx.ServerError("GetPendingRepositoryTransfer", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
 
 	if err := repo_service.CancelRepositoryTransfer(ctx, repoTransfer, ctx.Doer); err != nil {
-		ctx.ServerError("CancelRepositoryTransfer", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -953,7 +949,7 @@ func handleSettingsPostDelete(ctx *context.Context) {
 	}
 
 	if err := repo_service.DeleteRepository(ctx, ctx.Doer, ctx.Repo.Repository, true); err != nil {
-		ctx.ServerError("DeleteRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	log.Trace("Repository deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -1097,7 +1093,7 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 		case addrErr.IsInvalidPath:
 			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, form)
 		default:
-			ctx.ServerError("Unknown error", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}

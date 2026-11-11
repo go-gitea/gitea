@@ -30,7 +30,7 @@ const (
 func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
 	if !ctx.Doer.CanCreateOrganization() {
-		ctx.ServerError("Not allowed", errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
+		ctx.ServerErrorAuto(errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
 		return
 	}
 
@@ -46,7 +46,7 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
 
 	if !ctx.Doer.CanCreateOrganization() {
-		ctx.ServerError("Not allowed", errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
+		ctx.ServerErrorAuto(errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
 		return
 	}
 
@@ -77,7 +77,7 @@ func CreatePost(ctx *context.Context) {
 		case organization.IsErrUserNotAllowedCreateOrg(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.create_org_not_allowed"), tplCreateOrg, &form)
 		default:
-			ctx.ServerError("CreateOrganization", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
