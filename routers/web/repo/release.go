@@ -424,11 +424,7 @@ func GenerateReleaseNotes(ctx *context.Context) {
 		PreviousTag: form.PreviousTag,
 	})
 	if err != nil {
-		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-			ctx.JSONError(errTr.Translate(ctx.Locale))
-		} else {
-			ctx.ServerError("GenerateReleaseNotes", err)
-		}
+		ctx.JSONErrorAuto(err)
 		return
 	}
 

@@ -50,7 +50,7 @@ func TestProjectWorkflowsWeb(t *testing.T) {
 	assert.Equal(t, workflow.Actions, updated.Actions)
 
 	req = NewRequestWithJSON(t, "POST", link, &api.CreateProjectWorkflowOption{Event: "item_closed"})
-	resp := session.MakeRequest(t, req, http.StatusBadRequest)
+	resp := session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	assert.Equal(t, "At least one action must be configured", DecodeJSON(t, resp, map[string]any{})["errorMessage"])
 
 	loginUser(t, "user4").MakeRequest(t, NewRequest(t, "POST", workflowLink+"/delete"), http.StatusNotFound)

@@ -162,7 +162,7 @@ type fileCodeOwner struct {
 
 func prepareFileCodeOwners(ctx *context.Context) {
 	rules, warnings1, err := issue_service.GetCodeOwnerRules(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit)
-	if msg, _ := util.ErrorUnwrapForUser(err, ctx.Locale); msg != "" {
+	if msg, _ := util.ErrorUnwrapForHTML(err, ctx.Locale); msg != "" {
 		ctx.Flash.Error(msg, true)
 		return
 	} else if err != nil {
