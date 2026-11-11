@@ -35,7 +35,7 @@
 			{{else if not .FileSize}}
 				{{template "shared/fileisempty"}}
 			{{else}}
-			<table>
+			<table data-paste-markdown-skip>
 				<tbody>
 					{{range $row := .BlameRows}}
 						<tr class="{{if $row.CommitURL}}top-line-blame{{end}}">

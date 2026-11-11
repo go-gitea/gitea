@@ -55,11 +55,9 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 		es.allowed = opts[0].Allowed
 	}
 
-	readCount := 0
-	lastIsTag := false
+	isContentBegin := true
 	for {
 		parts, partInTag, err := es.readRunes()
-		readCount++
 		if err == io.EOF {
 			return es.escaped, nil
 		} else if err != nil {
@@ -67,17 +65,14 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 		}
 		for i, part := range parts {
 			if partInTag[i] {
-				lastIsTag = true
+				isContentBegin = true
 				es.trackHtmlTag(part)
 				if _, err := out.Write(part); err != nil {
 					return nil, err
 				}
 			} else {
-				// if last part is tag, then this part is content begin
-				// if the content is the first part of the first read, then it's also content begin
-				isContentBegin := lastIsTag || (readCount == 1 && i == 0)
-				lastIsTag = false
 				if isContentBegin {
+					isContentBegin = false
 					if part, err = es.trimAndWriteBom(part); err != nil {
 						return nil, err
 					}
@@ -236,18 +231,23 @@ func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error
 		copy(curPart, e.readBuf[pos:curPartEnd])
 		// now we get the curPart bytes, but we can't directly use it, the last rune in it might have been cut
 		// try to decode the last rune, if it's invalid, then we cut the last byte and try again until we get a valid rune or no byte left
-		for i := curPartLen - 1; i >= 0; i-- {
-			last, lastSize := utf8.DecodeRune(curPart[i:])
-			if last == utf8.RuneError && lastSize == 1 {
-				curPartLen--
-			} else {
-				curPartLen += lastSize - 1
-				break
+		if e.readErr == nil && curPartEnd == len(e.readBuf) {
+			for i := curPartLen - 1; i >= 0; i-- {
+				last, lastSize := utf8.DecodeRune(curPart[i:])
+				if last == utf8.RuneError && lastSize == 1 {
+					curPartLen--
+				} else {
+					curPartLen += lastSize - 1
+					break
+				}
 			}
 		}
 		if curPartLen == 0 {
+			if !utf8.FullRune(curPart) && len(curPart) <= cap(e.readBuf)*3/4 {
+				break // keep a rune cut by the read boundary for the next read
+			}
 			// actually it's impossible that the part doesn't contain any valid rune,
-			// the only case is that the cap(readBuf) is too small, or the origin contain indeed doesn't contain any valid rune
+			// the only case is that the cap(readBuf) is too small, or the origin content indeed doesn't contain any valid rune
 			// * try to leave the last 4 bytes (possible longest utf-8 encoding) to next round
 			// * at least consume 1 byte to avoid infinite loop
 			curPartLen = max(len(curPart)-utf8.UTFMax, 1)
