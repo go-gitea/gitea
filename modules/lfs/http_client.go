@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -273,29 +274,16 @@ func performRequest(ctx context.Context, client *http.Client, req *http.Request)
 }
 
 func handleErrorResponse(resp *http.Response) error {
-	status := resp.Status
-	if status == "" {
-		status = fmt.Sprintf("%d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
-	}
-
-	// Non-LFS or misconfigured endpoints reply with plain text or HTML (e.g. a bare
-	// "Not Found" when LFS is disabled), so report the status and body instead of a
-	// misleading JSON decode error when the body is not the expected JSON.
+	// Non-LFS endpoints might reply with plain text or HTML, read the body ahead to use it as the error message if JSON decoding fails.
+	// The returned error message might be saved into database's TEXT column, so we also need to truncate it.
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
 	if err != nil {
-		log.Error("Error reading LFS error response body: %v", err)
-		return fmt.Errorf("LFS server returned status %s", status)
+		return fmt.Errorf("LFS server returned error, status: %d, err: %w", resp.StatusCode, err)
 	}
 
 	var er ErrorResponse
 	if err := json.Unmarshal(body, &er); err == nil && er.Message != "" {
-		log.Trace("ErrorResponse(%v): %v", resp.Status, er)
-		return errors.New(er.Message)
+		return fmt.Errorf("LFS server error: %s", util.TruncateRunes(er.Message, 1000))
 	}
-
-	message := strings.TrimSpace(string(body))
-	if message == "" {
-		return fmt.Errorf("LFS server returned status %s with an empty body", status)
-	}
-	return fmt.Errorf("LFS server returned status %s: %s", status, message)
+	return fmt.Errorf("LFS server returned error, status: %d, body: %q", resp.StatusCode, util.TruncateRunes(string(body), 1000))
 }

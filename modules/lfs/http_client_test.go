@@ -176,8 +176,8 @@ func TestHTTPClientTransfers(t *testing.T) {
 		{
 			name: "download",
 			cases: []clientCase{
-				{"https://status-not-ok.io", "LFS server returned status 400 Bad Request with an empty body"},
-				{"https://plaintext-error.io", "LFS server returned status 404 Not Found: Not Found"},
+				{"https://status-not-ok.io", `LFS server returned error, status: 400, body: ""`},
+				{"https://plaintext-error.io", `LFS server returned error, status: 404, body: "Not Found"`},
 				{"https://invalid-json-response.io", "/(invalid json|invalid character)/"},
 				{"https://valid-batch-request-download.io", ""},
 				{"https://response-no-objects.io", ""},
@@ -194,8 +194,8 @@ func TestHTTPClientTransfers(t *testing.T) {
 		{
 			name: "upload",
 			cases: []clientCase{
-				{"https://status-not-ok.io", "LFS server returned status 400 Bad Request with an empty body"},
-				{"https://plaintext-error.io", "LFS server returned status 404 Not Found: Not Found"},
+				{"https://status-not-ok.io", `LFS server returned error, status: 400, body: ""`},
+				{"https://plaintext-error.io", `LFS server returned error, status: 404, body: "Not Found"`},
 				{"https://invalid-json-response.io", "/(invalid json|invalid character)/"},
 				{"https://valid-batch-request-upload.io", ""},
 				{"https://response-no-objects.io", ""},
