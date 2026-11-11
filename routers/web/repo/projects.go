@@ -175,15 +175,11 @@ func ChangeProjectStatus(ctx *context.Context) {
 
 	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetProjectForRepoByID", err)
-		}
+		ctx.ServerError("GetProjectForRepoByID", err)
 		return
 	}
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, project.ID, toClose); err != nil {
-		ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
+	if err := project_model.ChangeProjectStatus(ctx, project, toClose); err != nil {
+		ctx.ServerError("ChangeProjectStatus", err)
 		return
 	}
 	audit.Record(ctx, audit_model.ProjectUpdate, ctx.Repo.Repository, "project", project.Title, "project_id", project.ID)

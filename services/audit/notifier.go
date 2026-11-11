@@ -68,11 +68,9 @@ func loadIssueRepo(ctx context.Context, issue *issues_model.Issue) *repo_model.R
 }
 
 func loadPullRequestRepo(ctx context.Context, pr *issues_model.PullRequest) *repo_model.Repository {
-	if pr.Issue == nil {
-		if err := pr.LoadIssue(ctx); err != nil {
-			log.Error("audit: LoadIssue for pull request %d: %v", pr.ID, err)
-			return nil
-		}
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("audit: LoadIssue for pull request %d: %v", pr.ID, err)
+		return nil
 	}
 	return loadIssueRepo(ctx, pr.Issue)
 }
@@ -127,9 +125,15 @@ func (n *auditNotifier) AutoMergePullRequest(ctx context.Context, doer *user_mod
 	n.MergePullRequest(ctx, doer, pr)
 }
 
+var reviewTypeNames = map[issues_model.ReviewType]string{
+	issues_model.ReviewTypeApprove: "approve",
+	issues_model.ReviewTypeComment: "comment",
+	issues_model.ReviewTypeReject:  "reject",
+}
+
 func (n *auditNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, _ []*user_model.User) {
 	if repo := loadPullRequestRepo(ctx, pr); repo != nil {
-		RecordAs(ctx, review.Reviewer, audit_model.PullRequestCommentCreate, repo, "pull_request", issueLabel(pr.Issue), "comment_id", comment.ID)
+		RecordAs(ctx, review.Reviewer, audit_model.PullRequestCommentCreate, repo, "pull_request", issueLabel(pr.Issue), "comment_id", comment.ID, "review_id", review.ID, "review_type", reviewTypeNames[review.Type])
 	}
 }
 

@@ -954,6 +954,9 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return err
 		}
+		if *opts.Archived == repo.IsArchived {
+			return nil
+		}
 		if *opts.Archived {
 			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
 				log.Error("Tried to archive a repo: %s", err)

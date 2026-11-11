@@ -13,6 +13,7 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -181,9 +182,7 @@ func TestAuditLogRepositoryAPIEvents(t *testing.T) {
 	assertEvents := func(t *testing.T, scopeType audit_model.ScopeType, scopeID int64, actions ...audit_model.Action) {
 		t.Helper()
 		for _, action := range actions {
-			events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{Action: action, ScopeType: scopeType, ScopeID: scopeID})
-			require.NoError(t, err)
-			assert.Len(t, events, 1, "audit events for %s", action)
+			assert.Equal(t, 1, unittest.GetCount(t, &audit_model.Event{Action: action, ScopeType: scopeType, ScopeID: scopeID}), "audit events for %s", action)
 		}
 	}
 
@@ -223,13 +222,11 @@ func TestAuditLogRepositoryAPIEvents(t *testing.T) {
 		}).AddTokenAuth(token), http.StatusCreated)
 		MakeRequest(t, NewRequestWithJSON(t, "POST", repoAPI+"/keys/tokens", &api.CreateDeployKeyTokenOption{Title: "audit-deploy-token"}).AddTokenAuth(token), http.StatusCreated)
 
-		events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{Action: audit_model.RepositoryDeployKeyAdd, ScopeType: audit_model.ScopeRepository, ScopeID: 1})
-		require.NoError(t, err)
-		assert.Len(t, events, 2)
+		unittest.AssertCount(t, &audit_model.Event{Action: audit_model.RepositoryDeployKeyAdd, ScopeType: audit_model.ScopeRepository, ScopeID: 1}, 2)
 	})
 
 	t.Run("RepoSettings", func(t *testing.T) {
-		MakeRequest(t, NewRequestWithJSON(t, "PATCH", repoAPI, &api.EditRepoOption{DefaultBranch: new("branch2")}).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", repoAPI, &api.EditRepoOption{DefaultBranch: new("branch2"), Archived: new(false)}).AddTokenAuth(token), http.StatusOK)
 		MakeRequest(t, NewRequestWithJSON(t, "PATCH", repoAPI, &api.EditRepoOption{Archived: new(true)}).AddTokenAuth(token), http.StatusOK)
 		MakeRequest(t, NewRequestWithJSON(t, "PATCH", repoAPI, &api.EditRepoOption{Archived: new(false)}).AddTokenAuth(token), http.StatusOK)
 		assertEvents(t, audit_model.ScopeRepository, 1, audit_model.RepositoryBranchDefault, audit_model.RepositoryArchive, audit_model.RepositoryUnarchive)

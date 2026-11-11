@@ -166,7 +166,7 @@ func DeleteMissingRepositories(ctx context.Context, doer *user_model.User) error
 		if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
 			log.Error("Failed to DeleteRepository %-v: Error: %v", repo, err)
 			if err2 := system_model.CreateRepositoryNotice("Failed to DeleteRepository (%s) [%d]: Error: %v", repo.FullName(), repo.ID, err); err2 != nil {
-				log.Error("CreateRepositoryNotice: %v", err)
+				log.Error("CreateRepositoryNotice: %v", err2)
 			}
 		} else {
 			audit.RecordAs(ctx, doer, audit_model.RepositoryDelete, repo)

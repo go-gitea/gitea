@@ -59,7 +59,6 @@ func (s projectScope) ownerID() int64 {
 	return 0
 }
 
-// auditScope is the entity project audit events are recorded against.
 func (s projectScope) auditScope() any {
 	if s.Repo != nil {
 		return s.Repo

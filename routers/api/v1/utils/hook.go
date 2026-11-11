@@ -282,7 +282,6 @@ func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID in
 		return
 	}
 	if !editHook(ctx, form, hook) {
-		ctx.APIErrorInternal(err)
 		return
 	}
 	audit.RecordScoped(ctx, nil, nil, audit.WebhookUpdate, "webhook", hook.URL)
