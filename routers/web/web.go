@@ -554,11 +554,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/topics/search", explore.TopicSearch)
 	}, optExploreSignIn)
 
-	m.Group("/issues", func() {
-		m.Get("", user.Issues)
-		m.Get("/search", repo.SearchGlobalIssues)
-	}, reqSignIn)
-
+	m.Get("/issues", reqSignIn, user.Issues)
 	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
