@@ -142,7 +142,7 @@ func testUnknownUser(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusNotFound)
 
 	apiError := DecodeJSON(t, resp, &api.APIError{})
-	assert.Equal(t, "user redirect does not exist [name: unknown]", apiError.Message)
+	assert.Equal(t, "user not found", apiError.Message)
 }
 
 func testUnknownOrganization(t *testing.T) {

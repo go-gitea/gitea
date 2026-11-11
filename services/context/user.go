@@ -4,13 +4,14 @@
 package context
 
 import (
+	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/session"
+	"gitea.dev/modules/util"
 )
 
 func ReqContextUserVisibleToDoer() func(ctx *Context) {
@@ -18,7 +19,7 @@ func ReqContextUserVisibleToDoer() func(ctx *Context) {
 		isOrg := ctx.ContextUser.IsOrganization()
 		if isOrg && !organization.HasOrgOrUserVisible(ctx, ctx.ContextUser, ctx.Doer) ||
 			!isOrg && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 	}
@@ -27,15 +28,7 @@ func ReqContextUserVisibleToDoer() func(ctx *Context) {
 // UserAssignmentWeb returns a middleware to handle context-user assignment for web routes
 func UserAssignmentWeb() func(ctx *Context) {
 	return func(ctx *Context) {
-		errorFn := func(status int, msg string) {
-			err := fmt.Errorf("%s", msg)
-			if status == http.StatusNotFound {
-				ctx.NotFound(err)
-			} else {
-				ctx.ServerError("UserAssignmentWeb", err)
-			}
-		}
-		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, errorFn)
+		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, ctx.ServerErrorAuto)
 		ctx.Data["ContextUser"] = ctx.ContextUser
 	}
 }
@@ -43,11 +36,11 @@ func UserAssignmentWeb() func(ctx *Context) {
 // UserAssignmentAPI returns a middleware to handle context-user assignment for api routes
 func UserAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
-		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, ctx.APIError)
+		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, ctx.APIErrorAuto)
 	}
 }
 
-func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, string)) (contextUser *user_model.User) {
+func userAssignment(ctx *Base, doer *user_model.User, errCb func(error)) (contextUser *user_model.User) {
 	username := ctx.PathParam("username")
 
 	if doer != nil && strings.EqualFold(doer.LowerName, username) {
@@ -56,22 +49,22 @@ func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, string)) (
 		var err error
 		contextUser, err = user_model.GetUserByName(ctx, username)
 		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
+			if errors.Is(err, util.ErrNotExist) {
 				if redirectUserID, err := user_model.LookupUserRedirect(ctx, username); err == nil {
 					RedirectToUser(ctx, doer, username, redirectUserID)
-				} else if user_model.IsErrUserRedirectNotExist(err) {
-					errCb(http.StatusNotFound, err.Error())
+				} else if errors.Is(err, util.ErrNotExist) {
+					errCb(util.NewNotExistErrorf("user not found"))
 				} else {
-					errCb(http.StatusInternalServerError, fmt.Sprintf("LookupUserRedirect: %v", err))
+					errCb(fmt.Errorf("LookupUserRedirect: %w", err))
 				}
 			} else {
-				errCb(http.StatusInternalServerError, fmt.Sprintf("GetUserByName: %v", err))
+				errCb(fmt.Errorf("GetUserByName: %w", err))
 			}
 			return nil
 		}
 	}
 	if !user_model.DoerTokenAllowsOwner(doer, contextUser) {
-		errCb(http.StatusNotFound, user_model.ErrUserRedirectNotExist{Name: username}.Error())
+		errCb(util.NewNotExistErrorf("user not found"))
 		return nil
 	}
 	return contextUser

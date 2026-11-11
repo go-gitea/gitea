@@ -449,12 +449,12 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 			MaxFiles:          maxFiles,
 		}, ctx.FormStrings("files")...)
 	if err != nil {
-		ctx.ServerError("GetDiff", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadGitRepo, &diffCommonOptions)
 	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
@@ -470,7 +470,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	if !fileOnly {
 		diffTree, err := gitdiff.GetDiffTree(ctx, ci.HeadGitRepo, false, beforeCommitID, headCommitID)
 		if err != nil {
-			ctx.ServerError("GetDiffTree", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -483,7 +483,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 
 	headCommit, err := ci.HeadGitRepo.GetCommit(ctx, headCommitID)
 	if err != nil {
-		ctx.ServerError("GetCommit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -491,13 +491,13 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 
 	beforeCommit, err := baseGitRepo.GetCommit(ctx, beforeCommitID)
 	if err != nil {
-		ctx.ServerError("GetCommit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	commits, err := processGitCommits(ctx, ci.Commits)
 	if err != nil {
-		ctx.ServerError("processGitCommits", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Commits"] = commits
@@ -529,10 +529,10 @@ func CompareDiff(ctx *context.Context) {
 	comparePageInfo := newComparePageInfo()
 	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
 	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	} else if err != nil {
-		ctx.ServerError("ParseCompareInfo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -554,7 +554,7 @@ func CompareDiff(ctx *context.Context) {
 
 	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Tags"] = baseTags
@@ -567,7 +567,7 @@ func CompareDiff(ctx *context.Context) {
 
 	headBranches, headTags, err := getBranchesAndTagsForRepo(ctx, ci.HeadRepo)
 	if err != nil {
-		ctx.ServerError("GetBranchesAndTagsForRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["HeadBranches"] = headBranches
@@ -607,7 +607,8 @@ func downloadCompareDiffOrPatch(ctx *context.Context, ci *git_service.CompareInf
 		err = ci.HeadGitRepo.GetDiff(ctx, compareArg, ctx.Resp)
 	}
 	if err != nil {
-		ctx.ServerError("DownloadCompareDiffOrPatch", err)
+		ctx.ServerErrorAuto(err)
+		return
 	}
 }
 
@@ -617,13 +618,13 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadRef.ShortName(), ci.BaseRef.ShortName(), issues_model.PullRequestFlowGithub)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
-				ctx.ServerError("GetUnmergedPullRequest", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		} else {
 			ctx.Data["HasPullRequest"] = true
 			if err := pr.LoadIssue(ctx); err != nil {
-				ctx.ServerError("LoadIssue", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Data["PullRequest"] = pr
@@ -731,7 +732,7 @@ func ExcerptBlob(ctx *context.Context) {
 		var err error
 		gitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
-			ctx.ServerError("OpenRepository", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
@@ -739,31 +740,31 @@ func ExcerptBlob(ctx *context.Context) {
 
 	commit, err := gitRepo.GetCommit(ctx, commitID)
 	if err != nil {
-		ctx.ServerError("GetCommit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	blob, err := commit.GetBlobByPath(ctx, gitRepo, filePath)
 	if err != nil {
-		ctx.ServerError("GetBlobByPath", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	reader, err := blob.DataAsync(ctx)
 	if err != nil {
-		ctx.ServerError("DataAsync", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer reader.Close()
 
 	section, err := gitdiff.BuildBlobExcerptDiffSection(filePath, reader, opts)
 	if err != nil {
-		ctx.ServerError("BuildBlobExcerptDiffSection", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
 	if diffBlobExcerptData.PullIssueIndex > 0 {
 		if !ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 
