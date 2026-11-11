@@ -54,7 +54,7 @@ func RefBlame(ctx *context.Context) {
 		HandleGitError(ctx, err)
 		return
 	}
-	if entry.IsDir() { // GitHub redirects a directory blame to its tree
+	if entry.IsDir() { // a directory has no blame, show its tree instead
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath))
 		return
 	}
