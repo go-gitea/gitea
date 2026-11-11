@@ -57,6 +57,7 @@ var (
 		PrefixArchiveFiles                      bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
+		DisableLanguageStats                    bool
 		DefaultBranch                           string
 		DefaultObjectFormat                     string
 		DisableDownloadSourceArchives           bool

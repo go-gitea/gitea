@@ -117,7 +117,7 @@ func (repos RepositoryList) LoadOwners(ctx context.Context) error {
 }
 
 func (repos RepositoryList) LoadLanguageStats(ctx context.Context) error {
-	if len(repos) == 0 {
+	if len(repos) == 0 || setting.Repository.DisableLanguageStats {
 		return nil
 	}
 
