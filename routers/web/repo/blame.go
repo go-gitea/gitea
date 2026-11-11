@@ -54,6 +54,10 @@ func RefBlame(ctx *context.Context) {
 		HandleGitError(ctx, err)
 		return
 	}
+	if entry.IsDir() { // GitHub redirects a directory blame to its tree
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath))
+		return
+	}
 
 	blob := entry.Blob(ctx.Repo.GitRepo)
 	fileSize := blob.Size(ctx)
