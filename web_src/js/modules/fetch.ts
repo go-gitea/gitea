@@ -1,6 +1,6 @@
 import {isObject} from '../utils.ts';
 import type {RequestOpts} from '../types.ts';
-import {errorMessage} from './errors.ts';
+import isNetworkError from 'is-network-error';
 
 // fetch wrapper, use below method name functions and the `data` option to pass in data
 // which will automatically set an appropriate headers. For JSON content, only object
@@ -50,9 +50,8 @@ class ExclusiveResponse {
   }
 
   private async fetchGeneric<T, R>(readResp: (resp: Response) => Promise<T>, userFn: (ret: T) => R | Promise<R>) : Promise<R | undefined> {
-    let resp: Response | undefined, networkDone = false;
     try {
-      resp = await this.promiseResp;
+      const resp = await this.promiseResp;
       if (this.isAborted()) return undefined;
       if (!resp.ok) {
         this.onResponseErrorFn?.({message: `http: ${resp.status} ${resp.statusText}`, response: resp});
@@ -60,15 +59,11 @@ class ExclusiveResponse {
       }
       const ret = await readResp(resp);
       if (this.isAborted()) return undefined;
-      networkDone = true;
       return await userFn(ret);
     } catch (err) {
-      if (this.isAborted()) return undefined;
-      // don't handle user function's exceptions, that's the caller's responsibility
-      if (!networkDone) {
-        this.onResponseErrorFn?.({message: `exception: ${errorMessage(err)}`, response: resp});
-        return undefined;
-      }
+      // avoid network error while unloading page, and ignore "abort" error
+      if (isNetworkError(err) || this.isAborted()) return undefined;
+      // let caller handle user function's exceptions
       throw err;
     } finally {
       if (this.exclusiveFetch.currentController === this.abortController) {
