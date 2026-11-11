@@ -177,7 +177,7 @@ export function createActionRunViewStore(viewUrl: string) {
 
   const loadCurrentRun = async (force = false) => {
     if (exclusiveFetch.isInFlight() && !force) return;
-    const resp = exclusiveFetch.request(viewUrl, {method: 'POST'});
+    const resp = exclusiveFetch.request(viewUrl, {method: 'POST', data: {}});
     resp.onResponseError((details) => {
       if (details.response?.status === 404) stopPollingCurrentRun();
       showErrorToast(`Failed to load current job run data: ${details.message}`);
