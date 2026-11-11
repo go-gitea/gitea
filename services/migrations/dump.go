@@ -15,6 +15,7 @@ import (
 	"time"
 	"uuid"
 
+	audit_model "gitea.dev/models/audit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
@@ -24,6 +25,7 @@ import (
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/services/audit"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -727,5 +729,9 @@ func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string,
 		}
 		return err
 	}
-	return updateMigrationPosterIDByGitService(ctx, structs.GitServiceType(tp))
+	if err := updateMigrationPosterIDByGitService(ctx, structs.GitServiceType(tp)); err != nil {
+		return err
+	}
+	audit.Record(ctx, audit_model.RepositoryCreate, uploader.repo)
+	return nil
 }

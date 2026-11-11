@@ -161,11 +161,7 @@ func (n *auditNotifier) PullReviewDismiss(ctx context.Context, doer *user_model.
 	}
 }
 
-func (n *auditNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
-	RecordAs(ctx, doer, audit_model.RepositoryReleaseRemove, rel.Repo, "release", rel.TagName)
-}
-
-// DeleteRef only records tags; branch deletions are as routine as pushes.
+// DeleteRef only records tags, branch deletions are as routine as pushes.
 func (n *auditNotifier) DeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 	if refFullName.IsTag() {
 		RecordAs(ctx, doer, audit_model.RepositoryTagRemove, repo, "tag", refFullName.TagName())

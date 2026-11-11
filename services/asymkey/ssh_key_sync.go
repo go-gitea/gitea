@@ -21,7 +21,7 @@ import (
 )
 
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
-func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, error) {
+func deleteKeysMarkedForDeletion(ctx context.Context, usr *user_model.User, keys []string) (bool, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
 		// Delete keys marked for deletion
 		var sshKeysNeedUpdate bool
@@ -35,7 +35,7 @@ func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, erro
 				log.Error("DeleteByID[PublicKey]: %v", err)
 				continue
 			}
-			audit.RecordAs(ctx, user_model.NewAuthSourceUser(), audit_model.UserKeySSHRemove, audit.ScopeFromUserID(ctx, key.OwnerID), "fingerprint", key.Fingerprint)
+			audit.RecordAs(ctx, user_model.NewAuthSourceUser(), audit_model.UserKeySSHRemove, usr, "fingerprint", key.Fingerprint)
 			sshKeysNeedUpdate = true
 		}
 
@@ -143,7 +143,7 @@ func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth_mo
 	}
 
 	// Delete keys from DB that no longer exist in the source
-	needUpd, err := deleteKeysMarkedForDeletion(ctx, giteaKeysToDelete)
+	needUpd, err := deleteKeysMarkedForDeletion(ctx, usr, giteaKeysToDelete)
 	if err != nil {
 		log.Error("synchronizePublicKeys[%s]: Error deleting Public Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
 	}

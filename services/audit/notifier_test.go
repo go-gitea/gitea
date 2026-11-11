@@ -64,13 +64,9 @@ func TestAuditNotifier(t *testing.T) {
 		},
 		{
 			func() {
-				notifier.PullReviewDismiss(ctx, doer, &issues_model.Review{ID: 41, Issue: &issues_model.Issue{ID: 15, Index: 8, Repo: repo, IsPull: true}}, nil)
+				notifier.PullReviewDismiss(ctx, doer, &issues_model.Review{ID: 41, Issue: &issues_model.Issue{Index: 8, Repo: repo}}, nil)
 			},
 			audit_model.Event{Action: audit_model.PullRequestReviewDismiss, ActorID: doer.ID, Message: "Dismissed review 41 of pull request #8 in repository owner/repo."},
-		},
-		{
-			func() { notifier.DeleteRelease(ctx, doer, &repo_model.Release{TagName: "v1.0", Repo: repo}) },
-			audit_model.Event{Action: audit_model.RepositoryReleaseRemove, ActorID: doer.ID, Message: "Removed release v1.0 from repository owner/repo."},
 		},
 		{
 			func() { notifier.DeleteRef(ctx, doer, repo, git.RefNameFromTag("v1.0")) },
@@ -87,6 +83,7 @@ func TestAuditNotifier(t *testing.T) {
 	unittest.AssertCount(t, &audit_model.Event{Action: audit_model.RepositoryTagRemove}, 1)
 
 	org := &user_model.User{ID: 3, Name: "org3", Type: user_model.UserTypeOrganization}
-	notifier.PackageDelete(ctx, doer, &packages_model.PackageDescriptor{Owner: org, Package: &packages_model.Package{Name: "pkg"}, Version: &packages_model.PackageVersion{Version: "1.0.0"}})
-	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.OrganizationPackageRemove, ActorID: doer.ID, ScopeType: audit_model.ScopeOrganization, ScopeID: org.ID})
+	impersonatedCtx := WithImpersonator(ctx, &user_model.User{ID: 1, Name: "admin"})
+	notifier.PackageDelete(impersonatedCtx, doer, &packages_model.PackageDescriptor{Owner: org, Package: &packages_model.Package{Name: "pkg"}, Version: &packages_model.PackageVersion{Version: "1.0.0"}})
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.OrganizationPackageRemove, ActorID: doer.ID, ImpersonatorID: 1, ScopeType: audit_model.ScopeOrganization, ScopeID: org.ID})
 }

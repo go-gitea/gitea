@@ -36,8 +36,6 @@ func WithDoer(ctx context.Context, doer *user_model.User) context.Context {
 	return context.WithValue(ctx, doerContextKey, doer)
 }
 
-// WithCLIDoer returns a context that records audit events as performed from the
-// command line, for the CLI and the private routes it calls.
 func WithCLIDoer(ctx context.Context) context.Context {
 	return WithDoer(WithOrigin(ctx, audit_model.OriginCLI), user_model.NewCliUser())
 }

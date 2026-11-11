@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -123,7 +124,10 @@ func TestMirrorPull(t *testing.T) {
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	lastMirrorSync := mirror.LastSyncUnix
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 	assert.NoError(t, mirror_service.UpdateAddress(ctx, mirror, repoPath+"-missing"))
+	assert.NoError(t, mirror_service.UpdateAddress(ctx, mirror, repoPath+"-missing"))
+	unittest.AssertCount(t, &audit_model.Event{Action: audit_model.RepositoryMirrorPullUpdate}, 1)
 
 	ok = mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
 	assert.False(t, ok)

@@ -155,19 +155,9 @@ func RecordScoped(ctx context.Context, owner *user_model.User, repo *repository_
 		log.Error("audit: no action configured for scope type %s", scope.Type)
 		return
 	}
-	doer := doerFromContext(ctx)
-	writeEvent(ctx, RecordParams{
-		Action:          action,
-		Actor:           actorRef(doer),
-		ActorCredential: user_model.GetDoerCredential(doer),
-		Scope:           scope,
-		Metadata:        metaPairs(metadata...),
-	})
+	Record(ctx, action, scope, metadata...)
 }
 
-// RecordScopedByID is RecordScoped for call sites that only know the owner and
-// repository IDs, using the same zero-value convention: repoID wins when set,
-// and both zero mean the instance.
 func RecordScopedByID(ctx context.Context, ownerID, repoID int64, actions ScopedActions, metadata ...any) {
 	if !setting.AuditRecordEnabled() {
 		return

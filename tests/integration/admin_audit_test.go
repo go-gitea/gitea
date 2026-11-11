@@ -13,6 +13,7 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -180,9 +181,7 @@ func TestAuditLogAdministrationEvents(t *testing.T) {
 
 	assertEvent := func(t *testing.T, action audit_model.Action, scopeType audit_model.ScopeType, scopeID int64) {
 		t.Helper()
-		events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{Action: action, ScopeType: scopeType, ScopeID: scopeID})
-		require.NoError(t, err)
-		assert.Len(t, events, 1, "audit events for %s", action)
+		unittest.AssertCount(t, &audit_model.Event{Action: action, ScopeType: scopeType, ScopeID: scopeID}, 1)
 	}
 
 	t.Run("ActionsRunners", func(t *testing.T) {
@@ -204,10 +203,13 @@ func TestAuditLogAdministrationEvents(t *testing.T) {
 	})
 
 	t.Run("SystemConfig", func(t *testing.T) {
-		loginUser(t, "user1").MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/config", map[string]string{
-			"key":   "instance.web_banner",
-			"value": `{"DisplayEnabled":true,"ContentMessage":"audit"}`,
-		}), http.StatusOK)
+		session := loginUser(t, "user1")
+		for range 2 {
+			session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/config", map[string]string{
+				"key":   "instance.web_banner",
+				"value": `{"DisplayEnabled":true,"ContentMessage":"audit"}`,
+			}), http.StatusOK)
+		}
 		assertEvent(t, audit_model.SystemConfigUpdate, audit_model.ScopeSystem, 0)
 	})
 

@@ -156,12 +156,19 @@ loop:
 	if ctx.Written() {
 		return
 	}
+	_, oldSettings, err := system_model.GetAllSettings(ctx)
+	if err != nil {
+		ctx.ServerError("GetAllSettings", err)
+		return
+	}
 	if err := system_model.SetSettings(ctx, configSettings); err != nil {
 		ctx.ServerError("SetSettings", err)
 		return
 	}
 	for _, key := range slices.Sorted(maps.Keys(configSettings)) {
-		audit.Record(ctx, audit_model.SystemConfigUpdate, nil, "key", key)
+		if configSettings[key] != oldSettings[key] {
+			audit.Record(ctx, audit_model.SystemConfigUpdate, nil, "key", key)
+		}
 	}
 	config.GetDynGetter().InvalidateCache()
 	ctx.JSONOK()
