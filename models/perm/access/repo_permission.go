@@ -35,7 +35,8 @@ type Permission struct {
 	everyoneAccessMode  map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for every signed-in user
 	anonymousAccessMode map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for anonymous (non-signed-in) user
 
-	orgRepoTeams []*organization.Team
+	isCollaborator bool
+	orgRepoTeams   []*organization.Team
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -46,6 +47,10 @@ func (p *Permission) IsOwner() bool {
 // IsAdmin returns true if current user has admin or higher access of repository.
 func (p *Permission) IsAdmin() bool {
 	return p.AccessMode >= perm_model.AccessModeAdmin
+}
+
+func (p *Permission) IsMemberOrCollaborator() bool {
+	return p.IsAdmin() || p.isCollaborator || len(p.orgRepoTeams) > 0
 }
 
 // HasAnyUnitAccess returns true if the user might have at least one access mode to any unit of this repository.
@@ -240,23 +245,10 @@ func finalProcessRepoUnitPermission(user *user_model.User, perm *Permission) {
 	origPermUnits := perm.units
 	perm.units = make([]*repo_model.RepoUnit, 0, len(perm.units))
 	for _, u := range origPermUnits {
-		shouldKeep := false
-		for t := range perm.unitsMode {
-			if shouldKeep = u.Type == t; shouldKeep {
-				break
-			}
-		}
-		for t := range perm.anonymousAccessMode {
-			if shouldKeep = shouldKeep || u.Type == t; shouldKeep {
-				break
-			}
-		}
-		for t := range perm.everyoneAccessMode {
-			if shouldKeep = shouldKeep || u.Type == t; shouldKeep {
-				break
-			}
-		}
-		if shouldKeep {
+		_, hasUnitMode := perm.unitsMode[u.Type]
+		_, hasAnonymousMode := perm.anonymousAccessMode[u.Type]
+		_, hasEveryoneMode := perm.everyoneAccessMode[u.Type]
+		if hasUnitMode || hasAnonymousMode || hasEveryoneMode {
 			perm.units = append(perm.units, u)
 		}
 	}
@@ -445,9 +437,8 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 		return perm, nil
 	}
 
-	var isCollaborator bool
 	if user != nil {
-		isCollaborator, err = repo_model.IsCollaborator(ctx, repo.ID, user.ID)
+		perm.isCollaborator, err = repo_model.IsCollaborator(ctx, repo.ID, user.ID)
 		if err != nil {
 			return perm, err
 		}
@@ -460,7 +451,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	// Prevent strangers from checking out public repo of private organization/users
 	// Allow user if they are a collaborator of a repo within a private user or a private organization but not a member of the organization itself
 	// TODO: rename it to "IsOwnerVisibleToDoer"
-	if !organization.HasOrgOrUserVisible(ctx, repo.Owner, user) && !isCollaborator {
+	if !organization.HasOrgOrUserVisible(ctx, repo.Owner, user) && !perm.isCollaborator {
 		perm.AccessMode = perm_model.AccessModeNone
 		return perm, nil
 	}
@@ -503,7 +494,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
 
 	// Collaborators on organization
-	if isCollaborator {
+	if perm.isCollaborator {
 		for _, u := range repo.Units {
 			perm.unitsMode[u.Type] = perm.AccessMode
 		}

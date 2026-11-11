@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	activities_model "gitea.dev/models/activities"
 	asymkey_model "gitea.dev/models/asymkey"
@@ -183,7 +184,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	if len(reposQuery) != 0 {
-		if issueReposQueryPattern.MatchString(reposQuery) {
+		if issueReposQueryPattern().MatchString(reposQuery) {
 			// remove "[" and "]" from string
 			reposQuery = reposQuery[1 : len(reposQuery)-1]
 			// for each ID (delimiter ",") add to int to repoIDs
@@ -353,7 +354,9 @@ func Issues(ctx *context.Context) {
 }
 
 // Regexp for repos query
-var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
+var issueReposQueryPattern = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
+})
 
 func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// ----------------------------------------------------

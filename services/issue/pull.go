@@ -5,20 +5,24 @@ package issue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
+	"sync"
 	"time"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	org_model "gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
-	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
+	lru "github.com/hashicorp/golang-lru/v2"
 	"xorm.io/builder"
 )
 
@@ -40,61 +44,82 @@ func IsCodeOwnerFile(f string) bool {
 }
 
 // Get all code owner rules for a given pr + repo combination.
-func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_model.PullRequest) ([]*issues_model.CodeOwnerRule, error) {
+func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_model.PullRequest) ([]*issues_model.CodeOwnerRule, []string, error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	pr.Issue.Repo = pr.BaseRepo
 
 	if pr.BaseRepo.IsFork {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	commit, err := repo.GetBranchCommit(ctx, pr.BaseBranch)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	return GetCodeOwnerRules(ctx, repo, commit)
+}
 
-	var data string
+const maxCodeOwnersFileSize = 3 * 1024 * 1024 // 3M as GitHub
 
+type repoCommitCodeOwnersItem struct {
+	content  string
+	warnings []string
+}
+
+var repoCommitCodeOwnersCache = sync.OnceValue(func() *lru.Cache[string, *repoCommitCodeOwnersItem] {
+	cache, _ := lru.New[string, *repoCommitCodeOwnersItem](50)
+	return cache
+})
+
+func getCodeOwnerRulesContent(ctx context.Context, repo *git.Repository, commit *git.Commit) (string, error) {
 	for _, file := range codeOwnerFiles {
 		blob, err := commit.GetBlobByPath(ctx, repo, file)
-		if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
 			continue // no CODEOWNERS at this path, try the next candidate
+		} else if err != nil {
+			return "", err
 		}
 		// A truncated CODEOWNERS would silently drop rules, so fail closed rather
 		// than evaluate an incomplete file (the gate must not under-enforce).
-		if blob.Size(ctx) > setting.UI.MaxDisplayFileSize {
-			return nil, fmt.Errorf("CODEOWNERS file %q exceeds the maximum readable size", file)
+		if blob.Size(ctx) > maxCodeOwnersFileSize {
+			return "", util.ErrorWrap(util.ErrUnprocessableContent, "CODEOWNERS file exceeds the maximum readable size")
 		}
 		// The file exists but is unreadable: propagate instead of swallowing, so
 		// callers can fail closed instead of treating it as "no code owners".
-		data, err = blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
+		data, err := blob.GetBlobContent(ctx, maxCodeOwnersFileSize)
 		if err != nil {
-			return nil, err
+			log.Error("GetCodeOwnerRules: failed to read CODEOWNERS file %q at commit %s: %v", file, commit.ID, err)
+			return "", util.ErrorWrap(util.ErrUnprocessableContent, "failed to read CODEOWNERS file")
 		}
-		break
+		return data, nil
 	}
+	return "", nil
+}
 
-	// no code owner file = no one to approve
-	if data == "" {
-		return nil, nil
+// GetCodeOwnerRules reads CODEOWNERS from the supplied commit.
+func GetCodeOwnerRules(ctx context.Context, repo *git.Repository, commit *git.Commit) (rules []*issues_model.CodeOwnerRule, warnings []string, err error) {
+	key := fmt.Sprintf("%s:%s", repo.GitRepoManagedID(), commit.ID)
+	it, ok := repoCommitCodeOwnersCache().Get(key)
+	if !ok {
+		content, err := getCodeOwnerRulesContent(ctx, repo, commit)
+		if err != nil {
+			return nil, nil, err
+		}
+		it = &repoCommitCodeOwnersItem{content, warnings}
+		repoCommitCodeOwnersCache().Add(key, it)
 	}
-
-	rules, warnings := issues_model.GetCodeOwnersFromContent(ctx, data)
-	for _, w := range warnings {
-		log.Warn("CODEOWNERS parsing for PR %s#%d: %s", pr.BaseRepo.FullName(), pr.ID, w)
+	if len(it.warnings) != 0 {
+		return nil, it.warnings, nil
 	}
-	if len(rules) == 0 {
-		return nil, nil
-	}
-
-	return rules, nil
+	rules, warnings = issues_model.GetCodeOwnersFromContent(ctx, it.content) // it loads database for users and teams, so we can't cache the rules
+	return rules, warnings, nil
 }
 
 // Get the matching code owner rules for a given pr + repo combination. The returned
@@ -110,7 +135,7 @@ func getMatchingCodeOwnerRules(ctx context.Context, pr *issues_model.PullRequest
 	}
 	defer closer.Close()
 
-	rules, err := getCodeOwnerRules(ctx, repo, pr)
+	rules, _, err := getCodeOwnerRules(ctx, repo, pr)
 	if err != nil {
 		return nil, false, err
 	}
@@ -131,30 +156,53 @@ func getMatchingCodeOwnerRules(ctx context.Context, pr *issues_model.PullRequest
 		return nil, false, err
 	}
 
-	matchingRules = make([]*issues_model.CodeOwnerRule, 0)
-	complete = true
+	matchingRules, warnings := MatchCodeOwnerRules(rules, changedFiles)
+	complete = len(warnings) == 0
+	if !complete {
+		log.Warn("CODEOWNERS matching for PR %s#%d exceeded its time budget; some rules were not evaluated", pr.BaseRepo.FullName(), pr.ID)
+	}
+	return matchingRules, complete, nil
+}
 
-	// Bound the total time spent matching rules×files. The per-rule MatchTimeout
-	// only caps a single match; without an aggregate budget a crafted CODEOWNERS
-	// plus a PR touching many files could still exhaust CPU inside this loop.
-	matchDeadline := time.Now().Add(codeOwnerMatchBudget)
-ruleLoop:
-	for _, rule := range rules {
-		for _, f := range changedFiles {
-			if time.Now().After(matchDeadline) {
-				log.Warn("CODEOWNERS matching for PR %s#%d exceeded its time budget; some rules were not evaluated", pr.BaseRepo.FullName(), pr.ID)
-				complete = false
-				break ruleLoop
+// MatchCodeOwnerRules selects matching rules, with the last match winning within each named section.
+func MatchCodeOwnerRules(rules []*issues_model.CodeOwnerRule, paths []string) (_ []*issues_model.CodeOwnerRule, warnings []string) {
+	selected := make(map[*issues_model.CodeOwnerRule]bool)
+	deadline := time.Now().Add(codeOwnerMatchBudget)
+	for _, path := range paths {
+		sections := make(map[string]*issues_model.CodeOwnerRule)
+		for _, rule := range rules {
+			if rule.Section == "" && selected[rule] {
+				continue
 			}
-			matched, _ := rule.Rule.MatchString(f) // err only happens when timeouts, any error can be considered as not matched
-			if matched != rule.Negative {
-				matchingRules = append(matchingRules, rule)
-				break
+			if time.Now().After(deadline) {
+				return nil, []string{"CODEOWNERS matching exceeded its time budget"}
+			}
+			patternMatched, err := rule.Rule.MatchString(path)
+			// err only happens when timeouts, any error can be considered as not matched
+			if err != nil {
+				return nil, []string{fmt.Sprintf("CODEOWNERS rule %q times out for matching against path %q", rule.Rule.String(), path)}
+			}
+			ruleMatched := patternMatched != rule.Negative
+			if !ruleMatched {
+				continue
+			}
+			if rule.Section == "" {
+				selected[rule] = true
+			} else {
+				sections[rule.Section] = rule
 			}
 		}
+		for _, rule := range sections {
+			selected[rule] = true
+		}
 	}
-
-	return matchingRules, complete, nil
+	matching := make([]*issues_model.CodeOwnerRule, 0, len(selected))
+	for _, rule := range rules {
+		if selected[rule] {
+			matching = append(matching, rule)
+		}
+	}
+	return matching, nil
 }
 
 func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.ProtectedBranch, pr *issues_model.PullRequest) bool {
@@ -279,8 +327,27 @@ func pullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	issue := pr.Issue
 	uniqUsers := make(map[int64]*user_model.User)
 	uniqTeams := make(map[string]*org_model.Team)
+	// TODO: should a user in a team be notified if the user themselves doesn't accept notification? Leave the decisions to the future ....
+	watchingPullRequests := make(map[int64]bool)
 	for _, rule := range matchingRules {
+		if !rule.ReviewRequest.ValueOrDefault(true) {
+			continue
+		}
 		for _, u := range rule.Users {
+			if !rule.ReviewRequest.Has() && uniqUsers[u.ID] == nil {
+				watching, ok := watchingPullRequests[u.ID]
+				if !ok {
+					watch, err := repo_model.GetWatch(ctx, u.ID, issue.RepoID)
+					if err != nil {
+						return nil, err
+					}
+					watching = watch.IsWatching() && watch.IncludePullRequests
+					watchingPullRequests[u.ID] = watching
+				}
+				if !watching {
+					continue
+				}
+			}
 			uniqUsers[u.ID] = u
 		}
 		for _, t := range rule.Teams {

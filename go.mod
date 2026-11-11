@@ -2,14 +2,14 @@ module gitea.dev
 
 go 1.27
 
-toolchain go1.27.3
+toolchain go1.27.4
 
 require (
 	connectrpc.com/connect/v2 v2.0.2
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
-	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
+	gitea.com/lunny/levelqueue v0.5.1
 	gitea.dev/actionslib v1.5.2
-	gitea.dev/sdk v1.5.0
+	gitea.dev/sdk v1.5.1
 	github.com/42wim/httpsig v1.3.0
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432
 	github.com/Azure/go-ntlmssp v0.1.1
@@ -19,14 +19,14 @@ require (
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.10.0
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
-	github.com/blevesearch/bleve/v2 v2.6.1
+	github.com/blevesearch/bleve/v2 v2.6.2
 	github.com/bohde/codel v0.2.0
 	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c
 	github.com/buildkite/terminal-to-html/v3 v3.17.3
 	github.com/caddyserver/certmagic v0.25.6
 	github.com/charmbracelet/git-lfs-transfer v0.1.1-0.20260812203852-971c0284dc33
 	github.com/coder/websocket v1.8.15
-	github.com/dlclark/regexp2/v2 v2.11.0
+	github.com/dlclark/regexp2/v2 v2.12.0
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.1.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.5
@@ -79,12 +79,11 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/ulikunitz/xz v0.5.17
-	github.com/urfave/cli-docs/v3 v3.1.0
+	github.com/urfave/cli-docs/v3 v3.2.0
 	github.com/urfave/cli/v3 v3.14.0
 	github.com/wneessen/go-mail v0.8.1
-	github.com/yohcop/openid-go v1.0.1
-	github.com/yuin/goldmark v1.8.6
-	gitlab.com/gitlab-org/api/client-go/v3 v3.39.1
+	github.com/yuin/goldmark v1.8.7
+	gitlab.com/gitlab-org/api/client-go/v3 v3.43.0
 	go.yaml.in/yaml/v4 v4.0.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.47.0
@@ -108,13 +107,13 @@ require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/RoaringBitmap/roaring/v2 v2.18.2 // indirect
 	github.com/STARRY-S/zip v0.2.3 // indirect
-	github.com/andybalholm/brotli v1.2.1 // indirect
+	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/andybalholm/cascadia v1.3.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.24.5 // indirect
 	github.com/blevesearch/bleve_index_api v1.4.1 // indirect
-	github.com/blevesearch/geo v0.2.6 // indirect
+	github.com/blevesearch/geo v0.2.7-0.20260831141219-9c3e3a4d84bc // indirect
 	github.com/blevesearch/go-faiss v1.1.5 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
 	github.com/blevesearch/gtreap v0.1.1 // indirect
@@ -123,14 +122,14 @@ require (
 	github.com/blevesearch/segment v0.9.1 // indirect
 	github.com/blevesearch/snowballstem v0.9.0 // indirect
 	github.com/blevesearch/upsidedown_store_api v1.0.2 // indirect
-	github.com/blevesearch/vellum v1.2.0 // indirect
+	github.com/blevesearch/vellum v1.2.1 // indirect
 	github.com/blevesearch/zapx/v11 v11.4.3 // indirect
 	github.com/blevesearch/zapx/v12 v12.4.3 // indirect
 	github.com/blevesearch/zapx/v13 v13.4.3 // indirect
 	github.com/blevesearch/zapx/v14 v14.4.3 // indirect
 	github.com/blevesearch/zapx/v15 v15.4.3 // indirect
 	github.com/blevesearch/zapx/v16 v16.3.4 // indirect
-	github.com/blevesearch/zapx/v17 v17.2.3 // indirect
+	github.com/blevesearch/zapx/v17 v17.2.4 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.4 // indirect
 	github.com/bodgit/plumbing v1.3.0 // indirect
 	github.com/bodgit/sevenzip v1.6.4 // indirect
@@ -222,7 +221,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/time v0.16.0 // indirect

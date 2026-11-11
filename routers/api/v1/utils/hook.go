@@ -344,6 +344,9 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 				ctx.APIError(http.StatusUnprocessableEntity, "Invalid url")
 				return false
 			}
+			if url != w.URL {
+				w.HeaderAuthorizationEncrypted = "" // the API never reveals the header, so it must not follow the hook to a new url
+			}
 			w.URL = url
 		}
 		if ct, ok := form.Config["content_type"]; ok {
@@ -371,17 +374,20 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 		}
 	}
 
-	// Update events
-	w.HookEvents = updateHookEvents(form.Events)
-	w.PushOnly = false
-	w.SendEverything = false
-	w.ChooseEvents = true
-	w.BranchFilter = form.BranchFilter
-
-	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return false
+	if len(form.Events) > 0 {
+		w.HookEvents = updateHookEvents(form.Events)
+		w.PushOnly = false
+		w.SendEverything = false
+		w.ChooseEvents = true
+	}
+	if form.BranchFilter != nil {
+		w.BranchFilter = *form.BranchFilter
+	}
+	if form.AuthorizationHeader != nil {
+		if err := w.SetHeaderAuthorization(*form.AuthorizationHeader); err != nil {
+			ctx.APIErrorInternal(err)
+			return false
+		}
 	}
 
 	if err := w.UpdateEvent(); err != nil {
