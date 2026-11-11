@@ -592,24 +592,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 
-func compareRefExists(ctx *context.Context, compareParam string) bool {
-	compareReq := common.ParseCompareRouterParam(compareParam)
-	if compareReq.HeadOriRef == "" {
-		return false
-	}
-
-	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, ctx.Repo.Repository, compareReq)
-	if err != nil {
-		return false
-	}
-	headGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, headRepo)
-	if err != nil {
-		return false
-	}
-	_, err = common.ResolveRefWithSuffix(ctx, headGitRepo, compareReq.HeadOriRef, compareReq.HeadOriRefSuffix)
-	return err == nil
-}
-
 func downloadCompareDiffOrPatch(ctx *context.Context, ci *git_service.CompareInfo, downloadSuffix string) {
 	ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	compareArg := ci.BaseCommitID + ci.CompareSeparator + ci.HeadCommitID
