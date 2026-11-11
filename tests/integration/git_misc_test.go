@@ -113,7 +113,7 @@ func TestAgitPullPush(t *testing.T) {
 				assert.NoError(t, err)
 
 				// create PR via agit
-				err = gitcmd.NewCommand(testCase.pushArgs...).WithDir(dstPath).Run(t.Context())
+				err = gitcmd.NewCommand(testCase.pushArgs...).WithDir(dstPath).RunWithStderr(t.Context())
 				assert.NoError(t, err)
 
 				// check pull request exist
@@ -132,14 +132,14 @@ func TestAgitPullPush(t *testing.T) {
 					// push 2
 					err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").
 						WithDir(dstPath).
-						Run(t.Context())
+						RunWithStderr(t.Context())
 					assert.NoError(t, err)
 					pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Flow: issues_model.PullRequestFlowAGit, HeadBranch: "user2/test-agit-push"})
 					assert.Equal(t, 0, pr.CommitsBehind)
 					assert.Equal(t, 2, pr.CommitsAhead)
 
 					// reset to first commit
-					err = gitcmd.NewCommand("reset", "--hard", "HEAD~1").WithDir(dstPath).Run(t.Context())
+					err = gitcmd.NewCommand("reset", "--hard", "HEAD~1").WithDir(dstPath).RunWithStderr(t.Context())
 					assert.NoError(t, err)
 
 					// test force push without confirm
@@ -153,8 +153,13 @@ func TestAgitPullPush(t *testing.T) {
 					// test force push with confirm
 					err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").
 						WithDir(dstPath).
-						Run(t.Context())
+						RunWithStderr(t.Context())
 					assert.NoError(t, err)
+
+					_, stderr, _ = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/no-such-branch/test-agit-push").
+						WithDir(dstPath).
+						RunStdString(t.Context())
+					assert.Contains(t, stderr, "Unexpected ref: refs/for/no-such-branch/test-agit-push")
 				} else {
 					// Get initial commit ID for the review
 					initialCommitID := pr.HeadCommitID
@@ -188,7 +193,7 @@ func TestAgitPullPush(t *testing.T) {
 
 					err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-review").
 						WithDir(dstPath).
-						Run(t.Context())
+						RunWithStderr(t.Context())
 					assert.NoError(t, err)
 
 					// Reload PR to get updated commit ID

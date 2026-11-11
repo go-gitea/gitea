@@ -130,10 +130,10 @@ export async function createProjectColumn(requestContext: APIRequestContext, own
   }), 'createProjectColumn');
 }
 
-export async function apiCreateProject(requestContext: APIRequestContext, owner: string, repo: string, title: string): Promise<number> {
+export async function apiCreateProject(requestContext: APIRequestContext, owner: string, repo: string, title: string, {templateType}: {templateType?: string} = {}): Promise<number> {
   const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/projects`, {
     headers: apiHeaders(),
-    data: {title},
+    data: {title, template_type: templateType},
   }), 'apiCreateProject');
   return (await response.json()).id;
 }
@@ -236,6 +236,14 @@ export async function clickDropdownItem(page: Page, trigger: Locator, itemText: 
 
 export async function loginUser(page: Page, username: string) {
   return login(page, username, testUserPassword);
+}
+
+export async function signInWithPassword(page: Page, username: string) {
+  await page.context().clearCookies();
+  await page.goto('/user/login');
+  await page.getByLabel('Username or Email Address').fill(username);
+  await page.getByLabel('Password').fill(testUserPassword);
+  await page.getByRole('button', {name: 'Sign In', exact: true}).click();
 }
 
 export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, password = env.GITEA_TEST_E2E_PASSWORD) {

@@ -150,7 +150,7 @@ func TestCommitsByFileAndRange(t *testing.T) {
 	assert.False(t, hasMore)
 
 	repoFollowRenameDir := filepath.Join(t.TempDir(), "repo.git")
-	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoFollowRenameDir).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoFollowRenameDir).RunWithStderr(t.Context()))
 	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoFollowRenameDir).WithStdinBytes([]byte(strings.TrimSpace(`
 blob
 mark :1

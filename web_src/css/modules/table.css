@@ -174,8 +174,7 @@
 }
 
 /* Column Width */
-.ui.table th.one.wide,
-.ui.table td.one.wide {
+.ui.table th.one.wide {
   width: 6.25%;
 }
 .ui.table th.two.wide,
@@ -186,16 +185,14 @@
 .ui.table td.three.wide {
   width: 18.75%;
 }
-.ui.table th.four.wide,
-.ui.table td.four.wide {
+.ui.table th.four.wide {
   width: 25%;
 }
 .ui.table th.five.wide,
 .ui.table td.five.wide {
   width: 31.25%;
 }
-.ui.table th.six.wide,
-.ui.table td.six.wide {
+.ui.table th.six.wide {
   width: 37.5%;
 }
 .ui.table th.eight.wide,
@@ -206,8 +203,7 @@
 .ui.table td.ten.wide {
   width: 62.5%;
 }
-.ui.table th.eleven.wide,
-.ui.table td.eleven.wide {
+.ui.table th.eleven.wide {
   width: 68.75%;
 }
 

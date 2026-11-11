@@ -204,8 +204,6 @@ type SearchRepoOptions struct {
 	// True -> include just has milestones
 	// False -> include just has no milestone
 	HasMilestones optional.Option[bool]
-	// LowerNames represents valid lower names to restrict to
-	LowerNames []string
 	// When specified true, apply some filters over the conditions:
 	// - Don't show forks, when opts.Fork is OptionalBoolNone.
 	// - Do not display repositories that don't have a description, an icon and topics.
@@ -658,8 +656,13 @@ func userAllPublicRepoCond(cond builder.Cond, ownerVisibilityLimit []structs.Vis
 
 // AccessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) builder.Cond {
+	unitCond := builder.NewCond()
+	if unitType != unit.TypeInvalid {
+		unitCond = builder.Exists(builder.Select("id").From("repo_unit").Where(builder.Expr("repo_unit.repo_id = `repository`.id").
+			And(builder.Eq{"repo_unit.type": unitType}, builder.NotIn("repo_unit.type", unit.DisabledRepoUnitsGet()))))
+	}
 	if user_model.IsPublicOnlyDoer(user) && !user.IsRestricted {
-		return PublicRepoUnderPublicOwnerCond()
+		return PublicRepoUnderPublicOwnerCond().And(unitCond)
 	}
 	cond := builder.NewCond()
 
@@ -698,7 +701,7 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 			cond = userAllPublicRepoCond(cond, orgVisibilityLimit)
 		}
 	}
-	return cond.And(DoerTokenRepoCond(user))
+	return cond.And(DoerTokenRepoCond(user), unitCond)
 }
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
@@ -822,10 +825,6 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID}, DoerTokenRepoCond(opts.Actor))
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
-	}
-
-	if len(opts.LowerNames) > 0 {
-		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
 	sess := db.GetEngine(ctx)
