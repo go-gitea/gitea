@@ -79,6 +79,11 @@ func (repo *Repository) GetPatch(ctx context.Context, compareArg string, w io.Wr
 // If base is undefined empty SHA (zeros), it only returns the files changed in the head commit
 // If base is the SHA of an empty tree (EmptyTreeSHA), it returns the files changes from the initial commit to the head commit
 func (repo *Repository) GetFilesChangedBetween(ctx context.Context, base, head string) ([]string, error) {
+	return repo.GetFilesChangedBetweenWithEnv(ctx, base, head, nil)
+}
+
+// GetFilesChangedBetweenWithEnv is like GetFilesChangedBetween but runs git with extra env (e.g. a pre-receive quarantine)
+func (repo *Repository) GetFilesChangedBetweenWithEnv(ctx context.Context, base, head string, env []string) ([]string, error) {
 	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
@@ -89,7 +94,7 @@ func (repo *Repository) GetFilesChangedBetween(ctx context.Context, base, head s
 	} else {
 		cmd.AddDynamicArguments(base, head)
 	}
-	stdout, _, err := cmd.WithRepo(repo).RunStdString(ctx)
+	stdout, _, err := cmd.WithEnv(env).WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}

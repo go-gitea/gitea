@@ -304,29 +304,10 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 		oldCommitID = startCommitID
 	}
 
-	affectedFiles := make([]string, 0, 32)
-
-	// "-z" keeps paths raw, otherwise git quotes special characters and they can no longer match path patterns
-	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(oldCommitID, newCommitID)
-	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
-	defer stdoutReaderClose()
-	err := cmd.WithEnv(env).WithRepo(repo).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			// Now scan the output from the command
-			scanner := bufio.NewScanner(stdoutReader)
-			scanner.Split(util.BufioScannerSplit(0))
-			for scanner.Scan() {
-				if path := scanner.Text(); path != "" {
-					affectedFiles = append(affectedFiles, path)
-				}
-			}
-			return scanner.Err()
-		}).
-		RunWithStderr(ctx)
+	affectedFiles, err := repo.GetFilesChangedBetweenWithEnv(ctx, oldCommitID, newCommitID, env)
 	if err != nil {
 		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.LogString(), err)
 	}
-
 	return affectedFiles, err
 }
 
