@@ -4,6 +4,7 @@
 package private
 
 import (
+	"net/http"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -14,6 +15,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/private"
+	"gitea.dev/modules/web"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -112,4 +114,21 @@ func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	// scoped to PR head branches, so a non-branch ref can never match it. (A tag ref already
 	// yields an empty branch name, so this guards the per-ref evaluation, not the IsBranch check.)
 	assert.False(t, ctx.canWriteCodeRef(git.RefNameFromTag("granted-branch")))
+}
+
+func TestHookProcReceiveNeedsPullRequests(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx, resp := contexttest.MockPrivateContext(t, "/")
+	ctx.SetPathParam("owner", "user2")
+	ctx.SetPathParam("repo", "repo2")
+	RepoAssignment(ctx)
+	require.False(t, ctx.Written())
+	defer ctx.Repo.GitRepo.Close()
+
+	web.SetForm(ctx, &private.HookOptions{
+		UserID:       2,
+		RefFullNames: []git.RefName{"refs/for/master"},
+	})
+	HookProcReceive(ctx)
+	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
 }
