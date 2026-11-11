@@ -49,7 +49,7 @@ class ExclusiveResponse {
     return this.abortController.signal.aborted || this.exclusiveFetch.currentController !== this.abortController;
   }
 
-  private async fetchGeneric<T, R>(readResp: (resp: Response) => Promise<T>, userFn: (ret: T) => R | Promise<R>) : Promise<R | undefined> {
+  private async fetchGeneric<T, R>(readResp: (resp: Response) => Promise<T>, callback: (ret: T) => R | Promise<R>) : Promise<R | undefined> {
     try {
       const resp = await this.promiseResp;
       if (this.isAborted()) return undefined;
@@ -59,11 +59,11 @@ class ExclusiveResponse {
       }
       const ret = await readResp(resp);
       if (this.isAborted()) return undefined;
-      return await userFn(ret);
+      return await callback(ret);
     } catch (err) {
       // avoid network error while unloading page, and ignore "abort" error
       if (isNetworkError(err) || this.isAborted()) return undefined;
-      // let caller handle user function's exceptions
+      // let caller handle callback function's exceptions
       throw err;
     } finally {
       if (this.exclusiveFetch.currentController === this.abortController) {
@@ -72,7 +72,7 @@ class ExclusiveResponse {
     }
   }
 
-  // onResponseError allows the user to set a callback function that will be called when the response is not ok (e.g., 4xx or 5xx status codes).
+  // onResponseError allows the caller to set a callback function that will be called when the response is not ok (e.g., 4xx or 5xx status codes).
   // The callback is only called when the request is not-ok and not aborted (the request is the last one).
   onResponseError(fn: (details: {message: string, response?: Response}) => void) {
     this.onResponseErrorFn = fn;
