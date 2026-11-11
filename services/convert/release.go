@@ -33,14 +33,16 @@ func ToAPIRelease(ctx context.Context, repo *repo_model.Repository, r *repo_mode
 	}
 }
 
-// ToReleaseChanges returns the previous name and body of an edited release
-func ToReleaseChanges(rel *repo_model.Release, oldTitle, oldNote string) *api.ChangesPayload {
+func ToReleaseChanges(rel, oldRelease *repo_model.Release) *api.ChangesPayload {
 	changes := &api.ChangesPayload{}
-	if oldTitle != rel.Title {
-		changes.Name = &api.ChangesFromPayload{From: oldTitle}
+	if oldRelease.Title != rel.Title {
+		changes.Name = &api.ChangesFromPayload{From: oldRelease.Title}
 	}
-	if oldNote != rel.Note {
-		changes.Body = &api.ChangesFromPayload{From: oldNote}
+	if oldRelease.Note != rel.Note {
+		changes.Body = &api.ChangesFromPayload{From: oldRelease.Note}
+	}
+	if oldRelease.TagName != rel.TagName {
+		changes.TagName = &api.ChangesFromPayload{From: oldRelease.TagName}
 	}
 	return changes
 }

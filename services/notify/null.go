@@ -100,11 +100,11 @@ func (*NullNotifier) DeleteWikiPage(ctx context.Context, doer *user_model.User, 
 }
 
 // NewRelease places a place holder function
-func (*NullNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
+func (*NullNotifier) NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 }
 
 // UpdateRelease places a place holder function
-func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, oldTitle, oldNote string) {
+func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel, oldRelease *repo_model.Release) {
 }
 
 // DeleteRelease places a place holder function

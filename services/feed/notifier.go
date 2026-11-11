@@ -453,7 +453,7 @@ func (a *actionNotifier) SyncDeleteRef(ctx context.Context, doer *user_model.Use
 	}
 }
 
-func (a *actionNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
+func (a *actionNotifier) NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	if err := rel.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return

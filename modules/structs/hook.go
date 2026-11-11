@@ -487,6 +487,8 @@ type ChangesPayload struct {
 	Base *ChangesBasePayload `json:"base,omitempty"`
 	// Changes made to the repository or release name
 	Name *ChangesFromPayload `json:"name,omitempty"`
+	// Changes made to the release tag name
+	TagName *ChangesFromPayload `json:"tag_name,omitempty"`
 	// Changes made to the repository owner
 	Owner *ChangesOwnerPayload `json:"owner,omitempty"`
 	// Changes made to the labels added

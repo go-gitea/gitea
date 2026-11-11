@@ -235,7 +235,7 @@ func DeleteComment(ctx context.Context, doer *user_model.User, c *issues_model.C
 }
 
 // NewRelease notifies new release to notifiers
-func NewRelease(ctx context.Context, rel *repo_model.Release) {
+func NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	defer recoverPanic()
 
 	if err := rel.LoadAttributes(ctx); err != nil {
@@ -243,16 +243,16 @@ func NewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 	for _, notifier := range notifiers {
-		notifier.NewRelease(ctx, rel)
+		notifier.NewRelease(ctx, doer, rel)
 	}
 }
 
 // UpdateRelease notifies update release to notifiers
-func UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, oldTitle, oldNote string) {
+func UpdateRelease(ctx context.Context, doer *user_model.User, rel, oldRelease *repo_model.Release) {
 	defer recoverPanic()
 
 	for _, notifier := range notifiers {
-		notifier.UpdateRelease(ctx, doer, rel, oldTitle, oldNote)
+		notifier.UpdateRelease(ctx, doer, rel, oldRelease)
 	}
 }
 

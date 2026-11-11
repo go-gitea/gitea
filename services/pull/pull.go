@@ -370,6 +370,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	if err != nil {
 		return err
 	}
+	releaser()
 	notify_service.PullRequestChangeTargetBranch(ctx, doer, pr, oldBranch, oldSHA)
 	return nil
 }

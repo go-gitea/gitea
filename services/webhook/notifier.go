@@ -904,12 +904,12 @@ func sendReleaseHook(ctx context.Context, doer *user_model.User, rel *repo_model
 	}
 }
 
-func (m *webhookNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
-	sendReleaseHook(ctx, rel.Publisher, rel, api.HookReleasePublished, nil)
+func (m *webhookNotifier) NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	sendReleaseHook(ctx, doer, rel, api.HookReleasePublished, nil)
 }
 
-func (m *webhookNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, oldTitle, oldNote string) {
-	sendReleaseHook(ctx, doer, rel, api.HookReleaseUpdated, convert.ToReleaseChanges(rel, oldTitle, oldNote))
+func (m *webhookNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel, oldRelease *repo_model.Release) {
+	sendReleaseHook(ctx, doer, rel, api.HookReleaseUpdated, convert.ToReleaseChanges(rel, oldRelease))
 }
 
 func (m *webhookNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {

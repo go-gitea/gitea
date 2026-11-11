@@ -615,14 +615,14 @@ func (n *actionsNotifier) SyncDeleteRef(ctx context.Context, pusher *user_model.
 	n.DeleteRef(ctx, pusher, repo, refFullName)
 }
 
-func (n *actionsNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
+func (n *actionsNotifier) NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	ctx = withMethod(ctx, "NewRelease")
-	notifyRelease(ctx, rel.Publisher, rel, api.HookReleasePublished, nil)
+	notifyRelease(ctx, doer, rel, api.HookReleasePublished, nil)
 }
 
-func (n *actionsNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, oldTitle, oldNote string) {
+func (n *actionsNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel, oldRelease *repo_model.Release) {
 	ctx = withMethod(ctx, "UpdateRelease")
-	notifyRelease(ctx, doer, rel, api.HookReleaseUpdated, convert.ToReleaseChanges(rel, oldTitle, oldNote))
+	notifyRelease(ctx, doer, rel, api.HookReleaseUpdated, convert.ToReleaseChanges(rel, oldRelease))
 }
 
 func (n *actionsNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
