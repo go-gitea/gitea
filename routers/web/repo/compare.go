@@ -148,9 +148,10 @@ func setCsvCompareContext(ctx *context.Context) {
 }
 
 type comparePageInfoType struct {
-	compareInfo      *git_service.CompareInfo
-	nothingToCompare bool
-	allowCreatePull  bool
+	compareInfo           *git_service.CompareInfo
+	headRefDownloadSuffix string
+	nothingToCompare      bool
+	allowCreatePull       bool
 }
 
 func newComparePageInfo() *comparePageInfoType {
@@ -203,6 +204,18 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	}
 
 	headRef, err := common.ResolveRefWithSuffix(ctx, headGitRepo, headRefName, compareReq.HeadOriRefSuffix)
+	if errors.Is(err, util.ErrNotExist) && compareReq.HeadOriRefSuffix == "" {
+		// try to parse "base...head.patch" or "base...head.diff" download suffix
+		var hasDownloadSuffix bool
+		if headRefName, hasDownloadSuffix = strings.CutSuffix(headRefName, ".patch"); hasDownloadSuffix {
+			cpi.headRefDownloadSuffix = ".patch"
+		} else if headRefName, hasDownloadSuffix = strings.CutSuffix(headRefName, ".diff"); hasDownloadSuffix {
+			cpi.headRefDownloadSuffix = ".diff"
+		}
+		if hasDownloadSuffix {
+			headRef, err = common.ResolveRefWithSuffix(ctx, headGitRepo, headRefName, "")
+		}
+	}
 	if err != nil {
 		return err
 	}
@@ -512,19 +525,8 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
-	compareParam := ctx.PathParam("*")
-	compareReq := common.ParseCompareRouterParam(compareParam)
-	if strings.HasSuffix(compareReq.HeadOriRef, ".diff") && !compareRefExists(ctx, compareParam) {
-		downloadCompareDiffOrPatch(ctx, strings.TrimSuffix(compareParam, ".diff"), false)
-		return
-	}
-	if strings.HasSuffix(compareReq.HeadOriRef, ".patch") && !compareRefExists(ctx, compareParam) {
-		downloadCompareDiffOrPatch(ctx, strings.TrimSuffix(compareParam, ".patch"), true)
-		return
-	}
-
 	comparePageInfo := newComparePageInfo()
-	err := comparePageInfo.parseCompareInfo(ctx, compareParam)
+	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
 	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 		ctx.NotFound(nil)
 		return
@@ -532,6 +534,12 @@ func CompareDiff(ctx *context.Context) {
 		ctx.ServerError("ParseCompareInfo", err)
 		return
 	}
+
+	if comparePageInfo.headRefDownloadSuffix != "" {
+		downloadCompareDiffOrPatch(ctx, comparePageInfo.compareInfo, comparePageInfo.headRefDownloadSuffix)
+		return
+	}
+
 	ci := comparePageInfo.compareInfo
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
@@ -602,30 +610,18 @@ func compareRefExists(ctx *context.Context, compareParam string) bool {
 	return err == nil
 }
 
-func downloadCompareDiffOrPatch(ctx *context.Context, compareParam string, patch bool) {
-	cpi := newComparePageInfo()
-	if err := cpi.parseCompareInfo(ctx, compareParam); err != nil {
-		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("ParseCompareInfo", err)
-		}
-		return
-	}
-	ci := cpi.compareInfo
-
+func downloadCompareDiffOrPatch(ctx *context.Context, ci *git_service.CompareInfo, downloadSuffix string) {
 	ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	compareArg := ci.BaseCommitID + ci.CompareSeparator + ci.HeadCommitID
 
 	var err error
-	if patch {
+	if downloadSuffix == ".patch" {
 		err = ci.HeadGitRepo.GetPatch(ctx, compareArg, ctx.Resp)
 	} else {
 		err = ci.HeadGitRepo.GetDiff(ctx, compareArg, ctx.Resp)
 	}
 	if err != nil {
 		ctx.ServerError("DownloadCompareDiffOrPatch", err)
-		return
 	}
 }
 
