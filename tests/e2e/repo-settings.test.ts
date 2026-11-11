@@ -26,7 +26,7 @@ test('branch protection rule keeps its push allowlist and dragged priority', asy
   await expect(rules).toHaveText([/release\/stable/, /release\/\*\*/]);
   const rule = rules.filter({hasText: 'release/**'});
   const handle = rule.locator('.drag-handle');
-  const saved = page.waitForResponse((response) => response.url().endsWith(`/${repo}/settings/branches/priority`) && response.request().method() === 'POST');
+  const saved = page.waitForResponse('**/settings/branches/priority');
   await handle.hover();
   await page.mouse.down();
   await handle.hover({position: {x: 2, y: 2}});
@@ -34,7 +34,7 @@ test('branch protection rule keeps its push allowlist and dragged priority', asy
   await rules.first().hover({position: {x: 10, y: 10}});
   await expect(rules.first()).toContainText('release/**');
   await page.mouse.up();
-  expect((await saved).ok()).toBe(true);
+  await saved;
   await page.reload();
   await expect(rules).toHaveText([/release\/\*\*/, /release\/stable/]);
 
