@@ -273,16 +273,29 @@ func performRequest(ctx context.Context, client *http.Client, req *http.Request)
 }
 
 func handleErrorResponse(resp *http.Response) error {
-	var er ErrorResponse
-	err := json.NewDecoder(resp.Body).Decode(&er)
-	if err != nil {
-		if err == io.EOF {
-			return io.ErrUnexpectedEOF
-		}
-		log.Error("Error decoding json: %v", err)
-		return err
+	status := resp.Status
+	if status == "" {
+		status = fmt.Sprintf("%d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 
-	log.Trace("ErrorResponse(%v): %v", resp.Status, er)
-	return errors.New(er.Message)
+	// Non-LFS or misconfigured endpoints reply with plain text or HTML (e.g. a bare
+	// "Not Found" when LFS is disabled), so report the status and body instead of a
+	// misleading JSON decode error when the body is not the expected JSON.
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+	if err != nil {
+		log.Error("Error reading LFS error response body: %v", err)
+		return fmt.Errorf("LFS server returned status %s", status)
+	}
+
+	var er ErrorResponse
+	if err := json.Unmarshal(body, &er); err == nil && er.Message != "" {
+		log.Trace("ErrorResponse(%v): %v", resp.Status, er)
+		return errors.New(er.Message)
+	}
+
+	message := strings.TrimSpace(string(body))
+	if message == "" {
+		return fmt.Errorf("LFS server returned status %s with an empty body", status)
+	}
+	return fmt.Errorf("LFS server returned status %s: %s", status, message)
 }
