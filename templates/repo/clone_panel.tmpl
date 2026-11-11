@@ -47,9 +47,9 @@
 	{{if $downloadArchiveLinkPrefix}}
 		{{if $showOpenWithEditorApps}}<div class="divider"></div>{{end}}
 		<div class="flex-items-block clone-panel-list">
-			<a class="item muted archive-link" href="{{$downloadArchiveLinkPrefix}}.zip" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_zip"}}</a>
-			<a class="item muted archive-link" href="{{$downloadArchiveLinkPrefix}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_tar"}}</a>
-			<a class="item muted archive-link" href="{{$downloadArchiveLinkPrefix}}.bundle" rel="nofollow">{{svg "octicon-package"}} {{ctx.Locale.Tr "repo.download_bundle"}}</a>
+			<a download class="item muted" href="{{$downloadArchiveLinkPrefix}}.zip" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_zip"}}</a>
+			<a download class="item muted" href="{{$downloadArchiveLinkPrefix}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_tar"}}</a>
+			<a download class="item muted" href="{{$downloadArchiveLinkPrefix}}.bundle" rel="nofollow">{{svg "octicon-package"}} {{ctx.Locale.Tr "repo.download_bundle"}}</a>
 		</div>
 	{{end}}
 </div>

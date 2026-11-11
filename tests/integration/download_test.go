@@ -18,7 +18,6 @@ import (
 
 type downloadScopeCase struct {
 	name         string
-	method       string
 	url          string
 	publicOnlyOK bool
 }
@@ -78,25 +77,11 @@ func TestDownloadRepoContent(t *testing.T) {
 		cases := []downloadScopeCase{
 			{
 				name:         "PublicArchiveDownload",
-				method:       http.MethodGet,
 				url:          "/user2/repo1/archive/master.tar.gz",
 				publicOnlyOK: true,
 			},
 			{
 				name:         "PrivateArchiveDownload",
-				method:       http.MethodGet,
-				url:          "/user2/repo2/archive/master.tar.gz",
-				publicOnlyOK: false,
-			},
-			{
-				name:         "PublicArchiveInitiate",
-				method:       http.MethodPost,
-				url:          "/user2/repo1/archive/master.tar.gz",
-				publicOnlyOK: true,
-			},
-			{
-				name:         "PrivateArchiveInitiate",
-				method:       http.MethodPost,
 				url:          "/user2/repo2/archive/master.tar.gz",
 				publicOnlyOK: false,
 			},
@@ -110,7 +95,6 @@ func TestDownloadRepoContent(t *testing.T) {
 			} {
 				cases = append(cases, downloadScopeCase{
 					name:         "Public" + route + ref.name,
-					method:       http.MethodGet,
 					url:          "/user2/repo1/" + strings.ToLower(route) + "/" + ref.path,
 					publicOnlyOK: true,
 				})
@@ -119,19 +103,16 @@ func TestDownloadRepoContent(t *testing.T) {
 		cases = append(cases,
 			downloadScopeCase{
 				name:         "PrivateRawBranch",
-				method:       http.MethodGet,
 				url:          "/user2/repo2/raw/branch/master/test.xml",
 				publicOnlyOK: false,
 			},
 			downloadScopeCase{
 				name:         "PrivateRawBlob",
-				method:       http.MethodGet,
 				url:          "/user2/repo2/raw/blob/6395b68e1feebb1e4c657b4f9f6ba2676a283c0b",
 				publicOnlyOK: false,
 			},
 			downloadScopeCase{
 				name:         "PrivateMediaBranch",
-				method:       http.MethodGet,
 				url:          "/user2/repo2/media/branch/master/test.xml",
 				publicOnlyOK: false,
 			},
@@ -139,14 +120,14 @@ func TestDownloadRepoContent(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				MakeRequest(t, NewRequest(t, tc.method, tc.url).AddTokenAuth(miscToken), http.StatusForbidden)
-				MakeRequest(t, NewRequest(t, tc.method, tc.url).AddTokenAuth(ownerReadToken), http.StatusOK)
+				MakeRequest(t, NewRequest(t, http.MethodGet, tc.url).AddTokenAuth(miscToken), http.StatusForbidden)
+				MakeRequest(t, NewRequest(t, http.MethodGet, tc.url).AddTokenAuth(ownerReadToken), http.StatusOK)
 
 				publicOnlyStatus := http.StatusNotFound
 				if tc.publicOnlyOK {
 					publicOnlyStatus = http.StatusOK
 				}
-				MakeRequest(t, NewRequest(t, tc.method, tc.url).AddTokenAuth(publicOnlyToken), publicOnlyStatus)
+				MakeRequest(t, NewRequest(t, http.MethodGet, tc.url).AddTokenAuth(publicOnlyToken), publicOnlyStatus)
 			})
 		}
 	})
