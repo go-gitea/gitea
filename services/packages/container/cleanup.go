@@ -79,6 +79,10 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 	return nil
 }
 
+func CountsTowardsKeepCount(pv *packages_model.PackageVersion) bool {
+	return pv.LowerVersion != "latest" && digest.Digest(pv.LowerVersion).Validate() != nil
+}
+
 func ShouldBeSkipped(ctx context.Context, pcr *packages_model.PackageCleanupRule, p *packages_model.Package, pv *packages_model.PackageVersion) (bool, error) {
 	// Always skip the "latest" tag
 	if pv.LowerVersion == "latest" {
