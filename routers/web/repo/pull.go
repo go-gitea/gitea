@@ -880,7 +880,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		protectedFilePatterns := pb.GetProtectedFilePatterns()
 		if len(protectedFilePatterns) != 0 {
 			for _, file := range diff.Files {
-				file.IsProtected = pb.IsProtectedFile(protectedFilePatterns, file.Name)
+				file.IsProtected = pb.IsProtectedFile(protectedFilePatterns, file.Name) || (file.IsRenamed && pb.IsProtectedFile(protectedFilePatterns, file.OldName))
 			}
 		}
 	}
