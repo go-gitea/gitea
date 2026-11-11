@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	asymkey_model "gitea.dev/models/asymkey"
 	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
@@ -20,8 +21,11 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/tests"
 
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -176,7 +180,6 @@ func TestAdminAuditLogExport(t *testing.T) {
 func TestAuditLogUserEvents(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
-	defer test.MockVariableValue(&setting.Service.EnableCaptcha, false)()
 
 	findEvent := func(t *testing.T, action audit_model.Action, scopeID int64) *audit_model.Event {
 		t.Helper()
@@ -186,57 +189,61 @@ func TestAuditLogUserEvents(t *testing.T) {
 		return events[0]
 	}
 
-	t.Run("SignUp", func(t *testing.T) {
-		MakeRequest(t, NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
-			"user_name": "audit-signup",
-			"email":     "audit-signup@example.com",
-			"password":  "examplePassword!1",
-			"retype":    "examplePassword!1",
-		}), http.StatusSeeOther)
-
-		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "audit-signup"})
-		assert.Equal(t, u.ID, findEvent(t, audit_model.UserCreate, u.ID).ActorID)
-	})
-
-	t.Run("EmailPrimary", func(t *testing.T) {
+	t.Run("EmailPrimaryAndActivate", func(t *testing.T) {
 		email, err := user_model.InsertEmailAddress(t.Context(), &user_model.EmailAddress{UID: 2, Email: "audit-primary@example.com", IsActivated: true})
 		require.NoError(t, err)
 
-		session := loginUser(t, "user2")
-		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
+		loginUser(t, "user2").MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
 			"_method": "PRIMARY",
 			"id":      strconv.FormatInt(email.ID, 10),
 		}), http.StatusSeeOther)
 
 		assert.Equal(t, email.Email, audit_model.DecodeMetadata(findEvent(t, audit_model.UserEmailPrimaryChange, 2).Metadata)["email"])
+
+		code := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateEmail, NewEmail: "user2-2@example.com"}, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}))
+		MakeRequest(t, NewRequest(t, "GET", "/user/activate_email?code="+code+"&email=user2-2%40example.com"), http.StatusSeeOther)
+		assert.Equal(t, "user2-2@example.com", audit_model.DecodeMetadata(findEvent(t, audit_model.UserEmailActivate, 2).Metadata)["email"])
 	})
 
-	t.Run("APIKeysAndTokens", func(t *testing.T) {
-		session := loginUser(t, "user4")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
+	t.Run("APIGPGKey", func(t *testing.T) {
+		token := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteUser)
+		testCreateValidGPGKey(t, MakeRequest, token, http.StatusCreated)
+		findEvent(t, audit_model.UserKeyGPGAdd, 2)
 
-		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/user/keys", &api.CreateKeyOption{
-			Title: "audit-key",
-			Key:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEYv1rUQ6Sx6XQNM5o8URz8xvuXaV9bGXfj+OMkh8T0X",
-		}).AddTokenAuth(token), http.StatusCreated)
-		findEvent(t, audit_model.UserKeySSHAdd, 4)
-
-		MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/token").AddTokenAuth(token), http.StatusNoContent)
-		findEvent(t, audit_model.UserAccessTokenRemove, 4)
+		key := unittest.AssertExistsAndLoadBean(t, &asymkey_model.GPGKey{OwnerID: 2, KeyID: "38EA3BCED732982C"})
+		MakeRequest(t, NewRequest(t, "DELETE", "/api/v1/user/gpg_keys/"+strconv.FormatInt(key.ID, 10)).AddTokenAuth(token), http.StatusNoContent)
+		findEvent(t, audit_model.UserKeyGPGRemove, 2)
 	})
 
-	// user24 has TOTP enrolled in the fixtures
-	t.Run("TwoFactorScratchFail", func(t *testing.T) {
-		session := loginUser(t, "user24")
-		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/two_factor/scratch", map[string]string{
+	t.Run("TwoFactorFailOnSignInAndPasswordReset", func(t *testing.T) {
+		loginUser(t, "user24").MakeRequest(t, NewRequestWithValues(t, "POST", "/user/two_factor/scratch", map[string]string{
 			"token": "wrong-token",
 		}), http.StatusOK)
 		findEvent(t, audit_model.UserAuthenticationFailTwoFactor, 24)
+
+		code := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 24}))
+		for _, scratchCode := range []string{"true", "false"} {
+			MakeRequest(t, NewRequestWithValues(t, "POST", "/user/recover_account", map[string]string{
+				"code":         code,
+				"scratch_code": scratchCode,
+				"token":        "wrong-token",
+			}), http.StatusOK)
+		}
+		unittest.AssertCount(t, &audit_model.Event{Action: audit_model.UserAuthenticationFailTwoFactor, ScopeID: 24, ActorID: 24}, 3)
+	})
+
+	t.Run("PasswordResetActor", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		code := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, user)
+		MakeRequest(t, NewRequestWithValues(t, "POST", "/user/recover_account", map[string]string{
+			"code":     code,
+			"password": "examplePassword!1",
+		}), http.StatusSeeOther)
+		assert.Equal(t, user.ID, findEvent(t, audit_model.UserPassword, user.ID).ActorID)
 	})
 
 	t.Run("AdminResetTwoFactor", func(t *testing.T) {
-		session := loginUser(t, "user1")
-		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/24/edit", map[string]string{
+		loginUser(t, "user1").MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/24/edit", map[string]string{
 			"login_name": "user24",
 			"login_type": "0-0",
 			"email":      "user24@example.com",
@@ -244,5 +251,20 @@ func TestAuditLogUserEvents(t *testing.T) {
 			"reset_2fa":  "on",
 		}), http.StatusSeeOther)
 		assert.Equal(t, int64(1), findEvent(t, audit_model.UserTwoFactorDisable, 24).ActorID)
+	})
+
+	t.Run("OAuth2AutoRegisterWithoutAccountLinking", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+		defer test.MockVariableValue(&setting.OAuth2Client.AccountLinking, setting.OAuth2AccountLinkingDisabled)()
+		defer test.MockVariableValue(&gothic.CompleteUserAuth, func(http.ResponseWriter, *http.Request) (goth.User, error) {
+			return goth.User{Provider: "gitea", UserID: "audit-oauth2", NickName: "audit-oauth2", Email: "audit-oauth2@example.com"}, nil
+		})()
+		addOAuth2Source(t, "audit-oauth2", oauth2.Source{})
+
+		for range 2 {
+			emptyTestSession(t).MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/audit-oauth2/callback?code=XYZ&state=XYZ"), http.StatusSeeOther)
+		}
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "audit-oauth2"})
+		assert.Equal(t, "audit-oauth2", audit_model.DecodeMetadata(findEvent(t, audit_model.UserExternalLoginAdd, user.ID).Metadata)["external_id"])
 	})
 }

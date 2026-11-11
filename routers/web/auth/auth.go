@@ -730,11 +730,8 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, possibleLinkAcc
 
 	// update external user information
 	if possibleLinkAccountData != nil {
-		gothUser := possibleLinkAccountData.GothUser
-		if err := externalaccount.EnsureLinkExternalToUser(ctx, possibleLinkAccountData.AuthSourceID, u, gothUser); err != nil {
+		if err := externalaccount.EnsureLinkExternalToUser(ctx, possibleLinkAccountData.AuthSourceID, u, possibleLinkAccountData.GothUser); err != nil {
 			log.Error("EnsureLinkExternalToUser failed: %v", err)
-		} else {
-			audit.RecordAs(ctx, u, audit_model.UserExternalLoginAdd, u, "external_id", gothUser.UserID, "provider", gothUser.Provider)
 		}
 	}
 

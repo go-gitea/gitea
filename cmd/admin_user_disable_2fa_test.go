@@ -23,13 +23,13 @@ import (
 
 func TestDisableTwoFactorCommand(t *testing.T) {
 	ctx := t.Context()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 	defer func() {
 		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.User{}, &auth_model.TwoFactor{}, &auth_model.WebAuthnCredential{}))
 	}()
 
 	t.Run("disable TOTP and WebAuthn", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 		require.NoError(t, microcmdUserCreate().Run(ctx, []string{"create", "--username", "tfuser", "--email", "tfuser@gitea.local", "--random-password"}))
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "tfuser"})
 
@@ -75,6 +75,7 @@ func TestDisableTwoFactorCommand(t *testing.T) {
 	t.Run("no enrollment is a no-op", func(t *testing.T) {
 		require.NoError(t, microcmdUserCreate().Run(ctx, []string{"create", "--username", "plainuser", "--email", "plainuser@gitea.local", "--random-password"}))
 		require.NoError(t, microcmdUserDisableTwoFactor().Run(ctx, []string{"disable-2fa", "--username", "plainuser"}))
+		unittest.AssertNotExistsBean(t, &audit_model.Event{Action: audit_model.UserTwoFactorDisable, ScopeName: "plainuser"})
 	})
 
 	t.Run("id and username must match when both given", func(t *testing.T) {

@@ -68,7 +68,9 @@ func runDisableTwoFactor(ctx context.Context, c *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	audit.Record(ctx, audit_model.UserTwoFactorDisable, user)
+	if totp+webAuthn > 0 {
+		audit.Record(ctx, audit_model.UserTwoFactorDisable, user)
+	}
 
 	cprintf(c, "Disabled 2FA for user %q (removed %d TOTP and %d WebAuthn credential(s))\n", user.Name, totp, webAuthn)
 	return nil
