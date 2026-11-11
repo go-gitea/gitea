@@ -6,6 +6,7 @@ package context
 import (
 	"errors"
 	"fmt"
+	"html"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -114,7 +115,7 @@ func (ctx *Context) RenderToHTML(name templates.TplName, data any) (template.HTM
 // WARNING: in many cases, this function is not able to render the page or recover the form fields correctly.
 // And it is very difficult to test the page rendered by this function.
 // DO NOT USE IT ANYMORE.
-func (ctx *Context) RenderWithErrDeprecated(msg any, tpl templates.TplName, form any) {
+func (ctx *Context) RenderWithErrDeprecated[T string | template.HTML](msg T, tpl templates.TplName, form any) {
 	if form != nil {
 		middleware.AssignForm(form, ctx.Data)
 	}
@@ -153,7 +154,7 @@ func (ctx *Context) notFoundInternal(skip int, logMsg string, logErr error) {
 	ctx.HTML(http.StatusNotFound, "status/404")
 }
 
-func (ctx *Context) buildUserErrorMessage(msg string, err error) (userErrorMsg string) {
+func (ctx *Context) buildServerErrorMessageForUser(msg string, err error) (userErrorMsg string) {
 	// it's safe to show internal error to admin users, and it helps
 	if !setting.IsProd || setting.IsInTesting || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
 		userErrorMsg = msg
@@ -162,6 +163,70 @@ func (ctx *Context) buildUserErrorMessage(msg string, err error) (userErrorMsg s
 		}
 	}
 	return util.IfZero(userErrorMsg, ctx.Locale.TrString("error.occurred"))
+}
+
+func (ctx *Context) FlashErrorAuto(err error) {
+	errMsg, _ := util.ErrorUnwrapForHTML(err, ctx.Locale)
+	if errMsg != "" {
+		ctx.Flash.Error(errMsg)
+		return
+	}
+
+	logLevel := util.Iif(httplib.IsClientOrNetworkError(ctx, err), log.DEBUG, log.ERROR)
+	log.Log(1, logLevel, "FlashErrorAuto: server internal error: %v", err)
+
+	userErrorMsg := ctx.buildServerErrorMessageForUser("internal server error", err)
+	ctx.Flash.Error(html.EscapeString(userErrorMsg)) // flash renders HTML with sanitization, so escape the message to keep original content
+}
+
+func (ctx *Context) JSONRedirect(redirect string) {
+	ctx.JSON(http.StatusOK, map[string]any{"redirect": redirect})
+}
+
+func (ctx *Context) JSONOK() {
+	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
+}
+
+func buildJsonErrorMap[T string | template.HTML](msg T) map[string]any {
+	switch v := any(msg).(type) {
+	case string:
+		return map[string]any{"errorMessage": v, "renderFormat": "text"}
+	case template.HTML:
+		return map[string]any{"errorMessage": v, "renderFormat": "html"}
+	}
+	panic(fmt.Sprintf("unsupported type: %T", msg))
+}
+
+func (ctx *Context) JSONErrorAuto(err error) {
+	errMsg, httpCode := util.ErrorUnwrapForHTML(err, ctx.Locale)
+	if errMsg != "" {
+		ctx.JSON(httpCode, buildJsonErrorMap(errMsg))
+		return
+	}
+
+	logLevel := util.Iif(httplib.IsClientOrNetworkError(ctx, err), log.DEBUG, log.ERROR)
+	log.Log(1, logLevel, "JSONErrorAuto: server internal error: %v", err)
+
+	userErrorMsg := ctx.buildServerErrorMessageForUser("internal server error", err)
+	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(userErrorMsg))
+}
+
+func (ctx *Context) JSONError[T string | template.HTML](msg T) {
+	ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
+}
+
+func (ctx *Context) JSONErrorWithField[T string | template.HTML](msg T, field string) {
+	m := buildJsonErrorMap(msg)
+	m["errorFields"] = []string{field}
+	ctx.JSON(http.StatusBadRequest, m)
+}
+
+func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
+	msg := util.OptionalArg(optMsg)
+	if msg == "" {
+		msg = ctx.Locale.TrString("error.not_found")
+	}
+	ctx.JSON(http.StatusNotFound, buildJsonErrorMap(msg))
 }
 
 // ServerError displays a 500 (Internal Server Error) page and prints the given error, if any.
@@ -185,7 +250,7 @@ func (ctx *Context) serverErrorInternal(skip int, logMsg string, logErr error) {
 		log.Log(skip+1, logLevel, "%s: %v", logMsg, logErr)
 	}
 
-	userErrorMsg := ctx.buildUserErrorMessage(logMsg, logErr)
+	userErrorMsg := ctx.buildServerErrorMessageForUser(logMsg, logErr)
 	if httplib.IsGiteaFetchActionRequest(ctx.Req) {
 		ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(userErrorMsg))
 		return

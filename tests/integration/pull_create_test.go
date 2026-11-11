@@ -115,7 +115,7 @@ func testPullCreateDirectly(t *testing.T, session *TestSession, opts createPullR
 	return resp
 }
 
-func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, baseRepoName, baseBranch, headRepoOwner, headRepoName, headBranch, title string) *httptest.ResponseRecorder {
+func testPullCreateForbidden(t *testing.T, session *TestSession, baseRepoOwner, baseRepoName, baseBranch, headRepoOwner, headRepoName, headBranch, title string) *httptest.ResponseRecorder {
 	headCompare := headBranch
 	if headRepoOwner != "" {
 		if headRepoName != "" {
@@ -134,7 +134,7 @@ func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, ba
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"title": title,
 	})
-	resp = session.MakeRequest(t, req, http.StatusBadRequest)
+	resp = session.MakeRequest(t, req, http.StatusForbidden)
 	return resp
 }
 
@@ -477,7 +477,8 @@ func TestCreatePullWhenBlocked(t *testing.T) {
 		testEditFile(t, sessionFork, ForkOwner, "forkrepo1", "master", "README.md", "Hello, World (Edited)\n")
 
 		// 3. User1 attempts to create a pull request
-		testPullCreateFailure(t, sessionFork, RepoOwner, "repo1", "master", ForkOwner, "forkrepo1", "master", "This is a pull title")
+		resp := testPullCreateForbidden(t, sessionFork, RepoOwner, "repo1", "master", ForkOwner, "forkrepo1", "master", "This is a pull title")
+		assert.Equal(t, "Cannot create an issue or pull request because you are blocked by the repository owner.", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 
 		// Teardown
 		// Unblock user

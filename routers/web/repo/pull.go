@@ -1266,9 +1266,6 @@ func MergePullRequest(ctx *context.Context) {
 
 	if deleteBranchAfterMerge {
 		deleteBranchAfterMergeAndFlashMessage(ctx, pr.ID)
-		if ctx.Written() {
-			return
-		}
 	}
 	ctx.JSONRedirect(issue.Link())
 }
@@ -1279,16 +1276,11 @@ func deleteBranchAfterMergeAndFlashMessage(ctx *context.Context, prID int64) {
 	if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
 		// no need to show error to end users if no permission or branch not exist
 		log.Debug("DeleteBranchAfterMerge (ignore unnecessary error): %v", err)
-		return
-	} else if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-		ctx.Flash.Error(errTr.Translate(ctx.Locale))
-		return
-	} else if err == nil {
+	} else if err != nil {
+		ctx.FlashErrorAuto(err)
+	} else {
 		ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))
-		return
 	}
-	// catch unknown errors
-	ctx.ServerError("DeleteBranchAfterMerge", err)
 }
 
 // CancelAutoMergePullRequest cancels a scheduled pr
@@ -1479,9 +1471,6 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 	deleteBranchAfterMergeAndFlashMessage(ctx, issue.PullRequest.ID)
-	if ctx.Written() {
-		return
-	}
 	ctx.JSONRedirect(issue.Link())
 }
 
