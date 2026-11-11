@@ -43,14 +43,14 @@ const (
 // MustBeNotEmpty render when a repo is a empty git dir
 func MustBeNotEmpty(ctx *context.Context) {
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 }
 
 // MustBeEditable check that repo can be edited
 func MustBeEditable(ctx *context.Context) {
 	if !ctx.Repo.Repository.CanContentChange() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 }
@@ -58,14 +58,14 @@ func MustBeEditable(ctx *context.Context) {
 // MustBeAbleToUpload check that repo can be uploaded to
 func MustBeAbleToUpload(ctx *context.Context) {
 	if !setting.Repository.Upload.Enabled {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 
@@ -88,7 +88,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	}
 
 	if err != nil {
-		ctx.ServerError("GetUserByID", fmt.Errorf("[%d]: %w", uid, err))
+		ctx.ServerErrorAuto(fmt.Errorf("[%d]: %w", uid, err))
 		return nil
 	}
 
@@ -100,7 +100,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	if !ctx.Doer.IsAdmin {
 		canCreate, err := organization.OrgFromUser(org).CanCreateOrgRepo(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.ServerError("CanCreateOrgRepo", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		} else if !canCreate {
 			ctx.HTTPError(http.StatusForbidden)
@@ -164,7 +164,7 @@ func Create(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form any) {
+func handleCreateError(ctx *context.Context, owner *user_model.User, err error, tpl templates.TplName, form any) {
 	var errNameReserved db.ErrNameReserved
 	var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 	switch {
@@ -185,7 +185,7 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tpl, form)
 	default:
-		ctx.ServerError(name, err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -272,7 +272,7 @@ func CreatePost(ctx *context.Context) {
 		}
 	}
 
-	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
+	handleCreateError(ctx, ctxUser, err, tplCreate, &form)
 }
 
 func handleRepoActionError(ctx *context.Context, err error) {
@@ -286,7 +286,7 @@ func handleRepoActionError(ctx *context.Context, err error) {
 	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.JSONError(ctx.Tr("error.permission_denied"))
 	default:
-		ctx.ServerError("RepoAction:"+ctx.PathParam("action"), err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -304,7 +304,7 @@ func RedirectDownload(ctx *context.Context) {
 		TagNames:      tagNames,
 	})
 	if err != nil {
-		ctx.ServerError("RedirectDownload", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if len(releases) == 1 {
@@ -352,7 +352,7 @@ func Download(ctx *context.Context) {
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.HTTPError(http.StatusNotFound, err.Error())
 		} else {
-			ctx.ServerError("archiver_service.NewRequest", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -361,7 +361,7 @@ func Download(ctx *context.Context) {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
 		} else {
-			ctx.ServerError("archiver_service.ServeRepoArchive", err)
+			ctx.ServerErrorAuto(err)
 		}
 	}
 }
@@ -393,12 +393,12 @@ func InitiateDownload(ctx *context.Context) {
 
 	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.Repo.ID, aReq.Type, aReq.CommitID)
 	if err != nil {
-		ctx.ServerError("archiver_service.StartArchive", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if archiver == nil || archiver.Status != repo_model.ArchiverReady {
 		if err := archiver_service.StartArchive(aReq); err != nil {
-			ctx.ServerError("archiver_service.StartArchive", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -594,7 +594,7 @@ func PrepareBranchList(ctx *context.Context) {
 	}
 	brs, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
-		ctx.ServerError("GetBranches", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	// always put default branch on the top if it exists

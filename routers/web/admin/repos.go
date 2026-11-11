@@ -34,12 +34,12 @@ func Repos(ctx *context.Context) {
 func DeleteRepo(ctx *context.Context) {
 	repo, err := repo_model.GetRepositoryByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.ServerError("GetRepositoryByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := repo_service.DeleteRepository(ctx, ctx.Doer, repo, true); err != nil {
-		ctx.ServerError("DeleteRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	log.Trace("Repository deleted: %s", repo.FullName())

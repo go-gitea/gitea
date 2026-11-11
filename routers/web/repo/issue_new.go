@@ -100,7 +100,7 @@ func NewIssue(ctx *context.Context) {
 	restriction := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeIssues).IssuesConfig().CreationRestriction
 	err := issue_service.CheckCreationRestriction(ctx.Repo.Permission, unit.TypeIssues, restriction)
 	if err != nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -131,7 +131,7 @@ func NewIssue(ctx *context.Context) {
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Tags"] = tags
@@ -218,7 +218,7 @@ func DeleteIssue(ctx *context.Context) {
 	}
 
 	if err := issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
-		ctx.ServerError("DeleteIssueByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -256,7 +256,7 @@ func ValidateRepoMetasForCreateIssue(ctx *context.Context, form forms.CreateIssu
 	inputLabelIDs := ctx.FormStringInt64s("label_ids")
 	candidateLabels := toSet(pageMetaData.LabelsData.AllLabels, func(label *issues_model.Label) int64 { return label.ID })
 	if len(inputLabelIDs) > 0 && !candidateLabels.Contains(inputLabelIDs...) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return ret
 	}
 	pageMetaData.LabelsData.SetSelectedLabelIDs(inputLabelIDs)
@@ -264,7 +264,7 @@ func ValidateRepoMetasForCreateIssue(ctx *context.Context, form forms.CreateIssu
 	allMilestones := append(slices.Clone(pageMetaData.MilestonesData.OpenMilestones), pageMetaData.MilestonesData.ClosedMilestones...)
 	candidateMilestones := toSet(allMilestones, func(milestone *issues_model.Milestone) int64 { return milestone.ID })
 	if form.MilestoneID > 0 && !candidateMilestones.Contains(form.MilestoneID) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return ret
 	}
 	pageMetaData.MilestonesData.SelectedMilestoneID = form.MilestoneID
@@ -273,7 +273,7 @@ func ValidateRepoMetasForCreateIssue(ctx *context.Context, form forms.CreateIssu
 	allProjects := slices.Concat(pageMetaData.ProjectsData.OpenProjects, pageMetaData.ProjectsData.ClosedProjects)
 	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
 	if len(inputProjectIDs) > 0 && !candidateProjects.Contains(inputProjectIDs...) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return ret
 	}
 	pageMetaData.SetSelectedProjectIDs(inputProjectIDs)
@@ -306,14 +306,14 @@ func ValidateRepoMetasForCreateIssue(ctx *context.Context, form forms.CreateIssu
 			if rID < 0 { // negative reviewIDs represent team requests
 				team, ok := teamReviewersMap[-rID]
 				if !ok {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return ret
 				}
 				teamReviewers = append(teamReviewers, team)
 			} else {
 				user, ok := userReviewersMap[rID]
 				if !ok {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return ret
 				}
 				reviewers = append(reviewers, user)
