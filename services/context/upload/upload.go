@@ -5,16 +5,17 @@ package upload
 
 import (
 	"mime"
-	"net/http"
 	"net/url"
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
@@ -38,7 +39,9 @@ func (err ErrFileTypeForbidden) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-var wildcardTypeRe = regexp.MustCompile(`^[a-z]+/\*$`)
+var wildcardTypeRe = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^[a-z]+/\*$`)
+})
 
 // Verify validates whether a file is allowed to be uploaded. If buf is empty, it will just check if the file
 // has an allowed file extension.
@@ -57,7 +60,7 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 		return nil // everything is allowed
 	}
 
-	fullMimeType := http.DetectContentType(buf)
+	fullMimeType := typesniffer.DetectContentType(buf).GetMimeType()
 	mimeType, _, err := mime.ParseMediaType(fullMimeType)
 	if err != nil {
 		log.Warn("Detected attachment type could not be parsed %s", fullMimeType)
@@ -80,7 +83,7 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 		if mimeType == allowEntry {
 			return nil // mime type is allowed
 		}
-		if wildcardTypeRe.MatchString(allowEntry) && strings.HasPrefix(mimeType, allowEntry[:len(allowEntry)-1]) {
+		if wildcardTypeRe().MatchString(allowEntry) && strings.HasPrefix(mimeType, allowEntry[:len(allowEntry)-1]) {
 			return nil // wildcard match, e.g. image/*
 		}
 	}

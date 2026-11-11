@@ -216,8 +216,8 @@ func DeleteProject(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteProjectByID(ctx, p.ID); err != nil {
-		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
+	if err := project_service.DeleteProject(ctx, p.ID); err != nil {
+		ctx.Flash.Error("DeleteProject: " + err.Error())
 	} else {
 		audit.Record(ctx, audit_model.ProjectDelete, ctx.ContextUser, "project", p.Title, "project_id", p.ID)
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
@@ -381,18 +381,13 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	// Get the exclusive scope for every label ID
-	labelExclusiveScopes := make([]string, 0, len(preparedLabelFilter.SelectedLabelIDs))
-	for _, labelID := range preparedLabelFilter.SelectedLabelIDs {
-		foundExclusiveScope := false
+	labelExclusiveScopes := make([]string, len(preparedLabelFilter.SelectedLabelIDs))
+	for i, labelID := range preparedLabelFilter.SelectedLabelIDs {
 		for _, label := range labels {
 			if label.ID == labelID || label.ID == -labelID {
-				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
-				foundExclusiveScope = true
+				labelExclusiveScopes[i] = label.ExclusiveScope()
 				break
 			}
-		}
-		if !foundExclusiveScope {
-			labelExclusiveScopes = append(labelExclusiveScopes, "")
 		}
 	}
 

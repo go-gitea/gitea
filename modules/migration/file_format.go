@@ -61,10 +61,7 @@ func validate(bs []byte, datatype any, isJSON bool) error {
 		return err
 	}
 	if !isJSON {
-		v, err = toStringKeys(v)
-		if err != nil {
-			return err
-		}
+		v = toStringKeys(v)
 	}
 
 	var schemaFilename string
@@ -88,30 +85,23 @@ func validate(bs []byte, datatype any, isJSON bool) error {
 	return err
 }
 
-func toStringKeys(val any) (any, error) {
-	var err error
+func toStringKeys(val any) any {
 	switch val := val.(type) {
 	case map[string]any:
 		m := make(map[string]any)
 		for k, v := range val {
-			m[k], err = toStringKeys(v)
-			if err != nil {
-				return nil, err
-			}
+			m[k] = toStringKeys(v)
 		}
-		return m, nil
+		return m
 	case []any:
 		l := make([]any, len(val))
 		for i, v := range val {
-			l[i], err = toStringKeys(v)
-			if err != nil {
-				return nil, err
-			}
+			l[i] = toStringKeys(v)
 		}
-		return l, nil
+		return l
 	case time.Time:
-		return val.Format(time.RFC3339), nil
+		return val.Format(time.RFC3339)
 	default:
-		return val, nil
+		return val
 	}
 }

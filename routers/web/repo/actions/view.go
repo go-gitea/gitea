@@ -1405,12 +1405,8 @@ func Run(ctx *context_module.Context) {
 		return nil
 	})
 	if err != nil {
-		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-			ctx.Flash.Error(errTr.Translate(ctx.Locale))
-			ctx.Redirect(redirectURL)
-		} else {
-			ctx.ServerError("DispatchActionWorkflow", err)
-		}
+		ctx.FlashErrorAuto(err)
+		ctx.Redirect(redirectURL)
 		return
 	}
 

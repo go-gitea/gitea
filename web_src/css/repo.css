@@ -1523,11 +1523,6 @@ tbody.commit-list {
   height: 100%;
 }
 
-.ui.form .right .ui.button {
-  margin-left: 0.25em;
-  margin-right: 0;
-}
-
 .removed-code {
   color: var(--color-text);
   background: var(--color-diff-removed-word-bg);

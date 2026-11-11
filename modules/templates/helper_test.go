@@ -29,7 +29,7 @@ func TestSubjectBodySeparator(t *testing.T) {
 		{"Multiple\n---\n-------\n---\nSeparators", "Multiple\n", "\n-------\n---\nSeparators"},
 		{"Insufficient\n--\nSeparators", "", "Insufficient\n--\nSeparators"},
 	} {
-		loc := mailSubjectSplit.FindStringIndex(testCase.input)
+		loc := globalVars().mailSubjectSplit.FindStringIndex(testCase.input)
 		if loc == nil {
 			assert.Empty(t, testCase.subject, "no subject found, but one expected")
 			assert.Equal(t, testCase.body, testCase.input)

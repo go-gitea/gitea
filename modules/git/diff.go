@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -132,9 +131,6 @@ func ParseDiffHunkString(diffHunk string) (leftLine, leftHunk, rightLine, rightH
 	return leftLine, leftHunk, rightLine, rightHunk
 }
 
-// Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
-var hunkRegex = regexp.MustCompile(`^@@ -(?P<beginOld>[0-9]+)(,(?P<endOld>[0-9]+))? \+(?P<beginNew>[0-9]+)(,(?P<endNew>[0-9]+))? @@`)
-
 const cmdDiffHead = "diff --git "
 
 func isHeader(lof string, inHunk bool) bool {
@@ -192,9 +188,9 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 				break
 			}
 			// A map with named groups of our regex to recognize them later more easily
-			submatches := hunkRegex.FindStringSubmatch(lof)
+			submatches := globalVars().hunkRegex.FindStringSubmatch(lof)
 			groups := make(map[string]string)
-			for i, name := range hunkRegex.SubexpNames() {
+			for i, name := range globalVars().hunkRegex.SubexpNames() {
 				if i != 0 && name != "" {
 					groups[name] = submatches[i]
 				}
@@ -327,7 +323,7 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 			}
 			return scanner.Err()
 		}).
-		Run(ctx)
+		RunWithStderr(ctx)
 	if err != nil {
 		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.LogString(), err)
 	}

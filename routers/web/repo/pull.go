@@ -420,9 +420,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	statusCheckData := &pullCommitStatusCheckData{}
 	data.StatusCheckData = statusCheckData
 
-	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID, db.ListOptionsAll)
+	commitStatuses, err := pull_service.GetLatestPullCommitStatuses(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID)
 	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
+		log.Error("GetLatestPullCommitStatuses: %v", err)
 	}
 
 	// Effective required contexts = branch-protection contexts + required scoped workflow checks.
@@ -1266,9 +1266,6 @@ func MergePullRequest(ctx *context.Context) {
 
 	if deleteBranchAfterMerge {
 		deleteBranchAfterMergeAndFlashMessage(ctx, pr.ID)
-		if ctx.Written() {
-			return
-		}
 	}
 	ctx.JSONRedirect(issue.Link())
 }
@@ -1279,16 +1276,11 @@ func deleteBranchAfterMergeAndFlashMessage(ctx *context.Context, prID int64) {
 	if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
 		// no need to show error to end users if no permission or branch not exist
 		log.Debug("DeleteBranchAfterMerge (ignore unnecessary error): %v", err)
-		return
-	} else if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-		ctx.Flash.Error(errTr.Translate(ctx.Locale))
-		return
-	} else if err == nil {
+	} else if err != nil {
+		ctx.FlashErrorAuto(err)
+	} else {
 		ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))
-		return
 	}
-	// catch unknown errors
-	ctx.ServerError("DeleteBranchAfterMerge", err)
 }
 
 // CancelAutoMergePullRequest cancels a scheduled pr
@@ -1442,11 +1434,9 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		TeamReviewers:   validateRet.TeamReviewers,
 		ProjectIDs:      projectIDs,
 	}
-	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
+	if err := pull_service.NewPullRequest(ctx, ctx.Repo.Permission, prOpts); err != nil {
 		var pushrejErr *git.ErrPushRejected
 		switch {
-		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
-			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		case errors.As(err, &pushrejErr):
 			message := pushrejErr.Message
 			if len(message) == 0 {
@@ -1463,31 +1453,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 				return
 			}
 			ctx.JSONError(flashError)
-		case errors.Is(err, user_model.ErrBlockedUser):
-			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.pulls.push_rejected"),
-				"Summary": ctx.Tr("repo.pulls.new.blocked_user"),
-			})
-			if err != nil {
-				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
-				return
-			}
-			ctx.JSONError(flashError)
-		case errors.Is(err, issues_model.ErrMustCollaborator):
-			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.pulls.push_rejected"),
-				"Summary": ctx.Tr("repo.pulls.new.must_collaborator"),
-			})
-			if err != nil {
-				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
-				return
-			}
-			ctx.JSONError(flashError)
 		default:
-			// It's an unexpected error.
-			// If it happens, we should add another case to handle it.
-			log.Error("Unexpected error of NewPullRequest: %T %s", err, err)
-			ctx.ServerError("CompareAndPullRequest", err)
+			ctx.JSONErrorAuto(err)
 		}
 		return
 	}
@@ -1504,9 +1471,6 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 	deleteBranchAfterMergeAndFlashMessage(ctx, issue.PullRequest.ID)
-	if ctx.Written() {
-		return
-	}
 	ctx.JSONRedirect(issue.Link())
 }
 
