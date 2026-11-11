@@ -512,8 +512,19 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
+	compareParam := ctx.PathParam("*")
+	compareReq := common.ParseCompareRouterParam(compareParam)
+	if strings.HasSuffix(compareReq.HeadOriRef, ".diff") && !compareRefExists(ctx, compareParam) {
+		downloadCompareDiffOrPatch(ctx, strings.TrimSuffix(compareParam, ".diff"), false)
+		return
+	}
+	if strings.HasSuffix(compareReq.HeadOriRef, ".patch") && !compareRefExists(ctx, compareParam) {
+		downloadCompareDiffOrPatch(ctx, strings.TrimSuffix(compareParam, ".patch"), true)
+		return
+	}
+
 	comparePageInfo := newComparePageInfo()
-	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
+	err := comparePageInfo.parseCompareInfo(ctx, compareParam)
 	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 		ctx.NotFound(nil)
 		return
@@ -573,16 +584,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 
-// DownloadCompareDiff render a comparison's raw unified diff
-func DownloadCompareDiff(ctx *context.Context) {
-	downloadCompareDiffOrPatch(ctx, false)
-}
-
-// DownloadComparePatch render a comparison as a git format-patch
-func DownloadComparePatch(ctx *context.Context) {
-	downloadCompareDiffOrPatch(ctx, true)
-}
-
 func compareRefExists(ctx *context.Context, compareParam string) bool {
 	compareReq := common.ParseCompareRouterParam(compareParam)
 	if compareReq.HeadOriRef == "" {
@@ -601,22 +602,9 @@ func compareRefExists(ctx *context.Context, compareParam string) bool {
 	return err == nil
 }
 
-func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
-	compareParam := ctx.PathParam("*")
-	compareReq := common.ParseCompareRouterParam(compareParam)
-	rawSuffix := ".diff"
-	if patch {
-		rawSuffix = ".patch"
-	}
-	if !strings.HasSuffix(compareReq.HeadOriRef, rawSuffix) || compareRefExists(ctx, compareParam) {
-		CompareDiff(ctx)
-		return
-	}
-
-	// The route captures `basehead` separately so the `.diff`/`.patch` suffix is
-	// stripped from the catch-all `*` param parseCompareInfo would otherwise read.
+func downloadCompareDiffOrPatch(ctx *context.Context, compareParam string, patch bool) {
 	cpi := newComparePageInfo()
-	if err := cpi.parseCompareInfo(ctx, ctx.PathParam("basehead")); err != nil {
+	if err := cpi.parseCompareInfo(ctx, compareParam); err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 			ctx.NotFound(nil)
 		} else {
