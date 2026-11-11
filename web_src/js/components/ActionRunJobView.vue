@@ -323,7 +323,7 @@ async function loadJob(force = false) {
   const resp = exclusiveFetch.request(props.actionsViewUrl, {method: 'POST', data: {logCursors}});
   resp.onResponseError((details) => {
     if (details.response?.status === 404) stopPollingCurrentRun();
-    showErrorToast(`Failed to load job data: ${details.message}`);
+    showErrorToast(`Failed to load job data: ${details.message}`, {duration: 2500});
   });
   await resp.fetchJson(async (runJobResp: JobData) => {
     // FIXME: this logic is quite hacky and dirty, it should be refactored in a better way in the future

@@ -180,7 +180,7 @@ export function createActionRunViewStore(viewUrl: string) {
     const resp = exclusiveFetch.request(viewUrl, {method: 'POST', data: {}});
     resp.onResponseError((details) => {
       if (details.response?.status === 404) stopPollingCurrentRun();
-      showErrorToast(`Failed to load current job run data: ${details.message}`);
+      showErrorToast(`Failed to load current job run data: ${details.message}`, {duration: 2500});
     });
     await resp.fetchJson((runResp: any) => {
       viewData.runArtifacts = runResp.artifacts || [];
