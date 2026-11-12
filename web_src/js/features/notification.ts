@@ -4,7 +4,6 @@ import {onUserEvent} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
-let notificationCountPushes = 0;
 
 async function receiveUpdateCount(count: number) {
   toggleElem('.notification_count', count !== 0);
@@ -26,12 +25,8 @@ export function initNotificationCount() {
   };
 
   let pollerStarted = false;
-  onUserEvent('notification-count', (msg) => {
-    notificationCountPushes++;
-    receiveUpdateCount(msg.eventData.count); // no await
-  });
-  // On each (re)connect, reconcile the count from the server to recover any push dropped during the connect gap.
-  onUserEvent('worker-connected', () => { updateNotificationCount(); updateNotificationTable() }); // no await
+  onUserEvent('notification-count', (msg) => { receiveUpdateCount(msg.eventData.count) }); // no await
+  onUserEvent('worker-attached', () => { updateNotificationCount(); updateNotificationTable() }); // no await
   onUserEvent('worker-unavailable', () => {
     if (pollerStarted) return;
     pollerStarted = true;
@@ -91,7 +86,6 @@ async function updateNotificationTable() {
 }
 
 async function updateNotificationCount(): Promise<number> {
-  const pushesBefore = notificationCountPushes;
   try {
     const response = await GET(`${appSubUrl}/notifications/new`);
 
@@ -100,7 +94,6 @@ async function updateNotificationCount(): Promise<number> {
     }
 
     const data = await response.json();
-    if (notificationCountPushes !== pushesBefore) return getCurrentCount(); // a push received meanwhile is newer than this response
 
     toggleElem('.notification_count', data.new !== 0);
 
