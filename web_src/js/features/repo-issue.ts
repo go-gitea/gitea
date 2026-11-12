@@ -172,7 +172,7 @@ export function initRepoIssueCommentTargetHashReset() {
     const urlTargetId = urlTarget.id;
     if (!urlTargetId) return;
 
-    if (!/^(issue|pull)(comment)?-\d+$/.test(urlTargetId)) return;
+    if (!/^((issue|pull)(comment)?|advisory-comment)-\d+$/.test(urlTargetId)) return;
 
     if (!(e.target as HTMLElement).closest(`#${urlTargetId}`)) {
       // if the user clicks outside the comment, remove the hash from the url

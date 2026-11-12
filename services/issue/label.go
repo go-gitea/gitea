@@ -7,12 +7,33 @@ import (
 	"context"
 	"slices"
 
+	advisory_model "gitea.dev/models/advisory"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
 	notify_service "gitea.dev/services/notify"
 )
+
+// DeleteRepoLabel deletes a repository label and unassigns it from the security advisories
+func DeleteRepoLabel(ctx context.Context, repoID, labelID int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issues_model.DeleteRepoLabel(ctx, repoID, labelID); err != nil {
+			return err
+		}
+		return advisory_model.DeleteLabelLinks(ctx, labelID)
+	})
+}
+
+// DeleteOrgLabel deletes an organization label and unassigns it from the security advisories
+func DeleteOrgLabel(ctx context.Context, orgID, labelID int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issues_model.DeleteOrgLabel(ctx, orgID, labelID); err != nil {
+			return err
+		}
+		return advisory_model.DeleteLabelLinks(ctx, labelID)
+	})
+}
 
 // ClearLabels clears all of an issue's labels
 func ClearLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.User) error {

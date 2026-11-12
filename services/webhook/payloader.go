@@ -26,6 +26,7 @@ type payloadConvertor[T any] interface {
 	Review(*api.PullRequestPayload, webhook_module.HookEventType) (T, error)
 	Repository(*api.RepositoryPayload) (T, error)
 	Release(*api.ReleasePayload) (T, error)
+	RepositoryAdvisory(*api.RepositoryAdvisoryPayload) (T, error)
 	Wiki(*api.WikiPayload) (T, error)
 	Package(*api.PackagePayload) (T, error)
 	Status(*api.CommitStatusPayload) (T, error)
@@ -76,6 +77,8 @@ func newPayload[T any](rc payloadConvertor[T], data []byte, event webhook_module
 		return convertUnmarshalledJSON(rc.Repository, data)
 	case webhook_module.HookEventRelease:
 		return convertUnmarshalledJSON(rc.Release, data)
+	case webhook_module.HookEventRepositoryAdvisory, webhook_module.HookEventRepositoryAdvisoryReported:
+		return convertUnmarshalledJSON(rc.RepositoryAdvisory, data)
 	case webhook_module.HookEventWiki:
 		return convertUnmarshalledJSON(rc.Wiki, data)
 	case webhook_module.HookEventPackage:

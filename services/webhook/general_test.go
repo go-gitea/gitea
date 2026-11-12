@@ -608,6 +608,28 @@ func TestGetReleasePayloadInfo(t *testing.T) {
 	}
 }
 
+func TestGetRepositoryAdvisoryPayloadInfo(t *testing.T) {
+	p := &api.RepositoryAdvisoryPayload{
+		Sender:             &api.User{UserName: "user1"},
+		Repository:         &api.Repository{FullName: "test/repo"},
+		RepositoryAdvisory: &api.RepositoryAdvisory{Identifier: "abcd-efgh-ijkl", Summary: "XSS in markdown"},
+	}
+	for _, c := range []struct {
+		action api.HookRepositoryAdvisoryAction
+		text   string
+		color  int
+	}{
+		{api.HookRepositoryAdvisoryPublished, "[test/repo] Security advisory published: XSS in markdown by user1", redColor},
+		{api.HookRepositoryAdvisoryWithdrawn, "[test/repo] Security advisory withdrawn: XSS in markdown by user1", greyColor},
+		{api.HookRepositoryAdvisoryReported, "[test/repo] Vulnerability reported privately: abcd-efgh-ijkl", orangeColor}, // neither the summary nor the reporter are disclosed
+	} {
+		p.Action = c.action
+		text, color := getRepositoryAdvisoryPayloadInfo(p, noneLinkFormatter, true)
+		assert.Equal(t, c.text, text)
+		assert.Equal(t, c.color, color)
+	}
+}
+
 func TestGetIssueCommentPayloadInfo(t *testing.T) {
 	p := pullRequestCommentTestPayload()
 

@@ -1,0 +1,98 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository security-advisories">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		{{$queryLink := QueryBuild "?" "state" $.State "q" $.Keyword "severity" $.SelectedSeverity.String "labels" $.SelectLabels "close_reason" $.CloseReason}}
+		<div class="list-header flex-text-block">
+			<form class="list-header-search ui form ignore-dirty">
+				<div class="ui small search fluid action input">
+					<input type="hidden" name="state" value="{{$.State}}">
+					<input type="hidden" name="severity" value="{{$.SelectedSeverity.String}}">
+					{{if $.SelectLabels}}<input type="hidden" name="labels" value="{{$.SelectLabels}}">{{end}}
+					{{if $.CloseReason}}<input type="hidden" name="close_reason" value="{{$.CloseReason}}">{{end}}
+					{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "repo.security_advisories.search_placeholder")}}
+					{{template "shared/search/button"}}
+				</div>
+			</form>
+			{{if .PrivateVulnerabilityReportingEnabled}}
+				<a class="ui small button" href="{{.RepoLink}}/security/advisories/report">{{ctx.Locale.Tr "repo.security_advisories.report"}}</a>
+			{{end}}
+			{{if .CanManageSecurityAdvisories}}
+				<a class="ui small primary button" href="{{.RepoLink}}/security/advisories/new">{{ctx.Locale.Tr "repo.security_advisories.new"}}</a>
+			{{end}}
+		</div>
+
+		<div class="issue-list-toolbar">
+			<div class="issue-list-toolbar-left">
+				<div class="small-menu-items ui compact tiny menu">
+					{{range .StateTabs}}
+						<a class="{{if eq $.State .Name}}active {{end}}item flex-text-inline" href="{{QueryBuild $queryLink "state" .Name}}">
+							{{svg .Icon 16 "not-mobile"}}
+							{{ctx.Locale.PrettyNumber .Count}} {{ctx.Locale.Tr (print "repo.security_advisories.state." .Name)}}
+						</a>
+					{{end}}
+				</div>
+			</div>
+			<div class="issue-list-toolbar-right">
+				<div class="ui secondary filter menu labels">
+					{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink}}
+					<div class="item ui dropdown jump">
+						<span class="text">{{ctx.Locale.Tr "repo.security_advisories.severity"}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<a class="item" href="{{QueryBuild $queryLink "severity" NIL}}">{{ctx.Locale.Tr "repo.security_advisories.severity.all"}}</a>
+							{{range .Severities}}
+								<a class="{{if eq $.SelectedSeverity .}}active selected {{end}}item" href="{{QueryBuild $queryLink "severity" .String}}">{{ctx.Locale.Tr .LocaleKey}}</a>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="flex-divided-list items-with-main">
+			{{range .Advisories}}
+				<div class="item">
+					<div class="item-leading">{{svg "octicon-shield" 16}}</div>
+					<div class="item-main">
+						<div class="item-title">
+							<a class="muted" href="{{.Link}}">{{.Summary}}</a>
+							{{template "repo/security_advisory/severity_label" .}}
+							{{if eq .State.String "withdrawn"}}<span class="ui basic label">{{ctx.Locale.Tr "repo.security_advisories.state.withdrawn"}}</span>{{end}}
+							{{if .CloseReason.String}}<span class="ui basic label">{{ctx.Locale.Tr (print "repo.security_advisories.close_reason." .CloseReason.String)}}</span>{{end}}
+							{{range .Labels}}{{ctx.RenderUtils.RenderLabel .}}{{end}}
+						</div>
+						<div class="item-body flex-text-inline tw-flex-wrap">
+							<span>#{{.Index}}</span>
+							<span>·</span>
+							<span class="tw-font-mono">{{.Identifier}}</span>
+							{{if .CveID}}<span>·</span><span>{{.CveID}}</span>{{end}}
+							<span>·</span>
+							{{if .PublishedUnix}}
+								<span>{{ctx.Locale.Tr "repo.security_advisories.published_at" (DateUtils.TimeSince .PublishedUnix)}}</span>
+							{{else}}
+								<span>{{ctx.Locale.Tr "repo.security_advisories.opened_at" (DateUtils.TimeSince .CreatedUnix)}}</span>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			{{else}}
+				{{if .HasAnyAdvisory}}
+					<div class="tw-text-center tw-p-8">
+						<h3 class="tw-my-4">{{ctx.Locale.Tr "repo.issues.filter_no_results"}}</h3>
+						<p class="tw-text-placeholder-text">{{ctx.Locale.Tr "repo.issues.filter_no_results_placeholder"}}</p>
+					</div>
+				{{else}}
+					<div class="empty-placeholder">
+						{{svg "octicon-shield-check" 48}}
+						<h2>{{ctx.Locale.Tr "repo.security_advisories.empty"}}</h2>
+						<p>{{ctx.Locale.Tr "repo.security_advisories.empty_description"}}</p>
+					</div>
+				{{end}}
+			{{end}}
+			{{template "base/paginate" .}}
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

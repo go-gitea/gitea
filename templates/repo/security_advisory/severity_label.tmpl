@@ -1,0 +1,3 @@
+{{if .Severity.String}}
+	<span class="ui label {{.Severity.Color}}">{{ctx.Locale.Tr .Severity.LocaleKey}}</span>
+{{end}}

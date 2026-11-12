@@ -120,6 +120,9 @@ type RepoSettingForm struct {
 
 	EnablePackages bool
 
+	EnableSecurityAdvisories      bool
+	PrivateVulnerabilityReporting bool
+
 	EnablePulls                      bool
 	PullsIgnoreWhitespace            bool
 	PullsAllowMerge                  bool
@@ -222,6 +225,9 @@ type WebhookForm struct {
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
 	Secret                   string
+
+	RepositoryAdvisory         bool
+	RepositoryAdvisoryReported bool
 }
 
 // PushOnly if the hook will be triggered when push

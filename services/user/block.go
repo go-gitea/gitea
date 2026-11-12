@@ -6,6 +6,7 @@ package user
 import (
 	"context"
 
+	advisory_model "gitea.dev/models/advisory"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	org_model "gitea.dev/models/organization"
@@ -113,6 +114,12 @@ func BlockUser(ctx context.Context, doer, blocker, blockee *user_model.User, not
 			return err
 		}
 		if err := removeCollaborations(ctx, blockee, blocker); err != nil {
+			return err
+		}
+		if err := advisory_model.DeleteUserCollaboratorsByOwnerID(ctx, blockee.ID, blocker.ID); err != nil {
+			return err
+		}
+		if err := advisory_model.DeleteUserCollaboratorsByOwnerID(ctx, blocker.ID, blockee.ID); err != nil {
 			return err
 		}
 

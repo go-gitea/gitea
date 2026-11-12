@@ -1433,6 +1433,26 @@ func Routes() *web.Router {
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, mustEnableUnit(unit.TypeReleases), mustNotBeArchived)
+				m.Group("/security-advisories", func() {
+					m.Combo("").Get(repo.ListSecurityAdvisories).
+						Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreateRepositoryAdvisoryOption{}), repo.MustManageSecurityAdvisories, repo.CreateSecurityAdvisory)
+					m.Post("/reports", reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.CreatePrivateVulnerabilityReportOption{}), repo.CreatePrivateVulnerabilityReport)
+					m.Group("/{identifier}", func() {
+						m.Combo("").Get(repo.GetSecurityAdvisory).
+							Patch(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.EditRepositoryAdvisoryOption{}), repo.EditSecurityAdvisory)
+						m.Group("/comments", func() {
+							m.Combo("").Get(repo.ListSecurityAdvisoryComments).
+								Post(reqToken(), rejectPublicOnly(), mustNotBeArchived, bind(api.RepositoryAdvisoryCommentOption{}), repo.CreateSecurityAdvisoryComment)
+							m.Combo("/{id}", reqToken(), rejectPublicOnly(), mustNotBeArchived).
+								Patch(bind(api.RepositoryAdvisoryCommentOption{}), repo.EditSecurityAdvisoryComment).
+								Delete(repo.DeleteSecurityAdvisoryComment)
+						}, repo.MustSeeSecurityAdvisoryDiscussion)
+					}, repo.LoadSecurityAdvisory)
+				}, mustEnableUnit(unit.TypeSecurityAdvisories))
+				m.Combo("/private-vulnerability-reporting", mustEnableUnit(unit.TypeSecurityAdvisories)).
+					Get(repo.GetPrivateVulnerabilityReporting).
+					Put(reqToken(), rejectPublicOnly(), reqAdmin(), mustNotBeArchived, repo.EnablePrivateVulnerabilityReporting).
+					Delete(reqToken(), rejectPublicOnly(), reqAdmin(), mustNotBeArchived, repo.DisablePrivateVulnerabilityReporting)
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
 				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {

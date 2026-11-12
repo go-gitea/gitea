@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	advisory_model "gitea.dev/models/advisory"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -139,6 +140,11 @@ func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 		if err := access_model.RecalculateTeamAccesses(ctx, repo, t.ID); err != nil {
 			return err
 		}
+		if repo.IsPrivate {
+			if err := advisory_model.DeleteTeamCollaboratorByRepoID(ctx, t.ID, repo.ID); err != nil {
+				return err
+			}
+		}
 
 		// Remove watches from all users and now inaccessible repos
 		for _, user := range t.Members {
@@ -213,6 +219,13 @@ func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *r
 	t.NumRepos--
 	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
 		return err
+	}
+
+	// teams need the repository to collaborate on advisories of private repositories only
+	if repo.IsPrivate {
+		if err = advisory_model.DeleteTeamCollaboratorByRepoID(ctx, t.ID, repo.ID); err != nil {
+			return err
+		}
 	}
 
 	// Don't need to recalculate when delete a repository from organization.

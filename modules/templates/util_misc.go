@@ -218,6 +218,14 @@ func (m *MiscUtils) MarkdownEditorComment(repo *repo_model.Repository) *Markdown
 	}
 }
 
+// MarkdownEditorAdvisory has no mention suggestions because the content is private to the advisory participants
+func (m *MiscUtils) MarkdownEditorAdvisory(repo *repo_model.Repository) *MarkdownEditorContext {
+	return &MarkdownEditorContext{
+		PreviewMode: "comment",
+		PreviewLink: repo.Link() + "/markup",
+	}
+}
+
 func (m *MiscUtils) MarkdownEditorWiki(repo *repo_model.Repository) *MarkdownEditorContext {
 	if repo == nil {
 		return nil

@@ -175,6 +175,12 @@ func (t telegramConvertor) Release(p *api.ReleasePayload) (TelegramPayload, erro
 	return createTelegramPayloadHTML(text), nil
 }
 
+func (t telegramConvertor) RepositoryAdvisory(p *api.RepositoryAdvisoryPayload) (TelegramPayload, error) {
+	text, _ := getRepositoryAdvisoryPayloadInfo(p, htmlLinkFormatter, true)
+
+	return createTelegramPayloadHTML(text), nil
+}
+
 func (t telegramConvertor) Package(p *api.PackagePayload) (TelegramPayload, error) {
 	text, _ := getPackagePayloadInfo(p, htmlLinkFormatter, true)
 
