@@ -67,6 +67,14 @@
   font-size: 11px;
 }
 
+.profile-activity-nav.ui.menu {
+  gap: 0;
+}
+
+.profile-activity-nav > .overflow-menu-items {
+  min-width: 0;
+}
+
 .heatmap-year-select {
   position: relative;
   display: flex;

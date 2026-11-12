@@ -1,5 +1,5 @@
 <div class="secondary-nav tw-border-b tw-border-b-secondary">
-	<div class="ui secondary stackable menu">
+	<div class="ui secondary menu {{if and .EnableHeatmap .ContextUser.IsIndividual}}tw-flex-wrap{{else}}stackable{{end}}">
 		<div class="item">
 			<div class="ui floating dropdown jump">
 				<span class="text">
@@ -77,7 +77,7 @@
 		{{end}}
 
 	{{if or .ContextUser.IsOrganization .EnableHeatmap}}
-		<div class="right menu tw-flex-wrap tw-justify-end">
+		<div class="right menu tw-flex-wrap tw-items-center tw-justify-end">
 			{{if .ContextUser.IsOrganization}}
 				<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 					{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "activities"}}
@@ -104,7 +104,7 @@
 				</div>
 			{{end}}
 			{{if .EnableHeatmap}}
-				<div id="heatmap-year-nav" class="item"></div>
+				<div id="heatmap-year-nav"{{if .ContextUser.IsOrganization}} class="item"{{end}}></div>
 			{{end}}
 		</div>
 	{{end}}
