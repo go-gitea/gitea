@@ -144,9 +144,7 @@ func TestAPIAdminAccessAndSSHKeys(t *testing.T) {
 
 			token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
 
-			// limit=50 (MaxResponseItems) to return all cron tasks at once:
-			// the default page size is 30, so without it the body would be
-			// truncated while X-Total-Count reports the real total.
+			// limit=50 returns all tasks: the default page size (30) would truncate the body.
 			req := NewRequest(t, "GET", "/api/v1/admin/cron?limit=50").
 				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)

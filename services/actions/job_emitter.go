@@ -51,21 +51,8 @@ func EmitJobsIfReadyByJobs(jobs []*actions_model.ActionRunJob) {
 	}
 }
 
-// ReEmitUnresolvedRuns re-emits every run whose latest attempt looks stalled
-// by a lost job-completion transition: at least one job finished, but a
-// dependent job is still waiting, blocked or pending. A job completion is
-// normally only propagated through the in-memory jobEmitterQueue, so when
-// that emission is lost (process crash or shutdown before the worker runs,
-// or a completion report lost while the database is recovering) nothing
-// re-evaluates the run's remaining jobs, not even a restart. This sweep
-// re-derives the missing emission from run state instead of trusting the
-// queue. It is idempotent: re-checking a run whose jobs are genuinely still
-// in flight changes nothing, because the resolver only advances a job once
-// all of its needs are done.
-// Runs awaiting approval are left alone: only an approval may release them.
-// Runs whose latest attempt is fully settled, and runs with no finished job
-// yet (nothing could have been lost), are skipped, as are jobs belonging to
-// superseded attempts.
+// ReEmitUnresolvedRuns re-emits runs whose latest attempt lost a job-completion
+// transition: a job finished, but a dependent is still waiting, blocked or pending.
 func ReEmitUnresolvedRuns(ctx context.Context) error {
 	unresolved, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
 		Statuses: []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending},

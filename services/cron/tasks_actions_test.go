@@ -14,12 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestRegisterReEmitUnresolvedActionRuns guards the registration of the
-// reemit_unresolved_action_runs cron task. RegisterTask requires a
-// "admin.dashboard.<name>" translation for every task, so a task without a
-// locale entry makes the server fail to start: RegisterTaskFatal calls
-// log.Fatal during cron.Init.
-// https://github.com/go-gitea/gitea/pull/40290
+// RegisterTask requires an "admin.dashboard.<name>" translation, so a task
+// without a locale entry fails server startup.
 func TestRegisterReEmitUnresolvedActionRuns(t *testing.T) {
 	setting.SetupGiteaTestEnv()
 	defer test.MockVariableValue(&setting.Langs, []string{"en-US"})()
@@ -36,15 +32,7 @@ SCHEDULE = "@every 5m"
 	defer test.MockVariableValue(&setting.CfgProvider, cfg)()
 
 	registerReEmitUnresolvedActionRuns()
-	defer func() {
-		for _, j := range scheduler.Jobs() {
-			for _, tag := range j.Tags() {
-				if tag == "reemit_unresolved_action_runs" {
-					_ = scheduler.RemoveJob(j.ID())
-				}
-			}
-		}
-	}()
+	defer scheduler.RemoveByTags("reemit_unresolved_action_runs")
 
 	task := GetTask("reemit_unresolved_action_runs")
 	require.NotNil(t, task)
