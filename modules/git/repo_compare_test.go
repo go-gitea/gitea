@@ -45,6 +45,9 @@ func TestGetFormatPatch(t *testing.T) {
 	patch := string(patchb)
 	assert.Regexp(t, "^From 8d92fc95", patch)
 	assert.Contains(t, patch, "Subject: [PATCH] Add file2.txt")
+
+	err = repo.GetPatch(t.Context(), "gitea-missing-revision", io.Discard)
+	assert.ErrorContains(t, err, "fatal: ambiguous argument 'gitea-missing-revision'")
 }
 
 func TestReadPatch(t *testing.T) {

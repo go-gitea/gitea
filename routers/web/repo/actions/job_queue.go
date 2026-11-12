@@ -30,10 +30,10 @@ func prepareActionsSidebar(ctx *context.Context) {
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	} else if err != nil {
-		ctx.ServerError("GetBranchCommit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

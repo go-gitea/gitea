@@ -131,6 +131,10 @@ func syncGitConfig(ctx context.Context) (err error) {
 		}
 	}
 
+	if err := configAddNonExist(ctx, "transfer.hideRefs", hiddenRefPrefix); err != nil { // after the user's options, which replace all values
+		return err
+	}
+
 	GlobalConfig = &GlobalConfigStruct{}
 	// HINT: GIT-DIFF-TREE-UI-CONFIG: Git's bug: git-diff-tree loads config with /* no "diff" UI options */ (since 20 years ago).
 	// https://github.com/git/git/blame/5d2e7709234afea1b6ddb25cd4f60d3d5fb3c200/builtin/diff-tree.c#L127

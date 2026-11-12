@@ -68,7 +68,7 @@ func prepareDashboardContextUserOrgTeams(ctx *context.Context) *user_model.User 
 
 	orgs, err := organization.GetUserOrgsList(ctx, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetUserOrgsList", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	ctx.Data["Orgs"] = orgs
@@ -126,7 +126,7 @@ func Dashboard(ctx *context.Context) {
 		ListOptions:     db.ListOptions{Page: page, PageSize: pageSize},
 	})
 	if err != nil {
-		ctx.ServerError("GetFeeds", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -221,7 +221,7 @@ func Milestones(ctx *context.Context) {
 		IsClosed: optional.Some(isShowClosed),
 	})
 	if err != nil {
-		ctx.ServerError("CountMilestonesByRepoIDs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -236,13 +236,13 @@ func Milestones(ctx *context.Context) {
 		Name:     keyword,
 	})
 	if err != nil {
-		ctx.ServerError("SearchMilestones", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, repoOpts, userRepoCond, false)
 	if err != nil {
-		ctx.ServerError("SearchRepositoryByCondition", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	sort.Sort(showRepos)
@@ -263,14 +263,14 @@ func Milestones(ctx *context.Context) {
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, milestones[i].Repo)
 		milestones[i].RenderedContent, err = markdown.RenderString(rctx, milestones[i].Content)
 		if err != nil {
-			ctx.ServerError("RenderString", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
 		if milestones[i].Repo.IsTimetrackerEnabled(ctx) {
 			err := milestones[i].LoadTotalTrackedTime(ctx)
 			if err != nil {
-				ctx.ServerError("LoadTotalTrackedTime", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -279,7 +279,7 @@ func Milestones(ctx *context.Context) {
 
 	milestoneStats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, repoCond, keyword)
 	if err != nil {
-		ctx.ServerError("GetMilestoneStats", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -289,7 +289,7 @@ func Milestones(ctx *context.Context) {
 	} else {
 		totalMilestoneStats, err = issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, userRepoCond, keyword)
 		if err != nil {
-			ctx.ServerError("GetMilestoneStats", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -477,7 +477,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	{
 		ids, _, err := repo_model.SearchRepositoryIDs(ctx, repoOpts)
 		if err != nil {
-			ctx.ServerError("SearchRepositoryIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		accessibleRepos.AddMultiple(ids...)
@@ -550,19 +550,19 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			},
 		))
 		if err != nil {
-			ctx.ServerError("issueIDsFromSearch", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		issues, err = issues_model.GetIssuesByIDs(ctx, issueIDs, true)
 		if err != nil {
-			ctx.ServerError("GetIssuesByIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 
 	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, ctx.Doer, issues)
 	if err != nil {
-		ctx.ServerError("GetIssuesLastCommitStatus", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -575,7 +575,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		},
 	))
 	if err != nil {
-		ctx.ServerError("getUserIssueStats", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -592,14 +592,14 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.FormString("RepoLink"))
 
 	if err := issues.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("issues.LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Issues"] = issues
 
 	approvalCounts, err := issues.GetApprovalCounts(ctx)
 	if err != nil {
-		ctx.ServerError("ApprovalCounts", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
@@ -648,7 +648,7 @@ func ShowSSHKeys(ctx *context.Context) {
 		OwnerID: ctx.ContextUser.ID,
 	})
 	if err != nil {
-		ctx.ServerError("ListPublicKeys", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -672,7 +672,7 @@ func ShowGPGKeys(ctx *context.Context) {
 		OwnerID:     ctx.ContextUser.ID,
 	})
 	if err != nil {
-		ctx.ServerError("ListGPGKeys", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -685,7 +685,7 @@ func ShowGPGKeys(ctx *context.Context) {
 				failedEntitiesID = append(failedEntitiesID, k.KeyID)
 				continue // Skip previous import without backup of imported armored key
 			}
-			ctx.ServerError("ShowGPGKeys", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		entities = append(entities, e)
@@ -704,7 +704,7 @@ func ShowGPGKeys(ctx *context.Context) {
 	for _, e := range entities {
 		err = e.Serialize(writer) // TODO find why key are exported with a different cipherTypeByte as original (should not be blocking but strange)
 		if err != nil {
-			ctx.ServerError("ShowGPGKeys", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

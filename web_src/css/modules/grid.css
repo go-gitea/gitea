@@ -121,16 +121,6 @@
   width: 50% !important;
 }
 
-.ui.grid > .column.row > [class*="one wide"].column,
-.ui.grid > [class*="one wide"].column,
-.ui.column.grid > [class*="one wide"].column {
-  width: 6.25% !important;
-}
-.ui.grid > .column.row > [class*="two wide"].column,
-.ui.grid > [class*="two wide"].column,
-.ui.column.grid > [class*="two wide"].column {
-  width: 12.5% !important;
-}
 .ui.grid > [class*="three wide"].column {
   width: 18.75% !important;
 }
