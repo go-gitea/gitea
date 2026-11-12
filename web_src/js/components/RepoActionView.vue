@@ -302,9 +302,9 @@ onBeforeUnmount(() => {
                 <a download class="silenced" :href="buildArtifactLink(artifact.name)" :data-tooltip-content="locale.downloadFile">
                   <SvgIcon name="octicon-download"/>
                 </a>
-                <a v-if="run.canDeleteArtifact" class="silenced" @click="deleteArtifact(artifact.name)">
+                <button type="button" v-if="run.canDeleteArtifact" class="btn interact-link silenced" @click="deleteArtifact(artifact.name)">
                   <SvgIcon name="octicon-trash"/>
-                </a>
+                </button>
               </template>
               <span
                 v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2"

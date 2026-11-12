@@ -7,9 +7,9 @@
 >
 	<input type="hidden" class="combo-value" name="reviewer_ids">{{/* match CreateIssueForm */}}
 	<div class="ui dropdown full-width {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
-		<a class="fixed-text muted">
+		<button type="button" class="btn interact-link fixed-text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong> {{if $data.CanChooseReviewer}}{{svg "octicon-gear"}}{{end}}
-		</a>
+		</button>
 		<div class="menu flex-items-menu">
 			{{if $hasCandidates}}
 				<div class="ui icon search input">

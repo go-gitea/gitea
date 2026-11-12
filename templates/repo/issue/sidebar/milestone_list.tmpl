@@ -7,9 +7,9 @@
 >
 	<input class="combo-value" name="milestone_id" type="hidden" value="{{$data.SelectedMilestoneID}}">
 	<div class="ui dropdown full-width {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
-		<a class="fixed-text muted">
+		<button type="button" class="btn interact-link fixed-text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
-		</a>
+		</button>
 		<div class="menu">
 			{{if and (not $data.OpenMilestones) (not $data.ClosedMilestones)}}
 				<div class="item disabled">{{ctx.Locale.Tr "repo.issues.new.no_items"}}</div>

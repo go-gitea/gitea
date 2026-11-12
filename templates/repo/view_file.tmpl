@@ -68,10 +68,10 @@
 					{{end}}
 				</div>
 				<a download class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.download_file"}}" href="{{$.RawFileLink}}">{{svg "octicon-download"}}</a>
-				<a class="btn-octicon {{if not .CanCopyContent}}disabled{{end}}" data-global-click="onCopyContentButtonClick"
+				<button type="button" class="btn interact-link btn-octicon {{if not .CanCopyContent}}disabled{{end}}" {{if not .CanCopyContent}}disabled{{end}} data-global-click="onCopyContentButtonClick"
 					{{if not .IsDisplayingSource}}data-raw-file-link="{{$.RawFileLink}}"{{end}}
 					data-tooltip-content="{{if .CanCopyContent}}{{ctx.Locale.Tr "copy_content"}}{{else}}{{ctx.Locale.Tr "copy_type_unsupported"}}{{end}}"
-				>{{svg "octicon-copy"}}</a>
+				>{{svg "octicon-copy"}}</button>
 				{{if and .EnableFeed .RefFullName.IsBranch}}
 				<a class="btn-octicon" href="{{$.RepoLink}}/rss/{{$.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 					{{svg "octicon-rss"}}
@@ -150,10 +150,10 @@
 
 		<div class="code-line-menu tippy-target">
 			{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
-			<a class="item ref-in-new-issue" role="menuitem" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.HTMLURL ctx}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
+			<button type="button" class="btn interact-link item ref-in-new-issue" role="menuitem" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.HTMLURL ctx}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</button>
 			{{end}}
 			<a class="item view_git_blame" role="menuitem" href="{{.Repository.Link}}/blame/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.view_git_blame"}}</a>
-			<a class="item copy-line-permalink" role="menuitem" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{ctx.Locale.Tr "repo.file_copy_permalink"}}</a>
+			<button type="button" class="btn interact-link item copy-line-permalink" role="menuitem" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{ctx.Locale.Tr "repo.file_copy_permalink"}}</button>
 		</div>
 	</div>
 </div>

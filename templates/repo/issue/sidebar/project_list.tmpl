@@ -8,9 +8,9 @@
 >
 	<input class="combo-value" name="project_ids" type="hidden" value="{{SliceUtils.JoinInt64 $data.SelectedProjectIDs}}">
 	<div class="ui dropdown full-width {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
-		<a class="fixed-text muted">
+		<button type="button" class="btn interact-link fixed-text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
-		</a>
+		</button>
 		<div class="menu">
 			{{if or $data.OpenProjects $data.ClosedProjects}}
 			<div class="ui icon search input">

@@ -67,7 +67,7 @@ export function initRepoTopicBar() {
       lastErrorToast = showErrorToast(responseData.message, {duration: 5000});
       if (responseData.invalidTopics && responseData.invalidTopics.length > 0) {
         const {invalidTopics} = responseData;
-        const topicLabels = queryElemChildren(topicDropdown, 'a.ui.label');
+        const topicLabels = queryElemChildren(topicDropdown, '.ui.label');
         for (const [index, value] of topics.split(',').entries()) {
           if (invalidTopics.includes(value)) {
             topicLabels[index].classList.remove('green');
@@ -98,7 +98,7 @@ export function initRepoTopicBar() {
         };
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
-        const current_topics = Array.from(queryElemChildren(topicDropdown, 'a.ui.label.visible'), (el) => el.getAttribute('data-value'));
+        const current_topics = Array.from(queryElemChildren(topicDropdown, '.ui.label.visible'), (el) => el.getAttribute('data-value'));
 
         if (res.topics) {
           let found = false;

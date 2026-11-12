@@ -72,7 +72,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 							<div class="comment-header">
 								<div class="comment-header-left">
 									{{if not $comment.OriginalAuthor}}
-										<a class="avatar">{{ctx.AvatarUtils.Avatar $comment.Poster 20}}</a>
+										<button type="button" class="btn interact-link avatar">{{ctx.AvatarUtils.Avatar $comment.Poster 20}}</button>
 									{{end}}
 									<span class="tw-text-text-light muted-links">
 										{{if $comment.OriginalAuthor}}
