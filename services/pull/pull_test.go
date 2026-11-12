@@ -5,6 +5,7 @@
 package pull
 
 import (
+	"context"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -16,6 +17,7 @@ import (
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TODO TestPullRequest_PushToBaseRepo
@@ -91,6 +93,52 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo2:branch2 into master", mergeMessage)
+}
+
+func TestCheckIfPRContentChanged_ForkPR(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
+	require.NoError(t, pr.LoadBaseRepo(t.Context()))
+	require.NoError(t, pr.LoadHeadRepo(t.Context()))
+
+	oldBaseCommitID, err := git.GetFullCommitID(t.Context(), pr.BaseRepo, pr.BaseBranch)
+	require.NoError(t, err)
+	oldHeadCommitID, err := git.GetFullCommitID(t.Context(), pr.HeadRepo, pr.HeadBranch)
+	require.NoError(t, err)
+
+	// the fixture repos are shared by other tests, restore the branches afterwards
+	t.Cleanup(func() {
+		ctx := context.WithoutCancel(t.Context())
+		assert.NoError(t, git.UpdateRef(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, oldBaseCommitID))
+		assert.NoError(t, git.UpdateRef(ctx, pr.HeadRepo, git.BranchPrefix+pr.HeadBranch, oldHeadCommitID))
+	})
+
+	advanceBranch := func(repo *repo_model.Repository, branch, parentID, fileName string) string {
+		require.NoError(t, git.ForceFastImport(t.Context(), repo, []git.FastImportCommit{{
+			Ref: git.BranchPrefix + branch, Parent: parentID,
+			Files: []git.FastImportFile{{Path: fileName, Content: "content of " + fileName + "\n"}},
+		}}))
+		commitID, err := git.GetFullCommitID(t.Context(), repo, branch)
+		require.NoError(t, err)
+		require.NotEqual(t, parentID, commitID)
+		return commitID
+	}
+	newBaseCommitID := advanceBranch(pr.BaseRepo, pr.BaseBranch, oldBaseCommitID, "fork-pr-regression.txt")
+	newHeadCommitID := advanceBranch(pr.HeadRepo, pr.HeadBranch, oldHeadCommitID, "fork-pr-head-change.txt")
+
+	// the new base commit only exists in the base repo, so it must be fetched into the head repo
+	exist, err := git.IsCommitInRepo(t.Context(), pr.HeadRepo, newBaseCommitID)
+	require.NoError(t, err)
+	assert.False(t, exist)
+
+	changed, mergeBase, err := checkIfPRContentChanged(t.Context(), pr, oldHeadCommitID, newHeadCommitID)
+	require.NoError(t, err)
+	assert.True(t, changed)
+	assert.Equal(t, oldBaseCommitID, mergeBase)
+	exist, err = git.IsCommitInRepo(t.Context(), pr.HeadRepo, newBaseCommitID)
+	require.NoError(t, err)
+	assert.True(t, exist)
 }
 
 func TestBuildSquashMergeCommitMessages(t *testing.T) {
