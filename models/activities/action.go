@@ -134,7 +134,7 @@ func (at ActionType) InActions(actions ...string) bool {
 // used in template render.
 type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 `xorm:"INDEX"` // Receiver user id.
+	UserID      int64 `xorm:"INDEX INDEX(user_created)"` // Receiver user id.
 	OpType      ActionType
 	ActUserID   int64            // Action user id.
 	ActUser     *user_model.User `xorm:"-"`
@@ -147,7 +147,7 @@ type Action struct {
 	RefName     string
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created INDEX(user_created)"`
 }
 
 func init() {
