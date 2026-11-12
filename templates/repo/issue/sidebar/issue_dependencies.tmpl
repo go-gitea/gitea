@@ -31,7 +31,7 @@
 						</div>
 						<div class="item-right">
 							{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-								<button type="button" class="btn interact-link muted show-modal" data-modal="#issue-remove-dependency-confirm"
+								<button type="button" class="btn interact-fg show-modal" data-modal="#issue-remove-dependency-confirm"
 									data-modal-remove-dependency-id="{{.Issue.ID}}" data-modal-dependency-type="blocking"
 									data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 									{{svg "octicon-trash" 16}}
@@ -65,7 +65,7 @@
 						</div>
 						<div class="item-right">
 							{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-								<button type="button" class="btn interact-link muted show-modal" data-modal="#issue-remove-dependency-confirm"
+								<button type="button" class="btn interact-fg show-modal" data-modal="#issue-remove-dependency-confirm"
 									data-modal-remove-dependency-id="{{.Issue.ID}}" data-modal-dependency-type="blockedBy"
 									data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 									{{svg "octicon-trash" 16}}
@@ -90,7 +90,7 @@
 							</div>
 							<div class="item-right">
 								{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-									<button type="button" class="btn interact-link muted show-modal" data-modal="#issue-remove-dependency-confirm"
+									<button type="button" class="btn interact-fg show-modal" data-modal="#issue-remove-dependency-confirm"
 										data-modal-remove-dependency-id="{{.Issue.ID}}" data-modal-dependency-type="blocking"
 										data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 										{{svg "octicon-trash" 16}}
