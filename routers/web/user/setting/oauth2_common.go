@@ -39,6 +39,7 @@ func (oa *OAuth2CommonHandlers) recordAudit(ctx *context.Context, actions audit.
 }
 
 func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context, app *auth.OAuth2Application) {
+	ctx.Data["Title"] = ctx.Tr("settings.edit_oauth2_application")
 	ctx.Data["App"] = app
 	ctx.Data["FormActionPath"] = fmt.Sprintf("%s/%d", oa.BasePathEditPrefix, app.ID)
 

@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -31,7 +32,7 @@ func SetPackagesContext(ctx *context.Context, owner *user_model.User) {
 }
 
 func SetRuleAddContext(ctx *context.Context) {
-	setRuleEditContext(ctx, nil)
+	setRuleEditContext(ctx, &packages_model.PackageCleanupRule{})
 }
 
 func SetRuleEditContext(ctx *context.Context, owner *user_model.User) {
@@ -44,11 +45,9 @@ func SetRuleEditContext(ctx *context.Context, owner *user_model.User) {
 }
 
 func setRuleEditContext(ctx *context.Context, pcr *packages_model.PackageCleanupRule) {
-	ctx.Data["IsEditRule"] = pcr != nil
-
-	if pcr == nil {
-		pcr = &packages_model.PackageCleanupRule{}
-	}
+	isEditRule := pcr.ID != 0
+	ctx.Data["Title"] = util.Iif(isEditRule, ctx.Tr("packages.owner.settings.cleanuprules.edit"), ctx.Tr("packages.owner.settings.cleanuprules.add"))
+	ctx.Data["IsEditRule"] = isEditRule
 	ctx.Data["CleanupRule"] = pcr
 	ctx.Data["AvailableTypes"] = packages_model.TypeList
 }
@@ -95,9 +94,7 @@ func performRuleEditPost(ctx *context.Context, owner *user_model.User, pcr *pack
 	pcr.RemovePattern = form.RemovePattern
 	pcr.MatchFullName = form.MatchFullName
 
-	ctx.Data["IsEditRule"] = isEditRule
-	ctx.Data["CleanupRule"] = pcr
-	ctx.Data["AvailableTypes"] = packages_model.TypeList
+	setRuleEditContext(ctx, pcr)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, template)
@@ -134,6 +131,8 @@ func performRuleEditPost(ctx *context.Context, owner *user_model.User, pcr *pack
 }
 
 func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
+	ctx.Data["Title"] = ctx.Tr("packages.owner.settings.cleanuprules.preview")
+
 	pcr := getCleanupRuleByContext(ctx, owner)
 	if pcr == nil {
 		return

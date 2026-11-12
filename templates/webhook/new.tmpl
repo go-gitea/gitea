@@ -1,5 +1,5 @@
 <h4 class="ui top attached header">
-	{{.CustomHeaderTitle}}
+	{{ctx.RootData.Title}}
 	<div class="ui right type dropdown">
 		<div class="text flex-text-inline">
 			{{template "shared/webhook/icon" (dict "Size" 20 "HookType" ctx.RootData.HookType)}}

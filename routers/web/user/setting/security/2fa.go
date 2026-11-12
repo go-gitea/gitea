@@ -167,7 +167,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("settings_title")
+	ctx.Data["Title"] = ctx.Tr("settings.twofa_enroll")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
 
@@ -199,7 +199,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm[*forms.TwoFactorAuthForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("settings_title")
+	ctx.Data["Title"] = ctx.Tr("settings.twofa_enroll")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
 

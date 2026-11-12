@@ -125,6 +125,7 @@ func repoUnitPublicAccesses(ctx *context.Context) []*repoUnitPublicAccess {
 }
 
 func PublicAccess(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings.public_access")
 	ctx.Data["PageIsSettingsPublicAccess"] = true
 	ctx.Data["RepoUnitPublicAccesses"] = repoUnitPublicAccesses(ctx)
 	ctx.Data["GlobalForcePrivate"] = setting.Repository.ForcePrivate
