@@ -14,7 +14,7 @@
 {{end}}
 {{range $key, $value := .Reactions}}
 	{{$hasReacted := $value.HasUser ctx.RootData.SignedUserID}}
-	<button type="button" class="ui label basic" {{if not $canReact}}disabled{{end}}
+	<button type="button" class="ui label basic{{if not $canReact}} disabled{{end}}" {{if not $canReact}}disabled{{end}}
 		data-global-click="onCommentReactionButtonClick"
 		data-tooltip-content="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
 		aria-label="{{$key}}: {{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
