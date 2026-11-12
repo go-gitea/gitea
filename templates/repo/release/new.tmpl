@@ -87,9 +87,9 @@
 							{{svg "octicon-info"}}
 						</span>
 					</div>
-					<a class="ui mini compact red button" data-global-click="onReleaseEditAttachmentDelete"  data-id="{{.ID}}" data-uuid="{{.UUID}}">
+					<button type="button" class="ui mini compact red button" data-global-click="onReleaseEditAttachmentDelete"  data-id="{{.ID}}" data-uuid="{{.UUID}}">
 						{{ctx.Locale.Tr "remove"}}
-					</a>
+					</button>
 				</div>
 			{{end}}
 			{{if .IsAttachmentEnabled}}

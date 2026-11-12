@@ -358,9 +358,9 @@
 		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</button>
 	{{else}}
 		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_webhook"}}</button>
-		<a class="ui red button link-action"
+		<button type="button" class="ui red button link-action"
 			data-url="{{.BaseLink}}/delete?id={{.Webhook.ID}}"
 			data-modal-confirm="{{ctx.Locale.Tr "repo.settings.webhook_deletion_desc"}}"
-		>{{ctx.Locale.Tr "repo.settings.delete_webhook"}}</a>
+		>{{ctx.Locale.Tr "repo.settings.delete_webhook"}}</button>
 	{{end}}
 </div>
