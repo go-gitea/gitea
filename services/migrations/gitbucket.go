@@ -82,6 +82,7 @@ func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, to
 	githubDownloader.maxPerPage = 10
 	githubDownloader.SkipReactions = true
 	githubDownloader.SkipReviews = true
+	githubDownloader.countPaginated = true
 	return &GitBucketDownloader{
 		githubDownloader,
 	}, nil

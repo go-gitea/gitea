@@ -47,7 +47,7 @@ type AccessTokensPanel struct {
 func NewAccessTokensPanel(ctx *context.Context, owner *user_model.User, link string) *AccessTokensPanel {
 	tokens, err := db.Find[auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{UserID: owner.ID})
 	if err != nil {
-		ctx.ServerError("ListAccessTokens", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	panel := &AccessTokensPanel{
@@ -81,7 +81,7 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 
 	scope, err := auth_model.AccessTokenScope(strings.Join(scopeNames, ",")).Normalize()
 	if err != nil {
-		ctx.ServerError("GetScope", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !scope.HasPermissionScope() {
@@ -97,7 +97,7 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 
 	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
 	if err != nil {
-		ctx.ServerError("AccessTokenByNameExists", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if exist {
@@ -108,11 +108,11 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 	// a token-authenticated request must not mint a token with a broader scope than its own, nor
 	// drop the public-only restriction. Web routes accept basic-auth PATs/OAuth tokens too, so this
 	// must mirror the REST API guard in routers/api/v1/user/app.go.
-	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	apiTokenScope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
 	if hasApiTokenScope {
 		hasScope, err := apiTokenScope.CanCreateChildScope(t.Scope)
 		if err != nil {
-			ctx.ServerError("CanCreateChildScope", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if !hasScope {
@@ -120,13 +120,13 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 			return
 		}
 		if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
-			ctx.ServerError("EnforcePublicOnlyFrom", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {
-		ctx.ServerError("NewAccessToken", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -138,7 +138,7 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 	}
 	panel.NewTokenValue = t.Token
 	if err := ctx.Render.HTML(ctx.Resp, http.StatusOK, tplAccessTokens, panel, ctx.TemplateContext); err != nil {
-		ctx.ServerError("Render", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -167,16 +167,23 @@ func DeleteAccessToken(ctx *context.Context, owner *user_model.User) {
 	ctx.JSONRedirect("")
 }
 
-// RegenerateAccessToken response for regenerating a user's access token
-func RegenerateAccessToken(ctx *context.Context) {
-	t, err := auth_model.RegenerateAccessToken(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
+// ApplicationsRegenerateToken response for regenerating the current user's access token
+func ApplicationsRegenerateToken(ctx *context.Context) {
+	RegenerateAccessToken(ctx, ctx.Doer)
+}
+
+// RegenerateAccessToken regenerates an access token belonging to owner
+func RegenerateAccessToken(ctx *context.Context, owner *user_model.User) {
+	t, err := auth_model.RegenerateAccessToken(ctx, ctx.FormInt64("id"), owner.ID)
 	if err != nil {
-		ctx.ServerError("RegenerateAccessToken", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
+	audit.Record(ctx, audit_model.UserAccessTokenRegenerate, owner, "token", t.Name)
+
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Token)
-	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
+	ctx.JSONRedirect("")
 }
 
 func loadApplicationsData(ctx *context.Context) {
@@ -192,12 +199,12 @@ func loadApplicationsData(ctx *context.Context) {
 			OwnerID: ctx.Doer.ID,
 		})
 		if err != nil {
-			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["Grants"], err = auth_model.GetOAuth2GrantsByUserID(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.ServerError("GetOAuth2GrantsByUserID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

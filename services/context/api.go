@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
@@ -44,17 +43,9 @@ type APIContext struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo       *Repository
-	Org        *APIOrganization
-	Package    *Package
-	PublicOnly bool // Whether the request is for a public endpoint
-}
-
-// TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
-// A public-only token cannot reach a private repo or a repo owned by a non-public (limited or
-// private) owner; any other token is unrestricted by this check.
-func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
-	return !ctx.PublicOnly || !publicOnlyTokenDeniedRepo(ctx, repo)
+	Repo    *Repository
+	Org     *APIOrganization
+	Package *Package
 }
 
 func init() {
@@ -75,72 +66,13 @@ type APIError struct {
 	URL     string `json:"url"`
 }
 
-// APIValidationError is error format response related to input validation
-// swagger:response validationError
-type APIValidationError struct {
-	Message string `json:"message"`
-	URL     string `json:"url"`
-}
-
-// APIInvalidTopicsError is error format response to invalid topics
-// swagger:response invalidTopicsError
-type APIInvalidTopicsError struct {
-	Message       string   `json:"message"`
-	InvalidTopics []string `json:"invalidTopics"`
-}
-
 // APIEmpty is an empty response
 // swagger:response empty
 type APIEmpty struct{}
 
-// APIForbiddenError is a forbidden error response
-// swagger:response forbidden
-type APIForbiddenError struct {
-	APIError
-}
-
-// APIUnauthorizedError is an unauthorized error response
-// swagger:response unauthorized
-type APIUnauthorizedError struct {
-	APIError
-}
-
-// APINotFound is a not found empty response
-// swagger:response notFound
-type APINotFound struct{}
-
-// APIConflict is a conflict empty response
-// swagger:response conflict
-type APIConflict struct{}
-
 // APIString is a string response
 // swagger:response string
 type APIString string
-
-// APIRepoArchivedError is an error that is raised when an archived repo should be modified
-// swagger:response repoArchivedError
-type APIRepoArchivedError struct {
-	APIError
-}
-
-// APIErrorInternal responds with error message, status is 500
-func (ctx *APIContext) APIErrorInternal(err error) {
-	ctx.apiErrorInternal(1, err)
-}
-
-func (ctx *APIContext) apiErrorInternal(skip int, err error) {
-	log.ErrorWithSkip(skip+1, "InternalServerError: %v", err)
-
-	var message string
-	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
-		message = err.Error()
-	}
-
-	ctx.JSON(http.StatusInternalServerError, APIError{
-		Message: message,
-		URL:     setting.API.SwaggerURL,
-	})
-}
 
 // APIErrorNotFound handles 404s for APIContext
 func (ctx *APIContext) APIErrorNotFound(msg ...string) {
@@ -153,9 +85,13 @@ func (ctx *APIContext) APIErrorNotFound(msg ...string) {
 // APIError responds with an error message to client.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) APIError(status int, msg string) {
+	ctx.apiError(1, status, msg)
+}
+
+func (ctx *APIContext) apiError(skip, status int, msg string) {
 	message := msg
 	if status == http.StatusInternalServerError {
-		log.ErrorWithSkip(1, "APIError: %s", message)
+		log.ErrorWithSkip(skip+1, "APIError: %s", message)
 
 		if setting.IsProd && !(ctx.Doer != nil && ctx.Doer.IsAdmin) {
 			message = ""
@@ -170,11 +106,19 @@ func (ctx *APIContext) APIError(status int, msg string) {
 
 // APIErrorAuto use error check function to determine the response code
 func (ctx *APIContext) APIErrorAuto(err error) {
-	if errMsg, code := util.ErrorUnwrapForUser(err); errMsg != "" {
-		ctx.APIError(code, errMsg)
+	ctx.apiErrorAuto(1, err)
+}
+
+func (ctx *APIContext) apiErrorAuto(skip int, err error) {
+	if errMsg, code := util.ErrorUnwrapForUser(err, ctx.Locale); errMsg != "" {
+		ctx.apiError(skip+1, code, errMsg)
 		return
 	}
-	ctx.apiErrorInternal(1, err)
+	ctx.apiError(skip+1, http.StatusInternalServerError, err.Error())
+}
+
+func (ctx *APIContext) APIErrorInternal(err error) {
+	ctx.apiErrorAuto(1, err)
 }
 
 type apiContextKeyType struct{}

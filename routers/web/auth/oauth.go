@@ -42,7 +42,7 @@ func SignInOAuth(ctx *context.Context) {
 	authName := ctx.PathParam("provider")
 	authSource, err := auth.GetActiveOAuth2SourceByAuthName(ctx, authName)
 	if err != nil {
-		ctx.ServerError("SignIn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -61,15 +61,15 @@ func SignInOAuth(ctx *context.Context) {
 	if err = oauth2Source.Callout(ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
 			if err = oauth2.ResetOAuth2(ctx); err != nil {
-				ctx.ServerError("SignIn", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if err = oauth2Source.Callout(ctx.Req, ctx.Resp); err != nil {
-				ctx.ServerError("SignIn", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
-		ctx.ServerError("SignIn", err)
+		ctx.ServerErrorAuto(err)
 	}
 	// redirect is done in oauth2.Auth
 }
@@ -91,12 +91,12 @@ func SignInOAuthCallback(ctx *context.Context) {
 	authName := ctx.PathParam("provider")
 	authSource, err := auth.GetActiveOAuth2SourceByAuthName(ctx, authName)
 	if err != nil {
-		ctx.ServerError("SignIn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if authSource == nil {
-		ctx.ServerError("SignIn", errors.New("no valid provider found, check configured callback url in provider"))
+		ctx.ServerErrorAuto(errors.New("no valid provider found, check configured callback url in provider"))
 		return
 	}
 
@@ -126,7 +126,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
 		}
-		ctx.ServerError("UserSignIn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -135,7 +135,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			// attach user to the current signed-in user
 			err = externalaccount.LinkAccountToUser(ctx, authSource.ID, ctx.Doer, gothUser)
 			if err != nil {
-				ctx.ServerError("UserLinkAccount", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 
@@ -152,7 +152,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 			uname, err := extractUserNameFromOAuth2(&gothUser)
 			if err != nil {
-				ctx.ServerError("UserSignIn", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if uname == "" {
@@ -201,7 +201,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 
 			if err := syncGroupsToTeams(ctx, source, &gothUser, u); err != nil {
-				ctx.ServerError("SyncGroupsToTeams", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		} else {
@@ -293,7 +293,7 @@ func Oauth2SetLinkAccountData(ctx *context.Context, linkAccountData LinkAccountD
 
 func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.User) {
 	if err := Oauth2SetLinkAccountData(ctx, LinkAccountData{authSourceID, gothUser}); err != nil {
-		ctx.ServerError("Oauth2SetLinkAccountData", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
@@ -353,7 +353,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 	if !authSource.TwoFactorShouldSkip() {
 		var err error
 		if needs2FA, err = auth.HasTwoFactorOrWebAuthn(ctx, u.ID); err != nil {
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -362,7 +362,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(oauth2Source.GroupTeamMap)
 	if err != nil {
-		ctx.ServerError("UnmarshalGroupTeamMapping", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -378,7 +378,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 	if !u.IsActive {
 		extLogin, hasExt, err := user_model.GetExternalLogin(ctx, authSource.ID, gothUser.UserID)
 		if err != nil {
-			ctx.ServerError("GetExternalLogin", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		// the cron clears all three token fields when it disables a user, so require the
@@ -392,13 +392,13 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
 		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
-			ctx.ServerError("SyncGroupsToTeams", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 
 	if err := externalaccount.EnsureLinkExternalToUser(ctx, authSource.ID, u, gothUser); err != nil {
-		ctx.ServerError("EnsureLinkExternalToUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -409,12 +409,12 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		opts.SetLastLogin = true
 
 		if err := user_service.UpdateUser(audit.WithDoer(ctx, user_model.NewAuthSourceUser()), u, opts); err != nil {
-			ctx.ServerError("UpdateUser", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 		if err != nil {
-			ctx.ServerError("UpdateUser", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -423,12 +423,12 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 			session.KeySignInMethod:         session.SignInMethodOAuth2,
 		}); err != nil {
-			ctx.ServerError("updateSession", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
 		if err := resetLocale(ctx, u); err != nil {
-			ctx.ServerError("resetLocale", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -438,7 +438,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	if opts.IsActive.Has() || opts.IsAdmin.Has() || opts.IsRestricted.Has() {
 		if err := user_service.UpdateUser(audit.WithDoer(ctx, user_model.NewAuthSourceUser()), u, opts); err != nil {
-			ctx.ServerError("UpdateUser", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

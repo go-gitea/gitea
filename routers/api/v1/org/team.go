@@ -53,8 +53,8 @@ func ListTeams(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 	opts := &organization.SearchTeamOptions{
@@ -140,8 +140,8 @@ func GetTeam(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	apiTeam, err := convert.ToTeam(ctx, ctx.Org.Team, true)
 	if err != nil {
@@ -207,10 +207,8 @@ func CreateTeam(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Team"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.CreateTeamOption](ctx)
 	team := &organization.Team{
 		OrgID:                   ctx.Org.Organization.ID,
@@ -227,11 +225,7 @@ func CreateTeam(ctx *context.APIContext) {
 	}
 
 	if err := org_service.NewTeam(ctx, team); err != nil {
-		if organization.IsErrTeamAlreadyExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -265,8 +259,8 @@ func EditTeam(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.EditTeamOption](ctx)
 	team := ctx.Org.Team
@@ -309,7 +303,7 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if err := org_service.UpdateTeam(ctx, team, isAuthChanged, isIncludeAllChanged); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -336,8 +330,8 @@ func DeleteTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: team deleted
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if err := org_service.DeleteTeam(ctx, ctx.Org.Team); err != nil {
 		ctx.APIErrorInternal(err)
@@ -371,8 +365,8 @@ func GetTeamMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
@@ -416,8 +410,8 @@ func GetTeamMember(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/User"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	u := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
@@ -457,10 +451,8 @@ func AddTeamMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	u := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
@@ -499,8 +491,8 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	u := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
@@ -539,18 +531,15 @@ func GetTeamRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	team := ctx.Org.Team
 	listOptions := utils.GetListOptions(ctx)
-	// A public-only token must not expose (or count) private repos, even when the
-	// doer owning the token otherwise has access to them, so filter them out at the
-	// query level to keep the returned page and the total-count header consistent.
 	searchOpts := &repo_model.SearchTeamRepoOptions{
 		ListOptions: listOptions,
 		TeamID:      team.ID,
-		PublicOnly:  ctx.PublicOnly,
+		Actor:       ctx.Doer,
 	}
 	teamRepos, err := repo_model.GetTeamRepositories(ctx, searchOpts)
 	if err != nil {
@@ -611,17 +600,11 @@ func GetTeamRepo(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo, permission := getRepositoryByParams(ctx)
 	if ctx.Written() {
-		return
-	}
-
-	// A public-only token must not confirm the existence of a private repo.
-	if !ctx.TokenCanAccessRepo(repo) {
-		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -691,10 +674,8 @@ func AddTeamRepository(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo, perm := getRepositoryByParams(ctx)
 	if ctx.Written() {
@@ -739,10 +720,8 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo, perm := getRepositoryByParams(ctx)
 	if ctx.Written() {
@@ -799,8 +778,8 @@ func SearchTeam(ctx *context.APIContext) {
 	//           type: array
 	//           items:
 	//             "$ref": "#/definitions/Team"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 
@@ -869,8 +848,8 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActivityFeedsList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listOptions := utils.GetListOptions(ctx)
 
@@ -881,8 +860,6 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
-	// A public-only token must not receive private activity entries.
-	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

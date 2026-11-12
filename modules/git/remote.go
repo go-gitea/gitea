@@ -64,9 +64,9 @@ func (err *ErrInvalidCloneAddr) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-// IsRemoteNotExistError checks the prefix of the error message to see whether a remote does not exist.
+// IsRemoteNotExistError checks whether a "git remote" subcommand failed because the remote does not exist
 func IsRemoteNotExistError(err error) bool {
-	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchRemote)
+	return gitcmd.IsErrorExitCode(err, 2)
 }
 
 // ParseRemoteAddr checks if given remote address is valid,

@@ -12,6 +12,8 @@ import (
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/tests"
@@ -28,7 +30,7 @@ func TestAPIWorkflowRun(t *testing.T) {
 		testAPIWorkflowRunBasic(t, "/api/v1/user/actions", "User2", 803, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
 	})
 	t.Run("OrgRuns", func(t *testing.T) {
-		testAPIWorkflowRunBasic(t, "/api/v1/orgs/org3/actions", "User1", 802, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadRepository)
+		testAPIWorkflowRunBasic(t, "/api/v1/orgs/org3/actions", "User1", 802, auth_model.AccessTokenScopeAll)
 	})
 	t.Run("RepoRuns", func(t *testing.T) {
 		testAPIWorkflowRunBasic(t, "/api/v1/repos/org3/repo5/actions", "User2", 802, auth_model.AccessTokenScopeReadRepository)
@@ -134,6 +136,7 @@ func testAPIWorkflowRunsByWorkflowID(t *testing.T, owner, repo, workflowID, user
 
 func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runID int64, scope ...auth_model.AccessTokenScope) {
 	defer tests.PrepareTestEnv(t)()
+	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 2, Type: unit.TypeActions, Config: &repo_model.ActionsConfig{}}))
 	token := getUserToken(t, userUsername, scope...)
 
 	apiRunsURL := fmt.Sprintf("%s/%s", apiRootURL, "runs")

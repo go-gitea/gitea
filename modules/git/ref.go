@@ -5,7 +5,6 @@ package git
 
 import (
 	"context"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -20,29 +19,17 @@ const (
 	// PullPrefix is the base directory of the pull information of git.
 	PullPrefix = "refs/pull/"
 	pullSuffix = "/head"
-)
 
-// refNamePatternInvalid is regular expression with unallowed characters in git reference name
-// They cannot have ASCII control characters (i.e. bytes whose values are lower than \040, or \177 DEL), space, tilde ~, caret ^, or colon : anywhere.
-// They cannot have question-mark ?, asterisk *, or open bracket [ anywhere
-var refNamePatternInvalid = regexp.MustCompile(
-	`[\000-\037\177 \\~^:?*[]|` + // No absolutely invalid characters
-		`(?:^[/.])|` + // Not HasPrefix("/") or "."
-		`(?:/\.)|` + // no "/."
-		`(?:\.lock$)|(?:\.lock/)|` + // No ".lock/"" or ".lock" at the end
-		`(?:\.\.)|` + // no ".." anywhere
-		`(?://)|` + // no "//" anywhere
-		`(?:@{)|` + // no "@{"
-		`(?:[/.]$)|` + // no terminal '/' or '.'
-		`(?:^@$)`) // Not "@"
+	hiddenRefPrefix = "refs/gitea"
+)
 
 // IsValidRefPattern ensures that the provided string could be a valid reference
 func IsValidRefPattern(name string) bool {
-	return !refNamePatternInvalid.MatchString(name)
+	return !globalVars().refNamePatternInvalid.MatchString(name)
 }
 
 func SanitizeRefPattern(name string) string {
-	return refNamePatternInvalid.ReplaceAllString(name, "_")
+	return globalVars().refNamePatternInvalid.ReplaceAllString(name, "_")
 }
 
 // Reference represents a Git ref.
@@ -97,6 +84,21 @@ func RefNameFromCommit(shortName string) RefName {
 
 func RefNameFromPullIndex(prIndex int64) RefName {
 	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + pullSuffix)
+}
+
+// MergeRefNameFromPullIndex is the test merge of an open pull request
+func MergeRefNameFromPullIndex(prIndex int64) RefName {
+	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + "/merge")
+}
+
+// MergedRefNameFromPullIndex keeps the merged commit after the base branch is deleted or rewritten
+func MergedRefNameFromPullIndex(prIndex int64) RefName {
+	return RefName(hiddenRefPrefix + "/pull/" + strconv.FormatInt(prIndex, 10) + "/merged")
+}
+
+// RunRefNameFromRunID keeps a run's test merge after refs/pull/<index>/merge moved on
+func RunRefNameFromRunID(runID int64) RefName {
+	return RefName(hiddenRefPrefix + "/run/" + strconv.FormatInt(runID, 10))
 }
 
 func (ref RefName) String() string {
@@ -258,9 +260,9 @@ func ParseRefSuffix(ref string) (refName, refSuffix string) {
 }
 
 func UpdateRef(ctx context.Context, repo RepositoryFacade, refName, newCommitID string) error {
-	return gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).WithRepo(repo).Run(ctx)
+	return gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).WithRepo(repo).RunWithStderr(ctx)
 }
 
 func RemoveRef(ctx context.Context, repo RepositoryFacade, refName string) error {
-	return gitcmd.NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(refName).WithRepo(repo).Run(ctx)
+	return gitcmd.NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(refName).WithRepo(repo).RunWithStderr(ctx)
 }

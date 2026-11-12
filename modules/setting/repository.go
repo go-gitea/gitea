@@ -6,6 +6,7 @@ package setting
 import (
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"gitea.dev/modules/log"
@@ -58,8 +59,6 @@ var (
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
 		DefaultObjectFormat                     string
-		AllowAdoptionOfUnadoptedRepositories    bool
-		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
@@ -94,7 +93,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
-			PopulateSquashCommentWithCommitMessages  bool
+			DefaultSquashMergeMessage                string
 			AddCoCommitterTrailers                   bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
@@ -188,7 +187,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
-			PopulateSquashCommentWithCommitMessages  bool
+			DefaultSquashMergeMessage                string
 			AddCoCommitterTrailers                   bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
@@ -206,10 +205,11 @@ var (
 			DefaultMergeMessageAllAuthors:            false,
 			DefaultMergeMessageMaxApprovers:          10,
 			DefaultMergeMessageOfficialApproversOnly: true,
-			PopulateSquashCommentWithCommitMessages:  false,
+			DefaultSquashMergeMessage:                "PR_BODY",
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
+			DefaultDeleteBranchAfterMerge:            true,
 			DefaultTitleSource:                       RepoPRTitleSourceAuto,
 		},
 
@@ -337,6 +337,10 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Repository.Upload settings: %v", err)
 	} else if err = rootCfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
+	}
+
+	if !slices.Contains([]string{"BLANK", "COMMIT_MESSAGES", "PR_BODY"}, Repository.PullRequest.DefaultSquashMergeMessage) { // uppercase unlike other config values, to match GitHub's squash_merge_commit_message which the API also uses
+		log.Fatal("Invalid repository.pull-request.DEFAULT_SQUASH_MERGE_MESSAGE: %s", Repository.PullRequest.DefaultSquashMergeMessage)
 	}
 
 	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {

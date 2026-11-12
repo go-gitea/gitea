@@ -259,5 +259,11 @@ type swaggerParameterBodies struct {
 	MoveProjectIssueOption api.MoveProjectIssueOption
 
 	// in:body
+	CreateProjectWorkflowOption api.CreateProjectWorkflowOption
+
+	// in:body
+	EditProjectWorkflowOption api.EditProjectWorkflowOption
+
+	// in:body
 	MergeUpstreamRequest api.MergeUpstreamRequest
 }

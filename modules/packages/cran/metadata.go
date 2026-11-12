@@ -7,12 +7,16 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bufio"
+	"cmp"
 	"compress/gzip"
 	"io"
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 )
 
@@ -31,12 +35,19 @@ var (
 	ErrInvalidVersion         = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
-var (
-	fieldPattern         = regexp.MustCompile(`\A\S+:`)
-	namePattern          = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9\.]*[a-zA-Z0-9]\z`)
-	versionPattern       = regexp.MustCompile(`\A[0-9]+(?:[.\-][0-9]+)+\z`)
-	authorReplacePattern = regexp.MustCompile(`[\[\(].+?[\]\)]`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	fieldPattern         *regexp.Regexp
+	namePattern          *regexp.Regexp
+	versionPattern       *regexp.Regexp
+	authorReplacePattern *regexp.Regexp
+},
+) {
+	ret.fieldPattern = regexp.MustCompile(`\A\S+:`)
+	ret.namePattern = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9\.]*[a-zA-Z0-9]\z`)
+	ret.versionPattern = regexp.MustCompile(`\A[0-9]+(?:[.\-][0-9]+)+\z`)
+	ret.authorReplacePattern = regexp.MustCompile(`[\[\(].+?[\]\)]`)
+	return ret
+})
 
 // Package represents a CRAN package
 type Package struct {
@@ -151,7 +162,7 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		Metadata: &Metadata{},
 	}
 
-	scanner := bufio.NewScanner(r)
+	scanner := bufio.NewScanner(packages.NewLimitedReader(r, packages.MaxMetadataSize))
 
 	var b strings.Builder
 	for scanner.Scan() {
@@ -159,7 +170,7 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		if line == "" {
 			continue
 		}
-		if !fieldPattern.MatchString(line) {
+		if !globalVars().fieldPattern.MatchString(line) {
 			b.WriteRune(' ')
 			b.WriteString(line)
 			continue
@@ -173,11 +184,11 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		b.WriteString(line)
 	}
 
-	if err := setField(p, b.String()); err != nil {
+	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err := setField(p, b.String()); err != nil {
 		return nil, err
 	}
 
@@ -199,12 +210,12 @@ func setField(p *Package, data string) error {
 
 	switch name {
 	case "Package":
-		if !namePattern.MatchString(value) {
+		if !globalVars().namePattern.MatchString(value) {
 			return ErrInvalidName
 		}
 		p.Name = value
 	case "Version":
-		if !versionPattern.MatchString(value) {
+		if !globalVars().versionPattern.MatchString(value) {
 			return ErrInvalidVersion
 		}
 		p.Version = value
@@ -217,7 +228,7 @@ func setField(p *Package, data string) error {
 	case "License":
 		p.Metadata.License = value
 	case "Author":
-		p.Metadata.Authors = splitAndTrim(authorReplacePattern.ReplaceAllString(value, ""))
+		p.Metadata.Authors = splitAndTrim(globalVars().authorReplacePattern.ReplaceAllString(value, ""))
 	case "Depends":
 		p.Metadata.Depends = splitAndTrim(value)
 	case "Imports":
@@ -231,6 +242,11 @@ func setField(p *Package, data string) error {
 	}
 
 	return nil
+}
+
+// CompareVersions returns -1, 0 or 1, R treats "." and "-" as equivalent separators
+func CompareVersions(a, b string) int {
+	return cmp.Compare(base.NaturalSortCompare(strings.ReplaceAll(a, "-", "."), strings.ReplaceAll(b, "-", ".")), 0)
 }
 
 func splitAndTrim(s string) []string {

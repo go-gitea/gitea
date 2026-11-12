@@ -22,15 +22,14 @@ import (
 	"golang.org/x/text/transform"
 )
 
-var globalVars = sync.OnceValue(func() (ret struct {
-	utf8Bom []byte
+const utf8Bom = "\xef\xbb\xbf"
 
+var globalVars = sync.OnceValue(func() (ret struct {
 	defaultWordRegexp   *regexp.Regexp
 	ambiguousTableMap   map[string]*AmbiguousTable
 	invisibleRangeTable *unicode.RangeTable
 },
 ) {
-	ret.utf8Bom = []byte("\xef\xbb\xbf")
 	ret.ambiguousTableMap = newAmbiguousTableMap()
 	ret.invisibleRangeTable = newInvisibleRangeTable()
 	return ret
@@ -52,7 +51,7 @@ func Lookup(label string) (e encoding.Encoding, name string) {
 
 type ConvertOpts struct {
 	KeepBOM           bool
-	ErrorReplacement  []byte
+	ErrorReplacement  []byte // leave it empty to remove the invalid bytes
 	ErrorReturnOrigin bool
 }
 
@@ -99,7 +98,12 @@ func ToUTF8DropErrors(content []byte) []byte {
 func ToUTF8(content []byte, opts ConvertOpts) []byte {
 	charsetLabel, _ := DetectEncoding(content)
 	if charsetLabel == "UTF-8" {
-		return maybeRemoveBOM(content, opts)
+		// even if the detected charset is UTF-8, the content may contain invalid UTF-8 sequences, so need to convert it to valid UTF-8
+		content = maybeRemoveBOM(content, opts)
+		if opts.ErrorReturnOrigin {
+			return content
+		}
+		return bytes.ToValidUTF8(content, opts.ErrorReplacement)
 	}
 
 	encoding, _ := Lookup(charsetLabel)
@@ -123,11 +127,7 @@ func ToUTF8(content []byte, opts ConvertOpts) []byte {
 		if opts.ErrorReturnOrigin {
 			return content
 		}
-		if opts.ErrorReplacement == nil {
-			decoded = append(decoded, content[idx+n])
-		} else {
-			decoded = append(decoded, opts.ErrorReplacement...)
-		}
+		decoded = append(decoded, opts.ErrorReplacement...)
 		idx += n + 1
 	}
 	return maybeRemoveBOM(decoded, opts)
@@ -138,7 +138,7 @@ func maybeRemoveBOM(content []byte, opts ConvertOpts) []byte {
 	if opts.KeepBOM {
 		return content
 	}
-	return bytes.TrimPrefix(content, globalVars().utf8Bom)
+	return bytes.TrimPrefix(content, []byte(utf8Bom))
 }
 
 // DetectEncoding detect the encoding of content

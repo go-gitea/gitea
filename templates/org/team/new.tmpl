@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization new team">
+<div role="main" aria-label="{{.Title}}" class="page-content organization new team" data-global-init="initOrgTeamSettings">
 	{{template "org/header" .}}
 	<div class="ui container">
 		<div class="ui grid">
@@ -194,7 +194,7 @@
 	</div>
 </div>
 
-<div class="ui small modal" id="delete-team">
+<dialog class="modal-dialog" id="delete-team">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "org.teams.delete_team_title"}}
@@ -203,5 +203,5 @@
 		<p>{{ctx.Locale.Tr "org.teams.delete_team_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</dialog>
 {{template "base/footer" .}}

@@ -167,6 +167,14 @@ function attachStaticElements(dropdown: AriaDropdownElement, focusable: HTMLElem
   if (tooltipContent && !dropdown.getAttribute('aria-label')) {
     dropdown.setAttribute('aria-label', tooltipContent);
   }
+  // a selection dropdown's text is its value, other dropdowns are button-like and named by their visible text
+  if (!dropdown.classList.contains('selection') && !focusable.getAttribute('aria-label') && !focusable.getAttribute('aria-labelledby')) {
+    const textElem = dropdown.querySelector<HTMLElement>(':scope > .text, :scope > span');
+    if (textElem) {
+      if (!textElem.id) textElem.id = generateElemId('_aria_dropdown_text_');
+      focusable.setAttribute('aria-labelledby', textElem.id);
+    }
+  }
 }
 
 function attachInitElements(dropdown: AriaDropdownElement) {

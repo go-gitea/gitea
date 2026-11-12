@@ -22,6 +22,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
@@ -109,7 +110,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
 	if err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
-			ctx.ServerError("GetRepositoryByName", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
 
@@ -137,7 +138,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		if !canAnonymousPull && ctx.Doer == nil {
 			anonPerm, err := access_model.GetDoerRepoPermission(ctx, repo, nil)
 			if err != nil {
-				ctx.ServerError("GetDoerRepoPermission", err)
+				ctx.ServerErrorAuto(err)
 				return nil
 			}
 			canAnonymousPull = anonPerm.CanAccess(accessMode, unitType)
@@ -159,19 +160,19 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		context.CheckRepoScopedToken(ctx, repo, auth_model.GetScopeLevelFromAccessMode(accessMode))
+		context.CheckRepoScopedToken(ctx, auth_model.GetScopeLevelFromAccessMode(accessMode))
 		if ctx.Written() {
 			return nil
 		}
 
-		if ctx.IsBasicAuth && ctx.Data["ApiTokenScope"] == nil && ctx.Doer.IsIndividual() {
+		if _, isToken := user_model.GetDoerTokenScope(ctx.Doer); ctx.IsBasicAuth && !isToken && ctx.Doer.IsIndividual() {
 			_, err = auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
 				ctx.PlainText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 				return nil
 			} else if !auth_model.IsErrTwoFactorNotEnrolled(err) {
-				ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
+				ctx.ServerErrorAuto(err)
 				return nil
 			}
 		}
@@ -189,7 +190,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 			p, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
-				ctx.ServerError("GetDoerRepoPermission", err)
+				ctx.ServerErrorAuto(err)
 				return nil
 			}
 
@@ -203,6 +204,11 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 				return nil
 			}
 		}
+	}
+
+	if repoExist && repo.IsBeingCreated() {
+		ctx.PlainText(http.StatusForbidden, "Repository is still being created, please retry later")
+		return nil
 	}
 
 	if !repoExist {
@@ -246,7 +252,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 				ctx.PlainText(http.StatusForbidden, "repository wiki is disabled")
 				return nil
 			}
-			ctx.ServerError("GetUnit(UnitTypeWiki) for "+repo.FullName(), err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
 	}
@@ -472,7 +478,7 @@ func GetInfoRefs(ctx *context.Context) {
 		// it's said that some legacy git clients will send requests to "/info/refs" without "service" parameter,
 		// although there should be no such case client in the modern days. TODO: not quite sure why we need this UpdateServerInfo logic
 		if err := git.UpdateServerInfo(ctx, repo); err != nil {
-			ctx.ServerError("UpdateServerInfo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		h.sendFile(ctx, "text/plain; charset=utf-8", "info/refs")
@@ -490,7 +496,7 @@ func GetInfoRefs(ctx *context.Context) {
 
 	repoExists, err := git.IsRepositoryExist(ctx, repo)
 	if err != nil {
-		ctx.ServerError("IsRepositoryExist", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -508,7 +514,7 @@ func GetInfoRefs(ctx *context.Context) {
 	cmd = cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").WithEnv(gitCmdEnvs)
 	refs, _, err := cmd.WithRepo(repo).RunStdBytes(ctx)
 	if err != nil {
-		ctx.ServerError("RunGitServiceAdvertiseRefs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

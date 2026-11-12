@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/shared/issue"
+	project_shared "gitea.dev/routers/web/shared/project"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
@@ -29,15 +30,16 @@ import (
 )
 
 const (
-	tplProjects     templates.TplName = "org/projects/list"
-	tplProjectsNew  templates.TplName = "org/projects/new"
-	tplProjectsView templates.TplName = "org/projects/view"
+	tplProjects         templates.TplName = "org/projects/list"
+	tplProjectsNew      templates.TplName = "org/projects/new"
+	tplProjectsView     templates.TplName = "org/projects/view"
+	tplProjectWorkflows templates.TplName = "org/projects/workflows"
 )
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("repo.projects")
@@ -66,12 +68,12 @@ func Projects(ctx *context.Context) {
 		Title:    keyword,
 	})
 	if err != nil {
-		ctx.ServerError("FindProjects", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := project_service.LoadIssueNumbersForProjects(ctx, projects, ctx.Doer); err != nil {
-		ctx.ServerError("LoadIssueNumbersForProjects", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -81,7 +83,7 @@ func Projects(ctx *context.Context) {
 		Type:     projectType,
 	})
 	if err != nil {
-		ctx.ServerError("CountProjects", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -133,7 +135,7 @@ func RenderNewProject(ctx *context.Context) {
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	ctx.Data["CancelLink"] = ctx.ContextUser.HomeLink() + "/-/projects"
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -145,7 +147,7 @@ func NewProjectPost(ctx *context.Context) {
 	form := web.GetForm[*forms.CreateProjectForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -170,7 +172,7 @@ func NewProjectPost(ctx *context.Context) {
 	}
 
 	if err := project_model.NewProject(ctx, &newProject); err != nil {
-		ctx.ServerError("NewProject", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	audit.Record(ctx, audit_model.ProjectCreate, ctx.ContextUser, "project", newProject.Title, "project_id", newProject.ID)
@@ -195,12 +197,12 @@ func ChangeProjectStatus(ctx *context.Context) {
 
 	project, err := project_model.GetProjectByIDAndOwner(ctx, id, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.ServerError("GetProjectByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, project.ID, toClose); err != nil {
-		ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(project_model.ProjectLinkForOrg(ctx.ContextUser, project.ID))
@@ -210,12 +212,12 @@ func ChangeProjectStatus(ctx *context.Context) {
 func DeleteProject(ctx *context.Context) {
 	p, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	if err != nil {
-		ctx.ServerError("GetProjectByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	if err := project_model.DeleteProjectByID(ctx, p.ID); err != nil {
-		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
+	if err := project_service.DeleteProject(ctx, p.ID); err != nil {
+		ctx.Flash.Error("DeleteProject: " + err.Error())
 	} else {
 		audit.Record(ctx, audit_model.ProjectDelete, ctx.ContextUser, "project", p.Title, "project_id", p.ID)
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
@@ -233,13 +235,13 @@ func RenderEditProject(ctx *context.Context) {
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	p, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	if err != nil {
-		ctx.ServerError("GetProjectByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -266,7 +268,7 @@ func EditProjectPost(ctx *context.Context) {
 	ctx.Data["CancelLink"] = project_model.ProjectLinkForOrg(ctx.ContextUser, projectID)
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -277,7 +279,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	p, err := project_model.GetProjectByIDAndOwner(ctx, projectID, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.ServerError("GetProjectByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -285,7 +287,7 @@ func EditProjectPost(ctx *context.Context) {
 	p.Description = form.Content
 	p.CardType = form.CardType
 	if err = project_model.UpdateProject(ctx, p); err != nil {
-		ctx.ServerError("UpdateProjects", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	audit.Record(ctx, audit_model.ProjectUpdate, ctx.ContextUser, "project", p.Title, "project_id", p.ID)
@@ -302,18 +304,18 @@ func EditProjectPost(ctx *context.Context) {
 func ViewProject(ctx *context.Context) {
 	project, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	if err != nil {
-		ctx.ServerError("GetProjectByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := project.LoadOwner(ctx); err != nil {
-		ctx.ServerError("LoadOwner", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
 	if err != nil {
-		ctx.ServerError("GetColumns", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -346,7 +348,7 @@ func ViewProject(ctx *context.Context) {
 
 	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &opts)
 	if err != nil {
-		ctx.ServerError("LoadIssuesOfColumns", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for _, column := range columns {
@@ -365,47 +367,27 @@ func ViewProject(ctx *context.Context) {
 		ctx.Data["issuesAttachmentMap"] = issuesAttachmentMap
 	}
 
-	linkedPrsMap := make(map[int64][]*issues_model.Issue)
-	for _, issuesList := range issuesMap {
-		for _, issue := range issuesList {
-			var referencedIDs []int64
-			for _, comment := range issue.Comments {
-				if comment.RefIssueID != 0 && comment.RefIsPull {
-					referencedIDs = append(referencedIDs, comment.RefIssueID)
-				}
-			}
-
-			if len(referencedIDs) > 0 {
-				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-					IssueIDs: referencedIDs,
-					IsPull:   optional.Some(true),
-				}); err == nil {
-					linkedPrsMap[issue.ID] = linkedPrs
-				}
-			}
-		}
+	linkedPrsMap, err := project_service.LoadLinkedPullRequests(ctx, issuesMap, ctx.Doer)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
 	}
 
 	// TODO: Add option to filter also by repository specific labels
 	labels, err := issues_model.GetLabelsByOrgID(ctx, project.OwnerID, "", db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("GetLabelsByOrgID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	// Get the exclusive scope for every label ID
-	labelExclusiveScopes := make([]string, 0, len(preparedLabelFilter.SelectedLabelIDs))
-	for _, labelID := range preparedLabelFilter.SelectedLabelIDs {
-		foundExclusiveScope := false
+	labelExclusiveScopes := make([]string, len(preparedLabelFilter.SelectedLabelIDs))
+	for i, labelID := range preparedLabelFilter.SelectedLabelIDs {
 		for _, label := range labels {
 			if label.ID == labelID || label.ID == -labelID {
-				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
-				foundExclusiveScope = true
+				labelExclusiveScopes[i] = label.ExclusiveScope()
 				break
 			}
-		}
-		if !foundExclusiveScope {
-			labelExclusiveScopes = append(labelExclusiveScopes, "")
 		}
 	}
 
@@ -424,7 +406,7 @@ func ViewProject(ctx *context.Context) {
 			RepoID: project.RepoID,
 		})
 		if err != nil {
-			ctx.ServerError("GetRepoMilestones", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	} else {
@@ -438,10 +420,11 @@ func ViewProject(ctx *context.Context) {
 			accessCond,
 		)
 		milestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-			RepoCond: repoCond,
+			RepoCond:  repoCond,
+			ProjectID: project.ID,
 		})
 		if err != nil {
-			ctx.ServerError("GetOrgMilestones", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -454,7 +437,7 @@ func ViewProject(ctx *context.Context) {
 	// Get assignees.
 	assigneeUsers, err := project_service.LoadIssuesAssigneesForProject(ctx, project.ID)
 	if err != nil {
-		ctx.ServerError("LoadIssuesAssigneesForProject", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
@@ -470,9 +453,19 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Title"] = fmt.Sprintf("%s - %s", project.Title, ctx.ContextUser.DisplayName())
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
+}
+
+// ProjectWorkflows renders the workflows page of an owner-level project
+func ProjectWorkflows(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	ctx.Data["PageIsViewProjects"] = true
+	project_shared.RenderWorkflows(ctx, canWriteProjects(ctx), tplProjectWorkflows)
 }

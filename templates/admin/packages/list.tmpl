@@ -83,12 +83,14 @@
 		{{template "base/paginate" .}}
 	</div>
 
-<form class="ui small modal form-fetch-action" method="post" id="admin-package-delete-modal">
+<dialog class="modal-dialog" id="admin-package-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "packages.settings.delete.version"}}</div>
-	<div class="content">
-		{{ctx.Locale.Tr "packages.settings.delete.notice" (HTMLFormat `<span class="%s"></span>` "package-name") (HTMLFormat `<span class="%s"></span>` "package-version")}}
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</form>
+	<form class="form-fetch-action" method="post">
+		<div class="content">
+			{{ctx.Locale.Tr "packages.settings.delete.notice" (HTMLFormat `<span class="%s"></span>` "package-name") (HTMLFormat `<span class="%s"></span>` "package-version")}}
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</form>
+</dialog>
 
 {{template "admin/layout_footer" .}}

@@ -23,7 +23,7 @@ import (
 )
 
 func TestIssueLabel(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	t.Run("RetrieveLabels", testRetrieveLabels)
 	t.Run("NewLabel", testNewLabel)
 	t.Run("NewLabelInvalidColor", testNewLabelInvalidColor)
@@ -199,7 +199,7 @@ func testUpdateIssueLabelToggle(t *testing.T) {
 		{"toggle", []int64{1, 3}, 1, false},
 		{"toggle", []int64{1, 2}, 2, true},
 	} {
-		unittest.PrepareTestEnv(t)
+		assert.NoError(t, unittest.PrepareTestDatabase())
 		ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, 1)

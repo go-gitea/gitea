@@ -78,7 +78,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 			return err
 		}
 		addCommitSigningOptions(cmdCommit, ctx.signKey)
-		if err := cmdCommit.WithRepo(ctx.tmpRepo).Run(ctx); err != nil {
+		if err := cmdCommit.WithRepo(ctx.tmpRepo).RunWithStderr(ctx); err != nil {
 			log.Error("Unable to amend commit message: %v", err)
 			return err
 		}

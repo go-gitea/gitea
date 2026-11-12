@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -82,12 +81,6 @@ var Service = struct {
 	UserDeleteWithCommentsMaxTime           time.Duration
 	ValidSiteURLSchemes                     []string
 
-	// OpenID settings
-	EnableOpenIDSignIn bool
-	EnableOpenIDSignUp bool
-	OpenIDWhitelist    []*regexp.Regexp
-	OpenIDBlacklist    []*regexp.Regexp
-
 	// Explore page settings
 	Explore struct {
 		RequireSigninView        bool `ini:"REQUIRE_SIGNIN_VIEW"`
@@ -158,7 +151,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 		Service.RegisterManualConfirm = false
 	}
 	if sec.HasKey("EMAIL_DOMAIN_WHITELIST") {
-		deprecatedSetting(rootCfg, "service", "EMAIL_DOMAIN_WHITELIST", "service", "EMAIL_DOMAIN_ALLOWLIST", "1.21")
+		deprecatedSetting(rootCfg, "service", "EMAIL_DOMAIN_WHITELIST", "service", "EMAIL_DOMAIN_ALLOWLIST")
 	}
 	Service.EmailDomainAllowList = CompileEmailGlobList(sec, "EMAIL_DOMAIN_WHITELIST", "EMAIL_DOMAIN_ALLOWLIST")
 	Service.EmailDomainBlockList = CompileEmailGlobList(sec, "EMAIL_DOMAIN_BLOCKLIST")
@@ -257,28 +250,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 
 	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
-	loadOpenIDSetting(rootCfg)
 	loadQosSetting(rootCfg)
-}
-
-func loadOpenIDSetting(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("openid")
-	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(false)
-	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(false)
-	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
-	if len(pats) != 0 {
-		Service.OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
-		for i, p := range pats {
-			Service.OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
-		}
-	}
-	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
-	if len(pats) != 0 {
-		Service.OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
-		for i, p := range pats {
-			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
-		}
-	}
 }
 
 func loadQosSetting(rootCfg ConfigProvider) {

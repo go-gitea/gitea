@@ -5,10 +5,10 @@ package git
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"fmt"
 	"io"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -131,9 +131,6 @@ func ParseDiffHunkString(diffHunk string) (leftLine, leftHunk, rightLine, rightH
 	return leftLine, leftHunk, rightLine, rightHunk
 }
 
-// Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
-var hunkRegex = regexp.MustCompile(`^@@ -(?P<beginOld>[0-9]+)(,(?P<endOld>[0-9]+))? \+(?P<beginNew>[0-9]+)(,(?P<endNew>[0-9]+))? @@`)
-
 const cmdDiffHead = "diff --git "
 
 func isHeader(lof string, inHunk bool) bool {
@@ -191,31 +188,27 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 				break
 			}
 			// A map with named groups of our regex to recognize them later more easily
-			submatches := hunkRegex.FindStringSubmatch(lof)
+			submatches := globalVars().hunkRegex.FindStringSubmatch(lof)
 			groups := make(map[string]string)
-			for i, name := range hunkRegex.SubexpNames() {
+			for i, name := range globalVars().hunkRegex.SubexpNames() {
 				if i != 0 && name != "" {
 					groups[name] = submatches[i]
 				}
 			}
 			if old {
 				begin, _ = strconv.ParseInt(groups["beginOld"], 10, 64)
-				end, _ = strconv.ParseInt(groups["endOld"], 10, 64)
+				end, _ = strconv.ParseInt(cmp.Or(groups["endOld"], "1"), 10, 64)
 				// init otherLine with begin of opposite side
 				otherLine, _ = strconv.ParseInt(groups["beginNew"], 10, 64)
 			} else {
 				begin, _ = strconv.ParseInt(groups["beginNew"], 10, 64)
-				if groups["endNew"] != "" {
-					end, _ = strconv.ParseInt(groups["endNew"], 10, 64)
-				} else {
-					end = 0
-				}
+				end, _ = strconv.ParseInt(cmp.Or(groups["endNew"], "1"), 10, 64)
 				// init otherLine with begin of opposite side
 				otherLine, _ = strconv.ParseInt(groups["beginOld"], 10, 64)
 			}
 			end += begin // end is for real only the number of lines in hunk
 			// lof is between begin and end
-			if begin <= line && end >= line {
+			if begin <= line && line < end {
 				hunk = append(hunk, lof)
 				currentLine = begin
 				continue
@@ -265,27 +258,26 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 		oldBegin = otherLine
 		newBegin = currentLine
 	}
-	// headers + hunk header
-	newHunk := make([]string, headerLines)
-	// transfer existing headers
-	copy(newHunk, hunk[:headerLines])
-	// transfer last n lines
-	newHunk = append(newHunk, hunk[len(hunk)-numbersOfLine-1:]...)
 	// calculate newBegin, ... by counting lines
-	for i := len(hunk) - 1; i >= len(hunk)-numbersOfLine; i-- {
-		switch hunk[i][0] {
+	start := len(hunk)
+	for count := 0; count < numbersOfLine && start > headerLines+1; {
+		start--
+		switch hunk[start][0] {
 		case '+':
 			newBegin--
 			newNumOfLines++
 		case '-':
 			oldBegin--
 			oldNumOfLines++
+		case '\\':
+			continue
 		default:
 			oldBegin--
 			newBegin--
 			newNumOfLines++
 			oldNumOfLines++
 		}
+		count++
 	}
 
 	// "git diff" outputs "@@ -1 +1,3 @@" for "OLD" => "A\nB\nC"
@@ -294,9 +286,9 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 	// For example: "L1\nL2" => "A\nB", then the patch shows "L2" as line 1 on the left (deleted part)
 
 	// construct the new hunk header
-	newHunk[headerLines] = fmt.Sprintf("@@ -%d,%d +%d,%d @@",
+	hunk[headerLines] = fmt.Sprintf("@@ -%d,%d +%d,%d @@",
 		oldBegin, oldNumOfLines, newBegin, newNumOfLines)
-	return strings.Join(newHunk, "\n"), nil
+	return strings.Join(append(hunk[:headerLines+1], hunk[start:]...), "\n"), nil
 }
 
 // GetAffectedFiles returns the affected files between two commits
@@ -331,7 +323,7 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 			}
 			return scanner.Err()
 		}).
-		Run(ctx)
+		RunWithStderr(ctx)
 	if err != nil {
 		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.LogString(), err)
 	}

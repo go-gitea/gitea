@@ -1,22 +1,21 @@
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
-
+HASH := \#
 GO ?= go
 SHASUM ?= shasum -a 256
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1.67.4 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v4/cmd/editorconfig-checker@v4.0.2 # renovate: datasource=go
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0 # renovate: datasource=go
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.17 # renovate: datasource=go
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.6 # renovate: datasource=go
-GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.8.0 # renovate: datasource=go
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.7 # renovate: datasource=go
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.9.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
 SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
 
 CONTAINER_RUNTIME ?= $(shell hash docker >/dev/null 2>&1 && echo docker || echo podman)
 
-PLAYWRIGHT_BROWSERS ?= chromium firefox
+PLAYWRIGHT_BROWSERS ?= chromium firefox webkit
 PLAYWRIGHT_FLAGS ?=
 
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
@@ -69,6 +68,8 @@ endif
 
 # GOTEST_FLAGS is for unit test and integration test
 GOTEST_FLAGS ?= -timeout 40m
+# disable race detection for the packages that slow down the tests
+GOTEST_FLAGS := -gcflags=modernc.org/sqlite/lib=-race=false $(GOTEST_FLAGS)
 
 STORED_VERSION_FILE := VERSION
 
@@ -126,11 +127,9 @@ GO_LICENSE_FILE := assets/go-licenses.json
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
 
 GO_DIRS := build cmd modelmigration models modules routers services tests tools
-WEB_DIRS := web_src/js web_src/css
 
 ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(wildcard *.go *.md *.yml *.yaml *.toml)
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.json
 
 GO_SOURCES := $(wildcard *.go)
@@ -267,10 +266,10 @@ checks-frontend: lockfile-check svg-check ## check frontend files
 checks-backend: tidy-check swagger-check openapi3-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
-lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml lint-shell ## lint everything
+lint: lint-frontend lint-backend lint-templates lint-swagger lint-md lint-actions lint-json lint-yaml lint-shell ## lint everything
 
 .PHONY: lint-fix
-lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix ## lint everything and fix issues
+lint-fix: lint-frontend-fix lint-backend-fix ## lint everything and fix issues
 
 .PHONY: lint-frontend
 lint-frontend: lint-js lint-css ## lint frontend files
@@ -313,14 +312,6 @@ lint-md: node_modules ## lint markdown files
 .PHONY: lint-md-fix
 lint-md-fix: node_modules ## lint markdown files and fix issues
 	pnpm exec markdownlint --fix *.md
-
-.PHONY: lint-spell
-lint-spell: ## lint spelling
-	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error
-
-.PHONY: lint-spell-fix
-lint-spell-fix: ## lint spelling and fix issues
-	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
 lint-go: ## lint go files
@@ -394,10 +385,11 @@ test-check:
 		exit 1; \
 	fi
 
-.PHONY: test-backend\#%
-test-backend\#%:
+TEST_BACKEND_GOALS := $(filter test-backend$(HASH)%,$(MAKECMDGOALS))
+.PHONY: $(TEST_BACKEND_GOALS)
+$(TEST_BACKEND_GOALS): test-backend$(HASH)%:
 	@echo "Running go test with -tags '$(TAGS)'..."
-	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' -run '$(subst .,/,$*)' $(GO_TEST_PACKAGES)
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' -run '$*' $(GO_TEST_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -452,9 +444,10 @@ test-integration: $(EXECUTABLE)
 test-integration-compile:
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null gitea.dev/tests/integration
 
-.PHONY: test-integration\#%
-test-integration\#%: $(EXECUTABLE)
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run '$(subst .,/,$*)' gitea.dev/tests/integration
+TEST_INTEGRATION_GOALS := $(filter test-integration$(HASH)%,$(MAKECMDGOALS))
+.PHONY: $(TEST_INTEGRATION_GOALS)
+$(TEST_INTEGRATION_GOALS): test-integration$(HASH)%: $(EXECUTABLE)
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run '$*' gitea.dev/tests/integration
 
 .PHONY: test-migration
 test-migration: migrations.integration.test migrations.individual.test
@@ -572,15 +565,14 @@ deps-backend: ## install backend dependencies
 	$(GO) mod download
 
 .PHONY: deps-tools
-deps-tools: ## install tool dependencies
-	$(GO) install $(AIR_PACKAGE) & \
-	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
-	$(GO) install $(GOLANGCI_LINT_PACKAGE) & \
-	$(GO) install $(GXZ_PACKAGE) & \
-	$(GO) install $(MISSPELL_PACKAGE) & \
-	$(GO) install $(SWAGGER_PACKAGE) & \
-	$(GO) install $(GOVULNCHECK_PACKAGE) & \
-	$(GO) install $(ACTIONLINT_PACKAGE) & \
+deps-tools: ## fetch and compile tool dependencies
+	$(GO) run -exec true $(AIR_PACKAGE) & \
+	$(GO) run -exec true $(EDITORCONFIG_CHECKER_PACKAGE) & \
+	$(GO) run -exec true $(GOLANGCI_LINT_PACKAGE) & \
+	$(GO) run -exec true $(GXZ_PACKAGE) & \
+	$(GO) run -exec true $(SWAGGER_PACKAGE) & \
+	$(GO) run -exec true $(GOVULNCHECK_PACKAGE) & \
+	$(GO) run -exec true $(ACTIONLINT_PACKAGE) & \
 	wait
 
 node_modules: pnpm-lock.yaml

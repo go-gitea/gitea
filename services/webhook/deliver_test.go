@@ -157,55 +157,38 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 	}
 	assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
 
-	t.Run("Version 1", func(t *testing.T) {
-		testVersion = 1
-		hookTask := &webhook_model.HookTask{
-			HookID:         hook.ID,
-			EventType:      webhook_module.HookEventPush,
-			PayloadContent: `{"data": 42}`,
-			PayloadVersion: 1,
-		}
+	for version, name := range []string{"Version 1", "Version 2"} {
+		t.Run(name, func(t *testing.T) {
+			payloadContent := `{"data": 42}`
+			if version == 1 {
+				p := pushTestPayload()
+				data, err := p.JSONPayload()
+				assert.NoError(t, err)
+				payloadContent = string(data)
+			}
 
-		hookTask, err := webhook_model.CreateHookTask(t.Context(), hookTask)
-		assert.NoError(t, err)
-		assert.NotNil(t, hookTask)
+			testVersion = version + 1
+			hookTask := &webhook_model.HookTask{
+				HookID:         hook.ID,
+				EventType:      webhook_module.HookEventPush,
+				PayloadContent: payloadContent,
+				PayloadVersion: testVersion,
+			}
 
-		assert.NoError(t, Deliver(t.Context(), hookTask))
-		select {
-		case <-done:
-		case <-time.After(5 * time.Second):
-			t.Fatal("waited to long for request to happen")
-		}
+			hookTask, err := webhook_model.CreateHookTask(t.Context(), hookTask)
+			assert.NoError(t, err)
+			assert.NotNil(t, hookTask)
 
-		assert.True(t, hookTask.IsSucceed)
-	})
+			assert.NoError(t, Deliver(t.Context(), hookTask))
+			select {
+			case <-done:
+			case <-time.After(5 * time.Second):
+				t.Fatal("waited to long for request to happen")
+			}
 
-	t.Run("Version 2", func(t *testing.T) {
-		p := pushTestPayload()
-		data, err := p.JSONPayload()
-		assert.NoError(t, err)
-
-		testVersion = 2
-		hookTask := &webhook_model.HookTask{
-			HookID:         hook.ID,
-			EventType:      webhook_module.HookEventPush,
-			PayloadContent: string(data),
-			PayloadVersion: 2,
-		}
-
-		hookTask, err = webhook_model.CreateHookTask(t.Context(), hookTask)
-		assert.NoError(t, err)
-		assert.NotNil(t, hookTask)
-
-		assert.NoError(t, Deliver(t.Context(), hookTask))
-		select {
-		case <-done:
-		case <-time.After(5 * time.Second):
-			t.Fatal("waited to long for request to happen")
-		}
-
-		assert.True(t, hookTask.IsSucceed)
-	})
+			assert.True(t, hookTask.IsSucceed)
+		})
+	}
 }
 
 func TestWebhookDeliverSpecificTypes(t *testing.T) {

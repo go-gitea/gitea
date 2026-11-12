@@ -117,6 +117,14 @@
 				<div class="help tw-block tw-ml-[21px]">{{ctx.Locale.Tr "repo.release.prerelease_helper"}}</div>
 			</div>
 
+			<div class="field">
+				<div class="ui checkbox">
+					<input type="checkbox" name="make_latest" {{if .make_latest}}checked{{end}}>
+					<label><strong>{{ctx.Locale.Tr "repo.release.make_latest"}}</strong></label>
+				</div>
+				<div class="help tw-block tw-ml-[21px]">{{ctx.Locale.Tr "repo.release.make_latest_helper"}}</div>
+			</div>
+
 			<div class="flex-text-block tw-justify-end">
 				{{if .PageIsEditRelease}}
 					<a class="ui small button" href="{{.RepoLink}}/releases">
@@ -145,7 +153,7 @@
 	</div>
 </div>
 
-<div id="generate-release-notes-modal" class="ui mini modal">
+<dialog id="generate-release-notes-modal" class="modal-dialog">
 	<div class="content ui form">
 		<p>{{ctx.Locale.Tr "repo.release.generate_notes_desc"}}</p>
 		<div class="field">
@@ -156,6 +164,6 @@
 			<button type="button" class="ui primary ok button">{{ctx.Locale.Tr "repo.release.generate_notes"}}</button>
 		</div>
 	</div>
-</div>
+</dialog>
 
 {{template "base/footer" .}}

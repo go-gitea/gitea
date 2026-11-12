@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/sitemap"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
+	"gitea.dev/routers/web/feed"
 	"gitea.dev/routers/web/user"
 	"gitea.dev/services/context"
 )
@@ -24,6 +25,10 @@ import (
 const tplHome templates.TplName = "home"
 
 func Home(ctx *context.Context) {
+	if _, feedType := feed.GetFeedType(ctx.Req.URL.Path, ctx.Req); feedType != "" {
+		ctx.Resp.WriteHeader(http.StatusUnsupportedMediaType)
+		return
+	}
 	if ctx.IsSigned {
 		user.Dashboard(ctx)
 		return
@@ -55,7 +60,7 @@ func HomeSitemap(ctx *context.Context) {
 			Visible:     []structs.VisibleType{structs.VisibleTypePublic},
 		})
 		if err != nil {
-			ctx.ServerError("SearchUsers", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		count := int(cnt)
@@ -74,7 +79,7 @@ func HomeSitemap(ctx *context.Context) {
 		AllPublic: true,
 	})
 	if err != nil {
-		ctx.ServerError("SearchRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	count := int(cnt)

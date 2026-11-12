@@ -43,6 +43,15 @@ type Release struct {
 	Attachments []*Attachment `json:"assets"`
 }
 
+// swagger:enum MakeLatest
+type MakeLatest string
+
+const (
+	MakeLatestTrue   MakeLatest = "true"
+	MakeLatestFalse  MakeLatest = "false"
+	MakeLatestLegacy MakeLatest = "legacy"
+)
+
 // CreateReleaseOption options when creating a release
 type CreateReleaseOption struct {
 	// required: true
@@ -82,6 +91,8 @@ type ReleaseNotes struct {
 	Name string `json:"name"`
 	// The generated release notes body
 	Body string `json:"body"`
+	// "true" sets the release as the latest, "false" keeps the current latest, "legacy" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date
+	MakeLatest MakeLatest `json:"make_latest" binding:"In(,true,false,legacy)"`
 }
 
 // EditReleaseOption options when editing a release
@@ -98,4 +109,6 @@ type EditReleaseOption struct {
 	IsDraft *bool `json:"draft"`
 	// Whether to change the prerelease status
 	IsPrerelease *bool `json:"prerelease"`
+	// "true" sets the release as the latest, "false" keeps the current latest, "legacy" returns to the newest stable release by date. If omitted, a newly published release becomes the latest only if it is the newest by date
+	MakeLatest MakeLatest `json:"make_latest" binding:"In(,true,false,legacy)"`
 }

@@ -18,7 +18,7 @@ import (
 )
 
 func GetWorkflowBadge(ctx *context.Context) {
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	if ctx.Written() {
 		return
 	}
@@ -31,7 +31,7 @@ func GetWorkflowBadge(ctx *context.Context) {
 	branchRef := git.RefNameFromBranch(branch)
 	b, err := getWorkflowBadge(ctx, workflowFile, branchRef.String(), event)
 	if err != nil {
-		ctx.ServerError("GetWorkflowBadge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

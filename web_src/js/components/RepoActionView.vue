@@ -10,6 +10,7 @@ import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 import {trString} from '../modules/i18n.ts';
+import {confirmModal} from '../features/comp/ConfirmModal.ts';
 
 defineOptions({
   name: 'RepoActionView',
@@ -142,8 +143,9 @@ function approveRun() {
 }
 
 async function deleteArtifact(name: string) {
-  if (!window.confirm(trString(locale.confirmDeleteArtifact, name))) return;
-  await DELETE(buildArtifactLink(name));
+  const artifactLink = buildArtifactLink(name);
+  if (!await confirmModal({content: trString(locale.confirmDeleteArtifact, name), confirmButtonColor: 'red'})) return;
+  await DELETE(artifactLink);
   await store.forceReloadCurrentRun();
 }
 
@@ -497,26 +499,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
   min-height: 0;
 }
-
-/* begin fomantic button overrides */
-
-.action-view-right-panel .ui.button,
-.action-view-right-panel .ui.button:focus {
-  background: transparent;
-  color: var(--color-console-fg-subtle);
-}
-
-.action-view-right-panel .ui.button:hover {
-  background: var(--color-console-hover-bg);
-  color: var(--color-console-fg);
-}
-
-.action-view-right-panel .ui.button:active {
-  background: var(--color-console-active-bg);
-  color: var(--color-console-fg);
-}
-
-/* end fomantic button overrides */
 
 @media (max-width: 767.98px) {
   .action-view-body {

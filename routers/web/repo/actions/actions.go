@@ -47,6 +47,7 @@ type WorkflowInfo struct {
 	EntryName string
 	ErrMsg    string
 	Workflow  *act_model.Workflow
+	Reusable  bool // only triggered by workflow_call
 }
 
 type workflowBadge struct {
@@ -66,18 +67,18 @@ func (w WorkflowInfo) DisplayName() string {
 // MustEnableActions check if actions are enabled in settings
 func MustEnableActions(ctx *context.Context) {
 	if !setting.Actions.Enabled {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	if unit.TypeActions.UnitGlobalDisabled() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	if ctx.Repo.Repository != nil {
 		if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 	}
@@ -90,10 +91,10 @@ func List(ctx *context.Context) {
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	} else if err != nil {
-		ctx.ServerError("GetBranchCommit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -156,7 +157,7 @@ func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, scope
 		// "Other workflows" lists repo-level orphans only: GetRepoRunWorkflowIDs excludes scoped runs.
 		ids, err := actions_model.GetRepoRunWorkflowIDs(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
-			ctx.ServerError("GetRepoRunWorkflowIDs", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
 		other = container.FilterSlice(ids, func(id string) (string, bool) {
@@ -173,7 +174,7 @@ func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, scope
 func WorkflowDispatchInputs(ctx *context.Context) {
 	ref := ctx.FormString("ref")
 	if ref == "" {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	// get target commit of run from specified ref
@@ -185,11 +186,11 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 	} else if refName.IsBranch() {
 		commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, refName.BranchName())
 	} else {
-		ctx.ServerError("UnsupportedRefType", nil)
+		ctx.ServerErrorAuto(errors.New("UnsupportedRefType"))
 		return
 	}
 	if err != nil {
-		ctx.ServerError("GetTagCommit/GetBranchCommit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	workflows, curWorkflowID := prepareWorkflowTemplate(ctx, commit)
@@ -208,7 +209,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 
 	_, entries, err := actions.ListWorkflows(ctx, ctx.Repo.GitRepo, commit)
 	if err != nil {
-		ctx.ServerError("ListWorkflows", err)
+		ctx.ServerErrorAuto(err)
 		return nil, ""
 	}
 
@@ -217,7 +218,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 		workflow := WorkflowInfo{EntryName: entry.Name()}
 		content, err := actions.GetContentFromEntry(ctx, ctx.Repo.GitRepo, entry)
 		if err != nil {
-			ctx.ServerError("GetContentFromEntry", err)
+			ctx.ServerErrorAuto(err)
 			return nil, ""
 		}
 		wf, err := jobparser.ReadWorkflow(content)
@@ -226,11 +227,13 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			workflows = append(workflows, workflow)
 			continue
 		}
-		if _, err := actions.GetEventsFromContent(content); err != nil {
+		events, err := actions.GetEventsFromContent(content)
+		if err != nil {
 			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 			workflows = append(workflows, workflow)
 			continue
 		}
+		workflow.Reusable = len(events) == 0 && slices.Contains(wf.On(), "workflow_call") // events never include workflow_call
 		workflow.Workflow = wf
 		// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
 		hasJobWithoutNeeds := false
@@ -262,7 +265,11 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 		workflows = append(workflows, workflow)
 	}
 
+	reusableWorkflows := slices.DeleteFunc(slices.Clone(workflows), func(w WorkflowInfo) bool { return !w.Reusable })
 	ctx.Data["workflows"] = workflows
+	ctx.Data["ReusableWorkflows"] = reusableWorkflows
+	ctx.Data["CurWorkflowIsReusable"] = ctx.FormInt64("scoped_workflow_source_repo_id") == 0 &&
+		slices.ContainsFunc(reusableWorkflows, func(w WorkflowInfo) bool { return w.EntryName == curWorkflowID })
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 	ctx.Data["RepoID"] = ctx.Repo.Repository.ID
 	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.Permission.IsAdmin()
@@ -300,7 +307,7 @@ func prepareScopedWorkflows(ctx *context.Context, curWorkflowID string, curWorkf
 	repo := ctx.Repo.Repository
 	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, repo.OwnerID)
 	if err != nil {
-		ctx.ServerError("GetEffectiveScopedWorkflowSources", err)
+		ctx.ServerErrorAuto(err)
 		return scopedNames
 	}
 	if len(sources) == 0 {
@@ -458,7 +465,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	}
 	branches, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
-		ctx.ServerError("FindBranchNames", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	// always put default branch on the top
@@ -468,7 +475,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Tags"] = tags
@@ -501,7 +508,7 @@ func (data *actionRunListData) prepareFullPageRuns(ctx *context.Context, otherWo
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
-		ctx.ServerError("FindAndCount", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	data.pager = context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
@@ -539,21 +546,22 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 		WithAvailable: true,
 	})
 	if err != nil {
-		ctx.ServerError("FindRunners", err)
+		ctx.ServerErrorAuto(err)
+		return false
+	}
+
+	activeRuns := slices.DeleteFunc(slices.Clone(data.ActionRuns), func(run *actions_model.ActionRun) bool {
+		return !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked)
+	})
+	jobsByRun, err := actions_model.GetLatestAttemptJobsByRuns(ctx, activeRuns)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 
 	data.RunErrors = make(map[int64]string)
-	for _, run := range data.ActionRuns {
-		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
-			continue
-		}
-		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
-		if err != nil {
-			ctx.ServerError("GetRunJobsByRunID", err)
-			return false
-		}
-		for _, job := range jobs {
+	for _, run := range activeRuns {
+		for _, job := range jobsByRun[run.ID] {
 			// A deferred matrix is unresolvable until its needs finish, so the whole per-job block
 			// is skipped: parsing the payload would report a valid workflow as invalid.
 			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending) {
@@ -639,7 +647,7 @@ func prepareWorkflowList(ctx *context.Context, curWorkflowID string) *actionRunL
 func (data *actionRunListData) preparePartialRefreshRuns(ctx *context.Context) bool {
 	runs, err := actions_model.GetRunsByRepoAndID(ctx, ctx.Repo.Repository.ID, data.refreshRunIDs)
 	if err != nil {
-		ctx.ServerError("GetRunsByRepoAndID", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	runsMap := make(map[int64]*actions_model.ActionRun, len(runs))
@@ -660,7 +668,7 @@ func (data *actionRunListData) prepareCommon(ctx *context.Context, workflows []W
 	}
 
 	if err := actions_model.RunList(data.ActionRuns).LoadTriggerUser(ctx); err != nil {
-		ctx.ServerError("LoadTriggerUser", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, data.ActionRuns); err != nil {
@@ -690,14 +698,14 @@ func (data *actionRunListData) prepareFullPageTemplate(ctx *context.Context) boo
 	// fill template data
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetActors", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
 
 	runBranches, err := actions_model.GetRunBranches(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetRunBranches", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	ctx.Data["RunBranches"] = runBranches

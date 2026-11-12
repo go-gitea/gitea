@@ -22,7 +22,7 @@
 							{{else if eq .Type "markdown"}}
 								{{template "repo/issue/fields/markdown" dict "item" .}}
 							{{else if eq .Type "textarea"}}
-								{{template "repo/issue/fields/textarea" dict "item" . "root" $}}
+								{{template "repo/issue/fields/textarea" dict "item" .}}
 							{{else if eq .Type "dropdown"}}
 								{{template "repo/issue/fields/dropdown" dict "item" .}}
 							{{else if eq .Type "checkboxes"}}

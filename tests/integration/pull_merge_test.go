@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -23,14 +24,16 @@ import (
 	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/queue"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -404,7 +407,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			Name:    "repo1",
 		})
 
-		err := gitcmd.NewCommand("read-tree", "--empty").WithRepo(repo1).Run(t.Context())
+		var err error = gitcmd.NewCommand("read-tree", "--empty").WithRepo(repo1).RunWithStderr(t.Context())
 		assert.NoError(t, err)
 
 		stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
@@ -448,13 +451,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout)
 
-		_, _, err = gitcmd.NewCommand("branch", "unrelated").
-			AddDynamicArguments(commitSha).
-			WithRepo(repo1).
-			RunStdString(t.Context())
-		assert.NoError(t, err)
-
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "unrelated", "README.md", "Hello, World (Edited Once)\n")
 
 		// Use API to create a conflicting pr
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -464,6 +461,12 @@ func TestCantMergeUnrelated(t *testing.T) {
 			Title: "create an unrelated pr",
 		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusCreated)
+
+		assert.NoError(t, git.UpdateRef(t.Context(), repo1, git.BranchPrefix+"unrelated", commitSha))
+		session.MakeRequest(t, NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user1/repo1/pulls", &api.CreatePullRequestOption{
+			Head: "unrelated", Base: "base", Title: "create an unrelated pr",
+		}).AddTokenAuth(token), http.StatusUnprocessableEntity)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user1/repo1/compare/master..unrelated", map[string]string{"title": "create an unrelated pr"}), http.StatusBadRequest)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
@@ -746,9 +749,6 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		createPullResp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "Indexer notifier test pull")
 
-		assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 0))
-		time.Sleep(time.Second)
-
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 			OwnerName: "user2",
 			Name:      "repo1",
@@ -759,6 +759,13 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 			IsPull:   true,
 			IsClosed: false,
 		})
+		waitIndexed := func(isClosed bool) { // elasticsearch makes documents searchable asynchronously
+			require.Eventually(t, func() bool {
+				ids, _, err := issue_indexer.SearchIssues(t.Context(), &issue_indexer.SearchOptions{Keyword: "notifier", RepoIDs: []int64{repo1.ID}, IsClosed: optional.Some(isClosed)})
+				return err == nil && slices.Contains(ids, issue.ID)
+			}, 10*time.Second, 10*time.Millisecond)
+		}
+		waitIndexed(false)
 
 		// build the request for searching issues
 		link, _ := url.Parse("/api/v1/repos/issues/search")
@@ -786,9 +793,7 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 			ID: issue.ID,
 		})
 		assert.True(t, issue.IsClosed)
-
-		assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 0))
-		time.Sleep(time.Second)
+		waitIndexed(true)
 
 		// search issues again
 		searchIssuesResp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
@@ -824,7 +829,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 			"enable_status_check":   "true",
 			"status_check_contexts": "gitea/actions",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
 		addToQueuePullChan := make(chan automergequeue.AutoMergeItem, 1)
 		resetAutoMergeQueueMock := test.MockVariableValue(&automergequeue.AddToQueue, func(item automergequeue.AutoMergeItem) { addToQueuePullChan <- item })
@@ -906,7 +911,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 			"status_check_contexts": "gitea/actions",
 			"required_approvals":    "1",
 		})
-		baseSession.MakeRequest(t, req, http.StatusSeeOther)
+		baseSession.MakeRequest(t, req, http.StatusOK)
 
 		// first time insert automerge record, return true
 		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false)
@@ -937,7 +942,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		time.Sleep(2 * time.Second)
+		require.NoError(t, automergequeue.AutoMergeQueue.FlushWithContext(t.Context(), 5*time.Second))
 
 		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
@@ -1018,7 +1023,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 			"status_check_contexts": "gitea/actions",
 			"required_approvals":    "1",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		// first time insert automerge record, return true
@@ -1093,7 +1098,7 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 			"status_check_contexts":      "gitea/actions",
 			"block_admin_merge_override": "true",
 		})
-		session.MakeRequest(t, pbCreateReq, http.StatusSeeOther)
+		session.MakeRequest(t, pbCreateReq, http.StatusOK)
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
@@ -1139,7 +1144,7 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 			"enable_bypass_allowlist":    "on",
 			"bypass_allowlist_users":     strconv.FormatInt(bypassUser.ID, 10),
 		})
-		ownerSession.MakeRequest(t, pbCreateReq, http.StatusSeeOther)
+		ownerSession.MakeRequest(t, pbCreateReq, http.StatusOK)
 		defer testAPIDeleteBranchProtection(t, "master", http.StatusNoContent)
 
 		token := getTokenForLoggedInUser(t, bypassSession, auth_model.AccessTokenScopeWriteRepository)
@@ -1210,7 +1215,6 @@ func TestPullSquashMessage(t *testing.T) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 
-		defer test.MockVariableValue(&setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages, true)()
 		defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 80)()
 
 		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
@@ -1221,6 +1225,14 @@ func TestPullSquashMessage(t *testing.T) {
 			DefaultBranch: "main",
 		})
 		require.NoError(t, err)
+		prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
+		require.NoError(t, err)
+		prUnit.PullRequestsConfig().DefaultSquashMergeMessage = repo_model.SquashMergeMessageCommitMessages
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, []repo_model.RepoUnit{{
+			RepoID: repo.ID,
+			Type:   unit_model.TypePullRequests,
+			Config: prUnit.PullRequestsConfig(),
+		}}, nil))
 
 		type commitInfo struct {
 			userName      string
@@ -1340,5 +1352,37 @@ Co-authored-by: user4 <user4@example.com>
 				assert.Equal(t, tc.expectedMessage, squashMergeCommitMessage)
 			})
 		}
+
+		t.Run("Repository default squash merge message", func(t *testing.T) {
+			pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 1})
+			require.NoError(t, pullRequest.LoadIssue(t.Context()))
+			pullRequest.Issue.Content = "PR description"
+			pullRequest.BaseRepo = repo
+
+			for style, expected := range map[repo_model.SquashMergeMessage]string{
+				repo_model.SquashMergeMessageBlank:  "",
+				repo_model.SquashMergeMessagePRBody: "PR description",
+			} {
+				prUnit.PullRequestsConfig().DefaultSquashMergeMessage = style
+				msg, err := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				require.NoError(t, err)
+				assert.Equal(t, expected, msg, style)
+			}
+		})
+
+		t.Run("API squash merge without message uses repository default", func(t *testing.T) {
+			token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository)
+			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/1/merge", user2.Name, repo.Name), map[string]string{"do": "squash"}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 1})
+			gitRepo, err := git.OpenRepository(t.Context(), repo)
+			require.NoError(t, err)
+			defer gitRepo.Close()
+			commit, err := gitRepo.GetCommit(t.Context(), pullRequest.MergedCommitID)
+			require.NoError(t, err)
+			assert.Contains(t, commit.CommitMessage.MessageRaw, "Pull for test-branch-0 (#1)\n\n* commit msg 1\n\n* commit msg 2\n")
+			assert.Contains(t, commit.CommitMessage.MessageRaw, "\nReviewed-on: ")
+		})
 	})
 }
