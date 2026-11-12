@@ -7,7 +7,7 @@
 </div>
 <dialog id="runWorkflowDispatchModal" class="modal-dialog">
 	<div class="content">
-		<form id="runWorkflowDispatchForm" class="ui form ignore-dirty" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}" method="post">
+		<form id="runWorkflowDispatchForm" class="ui form ignore-dirty" action="{{$.Link}}/run?sort={{$.SortType}}&workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}" method="post">
 			<div class="ui inline field required tw-flex tw-items-center">
 				<span class="ui inline required field">
 					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>

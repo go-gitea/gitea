@@ -6,6 +6,7 @@ package actions
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -88,4 +89,38 @@ func TestActionRunListData(t *testing.T) {
 		d.preparePartialRefreshRuns(ctx)
 		assert.Equal(t, []int64{792, 791}, []int64{d.ActionRuns[0].ID, d.ActionRuns[1].ID})
 	})
+}
+
+func TestActionRunListSorting(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	defer test.MockVariableValue(&setting.AppSubURL, "/gitea")()
+	for _, sortType := range []string{"", "newest", "oldest", "status", "reverse_status", "ref", "reverse_ref", "invalid"} {
+		t.Run(sortType, func(t *testing.T) {
+			ctx, _ := contexttest.MockContext(t, "/user5/repo4/actions?workflow=artifact.yaml&actor=1&status=1&branch=master&limit=1&sort="+url.QueryEscape(sortType))
+			contexttest.LoadRepo(t, ctx, 4)
+			ctx.Req.RequestURI = ctx.Req.URL.RequestURI()
+			data := prepareWorkflowList(ctx, "artifact.yaml")
+			expected := sortType
+			if sortType == "invalid" {
+				expected = ""
+			}
+			assert.Equal(t, expected, data.sort)
+			if !assert.True(t, data.prepareFullPageRuns(ctx, nil)) {
+				return
+			}
+			assert.Len(t, data.ActionRuns, 1)
+			if !assert.True(t, data.prepareFullPageTemplate(ctx)) {
+				return
+			}
+			assert.Equal(t, expected, ctx.Data["SortType"])
+			assert.Contains(t, ctx.Data["RunSortLink"], "/gitea/user5/repo4/actions?")
+			params, err := url.ParseQuery(string(data.pager.GetParams()))
+			assert.NoError(t, err)
+			assert.Equal(t, sortType, params.Get("sort"))
+			assert.Equal(t, "master", params.Get("branch"))
+			assert.Equal(t, "artifact.yaml", params.Get("workflow"))
+			assert.Equal(t, "1", params.Get("actor"))
+			assert.Equal(t, "1", params.Get("status"))
+		})
+	}
 }

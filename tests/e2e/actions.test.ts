@@ -70,3 +70,39 @@ jobs:
   await dispatchDialog.getByRole('button', {name: 'Run Workflow', exact: true}).click();
   await expect(page.getByRole('link', {name: 'Dispatch from UI', exact: true})).toBeVisible();
 });
+
+test('run sorting supports keyboard selection and URL navigation', async ({page, request}) => {
+  const owner = env.GITEA_TEST_E2E_USER;
+  const repo = `e2e-run-sort-${randomString(8)}`;
+  await apiCreateRepo(request, {name: repo, autoInit: false});
+  await apiCreateFiles(request, owner, repo, [{
+    path: '.gitea/workflows/sort.yml',
+    content: 'on: workflow_dispatch\njobs:\n  queued:\n    runs-on: no-runner\n    steps:\n      - run: exit 0\n',
+  }]);
+  for (let i = 0; i < 2; i++) {
+    const response = await request.post(`/api/v1/repos/${owner}/${repo}/actions/workflows/sort.yml/dispatches`, {headers: apiHeaders(), data: {ref: 'main'}});
+    expect(response.ok()).toBe(true);
+  }
+  await login(page);
+  await page.goto(`/${owner}/${repo}/actions?limit=1`);
+  const sort = page.getByRole('menu', {name: 'Sort', exact: true});
+  await sort.focus();
+  const oldest = sort.getByRole('menuitem', {name: 'Created: Oldest first'});
+  await expect(oldest).toBeVisible();
+  await sort.press('ArrowDown');
+  await sort.press('ArrowDown');
+  await sort.press('Enter');
+  await expect(page).toHaveURL(/sort=oldest/);
+  await expect(sort).toContainText('Created: Oldest first');
+  await page.locator('.pagination a[href*="page=2"]').first().click();
+  await expect(page).toHaveURL(/page=2/);
+  expect(new URL(page.url()).searchParams.get('sort')).toBe('oldest');
+  await page.goBack();
+  await expect(sort).toContainText('Created: Oldest first');
+  await page.goBack();
+  await expect(sort).toContainText('Sort: Run number (newest first)');
+  await page.goForward();
+  await expect(sort).toContainText('Created: Oldest first');
+  await page.setViewportSize({width: 390, height: 844});
+  await expect(sort).toBeInViewport();
+});

@@ -9,6 +9,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
@@ -162,4 +163,73 @@ func TestFindRunOptions_IsScopedRun(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, scoped, 1)
 	assert.EqualValues(t, 99822, scoped[0].ID)
+}
+
+func TestFindRunOptionsSorting(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	const workflowID = "sort-test.yaml"
+	for i, spec := range []struct {
+		created timeutil.TimeStamp
+		status  Status
+		ref     string
+	}{
+		{300, StatusSuccess, "refs/heads/z"},
+		{100, StatusFailure, "refs/heads/a"},
+		{200, StatusFailure, "refs/heads/a"},
+		{200, StatusRunning, "refs/tags/v1"},
+		{100, StatusBlocked, "refs/heads/z"},
+		{400, StatusUnknown, "refs/heads/a"},
+	} {
+		run := &ActionRun{ID: 99001 + int64(i), Index: 99001 + int64(i), RepoID: 4, OwnerID: 1, TriggerUserID: 1, WorkflowID: workflowID, Created: spec.created, Status: spec.status, Ref: spec.ref}
+		_, err := db.GetEngine(t.Context()).NoAutoTime().Insert(run)
+		require.NoError(t, err)
+	}
+	for _, tt := range []struct {
+		sort string
+		want []int64
+	}{
+		{"", []int64{99006, 99005, 99004, 99003, 99002, 99001}},
+		{"newest", []int64{99006, 99001, 99004, 99003, 99005, 99002}},
+		{"oldest", []int64{99002, 99005, 99003, 99004, 99001, 99006}},
+		{"status", []int64{99003, 99002, 99005, 99004, 99001, 99006}},
+		{"reverse_status", []int64{99006, 99001, 99004, 99005, 99003, 99002}},
+		{"ref", []int64{99006, 99003, 99002, 99005, 99001, 99004}},
+		{"reverse_ref", []int64{99004, 99005, 99001, 99006, 99003, 99002}},
+		{"created; DROP TABLE action_run", []int64{99006, 99005, 99004, 99003, 99002, 99001}},
+	} {
+		t.Run(tt.sort, func(t *testing.T) {
+			var ids []int64
+			for page := 1; page <= 3; page++ {
+				runs, total, err := db.FindAndCount[ActionRun](t.Context(), FindRunOptions{RepoID: 4, WorkflowID: workflowID, Sort: tt.sort, ListOptions: db.ListOptions{Page: page, PageSize: 2}})
+				require.NoError(t, err)
+				assert.EqualValues(t, 6, total)
+				require.Len(t, runs, 2)
+				for _, run := range runs {
+					ids = append(ids, run.ID)
+				}
+			}
+			assert.Equal(t, tt.want, ids)
+		})
+	}
+	runs, total, err := db.FindAndCount[ActionRun](t.Context(), FindRunOptions{RepoID: 4, WorkflowID: workflowID, TriggerUserID: 1, Ref: "refs/heads/a", Status: []Status{StatusFailure}, Sort: "oldest"})
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, total)
+	require.Len(t, runs, 2)
+	assert.Equal(t, []int64{99002, 99003}, []int64{runs[0].ID, runs[1].ID})
+	assert.Equal(t, "`action_run`.`index` DESC", (FindRunOptions{RepoID: 4}).ToOrders())
+	assert.Equal(t, "`action_run`.`id` DESC", (FindRunOptions{}).ToOrders())
+}
+
+func TestFindRunOptionsStatusPriority(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	statuses := []Status{StatusFailure, StatusBlocked, StatusRunning, StatusCancelling, StatusWaiting, StatusPending, StatusCancelled, StatusSkipped, StatusSuccess, StatusUnknown}
+	for i, status := range statuses {
+		require.NoError(t, db.Insert(t.Context(), &ActionRun{ID: 99100 + int64(i), Index: 99100 + int64(i), RepoID: 4, WorkflowID: "status-sort.yaml", Status: status}))
+	}
+	runs, err := db.Find[ActionRun](t.Context(), FindRunOptions{RepoID: 4, WorkflowID: "status-sort.yaml", Sort: "status"})
+	require.NoError(t, err)
+	require.Len(t, runs, len(statuses))
+	for i, run := range runs {
+		assert.Equal(t, statuses[i], run.Status)
+	}
 }
