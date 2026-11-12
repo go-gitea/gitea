@@ -5,6 +5,7 @@ import {onUserEvent} from '../modules/worker.ts';
 import type {StopwatchData} from '../types.ts';
 
 const {appSubUrl, notificationSettings, enableTimeTracking} = window.config;
+let stopwatchPushes = 0;
 
 export function initStopwatch() {
   if (!enableTimeTracking) {
@@ -47,7 +48,10 @@ export function initStopwatch() {
   };
 
   let pollerStarted = false;
-  onUserEvent('stopwatches', (msg) => updateStopwatchData(msg.eventData));
+  onUserEvent('stopwatches', (msg) => {
+    stopwatchPushes++;
+    updateStopwatchData(msg.eventData);
+  });
   // On each (re)connect, reconcile stopwatch state from the server to recover any push dropped during the connect gap.
   onUserEvent('worker-connected', () => { updateStopwatch() }); // no await
   onUserEvent('worker-unavailable', () => {
@@ -70,6 +74,7 @@ async function updateStopwatchWithCallback(callback: (timeout: number) => void, 
 }
 
 async function updateStopwatch() {
+  const pushesBefore = stopwatchPushes;
   try {
     const response = await GET(`${appSubUrl}/user/stopwatches`);
     if (!response.ok) {
@@ -77,6 +82,7 @@ async function updateStopwatch() {
       return false;
     }
     const data = await response.json();
+    if (stopwatchPushes !== pushesBefore) return false; // a push received meanwhile is newer than this response
     return updateStopwatchData(data);
   } catch (error) {
     console.error(error);
