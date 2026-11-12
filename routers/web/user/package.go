@@ -5,7 +5,6 @@ package user
 
 import (
 	gocontext "context"
-	"errors"
 	"net/http"
 	"net/url"
 	"time"
@@ -49,7 +48,7 @@ const (
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	page := max(ctx.FormInt("page"), 1)
@@ -67,13 +66,13 @@ func ListPackages(ctx *context.Context) {
 		IsInternal: optional.Some(false),
 	})
 	if err != nil {
-		ctx.ServerError("SearchLatestVersions", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		ctx.ServerError("GetPackageDescriptors", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -88,7 +87,7 @@ func ListPackages(ctx *context.Context) {
 
 		permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		repositoryAccessMap[pd.Repository.ID] = permission.HasAnyUnitAccess()
@@ -96,7 +95,7 @@ func ListPackages(ctx *context.Context) {
 
 	hasPackages, err := packages_model.HasOwnerPackages(ctx, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.ServerError("HasOwnerPackages", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -111,7 +110,7 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -138,11 +137,7 @@ func ListPackages(ctx *context.Context) {
 func RedirectToLastVersion(ctx *context.Context) {
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetPackageByName", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -151,17 +146,17 @@ func RedirectToLastVersion(ctx *context.Context) {
 		IsInternal: optional.Some(false),
 	})
 	if err != nil {
-		ctx.ServerError("GetPackageByName", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if len(pvs) == 0 {
-		ctx.NotFound(err)
+		ctx.NotFound()
 		return
 	}
 
 	pd, err := packages_model.GetPackageDescriptor(ctx, pvs[0])
 	if err != nil {
-		ctx.ServerError("GetPackageDescriptor", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Redirect(pd.VersionWebLink())
@@ -188,7 +183,7 @@ func viewPackageContainerImage(ctx gocontext.Context, pd *packages_model.Package
 // ViewPackageVersion displays a single package version
 func ViewPackageVersion(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -207,7 +202,7 @@ func ViewPackageVersion(ctx *context.Context) {
 	if submodule := ctx.PathParam("submodule"); submodule != "" {
 		metadata, ok := pd.Metadata.(*tfmod.Metadata) // the route is shared by all package types
 		if !ok || metadata.Submodules[submodule] == nil {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 		ctx.Data["PackageSubmodule"] = submodule
@@ -274,11 +269,8 @@ func ViewPackageVersion(ctx *context.Context) {
 		imageMetadata := pd.Metadata
 		if versionSub != "" {
 			imageMetadata, err = viewPackageContainerImage(ctx, pd, versionSub)
-			if errors.Is(err, util.ErrNotExist) {
-				ctx.NotFound(nil)
-				return
-			} else if err != nil {
-				ctx.ServerError("viewPackageContainerImage", err)
+			if err != nil {
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -300,7 +292,7 @@ func ViewPackageVersion(ctx *context.Context) {
 		})
 	}
 	if err != nil {
-		ctx.ServerError("", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["LatestVersions"] = pvs
@@ -308,7 +300,7 @@ func ViewPackageVersion(ctx *context.Context) {
 	pkgSpec := packages_service.GetSpecManager().Get(pd.Package.Type)
 	viewData, err := pkgSpec.GetViewPackageVersionData(ctx, pd)
 	if err != nil {
-		ctx.ServerError("GetViewPackageVersionData", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -320,7 +312,7 @@ func ViewPackageVersion(ctx *context.Context) {
 	if pd.Repository != nil {
 		permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		hasRepositoryAccess = permission.HasAnyUnitAccess()
@@ -332,17 +324,13 @@ func ViewPackageVersion(ctx *context.Context) {
 // ListPackageVersions lists all versions of a package
 func ListPackageVersions(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetPackageByName", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -382,7 +370,7 @@ func ListPackageVersions(ctx *context.Context) {
 			Sort:      sort,
 		})
 		if err != nil {
-			ctx.ServerError("SearchImageTags", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	default:
@@ -397,14 +385,14 @@ func ListPackageVersions(ctx *context.Context) {
 			Sort:       sort,
 		})
 		if err != nil {
-			ctx.ServerError("SearchVersions", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 
 	ctx.Data["PackageDescriptors"], err = packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		ctx.ServerError("GetPackageDescriptors", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -421,7 +409,7 @@ func PackageSettings(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -433,7 +421,7 @@ func PackageSettings(ctx *context.Context) {
 	if pd.Package.RepoID > 0 {
 		repo, err := repo_model.GetRepositoryByID(ctx, pd.Package.RepoID)
 		if err != nil {
-			ctx.ServerError("GetRepositoryByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["LinkedRepoName"] = repo.Name
@@ -451,7 +439,7 @@ func PackageSettingsPost(ctx *context.Context) {
 	case "delete":
 		packageSettingsPostActionDelete(ctx)
 	default:
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 }
 
@@ -473,7 +461,7 @@ func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSett
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.JSONError(ctx.Tr("packages.settings.link.repo_not_found", form.RepoName))
 		} else {
-			ctx.ServerError("GetRepositoryByOwnerAndName", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -509,7 +497,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 func PackageVersionDelete(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 	if pd.Version == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -532,17 +520,13 @@ func PackageVersionDelete(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64("fileid"))
 	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetFileForVersionByID", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
-		ctx.ServerError("OpenFileForDownload", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -557,13 +541,13 @@ func DownloadPackageFile(ctx *context.Context) {
 func ActionPackageTerraformLock(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 	if pd.Package.Type != packages_model.TypeTerraformState {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	existingLock, err := terraform_module.GetLock(ctx, pd.Package.ID)
 	if err != nil {
-		ctx.ServerError("GetLock", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if existingLock.IsLocked() {
@@ -581,7 +565,7 @@ func ActionPackageTerraformLock(ctx *context.Context) {
 	}
 
 	if err := terraform_module.SetLock(ctx, pd.Package.ID, lockInfo); err != nil {
-		ctx.ServerError("SetLock", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -593,12 +577,12 @@ func ActionPackageTerraformLock(ctx *context.Context) {
 func ActionPackageTerraformUnlock(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 	if pd.Package.Type != packages_model.TypeTerraformState {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	if err := terraform_module.RemoveLock(ctx, pd.Package.ID); err != nil {
-		ctx.ServerError("RemoveLock", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

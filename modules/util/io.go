@@ -5,7 +5,6 @@ package util
 
 import (
 	"bytes"
-	"errors"
 	"io"
 )
 
@@ -60,25 +59,4 @@ func readWithLimit(r io.Reader, batch, limit int) ([]byte, error) {
 		}
 	}
 	return res.Bytes(), nil
-}
-
-// ErrNotEmpty is an error reported when there is a non-empty reader
-var ErrNotEmpty = errors.New("not-empty")
-
-// IsEmptyReader reads a reader and ensures it is empty
-func IsEmptyReader(r io.Reader) (err error) {
-	var buf [1]byte
-
-	for {
-		n, err := r.Read(buf[:])
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return err
-		}
-		if n > 0 {
-			return ErrNotEmpty
-		}
-	}
 }
