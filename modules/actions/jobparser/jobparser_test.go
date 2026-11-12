@@ -28,6 +28,7 @@ func TestParse(t *testing.T) {
 		"job_name_with_matrix",
 		"prefixed_newline",
 		"continue_on_error_expr",
+		"cache_mode",
 	} {
 		t.Run(name, func(t *testing.T) {
 			content := ReadTestdata(t, name+".in.yaml")

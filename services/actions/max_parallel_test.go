@@ -189,7 +189,7 @@ jobs:
     steps:
       - run: echo hi
 `)
-	require.NoError(t, insertCallerChildren(ctx, run, attempt, caller, called, run.RepoID, run.CommitSHA, nil, nil))
+	require.NoError(t, insertCallerChildren(ctx, run, attempt, caller, "", called, run.RepoID, run.CommitSHA, nil, nil))
 
 	children := 0
 	for _, job := range runJobs(t, run.ID, attempt.ID) {

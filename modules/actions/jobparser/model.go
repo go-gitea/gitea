@@ -26,6 +26,7 @@ type SingleWorkflow struct {
 	Defaults       Defaults  `yaml:"defaults,omitempty"`
 	RawPermissions yaml.Node `yaml:"permissions,omitempty"`
 	RunName        string    `yaml:"run-name,omitempty"`
+	CacheMode      string    `yaml:"cache-mode,omitempty"`
 }
 
 func (w *SingleWorkflow) Job() (string, *Job) {
@@ -110,6 +111,7 @@ type Job struct {
 	RawSecrets         yaml.Node             `yaml:"secrets,omitempty"`
 	RawConcurrency     *model.RawConcurrency `yaml:"concurrency,omitempty"`
 	RawPermissions     yaml.Node             `yaml:"permissions,omitempty"`
+	CacheMode          string                `yaml:"cache-mode,omitempty"`
 }
 
 // GetContinueOnError decodes the continue-on-error field to a bool.
@@ -148,6 +150,7 @@ func (j *Job) Clone() *Job {
 		RawSecrets:         j.RawSecrets,
 		RawConcurrency:     j.RawConcurrency,
 		RawPermissions:     j.RawPermissions,
+		CacheMode:          j.CacheMode,
 	}
 }
 
