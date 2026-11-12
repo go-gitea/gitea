@@ -105,6 +105,13 @@ export async function apiCreateBranch(requestContext: APIRequestContext, owner: 
   }), 'apiCreateBranch');
 }
 
+export async function apiCreateBranchProtection(requestContext: APIRequestContext, owner: string, repo: string, ruleName: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branch_protections`, {
+    headers: apiHeaders(),
+    data: {rule_name: ruleName},
+  }), 'apiCreateBranchProtection');
+}
+
 /** Create a PR via API. Returns the PR index for subsequent operations. */
 export async function apiCreatePR(requestContext: APIRequestContext, owner: string, repo: string, head: string, base: string, title: string, {headers}: {headers?: Record<string, string>} = {}): Promise<number> {
   const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {

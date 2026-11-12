@@ -256,7 +256,6 @@ export class ComboMarkdownEditor {
             return;
           }
           this.value(newContent);
-          triggerEditorContentChanged(this.container);
         });
       }
     };
@@ -411,6 +410,7 @@ export class ComboMarkdownEditor {
         this.easyMDE.value(v);
       } else {
         this.textarea.value = v;
+        triggerEditorContentChanged(this.container);
       }
       this.textareaAutosize?.resizeToFit();
     }
