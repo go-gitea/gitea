@@ -5,6 +5,7 @@
 package gitcmd
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -568,6 +569,9 @@ func (c *Command) RunWithStderr(ctx context.Context) RunStdError {
 	return c.WaitWithStderr()
 }
 
+// Run runs the command and leaves stderr handling to the caller, such as through [Command.MakeStderrPipe].
+// Without a stderr reader, Git's diagnostics are discarded and the error may only report an exit status.
+// Use [Command.RunWithStderr] to include Git's stderr in the returned error.
 func (c *Command) Run(ctx context.Context) (err error) {
 	if err = c.WithParentCallerInfo().Start(ctx); err != nil {
 		return err
@@ -598,4 +602,21 @@ func (c *Command) runStdBytes(ctx context.Context) ([]byte, []byte, RunStdError)
 
 func (c *Command) DebugKill() {
 	_ = c.cmd.Process.Kill()
+}
+
+func RunWithScannerSplit(ctx context.Context, cmd *Command, split bufio.SplitFunc, f func(ctx Context, chunk []byte) error) error {
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	cmd.WithParentCallerInfo(util.CallerFuncName(1))
+	cmd.WithPipelineFunc(func(ctx Context) error {
+		scanner := bufio.NewScanner(stdoutReader)
+		scanner.Split(split)
+		for scanner.Scan() {
+			if err := f(ctx, scanner.Bytes()); err != nil || ctx.Err() != nil {
+				return err
+			}
+		}
+		return scanner.Err()
+	})
+	return cmd.RunWithStderr(ctx)
 }

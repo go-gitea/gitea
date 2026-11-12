@@ -20,7 +20,7 @@ const tplSettingsNotifications templates.TplName = "user/settings/notifications"
 // Notifications render user's notifications settings
 func Notifications(ctx *context.Context) {
 	if !setting.Service.EnableNotifyMail {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -30,7 +30,7 @@ func Notifications(ctx *context.Context) {
 
 	actionsEmailPref, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyEmailNotificationGiteaActions, user_model.SettingEmailNotificationGiteaActionsFailureOnly)
 	if err != nil {
-		ctx.ServerError("GetUserSetting", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["ActionsEmailNotificationsPreference"] = actionsEmailPref
@@ -41,7 +41,7 @@ func Notifications(ctx *context.Context) {
 // NotificationsEmailPost set user's email notification preference
 func NotificationsEmailPost(ctx *context.Context) {
 	if !setting.Service.EnableNotifyMail {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -58,7 +58,7 @@ func NotificationsEmailPost(ctx *context.Context) {
 		EmailNotificationsPreference: optional.Some(preference),
 	}
 	if err := user.UpdateUser(ctx, ctx.Doer, opts); err != nil {
-		ctx.ServerError("UpdateUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("settings.email_preference_set_success"))
@@ -68,7 +68,7 @@ func NotificationsEmailPost(ctx *context.Context) {
 // NotificationsActionsEmailPost set user's email notification preference on Gitea Actions
 func NotificationsActionsEmailPost(ctx *context.Context) {
 	if !setting.Actions.Enabled || unit.TypeActions.UnitGlobalDisabled() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -81,7 +81,7 @@ func NotificationsActionsEmailPost(ctx *context.Context) {
 		return
 	}
 	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyEmailNotificationGiteaActions, preference); err != nil {
-		ctx.ServerError("SetUserSetting", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("settings.email_preference_set_success"))

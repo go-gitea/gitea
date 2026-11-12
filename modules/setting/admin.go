@@ -24,7 +24,6 @@ var validUserFeatures = container.SetOf(
 	UserFeatureManageCredentials,
 	UserFeatureChangeUsername,
 	UserFeatureChangeFullName,
-	UserFeatureChangeActivityVisibility,
 )
 
 func loadAdminFrom(rootCfg ConfigProvider) {
@@ -47,12 +46,11 @@ func loadAdminFrom(rootCfg ConfigProvider) {
 }
 
 const (
-	UserFeatureDeletion                 = "deletion"
-	UserFeatureManageSSHKeys            = "manage_ssh_keys"
-	UserFeatureManageGPGKeys            = "manage_gpg_keys"
-	UserFeatureManageMFA                = "manage_mfa"
-	UserFeatureManageCredentials        = "manage_credentials"
-	UserFeatureChangeUsername           = "change_username"
-	UserFeatureChangeFullName           = "change_full_name"
-	UserFeatureChangeActivityVisibility = "change_activity_visibility"
+	UserFeatureDeletion          = "deletion"
+	UserFeatureManageSSHKeys     = "manage_ssh_keys"
+	UserFeatureManageGPGKeys     = "manage_gpg_keys"
+	UserFeatureManageMFA         = "manage_mfa"
+	UserFeatureManageCredentials = "manage_credentials"
+	UserFeatureChangeUsername    = "change_username"
+	UserFeatureChangeFullName    = "change_full_name"
 )

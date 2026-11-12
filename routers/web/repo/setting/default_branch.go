@@ -39,7 +39,7 @@ func SetDefaultBranchPost(ctx *context.Context) {
 			case git_model.IsErrBranchNotExist(err):
 				ctx.Status(http.StatusNotFound)
 			default:
-				ctx.ServerError("SetDefaultBranch", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -49,6 +49,6 @@ func SetDefaultBranchPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 	default:
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 }

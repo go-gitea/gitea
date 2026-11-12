@@ -29,3 +29,9 @@ var SecurityProtocolNames = map[SecurityProtocol]string{
 	SecurityProtocolLDAPS:       "LDAPS",
 	SecurityProtocolStartTLS:    "StartTLS",
 }
+
+var urlSecurityProtocols = map[string]SecurityProtocol{
+	"ldap":          SecurityProtocolUnencrypted,
+	"ldaps":         SecurityProtocolLDAPS,
+	"ldap+starttls": SecurityProtocolStartTLS,
+}

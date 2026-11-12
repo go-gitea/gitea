@@ -52,7 +52,7 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		ctx.APIErrorNotFound("full name is not allowed to be changed")
 		return
 	}
-	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeActivityVisibility) {
+	if setting.Service.ForcePublicActivity {
 		if form.HideActivity != nil && *form.HideActivity {
 			ctx.APIErrorNotFound("activity visibility is not allowed to be changed")
 			return

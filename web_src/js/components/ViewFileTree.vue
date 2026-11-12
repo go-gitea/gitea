@@ -2,6 +2,7 @@
 import ViewFileTreeItem from './ViewFileTreeItem.vue';
 import {onMounted, useTemplateRef, type ShallowRef} from 'vue';
 import {createViewFileTreeStore} from './ViewFileTreeStore.ts';
+import {pathWithQuery} from '../utils/url.ts';
 
 const elRoot = useTemplateRef('elRoot') as Readonly<ShallowRef<HTMLDivElement>>;
 
@@ -16,8 +17,13 @@ onMounted(async () => {
   store.rootFiles = await store.loadChildren('', props.treePath);
   elRoot.value.closest('.is-loading')?.classList?.remove('is-loading');
   window.addEventListener('popstate', (e) => {
-    store.selectedItem = e.state?.treePath || '';
-    if (e.state?.url) store.loadViewContent(e.state.url);
+    if (pathWithQuery(window.location) === store.viewContentUrl) return;
+    if (e.state?.url) {
+      store.selectedItem = e.state.treePath;
+      store.loadViewContent(e.state.url);
+    } else {
+      window.location.reload(); // not pushed by the tree, e.g. the initial page or an editor page
+    }
   });
 });
 </script>

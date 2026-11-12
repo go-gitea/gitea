@@ -13,7 +13,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -56,7 +55,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 		"language":              "en-US",
 		"keep_activity_private": "1",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc *HTMLDoc) bool {
@@ -268,12 +267,16 @@ func TestPrivateActivityVisibilityLockedByAdmin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	testPrivateActivityDoSomethingForActionEntries(t)
 	testPrivateActivityHelperEnablePrivateActivity(t)
-	defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureChangeActivityVisibility))()
+	defer test.MockVariableValue(&setting.Service.ForcePublicActivity, true)()
 
 	assert.True(t, testPrivateActivityHelperHasVisibleActivitiesFromPublic(t), "previously hidden activity should be public once locked")
 	assert.True(t, testPrivateActivityHelperHasHeatmapContentFromPublic(t))
 
 	session := loginUser(t, privateActivityTestUser)
+	profileResp := session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+	profileDoc := NewHTMLParser(t, profileResp.Body)
+	AssertHTMLElement(t, profileDoc, `#keep-activity-private input[name="keep_activity_private"][disabled]`, true)
+
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(true)}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
@@ -283,4 +286,7 @@ func TestPrivateActivityVisibilityLockedByAdmin(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: privateActivityTestUser})
 	assert.True(t, user.KeepActivityPrivate, "stored preference should be kept for when the lock is lifted")
+
+	setting.Service.ForcePublicActivity = false
+	assert.False(t, testPrivateActivityHelperHasVisibleActivitiesFromPublic(t), "stored private preference should apply when the policy is disabled")
 }

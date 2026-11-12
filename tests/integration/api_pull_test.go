@@ -16,6 +16,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -270,45 +271,36 @@ func TestAPIMergePull(t *testing.T) {
 		t.Run("Normal", func(t *testing.T) {
 			newBranch := "test-pull-1"
 			prDTO := createTestBranchPR(t, newBranch)
-			performMerge(t, prDTO.Index, map[string]any{"do": "merge"})
+			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": false})
 			checkBranchExists(t, newBranch, http.StatusOK)
 			// try to merge again, make sure we cannot perform a merge on the same PR
 			performMerge(t, prDTO.Index, map[string]any{"do": "merge"}, http.StatusMethodNotAllowed)
 		})
 
-		t.Run("DeleteBranchAfterMergePassedByFormField", func(t *testing.T) {
+		t.Run("DeleteBranchAfterMergeByDefault", func(t *testing.T) {
 			newBranch := "test-pull-2"
 			prDTO := createTestBranchPR(t, newBranch)
-			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
+			performMerge(t, prDTO.Index, map[string]any{"do": "merge"})
 			checkBranchExists(t, newBranch, http.StatusNotFound)
 		})
 
-		updateRepoUnitDefaultDeleteBranchAfterMerge := func(t *testing.T, repo *repo_model.Repository, value bool) {
+		t.Run("DeleteBranchAfterMergeDisabledByRepoSettings", func(t *testing.T) {
 			prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
 			require.NoError(t, err)
-
-			prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge = value
+			prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge = false
 			require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, []repo_model.RepoUnit{{
 				RepoID: repo.ID,
 				Type:   unit_model.TypePullRequests,
 				Config: prUnit.PullRequestsConfig(),
 			}}, nil))
-		}
 
-		t.Run("DeleteBranchAfterMergePassedByRepoSettings", func(t *testing.T) {
-			newBranch := "test-pull-3"
-			prDTO := createTestBranchPR(t, newBranch)
-			updateRepoUnitDefaultDeleteBranchAfterMerge(t, repo, true)
-			performMerge(t, prDTO.Index, map[string]any{"do": "merge"})
-			checkBranchExists(t, newBranch, http.StatusNotFound)
-		})
+			keptPR := createTestBranchPR(t, "test-pull-3")
+			performMerge(t, keptPR.Index, map[string]any{"do": "merge"})
+			checkBranchExists(t, "test-pull-3", http.StatusOK)
 
-		t.Run("DeleteBranchAfterMergeFormFieldIsSetButNotRepoSettings", func(t *testing.T) {
-			newBranch := "test-pull-4"
-			prDTO := createTestBranchPR(t, newBranch)
-			updateRepoUnitDefaultDeleteBranchAfterMerge(t, repo, false)
-			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
-			checkBranchExists(t, newBranch, http.StatusNotFound)
+			deletedPR := createTestBranchPR(t, "test-pull-4")
+			performMerge(t, deletedPR.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
+			checkBranchExists(t, "test-pull-4", http.StatusNotFound)
 		})
 
 		t.Run("SquashMergePreservesFormMessage", func(t *testing.T) {
@@ -370,21 +362,30 @@ func TestAPICreatePullBasePermission(t *testing.T) {
 
 		AllowMaintainerEdit: new(false),
 	}
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
-
-	// add user4 to be a collaborator to base repo
 	ctx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, auth_model.AccessTokenScopeWriteRepository)
-	t.Run("AddUser4AsCollaborator", doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeRead))
+	t.Run("Base non-collaborator without head write access is forbidden", func(t *testing.T) {
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 
-	// create again
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
+	t.Run("Base read collaborator without head write access is forbidden", func(t *testing.T) {
+		doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeRead)(t)
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 
-	// Also test that AllowMaintainerEdit is set to false, the default "true" case is covered by TestAPICreatePullSuccess
-	prIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: prTitle})
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: prIssue.ID})
-	assert.False(t, pr.AllowMaintainerEdit)
+	t.Run("Base read collaborator with head write access can create pull request", func(t *testing.T) {
+		doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeRead)(t)
+		headCtx := NewAPITestContext(t, repo11.OwnerName, repo11.Name, auth_model.AccessTokenScopeWriteRepository)
+		doAPIAddCollaborator(headCtx, user4.Name, perm.AccessModeWrite)(t)
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// Also test that AllowMaintainerEdit is set to false, the default "true" case is covered by TestAPICreatePullSuccess
+		prIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: prTitle})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: prIssue.ID})
+		assert.False(t, pr.AllowMaintainerEdit)
+	})
 }
 
 func TestAPICreatePullHeadPermission(t *testing.T) {
@@ -695,7 +696,9 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		}
 
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		basePerm, err := access_model.GetDoerRepoPermission(t.Context(), prOpts.Repo, prOpts.Issue.Poster)
+		require.NoError(t, err)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 		pr := convert.ToAPIPullRequest(t.Context(), pullRequest, user1)
 

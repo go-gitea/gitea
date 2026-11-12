@@ -12,7 +12,7 @@ import {renderPreviewPanelContent} from '../repo-editor.ts';
 import {toggleTasklistCheckbox} from '../../markup/tasklist.ts';
 import {easyMDEToolbarActions, type EasyMdeToolbarAction} from './EasyMDEToolbarActions.ts';
 import {showErrorToast} from '../../modules/toast.ts';
-import {POST} from '../../modules/fetch.ts';
+import {ExclusiveFetch} from '../../modules/fetch.ts';
 import {
   EventEditorContentChanged,
   initTextareaMarkdown,
@@ -91,6 +91,8 @@ export class ComboMarkdownEditor {
   previewMode!: string;
   previewUrl!: string;
   previewContext!: string;
+
+  previewFetch: ExclusiveFetch = new ExclusiveFetch();
 
   constructor(container: ComboMarkdownEditorContainer, options:ComboMarkdownEditorOptions = {}) {
     if (container._giteaComboMarkdownEditor) throw new Error('ComboMarkdownEditor already initialized');
@@ -241,16 +243,7 @@ export class ComboMarkdownEditor {
       });
     });
 
-    this.tabPreviewer.addEventListener('click', async () => {
-      // use capture to get the event before Fomantic Tab switches the tab, so that we can set the minHeight of the previewer panel to avoid flickering.
-      panelPreviewer.style.minHeight = `${panelEditor?.clientHeight}px`;
-      this.updateEditorContainerTabPage('previewer');
-      const formData = new FormData();
-      formData.append('mode', this.previewMode);
-      formData.append('context', this.previewContext);
-      formData.append('text', this.value());
-      const response = await POST(this.previewUrl, {data: formData});
-      const data = await response.text();
+    const renderPreview = (data: string) => {
       renderPreviewPanelContent(panelPreviewer, data);
       // enable task list checkboxes in preview and sync state back to the editor
       for (const checkbox of panelPreviewer.querySelectorAll<HTMLInputElement>('.task-list-item input[type=checkbox]')) {
@@ -263,9 +256,21 @@ export class ComboMarkdownEditor {
             return;
           }
           this.value(newContent);
-          triggerEditorContentChanged(this.container);
         });
       }
+    };
+
+    this.tabPreviewer.addEventListener('click', async () => {
+      // use capture to get the event before Fomantic Tab switches the tab, so that we can set the minHeight of the previewer panel to avoid flickering.
+      panelPreviewer.style.minHeight = `${panelEditor?.clientHeight}px`;
+      this.updateEditorContainerTabPage('previewer');
+      const formData = new FormData();
+      formData.append('mode', this.previewMode);
+      formData.append('context', this.previewContext);
+      formData.append('text', this.value());
+      const resp = this.previewFetch.request(this.previewUrl, {method: 'POST', data: formData});
+      resp.onResponseError((resp) => showErrorToast(`Failed to render preview: ${resp.status} ${resp.statusText}`));
+      await resp.fetchText(renderPreview);
     }, {capture: true});
   }
 
@@ -405,6 +410,7 @@ export class ComboMarkdownEditor {
         this.easyMDE.value(v);
       } else {
         this.textarea.value = v;
+        triggerEditorContentChanged(this.container);
       }
       this.textareaAutosize?.resizeToFit();
     }

@@ -99,10 +99,35 @@ func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *is
 	return nil
 }
 
-// MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
+// MoveIssueAfter places the issue after prevIssueID, first for 0, last when it left the column.
+func MoveIssueAfter(ctx context.Context, doer *user_model.User, column *project_model.Column, issue *issues_model.Issue, prevIssueID int64) error {
 	moves, err := db.WithTx2(ctx, func(ctx context.Context) ([]columnMove, error) {
-		return moveIssuesOnProjectColumn(ctx, doer, column, sortedIssueIDs)
+		if err := project_model.LockProject(ctx, column.ProjectID); err != nil {
+			return nil, err
+		}
+		others, err := project_model.GetColumnIssueSortings(ctx, column, issue.ID)
+		if err != nil {
+			return nil, err
+		}
+		pos := util.Iif(prevIssueID == 0, 0, len(others))
+		if i := slices.IndexFunc(others, func(row project_model.ColumnIssueSorting) bool { return row.IssueID == prevIssueID }); i >= 0 {
+			pos = i + 1
+		}
+
+		moves, err := moveIssuesOnProjectColumn(ctx, doer, column, map[int64]int64{int64(pos): issue.ID})
+		if err != nil {
+			return nil, err
+		}
+		for i, other := range others {
+			newSorting := int64(i + util.Iif(i >= pos, 1, 0))
+			if other.Sorting == newSorting {
+				continue
+			}
+			if err := project_model.SetIssueSorting(ctx, column, other.IssueID, newSorting); err != nil {
+				return nil, err
+			}
+		}
+		return moves, nil
 	})
 	if err != nil {
 		return err

@@ -29,6 +29,7 @@ import (
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/convert"
+	pull_service "gitea.dev/services/pull"
 )
 
 type methodCtxKeyType struct{}
@@ -71,6 +72,7 @@ type notifyInput struct {
 	PullRequest *issues_model.PullRequest
 
 	encodedPayload string // cached by EncodedPayload
+	mergeCommitID  string
 }
 
 func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event webhook_module.HookEventType) *notifyInput {
@@ -195,10 +197,23 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return nil
 	}
 
+	workflowCommit := commit
+	var baseCommit *git.Commit
+	if input.PullRequest != nil {
+		baseCommit, err = gitRepo.GetCommit(ctx, git.BranchPrefix+input.PullRequest.BaseBranch)
+		if err != nil {
+			return fmt.Errorf("gitRepo.GetCommit: %w", err)
+		}
+		workflowCommit, err = preparePullRequestMerge(ctx, input, gitRepo, commit, baseCommit)
+		if err != nil {
+			return err
+		}
+	}
+
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	var filteredWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	workflows, schedules, filtered, invalid, err := actions_module.DetectWorkflows(ctx, gitRepo, commit,
+	workflows, schedules, filtered, invalid, err := actions_module.DetectWorkflows(ctx, gitRepo, workflowCommit,
 		input.Event,
 		input.Payload,
 		shouldDetectSchedules,
@@ -209,7 +224,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	log.Trace("repo %s with commit %s event %s find %d workflows and %d schedules",
 		input.Repo.FullName(),
-		commit.ID,
+		workflowCommit.ID,
 		input.Event,
 		len(workflows),
 		len(schedules),
@@ -239,11 +254,6 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	if input.PullRequest != nil {
 		// detect pull_request_target workflows
-		baseRef := git.BranchPrefix + input.PullRequest.BaseBranch
-		baseCommit, err := gitRepo.GetCommit(ctx, baseRef)
-		if err != nil {
-			return fmt.Errorf("gitRepo.GetCommit: %w", err)
-		}
 		baseWorkflows, _, baseFiltered, _, err := actions_module.DetectWorkflows(ctx, gitRepo, baseCommit, input.Event, input.Payload, false)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
@@ -289,6 +299,35 @@ func notify(ctx context.Context, input *notifyInput) error {
 	handleFilteredWorkflows(ctx, input, filteredWorkflows)
 
 	return detectAndHandleScopedWorkflows(ctx, input, ref, gitRepo, commit)
+}
+
+// preparePullRequestMerge returns the commit to read workflows from, the test merge for open pull requests
+func preparePullRequestMerge(ctx context.Context, input *notifyInput, gitRepo *git.Repository, headCommit, baseCommit *git.Commit) (*git.Commit, error) {
+	payload, ok := input.Payload.(*api.PullRequestPayload)
+	if !ok || payload.PullRequest == nil || input.PullRequest.Issue.IsClosed || !input.Event.IsPullRequest() {
+		return headCommit, nil
+	}
+	_, entries, err := actions_module.ListWorkflows(ctx, gitRepo, headCommit)
+	if err == nil && len(entries) == 0 {
+		_, entries, err = actions_module.ListWorkflows(ctx, gitRepo, baseCommit)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(entries) == 0 {
+		if sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, input.Repo.OwnerID); err != nil || len(sources) == 0 {
+			return headCommit, err
+		}
+	}
+	mergeCommitID, err := pull_service.UpdateMergeRef(ctx, input.PullRequest, baseCommit.ID.String(), headCommit.ID.String())
+	if err != nil {
+		log.Error("UpdateMergeRef for %-v: %v", input.PullRequest, err)
+	}
+	if mergeCommitID == "" {
+		return headCommit, nil
+	}
+	payload.PullRequest.MergedCommitID, input.mergeCommitID = &mergeCommitID, mergeCommitID
+	return gitRepo.GetCommit(ctx, mergeCommitID)
 }
 
 func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) bool {
@@ -433,6 +472,11 @@ func buildApproveAndInsertRun(
 			return nil
 		}
 		return fmt.Errorf("PrepareRunAndInsert: %w", err)
+	}
+	if input.mergeCommitID != "" && run.TriggerEvent == actions_module.GithubEventPullRequest {
+		if err := git.UpdateRef(ctx, input.Repo, git.RunRefNameFromRunID(run.ID).String(), input.mergeCommitID); err != nil {
+			log.Error("UpdateRef for run %d: %v", run.ID, err)
+		}
 	}
 	return nil
 }
