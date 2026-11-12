@@ -515,7 +515,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 	return nil
 }
 
-// childCacheMode caps a called job's cache-mode at its caller's explicit one, as GitHub does.
+// childCacheMode caps a called job's cache-mode at its caller's explicit one.
 func childCacheMode(caller, child string) (string, error) {
 	if caller == "" {
 		return child, nil
