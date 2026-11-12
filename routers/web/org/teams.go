@@ -49,7 +49,7 @@ const (
 // Teams render teams list page
 func Teams(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	org := ctx.Org.Organization
@@ -90,13 +90,13 @@ func Teams(ctx *context.Context) {
 
 	teams, count, err := searchTeams()
 	if err != nil {
-		ctx.ServerError("SearchTeam", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	for _, t := range teams {
 		if err := t.LoadMembers(ctx); err != nil {
-			ctx.ServerError("GetMembers", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -180,7 +180,7 @@ func TeamsAction(ctx *context.Context) {
 						} else if org_model.IsErrUserEmailAlreadyAdded(err) {
 							ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 						} else {
-							ctx.ServerError("CreateTeamInvite", err)
+							ctx.ServerErrorAuto(err)
 							return
 						}
 					}
@@ -189,7 +189,7 @@ func TeamsAction(ctx *context.Context) {
 				}
 				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName))
 			} else {
-				ctx.ServerError("GetUserByName", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -221,7 +221,7 @@ func TeamsAction(ctx *context.Context) {
 
 		if err := org_model.RemoveInviteByID(ctx, iid, ctx.Org.Team.ID); err != nil {
 			log.Error("Action(%s): %v", ctx.PathParam("action"), err)
-			ctx.ServerError("RemoveInviteByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -255,7 +255,7 @@ func TeamsAction(ctx *context.Context) {
 
 func checkIsOrgMemberAndRedirect(ctx *context.Context, defaultRedirect string) {
 	if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
-		ctx.ServerError("IsOrganizationMember", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if !isOrgMember && !ctx.Doer.IsAdmin {
 		if ctx.Org.Organization.Visibility.IsPrivate() {
@@ -287,7 +287,7 @@ func TeamsRepoAction(ctx *context.Context) {
 				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName) + "/repositories")
 				return
 			}
-			ctx.ServerError("GetRepositoryByName", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		err = repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo)
@@ -301,7 +301,7 @@ func TeamsRepoAction(ctx *context.Context) {
 
 	if err != nil {
 		log.Error("Action(%s): '%s' %v", ctx.PathParam("action"), ctx.Org.Team.Name, err)
-		ctx.ServerError("TeamsRepoAction", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -315,7 +315,7 @@ func TeamsRepoAction(ctx *context.Context) {
 // NewTeam render create new team page
 func NewTeam(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
@@ -381,7 +381,7 @@ func NewTeamPost(ctx *context.Context) {
 		case org_model.IsErrTeamAlreadyExist(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
 		default:
-			ctx.ServerError("NewTeam", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -392,7 +392,7 @@ func NewTeamPost(ctx *context.Context) {
 // TeamMembers render team members page
 func TeamMembers(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -401,14 +401,14 @@ func TeamMembers(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeamMembers"] = true
 
 	if err := ctx.Org.Team.LoadMembers(ctx); err != nil {
-		ctx.ServerError("GetMembers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Units"] = unit_model.Units
 
 	invites, err := org_model.GetInvitesByTeamID(ctx, ctx.Org.Team.ID)
 	if err != nil {
-		ctx.ServerError("GetInvitesByTeamID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Invites"] = invites
@@ -420,7 +420,7 @@ func TeamMembers(ctx *context.Context) {
 // TeamRepositories show the repositories of team
 func TeamRepositories(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -432,7 +432,7 @@ func TeamRepositories(ctx *context.Context) {
 		TeamID: ctx.Org.Team.ID,
 	})
 	if err != nil {
-		ctx.ServerError("GetTeamRepositories", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Units"] = unit_model.Units
@@ -449,7 +449,7 @@ func SearchTeam(ctx *context.Context) {
 
 	shouldSeeAll, err := context.UserShouldSeeAllOrgTeams(ctx)
 	if err != nil {
-		ctx.ServerError("UserShouldSeeAllOrgTeams", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -494,13 +494,13 @@ func SearchTeam(ctx *context.Context) {
 // EditTeam render team edit page
 func EditTeam(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	if err := ctx.Org.Team.LoadUnits(ctx); err != nil {
-		ctx.ServerError("LoadUnits", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Team"] = ctx.Org.Team
@@ -560,7 +560,7 @@ func EditTeamPost(ctx *context.Context) {
 		case org_model.IsErrTeamAlreadyExist(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
 		default:
-			ctx.ServerError("UpdateTeam", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -584,11 +584,7 @@ func TeamInvite(ctx *context.Context) {
 	// TODO: to quickly debug the UI, can uncomment this (don't worry, it won't pass CI lint)
 	// invite, org, team, inviter, err = &org_model.TeamInvite{}, &org_model.Organization{}, &org_model.Team{}, ctx.Doer, nil
 	if err != nil {
-		if org_model.IsErrTeamInviteNotFound(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("getTeamInviteFromContext", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -605,16 +601,12 @@ func TeamInvite(ctx *context.Context) {
 func TeamInvitePost(ctx *context.Context) {
 	invite, org, team, _, err := getTeamInviteFromContext(ctx)
 	if err != nil {
-		if org_model.IsErrTeamInviteNotFound(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("getTeamInviteFromContext", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := org_service.AddTeamMember(ctx, team, ctx.Doer); err != nil {
-		ctx.ServerError("AddTeamMember", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

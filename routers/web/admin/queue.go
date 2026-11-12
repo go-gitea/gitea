@@ -80,7 +80,7 @@ func QueueRemoveAllItems(ctx *context.Context) {
 	}
 
 	if err := mq.RemoveAllItems(ctx); err != nil {
-		ctx.ServerError("RemoveAllItems", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

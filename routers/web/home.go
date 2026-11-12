@@ -60,7 +60,7 @@ func HomeSitemap(ctx *context.Context) {
 			Visible:     []structs.VisibleType{structs.VisibleTypePublic},
 		})
 		if err != nil {
-			ctx.ServerError("SearchUsers", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		count := int(cnt)
@@ -79,7 +79,7 @@ func HomeSitemap(ctx *context.Context) {
 		AllPublic: true,
 	})
 	if err != nil {
-		ctx.ServerError("SearchRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	count := int(cnt)

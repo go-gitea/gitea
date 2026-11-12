@@ -57,7 +57,7 @@ func NewComment(ctx *context.Context) {
 			if errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
 			} else {
-				ctx.ServerError("CreateIssueComment", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -101,7 +101,7 @@ func NewComment(ctx *context.Context) {
 						return
 					}
 					if err := pull_service.PushToBaseRepo(ctx, pull); err != nil {
-						ctx.ServerError("PushToBaseRepo", err)
+						ctx.ServerErrorAuto(err)
 						return
 					}
 				}
@@ -123,7 +123,7 @@ func NewComment(ctx *context.Context) {
 				}
 			} else {
 				if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
-					ctx.ServerError("stopTimerIfAvailable", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 				log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
@@ -142,11 +142,11 @@ func NewComment(ctx *context.Context) {
 func getRepoIssueComment(ctx *context.Context, commentID int64) *issues_model.Comment {
 	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, commentID)
 	if err != nil {
-		ctx.ServerError("GetCommentWithRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 	return comment
@@ -192,21 +192,21 @@ func UpdateCommentContent(ctx *context.Context) {
 			} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
 				ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
 			} else {
-				ctx.ServerError("UpdateComment", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
 	}
 
 	if err := comment.LoadAttachments(ctx); err != nil {
-		ctx.ServerError("LoadAttachments", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
 	if !ctx.FormBool("ignore_attachments") {
 		if err := updateAttachments(ctx, comment, ctx.FormStrings("files[]")); err != nil {
-			ctx.ServerError("UpdateAttachments", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -219,7 +219,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		var err error
 		renderedContent, err = markdown.RenderString(rctx, comment.Content)
 		if err != nil {
-			ctx.ServerError("RenderString", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -239,7 +239,7 @@ func DeleteComment(ctx *context.Context) {
 	}
 
 	if err := issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
-		ctx.ServerError("DeleteComment", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -259,7 +259,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Content)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.ServerError("ChangeIssueReaction", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			log.Info("CreateCommentReaction: %s", err)
@@ -275,7 +275,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID, reaction.ID)
 	case "unreact":
 		if err := issues_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content); err != nil {
-			ctx.ServerError("DeleteCommentReaction", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -288,7 +288,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID)
 	default:
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -303,13 +303,13 @@ func GetCommentAttachments(ctx *context.Context) {
 	}
 
 	if !comment.Type.HasAttachmentSupport() {
-		ctx.ServerError("GetCommentAttachments", fmt.Errorf("comment type %v does not support attachments", comment.Type))
+		ctx.ServerErrorAuto(fmt.Errorf("comment type %v does not support attachments", comment.Type))
 		return
 	}
 
 	attachments := make([]*api.Attachment, 0)
 	if err := comment.LoadAttachments(ctx); err != nil {
-		ctx.ServerError("LoadAttachments", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for i := 0; i < len(comment.Attachments); i++ {
