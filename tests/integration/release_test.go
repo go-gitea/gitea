@@ -283,7 +283,7 @@ func TestReleaseReaction(t *testing.T) {
 
 	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/releases"), http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	AssertHTMLElement(t, htmlDoc, `.bottom-reactions a.ui.label[data-reaction-content="heart"]`, 1)
+	AssertHTMLElement(t, htmlDoc, `.bottom-reactions .ui.label[data-reaction-content="heart"]`, 1)
 	AssertHTMLElement(t, htmlDoc, `.reaction-picker [data-reaction-content="-1"]`, 0)
 
 	session.MakeRequest(t, reactReq(1, "unreact", "heart"), http.StatusOK)

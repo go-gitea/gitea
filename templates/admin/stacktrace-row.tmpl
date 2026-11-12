@@ -17,7 +17,7 @@
 		</div>
 		<div>
 			{{if or (eq .Process.Type "request") (eq .Process.Type "normal")}}
-				<button type="button" class="btn interact-link link-action" data-url="{{ctx.RootData.Link}}/cancel/{{.Process.PID}}"
+				<button type="button" class="btn link-action" data-url="{{ctx.RootData.Link}}/cancel/{{.Process.PID}}"
 					data-modal-confirm-header="{{ctx.Locale.Tr "admin.monitor.process.cancel"}}"
 					data-modal-confirm-content="{{ctx.Locale.Tr "admin.monitor.process.cancel_desc"}}"
 				>{{svg "octicon-trash" 16 "tw-text-red"}}</button>
