@@ -12,7 +12,7 @@ test('merge box merges a pull request', async ({page, request}) => {
     await apiCreateRepo(request, {name: repo});
     await Promise.all([
       apiCreateFiles(request, owner, repo, [{path: 'feat.txt', content: 'feature\n'}], {branch: 'main', newBranch: 'feat'}),
-      apiCreateBranchProtection(request, owner, repo, {rule_name: 'main', required_approvals: 1}),
+      apiCreateBranchProtection(request, owner, repo, 'main', {required_approvals: 1}),
     ]);
     const index = await apiCreatePR(request, owner, repo, 'feat', 'main', 'merge box test');
     await expect.poll(async () => (await (await request.get(`/api/v1/repos/${owner}/${repo}/pulls/${index}`, {headers: apiHeaders()})).json()).mergeable).toBe(true);
@@ -33,6 +33,6 @@ test('merge box merges a pull request', async ({page, request}) => {
   await page.getByRole('button', {name: 'Bypass rules and merge (squash)'}).click();
   await page.getByRole('button', {name: 'Confirm bypass rules and merge (squash)'}).click();
 
-  await expect(page.getByText(/successfully merged/i)).toBeVisible();
+  await expect(page.getByText('Merged', {exact: true})).toBeVisible();
   await assertNoJsError(page);
 });

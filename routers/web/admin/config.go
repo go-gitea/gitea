@@ -153,7 +153,7 @@ loop:
 		return
 	}
 	if err := system_model.SetSettings(ctx, configSettings); err != nil {
-		ctx.ServerError("SetSettings", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	config.GetDynGetter().InvalidateCache()

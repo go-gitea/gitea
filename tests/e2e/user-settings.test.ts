@@ -10,11 +10,11 @@ test('update profile biography', async ({page, request}) => {
   await page.getByLabel('Biography').fill(bio);
   await page.getByRole('button', {name: 'Update Profile'}).click();
   await expect(page.getByText('Your profile has been updated.', {exact: true})).toBeVisible();
-  await expect(page.getByLabel('Biography')).toHaveValue(bio);
+  await expect(page.getByLabel('Biography')).toHaveText(bio);
   await page.getByLabel('Biography').fill('');
   await page.getByRole('button', {name: 'Update Profile'}).click();
   await expect(page.getByText('Your profile has been updated.', {exact: true})).toBeVisible();
-  await expect(page.getByLabel('Biography')).toHaveValue('');
+  await expect(page.getByLabel('Biography')).toHaveText('');
 });
 
 test('select and deselect all webhook events', async ({page}) => {

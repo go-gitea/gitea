@@ -236,6 +236,22 @@ func TestCompare(t *testing.T) {
 			assert.Contains(t, resp.Body.String(), "diff --git ")
 		})
 
+		t.Run("BranchNamesConflictingWithOutputSuffix", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
+			for _, branch := range []string{"diff", "patch", "feature.diff", "feature.patch"} {
+				_, _, err := gitcmd.NewCommand("branch").AddDynamicArguments(branch, "add-csv").WithRepo(repo).RunStdString(t.Context())
+				require.NoError(t, err)
+			}
+
+			for _, branch := range []string{"diff", "patch", "feature.diff", "feature.patch"} {
+				req := NewRequest(t, "GET", "/user2/repo20/compare/master..."+branch)
+				resp := session.MakeRequest(t, req, http.StatusOK)
+				assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "branch %q should render the compare page", branch)
+			}
+		})
+
 		t.Run("InvalidBaseRef", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 

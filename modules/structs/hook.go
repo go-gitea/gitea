@@ -120,12 +120,12 @@ type CreateHookOption struct {
 type EditHookOption struct {
 	// Configuration settings for the webhook
 	Config map[string]string `json:"config"`
-	// List of events that trigger this webhook
+	// List of events that trigger this webhook, omitted or empty keeps the current events
 	Events []string `json:"events"`
-	// Branch filter pattern to determine which branches trigger the webhook
-	BranchFilter string `json:"branch_filter" binding:"GlobPattern"`
-	// Authorization header to include in webhook requests
-	AuthorizationHeader string `json:"authorization_header"`
+	// Branch filter pattern to determine which branches trigger the webhook, omitted keeps the current value
+	BranchFilter *string `json:"branch_filter" binding:"GlobPattern"`
+	// Authorization header to include in webhook requests, omitted keeps the current value unless the url changes
+	AuthorizationHeader *string `json:"authorization_header"`
 	// Whether the webhook is active and will be triggered
 	Active *bool `json:"active"`
 	// Optional human-readable name
@@ -460,6 +460,13 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
+type ChangesOwnerPayload struct {
+	From struct {
+		User         *User `json:"user,omitempty"`
+		Organization *User `json:"organization,omitempty"`
+	} `json:"from"`
+}
+
 // ChangesPayload represents the payload information of issue change
 type ChangesPayload struct {
 	// Changes made to the title
@@ -470,6 +477,8 @@ type ChangesPayload struct {
 	Ref *ChangesFromPayload `json:"ref,omitempty"`
 	// Changes made to the repository name
 	Name *ChangesFromPayload `json:"name,omitempty"`
+	// Changes made to the repository owner
+	Owner *ChangesOwnerPayload `json:"owner,omitempty"`
 	// Changes made to the labels added
 	AddedLabels []*Label `json:"added_labels"`
 	// Changes made to the labels removed
@@ -560,6 +569,8 @@ const (
 	HookRepoDeleted HookRepoAction = "deleted"
 	// HookRepoRenamed renamed
 	HookRepoRenamed HookRepoAction = "renamed"
+	// HookRepoTransferred transferred
+	HookRepoTransferred HookRepoAction = "transferred"
 )
 
 // RepositoryPayload payload for repository webhooks
