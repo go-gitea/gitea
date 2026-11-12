@@ -269,7 +269,7 @@ export class ComboMarkdownEditor {
       formData.append('context', this.previewContext);
       formData.append('text', this.value());
       const resp = this.previewFetch.request(this.previewUrl, {method: 'POST', data: formData});
-      resp.onResponseError((resp) => showErrorToast(`Failed to render preview: ${resp.status} ${resp.statusText}`));
+      resp.onResponseError((details) => showErrorToast(`Failed to render preview: ${details.message}`, {duration: 2500}));
       await resp.fetchText(renderPreview);
     }, {capture: true});
   }
