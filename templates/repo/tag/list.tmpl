@@ -43,7 +43,7 @@
 								{{end}}
 
 								{{if (and $.Repository.CanContentChange ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) $release.IsTag)}}
-									<button type="button" class="btn interact-link flex-text-inline link-action" data-url="{{$.RepoLink}}/tags/delete?id={{.ID}}" data-modal-confirm="#confirm-delete-tag-modal">
+									<button type="button" class="btn interact-fg flex-text-inline link-action" data-url="{{$.RepoLink}}/tags/delete?id={{.ID}}" data-modal-confirm="#confirm-delete-tag-modal">
 										{{svg "octicon-trash"}}{{ctx.Locale.Tr "repo.release.delete_tag"}}
 									</button>
 								{{end}}
