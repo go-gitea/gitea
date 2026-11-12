@@ -83,7 +83,7 @@ export function initMarkupTasklist(elMarkup: HTMLElement): void {
         rawContent.textContent = newContent;
       } catch (err) {
         checkbox.checked = !checkbox.checked;
-        console.error(err);
+        console.error('exception occurred when updating markup task list', err);
       }
 
       // Enable input on checkboxes again
