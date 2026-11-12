@@ -305,7 +305,7 @@ func prepareScopedWorkflows(ctx *context.Context, curWorkflowID string, curWorkf
 	scopedNames := make(container.Set[string])
 
 	repo := ctx.Repo.Repository
-	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, repo.OwnerID)
+	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, repo)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return scopedNames
@@ -376,7 +376,7 @@ func prepareScopedWorkflows(ctx *context.Context, curWorkflowID string, curWorkf
 
 // loadScopedWorkflowModel reads and parses a scoped workflow's content from its source repo's default branch.
 func loadScopedWorkflowModel(ctx *context.Context, repo *repo_model.Repository, sourceRepoID int64, workflowID string) *act_model.Workflow {
-	effective, err := actions_model.IsScopedWorkflowSourceEffective(ctx, repo.OwnerID, sourceRepoID)
+	effective, err := actions_model.IsScopedWorkflowSourceEffective(ctx, repo, sourceRepoID)
 	if err != nil {
 		log.Error("scoped dispatch: IsScopedWorkflowSourceEffective: %v", err)
 		return nil
@@ -414,7 +414,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	isScoped := curWorkflowRepoID > 0
 	if isScoped {
 		// a required scoped workflow can never be opted out, so a stale disabled flag must not hide its dispatch form
-		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, actionsConfig, repo.OwnerID, curWorkflowRepoID, curWorkflowID)
+		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, actionsConfig, repo, curWorkflowRepoID, curWorkflowID)
 		if err != nil {
 			log.Error("IsScopedWorkflowOptedOut: %v", err)
 			return

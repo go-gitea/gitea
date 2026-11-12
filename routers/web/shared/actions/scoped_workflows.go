@@ -93,6 +93,9 @@ type scopedWorkflowInfo struct {
 type scopedWorkflowSourceView struct {
 	Repo                *repo_model.Repository
 	ScopedWorkflowInfos []scopedWorkflowInfo
+	IncludeRepos        string
+	ExcludeRepos        string
+	IncludeTopics       string
 }
 
 func ScopedWorkflows(ctx *context.Context) {
@@ -131,8 +134,15 @@ func ScopedWorkflows(ctx *context.Context) {
 			log.Error("scoped workflows settings: load source repo %d: %v", src.SourceRepoID, err)
 			continue
 		}
+		filter := src.RepoFilter
+		if filter == nil {
+			filter = &actions_model.ScopedWorkflowRepoFilter{}
+		}
 		views = append(views, &scopedWorkflowSourceView{
 			Repo:                repo,
+			IncludeRepos:        strings.Join(filter.IncludeRepos, "\n"),
+			ExcludeRepos:        strings.Join(filter.ExcludeRepos, "\n"),
+			IncludeTopics:       strings.Join(filter.IncludeTopics, "\n"),
 			ScopedWorkflowInfos: listSourceScopedWorkflowFiles(ctx, repo, src.WorkflowConfigs),
 		})
 	}
@@ -352,5 +362,41 @@ func ScopedWorkflowRemove(ctx *context.Context) {
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.scoped_workflows.source.remove_success"))
+	ctx.JSONRedirect(swCtx.RedirectLink)
+}
+
+// ScopedWorkflowSetRepoFilter saves a registered source’s repository filter.
+func ScopedWorkflowSetRepoFilter(ctx *context.Context) {
+	swCtx, err := getScopedWorkflowsCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getScopedWorkflowsCtx", err)
+		return
+	}
+	if ctx.Written() {
+		return
+	}
+	repoID := ctx.FormInt64("repo_id")
+	if _, err := actions_model.GetScopedWorkflowSource(ctx, swCtx.OwnerID, repoID); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.JSONError(ctx.Tr("actions.scoped_workflows.source.not_found"))
+		} else {
+			ctx.ServerError("GetScopedWorkflowSource", err)
+		}
+		return
+	}
+	filter := actions_model.ScopedWorkflowRepoFilter{
+		IncludeRepos:  util.SplitTrimSpace(ctx.FormString("include_repos"), "\n"),
+		ExcludeRepos:  util.SplitTrimSpace(ctx.FormString("exclude_repos"), "\n"),
+		IncludeTopics: util.SplitTrimSpace(ctx.FormString("include_topics"), "\n"),
+	}
+	if err := filter.Validate(); err != nil {
+		ctx.JSONError(ctx.Tr("actions.scoped_workflows.filter.invalid"))
+		return
+	}
+	if err := actions_model.SetScopedWorkflowSourceRepoFilter(ctx, swCtx.OwnerID, repoID, &filter); err != nil {
+		ctx.ServerError("SetScopedWorkflowSourceRepoFilter", err)
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("actions.scoped_workflows.filter.update_success"))
 	ctx.JSONRedirect(swCtx.RedirectLink)
 }

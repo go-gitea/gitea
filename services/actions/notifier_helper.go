@@ -315,7 +315,7 @@ func preparePullRequestMerge(ctx context.Context, input *notifyInput, gitRepo *g
 		return nil, err
 	}
 	if len(entries) == 0 {
-		if sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, input.Repo.OwnerID); err != nil || len(sources) == 0 {
+		if sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, input.Repo); err != nil || len(sources) == 0 {
 			return headCommit, err
 		}
 	}
@@ -756,7 +756,7 @@ func detectAndHandleScopedWorkflows(
 		return nil
 	}
 
-	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, input.Repo.OwnerID)
+	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, input.Repo)
 	if err != nil {
 		return fmt.Errorf("GetEffectiveScopedWorkflowSources: %w", err)
 	}

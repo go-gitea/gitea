@@ -84,7 +84,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	var workflowDisabled bool
 	if isScoped {
 		var err error
-		if workflowDisabled, err = actions_model.IsScopedWorkflowOptedOut(ctx, cfg, repo.OwnerID, scopedWorkflowSourceRepoID, workflowID); err != nil {
+		if workflowDisabled, err = actions_model.IsScopedWorkflowOptedOut(ctx, cfg, repo, scopedWorkflowSourceRepoID, workflowID); err != nil {
 			return 0, err
 		}
 	} else {
@@ -241,7 +241,7 @@ func resolveDispatchWorkflowContent(ctx reqctx.RequestContext, repo *repo_model.
 
 func resolveScopedDispatchContent(ctx reqctx.RequestContext, repo *repo_model.Repository, sourceRepoID int64, workflowID string, run *actions_model.ActionRun) ([]byte, error) {
 	// the source must be an effective scoped source for this consumer repo
-	effective, err := actions_model.IsScopedWorkflowSourceEffective(ctx, repo.OwnerID, sourceRepoID)
+	effective, err := actions_model.IsScopedWorkflowSourceEffective(ctx, repo, sourceRepoID)
 	if err != nil {
 		return nil, err
 	}

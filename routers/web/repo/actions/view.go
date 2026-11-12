@@ -925,7 +925,16 @@ func checkRunRerunAllowed(ctx *context_module.Context, run *actions_model.Action
 	cfg := cfgUnit.ActionsConfig()
 	disabled := cfg.IsWorkflowDisabled(run.WorkflowID)
 	if run.IsScopedRun {
-		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, cfg, ctx.Repo.Repository.OwnerID, run.WorkflowRepoID, run.WorkflowID)
+		effective, err := actions_model.IsScopedWorkflowSourceEffective(ctx, ctx.Repo.Repository, run.WorkflowRepoID)
+		if err != nil {
+			ctx.ServerError("IsScopedWorkflowSourceEffective", err)
+			return false
+		}
+		if !effective {
+			ctx.JSONError(ctx.Locale.Tr("actions.workflow.not_found", run.WorkflowID))
+			return false
+		}
+		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, cfg, ctx.Repo.Repository, run.WorkflowRepoID, run.WorkflowID)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return false
@@ -1337,7 +1346,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	if scopedRepoID > 0 {
 		if !isEnable {
 			// a required scoped workflow can never be opted out
-			required, err := actions_model.IsScopedWorkflowRequired(ctx, ctx.Repo.Repository.OwnerID, scopedRepoID, workflow)
+			required, err := actions_model.IsScopedWorkflowRequired(ctx, ctx.Repo.Repository, scopedRepoID, workflow)
 			if err != nil {
 				ctx.ServerErrorAuto(err)
 				return

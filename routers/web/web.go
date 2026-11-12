@@ -508,6 +508,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("", shared_actions.ScopedWorkflows)
 			m.Post("/add", shared_actions.ScopedWorkflowAdd)
 			m.Post("/required", shared_actions.ScopedWorkflowSetRequired)
+			m.Post("/repo-filter", shared_actions.ScopedWorkflowSetRepoFilter)
 			m.Post("/remove", shared_actions.ScopedWorkflowRemove)
 		})
 	}

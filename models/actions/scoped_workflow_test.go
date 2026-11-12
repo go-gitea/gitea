@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/util"
 
@@ -59,47 +60,47 @@ func TestGetEffectiveScopedWorkflowSources(t *testing.T) {
 	}
 
 	// owner 2 sees its own sources plus instance-level ones, but not owner 3's.
-	owner2, err := GetEffectiveScopedWorkflowSources(ctx, 2)
+	owner2, err := GetEffectiveScopedWorkflowSources(ctx, &repo_model.Repository{OwnerID: 2})
 	require.NoError(t, err)
 	assert.Len(t, owner2, 3)
 	_, err = GetScopedWorkflowSource(ctx, 2, 3)
 	assert.ErrorIs(t, err, util.ErrNotExist)
 
-	required, err := IsScopedWorkflowRequired(ctx, 2, 1, "a.yml")
+	required, err := IsScopedWorkflowRequired(ctx, &repo_model.Repository{OwnerID: 2}, 1, "a.yml")
 	require.NoError(t, err)
 	assert.True(t, required, "instance marks a.yml required → required for owner 2 even though org left it optional")
 
-	required, err = IsScopedWorkflowRequired(ctx, 2, 1, "x.yml")
+	required, err = IsScopedWorkflowRequired(ctx, &repo_model.Repository{OwnerID: 2}, 1, "x.yml")
 	require.NoError(t, err)
 	assert.False(t, required)
 
-	required, err = IsScopedWorkflowRequired(ctx, 2, 200, "b.yml")
+	required, err = IsScopedWorkflowRequired(ctx, &repo_model.Repository{OwnerID: 2}, 200, "b.yml")
 	require.NoError(t, err)
 	assert.True(t, required)
 
 	// owner 3's source must not be effective for owner 2.
-	required, err = IsScopedWorkflowRequired(ctx, 2, 3, "c.yml")
+	required, err = IsScopedWorkflowRequired(ctx, &repo_model.Repository{OwnerID: 2}, 3, "c.yml")
 	require.NoError(t, err)
 	assert.False(t, required)
 
 	// IsScopedWorkflowSourceEffective: owner-level and instance-level sources are effective; another owner's is not.
-	effective, err := IsScopedWorkflowSourceEffective(ctx, 2, 1)
+	effective, err := IsScopedWorkflowSourceEffective(ctx, &repo_model.Repository{OwnerID: 2}, 1)
 	require.NoError(t, err)
 	assert.True(t, effective, "owner 2's own source")
 
-	effective, err = IsScopedWorkflowSourceEffective(ctx, 2, 200)
+	effective, err = IsScopedWorkflowSourceEffective(ctx, &repo_model.Repository{OwnerID: 2}, 200)
 	require.NoError(t, err)
 	assert.True(t, effective, "instance-level source is effective for any owner")
 
-	effective, err = IsScopedWorkflowSourceEffective(ctx, 2, 3)
+	effective, err = IsScopedWorkflowSourceEffective(ctx, &repo_model.Repository{OwnerID: 2}, 3)
 	require.NoError(t, err)
 	assert.False(t, effective, "owner 3's source is not effective for owner 2")
 
-	effective, err = IsScopedWorkflowSourceEffective(ctx, 2, 999)
+	effective, err = IsScopedWorkflowSourceEffective(ctx, &repo_model.Repository{OwnerID: 2}, 999)
 	require.NoError(t, err)
 	assert.False(t, effective, "unknown source repo")
 
-	effective, err = IsScopedWorkflowSourceEffective(ctx, 3, 3)
+	effective, err = IsScopedWorkflowSourceEffective(ctx, &repo_model.Repository{OwnerID: 3}, 3)
 	require.NoError(t, err)
 	assert.True(t, effective, "owner 3's own source is effective for owner 3")
 }
@@ -138,4 +139,26 @@ func TestScopedWorkflowSourceCRUD(t *testing.T) {
 	sources, err = GetScopedWorkflowSourcesByOwner(ctx, 5)
 	require.NoError(t, err)
 	assert.Empty(t, sources)
+}
+
+func TestScopedWorkflowSourceAppliesToRepo(t *testing.T) {
+	repo := &repo_model.Repository{Name: "My-App", Topics: []string{"go"}}
+	for _, tt := range []struct {
+		name   string
+		filter *ScopedWorkflowRepoFilter
+		want   bool
+	}{
+		{"nil", nil, true},
+		{"empty", &ScopedWorkflowRepoFilter{}, true},
+		{"name", &ScopedWorkflowRepoFilter{IncludeRepos: []string{"MY-*"}}, true},
+		{"other", &ScopedWorkflowRepoFilter{IncludeRepos: []string{"other"}}, false},
+		{"topic", &ScopedWorkflowRepoFilter{IncludeTopics: []string{"GO"}}, true},
+		{"exclude", &ScopedWorkflowRepoFilter{IncludeTopics: []string{"go"}, ExcludeRepos: []string{"my-*"}}, false},
+		{"exclude only", &ScopedWorkflowRepoFilter{ExcludeRepos: []string{"other"}}, true},
+		{"invalid", &ScopedWorkflowRepoFilter{IncludeRepos: []string{"["}}, false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, (&ActionScopedWorkflowSource{RepoFilter: tt.filter}).AppliesToRepo(repo))
+		})
+	}
 }

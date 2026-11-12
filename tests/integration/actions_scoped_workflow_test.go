@@ -129,6 +129,54 @@ func TestActionsScopedWorkflows(t *testing.T) {
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
 		})
 
+		t.Run("Repository filters", func(t *testing.T) {
+			source := createTestRepo(t, "sw-filter-source", false)
+			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/push.yaml", scopedPushWorkflow)
+			registerUserScopedSource(t, source)
+			filter := actions_model.ScopedWorkflowRepoFilter{IncludeRepos: []string{"sw-filter-match*"}, ExcludeRepos: []string{"*-excluded"}, IncludeTopics: []string{"scoped-ci"}}
+			filterPath := "/user/settings/actions/scoped-workflows/repo-filter"
+			user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", filterPath, map[string]string{
+				"repo_id":        strconv.FormatInt(source.ID, 10),
+				"include_repos":  "  sw-filter-match*  \n\n",
+				"exclude_repos":  "*-excluded",
+				"include_topics": "scoped-ci",
+			}), http.StatusOK)
+			loadFilter := func() *actions_model.ScopedWorkflowRepoFilter {
+				src, err := actions_model.GetScopedWorkflowSource(t.Context(), user2.ID, source.ID)
+				require.NoError(t, err)
+				return src.RepoFilter
+			}
+			assert.Equal(t, &filter, loadFilter())
+			user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", filterPath, map[string]string{
+				"repo_id": strconv.FormatInt(source.ID, 10), "include_repos": "[",
+			}), http.StatusBadRequest)
+			assert.Equal(t, &filter, loadFilter())
+			unregistered := createTestRepo(t, "sw-filter-unregistered", false)
+			user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", filterPath, map[string]string{
+				"repo_id": strconv.FormatInt(unregistered.ID, 10), "include_repos": "*",
+			}), http.StatusBadRequest)
+			unittest.AssertNotExistsBean(t, &actions_model.ActionScopedWorkflowSource{OwnerID: user2.ID, SourceRepoID: unregistered.ID})
+			for _, tc := range []struct {
+				name  string
+				topic bool
+				runs  int
+			}{
+				{"sw-filter-other", false, 0},
+				{"sw-filter-matched", false, 1},
+				{"sw-filter-topic", true, 1},
+				{"sw-filter-match-excluded", true, 0},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					consumer := createTestRepo(t, tc.name, false)
+					if tc.topic {
+						require.NoError(t, repo_model.SaveTopics(t.Context(), consumer.ID, "scoped-ci"))
+					}
+					createRepoWorkflowFile(t, user2, user2Token, consumer, "marker.txt", "trigger")
+					assert.Equal(t, tc.runs, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true}))
+				})
+			}
+		})
+
 		t.Run("Opt-out", func(t *testing.T) {
 			// opt-out: a consumer can disable a non-required scoped workflow, but a required one cannot be disabled.
 			source := createTestRepo(t, "sw-optout-source", false)
@@ -287,6 +335,19 @@ jobs:
 			source := createTestRepo(t, "sw-gate-source", false)
 			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/pr.yaml", scopedPRWorkflow)
 			registerUserScopedSource(t, source, "pr.yaml") // required
+
+			t.Run("out of scope allows merge", func(t *testing.T) {
+				filter := actions_model.ScopedWorkflowRepoFilter{ExcludeRepos: []string{"sw-gate-excluded"}}
+				require.NoError(t, actions_model.SetScopedWorkflowSourceRepoFilter(t.Context(), user2.ID, source.ID, &filter))
+				defer func() {
+					require.NoError(t, actions_model.SetScopedWorkflowSourceRepoFilter(t.Context(), user2.ID, source.ID, &actions_model.ScopedWorkflowRepoFilter{}))
+				}()
+				consumer := createTestRepo(t, "sw-gate-excluded", false)
+				_, mergeReq := protectAndOpenPR(t, consumer, "excluded-pr", "pr-change.txt", false)
+				assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true}))
+				require.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+				user2Session.MakeRequest(t, mergeReq(), http.StatusOK)
+			})
 
 			t.Run("pending blocks, success allows", func(t *testing.T) {
 				consumer := createTestRepo(t, "sw-gate-consumer", false)
