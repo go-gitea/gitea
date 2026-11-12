@@ -18,6 +18,7 @@ var (
 
 		LimitTotalOwnerCount     int64
 		LimitTotalOwnerSize      int64
+		MaxDecompressionRatio    int64
 		LimitSizeAlpine          int64
 		LimitSizeArch            int64
 		LimitSizeCargo           int64
@@ -45,8 +46,9 @@ var (
 
 		DefaultRPMSignEnabled bool
 	}{
-		Enabled:              true,
-		LimitTotalOwnerCount: -1,
+		Enabled:               true,
+		LimitTotalOwnerCount:  -1,
+		MaxDecompressionRatio: 200,
 	}
 )
 
@@ -67,6 +69,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	}
 
 	Packages.LimitTotalOwnerSize = mustBytes(sec, "LIMIT_TOTAL_OWNER_SIZE")
+	Packages.MaxDecompressionRatio = sec.Key("MAX_DECOMPRESSION_RATIO").MustInt64(200)
 	Packages.LimitSizeAlpine = mustBytes(sec, "LIMIT_SIZE_ALPINE")
 	Packages.LimitSizeArch = mustBytes(sec, "LIMIT_SIZE_ARCH")
 	Packages.LimitSizeCargo = mustBytes(sec, "LIMIT_SIZE_CARGO")

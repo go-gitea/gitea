@@ -7,7 +7,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"io"
 	"testing"
 
 	"gitea.dev/modules/json"
@@ -23,7 +22,7 @@ const (
 )
 
 func TestParseMetadataFromBox(t *testing.T) {
-	createArchive := func(files map[string][]byte) io.Reader {
+	createArchive := func(files map[string][]byte) *bytes.Reader {
 		var buf bytes.Buffer
 		zw := gzip.NewWriter(&buf)
 		tw := tar.NewWriter(zw)
@@ -38,7 +37,7 @@ func TestParseMetadataFromBox(t *testing.T) {
 		}
 		tw.Close()
 		zw.Close()
-		return &buf
+		return bytes.NewReader(buf.Bytes())
 	}
 
 	t.Run("MissingInfoFile", func(t *testing.T) {

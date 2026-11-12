@@ -53,7 +53,7 @@ backup = usr/bin/paket1`)
 }
 
 func TestParsePackage(t *testing.T) {
-	createPackage := func(compression string, files map[string][]byte) io.Reader {
+	createPackage := func(compression string, files map[string][]byte) *bytes.Reader {
 		var buf bytes.Buffer
 		var cw io.WriteCloser
 		switch compression {
@@ -79,7 +79,7 @@ func TestParsePackage(t *testing.T) {
 		tw.Close()
 		cw.Close()
 
-		return &buf
+		return bytes.NewReader(buf.Bytes())
 	}
 
 	for _, c := range []string{"gz", "xz", "zst"} {
@@ -180,7 +180,7 @@ func TestParsePackageTooManyFiles(t *testing.T) {
 		"file1":    "content1",
 		".PKGINFO": string(createPKGINFOContent(packageName, packageVersion)),
 	})
-	_, err := ParsePackage(buf)
+	_, err := ParsePackage(bytes.NewReader(buf.Bytes()))
 	assert.NoError(t, err)
 
 	buf = test.WriteTarCompression(gzip.NewWriter, map[string]string{
@@ -190,6 +190,6 @@ func TestParsePackageTooManyFiles(t *testing.T) {
 		"file4":    "content4",
 		".PKGINFO": string(createPKGINFOContent(packageName, packageVersion)),
 	})
-	_, err = ParsePackage(buf)
+	_, err = ParsePackage(bytes.NewReader(buf.Bytes()))
 	assert.ErrorIs(t, err, util.ErrInvalidArgument)
 }

@@ -7,7 +7,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"io"
 	"strings"
 	"testing"
 
@@ -42,7 +41,7 @@ dev_dependencies:
   http: '>=0.13.0'`
 
 func TestParsePackage(t *testing.T) {
-	createArchive := func(files map[string][]byte) io.Reader {
+	createArchive := func(files map[string][]byte) *bytes.Reader {
 		var buf bytes.Buffer
 		zw := gzip.NewWriter(&buf)
 		tw := tar.NewWriter(zw)
@@ -57,7 +56,7 @@ func TestParsePackage(t *testing.T) {
 		}
 		tw.Close()
 		zw.Close()
-		return &buf
+		return bytes.NewReader(buf.Bytes())
 	}
 
 	t.Run("MissingPubspecFile", func(t *testing.T) {

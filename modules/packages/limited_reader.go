@@ -6,12 +6,26 @@ package packages
 import (
 	"io"
 
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
 var ErrContentTooLarge = util.NewInvalidArgumentErrorf("content exceeds the size limit")
 
 const MaxMetadataSize = 32 * 1024 * 1024
+
+const archiveDecompressionFloor = 512 * 1024 * 1024
+
+// SizedReader is an uploaded buffer that knows its own compressed size
+type SizedReader interface {
+	io.Reader
+	Size() int64
+}
+
+// NewArchiveLimitedReader bounds inflation while locating a metadata file; the allowance scales with the compressed archiveSize so large regular packages still pass
+func NewArchiveLimitedReader(r io.Reader, archiveSize int64) io.Reader {
+	return NewLimitedReader(r, max(archiveDecompressionFloor, setting.Packages.MaxDecompressionRatio*archiveSize))
+}
 
 type limitedReader struct {
 	io.LimitedReader
