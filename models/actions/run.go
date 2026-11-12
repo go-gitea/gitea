@@ -32,11 +32,11 @@ import (
 type ActionRun struct {
 	ID                int64
 	Title             string
-	RepoID            int64                  `xorm:"unique(repo_index) index(repo_status)"`
+	RepoID            int64                  `xorm:"unique(repo_index) index(repo_status) index(repo_workflow)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
-	WorkflowID        string                 `xorm:"index"`              // the name of workflow file
-	Index             int64                  `xorm:"unique(repo_index)"` // a unique number for each run of a repository
+	WorkflowID        string                 `xorm:"index index(repo_workflow)"` // the name of workflow file
+	Index             int64                  `xorm:"unique(repo_index)"`         // a unique number for each run of a repository
 	TriggerUserID     int64                  `xorm:"index"`
 	TriggerUser       *user_model.User       `xorm:"-"`
 	ScheduleID        int64
@@ -58,7 +58,7 @@ type ActionRun struct {
 	WorkflowRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
 	WorkflowCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 
-	IsScopedRun bool `xorm:"NOT NULL DEFAULT false"` // IsScopedRun explicitly classifies scoped runs.
+	IsScopedRun bool `xorm:"NOT NULL DEFAULT false index(repo_workflow)"` // IsScopedRun explicitly classifies scoped runs.
 
 	// Started and Stopped are identical to the latest attempt after ActionRunAttempt was introduced.
 	// When a rerun creates a new latest attempt, they are reset until the new attempt starts and stops.
