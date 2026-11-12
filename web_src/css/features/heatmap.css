@@ -67,16 +67,16 @@
   font-size: 11px;
 }
 
-#user-heatmap .heatmap-year-select {
+.heatmap-year-select {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-#user-heatmap .heatmap-year-select select {
+.heatmap-year-select select {
   appearance: none;
   field-sizing: content;
-  height: 20px;
+  min-height: 28px;
   padding: 0 20px 0 6px;
   border: none;
   border-radius: var(--border-radius);
@@ -84,7 +84,7 @@
   cursor: pointer;
 }
 
-#user-heatmap .heatmap-year-select svg {
+.heatmap-year-select svg {
   position: absolute;
   right: 6px;
   pointer-events: none;

@@ -297,6 +297,14 @@ function handleDayClick(date: Date) {
 }
 </script>
 <template>
+  <Teleport to="#heatmap-year-nav">
+    <span class="heatmap-year-select">
+      <select class="interact-bg" :value="year" :aria-label="locale.timeRange" @change="onYearChange">
+        <option v-for="optionYear in years" :key="optionYear" :value="optionYear">{{ optionYear || locale.last12Months }}</option>
+      </select>
+      <SvgIcon name="octicon-triangle-down" :size="12"/>
+    </span>
+  </Teleport>
   <div ref="elRoot" :class="{'is-loading': isLoading}">
     <svg class="heatmap-svg" :width="grid.width" :height="grid.height" :viewBox="`0 0 ${grid.width} ${grid.height}`">
       <g class="heatmap-month-labels" :transform="`translate(${gridLeft}, 0)`">
@@ -363,12 +371,6 @@ function handleDayClick(date: Date) {
             <SvgIcon name="octicon-chevron-right" :size="12"/>
           </button>
         </div>
-        <span class="heatmap-year-select">
-          <select class="interact-bg" :value="year" :aria-label="locale.timeRange" @change="onYearChange">
-            <option v-for="optionYear in years" :key="optionYear" :value="optionYear">{{ optionYear || locale.last12Months }}</option>
-          </select>
-          <SvgIcon name="octicon-triangle-down" :size="12"/>
-        </span>
         <div class="heatmap-legend">
           <div>{{ locale.heatMapLocale.less }}</div>
           <svg class="heatmap-legend-svg" :viewBox="legendViewBox" :height="squareSize">

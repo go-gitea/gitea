@@ -1,4 +1,5 @@
-<overflow-menu class="ui secondary pointing tabular borderless menu">
+{{if .EnableHeatmap}}<div class="tw-flex">{{end}}
+<overflow-menu class="ui secondary pointing tabular borderless menu{{if .EnableHeatmap}} tw-min-w-0 tw-flex-1{{end}}">
 	<div class="overflow-menu-items">
 		{{if and .HasUserProfileReadme .ContextUser.IsIndividual}}
 		<a class="{{if eq .TabName "overview"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=overview">
@@ -48,3 +49,7 @@
 		{{end}}
 	</div>
 </overflow-menu>
+{{if .EnableHeatmap}}
+	<div id="heatmap-year-nav" class="tw-flex tw-shrink-0 tw-items-center tw-border-b-2 tw-border-b-secondary"></div>
+</div>
+{{end}}

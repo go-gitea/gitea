@@ -76,31 +76,36 @@
 			</div>
 		{{end}}
 
-	{{if .ContextUser.IsOrganization}}
+	{{if or .ContextUser.IsOrganization .EnableHeatmap}}
 		<div class="right menu tw-flex-wrap tw-justify-end">
-			<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
-				{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "activities"}}
-			</a>
-			{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
-			<a class="{{if .PageIsIssues}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/issues{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
-				{{svg "octicon-issue-opened"}}&nbsp;{{ctx.Locale.Tr "issues"}}
-			</a>
-			{{end}}
-			{{if not ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
-			<a class="{{if .PageIsPulls}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/pulls{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
-				{{svg "octicon-git-pull-request"}}&nbsp;{{ctx.Locale.Tr "pull_requests"}}
-			</a>
-			{{end}}
-			{{if and .ShowMilestonesDashboardPage (not (and ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled))}}
-			<a class="{{if .PageIsMilestonesDashboard}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/milestones{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
-				{{svg "octicon-milestone"}}&nbsp;{{ctx.Locale.Tr "milestones"}}
-			</a>
-			{{end}}
-			<div class="item">
-				<a class="ui primary basic button" href="{{.ContextUser.HomeLink}}" title="{{ctx.Locale.Tr "home.view_home" .ContextUser.Name}}">
-					{{ctx.Locale.Tr "home.view_home" (.ContextUser.ShortName 20)}}
+			{{if .ContextUser.IsOrganization}}
+				<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+					{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "activities"}}
 				</a>
-			</div>
+				{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
+				<a class="{{if .PageIsIssues}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/issues{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+					{{svg "octicon-issue-opened"}}&nbsp;{{ctx.Locale.Tr "issues"}}
+				</a>
+				{{end}}
+				{{if not ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
+				<a class="{{if .PageIsPulls}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/pulls{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+					{{svg "octicon-git-pull-request"}}&nbsp;{{ctx.Locale.Tr "pull_requests"}}
+				</a>
+				{{end}}
+				{{if and .ShowMilestonesDashboardPage (not (and ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled))}}
+				<a class="{{if .PageIsMilestonesDashboard}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/milestones{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+					{{svg "octicon-milestone"}}&nbsp;{{ctx.Locale.Tr "milestones"}}
+				</a>
+				{{end}}
+				<div class="item">
+					<a class="ui primary basic button" href="{{.ContextUser.HomeLink}}" title="{{ctx.Locale.Tr "home.view_home" .ContextUser.Name}}">
+						{{ctx.Locale.Tr "home.view_home" (.ContextUser.ShortName 20)}}
+					</a>
+				</div>
+			{{end}}
+			{{if .EnableHeatmap}}
+				<div id="heatmap-year-nav" class="item"></div>
+			{{end}}
 		</div>
 	{{end}}
 	</div>
