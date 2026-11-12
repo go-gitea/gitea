@@ -69,7 +69,6 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	}
 
 	Packages.LimitTotalOwnerSize = mustBytes(sec, "LIMIT_TOTAL_OWNER_SIZE")
-	Packages.MaxDecompressionRatio = sec.Key("MAX_DECOMPRESSION_RATIO").MustInt64(200)
 	Packages.LimitSizeAlpine = mustBytes(sec, "LIMIT_SIZE_ALPINE")
 	Packages.LimitSizeArch = mustBytes(sec, "LIMIT_SIZE_ARCH")
 	Packages.LimitSizeCargo = mustBytes(sec, "LIMIT_SIZE_CARGO")
