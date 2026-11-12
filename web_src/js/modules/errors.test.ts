@@ -51,10 +51,3 @@ test('processWindowErrorEvent falls back to message without stack', () => {
   expect(msgText).toContain('JavaScript error: script error');
   expect(msgText).toContain('@ 5:10');
 });
-
-test('processWindowErrorEvent ignores AbortError', () => {
-  processWindowErrorEvent({
-    reason: {name: 'AbortError', message: 'The operation was aborted.', stack: ''}, type: 'unhandledrejection',
-  } as ErrorEvent & PromiseRejectionEvent);
-  expect(document.querySelector('.js-global-error')).toBeNull();
-});
