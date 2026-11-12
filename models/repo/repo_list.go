@@ -204,8 +204,6 @@ type SearchRepoOptions struct {
 	// True -> include just has milestones
 	// False -> include just has no milestone
 	HasMilestones optional.Option[bool]
-	// LowerNames represents valid lower names to restrict to
-	LowerNames []string
 	// When specified true, apply some filters over the conditions:
 	// - Don't show forks, when opts.Fork is OptionalBoolNone.
 	// - Do not display repositories that don't have a description, an icon and topics.
@@ -369,8 +367,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	cond := builder.NewCond()
 
 	if opts.Private {
-		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
-			// OK we're in the context of a User
+		if opts.Actor != nil && !opts.Actor.IsAdmin {
 			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 		}
 	} else {
@@ -760,7 +757,8 @@ func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user
 func PublicRepoUnderPublicOwnerCond() builder.Cond {
 	return builder.And(
 		builder.Eq{"`repository`.is_private": false},
-		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePublic})),
+		builder.Exists(builder.Select("1").From("`user` repo_owner").
+			Where(builder.Expr("repo_owner.id = `repository`.owner_id").And(builder.Eq{"repo_owner.visibility": structs.VisibleTypePublic}))),
 	)
 }
 
@@ -822,10 +820,6 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID}, DoerTokenRepoCond(opts.Actor))
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
-	}
-
-	if len(opts.LowerNames) > 0 {
-		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
 	sess := db.GetEngine(ctx)

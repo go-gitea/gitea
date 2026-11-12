@@ -27,7 +27,6 @@ func TestSliceSortedEqual(t *testing.T) {
 	assert.True(t, SliceSortedEqual([]int{}, []int{}))
 	assert.True(t, SliceSortedEqual([]int(nil), nil))
 	assert.True(t, SliceSortedEqual([]int(nil), []int{}))
-	assert.True(t, SliceSortedEqual([]int{}, []int{}))
 
 	assert.True(t, SliceSortedEqual([]string{"2", "0", "2", "3"}, []string{"2", "0", "2", "3"}))
 	assert.True(t, SliceSortedEqual([]float64{2, 0, 2, 3}, []float64{2, 0, 2, 3}))
@@ -47,7 +46,6 @@ func TestSliceRemoveAll(t *testing.T) {
 	assert.ElementsMatch(t, []int{2, 0, 2, 3}, SliceRemoveAll([]int{2, 0, 2, 3}, 4))
 	assert.Empty(t, SliceRemoveAll([]int{}, 0))
 	assert.ElementsMatch(t, []int(nil), SliceRemoveAll([]int(nil), 0))
-	assert.Empty(t, SliceRemoveAll([]int{}, 0))
 
 	assert.ElementsMatch(t, []string{"2", "2", "3"}, SliceRemoveAll([]string{"2", "0", "2", "3"}, "0"))
 	assert.ElementsMatch(t, []float64{2, 2, 3}, SliceRemoveAll([]float64{2, 0, 2, 3}, 0))

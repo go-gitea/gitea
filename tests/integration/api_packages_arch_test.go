@@ -85,6 +85,16 @@ license = MIT`)
 
 	rootURL := fmt.Sprintf("/api/packages/%s/arch", user.Name)
 
+	uploadPackage := func(t *testing.T, url string, content []byte, expectedStatus int) {
+		MakeRequest(t, NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).AddBasicAuth(user.Name), expectedStatus)
+	}
+
+	readIndex := func(t *testing.T, url string) map[string]string {
+		content, err := test.ReadAllTarGzContent(MakeRequest(t, NewRequest(t, "GET", url), http.StatusOK).Body)
+		assert.NoError(t, err)
+		return content
+	}
+
 	t.Run("RepositoryKey", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -110,13 +120,9 @@ license = MIT`)
 					req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
 					MakeRequest(t, req, http.StatusUnauthorized)
 
-					req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{})).
-						AddBasicAuth(user.Name)
-					MakeRequest(t, req, http.StatusBadRequest)
+					uploadPackage(t, uploadURL, []byte{}, http.StatusBadRequest)
 
-					req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(contentAarch64)).
-						AddBasicAuth(user.Name)
-					MakeRequest(t, req, http.StatusCreated)
+					uploadPackage(t, uploadURL, contentAarch64, http.StatusCreated)
 
 					pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeArch)
 					assert.NoError(t, err)
@@ -161,24 +167,16 @@ license = MIT`)
 						return seen
 					})
 
-					req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(contentAarch64)).
-						AddBasicAuth(user.Name)
-					MakeRequest(t, req, http.StatusConflict)
+					uploadPackage(t, uploadURL, contentAarch64, http.StatusConflict)
 
 					// Add same package with different compression leads to conflict
-					req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(contentAarch64Gz)).
-						AddBasicAuth(user.Name)
-					MakeRequest(t, req, http.StatusConflict)
+					uploadPackage(t, uploadURL, contentAarch64Gz, http.StatusConflict)
 				})
 
 				t.Run("Index", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
 
-					req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/aarch64/%s", rootURL, repository, arch_service.IndexArchiveFilename))
-					resp := MakeRequest(t, req, http.StatusOK)
-
-					content, err := test.ReadAllTarGzContent(resp.Body)
-					assert.NoError(t, err)
+					content := readIndex(t, fmt.Sprintf("%s/%s/aarch64/%s", rootURL, repository, arch_service.IndexArchiveFilename))
 
 					desc, has := content[fmt.Sprintf("%s-%s/desc", packageName, packageVersion)]
 					assert.True(t, has)
@@ -222,15 +220,9 @@ license = MIT`)
 				t.Run("Any", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
 
-					req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s", rootURL, repository), bytes.NewReader(contentAny)).
-						AddBasicAuth(user.Name)
-					MakeRequest(t, req, http.StatusCreated)
+					uploadPackage(t, fmt.Sprintf("%s/%s", rootURL, repository), contentAny, http.StatusCreated)
 
-					req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/aarch64/%s", rootURL, repository, arch_service.IndexArchiveFilename))
-					resp := MakeRequest(t, req, http.StatusOK)
-
-					content, err := test.ReadAllTarGzContent(resp.Body)
-					assert.NoError(t, err)
+					content := readIndex(t, fmt.Sprintf("%s/%s/aarch64/%s", rootURL, repository, arch_service.IndexArchiveFilename))
 
 					desc, has := content[fmt.Sprintf("%s-%s/desc", packageName, packageVersion)]
 					assert.True(t, has)
@@ -248,7 +240,7 @@ license = MIT`)
 						MakeRequest(t, req, http.StatusOK)
 					}
 
-					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/%s/any", rootURL, repository, packageName+"_"+arch_module.AnyArch, packageVersion)).
+					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/%s/any", rootURL, repository, packageName+"_"+arch_module.AnyArch, packageVersion)).
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusNoContent)
 				})
@@ -274,18 +266,10 @@ license = MIT`)
 		defer tests.PrintCurrentTest(t)()
 		pkgVer1 := createPackage("gz", "gitea-test", "1.0.0", "aarch64")
 		pkgVer2 := createPackage("gz", "gitea-test", "1.0.1", "aarch64")
-		req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgVer1)).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
-		req = NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgVer2)).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
+		uploadPackage(t, rootURL, pkgVer1, http.StatusCreated)
+		uploadPackage(t, rootURL, pkgVer2, http.StatusCreated)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/aarch64/%s", rootURL, arch_service.IndexArchiveFilename))
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		content, err := test.ReadAllTarGzContent(resp.Body)
-		assert.NoError(t, err)
+		content := readIndex(t, fmt.Sprintf("%s/aarch64/%s", rootURL, arch_service.IndexArchiveFilename))
 		assert.Len(t, content, 2)
 
 		_, has := content["gitea-test-1.0.0/desc"]
@@ -293,14 +277,11 @@ license = MIT`)
 		_, has = content["gitea-test-1.0.1/desc"]
 		assert.True(t, has)
 
-		req = NewRequest(t, "DELETE", rootURL+"/gitea-test/1.0.1/aarch64").
+		req := NewRequest(t, "DELETE", rootURL+"/gitea-test/1.0.1/aarch64").
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/aarch64/%s", rootURL, arch_service.IndexArchiveFilename))
-		resp = MakeRequest(t, req, http.StatusOK)
-		content, err = test.ReadAllTarGzContent(resp.Body)
-		assert.NoError(t, err)
+		content = readIndex(t, fmt.Sprintf("%s/aarch64/%s", rootURL, arch_service.IndexArchiveFilename))
 		assert.Len(t, content, 2)
 		_, has = content["gitea-test-1.0.0/desc"]
 		assert.True(t, has)

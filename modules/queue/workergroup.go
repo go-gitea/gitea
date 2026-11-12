@@ -217,7 +217,11 @@ func (q *WorkerPoolQueue[T]) doFlush(wg *workerGroup[T], flush flushType) {
 		for {
 			select {
 			case <-wg.popItemChan:
-			case <-wg.popItemErr:
+			case err := <-wg.popItemErr:
+				if !q.isCtxRunCanceled() {
+					log.Error("Failed to pop item from queue %q (doFlush): %v", q.GetName(), err)
+				}
+				return
 			case <-q.batchChan:
 			case <-q.ctxRun.Done():
 				return

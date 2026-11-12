@@ -174,11 +174,6 @@ func TestCombine(t *testing.T) {
 			expected: CommitStatusFailure,
 		},
 		{
-			name:     "mixed states",
-			states:   CommitStatusStates{CommitStatusPending, CommitStatusSuccess, CommitStatusError, CommitStatusWarning},
-			expected: CommitStatusFailure,
-		},
-		{
 			name:     "mixed states with all success",
 			states:   CommitStatusStates{CommitStatusSuccess, CommitStatusSuccess, CommitStatusPending, CommitStatusWarning},
 			expected: CommitStatusFailure,

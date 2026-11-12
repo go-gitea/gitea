@@ -24,39 +24,26 @@ func mockUnitConfig(t *testing.T) {
 }
 
 func TestLoadUnitConfig(t *testing.T) {
-	t.Run("regular", func(t *testing.T) {
-		mockUnitConfig(t)
+	for _, testCase := range []struct {
+		name                      string
+		disabled, defaults, forks []string
+	}{
+		{"regular", []string{"repo.issues"}, []string{"repo.code", "repo.releases", "repo.issues", "repo.pulls"}, []string{"repo.releases"}},
+		{"invalid", []string{"repo.issues", "invalid.1"}, []string{"repo.code", "invalid.2", "repo.releases", "repo.issues", "repo.pulls"}, []string{"invalid.3", "repo.releases"}},
+		{"duplicate", []string{"repo.issues", "repo.issues"}, []string{"repo.code", "repo.releases", "repo.issues", "repo.pulls", "repo.code"}, []string{"repo.releases", "repo.releases"}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			mockUnitConfig(t)
 
-		setting.Repository.DisabledRepoUnits = []string{"repo.issues"}
-		setting.Repository.DefaultRepoUnits = []string{"repo.code", "repo.releases", "repo.issues", "repo.pulls"}
-		setting.Repository.DefaultForkRepoUnits = []string{"repo.releases"}
-		assert.NoError(t, LoadUnitConfig())
-		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnitsGet())
-		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
-		assert.Equal(t, []Type{TypeReleases}, DefaultForkRepoUnits)
-	})
-	t.Run("invalid", func(t *testing.T) {
-		mockUnitConfig(t)
-
-		setting.Repository.DisabledRepoUnits = []string{"repo.issues", "invalid.1"}
-		setting.Repository.DefaultRepoUnits = []string{"repo.code", "invalid.2", "repo.releases", "repo.issues", "repo.pulls"}
-		setting.Repository.DefaultForkRepoUnits = []string{"invalid.3", "repo.releases"}
-		assert.NoError(t, LoadUnitConfig())
-		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnitsGet())
-		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
-		assert.Equal(t, []Type{TypeReleases}, DefaultForkRepoUnits)
-	})
-	t.Run("duplicate", func(t *testing.T) {
-		mockUnitConfig(t)
-
-		setting.Repository.DisabledRepoUnits = []string{"repo.issues", "repo.issues"}
-		setting.Repository.DefaultRepoUnits = []string{"repo.code", "repo.releases", "repo.issues", "repo.pulls", "repo.code"}
-		setting.Repository.DefaultForkRepoUnits = []string{"repo.releases", "repo.releases"}
-		assert.NoError(t, LoadUnitConfig())
-		assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnitsGet())
-		assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
-		assert.Equal(t, []Type{TypeReleases}, DefaultForkRepoUnits)
-	})
+			setting.Repository.DisabledRepoUnits = testCase.disabled
+			setting.Repository.DefaultRepoUnits = testCase.defaults
+			setting.Repository.DefaultForkRepoUnits = testCase.forks
+			assert.NoError(t, LoadUnitConfig())
+			assert.Equal(t, []Type{TypeIssues}, DisabledRepoUnitsGet())
+			assert.Equal(t, []Type{TypeCode, TypeReleases, TypePullRequests}, DefaultRepoUnits)
+			assert.Equal(t, []Type{TypeReleases}, DefaultForkRepoUnits)
+		})
+	}
 	t.Run("empty_default", func(t *testing.T) {
 		mockUnitConfig(t)
 

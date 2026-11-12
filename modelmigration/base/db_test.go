@@ -45,38 +45,15 @@ func Test_DropTableColumns(t *testing.T) {
 	x.SetMapper(names.GonicMapper{})
 
 	for i := range columns {
-		if err := x.Sync(new(DropTest)); err != nil {
-			t.Errorf("unable to create DropTest table: %v", err)
-			return
-		}
-
-		sess := x.NewSession()
-		if err := sess.Begin(); err != nil {
-			sess.Close()
-			t.Errorf("unable to begin transaction: %v", err)
-			return
-		}
-		if err := base.DropTableColumns(sess, "drop_test", columns[i:]...); err != nil {
-			sess.Close()
-			t.Errorf("Unable to drop columns[%d:]: %s from drop_test: %v", i, columns[i:], err)
-			return
-		}
-		if err := sess.Commit(); err != nil {
-			sess.Close()
-			t.Errorf("unable to commit transaction: %v", err)
-			return
-		}
-		sess.Close()
-		if err := x.DropTables(new(DropTest)); err != nil {
-			t.Errorf("unable to drop table: %v", err)
-			return
-		}
-		for j := range columns[i+1:] {
+		for j := i; j < len(columns); j++ {
 			if err := x.Sync(new(DropTest)); err != nil {
 				t.Errorf("unable to create DropTest table: %v", err)
 				return
 			}
-			dropcols := append([]string{columns[i]}, columns[j+i+1:]...)
+			dropcols := columns[i:]
+			if j > i {
+				dropcols = append([]string{columns[i]}, columns[j:]...)
+			}
 			sess := x.NewSession()
 			if err := sess.Begin(); err != nil {
 				sess.Close()
@@ -85,7 +62,11 @@ func Test_DropTableColumns(t *testing.T) {
 			}
 			if err := base.DropTableColumns(sess, "drop_test", dropcols...); err != nil {
 				sess.Close()
-				t.Errorf("Unable to drop columns: %s from drop_test: %v", dropcols, err)
+				if j == i {
+					t.Errorf("Unable to drop columns[%d:]: %s from drop_test: %v", i, columns[i:], err)
+				} else {
+					t.Errorf("Unable to drop columns: %s from drop_test: %v", dropcols, err)
+				}
 				return
 			}
 			if err := sess.Commit(); err != nil {

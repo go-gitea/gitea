@@ -205,9 +205,9 @@ func prepareHomeSidebarLatestRelease(ctx *context.Context) {
 		return
 	}
 
-	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
+	release, err := repo_model.GetLatestRelease(ctx, ctx.Repo.Repository)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.ServerError("GetLatestReleaseByRepoID", err)
+		ctx.ServerError("GetLatestRelease", err)
 		return
 	}
 
@@ -224,14 +224,11 @@ func prepareUpstreamDivergingInfo(ctx *context.Context) {
 	if !ctx.Repo.Repository.IsFork || !ctx.Repo.RefFullName.IsBranch() || ctx.Repo.TreePath != "" {
 		return
 	}
-	upstreamDivergingInfo, err := repo_service.GetUpstreamDivergingInfo(ctx, ctx.Repo.Repository, ctx.Repo.BranchName)
-	if err != nil {
-		if !errors.Is(err, util.ErrNotExist) && !errors.Is(err, util.ErrInvalidArgument) {
-			log.Error("GetUpstreamDivergingInfo: %v", err)
-		}
-		return
+	if upstreamDivergingInfo, err := repo_service.GetUpstreamDivergingInfo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.BranchName); err == nil {
+		ctx.Data["UpstreamDivergingInfo"] = upstreamDivergingInfo
+	} else if !errors.Is(err, util.ErrNotExist) && !errors.Is(err, util.ErrInvalidArgument) && !errors.Is(err, util.ErrPermissionDenied) {
+		log.Error("GetUpstreamDivergingInfo: %v", err)
 	}
-	ctx.Data["UpstreamDivergingInfo"] = upstreamDivergingInfo
 }
 
 func updateContextRepoEmptyAndStatus(ctx *context.Context, empty bool, status repo_model.RepositoryStatus) {
@@ -349,10 +346,12 @@ func handleRepoHomeFeed(ctx *context.Context) bool {
 	}
 	if ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType) {
 		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
-	} else if ctx.Repo.TreePath == "" {
-		feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+	} else if !ctx.Repo.Permission.CanRead(unit_model.TypeCode) && !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
+		// the branch and file feeds list commits, so gate them like RequireUnitReader(TypeCode) on "/rss/branch/*",
+		// which also admits maintainers of a PR allowing maintainer edits, who can push to its head branch without code read access
+		ctx.NotFound(nil)
 	} else {
-		feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+		feed.RenderBranchFeed(ctx, showFeedType)
 	}
 	return true
 }
@@ -477,6 +476,7 @@ func Home(ctx *context.Context) {
 	prepareFuncs := []func(*context.Context){
 		prepareClonePanel,
 		prepareHomeSidebarRepoTopics,
+		SetEditorconfigIfExists,
 		prepareToRenderDirOrFile(entry),
 		prepareRecentlyPushedNewBranches,
 	}

@@ -25,11 +25,6 @@ func TestKeygen(t *testing.T) {
 
 	assert.Regexp(t, "^-----BEGIN RSA PRIVATE KEY-----.*", priv)
 	assert.Regexp(t, "^-----BEGIN PUBLIC KEY-----.*", pub)
-}
-
-func TestSignUsingKeys(t *testing.T) {
-	priv, pub, err := GenerateKeyPair(2048)
-	assert.NoError(t, err)
 
 	privPem, _ := pem.Decode([]byte(priv))
 	if privPem == nil || privPem.Type != "RSA PRIVATE KEY" {

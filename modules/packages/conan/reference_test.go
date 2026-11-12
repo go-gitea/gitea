@@ -49,45 +49,25 @@ func TestNewRecipeReference(t *testing.T) {
 }
 
 func TestRecipeReferenceRevisionOrDefault(t *testing.T) {
-	rref, err := NewRecipeReference("name", "1.0", "", "", "")
-	assert.NoError(t, err)
-	assert.Equal(t, DefaultRevision, rref.RevisionOrDefault())
-
-	rref, err = NewRecipeReference("name", "1.0", "", "", DefaultRevision)
-	assert.NoError(t, err)
-	assert.Equal(t, DefaultRevision, rref.RevisionOrDefault())
-
-	rref, err = NewRecipeReference("name", "1.0", "", "", "Az09")
-	assert.NoError(t, err)
-	assert.Equal(t, "Az09", rref.RevisionOrDefault())
-}
-
-func TestRecipeReferenceString(t *testing.T) {
-	rref, err := NewRecipeReference("name", "1.0", "", "", "")
-	assert.NoError(t, err)
-	assert.Equal(t, "name/1.0", rref.String())
-
-	rref, err = NewRecipeReference("name", "1.0", "user", "channel", "")
-	assert.NoError(t, err)
-	assert.Equal(t, "name/1.0@user/channel", rref.String())
-
-	rref, err = NewRecipeReference("name", "1.0", "user", "channel", "Az09")
-	assert.NoError(t, err)
-	assert.Equal(t, "name/1.0@user/channel#Az09", rref.String())
-}
-
-func TestRecipeReferenceLinkName(t *testing.T) {
-	rref, err := NewRecipeReference("name", "1.0", "", "", "")
-	assert.NoError(t, err)
-	assert.Equal(t, "name/1.0/_/_/0", rref.LinkName())
-
-	rref, err = NewRecipeReference("name", "1.0", "user", "channel", "")
-	assert.NoError(t, err)
-	assert.Equal(t, "name/1.0/user/channel/0", rref.LinkName())
-
-	rref, err = NewRecipeReference("name", "1.0", "user", "channel", "Az09")
-	assert.NoError(t, err)
-	assert.Equal(t, "name/1.0/user/channel/Az09", rref.LinkName())
+	for _, test := range []struct {
+		user, channel, revision string
+		method                  func(*RecipeReference) string
+		expected                string
+	}{
+		{"", "", "", (*RecipeReference).RevisionOrDefault, DefaultRevision},
+		{"", "", DefaultRevision, (*RecipeReference).RevisionOrDefault, DefaultRevision},
+		{"", "", "Az09", (*RecipeReference).RevisionOrDefault, "Az09"},
+		{"", "", "", (*RecipeReference).String, "name/1.0"},
+		{"user", "channel", "", (*RecipeReference).String, "name/1.0@user/channel"},
+		{"user", "channel", "Az09", (*RecipeReference).String, "name/1.0@user/channel#Az09"},
+		{"", "", "", (*RecipeReference).LinkName, "name/1.0/_/_/0"},
+		{"user", "channel", "", (*RecipeReference).LinkName, "name/1.0/user/channel/0"},
+		{"user", "channel", "Az09", (*RecipeReference).LinkName, "name/1.0/user/channel/Az09"},
+	} {
+		rref, err := NewRecipeReference("name", "1.0", test.user, test.channel, test.revision)
+		assert.NoError(t, err)
+		assert.Equal(t, test.expected, test.method(rref))
+	}
 }
 
 func TestNewPackageReference(t *testing.T) {
@@ -121,27 +101,19 @@ func TestNewPackageReference(t *testing.T) {
 func TestPackageReferenceRevisionOrDefault(t *testing.T) {
 	rref, _ := NewRecipeReference("name", "1.0", "", "", "")
 
-	pref, err := NewPackageReference(rref, "ref", "")
-	assert.NoError(t, err)
-	assert.Equal(t, DefaultRevision, pref.RevisionOrDefault())
-
-	pref, err = NewPackageReference(rref, "ref", DefaultRevision)
-	assert.NoError(t, err)
-	assert.Equal(t, DefaultRevision, pref.RevisionOrDefault())
-
-	pref, err = NewPackageReference(rref, "ref", "Az09")
-	assert.NoError(t, err)
-	assert.Equal(t, "Az09", pref.RevisionOrDefault())
-}
-
-func TestPackageReferenceLinkName(t *testing.T) {
-	rref, _ := NewRecipeReference("name", "1.0", "", "", "")
-
-	pref, err := NewPackageReference(rref, "ref", "")
-	assert.NoError(t, err)
-	assert.Equal(t, "ref/0", pref.LinkName())
-
-	pref, err = NewPackageReference(rref, "ref", "Az09")
-	assert.NoError(t, err)
-	assert.Equal(t, "ref/Az09", pref.LinkName())
+	for _, test := range []struct {
+		revision string
+		method   func(*PackageReference) string
+		expected string
+	}{
+		{"", (*PackageReference).RevisionOrDefault, DefaultRevision},
+		{DefaultRevision, (*PackageReference).RevisionOrDefault, DefaultRevision},
+		{"Az09", (*PackageReference).RevisionOrDefault, "Az09"},
+		{"", (*PackageReference).LinkName, "ref/0"},
+		{"Az09", (*PackageReference).LinkName, "ref/Az09"},
+	} {
+		pref, err := NewPackageReference(rref, "ref", test.revision)
+		assert.NoError(t, err)
+		assert.Equal(t, test.expected, test.method(pref))
+	}
 }

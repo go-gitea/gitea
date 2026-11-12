@@ -8,13 +8,6 @@ import (
 	"gitea.dev/modules/json"
 )
 
-//   _________ ___________________.___
-//  /   _____//   _____/\______   \   |
-//  \_____  \ \_____  \  |     ___/   |
-//  /        \/        \ |    |   |   |
-// /_______  /_______  / |____|   |___|
-//         \/        \/
-
 // Source holds configuration for SSPI single sign-on.
 type Source struct {
 	auth.ConfigBase `json:"-"`
@@ -26,14 +19,13 @@ type Source struct {
 	DefaultLanguage      string
 }
 
-// FromDB fills up an SSPIConfig from serialized format.
-func (cfg *Source) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+func (source *Source) FromDB(bs []byte) error {
+	auth.UnmarshalAuthSourceConfig(bs, source)
+	return nil
 }
 
-// ToDB exports an SSPIConfig to a serialized format.
-func (cfg *Source) ToDB() ([]byte, error) {
-	return json.Marshal(cfg)
+func (source *Source) ToDB() ([]byte, error) {
+	return json.Marshal(source)
 }
 
 func init() {

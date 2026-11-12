@@ -44,6 +44,7 @@ interface Window {
         name: string,
       }>,
       dashboardRepoList?: Record<string, unknown>,
+      projectWorkflows?: import('./components/ProjectWorkflowStore.ts').ProjectWorkflowData,
     },
     notificationSettings: {
       MinTimeout: number,

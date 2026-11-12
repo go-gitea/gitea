@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 var notifySync sync.Once
@@ -43,11 +45,16 @@ func TestTransferOwnership(t *testing.T) {
 	assert.NoError(t, sourceRepo.LoadOwner(t.Context()))
 	repoTransfer := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoTransfer{ID: 1})
 	assert.NoError(t, repoTransfer.LoadAttributes(t.Context()))
+	for _, ownerID := range []int64{0, sourceRepo.OwnerID, 1} {
+		require.NoError(t, actions_model.AddScopedWorkflowSource(t.Context(), ownerID, sourceRepo.ID))
+	}
 	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{ID: 1})
+	unittest.AssertCount(t, &actions_model.ActionScopedWorkflowSource{SourceRepoID: 3}, 1)
+	unittest.AssertCountByCond(t, "action_scoped_workflow_source", builder.Eq{"owner_id": 0, "source_repo_id": 3}, 1)
 
 	exist, err := git.IsRepositoryExist(t.Context(), sourceRepoBak)
 	assert.NoError(t, err)
@@ -78,32 +85,26 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, hasAccess)
 
-	t.Run("RevokeAccessAfterRejection", func(t *testing.T) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-		assert.NoError(t, repo.LoadOwner(t.Context()))
-		assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
-		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-		assert.NoError(t, err)
-		assert.True(t, hasAccess)
-		assert.NoError(t, RejectRepositoryTransfer(t.Context(), repo, recipient))
-		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-		assert.NoError(t, err)
-		assert.False(t, hasAccess)
-	})
-	t.Run("RevokeAccessAfterCancel", func(t *testing.T) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-		assert.NoError(t, repo.LoadOwner(t.Context()))
-		assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
-		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-		assert.NoError(t, err)
-		assert.True(t, hasAccess)
-		transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
-		assert.NoError(t, err)
-		assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
-		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-		assert.NoError(t, err)
-		assert.False(t, hasAccess)
-	})
+	for _, name := range []string{"RevokeAccessAfterRejection", "RevokeAccessAfterCancel"} {
+		t.Run(name, func(t *testing.T) {
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+			assert.NoError(t, repo.LoadOwner(t.Context()))
+			assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
+			hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+			assert.NoError(t, err)
+			assert.True(t, hasAccess)
+			if name == "RevokeAccessAfterRejection" {
+				assert.NoError(t, RejectRepositoryTransfer(t.Context(), repo, recipient))
+			} else {
+				transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
+				assert.NoError(t, err)
+				assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
+			}
+			hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+			assert.NoError(t, err)
+			assert.False(t, hasAccess)
+		})
+	}
 	t.Run("KeepOriginAccessOnStop", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 		assert.NoError(t, repo.LoadOwner(t.Context()))

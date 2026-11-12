@@ -16,189 +16,267 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetPriorAttemptChildrenByParent(t *testing.T) {
+func TestRunJobDatabase(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	ctx := t.Context()
 
-	// 3 attempts of one run:
-	//   1: caller expanded with 3 matrix instances of "work" + non-matrix sibling "summary".
-	//   2: caller skipped, no children rows.
-	//   3: placeholder "current" attempt for the walkback subtest.
+	t.Run("prior attempt children by parent", func(t *testing.T) {
+		ctx := t.Context()
 
-	run := &ActionRun{
-		Title:         "prior-children-test",
-		RepoID:        4,
-		Index:         9501,
-		OwnerID:       1,
-		WorkflowID:    "matrix.yaml",
-		TriggerUserID: 1,
-		Ref:           "refs/heads/master",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
-		EventPayload:  "{}",
-		Status:        StatusSuccess,
-	}
-	require.NoError(t, db.Insert(ctx, run))
+		// 3 attempts of one run:
+		//   1: caller expanded with 3 matrix instances of "work" + non-matrix sibling "summary".
+		//   2: caller skipped, no children rows.
+		//   3: placeholder "current" attempt for the walkback subtest.
 
-	const callerAttemptJobID int64 = 9001
-	insertAttempt := func(t *testing.T, num int64, status Status) *ActionRunAttempt {
-		t.Helper()
-		a := &ActionRunAttempt{
-			RepoID:        run.RepoID,
-			RunID:         run.ID,
-			Attempt:       num,
+		run := &ActionRun{
+			Title:         "prior-children-test",
+			RepoID:        4,
+			Index:         9501,
+			OwnerID:       1,
+			WorkflowID:    "matrix.yaml",
 			TriggerUserID: 1,
-			Status:        status,
+			Ref:           "refs/heads/master",
+			CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+			Event:         "push",
+			TriggerEvent:  "push",
+			EventPayload:  "{}",
+			Status:        StatusSuccess,
 		}
-		require.NoError(t, db.Insert(ctx, a))
-		return a
-	}
-	insertCaller := func(t *testing.T, attemptID int64, status Status, expanded bool) *ActionRunJob {
-		t.Helper()
-		caller := &ActionRunJob{
-			RunID:            run.ID,
-			RunAttemptID:     attemptID,
-			RepoID:           run.RepoID,
-			OwnerID:          run.OwnerID,
-			CommitSHA:        run.CommitSHA,
-			Name:             "caller",
-			JobID:            "caller",
-			Attempt:          1,
-			Status:           status,
-			AttemptJobID:     callerAttemptJobID,
-			IsReusableCaller: true,
-			IsExpanded:       expanded,
+		require.NoError(t, db.Insert(ctx, run))
+
+		const callerAttemptJobID int64 = 9001
+		insertAttempt := func(t *testing.T, num int64, status Status) *ActionRunAttempt {
+			t.Helper()
+			a := &ActionRunAttempt{
+				RepoID:        run.RepoID,
+				RunID:         run.ID,
+				Attempt:       num,
+				TriggerUserID: 1,
+				Status:        status,
+			}
+			require.NoError(t, db.Insert(ctx, a))
+			return a
 		}
-		require.NoError(t, db.Insert(ctx, caller))
-		return caller
-	}
-	insertChild := func(t *testing.T, attemptID, parentID, attemptJobID int64, name, jobID string) {
-		t.Helper()
-		require.NoError(t, db.Insert(ctx, &ActionRunJob{
-			RunID:        run.ID,
-			RunAttemptID: attemptID,
-			RepoID:       run.RepoID,
-			OwnerID:      run.OwnerID,
-			CommitSHA:    run.CommitSHA,
-			Name:         name,
-			JobID:        jobID,
-			Attempt:      1,
-			Status:       StatusSuccess,
-			AttemptJobID: attemptJobID,
-			ParentJobID:  parentID,
-		}))
-	}
+		insertCaller := func(t *testing.T, attemptID int64, status Status, expanded bool) *ActionRunJob {
+			t.Helper()
+			caller := &ActionRunJob{
+				RunID:            run.ID,
+				RunAttemptID:     attemptID,
+				RepoID:           run.RepoID,
+				OwnerID:          run.OwnerID,
+				CommitSHA:        run.CommitSHA,
+				Name:             "caller",
+				JobID:            "caller",
+				Attempt:          1,
+				Status:           status,
+				AttemptJobID:     callerAttemptJobID,
+				IsReusableCaller: true,
+				IsExpanded:       expanded,
+			}
+			require.NoError(t, db.Insert(ctx, caller))
+			return caller
+		}
+		insertChild := func(t *testing.T, attemptID, parentID, attemptJobID int64, name, jobID string) {
+			t.Helper()
+			require.NoError(t, db.Insert(ctx, &ActionRunJob{
+				RunID:        run.ID,
+				RunAttemptID: attemptID,
+				RepoID:       run.RepoID,
+				OwnerID:      run.OwnerID,
+				CommitSHA:    run.CommitSHA,
+				Name:         name,
+				JobID:        jobID,
+				Attempt:      1,
+				Status:       StatusSuccess,
+				AttemptJobID: attemptJobID,
+				ParentJobID:  parentID,
+			}))
+		}
 
-	attempt1 := insertAttempt(t, 1, StatusSuccess)
-	caller1 := insertCaller(t, attempt1.ID, StatusSuccess, true)
-	insertChild(t, attempt1.ID, caller1.ID, 101, "work (alpha)", "work")
-	insertChild(t, attempt1.ID, caller1.ID, 102, "work (beta)", "work")
-	insertChild(t, attempt1.ID, caller1.ID, 103, "work (gamma)", "work")
-	insertChild(t, attempt1.ID, caller1.ID, 104, "summary", "summary")
+		attempt1 := insertAttempt(t, 1, StatusSuccess)
+		caller1 := insertCaller(t, attempt1.ID, StatusSuccess, true)
+		insertChild(t, attempt1.ID, caller1.ID, 101, "work (alpha)", "work")
+		insertChild(t, attempt1.ID, caller1.ID, 102, "work (beta)", "work")
+		insertChild(t, attempt1.ID, caller1.ID, 103, "work (gamma)", "work")
+		insertChild(t, attempt1.ID, caller1.ID, 104, "summary", "summary")
 
-	attempt2 := insertAttempt(t, 2, StatusSkipped)
-	insertCaller(t, attempt2.ID, StatusSkipped, false) // no children intentionally
+		attempt2 := insertAttempt(t, 2, StatusSkipped)
+		insertCaller(t, attempt2.ID, StatusSkipped, false) // no children intentionally
 
-	// both subtests expect attempt 1's expansion, differing only in the "current" attempt id
-	assertAttempt1Children := func(t *testing.T, out map[string]map[string]*ActionRunJob) {
-		t.Helper()
-		// outer map keyed by JobID: "work" has 3 matrix instances, "summary" 1
-		assert.Len(t, out, 2)
-		assert.Len(t, out["work"], 3, "matrix instances must each get their own inner-map entry")
-		assert.Len(t, out["summary"], 1)
+		// both subtests expect attempt 1's expansion, differing only in the "current" attempt id
+		assertAttempt1Children := func(t *testing.T, out map[string]map[string]*ActionRunJob) {
+			t.Helper()
+			// outer map keyed by JobID: "work" has 3 matrix instances, "summary" 1
+			assert.Len(t, out, 2)
+			assert.Len(t, out["work"], 3, "matrix instances must each get their own inner-map entry")
+			assert.Len(t, out["summary"], 1)
 
-		require.NotNil(t, out["work"]["work (alpha)"])
-		require.NotNil(t, out["work"]["work (beta)"])
-		require.NotNil(t, out["work"]["work (gamma)"])
-		require.NotNil(t, out["summary"]["summary"])
+			require.NotNil(t, out["work"]["work (alpha)"])
+			require.NotNil(t, out["work"]["work (beta)"])
+			require.NotNil(t, out["work"]["work (gamma)"])
+			require.NotNil(t, out["summary"]["summary"])
 
-		assert.Equal(t, int64(101), out["work"]["work (alpha)"].AttemptJobID)
-		assert.Equal(t, int64(102), out["work"]["work (beta)"].AttemptJobID)
-		assert.Equal(t, int64(103), out["work"]["work (gamma)"].AttemptJobID)
-		assert.Equal(t, int64(104), out["summary"]["summary"].AttemptJobID)
-	}
+			assert.Equal(t, int64(101), out["work"]["work (alpha)"].AttemptJobID)
+			assert.Equal(t, int64(102), out["work"]["work (beta)"].AttemptJobID)
+			assert.Equal(t, int64(103), out["work"]["work (gamma)"].AttemptJobID)
+			assert.Equal(t, int64(104), out["summary"]["summary"].AttemptJobID)
+		}
 
-	t.Run("matrix instances and non-matrix sibling are indexed by (JobID, Name)", func(t *testing.T) {
-		// "current" = attempt 2; prior = attempt 1, which is the immediately preceding attempt.
-		out, err := GetPriorAttemptChildrenByParent(ctx, run.ID, attempt2.ID, callerAttemptJobID)
-		require.NoError(t, err)
-		assertAttempt1Children(t, out)
+		t.Run("matrix instances and non-matrix sibling are indexed by (JobID, Name)", func(t *testing.T) {
+			// "current" = attempt 2; prior = attempt 1, which is the immediately preceding attempt.
+			out, err := GetPriorAttemptChildrenByParent(ctx, run.ID, attempt2.ID, callerAttemptJobID)
+			require.NoError(t, err)
+			assertAttempt1Children(t, out)
+		})
+
+		t.Run("walkback past an attempt where the caller had no children", func(t *testing.T) {
+			attempt3 := insertAttempt(t, 3, StatusRunning)
+			// "current" = attempt 3; the immediately preceding attempt 2 has no children, so the lookup must walk further back to attempt 1.
+			out, err := GetPriorAttemptChildrenByParent(ctx, run.ID, attempt3.ID, callerAttemptJobID)
+			require.NoError(t, err)
+			assertAttempt1Children(t, out)
+		})
 	})
 
-	t.Run("walkback past an attempt where the caller had no children", func(t *testing.T) {
-		attempt3 := insertAttempt(t, 3, StatusRunning)
-		// "current" = attempt 3; the immediately preceding attempt 2 has no children, so the lookup must walk further back to attempt 1.
-		out, err := GetPriorAttemptChildrenByParent(ctx, run.ID, attempt3.ID, callerAttemptJobID)
-		require.NoError(t, err)
-		assertAttempt1Children(t, out)
-	})
-}
+	t.Run("cancel reusable callers", func(t *testing.T) {
+		for _, tc := range []struct {
+			name, title, workflowID string
+			index                   int64
+			status                  Status
+		}{
+			{"NestedBlockedReusableCaller", "cancel-nested-caller", "caller.yaml", 9701, StatusBlocked},
+			{"CallerWaitsForCancellingChild", "caller-cancelling-child", "test.yaml", 9811, StatusRunning},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				ctx := t.Context()
 
-// A reusable caller subtree with a Blocked descendant (e.g. a nested caller stuck on an invalid `uses:`) must aggregate to Cancelled, when the run is cancelled.
-func TestCancelJobs_NestedBlockedReusableCaller(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	ctx := t.Context()
+				run := &ActionRun{
+					Title:         tc.title,
+					RepoID:        4,
+					Index:         tc.index,
+					OwnerID:       1,
+					WorkflowID:    tc.workflowID,
+					TriggerUserID: 1,
+					Ref:           "refs/heads/master",
+					CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+					Event:         "push",
+					TriggerEvent:  "push",
+					EventPayload:  "{}",
+					Status:        tc.status,
+				}
+				require.NoError(t, db.Insert(ctx, run))
 
-	run := &ActionRun{
-		Title:         "cancel-nested-caller",
-		RepoID:        4,
-		Index:         9701,
-		OwnerID:       1,
-		WorkflowID:    "caller.yaml",
-		TriggerUserID: 1,
-		Ref:           "refs/heads/master",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
-		EventPayload:  "{}",
-		Status:        StatusBlocked,
-	}
-	require.NoError(t, db.Insert(ctx, run))
+				attempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1, Status: tc.status}
+				require.NoError(t, db.Insert(ctx, attempt))
+				run.LatestAttemptID = attempt.ID
+				require.NoError(t, UpdateRun(ctx, run, "latest_attempt_id"))
 
-	attempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1, Status: StatusBlocked}
-	require.NoError(t, db.Insert(ctx, attempt))
-	run.LatestAttemptID = attempt.ID
-	require.NoError(t, UpdateRun(ctx, run, "latest_attempt_id"))
+				newJob := func(job *ActionRunJob) *ActionRunJob {
+					job.RunID = run.ID
+					job.RunAttemptID = attempt.ID
+					job.RepoID = run.RepoID
+					job.OwnerID = run.OwnerID
+					job.CommitSHA = run.CommitSHA
+					job.JobID = job.Name
+					job.Attempt = 1
+					job.Status = tc.status
+					require.NoError(t, db.Insert(ctx, job))
+					return job
+				}
 
-	newJob := func(name string, attemptJobID, parentID int64, callUses string) *ActionRunJob {
-		job := &ActionRunJob{
-			RunID:            run.ID,
-			RunAttemptID:     attempt.ID,
-			RepoID:           run.RepoID,
-			OwnerID:          run.OwnerID,
-			CommitSHA:        run.CommitSHA,
-			Name:             name,
-			JobID:            name,
-			Attempt:          1,
-			Status:           StatusBlocked,
-			AttemptJobID:     attemptJobID,
-			IsReusableCaller: true,
-			CallUses:         callUses,
-			ParentJobID:      parentID,
+				// A reusable caller subtree with a Blocked descendant (e.g. a nested caller stuck on an invalid `uses:`) must aggregate to Cancelled, when the run is cancelled.
+				if tc.status == StatusBlocked {
+					// outer: a valid top-level caller that expanded; inner: a nested caller stuck Blocked (invalid uses, never expands).
+					outer := newJob(&ActionRunJob{Name: "outer", AttemptJobID: 1, IsReusableCaller: true, CallUses: "./.gitea/workflows/lib.yml"})
+					inner := newJob(&ActionRunJob{Name: "inner", AttemptJobID: 2, ParentJobID: outer.ID, IsReusableCaller: true, CallUses: "https://other.example.com/o/r/.gitea/workflows/ci.yml@v1"})
+
+					// Cancel all jobs of the attempt, ordered by id (parent before child).
+					jobs, err := GetRunJobsByRunAndAttemptID(ctx, run.ID, attempt.ID)
+					require.NoError(t, err)
+					_, err = CancelJobs(ctx, jobs, false)
+					require.NoError(t, err)
+
+					for _, j := range []*ActionRunJob{outer, inner} {
+						got := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: j.ID})
+						assert.Equal(t, StatusCancelled, got.Status, "job %q should be cancelled", j.JobID)
+					}
+					gotAttempt := unittest.AssertExistsAndLoadBean(t, &ActionRunAttempt{ID: attempt.ID})
+					assert.Equal(t, StatusCancelled, gotAttempt.Status, "attempt must aggregate to Cancelled")
+					gotRun := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID})
+					assert.Equal(t, StatusCancelled, gotRun.Status, "run must aggregate to Cancelled, not stay Blocked")
+				} else {
+					outer := newJob(&ActionRunJob{Name: "outer", IsReusableCaller: true, IsExpanded: true})
+					inner := newJob(&ActionRunJob{Name: "inner", ParentJobID: outer.ID, IsReusableCaller: true, IsExpanded: true})
+					child := newJob(&ActionRunJob{Name: "child", ParentJobID: inner.ID})
+
+					runner := &ActionRunner{UUID: "caller-cancelling-child", Name: "caller-cancelling-child", HasCancellingSupport: true}
+					require.NoError(t, db.Insert(ctx, runner))
+					task := &ActionTask{JobID: child.ID, Attempt: 1, RunnerID: runner.ID, Status: StatusRunning, Started: timeutil.TimeStampNow(), RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA}
+					require.NoError(t, db.Insert(ctx, task))
+					child.TaskID = task.ID
+					_, err := UpdateRunJob(ctx, child, nil, "task_id")
+					require.NoError(t, err)
+
+					cancelled, err := CancelJobs(ctx, []*ActionRunJob{outer}, false)
+					require.NoError(t, err)
+					assert.Len(t, cancelled, 3)
+					for _, job := range []*ActionRunJob{outer, inner, child} {
+						assert.Equal(t, StatusCancelling, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status, job.Name)
+					}
+
+					_, err = UpdateTaskByState(ctx, runner.ID, &runnerv1.TaskState{Id: task.ID, Result: runnerv1.Result_RESULT_CANCELLED})
+					require.NoError(t, err)
+					for _, job := range []*ActionRunJob{outer, inner, child} {
+						assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status, job.Name)
+					}
+					assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID}).Status)
+				}
+			})
 		}
-		require.NoError(t, db.Insert(ctx, job))
-		return job
-	}
+	})
 
-	// outer: a valid top-level caller that expanded; inner: a nested caller stuck Blocked (invalid uses, never expands).
-	outer := newJob("outer", 1, 0, "./.gitea/workflows/lib.yml")
-	inner := newJob("inner", 2, outer.ID, "https://other.example.com/o/r/.gitea/workflows/ci.yml@v1")
+	t.Run("batch load and cancel run jobs", func(t *testing.T) {
+		ctx := t.Context()
 
-	// Cancel all jobs of the attempt, ordered by id (parent before child).
-	jobs, err := GetRunJobsByRunAndAttemptID(ctx, run.ID, attempt.ID)
-	require.NoError(t, err)
-	_, err = CancelJobs(ctx, jobs, false)
-	require.NoError(t, err)
+		legacyRun := &ActionRun{RepoID: 4, OwnerID: 1, Index: 9600, TriggerUserID: 1, Ref: "refs/heads/batch", Status: StatusRunning}
+		run := &ActionRun{RepoID: 4, OwnerID: 1, Index: 9601, TriggerUserID: 1, Ref: "refs/heads/batch", Status: StatusRunning}
+		require.NoError(t, db.Insert(ctx, legacyRun, run))
+		require.NoError(t, db.Insert(ctx, &ActionRunJob{RunID: legacyRun.ID, RepoID: legacyRun.RepoID, OwnerID: legacyRun.OwnerID}))
+		oldAttempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1}
+		latestAttempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 2, TriggerUserID: 2}
+		require.NoError(t, db.Insert(ctx, oldAttempt, latestAttempt))
+		for _, attemptID := range []int64{oldAttempt.ID, latestAttempt.ID, latestAttempt.ID} {
+			require.NoError(t, db.Insert(ctx, &ActionRunJob{RunID: run.ID, RunAttemptID: attemptID, RepoID: run.RepoID, OwnerID: run.OwnerID}))
+		}
+		run.LatestAttemptID = latestAttempt.ID
+		require.NoError(t, UpdateRun(ctx, run, "latest_attempt_id"))
 
-	for _, j := range []*ActionRunJob{outer, inner} {
-		got := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: j.ID})
-		assert.Equal(t, StatusCancelled, got.Status, "job %q should be cancelled", j.JobID)
-	}
-	gotAttempt := unittest.AssertExistsAndLoadBean(t, &ActionRunAttempt{ID: attempt.ID})
-	assert.Equal(t, StatusCancelled, gotAttempt.Status, "attempt must aggregate to Cancelled")
-	gotRun := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID})
-	assert.Equal(t, StatusCancelled, gotRun.Status, "run must aggregate to Cancelled, not stay Blocked")
+		runs := RunList{legacyRun, run}
+		jobsByRun, err := GetLatestAttemptJobsByRuns(ctx, runs)
+		require.NoError(t, err)
+		for _, listedRun := range runs {
+			expected, err := GetLatestAttemptJobsByRun(ctx, listedRun)
+			require.NoError(t, err)
+			require.NotEmpty(t, expected)
+			assert.Equal(t, expected, jobsByRun[listedRun.ID])
+		}
+
+		attempts, err := runs.GetLatestAttempts(ctx)
+		require.NoError(t, err)
+		require.Len(t, attempts, 1)
+		assert.EqualValues(t, 2, attempts[latestAttempt.ID].TriggerUser.ID)
+
+		chunkedAttempts := []*ActionRunAttempt{oldAttempt}
+		for i := range db.DefaultMaxInSize {
+			chunkedAttempts = append(chunkedAttempts, &ActionRunAttempt{ID: -int64(i + 1)})
+		}
+		attemptJobs, err := getRunJobsByAttempts(ctx, append(chunkedAttempts, latestAttempt))
+		require.NoError(t, err)
+		assert.Len(t, attemptJobs, 3)
+
+		cancelled, err := CancelPreviousJobs(ctx, run.RepoID, run.Ref, "", "")
+		require.NoError(t, err)
+		assert.Len(t, cancelled, 4)
+	})
 }
 
 func TestSettleRunAfterCancel(t *testing.T) {
@@ -397,118 +475,4 @@ func TestForceCancelJobs(t *testing.T) {
 		callerAfter := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: caller.ID})
 		assert.Equal(t, StatusCancelled, callerAfter.Status)
 	})
-}
-
-func TestCancelJobs_CallerWaitsForCancellingChild(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	ctx := t.Context()
-
-	run := &ActionRun{
-		Title:         "caller-cancelling-child",
-		RepoID:        4,
-		Index:         9811,
-		OwnerID:       1,
-		WorkflowID:    "test.yaml",
-		TriggerUserID: 1,
-		Ref:           "refs/heads/master",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
-		EventPayload:  "{}",
-		Status:        StatusRunning,
-	}
-	require.NoError(t, db.Insert(ctx, run))
-	attempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1, Status: StatusRunning}
-	require.NoError(t, db.Insert(ctx, attempt))
-	run.LatestAttemptID = attempt.ID
-	require.NoError(t, UpdateRun(ctx, run, "latest_attempt_id"))
-
-	newJob := func(name string, parentID int64, isCaller bool) *ActionRunJob {
-		job := &ActionRunJob{
-			RunID:            run.ID,
-			RunAttemptID:     attempt.ID,
-			RepoID:           run.RepoID,
-			OwnerID:          run.OwnerID,
-			CommitSHA:        run.CommitSHA,
-			Name:             name,
-			JobID:            name,
-			Attempt:          1,
-			Status:           StatusRunning,
-			ParentJobID:      parentID,
-			IsReusableCaller: isCaller,
-			IsExpanded:       isCaller,
-		}
-		require.NoError(t, db.Insert(ctx, job))
-		return job
-	}
-	outer := newJob("outer", 0, true)
-	inner := newJob("inner", outer.ID, true)
-	child := newJob("child", inner.ID, false)
-
-	runner := &ActionRunner{UUID: "caller-cancelling-child", Name: "caller-cancelling-child", HasCancellingSupport: true}
-	require.NoError(t, db.Insert(ctx, runner))
-	task := &ActionTask{JobID: child.ID, Attempt: 1, RunnerID: runner.ID, Status: StatusRunning, Started: timeutil.TimeStampNow(), RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA}
-	require.NoError(t, db.Insert(ctx, task))
-	child.TaskID = task.ID
-	_, err := UpdateRunJob(ctx, child, nil, "task_id")
-	require.NoError(t, err)
-
-	cancelled, err := CancelJobs(ctx, []*ActionRunJob{outer}, false)
-	require.NoError(t, err)
-	assert.Len(t, cancelled, 3)
-	for _, job := range []*ActionRunJob{outer, inner, child} {
-		assert.Equal(t, StatusCancelling, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status, job.Name)
-	}
-
-	_, err = UpdateTaskByState(ctx, runner.ID, &runnerv1.TaskState{Id: task.ID, Result: runnerv1.Result_RESULT_CANCELLED})
-	require.NoError(t, err)
-	for _, job := range []*ActionRunJob{outer, inner, child} {
-		assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status, job.Name)
-	}
-	assert.Equal(t, StatusCancelled, unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID}).Status)
-}
-
-func TestBatchLoadAndCancelRunJobs(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	ctx := t.Context()
-
-	legacyRun := &ActionRun{RepoID: 4, OwnerID: 1, Index: 9600, TriggerUserID: 1, Ref: "refs/heads/batch", Status: StatusRunning}
-	run := &ActionRun{RepoID: 4, OwnerID: 1, Index: 9601, TriggerUserID: 1, Ref: "refs/heads/batch", Status: StatusRunning}
-	require.NoError(t, db.Insert(ctx, legacyRun, run))
-	require.NoError(t, db.Insert(ctx, &ActionRunJob{RunID: legacyRun.ID, RepoID: legacyRun.RepoID, OwnerID: legacyRun.OwnerID}))
-	oldAttempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1}
-	latestAttempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 2, TriggerUserID: 2}
-	require.NoError(t, db.Insert(ctx, oldAttempt, latestAttempt))
-	for _, attemptID := range []int64{oldAttempt.ID, latestAttempt.ID, latestAttempt.ID} {
-		require.NoError(t, db.Insert(ctx, &ActionRunJob{RunID: run.ID, RunAttemptID: attemptID, RepoID: run.RepoID, OwnerID: run.OwnerID}))
-	}
-	run.LatestAttemptID = latestAttempt.ID
-	require.NoError(t, UpdateRun(ctx, run, "latest_attempt_id"))
-
-	runs := RunList{legacyRun, run}
-	jobsByRun, err := GetLatestAttemptJobsByRuns(ctx, runs)
-	require.NoError(t, err)
-	for _, listedRun := range runs {
-		expected, err := GetLatestAttemptJobsByRun(ctx, listedRun)
-		require.NoError(t, err)
-		require.NotEmpty(t, expected)
-		assert.Equal(t, expected, jobsByRun[listedRun.ID])
-	}
-
-	attempts, err := runs.GetLatestAttempts(ctx)
-	require.NoError(t, err)
-	require.Len(t, attempts, 1)
-	assert.EqualValues(t, 2, attempts[latestAttempt.ID].TriggerUser.ID)
-
-	chunkedAttempts := []*ActionRunAttempt{oldAttempt}
-	for i := range db.DefaultMaxInSize {
-		chunkedAttempts = append(chunkedAttempts, &ActionRunAttempt{ID: -int64(i + 1)})
-	}
-	attemptJobs, err := getRunJobsByAttempts(ctx, append(chunkedAttempts, latestAttempt))
-	require.NoError(t, err)
-	assert.Len(t, attemptJobs, 3)
-
-	cancelled, err := CancelPreviousJobs(ctx, run.RepoID, run.Ref, "", "")
-	require.NoError(t, err)
-	assert.Len(t, cancelled, 4)
 }

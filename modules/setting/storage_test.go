@@ -156,185 +156,85 @@ func testLocalStoragePath(t *testing.T, appDataPath, iniStr string, cases []test
 }
 
 func Test_getStorageInheritStorageTypeLocal(t *testing.T) {
-	testLocalStoragePath(t, "/appdata", `
+	for _, tc := range []struct {
+		name, ini, basePath, archivePath string
+	}{
+		{"Default", `
 [storage]
 STORAGE_TYPE = local
-`, []testLocalStoragePathCase{
-		{loadAttachmentFrom, &Attachment.Storage, "/appdata/attachments"},
-		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
-		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/actions_artifacts"},
-		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/repo-archive"},
-		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
-	})
-}
-
-func Test_getStorageInheritStorageTypeLocalPath(t *testing.T) {
-	testLocalStoragePath(t, "/appdata", `
+`, "/appdata", "/appdata/repo-archive"},
+		{"Path", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
-`, []testLocalStoragePathCase{
-		{loadAttachmentFrom, &Attachment.Storage, "/data/gitea/attachments"},
-		{loadLFSFrom, &LFS.Storage, "/data/gitea/lfs"},
-		{loadActionsFrom, &Actions.ArtifactStorage, "/data/gitea/actions_artifacts"},
-		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/repo-archive"},
-		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
-	})
-}
-
-func Test_getStorageInheritStorageTypeLocalRelativePath(t *testing.T) {
-	testLocalStoragePath(t, "/appdata", `
+`, "/data/gitea", "/data/gitea/repo-archive"},
+		{"RelativePath", `
 [storage]
 STORAGE_TYPE = local
 PATH = storages
-`, []testLocalStoragePathCase{
-		{loadAttachmentFrom, &Attachment.Storage, "/appdata/storages/attachments"},
-		{loadLFSFrom, &LFS.Storage, "/appdata/storages/lfs"},
-		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/storages/actions_artifacts"},
-		{loadPackagesFrom, &Packages.Storage, "/appdata/storages/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/storages/repo-archive"},
-		{loadActionsFrom, &Actions.LogStorage, "/appdata/storages/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/appdata/storages/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/storages/repo-avatars"},
-	})
-}
-
-func Test_getStorageInheritStorageTypeLocalPathOverride(t *testing.T) {
-	testLocalStoragePath(t, "/appdata", `
+`, "/appdata/storages", "/appdata/storages/repo-archive"},
+		{"PathOverride", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
 
 [repo-archive]
 PATH = /data/gitea/the-archives-dir
-`, []testLocalStoragePathCase{
-		{loadAttachmentFrom, &Attachment.Storage, "/data/gitea/attachments"},
-		{loadLFSFrom, &LFS.Storage, "/data/gitea/lfs"},
-		{loadActionsFrom, &Actions.ArtifactStorage, "/data/gitea/actions_artifacts"},
-		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/the-archives-dir"},
-		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
-	})
-}
-
-func Test_getStorageInheritStorageTypeLocalPathOverrideEmpty(t *testing.T) {
-	testLocalStoragePath(t, "/appdata", `
+`, "/data/gitea", "/data/gitea/the-archives-dir"},
+		{"PathOverrideEmpty", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
 
 [repo-archive]
-`, []testLocalStoragePathCase{
-		{loadAttachmentFrom, &Attachment.Storage, "/data/gitea/attachments"},
-		{loadLFSFrom, &LFS.Storage, "/data/gitea/lfs"},
-		{loadActionsFrom, &Actions.ArtifactStorage, "/data/gitea/actions_artifacts"},
-		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/repo-archive"},
-		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
-	})
-}
-
-func Test_getStorageInheritStorageTypeLocalRelativePathOverride(t *testing.T) {
-	testLocalStoragePath(t, "/appdata", `
+`, "/data/gitea", "/data/gitea/repo-archive"},
+		{"RelativePathOverride", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
 
 [repo-archive]
 PATH = the-archives-dir
-`, []testLocalStoragePathCase{
-		{loadAttachmentFrom, &Attachment.Storage, "/data/gitea/attachments"},
-		{loadLFSFrom, &LFS.Storage, "/data/gitea/lfs"},
-		{loadActionsFrom, &Actions.ArtifactStorage, "/data/gitea/actions_artifacts"},
-		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/the-archives-dir"},
-		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
-	})
-}
-
-func Test_getStorageInheritStorageTypeLocalPathOverride3(t *testing.T) {
-	testLocalStoragePath(t, "/appdata", `
+`, "/data/gitea", "/data/gitea/the-archives-dir"},
+		{"PathOverride3", `
 [storage.repo-archive]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
-`, []testLocalStoragePathCase{
-		{loadAttachmentFrom, &Attachment.Storage, "/appdata/attachments"},
-		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
-		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/actions_artifacts"},
-		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/archives"},
-		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
-	})
-}
-
-func Test_getStorageInheritStorageTypeLocalPathOverride3_5(t *testing.T) {
-	testLocalStoragePath(t, "/appdata", `
+`, "/appdata", "/data/gitea/archives"},
+		{"PathOverride3_5", `
 [storage.repo-archive]
 STORAGE_TYPE = local
 PATH = a-relative-path
-`, []testLocalStoragePathCase{
-		{loadAttachmentFrom, &Attachment.Storage, "/appdata/attachments"},
-		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
-		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/actions_artifacts"},
-		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/a-relative-path"},
-		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
-	})
-}
-
-func Test_getStorageInheritStorageTypeLocalPathOverride4(t *testing.T) {
-	testLocalStoragePath(t, "/appdata", `
+`, "/appdata", "/appdata/a-relative-path"},
+		{"PathOverride4", `
 [storage.repo-archive]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
 
 [repo-archive]
 PATH = /tmp/gitea/archives
-`, []testLocalStoragePathCase{
-		{loadAttachmentFrom, &Attachment.Storage, "/appdata/attachments"},
-		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
-		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/actions_artifacts"},
-		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/gitea/archives"},
-		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
-	})
-}
-
-func Test_getStorageInheritStorageTypeLocalPathOverride5(t *testing.T) {
-	testLocalStoragePath(t, "/appdata", `
+`, "/appdata", "/tmp/gitea/archives"},
+		{"PathOverride5", `
 [storage.repo-archive]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
 
 [repo-archive]
-`, []testLocalStoragePathCase{
-		{loadAttachmentFrom, &Attachment.Storage, "/appdata/attachments"},
-		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
-		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/actions_artifacts"},
-		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/archives"},
-		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
-	})
+`, "/appdata", "/data/gitea/archives"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			testLocalStoragePath(t, "/appdata", tc.ini, []testLocalStoragePathCase{
+				{loadAttachmentFrom, &Attachment.Storage, tc.basePath + "/attachments"},
+				{loadLFSFrom, &LFS.Storage, tc.basePath + "/lfs"},
+				{loadActionsFrom, &Actions.ArtifactStorage, tc.basePath + "/actions_artifacts"},
+				{loadPackagesFrom, &Packages.Storage, tc.basePath + "/packages"},
+				{loadRepoArchiveFrom, &RepoArchive.Storage, tc.archivePath},
+				{loadActionsFrom, &Actions.LogStorage, tc.basePath + "/actions_log"},
+				{loadAvatarsFrom, &Avatar.Storage, tc.basePath + "/avatars"},
+				{loadRepoAvatarFrom, &RepoAvatar.Storage, tc.basePath + "/repo-avatars"},
+			})
+		})
+	}
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverride72(t *testing.T) {

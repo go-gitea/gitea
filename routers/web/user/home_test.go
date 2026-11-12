@@ -80,52 +80,36 @@ func TestMilestones(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx, _ := contexttest.MockContext(t, "milestones")
-	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetPathParam("sort", "issues")
-	ctx.Req.Form.Set("state", "closed")
-	ctx.Req.Form.Set("sort", "furthestduedate")
-	Milestones(ctx)
-	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
-	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
-	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
-	assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])
-	assert.EqualValues(t, 1, ctx.Data["Total"])
-	assert.Len(t, ctx.Data["Milestones"], 1)
-	assert.Len(t, ctx.Data["Repos"], 2) // both repo 42 and 1 have milestones and both are owned by user 2
-}
-
-func TestMilestonesForSpecificRepo(t *testing.T) {
-	setting.UI.IssuePagingNum = 1
-	assert.NoError(t, unittest.LoadFixtures())
-
-	ctx, _ := contexttest.MockContext(t, "milestones")
-	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetPathParam("sort", "issues")
-	ctx.SetPathParam("repo", "1")
-	ctx.Req.Form.Set("state", "closed")
-	ctx.Req.Form.Set("sort", "furthestduedate")
-	Milestones(ctx)
-	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
-	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
-	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
-	assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])
-	assert.EqualValues(t, 1, ctx.Data["Total"])
-	assert.Len(t, ctx.Data["Milestones"], 1)
-	assert.Len(t, ctx.Data["Repos"], 2) // both repo 42 and 1 have milestones and both are owned by user 2
+	for _, repoID := range []string{"", "1"} {
+		t.Run("repo="+repoID, func(t *testing.T) {
+			ctx, _ := contexttest.MockContext(t, "milestones")
+			contexttest.LoadUser(t, ctx, 2)
+			ctx.SetPathParam("sort", "issues")
+			if repoID != "" {
+				ctx.SetPathParam("repo", repoID)
+			}
+			ctx.Req.Form.Set("state", "closed")
+			ctx.Req.Form.Set("sort", "furthestduedate")
+			Milestones(ctx)
+			assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+			assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
+			assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
+			assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])
+			assert.EqualValues(t, 1, ctx.Data["Total"])
+			assert.Len(t, ctx.Data["Milestones"], 1)
+			assert.Len(t, ctx.Data["Repos"], 2) // both repo 42 and 1 have milestones and both are owned by user 2
+		})
+	}
 }
 
 func TestDashboardPagination(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	page := context.NewPagerBuilder(ctx).TotalCount(10).PerPageLimit(3).CurPage(1).NavPageNum(3).Build()
 
-	setting.AppSubURL = "/SubPath"
-	out, err := ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})
-	assert.NoError(t, err)
-	assert.Contains(t, out, `<a class=" item navigation" href="/SubPath/?page=2">`)
-
-	setting.AppSubURL = ""
-	out, err = ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})
-	assert.NoError(t, err)
-	assert.Contains(t, out, `<a class=" item navigation" href="/?page=2">`)
+	for _, subURL := range []string{"/SubPath", ""} {
+		setting.AppSubURL = subURL
+		out, err := ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})
+		assert.NoError(t, err)
+		assert.Contains(t, out, `<a class=" item navigation" href="`+subURL+`/?page=2">`)
+	}
 }

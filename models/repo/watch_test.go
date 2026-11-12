@@ -72,47 +72,26 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)
 
-	setting.Service.AutoWatchOnChanges = false
-
 	prevCount := repo.NumWatches
-
-	// Must not add watch
-	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 8, 1, true))
-	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
-	assert.NoError(t, err)
-	assert.Len(t, watchers, prevCount)
-
-	// Should not add watch
-	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 10, 1, true))
-	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
-	assert.NoError(t, err)
-	assert.Len(t, watchers, prevCount)
-
-	setting.Service.AutoWatchOnChanges = true
-
-	// Must not add watch (user 8 has "don't watch" set)
-	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 8, 1, true))
-	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
-	assert.NoError(t, err)
-	assert.Len(t, watchers, prevCount)
-
-	// Should not add watch (read operation)
-	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 12, 1, false))
-	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
-	assert.NoError(t, err)
-	assert.Len(t, watchers, prevCount)
-
-	// Should add watch (write operation)
-	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), 12, 1, true))
-	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
-	assert.NoError(t, err)
-	assert.Len(t, watchers, prevCount+1)
-
-	// Should not add watch (system user should not be able to watch)
-	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), user_model.ActionsUserID, 1, true))
-	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
-	assert.NoError(t, err)
-	assert.Len(t, watchers, prevCount+1)
+	for _, test := range []struct {
+		autoWatch bool
+		userID    int64
+		isWrite   bool
+		count     int
+	}{
+		{false, 8, true, prevCount},                           // Must not add watch
+		{false, 10, true, prevCount},                          // Should not add watch
+		{true, 8, true, prevCount},                            // Must not add watch (user 8 has "don't watch" set)
+		{true, 12, false, prevCount},                          // Should not add watch (read operation)
+		{true, 12, true, prevCount + 1},                       // Should add watch (write operation)
+		{true, user_model.ActionsUserID, true, prevCount + 1}, // Should not add watch (system user should not be able to watch)
+	} {
+		setting.Service.AutoWatchOnChanges = test.autoWatch
+		assert.NoError(t, repo_model.WatchIfAuto(t.Context(), test.userID, 1, test.isWrite))
+		watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
+		assert.NoError(t, err)
+		assert.Len(t, watchers, test.count)
+	}
 
 	// Should remove watch, inhibit from adding auto
 	assert.NoError(t, repo_model.WatchRepoAuto(t.Context(), user12, repo, false))

@@ -68,6 +68,11 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		refProtected = false
 	}
 
+	retentionDays := "" // not "0", v3 artifact uploads would read it as a 0-day limit
+	if setting.Actions.ArtifactRetentionDays > 0 {
+		retentionDays = strconv.FormatInt(setting.Actions.ArtifactRetentionDays, 10)
+	}
+
 	gitContext := GiteaContext{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 		"action":            "",                                       // string, The name of the action currently running, or the id of a step. GitHub removes special characters, and uses the name __run when the current step runs a script without an id. If you use the same action more than once in the same job, the name will include a suffix with the sequence number with underscore before it. For example, the first script you run will have the name __run, and the second script will be named __run_2. Similarly, the second invocation of actions/checkout will be actionscheckout2.
@@ -93,7 +98,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"repository":        run.Repo.OwnerName + "/" + run.Repo.Name, // string, The owner and repository name. For example, Codertocat/Hello-World.
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
 		"repositoryUrl":     run.Repo.HTMLURL(),                       // string, The Git URL to the repository. For example, git://github.com/codertocat/hello-world.git.
-		"retention_days":    "",                                       // string, The number of days that workflow run logs and artifacts are kept.
+		"retention_days":    retentionDays,                            // string, The number of days that artifacts are kept, empty when kept forever.
 		"run_id":            strconv.FormatInt(run.ID, 10),            // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
 		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
 		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.

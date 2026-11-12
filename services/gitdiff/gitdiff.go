@@ -339,12 +339,11 @@ type DiffInlineComputed struct {
 
 // computeDiffInline makes a DiffInline with computed content, e.g.: Unicode escaping, truncation hint, etc
 func computeDiffInline(s template.HTML, isTruncated bool, locale translation.Locale) DiffInlineComputed {
-	sb, w := htmlutil.NewHTMLStringWriter()
-	status, _ := charset.EscapeControlReader(strings.NewReader(string(s)), w, locale)
+	status, content := charset.EscapeControlHTML(s, locale)
 	if isTruncated {
-		w.WriteFormatf(`<span class="ui label diff-line-truncated">%s</span>`, locale.Tr("repo.diff.line_truncated"))
+		content += htmlutil.HTMLFormat(`<span class="ui label diff-line-truncated">%s</span>`, locale.Tr("repo.diff.line_truncated"))
 	}
-	return DiffInlineComputed{EscapeStatus: status, IsTruncated: isTruncated, Content: template.HTML(sb.String())}
+	return DiffInlineComputed{EscapeStatus: status, IsTruncated: isTruncated, Content: content}
 }
 
 func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *DiffLine, fileLanguage string, highlightLines map[int]template.HTML) template.HTML {
@@ -522,13 +521,13 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	// * for "text" type: need to read up to "highlight limit size" to do full-file-highlighting
 	contentLimit := util.Iif(diffFile.IsBin, typesniffer.SniffContentSize, MaxFullFileHighlightSizeLimit)
 	var leftBlobType, rightBlobType typesniffer.SniffedType
-	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
+	if diffFile.Type != DiffFileAdd && leftCommit != nil {
 		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName, contentLimit)
 		diffFile.LeftBlob, diffFile.LeftBlobSize, ret.leftLineCount, ret.leftContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
 		leftBlobType = typesniffer.DetectContentType(ret.leftContent.buf.Bytes())
 	}
-	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
-		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName, contentLimit)
+	if diffFile.Type != DiffFileDel && rightCommit != nil {
+		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.Name, contentLimit)
 		diffFile.RightBlob, diffFile.RightBlobSize, ret.rightLineCount, ret.rightContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
 		rightBlobType = typesniffer.DetectContentType(ret.rightContent.buf.Bytes())
 	}

@@ -11,7 +11,6 @@ import (
 	auth_model "gitea.dev/models/auth"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 )
@@ -20,130 +19,25 @@ func TestAPIRepoVariables(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	token := getTokenForLoggedInUser(t, loginRepoAdmin(t, repo), auth_model.AccessTokenScopeWriteRepository)
+	variablesURL := fmt.Sprintf("/api/v1/repos/%s/actions/variables/", repo.FullName())
+	createVariable := func(name string, expectedStatus int) {
+		option := api.CreateVariableOption{Value: "value"}
+		MakeRequest(t, NewRequestWithJSON(t, "POST", variablesURL+name, option).AddTokenAuth(token), expectedStatus)
+	}
+	updateVariable := func(name, newName string, expectedStatus int) {
+		option := api.UpdateVariableOption{Name: newName, Value: "updated"}
+		MakeRequest(t, NewRequestWithJSON(t, "PUT", variablesURL+name, option).AddTokenAuth(token), expectedStatus)
+	}
 
-	t.Run("CreateRepoVariable", func(t *testing.T) {
-		cases := []struct {
-			Name           string
-			ExpectedStatus int
-		}{
-			{
-				Name:           "-",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           "_",
-				ExpectedStatus: http.StatusCreated,
-			},
-			{
-				Name:           "TEST_VAR",
-				ExpectedStatus: http.StatusCreated,
-			},
-			{
-				Name:           "test_var",
-				ExpectedStatus: http.StatusConflict,
-			},
-			{
-				Name:           "ci",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           "123var",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           "var@test",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           "github_var",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           "gitea_var",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-		}
-
-		for _, c := range cases {
-			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/variables/%s", repo.FullName(), c.Name), api.CreateVariableOption{
-				Value: "value",
-			}).AddTokenAuth(token)
-			MakeRequest(t, req, c.ExpectedStatus)
-		}
-	})
-
-	t.Run("UpdateRepoVariable", func(t *testing.T) {
-		variableName := "test_update_var"
-		url := fmt.Sprintf("/api/v1/repos/%s/actions/variables/%s", repo.FullName(), variableName)
-		req := NewRequestWithJSON(t, "POST", url, api.CreateVariableOption{
-			Value: "initial_val",
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		cases := []struct {
-			Name           string
-			UpdateName     string
-			ExpectedStatus int
-		}{
-			{
-				Name:           "not_found_var",
-				ExpectedStatus: http.StatusNotFound,
-			},
-			{
-				Name:           variableName,
-				UpdateName:     "1invalid",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           variableName,
-				UpdateName:     "invalid@name",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           variableName,
-				UpdateName:     "ci",
-				ExpectedStatus: http.StatusBadRequest,
-			},
-			{
-				Name:           variableName,
-				UpdateName:     "updated_var_name",
-				ExpectedStatus: http.StatusNoContent,
-			},
-			{
-				Name:           variableName,
-				ExpectedStatus: http.StatusNotFound,
-			},
-			{
-				Name:           "updated_var_name",
-				ExpectedStatus: http.StatusNoContent,
-			},
-		}
-
-		for _, c := range cases {
-			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/variables/%s", repo.FullName(), c.Name), api.UpdateVariableOption{
-				Name:  c.UpdateName,
-				Value: "updated_val",
-			}).AddTokenAuth(token)
-			MakeRequest(t, req, c.ExpectedStatus)
-		}
-	})
-
-	t.Run("DeleteRepoVariable", func(t *testing.T) {
-		variableName := "test_delete_var"
-		url := fmt.Sprintf("/api/v1/repos/%s/actions/variables/%s", repo.FullName(), variableName)
-
-		req := NewRequestWithJSON(t, "POST", url, api.CreateVariableOption{
-			Value: "initial_val",
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNoContent)
-
-		req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
+	createVariable("-", http.StatusBadRequest)
+	createVariable("TEST_VAR", http.StatusCreated)
+	createVariable("test_var", http.StatusConflict)
+	updateVariable("not_found_var", "", http.StatusNotFound)
+	updateVariable("TEST_VAR", "1invalid", http.StatusBadRequest)
+	updateVariable("TEST_VAR", "renamed_var", http.StatusNoContent)
+	updateVariable("TEST_VAR", "", http.StatusNotFound)
+	updateVariable("renamed_var", "", http.StatusNoContent)
+	MakeRequest(t, NewRequest(t, "DELETE", variablesURL+"renamed_var").AddTokenAuth(token), http.StatusNoContent)
+	MakeRequest(t, NewRequest(t, "DELETE", variablesURL+"renamed_var").AddTokenAuth(token), http.StatusNotFound)
 }

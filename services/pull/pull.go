@@ -98,6 +98,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 	assignees := make(map[int64]*user_model.User)
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
+	var addedProjectIDs []int64
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr)
 		if err != nil {
@@ -119,7 +120,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		if len(opts.ProjectIDs) > 0 && canAssignProject {
-			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs); err != nil {
+			if addedProjectIDs, _, err = issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs); err != nil {
 				return err
 			}
 		}
@@ -194,6 +195,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	for _, assignee := range assignees {
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assignee.ID])
 	}
+	notify_service.IssueChangeProjects(ctx, issue.Poster, issue, addedProjectIDs, nil)
 
 	return nil
 }
@@ -935,7 +937,7 @@ func getAllCommitStatus(ctx context.Context, doer *user_model.User, gitRepo *git
 		return nil, nil, shaErr
 	}
 
-	statuses, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
+	statuses, err = GetLatestPullCommitStatuses(ctx, pr.BaseRepo.ID, sha)
 	for _, status := range statuses {
 		status.Repo = pr.BaseRepo // the repo is already loaded, spare the permission lookup a query
 	}
@@ -1013,11 +1015,18 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return nil, "", err
 	}
-	baseBranch := pull.BaseBranch
+	baseRef := git.RefNameFromBranch(pull.BaseBranch)
 	if pull.HasMerged {
-		baseBranch = pull.MergeBase
+		baseRef = git.RefName(pull.MergeBase)
 	}
-	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, git.RefNameFromBranch(baseBranch), git.RefName(pull.GetGitHeadRefName()), false, false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, git_service.CompareBaseHead{
+		BaseRepo:    pull.BaseRepo,
+		BaseGitRepo: baseGitRepo,
+		BaseRef:     baseRef,
+		HeadRepo:    pull.BaseRepo,
+		HeadGitRepo: baseGitRepo,
+		HeadRef:     git.RefName(pull.GetGitHeadRefName()),
+	}, false, false)
 	if err != nil {
 		return nil, "", err
 	}
