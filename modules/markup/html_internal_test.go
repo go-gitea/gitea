@@ -6,6 +6,7 @@ package markup
 import (
 	"fmt"
 	"html/template"
+	"maps"
 	"strconv"
 	"strings"
 	"testing"
@@ -301,12 +302,13 @@ func TestRender_AutoLink(t *testing.T) {
 func TestRender_FullIssueURLs(t *testing.T) {
 	setting.AppURL = TestAppURL
 	defer testModule.MockVariableValue(&RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
-	test := func(input, expected string) {
+	testWithMetas := func(metas map[string]string, input, expected string) {
 		var result strings.Builder
-		err := postProcess(NewTestRenderContext(localMetas), []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
+		err := postProcess(NewTestRenderContext(metas), []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, result.String())
 	}
+	test := func(input, expected string) { testWithMetas(localMetas, input, expected) }
 	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
 		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
 	test("Look here http://localhost:3000/person/repo/issues/4",
@@ -323,6 +325,18 @@ func TestRender_FullIssueURLs(t *testing.T) {
 		"http://localhost:3000/testOrg/testOrgRepo/pulls/2/files#issuecomment-24")
 	test("http://localhost:3000/testOrg/testOrgRepo/pulls/2/files",
 		"http://localhost:3000/testOrg/testOrgRepo/pulls/2/files")
+	test("http://localhost:3000/test-owner/test-repo/pulls/4",
+		`<a href="http://localhost:3000/test-owner/test-repo/pulls/4" class="ref-issue">#4</a>`)
+
+	externalTrackerMetas := maps.Clone(localMetas)
+	externalTrackerMetas["externalTrackerLinkFormat"] = "https://someurl.com/{user}/{repo}/{index}"
+	externalTrackerMetas["style"] = IssueNameStyleNumeric
+	testWithMetas(externalTrackerMetas, "Reviewed-on: http://localhost:3000/test-owner/test-repo/pulls/4",
+		`Reviewed-on: <a href="http://localhost:3000/test-owner/test-repo/pulls/4" class="ref-issue">!4</a>`)
+	testWithMetas(externalTrackerMetas, "http://localhost:3000/test-owner/test-repo/issues/4",
+		`<a href="http://localhost:3000/test-owner/test-repo/issues/4" class="ref-issue">#4</a>`)
+	testWithMetas(externalTrackerMetas, "http://localhost:3000/person/repo/pulls/4",
+		`<a href="http://localhost:3000/person/repo/pulls/4" class="ref-issue">person/repo#4</a>`)
 }
 
 func TestRegExp_sha1CurrentPattern(t *testing.T) {
