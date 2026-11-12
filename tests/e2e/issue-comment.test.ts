@@ -2,25 +2,47 @@ import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {login, apiCreateRepo, apiCreateIssue, apiEditIssue, randomString} from './utils.ts';
 
-test('comment on and close an issue', async ({page, request}) => {
+test('edit an issue, quote-reply it with an uploaded image and close it', async ({page, request}) => {
   const repoName = `e2e-issue-comment-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
-  await apiCreateRepo(request, {name: repoName, autoInit: false});
   await Promise.all([
-    apiCreateIssue(request, {owner, repo: repoName, title: 'Comment test'}),
+    (async () => {
+      await apiCreateRepo(request, {name: repoName, autoInit: false});
+      await apiCreateIssue(request, {owner, repo: repoName, title: 'Comment test', body: 'Original body'});
+    })(),
     login(page),
   ]);
   await page.goto(`/${owner}/${repoName}/issues/1`);
+  const commentButton = page.getByRole('button', {name: 'Comment', exact: true});
+  await expect(commentButton).toBeDisabled();
 
-  const body = `e2e-comment-${randomString(8)}`;
-  await page.getByPlaceholder('Leave a comment').fill(body);
-  // exact match: the status button reads "Close with Comment" while the box has content, which substring-matches "Comment"
-  await page.getByRole('button', {name: 'Comment', exact: true}).click();
-  await expect(page.locator('.comment-body').filter({hasText: body})).toBeVisible();
+  const contextMenu = page.getByRole('heading', {level: 3}).getByRole('menu');
+  await contextMenu.click();
+  await page.getByRole('menuitem', {name: 'Edit', exact: true}).click();
+  const issueBody = page.getByRole('article');
+  await expect(issueBody.getByRole('textbox')).toHaveValue('Original body');
+  await issueBody.getByRole('textbox').fill('Updated **body**');
+  await issueBody.getByRole('button', {name: 'Save', exact: true}).click();
+  await expect(issueBody.getByText('Updated body', {exact: true})).toBeVisible();
 
-  // wait for the form to re-initialize (the empty box disables the comment button); a close click
-  // before that does a native submit which lands on a raw JSON page instead of reloading the issue
-  await expect(page.getByRole('button', {name: 'Comment', exact: true})).toBeDisabled();
+  await contextMenu.click();
+  await page.getByRole('menuitem', {name: 'Quote reply', exact: true}).click();
+  await expect(commentButton).toBeEnabled();
+  const editor = page.getByRole('textbox', {name: 'Leave a comment'});
+  await editor.evaluate((textarea) => {
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(new File([
+      Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='), (character) => character.charCodeAt(0)),
+    ], 'pixel.png', {type: 'image/png'}));
+    textarea.dispatchEvent(new DragEvent('drop', {bubbles: true, cancelable: true, dataTransfer}));
+  });
+  await expect(editor).toHaveValue(/^> Updated \*\*body\*\*\n\n!\[pixel\.png\]\(attachments\/[\da-f-]+\)$/);
+  await commentButton.click();
+  await page.waitForURL(/#issuecomment-\d+$/);
+  await expect(page.getByRole('article').getByRole('blockquote')).toHaveText('Updated body');
+  await expect(page.getByRole('article').getByRole('img', {name: 'pixel.png', exact: true})).toHaveJSProperty('naturalWidth', 1);
+
+  await expect(commentButton).toBeDisabled();
   await page.getByRole('button', {name: 'Close Issue'}).click();
   await expect(page.getByRole('button', {name: 'Reopen Issue'})).toBeVisible();
 });
