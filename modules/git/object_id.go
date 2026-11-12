@@ -89,17 +89,13 @@ func NewIDFromString(hexHash string) (ObjectID, error) {
 	return theObjectFormat.MustID(b), nil
 }
 
-func IsEmptyCommitID(commitID string) bool {
-	if commitID == "" {
-		return true
-	}
+// TODO: remove this function, only use IsEmptyObjectID
+var IsEmptyCommitID = IsEmptyObjectID
 
-	id, err := NewIDFromString(commitID)
-	if err != nil {
-		return false
-	}
-
-	return id.IsZero()
+func IsEmptyObjectID(objectID string) bool {
+	return objectID == "" ||
+		len(objectID) == Sha1ObjectFormat.FullLength() && objectID == emptySha1ObjectIDHex ||
+		len(objectID) == Sha256ObjectFormat.FullLength() && objectID == emptySha256ObjectIDHex
 }
 
 // ComputeBlobHash compute the hash for a given blob content
