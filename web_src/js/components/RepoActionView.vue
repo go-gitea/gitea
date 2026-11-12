@@ -37,6 +37,7 @@ type RepoActionViewLocale = ActionRunSummaryViewLocale & ActionRunJobViewLocale 
   artifactExpiredAt: string,
   confirmDeleteArtifact: string,
   downloadFile: string,
+  deleteFile: string,
   workflowFile: string,
   workflowFileNoPermission: string,
   runDetails: string,
@@ -302,7 +303,7 @@ onBeforeUnmount(() => {
                 <a download class="btn interact-fg" :href="buildArtifactLink(artifact.name)" :data-tooltip-content="locale.downloadFile">
                   <SvgIcon name="octicon-download"/>
                 </a>
-                <button type="button" v-if="run.canDeleteArtifact" class="btn interact-fg" @click="deleteArtifact(artifact.name)">
+                <button type="button" v-if="run.canDeleteArtifact" class="btn interact-fg" @click="deleteArtifact(artifact.name)" :data-tooltip-content="locale.deleteFile">
                   <SvgIcon name="octicon-trash"/>
                 </button>
               </template>

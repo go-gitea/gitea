@@ -44,6 +44,10 @@
 }
 
 .color-picker-combo .precolors .color {
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
   display: inline-block;
   width: 15px;
   height: 15px;
