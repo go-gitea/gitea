@@ -94,11 +94,12 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		}
 	}
 
-	t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
+	t, cancelledJobs, err := actions_model.CreateTaskForRunner(ctx, runner)
+	notifyAndEmitFinishedJobs(context.WithoutCancel(ctx), cancelledJobs) // the cancellations are committed even if the runner went away
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
 	}
-	if !ok {
+	if t == nil {
 		return nil, false, nil
 	}
 

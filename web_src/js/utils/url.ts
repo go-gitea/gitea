@@ -44,3 +44,7 @@ export function pathEscapeSegments(s: string): string {
   // The same as backend's PathEscapeSegments
   return s.split('/').map(pathEscape).join('/');
 }
+
+export function pathWithQuery(url: URL | Location) {
+  return url.pathname + url.search;
+}

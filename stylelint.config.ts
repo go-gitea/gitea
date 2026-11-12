@@ -1,14 +1,14 @@
 import {fileURLToPath} from 'node:url';
 import type {Config} from 'stylelint';
 
-const cssVarFiles = [
-  fileURLToPath(new URL('web_src/css/base.css', import.meta.url)),
-  fileURLToPath(new URL('web_src/css/themes/theme-gitea-light.css', import.meta.url)),
-  fileURLToPath(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url)),
-];
-
 export default {
   extends: 'stylelint-config-recommended',
+  referenceFiles: [
+    'web_src/css/base.css',
+    'web_src/css/modules/animations.css',
+    'web_src/css/themes/theme-gitea-light.css',
+    'web_src/css/themes/theme-gitea-dark.css',
+  ].map((file) => fileURLToPath(new URL(file, import.meta.url))),
   reportUnscopedDisables: true,
   reportNeedlessDisables: true,
   reportInvalidScopeDisables: true,
@@ -16,7 +16,6 @@ export default {
   plugins: [
     'stylelint-declaration-strict-value',
     'stylelint-declaration-block-no-ignored-properties',
-    'stylelint-value-no-unknown-custom-properties',
     '@stylistic/stylelint-plugin',
   ],
   ignoreFiles: [
@@ -30,6 +29,7 @@ export default {
     },
   ],
   rules: {
+    '@stylistic/aspect-ratio-notation': null,
     '@stylistic/at-rule-name-case': null,
     '@stylistic/at-rule-name-newline-after': null,
     '@stylistic/at-rule-name-space-after': null,
@@ -51,6 +51,7 @@ export default {
     '@stylistic/declaration-block-semicolon-newline-before': null,
     '@stylistic/declaration-block-semicolon-space-after': null,
     '@stylistic/declaration-block-semicolon-space-before': 'never',
+    '@stylistic/declaration-block-single-line-max-declarations': null,
     '@stylistic/declaration-block-trailing-semicolon': null,
     '@stylistic/declaration-colon-newline-after': null,
     '@stylistic/declaration-colon-space-after': 'always',
@@ -73,6 +74,8 @@ export default {
     '@stylistic/media-feature-parentheses-space-inside': null,
     '@stylistic/media-feature-range-operator-space-after': 'always',
     '@stylistic/media-feature-range-operator-space-before': 'always',
+    '@stylistic/media-feature-slash-space-after': 'always',
+    '@stylistic/media-feature-slash-space-before': 'always',
     '@stylistic/media-query-list-comma-newline-after': null,
     '@stylistic/media-query-list-comma-newline-before': null,
     '@stylistic/media-query-list-comma-space-after': null,
@@ -108,11 +111,14 @@ export default {
     '@stylistic/value-list-comma-space-after': null,
     '@stylistic/value-list-comma-space-before': null,
     '@stylistic/value-list-max-empty-lines': 0,
+    '@stylistic/value-slash-newline-after': null,
+    '@stylistic/value-slash-newline-before': null,
+    '@stylistic/value-slash-space-after': 'always',
+    '@stylistic/value-slash-space-before': 'always',
     'at-rule-no-unknown': [true, {ignoreAtRules: ['tailwind']}],
     'at-rule-no-vendor-prefix': true,
     'block-no-redundant-nested-style-rules': true,
     'color-no-invalid-hex': true,
-    'csstools/value-no-unknown-custom-properties': [true, {importFrom: cssVarFiles}],
     'declaration-block-no-duplicate-properties': [true, {ignore: ['consecutive-duplicates-with-different-values']}],
     'declaration-block-no-redundant-longhand-properties': [true, {ignoreShorthands: ['flex-flow', 'overflow', 'grid-template']}],
     'declaration-property-unit-disallowed-list': null,
@@ -127,13 +133,14 @@ export default {
     'media-feature-name-no-vendor-prefix': true,
     'no-descending-specificity': null,
     'no-invalid-position-at-import-rule': [true, {ignoreAtRules: ['tailwind']}],
-    'no-unknown-animations': null, // disabled until stylelint supports multi-file linting
-    'no-unknown-custom-media': null, // disabled until stylelint supports multi-file linting
-    'no-unknown-custom-properties': null,  // disabled until stylelint supports multi-file linting
+    'no-unknown-animations': true,
+    'no-unknown-custom-media': true,
+    'no-unknown-custom-properties': true,
     'plugin/declaration-block-no-ignored-properties': true,
     'property-no-vendor-prefix': true,
     'scale-unlimited/declaration-strict-value': [['/color$/', 'fill', 'stroke', 'font-weight'], {ignoreValues: '/^(inherit|transparent|unset|initial|currentcolor|none)$/', ignoreAtRules: ['@font-face', '@page'], ignoreFunctions: true, disableFix: true, expandShorthand: true}],
     'selector-attribute-quotes': 'always',
+    'selector-no-deprecated': [true, {ignoreSelectors: ['tt']}], // markup sanitizer allows <tt>
     'selector-no-vendor-prefix': true,
     'selector-pseudo-element-colon-notation': 'double',
     'selector-type-case': 'lower',

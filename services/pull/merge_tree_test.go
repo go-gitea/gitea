@@ -10,6 +10,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
 
@@ -46,6 +47,21 @@ func TestPullRequestMergeable(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	t.Run("NoConflict-MergeTree", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusMergeable, nil, nil)
+		mergeRef := git.MergeRefNameFromPullIndex(pr.Index).String()
+		mergeCommitID, err := git.GetFullCommitID(t.Context(), pr.BaseRepo, mergeRef)
+		require.NoError(t, err)
+		baseCommitID, err := git.GetFullCommitID(t.Context(), pr.BaseRepo, mergeRef+"^1")
+		require.NoError(t, err)
+		t.Setenv("GIT_COMMITTER_DATE", "2002-01-01T00:00:00Z")
+		updatedCommitID, err := UpdateMergeRef(t.Context(), pr, baseCommitID, pr.HeadCommitID)
+		require.NoError(t, err)
+		assert.Equal(t, mergeCommitID, updatedCommitID)
+
+		require.NoError(t, git.RemoveRef(t.Context(), pr.BaseRepo, mergeRef))
+		pr.Issue.IsClosed = true
+		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusMergeable, nil, nil)
+		assert.False(t, git.IsReferenceExist(t.Context(), pr.BaseRepo, mergeRef))
+		pr.Issue.IsClosed = false
 	})
 	t.Run("NoConflict-TmpRepo", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByTmpRepo, pr, issues_model.PullRequestStatusMergeable, nil, nil)

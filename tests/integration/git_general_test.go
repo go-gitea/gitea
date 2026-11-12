@@ -195,7 +195,7 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string, sizes ...int) (pushedFil
 	t.Run("CommitAndPushLFS", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		prefix := "lfs-data-file-"
-		err := gitcmd.NewCommand("lfs").AddArguments("install").WithDir(dstPath).Run(t.Context())
+		var err error = gitcmd.NewCommand("lfs").AddArguments("install").WithDir(dstPath).RunWithStderr(t.Context())
 		assert.NoError(t, err)
 		_, _, err = gitcmd.NewCommand("lfs").AddArguments("track").AddDynamicArguments(prefix + "*").
 			WithDir(dstPath).RunStdString(t.Context())
@@ -427,7 +427,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		// Try to force push without force push permissions, which should fail
 		t.Run("ForcePushWithoutForcePermissions", func(t *testing.T) {
 			t.Run("CreateDivergentHistory", func(t *testing.T) {
-				gitcmd.NewCommand("reset", "--hard", "HEAD~1").WithDir(dstPath).Run(t.Context())
+				require.NoError(t, gitcmd.NewCommand("reset", "--hard", "HEAD~1").WithDir(dstPath).RunWithStderr(t.Context()))
 				_, err := generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-new")
 				assert.NoError(t, err)
 			})
@@ -553,8 +553,8 @@ func doProtectBranchExt(ctx APITestContext, ruleName string, opts doProtectBranc
 		}
 
 		// Send the request to update branch protection settings
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), formData)
-		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
+		link := fmt.Sprintf("/%s/%s/settings/branches", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame))
+		assert.Equal(t, link, test.RedirectURL(ctx.Session.MakeRequest(t, NewRequestWithValues(t, "POST", link+"/edit", formData), http.StatusOK)))
 
 		// Check if the "master" branch has been locked successfully
 		flashMsg := ctx.Session.GetCookieFlashMessage()
@@ -873,11 +873,11 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 		})
 
 		t.Run("Push", func(t *testing.T) {
-			err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+			runErr := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
 				AddDynamicArguments("topic=" + headBranch).
 				WithDir(dstPath).
-				Run(t.Context())
-			require.NoError(t, err)
+				RunWithStderr(t.Context())
+			require.NoError(t, runErr)
 
 			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+1)
 			pr1 = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
@@ -945,11 +945,11 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 		})
 
 		t.Run("Push2", func(t *testing.T) {
-			err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+			runErr := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
 				AddDynamicArguments("topic=" + headBranch).
 				WithDir(dstPath).
-				Run(t.Context())
-			require.NoError(t, err)
+				RunWithStderr(t.Context())
+			require.NoError(t, runErr)
 
 			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
 			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)

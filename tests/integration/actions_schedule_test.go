@@ -219,10 +219,12 @@ func testScheduleUpdateArchiveAndUnarchive(t *testing.T) {
 func testScheduleUpdateDisableAndEnableActionsUnit(t *testing.T) {
 	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (expectedSpec string) {
 		run := createScheduleRun(t, repo)
+		spec := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{RepoID: repo.ID})
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			HasActions: new(true),
 		})(t)
 		assertRunStatus(t, run, actions_model.StatusWaiting)
+		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{ID: spec.ID, Next: spec.Next})
 
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			HasActions: new(false),
