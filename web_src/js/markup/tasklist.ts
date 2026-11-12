@@ -12,7 +12,7 @@ export function toggleTasklistCheckbox(content: string, position: number, checke
   const buffer = new TextEncoder().encode(content);
   // Indexes may fall off the ends and return undefined.
   if (buffer[position - 1] !== '['.charCodeAt(0) ||
-    !' xX'.includes(String.fromCharCode(buffer[position])) || // markdown also renders "[X]" as checked
+    !' xX'.includes(String.fromCharCode(buffer[position])) ||
     buffer[position + 1] !== ']'.charCodeAt(0)) {
     return null;
   }
