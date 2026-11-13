@@ -761,7 +761,7 @@ func FindCodeSearchRepoIDs(ctx context.Context, doer *user_model.User, fullNames
 	}
 	cond := builder.NewCond()
 	if !isSiteAdmin {
-		cond = cond.And(AccessibleRepositoryCondition(doer, unit.TypeCode), builder.In("`repository`.id", builder.Select("repo_id").From("repo_unit").Where(builder.Eq{"type": unit.TypeCode})))
+		cond = cond.And(AccessibleRepositoryCondition(doer, unit.TypeCode))
 	}
 	scopeCond := builder.NewCond()
 	for _, fullName := range fullNames {
