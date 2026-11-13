@@ -29,7 +29,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "packages.settings.link.description"}}</p>
-			{{if .IsLinkedRepoInaccessible}}
+			{{if and .PackageDescriptor.Package.RepoID (not .LinkedRepoName)}}
 			<p>{{ctx.Locale.Tr "packages.settings.link.inaccessible"}}</p>
 			{{end}}
 			<p>- {{ctx.Locale.Tr "packages.settings.link.notice1"}}</p>

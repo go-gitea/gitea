@@ -16,7 +16,14 @@ import (
 	"gitea.dev/modules/util"
 )
 
-func checkCanLinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *repo_model.Repository, doer *user_model.User) error {
+// UpdateRepositoryLink links the package to repo, replacing an existing link, or removes the link if repo is nil
+func UpdateRepositoryLink(ctx context.Context, pkg *packages_model.Package, repo *repo_model.Repository, doer *user_model.User) error {
+	if repo == nil {
+		if pkg.RepoID == 0 {
+			return nil
+		}
+		return UnlinkFromRepository(ctx, pkg, doer)
+	}
 	if pkg.OwnerID != repo.OwnerID {
 		return util.ErrPermissionDenied
 	}
@@ -27,21 +34,20 @@ func checkCanLinkToRepository(ctx context.Context, pkg *packages_model.Package, 
 	if !perms.CanWrite(unit.TypePackages) {
 		return util.ErrPermissionDenied
 	}
-	return nil
+	if pkg.RepoID == repo.ID {
+		return nil
+	}
+	if pkg.RepoID != 0 && !canDoerManagePackage(ctx, pkg, doer) {
+		return util.ErrPermissionDenied
+	}
+	return packages_model.SetRepositoryLink(ctx, pkg.ID, repo.ID)
 }
 
 func LinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *repo_model.Repository, doer *user_model.User) error {
 	if pkg.RepoID > 0 {
 		return util.ErrInvalidArgument
 	}
-	if err := checkCanLinkToRepository(ctx, pkg, repo, doer); err != nil {
-		return err
-	}
-
-	if err := packages_model.SetRepositoryLink(ctx, pkg.ID, repo.ID); err != nil {
-		return fmt.Errorf("error while linking package '%v' to repo '%v' : %w", pkg.Name, repo.FullName(), err)
-	}
-	return nil
+	return UpdateRepositoryLink(ctx, pkg, repo, doer)
 }
 
 func canDoerManagePackage(ctx context.Context, pkg *packages_model.Package, doer *user_model.User) bool {
@@ -66,7 +72,11 @@ func canDoerManagePackage(ctx context.Context, pkg *packages_model.Package, doer
 	}
 	// old behavior: repo admin can manage the package linked to the repo
 	repo, err := repo_model.GetRepositoryByID(ctx, pkg.RepoID)
-	return err == nil && access_model.IsUserRealRepoAdmin(ctx, repo, doer)
+	if err != nil {
+		return false
+	}
+	perms, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
+	return err == nil && perms.IsAdmin()
 }
 
 func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer *user_model.User) error {
@@ -77,24 +87,4 @@ func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer
 		return util.ErrPermissionDenied
 	}
 	return packages_model.UnlinkRepository(ctx, pkg.ID)
-}
-
-// UpdateRepositoryLink links the package to repo, replacing an existing link, or removes the link if repo is nil
-func UpdateRepositoryLink(ctx context.Context, pkg *packages_model.Package, repo *repo_model.Repository, doer *user_model.User) error {
-	if repo == nil {
-		if pkg.RepoID == 0 {
-			return nil
-		}
-		return UnlinkFromRepository(ctx, pkg, doer)
-	}
-	if err := checkCanLinkToRepository(ctx, pkg, repo, doer); err != nil {
-		return err
-	}
-	if pkg.RepoID == repo.ID {
-		return nil
-	}
-	if pkg.RepoID != 0 && !canDoerManagePackage(ctx, pkg, doer) {
-		return util.ErrPermissionDenied
-	}
-	return packages_model.SetRepositoryLink(ctx, pkg.ID, repo.ID)
 }

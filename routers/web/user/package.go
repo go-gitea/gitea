@@ -429,10 +429,8 @@ func PackageSettings(ctx *context.Context) {
 			ctx.ServerErrorAuto(err)
 			return
 		}
-		if permission.HasAnyUnitAccess() {
+		if permission.HasAnyUnitAccessOrPublicAccess() {
 			ctx.Data["LinkedRepoName"] = repo.Name
-		} else {
-			ctx.Data["IsLinkedRepoInaccessible"] = true
 		}
 	}
 

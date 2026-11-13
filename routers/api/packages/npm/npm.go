@@ -251,7 +251,6 @@ func UploadPackage(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		// a link the publisher may not set is skipped instead of failing the upload
 		if err := packages_service.UpdateRepositoryLink(ctx, pkg, repo, ctx.Doer); err != nil && !errors.Is(err, util.ErrPermissionDenied) {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return

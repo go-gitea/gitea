@@ -40,12 +40,8 @@ func TestPackageSettingsLinkRequiresRepoPermission(t *testing.T) {
 	postLink := func(doerID int64, repoName string) int {
 		ctx, resp := contexttest.MockContext(t, "privated_org/-/packages/settings/generic/package")
 		contexttest.LoadUser(t, ctx, doerID)
-		ctx.Package = &context.Package{
-			Owner:      org,
-			AccessMode: perm.AccessModeWrite,
-			Descriptor: &packages_model.PackageDescriptor{Package: unittest.AssertExistsAndLoadBean(t, &packages_model.Package{ID: pkg.ID}), Owner: org},
-		}
-		packageSettingsPostActionLink(ctx, &forms.PackageSettingForm{Action: "link", RepoName: repoName})
+		ctx.Package = &context.Package{Descriptor: &packages_model.PackageDescriptor{Package: unittest.AssertExistsAndLoadBean(t, &packages_model.Package{ID: pkg.ID}), Owner: org}}
+		packageSettingsPostActionLink(ctx, &forms.PackageSettingForm{RepoName: repoName})
 		return resp.Code
 	}
 	linkedRepoID := func() int64 {
@@ -55,7 +51,7 @@ func TestPackageSettingsLinkRequiresRepoPermission(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, postLink(5, teamRepo.Name))
 	assert.Zero(t, linkedRepoID())
 
-	require.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: org.ID, TeamID: 17, RepoID: teamRepo.ID}))
+	require.NoError(t, organization.AddTeamRepo(t.Context(), org.ID, 17, teamRepo.ID))
 	assert.Equal(t, http.StatusOK, postLink(5, teamRepo.Name))
 	assert.Equal(t, teamRepo.ID, linkedRepoID())
 
