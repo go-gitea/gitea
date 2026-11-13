@@ -453,14 +453,14 @@ func (a *actionNotifier) SyncDeleteRef(ctx context.Context, doer *user_model.Use
 	}
 }
 
-func (a *actionNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
-	if err := rel.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+func (a *actionNotifier) NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	if err := rel.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
 		return
 	}
 	if err := NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: rel.PublisherID,
-		ActUser:   rel.Publisher,
+		ActUserID: doer.ID,
+		ActUser:   doer,
 		OpType:    activities_model.ActionPublishRelease,
 		RepoID:    rel.RepoID,
 		Repo:      rel.Repo,
