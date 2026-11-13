@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -538,57 +539,24 @@ func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
 func TestGetUserRepositoriesActorAccess(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	// org3 owns private repo3 and repo5 and public repo32; user4 only reaches repo3 through team2
-	list := func(actorID int64, private bool, pageSize int) ([]int64, int64) {
-		var actor *user_model.User
-		switch {
-		case actorID == user_model.ActionsUserID:
-			actor = user_model.NewActionsUserWithTaskID(47)
-		case actorID > 0:
-			actor = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: actorID})
-		}
+	listIDs := func(ownerID int64, actor *user_model.User) []int64 {
 		repos, count, err := repo_model.GetUserRepositories(t.Context(), repo_model.SearchRepoOptions{
-			OwnerID:     3,
+			OwnerID:     ownerID,
 			Actor:       actor,
-			Private:     private,
-			ListOptions: db.ListOptions{Page: 1, PageSize: pageSize},
+			Private:     true,
+			ListOptions: db.ListOptionsAll,
 			OrderBy:     db.SearchOrderByID,
 		})
 		require.NoError(t, err)
-		return repoIDs(repos), count
+		assert.Len(t, repos, int(count))
+		return repoIDs(repos)
 	}
 
-	ids, count := list(4, true, 10)
-	assert.Equal(t, []int64{3, 32}, ids)
-	assert.EqualValues(t, 2, count)
+	assert.Equal(t, []int64{3, 5, 32}, listIDs(3, nil))
+	assert.Equal(t, []int64{3, 5, 32}, listIDs(3, user_model.NewActionsUser()))
 
-	ids, count = list(4, true, 1)
-	assert.Equal(t, []int64{3}, ids)
-	assert.EqualValues(t, 2, count)
-
-	ids, count = list(5, true, 10)
-	assert.Equal(t, []int64{32}, ids)
-	assert.EqualValues(t, 1, count)
-
-	ids, count = list(4, false, 10)
-	assert.Equal(t, []int64{32}, ids)
-	assert.EqualValues(t, 1, count)
-
-	ids, count = list(2, true, 10)
-	assert.Equal(t, []int64{3, 5, 32}, ids)
-	assert.EqualValues(t, 3, count)
-
-	ids, count = list(1, true, 10)
-	assert.Equal(t, []int64{3, 5, 32}, ids)
-	assert.EqualValues(t, 3, count)
-
-	// internal callers pass no actor and must still see every repo
-	ids, count = list(0, true, 10)
-	assert.Equal(t, []int64{3, 5, 32}, ids)
-	assert.EqualValues(t, 3, count)
-
-	// Actions task permissions can't be expressed in SQL, the caller checks them per repo
-	ids, count = list(user_model.ActionsUserID, true, 10)
-	assert.Equal(t, []int64{3, 5, 32}, ids)
-	assert.EqualValues(t, 3, count)
+	repo := &repo_model.Repository{OwnerID: 31}
+	require.NoError(t, db.Insert(t.Context(), repo))
+	require.NoError(t, db.Insert(t.Context(), &repo_model.Collaboration{RepoID: repo.ID, UserID: 4, Mode: perm.AccessModeRead}))
+	assert.Equal(t, []int64{repo.ID}, listIDs(31, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})))
 }

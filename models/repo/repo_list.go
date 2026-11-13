@@ -822,8 +822,8 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID}, DoerTokenRepoCond(opts.Actor))
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
-	} else if opts.Actor != nil && opts.Actor.ID > 0 && !opts.Actor.IsAdmin { // system users like Actions are checked per repo by the caller
-		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
+	} else if opts.Actor != nil && opts.Actor.ID > 0 && !opts.Actor.IsAdmin { // system users like Actions are checked per repo by the caller, read collaborators of public user repos lack access rows
+		cond = cond.And(builder.Or(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid), UserCollaborationRepoCond("`repository`.id", opts.Actor.ID)))
 	}
 
 	if len(opts.LowerNames) > 0 {
