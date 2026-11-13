@@ -6,7 +6,6 @@ package markup
 import (
 	"fmt"
 	"html/template"
-	"maps"
 	"strconv"
 	"strings"
 	"testing"
@@ -319,8 +318,8 @@ func TestRender_FullIssueURLs(t *testing.T) {
 		`<a href="http://localhost:3000/test-owner/test-repo/issues/4" class="ref-issue">#4</a>`)
 	test("http://localhost:3000/test-owner/test-repo/issues/4 test",
 		`<a href="http://localhost:3000/test-owner/test-repo/issues/4" class="ref-issue">#4</a> test`)
-	test("http://localhost:3000/test-owner/test-repo/issues/4?a=1&b=2#comment-123 test",
-		`<a href="http://localhost:3000/test-owner/test-repo/issues/4?a=1&amp;b=2#comment-123" class="ref-issue">#4 (comment)</a> test`)
+	test("http://localhost:3000/test-owner/test-repo/issues/4?a=1&b=2/3#comment-123 test",
+		`<a href="http://localhost:3000/test-owner/test-repo/issues/4?a=1&amp;b=2/3#comment-123" class="ref-issue">#4 (comment)</a> test`)
 	test("http://localhost:3000/testOrg/testOrgRepo/pulls/2/files#issuecomment-24",
 		"http://localhost:3000/testOrg/testOrgRepo/pulls/2/files#issuecomment-24")
 	test("http://localhost:3000/testOrg/testOrgRepo/pulls/2/files",
@@ -328,14 +327,11 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test("http://localhost:3000/test-owner/test-repo/pulls/4",
 		`<a href="http://localhost:3000/test-owner/test-repo/pulls/4" class="ref-issue">#4</a>`)
 
-	externalTrackerMetas := maps.Clone(localMetas)
-	externalTrackerMetas["externalTrackerLinkFormat"] = "https://someurl.com/{user}/{repo}/{index}"
-	externalTrackerMetas["style"] = IssueNameStyleNumeric
-	testWithMetas(externalTrackerMetas, "Reviewed-on: http://localhost:3000/test-owner/test-repo/pulls/4",
-		`Reviewed-on: <a href="http://localhost:3000/test-owner/test-repo/pulls/4" class="ref-issue">!4</a>`)
-	testWithMetas(externalTrackerMetas, "http://localhost:3000/test-owner/test-repo/issues/4",
-		`<a href="http://localhost:3000/test-owner/test-repo/issues/4" class="ref-issue">#4</a>`)
-	testWithMetas(externalTrackerMetas, "http://localhost:3000/person/repo/pulls/4",
+	testWithMetas(numericMetas, "Reviewed-on: http://localhost:3000/someUser/someRepo/pulls/4",
+		`Reviewed-on: <a href="http://localhost:3000/someUser/someRepo/pulls/4" class="ref-issue">!4</a>`)
+	testWithMetas(numericMetas, "http://localhost:3000/someUser/someRepo/issues/4",
+		`<a href="http://localhost:3000/someUser/someRepo/issues/4" class="ref-issue">#4</a>`)
+	testWithMetas(numericMetas, "http://localhost:3000/person/repo/pulls/4",
 		`<a href="http://localhost:3000/person/repo/pulls/4" class="ref-issue">person/repo#4</a>`)
 }
 
