@@ -4,8 +4,6 @@
 package context
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 
 	"gitea.dev/models/organization"
@@ -33,16 +31,8 @@ type packageAssignmentCtx struct {
 // PackageAssignment returns a middleware to handle Context.Package assignment
 func PackageAssignment() func(ctx *Context) {
 	return func(ctx *Context) {
-		errorFn := func(status int, msg string) {
-			err := fmt.Errorf("%s", msg)
-			if status == http.StatusNotFound {
-				ctx.NotFound(err)
-			} else {
-				ctx.ServerError("PackageAssignment", err)
-			}
-		}
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
-		ctx.Package = packageAssignment(paCtx, errorFn)
+		ctx.Package = packageAssignment(paCtx, ctx.ServerErrorAuto)
 	}
 }
 
@@ -50,15 +40,15 @@ func PackageAssignment() func(ctx *Context) {
 func PackageAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
-		ctx.Package = packageAssignment(paCtx, ctx.APIError)
+		ctx.Package = packageAssignment(paCtx, ctx.APIErrorAuto)
 	}
 }
 
-func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Package {
+func packageAssignment(ctx *packageAssignmentCtx, errCb func(error)) *Package {
 	pkgOwner := ctx.ContextUser
 	accessMode, err := determineAccessMode(ctx.Base, pkgOwner, ctx.Doer)
 	if err != nil {
-		errCb(http.StatusInternalServerError, fmt.Sprintf("determineAccessMode: %v", err))
+		errCb(err)
 		return nil
 	}
 
@@ -76,27 +66,19 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 	if version != "" {
 		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packages_model.Type(packageType), name, version)
 		if err != nil {
-			if errors.Is(err, packages_model.ErrPackageNotExist) {
-				errCb(http.StatusNotFound, fmt.Sprintf("GetVersionByNameAndVersion: %v", err))
-			} else {
-				errCb(http.StatusInternalServerError, fmt.Sprintf("GetVersionByNameAndVersion: %v", err))
-			}
+			errCb(err)
 			return pkg
 		}
 
 		pkg.Descriptor, err = packages_model.GetPackageDescriptor(ctx, pv)
 		if err != nil {
-			errCb(http.StatusInternalServerError, fmt.Sprintf("GetPackageDescriptor: %v", err))
+			errCb(err)
 			return pkg
 		}
 	} else {
 		p, err := packages_model.GetPackageByName(ctx, pkg.Owner.ID, packages_model.Type(packageType), name)
 		if err != nil {
-			if errors.Is(err, packages_model.ErrPackageNotExist) {
-				errCb(http.StatusNotFound, fmt.Sprintf("GetPackageByName: %v", err))
-			} else {
-				errCb(http.StatusInternalServerError, fmt.Sprintf("GetPackageByName: %v", err))
-			}
+			errCb(err)
 			return pkg
 		}
 

@@ -6,7 +6,6 @@ package repo
 
 import (
 	gocontext "context"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -130,7 +129,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.HasAccessToRepoCodeUnit(ctx, ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
-			ctx.ServerError("CalculateTrustStatus", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 
@@ -175,12 +174,12 @@ func checkHomeCodeViewable(ctx *context.Context) {
 					ctx.HTML(http.StatusOK, tplMigrating)
 					return
 				}
-				ctx.ServerError("models.GetMigratingTask", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			cfg, err := task.MigrateConfig()
 			if err != nil {
-				ctx.ServerError("task.MigrateConfig", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 
@@ -194,7 +193,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		if ctx.IsSigned {
 			// Set repo notification-status read if unread
 			if err := activities_model.SetRepoReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
-				ctx.ServerError("ReadBy", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -218,7 +217,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound(errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
+	ctx.NotFound()
 }
 
 // LastCommit returns lastCommit data for the provided branch/tag/commit and directory (in url) and filenames in body
@@ -258,7 +257,7 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) (*git.TreeEntry, git.Entries) {
 	tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
-		HandleGitError(ctx, "Repo.Commit.SubTree", err)
+		HandleGitError(ctx, err)
 		return nil, nil
 	}
 
@@ -269,25 +268,25 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) (*git.Tre
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
-		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
+		HandleGitError(ctx, err)
 		return nil, nil
 	}
 
 	if !entry.IsDir() {
-		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
+		HandleGitError(ctx, err)
 		return nil, nil
 	}
 
 	subEntries, err := tree.ListEntries(ctx, ctx.Repo.GitRepo)
 	if err != nil {
-		ctx.ServerError("ListEntries", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 	subEntries.CustomSort(base.NaturalSortCompare)
 
 	files, latestCommit, err := subEntries.GetCommitsInfo(ctx, timeout, ctx.Repo.RepoLink, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
-		ctx.ServerError("GetCommitsInfo", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 
@@ -339,7 +338,7 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 		PageSize: setting.ItemsPerPage,
 	})
 	if err != nil {
-		ctx.ServerError("getter", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Cards"] = items
@@ -380,12 +379,12 @@ func Forks(ctx *context.Context) {
 		PageSize: pageSize,
 	})
 	if err != nil {
-		ctx.ServerError("FindForks", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := repo_model.RepositoryList(forks).LoadOwners(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

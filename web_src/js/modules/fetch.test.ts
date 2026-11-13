@@ -25,8 +25,10 @@ test('ExclusiveFetch discards a superseded response while reading its body', asy
   const exclusiveFetch = new ExclusiveFetch();
   const render = vi.fn();
   const oldRequest = exclusiveFetch.request('/old').fetchText(render);
+  expect(exclusiveFetch.isInFlight()).toBe(true);
   await bodyStarted.promise;
   await exclusiveFetch.request('/new').fetchText(render);
+  expect(exclusiveFetch.isInFlight()).toBe(false);
 
   oldBody.resolve('old');
   await oldRequest;

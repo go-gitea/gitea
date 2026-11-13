@@ -23,7 +23,7 @@ func ShowReleaseFeed(ctx *context.Context, repo *repo_model.Repository, isReleas
 		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.ServerError("GetReleasesByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -47,7 +47,7 @@ func ShowReleaseFeed(ctx *context.Context, repo *repo_model.Repository, isReleas
 
 	feed.Items, err = releasesToFeedItems(ctx, releases)
 	if err != nil {
-		ctx.ServerError("releasesToFeedItems", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

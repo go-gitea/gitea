@@ -475,7 +475,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 					pieces := strings.Split(opts.Keyword, "/")
 					ownerName := pieces[0]
 					repoName := pieces[1]
-					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"lower_name", strings.ToLower(repoName)}))
+					likes = likes.Or(builder.And(db.BuildCaseInsensitiveLike("owner_name", ownerName), builder.Like{"lower_name", strings.ToLower(repoName)}))
 				}
 
 				if opts.IncludeDescription {
@@ -609,10 +609,12 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", orderBy))
 		args = append(args, opts.PriorityOwnerID)
 	} else if strings.Count(opts.Keyword, "/") == 1 {
-		// With "owner/repo" search times, prioritise results which match the owner field
-		orgName, _, _ := strings.Cut(opts.Keyword, "/")
-		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END, %s", orderBy))
-		args = append(args, orgName)
+		ownerName, repoName, _ := strings.Cut(strings.ToLower(opts.Keyword), "/")
+		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE LOWER(owner_name) WHEN ? THEN CASE lower_name WHEN ? THEN 0 ELSE 1 END ELSE 2 END, %s", orderBy))
+		args = append(args, ownerName, repoName)
+	} else if len(opts.OrderBy) == 0 && opts.Keyword != "" && !strings.ContainsAny(opts.Keyword, ",/") { // unlike "owner/repo", a bare name never overrides an explicit sort
+		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN lower_name = ? THEN 0 ELSE 1 END, %s", orderBy))
+		args = append(args, strings.ToLower(opts.Keyword))
 	}
 
 	sess := db.GetEngine(ctx)
@@ -743,17 +745,36 @@ func AccessibleRepoIDsQuery(user *user_model.User) *builder.Builder {
 	return builder.Select("id").From("repository").Where(AccessibleRepositoryCondition(user, unit.TypeInvalid))
 }
 
-// FindUserCodeAccessibleRepoIDs finds all at Code level accessible repositories' ID by the user's id
-func FindUserCodeAccessibleRepoIDs(ctx context.Context, user *user_model.User) ([]int64, error) {
-	return SearchRepositoryIDsByCondition(ctx, AccessibleRepositoryCondition(user, unit.TypeCode))
+func ownerNamesCond(ownerNames []string) builder.Cond {
+	lowerNames := make([]string, 0, len(ownerNames))
+	for _, name := range ownerNames {
+		lowerNames = append(lowerNames, strings.ToLower(name))
+	}
+	return builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.In("lower_name", lowerNames)))
 }
 
-// FindUserCodeAccessibleOwnerRepoIDs finds all repository IDs for the given owner whose code the user can see.
-func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user *user_model.User) ([]int64, error) {
-	return SearchRepositoryIDsByCondition(ctx, builder.NewCond().And(
-		builder.Eq{"owner_id": ownerID},
-		AccessibleRepositoryCondition(user, unit.TypeCode),
-	))
+// FindCodeSearchRepoIDs returns nil for unrestricted access and an empty slice for no access.
+func FindCodeSearchRepoIDs(ctx context.Context, doer *user_model.User, fullNames, ownerNames []string) ([]int64, error) {
+	isSiteAdmin := doer != nil && doer.IsAdmin && !user_model.IsPublicOnlyDoer(doer)
+	if isSiteAdmin && len(fullNames) == 0 && len(ownerNames) == 0 {
+		return nil, nil
+	}
+	cond := builder.NewCond()
+	if !isSiteAdmin {
+		cond = cond.And(AccessibleRepositoryCondition(doer, unit.TypeCode))
+	}
+	scopeCond := builder.NewCond()
+	for _, fullName := range fullNames {
+		ownerName, repoName, _ := strings.Cut(fullName, "/")
+		scopeCond = scopeCond.Or(builder.And(
+			builder.Eq{"`repository`.lower_name": strings.ToLower(repoName)},
+			ownerNamesCond([]string{ownerName}),
+		))
+	}
+	if len(ownerNames) > 0 {
+		scopeCond = scopeCond.Or(ownerNamesCond(ownerNames))
+	}
+	return SearchRepositoryIDsByCondition(ctx, cond.And(scopeCond))
 }
 
 // PublicRepoUnderPublicOwnerCond restricts to public repos whose owner is publicly visible: the

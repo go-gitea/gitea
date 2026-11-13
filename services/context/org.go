@@ -50,13 +50,11 @@ func GetOrganizationByParams(ctx *Context) {
 			redirectUserID, err := user_model.LookupUserRedirect(ctx, orgName)
 			if err == nil {
 				RedirectToUser(ctx.Base, ctx.Doer, orgName, redirectUserID)
-			} else if user_model.IsErrUserRedirectNotExist(err) {
-				ctx.NotFound(err)
 			} else {
-				ctx.ServerError("LookupUserRedirect", err)
+				ctx.ServerErrorAuto(err)
 			}
 		} else {
-			ctx.ServerError("GetUserByName", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -93,7 +91,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		// Handle Visibility
 		if org.Visibility != structs.VisibleTypePublic && !user_model.DoerCanViewPrivate(ctx.Doer) {
 			// We must be signed in to see limited or private organizations
-			ctx.NotFound(err)
+			ctx.NotFound()
 			return
 		}
 
@@ -115,7 +113,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		} else if ctx.IsSigned {
 			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
 			if err != nil {
-				ctx.ServerError("IsOwnedBy", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 
@@ -126,13 +124,13 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			} else {
 				ctx.Org.IsMember, err = org.IsOrgMember(ctx, ctx.Doer.ID)
 				if err != nil {
-					ctx.ServerError("IsOrgMember", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 				if ctx.Org.IsMember {
 					ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
 					if err != nil {
-						ctx.ServerError("CanCreateOrgRepo", err)
+						ctx.ServerErrorAuto(err)
 						return
 					}
 				}
@@ -142,7 +140,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			ctx.Data["SignedUser"] = &user_model.User{}
 		}
 		if (opts.RequireMember && !ctx.Org.IsMember) || (opts.RequireOwner && !ctx.Org.IsOwner) {
-			ctx.NotFound(err)
+			ctx.NotFound()
 			return
 		}
 		ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
@@ -166,21 +164,21 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		}
 		ctx.Data["NumMembers"], err = organization.CountOrgMembers(ctx, findMembersOpts)
 		if err != nil {
-			ctx.ServerError("CountOrgMembers", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
 		// Team.
 		shouldSeeAllTeams, err := UserShouldSeeAllOrgTeams(ctx)
 		if err != nil {
-			ctx.ServerError("UserShouldSeeAllOrgTeams", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		switch {
 		case shouldSeeAllTeams:
 			ctx.Org.Teams, err = org.LoadTeams(ctx)
 			if err != nil {
-				ctx.ServerError("LoadTeams", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		case ctx.IsSigned:
@@ -193,7 +191,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				IncludeVisibilities: organization.VisibleTeamVisibilitiesFor(ctx.Org.IsMember, true),
 			})
 			if err != nil {
-				ctx.ServerError("SearchTeam", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -214,7 +212,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			}
 
 			if !teamExists {
-				ctx.NotFound(err)
+				ctx.NotFound()
 				return
 			}
 
@@ -224,13 +222,13 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			if !ctx.Org.IsOwner {
 				ctx.Org.IsTeamMember, err = organization.IsTeamMember(ctx, org.ID, ctx.Org.Team.ID, ctx.Doer.ID)
 				if err != nil {
-					ctx.ServerError("IsTeamMember", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 			}
 			ctx.Data["IsTeamMember"] = ctx.Org.IsTeamMember
 			if opts.RequireTeamMember && !ctx.Org.IsTeamMember {
-				ctx.NotFound(err)
+				ctx.NotFound()
 				return
 			}
 		}
@@ -244,7 +242,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		if len(ctx.ContextUser.Description) != 0 {
 			content, err := markdown.RenderString(markup.NewRenderContext(ctx), ctx.ContextUser.Description)
 			if err != nil {
-				ctx.ServerError("RenderString", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Data["RenderedDescription"] = content

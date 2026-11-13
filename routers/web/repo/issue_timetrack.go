@@ -25,7 +25,7 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound(nil)
+		c.NotFound()
 		return
 	}
 
@@ -42,7 +42,7 @@ func AddTimeManually(c *context.Context) {
 	}
 
 	if _, err := issues_model.AddTime(c, c.Doer, issue, int64(total.Seconds()), time.Now()); err != nil {
-		c.ServerError("AddTime", err)
+		c.ServerErrorAuto(err)
 		return
 	}
 
@@ -56,14 +56,14 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound(nil)
+		c.NotFound()
 		return
 	}
 
 	t, err := issues_model.GetTrackedTimeByID(c, issue.ID, c.PathParamInt64("timeid"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
-			c.NotFound(err)
+			c.ServerErrorAuto(err)
 			return
 		}
 		c.HTTPError(http.StatusInternalServerError, "GetTrackedTimeByID", err.Error())
@@ -77,7 +77,7 @@ func DeleteTime(c *context.Context) {
 	}
 
 	if err = issues_model.DeleteTime(c, t); err != nil {
-		c.ServerError("DeleteTime", err)
+		c.ServerErrorAuto(err)
 		return
 	}
 
@@ -111,7 +111,7 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 	}
 
 	if err := issue_service.ChangeTimeEstimate(ctx, issue, ctx.Doer, total); err != nil {
-		ctx.ServerError("ChangeTimeEstimate", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

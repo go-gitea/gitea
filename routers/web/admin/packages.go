@@ -39,25 +39,25 @@ func Packages(ctx *context.Context) {
 		},
 	})
 	if err != nil {
-		ctx.ServerError("SearchVersions", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		ctx.ServerError("GetPackageDescriptors", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	totalBlobSize, err := packages_model.GetTotalBlobSize(ctx)
 	if err != nil {
-		ctx.ServerError("GetTotalBlobSize", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	totalUnreferencedBlobSize, err := packages_model.GetTotalUnreferencedBlobSize(ctx)
 	if err != nil {
-		ctx.ServerError("CalculateBlobSize", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -82,12 +82,12 @@ func Packages(ctx *context.Context) {
 func DeletePackageVersion(ctx *context.Context) {
 	pv, err := packages_model.GetVersionByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.ServerError("GetRepositoryByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
-		ctx.ServerError("RemovePackageVersion", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -97,7 +97,7 @@ func DeletePackageVersion(ctx *context.Context) {
 
 func CleanupExpiredData(ctx *context.Context) {
 	if err := packages_cleanup_service.CleanupExpiredData(ctx, time.Duration(0)); err != nil {
-		ctx.ServerError("CleanupExpiredData", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

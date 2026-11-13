@@ -5,6 +5,7 @@
 package gitcmd
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -601,4 +602,21 @@ func (c *Command) runStdBytes(ctx context.Context) ([]byte, []byte, RunStdError)
 
 func (c *Command) DebugKill() {
 	_ = c.cmd.Process.Kill()
+}
+
+func RunWithScannerSplit(ctx context.Context, cmd *Command, split bufio.SplitFunc, f func(ctx Context, chunk []byte) error) error {
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	cmd.WithParentCallerInfo(util.CallerFuncName(1))
+	cmd.WithPipelineFunc(func(ctx Context) error {
+		scanner := bufio.NewScanner(stdoutReader)
+		scanner.Split(split)
+		for scanner.Scan() {
+			if err := f(ctx, scanner.Bytes()); err != nil || ctx.Err() != nil {
+				return err
+			}
+		}
+		return scanner.Err()
+	})
+	return cmd.RunWithStderr(ctx)
 }
