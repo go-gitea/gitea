@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {login, apiCreateIssue, apiCreateLabel, apiCreateRepo, randomString} from './utils.ts';
 
-test('filter issues by an author, label them in bulk and add an issue dependency, found through remote searches and picked by Enter or leaving the field', async ({page, request}) => {
+test('filter issues by author, label them in bulk and add a dependency', async ({page, request}) => {
   const repoName = `e2e-issue-dependency-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   const blockingTitle = `Blocking ${randomString(8)}`;
