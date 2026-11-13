@@ -27,11 +27,13 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 	webhook_module "gitea.dev/modules/webhook"
+	actions_service "gitea.dev/services/actions"
 	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
 	release_service "gitea.dev/services/release"
@@ -423,6 +425,9 @@ jobs:
 
 		// the pr title contains a configured skip-ci string, so no run and no skipped status are created
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+
+		actions_service.NewNotifier().PushCommits(t.Context(), user2, repo, &repo_module.PushUpdateOptions{RefFullName: git.RefNameFromBranch("master"), NewCommitID: addWorkflowToBaseResp.Commit.SHA}, repo_module.NewPushCommits())
+		assert.Equal(t, 2, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID, CommitSHA: addWorkflowToBaseResp.Commit.SHA}))
 	})
 }
 
@@ -1228,6 +1233,10 @@ jobs:
 		_, err = issue_service.ReviewRequest(t.Context(), pullIssue, user2, nil, user4, false)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		actions_service.NewNotifier().PullRequestSynchronized(t.Context(), user2, pullRequest, "", addWorkflow.Commit.SHA)
+		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, Event: webhook_module.HookEventPullRequestSync, CommitSHA: addWorkflow.Commit.SHA})
+		checkCommitStatusAndInsertFakeStatus(t, repo, addWorkflow.Commit.SHA)
 	})
 }
 
