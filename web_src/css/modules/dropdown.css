@@ -225,6 +225,9 @@
 }
 
 .dropdown-list {
+  max-height: min(300px, 40vh);
+  overflow: auto;
+  overscroll-behavior: contain;
   padding: 4px 0;
   border-top: 1px solid var(--color-secondary);
 }
