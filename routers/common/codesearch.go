@@ -31,7 +31,7 @@ func SearchCode(ctx *context.Context, opts *codesearch.Options) {
 		} else if errors.Is(err, codesearch.ErrIndexerUnavailable) {
 			ctx.Data["CodeIndexerUnavailable"] = true
 		} else {
-			ctx.ServerError("SearchCode", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}

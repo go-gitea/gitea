@@ -4,7 +4,6 @@
 package pull
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -207,27 +206,21 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 // getDiffTree returns a string containing all the files that were changed between headBranch and baseBranch
 // the filenames are escaped to fit the format required for .git/info/sparse-checkout
 func getDiffTree(ctx context.Context, repo git.RepositoryFacade, baseBranch, headBranch string, out io.Writer) error {
-	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root")
-	diffOutReader, diffOutReaderClose := cmd.MakeStdoutPipe()
-	defer diffOutReaderClose()
-	return cmd.AddDynamicArguments(baseBranch, headBranch).
-		WithRepo(repo).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			// Now scan the output from the command
-			scanner := bufio.NewScanner(diffOutReader)
-			scanner.Split(util.BufioScannerSplit(0))
-			for scanner.Scan() {
-				treePath := scanner.Text()
-				// escape '*', '?', '[', spaces and '!' prefix
-				treePath = escapedSymbols().ReplaceAllString(treePath, `\$1`)
-				// no necessary to escape the first '#' symbol because the first symbol is '/'
-				if _, err := fmt.Fprintf(out, "/%s\n", treePath); err != nil {
-					return err
-				}
-			}
-			return scanner.Err()
-		}).
-		RunWithStderr(ctx)
+	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "--root").WithRepo(repo).
+		AddDynamicArguments(baseBranch, headBranch)
+	return gitcmd.RunWithScannerSplit(ctx, cmd, util.BufioScannerSplit(0), func(ctx gitcmd.Context, chunk []byte) error {
+		if len(chunk) == 0 {
+			return nil
+		}
+		treePath := string(chunk)
+		// escape '*', '?', '[', spaces and '!' prefix
+		treePath = escapedSymbols().ReplaceAllString(treePath, `\$1`)
+		// no necessary to escape the first '#' symbol because the first symbol is '/'
+		if _, err := fmt.Fprintf(out, "/%s\n", treePath); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // ErrRebaseConflicts represents an error if rebase fails with a conflict

@@ -519,28 +519,15 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, "", fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, mergeBase)
-
-	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
-	defer stdoutReaderClose()
-	if err := cmd.WithRepo(prCtx.tmpRepo).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			return util.IsEmptyReader(stdoutReader)
-		}).
-		RunWithStderr(ctx); err != nil {
-		if errors.Is(err, util.ErrNotEmpty) {
-			return true, mergeBase, nil
+	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, mergeBase).WithRepo(prCtx.tmpRepo)
+	err = gitcmd.RunWithScannerSplit(ctx, cmd, util.BufioScannerSplit(0), func(ctx gitcmd.Context, chunk []byte) error {
+		if len(chunk) > 0 {
+			hasChanged = true
+			return ctx.CancelPipeline(nil)
 		}
-
-		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
-			newCommitID, oldCommitID, mergeBase,
-			pr.ID, pr.BaseRepo.FullName(), pr.BaseBranch, pr.HeadRepo.FullName(), pr.HeadBranch,
-			err)
-
-		return false, mergeBase, fmt.Errorf("Unable to run git diff --name-only -z %s %s %s: %w", newCommitID, oldCommitID, mergeBase, err)
-	}
-
-	return false, mergeBase, nil
+		return nil
+	})
+	return hasChanged, mergeBase, err
 }
 
 // PushToBaseRepo fetches the head branch commit into the base repository and points the PR head ref at it.
