@@ -25,3 +25,11 @@ test('create a bot and manage its access token', async ({page, request}) => {
   await page.getByRole('button', {name: 'Yes'}).click();
   await expect(page.getByText('The token has been deleted.')).toBeVisible();
 });
+
+test('filter users by a radio in the filter popup', async ({page}) => {
+  await login(page);
+  await page.goto('/-/admin/users');
+  await page.getByRole('button', {name: 'Filter', exact: true}).click();
+  await page.getByRole('radio', {name: 'Admin', exact: true}).click();
+  await page.waitForURL((url) => url.searchParams.get('status_filter[is_admin]') === '1');
+});

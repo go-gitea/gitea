@@ -93,3 +93,29 @@ test('delete an edit history entry via a confirm over the history modal', async 
   await page.getByRole('button', {name: '• edited'}).click();
   await expect(page.getByRole('menuitem').filter({hasText: 'deleted'})).toHaveAttribute('aria-disabled', 'true');
 });
+
+test('reference a comment in a new issue of another repository', async ({page, request}) => {
+  const owner = env.GITEA_TEST_E2E_USER;
+  const repoName = `e2e-issue-ref-${randomString(8)}`;
+  const targetName = `e2e-issue-ref-target-${randomString(8)}`;
+  await Promise.all([
+    (async () => {
+      await apiCreateRepo(request, {name: repoName, autoInit: false});
+      await apiCreateIssue(request, {owner, repo: repoName, title: 'Source issue', body: 'referenced text'});
+    })(),
+    apiCreateRepo(request, {name: targetName, autoInit: false}),
+    login(page),
+  ]);
+  await page.goto(`/${owner}/${repoName}/issues/1`);
+  await page.getByRole('heading', {level: 3}).getByRole('button', {name: 'More items'}).click();
+  await page.getByRole('menuitem', {name: 'Reference in new issue'}).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('combobox', {name: /^Repository/}).fill(targetName);
+  const target = page.getByRole('option');
+  await expect(target).toHaveText([`${owner}/${targetName}`]);
+  await target.click();
+  await dialog.locator('input[name="title"]').fill('Referenced issue');
+  await dialog.getByRole('button', {name: 'Create Issue'}).click();
+  await page.waitForURL(new RegExp(`/${owner}/${targetName}/issues/1$`));
+  await expect(page.getByRole('emphasis')).toContainText(`Originally posted by @${owner} in ${owner}/${repoName}#1`);
+});
