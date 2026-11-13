@@ -16,7 +16,7 @@ type DBStore struct{}
 
 // Get reads the state item
 func (f *DBStore) Get(ctx context.Context, item StateItem) error {
-	content, err := system.GetAppStateContent(ctx, item.Name())
+	content, err := system.GetAppStateContent(ctx, item.StateName())
 	if err != nil {
 		return err
 	}
@@ -32,5 +32,5 @@ func (f *DBStore) Set(ctx context.Context, item StateItem) error {
 	if err != nil {
 		return err
 	}
-	return system.SaveAppStateContent(ctx, item.Name(), util.UnsafeBytesToString(b))
+	return system.SaveAppStateContent(ctx, item.StateName(), util.UnsafeBytesToString(b))
 }

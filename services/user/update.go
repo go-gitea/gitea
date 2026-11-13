@@ -315,12 +315,12 @@ func CheckConvertUserType(u *user_model.User) error {
 
 // SyncForcedActivityVisibility applies FORCE_USER_ACTIVITY_VISIBILITY to all users when it changed since the last start
 func SyncForcedActivityVisibility(ctx context.Context) error {
-	runtimeState := new(system.RuntimeState)
-	if err := system.AppState.Get(ctx, runtimeState); err != nil {
+	lastConfig := new(system.LastConfig)
+	if err := system.AppState.Get(ctx, lastConfig); err != nil {
 		return err
 	}
 	forced := setting.Service.ForceUserActivityVisibility
-	if runtimeState.LastForceUserActivityVisibility == forced {
+	if lastConfig.ForceUserActivityVisibility == forced {
 		return nil
 	}
 	if forced != "" {
@@ -329,6 +329,6 @@ func SyncForcedActivityVisibility(ctx context.Context) error {
 			return err
 		}
 	}
-	runtimeState.LastForceUserActivityVisibility = forced
-	return system.AppState.Set(ctx, runtimeState)
+	lastConfig.ForceUserActivityVisibility = forced
+	return system.AppState.Set(ctx, lastConfig)
 }
