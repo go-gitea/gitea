@@ -5065,6 +5065,12 @@
           },
           {
             "type": "string",
+            "description": "Comma-separated list of label names. Fetch only issues that have none of these labels. Non existent labels are discarded.",
+            "name": "exclude_labels",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "description": "Comma-separated list of milestone names. Fetch only issues that have any of these milestones. Non existent milestones are discarded.",
             "name": "milestones",
             "in": "query"
@@ -10622,6 +10628,12 @@
             "type": "string",
             "description": "comma separated list of label names. Fetch only issues that have any of this label names. Non existent labels are discarded.",
             "name": "labels",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Comma-separated list of label names. Fetch only issues that have none of these labels. Non existent labels are discarded.",
+            "name": "exclude_labels",
             "in": "query"
           },
           {

@@ -103,7 +103,8 @@ func testAPIListIssues(t *testing.T) {
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}}.Encode()
 	resp := MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	apiIssues := DecodeJSON(t, resp, []*api.Issue{})
-	assert.Len(t, apiIssues, unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}))
+	total := unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID})
+	assert.Len(t, apiIssues, total)
 	for _, apiIssue := range apiIssues {
 		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: apiIssue.ID, RepoID: repo.ID})
 	}
@@ -115,6 +116,17 @@ func testAPIListIssues(t *testing.T) {
 	if assert.Len(t, apiIssues, 2) {
 		assert.EqualValues(t, 3, apiIssues[0].Milestone.ID)
 		assert.EqualValues(t, 1, apiIssues[1].Milestone.ID)
+	}
+
+	// test exclude_labels filter
+	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "exclude_labels": {"label1,nonexistent"}}.Encode()
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
+	assert.Len(t, apiIssues, total-2)
+	for _, apiIssue := range apiIssues {
+		for _, label := range apiIssue.Labels {
+			assert.NotEqual(t, "label1", label.Name)
+		}
 	}
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "created_by": {"user2"}}.Encode()
@@ -502,6 +514,14 @@ func testAPISearchIssuesWithLabels(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
 	assert.Len(t, apiIssues, 2)
+
+	// exclude a label
+	query = url.Values{"state": {"all"}, "labels": {"label1,orglabel4"}, "exclude_labels": {"label1"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
+	assert.Empty(t, apiIssues)
 }
 
 func testAPIIssueContentVersion(t *testing.T) {
