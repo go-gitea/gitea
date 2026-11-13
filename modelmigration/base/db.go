@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"slices"
 	"strings"
 
 	"gitea.dev/models/db" //nolint:depguard // allow to access db in migration
@@ -318,52 +317,23 @@ func DropTableColumns(sess Session, tableName string, columnNames ...string) (er
 
 	switch {
 	case setting.Database.Type.IsSQLite3():
-		columns, err := sess.Query(fmt.Sprintf("PRAGMA table_info(`%s`)", tableName))
-		if err != nil {
-			return err
-		}
-		dropColumns := make([]string, 0, len(columnNames))
-		for _, name := range columnNames {
-			if slices.ContainsFunc(columns, func(column map[string][]byte) bool {
-				return strings.EqualFold(string(column["name"]), name)
-			}) {
-				dropColumns = append(dropColumns, name)
-			}
-		}
-		if len(dropColumns) == 0 {
-			return nil
-		}
-
-		// SQLite refuses to drop a column while any index still covers it, so drop those indexes first
-		indexes, err := sess.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
+		names := "'" + strings.Join(columnNames, "','") + "'"
+		indexes, err := sess.Query(fmt.Sprintf("SELECT DISTINCT il.name FROM pragma_index_list('%s') AS il, pragma_index_info(il.name) AS ii WHERE ii.name COLLATE NOCASE IN (%s)", tableName, names))
 		if err != nil {
 			return err
 		}
 		for _, index := range indexes {
-			indexName := string(index["name"])
-			// an index backing a PRIMARY KEY or UNIQUE constraint cannot be dropped on its own
-			if origin := string(index["origin"]); origin != "c" {
-				continue
-			}
-			indexColumns, err := sess.Query(fmt.Sprintf("PRAGMA index_info(`%s`)", indexName))
-			if err != nil {
-				return err
-			}
-			if !slices.ContainsFunc(indexColumns, func(indexColumn map[string][]byte) bool {
-				return slices.ContainsFunc(dropColumns, func(name string) bool {
-					return strings.EqualFold(string(indexColumn["name"]), name)
-				})
-			}) {
-				continue
-			}
-			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName)); err != nil {
+			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s`", index["name"])); err != nil {
 				return err
 			}
 		}
-
-		for _, name := range dropColumns {
-			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN `%s`", tableName, name)); err != nil {
-				return fmt.Errorf("drop table `%s` column `%s`: %w", tableName, name, err)
+		columns, err := sess.Query(fmt.Sprintf("SELECT name FROM pragma_table_info('%s') WHERE name COLLATE NOCASE IN (%s)", tableName, names))
+		if err != nil {
+			return err
+		}
+		for _, column := range columns { // DROP COLUMN needs SQLite 3.35, both bundled drivers ship newer
+			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN `%s`", tableName, column["name"])); err != nil {
+				return fmt.Errorf("drop table `%s` column `%s`: %w", tableName, column["name"], err)
 			}
 		}
 

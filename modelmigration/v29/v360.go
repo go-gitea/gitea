@@ -78,7 +78,7 @@ func MoveBranchProtectionConfigToJSON(ctx context.Context, x base.EngineMigratio
 		return err
 	}
 
-	err = base.EngineTransaction(x, func(sess base.Session) error {
+	return base.EngineTransaction(x, func(sess base.Session) error {
 		err := base.IterateTableByColumn(ctx, x, sess, "id", nil, func(ctx context.Context, pb *intermediateProtectedBranch) error {
 			if pb.NewConfig != "" {
 				return nil // skip the already migrated fields
@@ -104,9 +104,4 @@ func MoveBranchProtectionConfigToJSON(ctx context.Context, x base.EngineMigratio
 		}
 		return base.DropTableColumns(sess, "protected_branch", legacyTableInfo.ColumnsSeq()...)
 	})
-	if err != nil {
-		return err
-	}
-	// DropTableColumns drops the indexes covering the dropped columns on SQLite, so restore the unique index.
-	return x.Sync(new(protectedBranchV358))
 }

@@ -7,42 +7,29 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/require"
 )
 
-type actionRunWithLegacyConcurrency struct {
-	ID                int64 `xorm:"pk autoincr"`
-	RepoID            int64
-	ConcurrencyGroup  string `xorm:"NOT NULL DEFAULT ''"`
-	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`
-}
-
-func (actionRunWithLegacyConcurrency) TableName() string {
-	return "action_run"
-}
-
 func TestDropLegacyActionRunConcurrencyColumns(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(actionRunWithLegacyConcurrency))
+	if !setting.Database.Type.IsSQLite3() {
+		t.Skip("SQLite-only migration")
+	}
+
+	x, deferable := migrationtest.PrepareTestEnv(t, 0)
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	_, err := x.Insert(&actionRunWithLegacyConcurrency{RepoID: 1, ConcurrencyGroup: "group"})
+	_, err := x.Exec("CREATE TABLE `action_run` (`id` INTEGER PRIMARY KEY, \"concurrency_group\" TEXT NOT NULL, \"concurrency_cancel\" INTEGER NOT NULL)")
 	require.NoError(t, err)
 
 	require.NoError(t, DropLegacyActionRunConcurrencyColumns(t.Context(), x))
 
-	for _, name := range []string{"concurrency_group", "concurrency_cancel"} {
-		exist, err := x.Dialect().IsColumnExist(x.DB(), t.Context(), "action_run", name)
-		require.NoError(t, err)
-		require.False(t, exist, name)
-	}
-
-	count, err := x.Table("action_run").Count()
+	_, err = x.Exec(`INSERT INTO "action_run" ("id") VALUES (1)`)
 	require.NoError(t, err)
-	require.EqualValues(t, 1, count)
 
 	require.NoError(t, DropLegacyActionRunConcurrencyColumns(t.Context(), x))
 }

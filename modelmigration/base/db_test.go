@@ -11,51 +11,13 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm/names"
 )
 
 func TestMain(m *testing.M) {
 	migrationtest.MainTest(m)
-}
-
-func Test_DropTableColumnsOnSQLite(t *testing.T) {
-	if !setting.Database.Type.IsSQLite3() {
-		t.Skip("only SQLite dropped the columns by parsing the stored schema text")
-	}
-
-	x, deferable := migrationtest.PrepareTestEnv(t, 0)
-	defer deferable()
-	if x == nil || t.Failed() {
-		t.Skip("PrepareTestEnv did not yield a usable engine")
-	}
-
-	// identifiers quoted the SQL standard way instead of with backticks, as written by the other tools
-	_, err := x.Exec(`CREATE TABLE "drop_test" ("id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "repo_id" INTEGER NULL, "to_drop_column" TEXT NOT NULL)`)
-	require.NoError(t, err)
-	// a later xorm sync appends its own backtick-quoted column, so the stored schema text has mixed quoting
-	_, err = x.Exec("ALTER TABLE `drop_test` ADD COLUMN `keep_column` TEXT NULL")
-	require.NoError(t, err)
-	// SQLite refuses to drop a column that any index still covers, including composite ones
-	_, err = x.Exec("CREATE INDEX `IDX_drop_test_repo_to_drop` ON `drop_test` (`repo_id`,`to_drop_column`)")
-	require.NoError(t, err)
-	_, err = x.Exec(`INSERT INTO "drop_test" ("repo_id", "keep_column", "to_drop_column") VALUES (1, 'keep', 'drop')`)
-	require.NoError(t, err)
-
-	sess := x.NewSession()
-	defer sess.Close()
-	require.NoError(t, sess.Begin())
-	require.NoError(t, base.DropTableColumns(sess, "drop_test", "to_drop_column"))
-	require.NoError(t, sess.Commit())
-
-	exist, err := x.Dialect().IsColumnExist(x.DB(), t.Context(), "drop_test", "to_drop_column")
-	require.NoError(t, err)
-	require.False(t, exist)
-
-	rows, err := x.Query(`SELECT "keep_column" FROM "drop_test"`)
-	require.NoError(t, err)
-	require.Len(t, rows, 1)
-	require.Equal(t, "keep", string(rows[0]["keep_column"]))
 }
 
 func Test_DropTableColumns(t *testing.T) {
@@ -122,4 +84,26 @@ func Test_DropTableColumns(t *testing.T) {
 			}
 		}
 	}
+
+	if !setting.Database.Type.IsSQLite3() {
+		return
+	}
+	for _, sql := range []string{
+		"CREATE TABLE `drop_test` (`id` INTEGER PRIMARY KEY, \"keep_column\" TEXT, \"to_drop_column\" TEXT)",
+		"CREATE INDEX `IDX_drop_test_composite` ON `drop_test` (`id`, `to_drop_column`)",
+		"INSERT INTO `drop_test` (`id`, `keep_column`) VALUES (1, 'keep')",
+	} {
+		_, err := x.Exec(sql)
+		require.NoError(t, err)
+	}
+	require.NoError(t, base.EngineTransaction(x, func(sess base.Session) error {
+		return base.DropTableColumns(sess, "drop_test", "to_drop_column", "missing_column")
+	}))
+	exist, err := x.Dialect().IsColumnExist(x.DB(), t.Context(), "drop_test", "to_drop_column")
+	require.NoError(t, err)
+	assert.False(t, exist)
+	rows, err := x.Query("SELECT `keep_column` FROM `drop_test`")
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "keep", string(rows[0]["keep_column"]))
 }
