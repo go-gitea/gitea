@@ -45,7 +45,7 @@ var globalVars = sync.OnceValue(func() (ret struct {
 	imageNamePattern, referencePattern *regexp.Regexp
 },
 ) {
-	ret.imageNamePattern = regexp.MustCompile(`\A[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*\z`)
+	ret.imageNamePattern = regexp.MustCompile(`\A[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*\z`)
 	ret.referencePattern = regexp.MustCompile(`\A[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}\z`)
 	return ret
 })
