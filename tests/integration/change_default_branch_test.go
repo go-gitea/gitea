@@ -12,7 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -20,26 +20,80 @@ import (
 
 func TestChangeDefaultBranch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	session := loginUser(t, owner.Name)
-	branchesURL := fmt.Sprintf("/%s/%s/settings/branches", owner.Name, repo.Name)
+	t.Run("ChangeDefaultBranch", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	req := NewRequestWithValues(t, "POST", branchesURL, map[string]string{
-		"action": "default_branch",
-		"branch": "DefaultBranch",
+		session := loginUser(t, owner.Name)
+		branchesURL := fmt.Sprintf("/%s/%s/settings/branches", owner.Name, repo.Name)
+
+		req := NewRequestWithValues(t, "POST", branchesURL, map[string]string{
+			"action": "default_branch",
+			"branch": "DefaultBranch",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		req = NewRequestWithValues(t, "POST", branchesURL, map[string]string{
+			"action": "default_branch",
+			"branch": "does_not_exist",
+		})
+		session.MakeRequest(t, req, http.StatusNotFound)
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
 
-	req = NewRequestWithValues(t, "POST", branchesURL, map[string]string{
-		"action": "default_branch",
-		"branch": "does_not_exist",
+	t.Run("Divergence", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+		session := loginUser(t, owner.Name)
+		branchesURL := fmt.Sprintf("/%s/%s/branches", owner.Name, repo.Name)
+		settingsBranchesURL := fmt.Sprintf("/%s/%s/settings/branches", owner.Name, repo.Name)
+
+		// check branch divergence before switching default branch
+		expectedBranchToDivergenceBefore := map[string]*git.DivergeObject{
+			"not-signed": {
+				Ahead:  0,
+				Behind: 0,
+			},
+			"good-sign-not-yet-validated": {
+				Ahead:  0,
+				Behind: 1,
+			},
+			"good-sign": {
+				Ahead:  1,
+				Behind: 3,
+			},
+		}
+		checkDivergence(t, session, branchesURL, "master", expectedBranchToDivergenceBefore)
+
+		// switch default branch
+		newDefaultBranch := "good-sign-not-yet-validated"
+		req := NewRequestWithValues(t, "POST", settingsBranchesURL, map[string]string{
+			"action": "default_branch",
+			"branch": newDefaultBranch,
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		// check branch divergence after switching default branch
+		expectedBranchToDivergenceAfter := map[string]*git.DivergeObject{
+			"master": {
+				Ahead:  1,
+				Behind: 0,
+			},
+			"not-signed": {
+				Ahead:  1,
+				Behind: 0,
+			},
+			"good-sign": {
+				Ahead:  1,
+				Behind: 2,
+			},
+		}
+		checkDivergence(t, session, branchesURL, newDefaultBranch, expectedBranchToDivergenceAfter)
 	})
-	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
-func checkDivergence(t *testing.T, session *TestSession, branchesURL, expectedDefaultBranch string, expectedBranchToDivergence map[string]*gitrepo.DivergeObject) {
+func checkDivergence(t *testing.T, session *TestSession, branchesURL, expectedDefaultBranch string, expectedBranchToDivergence map[string]*git.DivergeObject) {
 	req := NewRequest(t, "GET", branchesURL)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -76,56 +130,4 @@ func checkDivergence(t *testing.T, session *TestSession, branchesURL, expectedDe
 		assert.Equal(t, expectedCountAhead, countAhead)
 		assert.Equal(t, expectedCountBehind, countBehind)
 	}
-}
-
-func TestChangeDefaultBranchDivergence(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-	session := loginUser(t, owner.Name)
-	branchesURL := fmt.Sprintf("/%s/%s/branches", owner.Name, repo.Name)
-	settingsBranchesURL := fmt.Sprintf("/%s/%s/settings/branches", owner.Name, repo.Name)
-
-	// check branch divergence before switching default branch
-	expectedBranchToDivergenceBefore := map[string]*gitrepo.DivergeObject{
-		"not-signed": {
-			Ahead:  0,
-			Behind: 0,
-		},
-		"good-sign-not-yet-validated": {
-			Ahead:  0,
-			Behind: 1,
-		},
-		"good-sign": {
-			Ahead:  1,
-			Behind: 3,
-		},
-	}
-	checkDivergence(t, session, branchesURL, "master", expectedBranchToDivergenceBefore)
-
-	// switch default branch
-	newDefaultBranch := "good-sign-not-yet-validated"
-	req := NewRequestWithValues(t, "POST", settingsBranchesURL, map[string]string{
-		"action": "default_branch",
-		"branch": newDefaultBranch,
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
-	// check branch divergence after switching default branch
-	expectedBranchToDivergenceAfter := map[string]*gitrepo.DivergeObject{
-		"master": {
-			Ahead:  1,
-			Behind: 0,
-		},
-		"not-signed": {
-			Ahead:  1,
-			Behind: 0,
-		},
-		"good-sign": {
-			Ahead:  1,
-			Behind: 2,
-		},
-	}
-	checkDivergence(t, session, branchesURL, newDefaultBranch, expectedBranchToDivergenceAfter)
 }

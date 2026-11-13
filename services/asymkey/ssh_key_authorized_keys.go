@@ -50,8 +50,8 @@ func rewriteAllPublicKeys(ctx context.Context) error {
 		return err
 	}
 	defer func() {
-		t.Close()
-		if err := util.Remove(tmpPath); err != nil {
+		_ = t.Close()
+		if err := util.RemoveWithRetry(tmpPath); err != nil {
 			log.Warn("Unable to remove temporary authorized keys file: %s: Error: %v", tmpPath, err)
 		}
 	}()
@@ -74,6 +74,8 @@ func rewriteAllPublicKeys(ctx context.Context) error {
 		return err
 	}
 
-	t.Close()
-	return util.Rename(tmpPath, fPath)
+	if err := t.Close(); err != nil {
+		return err
+	}
+	return util.RenameWithRetry(tmpPath, fPath)
 }

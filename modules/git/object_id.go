@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
+	"gitea.dev/modules/util"
 )
 
 type ObjectID interface {
@@ -87,20 +89,50 @@ func NewIDFromString(hexHash string) (ObjectID, error) {
 	return theObjectFormat.MustID(b), nil
 }
 
-func IsEmptyCommitID(commitID string) bool {
-	if commitID == "" {
-		return true
-	}
+// TODO: remove this function, only use IsEmptyObjectID
+var IsEmptyCommitID = IsEmptyObjectID
 
-	id, err := NewIDFromString(commitID)
-	if err != nil {
-		return false
-	}
-
-	return id.IsZero()
+func IsEmptyObjectID(objectID string) bool {
+	return objectID == "" ||
+		len(objectID) == Sha1ObjectFormat.FullLength() && objectID == emptySha1ObjectIDHex ||
+		len(objectID) == Sha256ObjectFormat.FullLength() && objectID == emptySha256ObjectIDHex
 }
 
 // ComputeBlobHash compute the hash for a given blob content
 func ComputeBlobHash(hashType ObjectFormat, content []byte) ObjectID {
 	return hashType.ComputeHash(ObjectBlob, content)
+}
+
+func IsStringValidObjectID(objFmt ObjectFormat, s string, optMinLen ...int) bool {
+	if objFmt == invalidObjectFormat {
+		return false
+	}
+	var minLen, maxLen int
+	if objFmt != nil {
+		maxLen = objFmt.FullLength()
+		minLen = util.OptionalArg(optMinLen, maxLen)
+	} else {
+		if len(optMinLen) == 0 {
+			// if no "min length" is applied, then the length must exactly match one of the formats
+			if len(s) != Sha1ObjectFormat.FullLength() && len(s) != Sha256ObjectFormat.FullLength() {
+				return false
+			}
+		}
+		maxLen = Sha256ObjectFormat.FullLength()
+		minLen = util.OptionalArg(optMinLen, Sha1ObjectFormat.FullLength())
+	}
+	if len(s) < minLen || len(s) > maxLen {
+		return false
+	}
+	return isStringLowerHex(s)
+}
+
+func isStringLowerHex(s string) bool {
+	for _, c := range s {
+		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+		if !isHex {
+			return false
+		}
+	}
+	return len(s) > 0 // it accepts odd length because "shorten commit id" can be 7-chars
 }

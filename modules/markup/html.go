@@ -9,7 +9,6 @@ import (
 	"html/template"
 	"io"
 	"regexp"
-	"slices"
 	"strings"
 	"sync"
 
@@ -21,7 +20,6 @@ import (
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
-	"mvdan.cc/xurls/v2"
 )
 
 // Issue name styles
@@ -32,16 +30,14 @@ const (
 )
 
 type globalVarsType struct {
-	hashCurrentPattern      *regexp.Regexp
-	shortLinkPattern        *regexp.Regexp
-	anyHashPattern          *regexp.Regexp
-	comparePattern          *regexp.Regexp
-	fullURLPattern          *regexp.Regexp
-	emailRegex              *regexp.Regexp
-	emojiShortCodeRegex     *regexp.Regexp
-	issueFullPattern        *regexp.Regexp
-	filesChangedFullPattern *regexp.Regexp
-	codePreviewPattern      *regexp.Regexp
+	hashCurrentPattern  *regexp.Regexp
+	shortLinkPattern    *regexp.Regexp
+	compareURLPattern   *regexp.Regexp
+	commitURLPattern    *regexp.Regexp
+	emailRegex          *regexp.Regexp
+	emojiShortCodeRegex *regexp.Regexp
+	issueFullPattern    *regexp.Regexp
+	codePreviewPattern  *regexp.Regexp
 
 	tagCleaner *regexp.Regexp
 	nulCleaner *strings.Replacer
@@ -51,7 +47,7 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	v := &globalVarsType{}
 	// NOTE: All below regex matching do not perform any extra validation.
 	// Thus a link is produced even if the linked entity does not exist.
-	// While fast, this is also incorrect and lead to false positives.
+	// While fast, this is also incorrect and leads to false positives.
 	// TODO: fix invalid linking issue (update: stale TODO, what issues? maybe no TODO anymore)
 
 	// valid chars in encoded path and parameter: [-+~_%.a-zA-Z0-9/]
@@ -64,14 +60,9 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	v.shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
-	// anyHashPattern splits url containing SHA into parts
-	v.anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})((\.\w+)*)(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
-
-	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
-	v.comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
-
-	// fullURLPattern matches full URL like "mailto:...", "https://..." and "ssh+git://..."
-	v.fullURLPattern = regexp.MustCompile(`^[a-z][-+\w]+:`)
+	// repo sub-paths of the compare page and of the routes that take a commit SHA
+	v.compareURLPattern = regexp.MustCompile(`^/compare/(.+?)(\.\.\.?)(.+?)((?:\.diff|\.patch)?)$`)
+	v.commitURLPattern = regexp.MustCompile(`^/(?:(?:[a-z-]+/)?commit|blob|archive|pulls/[0-9]+/commits)/([0-9a-f]{7,64})((?:[./].*)?)$`)
 
 	// emailRegex is definitely not perfect with edge cases,
 	// it is still accepted by the CommonMark specification, as well as the HTML5 spec:
@@ -86,9 +77,6 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// example: https://domain/org/repo/pulls/27#hash
 	v.issueFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 
-	// example: https://domain/org/repo/pulls/27/files#hash
-	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
-
 	// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
 	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
 
@@ -97,34 +85,6 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	v.nulCleaner = strings.NewReplacer("\000", "")
 	return v
 })
-
-func IsFullURLString(link string) bool {
-	return globalVars().fullURLPattern.MatchString(link)
-}
-
-func IsNonEmptyRelativePath(link string) bool {
-	return link != "" && !IsFullURLString(link) && link[0] != '?' && link[0] != '#'
-}
-
-// CustomLinkURLSchemes allows for additional schemes to be detected when parsing links within text
-func CustomLinkURLSchemes(schemes []string) {
-	schemes = append(schemes, "http", "https")
-	withAuth := make([]string, 0, len(schemes))
-	validScheme := regexp.MustCompile(`^[a-z]+$`)
-	for _, s := range schemes {
-		if !validScheme.MatchString(s) {
-			continue
-		}
-		without := slices.Contains(xurls.SchemesNoAuthority, s)
-		if without {
-			s += ":"
-		} else {
-			s += "://"
-		}
-		withAuth = append(withAuth, s)
-	}
-	common.GlobalVars().LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
-}
 
 type processor func(ctx *RenderContext, node *html.Node)
 
@@ -136,9 +96,7 @@ type processor func(ctx *RenderContext, node *html.Node)
 func PostProcessDefault(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	procs := []processor{
 		fullIssuePatternProcessor,
-		comparePatternProcessor,
 		codePreviewPatternProcessor,
-		fullHashPatternProcessor,
 		shortLinkProcessor,
 		linkProcessor,
 		mentionProcessor,
@@ -156,8 +114,6 @@ func PostProcessDefault(ctx *RenderContext, input io.Reader, output io.Writer) e
 func PostProcessCommitMessage(ctx *RenderContext, content template.HTML) template.HTML {
 	procs := []processor{
 		fullIssuePatternProcessor,
-		comparePatternProcessor,
-		fullHashPatternProcessor,
 		linkProcessor,
 		mentionProcessor,
 		issueIndexPatternProcessor,
@@ -175,41 +131,29 @@ var emojiProcessors = []processor{
 	emojiProcessor,
 }
 
-// isBareURLSubject reports whether the (HTML-escaped) commit subject content
-// is entirely a single URL, ignoring leading/trailing whitespace.
-func isBareURLSubject(content string) bool {
-	s := strings.TrimSpace(html.UnescapeString(content))
-	if s == "" {
-		return false
-	}
-	m := common.GlobalVars().LinkRegex.FindStringIndex(s)
-	return m != nil && m[0] == 0 && m[1] == len(s)
-}
-
 // PostProcessCommitMessageSubject will use the same logic as PostProcess and
 // PostProcessCommitMessage, but will disable the shortLinkProcessor and
 // emailAddressProcessor, and wraps the whole subject in defaultLink.
-func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink string, content template.HTML) template.HTML {
+func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content string) template.HTML {
 	procs := []processor{
 		fullIssuePatternProcessor,
-		comparePatternProcessor,
-		fullHashPatternProcessor,
 		mentionProcessor,
 		issueIndexPatternProcessor,
 		commitCrossReferencePatternProcessor,
 		hashCurrentPatternProcessor,
-		emojiShortCodeProcessor,
-		emojiProcessor,
+		linkProcessor,
 	}
-	// When the whole subject is a bare URL, linkProcessor would turn it into
-	// a competing anchor and hijack the surrounding defaultLink wrapper, leaving
-	// the subject visually unclickable. Match GitHub: render such subjects as
-	// plain text inside defaultLink. Partial URLs inside larger text still become
-	// their own links (nested anchors aren't legal HTML, so the outer defaultLink
-	// naturally breaks on that span, same as on GitHub).
-	if !isBareURLSubject(string(content)) {
-		procs = append(procs, linkProcessor)
+
+	content = strings.TrimSpace(content)
+	m := common.GlobalVars().LinkifyRegex.FindStringSubmatch(content)
+	contentIsFullLink := m != nil && m[0] == content
+	// Only call post-processers when the content is not a full link
+	// If the content is a full link, just render it as its text and add our real link to wrap it
+	// Otherwise: if the content full link gets its "A" element by "linkProcessor", the outer link (our real link) won't work
+	if contentIsFullLink {
+		procs = nil
 	}
+
 	procs = append(procs, func(ctx *RenderContext, node *html.Node) {
 		ch := &html.Node{Parent: node, Type: html.TextNode, Data: node.Data}
 		node.Type = html.ElementNode
@@ -217,8 +161,11 @@ func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink string, con
 		node.DataAtom = atom.A
 		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}, {Key: "class", Val: "muted title-full-link"}}
 		node.FirstChild, node.LastChild = ch, ch
+		for n := node.FirstChild; n != nil; {
+			n = visitNode(ctx, emojiProcessors, n)
+		}
 	})
-	rendered := postProcessHTML(ctx, procs, content)
+	rendered := postProcessHTML(ctx, procs, htmlutil.EscapeString(content))
 	return htmlutil.HTMLFormat(`<span class="title-full-link-hover">%s</span>`, rendered)
 }
 
@@ -305,8 +252,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	if !ctx.usedByRender && ctx.RenderHelper != nil {
 		defer ctx.RenderHelper.CleanUp()
 	}
-	// FIXME: don't read all content to memory
-	rawHTML, err := io.ReadAll(input)
+	rawHTML, err := io.ReadAll(input) // no streaming by design, the TOC before the content needs all headings
 	if err != nil {
 		return err
 	}
@@ -391,24 +337,28 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		// TextNode emoji will be converted to `<span class="emoji">`, then the next iteration will visit the "span"
 		// if we don't stop it, it will go into the TextNode again and create an infinite recursion
 		return node.NextSibling
-	} else if node.Data == "code" || node.Data == "pre" {
-		return node.NextSibling // ignore code and pre nodes
+	} else if node.Data == "code" || node.Data == "pre" || node.Data == "math" {
+		return node.NextSibling // ignore code, pre and math nodes
 	} else if node.Data == "img" {
 		return visitNodeImg(ctx, node)
 	} else if node.Data == "video" {
 		return visitNodeVideo(ctx, node)
+	} else if node.Data == "source" {
+		return visitNodePictureSource(ctx, node)
 	}
 
 	if node.Data == "a" {
+		shortenCommitLink(ctx, node)
 		processNodeA(ctx, node)
 		// only use emoji processors for the content in the "A" tag,
 		// because the content there is not processable, for example: the content is a commit id or a full URL.
 		procs = emojiProcessors
 	}
+	next := node.NextSibling
 	for n := node.FirstChild; n != nil; {
 		n = visitNode(ctx, procs, n)
 	}
-	return node.NextSibling
+	return next
 }
 
 // createKeyword() renders a highlighted version of an action keyword

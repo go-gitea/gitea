@@ -57,26 +57,16 @@ func TestActionsRunnerModify(t *testing.T) {
 		sess.MakeRequest(t, req, expectedStatus)
 	}
 
-	doDelete := func(t *testing.T, sess *TestSession, baseURL string, id int64, expectedStatus int) {
-		req := NewRequest(t, "POST", fmt.Sprintf("%s/%d/delete", baseURL, id))
-		sess.MakeRequest(t, req, expectedStatus)
-	}
-
-	doDisable := func(t *testing.T, sess *TestSession, baseURL string, id int64, expectedStatus int) {
-		req := NewRequest(t, "POST", fmt.Sprintf("%s/%d/update-runner?disabled=true", baseURL, id))
-		sess.MakeRequest(t, req, expectedStatus)
-	}
-
-	doEnable := func(t *testing.T, sess *TestSession, baseURL string, id int64, expectedStatus int) {
-		req := NewRequest(t, "POST", fmt.Sprintf("%s/%d/update-runner?disabled=false", baseURL, id))
+	doAction := func(t *testing.T, sess *TestSession, baseURL string, id int64, action string, expectedStatus int) {
+		req := NewRequest(t, "POST", fmt.Sprintf("%s/%d/%s", baseURL, id, action))
 		sess.MakeRequest(t, req, expectedStatus)
 	}
 
 	assertDenied := func(t *testing.T, sess *TestSession, baseURL string, id int64) {
 		doUpdate(t, sess, baseURL, id, "ChangedDescription", http.StatusNotFound)
-		doDisable(t, sess, baseURL, id, http.StatusNotFound)
-		doEnable(t, sess, baseURL, id, http.StatusNotFound)
-		doDelete(t, sess, baseURL, id, http.StatusNotFound)
+		doAction(t, sess, baseURL, id, "update-runner?disabled=true", http.StatusNotFound)
+		doAction(t, sess, baseURL, id, "update-runner?disabled=false", http.StatusNotFound)
+		doAction(t, sess, baseURL, id, "delete", http.StatusNotFound)
 		v := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: id})
 		assert.Empty(t, v.Description)
 		assert.False(t, v.IsDisabled)
@@ -86,13 +76,13 @@ func TestActionsRunnerModify(t *testing.T) {
 		doUpdate(t, sess, baseURL, id, "ChangedDescription", http.StatusSeeOther)
 		v := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: id})
 		assert.Equal(t, "ChangedDescription", v.Description)
-		doDisable(t, sess, baseURL, id, http.StatusOK)
+		doAction(t, sess, baseURL, id, "update-runner?disabled=true", http.StatusOK)
 		v = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: id})
 		assert.True(t, v.IsDisabled)
-		doEnable(t, sess, baseURL, id, http.StatusOK)
+		doAction(t, sess, baseURL, id, "update-runner?disabled=false", http.StatusOK)
 		v = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: id})
 		assert.False(t, v.IsDisabled)
-		doDelete(t, sess, baseURL, id, http.StatusOK)
+		doAction(t, sess, baseURL, id, "delete", http.StatusOK)
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: id})
 	}
 
@@ -194,6 +184,13 @@ func TestActionsRunnerModify(t *testing.T) {
 
 		t.Run("InvalidAction", func(t *testing.T) {
 			doBulk(t, sessionAdmin, "evict", allIDs, http.StatusBadRequest)
+		})
+
+		t.Run("EmptyIDs", func(t *testing.T) {
+			doBulk(t, sessionAdmin, "delete", nil, http.StatusBadRequest)
+			for _, id := range allIDs {
+				unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: id})
+			}
 		})
 
 		t.Run("DisableEnable", func(t *testing.T) {

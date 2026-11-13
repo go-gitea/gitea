@@ -17,7 +17,7 @@ import (
 const nl = "\n"
 
 func TestMathRender(t *testing.T) {
-	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{ParseInlineDollar: true, ParseInlineParentheses: true}
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{ParseInlineDollar: true, ParseInlineParentheses: true})()
 	testcases := []struct {
 		testcase string
 		expected string
@@ -41,6 +41,10 @@ func TestMathRender(t *testing.T) {
 		{
 			`\(a\) \(b\)`,
 			`<p><code class="language-math">a</code> <code class="language-math">b</code></p>` + nl,
+		},
+		{
+			`\(x^2\)is \(x^2\)123 a\(b\)c`,
+			`<p><code class="language-math">x^2</code>is <code class="language-math">x^2</code>123 a<code class="language-math">b</code>c</p>` + nl,
 		},
 		{
 			`$a$.`,
@@ -122,7 +126,7 @@ func TestMathRender(t *testing.T) {
 }
 
 func TestMathRenderBlockIndent(t *testing.T) {
-	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{ParseBlockDollar: true, ParseBlockSquareBrackets: true}
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{ParseBlockDollar: true, ParseBlockSquareBrackets: true})()
 	testcases := []struct {
 		name     string
 		testcase string
@@ -135,7 +139,7 @@ func TestMathRenderBlockIndent(t *testing.T) {
 \alpha
 \]
 `,
-			`<pre class="code-block is-loading"><code class="language-math display">
+			`<pre class="code-block is-loading"><code class="language-math">
 \alpha
 </code></pre>
 `,
@@ -147,7 +151,7 @@ func TestMathRenderBlockIndent(t *testing.T) {
  \alpha
  \]
 `,
-			`<pre class="code-block is-loading"><code class="language-math display">
+			`<pre class="code-block is-loading"><code class="language-math">
 \alpha
 </code></pre>
 `,
@@ -162,7 +166,7 @@ a
    d
   \]
 `,
-			`<pre class="code-block is-loading"><code class="language-math display">
+			`<pre class="code-block is-loading"><code class="language-math">
 a
 b
 c
@@ -179,7 +183,7 @@ c
   c
   \]
 `,
-			`<pre class="code-block is-loading"><code class="language-math display">
+			`<pre class="code-block is-loading"><code class="language-math">
 a
  b
 c
@@ -190,7 +194,7 @@ c
 			"indent-0-oneline",
 			`$$ x $$
 foo`,
-			`<code class="language-math display"> x </code>
+			`<code class="language-math"> x </code>
 <p>foo</p>
 `,
 		},
@@ -198,7 +202,7 @@ foo`,
 			"indent-3-oneline",
 			`   $$ x $$<SPACE>
 foo`,
-			`<code class="language-math display"> x </code>
+			`<code class="language-math"> x </code>
 <p>foo</p>
 `,
 		},
@@ -213,10 +217,10 @@ foo`,
 > \]
 `,
 			`<blockquote>
-<pre class="code-block is-loading"><code class="language-math display">
+<pre class="code-block is-loading"><code class="language-math">
 a
 </code></pre>
-<pre class="code-block is-loading"><code class="language-math display">
+<pre class="code-block is-loading"><code class="language-math">
 b
 </code></pre>
 </blockquote>
@@ -232,7 +236,7 @@ b
 2. b`,
 			`<ol>
 <li>a
-<pre class="code-block is-loading"><code class="language-math display">
+<pre class="code-block is-loading"><code class="language-math">
 x
 </code></pre>
 </li>
@@ -257,8 +261,7 @@ x
 }
 
 func TestMathRenderOptions(t *testing.T) {
-	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{}
-	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions)
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{})()
 	test := func(t *testing.T, expected, input string) {
 		res, err := RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)
@@ -288,7 +291,7 @@ a
 $$
 `)
 	setting.Markdown.MathCodeBlockOptions.ParseBlockDollar = true
-	test(t, `<pre class="code-block is-loading"><code class="language-math display">
+	test(t, `<pre class="code-block is-loading"><code class="language-math">
 a
 </code></pre>
 `, `
@@ -307,7 +310,7 @@ a
 \]
 `)
 	setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets = true
-	test(t, `<pre class="code-block is-loading"><code class="language-math display">
+	test(t, `<pre class="code-block is-loading"><code class="language-math">
 a
 </code></pre>
 `, `

@@ -15,7 +15,6 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
@@ -32,17 +31,10 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 	if setting.Service.UserLocationMapURL != "" {
 		ctx.Data["ContextUserLocationMapURL"] = setting.Service.UserLocationMapURL + url.QueryEscape(ctx.ContextUser.Location)
 	}
-	// Show OpenID URIs
-	openIDs, err := user_model.GetUserOpenIDs(ctx, ctx.ContextUser.ID)
-	if err != nil {
-		ctx.ServerError("GetUserOpenIDs", err)
-		return
-	}
-	ctx.Data["OpenIDs"] = openIDs
 	if len(ctx.ContextUser.Description) != 0 {
 		content, err := markdown.RenderString(markup.NewRenderContext(ctx).WithMetas(markup.ComposeSimpleDocumentMetas()), ctx.ContextUser.Description)
 		if err != nil {
-			ctx.ServerError("RenderString", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["RenderedDescription"] = content
@@ -58,7 +50,7 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 		},
 	})
 	if err != nil {
-		ctx.ServerError("FindOrgs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if len(orgs) > setting.UI.User.OrgPagingNum {
@@ -70,7 +62,7 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 
 	badges, _, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
 	if err != nil {
-		ctx.ServerError("GetUserBadges", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Badges"] = badges
@@ -86,7 +78,7 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 	if ctx.Doer != nil {
 		ctx.Data["UserBlocking"], err = user_model.GetBlocking(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("GetBlocking", err)
+			ctx.ServerErrorAuto(err)
 		}
 	}
 }
@@ -110,19 +102,19 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 		return nil, nil
 	}
 
-	profileGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, profileDbRepo)
+	profileGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, profileDbRepo)
 	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to OpenRepository: %v", err)
 		return nil, nil
 	}
 
-	commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch)
+	commit, err := profileGitRepo.GetBranchCommit(ctx, profileDbRepo.DefaultBranch)
 	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to GetBranchCommit: %v", err)
 		return nil, nil
 	}
 
-	profileReadmeBlob, _ = commit.GetBlobByPath("README.md") // no need to handle this error
+	profileReadmeBlob, _ = commit.GetBlobByPath(ctx, profileGitRepo, "README.md") // no need to handle this error
 	return profileDbRepo, profileReadmeBlob
 }
 

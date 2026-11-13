@@ -12,6 +12,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/context"
 	user_service "gitea.dev/services/user"
@@ -24,12 +25,12 @@ func oauth2SignInSync(ctx *context.Context, authSourceID int64, u *user_model.Us
 
 	authSource, err := auth.GetSourceByID(ctx, authSourceID)
 	if err != nil {
-		ctx.ServerError("GetSourceByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	oauth2Source, _ := authSource.Cfg.(*oauth2.Source)
 	if !authSource.IsOAuth2() || oauth2Source == nil {
-		ctx.ServerError("oauth2SignInSync", fmt.Errorf("source %s is not an OAuth2 source", gothUser.Provider))
+		ctx.ServerErrorAuto(fmt.Errorf("source %s is not an OAuth2 source", gothUser.Provider))
 		return
 	}
 
@@ -54,7 +55,7 @@ func oauth2SignInSync(ctx *context.Context, authSourceID int64, u *user_model.Us
 	// sync user flags (admin/restricted)
 	isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
 	if isAdmin.Has() || isRestricted.Has() {
-		if err = user_service.UpdateUser(ctx, u, &user_service.UpdateOptions{IsAdmin: isAdmin, IsRestricted: isRestricted}); err != nil {
+		if err = user_service.UpdateUser(audit.WithDoer(ctx, user_model.NewAuthSourceUser()), u, &user_service.UpdateOptions{IsAdmin: isAdmin, IsRestricted: isRestricted}); err != nil {
 			log.Error("Unable to sync OAuth2 user admin or restricted status %s: %v", gothUser.Provider, err)
 		}
 	}

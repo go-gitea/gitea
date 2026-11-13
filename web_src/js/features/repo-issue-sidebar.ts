@@ -6,16 +6,16 @@ import {parseIssuePageInfo} from '../utils.ts';
 import {html} from '../utils/html.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showTemporaryTooltip} from '../modules/tippy.ts';
+import type {FomanticApiResponse, Issue} from '../types.ts';
 
 const {appSubUrl} = window.config;
 
 function initRepoIssueBranchSelector(elSidebar: HTMLElement) {
-  // TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
+  // TODO: ISSUE-SIDEBAR-REF-SELECTOR: see "repo/issue/branch_selector_field.tmpl"
   const elSelectBranch = elSidebar.querySelector('.ui.dropdown.select-branch.branch-selector-dropdown');
   if (!elSelectBranch) return;
   const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
-  const elBranchMenu = elSelectBranch.querySelector('.reference-list-menu')!;
-  queryElems(elBranchMenu, '.item:not(.no-select)', (el) => el.addEventListener('click', async function (e) {
+  queryElems(elSelectBranch, '.reference-list-menu .item:not(.no-select)', (el) => el.addEventListener('click', async function (e) {
     e.preventDefault();
     const selectedValue = this.getAttribute('data-id')!; // eg: "refs/heads/my-branch"
     const selectedText = this.getAttribute('data-name'); // eg: "my-branch"
@@ -62,11 +62,10 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
   fomanticQuery(elDropdown).dropdown({
     fullTextSearch: true,
     apiSettings: {
-      cache: false,
-      rawResponse: true,
       url: issueSearchUrl,
-      onResponse(response: any) {
-        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
+      rawResponse: true, // backend responds an array, prevent fomantic api from converting it to an object
+      onResponse(response: Issue[]) {
+        const filteredResponse: FomanticApiResponse<{value: number, name: string}> = {success: true, results: []};
         const currIssueId = elDropdown.getAttribute('data-issue-id');
         // Parse the response from the api to work with our dropdown
         for (const issue of response) {

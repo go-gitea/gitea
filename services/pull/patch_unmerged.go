@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
 )
@@ -53,7 +54,7 @@ func (line *lsFileLine) String() string {
 
 // readUnmergedLsFileLines calls git ls-files -u -z and parses the lines into mode-sha-stage-path quadruplets
 // it will push these to the provided channel closing it at the end
-func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan chan *lsFileLine) {
+func readUnmergedLsFileLines(ctx context.Context, tmpRepo git.RepositoryFacade, outputChan chan *lsFileLine) {
 	defer func() {
 		// Always close the outputChan at the end of this function
 		close(outputChan)
@@ -62,7 +63,7 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 	cmd := gitcmd.NewCommand("ls-files", "-u", "-z")
 	lsFilesReader, lsFilesReaderClose := cmd.MakeStdoutPipe()
 	defer lsFilesReaderClose()
-	err := cmd.WithDir(tmpBasePath).
+	err := cmd.WithRepo(tmpRepo).
 		WithPipelineFunc(func(gitcmd.Context) error {
 			bufferedReader := bufio.NewReader(lsFilesReader)
 
@@ -123,7 +124,7 @@ func (u *unmergedFile) String() string {
 
 // unmergedFiles will collate the output from readUnstagedLsFileLines in to file triplets and send them
 // to the provided channel, closing at the end.
-func unmergedFiles(ctx context.Context, tmpBasePath string, unmerged chan *unmergedFile) {
+func unmergedFiles(ctx context.Context, tmpGitRepo git.RepositoryFacade, unmerged chan *unmergedFile) {
 	defer func() {
 		// Always close the channel
 		close(unmerged)
@@ -131,7 +132,7 @@ func unmergedFiles(ctx context.Context, tmpBasePath string, unmerged chan *unmer
 
 	ctx, cancel := context.WithCancel(ctx)
 	lsFileLineChan := make(chan *lsFileLine, 10) // give lsFileLineChan a buffer
-	go readUnmergedLsFileLines(ctx, tmpBasePath, lsFileLineChan)
+	go readUnmergedLsFileLines(ctx, tmpGitRepo, lsFileLineChan)
 	defer func() {
 		cancel()
 		for range lsFileLineChan {

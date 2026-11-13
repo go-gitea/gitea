@@ -147,7 +147,7 @@ func TestResolveRefWithSuffix(t *testing.T) {
 	// The ^{...}, @{...} and :path forms address non-commit objects or reflog state, so they are
 	// rejected before any repository access and a nil repo is fine here.
 	for _, refSuffix := range []string{"^{/Add}", "^{commit}", "@{upstream}", "~1:path"} {
-		ref, err := ResolveRefWithSuffix(nil, "branch", refSuffix)
+		ref, err := ResolveRefWithSuffix(t.Context(), nil, "branch", refSuffix)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument, "suffix %q", refSuffix)
 		assert.Empty(t, ref, "suffix %q", refSuffix)
 	}

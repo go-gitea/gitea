@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/niklasfasching/go-org/org"
 )
 
@@ -56,12 +55,10 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			}
 		}()
 
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(lang)
 		lexer := highlight.DetectChromaLexerByFileName("", lang) // don't use content to detect, it is too slow
-		lexer = chroma.Coalesce(lexer)
-
 		sb := &strings.Builder{}
-		// include language-x class as part of commonmark spec
-		_ = ctx.RenderInternal.FormatWithSafeAttrs(sb, `<pre><code class="chroma language-%s">`, strings.ToLower(lexer.Config().Name))
+		_ = ctx.RenderInternal.FormatWithSafeAttrsf(sb, `<pre %s><code %s>`, preAttrs, codeAttrs)
 		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
 		_, _ = sb.WriteString("</code></pre>")
 		return sb.String()
@@ -70,7 +67,15 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	w := &orgWriter{rctx: ctx, HTMLWriter: htmlWriter}
 	htmlWriter.ExtendingWriter = w
 
-	res, err := org.New().Silent().Parse(input, "").Write(w)
+	cfg := org.New()
+	cfg.ReadFile = func(path string) ([]byte, error) {
+		// actually the orgmode render doesn't support rendering the content from the content again,
+		// so just leave the plain text to end users
+		content := fmt.Sprintf("#+INCLUDE: [[%s]]", path)
+		return []byte(content), nil
+	}
+	doc := cfg.Silent().Parse(input, "")
+	res, err := doc.Write(w)
 	if err != nil {
 		return fmt.Errorf("orgmode.Render failed: %w", err)
 	}

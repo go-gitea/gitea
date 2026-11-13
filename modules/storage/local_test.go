@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"io/fs"
 	"os"
 	"strings"
 	"testing"
@@ -13,6 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestLocalStorage(t *testing.T) {
+	objStore, err := NewStorage(setting.LocalStorageType, &setting.Storage{Path: t.TempDir()})
+	require.NoError(t, err)
+	testStorageGeneral(t, objStore)
+}
 
 func TestBuildLocalPath(t *testing.T) {
 	kases := []struct {
@@ -66,7 +73,7 @@ func TestLocalStorageDelete(t *testing.T) {
 		if exists {
 			require.NoError(t, err)
 		} else {
-			require.ErrorIs(t, err, os.ErrNotExist)
+			require.ErrorIs(t, err, fs.ErrNotExist)
 		}
 	}
 
@@ -97,8 +104,4 @@ func TestLocalStorageDelete(t *testing.T) {
 	require.NoError(t, st.Delete("dir/sub2/2-a.txt"))
 	assertExists(t, ".", true)
 	assertExists(t, "dir", false)
-}
-
-func TestLocalStorageIterator(t *testing.T) {
-	testStorageIterator(t, setting.LocalStorageType, &setting.Storage{Path: t.TempDir()})
 }

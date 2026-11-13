@@ -126,7 +126,7 @@ func TestEffectiveRequiredContexts(t *testing.T) {
 	t.Run("required workflow patterns appended", func(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), &actions_model.ActionScopedWorkflowSource{
 			OwnerID:      consumer.OwnerID,
-			SourceRepoID: 1,
+			SourceRepoID: consumer.ID,
 			WorkflowConfigs: map[string]*actions_model.ScopedWorkflowConfig{
 				"ci.yaml":  {Required: true, Patterns: []string{"org/src: ci.yaml / build (pull_request)", "org/src: ci.yaml / lint (pull_request)"}},
 				"old.yaml": {Required: false, Patterns: []string{"org/src: old.yaml / *"}}, // kept as history, must NOT be enforced
@@ -152,5 +152,15 @@ func TestEffectiveRequiredContexts(t *testing.T) {
 			"org/src: ci.yaml / build (pull_request)",
 			"org/src: ci.yaml / lint (pull_request)",
 		}, got)
+	})
+
+	t.Run("several rules union their enabled contexts, deduplicated; a disabled rule contributes none", func(t *testing.T) {
+		noSourceRepo := &repo_model.Repository{ID: consumer.ID, OwnerID: 99999} // no scoped sources, so only the rules' contexts gate
+		a := &git_model.ProtectedBranch{EnableStatusCheck: true, StatusCheckContexts: []string{"a/check", "shared/check"}}
+		b := &git_model.ProtectedBranch{EnableStatusCheck: true, StatusCheckContexts: []string{"b/check", "shared/check"}}
+		off := &git_model.ProtectedBranch{EnableStatusCheck: false, StatusCheckContexts: []string{"off/check"}}
+		got, err := EffectiveRequiredContexts(t.Context(), noSourceRepo, a, b, off)
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{"a/check", "b/check", "shared/check"}, got)
 	})
 }

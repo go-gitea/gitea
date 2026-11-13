@@ -308,7 +308,7 @@ func searchTokenInHeaders(env *enmime.Envelope) string {
 		if end == -1 || begin > end {
 			break
 		}
-		t := extractToken(references[begin:end], "reply-", "@"+setting.Domain)
+		t := extractToken(references[begin:end], "reply-", "@"+setting.AppDomain)
 		if t != "" {
 			return t
 		}

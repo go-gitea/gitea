@@ -1,0 +1,26 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package git
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
+)
+
+// MergeBase checks and returns merge base of two commits.
+func MergeBase(ctx context.Context, repo RepositoryFacade, baseCommitID, headCommitID string) (string, error) {
+	mergeBase, stderr, err := gitcmd.NewCommand("merge-base").
+		AddDashesAndList(baseCommitID, headCommitID).WithRepo(repo).RunStdString(ctx)
+	if err != nil {
+		if gitcmd.IsErrorExitCode(err, 1) && strings.TrimSpace(stderr) == "" {
+			return "", util.NewNotExistErrorf("merge-base for %s and %s doesn't exist", baseCommitID, headCommitID)
+		}
+		return "", fmt.Errorf("get merge-base of %s and %s failed: %w", baseCommitID, headCommitID, err)
+	}
+	return strings.TrimSpace(mergeBase), nil
+}

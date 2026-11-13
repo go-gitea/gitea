@@ -54,7 +54,7 @@ func NewBadge(ctx *context.Context) {
 
 // NewBadgePost response for adding a new badge
 func NewBadgePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AdminCreateBadgeForm)
+	form := web.GetForm[*forms.AdminCreateBadgeForm](ctx)
 
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
@@ -71,7 +71,7 @@ func NewBadgePost(ctx *context.Context) {
 		if errors.Is(err, util.ErrAlreadyExist) {
 			ctx.JSONError(ctx.Tr("admin.badges.slug_been_taken"))
 		} else {
-			ctx.ServerError("CreateBadge", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -88,7 +88,7 @@ func prepareBadgeInfo(ctx *context.Context) *user_model.Badge {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Redirect(setting.AppSubURL + "/-/admin/badges")
 		} else {
-			ctx.ServerError("GetBadge", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return nil
 	}
@@ -100,12 +100,11 @@ func ViewBadge(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.badges.details")
 	ctx.Data["PageIsAdminBadges"] = true
 
-	prepareBadgeInfo(ctx)
+	badge := prepareBadgeInfo(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	badge := ctx.Data["Badge"].(*user_model.Badge)
 	opts := &user_model.GetBadgeUsersOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
@@ -115,7 +114,7 @@ func ViewBadge(ctx *context.Context) {
 	}
 	users, count, err := user_model.GetBadgeUsers(ctx, opts)
 	if err != nil {
-		ctx.ServerError("GetBadgeUsers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Users"] = users
@@ -143,7 +142,7 @@ func EditBadgePost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.AdminEditBadgeForm)
+	form := web.GetForm[*forms.AdminEditBadgeForm](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
@@ -153,7 +152,7 @@ func EditBadgePost(ctx *context.Context) {
 	b.Description = form.Description
 
 	if err := user_model.UpdateBadge(ctx, b); err != nil {
-		ctx.ServerError("UpdateBadge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -167,12 +166,12 @@ func EditBadgePost(ctx *context.Context) {
 func DeleteBadge(ctx *context.Context) {
 	b, err := user_model.GetBadge(ctx, ctx.PathParam("badge_slug"))
 	if err != nil {
-		ctx.ServerError("GetBadge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err = user_model.DeleteBadge(ctx, b); err != nil {
-		ctx.ServerError("DeleteBadge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -198,13 +197,13 @@ func BadgeUsers(ctx *context.Context) {
 	}
 	users, count, err := user_model.GetBadgeUsers(ctx, opts)
 	if err != nil {
-		ctx.ServerError("GetBadgeUsers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	ctx.Data["Users"] = users
 	ctx.Data["Total"] = count
-	ctx.Data["Page"] = context.NewPagination(count, setting.UI.Admin.UserPagingNum, page, 5)
+	ctx.Data["Page"] = context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.Admin.UserPagingNum).CurPage(page).Build()
 
 	ctx.HTML(http.StatusOK, tplBadgeUsers)
 }
@@ -219,7 +218,7 @@ func BadgeUsersPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
 			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		} else {
-			ctx.ServerError("GetUserByName", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -232,7 +231,7 @@ func BadgeUsersPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("admin.badges.user_already_has"))
 			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		} else {
-			ctx.ServerError("AddUserBadge", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -252,14 +251,14 @@ func DeleteBadgeUser(ctx *context.Context) {
 			ctx.JSONRedirect(badgeUsersURL)
 			return
 		} else {
-			ctx.ServerError("GetUserByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 	if err := user_model.RemoveUserBadge(ctx, user, &user_model.Badge{Slug: ctx.PathParam("badge_slug")}); err == nil {
 		ctx.Flash.Success(ctx.Tr("admin.badges.user_remove_success"))
 	} else {
-		ctx.ServerError("RemoveUserBadge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -300,7 +299,7 @@ func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		badges, count, err = user_model.SearchBadges(ctx, opts)
 		if err != nil {
-			ctx.ServerError("SearchBadges", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -309,8 +308,7 @@ func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions
 	ctx.Data["Total"] = count
 	ctx.Data["Badges"] = badges
 
-	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplName)

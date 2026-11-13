@@ -40,17 +40,13 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 		return nil
 	}
 
-	// Unwrap DocumentNode and resolve AliasNode
+	// Unwrap DocumentNode
 	node := rawPerms
-	for node.Kind == yaml.DocumentNode || node.Kind == yaml.AliasNode {
-		if node.Kind == yaml.DocumentNode {
-			if len(node.Content) == 0 {
-				return nil
-			}
-			node = node.Content[0]
-		} else {
-			node = node.Alias
+	for node.Kind == yaml.DocumentNode {
+		if len(node.Content) == 0 {
+			return nil
 		}
+		node = node.Content[0]
 	}
 
 	if node.Kind == yaml.ScalarNode && node.Value == "" {
@@ -63,7 +59,7 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 		case "read-all":
 			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeRead))
 		case "write-all":
-			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeWrite))
+			return new(repo_model.MakeWriteAllActionsTokenPermissions())
 		default:
 			// Explicit but unrecognized scalar: return all-none permissions.
 			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
@@ -117,10 +113,12 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 				result.UnitAccessModes[unit.TypeReleases] = mode
 			case "projects":
 				result.UnitAccessModes[unit.TypeProjects] = mode
+			case "id-token":
+				result.IDToken = mode == perm.AccessModeWrite
 			// Scopes github supports but gitea does not, see url for details
 			// https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 			case "artifact-metadata", "attestations", "checks", "deployments",
-				"id-token", "models", "discussions", "pages", "security-events", "statuses":
+				"models", "discussions", "pages", "security-events", "statuses":
 				// not supported
 			default:
 				setting.PanicInDevOrTesting("Unrecognized permission scope: %s", scope)

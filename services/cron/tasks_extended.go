@@ -8,6 +8,7 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/system"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git/gitcmd"
@@ -15,6 +16,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/updatechecker"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
 	archiver_service "gitea.dev/services/repository/archiver"
 	user_service "gitea.dev/services/user"
@@ -28,9 +30,8 @@ func registerDeleteInactiveUsers() {
 			Schedule:   "@annually",
 		},
 		OlderThan: time.Minute * time.Duration(setting.Service.ActiveCodeLives),
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		olderThanConfig := config.(*OlderThanConfig)
-		return user_service.DeleteInactiveUsers(ctx, olderThanConfig.OlderThan)
+	}, func(ctx context.Context, doer *user_model.User, config *OlderThanConfig) error {
+		return user_service.DeleteInactiveUsers(audit.WithDoer(ctx, doer), config.OlderThan)
 	})
 }
 
@@ -39,7 +40,7 @@ func registerDeleteRepositoryArchives() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@annually",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return archiver_service.DeleteRepositoryArchives(ctx)
 	})
 }
@@ -58,10 +59,9 @@ func registerGarbageCollectRepositories() {
 		},
 		Timeout: time.Duration(setting.Git.Timeout.GC) * time.Second,
 		Args:    setting.Git.GCArgs,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		rhcConfig := config.(*RepoHealthCheckConfig)
+	}, func(ctx context.Context, _ *user_model.User, config *RepoHealthCheckConfig) error {
 		// the git args are set by config, they can be safe to be trusted
-		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, gitcmd.ToTrustedCmdArgs(rhcConfig.Args))
+		return repo_service.GitGcRepos(ctx, config.Timeout, gitcmd.ToTrustedCmdArgs(config.Args))
 	})
 }
 
@@ -70,7 +70,7 @@ func registerRewriteAllPublicKeys() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return asymkey_service.RewriteAllPublicKeys(ctx)
 	})
 }
@@ -80,7 +80,7 @@ func registerRewriteAllPrincipalKeys() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return asymkey_service.RewriteAllPrincipalKeys(ctx)
 	})
 }
@@ -90,7 +90,7 @@ func registerRepositoryUpdateHook() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return repo_service.SyncRepositoryHooks(ctx)
 	})
 }
@@ -100,7 +100,7 @@ func registerReinitMissingRepositories() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return repo_service.ReinitMissingRepositories(ctx)
 	})
 }
@@ -110,7 +110,7 @@ func registerDeleteMissingRepositories() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(ctx context.Context, user *user_model.User, _ Config) error {
+	}, func(ctx context.Context, user *user_model.User, _ *BaseConfig) error {
 		return repo_service.DeleteMissingRepositories(ctx, user)
 	})
 }
@@ -120,7 +120,7 @@ func registerRemoveRandomAvatars() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return repo_service.RemoveRandomAvatars(ctx)
 	})
 }
@@ -133,9 +133,25 @@ func registerDeleteOldActions() {
 			Schedule:   "@every 168h",
 		},
 		OlderThan: 365 * 24 * time.Hour,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		olderThanConfig := config.(*OlderThanConfig)
-		return activities_model.DeleteOldActions(ctx, olderThanConfig.OlderThan)
+	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
+		return activities_model.DeleteOldActions(ctx, config.OlderThan)
+	})
+}
+
+func registerDeleteOldAuditEvents() {
+	if !setting.AuditRecordEnabled() || setting.AuditRetentionPeriod() <= 0 {
+		return
+	}
+
+	RegisterTaskFatal("delete_old_audit_events", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 24h",
+		},
+		OlderThan: setting.AuditRetentionPeriod(),
+	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
+		return audit_model.DeleteOldEvents(ctx, config.OlderThan)
 	})
 }
 
@@ -151,9 +167,8 @@ func registerUpdateGiteaChecker() {
 			Schedule:   "@every 168h",
 		},
 		HTTPEndpoint: "https://dl.gitea.com/gitea/version.json",
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		updateCheckerConfig := config.(*UpdateCheckerConfig)
-		return updatechecker.GiteaUpdateChecker(updateCheckerConfig.HTTPEndpoint)
+	}, func(ctx context.Context, _ *user_model.User, config *UpdateCheckerConfig) error {
+		return updatechecker.GiteaUpdateChecker(config.HTTPEndpoint)
 	})
 }
 
@@ -165,9 +180,8 @@ func registerDeleteOldSystemNotices() {
 			Schedule:   "@every 168h",
 		},
 		OlderThan: 365 * 24 * time.Hour,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		olderThanConfig := config.(*OlderThanConfig)
-		return system.DeleteOldSystemNotices(ctx, olderThanConfig.OlderThan)
+	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
+		return system.DeleteOldSystemNotices(ctx, config.OlderThan)
 	})
 }
 
@@ -204,12 +218,11 @@ func registerGCLFS() {
 		LastUpdatedMoreThanAgo:   24 * time.Hour * 3,
 		NumberToCheckPerRepo:     100,
 		ProportionToCheckPerRepo: 0.6,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		gcLFSConfig := config.(*GCLFSConfig)
+	}, func(ctx context.Context, _ *user_model.User, config *GCLFSConfig) error {
 		return repo_service.GarbageCollectLFSMetaObjects(ctx, repo_service.GarbageCollectLFSMetaObjectsOptions{
 			AutoFix:                 true,
-			OlderThan:               time.Now().Add(-gcLFSConfig.OlderThan),
-			UpdatedLessRecentlyThan: time.Now().Add(-gcLFSConfig.LastUpdatedMoreThanAgo),
+			OlderThan:               time.Now().Add(-config.OlderThan),
+			UpdatedLessRecentlyThan: time.Now().Add(-config.LastUpdatedMoreThanAgo),
 		})
 	})
 }
@@ -219,7 +232,7 @@ func registerRebuildIssueIndexer() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@annually",
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return issue_indexer.PopulateIssueIndexer(ctx)
 	})
 }
@@ -235,6 +248,7 @@ func initExtendedTasks() {
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()
 	registerDeleteOldActions()
+	registerDeleteOldAuditEvents()
 	registerUpdateGiteaChecker()
 	registerDeleteOldSystemNotices()
 	registerGCLFS()

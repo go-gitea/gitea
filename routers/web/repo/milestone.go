@@ -51,20 +51,20 @@ func Milestones(ctx *context.Context) {
 		Name:     keyword,
 	})
 	if err != nil {
-		ctx.ServerError("GetMilestones", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	stats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}), keyword)
 	if err != nil {
-		ctx.ServerError("GetMilestoneStats", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if err := issues_model.MilestoneList(miles).LoadTotalTrackedTimes(ctx); err != nil {
-			ctx.ServerError("LoadTotalTrackedTimes", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -72,7 +72,7 @@ func Milestones(ctx *context.Context) {
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
 		m.RenderedContent, err = markdown.RenderString(rctx, m.Content)
 		if err != nil {
-			ctx.ServerError("RenderString", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -88,8 +88,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestone)
@@ -105,7 +104,7 @@ func NewMilestone(ctx *context.Context) {
 
 // NewMilestonePost response for creating milestone
 func NewMilestonePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
+	form := web.GetForm[*forms.CreateMilestoneForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
@@ -128,7 +127,7 @@ func NewMilestonePost(ctx *context.Context) {
 		Content:      form.Content,
 		DeadlineUnix: deadlineUnix,
 	}); err != nil {
-		ctx.ServerError("NewMilestone", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -136,7 +135,7 @@ func NewMilestonePost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
 }
 
-// EditMilestone render edting milestone page
+// EditMilestone render editing milestone page
 func EditMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
@@ -144,11 +143,7 @@ func EditMilestone(ctx *context.Context) {
 
 	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
-		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetMilestoneByRepoID", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["title"] = m.Name
@@ -159,9 +154,9 @@ func EditMilestone(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
-// EditMilestonePost response for edting milestone
+// EditMilestonePost response for editing milestone
 func EditMilestonePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
+	form := web.GetForm[*forms.CreateMilestoneForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
@@ -180,18 +175,14 @@ func EditMilestonePost(ctx *context.Context) {
 
 	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
-		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetMilestoneByRepoID", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	m.Name = form.Title
 	m.Content = form.Content
 	m.DeadlineUnix = deadlineUnix
 	if err = issues_model.UpdateMilestone(ctx, m, m.IsClosed); err != nil {
-		ctx.ServerError("UpdateMilestone", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -199,7 +190,7 @@ func EditMilestonePost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
 }
 
-// ChangeMilestoneStatus response for change a milestone's status
+// ChangeMilestoneStatus response for changing a milestone's status
 func ChangeMilestoneStatus(ctx *context.Context) {
 	var toClose bool
 	switch ctx.PathParam("action") {
@@ -214,11 +205,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 	id := ctx.PathParamInt64("id")
 
 	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
-		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("ChangeMilestoneStatusByIDAndRepoID", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.PathParam("action")))
@@ -241,28 +228,28 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	projectIDs := parseProjectIDsFromQuery(ctx)
 	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
-		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound(err)
-			return
-		}
-
-		ctx.ServerError("GetMilestoneByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
 	milestone.RenderedContent, err = markdown.RenderString(rctx, milestone.Content)
 	if err != nil {
-		ctx.ServerError("RenderString", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool]())
+	isPull, ok := common.ParseIssueFilterTypeIsPullWithPermission(ctx.Repo.Permission, ctx.FormString("type"))
+	if !ok {
+		ctx.HTTPError(http.StatusForbidden, "no permission to read issues or pulls")
+		return
+	}
+	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, isPull)
 
-	ret := issue.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ret := issue.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret.IssueTemplates) > 0
 
 	ctx.Data["CanWriteIssues"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(false)

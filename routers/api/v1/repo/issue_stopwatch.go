@@ -10,6 +10,7 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
+	notify_service "gitea.dev/services/notify"
 )
 
 // StartIssueStopwatch creates a stopwatch for the given issue.
@@ -41,12 +42,8 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     description: Not repo writer, user does not have rights to toggle stopwatch
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     description: Cannot start a stopwatch again if it already exists
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := prepareIssueForStopwatch(ctx)
 	if ctx.Written() {
@@ -60,6 +57,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 		ctx.APIError(http.StatusConflict, "cannot start a stopwatch again if it already exists")
 		return
 	}
+	notify_service.StopwatchChanged(ctx, ctx.Doer)
 
 	ctx.Status(http.StatusCreated)
 }
@@ -93,12 +91,8 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     description: Not repo writer, user does not have rights to toggle stopwatch
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     description:  Cannot stop a non-existent stopwatch
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := prepareIssueForStopwatch(ctx)
 	if ctx.Written() {
@@ -112,6 +106,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 		ctx.APIError(http.StatusConflict, "cannot stop a non-existent stopwatch")
 		return
 	}
+	notify_service.StopwatchChanged(ctx, ctx.Doer)
 	ctx.Status(http.StatusCreated)
 }
 
@@ -144,12 +139,8 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     description: Not repo writer, user does not have rights to toggle stopwatch
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     description:  Cannot cancel a non-existent stopwatch
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	issue := prepareIssueForStopwatch(ctx)
 	if ctx.Written() {
@@ -163,18 +154,14 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 		ctx.APIError(http.StatusConflict, "cannot cancel a non-existent stopwatch")
 		return
 	}
+	notify_service.StopwatchChanged(ctx, ctx.Doer)
 
 	ctx.Status(http.StatusNoContent)
 }
 
 func prepareIssueForStopwatch(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	issue := getRepoIssueByIndexForDoer(ctx, ctx.PathParamInt64("index"))
+	if issue == nil {
 		return nil
 	}
 

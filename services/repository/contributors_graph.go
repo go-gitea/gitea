@@ -19,7 +19,6 @@ import (
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
@@ -82,16 +81,12 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 	// as GetContributorStats is resource intensive we cache the result
 	cacheKey := fmt.Sprintf(contributorStatsCacheKey, repo.FullName(), revision)
 	if !cache.IsExist(cacheKey) {
-		genReady := make(chan struct{})
-
 		// don't start multiple async generations
-		_, run := generateLock.Load(cacheKey)
-		if run {
+		if _, running := generateLock.LoadOrStore(cacheKey, struct{}{}); running {
 			return nil, ErrAwaitGeneration
 		}
 
-		generateLock.Store(cacheKey, struct{}{})
-		// run generation async
+		genReady := make(chan struct{})
 		go generateContributorStats(genReady, cache, cacheKey, repo, revision)
 
 		select {
@@ -104,15 +99,17 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 	}
 	// TODO: renew timeout of cache cache.UpdateTimeout(cacheKey, contributorStatsCacheTimeout)
 	var res map[string]*ContributorData
-	if _, cacheErr := cache.GetJSON(cacheKey, &res); cacheErr != nil {
+	if exist, cacheErr := cache.GetJSON(cacheKey, &res); cacheErr != nil {
 		return nil, fmt.Errorf("cached error: %w", cacheErr.ToError())
+	} else if !exist {
+		return nil, ErrAwaitGeneration
 	}
 	return res, nil
 }
 
 // getExtendedCommitStats return the list of *ExtendedCommitStats for the given revision
-func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
-	baseCommit, err := repo.GetCommit(revision)
+func getExtendedCommitStats(ctx context.Context, repo *git.Repository, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
+	baseCommit, err := repo.GetCommit(ctx, revision)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +122,7 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 	defer stdoutReaderClose()
 
 	var extendedCommitStats []*ExtendedCommitStats
-	err = gitCmd.WithDir(repo.Path).
+	err = gitCmd.WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 
@@ -180,7 +177,7 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 			}
 			return nil
 		}).
-		RunWithStderr(repo.Ctx)
+		RunWithStderr(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ContributorsCommitStats: %w", err)
 	}
@@ -189,9 +186,11 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 }
 
 func generateContributorStats(genDone chan struct{}, cache cache.StringCache, cacheKey string, repo *repo_model.Repository, revision string) {
+	defer close(genDone)
+	defer generateLock.Delete(cacheKey)
 	ctx := graceful.GetManager().HammerContext()
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		_ = cache.PutJSON(cacheKey, fmt.Errorf("OpenRepository: %w", err), contributorStatsCacheTimeout)
 		return
@@ -201,7 +200,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.StringCache, ca
 	if len(revision) == 0 {
 		revision = repo.DefaultBranch
 	}
-	extendedCommitStats, err := getExtendedCommitStats(gitRepo, revision)
+	extendedCommitStats, err := getExtendedCommitStats(ctx, gitRepo, revision)
 	if err != nil {
 		_ = cache.PutJSON(cacheKey, fmt.Errorf("ExtendedCommitStats: %w", err), contributorStatsCacheTimeout)
 		return
@@ -290,8 +289,4 @@ func generateContributorStats(genDone chan struct{}, cache cache.StringCache, ca
 	}
 
 	_ = cache.PutJSON(cacheKey, contributorsCommitStats, contributorStatsCacheTimeout)
-	generateLock.Delete(cacheKey)
-	if genDone != nil {
-		genDone <- struct{}{}
-	}
 }

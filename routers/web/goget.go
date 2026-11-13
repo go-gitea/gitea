@@ -11,7 +11,11 @@ import (
 	"path"
 	"strings"
 
+	auth_model "gitea.dev/models/auth"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
@@ -51,10 +55,8 @@ func goGet(ctx *context.Context) {
 		return
 	}
 	branchName := setting.Repository.DefaultBranch
-
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
-	if err == nil && len(repo.DefaultBranch) > 0 {
-		branchName = repo.DefaultBranch
+	if repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName); err == nil {
+		branchName = goGetDefaultBranch(ctx, repo)
 	}
 	prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
 
@@ -67,13 +69,7 @@ func goGet(ctx *context.Context) {
 
 	goGetImport := context.ComposeGoGetImport(ctx, ownerName, trimmedRepoName)
 
-	var cloneURL string
-	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, ownerName, repoName)
-	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, ownerName, repoName)
-	}
-	goImportContent := fmt.Sprintf("%s git %s", goGetImport, cloneURL /*CloneLink*/)
+	goImportContent := fmt.Sprintf("%s git %s", goGetImport, context.ComposeGoGetCloneURL(ctx, ownerName, trimmedRepoName))
 	goSourceContent := fmt.Sprintf("%s _ %s %s", goGetImport, prefix+"{/dir}" /*GoDocDirectory*/, prefix+"{/dir}/{file}#L{line}" /*GoDocFile*/)
 	goGetCli := fmt.Sprintf("go get %s%s", insecure, goGetImport)
 
@@ -90,4 +86,37 @@ func goGet(ctx *context.Context) {
 
 	ctx.RespHeader().Set("Content-Type", "text/html")
 	_, _ = ctx.Write([]byte(res))
+}
+
+// goGetDefaultBranch returns the repository's real default branch only when the caller may genuinely
+// reach it, otherwise the neutral instance default, so the meta response does not disclose the branch
+// name (or the repo's existence) to callers who cannot see the repository.
+func goGetDefaultBranch(ctx *context.Context, repo *repo_model.Repository) string {
+	def := setting.Repository.DefaultBranch
+	if len(repo.DefaultBranch) == 0 {
+		return def
+	}
+	// a token that was not granted repository read scope must not learn repository details, even when the
+	// account behind it could read the repo through the web UI
+	if !goGetTokenCanReadRepo(ctx) {
+		return def
+	}
+	// the caller must be able to read the code
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil || !perm.CanRead(unit.TypeCode) {
+		return def
+	}
+	return repo.DefaultBranch
+}
+
+// goGetTokenCanReadRepo reports whether the request may learn repository details. A non-token request
+// always may; a token request may only when its scope grants repository read, so a PAT that was never
+// scoped for repositories cannot disclose the branch even if its owner can read the repo.
+func goGetTokenCanReadRepo(ctx *context.Context) bool {
+	scope, hasApiTokenScope := user_model.GetDoerTokenScope(ctx.Doer)
+	if !hasApiTokenScope {
+		return true
+	}
+	has, err := scope.HasScope(auth_model.AccessTokenScopeReadRepository)
+	return err == nil && has
 }

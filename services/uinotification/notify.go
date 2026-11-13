@@ -51,9 +51,18 @@ func NewNotifier() notify_service.Notifier {
 }
 
 func handler(items ...issueNotificationOpts) []issueNotificationOpts {
+	ctx := graceful.GetManager().ShutdownContext()
 	for _, opts := range items {
-		if err := activities_model.CreateOrUpdateIssueNotifications(graceful.GetManager().ShutdownContext(), opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
-			log.Error("Was unable to create issue notification: %v", err)
+		notifiedIDs, err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID)
+		if err != nil {
+			// the issue can be gone by now, e.g. its repository was deleted
+			if !issues_model.IsErrIssueNotExist(err) {
+				log.Error("Unable to create issue notification: %v", err)
+			}
+			continue
+		}
+		for _, userID := range notifiedIDs {
+			notify_service.NotificationCountChange(ctx, userID)
 		}
 	}
 	return nil
@@ -139,7 +148,7 @@ func (ns *notificationService) NewPullRequest(ctx context.Context, pr *issues_mo
 		return
 	}
 	toNotify := make(container.Set[int64], 32)
-	repoWatchers, err := repo_model.GetRepoWatchersIDs(ctx, pr.Issue.RepoID)
+	repoWatchers, err := repo_model.GetRepoWatchersIDs(ctx, pr.Issue.RepoID, repo_model.WatchPullRequests)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs: %v", err)
 		return

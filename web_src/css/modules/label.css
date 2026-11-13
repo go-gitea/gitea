@@ -24,21 +24,6 @@ a.ui.label {
   cursor: pointer;
 }
 
-.ui.label > a {
-  cursor: pointer;
-  color: inherit;
-  opacity: 0.75;
-}
-.ui.label > a:hover {
-  opacity: 1;
-}
-
-.ui.label > img {
-  width: auto;
-  vertical-align: middle;
-  height: 2.1666em;
-}
-
 .ui.label > .icon {
   width: auto;
   margin: 0 0.75em 0 0;
@@ -50,28 +35,17 @@ a.ui.label {
   opacity: 0.8;
 }
 
-.ui.label > .close.icon,
 .ui.label > .delete.icon {
   cursor: pointer;
   font-size: 0.92857143em;
   opacity: 0.5;
 }
-.ui.label > .close.icon:hover,
 .ui.label > .delete.icon:hover {
   opacity: 1;
 }
 
-.ui.label.left.icon > .close.icon,
-.ui.label.left.icon > .delete.icon {
-  margin: 0 0.5em 0 0;
-}
-.ui.label:not(.icon) > .close.icon,
 .ui.label:not(.icon) > .delete.icon {
   margin: 0 0 0 0.5em;
-}
-
-.ui.header > .ui.label {
-  margin-top: -0.29165em;
 }
 
 a.ui.label:hover {
@@ -250,10 +224,12 @@ a.ui.ui.ui.grey.label:hover {
 }
 
 /* labels-list layout: span.labels-list > a.item > span.ui.label,
-by default, the labels list is rendered as "display: inline",
-it can also be rendered as flex by adding flex-related classes (the general ".item" selector also applies) */
+by default, the labels list is rendered as a wrapping flex list,
+lists flowing inline with text (issue title, comment event) are rendered as "display: inline" below */
 .labels-list {
-  max-width: 100%; /* for ellipsis */
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-inline);
   font-size: var(--font-size-label); /* must match the label font size, otherwise the height mismatches */
 }
 
@@ -266,19 +242,30 @@ it can also be rendered as flex by adding flex-related classes (the general ".it
 }
 
 .labels-list .ui.label {
+  display: flex; /* block-level, so items have no line box and wrapped rows get the same gap as columns */
   min-height: 20px;
   padding-top: 0;
   padding-bottom: 0;
 }
 
+#issue-list .labels-list,
+.timeline-item .labels-list {
+  display: inline;
+}
+
+#issue-list .labels-list .ui.label,
+.timeline-item .labels-list .ui.label {
+  display: inline-flex;
+}
+
 /* to align with different font sizes, these styles need to be written separately */
 #issue-list .labels-list > .item {
-  margin-right: 4px; /* margin-right (not margin-left) keeps wrapped labels left-aligned */
+  margin-right: var(--gap-inline); /* margin-right (not margin-left) keeps wrapped labels left-aligned */
   vertical-align: 2.5px; /* compensates inline-flex baseline so labels center with text */
 }
 
 .timeline-item .labels-list > .item {
-  margin-right: 4px;
+  margin-right: var(--gap-inline);
   vertical-align: 1.5px;
 }
 
@@ -310,4 +297,11 @@ it can also be rendered as flex by adding flex-related classes (the general ".it
 .ui.label.archived-label {
   filter: grayscale(0.5);
   opacity: 0.5;
+}
+
+@media (forced-colors: active) {
+  .ui.label {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
 }

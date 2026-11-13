@@ -23,14 +23,14 @@ func IssuePinOrUnpin(ctx *context.Context) {
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err := issue.LoadRepo(ctx)
 	if err != nil {
-		ctx.ServerError("LoadRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	// PinOrUnpin pins or unpins a Issue
 	_, err = issues_model.GetIssuePin(ctx, issue)
 	if err != nil && !db.IsErrNotExist(err) {
-		ctx.ServerError("GetIssuePin", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -44,7 +44,7 @@ func IssuePinOrUnpin(ctx *context.Context) {
 		if issues_model.IsErrIssueMaxPinReached(err) {
 			ctx.JSONError(ctx.Tr("repo.issues.max_pinned"))
 		} else {
-			ctx.ServerError("Pin/Unpin failed", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -56,20 +56,20 @@ func IssuePinOrUnpin(ctx *context.Context) {
 func IssueUnpin(ctx *context.Context) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err = issue.LoadRepo(ctx)
 	if err != nil {
-		ctx.ServerError("LoadRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	err = issues_model.UnpinIssue(ctx, issue, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("UnpinIssue", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -90,13 +90,13 @@ func IssuePinMove(ctx *context.Context) {
 
 	form := &movePinIssueForm{}
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.ServerError("Decode", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	issue, err := issues_model.GetIssueByID(ctx, form.ID)
 	if err != nil {
-		ctx.ServerError("GetIssueByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func IssuePinMove(ctx *context.Context) {
 
 	err = issues_model.MovePin(ctx, issue, form.Position)
 	if err != nil {
-		ctx.ServerError("MovePin", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

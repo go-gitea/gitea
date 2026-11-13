@@ -11,7 +11,6 @@ import (
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
-	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 )
 
@@ -35,7 +34,7 @@ func (ut *RenderUtils) RenderTimelineEventBadge(c *issues_model.Comment) templat
 
 func (ut *RenderUtils) RenderTimelineEventComment(c *issues_model.Comment, createdStr template.HTML) template.HTML {
 	if c.Type == issues_model.CommentTypeChangeTitle {
-		locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+		locale := ut.locale()
 		isToggle, isWip := commentTimelineEventIsWipToggle(c)
 		if !isToggle {
 			return locale.Tr("repo.issues.change_title_at", ut.RenderEmoji(c.OldTitle), ut.RenderEmoji(c.NewTitle), createdStr)

@@ -10,6 +10,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	packages_model "gitea.dev/models/packages"
+	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -143,12 +144,14 @@ func (*NullNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.Use
 	addedLabels, removedLabels []*issues_model.Label) {
 }
 
-// CreateRepository places a place holder function
-func (*NullNotifier) CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+func (*NullNotifier) IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64) {
 }
 
-// AdoptRepository places a place holder function
-func (*NullNotifier) AdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+func (*NullNotifier) IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID int64, newColumn *project_model.Column) {
+}
+
+// CreateRepository places a place holder function
+func (*NullNotifier) CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
 // DeleteRepository places a place holder function
@@ -180,7 +183,7 @@ func (*NullNotifier) RenameRepository(ctx context.Context, doer *user_model.User
 }
 
 // TransferRepository places a place holder function
-func (*NullNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+func (*NullNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
 }
 
 // SyncPushCommits places a place holder function
@@ -218,4 +221,10 @@ func (*NullNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_mod
 }
 
 func (*NullNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
+}
+
+func (*NullNotifier) NotificationCountChange(_ context.Context, _ int64) {
+}
+
+func (*NullNotifier) StopwatchChanged(_ context.Context, _ *user_model.User) {
 }

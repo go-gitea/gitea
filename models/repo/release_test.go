@@ -30,63 +30,69 @@ func TestMigrate_InsertReleases(t *testing.T) {
 func Test_FindTagsByCommitIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	sha1Rels, err := FindTagsByCommitIDs(t.Context(), 1, "65f1bf27bc3bf70f64657658635e66094edbcb4d")
-	assert.NoError(t, err)
-	assert.Len(t, sha1Rels, 1)
-	rels := sha1Rels["65f1bf27bc3bf70f64657658635e66094edbcb4d"]
-	assert.Len(t, rels, 3)
-	assert.Equal(t, "v1.1", rels[0].TagName)
-	assert.Equal(t, "delete-tag", rels[1].TagName)
-	assert.Equal(t, "v1.0", rels[2].TagName)
-}
+	t.Run("_FindTagsByCommitIDs", func(t *testing.T) {
+		sha1Rels, err := FindTagsByCommitIDs(t.Context(), 1, "65f1bf27bc3bf70f64657658635e66094edbcb4d")
+		assert.NoError(t, err)
+		assert.Len(t, sha1Rels, 1)
+		rels := sha1Rels["65f1bf27bc3bf70f64657658635e66094edbcb4d"]
+		assert.Len(t, rels, 3)
+		assert.Equal(t, "v1.1", rels[0].TagName)
+		assert.Equal(t, "delete-tag", rels[1].TagName)
+		assert.Equal(t, "v1.0", rels[2].TagName)
+	})
 
-func TestAddReleaseAttachmentsRejectsDifferentRepo(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("AddReleaseAttachmentsRejectsDifferentRepo", func(t *testing.T) {
+		uuid := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12" // attachment 2 belongs to repo 2
+		err := AddReleaseAttachments(t.Context(), 1, []string{uuid})
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, util.ErrPermissionDenied)
 
-	uuid := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12" // attachment 2 belongs to repo 2
-	err := AddReleaseAttachments(t.Context(), 1, []string{uuid})
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, util.ErrPermissionDenied)
+		attach, err := GetAttachmentByUUID(t.Context(), uuid)
+		assert.NoError(t, err)
+		assert.Zero(t, attach.ReleaseID, "attachment should not be linked to release on failure")
+	})
 
-	attach, err := GetAttachmentByUUID(t.Context(), uuid)
-	assert.NoError(t, err)
-	assert.Zero(t, attach.ReleaseID, "attachment should not be linked to release on failure")
-}
+	t.Run("AddReleaseAttachmentsRejectsIssueAttachment", func(t *testing.T) {
+		uuid := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+		err := AddReleaseAttachments(t.Context(), 1, []string{uuid})
+		assert.ErrorIs(t, err, util.ErrPermissionDenied)
 
-func TestAddReleaseAttachmentsAllowsLegacyMissingRepoID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+		attach, err := GetAttachmentByUUID(t.Context(), uuid)
+		assert.NoError(t, err)
+		assert.Zero(t, attach.ReleaseID)
+	})
 
-	legacyUUID := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20" // attachment 10 has repo_id 0
-	err := AddReleaseAttachments(t.Context(), 1, []string{legacyUUID})
-	assert.NoError(t, err)
+	t.Run("AddReleaseAttachmentsRejectsRecentZeroRepoID", func(t *testing.T) {
+		recentUUID := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd3800aa"
+		attachment := &Attachment{
+			UUID:        recentUUID,
+			RepoID:      0,
+			IssueID:     0,
+			ReleaseID:   0,
+			CommentID:   0,
+			Name:        "recent-zero",
+			CreatedUnix: LegacyAttachmentMissingRepoIDCutoff + 1,
+		}
+		assert.NoError(t, db.Insert(t.Context(), attachment))
 
-	attach, err := GetAttachmentByUUID(t.Context(), legacyUUID)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, attach.RepoID)
-	assert.EqualValues(t, 1, attach.ReleaseID)
-}
+		err := AddReleaseAttachments(t.Context(), 1, []string{recentUUID})
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, util.ErrPermissionDenied)
 
-func TestAddReleaseAttachmentsRejectsRecentZeroRepoID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+		attach, err := GetAttachmentByUUID(t.Context(), recentUUID)
+		assert.NoError(t, err)
+		assert.Zero(t, attach.ReleaseID)
+		assert.Zero(t, attach.RepoID)
+	})
 
-	recentUUID := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd3800aa"
-	attachment := &Attachment{
-		UUID:        recentUUID,
-		RepoID:      0,
-		IssueID:     0,
-		ReleaseID:   0,
-		CommentID:   0,
-		Name:        "recent-zero",
-		CreatedUnix: LegacyAttachmentMissingRepoIDCutoff + 1,
-	}
-	assert.NoError(t, db.Insert(t.Context(), attachment))
+	t.Run("AddReleaseAttachmentsAllowsLegacyMissingRepoID", func(t *testing.T) {
+		legacyUUID := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20" // attachment 10 has repo_id 0
+		err := AddReleaseAttachments(t.Context(), 1, []string{legacyUUID})
+		assert.NoError(t, err)
 
-	err := AddReleaseAttachments(t.Context(), 1, []string{recentUUID})
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, util.ErrPermissionDenied)
-
-	attach, err := GetAttachmentByUUID(t.Context(), recentUUID)
-	assert.NoError(t, err)
-	assert.Zero(t, attach.ReleaseID)
-	assert.Zero(t, attach.RepoID)
+		attach, err := GetAttachmentByUUID(t.Context(), legacyUUID)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 1, attach.RepoID)
+		assert.EqualValues(t, 1, attach.ReleaseID)
+	})
 }

@@ -169,8 +169,8 @@ type SearchRepoOptions struct {
 	// False -> include just public
 	IsPrivate optional.Option[bool]
 	// None -> include collaborative AND non-collaborative
-	// True -> include just collaborative
-	// False -> include just non-collaborative
+	// True -> include just collaborative (the "OwnerID" is not really an owner, it just means a collaborator who doesn't own the repo)
+	// False -> include just non-collaborative (the repo must be in the owner's name space)
 	Collaborate optional.Option[bool]
 	// What type of unit the user can be collaborative in,
 	// it is ignored if Collaborate is False.
@@ -204,19 +204,10 @@ type SearchRepoOptions struct {
 	// True -> include just has milestones
 	// False -> include just has no milestone
 	HasMilestones optional.Option[bool]
-	// LowerNames represents valid lower names to restrict to
-	LowerNames []string
 	// When specified true, apply some filters over the conditions:
 	// - Don't show forks, when opts.Fork is OptionalBoolNone.
 	// - Do not display repositories that don't have a description, an icon and topics.
 	OnlyShowRelevant bool
-}
-
-func (opts *SearchRepoOptions) ApplyPublicOnly(publicOnly bool) {
-	if publicOnly {
-		opts.Private = false
-		opts.AllLimited = false
-	}
 }
 
 // UserOwnedRepoCond returns user ownered repositories
@@ -312,9 +303,12 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 // userOrgTeamUnitRepoBuilder returns repo ids where user's teams can access the special unit.
 func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
-		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
-		Where(builder.Eq{"`team_unit`.`type`": unitType}).
-		And(builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)})
+		Join("INNER", "team", "`team`.id = `team_repo`.team_id").
+		Join("LEFT", "team_unit", builder.Expr("`team_unit`.team_id = `team_repo`.team_id AND `team_unit`.`type` = ?", unitType)).
+		Where(builder.Or(
+			builder.Gt{"`team`.authorize": int(perm.AccessModeNone)},
+			builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)},
+		))
 }
 
 // userOrgTeamUnitRepoCond returns a condition to select repo ids where user's teams can access the special unit.
@@ -326,7 +320,7 @@ func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType unit.Type) bui
 func UserOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) builder.Cond {
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
-			And(builder.Eq{"`team_unit`.org_id": orgID}),
+			And(builder.Eq{"`team`.org_id": orgID}),
 	)
 }
 
@@ -367,11 +361,13 @@ func UserOrgPublicUnitRepoCond(userID, orgID int64) builder.Cond {
 
 // SearchRepositoryCondition creates a query condition according search repository options
 func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
+	if user_model.IsPublicOnlyDoer(opts.Actor) {
+		opts.Private, opts.AllLimited = false, false
+	}
 	cond := builder.NewCond()
 
 	if opts.Private {
-		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
-			// OK we're in the context of a User
+		if opts.Actor != nil && !opts.Actor.IsAdmin {
 			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 		}
 	} else {
@@ -479,7 +475,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 					pieces := strings.Split(opts.Keyword, "/")
 					ownerName := pieces[0]
 					repoName := pieces[1]
-					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"lower_name", strings.ToLower(repoName)}))
+					likes = likes.Or(builder.And(db.BuildCaseInsensitiveLike("owner_name", ownerName), builder.Like{"lower_name", strings.ToLower(repoName)}))
 				}
 
 				if opts.IncludeDescription {
@@ -613,10 +609,12 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", orderBy))
 		args = append(args, opts.PriorityOwnerID)
 	} else if strings.Count(opts.Keyword, "/") == 1 {
-		// With "owner/repo" search times, prioritise results which match the owner field
-		orgName := strings.Split(opts.Keyword, "/")[0]
-		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END, %s", orderBy))
-		args = append(args, orgName)
+		ownerName, repoName, _ := strings.Cut(strings.ToLower(opts.Keyword), "/")
+		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE LOWER(owner_name) WHEN ? THEN CASE lower_name WHEN ? THEN 0 ELSE 1 END ELSE 2 END, %s", orderBy))
+		args = append(args, ownerName, repoName)
+	} else if len(opts.OrderBy) == 0 && opts.Keyword != "" && !strings.ContainsAny(opts.Keyword, ",/") { // unlike "owner/repo", a bare name never overrides an explicit sort
+		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN lower_name = ? THEN 0 ELSE 1 END, %s", orderBy))
+		args = append(args, strings.ToLower(opts.Keyword))
 	}
 
 	sess := db.GetEngine(ctx)
@@ -649,19 +647,25 @@ func SearchRepositoryIDsByCondition(ctx context.Context, cond builder.Cond) ([]i
 		Find(&repoIDs)
 }
 
-func userAllPublicRepoCond(cond builder.Cond, orgVisibilityLimit []structs.VisibleType) builder.Cond {
+func userAllPublicRepoCond(cond builder.Cond, ownerVisibilityLimit []structs.VisibleType) builder.Cond {
 	return cond.Or(builder.And(
 		builder.Eq{"`repository`.is_private": false},
-		// Aren't in a private organisation or limited organisation if we're not logged in
+		// Exclude owners who are not visible to the caller.
 		builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(
-			builder.And(
-				builder.Eq{"type": user_model.UserTypeOrganization},
-				builder.In("visibility", orgVisibilityLimit)),
+			builder.In("visibility", ownerVisibilityLimit),
 		))))
 }
 
 // AccessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) builder.Cond {
+	unitCond := builder.NewCond()
+	if unitType != unit.TypeInvalid {
+		unitCond = builder.Exists(builder.Select("id").From("repo_unit").Where(builder.Expr("repo_unit.repo_id = `repository`.id").
+			And(builder.Eq{"repo_unit.type": unitType}, builder.NotIn("repo_unit.type", unit.DisabledRepoUnitsGet()))))
+	}
+	if user_model.IsPublicOnlyDoer(user) && !user.IsRestricted {
+		return PublicRepoUnderPublicOwnerCond().And(unitCond)
+	}
 	cond := builder.NewCond()
 
 	if user == nil || !user.IsRestricted || user.ID <= 0 {
@@ -699,8 +703,7 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 			cond = userAllPublicRepoCond(cond, orgVisibilityLimit)
 		}
 	}
-
-	return cond
+	return cond.And(DoerTokenRepoCond(user), unitCond)
 }
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
@@ -755,6 +758,62 @@ func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user
 	))
 }
 
+// PublicRepoUnderPublicOwnerCond restricts to public repos whose owner is publicly visible: the
+// "genuinely public" set a public-only token or an anonymous caller may see (a public repo under a
+// limited/private owner is not publicly reachable and must be excluded).
+func PublicRepoUnderPublicOwnerCond() builder.Cond {
+	return builder.And(
+		builder.Eq{"`repository`.is_private": false},
+		builder.Exists(builder.Select("1").From("`user` repo_owner").
+			Where(builder.Expr("repo_owner.id = `repository`.owner_id").And(builder.Eq{"repo_owner.visibility": structs.VisibleTypePublic}))),
+	)
+}
+
+func DoerTokenAllowsRepo(ctx context.Context, doer *user_model.User, repo *Repository) bool {
+	if !user_model.IsPublicOnlyDoer(doer) {
+		return true
+	}
+	return !repo.IsPrivate && repo.LoadOwner(ctx) == nil && repo.Owner.Visibility.IsPublic()
+}
+
+func DoerTokenRepoCond(doer *user_model.User) builder.Cond {
+	if user_model.IsPublicOnlyDoer(doer) {
+		return PublicRepoUnderPublicOwnerCond()
+	}
+	return builder.NewCond()
+}
+
+// NotPublicRepoUnderPublicOwnerCond complements PublicRepoUnderPublicOwnerCond. Spelled positively so
+// the owner subquery hashes the limited/private minority, not every public user.
+func NotPublicRepoUnderPublicOwnerCond() builder.Cond {
+	return builder.Or(
+		builder.Eq{"`repository`.is_private": true},
+		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Neq{"visibility": structs.VisibleTypePublic})),
+	)
+}
+
+// UserActionsAccessibleOwnerRepoCond selects the repos owned by ownerID whose Actions `user` may read.
+// It is used to list an org/user's Actions runs and jobs (see the callers in routers/api/v1/shared).
+//   - owner_id = ownerID: only that owner's repos.
+//   - AccessibleRepositoryCondition(user, TypeActions): only repos whose Actions the user can read
+//     (admin/owner teams are handled inside it; a site admin is not, callers must skip the filter for one).
+func UserActionsAccessibleOwnerRepoCond(ownerID int64, user *user_model.User) builder.Cond {
+	return builder.And(
+		builder.Eq{"`repository`.owner_id": ownerID},
+		AccessibleRepositoryCondition(user, unit.TypeActions),
+	)
+}
+
+// FindUserActionsAccessibleOwnerRepoIDsSubQuery returns a subquery selecting the repository IDs the user
+// can see for the given owner, nil if unrestricted. Callers embed it in an `IN (...)` condition so that a large owner does not
+// materialize every repo ID into the SQL statement, which could exceed database parameter limits.
+func FindUserActionsAccessibleOwnerRepoIDsSubQuery(ownerID int64, user *user_model.User) *builder.Builder {
+	if ownerID <= 0 || user_model.DoerIsSiteAdminFullAccess(user) {
+		return nil
+	}
+	return builder.Select("id").From("repository").Where(UserActionsAccessibleOwnerRepoCond(ownerID, user))
+}
+
 // GetUserRepositories returns a list of repositories of given user.
 func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (RepositoryList, int64, error) {
 	if len(opts.OrderBy) == 0 {
@@ -762,16 +821,12 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	}
 
 	cond := builder.NewCond()
-	if opts.Actor == nil {
-		return nil, 0, util.NewInvalidArgumentErrorf("GetUserRepositories: Actor is needed but not given")
+	if opts.OwnerID == 0 {
+		return nil, 0, util.NewInvalidArgumentErrorf("GetUserRepositories: OwnerID is needed but not given")
 	}
-	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
+	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID}, DoerTokenRepoCond(opts.Actor))
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
-	}
-
-	if len(opts.LowerNames) > 0 {
-		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
 	sess := db.GetEngine(ctx)

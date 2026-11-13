@@ -6,23 +6,21 @@ package context
 
 import (
 	"context"
-	"fmt"
-	"html/template"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	web_types "gitea.dev/modules/web/types"
@@ -43,8 +41,11 @@ type Context struct {
 
 	TemplateContext TemplateContext
 
-	Render   Render
-	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
+	Render Render
+
+	// PageData is used by JavaScript modules, it is `window.config.pageData`.
+	// Deprecated: it was introduced for refactoring some legacy JS code, it should not be used in new code anymore.
+	PageData map[string]any
 
 	Cache   cache.StringCache
 	Flash   *middleware.Flash
@@ -65,10 +66,10 @@ type Context struct {
 
 func init() {
 	web.RegisterResponseStatusProvider[*Base](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(BaseContextKey).(*Base)
+		return reqctx.MustContextValue[*Base](req.Context(), BaseContextKey)
 	})
 	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(WebContextKey).(*Context)
+		return reqctx.MustContextValue[*Context](req.Context(), WebContextKey)
 	})
 }
 
@@ -79,23 +80,6 @@ var WebContextKey = webContextKeyType{}
 func GetWebContext(ctx context.Context) *Context {
 	webCtx, _ := ctx.Value(WebContextKey).(*Context)
 	return webCtx
-}
-
-// ValidateContext is a special context for form validation middleware. It may be different from other contexts.
-type ValidateContext struct {
-	*Base
-}
-
-// GetValidateContext gets a context for middleware form validation
-func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
-	if ctxAPI, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
-		ctx = &ValidateContext{Base: ctxAPI.Base}
-	} else if ctxWeb, ok := req.Context().Value(WebContextKey).(*Context); ok {
-		ctx = &ValidateContext{Base: ctxWeb.Base}
-	} else {
-		panic("invalid context, expect either APIContext or Context")
-	}
-	return ctx
 }
 
 func NewTemplateContextForWeb(ctx reqctx.RequestContext, req *http.Request, locale translation.Locale) TemplateContext {
@@ -133,8 +117,9 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 		Org:   &Organization{},
 	}
 	ctx.TemplateContext = NewTemplateContextForWeb(ctx, ctx.Base.Req, ctx.Base.Locale)
-	ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
+	ctx.Flash = &middleware.Flash{DataStore: ctx}
 	ctx.SetContextValue(WebContextKey, ctx)
+	httplib.MarkRequestSupportPublicURL(ctx)
 	return ctx
 }
 
@@ -173,13 +158,13 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			// get the last flash message from cookie
 			lastFlashCookie, lastFlashMsg := middleware.GetSiteCookieFlashMessage(ctx, ctx.Req, CookieNameFlash)
-			if vals, _ := url.ParseQuery(lastFlashCookie); len(vals) > 0 {
+			if lastFlashMsg != nil {
 				ctx.Data["Flash"] = lastFlashMsg // store last Flash message into the template data, to render it
 			}
 
 			// if there are new messages in the ctx.Flash, write them into cookie
 			ctx.Resp.Before(func(resp ResponseWriter) {
-				if val := ctx.Flash.Encode(); val != "" {
+				if val := ctx.Flash.EncodeToString(); val != "" {
 					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, val, 0)
 				} else if lastFlashCookie != "" {
 					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, "", -1)
@@ -246,29 +231,16 @@ func (ctx *Context) GetErrMsg() string {
 	return msg
 }
 
-func (ctx *Context) JSONRedirect(redirect string) {
-	ctx.JSON(http.StatusOK, map[string]any{"redirect": redirect})
-}
-
-func (ctx *Context) JSONOK() {
-	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
-}
-
-func (ctx *Context) JSONError(msg any) {
-	switch v := msg.(type) {
-	case string:
-		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "text"})
-	case template.HTML:
-		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "html"})
-	default:
-		panic(fmt.Sprintf("unsupported type: %T", msg))
+func GetFetchActionForm[T middleware.Form](ctx *Context) (ret T) {
+	if web.IsFormSet(ctx) {
+		panic("don't mix fetch-action form validation with template-based form validation")
 	}
-}
-
-func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
-	msg := util.OptionalArg(optMsg)
-	if msg == "" {
-		msg = ctx.Locale.TrString("error.not_found")
+	form, errs := middleware.BindFormValidate[T](ctx.Req, validation.Binder())
+	errorMessage, fieldName, _ := middleware.BuildValidationErrorForUser(form, ctx.Locale, errs)
+	if errorMessage != "" {
+		ctx.Resp.Header().Set("Content-Type", "application/json")
+		ctx.JSONErrorWithField(errorMessage, fieldName)
+		return ret
 	}
-	ctx.JSON(http.StatusNotFound, map[string]any{"errorMessage": msg, "renderFormat": "text"})
+	return form
 }

@@ -5,9 +5,8 @@ package integration
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
-	"path"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -26,39 +25,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPILFSNotStarted(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.LFS.StartServer, false)()
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequestf(t, "PUT", "/%s/%s.git/info/lfs/objects/oid/10", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequestf(t, "GET", "/%s/%s.git/info/lfs/objects/oid/name", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequestf(t, "GET", "/%s/%s.git/info/lfs/objects/oid", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequestf(t, "POST", "/%s/%s.git/info/lfs/verify", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusNotFound)
-}
-
-func TestAPILFSMediaType(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusUnsupportedMediaType)
-	req = NewRequestf(t, "POST", "/%s/%s.git/info/lfs/verify", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusUnsupportedMediaType)
-}
-
 func createLFSTestRepository(t *testing.T, repoName string) *repo_model.Repository {
+	t.Helper()
 	ctx := NewAPITestContext(t, "user2", repoName, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 
@@ -68,405 +36,415 @@ func createLFSTestRepository(t *testing.T, repoName string) *repo_model.Reposito
 	return repo
 }
 
-func TestAPILFSBatch(t *testing.T) {
+func TestAPILFS(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 
-	repo := createLFSTestRepository(t, "lfs-batch-repo")
+	t.Run("NotStarted", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.LFS.StartServer, false)()
 
-	oid := storeObjectInRepo(t, repo.ID, "dummy1")
-	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	session := loginUser(t, "user2")
-
-	newRequest := func(t testing.TB, br *lfs.BatchRequest) *RequestWrapper {
-		return NewRequestWithJSON(t, "POST", "/user2/lfs-batch-repo.git/info/lfs/objects/batch", br).
-			SetHeader("Accept", lfs.AcceptHeader).
-			SetHeader("Content-Type", lfs.MediaType)
-	}
-	decodeResponse := func(t *testing.T, b *bytes.Buffer) *lfs.BatchResponse {
-		var br lfs.BatchResponse
-
-		assert.NoError(t, json.Unmarshal(b.Bytes(), &br))
-		return &br
-	}
-
-	t.Run("InvalidJsonRequest", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := newRequest(t, nil)
-
-		session.MakeRequest(t, req, http.StatusBadRequest)
+		req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
+		MakeRequest(t, req, http.StatusNotFound)
+		req = NewRequestf(t, "PUT", "/%s/%s.git/info/lfs/objects/oid/10", user.Name, repo.Name)
+		MakeRequest(t, req, http.StatusNotFound)
+		req = NewRequestf(t, "GET", "/%s/%s.git/info/lfs/objects/oid/name", user.Name, repo.Name)
+		MakeRequest(t, req, http.StatusNotFound)
+		req = NewRequestf(t, "GET", "/%s/%s.git/info/lfs/objects/oid", user.Name, repo.Name)
+		MakeRequest(t, req, http.StatusNotFound)
+		req = NewRequestf(t, "POST", "/%s/%s.git/info/lfs/verify", user.Name, repo.Name)
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
-	t.Run("InvalidOperation", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	t.Run("MediaType", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 
-		req := newRequest(t, &lfs.BatchRequest{
-			Operation: "dummy",
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
+		MakeRequest(t, req, http.StatusUnsupportedMediaType)
+		req = NewRequestf(t, "POST", "/%s/%s.git/info/lfs/verify", user.Name, repo.Name)
+		MakeRequest(t, req, http.StatusUnsupportedMediaType)
+	})
+
+	t.Run("Batch", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.LFS.StartServer, true)()
+
+		repo := createLFSTestRepository(t, "lfs-batch-repo")
+
+		oid := storeObjectInRepo(t, repo.ID, "dummy1")
+		defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
+
+		session := loginUser(t, "user2")
+
+		newRequest := func(t testing.TB, br *lfs.BatchRequest) *RequestWrapper {
+			return NewRequestWithJSON(t, "POST", "/user2/lfs-batch-repo.git/info/lfs/objects/batch", br).
+				SetHeader("Accept", lfs.AcceptHeader).
+				SetHeader("Content-Type", lfs.MediaType)
+		}
+		makeRequest := func(t *testing.T, request *lfs.BatchRequest) *lfs.BatchResponse {
+			resp := session.MakeRequest(t, newRequest(t, request), http.StatusOK)
+			var br lfs.BatchResponse
+
+			assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), &br))
+			return &br
+		}
+
+		t.Run("InvalidJsonRequest", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := newRequest(t, nil)
+
+			session.MakeRequest(t, req, http.StatusBadRequest)
 		})
 
-		session.MakeRequest(t, req, http.StatusBadRequest)
-	})
-
-	t.Run("InvalidPointer", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := newRequest(t, &lfs.BatchRequest{
-			Operation: "download",
-			Objects: []lfs.Pointer{
-				{Oid: "dummy"},
-				{Oid: oid, Size: -1},
-			},
-		})
-
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		br := decodeResponse(t, resp.Body)
-		assert.Len(t, br.Objects, 2)
-		assert.Equal(t, "dummy", br.Objects[0].Oid)
-		assert.Equal(t, oid, br.Objects[1].Oid)
-		assert.Equal(t, int64(0), br.Objects[0].Size)
-		assert.Equal(t, int64(-1), br.Objects[1].Size)
-		assert.NotNil(t, br.Objects[0].Error)
-		assert.NotNil(t, br.Objects[1].Error)
-		assert.Equal(t, http.StatusUnprocessableEntity, br.Objects[0].Error.Code)
-		assert.Equal(t, http.StatusUnprocessableEntity, br.Objects[1].Error.Code)
-		assert.Equal(t, "Oid or size are invalid", br.Objects[0].Error.Message)
-		assert.Equal(t, "Oid or size are invalid", br.Objects[1].Error.Message)
-	})
-
-	t.Run("PointerSizeMismatch", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := newRequest(t, &lfs.BatchRequest{
-			Operation: "download",
-			Objects: []lfs.Pointer{
-				{Oid: oid, Size: 1},
-			},
-		})
-
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		br := decodeResponse(t, resp.Body)
-		assert.Len(t, br.Objects, 1)
-		assert.NotNil(t, br.Objects[0].Error)
-		assert.Equal(t, http.StatusUnprocessableEntity, br.Objects[0].Error.Code)
-		assert.Equal(t, "Object "+oid+" is not 1 bytes", br.Objects[0].Error.Message)
-	})
-
-	t.Run("Download", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		t.Run("PointerNotInStore", func(t *testing.T) {
+		t.Run("InvalidOperation", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := newRequest(t, &lfs.BatchRequest{
-				Operation: "download",
-				Objects: []lfs.Pointer{
-					{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab042", Size: 6},
-				},
+				Operation: "dummy",
 			})
 
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			br := decodeResponse(t, resp.Body)
-			assert.Len(t, br.Objects, 1)
-			assert.NotNil(t, br.Objects[0].Error)
-			assert.Equal(t, http.StatusNotFound, br.Objects[0].Error.Code)
+			session.MakeRequest(t, req, http.StatusBadRequest)
 		})
 
-		t.Run("MetaNotFound", func(t *testing.T) {
+		t.Run("InvalidPointer", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			p := lfs.Pointer{Oid: "05eeb4eb5be71f2dd291ca39157d6d9effd7d1ea19cbdc8a99411fe2a8f26a00", Size: 6}
+			br := makeRequest(t, &lfs.BatchRequest{
+				Operation: "download",
+				Objects: []lfs.Pointer{
+					{Oid: "dummy"},
+					{Oid: oid, Size: -1},
+				},
+			})
+			assert.Len(t, br.Objects, 2)
+			assert.Equal(t, "dummy", br.Objects[0].Oid)
+			assert.Equal(t, oid, br.Objects[1].Oid)
+			assert.Equal(t, int64(0), br.Objects[0].Size)
+			assert.Equal(t, int64(-1), br.Objects[1].Size)
+			assert.NotNil(t, br.Objects[0].Error)
+			assert.NotNil(t, br.Objects[1].Error)
+			assert.Equal(t, http.StatusUnprocessableEntity, br.Objects[0].Error.Code)
+			assert.Equal(t, http.StatusUnprocessableEntity, br.Objects[1].Error.Code)
+			assert.Equal(t, "Oid or size are invalid", br.Objects[0].Error.Message)
+			assert.Equal(t, "Oid or size are invalid", br.Objects[1].Error.Message)
+		})
+
+		t.Run("PointerSizeMismatch", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			br := makeRequest(t, &lfs.BatchRequest{
+				Operation: "download",
+				Objects: []lfs.Pointer{
+					{Oid: oid, Size: 1},
+				},
+			})
+			assert.Len(t, br.Objects, 1)
+			assert.NotNil(t, br.Objects[0].Error)
+			assert.Equal(t, http.StatusUnprocessableEntity, br.Objects[0].Error.Code)
+			assert.Equal(t, "Object "+oid+" is not 1 bytes", br.Objects[0].Error.Message)
+		})
+
+		t.Run("Download", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			t.Run("PointerNotInStore", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				br := makeRequest(t, &lfs.BatchRequest{
+					Operation: "download",
+					Objects: []lfs.Pointer{
+						{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab042", Size: 6},
+					},
+				})
+				assert.Len(t, br.Objects, 1)
+				assert.NotNil(t, br.Objects[0].Error)
+				assert.Equal(t, http.StatusNotFound, br.Objects[0].Error.Code)
+			})
+
+			t.Run("MetaNotFound", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				p := lfs.Pointer{Oid: "05eeb4eb5be71f2dd291ca39157d6d9effd7d1ea19cbdc8a99411fe2a8f26a00", Size: 6}
+
+				contentStore := lfs.NewContentStore()
+				exist, err := contentStore.Exists(p)
+				assert.NoError(t, err)
+				assert.False(t, exist)
+				err = contentStore.Put(p, bytes.NewReader([]byte("dummy0")))
+				assert.NoError(t, err)
+
+				br := makeRequest(t, &lfs.BatchRequest{
+					Operation: "download",
+					Objects:   []lfs.Pointer{p},
+				})
+				assert.Len(t, br.Objects, 1)
+				assert.NotNil(t, br.Objects[0].Error)
+				assert.Equal(t, http.StatusNotFound, br.Objects[0].Error.Code)
+			})
+
+			t.Run("Success", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				br := makeRequest(t, &lfs.BatchRequest{
+					Operation: "download",
+					Objects: []lfs.Pointer{
+						{Oid: oid, Size: 6},
+					},
+				})
+				assert.Len(t, br.Objects, 1)
+				assert.Nil(t, br.Objects[0].Error)
+				assert.Contains(t, br.Objects[0].Actions, "download")
+				l := br.Objects[0].Actions["download"]
+				assert.NotNil(t, l)
+				assert.NotEmpty(t, l.Href)
+			})
+		})
+
+		t.Run("Upload", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			t.Run("FileTooBig", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+				defer test.MockVariableValue(&setting.LFS.MaxFileSize, 2)()
+
+				br := makeRequest(t, &lfs.BatchRequest{
+					Operation: "upload",
+					Objects: []lfs.Pointer{
+						{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab042", Size: 6},
+					},
+				})
+				assert.Len(t, br.Objects, 1)
+				assert.NotNil(t, br.Objects[0].Error)
+				assert.Equal(t, http.StatusUnprocessableEntity, br.Objects[0].Error.Code)
+				assert.Equal(t, "Size must be less than or equal to 2", br.Objects[0].Error.Message)
+			})
+
+			t.Run("CrossRepoObjectRequiresUpload", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				// An object whose bytes already exist in the store but which is not
+				// linked to this repo must not be silently linked, even when the
+				// caller can access it in another repo. Auto-linking let a deploy key
+				// (whose token carries the repo owner's identity) exfiltrate objects
+				// across repos without proving possession. The client must upload.
+				p := lfs.Pointer{Oid: "05eeb4eb5be71f2dd291ca39157d6d9effd7d1ea19cbdc8a99411fe2a8f26a00", Size: 6}
+
+				contentStore := lfs.NewContentStore()
+				exist, err := contentStore.Exists(p)
+				assert.NoError(t, err)
+				assert.True(t, exist)
+
+				// The object is linked to another repo owned by the same user.
+				repo2 := createLFSTestRepository(t, "lfs-batch2-repo")
+				storeObjectInRepo(t, repo2.ID, "dummy0")
+
+				meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
+				assert.Nil(t, meta)
+				assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
+
+				br := makeRequest(t, &lfs.BatchRequest{
+					Operation: "upload",
+					Objects:   []lfs.Pointer{p},
+				})
+				assert.Len(t, br.Objects, 1)
+				assert.Nil(t, br.Objects[0].Error)
+				// The client is told to upload instead of the object being linked.
+				assert.Contains(t, br.Objects[0].Actions, "upload")
+
+				// No meta object may have been created for this repo.
+				meta, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
+				assert.Nil(t, meta)
+				assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
+
+				// Cleanup
+				err = contentStore.ObjectStorage.Delete(p.RelativePath())
+				assert.NoError(t, err)
+			})
+
+			t.Run("AlreadyExists", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				br := makeRequest(t, &lfs.BatchRequest{
+					Operation: "upload",
+					Objects: []lfs.Pointer{
+						{Oid: oid, Size: 6},
+					},
+				})
+				assert.Len(t, br.Objects, 1)
+				assert.Nil(t, br.Objects[0].Error)
+				assert.Empty(t, br.Objects[0].Actions)
+			})
+
+			t.Run("NewFile", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				br := makeRequest(t, &lfs.BatchRequest{
+					Operation: "upload",
+					Objects: []lfs.Pointer{
+						{Oid: "d6f175817f886ec6fbbc1515326465fa96c3bfd54a4ea06cfd6dbbd8340e0153", Size: 1},
+					},
+				})
+				assert.Len(t, br.Objects, 1)
+				assert.Nil(t, br.Objects[0].Error)
+				assert.Contains(t, br.Objects[0].Actions, "upload")
+				ul := br.Objects[0].Actions["upload"]
+				assert.NotNil(t, ul)
+				assert.NotEmpty(t, ul.Href)
+				assert.Equal(t, "chunked", ul.Header["Transfer-Encoding"], "git-lfs client needs Transfer-Encoding to do chunked transfer")
+				assert.Contains(t, br.Objects[0].Actions, "verify")
+				vl := br.Objects[0].Actions["verify"]
+				assert.NotNil(t, vl)
+				assert.NotEmpty(t, vl.Href)
+			})
+		})
+	})
+
+	t.Run("Upload", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.LFS.StartServer, true)()
+
+		repo := createLFSTestRepository(t, "lfs-upload-repo")
+		session := loginUser(t, "user2")
+
+		newRequest := func(t testing.TB, p lfs.Pointer, content string) *RequestWrapper {
+			reqUrl := fmt.Sprintf("/user2/lfs-upload-repo.git/info/lfs/objects/%s/%d", p.Oid, p.Size)
+			return NewRequestWithBody(t, "PUT", reqUrl, strings.NewReader(content))
+		}
+
+		t.Run("InvalidPointer", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := newRequest(t, lfs.Pointer{Oid: "dummy"}, "")
+
+			session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		})
+
+		t.Run("AlreadyExistsInStore", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			p := lfs.Pointer{Oid: "83de2e488b89a0aa1c97496b888120a28b0c1e15463a4adb8405578c540f36d4", Size: 6}
 
 			contentStore := lfs.NewContentStore()
 			exist, err := contentStore.Exists(p)
 			assert.NoError(t, err)
 			assert.False(t, exist)
-			err = contentStore.Put(p, bytes.NewReader([]byte("dummy0")))
+			err = contentStore.Put(p, bytes.NewReader([]byte("dummy5")))
 			assert.NoError(t, err)
 
-			req := newRequest(t, &lfs.BatchRequest{
-				Operation: "download",
-				Objects:   []lfs.Pointer{p},
+			meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
+			assert.Nil(t, meta)
+			assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
+
+			t.Run("InvalidAccess", func(t *testing.T) {
+				req := newRequest(t, p, "invalid")
+				session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 			})
 
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			br := decodeResponse(t, resp.Body)
-			assert.Len(t, br.Objects, 1)
-			assert.NotNil(t, br.Objects[0].Error)
-			assert.Equal(t, http.StatusNotFound, br.Objects[0].Error.Code)
+			t.Run("ValidAccess", func(t *testing.T) {
+				req := newRequest(t, p, "dummy5")
+
+				session.MakeRequest(t, req, http.StatusOK)
+				meta, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
+				assert.NoError(t, err)
+				assert.NotNil(t, meta)
+			})
+
+			// Cleanup
+			err = contentStore.ObjectStorage.Delete(p.RelativePath())
+			assert.NoError(t, err)
+		})
+
+		t.Run("MetaAlreadyExists", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			oid := storeObjectInRepo(t, repo.ID, "123456")
+			req := newRequest(t, lfs.Pointer{Oid: oid, Size: 6}, "")
+			session.MakeRequest(t, req, http.StatusOK)
+		})
+
+		t.Run("HashMismatch", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := newRequest(t, lfs.Pointer{Oid: "2581dd7bbc1fe44726de4b7dd806a087a978b9c5aec0a60481259e34be09b06a", Size: 1}, "a")
+
+			session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		})
+
+		t.Run("SizeMismatch", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := newRequest(t, lfs.Pointer{Oid: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb", Size: 2}, "a")
+
+			session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		})
+
+		t.Run("ConcurrentFailureKeepsExistingMeta", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			pointer, err := lfs.GeneratePointer(strings.NewReader("any-content"))
+			assert.NoError(t, err)
+
+			// mock a record in database: it should not happen in real world (no existing file in the store)
+			// !!for testing purpose only!! to verify a failed upload should not remove a valid record,
+			_, err = git_model.NewLFSMetaObject(t.Context(), repo.ID, pointer)
+			assert.NoError(t, err)
+
+			// make an invalid request, the existing lfs record should not be removed
+			req := newRequest(t, lfs.Pointer{Oid: pointer.Oid, Size: 1}, "invalid content")
+			session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+			meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, pointer.Oid)
+			assert.NoError(t, err)
+			assert.NotNil(t, meta)
 		})
 
 		t.Run("Success", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := newRequest(t, &lfs.BatchRequest{
-				Operation: "download",
-				Objects: []lfs.Pointer{
-					{Oid: oid, Size: 6},
-				},
-			})
+			p := lfs.Pointer{Oid: "6ccce4863b70f258d691f59609d31b4502e1ba5199942d3bc5d35d17a4ce771d", Size: 5}
 
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			br := decodeResponse(t, resp.Body)
-			assert.Len(t, br.Objects, 1)
-			assert.Nil(t, br.Objects[0].Error)
-			assert.Contains(t, br.Objects[0].Actions, "download")
-			l := br.Objects[0].Actions["download"]
-			assert.NotNil(t, l)
-			assert.NotEmpty(t, l.Href)
-		})
-	})
+			req := newRequest(t, p, "gitea")
 
-	t.Run("Upload", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		t.Run("FileTooBig", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-			defer test.MockVariableValue(&setting.LFS.MaxFileSize, 2)()
-
-			req := newRequest(t, &lfs.BatchRequest{
-				Operation: "upload",
-				Objects: []lfs.Pointer{
-					{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab042", Size: 6},
-				},
-			})
-
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			br := decodeResponse(t, resp.Body)
-			assert.Len(t, br.Objects, 1)
-			assert.NotNil(t, br.Objects[0].Error)
-			assert.Equal(t, http.StatusUnprocessableEntity, br.Objects[0].Error.Code)
-			assert.Equal(t, "Size must be less than or equal to 2", br.Objects[0].Error.Message)
-		})
-
-		t.Run("AddMeta", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			p := lfs.Pointer{Oid: "05eeb4eb5be71f2dd291ca39157d6d9effd7d1ea19cbdc8a99411fe2a8f26a00", Size: 6}
+			session.MakeRequest(t, req, http.StatusOK)
 
 			contentStore := lfs.NewContentStore()
 			exist, err := contentStore.Exists(p)
 			assert.NoError(t, err)
 			assert.True(t, exist)
 
-			repo2 := createLFSTestRepository(t, "lfs-batch2-repo")
-			storeObjectInRepo(t, repo2.ID, "dummy0")
-
 			meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
-			assert.Nil(t, meta)
-			assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
-
-			req := newRequest(t, &lfs.BatchRequest{
-				Operation: "upload",
-				Objects:   []lfs.Pointer{p},
-			})
-
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			br := decodeResponse(t, resp.Body)
-			assert.Len(t, br.Objects, 1)
-			assert.Nil(t, br.Objects[0].Error)
-			assert.Empty(t, br.Objects[0].Actions)
-
-			meta, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
-			assert.NoError(t, err)
-			assert.NotNil(t, meta)
-
-			// Cleanup
-			err = contentStore.Delete(p.RelativePath())
-			assert.NoError(t, err)
-		})
-
-		t.Run("AlreadyExists", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := newRequest(t, &lfs.BatchRequest{
-				Operation: "upload",
-				Objects: []lfs.Pointer{
-					{Oid: oid, Size: 6},
-				},
-			})
-
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			br := decodeResponse(t, resp.Body)
-			assert.Len(t, br.Objects, 1)
-			assert.Nil(t, br.Objects[0].Error)
-			assert.Empty(t, br.Objects[0].Actions)
-		})
-
-		t.Run("NewFile", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := newRequest(t, &lfs.BatchRequest{
-				Operation: "upload",
-				Objects: []lfs.Pointer{
-					{Oid: "d6f175817f886ec6fbbc1515326465fa96c3bfd54a4ea06cfd6dbbd8340e0153", Size: 1},
-				},
-			})
-
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			br := decodeResponse(t, resp.Body)
-			assert.Len(t, br.Objects, 1)
-			assert.Nil(t, br.Objects[0].Error)
-			assert.Contains(t, br.Objects[0].Actions, "upload")
-			ul := br.Objects[0].Actions["upload"]
-			assert.NotNil(t, ul)
-			assert.NotEmpty(t, ul.Href)
-			assert.Equal(t, "chunked", ul.Header["Transfer-Encoding"], "git-lfs client needs Transfer-Encoding to do chunked transfer")
-			assert.Contains(t, br.Objects[0].Actions, "verify")
-			vl := br.Objects[0].Actions["verify"]
-			assert.NotNil(t, vl)
-			assert.NotEmpty(t, vl.Href)
-		})
-	})
-}
-
-func TestAPILFSUpload(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
-
-	repo := createLFSTestRepository(t, "lfs-upload-repo")
-	oid := storeObjectInRepo(t, repo.ID, "dummy3")
-	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
-
-	session := loginUser(t, "user2")
-
-	newRequest := func(t testing.TB, p lfs.Pointer, content string) *RequestWrapper {
-		return NewRequestWithBody(t, "PUT", path.Join("/user2/lfs-upload-repo.git/info/lfs/objects/", p.Oid, strconv.FormatInt(p.Size, 10)), strings.NewReader(content))
-	}
-
-	t.Run("InvalidPointer", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := newRequest(t, lfs.Pointer{Oid: "dummy"}, "")
-
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-	})
-
-	t.Run("AlreadyExistsInStore", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		p := lfs.Pointer{Oid: "83de2e488b89a0aa1c97496b888120a28b0c1e15463a4adb8405578c540f36d4", Size: 6}
-
-		contentStore := lfs.NewContentStore()
-		exist, err := contentStore.Exists(p)
-		assert.NoError(t, err)
-		assert.False(t, exist)
-		err = contentStore.Put(p, bytes.NewReader([]byte("dummy5")))
-		assert.NoError(t, err)
-
-		meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
-		assert.Nil(t, meta)
-		assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
-
-		t.Run("InvalidAccess", func(t *testing.T) {
-			req := newRequest(t, p, "invalid")
-			session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-		})
-
-		t.Run("ValidAccess", func(t *testing.T) {
-			req := newRequest(t, p, "dummy5")
-
-			session.MakeRequest(t, req, http.StatusOK)
-			meta, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
 		})
-
-		// Cleanup
-		err = contentStore.Delete(p.RelativePath())
-		assert.NoError(t, err)
 	})
 
-	t.Run("MetaAlreadyExists", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	t.Run("Verify", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 
-		req := newRequest(t, lfs.Pointer{Oid: oid, Size: 6}, "")
+		repo := createLFSTestRepository(t, "lfs-verify-repo")
+		oid := storeObjectInRepo(t, repo.ID, "dummy3")
+		defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
-		session.MakeRequest(t, req, http.StatusOK)
-	})
+		session := loginUser(t, "user2")
 
-	t.Run("HashMismatch", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+		for _, testCase := range []struct {
+			name   string
+			ptr    *lfs.Pointer
+			status int
+		}{
+			{"InvalidJsonRequest", nil, http.StatusUnprocessableEntity},
+			{"InvalidPointer", &lfs.Pointer{}, http.StatusUnprocessableEntity},
+			{"PointerNotExisting", &lfs.Pointer{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab042", Size: 6}, http.StatusNotFound},
+			{"Success", &lfs.Pointer{Oid: oid, Size: 6}, http.StatusOK},
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
 
-		req := newRequest(t, lfs.Pointer{Oid: "2581dd7bbc1fe44726de4b7dd806a087a978b9c5aec0a60481259e34be09b06a", Size: 1}, "a")
-
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-	})
-
-	t.Run("SizeMismatch", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := newRequest(t, lfs.Pointer{Oid: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb", Size: 2}, "a")
-
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-	})
-
-	t.Run("Success", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		p := lfs.Pointer{Oid: "6ccce4863b70f258d691f59609d31b4502e1ba5199942d3bc5d35d17a4ce771d", Size: 5}
-
-		req := newRequest(t, p, "gitea")
-
-		session.MakeRequest(t, req, http.StatusOK)
-
-		contentStore := lfs.NewContentStore()
-		exist, err := contentStore.Exists(p)
-		assert.NoError(t, err)
-		assert.True(t, exist)
-
-		meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
-		assert.NoError(t, err)
-		assert.NotNil(t, meta)
-	})
-}
-
-func TestAPILFSVerify(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
-
-	repo := createLFSTestRepository(t, "lfs-verify-repo")
-	oid := storeObjectInRepo(t, repo.ID, "dummy3")
-	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
-
-	session := loginUser(t, "user2")
-
-	newRequest := func(t testing.TB, p *lfs.Pointer) *RequestWrapper {
-		return NewRequestWithJSON(t, "POST", "/user2/lfs-verify-repo.git/info/lfs/verify", p).
-			SetHeader("Accept", lfs.AcceptHeader).
-			SetHeader("Content-Type", lfs.MediaType)
-	}
-
-	t.Run("InvalidJsonRequest", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := newRequest(t, nil)
-
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-	})
-
-	t.Run("InvalidPointer", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := newRequest(t, &lfs.Pointer{})
-
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-	})
-
-	t.Run("PointerNotExisting", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := newRequest(t, &lfs.Pointer{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab042", Size: 6})
-
-		session.MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("Success", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := newRequest(t, &lfs.Pointer{Oid: oid, Size: 6})
-
-		session.MakeRequest(t, req, http.StatusOK)
+				req := NewRequestWithJSON(t, "POST", "/user2/lfs-verify-repo.git/info/lfs/verify", testCase.ptr).
+					SetHeader("Accept", lfs.AcceptHeader).
+					SetHeader("Content-Type", lfs.MediaType)
+				session.MakeRequest(t, req, testCase.status)
+			})
+		}
 	})
 }

@@ -14,11 +14,11 @@ import (
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 /*
@@ -47,7 +47,7 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 		return err
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return err
 	}
@@ -67,8 +67,13 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 		errChan <- lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan)
 	}()
 
+	// some servers require `ref`, send the default branch for objects from all refs like
+	// `git lfs fetch --all` does on the main branch: it uses current branch as `ref`:
+	// https://github.com/git-lfs/git-lfs/blob/58a763d09d5fe4b7ea85c89ec799d71c5b0dc1da/commands/commands.go#L124-L137
+	// `man git-lfs-fetch` said that "--all" can fetch all objects, so the default branch should work
+	ref := git.RefNameFromBranch(repo.DefaultBranch).String()
 	downloadObjects := func(pointers []lfs.Pointer) error {
-		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
+		err := lfsClient.Download(ctx, ref, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
 			if errors.Is(objectError, lfs.ErrObjectNotExist) {
 				log.Warn("Ignoring missing upstream LFS object %-v: %v", p, objectError)
 				return nil
@@ -181,7 +186,7 @@ func (shortRelease) TableName() string {
 // repositories like https://github.com/vim/vim (with over 13000 tags).
 func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) ([]*SyncResult, error) {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
-	tags, _, err := gitRepo.GetTagInfos(0, 0)
+	tags, _, err := gitRepo.GetTagInfos(ctx, 0, 0)
 	if err != nil {
 		return nil, fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
@@ -246,9 +251,10 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 				LowerTagName: strings.ToLower(tag.Name),
 				Sha1:         tag.Object.String(),
 				// NOTE: ignored, The NumCommits value is calculated and cached on demand when the UI requires it.
-				NumCommits:  -1,
-				CreatedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
-				IsTag:       true,
+				NumCommits:    -1,
+				CreatedUnix:   timeutil.TimeStamp(util.IfZero(tag.CommitDate, tag.Tagger.When).Unix()),
+				PublishedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
+				IsTag:         true,
 			}
 			if err := db.Insert(ctx, release); err != nil {
 				return fmt.Errorf("unable insert tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
@@ -266,10 +272,11 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 
 		for _, tag := range updates {
 			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND lower_tag_name = ?", repo.ID, strings.ToLower(tag.Name)).
-				Cols("sha1", "created_unix").
+				Cols("sha1", "created_unix", "published_unix").
 				Update(&repo_model.Release{
-					Sha1:        tag.Object.String(),
-					CreatedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
+					Sha1:          tag.Object.String(),
+					CreatedUnix:   timeutil.TimeStamp(util.IfZero(tag.CommitDate, tag.Tagger.When).Unix()),
+					PublishedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
 				}); err != nil {
 				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
 			}

@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/db"
@@ -36,7 +37,7 @@ const (
 // Account renders change user's password, user's email and user suicide page
 func Account(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials, setting.UserFeatureDeletion) {
-		ctx.NotFound(errors.New("account setting are not allowed to be changed"))
+		ctx.NotFound()
 		return
 	}
 
@@ -52,11 +53,11 @@ func Account(ctx *context.Context) {
 // AccountPost response for change user's password
 func AccountPost(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
-		ctx.NotFound(errors.New("password setting is not allowed to be changed"))
+		ctx.NotFound()
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.ChangePasswordForm)
+	form := web.GetForm[*forms.ChangePasswordForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
@@ -88,7 +89,7 @@ func AccountPost(ctx *context.Context) {
 			case password.IsErrIsPwnedRequest(err):
 				ctx.Flash.Error(ctx.Tr("auth.password_pwned_err"))
 			default:
-				ctx.ServerError("UpdateAuth", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		} else {
@@ -102,11 +103,11 @@ func AccountPost(ctx *context.Context) {
 // EmailPost response for change user's email
 func EmailPost(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
-		ctx.NotFound(errors.New("emails are not allowed to be changed"))
+		ctx.NotFound()
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.AddEmailForm)
+	form := web.GetForm[*forms.AddEmailForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
@@ -119,7 +120,7 @@ func EmailPost(ctx *context.Context) {
 				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 				return
 			}
-			ctx.ServerError("MakeEmailPrimary", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -187,12 +188,12 @@ func EmailPost(ctx *context.Context) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
-		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
+		} else if errors.Is(err, util.ErrInvalidArgument) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
 		} else {
-			ctx.ServerError("AddEmailAddresses", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -216,17 +217,17 @@ func EmailPost(ctx *context.Context) {
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
-		ctx.NotFound(errors.New("emails are not allowed to be changed"))
+		ctx.NotFound()
 		return
 	}
 	email, err := user_model.GetEmailAddressByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
 	if err != nil || email == nil {
-		ctx.ServerError("GetEmailAddressByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := user.DeleteEmailAddresses(ctx, ctx.Doer, []string{email.Email}); err != nil {
-		ctx.ServerError("DeleteEmailAddresses", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	log.Trace("Email address deleted: %s", ctx.Doer.Name)
@@ -253,7 +254,7 @@ func DeleteAccount(ctx *context.Context) {
 		case errors.As(err, &db.ErrUserPasswordInvalid{}):
 			ctx.JSONError(ctx.Tr("form.enterred_invalid_password"))
 		default:
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -275,7 +276,7 @@ func DeleteAccount(ctx *context.Context) {
 		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.JSONError(ctx.Tr("auth.last_admin"))
 		default:
-			ctx.ServerError("DeleteUser", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -286,7 +287,7 @@ func DeleteAccount(ctx *context.Context) {
 func loadAccountData(ctx *context.Context) {
 	emlist, err := user_model.GetEmailAddresses(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("GetEmailAddresses", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	type UserEmail struct {

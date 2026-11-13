@@ -8,24 +8,23 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 
-	"github.com/google/uuid"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -49,7 +48,7 @@ type RepositoryDumper struct {
 	prHeadCache map[string]string
 }
 
-// NewRepositoryDumper creates an gitea Uploader
+// NewRepositoryDumper creates a gitea Uploader
 func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string, opts base.MigrateOptions) (*RepositoryDumper, error) {
 	baseDir = filepath.Join(baseDir, repoOwner, repoName)
 	if err := os.MkdirAll(baseDir, os.ModePerm); err != nil {
@@ -87,22 +86,6 @@ func (g *RepositoryDumper) reviewDir() string {
 	return filepath.Join(g.baseDir, "reviews")
 }
 
-func (g *RepositoryDumper) setURLToken(remoteAddr string) (string, error) {
-	if len(g.opts.AuthToken) > 0 || len(g.opts.AuthUsername) > 0 {
-		u, err := url.Parse(remoteAddr)
-		if err != nil {
-			return "", err
-		}
-		u.User = url.UserPassword(g.opts.AuthUsername, g.opts.AuthPassword)
-		if len(g.opts.AuthToken) > 0 {
-			u.User = url.UserPassword("oauth2", g.opts.AuthToken)
-		}
-		remoteAddr = u.String()
-	}
-
-	return remoteAddr, nil
-}
-
 // CreateRepo creates a repository
 func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository, opts base.MigrateOptions) error {
 	f, err := os.Create(filepath.Join(g.baseDir, "repo.yml"))
@@ -137,57 +120,65 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 		return err
 	}
 
-	repoPath := g.gitPath()
-	if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
+	repoAbsPath, err := filepath.Abs(g.gitPath())
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(repoAbsPath, os.ModePerm); err != nil {
 		return err
 	}
 
 	migrateTimeout := 2 * time.Hour
 
-	remoteAddr, err := g.setURLToken(repo.CloneURL)
+	remoteAddr, err := base.NullDownloader{}.FormatCloneURL(g.opts, repo.CloneURL)
 	if err != nil {
 		return err
 	}
 
-	err = git.Clone(ctx, remoteAddr, repoPath, git.CloneRepoOptions{
+	err = git.Clone(ctx, remoteAddr, repoAbsPath, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	})
 	if err != nil {
-		return fmt.Errorf("Clone: %w", err)
+		return fmt.Errorf("clone code: %w", err)
 	}
-	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+
+	repoLocal := gitrepo.RepositoryUnmanaged(repoAbsPath)
+	if err := git.WriteCommitGraph(ctx, repoLocal); err != nil {
 		return err
 	}
 
 	if opts.Wiki {
-		wikiPath := g.wikiPath()
+		wikiAbsPath, err := filepath.Abs(g.wikiPath())
+		if err != nil {
+			return err
+		}
 		wikiRemotePath := repository.WikiRemoteURL(ctx, remoteAddr)
 		if len(wikiRemotePath) > 0 {
-			if err := os.MkdirAll(wikiPath, os.ModePerm); err != nil {
-				return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+			if err := os.MkdirAll(wikiAbsPath, os.ModePerm); err != nil {
+				return fmt.Errorf("failed to create %s: %w", wikiAbsPath, err)
 			}
-
-			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
+			wikiLocal := gitrepo.RepositoryUnmanaged(wikiAbsPath)
+			if err := git.Clone(ctx, wikiRemotePath, wikiAbsPath, git.CloneRepoOptions{
 				Mirror:        true,
 				Quiet:         true,
 				Timeout:       migrateTimeout,
 				Branch:        "master",
 				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
-				log.Warn("Clone wiki: %v", err)
-				if err := os.RemoveAll(wikiPath); err != nil {
-					return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+				log.Warn("Failed to clone wiki: %v", err)
+				if err := os.RemoveAll(wikiAbsPath); err != nil {
+					return fmt.Errorf("failed to remove %s: %w", wikiAbsPath, err)
 				}
-			} else if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+			} else if err := git.WriteCommitGraph(ctx, wikiLocal); err != nil {
 				return err
 			}
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepository(ctx, g.gitPath())
+	g.gitRepo, err = git.OpenRepositoryLocal(ctx, repoAbsPath)
 	return err
 }
 
@@ -286,39 +277,31 @@ func (g *RepositoryDumper) CreateLabels(_ context.Context, labels ...*base.Label
 }
 
 // CreateReleases creates releases
-func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.Release) error {
+func (g *RepositoryDumper) CreateReleases(ctx context.Context, releases ...*base.Release) error {
 	if g.opts.ReleaseAssets {
 		for _, release := range releases {
 			attachDir := filepath.Join("release_assets", uuid.New().String())
 			if err := os.MkdirAll(filepath.Join(g.baseDir, attachDir), os.ModePerm); err != nil {
 				return err
 			}
+			assets := release.Assets[:0]
 			for _, asset := range release.Assets {
+				// SECURITY: We cannot check the DownloadFunc is safe here
+				// ... we must assume that it is safe and simply download the attachment
+				rc, err := asset.DownloadFunc()
+				if err != nil {
+					if ctx.Err() != nil {
+						return ctx.Err()
+					}
+					WarnAndNotice("Skipped asset %s of release %s: %v", asset.Name, release.TagName, err)
+					continue
+				}
+
 				// we cannot use asset.Name because it might contains special characters.
 				attachLocalPath := filepath.Join(attachDir, uuid.New().String())
-
-				// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
-				// ... we must assume that they are safe and simply download the attachment
-				// download attachment
-				err := func(attachPath string) error {
-					var rc io.ReadCloser
-					var err error
-					if asset.DownloadURL == nil {
-						rc, err = asset.DownloadFunc()
-						if err != nil {
-							return err
-						}
-						defer rc.Close()
-					} else {
-						resp, err := http.Get(*asset.DownloadURL)
-						if err != nil {
-							return err
-						}
-						defer resp.Body.Close()
-						rc = resp.Body
-					}
-
-					fw, err := os.Create(attachPath)
+				err = func() error {
+					defer rc.Close()
+					fw, err := os.Create(filepath.Join(g.baseDir, attachLocalPath))
 					if err != nil {
 						return fmt.Errorf("create: %w", err)
 					}
@@ -326,12 +309,14 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 
 					_, err = io.Copy(fw, rc)
 					return err
-				}(filepath.Join(g.baseDir, attachLocalPath))
+				}()
 				if err != nil {
-					return err
+					return fmt.Errorf("release %s asset %s: %w", release.TagName, asset.Name, err)
 				}
 				asset.DownloadURL = &attachLocalPath // to save the filepath on the yml file, change the source
+				assets = append(assets, asset)
 			}
+			release.Assets = assets
 		}
 	}
 
@@ -444,14 +429,16 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 
 		// SECURITY: We will assume that the pr.PatchURL has been checked
 		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe
-		u, err := g.setURLToken(pr.PatchURL)
+		u, err := base.NullDownloader{}.FormatCloneURL(g.opts, pr.PatchURL)
 		if err != nil {
 			return err
 		}
 
 		// SECURITY: We will assume that the pr.PatchURL has been checked
-		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe
-		resp, err := http.Get(u) // TODO: This probably needs to use the downloader as there may be rate limiting issues here
+		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe.
+		// Use the migration client so an http(s) PatchURL (and any redirect it follows) is
+		// validated against the migration host allow/block list at dial time.
+		resp, err := getMigrationHTTPClient().Get(u)
 		if err != nil {
 			return err
 		}
@@ -497,7 +484,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 	if pr.Head.CloneURL == "" || pr.Head.Ref == "" {
 		// Set head information if pr.Head.SHA is available
 		if pr.Head.SHA != "" {
-			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithDir(g.gitPath()).RunStdString(ctx)
+			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithRepo(g.gitRepo).RunStdString(ctx)
 			if err != nil {
 				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -516,7 +503,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 			remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 		}
 		// ... now add the remote
-		err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+		err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true)
 		if err != nil {
 			log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
 		} else {
@@ -527,7 +514,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 	if !ok {
 		// Set head information if pr.Head.SHA is available
 		if pr.Head.SHA != "" {
-			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithDir(g.gitPath()).RunStdString(ctx)
+			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithRepo(g.gitRepo).RunStdString(ctx)
 			if err != nil {
 				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -543,10 +530,10 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 		localRef = git.SanitizeRefPattern(oldHeadOwnerName + "/" + pr.Head.Ref)
 
 		// ... Now we must assert that this does not exist
-		if g.gitRepo.IsBranchExist(localRef) {
+		if g.gitRepo.IsBranchExist(ctx, localRef) {
 			localRef = "head-pr-" + strconv.FormatInt(pr.Number, 10) + "/" + localRef
 			i := 0
-			for g.gitRepo.IsBranchExist(localRef) {
+			for g.gitRepo.IsBranchExist(ctx, localRef) {
 				if i > 5 {
 					// ... We tried, we really tried but this is just a seriously unfriendly repo
 					return fmt.Errorf("unable to create unique local reference from %s", pr.Head.Ref)
@@ -562,7 +549,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 			fetchArg = git.BranchPrefix + fetchArg
 		}
 
-		_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithDir(g.gitPath()).RunStdString(ctx)
+		_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithRepo(g.gitRepo).RunStdString(ctx)
 		if err != nil {
 			log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 			// We need to continue here so that the Head.Ref is reset and we attempt to set the gitref for the PR
@@ -578,7 +565,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 
 	// 5. Now if pr.Head.SHA == "" we should recover this to the head of this branch
 	if pr.Head.SHA == "" {
-		headSha, err := g.gitRepo.GetBranchCommitID(localRef)
+		headSha, err := g.gitRepo.GetBranchCommitID(ctx, localRef)
 		if err != nil {
 			log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			return nil
@@ -586,7 +573,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 		pr.Head.SHA = headSha
 	}
 	if pr.Head.SHA != "" {
-		_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithDir(g.gitPath()).RunStdString(ctx)
+		_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithRepo(g.gitRepo).RunStdString(ctx)
 		if err != nil {
 			log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 		}

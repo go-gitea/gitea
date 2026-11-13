@@ -31,24 +31,35 @@ func GetOrgRepositoryIDs(ctx context.Context, orgID int64) (repoIDs []int64, _ e
 type SearchTeamRepoOptions struct {
 	db.ListOptions
 	TeamID int64
+	Actor  *user_model.User
+}
+
+func (opts *SearchTeamRepoOptions) toCond() builder.Cond {
+	cond := builder.NewCond()
+	if opts.TeamID > 0 {
+		cond = cond.And(builder.In("id",
+			builder.Select("repo_id").
+				From("team_repo").
+				Where(builder.Eq{"team_id": opts.TeamID}),
+		))
+	}
+	return cond.And(DoerTokenRepoCond(opts.Actor))
 }
 
 // GetTeamRepositories returns paginated repositories in team of organization.
 func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (RepositoryList, error) {
-	sess := db.GetEngine(ctx)
-	if opts.TeamID > 0 {
-		sess = sess.In("id",
-			builder.Select("repo_id").
-				From("team_repo").
-				Where(builder.Eq{"team_id": opts.TeamID}),
-		)
-	}
+	sess := db.GetEngine(ctx).Where(opts.toCond())
 	if opts.PageSize > 0 {
 		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	var repos []*Repository
 	return repos, sess.OrderBy("repository.name").
 		Find(&repos)
+}
+
+// CountTeamRepositories returns the number of repositories in team of organization matching opts.
+func CountTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toCond()).Count(new(Repository))
 }
 
 // AccessibleReposEnvironment operations involving the repositories that are

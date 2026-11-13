@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	repo_service "gitea.dev/services/repository"
@@ -34,8 +35,8 @@ func ListTeams(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if !ctx.Repo.Owner.IsOrganization() {
 		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
@@ -83,9 +84,7 @@ func IsTeam(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "405":
+	//   default:
 	//     "$ref": "#/responses/error"
 
 	if !ctx.Repo.Owner.IsOrganization() {
@@ -137,12 +136,8 @@ func AddTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "405":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	changeRepoTeam(ctx, true)
 }
@@ -173,22 +168,14 @@ func DeleteTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-	//   "405":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	changeRepoTeam(ctx, false)
 }
 
 func changeRepoTeam(ctx *context.APIContext, add bool) {
-	if !ctx.Repo.Owner.IsOrganization() {
-		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
-	}
-	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.Permission.IsOwner() {
-		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
+	if !canChangeOrgRepoTeam(ctx) {
 		return
 	}
 
@@ -218,6 +205,15 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+func canChangeOrgRepoTeam(ctx *context.APIContext) bool {
+	canChange := access_model.CanDoerManageOrgRepoCollaboratorTeam(ctx, ctx.Repo.Repository, &ctx.Repo.Permission)
+	if !canChange {
+		ctx.APIError(http.StatusForbidden, "No permission to change organization repository's team")
+		return false
+	}
+	return true
 }
 
 func getTeamByParam(ctx *context.APIContext) *organization.Team {

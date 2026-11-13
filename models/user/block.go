@@ -18,7 +18,9 @@ var (
 	ErrBlockOrganization = util.NewInvalidArgumentErrorf("cannot block an organization")
 	ErrCanNotBlock       = util.NewInvalidArgumentErrorf("cannot block the user")
 	ErrCanNotUnblock     = util.NewInvalidArgumentErrorf("cannot unblock the user")
-	ErrBlockedUser       = util.NewPermissionDeniedErrorf("user is blocked")
+
+	// ErrBlockedUser is for end users: the doer is blocked by the repo owner, or an assignee when creating an issue, etc
+	ErrBlockedUser = util.NewPermissionDeniedErrorf("you are blocked by the user")
 )
 
 type Blocking struct {
@@ -45,15 +47,20 @@ func UpdateBlockingNote(ctx context.Context, id int64, note string) error {
 }
 
 func IsUserBlockedBy(ctx context.Context, blockee *User, blockerIDs ...int64) bool {
-	if len(blockerIDs) == 0 {
-		return false
-	}
-
 	if blockee.IsAdmin {
 		return false
 	}
 
-	cond := builder.Eq{"user_blocking.blockee_id": blockee.ID}.
+	return HasBlocking(ctx, blockee.ID, blockerIDs...)
+}
+
+// HasBlocking reports whether a blocking relationship exists regardless of the blockee's admin status.
+func HasBlocking(ctx context.Context, blockeeID int64, blockerIDs ...int64) bool {
+	if len(blockerIDs) == 0 {
+		return false
+	}
+
+	cond := builder.Eq{"user_blocking.blockee_id": blockeeID}.
 		And(builder.In("user_blocking.blocker_id", blockerIDs))
 
 	has, _ := db.GetEngine(ctx).Where(cond).Exist(&Blocking{})
@@ -64,6 +71,10 @@ type FindBlockingOptions struct {
 	db.ListOptions
 	BlockerID int64
 	BlockeeID int64
+}
+
+func (opts *FindBlockingOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts *FindBlockingOptions) ToConds() builder.Cond {

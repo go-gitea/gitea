@@ -15,6 +15,11 @@ import (
 )
 
 func TestValidate(t *testing.T) {
+	const metadata = `
+name: "test"
+about: "this is about"
+body:
+`
 	tests := []struct {
 		name     string
 		filename string
@@ -44,21 +49,13 @@ about: "this is about"
 		},
 		{
 			name: "markdown miss value",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "markdown"
+			content: metadata + `  - type: "markdown"
 `,
 			wantErr: "body[0](markdown): 'value' is required",
 		},
 		{
 			name: "markdown invalid value",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "markdown"
+			content: metadata + `  - type: "markdown"
     attributes:
       value: true
 `,
@@ -66,11 +63,7 @@ body:
 		},
 		{
 			name: "markdown empty value",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "markdown"
+			content: metadata + `  - type: "markdown"
     attributes:
       value: ""
 `,
@@ -78,33 +71,21 @@ body:
 		},
 		{
 			name: "textarea invalid id",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "textarea"
+			content: metadata + `  - type: "textarea"
     id: "?"
 `,
 			wantErr: "body[0](textarea): 'id' should contain only alphanumeric, '-' and '_'",
 		},
 		{
 			name: "textarea miss label",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "textarea"
+			content: metadata + `  - type: "textarea"
     id: "1"
 `,
 			wantErr: "body[0](textarea): 'label' is required",
 		},
 		{
 			name: "textarea conflict id",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "textarea"
+			content: metadata + `  - type: "textarea"
     id: "1"
     attributes:
       label: "a"
@@ -117,11 +98,7 @@ body:
 		},
 		{
 			name: "textarea invalid description",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "textarea"
+			content: metadata + `  - type: "textarea"
     id: "1"
     attributes:
       label: "a"
@@ -131,11 +108,7 @@ body:
 		},
 		{
 			name: "textarea invalid required",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "textarea"
+			content: metadata + `  - type: "textarea"
     id: "1"
     attributes:
       label: "a"
@@ -146,11 +119,7 @@ body:
 		},
 		{
 			name: "input invalid description",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "input"
+			content: metadata + `  - type: "input"
     id: "1"
     attributes:
       label: "a"
@@ -160,11 +129,7 @@ body:
 		},
 		{
 			name: "input invalid is_number",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "input"
+			content: metadata + `  - type: "input"
     id: "1"
     attributes:
       label: "a"
@@ -175,11 +140,7 @@ body:
 		},
 		{
 			name: "input invalid regex",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "input"
+			content: metadata + `  - type: "input"
     id: "1"
     attributes:
       label: "a"
@@ -190,11 +151,7 @@ body:
 		},
 		{
 			name: "dropdown invalid description",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "dropdown"
+			content: metadata + `  - type: "dropdown"
     id: "1"
     attributes:
       label: "a"
@@ -204,11 +161,7 @@ body:
 		},
 		{
 			name: "dropdown invalid multiple",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "dropdown"
+			content: metadata + `  - type: "dropdown"
     id: "1"
     attributes:
       label: "a"
@@ -218,11 +171,7 @@ body:
 		},
 		{
 			name: "dropdown invalid list",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "dropdown"
+			content: metadata + `  - type: "dropdown"
     id: "1"
     attributes:
       label: "a"
@@ -232,11 +181,7 @@ body:
 		},
 		{
 			name: "checkboxes invalid description",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "checkboxes"
+			content: metadata + `  - type: "checkboxes"
     id: "1"
     attributes:
       label: "a"
@@ -246,11 +191,7 @@ body:
 		},
 		{
 			name: "invalid type",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "video"
+			content: metadata + `  - type: "video"
     id: "1"
     attributes:
       label: "a"
@@ -259,24 +200,16 @@ body:
 		},
 		{
 			name: "dropdown miss options",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "dropdown"
+			content: metadata + `  - type: "dropdown"
     id: "1"
     attributes:
       label: "a"
 `,
-			wantErr: "body[0](dropdown): 'options' is required and should be a array",
+			wantErr: "body[0](dropdown): 'options' is required and should be an array",
 		},
 		{
 			name: "dropdown invalid options",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "dropdown"
+			content: metadata + `  - type: "dropdown"
     id: "1"
     attributes:
       label: "a"
@@ -288,11 +221,7 @@ body:
 		},
 		{
 			name: "checkboxes invalid options",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "checkboxes"
+			content: metadata + `  - type: "checkboxes"
     id: "1"
     attributes:
       label: "a"
@@ -304,11 +233,7 @@ body:
 		},
 		{
 			name: "checkboxes option miss label",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "checkboxes"
+			content: metadata + `  - type: "checkboxes"
     id: "1"
     attributes:
       label: "a"
@@ -319,11 +244,7 @@ body:
 		},
 		{
 			name: "checkboxes option invalid required",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "checkboxes"
+			content: metadata + `  - type: "checkboxes"
     id: "1"
     attributes:
       label: "a"
@@ -335,11 +256,7 @@ body:
 		},
 		{
 			name: "field is required but hidden",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: "input"
+			content: metadata + `  - type: "input"
     id: "1"
     attributes:
       label: "a"
@@ -351,11 +268,7 @@ body:
 		},
 		{
 			name: "checkboxes is required but hidden",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: checkboxes
+			content: metadata + `  - type: checkboxes
     id: "1"
     attributes:
       label: Label of checkboxes
@@ -371,11 +284,7 @@ body:
 		},
 		{
 			name: "dropdown default is not an integer",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: dropdown
+			content: metadata + `  - type: dropdown
     id: "1"
     attributes:
       label: Label of dropdown
@@ -393,11 +302,7 @@ body:
 		},
 		{
 			name: "dropdown default is out of range",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: dropdown
+			content: metadata + `  - type: dropdown
     id: "1"
     attributes:
       label: Label of dropdown
@@ -415,11 +320,7 @@ body:
 		},
 		{
 			name: "dropdown without default is valid",
-			content: `
-name: "test"
-about: "this is about"
-body:
-  - type: dropdown
+			content: metadata + `  - type: dropdown
     id: "1"
     attributes:
       label: Label of dropdown
@@ -770,19 +671,8 @@ Content
 }
 
 func TestRenderToMarkdown(t *testing.T) {
-	type args struct {
-		template string
-		values   url.Values
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "normal",
-			args: args{
-				template: `
+	t.Run("normal", func(t *testing.T) {
+		template, err := Unmarshal("test.yaml", []byte(`
 name: Name
 title: Title
 about: About
@@ -860,18 +750,11 @@ body:
           visible: [form]
         - label: Hidden Option of checkboxes
           visible: [content]
-`,
-				values: map[string][]string{
-					"form-field-id3":   {"Value of id3"},
-					"form-field-id4":   {"Value of id4"},
-					"form-field-id5":   {"0,1"},
-					"form-field-id6":   {"1,2"},
-					"form-field-id7-0": {"on"},
-					"form-field-id7-2": {"on"},
-				},
-			},
-
-			want: `Value of the markdown shown in created issue
+`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `Value of the markdown shown in created issue
 
 ### Label of textarea
 
@@ -894,70 +777,35 @@ Option 1 of dropdown, Option 2 of dropdown
 - [ ] Option 2 of checkboxes
 - [ ] Hidden Option of checkboxes
 
-`,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			template, err := Unmarshal("test.yaml", []byte(tt.args.template))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got := RenderToMarkdown(template, tt.args.values); got != tt.want {
-				assert.Equal(t, tt.want, got)
-			}
-		})
-	}
+`
+		if got := RenderToMarkdown(template, url.Values{
+			"form-field-id3":   {"Value of id3"},
+			"form-field-id4":   {"Value of id4"},
+			"form-field-id5":   {"0,1"},
+			"form-field-id6":   {"1,2"},
+			"form-field-id7-0": {"on"},
+			"form-field-id7-2": {"on"},
+		}); got != want {
+			assert.Equal(t, want, got)
+		}
+	})
 }
 
 func Test_minQuotes(t *testing.T) {
-	type args struct {
-		value string
-	}
 	tests := []struct {
-		name string
-		args args
-		want string
+		name  string
+		value string
+		want  string
 	}{
-		{
-			name: "without quote",
-			args: args{
-				value: "Hello\nWorld",
-			},
-			want: "```",
-		},
-		{
-			name: "with 1 quote",
-			args: args{
-				value: "Hello\nWorld\n`text`\n",
-			},
-			want: "```",
-		},
-		{
-			name: "with 3 quotes",
-			args: args{
-				value: "Hello\nWorld\n`text`\n```go\ntext\n```\n",
-			},
-			want: "````",
-		},
-		{
-			name: "with more quotes",
-			args: args{
-				value: "Hello\nWorld\n`text`\n```go\ntext\n```\n``````````bash\ntext\n``````````\n",
-			},
-			want: "```````````",
-		},
-		{
-			name: "not leading quotes",
-			args: args{
-				value: "Hello\nWorld`text````go\ntext`````````````bash\ntext``````````\n",
-			},
-			want: "```",
-		},
+		{"without quote", "Hello\nWorld", "```"},
+		{"with 1 quote", "Hello\nWorld\n`text`\n", "```"},
+		{"with 3 quotes", "Hello\nWorld\n`text`\n```go\ntext\n```\n", "````"},
+		{"with more quotes", "Hello\nWorld\n`text`\n```go\ntext\n```\n``````````bash\ntext\n``````````\n", "```````````"},
+		{"not leading quotes", "Hello\nWorld`text````go\ntext`````````````bash\ntext``````````\n", "```"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := minQuotes(tt.args.value)
+			got := minQuotes(tt.value)
 			assert.Equal(t, tt.want, got)
 		})
 	}

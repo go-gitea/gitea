@@ -12,7 +12,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	repo_service "gitea.dev/services/repository"
 
 	_ "gitea.dev/models/actions"
@@ -149,8 +148,12 @@ func TestRepository_InitWiki(t *testing.T) {
 
 	// repo2 does not already have a wiki
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	repo2.DefaultWikiBranch = "wiki-main"
 	assert.NoError(t, InitWiki(t.Context(), repo2))
 	assert.True(t, repo_service.HasWiki(t.Context(), repo2))
+	branch, err := git.GetDefaultBranch(t.Context(), repo2.WikiStorageRepo())
+	assert.NoError(t, err)
+	assert.Equal(t, "wiki-main", branch)
 }
 
 func TestRepository_AddWikiPage(t *testing.T) {
@@ -167,14 +170,14 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			webPath := UserTitleToWebPath("", userTitle)
 			assert.NoError(t, AddWikiPage(t.Context(), doer, repo, webPath, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
-			gitRepo, err := gitrepo.OpenRepository(t.Context(), repo.WikiStorageRepo())
+			gitRepo, err := git.OpenRepository(t.Context(), repo.WikiStorageRepo())
 			require.NoError(t, err)
 
 			defer gitRepo.Close()
-			masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
+			masterTree, err := gitRepo.GetTree(t.Context(), repo.DefaultWikiBranch)
 			assert.NoError(t, err)
 			gitPath := WebPathToGitPath(webPath)
-			entry, err := masterTree.GetTreeEntryByPath(gitPath)
+			entry, err := masterTree.GetTreeEntryByPath(t.Context(), gitRepo, gitPath)
 			assert.NoError(t, err)
 			assert.Equal(t, gitPath, entry.Name(), "%s not added correctly", userTitle)
 		})
@@ -214,17 +217,17 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		assert.NoError(t, EditWikiPage(t.Context(), doer, repo, "Home", webPath, newWikiContent, commitMsg))
 
 		// Now need to show that the page has been added:
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo.WikiStorageRepo())
+		gitRepo, err := git.OpenRepository(t.Context(), repo.WikiStorageRepo())
 		assert.NoError(t, err)
-		masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
+		masterTree, err := gitRepo.GetTree(t.Context(), repo.DefaultWikiBranch)
 		assert.NoError(t, err)
 		gitPath := WebPathToGitPath(webPath)
-		entry, err := masterTree.GetTreeEntryByPath(gitPath)
+		entry, err := masterTree.GetTreeEntryByPath(t.Context(), gitRepo, gitPath)
 		assert.NoError(t, err)
 		assert.Equal(t, gitPath, entry.Name(), "%s not edited correctly", newWikiName)
 
 		if newWikiName != "Home" {
-			_, err := masterTree.GetTreeEntryByPath("Home.md")
+			_, err := masterTree.GetTreeEntryByPath(t.Context(), gitRepo, "Home.md")
 			assert.Error(t, err)
 		}
 		gitRepo.Close()
@@ -238,21 +241,21 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	assert.NoError(t, DeleteWikiPage(t.Context(), doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo.WikiStorageRepo())
+	gitRepo, err := git.OpenRepository(t.Context(), repo.WikiStorageRepo())
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
-	masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
+	masterTree, err := gitRepo.GetTree(t.Context(), repo.DefaultWikiBranch)
 	assert.NoError(t, err)
 	gitPath := WebPathToGitPath("Home")
-	_, err = masterTree.GetTreeEntryByPath(gitPath)
+	_, err = masterTree.GetTreeEntryByPath(t.Context(), gitRepo, gitPath)
 	assert.Error(t, err)
 }
 
 func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo.WikiStorageRepo())
+	gitRepo, err := git.OpenRepository(t.Context(), repo.WikiStorageRepo())
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
@@ -279,7 +282,7 @@ func TestPrepareWikiFileName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			webPath := UserTitleToWebPath("", tt.arg)
-			existence, newWikiPath, err := prepareGitPath(gitRepo, repo.DefaultWikiBranch, webPath)
+			existence, newWikiPath, err := prepareGitPath(t.Context(), gitRepo, repo.DefaultWikiBranch, webPath)
 			if (err != nil) != tt.wantErr {
 				assert.NoError(t, err)
 				return
@@ -297,20 +300,7 @@ func TestPrepareWikiFileName(t *testing.T) {
 }
 
 func TestPrepareWikiFileName_FirstPage(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-
-	// Now create a temporaryDirectory
-	tmpDir := t.TempDir()
-
-	err := git.InitRepository(t.Context(), tmpDir, true, git.Sha1ObjectFormat.Name())
-	assert.NoError(t, err)
-
-	gitRepo, err := git.OpenRepository(t.Context(), tmpDir)
-	require.NoError(t, err)
-
-	defer gitRepo.Close()
-
-	existence, newWikiPath, err := prepareGitPath(gitRepo, "master", "Home")
+	existence, newWikiPath, err := prepareGitPath(t.Context(), nil, "", "Home")
 	assert.False(t, existence)
 	assert.NoError(t, err)
 	assert.Equal(t, "Home.md", newWikiPath)

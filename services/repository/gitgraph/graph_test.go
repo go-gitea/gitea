@@ -16,14 +16,14 @@ import (
 )
 
 func BenchmarkGetCommitGraph(b *testing.B) {
-	currentRepo, err := git.OpenRepository(b.Context(), ".")
+	currentRepo, err := git.OpenRepositoryLocal(b.Context(), ".")
 	if err != nil || currentRepo == nil {
 		b.Error("Could not open repository")
 	}
 	defer currentRepo.Close()
 
 	for b.Loop() {
-		graph, err := GetCommitGraph(currentRepo, 1, 0, false, nil, nil)
+		graph, err := GetCommitGraph(b.Context(), currentRepo, 1, 0, false, nil, nil)
 		if err != nil {
 			b.Error("Could get commit graph")
 		}
@@ -35,7 +35,7 @@ func BenchmarkGetCommitGraph(b *testing.B) {
 }
 
 func BenchmarkParseCommitString(b *testing.B) {
-	testString := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|4e61bac|Add route for graph"
+	testString := "* DATA:^4e61bacab44e9b4730e44a6615d04098dd3a8eaf^2016-12-20 21:10:41 +0100^4e61bac^Add route for graph"
 
 	parser := &Parser{}
 	parser.Reset()
@@ -114,22 +114,25 @@ func TestReleaseUnusedColors(t *testing.T) {
 		parser.firstAvailable = testcase.firstAvailable
 		parser.firstInUse = testcase.firstInUse
 		parser.releaseUnusedColors()
+		reportColorError := func(format string, color int) {
+			t.Errorf(format,
+				testcase.availableColors,
+				testcase.oldColors,
+				testcase.firstAvailable,
+				testcase.firstInUse,
+				parser.availableColors,
+				parser.oldColors,
+				parser.firstAvailable,
+				parser.firstInUse,
+				color)
+		}
 
 		if parser.firstAvailable == -1 {
 			// All in use
 			for _, color := range parser.availableColors {
 				found := slices.Contains(parser.oldColors, color)
 				if !found {
-					t.Errorf("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should be available but is not",
-						testcase.availableColors,
-						testcase.oldColors,
-						testcase.firstAvailable,
-						testcase.firstInUse,
-						parser.availableColors,
-						parser.oldColors,
-						parser.firstAvailable,
-						parser.firstInUse,
-						color)
+					reportColorError("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should be available but is not", color)
 				}
 			}
 		} else if parser.firstInUse != -1 {
@@ -138,48 +141,21 @@ func TestReleaseUnusedColors(t *testing.T) {
 				color := parser.availableColors[i]
 				found := slices.Contains(parser.oldColors, color)
 				if !found {
-					t.Errorf("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should be available but is not",
-						testcase.availableColors,
-						testcase.oldColors,
-						testcase.firstAvailable,
-						testcase.firstInUse,
-						parser.availableColors,
-						parser.oldColors,
-						parser.firstAvailable,
-						parser.firstInUse,
-						color)
+					reportColorError("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should be available but is not", color)
 				}
 			}
 			for i := parser.firstAvailable; i != parser.firstInUse; i = (i + 1) % len(parser.availableColors) {
 				color := parser.availableColors[i]
 				found := slices.Contains(parser.oldColors, color)
 				if found {
-					t.Errorf("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should not be available but is",
-						testcase.availableColors,
-						testcase.oldColors,
-						testcase.firstAvailable,
-						testcase.firstInUse,
-						parser.availableColors,
-						parser.oldColors,
-						parser.firstAvailable,
-						parser.firstInUse,
-						color)
+					reportColorError("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should not be available but is", color)
 				}
 			}
 		} else {
 			// None in use
 			for _, color := range parser.oldColors {
 				if color != 0 {
-					t.Errorf("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should not be available but is",
-						testcase.availableColors,
-						testcase.oldColors,
-						testcase.firstAvailable,
-						testcase.firstInUse,
-						parser.availableColors,
-						parser.oldColors,
-						parser.firstAvailable,
-						parser.firstInUse,
-						color)
+					reportColorError("In testcase:\n%d\t%d\t%d %d =>\n%d\t%d\t%d %d: %d should not be available but is", color)
 				}
 			}
 		}
@@ -224,14 +200,14 @@ func TestParseGlyphs(t *testing.T) {
 }
 
 func TestCommitStringParsing(t *testing.T) {
-	dataFirstPart := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|4e61bac|"
+	dataFirstPart := "* DATA:^4e61bacab44e9b4730e44a6615d04098dd3a8eaf^2016-12-20 21:10:41 +0100^4e61bac^"
 	tests := []struct {
 		shouldPass    bool
 		testName      string
 		commitMessage string
 	}{
 		{true, "normal", "not a fancy message"},
-		{true, "extra pipe", "An extra pipe: |"},
+		{true, "extra sep", "An extra sep"},
 		{true, "extra 'Data:'", "DATA: might be trouble"},
 	}
 

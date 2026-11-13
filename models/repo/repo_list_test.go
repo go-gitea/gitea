@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
@@ -194,6 +195,25 @@ func TestSearchRepository(t *testing.T) {
 	t.Run("SearchRepositoryWithInDescription", testSearchRepositoryWithInDescription)
 	t.Run("SearchRepositoryNotInDescription", testSearchRepositoryNotInDescription)
 	t.Run("SearchRepositoryCases", testSearchRepositoryCases)
+	t.Run("SearchRepositoryRanksExactMatchesCaseInsensitivelyUnlessSorted", func(t *testing.T) {
+		afoo := &repo_model.Repository{OwnerID: 2, OwnerName: "User2", LowerName: "afoo", Name: "afoo"}
+		aafoo := &repo_model.Repository{OwnerID: 20, OwnerName: "user20", LowerName: "aafoo", Name: "aafoo"}
+		foo := &repo_model.Repository{OwnerID: 2, OwnerName: "User2", LowerName: "foo", Name: "foo"}
+		require.NoError(t, db.Insert(t.Context(), afoo, aafoo, foo))
+		for _, tc := range []struct {
+			keyword string
+			orderBy db.SearchOrderBy
+			want    []int64
+		}{
+			{"Foo", "", []int64{foo.ID, aafoo.ID, afoo.ID}},
+			{"Foo", db.SearchOrderByID, []int64{afoo.ID, aafoo.ID, foo.ID}},
+			{"user2/foo", "", []int64{foo.ID, afoo.ID, aafoo.ID}},
+		} {
+			repos, _, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{Keyword: tc.keyword, OrderBy: tc.orderBy})
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, repoIDs(repos), "%s %s", tc.keyword, tc.orderBy)
+		}
+	})
 }
 
 func testSearchRepositoryPublic(t *testing.T) {
@@ -268,6 +288,23 @@ func testSearchRepositoryRestricted(t *testing.T) {
 		repoIDs := performSearch(t, restrictedUser)
 		assert.Equal(t, []int64{4}, repoIDs)
 	})
+}
+
+func TestSearchRepositoryExcludesHiddenIndividualOwners(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	hiddenOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{
+		ID:         hiddenOwner.ID,
+		Visibility: structs.VisibleTypePrivate,
+	}, "visibility"))
+
+	repos, _, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{Page: 1, PageSize: 100},
+		Keyword:     "repo1",
+	})
+	require.NoError(t, err)
+	assert.NotContains(t, repoIDs(repos), int64(1))
 }
 
 func testSearchRepositoryPrivate(t *testing.T) {
@@ -465,4 +502,68 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 			assert.Equal(t, int64(testCase.count), count)
 		})
 	}
+}
+
+func TestFindUserCodeAccessibleRepoIDsRequiresCodeUnit(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	publicOnlyUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	publicOnlyUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:repository")
+	for _, user := range []*user_model.User{nil, publicOnlyUser} {
+		repoIDs, err := repo_model.FindUserCodeAccessibleRepoIDs(t.Context(), user)
+		require.NoError(t, err)
+		assert.Contains(t, repoIDs, int64(1))
+		assert.NotContains(t, repoIDs, int64(50))
+	}
+}
+
+func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	// user2 is on org3's owner team, so it can access org3's private repo3 (which has the actions unit)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// org3 is a public org owning repo3 (private) and repo32 (public), both with the actions unit
+	const orgID = 3
+	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 32, Type: unit.TypeActions, Config: &repo_model.ActionsConfig{}}))
+
+	all, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user))
+	require.NoError(t, err)
+	assert.Contains(t, all, int64(3), "without public-only the private repo's actions are listed")
+
+	scopedUser := *user
+	scopedUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:repository")
+	publicOnly, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, &scopedUser))
+	require.NoError(t, err)
+	assert.NotContains(t, publicOnly, int64(3), "a public-only token must not list a private repo's actions")
+	assert.Contains(t, publicOnly, int64(32), "a public repo under a public owner stays listed")
+
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.Nil(t, repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(orgID, admin))
+	admin.ExtDoerData = scopedUser.ExtDoerData
+	assert.NotNil(t, repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(orgID, admin))
+}
+
+// TestUserOrgUnitRepoCondTeamAuthorize pins team.authorize vs team_unit.access_mode
+func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	accessibleRepoIDs := func(userID, orgID int64, unitType unit.Type) []int64 {
+		ids, err := repo_model.SearchRepositoryIDsByCondition(t.Context(),
+			repo_model.UserOrgUnitRepoCond("`repository`.id", userID, orgID, unitType))
+		require.NoError(t, err)
+		return ids
+	}
+
+	// Owner team5 has no Actions team_unit row but still grants via authorize=owner.
+	assert.Contains(t, accessibleRepoIDs(18, 17, unit.TypeActions), int64(24))
+
+	// team2 is "authorize=write" with Projects team_unit but no Actions row.
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
+
+	// now team2 is "authorize=none", no Actions row.
+	_, err := db.GetEngine(t.Context()).Exec("UPDATE team SET authorize=0 WHERE id=2")
+	assert.NoError(t, err)
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
+	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
 }

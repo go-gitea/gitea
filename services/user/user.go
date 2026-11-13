@@ -10,13 +10,14 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/eventsource"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
@@ -24,10 +25,12 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/agit"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	org_service "gitea.dev/services/org"
 	"gitea.dev/services/packages"
 	container_service "gitea.dev/services/packages/container"
 	repo_service "gitea.dev/services/repository"
+	websocket_service "gitea.dev/services/websocket"
 )
 
 // RenameUser renames a user
@@ -55,7 +58,13 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 			u.Name = oldUserName
 			return err
 		}
-		return repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName)
+		if err := repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName); err != nil {
+			return err
+		}
+
+		recordNameChange(ctx, u, oldUserName)
+
+		return nil
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -98,7 +107,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 	}
 
 	// Do not fail if directory does not exist
-	if err = util.Rename(user_model.UserPath(oldUserName), user_model.UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+	if err = util.RenameWithRetry(gitrepo.UserLocalPath(oldUserName), gitrepo.UserLocalPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		u.Name = oldUserName
 		u.LowerName = strings.ToLower(oldUserName)
 		return fmt.Errorf("rename user directory: %w", err)
@@ -107,13 +116,24 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 	if err = committer.Commit(); err != nil {
 		u.Name = oldUserName
 		u.LowerName = strings.ToLower(oldUserName)
-		if err2 := util.Rename(user_model.UserPath(newUserName), user_model.UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+		if err2 := util.RenameWithRetry(gitrepo.UserLocalPath(newUserName), gitrepo.UserLocalPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
 			log.Error("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 		}
 		return err
 	}
+
+	recordNameChange(ctx, u, oldUserName)
+
 	return nil
+}
+
+func recordNameChange(ctx context.Context, u *user_model.User, oldUserName string) {
+	if u.IsOrganization() {
+		audit.Record(ctx, audit_model.OrganizationName, u, "previous_name", oldUserName)
+	} else {
+		audit.Record(ctx, audit_model.UserName, u, "previous_name", oldUserName)
+	}
 }
 
 // DeleteUser completely and permanently deletes everything of a user,
@@ -147,9 +167,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 
 		// Force any logged in sessions to log out
 		// FIXME: We also need to tell the session manager to log them out too.
-		eventsource.GetManager().SendMessage(u.ID, &eventsource.Event{
-			Name: "logout",
-		})
+		websocket_service.PublishLogout(u.ID, "")
 
 		// Delete all repos belonging to this user
 		// Now this is not within a transaction because there are internal transactions within the DeleteRepository
@@ -257,8 +275,8 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	}
 
 	// Note: There are something just cannot be roll back, so just keep error logs of those operations.
-	path := user_model.UserPath(u.Name)
-	if err := util.RemoveAll(path); err != nil {
+	path := gitrepo.UserLocalPath(u.Name)
+	if err := util.RemoveAllWithRetry(path); err != nil {
 		err = fmt.Errorf("failed to RemoveAll %s: %w", path, err)
 		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 	}
@@ -270,6 +288,8 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 			_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		}
 	}
+
+	audit.Record(ctx, audit_model.UserDelete, u)
 
 	return nil
 }

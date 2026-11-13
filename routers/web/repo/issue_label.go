@@ -4,14 +4,16 @@
 package repo
 
 import (
+	"cmp"
 	"errors"
 	"net/http"
+	"slices"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	"gitea.dev/modules/label"
-	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -37,20 +39,19 @@ func Labels(ctx *context.Context) {
 
 // InitializeLabels init labels for a repository
 func InitializeLabels(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.InitializeLabelsForm)
+	form := web.GetForm[*forms.InitializeLabelsForm](ctx)
 	if ctx.HasError() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 		return
 	}
 
 	if err := repo_module.InitializeLabels(ctx, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
-		if label.IsErrTemplateLoad(err) {
-			originalErr := err.(label.ErrTemplateLoad).OriginalError
-			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
+		if errTemplateLoad, ok := err.(label.ErrTemplateLoad); ok {
+			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, errTemplateLoad.OriginalError))
 			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 			return
 		}
-		ctx.ServerError("InitializeLabels", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
@@ -60,7 +61,7 @@ func InitializeLabels(ctx *context.Context) {
 func RetrieveLabelsForList(ctx *context.Context) {
 	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("RetrieveLabelsForList.GetLabels", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -73,23 +74,33 @@ func RetrieveLabelsForList(ctx *context.Context) {
 	if ctx.Repo.Owner.IsOrganization() {
 		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
-			ctx.ServerError("GetLabelsByOrgID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		for _, l := range orgLabels {
 			l.CalOpenOrgIssues(ctx, ctx.Repo.Repository.ID, l.ID)
 		}
+		switch ctx.FormString("sort") {
+		case "leastissues":
+			slices.SortStableFunc(orgLabels, func(label1, label2 *issues_model.Label) int {
+				return cmp.Compare(label1.NumOpenRepoIssues, label2.NumOpenRepoIssues)
+			})
+		case "mostissues":
+			slices.SortStableFunc(orgLabels, func(label1, label2 *issues_model.Label) int {
+				return cmp.Compare(label2.NumOpenRepoIssues, label1.NumOpenRepoIssues)
+			})
+		}
 		ctx.Data["OrgLabels"] = orgLabels
 
 		org, err := organization.GetOrgByName(ctx, ctx.Repo.Owner.LowerName)
 		if err != nil {
-			ctx.ServerError("GetOrgByName", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if ctx.Doer != nil {
 			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
 			if err != nil {
-				ctx.ServerError("org.IsOwnedBy", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Org.OrgLink = org.AsUser().OrganisationLink()
@@ -117,7 +128,7 @@ func NewLabel(ctx *context.Context) {
 		Color:          form.Color,
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
-		ctx.ServerError("NewLabel", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/labels")
@@ -135,7 +146,7 @@ func UpdateLabel(ctx *context.Context) {
 		ctx.JSONErrorNotFound()
 		return
 	} else if err != nil {
-		ctx.ServerError("GetLabelInRepoByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -146,7 +157,7 @@ func UpdateLabel(ctx *context.Context) {
 	l.Color = form.Color
 	l.SetArchived(form.IsArchived)
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
-		ctx.ServerError("UpdateLabel", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/labels")
@@ -154,7 +165,7 @@ func UpdateLabel(ctx *context.Context) {
 
 // DeleteLabel delete a label
 func DeleteLabel(ctx *context.Context) {
-	if err := issues_model.DeleteLabel(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
+	if err := issues_model.DeleteRepoLabel(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteLabel: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))
@@ -165,7 +176,7 @@ func DeleteLabel(ctx *context.Context) {
 
 // UpdateIssueLabel change issue's labels
 func UpdateIssueLabel(ctx *context.Context) {
-	issues := getActionIssues(ctx)
+	issues := getActionIssues(ctx, perm.AccessModeWrite)
 	if ctx.Written() {
 		return
 	}
@@ -174,17 +185,19 @@ func UpdateIssueLabel(ctx *context.Context) {
 	case "clear":
 		for _, issue := range issues {
 			if err := issue_service.ClearLabels(ctx, issue, ctx.Doer); err != nil {
-				ctx.ServerError("ClearLabels", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
 	case "attach", "detach", "toggle", "toggle-alt":
-		label, err := issues_model.GetLabelByID(ctx, ctx.FormInt64("id"))
+		// scope the label to this repo (or its org) so a foreign label ID is 404, not an oracle
+		labelID := ctx.FormInt64("id")
+		label, err := issues_model.GetLabelInRepoOrOrgByID(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner.ID, ctx.Repo.Owner.IsOrganization(), labelID)
 		if err != nil {
-			if issues_model.IsErrRepoLabelNotExist(err) {
+			if errors.Is(err, util.ErrNotExist) {
 				ctx.HTTPError(http.StatusNotFound, "GetLabelByID")
 			} else {
-				ctx.ServerError("GetLabelByID", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -209,21 +222,20 @@ func UpdateIssueLabel(ctx *context.Context) {
 		if action == "attach" {
 			for _, issue := range issues {
 				if err = issue_service.AddLabel(ctx, issue, ctx.Doer, label); err != nil {
-					ctx.ServerError("AddLabel", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 			}
 		} else {
 			for _, issue := range issues {
 				if err = issue_service.RemoveLabel(ctx, issue, ctx.Doer, label); err != nil {
-					ctx.ServerError("RemoveLabel", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 			}
 		}
 	default:
-		log.Warn("Unrecognized action: %s", action)
-		ctx.HTTPError(http.StatusInternalServerError)
+		ctx.JSONError("invalid action: " + action)
 		return
 	}
 

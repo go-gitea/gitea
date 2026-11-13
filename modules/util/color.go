@@ -5,6 +5,7 @@ package util
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -37,20 +38,34 @@ func HexToRBGColor(colorString string) (float64, float64, float64) {
 	return r, g, b
 }
 
-// GetRelativeLuminance returns relative luminance for a SRGB color - https://en.wikipedia.org/wiki/Relative_luminance
-// Keep this in sync with web_src/js/utils/color.js
-func GetRelativeLuminance(color string) float64 {
+// linearizeChannel undoes the sRGB transfer function, channel is in 0..255 range
+func linearizeChannel(channel float64) float64 {
+	srgb := channel / 255
+	if srgb <= 0.04045 {
+		return srgb / 12.92
+	}
+	return math.Pow((srgb+0.055)/1.055, 2.4)
+}
+
+// getRelativeLuminance returns relative luminance for a SRGB color - https://www.w3.org/TR/WCAG20/#relativeluminancedef
+// Keep this in sync with web_src/js/utils/color.ts
+func getRelativeLuminance(color string) float64 {
+	r, g, b := HexToRBGColor(color)
+	return 0.2126*linearizeChannel(r) + 0.7152*linearizeChannel(g) + 0.0722*linearizeChannel(b)
+}
+
+// GetPerceivedBrightness weights the gamma-encoded channels, so it stays in the same space as the
+// raw channels and can scale them proportionally. Not a luminance, don't use it for contrast.
+func GetPerceivedBrightness(color string) float64 {
 	r, g, b := HexToRBGColor(color)
 	return (0.2126729*r + 0.7151522*g + 0.0721750*b) / 255
 }
 
 func UseLightText(backgroundColor string) bool {
-	return GetRelativeLuminance(backgroundColor) < 0.453
+	return getRelativeLuminance(backgroundColor) < 0.36 // matches APCA better than WCAG's own 0.179
 }
 
 // ContrastColor returns a black or white foreground color that the highest contrast ratio.
-// In the future, the APCA contrast function, or CSS `contrast-color` will be better.
-// https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
 func ContrastColor(backgroundColor string) string {
 	if UseLightText(backgroundColor) {
 		return "#fff"

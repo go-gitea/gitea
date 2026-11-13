@@ -9,7 +9,6 @@ import (
 )
 
 // AccessToken represents an API access token.
-// swagger:response AccessToken
 type AccessToken struct {
 	// The unique identifier of the access token
 	ID int64 `json:"id"`
@@ -36,7 +35,7 @@ type AccessTokenList []*AccessToken
 type CreateAccessTokenOption struct {
 	// required: true
 	Name string `json:"name" binding:"Required"`
-	// example: ["all", "read:activitypub","read:issue", "write:misc", "read:notification", "read:organization", "read:package", "read:repository", "read:user"]
+	// example: ["all", "read:activitypub", "write:commitstatus", "read:issue", "write:misc", "read:notification", "read:organization", "read:package", "read:repository", "read:user"]
 	Scopes []string `json:"scopes"`
 }
 
@@ -53,7 +52,6 @@ type CreateOAuth2ApplicationOptions struct {
 }
 
 // OAuth2Application represents an OAuth2 application.
-// swagger:response OAuth2Application
 type OAuth2Application struct {
 	// The unique identifier of the OAuth2 application
 	ID int64 `json:"id"`

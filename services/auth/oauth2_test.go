@@ -4,11 +4,12 @@
 package auth
 
 import (
+	"fmt"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/reqctx"
 	"gitea.dev/services/actions"
 
 	"github.com/stretchr/testify/assert"
@@ -23,15 +24,24 @@ func TestUserIDFromToken(t *testing.T) {
 		token, err := actions.CreateAuthorizationToken(RunningTaskID, 1, 2)
 		assert.NoError(t, err)
 
-		ds := make(reqctx.ContextData)
-
 		o := OAuth2{}
-		u, err := o.userFromToken(t.Context(), token, ds)
+		u, err := o.userFromToken(t.Context(), token)
 		require.NoError(t, err)
 		assert.Equal(t, user_model.ActionsUserID, u.ID)
 		taskID, ok := user_model.GetActionsUserTaskID(u)
 		assert.True(t, ok)
 		assert.Equal(t, RunningTaskID, taskID)
+	})
+
+	t.Run("Access token", func(t *testing.T) {
+		token := &auth_model.AccessToken{UID: 2, Name: "public-only", Scope: "public-only,read:repository"}
+		require.NoError(t, auth_model.NewAccessToken(t.Context(), token))
+
+		u, err := (&OAuth2{}).userFromToken(t.Context(), token.Token)
+		require.NoError(t, err)
+		scope, _ := user_model.GetDoerTokenScope(u)
+		assert.Equal(t, token.Scope, scope)
+		assert.Equal(t, fmt.Sprintf("access-token:%d", token.ID), user_model.GetDoerCredential(u))
 	})
 }
 

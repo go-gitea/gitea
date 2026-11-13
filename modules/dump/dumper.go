@@ -16,8 +16,8 @@ import (
 	"slices"
 	"strings"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/mholt/archives"
@@ -34,15 +34,11 @@ func PrepareFileNameAndType(argFile, argType string) (outFileName, outType strin
 		outType = argType
 		outFileName = fmt.Sprintf("gitea-dump-%d.%s", timeutil.TimeStampNow(), outType)
 	} else if argType == "" {
-		if filepath.Ext(outFileName) == "" {
-			outType = SupportedOutputTypes[0]
-			outFileName = argFile
-		} else {
-			for _, t := range SupportedOutputTypes {
-				if strings.HasSuffix(argFile, "."+t) {
-					outFileName = argFile
-					outType = t
-				}
+		outFileName, outType = argFile, SupportedOutputTypes[0]
+		for _, t := range SupportedOutputTypes {
+			if strings.HasSuffix(argFile, "."+t) {
+				outType = t
+				break
 			}
 		}
 	} else {
@@ -184,7 +180,7 @@ func (dumper *Dumper) Close() error {
 
 func (dumper *Dumper) normalizeFilePath(absPath string) string {
 	absPath = filepath.Clean(absPath)
-	if setting.IsWindows {
+	if consts.IsWindows {
 		absPath = strings.ToLower(absPath)
 	}
 	return absPath

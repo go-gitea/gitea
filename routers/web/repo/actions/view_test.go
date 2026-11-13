@@ -77,64 +77,99 @@ func TestViewSummaryBranchFromRun(t *testing.T) {
 }
 
 func TestConvertToViewModel(t *testing.T) {
-	task := &actions_model.ActionTask{
-		Status: actions_model.StatusSuccess,
-		Steps: []*actions_model.ActionTaskStep{
-			{Name: "Run step-name", Index: 0, Status: actions_model.StatusSuccess, LogLength: 1, Started: timeutil.TimeStamp(1), Stopped: timeutil.TimeStamp(5)},
+	for _, c := range []struct {
+		name             string
+		task             actions_model.ActionTask
+		expectedViewJobs []*ViewJobStep
+	}{
+		{
+			name: "success",
+			task: actions_model.ActionTask{
+				Status: actions_model.StatusSuccess,
+				Steps: []*actions_model.ActionTaskStep{
+					{Name: "Run step-name", Index: 0, Status: actions_model.StatusSuccess, LogLength: 1, Started: timeutil.TimeStamp(1), Stopped: timeutil.TimeStamp(5)},
+				},
+				Stopped: timeutil.TimeStamp(20),
+			},
+			expectedViewJobs: []*ViewJobStep{
+				{Summary: "Set up job", Duration: "0s", Status: "success"},
+				{Summary: "Run step-name", Duration: "4s", Status: "success"},
+				{Summary: "Complete job", Duration: "15s", Status: "success"},
+			},
 		},
-		Stopped: timeutil.TimeStamp(20),
-	}
+		{
+			name: "cancelling task does not render running steps",
+			task: actions_model.ActionTask{
+				Status: actions_model.StatusCancelling,
+				Steps: []*actions_model.ActionTaskStep{
+					{Name: "Run step-name", Index: 0, Status: actions_model.StatusRunning, LogLength: 1},
+				},
+			},
+			expectedViewJobs: []*ViewJobStep{
+				{Summary: "Set up job", Duration: "0s", Status: "success"},
+				{Summary: "Run step-name", Duration: "0s", Status: "cancelling"},
+				{Summary: "Complete job", Duration: "0s", Status: "pending"},
+			},
+		},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			viewJobSteps, _, err := convertToViewModel(t.Context(), translation.MockLocale{}, nil, &c.task)
+			require.NoError(t, err)
 
-	viewJobSteps, _, err := convertToViewModel(t.Context(), translation.MockLocale{}, nil, task)
-	require.NoError(t, err)
-
-	expectedViewJobs := []*ViewJobStep{
-		{
-			Summary:  "Set up job",
-			Duration: "0s",
-			Status:   "success",
-		},
-		{
-			Summary:  "Run step-name",
-			Duration: "4s",
-			Status:   "success",
-		},
-		{
-			Summary:  "Complete job",
-			Duration: "15s",
-			Status:   "success",
-		},
+			if c.task.Status == actions_model.StatusSuccess {
+				t.Run("out of range cursor step", func(t *testing.T) {
+					cursors := []LogCursor{{Step: -1, Expanded: true}, {Step: 3, Expanded: true}}
+					_, logs, err := convertToViewModel(t.Context(), translation.MockLocale{}, cursors, &c.task)
+					require.NoError(t, err)
+					assert.Empty(t, logs)
+				})
+			}
+			assert.Equal(t, c.expectedViewJobs, viewJobSteps)
+		})
 	}
-	assert.Equal(t, expectedViewJobs, viewJobSteps)
 }
 
-func TestConvertToViewModelCancellingTaskDoesNotRenderRunningSteps(t *testing.T) {
-	task := &actions_model.ActionTask{
-		Status: actions_model.StatusCancelling,
-		Steps: []*actions_model.ActionTaskStep{
-			{Name: "Run step-name", Index: 0, Status: actions_model.StatusRunning, LogLength: 1},
-		},
+func TestPendingNeeds(t *testing.T) {
+	current := &actions_model.ActionRunJob{JobID: "deploy", Needs: []string{"build", "test"}}
+	jobs := []*actions_model.ActionRunJob{
+		current,
+		{JobID: "build", Status: actions_model.StatusSuccess},
+		{JobID: "test", Status: actions_model.StatusRunning},
 	}
+	// "test" is not done yet, "build" succeeded, so only "test" blocks.
+	assert.Equal(t, []string{"test"}, pendingNeeds(current, jobs))
 
-	viewJobSteps, _, err := convertToViewModel(t.Context(), translation.MockLocale{}, nil, task)
-	require.NoError(t, err)
+	t.Run("all needs done", func(t *testing.T) {
+		done := []*actions_model.ActionRunJob{
+			current,
+			{JobID: "build", Status: actions_model.StatusSuccess},
+			{JobID: "test", Status: actions_model.StatusSkipped},
+		}
+		assert.Empty(t, pendingNeeds(current, done))
+	})
 
-	expectedViewJobs := []*ViewJobStep{
-		{
-			Summary:  "Set up job",
-			Duration: "0s",
-			Status:   "success",
-		},
-		{
-			Summary:  "Run step-name",
-			Duration: "0s",
-			Status:   "cancelling",
-		},
-		{
-			Summary:  "Complete job",
-			Duration: "0s",
-			Status:   "waiting",
-		},
-	}
-	assert.Equal(t, expectedViewJobs, viewJobSteps)
+	t.Run("matrix expansion all required", func(t *testing.T) {
+		matrix := []*actions_model.ActionRunJob{
+			current,
+			{JobID: "build", Status: actions_model.StatusSuccess},
+			{JobID: "build", Status: actions_model.StatusRunning},
+			{JobID: "test", Status: actions_model.StatusSuccess},
+		}
+		assert.Equal(t, []string{"build"}, pendingNeeds(current, matrix))
+	})
+
+	t.Run("unresolved need treated as pending", func(t *testing.T) {
+		missing := []*actions_model.ActionRunJob{current}
+		assert.Equal(t, []string{"build", "test"}, pendingNeeds(current, missing))
+	})
+
+	t.Run("parent job scope", func(t *testing.T) {
+		// a same-named job under a different parent must not satisfy the need
+		scoped := &actions_model.ActionRunJob{JobID: "deploy", Needs: []string{"build"}, ParentJobID: 5}
+		jobs := []*actions_model.ActionRunJob{
+			scoped,
+			{JobID: "build", Status: actions_model.StatusSuccess, ParentJobID: 0},
+		}
+		assert.Equal(t, []string{"build"}, pendingNeeds(scoped, jobs))
+	})
 }

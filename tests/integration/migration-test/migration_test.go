@@ -17,9 +17,9 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modelmigration"
+	migrate_base "gitea.dev/modelmigration/base"
 	"gitea.dev/models/db"
-	"gitea.dev/models/migrations"
-	migrate_base "gitea.dev/models/migrations/base"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -34,7 +34,13 @@ var currentEngine db.EngineMigration
 
 func initMigrationTest(t *testing.T) func() {
 	testlogger.Init()
-	require.NoError(t, setting.PrepareIntegrationTestConfig())
+	workPath, err := setting.PrepareIntegrationTestConfig()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if !t.Failed() {
+			_ = os.RemoveAll(workPath)
+		}
+	})
 	setting.SetupGiteaTestEnv()
 
 	assert.NotEmpty(t, setting.RepoRootPath)
@@ -149,7 +155,7 @@ func restoreOldDB(t *testing.T, version string) {
 
 func wrappedMigrate(ctx context.Context, x db.EngineMigration) error {
 	currentEngine = x
-	return migrations.Migrate(ctx, x)
+	return modelmigration.Migrate(ctx, x)
 }
 
 func doMigrationTest(t *testing.T, version string) {

@@ -14,7 +14,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 
 	"xorm.io/builder"
 )
@@ -67,13 +66,13 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 		return nil, fmt.Errorf("FillUnresolvedIssues: %w", err)
 	}
 	if code {
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 		if err != nil {
 			return nil, fmt.Errorf("OpenRepository: %w", err)
 		}
 		defer closer.Close()
 
-		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
+		code, err := gitRepo.GetCodeActivityStats(ctx, timeFrom, repo.DefaultBranch)
 		if err != nil {
 			return nil, fmt.Errorf("FillFromGit: %w", err)
 		}
@@ -84,23 +83,17 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
 func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %w", err)
-	}
-	defer closer.Close()
-
-	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
+	authors, err := git.GetCodeActivityAuthors(ctx, repo, timeFrom)
 	if err != nil {
 		return nil, fmt.Errorf("FillFromGit: %w", err)
 	}
-	if code.Authors == nil {
+	if authors == nil {
 		return nil, nil
 	}
 	users := make(map[int64]*ActivityAuthorData)
 	var unknownUserID int64
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
-	for _, v := range code.Authors {
+	for _, v := range authors {
 		if len(v.Email) == 0 {
 			continue
 		}
@@ -368,7 +361,7 @@ func (stats *ActivityStats) FillReleases(ctx context.Context, repoID int64, from
 
 	// Published releases list
 	sess := releasesForActivityStatement(ctx, repoID, fromTime)
-	sess.OrderBy("`release`.created_unix DESC")
+	sess.OrderBy("`release`.published_unix DESC")
 	stats.PublishedReleases = make([]*repo_model.Release, 0)
 	if err = sess.Find(&stats.PublishedReleases); err != nil {
 		return err
@@ -387,5 +380,5 @@ func (stats *ActivityStats) FillReleases(ctx context.Context, repoID int64, from
 func releasesForActivityStatement(ctx context.Context, repoID int64, fromTime time.Time) db.Session {
 	return db.GetEngine(ctx).Where("`release`.repo_id = ?", repoID).
 		And("`release`.is_draft = ?", false).
-		And("`release`.created_unix >= ?", fromTime.Unix())
+		And("`release`.published_unix >= ?", fromTime.Unix())
 }

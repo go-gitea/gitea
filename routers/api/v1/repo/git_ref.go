@@ -14,7 +14,7 @@ import (
 	"gitea.dev/services/context"
 )
 
-// GetGitAllRefs get ref or an list all the refs of a repository
+// GetGitAllRefs get ref or a list of all the refs of a repository
 func GetGitAllRefs(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/refs repository repoListAllGitRefs
 	// ---
@@ -36,8 +36,8 @@ func GetGitAllRefs(ctx *context.APIContext) {
 	//   "200":
 	// #   "$ref": "#/responses/Reference" TODO: swagger doesn't support different output formats by ref
 	//     "$ref": "#/responses/ReferenceList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	getGitRefsInternal(ctx, "")
 }
@@ -69,8 +69,8 @@ func GetGitRefs(ctx *context.APIContext) {
 	//   "200":
 	// #   "$ref": "#/responses/Reference" TODO: swagger doesn't support different output formats by ref
 	//     "$ref": "#/responses/ReferenceList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	getGitRefsInternal(ctx, ctx.PathParam("*"))
 }

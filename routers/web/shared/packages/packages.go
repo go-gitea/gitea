@@ -23,7 +23,7 @@ import (
 func SetPackagesContext(ctx *context.Context, owner *user_model.User) {
 	pcrs, err := packages_model.GetCleanupRulesByOwner(ctx, owner.ID)
 	if err != nil {
-		ctx.ServerError("GetCleanupRulesByOwner", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -63,11 +63,11 @@ func PerformRuleEditPost(ctx *context.Context, owner *user_model.User, redirectU
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.PackageCleanupRuleForm)
+	form := web.GetForm[*forms.PackageCleanupRuleForm](ctx)
 
 	if form.Action == "remove" {
 		if err := packages_model.DeleteCleanupRuleByID(ctx, pcr.ID); err != nil {
-			ctx.ServerError("DeleteCleanupRuleByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -85,7 +85,7 @@ func performRuleEditPost(ctx *context.Context, owner *user_model.User, pcr *pack
 		pcr = &packages_model.PackageCleanupRule{}
 	}
 
-	form := web.GetForm(ctx).(*forms.PackageCleanupRuleForm)
+	form := web.GetForm[*forms.PackageCleanupRuleForm](ctx)
 
 	pcr.Enabled = form.Enabled
 	pcr.OwnerID = owner.ID
@@ -106,24 +106,25 @@ func performRuleEditPost(ctx *context.Context, owner *user_model.User, pcr *pack
 
 	if isEditRule {
 		if err := packages_model.UpdateCleanupRule(ctx, pcr); err != nil {
-			ctx.ServerError("UpdateCleanupRule", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	} else {
 		pcr.Type = packages_model.Type(form.Type)
 
 		if has, err := packages_model.HasOwnerCleanupRuleForPackageType(ctx, owner.ID, pcr.Type); err != nil {
-			ctx.ServerError("HasOwnerCleanupRuleForPackageType", err)
+			ctx.ServerErrorAuto(err)
 			return
 		} else if has {
 			ctx.Data["Err_Type"] = true
+			ctx.Flash.Error(ctx.Tr("packages.owner.settings.cleanuprules.type.already_exists"), true)
 			ctx.HTML(http.StatusOK, template)
 			return
 		}
 
 		var err error
 		if pcr, err = packages_model.InsertCleanupRule(ctx, pcr); err != nil {
-			ctx.ServerError("InsertCleanupRule", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -139,7 +140,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 	}
 
 	if err := pcr.CompiledPattern(); err != nil {
-		ctx.ServerError("CompiledPattern", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -147,7 +148,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 
 	packages, err := packages_model.GetPackagesByType(ctx, pcr.OwnerID, pcr.Type)
 	if err != nil {
-		ctx.ServerError("GetPackagesByType", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -160,7 +161,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 			Sort:       packages_model.SortCreatedDesc,
 		})
 		if err != nil {
-			ctx.ServerError("SearchVersions", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if pcr.KeepCount > 0 {
@@ -172,7 +173,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 		}
 		for _, pv := range pvs {
 			if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
-				ctx.ServerError("ShouldBeSkipped", err)
+				ctx.ServerErrorAuto(err)
 				return
 			} else if skip {
 				continue
@@ -194,7 +195,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 
 			pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 			if err != nil {
-				ctx.ServerError("GetPackageDescriptor", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			versionsToRemove = append(versionsToRemove, pd)
@@ -213,11 +214,7 @@ func getCleanupRuleByContext(ctx *context.Context, owner *user_model.User) *pack
 
 	pcr, err := packages_model.GetCleanupRuleByID(ctx, id)
 	if err != nil {
-		if err == packages_model.ErrPackageCleanupRuleNotExist {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetCleanupRuleByID", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 
@@ -225,7 +222,7 @@ func getCleanupRuleByContext(ctx *context.Context, owner *user_model.User) *pack
 		return pcr
 	}
 
-	ctx.NotFound(fmt.Errorf("PackageCleanupRule[%v] not associated to owner %v", id, owner))
+	ctx.NotFound()
 
 	return nil
 }

@@ -1,8 +1,6 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build goexperiment.jsonv2
-
 package json
 
 import (
@@ -13,10 +11,9 @@ import (
 	"io"
 )
 
-// JSONv2 implements Interface via encoding/json/v2
-// Requires GOEXPERIMENT=jsonv2 to be set at build time
 type JSONv2 struct {
 	marshalOptions                  jsonv2.Options
+	marshalRelaxedOptions           jsonv2.Options
 	marshalKeepOptionalEmptyOptions jsonv2.Options
 	unmarshalOptions                jsonv2.Options
 	unmarshalCaseInsensitiveOptions jsonv2.Options
@@ -30,6 +27,8 @@ func init() {
 		jsonv2.FormatNilMapAsNull(true),
 	}
 	jsonV2.marshalOptions = jsonv2.JoinOptions(commonMarshalOptions...)
+	// when handling user's data, we want to allow invalid UTF-8 to be replaced with the replacement character, rather than returning an error.
+	jsonV2.marshalRelaxedOptions = jsonv2.JoinOptions(append(commonMarshalOptions, jsontext.AllowInvalidUTF8(true))...)
 	jsonV2.unmarshalOptions = jsonv2.DefaultOptionsV2()
 
 	// By default, "json/v2" omitempty removes all `""` empty strings, no matter where it comes from.
@@ -49,8 +48,16 @@ func MarshalKeepOptionalEmpty(v any) ([]byte, error) {
 	return jsonv2.Marshal(v, jsonV2.marshalKeepOptionalEmptyOptions)
 }
 
+func MarshalDeterministic(v any) ([]byte, error) {
+	return jsonv2.Marshal(v, jsonV2.marshalOptions, jsonv2.Deterministic(true))
+}
+
 func (j *JSONv2) Marshal(v any) ([]byte, error) {
 	return jsonv2.Marshal(v, j.marshalOptions)
+}
+
+func (j *JSONv2) MarshalWriteRelaxed(w io.Writer, v any) error {
+	return jsonv2.MarshalWrite(w, v, j.marshalRelaxedOptions)
 }
 
 func (j *JSONv2) Unmarshal(data []byte, v any) error {

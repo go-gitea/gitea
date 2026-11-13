@@ -5,9 +5,10 @@ package user
 
 import (
 	"os/exec"
-	"runtime"
 	"strings"
 	"testing"
+
+	"gitea.dev/modules/consts"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,7 +27,7 @@ func TestCurrentUsername(t *testing.T) {
 	require.NotEmpty(t, user)
 
 	// Windows whoami is weird, so just skip remaining tests
-	if runtime.GOOS == "windows" {
+	if consts.IsWindows {
 		t.Skip("skipped test because of weird whoami on Windows")
 	}
 	whoami, err := getWhoamiOutput()

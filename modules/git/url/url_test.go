@@ -4,12 +4,12 @@
 package url
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 	"testing"
 
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
@@ -17,156 +17,37 @@ import (
 )
 
 func TestParseGitURLs(t *testing.T) {
-	kases := []struct {
-		kase     string
-		expected *GitURL
+	for _, kase := range []struct {
+		kase, scheme, host, path string
+		user                     *url.Userinfo
+		extraMark                int
 	}{
-		{
-			kase: "git@127.0.0.1:go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "ssh",
-					User:   url.User("git"),
-					Host:   "127.0.0.1",
-					Path:   "go-gitea/gitea.git",
-				},
-				extraMark: 1,
-			},
-		},
-		{
-			kase: "git@[fe80::14fc:cec5:c174:d88%2510]:go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "ssh",
-					User:   url.User("git"),
-					Host:   "[fe80::14fc:cec5:c174:d88%10]",
-					Path:   "go-gitea/gitea.git",
-				},
-				extraMark: 1,
-			},
-		},
-		{
-			kase: "git@[::1]:go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "ssh",
-					User:   url.User("git"),
-					Host:   "[::1]",
-					Path:   "go-gitea/gitea.git",
-				},
-				extraMark: 1,
-			},
-		},
-		{
-			kase: "git@github.com:go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "ssh",
-					User:   url.User("git"),
-					Host:   "github.com",
-					Path:   "go-gitea/gitea.git",
-				},
-				extraMark: 1,
-			},
-		},
-		{
-			kase: "ssh://git@github.com/go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "ssh",
-					User:   url.User("git"),
-					Host:   "github.com",
-					Path:   "/go-gitea/gitea.git",
-				},
-				extraMark: 0,
-			},
-		},
-		{
-			kase: "ssh://git@[::1]/go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "ssh",
-					User:   url.User("git"),
-					Host:   "[::1]",
-					Path:   "/go-gitea/gitea.git",
-				},
-				extraMark: 0,
-			},
-		},
-		{
-			kase: "/repositories/go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "file",
-					Path:   "/repositories/go-gitea/gitea.git",
-				},
-				extraMark: 2,
-			},
-		},
-		{
-			kase: "file:///repositories/go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "file",
-					Path:   "/repositories/go-gitea/gitea.git",
-				},
-				extraMark: 0,
-			},
-		},
-		{
-			kase: "https://github.com/go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "https",
-					Host:   "github.com",
-					Path:   "/go-gitea/gitea.git",
-				},
-				extraMark: 0,
-			},
-		},
-		{
-			kase: "https://git:git@github.com/go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "https",
-					Host:   "github.com",
-					User:   url.UserPassword("git", "git"),
-					Path:   "/go-gitea/gitea.git",
-				},
-				extraMark: 0,
-			},
-		},
-		{
-			kase: "https://[fe80::14fc:cec5:c174:d88%2510]:20/go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "https",
-					Host:   "[fe80::14fc:cec5:c174:d88%10]:20",
-					Path:   "/go-gitea/gitea.git",
-				},
-				extraMark: 0,
-			},
-		},
-
-		{
-			kase: "git://github.com/go-gitea/gitea.git",
-			expected: &GitURL{
-				URL: &url.URL{
-					Scheme: "git",
-					Host:   "github.com",
-					Path:   "/go-gitea/gitea.git",
-				},
-				extraMark: 0,
-			},
-		},
-	}
-
-	for _, kase := range kases {
+		{"git@127.0.0.1:go-gitea/gitea.git", "ssh", "127.0.0.1", "go-gitea/gitea.git", url.User("git"), 1},
+		{"git@[fe80::14fc:cec5:c174:d88%2510]:go-gitea/gitea.git", "ssh", "[fe80::14fc:cec5:c174:d88%10]", "go-gitea/gitea.git", url.User("git"), 1},
+		{"git@[::1]:go-gitea/gitea.git", "ssh", "[::1]", "go-gitea/gitea.git", url.User("git"), 1},
+		{"git@github.com:go-gitea/gitea.git", "ssh", "github.com", "go-gitea/gitea.git", url.User("git"), 1},
+		{"ssh://git@github.com/go-gitea/gitea.git", "ssh", "github.com", "/go-gitea/gitea.git", url.User("git"), 0},
+		{"ssh://git@[::1]/go-gitea/gitea.git", "ssh", "[::1]", "/go-gitea/gitea.git", url.User("git"), 0},
+		{"/repositories/go-gitea/gitea.git", "file", "", "/repositories/go-gitea/gitea.git", nil, 2},
+		{"file:///repositories/go-gitea/gitea.git", "file", "", "/repositories/go-gitea/gitea.git", nil, 0},
+		{"https://github.com/go-gitea/gitea.git", "https", "github.com", "/go-gitea/gitea.git", nil, 0},
+		{"https://git:git@github.com/go-gitea/gitea.git", "https", "github.com", "/go-gitea/gitea.git", url.UserPassword("git", "git"), 0},
+		{"https://[fe80::14fc:cec5:c174:d88%2510]:20/go-gitea/gitea.git", "https", "[fe80::14fc:cec5:c174:d88%10]:20", "/go-gitea/gitea.git", nil, 0},
+		{"git://github.com/go-gitea/gitea.git", "git", "github.com", "/go-gitea/gitea.git", nil, 0},
+	} {
 		t.Run(kase.kase, func(t *testing.T) {
 			u, err := ParseGitURL(kase.kase)
 			assert.NoError(t, err)
-			assert.Equal(t, kase.expected.extraMark, u.extraMark)
-			assert.Equal(t, *kase.expected, *u)
+			assert.Equal(t, kase.extraMark, u.extraMark)
+			assert.Equal(t, GitURL{
+				URL: &url.URL{
+					Scheme: kase.scheme,
+					User:   kase.user,
+					Host:   kase.host,
+					Path:   kase.path,
+				},
+				extraMark: kase.extraMark,
+			}, *u)
 		})
 	}
 }
@@ -175,11 +56,13 @@ func TestParseRepositoryURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "https://localhost:3000")()
 	defer test.MockVariableValue(&setting.SSH.Domain, "try.gitea.io")()
 
+	ctx := reqctx.NewRequestContextForTest(t)
 	ctxURL, _ := url.Parse("https://gitea")
 	ctxReq := &http.Request{URL: ctxURL, Header: http.Header{}}
 	ctxReq.Host = ctxURL.Host
 	ctxReq.Header.Add("X-Forwarded-Proto", ctxURL.Scheme)
-	ctx := context.WithValue(t.Context(), httplib.RequestContextKey, ctxReq)
+	httplib.RequestWithContext(ctxReq, ctx)
+	httplib.MarkRequestSupportPublicURL(ctx)
 	cases := []struct {
 		input                          string
 		ownerName, repoName, remaining string
@@ -249,19 +132,18 @@ func TestMakeRepositoryBaseLink(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "https://localhost:3000/subpath")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/subpath")()
 
-	u, err := ParseRepositoryURL(t.Context(), "https://localhost:3000/subpath/user/repo.git")
-	assert.NoError(t, err)
-	assert.Equal(t, "/subpath/user/repo", MakeRepositoryWebLink(u))
-
-	u, err = ParseRepositoryURL(t.Context(), "https://github.com/owner/repo.git")
-	assert.NoError(t, err)
-	assert.Equal(t, "https://github.com/owner/repo", MakeRepositoryWebLink(u))
-
-	u, err = ParseRepositoryURL(t.Context(), "git@github.com:owner/repo.git")
-	assert.NoError(t, err)
-	assert.Equal(t, "https://github.com/owner/repo", MakeRepositoryWebLink(u))
-
-	u, err = ParseRepositoryURL(t.Context(), "git+ssh://other:123/owner/repo.git")
-	assert.NoError(t, err)
-	assert.Equal(t, "https://other/owner/repo", MakeRepositoryWebLink(u))
+	for _, kase := range []struct {
+		input, expected string
+	}{
+		{"https://localhost:3000/subpath/user/repo.git", "/subpath/user/repo"},
+		{"https://github.com/owner/repo.git", "https://github.com/owner/repo"},
+		{"git@github.com:owner/repo.git", "https://github.com/owner/repo"},
+		{"git+ssh://other:123/owner/repo.git", "https://other/owner/repo"},
+		{"git+ssh://[::1]/owner/repo.git", "https://[::1]/owner/repo"},
+		{"git+ssh://[::1]:2222/owner/repo.git", "https://[::1]/owner/repo"},
+	} {
+		u, err := ParseRepositoryURL(t.Context(), kase.input)
+		assert.NoError(t, err)
+		assert.Equal(t, kase.expected, MakeRepositoryWebLink(u))
+	}
 }

@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/util"
 )
 
@@ -20,9 +21,6 @@ var hookNames = []string{
 	"update",
 	"post-receive",
 }
-
-// ErrNotValidHook error when a git hook is not valid
-var ErrNotValidHook = errors.New("not a valid Git hook")
 
 // IsValidHookName returns true if given name is a valid Git hook.
 func IsValidHookName(name string) bool {
@@ -39,9 +37,10 @@ type Hook struct {
 }
 
 // GetHook returns a Git hook by given name and repository.
-func GetHook(repoPath, name string) (*Hook, error) {
+func GetHook(repo RepositoryFacade, name string) (*Hook, error) {
+	repoPath := gitrepo.RepoLocalPath(repo)
 	if !IsValidHookName(name) {
-		return nil, ErrNotValidHook
+		return nil, util.NewNotExistErrorf("invalid hook name: %s", name)
 	}
 	h := &Hook{
 		name: name,
@@ -70,15 +69,10 @@ func (h *Hook) Name() string {
 // Update updates hook settings.
 func (h *Hook) Update() error {
 	if len(strings.TrimSpace(h.Content)) == 0 {
-		exist, err := util.IsExist(h.path)
-		if err != nil {
+		// empty content means to remove the file
+		err := util.RemoveWithRetry(h.path)
+		if err != nil && !os.IsNotExist(err) {
 			return err
-		}
-		if exist {
-			err := util.Remove(h.path)
-			if err != nil {
-				return err
-			}
 		}
 		h.IsActive = false
 		return nil
@@ -97,8 +91,8 @@ func (h *Hook) Update() error {
 }
 
 // ListHooks returns a list of Git hooks of given repository.
-func ListHooks(repoPath string) (_ []*Hook, err error) {
-	exist, err := util.IsDir(filepath.Join(repoPath, "hooks"))
+func ListHooks(repo RepositoryFacade) (_ []*Hook, err error) {
+	exist, err := util.IsDir(filepath.Join(gitrepo.RepoLocalPath(repo), "hooks"))
 	if err != nil {
 		return nil, err
 	} else if !exist {
@@ -107,7 +101,7 @@ func ListHooks(repoPath string) (_ []*Hook, err error) {
 
 	hooks := make([]*Hook, len(hookNames))
 	for i, name := range hookNames {
-		hooks[i], err = GetHook(repoPath, name)
+		hooks[i], err = GetHook(repo, name)
 		if err != nil {
 			return nil, err
 		}

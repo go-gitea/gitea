@@ -6,18 +6,18 @@ package user
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
+	"path"
 	"regexp"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	activities_model "gitea.dev/models/activities"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
@@ -44,6 +44,7 @@ import (
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/go-chi/chi/v5"
 	"xorm.io/builder"
 )
 
@@ -66,7 +67,7 @@ func prepareDashboardContextUserOrgTeams(ctx *context.Context) *user_model.User 
 
 	orgs, err := organization.GetUserOrgsList(ctx, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetUserOrgsList", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	ctx.Data["Orgs"] = orgs
@@ -111,7 +112,7 @@ func Dashboard(ctx *context.Context) {
 
 	prepareHeatmapURL(ctx)
 
-	pageSize := setting.UI.User.RepoPagingNum
+	pageSize := setting.UI.FeedPagingNum
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
@@ -123,15 +124,13 @@ func Dashboard(ctx *context.Context) {
 		ListOptions:     db.ListOptions{Page: page, PageSize: pageSize},
 	})
 	if err != nil {
-		ctx.ServerError("GetFeeds", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	// FIXME: UNLIMITE-PAGING-ONE-MORE-ROW: here is still an edge case: when curRows==pagingNum, then the "next page" will be an empty page.
 	// Ideally we should query one more row to determine if there is really a next page, but it's impossible in current framework.
-	pager := context.NewPagination(count, pageSize, page, 5).WithUnlimitedPaging(len(feeds), len(feeds) == pageSize)
-
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(pageSize).CurPage(page).Build().WithUnlimitedPaging(len(feeds), len(feeds) == pageSize)
 	ctx.Data["Page"] = pager
 	ctx.Data["Feeds"] = feeds
 
@@ -185,7 +184,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	if len(reposQuery) != 0 {
-		if issueReposQueryPattern.MatchString(reposQuery) {
+		if issueReposQueryPattern().MatchString(reposQuery) {
 			// remove "[" and "]" from string
 			reposQuery = reposQuery[1 : len(reposQuery)-1]
 			// for each ID (delimiter ",") add to int to repoIDs
@@ -216,7 +215,7 @@ func Milestones(ctx *context.Context) {
 		IsClosed: optional.Some(isShowClosed),
 	})
 	if err != nil {
-		ctx.ServerError("CountMilestonesByRepoIDs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -231,13 +230,13 @@ func Milestones(ctx *context.Context) {
 		Name:     keyword,
 	})
 	if err != nil {
-		ctx.ServerError("SearchMilestones", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, repoOpts, userRepoCond, false)
 	if err != nil {
-		ctx.ServerError("SearchRepositoryByCondition", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	sort.Sort(showRepos)
@@ -258,14 +257,14 @@ func Milestones(ctx *context.Context) {
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, milestones[i].Repo)
 		milestones[i].RenderedContent, err = markdown.RenderString(rctx, milestones[i].Content)
 		if err != nil {
-			ctx.ServerError("RenderString", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
 		if milestones[i].Repo.IsTimetrackerEnabled(ctx) {
 			err := milestones[i].LoadTotalTrackedTime(ctx)
 			if err != nil {
-				ctx.ServerError("LoadTotalTrackedTime", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -274,7 +273,7 @@ func Milestones(ctx *context.Context) {
 
 	milestoneStats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, repoCond, keyword)
 	if err != nil {
-		ctx.ServerError("GetMilestoneStats", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -284,7 +283,7 @@ func Milestones(ctx *context.Context) {
 	} else {
 		totalMilestoneStats, err = issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, userRepoCond, keyword)
 		if err != nil {
-			ctx.ServerError("GetMilestoneStats", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -322,8 +321,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(pagerCount).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestones)
@@ -356,7 +354,9 @@ func Issues(ctx *context.Context) {
 }
 
 // Regexp for repos query
-var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
+var issueReposQueryPattern = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
+})
 
 func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// ----------------------------------------------------
@@ -471,7 +471,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	{
 		ids, _, err := repo_model.SearchRepositoryIDs(ctx, repoOpts)
 		if err != nil {
-			ctx.ServerError("SearchRepositoryIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		accessibleRepos.AddMultiple(ids...)
@@ -544,25 +544,20 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			},
 		))
 		if err != nil {
-			ctx.ServerError("issueIDsFromSearch", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		issues, err = issues_model.GetIssuesByIDs(ctx, issueIDs, true)
 		if err != nil {
-			ctx.ServerError("GetIssuesByIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 
-	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, ctx.Doer, issues)
 	if err != nil {
-		ctx.ServerError("GetIssuesLastCommitStatus", err)
+		ctx.ServerErrorAuto(err)
 		return
-	}
-	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-		for key := range commitStatuses {
-			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
-		}
 	}
 
 	// -------------------------------
@@ -574,7 +569,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		},
 	))
 	if err != nil {
-		ctx.ServerError("getUserIssueStats", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -591,14 +586,14 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.FormString("RepoLink"))
 
 	if err := issues.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("issues.LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Issues"] = issues
 
 	approvalCounts, err := issues.GetApprovalCounts(ctx)
 	if err != nil {
-		ctx.ServerError("ApprovalCounts", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
@@ -635,8 +630,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.Data["State"] = "open"
 	}
 
-	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(shownIssues).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)
@@ -648,7 +642,7 @@ func ShowSSHKeys(ctx *context.Context) {
 		OwnerID: ctx.ContextUser.ID,
 	})
 	if err != nil {
-		ctx.ServerError("ListPublicKeys", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -672,7 +666,7 @@ func ShowGPGKeys(ctx *context.Context) {
 		OwnerID:     ctx.ContextUser.ID,
 	})
 	if err != nil {
-		ctx.ServerError("ListGPGKeys", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -685,7 +679,7 @@ func ShowGPGKeys(ctx *context.Context) {
 				failedEntitiesID = append(failedEntitiesID, k.KeyID)
 				continue // Skip previous import without backup of imported armored key
 			}
-			ctx.ServerError("ShowGPGKeys", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		entities = append(entities, e)
@@ -704,7 +698,7 @@ func ShowGPGKeys(ctx *context.Context) {
 	for _, e := range entities {
 		err = e.Serialize(writer) // TODO find why key are exported with a different cipherTypeByte as original (should not be blocking but strange)
 		if err != nil {
-			ctx.ServerError("ShowGPGKeys", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -712,60 +706,50 @@ func ShowGPGKeys(ctx *context.Context) {
 	ctx.PlainTextBytes(http.StatusOK, buf.Bytes())
 }
 
-func UsernameSubRoute(ctx *context.Context) {
-	// WORKAROUND to support usernames with "." in it
-	// https://github.com/go-chi/chi/issues/781
-	username := ctx.PathParam("username")
-	reloadParam := func(suffix string) (success bool) {
-		ctx.SetPathParam("username", strings.TrimSuffix(username, suffix))
-		context.UserAssignmentWeb()(ctx)
-		if ctx.Written() {
-			return false
+// UsernamePreRoute rewrites the route path if the username has a suffix, so that the correct handler can be called.
+func UsernamePreRoute(next http.Handler) http.Handler {
+	// HINT: OWNER-NAME-RESERVED-EXT: use the reserved extensions to check and rewrite requests
+	suffixes := container.SetOf(".png", ".keys", ".gpg", feed.ExtNameRss, feed.ExtNameAtom)
+	rewriteRoutePath := func(rctx *chi.Context, r *http.Request) (ownerPath, rewrittenExt string) {
+		if rctx.RouteMethod != "HEAD" && rctx.RouteMethod != "GET" {
+			return "", ""
+		}
+		// if there is no slash in the path, then it is possible to be a username or a username with a suffix
+		possibleUsernameWithSuffix := rctx.RoutePath != "" && strings.IndexByte(rctx.RoutePath[1:], '/') == -1
+		if !possibleUsernameWithSuffix {
+			return "", ""
 		}
 
-		// check view permissions
-		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-			ctx.NotFound(fmt.Errorf("%s", ctx.ContextUser.Name))
-			return false
+		// HINT: USERNAME-AVATAR-APPLE-TOUCH-ICON: skip rewriting the path if it is an apple touch icon request
+		isAppleTouchIcon := rctx.RoutePath == "/apple-touch-icon.png" || rctx.RoutePath == "/apple-touch-icon-precomposed.png"
+		if isAppleTouchIcon {
+			return "", ""
 		}
-		return true
+
+		// try to extract the suffix from the path, if it is a valid suffix, then rewrite the path to "/-/ownername.png/{username}"
+		ext := path.Ext(rctx.RoutePath)
+		if suffixes.Contains(ext) {
+			return rctx.RoutePath[:len(rctx.RoutePath)-len(ext)], ext
+		}
+		// also try to rewrite "/username" to "/-/ownername.rss/{username}" if the Accept header is for RSS or Atom
+		if strings.Contains(r.Header.Get("Accept"), feed.ContentTypeRssXml) {
+			return rctx.RoutePath, feed.ExtNameRss
+		} else if strings.Contains(r.Header.Get("Accept"), feed.ContentTypeAtomXml) {
+			return rctx.RoutePath, feed.ExtNameAtom
+		}
+		return "", ""
 	}
-	switch {
-	case strings.HasSuffix(username, ".png"):
-		if reloadParam(".png") {
-			AvatarByUsernameSize(ctx)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rctx := chi.RouteContext(r.Context())
+		if ownerPath, rewrittenExt := rewriteRoutePath(rctx, r); ownerPath != "/" && rewrittenExt != "" {
+			// Owner path can be something like "/" (site home) or "/explore" (endpoint of reserved username)
+			// It's safe to pass the owner path to the handler as is and just let the handler respond 4xx.
+			// Because the server doesn't respond avatar, keys or feeds for these endpoints.
+			rctx.RoutePath = "/-/ownername" + rewrittenExt + ownerPath
 		}
-	case strings.HasSuffix(username, ".keys"):
-		if reloadParam(".keys") {
-			ShowSSHKeys(ctx)
-		}
-	case strings.HasSuffix(username, ".gpg"):
-		if reloadParam(".gpg") {
-			ShowGPGKeys(ctx)
-		}
-	case strings.HasSuffix(username, ".rss"):
-		if !setting.Other.EnableFeed {
-			ctx.HTTPError(http.StatusNotFound)
-			return
-		}
-		if reloadParam(".rss") {
-			feed.ShowUserFeedRSS(ctx)
-		}
-	case strings.HasSuffix(username, ".atom"):
-		if !setting.Other.EnableFeed {
-			ctx.HTTPError(http.StatusNotFound)
-			return
-		}
-		if reloadParam(".atom") {
-			feed.ShowUserFeedAtom(ctx)
-		}
-	default:
-		context.UserAssignmentWeb()(ctx)
-		if !ctx.Written() {
-			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-			OwnerProfile(ctx)
-		}
-	}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMode int, opts *issue_indexer.SearchOptions) (ret *issues_model.IssueStats, err error) {
@@ -835,6 +819,9 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 	ret.MentionCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.MentionID = optional.Some(doerID) }))
 	if err != nil {
 		return nil, err
+	}
+	if !opts.IsPull.Value() {
+		return ret, nil
 	}
 	ret.ReviewRequestedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewRequestedID = optional.Some(doerID) }))
 	if err != nil {

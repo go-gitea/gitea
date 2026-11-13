@@ -110,21 +110,14 @@ func TestParsePackage(t *testing.T) {
 				w.Write(buf.Bytes())
 				w.Close()
 
-				data := createArchive(map[string][]byte{"control.tar" + c.Extension: cbuf.Bytes()})
-
-				p, err := ParsePackage(data)
-				assert.NotNil(t, p)
-				assert.NoError(t, err)
-				assert.Equal(t, "gitea", p.Name)
-
-				t.Run("TrailingSlash", func(t *testing.T) {
-					data := createArchive(map[string][]byte{"control.tar" + c.Extension + "/": cbuf.Bytes()})
+				for _, suffix := range []string{"", "/"} {
+					data := createArchive(map[string][]byte{"control.tar" + c.Extension + suffix: cbuf.Bytes()})
 
 					p, err := ParsePackage(data)
 					assert.NotNil(t, p)
 					assert.NoError(t, err)
 					assert.Equal(t, "gitea", p.Name)
-				})
+				}
 			})
 		}
 	})
@@ -231,4 +224,16 @@ func TestValidateDistributionOrComponent(t *testing.T) {
 	for _, name := range good {
 		assert.True(t, IsValidDistributionOrComponent(name), "good=%q", name)
 	}
+}
+
+// TestParseControlFileMultilineDescription verifies a multi-line Description is assembled in order
+// (the parser accumulates it in a strings.Builder); it guards the assembled value, not its timing.
+func TestParseControlFileMultilineDescription(t *testing.T) {
+	var buf bytes.Buffer
+	buf.WriteString("Package: testpkg\nVersion: 1.0\nArchitecture: amd64\nDescription: short summary\n more details\n even more\n")
+
+	p, err := ParseControlFile(&buf)
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
+	assert.Equal(t, "short summary more details even more", p.Metadata.Description)
 }

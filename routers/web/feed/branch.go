@@ -13,17 +13,16 @@ import (
 	"github.com/gorilla/feeds"
 )
 
-// ShowBranchFeed shows tags and/or releases on the repo as RSS / Atom feed
-func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
+func showBranchFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
 	if !checkRepoFeedTokenScope(ctx) {
 		return
 	}
 	var commits []*git.Commit
 	var err error
 	if ctx.Repo.Commit != nil {
-		commits, err = ctx.Repo.Commit.CommitsByRange(0, 10, "", "", "")
+		commits, err = ctx.Repo.Commit.CommitsByRange(ctx, ctx.Repo.GitRepo, 0, 10, "", "", "")
 		if err != nil {
-			ctx.ServerError("ShowBranchFeed", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

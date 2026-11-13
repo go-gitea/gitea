@@ -7,21 +7,22 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/analyze"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/indexer"
-	path_filter "gitea.dev/modules/indexer/code/bleve/token/path"
 	"gitea.dev/modules/indexer/code/internal"
 	indexer_internal "gitea.dev/modules/indexer/internal"
 	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/typesniffer"
@@ -32,9 +33,8 @@ import (
 	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
-	"github.com/blevesearch/bleve/v2/analysis/tokenizer/letter"
-	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
+	"github.com/blevesearch/bleve/v2/registry"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/go-enry/go-enry/v2"
 )
@@ -69,9 +69,8 @@ func (d *RepoIndexerData) Type() string {
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
-	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 9
+	repoIndexerLatestVersion = 12
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -83,6 +82,8 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 
 	textFieldMapping := bleve.NewTextFieldMapping()
 	textFieldMapping.IncludeInAll = false
+	textFieldMapping.DocValues = false
+	textFieldMapping.IncludeTermVectors = false
 	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
 
 	fileNamedMapping := bleve.NewTextFieldMapping()
@@ -107,8 +108,8 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]any{
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
-		"tokenizer":     letter.Name,
-		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
+		"tokenizer":     codeTokenizerName,
+		"token_filters": []string{},
 	}); err != nil {
 		return nil, err
 	}
@@ -116,8 +117,8 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	if err := mapping.AddCustomAnalyzer(filenameIndexerAnalyzer, map[string]any{
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
-		"tokenizer":     unicode.Name,
-		"token_filters": []string{unicodeNormalizeName, path_filter.Name, lowercase.Name},
+		"tokenizer":     pathTokenizerName,
+		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}
@@ -139,6 +140,12 @@ type Indexer struct {
 
 func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
 	return indexer.SearchModesExactWords()
+}
+
+func init() {
+	// due to bleve's design problem, the "Register" must be done in the main goroutine, otherwise data-race
+	util.MustNoError(registry.RegisterTokenizer(codeTokenizerName, codeTokenizerConstructor))
+	util.MustNoError(registry.RegisterTokenizer(pathTokenizerName, pathTokenizerConstructor))
 }
 
 // NewIndexer creates a new bleve local indexer
@@ -163,7 +170,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha))
+		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			return err
 		}
@@ -212,7 +219,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-		catfileBatch, err := gitrepo.NewBatch(ctx, repo)
+		catfileBatch, err := git.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}
@@ -262,25 +269,15 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	pathQuery.FieldVal = "Filename"
 	pathQuery.SetBoost(10)
 
-	searchMode := util.IfZero(opts.SearchMode, b.SupportedSearchModes()[0].ModeValue)
-	if searchMode == indexer.SearchModeExact {
-		// 1.21 used NewPrefixQuery, but it seems not working well, and later releases changed to NewMatchPhraseQuery
-		q := bleve.NewMatchPhraseQuery(opts.Keyword)
-		q.Analyzer = repoIndexerAnalyzer
-		q.FieldVal = "Content"
-		contentQuery = q
-	} else /* words */ {
-		q := bleve.NewMatchQuery(opts.Keyword)
-		q.FieldVal = "Content"
-		q.Analyzer = repoIndexerAnalyzer
-		if searchMode == indexer.SearchModeFuzzy {
-			// this logic doesn't seem right, it is only used to pass the test-case `Keyword:    "dESCRIPTION"`, which doesn't seem to be a real-life use-case.
-			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
-		} else {
-			q.Operator = query.MatchQueryOperatorAnd
-		}
-		contentQuery = q
+	terms := internal.SearchTerms(opts)
+	if len(terms) == 0 {
+		return 0, nil, nil, nil
 	}
+	contentQueries := make([]query.Query, 0, len(terms))
+	for _, term := range terms {
+		contentQueries = append(contentQueries, inner_bleve.MatchAndQuery(term, "Content", repoIndexerAnalyzer, 0))
+	}
+	contentQuery = bleve.NewConjunctionQuery(contentQueries...)
 
 	keywordQuery = bleve.NewDisjunctionQuery(contentQuery, pathQuery)
 
@@ -312,57 +309,79 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	}
 
 	from, pageSize := opts.GetSkipTake()
-	searchRequest := bleve.NewSearchRequestOptions(indexerQuery, pageSize, from, false)
-	searchRequest.Fields = []string{"Content", "Filename", "RepoID", "Language", "CommitID", "UpdatedAt"}
-	searchRequest.IncludeLocations = true
-
-	if len(opts.Language) == 0 {
-		searchRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
+	// grams prove terms of up to 3 runes, longer ones are verified against the content, so fetch candidates until the page is full
+	matched, scanned := 0, 0
+	if !slices.ContainsFunc(terms, func(term string) bool { return utf8.RuneCountInString(term) > 3 }) {
+		matched, scanned = from, from
 	}
+	var result *bleve.SearchResult
+	var total int64
+	searchResults := make([]*internal.SearchResult, 0, pageSize)
+	for {
+		size := from + pageSize - matched
+		searchRequest := bleve.NewSearchRequestOptions(indexerQuery, size, scanned, false)
+		searchRequest.Fields = []string{"Content", "Filename", "RepoID", "Language", "CommitID", "UpdatedAt"}
+		searchRequest.IncludeLocations = true
+		if result == nil && len(opts.Language) == 0 {
+			searchRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
+		}
+		searchRequest.SortBy([]string{"-_score", "UpdatedAt"})
 
-	searchRequest.SortBy([]string{"-_score", "UpdatedAt"})
+		batch, err := b.inner.Indexer.SearchInContext(ctx, searchRequest)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		if result == nil {
+			result = batch
+		}
 
-	result, err := b.inner.Indexer.SearchInContext(ctx, searchRequest)
-	if err != nil {
-		return 0, nil, nil, err
+		for _, hit := range batch.Hits {
+			scanned++
+			content, okContent := hit.Fields["Content"].(string)
+			language, okLanguage := hit.Fields["Language"].(string)
+			commitID, okCommitID := hit.Fields["CommitID"].(string)
+			updatedAt, okUpdatedAt := hit.Fields["UpdatedAt"].(string)
+			repoID, okRepoID := hit.Fields["RepoID"].(float64)
+			if !okContent || !okLanguage || !okCommitID || !okUpdatedAt || !okRepoID {
+				hitFieldsJson, _ := json.Marshal(hit.Fields)
+				setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, string(hitFieldsJson))
+				return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
+			}
+
+			var startIndex, endIndex int
+			if len(hit.Locations["Filename"]) > 0 {
+				startIndex, endIndex = internal.FilenameMatchIndexPos(content)
+			} else if startIndex, endIndex = internal.ContentMatchIndexPos(content, terms); startIndex < 0 {
+				continue
+			}
+			matched++
+			if matched <= from {
+				continue
+			}
+
+			var updatedUnix timeutil.TimeStamp
+			if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
+				updatedUnix = timeutil.TimeStamp(t.Unix())
+			}
+			searchResults = append(searchResults, &internal.SearchResult{
+				RepoID:      int64(repoID),
+				StartIndex:  startIndex,
+				EndIndex:    endIndex,
+				Filename:    internal.FilenameOfIndexerID(hit.ID),
+				Content:     content,
+				CommitID:    commitID,
+				UpdatedUnix: updatedUnix,
+				Language:    language,
+				Color:       enry.GetColor(language),
+			})
+		}
+		if matched == from+pageSize || len(batch.Hits) < size {
+			total = max(int64(matched), int64(matched)+int64(batch.Total)-int64(scanned))
+			break
+		}
 	}
-
-	total := int64(result.Total)
-
-	searchResults := make([]*internal.SearchResult, len(result.Hits))
-	for i, hit := range result.Hits {
-		startIndex, endIndex := -1, -1
-		for _, locations := range hit.Locations["Content"] {
-			location := locations[0]
-			locationStart := int(location.Start)
-			locationEnd := int(location.End)
-			if startIndex < 0 || locationStart < startIndex {
-				startIndex = locationStart
-			}
-			if endIndex < 0 || locationEnd > endIndex {
-				endIndex = locationEnd
-			}
-		}
-		if len(hit.Locations["Filename"]) > 0 {
-			startIndex, endIndex = internal.FilenameMatchIndexPos(hit.Fields["Content"].(string))
-		}
-
-		language := hit.Fields["Language"].(string)
-		var updatedUnix timeutil.TimeStamp
-		if t, err := time.Parse(time.RFC3339, hit.Fields["UpdatedAt"].(string)); err == nil {
-			updatedUnix = timeutil.TimeStamp(t.Unix())
-		}
-		searchResults[i] = &internal.SearchResult{
-			RepoID:      int64(hit.Fields["RepoID"].(float64)),
-			StartIndex:  startIndex,
-			EndIndex:    endIndex,
-			Filename:    internal.FilenameOfIndexerID(hit.ID),
-			Content:     hit.Fields["Content"].(string),
-			CommitID:    hit.Fields["CommitID"].(string),
-			UpdatedUnix: updatedUnix,
-			Language:    language,
-			Color:       enry.GetColor(language),
-		}
+	if total == 0 {
+		return 0, nil, nil, nil
 	}
 
 	searchResultLanguages := make([]*internal.SearchResultLanguages, 0, 10)
@@ -370,9 +389,9 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		// Use separate query to go get all language counts
 		facetRequest := bleve.NewSearchRequestOptions(facetQuery, 1, 0, false)
 		facetRequest.Fields = []string{"Content", "RepoID", "Language", "CommitID", "UpdatedAt"}
-		facetRequest.IncludeLocations = true
 		facetRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
 
+		var err error
 		if result, err = b.inner.Indexer.Search(facetRequest); err != nil {
 			return 0, nil, nil, err
 		}

@@ -9,13 +9,13 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/analyze"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/indexer"
 	"gitea.dev/modules/indexer/code/internal"
 	es "gitea.dev/modules/indexer/internal/elasticsearch"
@@ -24,12 +24,11 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/typesniffer"
-	"gitea.dev/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
 )
 
-const esRepoIndexerLatestVersion = 3
+const esRepoIndexerLatestVersion = 4
 
 var _ internal.Indexer = &Indexer{}
 
@@ -56,6 +55,10 @@ const (
 						"tokenizer": "content_tokenizer",
 						"filter" : ["lowercase"]
 					},
+					"content_short_analyzer": {
+						"tokenizer": "content_short_tokenizer",
+						"filter" : ["lowercase"]
+					},
         			"filename_path_analyzer": {
           				"tokenizer": "path_tokenizer"
         			},
@@ -65,8 +68,14 @@ const (
       			},
 				"tokenizer": {
 					"content_tokenizer": {
-						"type": "simple_pattern_split",
-						"pattern": "[^a-zA-Z0-9]"
+						"type": "ngram",
+						"min_gram": 3,
+						"max_gram": 3
+					},
+					"content_short_tokenizer": {
+						"type": "ngram",
+						"min_gram": 1,
+						"max_gram": 2
 					},
 					"path_tokenizer": {
 						"type": "path_hierarchy",
@@ -88,7 +97,6 @@ const (
 				},
 				"filename": {
 					"type": "text",
-					"term_vector": "with_positions_offsets",
 					"index": true,
 					"fields": {
          		  		"path": {
@@ -103,9 +111,16 @@ const (
 				},
 				"content": {
 					"type": "text",
-					"term_vector": "with_positions_offsets",
 					"index": true,
-					"analyzer": "content_analyzer"
+					"analyzer": "content_analyzer",
+					"fields": {
+						"short": {
+							"type": "text",
+							"analyzer": "content_short_analyzer",
+							"index_options": "docs",
+							"norms": false
+						}
+					}
 				},
 				"commit_id": {
 					"type": "keyword",
@@ -134,7 +149,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha))
+		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +198,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) es.Bul
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	ops := make([]es.BulkOp, 0)
 	if len(changes.Updates) > 0 {
-		batch, err := gitrepo.NewBatch(ctx, repo)
+		batch, err := git.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}
@@ -237,23 +252,7 @@ func (b *Indexer) doDelete(ctx context.Context, repoID int64) error {
 	return b.DeleteByQuery(ctx, es.TermsQuery("repo_id", repoID))
 }
 
-// contentMatchIndexPos find words positions for start and the following end on content. It will
-// return the beginning position of the first start and the ending position of the
-// first end following the start string.
-// If not found any of the positions, it will return -1, -1.
-func contentMatchIndexPos(content, start, end string) (int, int) {
-	startIdx := strings.Index(content, start)
-	if startIdx < 0 {
-		return -1, -1
-	}
-	endIdx := strings.Index(content[startIdx+len(start):], end)
-	if endIdx < 0 {
-		return -1, -1
-	}
-	return startIdx, (startIdx + len(start) + endIdx + len(end)) - 9 // remove the length <em></em> since we give Content the original data
-}
-
-func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+func convertResult(searchResult *es.SearchResponse, terms []string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	hits := make([]*internal.SearchResult, 0, pageSize)
 	for _, hit := range searchResult.Hits {
 		repoID, fileName := internal.ParseIndexerID(hit.ID)
@@ -262,32 +261,26 @@ func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (in
 			return 0, nil, nil, err
 		}
 
-		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
-		// So we get it from content, this may made the query slower. See
-		// https://discuss.elastic.co/t/fetching-position-of-keyword-in-matched-document/94291
-		var startIndex, endIndex int
-		if c, ok := hit.Highlight["filename"]; ok && len(c) > 0 {
-			startIndex, endIndex = internal.FilenameMatchIndexPos(res["content"].(string))
-		} else if c, ok := hit.Highlight["content"]; ok && len(c) > 0 {
-			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
-			// now we should find the positions. But how to avoid html content which contains the
-			// <em> and </em> tags? If elastic search has handled that?
-			startIndex, endIndex = contentMatchIndexPos(c[0], "<em>", "</em>")
-			if startIndex == -1 {
-				panic(fmt.Sprintf("1===%s,,,%#v,,,%s", kw, hit.Highlight, c[0]))
-			}
-		} else {
-			panic(fmt.Sprintf("2===%#v", hit.Highlight))
+		content, okContent := res["content"].(string)
+		language, okLanguage := res["language"].(string)
+		commitID, okCommitID := res["commit_id"].(string)
+		updatedAt, okUpdatedAt := res["updated_at"].(float64)
+		if !okContent || !okLanguage || !okCommitID || !okUpdatedAt {
+			setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, string(hit.Source))
+			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
 		}
 
-		language := res["language"].(string)
+		startIndex, endIndex := internal.ContentMatchIndexPos(content, terms)
+		if startIndex < 0 {
+			startIndex, endIndex = internal.FilenameMatchIndexPos(content)
+		}
 
 		hits = append(hits, &internal.SearchResult{
 			RepoID:      repoID,
 			Filename:    fileName,
-			CommitID:    res["commit_id"].(string),
-			Content:     res["content"].(string),
-			UpdatedUnix: timeutil.TimeStamp(res["updated_at"].(float64)),
+			CommitID:    commitID,
+			Content:     content,
+			UpdatedUnix: timeutil.TimeStamp(updatedAt),
 			Language:    language,
 			StartIndex:  startIndex,
 			EndIndex:    endIndex,
@@ -322,11 +315,19 @@ func extractAggs(searchResult *es.SearchResponse) []*internal.SearchResultLangua
 
 // Search searches for codes and language stats by given conditions.
 func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
-	searchMode := util.IfZero(opts.SearchMode, b.SupportedSearchModes()[0].ModeValue)
-	contentQuery := es.Query(es.NewMultiMatchQuery(opts.Keyword, "content").Type(es.MultiMatchTypeBestFields).Operator("and"))
-	if searchMode == indexer.SearchModeExact {
-		contentQuery = es.MatchPhraseQuery("content", opts.Keyword)
+	terms := internal.SearchTerms(opts)
+	if len(terms) == 0 {
+		return 0, nil, nil, nil
 	}
+	contentQuery := es.NewBoolQuery()
+	for _, term := range terms {
+		if utf8.RuneCountInString(term) < 3 {
+			contentQuery.Must(es.NewMultiMatchQuery(term, "content.short").Operator("and"))
+		} else {
+			contentQuery.Must(es.MatchPhraseQuery("content", term))
+		}
+	}
+
 	kwQuery := es.NewBoolQuery().Should(
 		contentQuery,
 		es.NewMultiMatchQuery(opts.Keyword, "filename^10").Type(es.MultiMatchTypePhrasePrefix),
@@ -337,7 +338,6 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	}
 
 	start, pageSize := opts.GetSkipTake()
-	kw := "<em>" + opts.Keyword + "</em>"
 	languageAggs := map[string]any{
 		"language": map[string]any{
 			"terms": map[string]any{
@@ -346,15 +346,6 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 				"order": map[string]any{"_count": "desc"},
 			},
 		},
-	}
-	// number_of_fragments=0 returns the full highlighted content (no fragmentation).
-	highlight := map[string]any{
-		"fields": map[string]any{
-			"content":  map[string]any{},
-			"filename": map[string]any{},
-		},
-		"number_of_fragments": 0,
-		"type":                "fvh",
 	}
 	sort := []es.SortField{
 		{Field: "_score", Desc: true},
@@ -369,12 +360,11 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			Size:         pageSize,
 			TrackTotal:   true,
 			Aggregations: languageAggs,
-			Highlight:    highlight,
 		})
 		if err != nil {
 			return 0, nil, nil, err
 		}
-		return convertResult(resp, kw, pageSize)
+		return convertResult(resp, terms, pageSize)
 	}
 
 	countResp, err := b.Indexer.Search(ctx, es.SearchRequest{
@@ -394,12 +384,11 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		From:       start,
 		Size:       pageSize,
 		TrackTotal: true,
-		Highlight:  highlight,
 	})
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
-	total, hits, _, err := convertResult(resp, kw, pageSize)
+	total, hits, _, err := convertResult(resp, terms, pageSize)
 	return total, hits, extractAggs(countResp), err
 }

@@ -19,6 +19,18 @@ type Locale interface {
 	HasKey(trKey string) bool
 }
 
+// LocaleTranslation represents an interface to translation
+type LocaleTranslation interface {
+	Language() string
+	HasKey(trKey string) bool
+	TrString(string, ...any) string
+
+	Tr(key string, args ...any) template.HTML
+	TrN(cnt any, key1, keyN string, args ...any) template.HTML
+
+	PrettyNumber(v any) string
+}
+
 // LocaleStore provides the functions common to all locale stores
 type LocaleStore interface {
 	io.Closer
@@ -31,7 +43,7 @@ type LocaleStore interface {
 	Locale(langName string) (Locale, bool)
 	// HasLang returns whether a given language is present in the store
 	HasLang(langName string) bool
-	// AddLocaleByIni adds a new language to the store
+	// AddLocaleByJSON adds a new language to the store
 	AddLocaleByJSON(langName, langDesc string, source, moreSource []byte) error
 }
 

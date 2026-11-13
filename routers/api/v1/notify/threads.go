@@ -12,6 +12,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
+	"gitea.dev/services/notifications"
 )
 
 // GetThread get notification by ID
@@ -32,10 +33,8 @@ func GetThread(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/NotificationThread"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	n := getThread(ctx)
 	if n == nil {
@@ -73,10 +72,8 @@ func ReadThread(ctx *context.APIContext) {
 	// responses:
 	//   "205":
 	//     "$ref": "#/responses/NotificationThread"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	n := getThread(ctx)
 	if n == nil {
@@ -88,7 +85,7 @@ func ReadThread(ctx *context.APIContext) {
 		targetStatus = activities_model.NotificationStatusRead
 	}
 
-	notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
+	notif, err := notifications.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

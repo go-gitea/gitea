@@ -17,4 +17,4 @@ type sourceInterface interface {
 	auth_model.Config
 }
 
-var _ (sourceInterface) = &db.Source{}
+var _ sourceInterface = &db.Source{}

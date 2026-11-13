@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/password"
@@ -15,7 +16,10 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
@@ -51,7 +55,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	ctx.Data["IsResetRequest"] = true
@@ -60,6 +64,9 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Email"] = email
 
 	u, err := user_model.GetUserByEmail(ctx, email)
+	if err == nil && !u.IsIndividual() {
+		err = user_model.ErrUserNotExist{}
+	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
@@ -68,7 +75,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 			return
 		}
 
-		ctx.ServerError("user.ResetPasswd(check existence)", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -85,6 +92,10 @@ func ForgotPasswdPost(ctx *context.Context) {
 	}
 
 	mailer.SendResetPasswordMail(u)
+
+	// the request is unauthenticated, so the affected account is the only actor
+	// we can name; the recorded IP address carries the forensic signal
+	audit.RecordAs(ctx, u, audit_model.UserPasswordResetRequest, u)
 
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 		log.Error("Set cache(MailResendLimit) fail: %v", err)
@@ -177,15 +188,17 @@ func ResetPasswdPost(ctx *context.Context) {
 			regenerateScratchToken = true
 		} else {
 			passcode := ctx.FormString("passcode")
-			ok, err := twofa.ValidateAndConsumeTOTP(ctx, passcode)
+			tfaResult, err := twofa.ValidateAndConsumeTOTP(ctx, passcode)
 			if err != nil {
 				ctx.HTTPError(http.StatusInternalServerError, "ValidateAndConsumeTOTP", err.Error())
 				return
 			}
-			if !ok {
+			if tfaResult != auth.TwoFactorResultValid {
+				log.Warn("Failed authentication attempt for %s from %s: invalid two-factor passcode", u.Name, ctx.RemoteAddr())
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Passcode"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
+				errMsg := ctx.Tr(util.Iif(tfaResult == auth.TwoFactorResultTooManyAttempts, "auth.twofa_too_many_attempts", "auth.twofa_passcode_incorrect"))
+				ctx.RenderWithErrDeprecated(errMsg, tplResetPassword, nil)
 				return
 			}
 		}
@@ -208,7 +221,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		case password.IsErrIsPwnedRequest(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
 		default:
-			ctx.ServerError("UpdateAuth", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -221,11 +234,11 @@ func ResetPasswdPost(ctx *context.Context) {
 		// Invalidate the scratch token.
 		_, err := twofa.GenerateScratchToken()
 		if err != nil {
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -236,6 +249,19 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
+	}
+
+	// the reset form only carries a TOTP field, so a WebAuthn-only user finishes on its own page
+	if twofa == nil {
+		hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		if hasWebAuthn {
+			handleTwoFactorRequired(ctx, u, remember, nil)
+			return
+		}
 	}
 
 	handleSignIn(ctx, u, remember)
@@ -252,7 +278,7 @@ func MustChangePassword(ctx *context.Context) {
 // MustChangePasswordPost response for updating a user's password after their
 // account was created by an admin
 func MustChangePasswordPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.MustChangePasswordForm)
+	form := web.GetForm[*forms.MustChangePasswordForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
 	if ctx.HasError() {
@@ -260,10 +286,9 @@ func MustChangePasswordPost(ctx *context.Context) {
 		return
 	}
 
-	// Make sure only requests for users who are eligible to change their password via
-	// this method passes through
-	if !ctx.Doer.MustChangePassword {
-		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password. Please visit the settings page"))
+	if !common.CheckSignedInUser(ctx.Doer, ctx.Session).NeedChangePassword {
+		log.Debug("User %s attempted to access the must change password page, but they are not required to change their password", ctx.Doer.Name)
+		ctx.NotFound()
 		return
 	}
 
@@ -292,7 +317,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
 		default:
-			ctx.ServerError("UpdateAuth", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}

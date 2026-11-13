@@ -13,11 +13,12 @@ import (
 	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 	files_service "gitea.dev/services/repository/files"
@@ -36,7 +37,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		require.NoError(t, pr.LoadIssue(t.Context()))
 
 		// Test GetDiverging
-		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		require.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
@@ -50,7 +51,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
-		diffCount, err = gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err = git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		require.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 2, diffCount.Ahead)
@@ -98,7 +99,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 
 		// Test GetDiverging
-		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
@@ -133,7 +134,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
-		diffCount, err = gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err = git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
@@ -173,7 +174,7 @@ func TestAPIPullUpdateStyleSettings(t *testing.T) {
 
 		// merge update produces a merge commit on top of the head commit (Ahead=2),
 		// rebase update would replay the head commit alone (Ahead=1).
-		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		require.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 2, diffCount.Ahead)
@@ -273,7 +274,9 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		Type:       issues_model.PullRequestGitea,
 	}
 	prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-	err = pull_service.NewPullRequest(t.Context(), prOpts)
+	basePerm, err := access_model.GetDoerRepoPermission(t.Context(), prOpts.Repo, prOpts.Issue.Poster)
+	require.NoError(t, err)
+	err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"})

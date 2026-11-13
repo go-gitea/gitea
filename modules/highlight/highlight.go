@@ -8,14 +8,17 @@ import (
 	"bytes"
 	gohtml "html"
 	"html/template"
+	"strings"
 	"sync"
 
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 )
 
@@ -80,6 +83,13 @@ func htmlEscape(code string) template.HTML {
 	return template.HTML(gohtml.EscapeString(code))
 }
 
+func normalizeLexer(lexer chroma.Lexer) chroma.Lexer {
+	if lexer != lexers.Fallback {
+		lexer = chroma.Coalesce(lexer)
+	}
+	return lexer
+}
+
 // RenderCodeSlowGuess tries to get a lexer by file name and language first,
 // if not found, it will try to guess the lexer by code content, which is slow (more than several hundreds of milliseconds).
 func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML, lexer chroma.Lexer, lexerDisplayName string) {
@@ -94,11 +104,15 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 	}
 
 	lexer = detectChromaLexerWithAnalyze(fileName, language, util.UnsafeStringToBytes(code)) // it is also slow
+	lexer = normalizeLexer(lexer)
 	return RenderCodeByLexer(lexer, code), lexer, formatLexerName(lexer.Config().Name)
 }
 
-// RenderCodeByLexer returns a HTML version of code string with chroma syntax highlighting classes
+// RenderCodeByLexer returns an HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
+	if lexer == lexers.Fallback {
+		return htmlEscape(code) // chroma is 3x slower for plain text
+	}
 	formatter := chromahtml.New(chromahtml.WithClasses(true),
 		chromahtml.WithLineNumbers(false),
 		chromahtml.PreventSurroundingPre(true),
@@ -126,6 +140,7 @@ func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, st
 		return renderPlainText(code), formatLexerName(LanguagePlaintext)
 	}
 	lexer := detectChromaLexerWithAnalyze(fileName, language, code)
+	lexer = normalizeLexer(lexer)
 	lexerName := formatLexerName(lexer.Config().Name)
 	rendered := RenderCodeByLexer(lexer, util.UnsafeBytesToString(code))
 	unsafeLines := UnsafeSplitHighlightedLines(rendered)
@@ -160,4 +175,52 @@ func formatLexerName(name string) string {
 		return "Plaintext"
 	}
 	return util.ToTitleCaseNoLower(name)
+}
+
+func languageForCssAttrName(lang string) (forCSS, forAttr string) {
+	s := strings.ToLower(lang)
+	if s == "" || s == LanguagePlaintext || s == chromaLexerFallback {
+		return "text", "text"
+	}
+	isValid := func(c byte) bool {
+		// although "-" is valid in CSS name, it is used as a field separator, so we don't want to keep it in the name
+		return 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_'
+	}
+	idx := 0
+	for ; idx < len(s); idx++ {
+		if !isValid(s[idx]) {
+			break
+		}
+	}
+	if idx == len(s) {
+		return s, lang
+	}
+	out := []byte(s)
+	for i := idx; i < len(s); i++ {
+		if !isValid(out[i]) {
+			out[i] = '_'
+		}
+	}
+	return string(out), lang
+}
+
+func CodeBlockAttributes(lang string) (preAttrs, codeAttrs template.HTML) {
+	// Code block's "chroma" class is used to highlight the code.
+	// "language-{LanguageName}" class is used as part of commonmark spec.
+	// It's unclear about how to handle special chars for a language name like "Visual Basic.NET" or "C++" or "F#".
+	// The commonmark spec seems wrong: https://spec.commonmark.org/0.31.2/#info-string, it just outputs invalid CSS class names.
+
+	cssName, attrLang := languageForCssAttrName(lang)
+	renderByFrontend := lang == "mermaid" || lang == "math"
+	preExtraClasses := ""
+	if renderByFrontend {
+		preExtraClasses = " is-loading"
+	}
+
+	// The "math.ts" strictly depends on the structure: <pre class="code-block"><code class="language-math">...</code></pre>
+	// * If "pre" exists, it is rendered as "block", otherwise, it is rendered as "inline"
+	// The "mermaid.ts" also strictly depends on the structure: "pre" must exist because it is always rendered as "block".
+	//
+	// Hint: "data-code-language" is not exposed in some cases due to the Markup sanitizer, the rules can be refactored in the future if the attribute is useful.
+	return htmlutil.HTMLFormat(`class="code-block%s"`, preExtraClasses), htmlutil.HTMLFormat(`class="chroma language-%s" data-code-language="%s"`, cssName, attrLang)
 }

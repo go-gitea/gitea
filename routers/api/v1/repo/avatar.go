@@ -13,7 +13,7 @@ import (
 	repo_service "gitea.dev/services/repository"
 )
 
-// UpdateVatar updates the Avatar of an Repo
+// UpdateAvatar updates the Avatar of a Repo
 func UpdateAvatar(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/avatar repository repoUpdateAvatar
 	// ---
@@ -38,9 +38,9 @@ func UpdateAvatar(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.UpdateRepoAvatarOption)
+	//   default:
+	//     "$ref": "#/responses/error"
+	form := web.GetForm[*api.UpdateRepoAvatarOption](ctx)
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
 	if err != nil {
@@ -56,7 +56,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// UpdateAvatar deletes the Avatar of an Repo
+// DeleteAvatar deletes the Avatar of a Repo
 func DeleteAvatar(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/avatar repository repoDeleteAvatar
 	// ---
@@ -77,8 +77,8 @@ func DeleteAvatar(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	err := repo_service.DeleteAvatar(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.APIErrorInternal(err)

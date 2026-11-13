@@ -4,10 +4,9 @@
 package repo
 
 import (
-	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/eventsource"
 	"gitea.dev/services/context"
+	notify_service "gitea.dev/services/notify"
 )
 
 // IssueStartStopwatch creates a stopwatch for the given issue.
@@ -18,17 +17,18 @@ func IssueStartStopwatch(c *context.Context) {
 	}
 
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound(nil)
+		c.NotFound()
 		return
 	}
 
 	if ok, err := issues_model.CreateIssueStopwatch(c, c.Doer, issue); err != nil {
-		c.ServerError("CreateIssueStopwatch", err)
+		c.ServerErrorAuto(err)
 		return
 	} else if !ok {
 		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_created"))
 	} else {
 		c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
+		notify_service.StopwatchChanged(c, c.Doer)
 	}
 	c.JSONRedirect("")
 }
@@ -41,15 +41,17 @@ func IssueStopStopwatch(c *context.Context) {
 	}
 
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound(nil)
+		c.NotFound()
 		return
 	}
 
 	if ok, err := issues_model.FinishIssueStopwatch(c, c.Doer, issue); err != nil {
-		c.ServerError("FinishIssueStopwatch", err)
+		c.ServerErrorAuto(err)
 		return
 	} else if !ok {
 		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_stopped"))
+	} else {
+		notify_service.StopwatchChanged(c, c.Doer)
 	}
 	c.JSONRedirect("")
 }
@@ -61,26 +63,15 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound(nil)
+		c.NotFound()
 		return
 	}
 
 	if _, err := issues_model.CancelStopwatch(c, c.Doer, issue); err != nil {
-		c.ServerError("CancelStopwatch", err)
+		c.ServerErrorAuto(err)
 		return
 	}
 
-	stopwatches, err := issues_model.GetUserStopwatches(c, c.Doer.ID, db.ListOptions{})
-	if err != nil {
-		c.ServerError("GetUserStopwatches", err)
-		return
-	}
-	if len(stopwatches) == 0 {
-		eventsource.GetManager().SendMessage(c.Doer.ID, &eventsource.Event{
-			Name: "stopwatches",
-			Data: "{}",
-		})
-	}
-
+	notify_service.StopwatchChanged(c, c.Doer)
 	c.JSONRedirect("")
 }

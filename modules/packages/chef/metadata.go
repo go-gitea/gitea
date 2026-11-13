@@ -9,8 +9,10 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 )
@@ -20,13 +22,20 @@ const (
 	SettingPublicPem = "chef.public_pem"
 )
 
+var globalVars = sync.OnceValue(func() (ret struct {
+	namePattern    *regexp.Regexp
+	versionPattern *regexp.Regexp
+},
+) {
+	ret.namePattern = regexp.MustCompile(`\A\S+\z`)
+	ret.versionPattern = regexp.MustCompile(`\A\d+\.\d+(?:\.\d+)?\z`)
+	return ret
+})
+
 var (
 	ErrMissingMetadataFile = util.NewInvalidArgumentErrorf("metadata.json file is missing")
 	ErrInvalidName         = util.NewInvalidArgumentErrorf("package name is invalid")
 	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
-
-	namePattern    = regexp.MustCompile(`\A\S+\z`)
-	versionPattern = regexp.MustCompile(`\A\d+\.\d+(?:\.\d+)?\z`)
 )
 
 // Package represents a Chef package
@@ -103,15 +112,15 @@ func ParsePackage(r io.Reader) (*Package, error) {
 // ParseChefMetadata parses a metadata.json file to retrieve the metadata of a Chef package
 func ParseChefMetadata(r io.Reader) (*Package, error) {
 	var cm chefMetadata
-	if err := json.NewDecoder(r).Decode(&cm); err != nil {
+	if err := json.NewDecoder(packages.NewLimitedReader(r, packages.MaxMetadataSize)).Decode(&cm); err != nil {
 		return nil, err
 	}
 
-	if !namePattern.MatchString(cm.Name) {
+	if !globalVars().namePattern.MatchString(cm.Name) {
 		return nil, ErrInvalidName
 	}
 
-	if !versionPattern.MatchString(cm.Version) {
+	if !globalVars().versionPattern.MatchString(cm.Version) {
 		return nil, ErrInvalidVersion
 	}
 

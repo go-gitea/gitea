@@ -51,8 +51,8 @@ func ListHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	opts := &webhook.ListWebhookOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -105,8 +105,8 @@ func GetHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	repo := ctx.Repo
 	hookID := ctx.PathParamInt64("id")
@@ -120,6 +120,128 @@ func GetHook(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, apiHook)
+}
+
+func ListDeliveries(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/hooks/{id}/deliveries repository repoListHookDeliveries
+	// ---
+	// summary: List the deliveries of a hook in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/HookDeliveryList"
+	//   default:
+	//     "$ref": "#/responses/error"
+
+	hookID := ctx.PathParamInt64("id")
+	if _, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID); err != nil {
+		return
+	}
+
+	listOptions := utils.GetListOptions(ctx)
+	tasks, count, err := db.FindAndCount[webhook.HookTask](ctx, webhook.ListHookTaskOptions{
+		ListOptions: listOptions,
+		HookID:      hookID,
+	})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	deliveries := make([]*api.HookDelivery, len(tasks))
+	for i, task := range tasks {
+		delivery := webhook_service.ToHookDelivery(task)
+		if delivery.Request != nil { // the list omits payloads, they are only returned per delivery
+			delivery.Request.Headers = nil
+			delivery.Request.Body = ""
+		}
+		if delivery.Response != nil {
+			delivery.Response.Headers = nil
+			delivery.Response.Body = ""
+		}
+		deliveries[i] = delivery
+	}
+
+	ctx.SetLinkHeader(count, listOptions.PageSize)
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, deliveries)
+}
+
+func GetDelivery(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/hooks/{id}/deliveries/{uuid} repository repoGetHookDelivery
+	// ---
+	// summary: Get a delivery of a hook in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: uuid
+	//   in: path
+	//   description: uuid of the delivery
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/HookDelivery"
+	//   default:
+	//     "$ref": "#/responses/error"
+
+	hookID := ctx.PathParamInt64("id")
+	if _, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID); err != nil {
+		return
+	}
+	task, err := webhook.GetHookTaskByUUID(ctx, hookID, ctx.PathParam("uuid"))
+	if err != nil {
+		if webhook.IsErrHookTaskNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, webhook_service.ToHookDelivery(task))
 }
 
 // TestHook tests a hook
@@ -154,8 +276,8 @@ func TestHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if ctx.Repo.Commit == nil {
 		// if repo does not have any commits, then don't send a webhook
@@ -177,7 +299,7 @@ func TestHook(ctx *context.APIContext) {
 	commit := convert.ToPayloadCommit(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
 
 	commitID := ctx.Repo.Commit.ID.String()
-	if err := webhook_service.PrepareWebhook(ctx, hook, webhook_module.HookEventPush, &api.PushPayload{
+	if err := webhook_service.PrepareTestWebhook(ctx, hook, webhook_module.HookEventPush, &api.PushPayload{
 		Ref:          ref,
 		Before:       commitID,
 		After:        commitID,
@@ -223,10 +345,10 @@ func CreateHook(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Hook"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	utils.AddRepoHook(ctx, web.GetForm(ctx).(*api.CreateHookOption))
+	utils.AddRepoHook(ctx, web.GetForm[*api.CreateHookOption](ctx))
 }
 
 // EditHook modify a hook of a repository
@@ -260,9 +382,9 @@ func EditHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditHookOption)
+	//   default:
+	//     "$ref": "#/responses/error"
+	form := web.GetForm[*api.EditHookOption](ctx)
 	hookID := ctx.PathParamInt64("id")
 	utils.EditRepoHook(ctx, form, hookID)
 }
@@ -294,8 +416,8 @@ func DeleteHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id")); err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.APIErrorNotFound()

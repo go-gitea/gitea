@@ -75,7 +75,7 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 				Name:  "Gem::Version",
 				Value: []string{p.Version.Version},
 			},
-			p.Metadata.(*rubygems_module.Metadata).Platform,
+			packages_model.DescriptorMetadata[*rubygems_module.Metadata](p).Platform,
 		})
 	}
 
@@ -89,7 +89,7 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 	zw.Name = filename
 
 	if err := rubygems_module.NewMarshalEncoder(zw).Encode(specs); err != nil {
-		ctx.ServerError("Download file failed", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -126,7 +126,7 @@ func ServePackageSpecification(ctx *context.Context) {
 	zw := zlib.NewWriter(ctx.Resp)
 	defer zw.Close()
 
-	metadata := pd.Metadata.(*rubygems_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*rubygems_module.Metadata](pd)
 
 	// create a Ruby Gem::Specification object
 	spec := &rubygems_module.RubyUserDef{
@@ -158,7 +158,7 @@ func ServePackageSpecification(ctx *context.Context) {
 	}
 
 	if err := rubygems_module.NewMarshalEncoder(zw).Encode(spec); err != nil {
-		ctx.ServerError("Download file failed", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -405,7 +405,7 @@ func makePackageVersionDependency(ctx *context.Context, version *packages_model.
 		return "", err
 	}
 
-	metadata := pd.Metadata.(*rubygems_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*rubygems_module.Metadata](pd)
 	fullFilename := makeGemFullFileName(pd.Package.Name, version.Version, metadata.Platform)
 	file, err := packages_model.GetFileForVersionByName(ctx, version.ID, fullFilename, "")
 	if err != nil {

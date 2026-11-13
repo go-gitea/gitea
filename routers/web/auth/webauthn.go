@@ -31,14 +31,15 @@ func WebAuthn(ctx *context.Context) {
 	}
 
 	// Ensure user is in a 2FA session.
-	if ctx.Session.Get("twofaUid") == nil {
-		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
+	idSess, ok := ctx.Session.Get("twofaUid").(int64)
+	if !ok {
+		ctx.ServerErrorAuto(errors.New("not in WebAuthn session"))
 		return
 	}
 
-	hasTwoFactor, err := auth.HasTwoFactorByUID(ctx, ctx.Session.Get("twofaUid").(int64))
+	hasTwoFactor, err := auth.HasTwoFactorByUID(ctx, idSess)
 	if err != nil {
-		ctx.ServerError("HasTwoFactorByUID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -54,14 +55,15 @@ func WebAuthnPasskeyAssertion(ctx *context.Context) {
 		return
 	}
 
-	assertion, sessionData, err := wa.WebAuthn.BeginDiscoverableLogin()
+	// a passkey is the only factor here
+	assertion, sessionData, err := wa.WebAuthn.BeginDiscoverableLogin(webauthn.WithUserVerification(protocol.VerificationRequired))
 	if err != nil {
-		ctx.ServerError("webauthn.BeginDiscoverableLogin", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := ctx.Session.Set("webauthnPasskeyAssertion", sessionData); err != nil {
-		ctx.ServerError("Session.Set", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -77,7 +79,7 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 
 	sessionData, okData := ctx.Session.Get("webauthnPasskeyAssertion").(*webauthn.SessionData)
 	if !okData || sessionData == nil {
-		ctx.ServerError("ctx.Session.Get", errors.New("not in WebAuthn session"))
+		ctx.ServerErrorAuto(errors.New("not in WebAuthn session"))
 		return
 	}
 	defer func() {
@@ -91,7 +93,7 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 	parsedResponse, err := protocol.ParseCredentialRequestResponse(ctx.Req)
 	if err != nil {
 		// Failed authentication attempt.
-		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
+		log.Info("Failed authentication attempt from %s: %v", ctx.RemoteAddr(), err)
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -137,22 +139,19 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 	// Success! Get the credential and update the sign count with the new value we received.
 	dbCred, err := auth.GetWebAuthnCredentialByCredID(ctx, user.ID, cred.ID)
 	if err != nil {
-		ctx.ServerError("GetWebAuthnCredentialByCredID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	dbCred.SignCount = cred.Authenticator.SignCount
 	if err := dbCred.UpdateSignCount(ctx); err != nil {
-		ctx.ServerError("UpdateSignCount", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	// Now handle account linking if that's requested
-	if ctx.Session.Get("linkAccount") != nil {
-		if err := linkAccountFromContext(ctx, user); err != nil {
-			ctx.ServerError("LinkAccountFromStore", err)
-			return
-		}
+	if err := completePendingLinks(ctx, user); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
 	}
 
 	remember := false // TODO: implement remember me
@@ -165,35 +164,36 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 	// Ensure user is in a WebAuthn session.
 	idSess, ok := ctx.Session.Get("twofaUid").(int64)
 	if !ok || idSess == 0 {
-		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
+		ctx.ServerErrorAuto(errors.New("not in WebAuthn session"))
 		return
 	}
 
 	user, err := user_model.GetUserByID(ctx, idSess)
 	if err != nil {
-		ctx.ServerError("UserSignIn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	exists, err := auth.ExistsWebAuthnCredentialsForUID(ctx, user.ID)
 	if err != nil {
-		ctx.ServerError("UserSignIn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !exists {
-		ctx.ServerError("UserSignIn", errors.New("no device registered"))
+		ctx.ServerErrorAuto(errors.New("no device registered"))
 		return
 	}
 
 	webAuthnUser := wa.NewWebAuthnUser(ctx, user)
-	assertion, sessionData, err := wa.WebAuthn.BeginLogin(webAuthnUser)
+	// "discouraged" would hide credProtect protected credentials
+	assertion, sessionData, err := wa.WebAuthn.BeginLogin(webAuthnUser, webauthn.WithUserVerification(protocol.VerificationPreferred))
 	if err != nil {
-		ctx.ServerError("webauthn.BeginLogin", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := ctx.Session.Set("webauthnAssertion", sessionData); err != nil {
-		ctx.ServerError("Session.Set", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, assertion)
@@ -204,7 +204,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	idSess, ok := ctx.Session.Get("twofaUid").(int64)
 	sessionData, okData := ctx.Session.Get("webauthnAssertion").(*webauthn.SessionData)
 	if !ok || !okData || sessionData == nil || idSess == 0 {
-		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
+		ctx.ServerErrorAuto(errors.New("not in WebAuthn session"))
 		return
 	}
 	defer func() {
@@ -214,7 +214,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	// Load the user from the db
 	user, err := user_model.GetUserByID(ctx, idSess)
 	if err != nil {
-		ctx.ServerError("UserSignIn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -251,25 +251,22 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	// Success! Get the credential and update the sign count with the new value we received.
 	dbCred, err := auth.GetWebAuthnCredentialByCredID(ctx, user.ID, cred.ID)
 	if err != nil {
-		ctx.ServerError("GetWebAuthnCredentialByCredID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	dbCred.SignCount = cred.Authenticator.SignCount
 	if err := dbCred.UpdateSignCount(ctx); err != nil {
-		ctx.ServerError("UpdateSignCount", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	// Now handle account linking if that's requested
-	if ctx.Session.Get("linkAccount") != nil {
-		if err := linkAccountFromContext(ctx, user); err != nil {
-			ctx.ServerError("LinkAccountFromStore", err)
-			return
-		}
+	if err := completePendingLinks(ctx, user); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
 	}
 
-	remember := ctx.Session.Get("twofaRemember").(bool)
+	remember := ctx.Session.Get("twofaRemember").(bool) //nolint:forcetypeassert // must exist
 	handleSignInFull(ctx, user, remember)
 	_ = ctx.Session.Delete("twofaUid")
 	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))

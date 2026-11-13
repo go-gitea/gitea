@@ -1,10 +1,8 @@
 <script lang="ts" setup>
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {
   Chart,
   Legend,
-  LinearScale,
-  TimeScale,
   PointElement,
   LineElement,
   Filler,
@@ -12,7 +10,7 @@ import {
   type ChartData,
 } from 'chart.js';
 import {GET} from '../modules/fetch.ts';
-import {Line as ChartLine} from 'vue-chartjs';
+import ChartCanvas from './ChartCanvas.vue';
 import {
   startDaysBetween,
   firstStartDateAfterDate,
@@ -20,20 +18,14 @@ import {
   type DayData,
   type DayDataObject,
 } from '../utils/time.ts';
-import {chartJsColors} from '../utils/color.ts';
+import {chartJsColor} from '../utils/color.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
-import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
-import {onMounted, shallowRef} from 'vue';
+import {computed, onMounted, shallowRef} from 'vue';
 
 const {pageData} = window.config;
 
-Chart.defaults.color = chartJsColors.text;
-Chart.defaults.borderColor = chartJsColors.border;
-
 Chart.register(
-  TimeScale,
-  LinearScale,
   Legend,
   PointElement,
   LineElement,
@@ -85,7 +77,9 @@ async function fetchGraphData() {
   }
 }
 
-function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
+const graphData = computed(() => toGraphData(data.value));
+
+function toGraphData(data: DayData[]): ChartData<'line'> {
   return {
     datasets: [
       {
@@ -94,7 +88,7 @@ function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
         pointHitRadius: 0,
         fill: true,
         label: 'Additions',
-        backgroundColor: chartJsColors['additions'],
+        backgroundColor: chartJsColor('additions'),
         borderWidth: 0,
         tension: 0.3,
       },
@@ -104,7 +98,7 @@ function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
         pointHitRadius: 0,
         fill: true,
         label: 'Deletions',
-        backgroundColor: chartJsColors['deletions'],
+        backgroundColor: chartJsColor('deletions'),
         borderWidth: 0,
         tension: 0.3,
       },
@@ -159,9 +153,9 @@ const options: ChartOptions<'line'> = {
           {{ errorText }}
         </div>
       </div>
-      <ChartLine
-        v-memo="data" v-if="data.length !== 0"
-        :data="toGraphData(data)" :options="options"
+      <ChartCanvas
+        v-if="data.length !== 0"
+        type="line" :data="graphData" :options="options"
       />
     </div>
   </div>

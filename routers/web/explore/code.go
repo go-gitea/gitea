@@ -60,7 +60,7 @@ func Code(ctx *context.Context) {
 	if ctx.Doer == nil || !isAdmin {
 		repoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("FindUserCodeAccessibleRepoIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -84,7 +84,7 @@ func Code(ctx *context.Context) {
 		})
 		if err != nil {
 			if code_indexer.IsAvailable(ctx) {
-				ctx.ServerError("SearchResults", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Data["CodeIndexerUnavailable"] = true
@@ -101,7 +101,7 @@ func Code(ctx *context.Context) {
 
 		repoMaps, err := repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
 		if err != nil {
-			ctx.ServerError("GetRepositoriesMapByIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -123,8 +123,7 @@ func Code(ctx *context.Context) {
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
-	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.RepoSearchPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplExploreCode)

@@ -49,7 +49,7 @@ func Search(ctx *context.Context) {
 		})
 		if err != nil {
 			if code_indexer.IsAvailable(ctx) {
-				ctx.ServerError("SearchResults", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Data["CodeIndexerUnavailable"] = true
@@ -62,7 +62,7 @@ func Search(ctx *context.Context) {
 		searchRef := git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
 		searchResults, total, err = gitgrep.PerformSearch(ctx, page, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, searchRef, prepareSearch.Keyword, prepareSearch.SearchMode)
 		if err != nil {
-			ctx.ServerError("gitgrep.PerformSearch", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -71,8 +71,7 @@ func Search(ctx *context.Context) {
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
-	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.RepoSearchPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplSearch)

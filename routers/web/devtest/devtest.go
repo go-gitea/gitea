@@ -21,6 +21,8 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/indexer/code"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
@@ -30,13 +32,13 @@ import (
 func List(ctx *context.Context) {
 	templateNames, err := templates.AssetFS().ListFiles("devtest", true)
 	if err != nil {
-		ctx.ServerError("AssetFS().ListFiles", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	var subNames []string
 	for _, tmplName := range templateNames {
-		subName := strings.TrimSuffix(tmplName, ".tmpl")
-		if !strings.HasPrefix(subName, "devtest-") {
+		subName, isTmpl := strings.CutSuffix(tmplName, ".tmpl")
+		if isTmpl && !strings.HasPrefix(subName, "devtest-") {
 			subNames = append(subNames, subName)
 		}
 	}
@@ -58,7 +60,7 @@ func prepareMockDataGiteaUI(_ *context.Context) {}
 
 func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 	var commits []*asymkey.SignCommit
-	mockUsers, _ := db.Find[user_model.User](ctx, user_model.SearchUserOptions{ListOptions: db.ListOptions{PageSize: 1}})
+	mockUsers, _ := db.Find[user_model.User](ctx, &user_model.SearchUserOptions{ListOptions: db.ListOptions{PageSize: 1}})
 	mockUser := mockUsers[0]
 	commits = append(commits, &asymkey.SignCommit{
 		Verification: &asymkey.CommitVerification{},
@@ -148,7 +150,7 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 			err = fmt.Errorf("unknown badge style: %s", selectedStyle)
 		}
 		if err != nil {
-			ctx.ServerError("RenderToHTML", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		badgeSVGs = append(badgeSVGs, h)
@@ -213,6 +215,19 @@ func prepareMockDataAvatarStack(ctx *context.Context) {
 	*/
 }
 
+func prepareMockDataMarkdown(ctx *context.Context) {
+	content, err := templates.AssetFS().ReadFile("devtest/markdown.md")
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	rctx := markup.NewRenderContext(ctx).WithMetas(markup.ComposeSimpleDocumentMetas()).WithEnableHeadingIDGeneration(true)
+	ctx.Data["MarkdownHTML"], err = markdown.RenderString(rctx, string(content))
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+	}
+}
+
 func prepareMockDataRelativeTime(ctx *context.Context) {
 	now := time.Now()
 	ctx.Data["TimeNow"] = now
@@ -244,6 +259,8 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataBadgeCommitSign(ctx)
 	case "/devtest/badge-actions-svg":
 		prepareMockDataBadgeActionsSvg(ctx)
+	case "/devtest/markdown":
+		prepareMockDataMarkdown(ctx)
 	case "/devtest/relative-time":
 		prepareMockDataRelativeTime(ctx)
 	case "/devtest/toast-and-message":
@@ -288,7 +305,7 @@ func prepareMockDataUnicodeEscape(ctx *context.Context) {
 	lineEscapeStatus := make([]*charset.EscapeStatus, len(highlightLines))
 	for i, hl := range highlightLines {
 		lineEscapeStatus[i], hl.FormattedContent = charset.EscapeControlHTML(hl.FormattedContent, ctx.Locale)
-		escapeStatus = escapeStatus.Or(lineEscapeStatus[i])
+		escapeStatus.Combine(lineEscapeStatus[i])
 	}
 	ctx.Data["HighlightLines"] = highlightLines
 	ctx.Data["EscapeStatus"] = escapeStatus

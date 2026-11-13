@@ -19,23 +19,23 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, treePath)
 	if err != nil {
-		ctx.ServerError("GetTreeEntryByPath", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if entry.IsDir() {
 		ctx.HTTPError(http.StatusUnprocessableEntity)
 		return
 	}
 
-	oldContent, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize)
+	oldContent, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 	if err != nil {
-		ctx.ServerError("GetBlobContent", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	diff, err := files_service.GetDiffPreview(ctx, ctx.Repo.Repository, ctx.Repo.BranchName, treePath, oldContent, newContent)
 	if err != nil {
-		ctx.ServerError("GetDiffPreview", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

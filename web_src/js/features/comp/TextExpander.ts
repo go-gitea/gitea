@@ -1,26 +1,28 @@
-import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
+import {matchEmoji, matchMention} from '../../utils/match.ts';
 import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
 import {parseIssueHref, parseRepoOwnerPathInfo} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
 import {getIssueColorClass, getIssueIcon} from '../issue.ts';
-import {debounce} from 'perfect-debounce';
+import {debounce} from '../../utils/func.ts';
 import type TextExpanderElement from '@github/text-expander-element';
 import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
+import {ExclusiveFetch} from '../../modules/fetch.ts';
+import type {Issue} from '../../types.ts';
 
-async function fetchIssueSuggestions(key: string, text: string): Promise<TextExpanderResult> {
-  const issuePathInfo = parseIssueHref(window.location.href);
-  if (!issuePathInfo.ownerName) {
-    const repoOwnerPathInfo = parseRepoOwnerPathInfo(window.location.pathname);
-    issuePathInfo.ownerName = repoOwnerPathInfo.ownerName;
-    issuePathInfo.repoName = repoOwnerPathInfo.repoName;
-    // then no issuePathInfo.indexString here, it is only used to exclude the current issue when "matchIssue"
-  }
-  if (!issuePathInfo.ownerName) return {matched: false};
+function makeFetchIssueSuggestionsUrl(query: string): {issueIndexStr: string, suggestionsUrl: string} | null {
+  const hrefPathInfo = parseIssueHref(window.location.href);
+  // the fallback has no indexString, it is only used to exclude the current issue when "matchIssue"
+  const pathInfo = hrefPathInfo ?? parseRepoOwnerPathInfo(window.location.pathname);
+  if (!pathInfo) return null;
+  return {
+    issueIndexStr: hrefPathInfo?.indexString ?? '',
+    suggestionsUrl: `${window.config.appSubUrl}/${pathInfo.ownerName}/${pathInfo.repoName}/issues/suggestions?q=${encodeURIComponent(query)}`,
+  };
+}
 
-  const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString, text);
-  if (!matches.length) return {matched: false};
-
+function buildIssueSuggestions(key: string, matches: Issue[]): TextExpanderResult {
+  if (matches.length === 0) return {matched: false};
   const ul = createElementFromAttrs('ul', {class: 'suggestions'});
   for (const issue of matches) {
     const li = createElementFromAttrs(
@@ -48,20 +50,23 @@ export function initTextExpander(expander: TextExpanderElement) {
     return keyStart > lineStart;
   };
 
+  const exclusiveFetch = new ExclusiveFetch();
   const debouncedIssueSuggestions = debounce(async (key: string, text: string): Promise<TextExpanderResult> => {
-    // https://github.com/github/text-expander-element/issues/71
-    // Upstream bug: when using "multiword+promise", TextExpander will get wrong "key" position.
-    // To reproduce, comment out the "shouldShowIssueSuggestions" check, use the "await sleep" below,
-    // then use content "close #20\nclose #20\nclose #20" (3 lines), keep changing the last line `#20` part from the end (including removing the `#`)
-    // There will be a JS error: Uncaught (in promise) IndexSizeError: Failed to execute 'setStart' on 'Range': The offset 28 is larger than the node's length (27).
+    // check the input before the request, to avoid emitting empty query to backend
+    if (!shouldShowIssueSuggestions()) return {matched: false};
 
-    // check the input before the request, to avoid emitting empty query to backend (still related to the upstream bug)
-    if (!shouldShowIssueSuggestions()) return {matched: false};
-    // await sleep(Math.random() * 1000); // help to reproduce the text-expander bug
-    const ret = await fetchIssueSuggestions(key, text);
-    // check the input again to avoid text-expander using incorrect position (upstream bug)
-    if (!shouldShowIssueSuggestions()) return {matched: false};
-    return ret;
+    const result = makeFetchIssueSuggestionsUrl(text);
+    if (!result) return {matched: false};
+    const {issueIndexStr, suggestionsUrl} = result;
+
+    const resp = exclusiveFetch.request(suggestionsUrl);
+    return await resp.fetchJson((raw: Issue[]) => {
+      if (!shouldShowIssueSuggestions()) return {matched: false};
+
+      const issueNumber = parseInt(issueIndexStr || '');
+      const issues = raw.filter((i) => i.number !== issueNumber);
+      return buildIssueSuggestions(key, issues);
+    }) || {matched: false};
   }, 300); // to match onInputDebounce delay
 
   expander.addEventListener('text-expander-change', (e: TextExpanderChangeEvent) => {
@@ -122,7 +127,8 @@ export function initTextExpander(expander: TextExpanderElement) {
     }
   });
 
-  expander.addEventListener('text-expander-value', ({detail}: Record<string, any>) => {
+  expander.addEventListener('text-expander-value', (event) => {
+    const {detail} = event as CustomEvent<{item: HTMLElement, key: string, value: string}>;
     if (detail?.item) {
       // add a space after @mentions and #issue as it's likely the user wants one
       const suffix = ['@', '#'].includes(detail.key) ? ' ' : '';

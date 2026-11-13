@@ -6,11 +6,16 @@ package user
 import (
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	password_module "gitea.dev/modules/auth/password"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,44 +58,28 @@ func TestUpdateUser(t *testing.T) {
 	}
 	assert.NoError(t, UpdateUser(t.Context(), user, opts))
 
-	assert.Equal(t, opts.KeepEmailPrivate.Value(), user.KeepEmailPrivate)
-	assert.Equal(t, opts.FullName.Value(), user.FullName)
-	assert.Equal(t, opts.Website.Value(), user.Website)
-	assert.Equal(t, opts.Location.Value(), user.Location)
-	assert.Equal(t, opts.Description.Value(), user.Description)
-	assert.Equal(t, opts.AllowGitHook.Value(), user.AllowGitHook)
-	assert.Equal(t, opts.AllowImportLocal.Value(), user.AllowImportLocal)
-	assert.Equal(t, opts.MaxRepoCreation.Value(), user.MaxRepoCreation)
-	assert.Equal(t, opts.IsRestricted.Value(), user.IsRestricted)
-	assert.Equal(t, opts.IsActive.Value(), user.IsActive)
-	assert.Equal(t, opts.IsAdmin.Value().FieldValue, user.IsAdmin)
-	assert.Equal(t, opts.Visibility.Value(), user.Visibility)
-	assert.Equal(t, opts.KeepActivityPrivate.Value(), user.KeepActivityPrivate)
-	assert.Equal(t, opts.Language.Value(), user.Language)
-	assert.Equal(t, opts.Theme.Value(), user.Theme)
-	assert.Equal(t, opts.DiffViewStyle.Value(), user.DiffViewStyle)
-	assert.Equal(t, opts.AllowCreateOrganization.Value(), user.AllowCreateOrganization)
-	assert.Equal(t, opts.EmailNotificationsPreference.Value(), user.EmailNotificationsPreference)
-
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
-	assert.Equal(t, opts.KeepEmailPrivate.Value(), user.KeepEmailPrivate)
-	assert.Equal(t, opts.FullName.Value(), user.FullName)
-	assert.Equal(t, opts.Website.Value(), user.Website)
-	assert.Equal(t, opts.Location.Value(), user.Location)
-	assert.Equal(t, opts.Description.Value(), user.Description)
-	assert.Equal(t, opts.AllowGitHook.Value(), user.AllowGitHook)
-	assert.Equal(t, opts.AllowImportLocal.Value(), user.AllowImportLocal)
-	assert.Equal(t, opts.MaxRepoCreation.Value(), user.MaxRepoCreation)
-	assert.Equal(t, opts.IsRestricted.Value(), user.IsRestricted)
-	assert.Equal(t, opts.IsActive.Value(), user.IsActive)
-	assert.Equal(t, opts.IsAdmin.Value().FieldValue, user.IsAdmin)
-	assert.Equal(t, opts.Visibility.Value(), user.Visibility)
-	assert.Equal(t, opts.KeepActivityPrivate.Value(), user.KeepActivityPrivate)
-	assert.Equal(t, opts.Language.Value(), user.Language)
-	assert.Equal(t, opts.Theme.Value(), user.Theme)
-	assert.Equal(t, opts.DiffViewStyle.Value(), user.DiffViewStyle)
-	assert.Equal(t, opts.AllowCreateOrganization.Value(), user.AllowCreateOrganization)
-	assert.Equal(t, opts.EmailNotificationsPreference.Value(), user.EmailNotificationsPreference)
+	assertUpdatedUser := func(user *user_model.User) {
+		assert.Equal(t, opts.KeepEmailPrivate.Value(), user.KeepEmailPrivate)
+		assert.Equal(t, opts.FullName.Value(), user.FullName)
+		assert.Equal(t, opts.Website.Value(), user.Website)
+		assert.Equal(t, opts.Location.Value(), user.Location)
+		assert.Equal(t, opts.Description.Value(), user.Description)
+		assert.Equal(t, opts.AllowGitHook.Value(), user.AllowGitHook)
+		assert.Equal(t, opts.AllowImportLocal.Value(), user.AllowImportLocal)
+		assert.Equal(t, opts.MaxRepoCreation.Value(), user.MaxRepoCreation)
+		assert.Equal(t, opts.IsRestricted.Value(), user.IsRestricted)
+		assert.Equal(t, opts.IsActive.Value(), user.IsActive)
+		assert.Equal(t, opts.IsAdmin.Value().FieldValue, user.IsAdmin)
+		assert.Equal(t, opts.Visibility.Value(), user.Visibility)
+		assert.Equal(t, opts.KeepActivityPrivate.Value(), user.KeepActivityPrivate)
+		assert.Equal(t, opts.Language.Value(), user.Language)
+		assert.Equal(t, opts.Theme.Value(), user.Theme)
+		assert.Equal(t, opts.DiffViewStyle.Value(), user.DiffViewStyle)
+		assert.Equal(t, opts.AllowCreateOrganization.Value(), user.AllowCreateOrganization)
+		assert.Equal(t, opts.EmailNotificationsPreference.Value(), user.EmailNotificationsPreference)
+	}
+	assertUpdatedUser(user)
+	assertUpdatedUser(unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28}))
 }
 
 func TestUpdateAuth(t *testing.T) {
@@ -120,4 +109,71 @@ func TestUpdateAuth(t *testing.T) {
 	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
 		Password: optional.Some("aaaa"),
 	}), password_module.ErrMinLength)
+}
+
+func TestUpdateUserVisibility(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// user28's current visibility is public, e.g. an account created before public was disallowed
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+	assert.Equal(t, structs.VisibleTypePublic, user.Visibility)
+
+	// public is no longer an allowed visibility mode, e.g. ALLOWED_USER_VISIBILITY_MODES = limited, private
+	defer test.MockVariableValue(&setting.Service.AllowedUserVisibilityModesSlice, setting.AllowedVisibility{false, true, true})()
+
+	// re-submitting the unchanged (now-disallowed) visibility must not fail the whole update
+	assert.NoError(t, UpdateUser(t.Context(), user, &UpdateOptions{
+		FullName:   optional.Some("Changed Name"),
+		Visibility: optional.Some(structs.VisibleTypePublic),
+	}))
+	assert.Equal(t, "Changed Name", user.FullName)
+	assert.Equal(t, structs.VisibleTypePublic, user.Visibility)
+
+	// changing to an allowed visibility still works
+	assert.NoError(t, UpdateUser(t.Context(), user, &UpdateOptions{
+		Visibility: optional.Some(structs.VisibleTypePrivate),
+	}))
+	assert.Equal(t, structs.VisibleTypePrivate, user.Visibility)
+
+	// genuinely changing to a disallowed visibility is still rejected
+	assert.Error(t, UpdateUser(t.Context(), user, &UpdateOptions{
+		Visibility: optional.Some(structs.VisibleTypePublic),
+	}))
+}
+
+func TestConvertUserType(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	before := *user
+	tokensBefore := unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID})
+	assert.NotEmpty(t, before.Passwd)
+	assert.Positive(t, tokensBefore)
+
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+	assert.NoError(t, UpdateUser(t.Context(), user, &UpdateOptions{UserType: optional.Some(user_model.UserTypeBot)}))
+	assert.True(t, user.IsTypeBot())
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserType, ScopeType: audit_model.ScopeUser, ScopeID: user.ID})
+
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	before.Type, before.UpdatedUnix = user_model.UserTypeBot, user.UpdatedUnix
+	assert.Equal(t, before, *user)
+	assert.Equal(t, tokensBefore, unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID}))
+
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{Password: optional.Some("%$DRZUVB576tfzgu")}), util.ErrInvalidArgument)
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{LoginSource: optional.Some(int64(1))}), util.ErrInvalidArgument)
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{LoginName: optional.Some("cn=bot")}), util.ErrInvalidArgument)
+	assert.ErrorIs(t, UpdateUser(t.Context(), user, &UpdateOptions{IsAdmin: UpdateOptionFieldFromValue(true)}), user_model.ErrBotCanNotBeAdmin)
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).IsAdmin)
+
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.NoError(t, UpdateUser(t.Context(), user, &UpdateOptions{UserType: optional.Some(user_model.UserTypeIndividual)}))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).IsIndividual())
+
+	toBot := &UpdateOptions{UserType: optional.Some(user_model.UserTypeBot)}
+	assert.ErrorIs(t, UpdateUser(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}), toBot), user_model.ErrUserTypeCanNotConvert)
+	assert.ErrorIs(t, UpdateUser(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), toBot), user_model.ErrBotCanNotBeAdmin)
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).IsIndividual())
+	assert.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 4, LoginType: auth_model.LDAP}, "login_type"))
+	assert.ErrorIs(t, UpdateUser(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}), toBot), user_model.ErrBotMustBeLocal)
 }

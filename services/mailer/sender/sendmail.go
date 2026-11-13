@@ -6,7 +6,6 @@ package sender
 import (
 	"fmt"
 	"io"
-	"os/exec"
 	"strings"
 
 	"gitea.dev/modules/graceful"
@@ -31,15 +30,10 @@ func (s *SendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 		envelopeFrom = setting.MailService.EnvelopeFrom
 	}
 
-	args := []string{"-f", envelopeFrom, "-i"}
+	// Use "-t" to extract recipients from message headers, don't add email addresses to the command line.
+	// Because email address can start with "-" which can lead to injected command line argument (RCE)
+	args := []string{"-f", envelopeFrom, "-i", "-t"}
 	args = append(args, setting.MailService.SendmailArgs...)
-	for _, recipient := range to {
-		smtpTo, err := sanitizeEmailAddress(recipient)
-		if err != nil {
-			return fmt.Errorf("invalid recipient address %q: %w", recipient, err)
-		}
-		args = append(args, smtpTo)
-	}
 	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
 
 	desc := fmt.Sprintf("SendMail: %s %v", setting.MailService.SendmailPath, args)
@@ -47,12 +41,11 @@ func (s *SendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	ctx, _, finished := process.GetManager().AddContextTimeout(graceful.GetManager().HammerContext(), setting.MailService.SendmailTimeout, desc)
 	defer finished()
 
-	cmd := exec.CommandContext(ctx, setting.MailService.SendmailPath, args...)
+	cmd := process.CommandContext(ctx, setting.MailService.SendmailPath, args...)
 	pipe, err := cmd.StdinPipe()
 	if err != nil {
 		return err
 	}
-	process.SetSysProcAttribute(cmd)
 
 	if err = cmd.Start(); err != nil {
 		_ = pipe.Close()

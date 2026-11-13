@@ -23,6 +23,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -277,29 +278,23 @@ func TestPackageConan(t *testing.T) {
 				MakeRequest(t, req, expectedStatusCode)
 			}
 
-			t.Run("No Package permission", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
+			for _, permission := range []struct {
+				name                   string
+				scope                  auth_model.AccessTokenScope
+				expectedAuthStatusCode int
+				expectedStatusCode     int
+			}{
+				{"No Package permission", auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized, http.StatusForbidden},
+				{"Package Read permission", auth_model.AccessTokenScopeReadPackage, http.StatusOK, http.StatusUnauthorized},
+				{"Package Write permission", auth_model.AccessTokenScopeWritePackage, http.StatusOK, http.StatusOK},
+				{"All permission", auth_model.AccessTokenScopeAll, http.StatusOK, http.StatusOK},
+			} {
+				t.Run(permission.name, func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
 
-				testCase(t, auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized, http.StatusForbidden)
-			})
-
-			t.Run("Package Read permission", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				testCase(t, auth_model.AccessTokenScopeReadPackage, http.StatusOK, http.StatusUnauthorized)
-			})
-
-			t.Run("Package Write permission", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				testCase(t, auth_model.AccessTokenScopeWritePackage, http.StatusOK, http.StatusOK)
-			})
-
-			t.Run("All permission", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				testCase(t, auth_model.AccessTokenScopeAll, http.StatusOK, http.StatusOK)
-			})
+					testCase(t, permission.scope, permission.expectedAuthStatusCode, permission.expectedStatusCode)
+				})
+			}
 		})
 
 		t.Run("CheckCredentials", func(t *testing.T) {
@@ -327,8 +322,8 @@ func TestPackageConan(t *testing.T) {
 				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, name, pd.Package.Name)
 				assert.Equal(t, version1, pd.Version.Version)
-				assert.IsType(t, &conan_module.Metadata{}, pd.Metadata)
-				metadata := pd.Metadata.(*conan_module.Metadata)
+				metadata, ok := pd.Metadata.(*conan_module.Metadata)
+				require.True(t, ok)
 				assert.Equal(t, conanLicense, metadata.License)
 				assert.Equal(t, conanAuthor, metadata.Author)
 				assert.Equal(t, conanHomepage, metadata.ProjectURL)
@@ -365,55 +360,36 @@ func TestPackageConan(t *testing.T) {
 
 			recipeURL := fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s", url, name, version1, user1, channel1)
 
-			req := NewRequest(t, "GET", recipeURL)
-			resp := MakeRequest(t, req, http.StatusOK)
+			for _, download := range []struct {
+				url      string
+				fileName string
+				hash     string
+				content  string
+			}{
+				{recipeURL, conanfileName, "7abc52241c22090782c54731371847a8", buildConanfileContent(name, version1)},
+				{fmt.Sprintf("%s/packages/%s", recipeURL, conanPackageReference), conaninfoName, "7628bfcc5b17f1470c468621a78df394", contentConaninfo},
+			} {
+				req := NewRequest(t, "GET", download.url)
+				resp := MakeRequest(t, req, http.StatusOK)
 
-			fileHashes := DecodeJSON(t, resp, map[string]string{})
-			assert.Len(t, fileHashes, 1)
-			assert.Contains(t, fileHashes, conanfileName)
-			assert.Equal(t, "7abc52241c22090782c54731371847a8", fileHashes[conanfileName])
+				fileHashes := DecodeJSON(t, resp, map[string]string{})
+				assert.Len(t, fileHashes, 1)
+				assert.Contains(t, fileHashes, download.fileName)
+				assert.Equal(t, download.hash, fileHashes[download.fileName])
 
-			req = NewRequest(t, "GET", recipeURL+"/digest")
-			resp = MakeRequest(t, req, http.StatusOK)
+				var downloadURLs map[string]string
+				for _, endpoint := range []string{"/digest", "/download_urls"} {
+					req = NewRequest(t, "GET", download.url+endpoint)
+					resp = MakeRequest(t, req, http.StatusOK)
 
-			downloadURLs := DecodeJSON(t, resp, map[string]string{})
-			assert.Contains(t, downloadURLs, conanfileName)
+					downloadURLs = DecodeJSON(t, resp, map[string]string{})
+					assert.Contains(t, downloadURLs, download.fileName)
+				}
 
-			req = NewRequest(t, "GET", recipeURL+"/download_urls")
-			resp = MakeRequest(t, req, http.StatusOK)
-
-			downloadURLs = DecodeJSON(t, resp, map[string]string{})
-			assert.Contains(t, downloadURLs, conanfileName)
-
-			req = NewRequest(t, "GET", downloadURLs[conanfileName])
-			resp = MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, buildConanfileContent(name, version1), resp.Body.String())
-
-			packageURL := fmt.Sprintf("%s/packages/%s", recipeURL, conanPackageReference)
-
-			req = NewRequest(t, "GET", packageURL)
-			resp = MakeRequest(t, req, http.StatusOK)
-
-			fileHashes = DecodeJSON(t, resp, map[string]string{})
-			assert.Len(t, fileHashes, 1)
-			assert.Contains(t, fileHashes, conaninfoName)
-			assert.Equal(t, "7628bfcc5b17f1470c468621a78df394", fileHashes[conaninfoName])
-
-			req = NewRequest(t, "GET", packageURL+"/digest")
-			resp = MakeRequest(t, req, http.StatusOK)
-
-			downloadURLs = DecodeJSON(t, resp, map[string]string{})
-			assert.Contains(t, downloadURLs, conaninfoName)
-
-			req = NewRequest(t, "GET", packageURL+"/download_urls")
-			resp = MakeRequest(t, req, http.StatusOK)
-
-			downloadURLs = DecodeJSON(t, resp, map[string]string{})
-			assert.Contains(t, downloadURLs, conaninfoName)
-
-			req = NewRequest(t, "GET", downloadURLs[conaninfoName])
-			resp = MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, contentConaninfo, resp.Body.String())
+				req = NewRequest(t, "GET", downloadURLs[download.fileName])
+				resp = MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, download.content, resp.Body.String())
+			}
 		})
 
 		t.Run("Search", func(t *testing.T) {
@@ -604,29 +580,23 @@ func TestPackageConan(t *testing.T) {
 				MakeRequest(t, req, expectedStatusCode)
 			}
 
-			t.Run("No Package permission", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
+			for _, permission := range []struct {
+				name                   string
+				scope                  auth_model.AccessTokenScope
+				expectedAuthStatusCode int
+				expectedStatusCode     int
+			}{
+				{"No Package permission", auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized, http.StatusUnauthorized},
+				{"Package Read permission", auth_model.AccessTokenScopeReadPackage, http.StatusOK, http.StatusUnauthorized},
+				{"Package Write permission", auth_model.AccessTokenScopeWritePackage, http.StatusOK, http.StatusCreated},
+				{"All permission", auth_model.AccessTokenScopeAll, http.StatusOK, http.StatusCreated},
+			} {
+				t.Run(permission.name, func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
 
-				testCase(t, auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized, http.StatusUnauthorized)
-			})
-
-			t.Run("Package Read permission", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				testCase(t, auth_model.AccessTokenScopeReadPackage, http.StatusOK, http.StatusUnauthorized)
-			})
-
-			t.Run("Package Write permission", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				testCase(t, auth_model.AccessTokenScopeWritePackage, http.StatusOK, http.StatusCreated)
-			})
-
-			t.Run("All permission", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				testCase(t, auth_model.AccessTokenScopeAll, http.StatusOK, http.StatusCreated)
-			})
+					testCase(t, permission.scope, permission.expectedAuthStatusCode, permission.expectedStatusCode)
+				})
+			}
 		})
 
 		t.Run("CheckCredentials", func(t *testing.T) {
@@ -656,19 +626,17 @@ func TestPackageConan(t *testing.T) {
 
 			recipeURL := fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s", url, name, version1, user1, channel1)
 
-			req := NewRequest(t, "GET", recipeURL+"/latest")
-			resp := MakeRequest(t, req, http.StatusOK)
+			for _, requestURL := range []string{
+				recipeURL + "/latest",
+				fmt.Sprintf("%s/revisions/%s/packages/%s/latest", recipeURL, revision1, conanPackageReference),
+			} {
+				req := NewRequest(t, "GET", requestURL)
+				resp := MakeRequest(t, req, http.StatusOK)
 
-			obj := DecodeJSON(t, resp, map[string]string{})
-			assert.Contains(t, obj, "revision")
-			assert.Equal(t, revision1, obj["revision"])
-
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/revisions/%s/packages/%s/latest", recipeURL, revision1, conanPackageReference))
-			resp = MakeRequest(t, req, http.StatusOK)
-
-			obj = DecodeJSON(t, resp, map[string]string{})
-			assert.Contains(t, obj, "revision")
-			assert.Equal(t, revision1, obj["revision"])
+				obj := DecodeJSON(t, resp, map[string]string{})
+				assert.Contains(t, obj, "revision")
+				assert.Equal(t, revision1, obj["revision"])
+			}
 		})
 
 		t.Run("ListRevisions", func(t *testing.T) {
@@ -680,9 +648,6 @@ func TestPackageConan(t *testing.T) {
 
 			recipeURL := fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions", url, name, version1, user1, channel1)
 
-			req := NewRequest(t, "GET", recipeURL)
-			resp := MakeRequest(t, req, http.StatusOK)
-
 			type RevisionInfo struct {
 				Revision string    `json:"revision"`
 				Time     time.Time `json:"time"`
@@ -692,24 +657,21 @@ func TestPackageConan(t *testing.T) {
 				Revisions []*RevisionInfo `json:"revisions"`
 			}
 
-			list := DecodeJSON(t, resp, &RevisionList{})
-			assert.Len(t, list.Revisions, 2)
-			revs := make([]string, 0, len(list.Revisions))
-			for _, rev := range list.Revisions {
-				revs = append(revs, rev.Revision)
-			}
-			assert.ElementsMatch(t, []string{revision1, revision2}, revs)
+			for _, requestURL := range []string{
+				recipeURL,
+				fmt.Sprintf("%s/%s/packages/%s/revisions", recipeURL, revision1, conanPackageReference),
+			} {
+				req := NewRequest(t, "GET", requestURL)
+				resp := MakeRequest(t, req, http.StatusOK)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/packages/%s/revisions", recipeURL, revision1, conanPackageReference))
-			resp = MakeRequest(t, req, http.StatusOK)
-
-			list = DecodeJSON(t, resp, &RevisionList{})
-			assert.Len(t, list.Revisions, 2)
-			revs = make([]string, 0, len(list.Revisions))
-			for _, rev := range list.Revisions {
-				revs = append(revs, rev.Revision)
+				list := DecodeJSON(t, resp, &RevisionList{})
+				assert.Len(t, list.Revisions, 2)
+				revs := make([]string, 0, len(list.Revisions))
+				for _, rev := range list.Revisions {
+					revs = append(revs, rev.Revision)
+				}
+				assert.ElementsMatch(t, []string{revision1, revision2}, revs)
 			}
-			assert.ElementsMatch(t, []string{revision1, revision2}, revs)
 		})
 
 		t.Run("Search", func(t *testing.T) {
@@ -752,27 +714,33 @@ func TestPackageConan(t *testing.T) {
 			t.Run("Package", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/search", url, name, version1, user1, channel1))
-				resp := MakeRequest(t, req, http.StatusOK)
+				for _, requestURL := range []string{
+					fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/search", url, name, version1, user1, channel1),
+					fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/search", url, name, version1, user1, channel1, revision1),
+				} {
+					req := NewRequest(t, "GET", requestURL)
+					resp := MakeRequest(t, req, http.StatusOK)
 
-				result := DecodeJSON(t, resp, map[string]*conan_module.Conaninfo{})
+					result := DecodeJSON(t, resp, map[string]*conan_module.Conaninfo{})
 
-				assert.Contains(t, result, conanPackageReference)
-				info := result[conanPackageReference]
-				assert.NotEmpty(t, info.Settings)
-
-				req = NewRequest(t, "GET", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/search", url, name, version1, user1, channel1, revision1))
-				resp = MakeRequest(t, req, http.StatusOK)
-
-				result = DecodeJSON(t, resp, map[string]*conan_module.Conaninfo{})
-
-				assert.Contains(t, result, conanPackageReference)
-				info = result[conanPackageReference]
-				assert.NotEmpty(t, info.Settings)
+					assert.Contains(t, result, conanPackageReference)
+					info := result[conanPackageReference]
+					assert.NotEmpty(t, info.Settings)
+				}
 			})
 		})
 
 		t.Run("Delete", func(t *testing.T) {
+			deleteConanResource := func(t *testing.T, requestURL string) {
+				req := NewRequest(t, "DELETE", requestURL).
+					AddTokenAuth(badToken)
+				MakeRequest(t, req, http.StatusUnauthorized)
+
+				req = NewRequest(t, "DELETE", requestURL).
+					AddTokenAuth(token)
+				MakeRequest(t, req, http.StatusOK)
+			}
+
 			t.Run("Package", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
@@ -792,23 +760,11 @@ func TestPackageConan(t *testing.T) {
 
 				checkPackageRevisionCount(2)
 
-				req := NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages/%s/revisions/%s", url, name, version1, user1, channel1, revision1, conanPackageReference, revision1)).
-					AddTokenAuth(badToken)
-				MakeRequest(t, req, http.StatusUnauthorized)
-
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages/%s/revisions/%s", url, name, version1, user1, channel1, revision1, conanPackageReference, revision1)).
-					AddTokenAuth(token)
-				MakeRequest(t, req, http.StatusOK)
+				deleteConanResource(t, fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages/%s/revisions/%s", url, name, version1, user1, channel1, revision1, conanPackageReference, revision1))
 
 				checkPackageRevisionCount(1)
 
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages/%s", url, name, version1, user1, channel1, revision1, conanPackageReference)).
-					AddTokenAuth(badToken)
-				MakeRequest(t, req, http.StatusUnauthorized)
-
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages/%s", url, name, version1, user1, channel1, revision1, conanPackageReference)).
-					AddTokenAuth(token)
-				MakeRequest(t, req, http.StatusOK)
+				deleteConanResource(t, fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages/%s", url, name, version1, user1, channel1, revision1, conanPackageReference))
 
 				checkPackageRevisionCount(0)
 
@@ -816,13 +772,7 @@ func TestPackageConan(t *testing.T) {
 
 				checkPackageReferenceCount(1)
 
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages", url, name, version1, user1, channel1, revision2)).
-					AddTokenAuth(badToken)
-				MakeRequest(t, req, http.StatusUnauthorized)
-
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages", url, name, version1, user1, channel1, revision2)).
-					AddTokenAuth(token)
-				MakeRequest(t, req, http.StatusOK)
+				deleteConanResource(t, fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/packages", url, name, version1, user1, channel1, revision2))
 
 				checkPackageReferenceCount(0)
 			})
@@ -840,23 +790,11 @@ func TestPackageConan(t *testing.T) {
 
 				checkRecipeRevisionCount(2)
 
-				req := NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s", url, name, version1, user1, channel1, revision1)).
-					AddTokenAuth(badToken)
-				MakeRequest(t, req, http.StatusUnauthorized)
-
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s", url, name, version1, user1, channel1, revision1)).
-					AddTokenAuth(token)
-				MakeRequest(t, req, http.StatusOK)
+				deleteConanResource(t, fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s", url, name, version1, user1, channel1, revision1))
 
 				checkRecipeRevisionCount(1)
 
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s", url, name, version1, user1, channel1)).
-					AddTokenAuth(badToken)
-				MakeRequest(t, req, http.StatusUnauthorized)
-
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s", url, name, version1, user1, channel1)).
-					AddTokenAuth(token)
-				MakeRequest(t, req, http.StatusOK)
+				deleteConanResource(t, fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s", url, name, version1, user1, channel1))
 
 				checkRecipeRevisionCount(0)
 			})

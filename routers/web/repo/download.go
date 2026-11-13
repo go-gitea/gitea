@@ -20,7 +20,7 @@ import (
 )
 
 func checkDownloadTokenScope(ctx *context.Context) bool {
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, auth_model.Read)
 	return !ctx.Written()
 }
 
@@ -30,7 +30,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 		return nil
 	}
 
-	lfsPointerBuf, err := blob.GetBlobBytes(lfs.MetaFileMaxSize)
+	lfsPointerBuf, err := blob.GetBlobBytes(ctx, lfs.MetaFileMaxSize)
 	if err != nil {
 		return err
 	}
@@ -67,29 +67,25 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 }
 
 func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetTreeEntryByPath", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil, nil
 	}
 
-	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx, ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
-		ctx.ServerError("GetTreePathLatestCommit", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 	lastModified := &latestCommit.Committer.When
 
-	return entry.Blob(), lastModified
+	return entry.Blob(ctx.Repo.GitRepo), lastModified
 }
 
 // SingleDownload download a file by repos path
@@ -104,7 +100,7 @@ func SingleDownload(ctx *context.Context) {
 	}
 
 	if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified); err != nil {
-		ctx.ServerError("ServeBlob", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -120,7 +116,7 @@ func SingleDownloadOrLFS(ctx *context.Context) {
 	}
 
 	if err := ServeBlobOrLFS(ctx, blob, lastModified); err != nil {
-		ctx.ServerError("ServeBlobOrLFS", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -132,15 +128,11 @@ func DownloadByID(ctx *context.Context) {
 
 	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetBlob", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err = common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, nil); err != nil {
-		ctx.ServerError("ServeBlob", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -152,14 +144,10 @@ func DownloadByIDOrLFS(ctx *context.Context) {
 
 	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetBlob", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err = ServeBlobOrLFS(ctx, blob, nil); err != nil {
-		ctx.ServerError("ServeBlob", err)
+		ctx.ServerErrorAuto(err)
 	}
 }

@@ -8,20 +8,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	pingv1 "gitea.dev/actions-proto-go/ping/v1"
-	"gitea.dev/actions-proto-go/ping/v1/pingv1connect"
+	pingv1 "gitea.dev/actionslib/ping/v1"
+	"gitea.dev/actionslib/ping/v1/pingv1connect"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestService(t *testing.T) {
-	mux := http.NewServeMux()
-	mux.Handle(pingv1connect.NewPingServiceHandler(
-		&Service{},
-	))
-	MainServiceTest(t, mux)
+	_, handler := NewPingServiceHandler()
+	MainServiceTest(t, handler)
 }
 
 func MainServiceTest(t *testing.T, h http.Handler) {
@@ -31,31 +29,31 @@ func MainServiceTest(t *testing.T, h http.Handler) {
 	server.StartTLS()
 	defer server.Close()
 
-	connectClient := pingv1connect.NewPingServiceClient(
+	connectClient := pingv1connect.NewPingServiceClient(connect.NewClient(connecthttp.NewTransport(
 		server.Client(),
 		server.URL,
-	)
+	)))
 
-	grpcClient := pingv1connect.NewPingServiceClient(
+	grpcClient := pingv1connect.NewPingServiceClient(connect.NewClient(connecthttp.NewTransport(
 		server.Client(),
 		server.URL,
-		connect.WithGRPC(),
-	)
+		connecthttp.WithGRPC(),
+	)))
 
-	grpcWebClient := pingv1connect.NewPingServiceClient(
+	grpcWebClient := pingv1connect.NewPingServiceClient(connect.NewClient(connecthttp.NewTransport(
 		server.Client(),
 		server.URL,
-		connect.WithGRPCWeb(),
-	)
+		connecthttp.WithGRPCWeb(),
+	)))
 
 	clients := []pingv1connect.PingServiceClient{connectClient, grpcClient, grpcWebClient}
 	t.Run("ping request", func(t *testing.T) {
 		for _, client := range clients {
-			result, err := client.Ping(t.Context(), connect.NewRequest(&pingv1.PingRequest{
+			result, err := client.Ping(t.Context(), &pingv1.PingRequest{
 				Data: "foobar",
-			}))
+			})
 			require.NoError(t, err)
-			assert.Equal(t, "Hello, foobar!", result.Msg.Data)
+			assert.Equal(t, "Hello, foobar!", result.Data)
 		}
 	})
 }

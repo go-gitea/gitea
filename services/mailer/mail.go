@@ -15,6 +15,7 @@ import (
 	"mime"
 	"regexp"
 	"strings"
+	"sync"
 
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -31,7 +32,9 @@ import (
 
 const mailMaxSubjectRunes = 256 // There's no actual limit for subject in RFC 5322
 
-var subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
+var subjectRemoveSpaces = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`[\s]+`)
+})
 
 func LoadedTemplates() *templates.MailRender {
 	return templates.MailRenderer()
@@ -47,7 +50,7 @@ func SendTestMail(email string) error {
 }
 
 func sanitizeSubject(subject string) string {
-	runes := []rune(strings.TrimSpace(subjectRemoveSpaces.ReplaceAllLiteralString(subject, " ")))
+	runes := []rune(strings.TrimSpace(subjectRemoveSpaces().ReplaceAllLiteralString(subject, " ")))
 	if len(runes) > mailMaxSubjectRunes {
 		runes = runes[:mailMaxSubjectRunes]
 	}
@@ -162,7 +165,7 @@ func fromDisplayName(u *user_model.User) string {
 		err := setting.MailService.FromDisplayNameFormatTemplate.Execute(&buf, map[string]any{
 			"DisplayName": u.DisplayName(),
 			"AppName":     setting.AppName,
-			"Domain":      setting.Domain,
+			"Domain":      setting.AppDomain,
 		})
 		if err == nil {
 			return mime.QEncoding.Encode("utf-8", buf.String())
@@ -180,7 +183,7 @@ func fromDisplayName(u *user_model.User) string {
 func generateMetadataHeaders(repo *repo_model.Repository) map[string]string {
 	return map[string]string{
 		// https://datatracker.ietf.org/doc/html/rfc2919
-		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.Domain),
+		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.AppDomain),
 
 		// https://datatracker.ietf.org/doc/html/rfc2369
 		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),

@@ -75,13 +75,17 @@ type FindGPGKeyOptions struct {
 	IncludeSubKeys bool
 }
 
+func (opts FindGPGKeyOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts FindGPGKeyOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if !opts.IncludeSubKeys {
 		cond = cond.And(builder.Eq{"primary_key_id": ""})
 	}
 
-	if opts.OwnerID > 0 {
+	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
 	if opts.KeyID != "" {

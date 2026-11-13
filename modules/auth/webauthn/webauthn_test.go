@@ -8,18 +8,20 @@ import (
 
 	"gitea.dev/modules/setting"
 
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestInit(t *testing.T) {
-	setting.Domain = "domain"
+	setting.AppDomain = "domain"
 	setting.AppName = "AppName"
 	setting.AppURL = "https://domain/"
 	rpOrigin := []string{"https://domain"}
 
 	Init()
 
-	assert.Equal(t, setting.Domain, WebAuthn.Config.RPID)
+	assert.Equal(t, setting.AppDomain, WebAuthn.Config.RPID)
 	assert.Equal(t, setting.AppName, WebAuthn.Config.RPDisplayName)
 	assert.Equal(t, rpOrigin, WebAuthn.Config.RPOrigins)
+	assert.Equal(t, protocol.UnsolicitedOutputPolicyIgnore, WebAuthn.Config.ExtensionsUnsolicitedOutputPolicy)
 }

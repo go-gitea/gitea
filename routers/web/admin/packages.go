@@ -5,7 +5,6 @@ package admin
 
 import (
 	"net/http"
-	"net/url"
 	"time"
 
 	"gitea.dev/models/db"
@@ -40,25 +39,25 @@ func Packages(ctx *context.Context) {
 		},
 	})
 	if err != nil {
-		ctx.ServerError("SearchVersions", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		ctx.ServerError("GetPackageDescriptors", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	totalBlobSize, err := packages_model.GetTotalBlobSize(ctx)
 	if err != nil {
-		ctx.ServerError("GetTotalBlobSize", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	totalUnreferencedBlobSize, err := packages_model.GetTotalUnreferencedBlobSize(ctx)
 	if err != nil {
-		ctx.ServerError("CalculateBlobSize", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -73,8 +72,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["TotalBlobSize"] = totalBlobSize - totalUnreferencedBlobSize
 	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
-	pager := context.NewPagination(total, setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.PackagesPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)
@@ -84,22 +82,22 @@ func Packages(ctx *context.Context) {
 func DeletePackageVersion(ctx *context.Context) {
 	pv, err := packages_model.GetVersionByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.ServerError("GetRepositoryByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
-		ctx.ServerError("RemovePackageVersion", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
-	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
+	ctx.JSONRedirect("")
 }
 
 func CleanupExpiredData(ctx *context.Context) {
 	if err := packages_cleanup_service.CleanupExpiredData(ctx, time.Duration(0)); err != nil {
-		ctx.ServerError("CleanupExpiredData", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -40,17 +40,15 @@ func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.Reposi
 
 	repoIDs := issues.getRepoIDs()
 	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
-	left := len(repoIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		err := db.GetEngine(ctx).
-			In("id", repoIDs[:limit]).
-			Find(&repoMaps)
-		if err != nil {
-			return nil, fmt.Errorf("find repository: %w", err)
-		}
-		left -= limit
-		repoIDs = repoIDs[limit:]
+	err := db.QueryAndProcessByChunk(repoIDs, func(chunk []int64) (out []*repo_model.Repository, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(repo *repo_model.Repository) error {
+		repoMaps[repo.ID] = repo
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("find repository: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -111,36 +109,20 @@ func (issues IssueList) LoadLabels(ctx context.Context) error {
 
 	issueLabels := make(map[int64][]*Label, len(issues)*3)
 	issueIDs := issues.getIssueIDs()
-	left := len(issueIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).Table("label").
-			Join("LEFT", "issue_label", "issue_label.label_id = label.id").
-			In("issue_label.issue_id", issueIDs[:limit]).
-			Asc("label.name").
-			Rows(new(LabelIssue))
-		if err != nil {
-			return err
-		}
 
-		for rows.Next() {
-			var labelIssue LabelIssue
-			err = rows.Scan(&labelIssue)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.LoadLabels: Close: %w", err1)
-				}
-				return err
-			}
-			issueLabels[labelIssue.IssueLabel.IssueID] = append(issueLabels[labelIssue.IssueLabel.IssueID], labelIssue.Label)
-		}
-		// When there are no rows left and we try to close it.
-		// Since that is not relevant for us, we can safely ignore it.
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.LoadLabels: Close: %w", err1)
-		}
-		left -= limit
-		issueIDs = issueIDs[limit:]
+	err := db.QueryAndProcessByChunk(issueIDs, func(chunk []int64) (out []*LabelIssue, err error) {
+		err = db.GetEngine(ctx).Table("label").
+			Join("LEFT", "issue_label", "issue_label.label_id = label.id").
+			In("issue_label.issue_id", chunk).
+			Asc("label.name").
+			Find(&out)
+		return out, err
+	}, func(out *LabelIssue) error {
+		issueLabels[out.IssueLabel.IssueID] = append(issueLabels[out.IssueLabel.IssueID], out.Label)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("IssueList.LoadLabels: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -163,17 +145,15 @@ func (issues IssueList) LoadMilestones(ctx context.Context) error {
 	}
 
 	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
-	left := len(milestoneIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		err := db.GetEngine(ctx).
-			In("id", milestoneIDs[:limit]).
-			Find(&milestoneMaps)
-		if err != nil {
-			return err
-		}
-		left -= limit
-		milestoneIDs = milestoneIDs[limit:]
+	err := db.QueryAndProcessByChunk(milestoneIDs, func(chunk []int64) (out []*Milestone, err error) {
+		err = db.GetEngine(ctx).In("id", chunk).Find(&out)
+		return out, err
+	}, func(milestone *Milestone) error {
+		milestoneMaps[milestone.ID] = milestone
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	for _, issue := range issues {
@@ -186,32 +166,27 @@ func (issues IssueList) LoadMilestones(ctx context.Context) error {
 func (issues IssueList) LoadProjects(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
 	issueProjectMaps := make(map[int64][]*project_model.Project, len(issues))
-	left := len(issueIDs)
 
 	type projectWithIssueID struct {
 		*project_model.Project `xorm:"extends"`
 		IssueID                int64
 	}
 
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-
-		projects := make([]*projectWithIssueID, 0, limit)
-		err := db.GetEngine(ctx).
+	err := db.QueryAndProcessByChunk(issueIDs, func(chunk []int64) (out []*projectWithIssueID, err error) {
+		err = db.GetEngine(ctx).
 			Table("project").
 			Select("project.*, project_issue.issue_id").
 			Join("INNER", "project_issue", "project.id = project_issue.project_id").
-			In("project_issue.issue_id", issueIDs[:limit]).
+			In("project_issue.issue_id", chunk).
 			OrderBy("project_issue.issue_id ASC, project.id ASC").
-			Find(&projects)
-		if err != nil {
-			return err
-		}
-		for _, project := range projects {
-			issueProjectMaps[project.IssueID] = append(issueProjectMaps[project.IssueID], project.Project)
-		}
-		left -= limit
-		issueIDs = issueIDs[limit:]
+			Find(&out)
+		return out, err
+	}, func(project *projectWithIssueID) error {
+		issueProjectMaps[project.IssueID] = append(issueProjectMaps[project.IssueID], project.Project)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("IssueList.LoadProjects: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -233,34 +208,18 @@ func (issues IssueList) LoadAssignees(ctx context.Context) error {
 
 	assignees := make(map[int64][]*user_model.User, len(issues))
 	issueIDs := issues.getIssueIDs()
-	left := len(issueIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).Table("issue_assignees").
+	err := db.QueryAndProcessByChunk(issueIDs, func(chunk []int64) (out []*AssigneeIssue, err error) {
+		err = db.GetEngine(ctx).Table("issue_assignees").
 			Join("INNER", "`user`", "`user`.id = `issue_assignees`.assignee_id").
-			In("`issue_assignees`.issue_id", issueIDs[:limit]).OrderBy(user_model.GetOrderByName()).
-			Rows(new(AssigneeIssue))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var assigneeIssue AssigneeIssue
-			err = rows.Scan(&assigneeIssue)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadAssignees: Close: %w", err1)
-				}
-				return err
-			}
-
-			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
-		}
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadAssignees: Close: %w", err1)
-		}
-		left -= limit
-		issueIDs = issueIDs[limit:]
+			In("`issue_assignees`.issue_id", chunk).OrderBy(user_model.GetOrderByName()).
+			Find(&out)
+		return out, err
+	}, func(assigneeIssue *AssigneeIssue) error {
+		assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("IssueList.LoadAssignees: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -291,32 +250,17 @@ func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 	}
 
 	pullRequestMaps := make(map[int64]*PullRequest, len(issuesIDs))
-	left := len(issuesIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).
-			In("issue_id", issuesIDs[:limit]).
-			Rows(new(PullRequest))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var pr PullRequest
-			err = rows.Scan(&pr)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadPullRequests: Close: %w", err1)
-				}
-				return err
-			}
-			pullRequestMaps[pr.IssueID] = &pr
-		}
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadPullRequests: Close: %w", err1)
-		}
-		left -= limit
-		issuesIDs = issuesIDs[limit:]
+	err := db.QueryAndProcessByChunk(issuesIDs, func(chunk []int64) (out []*PullRequest, err error) {
+		err = db.GetEngine(ctx).
+			In("issue_id", chunk).
+			Find(&out)
+		return out, err
+	}, func(pr *PullRequest) error {
+		pullRequestMaps[pr.IssueID] = pr
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("IssueList.LoadPullRequests: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -336,32 +280,15 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 
 	attachments := make(map[int64][]*repo_model.Attachment, len(issues))
 	issuesIDs := issues.getIssueIDs()
-	left := len(issuesIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).
-			In("issue_id", issuesIDs[:limit]).
-			Rows(new(repo_model.Attachment))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var attachment repo_model.Attachment
-			err = rows.Scan(&attachment)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadAttachments: Close: %w", err1)
-				}
-				return err
-			}
-			attachments[attachment.IssueID] = append(attachments[attachment.IssueID], &attachment)
-		}
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadAttachments: Close: %w", err1)
-		}
-		left -= limit
-		issuesIDs = issuesIDs[limit:]
+	err = db.QueryAndProcessByChunk(issuesIDs, func(chunk []int64) (out []*repo_model.Attachment, err error) {
+		err = db.GetEngine(ctx).In("issue_id", chunk).Find(&out)
+		return out, err
+	}, func(attachment *repo_model.Attachment) error {
+		attachments[attachment.IssueID] = append(attachments[attachment.IssueID], attachment)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("IssueList.LoadAttachments: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -378,35 +305,20 @@ func (issues IssueList) loadComments(ctx context.Context, cond builder.Cond) (er
 
 	comments := make(map[int64][]*Comment, len(issues))
 	issuesIDs := issues.getIssueIDs()
-	left := len(issuesIDs)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-		rows, err := db.GetEngine(ctx).Table("comment").
+	err = db.QueryAndProcessByChunk(issuesIDs, func(chunk []int64) (out []*Comment, err error) {
+		err = db.GetEngine(ctx).Table("comment").
 			Join("INNER", "issue", "issue.id = comment.issue_id").
-			In("issue.id", issuesIDs[:limit]).
+			In("issue.id", chunk).
 			Where(cond).
 			NoAutoCondition().
-			Rows(new(Comment))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var comment Comment
-			err = rows.Scan(&comment)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadComments: Close: %w", err1)
-				}
-				return err
-			}
-			comments[comment.IssueID] = append(comments[comment.IssueID], &comment)
-		}
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadComments: Close: %w", err1)
-		}
-		left -= limit
-		issuesIDs = issuesIDs[limit:]
+			Find(&out)
+		return out, err
+	}, func(comment *Comment) error {
+		comments[comment.IssueID] = append(comments[comment.IssueID], comment)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("IssueList.loadComments: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -442,37 +354,21 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 		}
 	}
 
-	left := len(ids)
-	for left > 0 {
-		limit := min(left, db.DefaultMaxInSize)
-
+	err = db.QueryAndProcessByChunk(ids, func(chunk []int64) (out []*totalTimesByIssue, err error) {
 		// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
-		rows, err := db.GetEngine(ctx).Table("tracked_time").
+		err = db.GetEngine(ctx).Table("tracked_time").
 			Where("deleted = ?", false).
 			Select("issue_id, sum(time) as time").
-			In("issue_id", ids[:limit]).
+			In("issue_id", chunk).
 			GroupBy("issue_id").
-			Rows(new(totalTimesByIssue))
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var totalTime totalTimesByIssue
-			err = rows.Scan(&totalTime)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %w", err1)
-				}
-				return err
-			}
-			trackedTimes[totalTime.IssueID] = totalTime.Time
-		}
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %w", err1)
-		}
-		left -= limit
-		ids = ids[limit:]
+			Find(&out)
+		return out, err
+	}, func(totalTime *totalTimesByIssue) error {
+		trackedTimes[totalTime.IssueID] = totalTime.Time
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("IssueList.loadTotalTrackedTimes: %w", err)
 	}
 
 	for _, issue := range issues {

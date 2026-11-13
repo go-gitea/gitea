@@ -36,7 +36,18 @@ import (
 
 const ssh2keyStart = "---- BEGIN SSH2 PUBLIC KEY ----"
 
+const (
+	// the longest RSA key ssh-keygen allows to generate is 16384 bits (2048 bytes), we still relax the limit a little here
+	maxKeyBinaryBytes        = 4096
+	maxKeyContentBase64Bytes = maxKeyBinaryBytes * 4 / 3
+	maxKeyContentExtraBytes  = 4 * 1024 // header, footer, comment
+	maxKeyContentBytes       = maxKeyContentBase64Bytes + maxKeyContentExtraBytes
+)
+
 func extractTypeFromBase64Key(key string) (string, error) {
+	if len(key) > maxKeyContentBase64Bytes {
+		return "", util.NewInvalidArgumentErrorf("SSH public key base64 is too long")
+	}
 	b, err := base64.StdEncoding.DecodeString(key)
 	if err != nil || len(b) < 4 {
 		return "", fmt.Errorf("invalid key format: %w", err)
@@ -52,6 +63,10 @@ func extractTypeFromBase64Key(key string) (string, error) {
 
 // parseKeyString parses any key string in OpenSSH or SSH2 format to clean OpenSSH string (RFC4253).
 func parseKeyString(content string) (string, error) {
+	if len(content) > maxKeyContentBytes {
+		return "", util.NewInvalidArgumentErrorf("SSH public key content is too long")
+	}
+
 	// remove whitespace at start and end
 	content = strings.TrimSpace(content)
 
@@ -63,6 +78,8 @@ func parseKeyString(content string) (string, error) {
 		// Transform all legal line endings to a single "\n".
 		content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
 
+		var b strings.Builder
+		b.Grow(len(content))
 		lines := strings.Split(content, "\n")
 		continuationLine := false
 
@@ -74,9 +91,10 @@ func parseKeyString(content string) (string, error) {
 			if continuationLine || strings.ContainsAny(line, ":-") {
 				continuationLine = strings.HasSuffix(line, "\\")
 			} else {
-				keyContent += line
+				b.WriteString(line)
 			}
 		}
+		keyContent = b.String()
 
 		t, err := extractTypeFromBase64Key(keyContent)
 		if err != nil {
@@ -208,17 +226,6 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 
 	// The ssh library can parse the key, so next we find out what key exactly we have.
 	switch pkey.Type() {
-	case ssh.KeyAlgoDSA: //nolint:staticcheck // it's deprecated
-		rawPub := struct {
-			Name       string
-			P, Q, G, Y *big.Int
-		}{}
-		if err := ssh.Unmarshal(pkey.Marshal(), &rawPub); err != nil {
-			return "", 0, err
-		}
-		// as per https://bugzilla.mindrot.org/show_bug.cgi?id=1647 we should never
-		// see dsa keys != 1024 bit, but as it seems to work, we will not check here
-		return "dsa", rawPub.P.BitLen(), nil // use P as per crypto/dsa/dsa.go (is L)
 	case ssh.KeyAlgoRSA:
 		rawPub := struct {
 			Name string

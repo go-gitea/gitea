@@ -23,7 +23,7 @@ const (
 
 func newOAuth2CommonHandlers(org *context.Organization) *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
-		OwnerID:            org.Organization.ID,
+		Owner:              org.Organization.AsUser(),
 		BasePathList:       fmt.Sprintf("%s/org/%s/settings/applications", setting.AppSubURL, org.Organization.Name),
 		BasePathEditPrefix: fmt.Sprintf("%s/org/%s/settings/applications/oauth2", setting.AppSubURL, org.Organization.Name),
 		TplAppEdit:         tplSettingsOAuthApplicationEdit,
@@ -40,13 +40,13 @@ func Applications(ctx *context.Context) {
 		OwnerID: ctx.Org.Organization.ID,
 	})
 	if err != nil {
-		ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Applications"] = apps
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

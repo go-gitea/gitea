@@ -14,7 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/context"
@@ -93,11 +93,11 @@ func TestAPIChangeFiles(t *testing.T) {
 				req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name), &changeFilesOptions).
 					AddTokenAuth(token2)
 				resp := MakeRequest(t, req, http.StatusCreated)
-				gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
+				gitRepo, _ := git.OpenRepository(t.Context(), repo1)
 				defer gitRepo.Close()
-				commitID, _ := gitRepo.GetBranchCommitID(changeFilesOptions.NewBranchName)
-				createLasCommit, _ := gitRepo.GetCommitByPath(createTreePath)
-				updateLastCommit, _ := gitRepo.GetCommitByPath(updateTreePath)
+				commitID, _ := gitRepo.GetBranchCommitID(t.Context(), changeFilesOptions.NewBranchName)
+				createLasCommit, _ := gitRepo.GetCommitByPath(t.Context(), createTreePath)
+				updateLastCommit, _ := gitRepo.GetCommitByPath(t.Context(), updateTreePath)
 				expectedCreateFileResponse := getExpectedFileResponseForCreate(apiFileResponseInfo{
 					repoFullName:      fmt.Sprintf("%s/%s", user2.Name, repo1.Name),
 					commitID:          commitID,
@@ -128,135 +128,87 @@ func TestAPIChangeFiles(t *testing.T) {
 			})
 		}
 
-		// Test changing files in a new branch
+		for _, branch := range []struct {
+			name          string
+			forcePush     bool
+			protected     bool
+			status        int
+			expectedError string
+		}{
+			// Test changing files in a new branch
+			{"new_branch", false, false, http.StatusCreated, ""},
+			// Test fails creating a file in a branch that already exists without force
+			{"develop", false, false, http.StatusUnprocessableEntity, `"message":"branch already exists [name: develop]"`},
+			// Test succeeds creating a file in a branch that already exists with force
+			{"develop", true, false, http.StatusCreated, ""},
+			// Test fails creating a file in a branch that already exists with force and branch protection enabled
+			{"develop", true, true, http.StatusForbidden, `"message":"Branch develop is protected from force push"`},
+		} {
+			if branch.protected {
+				protectionReq := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
+					RuleName:        "develop",
+					BranchName:      "develop",
+					Priority:        1,
+					EnablePush:      true,
+					EnableForcePush: false,
+				}).AddTokenAuth(token2)
+				MakeRequest(t, protectionReq, http.StatusCreated)
+			}
+			changeFilesOptions := getChangeFilesOptions()
+			changeFilesOptions.BranchName = repo1.DefaultBranch
+			changeFilesOptions.NewBranchName = branch.name
+			changeFilesOptions.ForcePush = branch.forcePush
+			fileID++
+			createTreePath := fmt.Sprintf("new/file%d.txt", fileID)
+			updateTreePath := fmt.Sprintf("update/file%d.txt", fileID)
+			deleteTreePath := fmt.Sprintf("delete/file%d.txt", fileID)
+			changeFilesOptions.Files[0].Path = createTreePath
+			changeFilesOptions.Files[1].Path = updateTreePath
+			changeFilesOptions.Files[2].Path = deleteTreePath
+			createFile(user2, repo1, updateTreePath)
+			createFile(user2, repo1, deleteTreePath)
+			url := fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name)
+			req := NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
+				AddTokenAuth(token2)
+			resp := MakeRequest(t, req, branch.status)
+			if branch.expectedError != "" {
+				assert.Contains(t, resp.Body.String(), branch.expectedError)
+				continue
+			}
+			filesResponse := DecodeJSON(t, resp, &api.FilesResponse{})
+			expectedCreateSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
+			expectedCreateHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/%s/new/file%d.txt", branch.name, fileID)
+			expectedCreateDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/%s/new/file%d.txt", branch.name, fileID)
+			expectedUpdateSHA := "08bd14b2e2852529157324de9c226b3364e76136"
+			expectedUpdateHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/%s/update/file%d.txt", branch.name, fileID)
+			expectedUpdateDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/%s/update/file%d.txt", branch.name, fileID)
+			assert.Equal(t, expectedCreateSHA, filesResponse.Files[0].SHA)
+			assert.Equal(t, expectedCreateHTMLURL, *filesResponse.Files[0].HTMLURL)
+			assert.Equal(t, expectedCreateDownloadURL, *filesResponse.Files[0].DownloadURL)
+			assert.Equal(t, expectedUpdateSHA, filesResponse.Files[1].SHA)
+			assert.Equal(t, expectedUpdateHTMLURL, *filesResponse.Files[1].HTMLURL)
+			assert.Equal(t, expectedUpdateDownloadURL, *filesResponse.Files[1].DownloadURL)
+			assert.Nil(t, filesResponse.Files[2])
+			assert.Equal(t, changeFilesOptions.Message+"\n", filesResponse.Commit.Message)
+		}
+
+		// Test updating a file and renaming it
 		changeFilesOptions := getChangeFilesOptions()
 		changeFilesOptions.BranchName = repo1.DefaultBranch
-		changeFilesOptions.NewBranchName = "new_branch"
 		fileID++
-		createTreePath := fmt.Sprintf("new/file%d.txt", fileID)
 		updateTreePath := fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath := fmt.Sprintf("delete/file%d.txt", fileID)
-		changeFilesOptions.Files[0].Path = createTreePath
-		changeFilesOptions.Files[1].Path = updateTreePath
-		changeFilesOptions.Files[2].Path = deleteTreePath
 		createFile(user2, repo1, updateTreePath)
-		createFile(user2, repo1, deleteTreePath)
+		changeFilesOptions.Files = []*api.ChangeFileOperation{changeFilesOptions.Files[1]}
+		changeFilesOptions.Files[0].FromPath = updateTreePath
+		changeFilesOptions.Files[0].Path = "rename/" + updateTreePath
 		url := fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name)
 		req := NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
 			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusCreated)
 		filesResponse := DecodeJSON(t, resp, &api.FilesResponse{})
-		expectedCreateSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
-		expectedCreateHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/new/file%d.txt", fileID)
-		expectedCreateDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
 		expectedUpdateSHA := "08bd14b2e2852529157324de9c226b3364e76136"
-		expectedUpdateHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/update/file%d.txt", fileID)
-		expectedUpdateDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
-		assert.Equal(t, expectedCreateSHA, filesResponse.Files[0].SHA)
-		assert.Equal(t, expectedCreateHTMLURL, *filesResponse.Files[0].HTMLURL)
-		assert.Equal(t, expectedCreateDownloadURL, *filesResponse.Files[0].DownloadURL)
-		assert.Equal(t, expectedUpdateSHA, filesResponse.Files[1].SHA)
-		assert.Equal(t, expectedUpdateHTMLURL, *filesResponse.Files[1].HTMLURL)
-		assert.Equal(t, expectedUpdateDownloadURL, *filesResponse.Files[1].DownloadURL)
-		assert.Nil(t, filesResponse.Files[2])
-		assert.Equal(t, changeFilesOptions.Message+"\n", filesResponse.Commit.Message)
-
-		// Test fails creating a file in a branch that already exists without force
-		changeFilesOptions = getChangeFilesOptions()
-		changeFilesOptions.BranchName = repo1.DefaultBranch
-		changeFilesOptions.NewBranchName = "develop"
-		changeFilesOptions.ForcePush = false
-		fileID++
-		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
-		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		changeFilesOptions.Files[0].Path = createTreePath
-		changeFilesOptions.Files[1].Path = updateTreePath
-		changeFilesOptions.Files[2].Path = deleteTreePath
-		createFile(user2, repo1, updateTreePath)
-		createFile(user2, repo1, deleteTreePath)
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name)
-		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
-			AddTokenAuth(token2)
-		resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
-		assert.Contains(t, resp.Body.String(), `"message":"branch already exists [name: develop]"`)
-
-		// Test succeeds creating a file in a branch that already exists with force
-		changeFilesOptions = getChangeFilesOptions()
-		changeFilesOptions.BranchName = repo1.DefaultBranch
-		changeFilesOptions.NewBranchName = "develop"
-		changeFilesOptions.ForcePush = true
-		fileID++
-		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
-		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		changeFilesOptions.Files[0].Path = createTreePath
-		changeFilesOptions.Files[1].Path = updateTreePath
-		changeFilesOptions.Files[2].Path = deleteTreePath
-		createFile(user2, repo1, updateTreePath)
-		createFile(user2, repo1, deleteTreePath)
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name)
-		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
-			AddTokenAuth(token2)
-		resp = MakeRequest(t, req, http.StatusCreated)
-		filesResponse = DecodeJSON(t, resp, &api.FilesResponse{})
-		expectedCreateHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/develop/new/file%d.txt", fileID)
-		expectedCreateDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/develop/new/file%d.txt", fileID)
-		expectedUpdateHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/develop/update/file%d.txt", fileID)
-		expectedUpdateDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/develop/update/file%d.txt", fileID)
-		assert.Equal(t, expectedCreateSHA, filesResponse.Files[0].SHA)
-		assert.Equal(t, expectedCreateHTMLURL, *filesResponse.Files[0].HTMLURL)
-		assert.Equal(t, expectedCreateDownloadURL, *filesResponse.Files[0].DownloadURL)
-		assert.Equal(t, expectedUpdateSHA, filesResponse.Files[1].SHA)
-		assert.Equal(t, expectedUpdateHTMLURL, *filesResponse.Files[1].HTMLURL)
-		assert.Equal(t, expectedUpdateDownloadURL, *filesResponse.Files[1].DownloadURL)
-		assert.Nil(t, filesResponse.Files[2])
-		assert.Equal(t, changeFilesOptions.Message+"\n", filesResponse.Commit.Message)
-
-		// Test fails creating a file in a branch that already exists with force and branch protection enabled
-		protectionReq := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
-			RuleName:        "develop",
-			BranchName:      "develop",
-			Priority:        1,
-			EnablePush:      true,
-			EnableForcePush: false,
-		}).AddTokenAuth(token2)
-		MakeRequest(t, protectionReq, http.StatusCreated)
-		changeFilesOptions = getChangeFilesOptions()
-		changeFilesOptions.BranchName = repo1.DefaultBranch
-		changeFilesOptions.NewBranchName = "develop"
-		changeFilesOptions.ForcePush = true
-		fileID++
-		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
-		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		changeFilesOptions.Files[0].Path = createTreePath
-		changeFilesOptions.Files[1].Path = updateTreePath
-		changeFilesOptions.Files[2].Path = deleteTreePath
-		createFile(user2, repo1, updateTreePath)
-		createFile(user2, repo1, deleteTreePath)
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name)
-		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
-			AddTokenAuth(token2)
-		resp = MakeRequest(t, req, http.StatusForbidden)
-		assert.Contains(t, resp.Body.String(), `"message":"branch develop is protected from force push"`)
-
-		// Test updating a file and renaming it
-		changeFilesOptions = getChangeFilesOptions()
-		changeFilesOptions.BranchName = repo1.DefaultBranch
-		fileID++
-		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(user2, repo1, updateTreePath)
-		changeFilesOptions.Files = []*api.ChangeFileOperation{changeFilesOptions.Files[1]}
-		changeFilesOptions.Files[0].FromPath = updateTreePath
-		changeFilesOptions.Files[0].Path = "rename/" + updateTreePath
-		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
-			AddTokenAuth(token2)
-		resp = MakeRequest(t, req, http.StatusCreated)
-		filesResponse = DecodeJSON(t, resp, &api.FilesResponse{})
-		expectedUpdateSHA = "08bd14b2e2852529157324de9c226b3364e76136"
-		expectedUpdateHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
-		expectedUpdateDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
+		expectedUpdateHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
+		expectedUpdateDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
 		assert.Equal(t, expectedUpdateSHA, filesResponse.Files[0].SHA)
 		assert.Equal(t, expectedUpdateHTMLURL, *filesResponse.Files[0].HTMLURL)
 		assert.Equal(t, expectedUpdateDownloadURL, *filesResponse.Files[0].DownloadURL)
@@ -266,9 +218,9 @@ func TestAPIChangeFiles(t *testing.T) {
 		changeFilesOptions.Message = ""
 		changeFilesOptions.BranchName = repo1.DefaultBranch
 		fileID++
-		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
+		createTreePath := fmt.Sprintf("new/file%d.txt", fileID)
 		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
+		deleteTreePath := fmt.Sprintf("delete/file%d.txt", fileID)
 		changeFilesOptions.Files[0].Path = createTreePath
 		changeFilesOptions.Files[1].Path = updateTreePath
 		changeFilesOptions.Files[2].Path = deleteTreePath
@@ -300,92 +252,40 @@ func TestAPIChangeFiles(t *testing.T) {
 		apiError := DecodeJSON(t, resp, &context.APIError{})
 		assert.Equal(t, expectedAPIError, apiError)
 
-		// Test creating a file in repo1 by user4 who does not have write access
-		fileID++
-		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
-		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user2, repo16, updateTreePath)
-		createFile(user2, repo16, deleteTreePath)
-		changeFilesOptions = getChangeFilesOptions()
-		changeFilesOptions.Files[0].Path = createTreePath
-		changeFilesOptions.Files[1].Path = updateTreePath
-		changeFilesOptions.Files[2].Path = deleteTreePath
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo16.Name), &changeFilesOptions).
-			AddTokenAuth(token4)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Tests a repo with no token given so will fail
-		fileID++
-		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
-		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user2, repo16, updateTreePath)
-		createFile(user2, repo16, deleteTreePath)
-		changeFilesOptions = getChangeFilesOptions()
-		changeFilesOptions.Files[0].Path = createTreePath
-		changeFilesOptions.Files[1].Path = updateTreePath
-		changeFilesOptions.Files[2].Path = deleteTreePath
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo16.Name), &changeFilesOptions)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Test using access token for a private repo that the user of the token owns
-		fileID++
-		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
-		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user2, repo16, updateTreePath)
-		createFile(user2, repo16, deleteTreePath)
-		changeFilesOptions = getChangeFilesOptions()
-		changeFilesOptions.Files[0].Path = createTreePath
-		changeFilesOptions.Files[1].Path = updateTreePath
-		changeFilesOptions.Files[2].Path = deleteTreePath
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo16.Name), &changeFilesOptions).
-			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusCreated)
-
-		// Test using org repo "org3/repo3" where user2 is a collaborator
-		fileID++
-		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
-		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(org3, repo3, updateTreePath)
-		createFile(org3, repo3, deleteTreePath)
-		changeFilesOptions = getChangeFilesOptions()
-		changeFilesOptions.Files[0].Path = createTreePath
-		changeFilesOptions.Files[1].Path = updateTreePath
-		changeFilesOptions.Files[2].Path = deleteTreePath
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", org3.Name, repo3.Name), &changeFilesOptions).
-			AddTokenAuth(token2)
-		MakeRequest(t, req, http.StatusCreated)
-
-		// Test using org repo "org3/repo3" with no user token
-		fileID++
-		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
-		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(org3, repo3, updateTreePath)
-		createFile(org3, repo3, deleteTreePath)
-		changeFilesOptions = getChangeFilesOptions()
-		changeFilesOptions.Files[0].Path = createTreePath
-		changeFilesOptions.Files[1].Path = updateTreePath
-		changeFilesOptions.Files[2].Path = deleteTreePath
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", org3.Name, repo3.Name), &changeFilesOptions)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		// Test using repo "user2/repo1" where user4 is a NOT collaborator
-		fileID++
-		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
-		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
-		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user2, repo1, updateTreePath)
-		createFile(user2, repo1, deleteTreePath)
-		changeFilesOptions = getChangeFilesOptions()
-		changeFilesOptions.Files[0].Path = createTreePath
-		changeFilesOptions.Files[1].Path = updateTreePath
-		changeFilesOptions.Files[2].Path = deleteTreePath
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name), &changeFilesOptions).
-			AddTokenAuth(token4)
-		MakeRequest(t, req, http.StatusForbidden)
+		for _, permission := range []struct {
+			owner  *user_model.User
+			repo   *repo_model.Repository
+			token  string
+			status int
+		}{
+			// Test creating a file in repo1 by user4 who does not have write access
+			{user2, repo16, token4, http.StatusNotFound},
+			// Tests a repo with no token given so will fail
+			{user2, repo16, "", http.StatusNotFound},
+			// Test using access token for a private repo that the user of the token owns
+			{user2, repo16, token2, http.StatusCreated},
+			// Test using org repo "org3/repo3" where user2 is a collaborator
+			{org3, repo3, token2, http.StatusCreated},
+			// Test using org repo "org3/repo3" with no user token
+			{org3, repo3, "", http.StatusNotFound},
+			// Test using repo "user2/repo1" where user4 is a NOT collaborator
+			{user2, repo1, token4, http.StatusForbidden},
+		} {
+			fileID++
+			createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
+			updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
+			deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
+			createFile(permission.owner, permission.repo, updateTreePath)
+			createFile(permission.owner, permission.repo, deleteTreePath)
+			changeFilesOptions = getChangeFilesOptions()
+			changeFilesOptions.Files[0].Path = createTreePath
+			changeFilesOptions.Files[1].Path = updateTreePath
+			changeFilesOptions.Files[2].Path = deleteTreePath
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", permission.owner.Name, permission.repo.Name), &changeFilesOptions)
+			if permission.token != "" {
+				req = req.AddTokenAuth(permission.token)
+			}
+			MakeRequest(t, req, permission.status)
+		}
 	})
 }

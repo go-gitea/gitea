@@ -18,10 +18,6 @@
   text-decoration: none;
 }
 
-.markup .absent {
-  color: var(--color-red);
-}
-
 .markup .anchor {
   float: left;
   padding-inline-end: 4px;
@@ -90,6 +86,7 @@
 .markup h5 code,
 .markup h6 tt,
 .markup h6 code {
+  padding: 0 0.2em;
   font-size: inherit;
 }
 
@@ -122,6 +119,16 @@
   color: var(--color-text-light-2);
 }
 
+.markup summary :is(h1, h2, h3, h4, h5, h6) {
+  display: inline-block;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.markup summary .anchor {
+  margin-inline-start: -40px; /* clear the disclosure marker */
+}
+
 .markup p,
 .markup blockquote,
 .markup details,
@@ -129,7 +136,8 @@
 .markup ol,
 .markup dl,
 .markup table,
-.markup pre {
+.markup pre,
+.markup math[display="block" i] {
   margin-top: 0;
   margin-bottom: 16px;
 }
@@ -141,8 +149,12 @@ In markup content, we always use bottom margin for all elements */
   margin-bottom: 16px;
 }
 
+.markup p {
+  line-height: inherit; /* override base.css */
+}
+
 .markup hr {
-  height: 4px;
+  height: 1px;
   padding: 0;
   margin: 16px 0;
   background-color: var(--color-secondary);
@@ -162,10 +174,6 @@ In markup content, we always use bottom margin for all elements */
   margin-top: 4px;
 }
 
-.markup .task-list-item p + ul {
-  margin-top: 16px;
-}
-
 .markup .task-list-item input[type="checkbox"] {
   margin-bottom: 0.25em;
   margin-inline: -1.4em 0.6em;
@@ -173,13 +181,10 @@ In markup content, we always use bottom margin for all elements */
   padding: 0;
 }
 
-.markup .task-list-item input[type="checkbox"] + p {
-  margin-inline-start: -0.2em;
-  display: inline;
-}
-
-.markup .task-list-item > p {
-  margin-inline: 16px;
+/* a paragraph with another direction than its list has no list padding to hang the checkbox into */
+.markup :is(ul, ol):dir(ltr) > .task-list-item > p:dir(rtl) > input[type="checkbox"]:first-child,
+.markup :is(ul, ol):dir(rtl) > .task-list-item > p:dir(ltr) > input[type="checkbox"]:first-child {
+  margin-inline-start: 0;
 }
 
 .markup .task-list-item + .task-list-item {
@@ -203,9 +208,12 @@ In markup content, we always use bottom margin for all elements */
   margin-bottom: 0;
 }
 
-.markup ol ol,
-.markup ul ol {
+.markup :is(ol, ul) ol:not([type]) {
   list-style-type: lower-roman;
+}
+
+.markup :is(ol, ul) :is(ol, ul) ol:not([type]) {
+  list-style-type: lower-alpha;
 }
 
 .markup li > p {
@@ -228,13 +236,18 @@ In markup content, we always use bottom margin for all elements */
   font-weight: var(--font-weight-semibold);
 }
 
+.markup dl dt + dt {
+  margin-top: 0;
+}
+
 .markup dl dd {
   padding: 0 16px;
+  margin-inline-start: 0;
   margin-bottom: 16px;
 }
 
 .markup blockquote {
-  margin-inline-start: 0;
+  margin-inline: 0;
   padding: 0 15px;
   color: var(--color-text-light-2);
   border-left: 0.25em solid var(--color-secondary);
@@ -253,6 +266,11 @@ In markup content, we always use bottom margin for all elements */
   width: 100%;
   max-width: 100%;
   overflow: auto;
+  font-variant: tabular-nums;
+}
+
+.markup table td > :last-child {
+  margin-bottom: 0;
 }
 
 .markup table th {
@@ -300,17 +318,8 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   padding: 0; /* let the file-not-rendered-prompt layout itself */
 }
 
-/* this background ensures images can break <hr>. We can only do this on
-   cases where the background is known and not transparent. */
-.file-view.markup img,
-.file-view.markup video,
-.comment-body .markup img, /* regular comment */
-.comment-body .markup video,
-.comment-content .markup img, /* code comment */
-.comment-content .markup video,
-.wiki .markup img,
-.wiki .markup video {
-  background: var(--color-box-body);
+.markup :is(h1, h2, hr) {
+  display: flow-root; /* keep borders clear of floated images */
 }
 
 .markup img[align="right"],
@@ -321,34 +330,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
 .markup img[align="left"],
 .markup video[align="left"] {
   padding-inline-end: 28px;
-}
-
-.markup span.frame {
-  display: block;
-  overflow: hidden;
-}
-
-.markup span.frame > span {
-  display: block;
-  float: left;
-  width: auto;
-  padding: 7px;
-  margin: 13px 0 0;
-  overflow: hidden;
-  border: 1px solid var(--color-secondary);
-}
-
-.markup span.frame span img,
-.markup span.frame span video {
-  display: block;
-  float: left;
-}
-
-.markup span.frame span span {
-  display: block;
-  padding: 5px 0 0;
-  clear: both;
-  color: var(--color-text);
 }
 
 .markup code,
@@ -364,10 +345,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
 .markup code br,
 .markup tt br {
   display: none;
-}
-
-.markup del code {
-  text-decoration: inherit;
 }
 
 .markup pre > code {
@@ -436,13 +413,7 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   background-color: var(--color-markup-code-inline);
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow-kbd);
-}
-
-.markup .ui.list .list,
-.markup ol.ui.list ol,
-.markup ul.ui.list ul {
-  padding-inline-start: 2em;
+  max-width: 100%;
 }
 
 .markup details.frontmatter-content summary {
@@ -469,7 +440,7 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   display: block;
   border: none;
   width: 100%;
-  height: var(--height-loading); /* actual height is set in JS after loading */
+  height: var(--height-loading); /* actual height is set in JS */
   overflow: hidden;
   color-scheme: normal; /* match the value inside the iframe to allow it to become transparent */
 }
@@ -552,4 +523,12 @@ the manually written code-block elements on "packages" pages don't have the cont
 .markup .auto-hide-control.ui.button:active,
 .markup .auto-hide-control .ui.button:active {
   background: var(--color-secondary-dark-1) !important;
+}
+
+.markup .color-preview {
+  display: inline-block;
+  margin-left: 0.4em;
+  height: 0.67em;
+  width: 0.67em;
+  border-radius: var(--border-radius);
 }

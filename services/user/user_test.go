@@ -9,13 +9,17 @@ import (
 	"testing"
 	"time"
 
+	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 	org_service "gitea.dev/services/org"
 
@@ -61,6 +65,28 @@ func TestDeleteUser(t *testing.T) {
 
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Error(t, DeleteUser(t.Context(), org, false))
+
+	t.Run("CleanupOrphanedTables", func(t *testing.T) {
+		assert.NoError(t, unittest.PrepareTestDatabase())
+
+		// assert they exist before deletion
+		unittest.AssertExistsAndLoadBean(t, &auth.TwoFactor{UID: 24})
+		unittest.AssertExistsAndLoadBean(t, &auth.WebAuthnCredential{UserID: 32})
+		unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 2})
+		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueWatch{UserID: 2})
+
+		// delete users
+		for _, userID := range []int64{24, 32, 2} {
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
+			assert.NoError(t, DeleteUser(t.Context(), user, true))
+		}
+
+		// assert they do not exist after deletion
+		unittest.AssertNotExistsBean(t, &auth.TwoFactor{UID: 24})
+		unittest.AssertNotExistsBean(t, &auth.WebAuthnCredential{UserID: 32})
+		unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: 2})
+		unittest.AssertNotExistsBean(t, &issues_model.IssueWatch{UserID: 2})
+	})
 }
 
 func TestDeleteUserUnlinkedAttachments(t *testing.T) {
@@ -82,7 +108,7 @@ func TestDeleteUserUnlinkedAttachments(t *testing.T) {
 }
 
 func TestPurgeUser(t *testing.T) {
-	test := func(userID int64) {
+	for _, userID := range []int64{2, 4, 8, 11} {
 		assert.NoError(t, unittest.PrepareTestDatabase())
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
 
@@ -92,11 +118,6 @@ func TestPurgeUser(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: userID})
 		unittest.CheckConsistencyFor(t, &user_model.User{}, &repo_model.Repository{})
 	}
-	test(2)
-	test(4)
-	test(8)
-	test(11)
-
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Error(t, DeleteUser(t.Context(), org, false))
 }
@@ -149,6 +170,8 @@ func TestRenameUser(t *testing.T) {
 	})
 
 	t.Run("Only capitalization", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+
 		caps := strings.ToUpper(user.Name)
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: user.Name})
@@ -157,6 +180,11 @@ func TestRenameUser(t *testing.T) {
 
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: caps})
+		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
+			Action:    audit_model.UserName,
+			ScopeType: audit_model.ScopeUser,
+			ScopeID:   user.ID,
+		})
 	})
 
 	t.Run("Already exists", func(t *testing.T) {

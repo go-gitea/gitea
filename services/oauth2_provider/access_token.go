@@ -5,6 +5,7 @@ package oauth2_provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -72,38 +73,65 @@ type AccessTokenResponse struct {
 	ExpiresIn    int64     `json:"expires_in"`
 	RefreshToken string    `json:"refresh_token"`
 	IDToken      string    `json:"id_token,omitempty"`
+	Scope        string    `json:"scope,omitempty"`
 }
 
-// GrantAdditionalScopes returns valid scopes coming from grant
-func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
-	// scopes_supported from templates/user/auth/oidc_wellknown.tmpl
-	generalScopesSupported := []string{
+func GeneralScopesSupported() []string {
+	return []string{
 		"openid",
 		"profile",
 		"email",
 		"groups",
 	}
+}
 
-	var accessScopes []string // the scopes for access control, but not for general information
+func splitGrantScopes(grantScopes string) (generalScopes []string, accessScope auth.AccessTokenScope) {
+	generalScopesSupported := GeneralScopesSupported()
+	var accessScopes []string
+	hasAccessScopes := false
 	for scope := range strings.SplitSeq(grantScopes, " ") {
-		if scope != "" && !slices.Contains(generalScopesSupported, scope) {
-			accessScopes = append(accessScopes, scope)
+		if scope == "" {
+			continue
 		}
+		if slices.Contains(generalScopesSupported, scope) {
+			generalScopes = append(generalScopes, scope)
+			continue
+		}
+		hasAccessScopes = true
+		for accessScope := range strings.SplitSeq(scope, ",") {
+			if normalizedScope, err := auth.AccessTokenScope(accessScope).Normalize(); err == nil {
+				accessScopes = append(accessScopes, normalizedScope.StringSlice()...)
+			}
+		}
+	}
+	if !hasAccessScopes {
+		return generalScopes, ""
 	}
 
-	// since version 1.22, access tokens grant full access to the API
-	// with this access is reduced only if additional scopes are provided
-	if len(accessScopes) > 0 {
-		accessTokenScope := auth.AccessTokenScope(strings.Join(accessScopes, ","))
-		if normalizedAccessTokenScope, err := accessTokenScope.Normalize(); err == nil {
-			return normalizedAccessTokenScope
-		}
-		// TODO: if there are invalid access scopes (err != nil),
-		// then it is treated as "all", maybe in the future we should make it stricter to return an error
-		// at the moment, to avoid breaking 1.22 behavior, invalid tokens are also treated as "all"
+	// Since version 1.22, if no access scope is provided, then "all" access is granted.
+	//
+	// OAuth also permits ignoring requested scopes under server policy: https://www.rfc-editor.org/rfc/rfc6749.html#section-3.3
+	// If after the removal the invalid scopes, there are no valid scopes left, we return no-token-scope to prevent granting "all" access.
+	accessScope, _ = auth.AccessTokenScope(strings.Join(accessScopes, ",")).Normalize()
+	if accessScope == "" {
+		accessScope = auth.AccessTokenScopeNone
 	}
-	// fallback, empty access scope is treated as "all" access
-	return auth.AccessTokenScopeAll
+	return generalScopes, accessScope
+}
+
+// NormalizeGrantScope retains OIDC scopes and uses no-token-scope to prevent discarded scopes from granting full access.
+func NormalizeGrantScope(grantScopes string) string {
+	generalScopes, accessScope := splitGrantScopes(grantScopes)
+	return strings.Join(append(generalScopes, accessScope.StringSlice()...), " ")
+}
+
+// GrantAdditionalScopes returns valid scopes coming from grant.
+func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
+	_, accessScope := splitGrantScopes(grantScopes)
+	if accessScope == "" {
+		return auth.AccessTokenScopeAll // grants without access scopes retain the legacy default
+	}
+	return accessScope
 }
 
 func NewJwtRegisteredClaimsFromUser(clientID string, grantUserID int64, exp *jwt.NumericDate) jwt.RegisteredClaims {
@@ -125,6 +153,20 @@ func NewJwtRegisteredClaimsFromUser(clientID string, grantUserID int64, exp *jwt
 }
 
 func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, serverKey, clientKey JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
+	user, err := user_model.GetValidDoerUserByID(ctx, grant.UserID)
+	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrPermissionDenied) {
+		return nil, &AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "user is not allowed to sign in",
+		}
+	} else if err != nil {
+		log.Error("Error loading user: %v", err)
+		return nil, &AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+			ErrorDescription: "server error",
+		}
+	}
+
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(ctx); err != nil {
 			return nil, &AccessTokenError{
@@ -178,21 +220,6 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 				ErrorDescription: "cannot find application",
 			}
 		}
-		user, err := user_model.GetUserByID(ctx, grant.UserID)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				return nil, &AccessTokenError{
-					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-					ErrorDescription: "cannot find user",
-				}
-			}
-			log.Error("Error loading user: %v", err)
-			return nil, &AccessTokenError{
-				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-				ErrorDescription: "server error",
-			}
-		}
-
 		idToken := &OIDCToken{
 			RegisteredClaims: NewJwtRegisteredClaimsFromUser(app.ClientID, grant.UserID, jwt.NewNumericDate(expirationDate.AsTime())),
 			Nonce:            grant.Nonce,
@@ -239,6 +266,7 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 
 	return &AccessTokenResponse{
 		AccessToken:  signedAccessToken,
+		Scope:        NormalizeGrantScope(grant.Scope),
 		TokenType:    TokenTypeBearer,
 		ExpiresIn:    setting.OAuth2.AccessTokenExpirationTime,
 		RefreshToken: signedRefreshToken,

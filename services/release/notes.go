@@ -28,7 +28,7 @@ type GenerateReleaseNotesOptions struct {
 
 // GenerateReleaseNotes builds the Markdown snippet for release notes.
 func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts GenerateReleaseNotesOptions) (string, error) {
-	headCommit, err := resolveHeadCommit(gitRepo, opts.TagName, opts.TagTarget)
+	headCommit, err := resolveHeadCommit(ctx, gitRepo, opts.TagName, opts.TagTarget)
 	if err != nil {
 		return "", err
 	}
@@ -40,7 +40,7 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 
 	var baseCommitID git.RefName
 	if opts.PreviousTag != "" {
-		baseCommit, err := gitRepo.GetCommit(opts.PreviousTag)
+		baseCommit, err := gitRepo.GetCommit(ctx, opts.PreviousTag)
 		if err != nil {
 			return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.PreviousTag)
 		}
@@ -49,7 +49,7 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 		return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.TagName)
 	}
 
-	commits, err := gitRepo.CommitsBetween(headCommit.ID.RefName(), baseCommitID, -1)
+	commits, err := gitRepo.CommitsBetween(ctx, headCommit.ID.RefName(), baseCommitID, -1)
 	if err != nil {
 		return "", fmt.Errorf("CommitsBetween: %w", err)
 	}
@@ -85,13 +85,13 @@ func repoReleaseIsEmpty(ctx context.Context, repoID int64) (bool, error) {
 	return count == 0, nil
 }
 
-func resolveHeadCommit(gitRepo *git.Repository, tagName, tagTarget string) (*git.Commit, error) {
+func resolveHeadCommit(ctx context.Context, gitRepo *git.Repository, tagName, tagTarget string) (*git.Commit, error) {
 	ref := tagName
-	if !gitRepo.IsTagExist(tagName) {
+	if !gitRepo.IsTagExist(ctx, tagName) {
 		ref = tagTarget
 	}
 
-	commit, err := gitRepo.GetCommit(ref)
+	commit, err := gitRepo.GetCommit(ctx, ref)
 	if err != nil {
 		return nil, util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_target_not_found", ref)
 	}

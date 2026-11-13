@@ -33,6 +33,8 @@ func (*testItem2) Name() string {
 }
 
 func TestAppStateDB(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
 	as := &DBStore{}
 
 	item1 := new(testItem1)

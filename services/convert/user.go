@@ -9,7 +9,31 @@ import (
 	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
+
+func UserTypeToString(t user_model.UserType) api.UserTypeString {
+	switch t {
+	case user_model.UserTypeOrganization, user_model.UserTypeOrganizationReserved:
+		return api.UserTypeStringOrganization
+	case user_model.UserTypeBot:
+		return api.UserTypeStringBot
+	default:
+		return api.UserTypeStringUser
+	}
+}
+
+// UserTypeFromString parses a user type an admin may create or convert to
+func UserTypeFromString(s api.UserTypeString) (user_model.UserType, error) {
+	switch s {
+	case api.UserTypeStringUser:
+		return user_model.UserTypeIndividual, nil
+	case api.UserTypeStringBot:
+		return user_model.UserTypeBot, nil
+	default:
+		return 0, util.NewInvalidArgumentErrorf("invalid user type %q (expected %s, %s)", s, api.UserTypeStringUser, api.UserTypeStringBot)
+	}
+}
 
 // ToUser convert user_model.User to api.User
 // if doer is set, private information is added if the doer has the permission to see it
@@ -24,6 +48,13 @@ func ToUser(ctx context.Context, user, doer *user_model.User) *api.User {
 		authed = doer.ID == user.ID || doer.IsAdmin
 	}
 	return toUser(ctx, user, signed, authed)
+}
+
+func ToAuthor(ctx context.Context, author *user_model.User, originalAuthor string, doer *user_model.User) *api.User {
+	if originalAuthor == "" {
+		return ToUser(ctx, author, doer)
+	}
+	return &api.User{ID: user_model.GhostUserID, UserName: originalAuthor, Type: api.UserTypeStringUser, Visibility: api.VisibilityStringPublic, AvatarURL: user_model.NewGhostUser().AvatarLink(ctx)}
 }
 
 // ToUsers convert list of user_model.User to list of api.User
@@ -50,6 +81,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
+		Type:        UserTypeToString(user.Type),
 		FullName:    user.FullName,
 		Email:       user.GetPlaceholderEmail(),
 		AvatarURL:   user.AvatarLink(ctx),
@@ -65,7 +97,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 		StarredRepos: user.NumStars,
 	}
 
-	result.Visibility = api.UserVisibility(user.Visibility.String())
+	result.Visibility = api.VisibilityString(user.Visibility.String())
 
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {

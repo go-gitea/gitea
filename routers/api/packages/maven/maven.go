@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/modules/globallock"
@@ -29,6 +30,8 @@ import (
 	"gitea.dev/services/context"
 	packages_service "gitea.dev/services/packages"
 )
+
+const maxChecksumSize = sha512.Size*2 + 1
 
 const (
 	mavenMetadataFile = "maven-metadata.xml"
@@ -44,7 +47,9 @@ const (
 
 var (
 	errInvalidParameters = errors.New("request parameters are invalid")
-	illegalCharacters    = regexp.MustCompile(`[\\/:"<>|?*]`)
+	illegalCharacters    = sync.OnceValue(func() *regexp.Regexp {
+		return regexp.MustCompile(`[\\/:"<>|?*]`)
+	})
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -260,12 +265,21 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer releaser()
 
-	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
+	ext := path.Ext(params.Filename)
+	reader := io.Reader(ctx.Req.Body)
+	if isChecksumExtension(ext) {
+		reader = io.LimitReader(reader, maxChecksumSize+1)
+	}
+	buf, err := packages_module.CreateHashedBufferFromReader(reader)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer buf.Close()
+	if isChecksumExtension(ext) && !isChecksumSizeAllowed(buf.Size()) {
+		apiError(ctx, http.StatusRequestEntityTooLarge, "checksum is too large")
+		return
+	}
 
 	pvci := &packages_service.PackageCreationInfo{
 		PackageInfo: packages_service.PackageInfo{
@@ -290,8 +304,6 @@ func UploadPackageFile(ctx *context.Context) {
 			return
 		}
 	}
-
-	ext := path.Ext(params.Filename)
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
@@ -404,6 +416,10 @@ func UploadPackageFile(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
+func isChecksumSizeAllowed(size int64) bool {
+	return size <= maxChecksumSize
+}
+
 func isChecksumExtension(ext string) bool {
 	return ext == extensionMD5 || ext == extensionSHA1 || ext == extensionSHA256 || ext == extensionSHA512
 }
@@ -458,7 +474,7 @@ func extractPathParameters(ctx *context.Context) (parameters, error) {
 		parts = parts[:len(parts)-1]
 	}
 
-	if illegalCharacters.MatchString(p.Version) {
+	if illegalCharacters().MatchString(p.Version) {
 		return p, errInvalidParameters
 	}
 
@@ -469,7 +485,7 @@ func extractPathParameters(ctx *context.Context) (parameters, error) {
 	p.ArtifactID = parts[len(parts)-1]
 	p.GroupID = strings.Join(parts[:len(parts)-1], ".")
 
-	if illegalCharacters.MatchString(p.GroupID) || illegalCharacters.MatchString(p.ArtifactID) {
+	if illegalCharacters().MatchString(p.GroupID) || illegalCharacters().MatchString(p.ArtifactID) {
 		return p, errInvalidParameters
 	}
 

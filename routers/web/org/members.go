@@ -10,7 +10,6 @@ import (
 
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -43,7 +42,7 @@ func Members(ctx *context.Context) {
 	if ctx.Doer != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.ServerError("IsOrgMember", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		opts.IsDoerMember = isMember
@@ -52,23 +51,22 @@ func Members(ctx *context.Context) {
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.ServerError("CountOrgMembers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	pageSize := setting.UI.MembersPagingNum
-	pager := context.NewPagination(total, pageSize, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
-	opts.ListOptions.Page = pager.Paginater.Current()
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(pageSize).CurPage(page).Build()
+	opts.ListOptions.Page = pager.Paginator.Current()
 	opts.ListOptions.PageSize = pageSize
 	members, membersIsPublic, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.ServerError("GetMembers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Page"] = pager
@@ -87,7 +85,7 @@ func MembersAction(ctx *context.Context) {
 		ctx.HTTPError(http.StatusNotFound)
 		return
 	} else if err != nil {
-		ctx.ServerError("GetUserByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -131,6 +129,5 @@ func MembersAction(ctx *context.Context) {
 		return
 	}
 
-	log.Error("Action(%s): %v", ctx.PathParam("action"), err)
-	ctx.JSONError(err.Error()) // FIXME: legacy logic, errors are handled together, it's not right, need to distinguish between different errors
+	ctx.JSONErrorAuto(err)
 }

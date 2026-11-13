@@ -56,43 +56,25 @@ func TestHasAnyUnitAccess(t *testing.T) {
 }
 
 func TestApplyPublicAccessRepoPermission(t *testing.T) {
+	for _, test := range []struct {
+		user       *user_model.User
+		repoUnit   *repo_model.RepoUnit
+		assertRead assert.BoolAssertionFunc
+	}{
+		{nil, &repo_model.RepoUnit{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead}, assert.False},
+		{nil, &repo_model.RepoUnit{Type: unit.TypeWiki, AnonymousAccessMode: perm_model.AccessModeRead}, assert.True},
+		{&user_model.User{ID: 0}, &repo_model.RepoUnit{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead}, assert.False},
+		{&user_model.User{ID: 1}, &repo_model.RepoUnit{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead}, assert.True},
+	} {
+		perm := Permission{
+			AccessMode: perm_model.AccessModeNone,
+			units:      []*repo_model.RepoUnit{test.repoUnit},
+		}
+		finalProcessRepoUnitPermission(test.user, &perm)
+		test.assertRead(t, perm.CanRead(unit.TypeWiki))
+	}
+
 	perm := Permission{
-		AccessMode: perm_model.AccessModeNone,
-		units: []*repo_model.RepoUnit{
-			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
-		},
-	}
-	finalProcessRepoUnitPermission(nil, &perm)
-	assert.False(t, perm.CanRead(unit.TypeWiki))
-
-	perm = Permission{
-		AccessMode: perm_model.AccessModeNone,
-		units: []*repo_model.RepoUnit{
-			{Type: unit.TypeWiki, AnonymousAccessMode: perm_model.AccessModeRead},
-		},
-	}
-	finalProcessRepoUnitPermission(nil, &perm)
-	assert.True(t, perm.CanRead(unit.TypeWiki))
-
-	perm = Permission{
-		AccessMode: perm_model.AccessModeNone,
-		units: []*repo_model.RepoUnit{
-			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
-		},
-	}
-	finalProcessRepoUnitPermission(&user_model.User{ID: 0}, &perm)
-	assert.False(t, perm.CanRead(unit.TypeWiki))
-
-	perm = Permission{
-		AccessMode: perm_model.AccessModeNone,
-		units: []*repo_model.RepoUnit{
-			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
-		},
-	}
-	finalProcessRepoUnitPermission(&user_model.User{ID: 1}, &perm)
-	assert.True(t, perm.CanRead(unit.TypeWiki))
-
-	perm = Permission{
 		AccessMode: perm_model.AccessModeWrite,
 		units: []*repo_model.RepoUnit{
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
@@ -117,45 +99,27 @@ func TestApplyPublicAccessRepoPermission(t *testing.T) {
 }
 
 func TestUnitAccessMode(t *testing.T) {
-	perm := Permission{
-		AccessMode: perm_model.AccessModeNone,
+	for _, test := range []struct {
+		accessMode      perm_model.AccessMode
+		hasUnit, hasMap bool
+		expected        perm_model.AccessMode
+		message         string
+	}{
+		{perm_model.AccessModeNone, false, false, perm_model.AccessModeNone, "no unit, no map, use AccessMode"},
+		{perm_model.AccessModeRead, true, false, perm_model.AccessModeRead, "only unit, no map, use AccessMode"},
+		{perm_model.AccessModeAdmin, false, true, perm_model.AccessModeAdmin, "no unit, only map, admin overrides map"},
+		{perm_model.AccessModeNone, false, true, perm_model.AccessModeRead, "no unit, only map, use map"},
+		{perm_model.AccessModeNone, true, true, perm_model.AccessModeRead, "has unit, and map, use map"},
+	} {
+		perm := Permission{AccessMode: test.accessMode}
+		if test.hasUnit {
+			perm.units = []*repo_model.RepoUnit{{Type: unit.TypeWiki}}
+		}
+		if test.hasMap {
+			perm.unitsMode = map[unit.Type]perm_model.AccessMode{unit.TypeWiki: perm_model.AccessModeRead}
+		}
+		assert.Equal(t, test.expected, perm.UnitAccessMode(unit.TypeWiki), test.message)
 	}
-	assert.Equal(t, perm_model.AccessModeNone, perm.UnitAccessMode(unit.TypeWiki), "no unit, no map, use AccessMode")
-
-	perm = Permission{
-		AccessMode: perm_model.AccessModeRead,
-		units: []*repo_model.RepoUnit{
-			{Type: unit.TypeWiki},
-		},
-	}
-	assert.Equal(t, perm_model.AccessModeRead, perm.UnitAccessMode(unit.TypeWiki), "only unit, no map, use AccessMode")
-
-	perm = Permission{
-		AccessMode: perm_model.AccessModeAdmin,
-		unitsMode: map[unit.Type]perm_model.AccessMode{
-			unit.TypeWiki: perm_model.AccessModeRead,
-		},
-	}
-	assert.Equal(t, perm_model.AccessModeAdmin, perm.UnitAccessMode(unit.TypeWiki), "no unit, only map, admin overrides map")
-
-	perm = Permission{
-		AccessMode: perm_model.AccessModeNone,
-		unitsMode: map[unit.Type]perm_model.AccessMode{
-			unit.TypeWiki: perm_model.AccessModeRead,
-		},
-	}
-	assert.Equal(t, perm_model.AccessModeRead, perm.UnitAccessMode(unit.TypeWiki), "no unit, only map, use map")
-
-	perm = Permission{
-		AccessMode: perm_model.AccessModeNone,
-		units: []*repo_model.RepoUnit{
-			{Type: unit.TypeWiki},
-		},
-		unitsMode: map[unit.Type]perm_model.AccessMode{
-			unit.TypeWiki: perm_model.AccessModeRead,
-		},
-	}
-	assert.Equal(t, perm_model.AccessModeRead, perm.UnitAccessMode(unit.TypeWiki), "has unit, and map, use map")
 }
 
 func TestGetRepoPermission(t *testing.T) {
@@ -226,12 +190,12 @@ func testGetIndividualUserRepoPermission(t *testing.T) {
 		assert.Equal(t, perm_model.AccessModeNone, perm.unitsMode[unit.TypeCode])
 		assert.Equal(t, perm_model.AccessModeRead, perm.unitsMode[unit.TypeIssues])
 
-		users, err := GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeRead, unit.TypeIssues)
+		users, err := GetUsersWithAnyUnitAccess(ctx, repo3, perm_model.AccessModeRead, unit.TypeIssues)
 		require.NoError(t, err)
 		require.Len(t, users, 1)
 		assert.Equal(t, user.ID, users[0].ID)
 
-		users, err = GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
+		users, err = GetUsersWithAnyUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
 		require.NoError(t, err)
 		require.Empty(t, users)
 	})
@@ -245,7 +209,7 @@ func testGetIndividualUserRepoPermission(t *testing.T) {
 		assert.Equal(t, perm_model.AccessModeWrite, perm.unitsMode[unit.TypeCode])
 		assert.Equal(t, perm_model.AccessModeWrite, perm.unitsMode[unit.TypeIssues])
 
-		users, err := GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
+		users, err := GetUsersWithAnyUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
 		require.NoError(t, err)
 		require.Len(t, users, 1)
 		assert.Equal(t, user.ID, users[0].ID)
@@ -272,4 +236,21 @@ func testGetDoerRepoPermission(t *testing.T) {
 	individualPerm, err := GetIndividualUserRepoPermission(ctx, repo1, regularUser)
 	require.NoError(t, err)
 	assert.Equal(t, individualPerm, doerPerm)
+
+	t.Run("PublicOnlyTokenReachesOnlyPublicReposOfPublicOwners", func(t *testing.T) {
+		publicOnlyUser := *regularUser
+		publicOnlyUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,write:repository")
+		publicOnlyAdmin := *unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		publicOnlyAdmin.ExtDoerData = publicOnlyUser.ExtDoerData
+		for _, repoID := range []int64{2, 38} {
+			perm, err := GetDoerRepoPermission(ctx, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}), &publicOnlyAdmin)
+			require.NoError(t, err)
+			assert.False(t, perm.HasAnyUnitAccessOrPublicAccess(), "repo %d", repoID)
+		}
+
+		perm, err := GetDoerRepoPermission(ctx, repo1, &publicOnlyUser)
+		require.NoError(t, err)
+		assert.True(t, perm.CanWrite(unit.TypeCode))
+		assert.NotEqual(t, RepoUserPermissionCacheKey(repo1.ID, regularUser), RepoUserPermissionCacheKey(repo1.ID, &publicOnlyUser))
+	})
 }

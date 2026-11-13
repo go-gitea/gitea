@@ -23,7 +23,7 @@ The backend is split into top-level packages, each with a focused responsibility
   dependencies to a minimum
   - `models/db`: core database operations
   - `models/fixtures`: sample data used by tests
-  - `models/migrations`: schema migration scripts
+- `modelmigration`: schema migration scripts
 - `modules`: standalone functionality with few dependencies
   - `modules/setting`: configuration handling
   - `modules/git`: interaction with the Git command line
@@ -62,6 +62,10 @@ Operations that must roll back together should run inside `db.WithTx()` (or
 Functions that participate in a transaction take a `context.Context` as their first
 parameter so the transaction can be propagated.
 
+PostgreSQL, MySQL and MSSQL (via `READ_COMMITTED_SNAPSHOT`) read the last committed
+row version, so reads never wait for writers. Guard read-then-write logic with a
+conditional `UPDATE` or a lock.
+
 ### XORM gotchas
 
 - Never call `x.Update(exemplar)` without an explicit `WHERE` clause — it updates
@@ -70,6 +74,26 @@ parameter so the transaction can be propagated.
   plain `Sync`.
 - When inserting rows with preset IDs, MSSQL requires `SET IDENTITY_INSERT` to be
   enabled and PostgreSQL requires the sequence to be updated afterwards.
+- Struct conditions skip zero-valued fields, so `Get(&Reaction{IssueID: 1})` also
+  matches comment reactions. Use `Where` or `builder` when a zero value matters.
+- Struct updates skip zero-valued fields unless selected by `Cols` or `AllCols()`.
+  `Cols` silently ignores unknown names. `updated` columns are always written unless
+  `NoAutoTime()` is used.
+- `xorm:"deleted"` columns count both `0` and `NULL` as not deleted, so hand-written
+  conditions must accept both.
+- On every start, `SyncAllTables` drops indexes absent from the model, so declare
+  migration-created indexes there, including in backports. It only warns about
+  nullability and default changes, so apply them through migrations.
+- `ForUpdate` only works on MySQL and PostgreSQL. MSSQL rejects TEXT columns in
+  struct conditions and inserts of more than 1000 rows.
+- Paginated queries need a unique tiebreaker like `id` for a stable order.
+
+### Git
+
+- Pass already opened repositories down or use `git.RepositoryFromContextOrOpen`
+  rather than reopening them or spawning extra `git` processes.
+- If git command stderr output is not handled by the caller, then it needs to use RunWithStderr
+  to make sure the git error message is included in the returned error and displayed in the logs.
 
 ## Dependencies
 
@@ -82,6 +106,24 @@ be touched by pull requests whose sole purpose is updating dependencies. Run
 
 Any `go.mod` / `go.sum` update must be justified in the PR description and must be
 verified by reviewers and the merger to reference an existing upstream commit.
+
+## Golang HTML template
+
+Gitea uses Go's built-in HTML template engine which is dynamically & weakly typed.
+To make template code maintainable:
+
+- Go code should take over complex logic and prepare template data as much as possible, templates only render the data.
+- Prefer struct types provided by Go code instead of map types for template data.
+- Avoid using single word names for non-local variables.
+- Avoid passing `"root" $` or `"." .` to sub-templates, instead pass the specific data needed by the sub-template.
+- Use explicit variable names instead of `.` to access data: ``{{range $item := $.TargetItems}}{{ $item.Name }}{{end}}``
+- Use Go code to implement render helpers if the render logic is too complex.
+
+Using a modern and statically & strongly typed template engine to replace Golang HTML template might be good,
+but the challenge is huge, the requisites are:
+
+- A working and maintainable proof-of-concept for the most complex templates (like "PR View" and "PR Diff").
+- A firm commitment of sufficient engineering resources.
 
 ## API v1
 
@@ -105,8 +147,8 @@ breaking v1.
 
 ### Adding and maintaining API routes
 
-- All possible results (errors, success, and failure messages) must be documented in
-  the swagger comments on the route.
+- Document success responses in the swagger comments on the route. Replace explicit
+  error responses with a `default` response referencing `#/responses/error`.
 - Every JSON request body must be defined as a struct in `modules/structs/` and
   registered in [`routers/api/v1/swagger/options.go`](../routers/api/v1/swagger/options.go).
 - Every JSON response must be defined as a struct in `modules/structs/` and
@@ -120,7 +162,7 @@ In general, choose HTTP methods as follows:
 - **POST** creates a new object (e.g. a user) and returns **201 Created** with the
   created object.
 - **PUT** adds or assigns an existing object (e.g. a user to a team) and returns
-  **204 No Content** with no body.
+  **204 No Content** with no response body.
 - **PATCH** edits an existing object and returns the changed object with **200 OK**.
 - **DELETE** removes an object and returns **204 No Content** with no body.
 

@@ -88,10 +88,6 @@ input[type="checkbox"]:indeterminate::before {
 .ui.checkbox label {
   position: relative;
   display: block;
-}
-
-.ui.checkbox label,
-.ui.radio.checkbox label {
   margin-left: 20px;
 }
 
@@ -105,10 +101,6 @@ input[type="checkbox"]:indeterminate::before {
   cursor: default !important;
   opacity: 0.5;
   pointer-events: none;
-}
-
-.ui.radio.checkbox {
-  min-height: var(--checkbox-size);
 }
 
 /* "switch" styled checkbox */
@@ -170,6 +162,29 @@ input[type="checkbox"]:indeterminate::before {
 .ui.toggle.checkbox input:checked ~ label::before,
 .ui.toggle.checkbox input:focus:checked ~ label::before {
   background: var(--color-primary) !important;
+}
+
+@media (forced-colors: active) {
+  input[type="checkbox"]:checked,
+  input[type="checkbox"]:indeterminate {
+    background: CanvasText;
+    border-color: CanvasText;
+  }
+  input[type="checkbox"]:disabled:checked,
+  input[type="checkbox"]:disabled:indeterminate {
+    background: GrayText;
+    border-color: GrayText;
+  }
+  input[type="radio"]:disabled:checked {
+    border-color: GrayText;
+  }
+  .ui.toggle.checkbox label::before {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  .ui.toggle.checkbox label::after {
+    background: CanvasText;
+  }
 }
 
 label.gt-checkbox {

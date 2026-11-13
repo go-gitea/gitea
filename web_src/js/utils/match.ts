@@ -1,9 +1,9 @@
-import emojis from '../../../assets/emoji.json' with {type: 'json'};
+import emojis from '../../../public/assets/emoji.json' with {type: 'json'};
 import {GET} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {errorMessage} from '../modules/errors.ts';
-import type {Issue, Mention} from '../types.ts';
+import type {Mention} from '../types.ts';
 
 const maxMatches = 6;
 
@@ -69,14 +69,4 @@ export async function matchMention(mentionsUrl: string, queryText: string): Prom
   }
 
   return sortAndReduce(results);
-}
-
-export async function matchIssue(owner: string, repo: string, issueIndexStr: string, query: string): Promise<Issue[]> {
-  const res = await GET(`${window.config.appSubUrl}/${owner}/${repo}/issues/suggestions?q=${encodeURIComponent(query)}`);
-
-  const issues: Issue[] = await res.json();
-  const issueNumber = parseInt(issueIndexStr);
-
-  // filter out issue with same id
-  return issues.filter((i) => i.number !== issueNumber);
 }

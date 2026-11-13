@@ -150,7 +150,7 @@ func (hcd *highlightCodeDiff) diffEqualPartIsSpaceOnly(s string) bool {
 	return true
 }
 
-func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA, codeB template.HTML) template.HTML {
+func (hcd *highlightCodeDiff) diffLineWithHighlight(codeA, codeB template.HTML) (del, add template.HTML) {
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
@@ -160,8 +160,6 @@ func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA
 	dmp := defaultDiffMatchPatch()
 	diffs := dmp.DiffMain(convertedCodeA, convertedCodeB, true)
 	diffs = dmp.DiffCleanupSemantic(diffs)
-
-	buf := bytes.NewBuffer(nil)
 
 	if hcd.diffCodeClose == 0 {
 		// tests can pre-set the placeholders
@@ -183,32 +181,37 @@ func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA
 	// only add "added"/"removed" tags when needed:
 	// * non-space contents appear in the DiffEqual parts (not a full-line add/del)
 	// * placeholder map still works (not exhausted, can get the closing tag placeholder)
+	bufDel := bytes.NewBuffer(nil)
+	bufAdd := bytes.NewBuffer(nil)
 	addDiffTags := !equalPartSpaceOnly && hcd.diffCodeClose != 0
 	if addDiffTags {
 		for _, diff := range diffs {
-			switch {
-			case diff.Type == diffmatchpatch.DiffEqual:
-				buf.WriteString(diff.Text)
-			case diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
-				buf.WriteRune(hcd.diffCodeAddedOpen)
-				buf.WriteString(diff.Text)
-				buf.WriteRune(hcd.diffCodeClose)
-			case diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
-				buf.WriteRune(hcd.diffCodeRemovedOpen)
-				buf.WriteString(diff.Text)
-				buf.WriteRune(hcd.diffCodeClose)
+			switch diff.Type {
+			case diffmatchpatch.DiffEqual:
+				bufDel.WriteString(diff.Text)
+				bufAdd.WriteString(diff.Text)
+			case diffmatchpatch.DiffInsert:
+				bufAdd.WriteRune(hcd.diffCodeAddedOpen)
+				bufAdd.WriteString(diff.Text)
+				bufAdd.WriteRune(hcd.diffCodeClose)
+			case diffmatchpatch.DiffDelete:
+				bufDel.WriteRune(hcd.diffCodeRemovedOpen)
+				bufDel.WriteString(diff.Text)
+				bufDel.WriteRune(hcd.diffCodeClose)
 			}
 		}
 	} else {
 		// the caller will still add added/removed backgrounds for the whole line
 		for _, diff := range diffs {
-			take := diff.Type == diffmatchpatch.DiffEqual || (diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd) || (diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel)
-			if take {
-				buf.WriteString(diff.Text)
+			if diff.Type == diffmatchpatch.DiffEqual || diff.Type == diffmatchpatch.DiffDelete {
+				bufDel.WriteString(diff.Text)
+			}
+			if diff.Type == diffmatchpatch.DiffEqual || diff.Type == diffmatchpatch.DiffInsert {
+				bufAdd.WriteString(diff.Text)
 			}
 		}
 	}
-	return hcd.recoverOneDiff(buf.String())
+	return hcd.recoverOneDiff(util.UnsafeBytesToString(bufDel.Bytes())), hcd.recoverOneDiff(util.UnsafeBytesToString(bufAdd.Bytes()))
 }
 
 func (hcd *highlightCodeDiff) registerTokenAsPlaceholder(token string) rune {

@@ -15,6 +15,8 @@ func TestSanitizer(t *testing.T) {
 		// Regular
 		`<a onblur="alert(secret)" href="http://www.google.com">Google</a>`, `<a href="http://www.google.com" rel="nofollow">Google</a>`,
 		"<scrİpt>&lt;script&gt;alert(document.domain)&lt;/script&gt;</scrİpt>", "&lt;script&gt;alert(document.domain)&lt;/script&gt;",
+		`<details>unclosed`, `<details>unclosed`,
+		`<div>unclosed</`, `<div>unclosed&lt;/`,
 
 		// Code highlighting class
 		`<code class="random string"></code>`, `<code></code>`,
@@ -49,6 +51,8 @@ func TestSanitizer(t *testing.T) {
 		`<p style="bad-color: red">Hello World</p>`, `<p>Hello World</p>`,
 		`<code style="bad-color: red">Hello World</code>`, `<code>Hello World</code>`,
 
+		`<table data-paste-markdown-skip><tr><td>1</td></tr></table>`, `<table data-paste-markdown-skip=""><tr><td>1</td></tr></table>`,
+
 		// Org mode status of list items.
 		`<li class="checked"></li>`, `<li class="checked"></li>`,
 		`<li class="unchecked"></li>`, `<li class="unchecked"></li>`,
@@ -62,7 +66,10 @@ func TestSanitizer(t *testing.T) {
 		`<picture><source media="a"><source media="b"><img alt="c" src="d"></picture>`, `<picture><source media="a"><source media="b"><img alt="c" src="d"></picture>`,
 
 		// MathML
-		`<math display="display" class="foo"><mi mathcolor="c" class="bar"></mi></math>`, `<math display="display"><mi mathcolor="c"></mi></math>`,
+		`<math display="block" class="foo"><mi mathcolor="c" class="bar"></mi></math>`, `<math display="block"><mi mathcolor="c"></mi></math>`,
+		`<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><msqrt><mn>2</mn></msqrt></mfrac></math>`, `<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><msqrt><mn>2</mn></msqrt></mfrac></math>`,
+		`<math><mtable><mtr><mtd rowspan="2" columnspan="2"><mn>1</mn></mtd></mtr></mtable></math>`, `<math><mtable><mtr><mtd rowspan="2" columnspan="2"><mn>1</mn></mtd></mtr></mtable></math>`,
+		`<math><maction actiontype="toggle" selection="2"><mi intent="power($b,$e)" arg="b">x</mi><mn>2</mn></maction></math>`, `<math><maction actiontype="toggle" selection="2"><mi intent="power($b,$e)" arg="b">x</mi><mn>2</mn></maction></math>`,
 
 		// Disallow dangerous url schemes
 		`<a href="javascript:alert('xss')">bad</a>`, `bad`,

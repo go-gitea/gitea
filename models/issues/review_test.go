@@ -6,10 +6,14 @@ package issues_test
 import (
 	"testing"
 
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,6 +28,15 @@ func TestGetReviewByID(t *testing.T) {
 	_, err = issues_model.GetReviewByID(t.Context(), 23892)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewNotExist(err), "IsErrReviewNotExist")
+}
+
+func TestReview_HTMLURL(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 1})
+	assert.Equal(t, setting.AppURL+"user2/repo1/pulls/2#pullrequestreview-1", review.HTMLURL(t.Context()))
+
+	pendingReview := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 4})
+	assert.Empty(t, pendingReview.HTMLURL(t.Context()))
 }
 
 func TestReview_LoadAttributes(t *testing.T) {
@@ -182,6 +195,19 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
 		}
 	}
+
+	for _, review := range []*issues_model.Review{
+		{OriginalAuthor: "octocat", OriginalAuthorID: user_model.GhostUserID},
+		{OriginalAuthor: "hubot", OriginalAuthorID: user_model.GhostUserID},
+		{OriginalAuthor: "octocat", OriginalAuthorID: 583231},
+		{OriginalAuthor: "renamed-octocat", OriginalAuthorID: 583231},
+	} {
+		review.IssueID, review.Type = issue.ID, issues_model.ReviewTypeApprove
+		assert.NoError(t, db.Insert(t.Context(), review))
+	}
+	_, migratedReviews, err = issues_model.GetReviewsByIssueID(t.Context(), issue.ID)
+	assert.NoError(t, err)
+	assert.Len(t, migratedReviews, 3)
 }
 
 func TestDismissReview(t *testing.T) {
@@ -200,33 +226,14 @@ func TestDismissReview(t *testing.T) {
 	assert.True(t, rejectReviewExample.Dismissed)
 	assert.False(t, requestReviewExample.Dismissed)
 
-	assert.NoError(t, issues_model.DismissReview(t.Context(), requestReviewExample, true))
-	rejectReviewExample = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 9})
-	requestReviewExample = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 11})
-	assert.True(t, rejectReviewExample.Dismissed)
-	assert.False(t, requestReviewExample.Dismissed)
-	assert.False(t, approveReviewExample.Dismissed)
-
-	assert.NoError(t, issues_model.DismissReview(t.Context(), requestReviewExample, true))
-	rejectReviewExample = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 9})
-	requestReviewExample = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 11})
-	assert.True(t, rejectReviewExample.Dismissed)
-	assert.False(t, requestReviewExample.Dismissed)
-	assert.False(t, approveReviewExample.Dismissed)
-
-	assert.NoError(t, issues_model.DismissReview(t.Context(), requestReviewExample, false))
-	rejectReviewExample = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 9})
-	requestReviewExample = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 11})
-	assert.True(t, rejectReviewExample.Dismissed)
-	assert.False(t, requestReviewExample.Dismissed)
-	assert.False(t, approveReviewExample.Dismissed)
-
-	assert.NoError(t, issues_model.DismissReview(t.Context(), requestReviewExample, false))
-	rejectReviewExample = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 9})
-	requestReviewExample = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 11})
-	assert.True(t, rejectReviewExample.Dismissed)
-	assert.False(t, requestReviewExample.Dismissed)
-	assert.False(t, approveReviewExample.Dismissed)
+	for _, dismissed := range []bool{true, true, false, false} {
+		assert.NoError(t, issues_model.DismissReview(t.Context(), requestReviewExample, dismissed))
+		rejectReviewExample = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 9})
+		requestReviewExample = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 11})
+		assert.True(t, rejectReviewExample.Dismissed)
+		assert.False(t, requestReviewExample.Dismissed)
+		assert.False(t, approveReviewExample.Dismissed)
+	}
 
 	assert.NoError(t, issues_model.DismissReview(t.Context(), rejectReviewExample, false))
 	assert.False(t, rejectReviewExample.Dismissed)
@@ -385,4 +392,60 @@ func TestAddReviewRequest(t *testing.T) {
 	assert.NotNil(t, comment)
 	assert.NotNil(t, comment.CommentMetaData)
 	assert.Equal(t, issues_model.SpecialDoerNameCodeOwners, comment.CommentMetaData.SpecialDoerName)
+}
+
+func TestRecalculateReviewsOfficial(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// PR #2 targets repo1's "master" branch. Simulate an approval that became
+	// official while the PR targeted an unprotected branch.
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	review, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeApprove,
+		Issue:    issue,
+		Reviewer: reviewer,
+		Official: true,
+	})
+	assert.NoError(t, err)
+
+	// Protect the (now current) target branch with an approvals whitelist that
+	// does not include the reviewer, mirroring a retarget onto a protected branch.
+	rule := &git_model.ProtectedBranch{
+		RepoID:                    issue.RepoID,
+		RuleName:                  "master",
+		EnableApprovalsWhitelist:  true,
+		ApprovalsWhitelistUserIDs: []int64{2},
+		RequiredApprovals:         1,
+	}
+	assert.NoError(t, db.Insert(t.Context(), rule))
+
+	// Re-evaluating must strip the stale official flag, otherwise the approval
+	// would still satisfy the protected branch's required approvals.
+	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
+	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
+	assert.False(t, review.Official)
+
+	// Once the reviewer is whitelisted, re-evaluating restores the official flag.
+	rule.ApprovalsWhitelistUserIDs = []int64{2, reviewer.ID}
+	_, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("config").Update(rule)
+	assert.NoError(t, err)
+
+	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
+	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
+	assert.True(t, review.Official)
+}
+
+func TestTeamReviewRequestOfficial(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12})
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	comment, err := issues_model.AddTeamReviewRequest(t.Context(), issue, unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}), &user_model.User{ID: 2}, false)
+	assert.NoError(t, err)
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: comment.ReviewID}).Official)
+
+	assert.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: issue.RepoID, RuleName: "master", EnableApprovalsWhitelist: true}))
+	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: comment.ReviewID}).Official)
 }

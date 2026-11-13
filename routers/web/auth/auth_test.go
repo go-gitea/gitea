@@ -11,11 +11,13 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
+	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/contexttest"
 
@@ -99,10 +101,8 @@ func TestWebAuthOAuth2(t *testing.T) {
 
 	t.Run("RedirectSingleProvider", func(t *testing.T) {
 		enablePassword := &setting.Service.EnablePasswordSignInForm
-		enableOpenID := &setting.Service.EnableOpenIDSignIn
 		enablePasskey := &setting.Service.EnablePasskeyAuth
 		defer test.MockVariableValue(enablePassword, false)()
-		defer test.MockVariableValue(enableOpenID, false)()
 		defer test.MockVariableValue(enablePasskey, false)()
 
 		testSignIn := func(t *testing.T, link string, expectedCode int, expectedRedirect string) {
@@ -116,14 +116,12 @@ func TestWebAuthOAuth2(t *testing.T) {
 		testSignIn(t, "/user/login", http.StatusSeeOther, "/user/oauth2/dummy+auth%27s%20source")
 		testSignIn(t, "/user/login?redirect_to=/", http.StatusSeeOther, "/user/oauth2/dummy+auth%27s%20source?redirect_to=%2F")
 
-		*enablePassword, *enableOpenID, *enablePasskey = true, false, false
+		*enablePassword, *enablePasskey = true, false
 		testSignIn(t, "/user/login", http.StatusOK, "")
-		*enablePassword, *enableOpenID, *enablePasskey = false, true, false
-		testSignIn(t, "/user/login", http.StatusOK, "")
-		*enablePassword, *enableOpenID, *enablePasskey = false, false, true
+		*enablePassword, *enablePasskey = false, true
 		testSignIn(t, "/user/login", http.StatusOK, "")
 
-		*enablePassword, *enableOpenID, *enablePasskey = false, false, false
+		*enablePassword, *enablePasskey = false, false
 		addOAuth2Source(t, "dummy-auth-source-2", oauth2.Source{})
 		testSignIn(t, "/user/login", http.StatusOK, "")
 	})
@@ -154,16 +152,50 @@ func TestWebAuthOAuth2(t *testing.T) {
 		authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), "oidc-auth-source")
 		require.NoError(t, err)
 
-		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid")}
-		ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
-		ctx.Doer = &user_model.User{ID: 1, LoginType: auth_model.OAuth2, LoginSource: authSource.ID}
-		SignOut(ctx)
-		assert.Equal(t, http.StatusSeeOther, resp.Code)
-		u, err := url.Parse(test.RedirectURL(resp))
-		require.NoError(t, err)
-		expectedValues := url.Values{"oidc-key": []string{"oidc-val"}, "post_logout_redirect_uri": []string{setting.AppURL}, "client_id": []string{"mock-client-id"}}
-		assert.Equal(t, expectedValues, u.Query())
-		u.RawQuery = ""
-		assert.Equal(t, "https://example.com/oidc-logout", u.String())
+		oauthUser := &user_model.User{ID: 1, LoginType: auth_model.OAuth2, LoginSource: authSource.ID}
+
+		t.Run("OAuth2SignInRedirectsToOIDC", func(t *testing.T) {
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oauth")}
+			ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			require.NoError(t, ctx.Session.Set(session.KeySignInMethod, session.SignInMethodOAuth2))
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			u, err := url.Parse(test.RedirectURL(resp))
+			require.NoError(t, err)
+			expectedValues := url.Values{"oidc-key": []string{"oidc-val"}, "post_logout_redirect_uri": []string{setting.AppURL}, "client_id": []string{"mock-client-id"}}
+			assert.Equal(t, expectedValues, u.Query())
+			u.RawQuery = ""
+			assert.Equal(t, "https://example.com/oidc-logout", u.String())
+		})
+
+		t.Run("PasswordSignInSkipsOIDC", func(t *testing.T) {
+			// OAuth2-linked account signed in via password form must not hit end_session_endpoint.
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-password")}
+			ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			assert.Equal(t, "/", test.RedirectURL(resp))
+		})
 	})
+}
+
+func TestAutoSignInStaleCookie(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	at, token, err := auth_service.CreateAuthTokenForUserID(t.Context(), 2)
+	require.NoError(t, err)
+	current, currentToken, err := auth_service.RegenerateAuthToken(t.Context(), at)
+	require.NoError(t, err)
+
+	ctx, resp := contexttest.MockContext(t, "/user/login")
+	ctx.Req.AddCookie(&http.Cookie{Name: setting.CookieRememberName, Value: at.ID + ":" + token})
+	succeeded, err := autoSignIn(ctx)
+	require.NoError(t, err)
+	require.False(t, succeeded)
+	for _, cookie := range resp.Result().Cookies() {
+		assert.NotEqual(t, setting.CookieRememberName, cookie.Name)
+	}
+	_, err = auth_service.CheckAuthToken(t.Context(), current.ID+":"+currentToken)
+	require.NoError(t, err)
 }

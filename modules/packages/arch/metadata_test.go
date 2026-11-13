@@ -10,6 +10,9 @@ import (
 	"io"
 	"testing"
 
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+
 	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
 	"github.com/ulikunitz/xz"
@@ -101,6 +104,7 @@ func TestParsePackage(t *testing.T) {
 				data := createPackage(c, map[string][]byte{
 					".PKGINFO":        createPKGINFOContent(packageName, packageVersion),
 					"/test/dummy.txt": {},
+					"usr/lib/legit\n\n%FILES%\n/etc/cron.d/x": {}, // must not reach the file list
 				})
 
 				p, err := ParsePackage(data)
@@ -123,11 +127,11 @@ func TestParsePackageInfo(t *testing.T) {
 	})
 
 	t.Run("Regexp", func(t *testing.T) {
-		assert.Regexp(t, versionPattern, "1.2_3~4+5")
-		assert.Regexp(t, versionPattern, "1:2_3~4+5")
-		assert.NotRegexp(t, versionPattern, "a:1.0.0-1")
-		assert.NotRegexp(t, versionPattern, "0.0.1/1-1")
-		assert.NotRegexp(t, versionPattern, "1.0.0 -1")
+		assert.Regexp(t, globalVars().versionPattern, "1.2_3~4+5")
+		assert.Regexp(t, globalVars().versionPattern, "1:2_3~4+5")
+		assert.NotRegexp(t, globalVars().versionPattern, "a:1.0.0-1")
+		assert.NotRegexp(t, globalVars().versionPattern, "0.0.1/1-1")
+		assert.NotRegexp(t, globalVars().versionPattern, "1.0.0 -1")
 	})
 
 	t.Run("InvalidVersion", func(t *testing.T) {
@@ -166,4 +170,26 @@ func TestParsePackageInfo(t *testing.T) {
 		assert.ElementsMatch(t, []string{"cmake"}, p.FileMetadata.MakeDepends)
 		assert.ElementsMatch(t, []string{"usr/bin/paket1"}, p.FileMetadata.Backup)
 	})
+}
+
+// TestParsePackageTooManyFiles ensures the accumulated file list is bounded to prevent
+// metadata amplification from a package with a huge number of (tiny) file entries.
+func TestParsePackageTooManyFiles(t *testing.T) {
+	defer test.MockVariableValue(&maxFileEntries, 3)()
+	buf := test.WriteTarCompression(gzip.NewWriter, map[string]string{
+		"file1":    "content1",
+		".PKGINFO": string(createPKGINFOContent(packageName, packageVersion)),
+	})
+	_, err := ParsePackage(buf)
+	assert.NoError(t, err)
+
+	buf = test.WriteTarCompression(gzip.NewWriter, map[string]string{
+		"file1":    "content1",
+		"file2":    "content2",
+		"file3":    "content3",
+		"file4":    "content4",
+		".PKGINFO": string(createPKGINFOContent(packageName, packageVersion)),
+	})
+	_, err = ParsePackage(buf)
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
 }

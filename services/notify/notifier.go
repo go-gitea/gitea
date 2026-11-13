@@ -10,6 +10,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	packages_model "gitea.dev/models/packages"
+	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -20,13 +21,12 @@ import (
 type Notifier interface {
 	Run()
 
-	AdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository)
 	ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository)
 	RenameRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldRepoName string)
-	TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string)
+	TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User)
 	RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository)
 
 	NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User)
@@ -41,6 +41,8 @@ type Notifier interface {
 	IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string)
 	IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 		addedLabels, removedLabels []*issues_model.Label)
+	IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64)
+	IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID int64, newColumn *project_model.Column)
 
 	NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User)
 	MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest)
@@ -82,4 +84,8 @@ type Notifier interface {
 	WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun)
 
 	WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask)
+
+	NotificationCountChange(ctx context.Context, userID int64)
+
+	StopwatchChanged(ctx context.Context, user *user_model.User)
 }

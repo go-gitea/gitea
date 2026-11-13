@@ -12,11 +12,13 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
+	"gitea.dev/modules/zstd"
 
-	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
 
@@ -33,7 +35,21 @@ const (
 	RepositoryVersion = "_repository"
 
 	AnyArch = "any"
+
+	maxPKGINFOSize = 1024 * 1024
 )
+
+var globalVars = sync.OnceValue(func() (ret struct {
+	namePattern    *regexp.Regexp
+	versionPattern *regexp.Regexp
+},
+) {
+	// https://man.archlinux.org/man/PKGBUILD.5
+	ret.namePattern = regexp.MustCompile(`\A[a-zA-Z0-9@._+-]+\z`)
+	// (epoch:pkgver-pkgrel)
+	ret.versionPattern = regexp.MustCompile(`\A(?:\d:)?[\w.+~]+(?:-[-\w.+~]+)?\z`)
+	return ret
+})
 
 var (
 	ErrMissingPKGINFOFile  = util.NewInvalidArgumentErrorf(".PKGINFO file is missing")
@@ -42,10 +58,10 @@ var (
 	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
 	ErrInvalidArchitecture = util.NewInvalidArgumentErrorf("package architecture is invalid")
 
-	// https://man.archlinux.org/man/PKGBUILD.5
-	namePattern = regexp.MustCompile(`\A[a-zA-Z0-9@._+-]+\z`)
-	// (epoch:pkgver-pkgrel)
-	versionPattern = regexp.MustCompile(`\A(?:\d:)?[\w.+~]+(?:-[-\w.+~]+)?\z`)
+	// caps on the accumulated package file list (vars so tests can lower them); far above
+	// any legitimate package, but low enough to stop metadata amplification
+	maxFileEntries   = 100000
+	maxFileNameBytes = 16 * 1024 * 1024
 )
 
 type Package struct {
@@ -124,7 +140,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	}
 
 	var p *Package
-	files := make([]string, 0, 10)
+	files := packages.NewBoundedFileList(maxFileEntries, maxFileNameBytes)
 
 	tr := tar.NewReader(inner)
 	for {
@@ -147,7 +163,12 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				return nil, err
 			}
 		} else if !strings.HasPrefix(filename, ".") {
-			files = append(files, hd.Name)
+			if strings.ContainsAny(hd.Name, "\n\r") {
+				continue // a newline would forge extra lines in the pacman index
+			}
+			if err := files.Add(hd.Name); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -155,7 +176,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 		return nil, ErrMissingPKGINFOFile
 	}
 
-	p.FileMetadata.Files = files
+	p.FileMetadata.Files = files.Files()
 	p.FileCompressionExtension = compressionType
 
 	return p, nil
@@ -167,7 +188,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 func ParsePackageInfo(r io.Reader) (*Package, error) {
 	p := &Package{}
 
-	s := bufio.NewScanner(r)
+	s := bufio.NewScanner(packages.NewLimitedReader(r, maxPKGINFOSize))
 	for s.Scan() {
 		line := s.Text()
 
@@ -238,10 +259,10 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
-	if !namePattern.MatchString(p.Name) {
+	if !globalVars().namePattern.MatchString(p.Name) {
 		return nil, ErrInvalidName
 	}
-	if !versionPattern.MatchString(p.Version) {
+	if !globalVars().versionPattern.MatchString(p.Version) {
 		return nil, ErrInvalidVersion
 	}
 	if p.FileMetadata.Architecture == "" {

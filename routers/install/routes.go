@@ -28,7 +28,7 @@ func Routes() *web.Router {
 	r.AfterRouting(common.MustInitSessioner(), installContexter())
 
 	r.Get("/", Install) // it must be on the root, because the "install.js" use the window.location to replace the "localhost" AppURL
-	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
+	r.Post("/", web.Bind[*forms.InstallForm](), SubmitInstall)
 	r.Get("/post-install", InstallDone)
 
 	r.Get("/-/web-theme/list", misc.WebThemeList)

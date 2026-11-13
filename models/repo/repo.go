@@ -11,7 +11,6 @@ import (
 	"maps"
 	"net"
 	"net/url"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -20,7 +19,6 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/htmlutil"
@@ -211,6 +209,7 @@ type Repository struct {
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
 	ObjectFormatName                string             `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
+	LatestReleaseID                 int64              `xorm:"NOT NULL DEFAULT 0"` // 0 selects the latest release by date
 
 	TrustModel TrustModelType
 
@@ -224,22 +223,6 @@ type Repository struct {
 
 func init() {
 	db.RegisterModel(new(Repository))
-}
-
-func RelativePath(ownerName, repoName string) string {
-	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
-}
-
-// RelativePath should be an unix style path like username/reponame.git
-func (repo *Repository) RelativePath() string {
-	return RelativePath(repo.OwnerName, repo.Name)
-}
-
-type StorageRepo string
-
-// RelativePath should be an unix style path like username/reponame.git
-func (sr StorageRepo) RelativePath() string {
-	return string(sr)
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL
@@ -282,7 +265,7 @@ func (repo *Repository) SizeDetailsString() string {
 	var str strings.Builder
 	sizeDetails := repo.SizeDetails()
 	for _, detail := range sizeDetails {
-		fmt.Fprintf(&str, "%s: %s, ", detail.Name, base.FileSize(detail.Size))
+		fmt.Fprintf(&str, "%s: %s, ", detail.Name, util.FormatByteSize(detail.Size))
 	}
 	return strings.TrimSuffix(str.String(), ", ")
 }
@@ -380,17 +363,6 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 func (repo *Repository) APIURL(ctxOpt ...context.Context) string {
 	ctx := util.OptionalArg(ctxOpt, context.TODO())
 	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/v1/repos/"+url.PathEscape(repo.OwnerName)+"/"+url.PathEscape(repo.Name))
-}
-
-// GetCommitsCountCacheKey returns cache key used for commits count caching.
-func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) string {
-	var prefix string
-	if isRef {
-		prefix = "ref"
-	} else {
-		prefix = "commit"
-	}
-	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
 }
 
 // LoadUnits loads repo units into repo.Units
@@ -502,9 +474,13 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 			"repo": repo.Name,
 		}
 
-		unitExternalTracker, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
-		if err == nil {
-			metas["format"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
+		unitInternalTracker, _ := repo.GetUnit(ctx, unit.TypeIssues)
+		unitExternalTracker, _ := repo.GetUnit(ctx, unit.TypeExternalTracker)
+		if unitInternalTracker != nil {
+			metas["internalTrackerEnabled"] = "true"
+		}
+		if unitExternalTracker != nil {
+			metas["externalTrackerLinkFormat"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
 			switch unitExternalTracker.ExternalTrackerConfig().ExternalTrackerStyle {
 			case markup.IssueNameStyleAlphanumeric:
 				metas["style"] = markup.IssueNameStyleAlphanumeric
@@ -519,10 +495,9 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 		repo.MustOwner(ctx)
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
-			_ = db.GetEngine(ctx).Table("team_repo").
+			_ = db.GetEngine(ctx).Select("team.lower_name").Table("team_repo").
 				Join("INNER", "team", "team.id = team_repo.team_id").
 				Where("team_repo.repo_id = ?", repo.ID).
-				Select("team.lower_name").
 				OrderBy("team.lower_name").
 				Find(&teams)
 			metas["teams"] = "," + strings.Join(teams, ",") + ","
@@ -580,16 +555,6 @@ func (repo *Repository) IsGenerated() bool {
 	return repo.TemplateID != 0
 }
 
-// RepoPath returns repository path by given user and repository name.
-func RepoPath(userName, repoName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)), filepath.Clean(strings.ToLower(repoName)+".git"))
-}
-
-// RepoPath returns the repository path
-func (repo *Repository) RepoPath() string {
-	return RepoPath(repo.OwnerName, repo.Name)
-}
-
 // Link returns the repository relative url
 func (repo *Repository) Link() string {
 	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
@@ -614,30 +579,18 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
 }
 
-// CanCreateBranch returns true if repository meets the requirements for creating new branches.
-func (repo *Repository) CanCreateBranch() bool {
-	return !repo.IsMirror
-}
-
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
 func (repo *Repository) CanEnablePulls() bool {
-	return !repo.IsMirror && !repo.IsEmpty
+	return repo.CanContentChange() && !repo.IsEmpty
+}
+
+func (repo *Repository) CanContentChange() bool {
+	return !repo.IsMirror && !repo.IsArchived
 }
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 	return repo.CanEnablePulls() && repo.UnitEnabled(ctx, unit.TypePullRequests)
-}
-
-// CanEnableEditor returns true if repository meets the requirements of web editor.
-// FIXME: most CanEnableEditor calls should be replaced with CanContentChange
-// And all other like CanCreateBranch / CanEnablePulls should also be updated
-func (repo *Repository) CanEnableEditor() bool {
-	return repo.CanContentChange()
-}
-
-func (repo *Repository) CanContentChange() bool {
-	return !repo.IsMirror && !repo.IsArchived
 }
 
 // DescriptionHTML does special handles to description and return HTML string.
@@ -647,9 +600,13 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 
 // CloneLink represents different types of clone URLs of repository.
 type CloneLink struct {
+	IsWikiRepo   bool
+	SupportSSH   bool
+	SupportHTTPS bool
+
 	SSH   string
 	HTTPS string
-	Tea   string
+	CLI   string
 }
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on the given owner and repository name.
@@ -659,6 +616,15 @@ func ComposeHTTPSCloneURL(ctx context.Context, owner, repo string) string {
 
 // ComposeSSHCloneURL returns SSH clone URL based on the given owner and repository name.
 func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) string {
+	return composeSSHCloneURL(doer, ownerName, repoName, setting.Repository.UseCompatSSHURI)
+}
+
+// ComposeSSHCloneURI is like ComposeSSHCloneURL but always returns the "ssh://" form, because "go get" rejects scp-style addresses
+func ComposeSSHCloneURI(doer *user_model.User, ownerName, repoName string) string {
+	return composeSSHCloneURL(doer, ownerName, repoName, true)
+}
+
+func composeSSHCloneURL(doer *user_model.User, ownerName, repoName string, useURI bool) string {
 	sshUser := setting.SSH.User
 	sshDomain := setting.SSH.Domain
 
@@ -685,22 +651,25 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) strin
 	if ip := net.ParseIP(sshHost); ip != nil && ip.To4() == nil {
 		sshHost = "[" + sshHost + "]" // for IPv6 address, wrap it with brackets
 	}
-	if setting.Repository.UseCompatSSHURI {
+	if useURI {
 		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 	}
 	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 }
 
-// ComposeTeaCloneCommand returns Tea CLI clone command based on the given owner and repository name.
-func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
-	return fmt.Sprintf("tea clone %s/%s", url.PathEscape(owner), url.PathEscape(repo))
+// ComposeCLICloneCommand returns the gt (gitea-cli) clone command based on the given owner and repository name.
+func ComposeCLICloneCommand(ctx context.Context, owner, repo string) string {
+	return fmt.Sprintf("gt repo clone %s/%s", url.PathEscape(owner), url.PathEscape(repo))
 }
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
 	return &CloneLink{
-		SSH:   ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
-		HTTPS: ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
-		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
+		IsWikiRepo:   strings.HasSuffix(repoPathName, ".wiki"),
+		SupportHTTPS: !setting.Repository.DisableHTTPGit,
+		SupportSSH:   !setting.SSH.Disabled && (doer != nil || setting.SSH.ExposeAnonymous),
+		SSH:          ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
+		HTTPS:        ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
+		CLI:          ComposeCLICloneCommand(ctx, repo.OwnerName, repoPathName),
 	}
 }
 
