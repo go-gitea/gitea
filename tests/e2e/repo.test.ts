@@ -45,6 +45,24 @@ test('delete a branch via its modal, add and remove repository topics', async ({
   await expect(page.locator('#repo-topics').getByRole('link')).toHaveText(['e2e-keep']);
 });
 
+test('search code', async ({page, request}) => {
+  const repoName = `e2e-search-${randomString(8)}`;
+  const owner = env.GITEA_TEST_E2E_USER;
+  await Promise.all([
+    (async () => {
+      await apiCreateRepo(request, {name: repoName});
+      await apiCreateFiles(request, owner, repoName, [{path: 'src/main.go', content: 'package main\n\nfunc alphaTerm() {}\n\nvar betaTerm = 1\n'}]);
+    })(),
+    login(page),
+  ]);
+  await page.goto(`/${owner}/${repoName}/search`);
+  const input = page.getByPlaceholder('Search code…');
+  await input.fill('alphaterm "betaTerm = 1"');
+  await input.press('Enter');
+  await page.waitForURL(/[?&]q=alphaterm/);
+  await expect(page.getByText('src/main.go', {exact: true})).toBeVisible();
+});
+
 test('file tree, history and go to file navigate between nested files', async ({page, request}) => {
   const repoName = `e2e-file-nav-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;

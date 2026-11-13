@@ -15,7 +15,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/indexer"
 	"gitea.dev/modules/indexer/code/bleve"
 	"gitea.dev/modules/indexer/code/elasticsearch"
 	"gitea.dev/modules/indexer/code/internal"
@@ -310,12 +309,4 @@ func populateRepoIndexer(ctx context.Context) {
 		}
 	}
 	log.Info("Done (re)populating the repo indexer with existing repositories")
-}
-
-func SupportedSearchModes() []indexer.SearchMode {
-	gi := globalIndexer.Load()
-	if gi == nil {
-		return nil
-	}
-	return (*gi).SupportedSearchModes()
 }
