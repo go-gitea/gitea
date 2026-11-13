@@ -12,10 +12,8 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// DBStore can be used to store app state items in local filesystem
 type DBStore struct{}
 
-// Get reads the state item
 func (f *DBStore) Get(ctx context.Context, item StateItem) error {
 	content, err := system.GetAppStateContent(ctx, item.StateName())
 	if err != nil {
@@ -31,7 +29,6 @@ func (f *DBStore) Get(ctx context.Context, item StateItem) error {
 	return nil
 }
 
-// Set saves the state item
 func (f *DBStore) Set(ctx context.Context, item StateItem) error {
 	b, err := json.Marshal(item)
 	if err != nil {
