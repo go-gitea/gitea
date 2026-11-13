@@ -1098,6 +1098,7 @@ jobs:
 		pullIssue := &issues_model.Issue{
 			RepoID:   repo.ID,
 			Title:    "A test PR",
+			Content:  "original",
 			PosterID: user2.ID,
 			Poster:   user2,
 			IsPull:   true,
@@ -1121,9 +1122,19 @@ jobs:
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// edited
+		latestChanges := func() *api.ChangesPayload {
+			payload, err := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID}, unittest.OrderBy("id DESC")).GetPullRequestEventPayload()
+			require.NoError(t, err)
+			return payload.Changes
+		}
 		err = issue_service.ChangeContent(t.Context(), pullIssue, user2, "test", 0)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+		assert.Equal(t, &api.ChangesPayload{Body: &api.ChangesFromPayload{From: "original"}}, latestChanges())
+
+		require.NoError(t, issue_service.ChangeTitle(t.Context(), pullIssue, user2, "A renamed PR"))
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+		assert.Equal(t, &api.ChangesPayload{Title: &api.ChangesFromPayload{From: "A test PR"}}, latestChanges())
 
 		// closed
 		err = issue_service.CloseIssue(t.Context(), pullIssue, user2, "")
@@ -1228,6 +1239,14 @@ jobs:
 		_, err = issue_service.ReviewRequest(t.Context(), pullIssue, user2, nil, user4, false)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		testCreateBranch(t, ctx.Session, repo.OwnerName, repo.Name, "commit/"+addWorkflow.Commit.Parents[0].SHA, "other-base", http.StatusSeeOther)
+		require.NoError(t, pull_service.ChangeTargetBranch(t.Context(), pullRequest, user2, "other-base"))
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+		assert.Equal(t, &api.ChangesPayload{
+			Ref:  &api.ChangesFromPayload{From: "main"},
+			Base: &api.ChangesBasePayload{Ref: api.ChangesFromPayload{From: "main"}, Sha: api.ChangesFromPayload{From: addWorkflow.Commit.SHA}},
+		}, latestChanges())
 	})
 }
 
