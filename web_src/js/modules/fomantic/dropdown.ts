@@ -90,7 +90,7 @@ function delegateDropdownModule($dropdown: JQueryElem<AriaDropdownElement>) {
   const dropdownCall = fomanticDropdownFn.bind($dropdown);
 
   // the "template" functions are used for dynamic creation (eg: AJAX)
-  const dropdownTemplates = {...dropdownCall('setting', 'templates'), t: performance.now()};
+  const dropdownTemplates = dropdownCall('setting', 'templates');
   const dropdownTemplatesMenuOld = dropdownTemplates.menu;
   dropdownTemplates.menu = function(response: any, fields: any, preserveHTML: any, className: Record<string, string>) {
     // when the dropdown menu items are loaded from AJAX requests, the items are created dynamically
@@ -103,7 +103,6 @@ function delegateDropdownModule($dropdown: JQueryElem<AriaDropdownElement>) {
     $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
     return $wrapper.html();
   };
-  dropdownCall('setting', 'templates', dropdownTemplates);
 
   // the `onLabelCreate` is used to add necessary aria attributes for dynamically created selection labels
   const dropdownOnLabelCreateOld = dropdownCall('setting', 'onLabelCreate');
