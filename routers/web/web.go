@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/modules/web/routing"
 	"gitea.dev/modules/web/types"
+	tfmodule "gitea.dev/routers/api/packages/terraform_module"
 	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/admin"
 	"gitea.dev/routers/web/auth"
@@ -433,12 +434,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
-				ctx.NotFound(nil)
+				ctx.NotFound()
 				return
 			}
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.AnyRepoUnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			}
@@ -526,6 +527,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
 		m.Get("/passkey-endpoints", passkeyEndpoints)
+		m.Get("/terraform.json", packagesEnabled, tfmodule.ServiceDiscovery)
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 
@@ -545,7 +547,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound(nil)
+				ctx.NotFound()
 				return
 			}
 		}, explore.Code)
@@ -700,7 +702,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
-		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
 
 		m.Group("/hooks", func() {
 			m.Get("", user_setting.Webhooks)
@@ -816,7 +817,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/repos", func() {
 			m.Get("", admin.Repos)
-			m.Combo("/unadopted").Get(admin.UnadoptedRepos).Post(admin.AdoptOrDeleteRepository)
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
@@ -911,7 +911,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode {
-				ctx.NotFound(nil)
+				ctx.NotFound()
 			}
 		}
 	}
@@ -922,12 +922,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			switch ctx.ContextUser.Visibility {
 			case structs.VisibleTypePrivate:
 				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			case structs.VisibleTypeLimited:
 				if ctx.Doer == nil {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			}
@@ -1088,6 +1088,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Get("", user.ViewPackageVersion)
 						m.Post("", reqPackageAccess(perm.AccessModeWrite), user.PackageVersionDelete)
 						m.Get("/{version_sub}", user.ViewPackageVersion)
+						m.Get("/modules/{submodule}", user.ViewPackageVersion)
 						m.Group("/terraform", func() {
 							m.Post("/lock", user.ActionPackageTerraformLock)
 							m.Post("/unlock", user.ActionPackageTerraformUnlock)
@@ -1130,7 +1131,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				})
 			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			})
@@ -1279,12 +1280,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
 		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
-		m.PathGroup("/compare/*", func(g *web.RouterPathGroup) {
-			g.MatchPath("GET", "/<basehead:*>.diff", repo.MustBeNotEmpty, repo.DownloadCompareDiff)
-			g.MatchPath("GET", "/<basehead:*>.patch", repo.MustBeNotEmpty, repo.DownloadComparePatch)
-			g.MatchPath("GET", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
-			g.MatchPath("POST", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind[*forms.CreateIssueForm](), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
-		})
+		m.Get("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
+		m.Post("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind[*forms.CreateIssueForm](), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 		m.Get("/pulls/new/*", repo.PullsNewRedirect)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo code: find, compare, list
@@ -1366,7 +1363,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			})
 
 			m.Post("/attachments", repo.UploadIssueAttachment)
-			m.Post("/attachments/remove", repo.DeleteAttachment)
+			m.Post("/attachments/remove", repo.DeletePendingAttachment)
 
 			m.Post("/labels", repo.UpdateIssueLabel)
 			m.Post("/milestone", repo.UpdateIssueMilestone)
@@ -1495,7 +1492,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/generate-notes", web.Bind[*forms.GenerateReleaseNotesForm](), repo.GenerateReleaseNotes)
 			m.Post("/delete", repo.DeleteRelease)
 			m.Post("/attachments", repo.UploadReleaseAttachment)
-			m.Post("/attachments/remove", repo.DeleteAttachment)
+			m.Post("/attachments/remove", repo.DeletePendingAttachment)
 		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter)
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 	// end "/{username}/{reponame}": repo releases
@@ -1793,6 +1790,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req.Context())
 		defer routing.RecordFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))()
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	})
 }

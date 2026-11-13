@@ -27,7 +27,8 @@ type ObjectFormat interface {
 type Sha1ObjectFormatImpl struct{}
 
 var (
-	emptySha1ObjectID = &Sha1Hash{}
+	emptySha1ObjectID    = &Sha1Hash{}
+	emptySha1ObjectIDHex = "0000000000000000000000000000000000000000"
 	// emptySha1Tree: 4b825dc642cb6eb9a060e54bf8d69288fbee4904
 	emptySha1Tree = &Sha1Hash{0x4b, 0x82, 0x5d, 0xc6, 0x42, 0xcb, 0x6e, 0xb9, 0xa0, 0x60, 0xe5, 0x4b, 0xf8, 0xd6, 0x92, 0x88, 0xfb, 0xee, 0x49, 0x04}
 )
@@ -56,8 +57,9 @@ func (h Sha1ObjectFormatImpl) ComputeHash(t ObjectType, content []byte) ObjectID
 type Sha256ObjectFormatImpl struct{}
 
 var (
-	emptySha256ObjectID = &Sha256Hash{}
-	emptySha256Tree     = &Sha256Hash{
+	emptySha256ObjectID    = &Sha256Hash{}
+	emptySha256ObjectIDHex = "0000000000000000000000000000000000000000000000000000000000000000"
+	emptySha256Tree        = &Sha256Hash{
 		0x6e, 0xf1, 0x9b, 0x41, 0x22, 0x5c, 0x53, 0x69, 0xf1, 0xc1,
 		0x04, 0xd4, 0x5d, 0x8d, 0x85, 0xef, 0xa9, 0xb0, 0x57, 0xb5,
 		0x3b, 0x14, 0xb4, 0xb9, 0xb9, 0x39, 0xdd, 0x74, 0xde, 0xcc,

@@ -31,7 +31,7 @@ func GetWorkflowBadge(ctx *context.Context) {
 	branchRef := git.RefNameFromBranch(branch)
 	b, err := getWorkflowBadge(ctx, workflowFile, branchRef.String(), event)
 	if err != nil {
-		ctx.ServerError("GetWorkflowBadge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -487,6 +487,13 @@ func CreatePullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.CreatePullReviewOptions](ctx)
+	for _, comment := range opts.Comments {
+		if comment.Path == "" || (comment.NewLineNum <= 0 && comment.OldLineNum <= 0) {
+			ctx.APIError(http.StatusUnprocessableEntity, "review comments require a path and a positive new_position or old_position")
+			return
+		}
+	}
+
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.APIErrorAuto(err)

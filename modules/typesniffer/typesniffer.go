@@ -18,6 +18,7 @@ const SniffContentSize = 1024
 const (
 	MimeTypeImageSvg  = "image/svg+xml"
 	MimeTypeImageAvif = "image/avif"
+	MimeTypeImageJxl  = "image/jxl"
 
 	MimeTypeApplicationOctetStream = "application/octet-stream"
 )
@@ -168,6 +169,12 @@ func DetectContentType(data []byte) SniffedType {
 	fileTypeBrands, found := detectFileTypeBox(data)
 	if found && slices.Contains(fileTypeBrands, "avif") {
 		ct = MimeTypeImageAvif
+	}
+
+	// https://github.com/libjxl/libjxl/blob/main/plugins/mime/image-jxl.xml
+	if bytes.HasPrefix(data, []byte("\xFF\x0A")) ||
+		bytes.HasPrefix(data, []byte("\x00\x00\x00\x0CJXL \x0D\x0A\x87\x0A")) {
+		ct = MimeTypeImageJxl
 	}
 
 	if ct == "application/ogg" {

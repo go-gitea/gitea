@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -64,7 +63,7 @@ func NewProtectedTagPost(ctx *context.Context) {
 	}
 
 	if err := git_model.InsertProtectedTag(ctx, pt); err != nil {
-		ctx.ServerError("InsertProtectedTag", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -119,7 +118,7 @@ func EditProtectedTagPost(ctx *context.Context) {
 	pt.AllowlistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistTeams, ","))
 
 	if err := git_model.UpdateProtectedTag(ctx, pt); err != nil {
-		ctx.ServerError("UpdateProtectedTag", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -137,7 +136,7 @@ func DeleteProtectedTagPost(ctx *context.Context) {
 	}
 
 	if err := git_model.DeleteProtectedTag(ctx, pt); err != nil {
-		ctx.ServerError("DeleteProtectedTag", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -153,14 +152,14 @@ func setTagsContext(ctx *context.Context) error {
 
 	protectedTags, err := git_model.GetProtectedTags(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetProtectedTags", err)
+		ctx.ServerErrorAuto(err)
 		return err
 	}
 	ctx.Data["ProtectedTags"] = protectedTags
 
 	repoUsers, err := access_model.GetUsersWithAnyUnitAccess(ctx, ctx.Repo.Repository, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
-		ctx.ServerError("GetUsersWithUnitAccess", err)
+		ctx.ServerErrorAuto(err)
 		return err
 	}
 	users := []*user_model.User{user_model.NewActionsUser(), user_model.NewDeployKeyUser()}
@@ -169,7 +168,7 @@ func setTagsContext(ctx *context.Context) error {
 	if ctx.Repo.Owner.IsOrganization() {
 		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, ctx.Repo.Owner.ID, ctx.Repo.Repository.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 		if err != nil {
-			ctx.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
+			ctx.ServerErrorAuto(err)
 			return err
 		}
 		ctx.Data["PushTeams"] = teams
@@ -186,7 +185,7 @@ func selectProtectedTagByContext(ctx *context.Context) *git_model.ProtectedTag {
 
 	tag, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
-		ctx.ServerError("GetProtectedTagByID", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 
@@ -194,7 +193,7 @@ func selectProtectedTagByContext(ctx *context.Context) *git_model.ProtectedTag {
 		return tag
 	}
 
-	ctx.NotFound(fmt.Errorf("ProtectedTag[%v] not associated to repository %v", id, ctx.Repo.Repository))
+	ctx.NotFound()
 
 	return nil
 }

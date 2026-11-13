@@ -28,7 +28,7 @@ func CodeSearch(ctx *context.Context) {
 		return
 	}
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -54,7 +54,7 @@ func CodeSearch(ctx *context.Context) {
 
 	repoIDs, err = repo_model.FindUserCodeAccessibleOwnerRepoIDs(ctx, ctx.ContextUser.ID, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("FindUserCodeAccessibleOwnerRepoIDs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -77,7 +77,7 @@ func CodeSearch(ctx *context.Context) {
 		})
 		if err != nil {
 			if code_indexer.IsAvailable(ctx) {
-				ctx.ServerError("SearchResults", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Data["CodeIndexerUnavailable"] = true
@@ -94,7 +94,7 @@ func CodeSearch(ctx *context.Context) {
 
 		repoMaps, err := repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
 		if err != nil {
-			ctx.ServerError("GetRepositoriesMapByIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 

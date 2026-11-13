@@ -84,7 +84,7 @@ func TestMoveIssuesNeedsOnlyProjectWrite(t *testing.T) {
 	require.NoError(t, err)
 	ctx.SetPathParam("id", strconv.FormatInt(project.ID, 10))
 	ctx.SetPathParam("columnID", strconv.FormatInt(column.ID, 10))
-	ctx.Req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf(`{"issues":[{"issueID":%d,"sorting":0}]}`, issue.ID)))
+	ctx.Req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf(`{"issueID":%d,"prevIssueID":0}`, issue.ID)))
 
 	MoveIssues(ctx)
 	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())

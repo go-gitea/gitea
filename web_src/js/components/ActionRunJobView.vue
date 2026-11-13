@@ -4,7 +4,7 @@ import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs} from '../utils/dom.ts';
 import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
-import {POST} from '../modules/fetch.ts';
+import {ExclusiveFetch, request} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
 import type {Instance} from 'tippy.js';
@@ -16,6 +16,7 @@ import {AnsiLineRenderer} from '../render/ansi.ts';
 import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
 import type {ActionRunViewStore, LogLine, LogLineCommand} from './ActionRunView.ts';
 import {registerAsyncHashChangeListener, removeAsyncHashChangeListener} from '../modules/hashchange.ts';
+import {showErrorToast} from '../modules/toast.ts';
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight} = {extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
@@ -113,7 +114,7 @@ const {
 } = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
 
 // internal state
-let loadingAbortController: AbortController | null = null;
+const exclusiveFetch = new ExclusiveFetch();
 let intervalID: IntervalId | null = null;
 
 const currentJobStepsStates = ref<Array<JobStepState>>([]);
@@ -162,6 +163,7 @@ onMounted(async () => {
 
   // load job data and then auto-reload periodically
   // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
+  intervalID = setInterval(() => loadJob(), 1000);
   await loadJob();
 
   // auto-scroll to the bottom of the log group when it is opened
@@ -176,19 +178,19 @@ onMounted(async () => {
     }, 0);
   });
 
-  intervalID = setInterval(() => loadJob(), 1000);
   registerAsyncHashChangeListener(hashChangeListener);
 });
+
+function stopPollingCurrentRun() {
+  if (!intervalID) return;
+  clearInterval(intervalID);
+  intervalID = null;
+}
 
 onBeforeUnmount(() => {
   menuTippy.destroy();
   removeAsyncHashChangeListener(hashChangeListener);
-  // clear the interval timer when the component is unmounted
-  // even our page is rendered once, not spa style
-  if (intervalID) {
-    clearInterval(intervalID);
-    intervalID = null;
-  }
+  stopPollingCurrentRun();
 });
 
 function saveLocaleStorageOptions() {
@@ -255,7 +257,7 @@ async function copyStepOutput(event: MouseEvent, stepIndex: number) {
 function toggleStepLogs(idx: number) {
   currentJobStepsStates.value[idx].expanded = !currentJobStepsStates.value[idx].expanded;
   if (currentJobStepsStates.value[idx].expanded) {
-    loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
+    loadJob(true); // try to load the data immediately instead of waiting for next timer interval
   } else if (currentJob.value.steps[idx].status === 'running') {
     currentJobStepsStates.value[idx].manuallyCollapsed = true;
   }
@@ -309,26 +311,21 @@ function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
 // For example: backend can make cursor=null means the first time to fetch logs, cursor=1234 for a position, cursor=eof for no more logs, etc.
 type LogCursor = {step: number, cursor: any, expanded: boolean};
 
-async function fetchJobData(logCursors: LogCursor[], signal?: AbortSignal): Promise<JobData> {
-  const resp = await POST(props.actionsViewUrl, {signal, data: {logCursors}});
+async function fetchJobData(logCursors: LogCursor[]): Promise<JobData> {
+  const resp = await request(props.actionsViewUrl, {method: 'POST', data: {logCursors}});
   return await resp.json();
 }
 
-async function loadJobForce() {
-  loadingAbortController?.abort();
-  loadingAbortController = null;
-  await loadJob();
-}
+async function loadJob(force = false) {
+  if (exclusiveFetch.isInFlight() && !force) return;
 
-async function loadJob() {
-  if (loadingAbortController) return;
-  const abortController = new AbortController();
-  loadingAbortController = abortController;
-  try {
-    const logCursors = currentJobStepsStates.value.map((it, idx) => ({step: idx, cursor: it.cursor, expanded: it.expanded}));
-    const runJobResp = await fetchJobData(logCursors, abortController.signal);
-    if (loadingAbortController !== abortController) return;
-
+  const logCursors = currentJobStepsStates.value.map((it, idx) => ({step: idx, cursor: it.cursor, expanded: it.expanded}));
+  const resp = exclusiveFetch.request(props.actionsViewUrl, {method: 'POST', data: {logCursors}});
+  resp.onResponseError((details) => {
+    if (details.response?.status === 404) stopPollingCurrentRun();
+    showErrorToast(`Failed to load job data: ${details.message}`, {duration: 2500});
+  });
+  await resp.fetchJson(async (runJobResp: JobData) => {
     // FIXME: this logic is quite hacky and dirty, it should be refactored in a better way in the future
     // Use consistent "store" operations to load/update the view data
     store.viewData.runArtifacts = runJobResp.artifacts || [];
@@ -385,18 +382,9 @@ async function loadJob() {
       lastLogElem.scrollIntoView({behavior: 'smooth', block: 'end'});
     }
 
-    // clear the interval timer if the job is done, the logs of changed steps still need to be loaded
-    if (run.value.done && intervalID && !stepsChanged) {
-      clearInterval(intervalID);
-      intervalID = null;
-    }
-  } catch (e) {
-    // avoid network error while unloading page, and ignore "abort" error
-    if (e instanceof TypeError || abortController.signal.aborted) return;
-    throw e;
-  } finally {
-    if (loadingAbortController === abortController) loadingAbortController = null;
-  }
+    // even if the run is done, we still need to load more data if the steps changed
+    if (run.value.done && !stepsChanged) stopPollingCurrentRun();
+  });
 }
 
 function isSameSteps(a: Array<Step>, b: Array<Step>) {
