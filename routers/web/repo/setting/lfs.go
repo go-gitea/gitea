@@ -43,13 +43,13 @@ const (
 // LFSFiles shows a repository's LFS files
 func LFSFiles(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	page := max(ctx.FormInt("page"), 1)
 	total, err := git_model.CountLFSMetaObjects(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("LFSFiles", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Total"] = total
@@ -59,7 +59,7 @@ func LFSFiles(ctx *context.Context) {
 	ctx.Data["PageIsSettingsLFS"] = true
 	lfsMetaObjects, err := git_model.GetLFSMetaObjects(ctx, ctx.Repo.Repository.ID, pager.Paginator.Current(), setting.UI.ExplorePagingNum)
 	if err != nil {
-		ctx.ServerError("LFSFiles", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["LFSFiles"] = lfsMetaObjects
@@ -70,7 +70,7 @@ func LFSFiles(ctx *context.Context) {
 // LFSLocks shows a repository's LFS locks
 func LFSLocks(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
@@ -78,7 +78,7 @@ func LFSLocks(ctx *context.Context) {
 	page := max(ctx.FormInt("page"), 1)
 	total, err := git_model.CountLFSLockByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("LFSLocks", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Total"] = total
@@ -88,11 +88,11 @@ func LFSLocks(ctx *context.Context) {
 	ctx.Data["PageIsSettingsLFS"] = true
 	lfsLocks, err := git_model.GetLFSLockByRepoID(ctx, ctx.Repo.Repository.ID, pager.Paginator.Current(), setting.UI.ExplorePagingNum)
 	if err != nil {
-		ctx.ServerError("LFSLocks", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := lfsLocks.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LFSLocks", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func LFSLocks(ctx *context.Context) {
 	tmpBasePath, _, cleanup, err := repo_module.CreateTemporaryGitRepo("locks")
 	if err != nil {
 		log.Error("Failed to create temporary path: %v", err)
-		ctx.ServerError("LFSLocks", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer cleanup()
@@ -118,14 +118,14 @@ func LFSLocks(ctx *context.Context) {
 		Shared: true,
 	}); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("failed to clone repository: %s (%w)", ctx.Repo.Repository.FullName(), err))
+		ctx.ServerErrorAuto(fmt.Errorf("failed to clone repository: %s (%w)", ctx.Repo.Repository.FullName(), err))
 		return
 	}
 
 	gitRepo, err := git.OpenRepositoryLocal(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %w", tmpBasePath, err))
+		ctx.ServerErrorAuto(fmt.Errorf("failed to open new temporary repository in: %s %w", tmpBasePath, err))
 		return
 	}
 	defer gitRepo.Close()
@@ -133,7 +133,7 @@ func LFSLocks(ctx *context.Context) {
 	checker, err := attribute.NewBatchChecker(ctx, gitRepo, ctx.Repo.Repository.DefaultBranch, []string{attribute.Lockable})
 	if err != nil {
 		log.Error("Unable to check attributes in %s (%v)", tmpBasePath, err)
-		ctx.ServerError("LFSLocks", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer checker.Close()
@@ -154,7 +154,7 @@ func LFSLocks(ctx *context.Context) {
 	filelist, err := gitRepo.LsFiles(ctx, filenames...)
 	if err != nil {
 		log.Error("Unable to lsfiles in %s (%v)", tmpBasePath, err)
-		ctx.ServerError("LFSLocks", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -174,7 +174,7 @@ func LFSLocks(ctx *context.Context) {
 // LFSLockFile locks a file
 func LFSLockFile(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	originalPath := ctx.FormString("path")
@@ -206,7 +206,7 @@ func LFSLockFile(ctx *context.Context) {
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
 			return
 		}
-		ctx.ServerError("LFSLockFile", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
@@ -215,12 +215,12 @@ func LFSLockFile(ctx *context.Context) {
 // LFSUnlock forcibly unlocks an LFS lock
 func LFSUnlock(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	_, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
 	if err != nil {
-		ctx.ServerError("LFSUnlock", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
@@ -229,7 +229,7 @@ func LFSUnlock(ctx *context.Context) {
 // LFSFileGet serves a single LFS file
 func LFSFileGet(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
@@ -237,7 +237,7 @@ func LFSFileGet(ctx *context.Context) {
 
 	p := lfs.Pointer{Oid: oid}
 	if !p.IsValid() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -245,24 +245,20 @@ func LFSFileGet(ctx *context.Context) {
 	ctx.Data["PageIsSettingsLFS"] = true
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, oid)
 	if err != nil {
-		if err == git_model.ErrLFSObjectNotExist {
-			ctx.NotFound(nil)
-			return
-		}
-		ctx.ServerError("LFSFileGet", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["LFSFile"] = meta
 	dataRc, err := lfs.ReadMetaObject(meta.Pointer)
 	if err != nil {
-		ctx.ServerError("LFSFileGet", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer dataRc.Close()
 	buf := make([]byte, 1024)
 	n, err := util.ReadAtMost(dataRc, buf)
 	if err != nil {
-		ctx.ServerError("Data", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	buf = buf[:n]
@@ -290,7 +286,7 @@ func LFSFileGet(ctx *context.Context) {
 		escapeStatus, fileContentHTML := charset.EscapeControlHTML(fileContentHTML, ctx.Locale)
 
 		output := &htmlutil.HTMLBuilder{}
-		output.WriteHTML(`<table>`)
+		output.WriteHTML(`<table data-paste-markdown-skip>`)
 		writeLine := func(lineNum int, line template.HTML) {
 			output.WriteFormatf(`<tr><td class="lines-num">%d</td><td class="lines-code"><code class="code-inner">%s</code></td></tr>`, lineNum, line)
 		}
@@ -317,19 +313,19 @@ func LFSFileGet(ctx *context.Context) {
 // LFSDelete disassociates the provided oid from the repository and if the lfs file is no longer associated with any repositories - deletes it
 func LFSDelete(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	oid := ctx.PathParam("oid")
 	p := lfs.Pointer{Oid: oid}
 	if !p.IsValid() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	count, err := git_model.RemoveLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, oid)
 	if err != nil {
-		ctx.ServerError("LFSDelete", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	// FIXME: Warning: the LFS store is not locked - and can't be locked - there could be a race condition here
@@ -338,7 +334,7 @@ func LFSDelete(ctx *context.Context) {
 		oidPath := path.Join(oid[0:2], oid[2:4], oid[4:])
 		err = storage.LFS.Delete(oidPath)
 		if err != nil {
-			ctx.ServerError("LFSDelete", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -348,13 +344,13 @@ func LFSDelete(ctx *context.Context) {
 // LFSFileFind guesses a sha for the provided oid (or uses the provided sha) and then finds the commits that contain this sha
 func LFSFileFind(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	oid := ctx.FormString("oid")
 	size := ctx.FormInt64("size")
 	if len(oid) == 0 || size == 0 {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	sha := ctx.FormString("sha")
@@ -377,7 +373,7 @@ func LFSFileFind(ctx *context.Context) {
 	results, err := pipeline.FindLFSFile(ctx, ctx.Repo.GitRepo, objectID)
 	if err != nil && err != io.EOF {
 		log.Error("Failure in FindLFSFile: %v", err)
-		ctx.ServerError("LFSFind: FindLFSFile.", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -388,7 +384,7 @@ func LFSFileFind(ctx *context.Context) {
 // LFSPointerFiles will search the repository for pointer files and report which are missing LFS files in the content store
 func LFSPointerFiles(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	ctx.Data["PageIsSettingsLFS"] = true
@@ -487,7 +483,7 @@ func LFSPointerFiles(ctx *context.Context) {
 		return err
 	}()
 	if err != nil {
-		ctx.ServerError("LFSPointerFiles", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -497,7 +493,7 @@ func LFSPointerFiles(ctx *context.Context) {
 // LFSAutoAssociate auto associates accessible lfs files
 func LFSAutoAssociate(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	oids := ctx.FormStrings("oid")
@@ -505,21 +501,21 @@ func LFSAutoAssociate(ctx *context.Context) {
 	for i, oid := range oids {
 		idx := strings.IndexRune(oid, ' ')
 		if idx < 0 || idx+1 > len(oid) {
-			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s", oid))
+			ctx.ServerErrorAuto(fmt.Errorf("illegal oid input: %s", oid))
 			return
 		}
 		var err error
 		metas[i] = &git_model.LFSMetaObject{}
 		metas[i].Size, err = strconv.ParseInt(oid[idx+1:], 10, 64)
 		if err != nil {
-			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s %w", oid, err))
+			ctx.ServerErrorAuto(fmt.Errorf("illegal oid input: %s %w", oid, err))
 			return
 		}
 		metas[i].Oid = oid[:idx]
 		// metas[i].RepositoryID = ctx.Repo.Repository.ID
 	}
 	if err := git_model.LFSAutoAssociate(ctx, metas, ctx.Doer, ctx.Repo.Repository.ID); err != nil {
-		ctx.ServerError("LFSAutoAssociate", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs")

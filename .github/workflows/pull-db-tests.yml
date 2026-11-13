@@ -128,7 +128,7 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1@sha256:1f578fa865f8251894b3bf38d6668d6209a3f451f8f65ab953e129d4c1db5ef4
+        image: getmeili/meilisearch:v1@sha256:88f2a08eb9532cc54a60d8fd014a23bf5cfda33d0c01ecbbaca9b4b463e17466
         env:
           MEILI_ENV: development # disable auth
         ports:

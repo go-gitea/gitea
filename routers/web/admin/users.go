@@ -85,7 +85,7 @@ func Users(ctx *context.Context) {
 	// inactive sources are listed too, users stay attached to a source after it is deactivated
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{})
 	if err != nil {
-		ctx.ServerError("auth.Sources", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	sourceIDFilter := ctx.FormOptionalInt64("source_id")
@@ -137,7 +137,7 @@ func NewUser(ctx *context.Context) {
 		IsActive: optional.Some(true),
 	})
 	if err != nil {
-		ctx.ServerError("auth.Sources", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Sources"] = sources
@@ -158,7 +158,7 @@ func NewUserPost(ctx *context.Context) {
 		IsActive: optional.Some(true),
 	})
 	if err != nil {
-		ctx.ServerError("auth.Sources", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Sources"] = sources
@@ -243,7 +243,7 @@ func NewUserPost(ctx *context.Context) {
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", errNameCharsNotAllowed.Name), tplUserNew, &form)
 		default:
-			ctx.ServerError("CreateUser", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -271,7 +271,7 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Redirect(setting.AppSubURL + "/-/admin/users")
 		} else {
-			ctx.ServerError("GetUserByID", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return nil
 	}
@@ -280,7 +280,7 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	if u.LoginSource > 0 {
 		ctx.Data["LoginSource"], err = auth.GetSourceByID(ctx, u.LoginSource)
 		if err != nil {
-			ctx.ServerError("auth.GetSourceByID", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
 	} else {
@@ -289,19 +289,19 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{})
 	if err != nil {
-		ctx.ServerError("auth.Sources", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	ctx.Data["Sources"] = sources
 
 	hasTOTP, err := auth.HasTwoFactorByUID(ctx, u.ID)
 	if err != nil {
-		ctx.ServerError("auth.HasTwoFactorByUID", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 	if err != nil {
-		ctx.ServerError("auth.HasWebAuthnRegistrationsByUID", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	ctx.Data["TwoFactorEnabled"] = hasTOTP || hasWebAuthn
@@ -330,7 +330,7 @@ func ViewUser(ctx *context.Context) {
 		Collaborate: optional.Some(false),
 	})
 	if err != nil {
-		ctx.ServerError("SearchRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -339,7 +339,7 @@ func ViewUser(ctx *context.Context) {
 
 	emails, err := user_model.GetEmailAddresses(ctx, u.ID)
 	if err != nil {
-		ctx.ServerError("GetEmailAddresses", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Emails"] = emails
@@ -347,7 +347,7 @@ func ViewUser(ctx *context.Context) {
 
 	ctx.Data["UserOrgs"], err = org_model.GetUserOrganizations(ctx, u.ID)
 	if err != nil {
-		ctx.ServerError("FindOrgs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -365,7 +365,7 @@ func ViewUser(ctx *context.Context) {
 func getTargetBot(ctx *context.Context) *user_model.User {
 	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
 	if err != nil {
-		ctx.ServerError("GetUserByID", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	if !u.IsTypeBot() {
@@ -450,7 +450,7 @@ func EditUserPost(ctx *context.Context) {
 				ctx.Data["Err_UserName"] = true
 				ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", form.UserName), tplUserEdit, &form)
 			default:
-				ctx.ServerError("RenameUser", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -496,7 +496,7 @@ func EditUserPost(ctx *context.Context) {
 			ctx.Flash.Error(err.Error())
 			ctx.Redirect(userLink)
 		default:
-			ctx.ServerError("UpdateUser", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -511,7 +511,7 @@ func EditUserPost(ctx *context.Context) {
 				ctx.Data["Err_Email"] = true
 				ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
 			default:
-				ctx.ServerError("AddOrSetPrimaryEmailAddress", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -547,7 +547,7 @@ func EditUserPost(ctx *context.Context) {
 			ctx.Flash.Error(err.Error())
 			ctx.Redirect(userLink)
 		default:
-			ctx.ServerError("UpdateUser", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -556,7 +556,7 @@ func EditUserPost(ctx *context.Context) {
 
 	if form.Reset2FA {
 		if _, _, err := auth.DisableTwoFactor(ctx, u.ID); err != nil {
-			ctx.ServerError("auth.DisableTwoFactor", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -579,7 +579,7 @@ func ImpersonateUser(ctx *context.Context) {
 
 	err = auth_service.ImpersonateUser(ctx.Session, u)
 	if err != nil {
-		ctx.ServerError("unable to impersonate user", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	audit.Record(ctx, audit_model.UserImpersonation, u)
@@ -590,7 +590,7 @@ func ImpersonateUser(ctx *context.Context) {
 func DeleteUser(ctx *context.Context) {
 	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
 	if err != nil {
-		ctx.ServerError("GetUserByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -616,7 +616,7 @@ func DeleteUser(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
 			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
 		default:
-			ctx.ServerError("DeleteUser", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -635,7 +635,7 @@ func RemoveUserFromOrg(ctx *context.Context) {
 	orgID := ctx.PathParamInt64("org_id")
 	org, err := org_model.GetOrgByID(ctx, orgID)
 	if err != nil {
-		ctx.ServerError("GetOrgByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -645,7 +645,7 @@ func RemoveUserFromOrg(ctx *context.Context) {
 		ctx.JSONRedirect("")
 		return
 	} else if err != nil {
-		ctx.ServerError("RemoveOrgUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -661,7 +661,7 @@ func RemoveUserFromAllOrgs(ctx *context.Context) {
 
 	orgs, err := org_model.GetUserOrganizations(ctx, u.ID)
 	if err != nil {
-		ctx.ServerError("GetUserOrganizations", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

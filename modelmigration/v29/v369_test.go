@@ -7,29 +7,41 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
-	"gitea.dev/modules/setting"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestDropLegacyActionRunConcurrencyColumns(t *testing.T) {
-	if !setting.Database.Type.IsSQLite3() {
-		t.Skip("SQLite-only migration")
+func TestAddRunnerNameToActionTask(t *testing.T) {
+	type ActionTask struct {
+		ID       int64 `xorm:"pk"`
+		RunnerID int64 `xorm:"index"`
+	}
+	type ActionRunner struct {
+		ID      int64  `xorm:"pk"`
+		Name    string `xorm:"VARCHAR(255)"`
+		Deleted int64
 	}
 
-	x, deferable := migrationtest.PrepareTestEnv(t, 0)
-	defer deferable()
+	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(ActionTask), new(ActionRunner))
+	defer deferrable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	_, err := x.Exec("CREATE TABLE `action_run` (`id` INTEGER PRIMARY KEY, \"concurrency_group\" TEXT NOT NULL, \"concurrency_cancel\" INTEGER NOT NULL)")
+	_, err := x.Insert(
+		&ActionRunner{ID: 1, Name: "live-runner"},
+		&ActionRunner{ID: 2, Name: "deleted-runner", Deleted: 1},
+
+		&ActionTask{ID: 1, RunnerID: 1},
+		&ActionTask{ID: 2, RunnerID: 2},
+		&ActionTask{ID: 3, RunnerID: 3},
+		&ActionTask{ID: 4, RunnerID: 0},
+	)
 	require.NoError(t, err)
+	require.NoError(t, AddRunnerNameToActionTask(t.Context(), x))
 
-	require.NoError(t, DropLegacyActionRunConcurrencyColumns(t.Context(), x))
-
-	_, err = x.Exec(`INSERT INTO "action_run" ("id") VALUES (1)`)
-	require.NoError(t, err)
-
-	require.NoError(t, DropLegacyActionRunConcurrencyColumns(t.Context(), x))
+	var names []string
+	require.NoError(t, x.Table("action_task").Cols("runner_name").Asc("id").Find(&names))
+	assert.Equal(t, []string{"live-runner", "deleted-runner", "", ""}, names)
 }

@@ -9,7 +9,7 @@ concurrency:
   group: cron-renovate
 
 env:
-  RENOVATE_VERSION: 44.190.1 # renovate: datasource=npm depName=renovate
+  RENOVATE_VERSION: 44.210.0 # renovate: datasource=npm depName=renovate
 
 permissions:
   contents: read
@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: renovatebot/github-action@2804199d260ad00c1fae0e9e842888369391c776 # v46.3.10
+      - uses: renovatebot/github-action@1c0cf989c02653fba0efe7ca5772338860ca71dc # v46.3.12
         with:
           renovate-version: ${{ env.RENOVATE_VERSION }}
           configurationFile: renovate.json5

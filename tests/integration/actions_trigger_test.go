@@ -18,6 +18,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -158,7 +159,9 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		basePerm, err := access_model.GetDoerRepoPermission(t.Context(), prOpts.Repo, prOpts.Issue.Poster)
+		require.NoError(t, err)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 
 		// load and compare ActionRun
@@ -221,7 +224,7 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts = &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 
 		// the new pull request is filtered by paths, so no run is created; a skipped commit status is posted instead
@@ -280,7 +283,7 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts = &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 
 		// filtered by paths and no required status check remains, so no run and no skipped commit status
@@ -1095,6 +1098,7 @@ jobs:
 		pullIssue := &issues_model.Issue{
 			RepoID:   repo.ID,
 			Title:    "A test PR",
+			Content:  "original",
 			PosterID: user2.ID,
 			Poster:   user2,
 			IsPull:   true,
@@ -1109,20 +1113,33 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: repo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		basePerm, err := access_model.GetDoerRepoPermission(t.Context(), prOpts.Repo, prOpts.Issue.Poster)
+		require.NoError(t, err)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 
 		// opened
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// edited
+		latestChanges := func() *api.ChangesPayload {
+			payload, err := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID}, unittest.OrderBy("id DESC")).GetPullRequestEventPayload()
+			require.NoError(t, err)
+			return payload.Changes
+		}
 		err = issue_service.ChangeContent(t.Context(), pullIssue, user2, "test", 0)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+		assert.Equal(t, &api.ChangesPayload{Body: &api.ChangesFromPayload{From: "original"}}, latestChanges())
+
+		require.NoError(t, issue_service.ChangeTitle(t.Context(), pullIssue, user2, "A renamed PR"))
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+		assert.Equal(t, &api.ChangesPayload{Title: &api.ChangesFromPayload{From: "A test PR"}}, latestChanges())
 
 		// closed
 		err = issue_service.CloseIssue(t.Context(), pullIssue, user2, "")
 		assert.NoError(t, err)
+		assert.False(t, git.IsReferenceExist(t.Context(), repo, git.MergeRefNameFromPullIndex(pullRequest.Index).String()))
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// reopened
@@ -1190,6 +1207,10 @@ jobs:
 		assert.NotEmpty(t, addFileResp)
 		sha = addFileResp.Commit.SHA
 		waitCommitStatusAndInsertFakeStatus(t, repo, sha)
+		mergeCommitSHA := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, Event: webhook_module.HookEventPullRequestSync}).WorkflowCommitSHA
+		parents, _, err := gitcmd.NewCommand("rev-parse").AddDynamicArguments(mergeCommitSHA+"^1", mergeCommitSHA+"^2").WithRepo(repo).RunStdString(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, addWorkflow.Commit.SHA+"\n"+sha+"\n", parents)
 
 		// milestoned
 		milestone := &issues_model.Milestone{
@@ -1218,6 +1239,14 @@ jobs:
 		_, err = issue_service.ReviewRequest(t.Context(), pullIssue, user2, nil, user4, false)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+
+		testCreateBranch(t, ctx.Session, repo.OwnerName, repo.Name, "commit/"+addWorkflow.Commit.Parents[0].SHA, "other-base", http.StatusSeeOther)
+		require.NoError(t, pull_service.ChangeTargetBranch(t.Context(), pullRequest, user2, "other-base"))
+		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+		assert.Equal(t, &api.ChangesPayload{
+			Ref:  &api.ChangesFromPayload{From: "main"},
+			Base: &api.ChangesBasePayload{Ref: api.ChangesFromPayload{From: "main"}, Sha: api.ChangesFromPayload{From: addWorkflow.Commit.SHA}},
+		}, latestChanges())
 	})
 }
 
@@ -1365,7 +1394,9 @@ jobs:
 			Type:       issues_model.PullRequestGitea,
 		}
 		prOpts := &pull_service.NewPullRequestOptions{Repo: repo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		basePerm, err := access_model.GetDoerRepoPermission(t.Context(), prOpts.Repo, prOpts.Issue.Poster)
+		require.NoError(t, err)
+		err = pull_service.NewPullRequest(t.Context(), basePerm, prOpts)
 		assert.NoError(t, err)
 
 		// submit an approval review as user4
@@ -1772,6 +1803,10 @@ jobs:
 		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
 		assert.Equal(t, actions_module.GithubEventPullRequest, actionRun.TriggerEvent)
 		assert.Equal(t, pullRequest.MergedCommitID, actionRun.CommitSHA)
+		mergedCommitID, err := git.GetFullCommitID(t.Context(), baseRepo, git.MergedRefNameFromPullIndex(pullRequest.Index).String())
+		require.NoError(t, err)
+		assert.Equal(t, pullRequest.MergedCommitID, mergedCommitID)
+		assert.False(t, git.IsReferenceExist(t.Context(), baseRepo, git.MergeRefNameFromPullIndex(pullRequest.Index).String()))
 	})
 }
 
@@ -1806,14 +1841,18 @@ jobs:
 
 		// create a PR to modify "dir1/dir1.txt", the workflow will be triggered
 		testEditFileToNewBranch(t, session, "user2", repoName, repo.DefaultBranch, "update-dir1", "dir1/dir1.txt", "11")
+		testEditFileToNewBranch(t, session, "user2", repoName, repo.DefaultBranch, "update-dir2", "dir2/dir2.txt", "22")
+		wfFileContent = strings.ReplaceAll(wfFileContent, "echo 'ci'", "echo 'base workflow'")
+		wfFileContent = strings.ReplaceAll(wfFileContent, "      - 'dir1/**'", "      - 'dir1/**'\n      - '.gitea/workflows/**'")
+		testEditFile(t, session, "user2", repoName, repo.DefaultBranch, ".gitea/workflows/ci.yml", wfFileContent)
 		_, err := doAPICreatePullRequest(apiCtx, "user2", repoName, repo.DefaultBranch, "update-dir1")(t)
 		assert.NoError(t, err)
 		pr1Task := runner.fetchTask(t)
 		_, _, pr1Run := getTaskAndJobAndRunByTaskID(t, pr1Task.Id)
 		assert.Equal(t, webhook_module.HookEventPullRequest, pr1Run.Event)
+		assert.Contains(t, string(pr1Task.WorkflowPayload), "echo 'base workflow'")
 
 		// create a PR to modify "dir2/dir2.txt" then update main branch and rebase, the workflow will not be triggered
-		testEditFileToNewBranch(t, session, "user2", repoName, repo.DefaultBranch, "update-dir2", "dir2/dir2.txt", "22")
 		apiPull, err := doAPICreatePullRequest(apiCtx, "user2", repoName, repo.DefaultBranch, "update-dir2")(t)
 		runner.fetchNoTask(t)
 		assert.NoError(t, err)

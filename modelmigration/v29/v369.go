@@ -7,16 +7,29 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/setting"
+
+	"xorm.io/xorm"
 )
 
-// DropLegacyActionRunConcurrencyColumns retries migration 331's incomplete SQLite cleanup.
-func DropLegacyActionRunConcurrencyColumns(_ctx context.Context, x base.EngineMigration) error {
-	if !setting.Database.Type.IsSQLite3() {
-		return nil
+func AddRunnerNameToActionTask(_ context.Context, x base.EngineMigration) error {
+	type ActionTask struct {
+		RunnerName string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	}
 
-	return base.EngineTransaction(x, func(sess base.Session) error {
-		return base.DropTableColumns(sess, "action_run", "concurrency_group", "concurrency_cancel")
-	})
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(ActionTask)); err != nil {
+		return err
+	}
+
+	_, err := x.Exec(`
+UPDATE action_task SET runner_name = (
+	SELECT action_runner.name FROM action_runner WHERE action_runner.id = action_task.runner_id
+)
+WHERE runner_name = ''
+	AND EXISTS (
+		SELECT 1 FROM action_runner WHERE action_runner.id = action_task.runner_id AND action_runner.name IS NOT NULL
+	);`) // soft-deleted runners are included to keep their names
+	return err
 }

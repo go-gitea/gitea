@@ -40,13 +40,13 @@ func Applications(ctx *context.Context) {
 		OwnerID: ctx.Org.Organization.ID,
 	})
 	if err != nil {
-		ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Applications"] = apps
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

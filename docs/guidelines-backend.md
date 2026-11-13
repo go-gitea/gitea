@@ -92,6 +92,8 @@ conditional `UPDATE` or a lock.
 
 - Pass already opened repositories down or use `git.RepositoryFromContextOrOpen`
   rather than reopening them or spawning extra `git` processes.
+- If git command stderr output is not handled by the caller, then it needs to use RunWithStderr
+  to make sure the git error message is included in the returned error and displayed in the logs.
 
 ## Dependencies
 
