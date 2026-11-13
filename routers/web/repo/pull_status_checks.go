@@ -15,7 +15,7 @@ import (
 	"gitea.dev/modules/translation"
 )
 
-type statusCheckKind struct{ Name, ringColor string }
+type statusCheckKind struct{ Name, strokeClass string }
 
 var (
 	statusCheckFailing    = statusCheckKind{"failing", "tw-stroke-red"}
@@ -93,46 +93,50 @@ func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMerg
 		}
 	}
 	section := &pullMergeBoxSection{
-		Icon: "octicon-check", IconClass: "tw-bg-green", Title: locale.Tr("repo.pulls.status_checks_success"),
-		Details: []template.HTML{locale.TrN(d.count(statusCheckKinds...), "repo.pulls.status_checks_count_1", "repo.pulls.status_checks_count_n", template.HTML(strings.Join(parts, ", ")))},
+		StatusIcon: "octicon-check", StatusIconClass: "tw-bg-green", SectionTitle: locale.Tr("repo.pulls.status_checks_success"),
+		SectionDetails: []template.HTML{locale.TrN(d.count(statusCheckKinds...), "repo.pulls.status_checks_count_1", "repo.pulls.status_checks_count_n", template.HTML(strings.Join(parts, ", ")))},
 	}
 	allFailed := d.RequireApprovalRunCount == 0 && len(d.Groups) == 1 && d.Groups[0].Kind == statusCheckFailing
 	switch {
 	case d.RequireApprovalRunCount > 0:
-		section.Title = locale.TrN(d.RequireApprovalRunCount, "repo.pulls.status_checks_need_approvals_1", "repo.pulls.status_checks_need_approvals_n", d.RequireApprovalRunCount)
-		section.Details = []template.HTML{locale.Tr("repo.pulls.status_checks_need_approvals_helper")}
+		section.SectionTitle = locale.TrN(d.RequireApprovalRunCount, "repo.pulls.status_checks_need_approvals_1", "repo.pulls.status_checks_need_approvals_n", d.RequireApprovalRunCount)
+		section.SectionDetails = []template.HTML{locale.Tr("repo.pulls.status_checks_need_approvals_helper")}
 	case allFailed:
-		section.Icon, section.IconClass, section.Title = "octicon-x", "tw-bg-red", locale.Tr("repo.pulls.status_checks_all_failed")
+		section.StatusIcon, section.StatusIconClass, section.SectionTitle = "octicon-x", "tw-bg-red", locale.Tr("repo.pulls.status_checks_all_failed")
 	case d.count(statusCheckFailing) > 0:
-		section.Title = locale.Tr("repo.pulls.status_checks_failure")
+		section.SectionTitle = locale.Tr("repo.pulls.status_checks_failure")
 	case !d.AllPassed():
-		section.Title = locale.Tr("repo.pulls.status_checking")
+		section.SectionTitle = locale.Tr("repo.pulls.status_checking")
 	}
 	if !d.AllPassed() && !allFailed {
-		section.Ring = d.ringSegments()
+		section.ProgressSegments = d.progressSegments()
 	}
 	return section
 }
 
-type statusCheckRingSegment struct {
-	ColorClass   string
-	Dash, Offset float64
+type statusCheckProgressSegment struct {
+	StrokeClass            string
+	DashLength, DashOffset float64
 }
 
-func (d *pullCommitStatusCheckData) ringSegments() (segments []statusCheckRingSegment) {
-	const gap = 5 // of the 100-length ring, GitHub's 18 degree gaps
-	total, start := float64(d.count(statusCheckKinds...)), gap/2.0
+// progressSegments splits a circle of length 100 into one arc per stroke color, separated by gaps
+func (d *pullCommitStatusCheckData) progressSegments() (segments []statusCheckProgressSegment) {
+	const gap = 5 // GitHub's 18 degree gaps
+	total := float64(d.count(statusCheckKinds...))
+	arcStart := gap / 2.0
 	for _, group := range slices.Backward(d.Groups) {
-		length := 100 * float64(len(group.CommitStatuses)) / total
-		if last := len(segments) - 1; last >= 0 && segments[last].ColorClass == group.Kind.ringColor {
-			segments[last].Dash += length
+		arcLength := 100 * float64(len(group.CommitStatuses)) / total
+		last := len(segments) - 1
+		if last >= 0 && segments[last].StrokeClass == group.Kind.strokeClass {
+			segments[last].DashLength += arcLength
 		} else {
-			segments = append(segments, statusCheckRingSegment{ColorClass: group.Kind.ringColor, Dash: max(length-gap, 0.01), Offset: -start})
+			visibleLength := max(arcLength-gap, 0.01) // keep tiny arcs visible as a dot
+			segments = append(segments, statusCheckProgressSegment{StrokeClass: group.Kind.strokeClass, DashLength: visibleLength, DashOffset: -arcStart})
 		}
-		start += length
+		arcStart += arcLength
 	}
 	if len(segments) == 1 {
-		segments[0].Dash = 100
+		segments[0].DashLength = 100 // a single color needs no gap
 	}
 	return segments
 }

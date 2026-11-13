@@ -36,7 +36,7 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 		return &git_model.CommitStatus{Context: context, State: state, Description: description}
 	}
 	review := func(data *pullMergeBoxData, icon, iconClass, titleKey string, detail template.HTML, blocking bool) {
-		data.ReviewSection = &pullMergeBoxSection{Icon: icon, IconClass: iconClass, Title: ctx.Locale.Tr(titleKey), Details: []template.HTML{detail}}
+		data.ReviewSection = &pullMergeBoxSection{StatusIcon: icon, StatusIconClass: iconClass, SectionTitle: ctx.Locale.Tr(titleKey), SectionDetails: []template.HTML{detail}}
 		if blocking {
 			data.addOverridableBlocker(detail)
 		}

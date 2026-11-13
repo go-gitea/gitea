@@ -1,6 +1,6 @@
 {{$data := $.MergeBoxData}}
 {{$hasStyleMenu := gt (len $data.UpdateStyleOptions) 1}}
-<div class="ui buttons"{{if $hasStyleMenu}} data-global-init="initRepoPullRequestUpdate"{{end}}>
+<div class="ui buttons {{if $hasStyleMenu}}pull-update-style-buttons{{end}}">
 	<button type="button" class="ui button link-action" data-url="{{$data.UpdatePrimaryAction.URL}}">
 		{{$data.UpdatePrimaryAction.ButtonText}}
 	</button>
@@ -10,10 +10,10 @@
 </div>
 {{if $hasStyleMenu}}
 <div class="tippy-target merge-box-menu">
-	{{range $data.UpdateStyleOptions}}
-		<a class="item" role="menuitemradio" aria-checked="{{.Selected}}" data-update-url="{{.URL}}" data-update-text="{{.ButtonText}}">
+	{{range $option := $data.UpdateStyleOptions}}
+		<a class="item" role="menuitemradio" aria-checked="{{$option.Selected}}" data-update-url="{{$option.URL}}" data-update-text="{{$option.ButtonText}}">
 			{{svg "octicon-check"}}
-			<div><strong>{{.Text}}</strong><small>{{.Description}}</small></div>
+			<div><strong>{{$option.Text}}</strong><small>{{$option.Description}}</small></div>
 		</a>
 	{{end}}
 </div>

@@ -32,5 +32,5 @@ func TestGroupStatusChecks(t *testing.T) {
 	for i, context := range []string{"ci2", "CI10", "missing"} {
 		assert.Equal(t, context, checkData.Groups[1].CommitStatuses[i].Context)
 	}
-	assert.EqualValues(t, "repo.pulls.status_checks_count_1:repo.pulls.status_checks_failing:1, repo.pulls.status_checks_pending:2, repo.pulls.status_checks_in_progress:1, repo.pulls.status_checks_skipped:1, repo.pulls.status_checks_expected:1, repo.pulls.status_checks_successful:1", checkData.Section(translation.MockLocale{}).Details[0])
+	assert.EqualValues(t, "repo.pulls.status_checks_count_1:repo.pulls.status_checks_failing:1, repo.pulls.status_checks_pending:2, repo.pulls.status_checks_in_progress:1, repo.pulls.status_checks_skipped:1, repo.pulls.status_checks_expected:1, repo.pulls.status_checks_successful:1", checkData.Section(translation.MockLocale{}).SectionDetails[0])
 }

@@ -4,74 +4,97 @@ import {createTippy} from '../modules/tippy.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
-let chosenUpdateUrl = '';
-let chosenMergeStyle = '';
-let mergeFormComponent: Component | undefined; // cached so a refresh remounts the form before the next paint
-let mergeFormApp: App | undefined;
+const reloadingIntervalAttr = 'data-pull-merge-box-reloading-interval';
 
-export function initRepoPullRequestUpdate(el: HTMLElement) {
-  const [elButton, elTrigger] = el.querySelectorAll<HTMLButtonElement>(':scope > button');
-  const menu = el.nextElementSibling!;
-  const menuTippy = createTippy(elTrigger, {
-    content: menu,
-    getReferenceClientRect: () => el.getBoundingClientRect(),
-    theme: 'menu',
-    arrow: false,
-    maxWidth: 400,
-    placement: 'bottom-end',
-    trigger: 'click',
-    interactive: true,
-    hideOnClick: true,
-  });
-  const choose = (choice: Element) => {
-    chosenUpdateUrl = choice.getAttribute('data-update-url')!;
-    for (const item of menu.querySelectorAll('.item')) item.setAttribute('aria-checked', String(item === choice));
-    elButton.textContent = choice.getAttribute('data-update-text');
-    elButton.setAttribute('data-url', chosenUpdateUrl);
-  };
-  addDelegatedEventListener(menu, 'click', '.item', (choice) => {
-    choose(choice);
-    menuTippy.hide();
-  });
-  const chosen = [...menu.querySelectorAll('.item')].find((item) => item.getAttribute('data-update-url') === chosenUpdateUrl);
-  if (chosen) choose(chosen);
-}
+// owns the merge box element across refreshes, so the user's choices survive them
+class PullMergeBox {
+  private readonly el: HTMLElement;
+  private chosenUpdateUrl = '';
+  private chosenMergeStyle = '';
+  private mergeFormComponent?: Component; // cached so a refresh remounts the form before the next paint
+  private mergeFormApp?: App;
 
-async function initRepoPullRequestMergeForm(box: HTMLElement) {
-  const el = box.querySelector('#pull-request-merge-form');
-  if (!el) return;
+  constructor(el: HTMLElement) {
+    this.el = el;
+    this.initContent();
+    activePageTimerRefresh({
+      interval: () => Number(el.getAttribute(reloadingIntervalAttr)),
+      callback: () => this.refresh(),
+    });
+  }
 
-  const data = JSON.parse(el.getAttribute('data-merge-form-props')!);
-  if (data.mergeStyles.some((style: {name: string}) => style.name === chosenMergeStyle)) data.defaultMergeStyle = chosenMergeStyle;
-  mergeFormComponent ??= (await import('../components/PullRequestMergeForm.vue')).default;
-  mergeFormApp = createApp(mergeFormComponent, {mergeFormProps: data, onMergeStyleChange: (style: string) => { chosenMergeStyle = style }});
-  mergeFormApp.mount(el);
-}
+  private initContent() {
+    this.initUpdateStyleMenu();
+    this.initMergeForm();
+  }
 
-function initRepoPullMergeBoxRefresh(el: Element) {
-  const isBusy = () => Boolean(el.querySelector('[aria-expanded="true"], [data-fetch-is-loading], #pull-request-merge-form :is(form, :checked)')); // keep open menus, forms, bypass choices and pending requests
-  activePageTimerRefresh({
-    interval: () => el.isConnected ? Number(el.getAttribute('data-pull-merge-box-reloading-interval')) : 0,
-    async callback() {
-      if (isBusy()) return;
-      const pullLink = el.getAttribute('data-pull-link')!;
-      const resp = await GET(`${pullLink}/merge_box`);
-      if (!resp.ok) return;
-      const respText = (await resp.text()).trim();
-      if (isBusy()) return;
-      const newEl = createElementFromHTML(respText);
-      const openDetails = new Map([...el.querySelectorAll<HTMLDetailsElement>('[data-kind]')].map((details) => [details.getAttribute('data-kind'), details.open]));
-      for (const details of newEl.querySelectorAll<HTMLDetailsElement>('[data-kind]')) {
-        const open = openDetails.get(details.getAttribute('data-kind'));
-        if (open !== undefined) details.open = open;
-      }
-      const scrollTop = el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTop;
-      mergeFormApp?.unmount();
-      mergeFormApp = undefined;
-      el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
-      if (scrollTop) newEl.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTo({top: scrollTop, behavior: 'instant'});
-    },
-  });
+  private initUpdateStyleMenu() {
+    const elButtons = this.el.querySelector('.pull-update-style-buttons');
+    if (!elButtons) return;
+    const [elButton, elTrigger] = elButtons.querySelectorAll<HTMLButtonElement>(':scope > button');
+    const menu = elButtons.nextElementSibling!;
+    const menuTippy = createTippy(elTrigger, {
+      content: menu,
+      getReferenceClientRect: () => elButtons.getBoundingClientRect(),
+      theme: 'menu',
+      arrow: false,
+      maxWidth: 400,
+      placement: 'bottom-end',
+      trigger: 'click',
+      interactive: true,
+      hideOnClick: true,
+    });
+    const choose = (choice: Element) => {
+      this.chosenUpdateUrl = choice.getAttribute('data-update-url')!;
+      for (const item of menu.querySelectorAll('.item')) item.setAttribute('aria-checked', String(item === choice));
+      elButton.textContent = choice.getAttribute('data-update-text');
+      elButton.setAttribute('data-url', this.chosenUpdateUrl);
+    };
+    addDelegatedEventListener(menu, 'click', '.item', (choice) => {
+      choose(choice);
+      menuTippy.hide();
+    });
+    const chosen = [...menu.querySelectorAll('.item')].find((item) => item.getAttribute('data-update-url') === this.chosenUpdateUrl);
+    if (chosen) choose(chosen);
+  }
+
+  private async initMergeForm() {
+    const elForm = this.el.querySelector('#pull-request-merge-form');
+    if (!elForm) return;
+
+    const data = JSON.parse(elForm.getAttribute('data-merge-form-props')!);
+    if (data.mergeStyles.some((style: {name: string}) => style.name === this.chosenMergeStyle)) data.defaultMergeStyle = this.chosenMergeStyle;
+    this.mergeFormComponent ??= (await import('../components/PullRequestMergeForm.vue')).default;
+    this.mergeFormApp = createApp(this.mergeFormComponent, {mergeFormProps: data, onMergeStyleChange: (style: string) => { this.chosenMergeStyle = style }});
+    this.mergeFormApp.mount(elForm);
+  }
+
+  private isBusy() {
+    // keep open menus, forms, bypass choices and pending requests
+    return Boolean(this.el.querySelector('[aria-expanded="true"], [data-fetch-is-loading], #pull-request-merge-form :is(form, :checked)'));
+  }
+
+  private async refresh() {
+    if (this.isBusy()) return;
+    const pullLink = this.el.getAttribute('data-pull-link')!;
+    const resp = await GET(`${pullLink}/merge_box`);
+    if (!resp.ok) return;
+    const respText = (await resp.text()).trim();
+    if (this.isBusy()) return;
+    const newEl = createElementFromHTML(respText);
+    const openDetails = new Map([...this.el.querySelectorAll<HTMLDetailsElement>('[data-kind]')].map((details) => [details.getAttribute('data-kind'), details.open]));
+    for (const details of newEl.querySelectorAll<HTMLDetailsElement>('[data-kind]')) {
+      const open = openDetails.get(details.getAttribute('data-kind'));
+      if (open !== undefined) details.open = open;
+    }
+    const scrollTop = this.el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTop;
+    this.mergeFormApp?.unmount();
+    this.mergeFormApp = undefined;
+    this.el.replaceChildren(...newEl.childNodes); // don't morph, so data-global-init and Vue components are re-initialized
+    this.el.setAttribute(reloadingIntervalAttr, newEl.getAttribute(reloadingIntervalAttr) ?? '0');
+    this.initContent();
+    if (scrollTop) this.el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTo({top: scrollTop, behavior: 'instant'});
+  }
 }
 
 export function initRepoPullCloneUrl(el: HTMLElement) {
@@ -80,6 +103,5 @@ export function initRepoPullCloneUrl(el: HTMLElement) {
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {
-  initRepoPullRequestMergeForm(el);
-  initRepoPullMergeBoxRefresh(el);
+  new PullMergeBox(el);
 }

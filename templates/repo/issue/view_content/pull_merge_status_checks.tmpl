@@ -4,7 +4,7 @@
 {{$statusCheckData := $.StatusCheckData}}
 <details class="item merge-box-checks" data-kind="checks"{{if not $statusCheckData.AllPassed}} open{{end}}>
 	<summary>
-		{{template "repo/issue/view_content/pull_merge_section" ($statusCheckData.Section ctx.Locale)}}
+		{{template "repo/issue/view_content/pull_merge_section" (dict "MergeBoxSection" ($statusCheckData.Section ctx.Locale))}}
 		{{svg "octicon-chevron-right" 16 "merge-box-chevron"}}
 	</summary>
 	<div class="merge-box-checks-body">

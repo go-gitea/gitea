@@ -656,24 +656,31 @@
 					{{end}}
 				</span>
 			</div>
-		{{else if and (eq .Type 35) .Content}}
-			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
-				<span class="comment-text-line">{{ctx.Locale.Tr "repo.pulls.auto_merge_automatically_disabled_comment" $createdStr}}</span>
-				<div class="detail flex-text-block">
-					<span class="comment-text-line">{{ctx.Locale.Tr (print "repo.pulls.auto_merge_disabled_reason." .Content)}}</span>
-				</div>
-			</div>
-		{{else if or (eq .Type 34) (eq .Type 35)}}
+		{{else if eq .Type 34}}{{/* auto merge scheduled, Content is the merge style (empty for old comments) */}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
 				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 				<span class="comment-text-line">
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{if .Content}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_style_comment" (ctx.Locale.Tr (print "repo.pulls.merge_style_short." .Content)) $createdStr}}
-					{{else if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
-					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}{{end}}
+					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}{{end}}
 				</span>
+			</div>
+		{{else if eq .Type 35}}{{/* auto merge canceled, Content is the reason when it was disabled automatically */}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
+				{{if .Content}}
+					<span class="comment-text-line">{{ctx.Locale.Tr "repo.pulls.auto_merge_automatically_disabled_comment" $createdStr}}</span>
+					<div class="detail flex-text-block">
+						<span class="comment-text-line">{{ctx.Locale.Tr (print "repo.pulls.auto_merge_disabled_reason." .Content)}}</span>
+					</div>
+				{{else}}
+					{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
+					<span class="comment-text-line">
+						{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
+						{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}
+					</span>
+				{{end}}
 			</div>
 		{{else if or (eq .Type 36) (eq .Type 37)}}
 			<div class="timeline-item event" id="{{.HashTag}}">

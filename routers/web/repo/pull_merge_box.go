@@ -11,12 +11,12 @@ import (
 )
 
 type pullMergeBoxSection struct {
-	Icon      string
-	IconClass string
-	Title     template.HTML
-	Details   []template.HTML
-	Files     []string
-	Ring      []statusCheckRingSegment
+	StatusIcon       string
+	StatusIconClass  string
+	SectionTitle     template.HTML
+	SectionDetails   []template.HTML
+	FileNames        []string
+	ProgressSegments []statusCheckProgressSegment // drawn as a donut chart instead of the status icon
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxClosedSection(ctx *context.Context) {
@@ -35,40 +35,50 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxClosedSection(ctx *context.Con
 	case data.IsPullBranchDeletable:
 		detail = ctx.Locale.Tr("repo.pulls.closed_with_unmerged_commits_desc", headTarget)
 	}
-	data.MergeSection = &pullMergeBoxSection{Title: title, Details: []template.HTML{detail}}
+	data.MergeSection = &pullMergeBoxSection{SectionTitle: title, SectionDetails: []template.HTML{detail}}
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	data := prInfo.MergeBoxData
 
-	section := &pullMergeBoxSection{Icon: "octicon-alert-fill", IconClass: "tw-bg-grey-light"}
+	section := &pullMergeBoxSection{StatusIcon: "octicon-alert-fill", StatusIconClass: "tw-bg-grey-light"}
+	setFailed := func() { section.StatusIcon, section.StatusIconClass = "octicon-x", "tw-bg-red" }
+	setDetail := func(detail template.HTML) { section.SectionDetails = []template.HTML{detail} }
 	switch {
 	case prInfo.IsPullRequestBroken:
-		section.Icon, section.IconClass, section.Title = "octicon-x", "tw-bg-red", ctx.Locale.Tr("repo.pulls.data_broken")
+		setFailed()
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.data_broken")
 	case pull.IsFilesConflicted():
-		section.Title, section.Details = ctx.Locale.Tr("repo.pulls.files_conflicted"), []template.HTML{ctx.Locale.Tr("repo.pulls.files_conflicted_desc")}
-		section.Files = pull.ConflictedFiles
-		if len(section.Files) > 10 {
-			section.Files = append(section.Files[:10:10], "…")
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.files_conflicted")
+		setDetail(ctx.Locale.Tr("repo.pulls.files_conflicted_desc"))
+		section.FileNames = pull.ConflictedFiles
+		if len(section.FileNames) > 10 {
+			section.FileNames = append(section.FileNames[:10:10], "…")
 		}
 	case pull.IsChecking():
-		section.Icon, section.Title, section.Details = "octicon-sync", ctx.Locale.Tr("repo.pulls.is_checking"), []template.HTML{ctx.Locale.Tr("repo.pulls.is_checking_desc")}
+		section.StatusIcon = "octicon-sync"
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.is_checking")
+		setDetail(ctx.Locale.Tr("repo.pulls.is_checking_desc"))
 	case pull.IsAncestor():
-		section.Title = ctx.Locale.Tr("repo.pulls.is_ancestor")
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.is_ancestor")
 	case pull.IsUnrelated():
-		section.Icon, section.IconClass, section.Title = "octicon-x", "tw-bg-red", ctx.Locale.Tr("repo.pulls.is_unrelated")
+		setFailed()
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.is_unrelated")
 	case pull.IsEmpty():
-		section.Title, section.Details = ctx.Locale.Tr("repo.pulls.is_empty"), []template.HTML{ctx.Locale.Tr("repo.pulls.can_auto_merge_desc")}
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.is_empty")
+		setDetail(ctx.Locale.Tr("repo.pulls.can_auto_merge_desc"))
 	case !pull.IsStatusMergeable():
-		section.Icon, section.IconClass, section.Title = "octicon-x", "tw-bg-red", ctx.Locale.Tr("repo.pulls.cannot_auto_merge_desc")
-		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.cannot_auto_merge_helper")}
+		setFailed()
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.cannot_auto_merge_desc")
+		setDetail(ctx.Locale.Tr("repo.pulls.cannot_auto_merge_helper"))
 	case data.ShowUpdatePullInfo:
-		section.Title = ctx.Locale.Tr("repo.pulls.outdated_with_base_branch")
-		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.outdated_with_base_branch_desc", htmlutil.HTMLFormat("<code>%s</code>", pull.BaseBranch))}
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.outdated_with_base_branch")
+		setDetail(ctx.Locale.Tr("repo.pulls.outdated_with_base_branch_desc", htmlutil.HTMLFormat("<code>%s</code>", pull.BaseBranch)))
 	default:
-		section.Icon, section.IconClass, section.Title = "octicon-check", "tw-bg-green", ctx.Locale.Tr("repo.pulls.no_conflicts")
-		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.can_auto_merge_desc")}
+		section.StatusIcon, section.StatusIconClass = "octicon-check", "tw-bg-green"
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.no_conflicts")
+		setDetail(ctx.Locale.Tr("repo.pulls.can_auto_merge_desc"))
 	}
 	data.MergeSection = section
 	if pull.IsFilesConflicted() || pull.IsChecking() {
@@ -77,17 +87,19 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context)
 
 	if prInfo.workInProgressPrefix != "" {
 		data.WorkInProgressSection = &pullMergeBoxSection{
-			Icon: "octicon-git-pull-request-draft", IconClass: "tw-bg-grey-light", Title: ctx.Locale.Tr("repo.pulls.cannot_merge_work_in_progress"),
-			Details: []template.HTML{ctx.Locale.Tr("repo.pulls.work_in_progress_desc")},
+			StatusIcon: "octicon-git-pull-request-draft", StatusIconClass: "tw-bg-grey-light", SectionTitle: ctx.Locale.Tr("repo.pulls.cannot_merge_work_in_progress"),
+			SectionDetails: []template.HTML{ctx.Locale.Tr("repo.pulls.work_in_progress_desc")},
 		}
 	}
 	if len(data.mergeBlockers) > 0 && data.WorkInProgressSection == nil && !pull.IsFilesConflicted() {
 		data.BlockedSection = &pullMergeBoxSection{
-			Icon: "octicon-alert-fill", IconClass: "tw-bg-red", Title: ctx.Locale.Tr("repo.pulls.merging_is_blocked"),
-			Details: data.mergeBlockers, Files: pull.ChangedProtectedFiles,
+			StatusIcon: "octicon-alert-fill", StatusIconClass: "tw-bg-red", SectionTitle: ctx.Locale.Tr("repo.pulls.merging_is_blocked"),
+			SectionDetails: data.mergeBlockers, FileNames: pull.ChangedProtectedFiles,
 		}
 	}
 
-	data.IsReady = data.hasPermToMerge && !prInfo.IsPullRequestBroken && pull.IsStatusMergeable() && prInfo.workInProgressPrefix == "" && len(data.mergeBlockers) == 0 && !data.hasOverridableBlockers &&
-		(data.StatusCheckData == nil || data.StatusCheckData.AllPassed())
+	isMergeable := !prInfo.IsPullRequestBroken && pull.IsStatusMergeable() && prInfo.workInProgressPrefix == ""
+	isBlocked := len(data.mergeBlockers) > 0 || data.hasOverridableBlockers
+	checksPassed := data.StatusCheckData == nil || data.StatusCheckData.AllPassed()
+	data.IsReady = data.hasPermToMerge && isMergeable && !isBlocked && checksPassed
 }
