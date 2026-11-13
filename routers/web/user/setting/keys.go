@@ -28,7 +28,7 @@ const (
 // Keys render user's SSH/GPG public keys page
 func Keys(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys, setting.UserFeatureManageGPGKeys) {
-		ctx.NotFound(errors.New("keys setting is not allowed to be changed"))
+		ctx.NotFound()
 		return
 	}
 
@@ -80,7 +80,7 @@ func KeysPost(ctx *context.Context) {
 				ctx.Data["Err_Content"] = true
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_principal_been_used"), tplSettingsKeys, &form)
 			default:
-				ctx.ServerError("AddPrincipalKey", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -91,7 +91,7 @@ func KeysPost(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
-			ctx.NotFound(errors.New("gpg keys setting is not allowed to be visited"))
+			ctx.NotFound()
 			return
 		}
 
@@ -133,7 +133,7 @@ func KeysPost(ctx *context.Context) {
 				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
 			default:
-				ctx.ServerError("AddPublicKey", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -170,7 +170,7 @@ func KeysPost(ctx *context.Context) {
 				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
 			default:
-				ctx.ServerError("VerifyGPG", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -178,7 +178,7 @@ func KeysPost(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "ssh":
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-			ctx.NotFound(errors.New("ssh keys setting is not allowed to be visited"))
+			ctx.NotFound()
 			return
 		}
 
@@ -215,7 +215,7 @@ func KeysPost(ctx *context.Context) {
 				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
 				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			default:
-				ctx.ServerError("AddPublicKey", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -226,7 +226,7 @@ func KeysPost(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "verify_ssh":
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-			ctx.NotFound(errors.New("ssh keys setting is not allowed to be visited"))
+			ctx.NotFound()
 			return
 		}
 
@@ -247,7 +247,7 @@ func KeysPost(ctx *context.Context) {
 				ctx.Data["Fingerprint"] = errInvalidTokenSignature.Fingerprint
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_invalid_token_signature"), tplSettingsKeys, &form)
 			default:
-				ctx.ServerError("VerifySSH", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -270,7 +270,7 @@ func DeleteKey(ctx *context.Context) {
 		}
 		key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
 		if err != nil && !asymkey_model.IsErrGPGKeyNotExist(err) {
-			ctx.ServerError("GetGPGKeyForUserByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
@@ -290,7 +290,7 @@ func DeleteKey(ctx *context.Context) {
 		keyID := ctx.FormInt64("id")
 		external, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, keyID)
 		if err != nil {
-			ctx.ServerError("sshKeysExternalManaged", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if external {
@@ -321,14 +321,14 @@ func loadKeysData(ctx *context.Context) {
 		NotKeytype: asymkey_model.KeyTypePrincipal,
 	})
 	if err != nil {
-		ctx.ServerError("ListPublicKeys", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Keys"] = keys
 
 	externalKeys, err := asymkey_model.PublicKeysAreExternallyManaged(ctx, keys)
 	if err != nil {
-		ctx.ServerError("ListPublicKeys", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["ExternalKeys"] = externalKeys
@@ -338,11 +338,11 @@ func loadKeysData(ctx *context.Context) {
 		OwnerID:     ctx.Doer.ID,
 	})
 	if err != nil {
-		ctx.ServerError("ListGPGKeys", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := asymkey_model.GPGKeyList(gpgkeys).LoadSubKeys(ctx); err != nil {
-		ctx.ServerError("LoadSubKeys", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["GPGKeys"] = gpgkeys
@@ -357,7 +357,7 @@ func loadKeysData(ctx *context.Context) {
 		KeyTypes:    []asymkey_model.KeyType{asymkey_model.KeyTypePrincipal},
 	})
 	if err != nil {
-		ctx.ServerError("ListPrincipalKeys", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Principals"] = principals

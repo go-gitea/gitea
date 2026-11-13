@@ -54,7 +54,7 @@ func Authentications(ctx *context.Context) {
 	var err error
 	ctx.Data["Sources"], ctx.Data["Total"], err = db.FindAndCount[auth.Source](ctx, auth.FindSourcesOptions{})
 	if err != nil {
-		ctx.ServerError("auth.Sources", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -313,7 +313,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			ctx.Data["Err_DiscoveryURL"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.unable_to_initialize_openid", errInit.Unwrap()), tplAuthNew, form)
 		} else {
-			ctx.ServerError("auth.CreateSource", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -336,7 +336,7 @@ func EditAuthSource(ctx *context.Context) {
 
 	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
-		ctx.ServerError("auth.GetSourceByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Source"] = source
@@ -367,7 +367,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 
 	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
-		ctx.ServerError("auth.GetSourceByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Source"] = source
@@ -425,7 +425,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 			ctx.Data["Err_DiscoveryURL"] = true
 			ctx.HTML(http.StatusOK, tplAuthEdit)
 		} else {
-			ctx.ServerError("UpdateSource", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -439,7 +439,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 func DeleteAuthSource(ctx *context.Context) {
 	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
-		ctx.ServerError("auth.GetSourceByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

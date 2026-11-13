@@ -435,8 +435,6 @@
   "repo.forks": "Skiptingar",
   "repo.reactions_more": "og %d fleiri",
   "repo.language_other": "Annað",
-  "repo.delete_preexisting_label": "Eyða",
-  "repo.delete_preexisting_content": "Eyða skrám í %s",
   "repo.desc.private": "Einka",
   "repo.desc.public": "Opinbert",
   "repo.desc.template": "Sniðmát",

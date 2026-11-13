@@ -148,9 +148,9 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
   lineContent = lineContent.slice(indention.length);
   if (linesBuf.inlinePos <= indention.length) return unhandled; // if cursor is at the indention, do nothing, let the browser handle it
 
-  // parse the prefixes: "1. ", "- ", "* ", there could also be " [ ] " or " [x] " for task lists
+  // parse the prefixes: "1. ", "- ", "* ", there could also be " [ ] ", " [x] " or " [X] " for task lists
   // there must be a space after the prefix because none of "1.foo" / "-foo" is a list item
-  const prefixMatch = /^([0-9]+\.|[-*])(\s\[([ x])\])?\s/.exec(lineContent);
+  const prefixMatch = /^([0-9]+\.|[-*])(\s\[([ xX])\])?\s/.exec(lineContent);
   let prefix = '';
   if (prefixMatch) {
     prefix = prefixMatch[0];
@@ -168,7 +168,7 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
     // start a new line with the same indention
     let newPrefix = prefix;
     if (/^\d+\./.test(prefix)) newPrefix = `1. ${newPrefix.slice(newPrefix.indexOf('.') + 2)}`;
-    newPrefix = newPrefix.replace('[x]', '[ ]');
+    newPrefix = newPrefix.replace(/\[[xX]\]/, '[ ]');
 
     const inlinePos = linesBuf.inlinePos;
     linesBuf.lines[linesBuf.posLineIndex] = line.substring(0, inlinePos);

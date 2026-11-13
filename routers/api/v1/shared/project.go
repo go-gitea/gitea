@@ -699,7 +699,7 @@ func DeleteProject(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if err := project_model.DeleteProjectByID(ctx, project.ID); err != nil {
+	if err := project_service.DeleteProject(ctx, project.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

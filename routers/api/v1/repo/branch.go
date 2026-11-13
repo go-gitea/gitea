@@ -311,11 +311,6 @@ func ListBranches(ctx *context.APIContext) {
 	keyword := ctx.FormString("q")
 
 	if !ctx.Repo.Repository.IsEmpty {
-		if ctx.Repo.GitRepo == nil {
-			ctx.APIErrorInternal(nil)
-			return
-		}
-
 		branchOpts := git_model.FindBranchOptions{
 			ListOptions:     listOptions,
 			RepoID:          ctx.Repo.Repository.ID,

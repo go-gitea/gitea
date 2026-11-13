@@ -10,6 +10,7 @@ import (
 	"testing"
 	"uuid"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/packages"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -298,5 +299,49 @@ func TestPackageTerraform(t *testing.T) {
 			req := NewRequestWithBody(t, "POST", url, strings.NewReader("null")).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 		})
+	})
+
+	// The generic package API must enforce the same rules as the terraform state API
+	t.Run("GenericPackageAPI", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWritePackage)
+		packageURL := fmt.Sprintf("/api/v1/packages/%s/terraform/%s", user.Name, packageName)
+
+		for i := range 3 {
+			req := NewRequestWithBody(t, "POST", url, strings.NewReader(genState(i+1))).AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+		}
+
+		// Deleting an older version is allowed
+		req := NewRequest(t, "DELETE", packageURL+"/2").AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		_, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeTerraformState, packageName, "2")
+		assert.ErrorIs(t, err, packages.ErrPackageNotExist)
+
+		// Deleting the latest version is forbidden
+		req = NewRequest(t, "DELETE", packageURL+"/3").AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+		_, err = packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeTerraformState, packageName, "3")
+		require.NoError(t, err)
+
+		lockInfo := genLock(uuid.New().String())
+		req = NewRequestWithBody(t, "POST", lockURL, strings.NewReader(lockInfo)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusOK)
+
+		// Deleting a locked state is forbidden
+		req = NewRequest(t, "DELETE", packageURL).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+		_, err = packages.GetPackageByName(t.Context(), user.ID, packages.TypeTerraformState, packageName)
+		require.NoError(t, err)
+
+		req = NewRequestWithBody(t, "DELETE", lockURL, strings.NewReader(lockInfo)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusOK)
+
+		// Deleting an unlocked state is allowed
+		req = NewRequest(t, "DELETE", packageURL).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		_, err = packages.GetPackageByName(t.Context(), user.ID, packages.TypeTerraformState, packageName)
+		assert.ErrorIs(t, err, packages.ErrPackageNotExist)
 	})
 }

@@ -420,6 +420,20 @@ func TestGenerateGiteaContext(t *testing.T) {
 	run.TriggerEvent, run.Ref = string(actions_module.GithubEventPullRequest), "refs/pull/1/head"
 	assert.Equal(t, "branch", GenerateGiteaContext(t.Context(), run, nil, nil)["ref_type"])
 
+	payload.PullRequest.Index, payload.PullRequest.MergedCommitID = 1, new("merge-sha")
+	payloadBytes, err = json.Marshal(payload)
+	require.NoError(t, err)
+	run.EventPayload, run.CommitSHA = string(payloadBytes), "head-sha"
+	giteaCtx = GenerateGiteaContext(t.Context(), run, nil, nil)
+	assert.Equal(t, "refs/pull/1/merge", giteaCtx["ref"])
+	assert.Equal(t, "merge-sha", giteaCtx["sha"])
+
+	payload.PullRequest.HasMerged = true
+	payloadBytes, err = json.Marshal(payload)
+	require.NoError(t, err)
+	run.EventPayload = string(payloadBytes)
+	assert.Equal(t, "head-sha", GenerateGiteaContext(t.Context(), run, nil, nil)["sha"])
+
 	defer test.MockVariableValue(&setting.Actions.ArtifactRetentionDays, 7)()
 	assert.Equal(t, "7", GenerateGiteaContext(t.Context(), run, nil, nil)["retention_days"])
 	setting.Actions.ArtifactRetentionDays = 0

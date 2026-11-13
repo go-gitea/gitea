@@ -226,17 +226,6 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 
 	// The ssh library can parse the key, so next we find out what key exactly we have.
 	switch pkey.Type() {
-	case ssh.KeyAlgoDSA: //nolint:staticcheck // it's deprecated
-		rawPub := struct {
-			Name       string
-			P, Q, G, Y *big.Int
-		}{}
-		if err := ssh.Unmarshal(pkey.Marshal(), &rawPub); err != nil {
-			return "", 0, err
-		}
-		// as per https://bugzilla.mindrot.org/show_bug.cgi?id=1647 we should never
-		// see dsa keys != 1024 bit, but as it seems to work, we will not check here
-		return "dsa", rawPub.P.BitLen(), nil // use P as per crypto/dsa/dsa.go (is L)
 	case ssh.KeyAlgoRSA:
 		rawPub := struct {
 			Name string

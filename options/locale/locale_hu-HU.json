@@ -432,7 +432,6 @@
   "repo.forks": "Másolások",
   "repo.reactions_more": "és további %d",
   "repo.language_other": "Egyéb",
-  "repo.delete_preexisting_label": "Törlés",
   "repo.desc.private": "Privát",
   "repo.desc.public": "Nyilvános",
   "repo.desc.template": "Sablon",
