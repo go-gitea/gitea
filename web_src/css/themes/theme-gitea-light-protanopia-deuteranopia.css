@@ -10,10 +10,10 @@ gitea-theme-meta-info {
 :root {
   --color-diff-added-fg: #0860cc;
   --color-diff-added-linenum-bg: #b6e3ff;
-  --color-diff-added-row-bg: #ddf4ff;
+  --color-diff-added-row-bg: #dff5ff;
   --color-diff-added-word-bg: #b6e3ff;
   --color-diff-removed-fg: #a84400;
-  --color-diff-removed-linenum-bg: #ffd8b5;
-  --color-diff-removed-row-bg: #fff1e5;
-  --color-diff-removed-word-bg: #ffd8b5;
+  --color-diff-removed-linenum-bg: #fad3b0;
+  --color-diff-removed-row-bg: #fceee2;
+  --color-diff-removed-word-bg: #fad3b0;
 }

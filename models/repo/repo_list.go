@@ -204,8 +204,6 @@ type SearchRepoOptions struct {
 	// True -> include just has milestones
 	// False -> include just has no milestone
 	HasMilestones optional.Option[bool]
-	// LowerNames represents valid lower names to restrict to
-	LowerNames []string
 	// When specified true, apply some filters over the conditions:
 	// - Don't show forks, when opts.Fork is OptionalBoolNone.
 	// - Do not display repositories that don't have a description, an icon and topics.
@@ -477,7 +475,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 					pieces := strings.Split(opts.Keyword, "/")
 					ownerName := pieces[0]
 					repoName := pieces[1]
-					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"lower_name", strings.ToLower(repoName)}))
+					likes = likes.Or(builder.And(db.BuildCaseInsensitiveLike("owner_name", ownerName), builder.Like{"lower_name", strings.ToLower(repoName)}))
 				}
 
 				if opts.IncludeDescription {
@@ -611,10 +609,12 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", orderBy))
 		args = append(args, opts.PriorityOwnerID)
 	} else if strings.Count(opts.Keyword, "/") == 1 {
-		// With "owner/repo" search times, prioritise results which match the owner field
-		orgName, _, _ := strings.Cut(opts.Keyword, "/")
-		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END, %s", orderBy))
-		args = append(args, orgName)
+		ownerName, repoName, _ := strings.Cut(strings.ToLower(opts.Keyword), "/")
+		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE LOWER(owner_name) WHEN ? THEN CASE lower_name WHEN ? THEN 0 ELSE 1 END ELSE 2 END, %s", orderBy))
+		args = append(args, ownerName, repoName)
+	} else if len(opts.OrderBy) == 0 && opts.Keyword != "" && !strings.ContainsAny(opts.Keyword, ",/") { // unlike "owner/repo", a bare name never overrides an explicit sort
+		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN lower_name = ? THEN 0 ELSE 1 END, %s", orderBy))
+		args = append(args, strings.ToLower(opts.Keyword))
 	}
 
 	sess := db.GetEngine(ctx)
@@ -658,8 +658,13 @@ func userAllPublicRepoCond(cond builder.Cond, ownerVisibilityLimit []structs.Vis
 
 // AccessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) builder.Cond {
+	unitCond := builder.NewCond()
+	if unitType != unit.TypeInvalid {
+		unitCond = builder.Exists(builder.Select("id").From("repo_unit").Where(builder.Expr("repo_unit.repo_id = `repository`.id").
+			And(builder.Eq{"repo_unit.type": unitType}, builder.NotIn("repo_unit.type", unit.DisabledRepoUnitsGet()))))
+	}
 	if user_model.IsPublicOnlyDoer(user) && !user.IsRestricted {
-		return PublicRepoUnderPublicOwnerCond()
+		return PublicRepoUnderPublicOwnerCond().And(unitCond)
 	}
 	cond := builder.NewCond()
 
@@ -698,7 +703,7 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 			cond = userAllPublicRepoCond(cond, orgVisibilityLimit)
 		}
 	}
-	return cond.And(DoerTokenRepoCond(user))
+	return cond.And(DoerTokenRepoCond(user), unitCond)
 }
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
@@ -822,10 +827,6 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID}, DoerTokenRepoCond(opts.Actor))
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
-	}
-
-	if len(opts.LowerNames) > 0 {
-		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
 	sess := db.GetEngine(ctx)

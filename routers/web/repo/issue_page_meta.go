@@ -231,7 +231,7 @@ func (d *IssuePageMetaData) retrieveMilestonesDataForIssueWriter(ctx *context.Co
 		IsClosed: optional.Some(false),
 	})
 	if err != nil {
-		ctx.ServerError("GetMilestones", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	d.MilestonesData.ClosedMilestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
@@ -239,7 +239,7 @@ func (d *IssuePageMetaData) retrieveMilestonesDataForIssueWriter(ctx *context.Co
 		IsClosed: optional.Some(true),
 	})
 	if err != nil {
-		ctx.ServerError("GetMilestones", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 }
@@ -248,7 +248,7 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 	var err error
 	d.AssigneesData.CandidateAssignees, err = repo_model.GetRepoAssignees(ctx, d.Repository)
 	if err != nil {
-		ctx.ServerError("GetRepoAssignees", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	d.AssigneesData.CandidateAssignees = shared_user.MakeSelfOnTop(ctx.Doer, d.AssigneesData.CandidateAssignees)
@@ -265,14 +265,14 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 
 func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Context) {
 	if err := d.Issue.LoadProjects(ctx); err != nil {
-		ctx.ServerError("LoadProjects", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	// Load column mappings for all projects
 	projectColumnMap, err := d.Issue.ProjectColumnMap(ctx)
 	if err != nil {
-		ctx.ServerError("ProjectColumnMap", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -281,7 +281,7 @@ func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Co
 	for _, project := range d.Issue.Projects {
 		columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
 		if err != nil {
-			ctx.ServerError("GetColumns", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -297,7 +297,7 @@ func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Co
 		if selectedColumn == nil {
 			selectedColumn, err = project.MustDefaultColumn(ctx)
 			if err != nil {
-				ctx.ServerError("MustDefaultColumn", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -392,7 +392,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 
 		reviews, data.OriginalReviews, err = issues_model.GetReviewsByIssueID(ctx, d.Issue.ID)
 		if err != nil {
-			ctx.ServerError("GetReviewersByIssueID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if len(reviews) == 0 && !data.CanChooseReviewer {
@@ -412,13 +412,13 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 		var err error
 		reviewers, err = pull_service.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
 		if err != nil {
-			ctx.ServerError("GetReviewers", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
 		teamReviewers, err = pull_service.GetReviewerTeams(ctx, repo)
 		if err != nil {
-			ctx.ServerError("GetReviewerTeams", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -462,20 +462,20 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 
 	if len(pullReviews) > 0 {
 		if err := reviews.LoadReviewers(ctx); err != nil {
-			ctx.ServerError("LoadReviewers", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		currentPullReviewers := make([]*repoReviewerSelection, 0, len(pullReviews))
 		for _, item := range pullReviews {
 			if item.Review.ReviewerID > 0 {
 				if err := item.Review.LoadReviewer(ctx); err != nil {
-					ctx.ServerError("LoadReviewer", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
 				if err := item.Review.LoadReviewerTeam(ctx); err != nil {
-					ctx.ServerError("LoadReviewerTeam", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 				item.Team = item.Review.ReviewerTeam
@@ -600,7 +600,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 
 	labels, err := issues_model.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("GetLabelsByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	issues_model.SortLabelsForDisplay(labels)

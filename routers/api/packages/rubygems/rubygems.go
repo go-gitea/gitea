@@ -89,7 +89,7 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 	zw.Name = filename
 
 	if err := rubygems_module.NewMarshalEncoder(zw).Encode(specs); err != nil {
-		ctx.ServerError("Download file failed", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -158,7 +158,7 @@ func ServePackageSpecification(ctx *context.Context) {
 	}
 
 	if err := rubygems_module.NewMarshalEncoder(zw).Encode(spec); err != nil {
-		ctx.ServerError("Download file failed", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 

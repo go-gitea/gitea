@@ -11,24 +11,25 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddMetadataMirrorSyncColumns(_ context.Context, x base.EngineMigration) error {
-	type Comment struct {
-		OriginalID int64 `xorm:"index"`
+func AddRunnerNameToActionTask(_ context.Context, x base.EngineMigration) error {
+	type ActionTask struct {
+		RunnerName string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	}
-	type Review struct {
-		OriginalID int64 `xorm:"index"`
-	}
-	type Mirror struct {
-		SyncIssues       bool `xorm:"NOT NULL DEFAULT false"`
-		SyncPullRequests bool `xorm:"NOT NULL DEFAULT false"`
-		SyncTopics       bool `xorm:"NOT NULL DEFAULT false"`
-	}
-	type PullRequest struct {
-		HeadRepoOwner string `xorm:"NOT NULL DEFAULT ''"`
-	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
+
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
-	}, new(Comment), new(Review), new(Mirror), new(PullRequest))
+	}, new(ActionTask)); err != nil {
+		return err
+	}
+
+	_, err := x.Exec(`
+UPDATE action_task SET runner_name = (
+	SELECT action_runner.name FROM action_runner WHERE action_runner.id = action_task.runner_id
+)
+WHERE runner_name = ''
+	AND EXISTS (
+		SELECT 1 FROM action_runner WHERE action_runner.id = action_task.runner_id AND action_runner.name IS NOT NULL
+	);`) // soft-deleted runners are included to keep their names
 	return err
 }

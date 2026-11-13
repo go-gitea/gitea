@@ -132,7 +132,7 @@ func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.Depende
 			var err error
 			perm, err = access_model.GetDoerRepoPermission(ctx, &blocker.Repository, ctx.Doer)
 			if err != nil {
-				ctx.ServerError("GetDoerRepoPermission", err)
+				ctx.ServerErrorAuto(err)
 				return nil, nil
 			}
 			repoPerms[blocker.RepoID] = perm
@@ -268,14 +268,14 @@ func combineLabelComments(issue *issues_model.Issue) {
 func prepareIssueViewLoad(ctx *context.Context) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	issue.Repo = ctx.Repo.Repository
 	ctx.Data["Issue"] = issue
 
 	if err = issue.LoadPullRequest(ctx); err != nil {
-		ctx.ServerError("LoadPullRequest", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	return issue
@@ -292,14 +292,14 @@ func handleViewIssueRedirectExternal(ctx *context.Context) {
 				res, err := vars.ExpandCurlyBrace(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
 				if err != nil {
 					log.Error("unable to expand template vars for issue url. issue: %s, err: %v", metas["index"], err)
-					ctx.ServerError("Expand", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 				ctx.Redirect(res)
 				return
 			}
 		} else if err != nil && !repo_model.IsErrUnitTypeNotExist(err) {
-			ctx.ServerError("GetUnit", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -347,13 +347,13 @@ func ViewIssue(ctx *context.Context) {
 	upload.AddUploadContext(ctx, "comment")
 
 	if err := issue.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	var err error
 	if issue.Comments, err = issue_service.FilterReadableComments(ctx, ctx.Doer, ctx.Repo.Permission, issue, issue.Comments); err != nil {
-		ctx.ServerError("FilterReadableComments", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	combineXRefComments(issue)
@@ -363,7 +363,7 @@ func ViewIssue(ctx *context.Context) {
 	if ctx.IsSigned {
 		// Update issue-user.
 		if err := notifications.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
-			ctx.ServerError("ReadBy", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -416,7 +416,7 @@ func ViewIssue(ctx *context.Context) {
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Tags"] = tags
@@ -438,7 +438,7 @@ func ViewPullMergeBox(ctx *context.Context) {
 		return
 	}
 	if !issue.IsPull {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	prViewInfo := newPullRequestViewInfo()
@@ -476,7 +476,7 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 	// Get Dependencies
 	blockedBy, _, err := issue.BlockedByDependencies(ctx, db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("BlockedByDependencies", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["BlockedByDependencies"], ctx.Data["BlockedByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blockedBy)
@@ -486,7 +486,7 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 
 	blocking, err := issue.BlockingDependencies(ctx)
 	if err != nil {
-		ctx.ServerError("BlockingDependencies", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -553,7 +553,7 @@ func prepareIssueViewSidebarWatch(ctx *context.Context, issue *issues_model.Issu
 		var err error
 		iw.IsWatching, err = issues_model.CheckIssueWatch(ctx, ctx.Doer, issue)
 		if err != nil {
-			ctx.ServerError("CheckIssueWatch", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -572,7 +572,7 @@ func prepareIssueViewSidebarTimeTracker(ctx *context.Context, issue *issues_mode
 		if !isStopwatchRunning {
 			exists, _, swIssue, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
 			if err != nil {
-				ctx.ServerError("HasUserStopwatch", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Data["HasUserStopwatch"] = exists
@@ -588,7 +588,7 @@ func prepareIssueViewSidebarTimeTracker(ctx *context.Context, issue *issues_mode
 	}
 	var err error
 	if ctx.Data["WorkingUsers"], err = issues_model.TotalTimesForEachUser(ctx, &issues_model.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
-		ctx.ServerError("TotalTimesForEachUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 }
@@ -605,7 +605,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxDeleteBranch(ctx *context.Cont
 	if isPullBranchDeletable && prInfo.issue.IsClosed {
 		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pull.HeadRepoID, pull.HeadBranch)
 		if err != nil {
-			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -617,14 +617,14 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxDeleteBranch(ctx *context.Cont
 func prepareIssueViewSidebarPin(ctx *context.Context, issue *issues_model.Issue) {
 	var pinAllowed bool
 	if err := issue.LoadPinOrder(ctx); err != nil {
-		ctx.ServerError("LoadPinOrder", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if issue.PinOrder == 0 {
 		var err error
 		pinAllowed, err = issues_model.IsNewPinAllowed(ctx, issue.RepoID, issue.IsPull)
 		if err != nil {
-			ctx.ServerError("IsNewPinAllowed", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	} else {
@@ -654,11 +654,11 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 	}
 
 	if err := issue.Comments.LoadAttachmentsByIssue(ctx); err != nil {
-		ctx.ServerError("LoadAttachmentsByIssue", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := issue.Comments.LoadPosters(ctx); err != nil {
-		ctx.ServerError("LoadPosters", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -673,7 +673,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			})
 			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
-				ctx.ServerError("RenderString", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			// Check tag.
@@ -685,7 +685,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 
 			comment.ShowRole, err = roleDescriptor(ctx, issue.Repo, comment.Poster, permCache, issue, comment.HasOriginalAuthor())
 			if err != nil {
-				ctx.ServerError("roleDescriptor", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			marked[comment.PosterID] = comment.ShowRole
@@ -694,12 +694,12 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 		} else if comment.Type == issues_model.CommentTypeLabel {
 			if err = comment.LoadLabel(ctx); err != nil {
-				ctx.ServerError("LoadLabel", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		} else if comment.Type == issues_model.CommentTypeMilestone {
 			if err = comment.LoadMilestone(ctx); err != nil {
-				ctx.ServerError("LoadMilestone", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ghostMilestone := &issues_model.Milestone{
@@ -714,7 +714,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 		} else if comment.Type == issues_model.CommentTypeProject {
 			if err = comment.LoadProject(ctx); err != nil {
-				ctx.ServerError("LoadProject", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 
@@ -732,12 +732,12 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 		} else if comment.Type == issues_model.CommentTypeProjectColumn {
 			if err = comment.LoadProject(ctx); err != nil {
-				ctx.ServerError("LoadProject", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		} else if comment.Type == issues_model.CommentTypeAssignees || comment.Type == issues_model.CommentTypeReviewRequest {
 			if err = comment.LoadAssigneeUserAndTeam(ctx); err != nil {
-				ctx.ServerError("LoadAssigneeUserAndTeam", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		} else if comment.Type.HasContentSupport() {
@@ -746,11 +746,11 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			})
 			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
-				ctx.ServerError("RenderString", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if err = comment.LoadReview(ctx); err != nil && !issues_model.IsErrReviewNotExist(err) {
-				ctx.ServerError("LoadReview", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if !comment.HasOriginalAuthor() {
@@ -763,11 +763,11 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				comment.Review.Reviewer = comment.Poster
 			}
 			if err = comment.Review.LoadAttributes(ctx); err != nil {
-				ctx.ServerError("Review.LoadAttributes", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if err = comment.Review.LoadCodeComments(ctx); err != nil {
-				ctx.ServerError("Review.LoadCodeComments", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			for _, codeComments := range comment.Review.CodeComments {
@@ -782,7 +782,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 
 						c.ShowRole, err = roleDescriptor(ctx, issue.Repo, c.Poster, permCache, issue, c.HasOriginalAuthor())
 						if err != nil {
-							ctx.ServerError("roleDescriptor", err)
+							ctx.ServerErrorAuto(err)
 							return
 						}
 						marked[c.PosterID] = c.ShowRole
@@ -793,7 +793,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				}
 			}
 			if err = comment.LoadResolveDoer(ctx); err != nil {
-				ctx.ServerError("LoadResolveDoer", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		} else if comment.Type == issues_model.CommentTypePullRequestPush {
@@ -801,7 +801,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				participants = addParticipant(comment.Poster, participants)
 			}
 			if err = issue_service.LoadCommentPushCommits(ctx, comment); err != nil {
-				ctx.ServerError("LoadCommentPushCommits", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, comment.Commits)
@@ -840,7 +840,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 	if ctx.IsSigned {
 		val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
 		if err != nil {
-			ctx.ServerError("GetUserSetting", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		hiddenCommentTypes, _ = new(big.Int).SetString(val, 10) // we can safely ignore the failed conversion here
@@ -882,7 +882,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		} else if pull.HeadRepo != nil {
 			perm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 			if err != nil {
-				ctx.ServerError("GetDoerRepoPermission", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if perm.CanWrite(unit.TypeCode) {
@@ -905,7 +905,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		}
 		perm, err := access_model.GetDoerRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if !canWriteToHeadRepo { // maintainers maybe allowed to push to head repo even if they can't write to it
@@ -913,12 +913,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		}
 		data.hasPermToMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("IsUserAllowedToMerge", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
 		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
-			ctx.ServerError("CanMarkConversation", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -988,7 +988,7 @@ func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context
 	data := prInfo.MergeBoxData
 	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, pull, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("IsUserAllowedToUpdate", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !userUpdateStyles.MergeAllowed && !userUpdateStyles.RebaseAllowed {
@@ -1025,7 +1025,7 @@ func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context
 func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectionChecks(ctx *context.Context) {
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, prInfo.issue.PullRequest.BaseBranch)
 	if err != nil {
-		ctx.ServerError("GetFirstMatchProtectedBranchRule", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if pb != nil {
@@ -1100,11 +1100,11 @@ func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 	})
 	issue.RenderedContent, err = markdown.RenderString(rctx, issue.Content)
 	if err != nil {
-		ctx.ServerError("RenderString", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if issue.ShowRole, err = roleDescriptor(ctx, issue.Repo, issue.Poster, nil, issue, issue.HasOriginalAuthor()); err != nil {
-		ctx.ServerError("roleDescriptor", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -26,7 +27,19 @@ import (
 	"xorm.io/builder"
 )
 
-var ErrMustCollaborator = util.NewPermissionDeniedErrorf("user must be a collaborator")
+var Errors = sync.OnceValue(func() (ret struct {
+	MustRepoUnitReader       error
+	MustMemberOrCollaborator error
+	MustRepoUnitWriter       error
+	MustHeadRepoCodeWriter   error
+},
+) {
+	ret.MustRepoUnitReader = util.NewPermissionDeniedErrorf("user must have read access")
+	ret.MustMemberOrCollaborator = util.NewPermissionDeniedErrorf("user must be a member or collaborator")
+	ret.MustRepoUnitWriter = util.NewPermissionDeniedErrorf("user must have write access")
+	ret.MustHeadRepoCodeWriter = util.NewPermissionDeniedErrorf("user must have write access to the head repository's code")
+	return ret
+})
 
 const reviewedBy = "Reviewed-by: "
 

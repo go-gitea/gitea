@@ -51,7 +51,7 @@ func InitializeLabels(ctx *context.Context) {
 			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 			return
 		}
-		ctx.ServerError("InitializeLabels", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
@@ -61,7 +61,7 @@ func InitializeLabels(ctx *context.Context) {
 func RetrieveLabelsForList(ctx *context.Context) {
 	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("RetrieveLabelsForList.GetLabels", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -74,7 +74,7 @@ func RetrieveLabelsForList(ctx *context.Context) {
 	if ctx.Repo.Owner.IsOrganization() {
 		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
-			ctx.ServerError("GetLabelsByOrgID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		for _, l := range orgLabels {
@@ -94,13 +94,13 @@ func RetrieveLabelsForList(ctx *context.Context) {
 
 		org, err := organization.GetOrgByName(ctx, ctx.Repo.Owner.LowerName)
 		if err != nil {
-			ctx.ServerError("GetOrgByName", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if ctx.Doer != nil {
 			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
 			if err != nil {
-				ctx.ServerError("org.IsOwnedBy", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Org.OrgLink = org.AsUser().OrganisationLink()
@@ -128,7 +128,7 @@ func NewLabel(ctx *context.Context) {
 		Color:          form.Color,
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
-		ctx.ServerError("NewLabel", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/labels")
@@ -146,7 +146,7 @@ func UpdateLabel(ctx *context.Context) {
 		ctx.JSONErrorNotFound()
 		return
 	} else if err != nil {
-		ctx.ServerError("GetLabelInRepoByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -157,7 +157,7 @@ func UpdateLabel(ctx *context.Context) {
 	l.Color = form.Color
 	l.SetArchived(form.IsArchived)
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
-		ctx.ServerError("UpdateLabel", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/labels")
@@ -185,7 +185,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 	case "clear":
 		for _, issue := range issues {
 			if err := issue_service.ClearLabels(ctx, issue, ctx.Doer); err != nil {
-				ctx.ServerError("ClearLabels", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -197,7 +197,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 			if errors.Is(err, util.ErrNotExist) {
 				ctx.HTTPError(http.StatusNotFound, "GetLabelByID")
 			} else {
-				ctx.ServerError("GetLabelByID", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -222,14 +222,14 @@ func UpdateIssueLabel(ctx *context.Context) {
 		if action == "attach" {
 			for _, issue := range issues {
 				if err = issue_service.AddLabel(ctx, issue, ctx.Doer, label); err != nil {
-					ctx.ServerError("AddLabel", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 			}
 		} else {
 			for _, issue := range issues {
 				if err = issue_service.RemoveLabel(ctx, issue, ctx.Doer, label); err != nil {
-					ctx.ServerError("RemoveLabel", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 			}

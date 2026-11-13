@@ -61,7 +61,13 @@ func testPullReviewReviewerMissed(t *testing.T) {
 
 func testPullReviewLockedOrBlocked(t *testing.T) {
 	require.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: 3, IsLocked: true}, "is_locked"))
-	for _, tc := range []struct{ reviewerID, index, replyCommentID int64 }{{4, 3, 7}, {34, 2, 4}} {
+	for _, tc := range []struct {
+		reviewerID, index, replyCommentID int64
+		webStatus                         int
+	}{
+		{4, 3, 7, http.StatusBadRequest},
+		{34, 2, 4, http.StatusForbidden},
+	} {
 		reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.reviewerID})
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: tc.index})
 		pendingReview, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{Type: issues_model.ReviewTypePending, Issue: issue, Reviewer: reviewer})
@@ -71,10 +77,10 @@ func testPullReviewLockedOrBlocked(t *testing.T) {
 		session := loginUser(t, reviewer.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-		testSubmitReview(t, session, "user2", "repo1", strconv.FormatInt(tc.index, 10), "", "comment", http.StatusBadRequest)
+		testSubmitReview(t, session, "user2", "repo1", strconv.FormatInt(tc.index, 10), "", "comment", tc.webStatus)
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/"+pullPath+"/files/reviews/comments", map[string]string{
 			"origin": "diff", "content": "test", "path": "README.md", "side": "proposed", "line": "1",
-		}), http.StatusBadRequest)
+		}), tc.webStatus)
 		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/"+pullPath+"/reviews", &api.CreatePullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
 		MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/reviews/%d", pullPath, pendingReview.ID), &api.SubmitPullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
 		MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/comments/%d/replies", pullPath, tc.replyCommentID), &api.CreatePullReviewCommentReplyOptions{Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
@@ -82,7 +88,7 @@ func testPullReviewLockedOrBlocked(t *testing.T) {
 	}
 	MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls/3/reviews", &api.CreatePullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)), http.StatusOK)
 
-	for name, status := range map[string]int{"user5": http.StatusBadRequest, "user40": http.StatusOK} {
+	for name, status := range map[string]int{"user5": http.StatusForbidden, "user40": http.StatusOK} {
 		require.NoError(t, db.Insert(t.Context(), &user_model.Blocking{BlockerID: 1, BlockeeID: unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: name}).ID}))
 		testSubmitReview(t, loginUser(t, name), "user2", "repo1", "2", "", "comment", status)
 	}

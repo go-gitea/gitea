@@ -24,13 +24,13 @@ import (
 func TreeList(ctx *context.Context) {
 	tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, "/")
 	if err != nil {
-		ctx.ServerError("Repo.Commit.SubTree", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	entries, err := tree.ListEntriesRecursiveFast(ctx, ctx.Repo.GitRepo)
 	if err != nil {
-		ctx.ServerError("ListEntriesRecursiveFast", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	entries.CustomSort(base.NaturalSortCompare)
@@ -148,7 +148,7 @@ func TreeViewNodes(ctx *context.Context) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.RepoLink, renderedIconPool, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
 	if err != nil {
-		ctx.ServerError("GetTreeViewNodes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]any{"fileTreeNodes": results, "renderedIconPool": renderedIconPool.IconSVGs})
