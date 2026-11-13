@@ -51,56 +51,6 @@ func EmitJobsIfReadyByJobs(jobs []*actions_model.ActionRunJob) {
 	}
 }
 
-// ReEmitUnresolvedRuns re-emits runs whose latest attempt lost a job-completion
-// transition: a job finished, but a dependent is still waiting, blocked or pending.
-func ReEmitUnresolvedRuns(ctx context.Context) error {
-	unresolved, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
-		Statuses: []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending},
-	})
-	if err != nil {
-		return fmt.Errorf("find unresolved jobs: %w", err)
-	}
-
-	runIDs := make(container.Set[int64])
-	for _, job := range unresolved {
-		runIDs.Add(job.RunID)
-	}
-	orderedRunIDs := runIDs.Values()
-	slices.Sort(orderedRunIDs)
-
-	for _, runID := range orderedRunIDs {
-		run, exist, err := db.GetByID[actions_model.ActionRun](ctx, runID)
-		if err != nil {
-			log.Warn("Re-emit unresolved run %d: load run: %v", runID, err)
-			continue
-		}
-		if !exist || run.Status.IsDone() || run.IsAwaitingApproval() {
-			continue
-		}
-		jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
-		if err != nil {
-			log.Warn("Re-emit unresolved run %d: load latest attempt jobs: %v", runID, err)
-			continue
-		}
-		var hasDone, hasUnresolved bool
-		for _, job := range jobs {
-			switch {
-			case job.Status.IsDone():
-				hasDone = true
-			case job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending):
-				hasUnresolved = true
-			}
-		}
-		if !hasDone || !hasUnresolved {
-			continue
-		}
-		if err := EmitJobsIfReadyByRun(run.ID); err != nil {
-			log.Error("Re-emit unresolved run %d: %v", run.ID, err)
-		}
-	}
-	return nil
-}
-
 func jobEmitterQueueHandler(items ...*jobUpdate) []*jobUpdate {
 	ctx := graceful.GetManager().ShutdownContext()
 	var ret []*jobUpdate
@@ -706,14 +656,13 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 
 		newStatus, cancelledJobs, err := PrepareToStartJobWithConcurrency(ctx, actionRunJob)
 		if err != nil {
-			log.Error("PrepareToStartJobWithConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
-		} else {
-			r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
-			for _, cancelled := range cancelledJobs {
-				if sibling, ok := r.jobMap[cancelled.ID]; ok { // a sibling replaced here must not reach the gate again in this pass
-					sibling.Status = cancelled.Status
-					r.statuses[cancelled.ID] = cancelled.Status
-				}
+			return nil, fmt.Errorf("resolve: prepare job %d with concurrency: %w", id, err)
+		}
+		r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
+		for _, cancelled := range cancelledJobs {
+			if sibling, ok := r.jobMap[cancelled.ID]; ok { // a sibling replaced here must not reach the gate again in this pass
+				sibling.Status = cancelled.Status
+				r.statuses[cancelled.ID] = cancelled.Status
 			}
 		}
 

@@ -130,7 +130,7 @@ func TestTaskCancellingFinalizesToCancelled(t *testing.T) {
 			Id:        task.ID,
 			Result:    result,
 			StoppedAt: timestamppb.Now(),
-		})
+		}, nil)
 		require.NoError(t, err)
 		assert.Equal(t, StatusCancelled, updatedTask.Status)
 
@@ -205,7 +205,7 @@ func TestStopTaskCancellingFallsBackToCancelled(t *testing.T) {
 			Id:        task.ID,
 			Result:    runnerv1.Result_RESULT_SUCCESS,
 			StoppedAt: timestamppb.Now(),
-		})
+		}, nil)
 		require.NoError(t, err)
 		assert.Equal(t, StatusCancelled, late.Status)
 		assert.Equal(t, runnerv1.Result_RESULT_CANCELLED, late.Status.AsResult())
@@ -368,20 +368,25 @@ func TestUpdateTaskByStateIsAtomic(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	task, job := newRunningTaskForCancelling(t, "atomic-report-job", true)
 	require.NoError(t, db.Insert(t.Context(), &ActionTaskStep{TaskID: task.ID, RepoID: task.RepoID, Status: StatusRunning}))
-	unittest.GetXORMEngine().AddHook(&failFirstStepWrite{})
 	skewed := &timestamppb.Timestamp{Seconds: 1}
 	finalState := &runnerv1.TaskState{Id: task.ID, Result: runnerv1.Result_RESULT_SUCCESS, StoppedAt: skewed, Steps: []*runnerv1.StepState{{StartedAt: skewed}}}
+	outputs := map[string]string{"result": "value"}
+	_, err := UpdateTaskByState(t.Context(), task.RunnerID+1, finalState, outputs)
+	require.Error(t, err)
+	unittest.GetXORMEngine().AddHook(&failFirstStepWrite{})
 	before := timeutil.TimeStampNow()
-	_, err := UpdateTaskByState(t.Context(), task.RunnerID, finalState)
+	_, err = UpdateTaskByState(t.Context(), task.RunnerID, finalState, outputs)
 	require.Error(t, err)
 	assert.Equal(t, StatusRunning, unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID}).Status)
 	assert.Equal(t, StatusRunning, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status)
-	_, err = UpdateTaskByState(t.Context(), task.RunnerID, finalState)
+	unittest.AssertNotExistsBean(t, &ActionTaskOutput{TaskID: task.ID})
+	_, err = UpdateTaskByState(t.Context(), task.RunnerID, finalState, outputs)
 	require.NoError(t, err)
 	gotJob := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
 	assert.Equal(t, StatusSuccess, gotJob.Status)
 	assert.GreaterOrEqual(t, gotJob.Stopped, before)
 	assert.GreaterOrEqual(t, unittest.AssertExistsAndLoadBean(t, &ActionTaskStep{TaskID: task.ID}).Started, before)
+	assert.Equal(t, "value", unittest.AssertExistsAndLoadBean(t, &ActionTaskOutput{TaskID: task.ID, OutputKey: "result"}).OutputValue)
 }
 
 func TestUpdateTaskByStateReportedSteps(t *testing.T) {
@@ -391,7 +396,7 @@ func TestUpdateTaskByStateReportedSteps(t *testing.T) {
 
 	report := func(t *testing.T, steps []*runnerv1.StepState, reported ...*runnerv1.StepState) []*ActionTaskStep {
 		t.Helper()
-		_, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{Id: task.ID, Steps: steps, ReportedSteps: reported})
+		_, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{Id: task.ID, Steps: steps, ReportedSteps: reported}, nil)
 		require.NoError(t, err)
 		got, err := GetTaskStepsByTaskID(t.Context(), task.ID)
 		require.NoError(t, err)
@@ -452,7 +457,7 @@ func TestUpdateTaskByStateReportedSteps(t *testing.T) {
 		_, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{
 			Id: task.ID, Result: runnerv1.Result_RESULT_FAILURE,
 			ReportedSteps: []*runnerv1.StepState{doneSetup, runningMain, cleanup},
-		})
+		}, nil)
 		require.NoError(t, err)
 		got, err := GetTaskStepsByTaskID(t.Context(), task.ID)
 		require.NoError(t, err)

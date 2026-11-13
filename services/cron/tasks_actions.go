@@ -18,7 +18,6 @@ func initActionsTasks() {
 	registerStopZombieTasks()
 	registerStopEndlessTasks()
 	registerCancelAbandonedJobs()
-	registerReEmitUnresolvedActionRuns()
 	registerScheduleTasks()
 	registerActionsCleanup()
 	registerCleanupActionRuns()
@@ -51,16 +50,6 @@ func registerCancelAbandonedJobs() {
 		Schedule:   "@every 6h",
 	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return actions_service.CancelAbandonedJobs(ctx)
-	})
-}
-
-func registerReEmitUnresolvedActionRuns() {
-	RegisterTaskFatal("reemit_unresolved_action_runs", &BaseConfig{
-		Enabled:    true,
-		RunAtStart: true,
-		Schedule:   "@every 5m",
-	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
-		return actions_service.ReEmitUnresolvedRuns(ctx)
 	})
 }
 
