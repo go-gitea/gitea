@@ -60,6 +60,54 @@ func assertMatch(t testing.TB, issue *issues_model.Issue, keyword string) {
 	assert.True(t, matches)
 }
 
+func TestIssueListButtons(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	issueUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypeIssues})
+	session := loginUser(t, "user2")
+	for _, tc := range []struct {
+		name        string
+		list        string
+		signedIn    bool
+		archived    bool
+		restriction string
+		button      string
+	}{
+		{"issue owner", "issues", true, false, "reader", "New Issue"},
+		{"issue anonymous", "issues", false, false, "reader", "New Issue"},
+		{"issue restricted", "issues", false, false, "writer", ""},
+		{"issue archived", "issues", true, true, "reader", ""},
+		{"pull owner", "pulls", true, false, "reader", "New Pull Request"},
+		{"pull anonymous", "pulls", false, false, "reader", "Compare commits"},
+		{"pull restricted", "pulls", false, false, "writer", "Compare commits"},
+		// {"pull archived", "pulls", true, true, "reader", ""}, // TODO: the existing behavior is using 404 for archived pulls, maybe it's not right
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo.IsArchived = tc.archived
+			require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), repo, "is_archived"))
+			issueUnit.IssuesConfig().CreationRestriction = tc.restriction
+			require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), issueUnit))
+			updateRepoPullRequestConfig(t, repo.ID, func(c *repo_model.PullRequestsConfig) { c.CreationRestriction = tc.restriction })
+
+			req := NewRequest(t, "GET", "/user2/repo1/"+tc.list)
+			requestSession := emptyTestSession(t)
+			if tc.signedIn {
+				requestSession = session
+			}
+			resp := requestSession.MakeRequest(t, req, http.StatusOK)
+			button := NewHTMLParser(t, resp.Body).doc.Find(".list-header .issue-list-new")
+			if tc.button == "" {
+				assert.Zero(t, button.Length())
+			} else {
+				require.Equal(t, 1, button.Length())
+				assert.Equal(t, tc.button, strings.TrimSpace(button.Text()))
+				assert.False(t, button.HasClass("disabled"))
+			}
+		})
+	}
+}
+
 func TestIssueViews(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

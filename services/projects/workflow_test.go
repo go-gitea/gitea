@@ -12,6 +12,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -279,7 +280,9 @@ func TestWorkflowExecution(t *testing.T) {
 		*labelChanges = labelChangeRecorder{}
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		issue := &issues_model.Issue{RepoID: repo.ID, PosterID: doer.ID, Title: "new item"}
-		require.NoError(t, issue_service.NewIssue(t.Context(), repo, issue, []int64{1}, nil, nil, []int64{1}))
+		permission, err := access_model.GetDoerRepoPermission(t.Context(), repo, doer)
+		require.NoError(t, err)
+		require.NoError(t, issue_service.NewIssue(t.Context(), repo, permission, issue, []int64{1}, nil, nil, []int64{1}))
 		assert.Equal(t, [][]int64{{1}, {labelID}}, labelChanges.added)
 		assert.EqualValues(t, 3, unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID}).ProjectColumnID)
 	})

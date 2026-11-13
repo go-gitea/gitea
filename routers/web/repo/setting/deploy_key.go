@@ -28,7 +28,7 @@ func DeployKeys(ctx *context.Context) {
 
 	keys, err := db.Find[deploykey_model.DeployKey](ctx, deploykey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
-		ctx.ServerError("ListDeployKeys", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["RepoDeployKeys"] = keys
@@ -65,7 +65,7 @@ func DeployKeysPost(ctx *context.Context) {
 		case asymkey_model.IsErrKeyNameAlreadyUsed(err), deploykey_model.IsErrDeployKeyNameAlreadyUsed(err):
 			ctx.JSONErrorWithField(ctx.Tr("repo.settings.key_name_used"), "title")
 		default:
-			ctx.ServerError("AddDeployKey", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -78,7 +78,7 @@ func DeployKeysPost(ctx *context.Context) {
 func DeleteDeployKey(ctx *context.Context) {
 	key, err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.FormInt64("id"))
 	if err != nil && !deploykey_model.IsErrDeployKeyNotExist(err) { // a key that is already gone leaves the caller with the state it asked for
-		ctx.ServerError("DeleteDeployKey", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if key != nil {
@@ -99,7 +99,7 @@ func DeployKeyGenerateToken(ctx *context.Context) {
 		if deploykey_model.IsErrDeployKeyNameAlreadyUsed(err) {
 			ctx.JSONErrorWithField(ctx.Tr("repo.settings.key_name_used"), "title")
 		} else {
-			ctx.ServerError("AddDeployToken", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -114,7 +114,7 @@ func DeployKeyRegenerateToken(ctx *context.Context) {
 		if deploykey_model.IsErrDeployKeyNotExist(err) {
 			ctx.JSONErrorNotFound()
 		} else {
-			ctx.ServerError("RegenerateDeployToken", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}

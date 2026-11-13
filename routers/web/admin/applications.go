@@ -37,7 +37,7 @@ func Applications(ctx *context.Context) {
 		IsGlobal: true,
 	})
 	if err != nil {
-		ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Applications"] = apps

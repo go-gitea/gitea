@@ -1569,7 +1569,6 @@
   "repo.compare.compare_head": "comparar",
   "repo.pulls.desc": "Habilitar pull requests e revisões de código.",
   "repo.pulls.new": "Novo Pull Request",
-  "repo.pulls.new.must_collaborator": "Você precisa ser um colaborador para criar um pull request.",
   "repo.pulls.view": "Ver Pull Request",
   "repo.pulls.compare_changes": "Novo Pull Request",
   "repo.pulls.allow_edits_from_maintainers": "Permitir edições de mantenedores",

@@ -86,17 +86,13 @@ var pullRequestTemplateCandidates = []string{
 func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetRepositoryByID", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 
 	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetDoerRepoPermission", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 
@@ -107,7 +103,7 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 			unit.TypeCode,
 			ctx.Repo,
 			perm)
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 	return repo
@@ -116,19 +112,15 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetIssueByIndex", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return nil, false
 	}
 	if err = issue.LoadPoster(ctx); err != nil {
-		ctx.ServerError("LoadPoster", err)
+		ctx.ServerErrorAuto(err)
 		return nil, false
 	}
 	if err := issue.LoadRepo(ctx); err != nil {
-		ctx.ServerError("LoadRepo", err)
+		ctx.ServerErrorAuto(err)
 		return nil, false
 	}
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, emoji.ReplaceAliases(issue.Title))
@@ -140,19 +132,19 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 	}
 
 	if err = issue.LoadPullRequest(ctx); err != nil {
-		ctx.ServerError("LoadPullRequest", err)
+		ctx.ServerErrorAuto(err)
 		return nil, false
 	}
 
 	if err = issue.PullRequest.LoadHeadRepo(ctx); err != nil {
-		ctx.ServerError("LoadHeadRepo", err)
+		ctx.ServerErrorAuto(err)
 		return nil, false
 	}
 
 	if ctx.IsSigned {
 		// Update issue-user.
 		if err := notifications.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
-			ctx.ServerError("ReadBy", err)
+			ctx.ServerErrorAuto(err)
 			return nil, false
 		}
 	}
@@ -343,12 +335,12 @@ func (prInfo *pullRequestViewInfo) prepareViewInfo(ctx *context.Context, issue *
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 
 	if err := issue.PullRequest.LoadHeadRepo(ctx); err != nil {
-		ctx.ServerError("LoadHeadRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
-		ctx.ServerError("LoadBaseRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -652,13 +644,13 @@ func ViewPullCommits(ctx *context.Context) {
 	}
 	prCompareInfo := &prViewInfo.CompareInfo
 	if prCompareInfo.HeadCommitID == "" {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	commits, err := processGitCommits(ctx, prCompareInfo.Commits)
 	if err != nil {
-		ctx.ServerError("processGitCommits", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Commits"] = commits
@@ -726,7 +718,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 	prCompareInfo := &prViewInfo.CompareInfo
 	if prCompareInfo.HeadCommitID == "" {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -753,7 +745,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	if afterCommit == nil && afterCommitID == headCommitID {
 		afterCommit, err = gitRepo.GetCommit(ctx, afterCommitID)
 		if err != nil {
-			ctx.ServerError("GetCommit(afterCommitID)", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -762,7 +754,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 	if afterCommit == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -770,7 +762,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	if isSingleCommit {
 		beforeCommit, err = afterCommit.Parent(ctx, ctx.Repo.GitRepo, 0)
 		if err != nil {
-			ctx.ServerError("afterCommit.Parent", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		beforeCommitID = beforeCommit.ID.String()
@@ -781,13 +773,13 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 			// base commit is not in the list of the pull request commits
 			beforeCommit, err = gitRepo.GetCommit(ctx, beforeCommitID)
 			if err != nil {
-				ctx.ServerError("GetCommit(beforeCommitID)", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
 	}
 	if beforeCommit == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -822,7 +814,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)
 	if err != nil {
-		ctx.ServerError("GetDiff", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -835,7 +827,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	if ctx.IsSigned && isShowAllCommits {
 		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
 		if err != nil {
-			ctx.ServerError("SyncUserSpecificDiff", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if reviewState != nil {
@@ -845,7 +837,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, &diffCommonOptions)
 	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
@@ -857,7 +849,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	if err = diff.LoadComments(ctx, issue, ctx.Doer, GetShowOutdatedComments(ctx)); err != nil {
-		ctx.ServerError("LoadComments", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -870,7 +862,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		}
 	}
 	if err := allComments.LoadAttachments(ctx); err != nil {
-		ctx.ServerError("LoadAttachments", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -888,7 +880,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		// note: use mergeBase is set to false because we already have the merge base from the pull request info
 		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, beforeCommitID, afterCommitID)
 		if err != nil {
-			ctx.ServerError("GetDiffTree", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		var filesViewedState map[string]pull_model.ViewedState
@@ -914,7 +906,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
 
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
-		ctx.ServerError("CanMarkConversation", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -922,7 +914,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
-		ctx.ServerError("GetRepoAssignees", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
@@ -932,7 +924,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	if ctx.Doer != nil {
 		currentPendingReview, err = issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
 		if err != nil && !issues_model.IsErrReviewNotExist(err) {
-			ctx.ServerError("GetCurrentReview", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if currentPendingReview != nil {
@@ -942,7 +934,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 				IssueID:  issue.ID,
 			})
 			if err != nil {
-				ctx.ServerError("CountComments", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -967,7 +959,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 	if isShowAllCommits && pull.Flow == issues_model.PullRequestFlowGithub {
 		if err := pull.LoadHeadRepo(ctx); err != nil {
-			ctx.ServerError("LoadHeadRepo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -975,7 +967,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 			if !pull.HasMerged && ctx.Doer != nil {
 				headPerm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
-					ctx.ServerError("GetDoerRepoPermission", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 
@@ -1014,26 +1006,26 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 	if issue.IsClosed {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	if issue.PullRequest.HasMerged {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
-		ctx.ServerError("LoadBaseRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := issue.PullRequest.LoadHeadRepo(ctx); err != nil {
-		ctx.ServerError("LoadHeadRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("IsUserAllowedToMerge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -1054,7 +1046,7 @@ func UpdatePullRequest(ctx *context.Context) {
 				"Details": utils.EscapeFlashErrorString(conflictError.StdErr) + "\n" + utils.EscapeFlashErrorString(conflictError.StdOut),
 			})
 			if err != nil {
-				ctx.ServerError("UpdatePullRequest.HTMLString", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.JSONError(flashError)
@@ -1066,7 +1058,7 @@ func UpdatePullRequest(ctx *context.Context) {
 				"Details": utils.EscapeFlashErrorString(conflictError.StdErr) + "\n" + utils.EscapeFlashErrorString(conflictError.StdOut),
 			})
 			if err != nil {
-				ctx.ServerError("UpdatePullRequest.HTMLString", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.JSONError(flashError)
@@ -1131,7 +1123,7 @@ func MergePullRequest(ctx *context.Context) {
 		case errors.Is(err, pull_service.ErrDependenciesLeft):
 			ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 		default:
-			ctx.ServerError("WebCheck", err)
+			ctx.ServerErrorAuto(err)
 		}
 
 		return
@@ -1146,7 +1138,7 @@ func MergePullRequest(ctx *context.Context) {
 			case errors.Is(err, util.ErrInvalidArgument):
 				ctx.JSONError(ctx.Tr("repo.pulls.wrong_commit_id"))
 			default:
-				ctx.ServerError("MergedManually", err)
+				ctx.ServerErrorAuto(err)
 			}
 
 			return
@@ -1161,7 +1153,7 @@ func MergePullRequest(ctx *context.Context) {
 		var err error
 		message, _, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
 		if err != nil {
-			ctx.ServerError("GetDefaultMergeMessage", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -1181,7 +1173,7 @@ func MergePullRequest(ctx *context.Context) {
 		// schedule auto merge
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
 		if err != nil {
-			ctx.ServerError("ScheduleAutoMerge", err)
+			ctx.ServerErrorAuto(err)
 			return
 		} else if scheduled {
 			// nothing more to do ...
@@ -1201,7 +1193,7 @@ func MergePullRequest(ctx *context.Context) {
 				"Details": utils.EscapeFlashErrorString(conflictError.StdErr) + "\n" + utils.EscapeFlashErrorString(conflictError.StdOut),
 			})
 			if err != nil {
-				ctx.ServerError("MergePullRequest.HTMLString", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Flash.Error(flashError)
@@ -1213,7 +1205,7 @@ func MergePullRequest(ctx *context.Context) {
 				"Details": utils.EscapeFlashErrorString(conflictError.StdErr) + "\n" + utils.EscapeFlashErrorString(conflictError.StdOut),
 			})
 			if err != nil {
-				ctx.ServerError("MergePullRequest.HTMLString", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Flash.Error(flashError)
@@ -1242,14 +1234,14 @@ func MergePullRequest(ctx *context.Context) {
 					"Details": utils.EscapeFlashErrorString(pushrejErr.Message),
 				})
 				if err != nil {
-					ctx.ServerError("MergePullRequest.HTMLString", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 				ctx.Flash.Error(flashError)
 			}
 			ctx.JSONRedirect(issue.Link())
 		} else {
-			ctx.ServerError("Merge", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -1259,15 +1251,12 @@ func MergePullRequest(ctx *context.Context) {
 	// 1. the ctx might have been canceled ("Merge" might take a very long time and the user closes their browser)
 	// 2. it is inconsistent with API/AutoMerge which all miss the call
 	if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
-		ctx.ServerError("stopTimerIfAvailable", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if deleteBranchAfterMerge {
 		deleteBranchAfterMergeAndFlashMessage(ctx, pr.ID)
-		if ctx.Written() {
-			return
-		}
 	}
 	ctx.JSONRedirect(issue.Link())
 }
@@ -1278,16 +1267,11 @@ func deleteBranchAfterMergeAndFlashMessage(ctx *context.Context, prID int64) {
 	if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
 		// no need to show error to end users if no permission or branch not exist
 		log.Debug("DeleteBranchAfterMerge (ignore unnecessary error): %v", err)
-		return
-	} else if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-		ctx.Flash.Error(errTr.Translate(ctx.Locale))
-		return
-	} else if err == nil {
+	} else if err != nil {
+		ctx.FlashErrorAuto(err)
+	} else {
 		ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))
-		return
 	}
-	// catch unknown errors
-	ctx.ServerError("DeleteBranchAfterMerge", err)
 }
 
 // CancelAutoMergePullRequest cancels a scheduled pr
@@ -1299,18 +1283,18 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 
 	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, issue.PullRequest.ID)
 	if err != nil {
-		ctx.ServerError("GetScheduledMergeByPullID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !exist {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	if ctx.Doer.ID != autoMerge.DoerID {
 		allowed, err := pull_service.IsUserAllowedToMerge(ctx, issue.PullRequest, ctx.Repo.Permission, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("IsUserAllowedToMerge", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if !allowed {
@@ -1325,7 +1309,7 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 			return
 		}
-		ctx.ServerError("RemoveScheduledAutoMerge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_canceled_schedule"))
@@ -1346,7 +1330,7 @@ func PullsNewRedirect(ctx *context.Context) {
 	baseRepo, headRepo := ctx.Repo.Repository, ctx.Repo.Repository
 	if headRepo.IsFork {
 		if err := headRepo.GetBaseRepo(ctx); err != nil {
-			ctx.ServerError("GetBaseRepo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		baseRepo = headRepo.BaseRepo
@@ -1392,7 +1376,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	// Check if a pull request already exists with the same head and base branch.
 	pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, repo.ID, ci.HeadRef.ShortName(), ci.BaseRef.ShortName(), issues_model.PullRequestFlowGithub)
 	if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
-		ctx.ServerError("GetUnmergedPullRequest", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if pr != nil {
@@ -1441,11 +1425,9 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		TeamReviewers:   validateRet.TeamReviewers,
 		ProjectIDs:      projectIDs,
 	}
-	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
+	if err := pull_service.NewPullRequest(ctx, ctx.Repo.Permission, prOpts); err != nil {
 		var pushrejErr *git.ErrPushRejected
 		switch {
-		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
-			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		case errors.As(err, &pushrejErr):
 			message := pushrejErr.Message
 			if len(message) == 0 {
@@ -1458,35 +1440,12 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 				"Details": utils.EscapeFlashErrorString(pushrejErr.Message),
 			})
 			if err != nil {
-				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
-				return
-			}
-			ctx.JSONError(flashError)
-		case errors.Is(err, user_model.ErrBlockedUser):
-			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.pulls.push_rejected"),
-				"Summary": ctx.Tr("repo.pulls.new.blocked_user"),
-			})
-			if err != nil {
-				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
-				return
-			}
-			ctx.JSONError(flashError)
-		case errors.Is(err, issues_model.ErrMustCollaborator):
-			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.pulls.push_rejected"),
-				"Summary": ctx.Tr("repo.pulls.new.must_collaborator"),
-			})
-			if err != nil {
-				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.JSONError(flashError)
 		default:
-			// It's an unexpected error.
-			// If it happens, we should add another case to handle it.
-			log.Error("Unexpected error of NewPullRequest: %T %s", err, err)
-			ctx.ServerError("CompareAndPullRequest", err)
+			ctx.JSONErrorAuto(err)
 		}
 		return
 	}
@@ -1503,9 +1462,6 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 	deleteBranchAfterMergeAndFlashMessage(ctx, issue.PullRequest.ID)
-	if ctx.Written() {
-		return
-	}
 	ctx.JSONRedirect(issue.Link())
 }
 
@@ -1523,18 +1479,14 @@ func DownloadPullPatch(ctx *context.Context) {
 func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetPullRequestByIndex", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	binary := ctx.FormBool("binary")
 
 	if err := pull_service.DownloadDiffOrPatch(ctx, pr, ctx, patch, binary); err != nil {
-		ctx.ServerError("DownloadDiffOrPatch", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 }
@@ -1611,7 +1563,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"user_error": errorMessage,
 			})
 		default:
-			ctx.ServerError("UpdatePullRequestTarget", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -1628,11 +1580,7 @@ func SetAllowEdits(ctx *context.Context) {
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetPullRequestByIndex", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -1641,7 +1589,7 @@ func SetAllowEdits(ctx *context.Context) {
 			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
-		ctx.ServerError("SetAllowEdits", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

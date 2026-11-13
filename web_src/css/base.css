@@ -357,8 +357,7 @@ a.disabled {
 }
 
 a.label,
-.ui .menu a,
-.ui.cards a.card {
+.ui .menu a {
   text-decoration-line: none !important;
 }
 
