@@ -236,6 +236,32 @@ func testGetIndividualUserRepoPermission(t *testing.T) {
 		require.Empty(t, users)
 	})
 
+	t.Run("DoerWithAdminTeamWithoutAccessRow", func(t *testing.T) {
+		_, err := db.GetEngine(ctx).ID(team.ID).Cols("authorize").Update(&organization.Team{AccessMode: perm_model.AccessModeAdmin})
+		require.NoError(t, err)
+		defer func() {
+			_, err := db.GetEngine(ctx).ID(team.ID).Cols("authorize").Update(&organization.Team{AccessMode: perm_model.AccessModeNone})
+			require.NoError(t, err)
+		}()
+
+		for _, repo := range []*repo_model.Repository{repo3, repo32} {
+			perm, err := GetIndividualUserRepoPermission(ctx, repo, user)
+			require.NoError(t, err)
+			assert.Equal(t, perm_model.AccessModeAdmin, perm.AccessMode)
+			assert.True(t, perm.IsAdmin())
+			assert.False(t, perm.IsOwner())
+			for _, repoUnit := range repo.Units {
+				assert.Equal(t, perm_model.AccessModeAdmin, perm.UnitAccessMode(repoUnit.Type))
+			}
+		}
+
+		unrelatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+		require.Equal(t, org.ID, unrelatedRepo.OwnerID)
+		perm, err := GetIndividualUserRepoPermission(ctx, unrelatedRepo, user)
+		require.NoError(t, err)
+		assert.False(t, perm.IsAdmin())
+	})
+
 	require.NoError(t, db.Insert(ctx, repo_model.Collaboration{RepoID: repo3.ID, UserID: user.ID, Mode: perm_model.AccessModeWrite}))
 	require.NoError(t, db.Insert(ctx, Access{RepoID: repo3.ID, UserID: user.ID, Mode: perm_model.AccessModeWrite}))
 	t.Run("DoerWithReadIssueTeamAndWriteCollaboratorOnPrivateRepo", func(t *testing.T) {
