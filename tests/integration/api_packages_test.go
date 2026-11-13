@@ -177,7 +177,7 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("RepositoryLink", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		_, err := packages_model.GetPackageByName(t.Context(), user.ID, packages_model.TypeGeneric, packageName)
+		pkg, err := packages_model.GetPackageByName(t.Context(), user.ID, packages_model.TypeGeneric, packageName)
 		assert.NoError(t, err)
 
 		// no repository link
@@ -187,6 +187,12 @@ func TestPackageAPI(t *testing.T) {
 
 		ap1 := DecodeJSON(t, resp, &api.Package{})
 		assert.Nil(t, ap1.Repository)
+
+		settingsRepoName := func() string {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/settings/generic/%s", user.Name, packageName))
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			return NewHTMLParser(t, resp.Body).Find(`input[name="repo_name"]`).AttrOr("value", "missing")
+		}
 
 		// create a repository
 		newRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
@@ -205,6 +211,7 @@ func TestPackageAPI(t *testing.T) {
 		ap2 := DecodeJSON(t, resp, &api.Package{})
 		assert.NotNil(t, ap2.Repository)
 		assert.Equal(t, newRepo.ID, ap2.Repository.ID)
+		assert.Equal(t, newRepo.Name, settingsRepoName())
 
 		// link to repository without write access, should fail
 		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/link/%s", user.Name, packageName, "repo3")).AddTokenAuth(tokenWritePackage)
@@ -223,7 +230,7 @@ func TestPackageAPI(t *testing.T) {
 
 		// force link to a repository the currently logged-in user doesn't have access to
 		privateRepoID := int64(6)
-		assert.NoError(t, packages_model.SetRepositoryLink(t.Context(), ap1.ID, privateRepoID))
+		assert.NoError(t, packages_model.SetRepositoryLink(t.Context(), pkg.ID, privateRepoID))
 
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).AddTokenAuth(tokenReadPackage)
 		resp = MakeRequest(t, req, http.StatusOK)
@@ -231,9 +238,7 @@ func TestPackageAPI(t *testing.T) {
 		ap4 := DecodeJSON(t, resp, &api.Package{})
 		assert.Nil(t, ap4.Repository)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/settings/generic/%s", user.Name, packageName))
-		resp = session.MakeRequest(t, req, http.StatusOK)
-		assert.Zero(t, NewHTMLParser(t, resp.Body).Find(`input[name="repo_name"]`).Length())
+		assert.Empty(t, settingsRepoName())
 
 		assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(t.Context(), privateRepoID))
 	})

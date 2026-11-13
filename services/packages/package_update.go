@@ -9,7 +9,6 @@ import (
 
 	org_model "gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
-	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -62,17 +61,12 @@ func canDoerManagePackage(ctx context.Context, pkg *packages_model.Package, doer
 		return true
 	}
 
-	if pkg.RepoID != 0 {
-		// old behavior: repo admin can manage the package linked to the repo
-		teams, _ = org_model.GetUserRepoTeams(ctx, owner.ID, doer.ID, pkg.RepoID)
-		for _, team := range teams {
-			if team.AccessMode >= perm.AccessModeAdmin {
-				return true
-			}
-		}
+	if pkg.RepoID == 0 {
+		return false
 	}
-
-	return false
+	// old behavior: repo admin can manage the package linked to the repo
+	repo, err := repo_model.GetRepositoryByID(ctx, pkg.RepoID)
+	return err == nil && access_model.IsUserRealRepoAdmin(ctx, repo, doer)
 }
 
 func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer *user_model.User) error {

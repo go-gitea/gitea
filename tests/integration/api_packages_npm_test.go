@@ -16,10 +16,7 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
 	"gitea.dev/models/packages"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/packages/npm"
@@ -501,7 +498,6 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("Delete", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 3, Type: unit.TypePackages}))
 		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion+"-dummy", setting.AppURL+"org3/repo3.git"))).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
