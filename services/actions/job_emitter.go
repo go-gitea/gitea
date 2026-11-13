@@ -656,14 +656,13 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 
 		newStatus, cancelledJobs, err := PrepareToStartJobWithConcurrency(ctx, actionRunJob)
 		if err != nil {
-			log.Error("PrepareToStartJobWithConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
-		} else {
-			r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
-			for _, cancelled := range cancelledJobs {
-				if sibling, ok := r.jobMap[cancelled.ID]; ok { // a sibling replaced here must not reach the gate again in this pass
-					sibling.Status = cancelled.Status
-					r.statuses[cancelled.ID] = cancelled.Status
-				}
+			return nil, fmt.Errorf("resolve: prepare job %d with concurrency: %w", id, err)
+		}
+		r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
+		for _, cancelled := range cancelledJobs {
+			if sibling, ok := r.jobMap[cancelled.ID]; ok { // a sibling replaced here must not reach the gate again in this pass
+				sibling.Status = cancelled.Status
+				r.statuses[cancelled.ID] = cancelled.Status
 			}
 		}
 

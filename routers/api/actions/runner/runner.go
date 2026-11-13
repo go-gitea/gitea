@@ -223,30 +223,11 @@ func (s *Service) UpdateTask(
 ) (*runnerv1.UpdateTaskResponse, error) {
 	runner := GetRunner(ctx)
 
-	task, err := actions_model.UpdateTaskByState(ctx, runner.ID, req.State)
+	task, err := actions_model.UpdateTaskByState(ctx, runner.ID, req.State, req.Outputs)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
 
-	for k, v := range req.Outputs {
-		if len(k) > 255 {
-			log.Warn("Ignore the output of task %d because the key is too long: %q", task.ID, k)
-			continue
-		}
-		// The value can be a maximum of 1 MB
-		if l := len(v); l > 1024*1024 {
-			log.Warn("Ignore the output %q of task %d because the value is too long: %v", k, task.ID, l)
-			continue
-		}
-		// There's another limitation on GitHub that the total of all outputs in a workflow run can be a maximum of 50 MB.
-		// We don't check the total size here because it's not easy to do, and it doesn't really worth it.
-		// See https://docs.github.com/en/actions/using-jobs/defining-outputs-for-jobs
-
-		if err := actions_model.InsertTaskOutputIfNotExist(ctx, task.ID, k, v); err != nil {
-			log.Warn("Failed to insert the output %q of task %d: %v", k, task.ID, err)
-			// It's ok not to return errors, the runner will resend the outputs.
-		}
-	}
 	sentOutputs, err := actions_model.FindTaskOutputKeyByTaskID(ctx, task.ID)
 	if err != nil {
 		log.Warn("Failed to find the sent outputs of task %d: %v", task.ID, err)
@@ -268,7 +249,7 @@ func (s *Service) UpdateTask(
 
 	if req.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReadyByRun(task.Job.RunID); err != nil {
-			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
+			return nil, status.Errorf(codes.Internal, "emit ready jobs of run %d: %v", task.Job.RunID, err) // the runner retries and re-emits
 		}
 		if task.Job.Run.Status.IsDone() {
 			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, task.Job.RepoID, task.Job.RunID)
