@@ -22,7 +22,7 @@ Gitea's private styles use `g-` prefix.
   text-overflow: ellipsis;
 }
 
-/* make interact-xx classes can be used standalone, reset the <a> and <button> styles to default text styles */
+/* interact-xx classes can be used standalone, reset the <a> and <button> styles to default text styles */
 .interact-fg, .interact-bg, .interact-link {
   background: transparent;
   border-radius: 0;
