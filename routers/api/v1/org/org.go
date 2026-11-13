@@ -12,6 +12,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	audit_model "gitea.dev/models/audit"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -160,6 +161,24 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	}
 
 	org := organization.OrgFromUser(o)
+	canViewRoles := false
+	if !ctx.PublicOnly {
+		scope, hasScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+		canViewRoles = ctx.Doer.ID == ctx.ContextUser.ID || ctx.Doer.IsAdmin && (!hasScope || scope == auth_model.AccessTokenScopeAll)
+		if !canViewRoles && !ctx.Doer.IsRestricted {
+			isDoerMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			canViewRoles = isDoerMember
+		}
+	}
+	if !canViewRoles {
+		ctx.JSON(http.StatusOK, op)
+		return
+	}
+
 	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
