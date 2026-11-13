@@ -76,7 +76,8 @@
 							</div>
 						</div>
 
-						<div class="ui dropdown jump item" data-test-id="sort-runs" aria-label="{{ctx.Locale.Tr "repo.issues.filter_sort"}}">
+						<div class="ui dropdown jump item" role="button" data-test-id="sort-runs" aria-label="{{ctx.Locale.Tr "actions.runs.order"}}">
+							{{svg "octicon-sort-desc"}}
 							<span class="text">{{ctx.Locale.Tr .RunSortLabel}}</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">

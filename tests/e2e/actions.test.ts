@@ -85,7 +85,11 @@ test('run sorting supports keyboard selection and URL navigation', async ({page,
   }
   await login(page);
   await page.goto(`/${owner}/${repo}/actions?limit=1`);
-  const sort = page.getByRole('menu', {name: 'Sort', exact: true});
+  const sort = page.getByRole('button', {name: 'Order', exact: true});
+  await expect(sort).toHaveCount(1);
+  await expect(sort).toHaveAccessibleName('Order');
+  await expect(sort.locator('svg.octicon-sort-desc')).toHaveAttribute('aria-hidden', 'true');
+  await expect(sort.locator('svg.octicon-triangle-down')).toHaveAttribute('aria-hidden', 'true');
   await sort.focus();
   const oldest = sort.getByRole('menuitem', {name: 'Created: Oldest first'});
   await expect(oldest).toBeVisible();
