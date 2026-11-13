@@ -8,7 +8,7 @@ function createDropdown(html: string, opts?: Parameters<typeof initDropdown>[1])
   return initDropdown(container, opts);
 }
 
-test('select in a field is named by its label, shows restored state, filters by keyboard and fires change only on a new value', async () => {
+test('select in a field is named by its label, shows restored state, filters by keyboard, commits on Enter or Tab and fires change only on a new value', async () => {
   const field = createElementFromHTML(`<div class="field"><label>Fruit</label><div class="dropdown-container" data-kind="select">
     <button type="button" class="dropdown-trigger"><span class="dropdown-text" data-placeholder="Pick">Stale</span></button>
     <input type="hidden" class="dropdown-value" value="apple">
@@ -34,7 +34,7 @@ test('select in a field is named by its label, shows restored state, filters by 
   await userEvent.keyboard('{ArrowDown}{Enter}');
   expect(changes).toEqual(['banana']);
   expect(dropdown.trigger.textContent).toBe('Banana!');
-  expect(dropdown.isShown()).toBe(false);
+  expect(dropdown.container.hasAttribute('data-shown')).toBe(false);
   expect(document.activeElement).toBe(dropdown.trigger);
   expect(dropdown.container.lastElementChild).toBe(dropdown.popup);
   expect(dropdown.items().some((item) => item.hidden)).toBe(false);
@@ -50,11 +50,13 @@ test('select in a field is named by its label, shows restored state, filters by 
   dropdown.filterInput!.value = 'ban';
   await userEvent.click(dropdown.trigger);
   expect(dropdown.findItem('apple')!.hidden).toBe(true);
-  await userEvent.keyboard('{Escape}');
+  await userEvent.keyboard('{ArrowDown}{Tab}');
+  expect(changes).toEqual(['banana', 'banana']);
+  expect(dropdown.container.hasAttribute('data-shown')).toBe(false);
   field.remove();
 });
 
-test('menu keeps popup controls in their form, skips disabled items and closes before item handlers, on Escape, Tab and removal', async () => {
+test('menu keeps popup controls in their form, skips disabled items, cycles repeated type-ahead letters and closes before item handlers, on Escape, Tab and removal', async () => {
   const dropdown = createDropdown(`<div class="dropdown-container">
     <button type="button" class="dropdown-trigger">Menu</button>
     <div class="dropdown-popup">
@@ -76,25 +78,29 @@ test('menu keeps popup controls in their form, skips disabled items and closes b
   expect(new FormData(form).get('mode')).toBe('all');
   expect(closestDropdown(item)).toBe(dropdown);
   disabledItem.click();
-  expect(dropdown.isShown()).toBe(true);
+  expect(dropdown.container.hasAttribute('data-shown')).toBe(true);
   await userEvent.click(item);
   expect(itemContainer).toBe(dropdown.container);
-  expect(dropdown.isShown()).toBe(false);
+  expect(dropdown.container.hasAttribute('data-shown')).toBe(false);
 
   await userEvent.keyboard('{ArrowDown}');
   expect(dropdown.highlighted).toBe(item);
   await userEvent.keyboard('{ArrowDown}');
   expect(dropdown.highlighted).toBe(otherItem);
   await userEvent.keyboard('{Escape}');
-  expect(dropdown.isShown()).toBe(false);
+  expect(dropdown.container.hasAttribute('data-shown')).toBe(false);
   expect(document.activeElement).toBe(dropdown.trigger);
   await userEvent.keyboard('{ArrowUp}');
-  dropdown.popup.append(createElementFromHTML('<button type="button" class="dropdown-item">Late</button>'));
+  dropdown.popup.append(createElementFromHTML('<button type="button" class="dropdown-item">Other late</button>'));
+  await userEvent.keyboard('o');
+  expect(dropdown.highlighted!.textContent).toBe('Other late');
+  await userEvent.keyboard('o');
+  expect(dropdown.highlighted).toBe(otherItem);
   await userEvent.keyboard('{Tab}');
-  expect(dropdown.isShown()).toBe(false);
+  expect(dropdown.container.hasAttribute('data-shown')).toBe(false);
   await userEvent.click(dropdown.trigger);
   form.remove();
-  await vi.waitFor(() => expect(dropdown.isShown()).toBe(false));
+  await vi.waitFor(() => expect(dropdown.container.hasAttribute('data-shown')).toBe(false));
   expect(dropdown.popup.isConnected).toBe(false);
 });
 
@@ -136,7 +142,7 @@ test('remote items in a search field apply the latest query only, Enter picks th
   expect(document.activeElement).toBe(dropdown.filterInput);
   await userEvent.click(dropdown.trigger.querySelector('.ui.label[data-value="a2"] .delete')!);
   expect(dropdown.values()).toEqual([]);
-  expect(dropdown.isShown()).toBe(true);
+  expect(dropdown.container.hasAttribute('data-shown')).toBe(true);
   expect(document.activeElement).toBe(dropdown.filterInput);
   form.remove();
 });

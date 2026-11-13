@@ -127,7 +127,7 @@ export class Dropdown {
     for (const el of [this.container, this.popup]) {
       el.addEventListener('focusout', (e) => {
         const related = e.relatedTarget as Node | null;
-        if (related && !this.container.contains(related) && !this.popup.contains(related)) this.hide();
+        if (related && !this.container.contains(related) && !this.popup.contains(related)) this.leave();
       });
     }
   }
@@ -148,10 +148,6 @@ export class Dropdown {
     const value = this.value;
     if (this.kind !== 'multiselect') return [value];
     return value ? value.split(this.delimiter) : [];
-  }
-
-  isShown(): boolean {
-    return Boolean(this.tippy);
   }
 
   items(): HTMLElement[] {
@@ -192,7 +188,7 @@ export class Dropdown {
       zIndex: 1000, // below --z-index-modal and --z-index-toast
       limitSizeToViewport: {vertical: true},
       onMount: () => this.onMount(),
-      onClickOutside: () => this.hide(),
+      onClickOutside: () => this.leave(),
       onHide: () => {
         if (this.popup.contains(document.activeElement)) this.combobox.focus();
       },
@@ -227,6 +223,16 @@ export class Dropdown {
 
   hide() {
     this.tippy?.hide();
+  }
+
+  commitHighlighted() {
+    if (this.kind === 'select' && this.highlighted?.hasAttribute('data-value')) this.pick(this.highlighted.getAttribute('data-value')!);
+  }
+
+  // leaving by Tab, focus or an outside click commits a typed or keyboard-highlighted choice
+  leave() {
+    if (this.filterInput?.value || this.popup.hasAttribute('data-keyboard-nav')) this.commitHighlighted();
+    this.hide();
   }
 
   onHidden(instance: Instance) {
@@ -296,14 +302,19 @@ export class Dropdown {
     const index = tabbables.indexOf(e.target as HTMLElement);
     if (e.shiftKey ? index > 0 : index < tabbables.length - 1) return;
     this.combobox.focus();
-    this.hide();
+    this.leave();
     if (e.shiftKey && e.target !== this.popup) e.preventDefault();
   }
 
   onTypeAhead(key: string) {
-    this.typeAhead += key.toLowerCase();
+    const letter = key.toLowerCase();
+    this.typeAhead += letter;
     this.resetTypeAhead();
-    const match = this.navigableItems().find((item) => item.textContent.trim().toLowerCase().startsWith(this.typeAhead));
+    const items = this.navigableItems();
+    const isRepeat = this.typeAhead === letter.repeat(this.typeAhead.length); // a repeated letter cycles through its items
+    const query = isRepeat ? letter : this.typeAhead;
+    const start = isRepeat && this.highlighted ? items.indexOf(this.highlighted) + 1 : 0;
+    const match = [...items.slice(start), ...items.slice(0, start)].find((item) => item.textContent.trim().toLowerCase().startsWith(query));
     if (!match) return;
     this.popup.setAttribute('data-keyboard-nav', '');
     this.highlight(match);
@@ -418,9 +429,7 @@ export class Dropdown {
   createValueLabel(value: string): HTMLElement {
     const item = this.findItem(value);
     const label = createElementFromAttrs('a', {class: 'ui label', 'data-value': value});
-    if (item?.hasAttribute('data-text')) {
-      label.textContent = item.getAttribute('data-text');
-    } else if (item) {
+    if (item) {
       label.innerHTML = item.innerHTML;
     } else {
       label.textContent = value;
@@ -429,7 +438,7 @@ export class Dropdown {
     deleteIcon.removeAttribute('aria-hidden');
     deleteIcon.setAttribute('aria-label', trString(window.config.i18n.remove_label_str, label.textContent.trim()));
     deleteIcon.setAttribute('role', 'button');
-    if (!(this.trigger instanceof HTMLButtonElement)) deleteIcon.setAttribute('tabindex', '0'); // a button trigger can't contain focusables
+    deleteIcon.setAttribute('tabindex', '0');
     label.append(deleteIcon);
     return label;
   }
@@ -484,16 +493,17 @@ export class Dropdown {
     const visibleItems = this.items().filter((item) => isElemVisible(item));
     const items = visibleItems.filter(isItemEnabled);
     if (this.highlighted && !items.includes(this.highlighted)) this.highlight(null);
-    if (!this.highlighted && (this.highlightDelta || this.loadItems)) { // remote results keep Enter on their active or first item
+    if (!this.highlighted && (this.highlightDelta || (this.loadItems && this.filterInput))) { // remote results keep Enter on their active or first item
       const active = items.find((item) => item.matches('.active, [aria-selected="true"]'));
       if (active) this.highlight(active);
       else if (!this.popup.hasAttribute('aria-busy')) this.moveHighlight(this.highlightDelta || 1, items);
     }
-    const side = this.tippy?.popper.firstElementChild?.getAttribute('data-placement')?.split('-')[0];
-    if (side) this.trigger.setAttribute('data-popup-side', side);
     if (!message && !this.popup.hasAttribute('aria-busy') && !visibleItems.length) message = window.config.i18n.no_results_found;
     if (message) this.popup.append(createElementFromAttrs('div', {class: 'dropdown-message'}, message));
-    this.tippy?.popperInstance?.update();
+    this.tippy?.popper.style.removeProperty('--tippy-max-height'); // flip by the height of the new content
+    this.tippy?.popperInstance?.forceUpdate();
+    const side = this.tippy?.popper.firstElementChild?.getAttribute('data-placement')?.split('-')[0];
+    if (side) this.trigger.setAttribute('data-popup-side', side);
   }
 }
 

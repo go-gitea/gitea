@@ -80,6 +80,15 @@ describe('morphElementWithProtection', () => {
     // span is changed, but dropdown is skipped because it is active
     expect(el.outerHTML).toEqual('<div><div><span>new</span><div class="dropdown-container" data-shown=""><button class="dropdown-trigger"></button></div></div></div>');
   });
+  it('morph keeps a focused dropdown and updates its row', () => {
+    const el = createElementFromHTML('<div><div data-morph-whole><span>old</span><div class="dropdown-container"><button class="dropdown-trigger" id="trigger"></button></div></div></div>');
+    document.body.append(el);
+    el.querySelector('button')!.focus();
+    morphElementWithProtection(el, createElementFromHTML(newElHtml), {morphStyle: 'outerHTML'});
+    expect(el.outerHTML).toEqual('<div><div><span>new</span><div class="dropdown-container"><button class="dropdown-trigger" id="trigger"></button></div></div></div>');
+    expect(document.activeElement!.id).toBe('trigger');
+    el.remove();
+  });
   it('morph whole', () => {
     const el = createElementFromHTML('<div><div data-morph-whole><span>old</span><div class="dropdown-container" data-shown=""><button class="dropdown-trigger"></button></div></div></div>');
     const newEl = createElementFromHTML(newElHtml);

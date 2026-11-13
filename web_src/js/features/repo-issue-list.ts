@@ -97,10 +97,7 @@ function initDropdownUserRemoteSearch(el: HTMLElement) {
         item.classList.toggle('active', selectedUsername.toLowerCase() === poster.username.toLowerCase());
         return item;
       });
-      if (query && !items.length) {
-        clearItem.classList.remove('active');
-        return [clearItem, createElementFromAttrs('a', {class: 'dropdown-item active', href: getUserUrl(query)}, query)];
-      }
+      if (query) return items.length ? items : [createElementFromAttrs('a', {class: 'dropdown-item active', href: getUserUrl(query)}, query)];
       clearItem.classList.toggle('active', !selectedUsername);
       return [clearItem, ...items];
     },

@@ -3,11 +3,12 @@
 	{{if .item.Attributes.multiple}}
 	{{/* FIXME: required validation */}}
 	<div class="dropdown-container" data-kind="multiselect">
-		<button type="button" class="dropdown-trigger dropdown-field" aria-label="{{.item.Attributes.label}}">
+		<input type="hidden" class="dropdown-value" name="form-field-{{.item.ID}}" value="{{.item.Attributes.default}}">
+		<div class="dropdown-trigger dropdown-field dropdown-search-field">
+			<input class="dropdown-filter" type="text" aria-label="{{.item.Attributes.label}}">
 			<span class="dropdown-text" data-placeholder=""></span>
 			{{svg "octicon-triangle-down" 14}}
-		</button>
-		<input type="hidden" class="dropdown-value" name="form-field-{{.item.ID}}" value="{{.item.Attributes.default}}">
+		</div>
 		<div class="dropdown-popup">
 			{{range $i, $opt := .item.Attributes.options}}
 				<div class="dropdown-item" data-value="{{$i}}">{{$opt}}</div>

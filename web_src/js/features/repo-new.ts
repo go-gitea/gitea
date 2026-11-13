@@ -20,7 +20,7 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
   checkTemplate();
 
   const repoOwnerDropdown = initDropdown(form.querySelector<HTMLElement>('#repo_owner_dropdown')!);
-  const repoTemplateDropdown = initDropdown(form.querySelector<HTMLElement>('#repo_template_search')!, {
+  initDropdown(form.querySelector<HTMLElement>('#repo_template_search')!, {
     async loadItems(query, signal) {
       const params = new URLSearchParams({q: query, template: 'true', priority_owner_id: repoOwnerDropdown.value});
       const response = await GET(`${appSubUrl}/repo/search?${params}`, {signal});
@@ -37,7 +37,6 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
     const hasError = Boolean(elCreateRepoErrorMessage.textContent);
     toggleElem(elCreateRepoErrorMessage, hasError);
     elSubmitButton.disabled = hasError;
-    if (repoTemplateDropdown.isShown()) repoTemplateDropdown.reload();
   };
   repoOwnerDropdown.valueInput!.addEventListener('change', onChangeOwner);
   onChangeOwner();

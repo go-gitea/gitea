@@ -23,12 +23,19 @@ export function initRepoTopicBar() {
       toggleElem(topicFromInput, Boolean(query));
       const response = await GET(`${appSubUrl}/explore/topics/search?q=${encodeURIComponent(query)}`, {signal});
       const {topics} = await response.json() as TopicSearchResponse;
-      const names = topics.map(({topic_name}) => topic_name).filter((name) => name !== query);
-      if (topics.some(({topic_name}) => topic_name.toLowerCase() === query)) names.sort().reverse(); // the server order, unless the exact match comes first
-      return names.map((name) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': name}, name));
+      return topics.filter(({topic_name}) => topic_name !== query)
+        .map(({topic_name}) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': topic_name}, topic_name));
     },
   });
   topicDropdown.popup.append(topicFromInput);
+  topicDropdown.filterInput!.addEventListener('keydown', (e) => {
+    if (e.key !== ',' || e.isComposing) return;
+    e.preventDefault();
+    const topic = stripTags(topicDropdown.filterInput!.value).toLowerCase().trim();
+    if (topic && !topicDropdown.values().includes(topic)) topicDropdown.pick(topic);
+    topicDropdown.filterInput!.value = '';
+    topicDropdown.onFilterInput();
+  });
   let lastErrorToast: Toast | null = null;
 
   mgrBtn.addEventListener('click', () => {

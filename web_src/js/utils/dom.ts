@@ -422,7 +422,7 @@ export type MorphElementOptions = {
 
 export function morphElementWithProtection(el: Element, newEl: Element, opts: MorphElementOptions): Element {
   const protectedElems = protectMorphElements(newEl);
-  const selectorSkipElems = '.dropdown-container[data-shown]';
+  const selectorSkipElems = '.dropdown-container:is([data-shown], :focus-within)';
   const nodes = Idiomorph.morph(el, newEl, {
     morphStyle: opts.morphStyle,
     callbacks: {
@@ -431,7 +431,7 @@ export function morphElementWithProtection(el: Element, newEl: Element, opts: Mo
 
         // If the end user is operating a row, then don't refresh its content.
         // Otherwise, there will be more edge cases and inconsistencies, e.g.: dropdown still shows old items but the icon has changed.
-        const oldNodeMorphWholeAndSkipChild = oldNode.matches('[data-morph-whole]') && oldNode.querySelector(selectorSkipElems);
+        const oldNodeMorphWholeAndSkipChild = oldNode.matches('[data-morph-whole]') && oldNode.querySelector('.dropdown-container[data-shown]');
 
         // If the element should be skipped, don't morph it
         const oldNodeShouldSkip = oldNode.matches(selectorSkipElems);

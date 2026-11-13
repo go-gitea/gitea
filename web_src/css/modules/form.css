@@ -146,6 +146,7 @@ textarea:focus,
 .ui.form input:not([type="checkbox"], [type="radio"], .dropdown-filter):focus,
 .ui.form select:focus,
 .select-field > select:focus,
+.dropdown-search-field:focus-within,
 .ui.form textarea:focus,
 .ui.search > .prompt:focus {
   background: var(--color-input-background);
@@ -218,7 +219,8 @@ textarea:focus,
 
 .ui.form .disabled.fields .field,
 .ui.form .disabled.field,
-.ui.form .field :disabled {
+.ui.form .field :disabled,
+.select-field > select:disabled {
   pointer-events: none;
   opacity: var(--opacity-disabled);
 }

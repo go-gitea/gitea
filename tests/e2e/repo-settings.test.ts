@@ -41,5 +41,5 @@ test('branch protection rule keeps its push allowlist and dragged priority', asy
   await rule.getByRole('link', {name: 'Edit', exact: true}).click();
   await expect(ruleNameInput).toHaveValue('release/**');
   await expect(allowlistRadio).toBeChecked();
-  await expect(page.locator('#whitelist_box .dropdown > .label')).toHaveText(owner);
+  await expect(page.locator('#whitelist_box .dropdown-field > .label')).toHaveText(owner);
 });

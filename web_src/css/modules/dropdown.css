@@ -69,6 +69,7 @@
 
 .dropdown-container[data-kind="multiselect"] > .dropdown-field > .dropdown-text {
   flex: initial;
+  max-width: 100%;
   margin: 0.45238095em 0 0.45238095em 0.64285714em;
   line-height: 1.21428571em;
 }
@@ -384,7 +385,16 @@
   color: var(--color-text-light-2);
 }
 
+.dropdown-popup:where(:has(> .dropdown-list)) { /* only the list scrolls, its filter stays visible */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .dropdown-list {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
   padding: 4px 0;
   border-top: 1px solid var(--color-secondary);
 }

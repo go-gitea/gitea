@@ -7,6 +7,8 @@ test('create a repository for an organization picked by keyboard', async ({page,
   const orgName = `e2e-repo-org-${randomString(8)}`;
   await Promise.all([apiCreateOrg(request, orgName), login(page)]);
   await page.goto('/repo/create');
+  const nameInput = page.locator('input[name="repo_name"]');
+  await expect(nameInput).toBeFocused();
   const owner = page.locator('#repo_owner_dropdown').getByRole('button');
   await owner.focus();
   await page.keyboard.press('ArrowDown');
@@ -14,7 +16,7 @@ test('create a repository for an organization picked by keyboard', async ({page,
   await page.keyboard.press('Enter');
   await expect(owner).toContainText(orgName);
   await expect(owner).toBeFocused();
-  await page.locator('input[name="repo_name"]').fill(repoName);
+  await nameInput.fill(repoName);
   await page.getByRole('button', {name: 'Create Repository'}).click();
   await page.waitForURL(new RegExp(`/${orgName}/${repoName}$`));
 });
@@ -41,7 +43,7 @@ test('delete a branch via its modal, add and remove repository topics', async ({
   await page.goto(`/${owner}/${repoName}`);
   await page.getByRole('button', {name: 'Manage Topics'}).click();
   await page.keyboard.insertText('e2e-keep');
-  await page.getByRole('option', {name: 'e2e-keep', exact: true}).click();
+  await page.keyboard.press(',');
   await page.getByRole('button', {name: 'Remove item "e2e-drop"'}).click();
   await page.keyboard.press('Escape');
   await page.getByRole('button', {name: 'Save', exact: true}).click();
