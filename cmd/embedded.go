@@ -261,13 +261,7 @@ func extractAsset(c *cli.Command, d string, a assetFile, overwrite, rename bool)
 		perms = fi.Mode()
 	}
 
-	file, err := os.OpenFile(dest, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, perms)
-	if err != nil {
-		return fmt.Errorf("%s: %w", dest, err)
-	}
-	defer file.Close()
-
-	if _, err = file.Write(data); err != nil {
+	if err := os.WriteFile(dest, data, perms); err != nil {
 		return fmt.Errorf("%s: %w", dest, err)
 	}
 

@@ -156,6 +156,9 @@ func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, group stri
 			return err
 		}
 		for _, pf := range pfs {
+			if pf.CompositeKey != group {
+				continue
+			}
 			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 				return err
 			}

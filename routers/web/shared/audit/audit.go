@@ -93,7 +93,7 @@ func View(ctx *context.Context, opts ViewOptions) {
 
 	evs, total, err := audit.FindEvents(ctx, searchOpts)
 	if err != nil {
-		ctx.ServerError("FindEvents", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

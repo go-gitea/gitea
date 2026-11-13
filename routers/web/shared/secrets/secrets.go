@@ -21,7 +21,7 @@ import (
 func SetSecretsContext(ctx *context.Context, scope actions_model.BelongingScope) {
 	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{BelongingScope: scope})
 	if err != nil {
-		ctx.ServerError("FindSecrets", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

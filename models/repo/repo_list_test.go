@@ -195,6 +195,25 @@ func TestSearchRepository(t *testing.T) {
 	t.Run("SearchRepositoryWithInDescription", testSearchRepositoryWithInDescription)
 	t.Run("SearchRepositoryNotInDescription", testSearchRepositoryNotInDescription)
 	t.Run("SearchRepositoryCases", testSearchRepositoryCases)
+	t.Run("SearchRepositoryRanksExactMatchesCaseInsensitivelyUnlessSorted", func(t *testing.T) {
+		afoo := &repo_model.Repository{OwnerID: 2, OwnerName: "User2", LowerName: "afoo", Name: "afoo"}
+		aafoo := &repo_model.Repository{OwnerID: 20, OwnerName: "user20", LowerName: "aafoo", Name: "aafoo"}
+		foo := &repo_model.Repository{OwnerID: 2, OwnerName: "User2", LowerName: "foo", Name: "foo"}
+		require.NoError(t, db.Insert(t.Context(), afoo, aafoo, foo))
+		for _, tc := range []struct {
+			keyword string
+			orderBy db.SearchOrderBy
+			want    []int64
+		}{
+			{"Foo", "", []int64{foo.ID, aafoo.ID, afoo.ID}},
+			{"Foo", db.SearchOrderByID, []int64{afoo.ID, aafoo.ID, foo.ID}},
+			{"user2/foo", "", []int64{foo.ID, afoo.ID, aafoo.ID}},
+		} {
+			repos, _, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{Keyword: tc.keyword, OrderBy: tc.orderBy})
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, repoIDs(repos), "%s %s", tc.keyword, tc.orderBy)
+		}
+	})
 }
 
 func testSearchRepositoryPublic(t *testing.T) {
@@ -485,6 +504,19 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 	}
 }
 
+func TestFindCodeSearchRepoIDsRequiresCodeUnit(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	publicOnlyUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	publicOnlyUser.ExtDoerData = user_model.NewTokenExtDoerData(user_model.CredentialAccessToken, 1, "public-only,read:repository")
+	for _, user := range []*user_model.User{nil, publicOnlyUser} {
+		repoIDs, err := repo_model.FindCodeSearchRepoIDs(t.Context(), user, nil, nil)
+		require.NoError(t, err)
+		assert.Contains(t, repoIDs, int64(1))
+		assert.NotContains(t, repoIDs, int64(50))
+	}
+}
+
 func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	// user2 is on org3's owner team, so it can access org3's private repo3 (which has the actions unit)
@@ -492,6 +524,7 @@ func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
 
 	// org3 is a public org owning repo3 (private) and repo32 (public), both with the actions unit
 	const orgID = 3
+	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 32, Type: unit.TypeActions, Config: &repo_model.ActionsConfig{}}))
 
 	all, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user))
 	require.NoError(t, err)

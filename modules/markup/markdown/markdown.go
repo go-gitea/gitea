@@ -140,8 +140,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		limit: setting.UI.MaxDisplayFileSize * 3,
 	}
 
-	// FIXME: Don't read all to memory, but goldmark doesn't support
-	buf, err := io.ReadAll(input)
+	buf, err := io.ReadAll(input) // no streaming by design, link reference definitions may follow their use
 	if err != nil {
 		log.Error("Unable to ReadAll: %v", err)
 		return err

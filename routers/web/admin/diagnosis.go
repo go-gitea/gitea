@@ -29,14 +29,14 @@ func MonitorDiagnosis(ctx *context.Context) {
 
 	f, err := zipWriter.CreateHeader(&zip.FileHeader{Name: "goroutine-before.txt", Method: zip.Deflate, Modified: time.Now()})
 	if err != nil {
-		ctx.ServerError("Failed to create zip file", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	_ = pprof.Lookup("goroutine").WriteTo(f, 1)
 
 	f, err = zipWriter.CreateHeader(&zip.FileHeader{Name: "cpu-profile.dat", Method: zip.Deflate, Modified: time.Now()})
 	if err != nil {
-		ctx.ServerError("Failed to create zip file", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -50,21 +50,21 @@ func MonitorDiagnosis(ctx *context.Context) {
 
 	f, err = zipWriter.CreateHeader(&zip.FileHeader{Name: "goroutine-after.txt", Method: zip.Deflate, Modified: time.Now()})
 	if err != nil {
-		ctx.ServerError("Failed to create zip file", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	_ = pprof.Lookup("goroutine").WriteTo(f, 1)
 
 	f, err = zipWriter.CreateHeader(&zip.FileHeader{Name: "heap.dat", Method: zip.Deflate, Modified: time.Now()})
 	if err != nil {
-		ctx.ServerError("Failed to create zip file", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	_ = pprof.Lookup("heap").WriteTo(f, 0)
 
 	f, err = zipWriter.CreateHeader(&zip.FileHeader{Name: "perftrace.txt", Method: zip.Deflate, Modified: time.Now()})
 	if err != nil {
-		ctx.ServerError("Failed to create zip file", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for _, record := range tailmsg.GetManager().GetTraceRecorder().GetRecords() {

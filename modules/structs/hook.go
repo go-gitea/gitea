@@ -120,12 +120,12 @@ type CreateHookOption struct {
 type EditHookOption struct {
 	// Configuration settings for the webhook
 	Config map[string]string `json:"config"`
-	// List of events that trigger this webhook
+	// List of events that trigger this webhook, omitted or empty keeps the current events
 	Events []string `json:"events"`
-	// Branch filter pattern to determine which branches trigger the webhook
-	BranchFilter string `json:"branch_filter" binding:"GlobPattern"`
-	// Authorization header to include in webhook requests
-	AuthorizationHeader string `json:"authorization_header"`
+	// Branch filter pattern to determine which branches trigger the webhook, omitted keeps the current value
+	BranchFilter *string `json:"branch_filter" binding:"GlobPattern"`
+	// Authorization header to include in webhook requests, omitted keeps the current value unless the url changes
+	AuthorizationHeader *string `json:"authorization_header"`
 	// Whether the webhook is active and will be triggered
 	Active *bool `json:"active"`
 	// Optional human-readable name
@@ -333,7 +333,8 @@ type ReleasePayload struct {
 	// The action performed on the release (published, updated, deleted)
 	Action HookReleaseAction `json:"action"`
 	// The release that was acted upon
-	Release *Release `json:"release"`
+	Release *Release        `json:"release"`
+	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The repository containing the release
 	Repository *Repository `json:"repository"`
 	// The user who performed the action
@@ -460,6 +461,11 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
+type ChangesBasePayload struct {
+	Ref ChangesFromPayload `json:"ref"`
+	Sha ChangesFromPayload `json:"sha"`
+}
+
 type ChangesOwnerPayload struct {
 	From struct {
 		User         *User `json:"user,omitempty"`
@@ -474,9 +480,11 @@ type ChangesPayload struct {
 	// Changes made to the body/description
 	Body *ChangesFromPayload `json:"body,omitempty"`
 	// Changes made to the reference
-	Ref *ChangesFromPayload `json:"ref,omitempty"`
-	// Changes made to the repository name
-	Name *ChangesFromPayload `json:"name,omitempty"`
+	Ref  *ChangesFromPayload `json:"ref,omitempty"`
+	Base *ChangesBasePayload `json:"base,omitempty"`
+	// Changes made to the repository or release name
+	Name    *ChangesFromPayload `json:"name,omitempty"`
+	TagName *ChangesFromPayload `json:"tag_name,omitempty"`
 	// Changes made to the repository owner
 	Owner *ChangesOwnerPayload `json:"owner,omitempty"`
 	// Changes made to the labels added

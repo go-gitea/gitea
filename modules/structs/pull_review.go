@@ -86,6 +86,7 @@ type CreatePullReviewOptions struct {
 // CreatePullReviewComment represent a review comment for creation api
 type CreatePullReviewComment struct {
 	// the tree path
+	// required: true
 	Path string `json:"path"`
 	Body string `json:"body"`
 	// if comment to old file line or 0

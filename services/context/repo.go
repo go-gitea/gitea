@@ -6,7 +6,6 @@ package context
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"html"
 	"html/template"
@@ -35,6 +34,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/issue"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -58,9 +58,28 @@ func (prc *PullRequestContext) CanCreateNewPull() bool {
 		return *prc.canCreateNewPull
 	}
 	ctx := prc.ctx
-	// People who have push access or have forked repository can propose a new pull request.
-	can := prc.baseRepo.CanContentChange() &&
-		(ctx.Repo.Permission.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)))
+	can := ctx.IsSigned && prc.baseRepo.CanContentChange()
+	if can {
+		basePerm, headPerm := ctx.Repo.Permission, ctx.Repo.Permission
+		var err error
+		if prc.baseRepo.ID != ctx.Repo.Repository.ID {
+			basePerm, err = access_model.GetDoerRepoPermission(ctx, prc.baseRepo, ctx.Doer)
+			if err != nil {
+				log.Error("CanCreateNewPull: %v", err)
+				return false
+			}
+		}
+		if prc.headRepo.ID != ctx.Repo.Repository.ID {
+			headPerm, err = access_model.GetDoerRepoPermission(ctx, prc.headRepo, ctx.Doer)
+			if err != nil {
+				log.Error("CanCreateNewPull: %v", err)
+				return false
+			}
+		}
+		restriction := prc.baseRepo.MustGetUnit(ctx, unit_model.TypePullRequests).PullRequestsConfig().CreationRestriction
+		can = issue.CheckCreationRestriction(basePerm, unit_model.TypePullRequests, restriction) == nil &&
+			(basePerm.CanWrite(unit_model.TypePullRequests) || headPerm.CanWrite(unit_model.TypeCode) || repo_model.HasForkedRepo(ctx, ctx.Doer.ID, prc.baseRepo.ID))
+	}
 	prc.canCreateNewPull = &can
 	return can
 }
@@ -136,7 +155,7 @@ func (r *Repository) GetObjectFormat() git.ObjectFormat {
 func RepoMustNotBeArchived() func(ctx *Context) {
 	return func(ctx *Context) {
 		if ctx.Repo.Repository.IsArchived {
-			ctx.NotFound(errors.New(ctx.Locale.TrString("repo.archive.title")))
+			ctx.NotFound()
 		}
 	}
 }
@@ -344,10 +363,10 @@ func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 			repo.ForkID = 0
 			return
 		}
-		ctx.ServerError("GetBaseRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if err = repo.BaseRepo.LoadOwner(ctx); err != nil {
-		ctx.ServerError("BaseRepo.LoadOwner", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 }
@@ -361,16 +380,16 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 			repo.TemplateID = 0
 			return
 		}
-		ctx.ServerError("GetTemplateRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if err = templateRepo.LoadOwner(ctx); err != nil {
-		ctx.ServerError("TemplateRepo.LoadOwner", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	perm, err := access_model.GetDoerRepoPermission(ctx, templateRepo, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetDoerRepoPermission", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -442,7 +461,7 @@ func repoAssignmentLegacy(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	var err error
 	repo := data.repo
 	if err = repo.LoadOwner(ctx); err != nil {
-		ctx.ServerError("LoadOwner", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -451,7 +470,7 @@ func repoAssignmentLegacy(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	} else {
 		ctx.Repo.Permission, err = access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -466,7 +485,7 @@ func repoAssignmentLegacy(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 			EarlyResponseForGoGetMeta(ctx)
 			return
 		}
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	ctx.Data["Permission"] = &ctx.Repo.Permission
@@ -476,7 +495,7 @@ func repoAssignmentLegacy(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 		if err == nil {
 			ctx.Data["PullMirror"] = pullMirror
 		} else if err != repo_model.ErrMirrorNotExist {
-			ctx.ServerError("GetMirrorByRepoID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -541,13 +560,11 @@ func repoAssignmentPrepareOwner(ctx *Context, data *repoAssignmentPrepareDataStr
 
 				if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 					RedirectToUser(ctx.Base, ctx.Doer, userName, redirectUserID)
-				} else if user_model.IsErrUserRedirectNotExist(err) {
-					ctx.NotFound(nil)
 				} else {
-					ctx.ServerError("LookupUserRedirect", err)
+					ctx.ServerErrorAuto(err)
 				}
 			} else {
-				ctx.ServerError("GetUserByName", err)
+				ctx.ServerErrorAuto(err)
 			}
 			return
 		}
@@ -593,12 +610,12 @@ func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStru
 					EarlyResponseForGoGetMeta(ctx)
 					return
 				}
-				ctx.NotFound(nil)
+				ctx.NotFound()
 			} else {
-				ctx.ServerError("LookupRepoRedirect", err)
+				ctx.ServerErrorAuto(err)
 			}
 		} else {
-			ctx.ServerError("GetRepositoryByName", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -625,7 +642,7 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 		RepoID:        ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.ServerError("GetReleaseCountByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["NumReleases"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
@@ -634,7 +651,7 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 		RepoID:        ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.ServerError("GetReleaseCountByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -649,14 +666,14 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 
 	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
-		ctx.ServerError("CanUserForkRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["CanSignedUserFork"] = canSignedUserFork
 
 	userAndOrgForks, err := repo_model.GetForksByUserAndOrgs(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
-		ctx.ServerError("GetForksByUserAndOrgs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["UserAndOrgForks"] = userAndOrgForks
@@ -674,7 +691,7 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	if ctx.IsSigned {
 		watch, err := repo_model.GetWatch(ctx, ctx.Doer.ID, repo.ID)
 		if err != nil {
-			ctx.ServerError("GetWatch", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["RepoWatch"] = watch
@@ -733,7 +750,7 @@ func repoAssignmentPrepareGitRepo(ctx *Context, data *repoAssignmentPrepareDataS
 			}
 			return
 		}
-		ctx.ServerError("RepoAssignment Invalid repo "+repo.FullName(), err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 }
@@ -749,7 +766,7 @@ func repoAssignmentPrepareBranches(ctx *Context, data *repoAssignmentPrepareData
 	}
 	branchesTotal, err := db.Count[git_model.Branch](ctx, branchOpts)
 	if err != nil {
-		ctx.ServerError("CountBranches", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -757,7 +774,7 @@ func repoAssignmentPrepareBranches(ctx *Context, data *repoAssignmentPrepareData
 	if branchesTotal == 0 { // fallback to do a sync immediately
 		branchesTotal, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
 		if err != nil {
-			ctx.ServerError("SyncRepoBranches", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -786,12 +803,12 @@ func repoAssignmentPrepareRepoTransfer(ctx *Context, data *repoAssignmentPrepare
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
-			ctx.ServerError("GetPendingRepositoryTransfer", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("LoadAttributes", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -1015,7 +1032,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, refShortName)
 				if err != nil {
-					ctx.ServerError("GetBranchCommit", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
@@ -1024,11 +1041,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(ctx, refShortName)
 				if err != nil {
-					if git.IsErrNotExist(err) {
-						ctx.NotFound(err)
-						return
-					}
-					ctx.ServerError("GetTagCommit", err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
@@ -1038,7 +1051,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(ctx, refShortName)
 				if err != nil {
-					ctx.NotFound(err)
+					ctx.ServerErrorAuto(err)
 					return
 				}
 				// If short commit ID add canonical link header
@@ -1048,7 +1061,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 					ctx.RespHeader().Set("Link", fmt.Sprintf(`<%s>; rel="canonical"`, canonicalURL))
 				}
 			} else {
-				ctx.NotFound(fmt.Errorf("branch or tag not exist: %s", refShortName))
+				ctx.NotFound()
 				return
 			}
 
@@ -1089,7 +1102,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 		ctx.Repo.CommitsCount, err = git.GetCommitsCountCache(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName, ctx.Repo.Commit)
 		if err != nil {
-			ctx.ServerError("GetCommitsCount", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if ctx.Repo.RefFullName.IsTag() {
@@ -1109,7 +1122,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 func GitHookService() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Doer.CanEditGitHook() {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 	}

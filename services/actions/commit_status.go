@@ -121,7 +121,7 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 		webhook_module.HookEventPullRequestReviewComment:
 		event = run.TriggerEvent
 		commitID = run.CommitSHA
-	case webhook_module.HookEventRelease:
+	case webhook_module.HookEventRelease, webhook_module.HookEventWorkflowDispatch:
 		event = string(run.Event)
 		commitID = run.CommitSHA
 	default: // do nothing, return empty
