@@ -28,7 +28,8 @@ func defaultMergeStyle(prConfig *repo_model.PullRequestsConfig) repo_model.Merge
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context, prConfig *repo_model.PullRequestsConfig, gitRepo *git.Repository) {
 	pull := prInfo.issue.PullRequest
-	if !prInfo.MergeBoxData.hasPermToMerge || prInfo.MergeBoxData.AutoMerge != nil {
+	data := prInfo.MergeBoxData
+	if !data.hasPermToMerge || data.AutoMerge != nil {
 		return
 	}
 	mergeStyle := defaultMergeStyle(prConfig)
@@ -61,11 +62,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		}
 	}
 
-	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
+	allOverridableChecksOk := !data.hasOverridableBlockers
 	mergeable := pull.IsStatusMergeable() || pull.IsEmpty()
-	isMergeBlocked := prInfo.IsPullRequestBroken || prInfo.workInProgressPrefix != "" || prInfo.MergeBoxData.hasOpenDependencies
-	canMergeNow := mergeable && !isMergeBlocked && (allOverridableChecksOk || prInfo.MergeBoxData.canBypassProtection)
+	isMergeBlocked := prInfo.IsPullRequestBroken || prInfo.workInProgressPrefix != "" || data.hasOpenDependencies
+	canMergeNow := mergeable && !isMergeBlocked && (allOverridableChecksOk || data.canBypassProtection)
 	canAutoMerge := !isMergeBlocked && (mergeable || pull.IsFilesConflicted() || pull.IsChecking())
+	hideAutoMerge := !canAutoMerge || (canMergeNow && allOverridableChecksOk)
 	mergeFormProps := map[string]any{
 		"baseLink":             prInfo.issue.Link(),
 		"textCancel":           ctx.Locale.Tr("cancel"),
@@ -74,7 +76,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"textMergeTitle":       ctx.Locale.Tr("repo.pulls.merge_commit_title"),
 		"textMergeBlocked":     ctx.Locale.Tr("repo.pulls.merge_blocked_by_requirements"),
 
-		"isReady":                      prInfo.MergeBoxData.IsReady,
+		"isReady":                      data.IsReady,
 		"canMergeNow":                  canMergeNow,
 		"allOverridableChecksOk":       allOverridableChecksOk,
 		"textBypassRules":              ctx.Locale.Tr("repo.pulls.merge_bypass_rules"),
@@ -82,15 +84,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"defaultMergeStyle":            mergeStyle,
 		"mergeMessageFieldPlaceHolder": ctx.Locale.Tr("repo.editor.commit_message_desc"),
 
-		"showPullCommands":      prInfo.MergeBoxData.ShowPullCommands,
-		"showMergeInstructions": prInfo.MergeBoxData.ShowMergeInstructions,
+		"showPullCommands":      data.ShowPullCommands,
+		"showMergeInstructions": data.ShowMergeInstructions,
 		"textCmdMergeHint":      ctx.Locale.Tr("repo.pulls.cmd_instruction_merge_hint"),
 		"textCmdHint":           ctx.Locale.Tr("repo.pulls.cmd_instruction_hint"),
 	}
 
 	var mergeStyles []map[string]any
 	addMergeStyle := func(style repo_model.MergeStyle, allowed bool, textKey, mergeTitle, mergeMessage string) {
-		if !allowed || prInfo.MergeBoxData.unsignable && style != repo_model.MergeStyleFastForwardOnly { // fast-forward-only creates no commit to sign
+		if !allowed || data.unsignable && style != repo_model.MergeStyleFastForwardOnly { // fast-forward-only creates no commit to sign
 			return
 		}
 		short := ctx.Locale.Tr("repo.pulls.merge_style_short." + string(style))
@@ -103,7 +105,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 			"textConfirmAutoMerge":   ctx.Locale.Tr("repo.pulls.confirm_auto_merge", short),
 			"textBypassMerge":        ctx.Locale.Tr("repo.pulls.bypass_rules_and_merge", short),
 			"textConfirmBypassMerge": ctx.Locale.Tr("repo.pulls.confirm_bypass_rules_and_merge", short),
-			"hideAutoMerge":          !canAutoMerge || canMergeNow && allOverridableChecksOk,
+			"hideAutoMerge":          hideAutoMerge,
 			"mergeTitleFieldText":    mergeTitle,
 			"mergeMessageFieldText":  mergeMessage,
 			"hideMergeMessageTexts":  style == repo_model.MergeStyleRebase || style == repo_model.MergeStyleFastForwardOnly,
@@ -125,9 +127,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	canUseManualMerge := !pull.IsWorkInProgress(ctx) && !pull.IsChecking() && prConfig.AllowManualMerge
 	if canUseManualMerge {
 		mergeStyles = append(mergeStyles, map[string]any{
-			"name":                  "manually-merged",
+			"name":                  repo_model.MergeStyleManuallyMerged,
 			"textDoMerge":           ctx.Locale.Tr("repo.pulls.merge_manually"),
-			"textDescription":       ctx.Locale.Tr("repo.pulls.merge_style_desc.manually-merged"),
+			"textDescription":       ctx.Locale.Tr("repo.pulls.merge_style_desc." + string(repo_model.MergeStyleManuallyMerged)),
 			"hideMergeMessageTexts": true,
 			"hideAutoMerge":         true,
 		})
@@ -135,6 +137,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 
 	if len(mergeStyles) > 0 {
 		mergeFormProps["mergeStyles"] = mergeStyles
-		prInfo.MergeBoxData.MergeFormProps = mergeFormProps
+		data.MergeFormProps = mergeFormProps
 	}
 }

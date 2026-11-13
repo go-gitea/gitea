@@ -155,8 +155,3 @@ details[open] > summary > .merge-box-chevron {
   line-height: 16px;
   color: var(--color-text-light-2);
 }
-
-#pull-merge-cmd-modal .segment {
-  overflow-x: auto;
-  white-space: nowrap;
-}

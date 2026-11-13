@@ -70,7 +70,7 @@ const actionDisabled = computed(() => !autoMergeWhenSucceed.value && !mergeForm.
 const buttonTexts = computed(() => {
   const detail = mergeStyleDetail.value;
   if (autoMergeWhenSucceed.value) return {button: detail.textAutoMerge, confirm: detail.textConfirmAutoMerge};
-  if (forceMerge.value && detail.textBypassMerge) return {button: detail.textBypassMerge, confirm: detail.textConfirmBypassMerge};
+  if (forceMerge.value) return {button: detail.textBypassMerge, confirm: detail.textConfirmBypassMerge};
   return {button: detail.textDoMerge, confirm: detail.textConfirmMerge ?? detail.textDoMerge};
 });
 
@@ -118,9 +118,9 @@ async function toggleActionForm(show: boolean) {
     </div>
 
     <form ref="actionForm" class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">
-      <input type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">
-      <input type="hidden" name="merge_when_checks_succeed" v-model="autoMergeWhenSucceed">
-      <input type="hidden" name="force_merge" v-model="forceMerge">
+      <input type="hidden" name="head_commit_id" :value="mergeForm.pullHeadCommitID">
+      <input type="hidden" name="merge_when_checks_succeed" :value="autoMergeWhenSucceed">
+      <input type="hidden" name="force_merge" :value="forceMerge">
 
       <template v-if="!mergeStyleDetail.hideMergeMessageTexts">
         <div class="field">

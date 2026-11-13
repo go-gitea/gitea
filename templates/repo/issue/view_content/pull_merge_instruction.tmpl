@@ -14,7 +14,7 @@
 			{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_desc"}}
 		</div>
 		{{$args := $pull.GetInstructionsCliArgs}}
-		<div class="ui secondary segment tw-font-mono">
+		<div class="ui secondary segment tw-font-mono tw-overflow-x-auto tw-whitespace-nowrap">
 			{{$gitRemoteName := ctx.RootData.SystemConfig.Repository.GitGuideRemoteName.Value ctx}}
 			{{if ne $pull.Flow 0}}
 			<div>git fetch -u {{$gitRemoteName}} {{$pull.GetGitHeadRefName}}:{{$args.LocalBranchArg}}</div>
@@ -34,7 +34,7 @@
 				<div>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_warning"}}</div>
 			{{end}}
 		</div>
-		<div class="ui secondary segment tw-font-mono">
+		<div class="ui secondary segment tw-font-mono tw-overflow-x-auto tw-whitespace-nowrap">
 			<div>git checkout {{$args.BaseBranchArg}}</div>
 			<div>git pull {{$gitRemoteName}} {{$args.BaseBranchArg}}</div>
 			<div>git merge --no-ff {{$args.LocalBranchArg}}</div>

@@ -1,6 +1,7 @@
 import {createApp, type App, type Component} from 'vue';
 import {GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
+import type {Instance} from 'tippy.js';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
@@ -13,6 +14,7 @@ class PullMergeBox {
   private chosenMergeStyle = '';
   private mergeFormComponent?: Component; // cached so a refresh remounts the form before the next paint
   private mergeFormApp?: App;
+  private updateStyleTippy?: Instance;
 
   constructor(el: HTMLElement) {
     this.el = el;
@@ -50,6 +52,7 @@ class PullMergeBox {
       elButton.textContent = choice.getAttribute('data-update-text');
       elButton.setAttribute('data-url', this.chosenUpdateUrl);
     };
+    this.updateStyleTippy = menuTippy;
     addDelegatedEventListener(menu, 'click', '.item', (choice) => {
       choose(choice);
       menuTippy.hide();
@@ -90,6 +93,8 @@ class PullMergeBox {
     const scrollTop = this.el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTop;
     this.mergeFormApp?.unmount();
     this.mergeFormApp = undefined;
+    this.updateStyleTippy?.destroy();
+    this.updateStyleTippy = undefined;
     this.el.replaceChildren(...newEl.childNodes); // don't morph, so data-global-init and Vue components are re-initialized
     this.el.setAttribute(reloadingIntervalAttr, newEl.getAttribute(reloadingIntervalAttr) ?? '0');
     this.initContent();
