@@ -113,7 +113,7 @@ func TestUnlinkFromRepositoryRequiresTargetRepoAdmin(t *testing.T) {
 	assert.Equal(t, repo.ID, unittest.AssertExistsAndLoadBean(t, &packages_model.Package{ID: pkg.ID}).RepoID)
 
 	require.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: repo.OwnerID, TeamID: 12, RepoID: repo.ID}))
-	require.NoError(t, access_model.RecalculateTeamAccesses(t.Context(), repo, 0))
+	require.NoError(t, access_model.RecalculateUserAccess(t.Context(), repo, doer))
 	require.NoError(t, UnlinkFromRepository(t.Context(), pkg, doer))
 	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &packages_model.Package{ID: pkg.ID}).RepoID)
 }

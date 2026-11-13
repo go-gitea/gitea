@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// UpdateRepositoryLink links the package to repo, replacing an existing link, or removes the link if repo is nil
 func UpdateRepositoryLink(ctx context.Context, pkg *packages_model.Package, repo *repo_model.Repository, doer *user_model.User) error {
 	if repo == nil {
 		if pkg.RepoID == 0 {

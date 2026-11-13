@@ -189,8 +189,7 @@ func TestPackageAPI(t *testing.T) {
 		assert.Nil(t, ap1.Repository)
 
 		settingsRepoName := func() string {
-			resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/settings/generic/%s", user.Name, packageName)), http.StatusOK)
-			return NewHTMLParser(t, resp.Body).Find(`input[name="repo_name"]`).AttrOr("value", "missing")
+			return NewHTMLParser(t, session.MakeRequest(t, NewRequestf(t, "GET", "/%s/-/packages/settings/generic/%s", user.Name, packageName), http.StatusOK).Body).Find(`input[name="repo_name"]`).AttrOr("value", "missing")
 		}
 
 		// create a repository
