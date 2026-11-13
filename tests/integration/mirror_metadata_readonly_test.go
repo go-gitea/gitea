@@ -64,6 +64,9 @@ func TestReadOnlyMirrorRejectsIssueWrites(t *testing.T) {
 		session.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK)
 		home := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/%s/%s", owner.Name, repo.Name)), http.StatusOK).Body)
 		assert.Zero(t, home.doc.Find("#manage_topic").Length(), "synced topics are not editable")
+		// a mirror has no pull request context, so the list must not try to offer creation or compare
+		pulls := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls", owner.Name, repo.Name)), http.StatusOK).Body)
+		assert.Zero(t, pulls.doc.Find(".issue-list-new").Length(), "read-only mirrors offer no new or compare button")
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", issueURL+"/watch", map[string]string{"watch": "1"}), http.StatusOK)
 	})
 
