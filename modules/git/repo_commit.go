@@ -234,11 +234,11 @@ func (repo *Repository) FileChangedBetweenCommits(ctx context.Context, filename,
 		AddDynamicArguments(id1, id2).
 		AddDashesAndList(filename).
 		WithRepo(repo).
-		RunStdBytes(ctx)
+		RunStdString(ctx)
 	if err != nil {
 		return false, err
 	}
-	return len(strings.TrimSpace(string(stdout))) > 0, nil
+	return len(strings.TrimSpace(stdout)) > 0, nil
 }
 
 type CommitsByFileAndRangeOptions struct {
@@ -356,7 +356,7 @@ func (repo *Repository) commitsBefore(ctx context.Context, id ObjectID, limit in
 
 	commits := make([]*Commit, 0, len(formattedLog))
 	for _, commit := range formattedLog {
-		branches, err := repo.getBranches(ctx, nil, commit.ID.String(), 2)
+		branches, err := getCommitBranchNames(ctx, repo, commit.ID.String(), 2, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -379,7 +379,7 @@ func (repo *Repository) getCommitsBeforeLimit(ctx context.Context, id ObjectID, 
 	return repo.commitsBefore(ctx, id, num)
 }
 
-func (repo *Repository) getBranches(ctx context.Context, env []string, commitID string, limit int) ([]string, error) {
+func getCommitBranchNames(ctx context.Context, repo RepositoryFacade, commitID string, limit int, env []string) ([]string, error) {
 	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--format=%(refname:strip=2)").
 		AddOptionFormat("--count=%d", limit).
 		AddOptionValues("--contains", commitID).
@@ -437,14 +437,12 @@ func IsCommitInBranch(ctx context.Context, repo gitrepo.RepositoryFacade, commit
 	return len(stdout) > 0, nil
 }
 
-// GetCommitBranchStart returns the commit where the branch diverged
-func (repo *Repository) GetCommitBranchStart(ctx context.Context, env []string, branch, endCommitID string) (string, error) {
+// getCommitBranchStart returns the commit where the branch diverged
+func getCommitBranchStart(ctx context.Context, repo RepositoryFacade, branch, endCommitID string, env []string) (string, error) {
 	cmd := gitcmd.NewCommand("log", prettyLogFormat)
 	cmd.AddDynamicArguments(endCommitID)
 
-	stdout, _, runErr := cmd.WithRepo(repo).
-		WithEnv(env).
-		RunStdBytes(ctx)
+	stdout, _, runErr := cmd.WithRepo(repo).WithEnv(env).RunStdBytes(ctx)
 	if runErr != nil {
 		return "", runErr
 	}
@@ -455,7 +453,7 @@ func (repo *Repository) GetCommitBranchStart(ctx context.Context, env []string, 
 	// and we think this commit is the divergence point
 	for part := range parts {
 		commitID := string(part)
-		branches, err := repo.getBranches(ctx, env, commitID, 2)
+		branches, err := getCommitBranchNames(ctx, repo, commitID, 2, env)
 		if err != nil {
 			return "", err
 		}

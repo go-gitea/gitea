@@ -49,23 +49,6 @@
   vertical-align: top;
 }
 
-.ui.list > .item > .image {
-  display: table-cell;
-  background-color: transparent;
-  vertical-align: top;
-}
-.ui.list > .item > .image:not(:only-child):not(img) {
-  padding-right: 0.5em;
-}
-.ui.list > .item > .image img {
-  vertical-align: top;
-}
-.ui.list .list > .item > .image:only-child,
-.ui.list > .item > img.image,
-.ui.list > .item > .image:only-child {
-  display: inline-block;
-}
-
 .ui.list .list > .item > .content,
 .ui.list > .item > .content {
   color: var(--color-text);
@@ -75,10 +58,6 @@
   width: 100%;
   padding: 0 0 0 0.5em;
   vertical-align: top;
-}
-.ui.list > .item > img.image + .content {
-  display: inline-block;
-  width: auto;
 }
 .ui.list > .item > .content > .list {
   margin-left: 0;

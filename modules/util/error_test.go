@@ -5,6 +5,7 @@ package util
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"testing"
 
@@ -18,7 +19,7 @@ func TestErrorTranslatable(t *testing.T) {
 	err = ErrorWrapTranslatable(io.EOF, "key", 1)
 	assert.ErrorIs(t, err, io.EOF)
 	assert.Equal(t, "EOF", err.Error())
-	wrapped, ok := err.(*errorTranslatableWrapper)
+	wrapped, ok := err.(*errorTranslatable)
 	require.True(t, ok)
 	assert.Equal(t, "key", wrapped.trKey)
 	assert.Equal(t, []any{1}, wrapped.trArgs)
@@ -26,12 +27,36 @@ func TestErrorTranslatable(t *testing.T) {
 	err = ErrorWrap(err, "new msg %d", 100)
 	assert.ErrorIs(t, err, io.EOF)
 	assert.Equal(t, "new msg 100", err.Error())
+}
 
-	errTr := ErrorAsTranslatable(err)
-	assert.Equal(t, "EOF", errTr.Error())
-	wrapped, ok = errTr.(*errorTranslatableWrapper)
-	require.True(t, ok)
-	assert.Equal(t, "key", wrapped.trKey)
+type testErrorLocale struct{}
+
+func (l testErrorLocale) Tr(key string, args ...any) template.HTML {
+	return template.HTML(l.TrString(key, args...))
+}
+
+func (testErrorLocale) TrString(key string, args ...any) string {
+	return fmt.Sprintf(key, args...)
+}
+
+func TestErrorUnwrapForHTML(t *testing.T) {
+	locale := testErrorLocale{}
+	err := NewNotExistErrorf("missing <file>")
+	msg, code := ErrorUnwrapForHTML(err, locale)
+	assert.Equal(t, template.HTML("missing &lt;file&gt;"), msg)
+	assert.Equal(t, 404, code)
+
+	msg, code = ErrorUnwrapForHTML(ErrorWrapTranslatable(err, "missing <b>%s</b>", "file"), locale)
+	assert.Equal(t, template.HTML("missing <b>file</b>"), msg)
+	assert.Equal(t, 404, code)
+
+	msg, code = ErrorUnwrapForHTML(ErrorWrapTranslatable(io.EOF, "unexpected end of input"), locale)
+	assert.Equal(t, template.HTML("unexpected end of input"), msg)
+	assert.Equal(t, 400, code)
+
+	msg, code = ErrorUnwrapForHTML(io.EOF, locale)
+	assert.Empty(t, msg)
+	assert.Zero(t, code)
 }
 
 func TestErrorUnwrapForUser(t *testing.T) {

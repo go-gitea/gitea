@@ -96,15 +96,36 @@ func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+const (
+	// CreationRestrictionReader allows any user with read access to the unit to create issues/pull requests (default, legacy behavior)
+	CreationRestrictionReader = "reader"
+	// CreationRestrictionMember restricts creation to effective collaborators (owner, team members, explicit collaborators) with at least read access
+	CreationRestrictionMember = "member"
+	// CreationRestrictionWriter restricts creation to users with at least write access
+	CreationRestrictionWriter = "writer"
+)
+
 // IssuesConfig describes issues config
 type IssuesConfig struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableDependencies               bool
+	CreationRestriction              string
+}
+
+func DefaultIssuesConfig() *IssuesConfig {
+	return &IssuesConfig{
+		EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
+		AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
+		EnableDependencies:               setting.Service.DefaultEnableDependencies,
+		CreationRestriction:              CreationRestrictionReader,
+	}
 }
 
 func (cfg *IssuesConfig) FromDB(bs []byte) error {
+	*cfg = *DefaultIssuesConfig()
 	db.UnmarshalFromDB(bs, cfg)
+	cfg.CreationRestriction = util.IfZero(cfg.CreationRestriction, CreationRestrictionReader)
 	return nil
 }
 
@@ -130,6 +151,7 @@ type PullRequestsConfig struct {
 	DefaultSquashMergeMessage     SquashMergeMessage
 	DefaultAllowMaintainerEdit    bool
 	DefaultTargetBranch           string
+	CreationRestriction           string
 }
 
 func DefaultPullRequestsConfig() *PullRequestsConfig {
@@ -143,6 +165,7 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 		AllowRebaseUpdate:          true,
 		DefaultUpdateStyle:         UpdateStyleMerge,
 		DefaultAllowMaintainerEdit: true,
+		CreationRestriction:        CreationRestrictionReader,
 	}
 	cfg.DefaultDeleteBranchAfterMerge = setting.Repository.PullRequest.DefaultDeleteBranchAfterMerge
 	cfg.DefaultMergeStyle = MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
@@ -156,6 +179,7 @@ func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
 	*cfg = *DefaultPullRequestsConfig()
 	db.UnmarshalFromDB(bs, cfg)
 	cfg.DefaultUpdateStyle = util.IfZero(cfg.DefaultUpdateStyle, UpdateStyleMerge)
+	cfg.CreationRestriction = util.IfZero(cfg.CreationRestriction, CreationRestrictionReader)
 	return nil
 }
 
