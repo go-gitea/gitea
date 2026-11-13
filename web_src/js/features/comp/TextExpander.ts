@@ -1,23 +1,28 @@
-import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
+import {matchEmoji, matchMention} from '../../utils/match.ts';
 import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
 import {parseIssueHref, parseRepoOwnerPathInfo} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
 import {getIssueColorClass, getIssueIcon} from '../issue.ts';
-import {errorName} from '../../modules/errors.ts';
 import {debounce} from '../../utils/func.ts';
 import type TextExpanderElement from '@github/text-expander-element';
 import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
+import {ExclusiveFetch} from '../../modules/fetch.ts';
+import type {Issue} from '../../types.ts';
 
-async function fetchIssueSuggestions(key: string, text: string, signal: AbortSignal): Promise<TextExpanderResult> {
+function makeFetchIssueSuggestionsUrl(query: string): {issueIndexStr: string, suggestionsUrl: string} | null {
   const hrefPathInfo = parseIssueHref(window.location.href);
   // the fallback has no indexString, it is only used to exclude the current issue when "matchIssue"
   const pathInfo = hrefPathInfo ?? parseRepoOwnerPathInfo(window.location.pathname);
-  if (!pathInfo) return {matched: false};
+  if (!pathInfo) return null;
+  return {
+    issueIndexStr: hrefPathInfo?.indexString ?? '',
+    suggestionsUrl: `${window.config.appSubUrl}/${pathInfo.ownerName}/${pathInfo.repoName}/issues/suggestions?q=${encodeURIComponent(query)}`,
+  };
+}
 
-  const matches = await matchIssue(pathInfo.ownerName, pathInfo.repoName, hrefPathInfo?.indexString, text, signal);
-  if (!matches.length) return {matched: false};
-
+function buildIssueSuggestions(key: string, matches: Issue[]): TextExpanderResult {
+  if (matches.length === 0) return {matched: false};
   const ul = createElementFromAttrs('ul', {class: 'suggestions'});
   for (const issue of matches) {
     const li = createElementFromAttrs(
@@ -45,28 +50,23 @@ export function initTextExpander(expander: TextExpanderElement) {
     return keyStart > lineStart;
   };
 
-  let suggestionsController = new AbortController();
+  const exclusiveFetch = new ExclusiveFetch();
   const debouncedIssueSuggestions = debounce(async (key: string, text: string): Promise<TextExpanderResult> => {
-    // https://github.com/github/text-expander-element/issues/71
-    // Upstream bug: when using "multiword+promise", TextExpander will get wrong "key" position.
-    // To reproduce, comment out the "shouldShowIssueSuggestions" check, use the "await sleep" below,
-    // then use content "close #20\nclose #20\nclose #20" (3 lines), keep changing the last line `#20` part from the end (including removing the `#`)
-    // There will be a JS error: Uncaught (in promise) IndexSizeError: Failed to execute 'setStart' on 'Range': The offset 28 is larger than the node's length (27).
-
-    // check the input before the request, to avoid emitting empty query to backend (still related to the upstream bug)
+    // check the input before the request, to avoid emitting empty query to backend
     if (!shouldShowIssueSuggestions()) return {matched: false};
-    // await sleep(Math.random() * 1000); // help to reproduce the text-expander bug
-    suggestionsController.abort(); // only the newest request may answer
-    suggestionsController = new AbortController();
-    try {
-      const ret = await fetchIssueSuggestions(key, text, suggestionsController.signal);
-      // check the input again to avoid text-expander using incorrect position (upstream bug)
+
+    const result = makeFetchIssueSuggestionsUrl(text);
+    if (!result) return {matched: false};
+    const {issueIndexStr, suggestionsUrl} = result;
+
+    const resp = exclusiveFetch.request(suggestionsUrl);
+    return await resp.fetchJson((raw: Issue[]) => {
       if (!shouldShowIssueSuggestions()) return {matched: false};
-      return ret;
-    } catch (err) {
-      if (errorName(err) !== 'AbortError') throw err;
-      return {matched: false};
-    }
+
+      const issueNumber = parseInt(issueIndexStr || '');
+      const issues = raw.filter((i) => i.number !== issueNumber);
+      return buildIssueSuggestions(key, issues);
+    }) || {matched: false};
   }, 300); // to match onInputDebounce delay
 
   expander.addEventListener('text-expander-change', (e: TextExpanderChangeEvent) => {

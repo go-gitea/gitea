@@ -21,8 +21,7 @@ type CheckerState struct {
 	LatestVersion string
 }
 
-// Name returns the name of the state item for update checker
-func (r *CheckerState) Name() string {
+func (CheckerState) StateName() string {
 	return "update-checker"
 }
 

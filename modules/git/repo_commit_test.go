@@ -37,7 +37,7 @@ func TestRepository_CommitQueries(t *testing.T) {
 			for _, testCase := range testCases {
 				commit, err := bareRepo1.GetCommit(t.Context(), testCase.CommitID)
 				assert.NoError(t, err)
-				branches, err := bareRepo1.getBranches(t.Context(), nil, commit.ID.String(), 2)
+				branches, err := getCommitBranchNames(t.Context(), bareRepo1, commit.ID.String(), 2, nil)
 				assert.NoError(t, err)
 				assert.Equal(t, testCase.ExpectedBranches, branches)
 			}

@@ -871,7 +871,8 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		protectedFilePatterns := pb.GetProtectedFilePatterns()
 		if len(protectedFilePatterns) != 0 {
 			for _, file := range diff.Files {
-				file.IsProtected = pb.IsProtectedFile(protectedFilePatterns, file.Name)
+				// when a file is renamed, we need to check both the old and new names against the protected file patterns
+				file.IsProtected = pb.IsProtectedFile(protectedFilePatterns, file.OldName) || pb.IsProtectedFile(protectedFilePatterns, file.Name)
 			}
 		}
 	}
@@ -1567,8 +1568,6 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		}
 		return
 	}
-	notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, targetBranch)
-
 	ctx.JSON(http.StatusOK, map[string]any{
 		"base_branch": pr.BaseBranch,
 	})
