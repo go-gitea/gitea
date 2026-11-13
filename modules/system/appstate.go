@@ -11,15 +11,14 @@ type StateStore interface {
 	Set(ctx context.Context, item StateItem) error
 }
 
-// StateItem provides the name for a state item. the name will be used to generate filenames, etc
+// StateItem provides the name for a state item that is used to the generate key for persistence
 type StateItem interface {
-	Name() string
+	StateName() string
 }
 
-// AppState contains the state items for the app
 var AppState StateStore
 
-// Init initialize AppState interface
+// Init initialize AppState interface to use database to store app state items
 func Init() error {
 	AppState = &DBStore{}
 	return nil

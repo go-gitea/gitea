@@ -44,6 +44,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
+	ctx.Data["ForceUserActivityVisibility"] = setting.Service.ForceUserActivityVisibility
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -91,7 +92,7 @@ func ProfilePost(ctx *context.Context) {
 		Website:             optional.Some(form.Website),
 		Location:            optional.Some(form.Location),
 		Visibility:          optional.Some(form.Visibility),
-		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
+		KeepActivityPrivate: util.Iif(setting.Service.ForceUserActivityVisibility == "", optional.Some(form.KeepActivityPrivate), nil),
 	}); err != nil {
 		ctx.JSONErrorAuto(err)
 		return
