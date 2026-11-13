@@ -10,6 +10,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/translation"
@@ -71,15 +72,24 @@ func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 	return delimiter
 }
 
-// quoteRegexp follows the RFC-4180 CSV standard for when double-quotes are used to enclose fields, then a double-quote appearing inside a
-// field must be escaped by preceding it with another double quote. https://www.ietf.org/rfc/rfc4180.txt
-// This finds all quoted strings that have escaped quotes.
-var quoteRegexp = regexp.MustCompile(`"[^"]*"`)
+var globalVars = sync.OnceValue(func() (ret struct {
+	quoteRegexp       *regexp.Regexp
+	beforeAfterQuotes *regexp.Regexp
+},
+) {
+	// quoteRegexp follows the RFC-4180 CSV standard for when double-quotes are used to enclose fields, then a double-quote appearing inside a
+	// field must be escaped by preceding it with another double quote. https://www.ietf.org/rfc/rfc4180.txt
+	// This finds all quoted strings that have escaped quotes.
+	ret.quoteRegexp = regexp.MustCompile(`"[^"]*"`)
+	// Looks for possible delimiters right before or after (with spaces after the former) double quotes with closing quotes
+	ret.beforeAfterQuotes = regexp.MustCompile(`([,@\t;|]{0,1}) *(?:"[^"]*")+([,@\t;|]{0,1})`)
+	return ret
+})
 
 // removeQuotedStrings uses the quoteRegexp to remove all quoted strings so that we can reliably have each row on one line
 // (quoted strings often have new lines within the string)
 func removeQuotedString(text string) string {
-	return quoteRegexp.ReplaceAllLiteralString(text, "")
+	return globalVars().quoteRegexp.ReplaceAllLiteralString(text, "")
 }
 
 // guessDelimiter takes up to maxLines of the CSV text, iterates through the possible delimiters, and sees if the CSV Reader reads it without throwing any errors.
@@ -133,13 +143,10 @@ func FormatError(err error, locale translation.Locale) (string, error) {
 	return "", err
 }
 
-// Looks for possible delimiters right before or after (with spaces after the former) double quotes with closing quotes
-var beforeAfterQuotes = regexp.MustCompile(`([,@\t;|]{0,1}) *(?:"[^"]*")+([,@\t;|]{0,1})`)
-
 // guessFromBeforeAfterQuotes guesses the limiter by finding a double quote that has a valid delimiter before it and a closing quote,
 // or a double quote with a closing quote and a valid delimiter after it
 func guessFromBeforeAfterQuotes(data []byte) rune {
-	rs := beforeAfterQuotes.FindStringSubmatch(string(data)) // returns first match, or nil if none
+	rs := globalVars().beforeAfterQuotes.FindStringSubmatch(string(data)) // returns first match, or nil if none
 	if rs != nil {
 		if rs[1] != "" {
 			return rune(rs[1][0]) // delimiter found left of quoted string

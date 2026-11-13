@@ -502,22 +502,6 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-.action-view-right-panel .ui.button,
-.action-view-right-panel .ui.button:focus {
-  background: transparent;
-  color: var(--color-console-fg-subtle);
-}
-
-.action-view-right-panel .ui.button:hover {
-  background: var(--color-console-hover-bg);
-  color: var(--color-console-fg);
-}
-
-.action-view-right-panel .ui.button:active {
-  background: var(--color-console-active-bg);
-  color: var(--color-console-fg);
-}
-
 @media (max-width: 767.98px) {
   .action-view-body {
     flex-direction: column;

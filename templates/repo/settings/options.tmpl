@@ -370,6 +370,17 @@
 						</div>
 					</div>
 					<div class="field tw-pl-4 {{if not $isInternalTrackerEnabled}}disabled{{end}}" id="internal_issue_box">
+						{{$issuesCreationRestriction := (.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeIssues).IssuesConfig.CreationRestriction}}
+						<div class="field">
+							<p>{{ctx.Locale.Tr "repo.settings.issues.creation_restriction_desc"}}</p>
+							<div class="select-field">
+								<select name="issues_creation_restriction" aria-label="{{ctx.Locale.Tr "repo.settings.issues.creation_restriction_desc"}}">
+									<option value="reader" {{if eq $issuesCreationRestriction "reader"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_reader"}}</option>
+									<option value="member" {{if eq $issuesCreationRestriction "member"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_member"}}</option>
+									<option value="writer" {{if eq $issuesCreationRestriction "writer"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_writer"}}</option>
+								</select>
+							</div>
+						</div>
 						{{if .Repository.CanEnableTimetracker}}
 							<div class="field">
 								<div class="ui checkbox">
@@ -466,9 +477,9 @@
 					</p>
 					<div class="select-field">
 						<select name="projects_mode" aria-label="{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}">
-							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
-							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
-							<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
+							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.ProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
+							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.ProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
+							<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.ProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
 						</select>
 					</div>
 				</div>
@@ -508,6 +519,17 @@
 						</div>
 					</div>
 					<div class="field{{if not $pullRequestEnabled}} disabled{{end}}" id="pull_box">
+						{{$pullCreationRestriction := $prUnit.PullRequestsConfig.CreationRestriction}}
+						<div class="field">
+							<p>{{ctx.Locale.Tr "repo.settings.pulls.creation_restriction_desc"}}</p>
+							<div class="select-field">
+								<select name="pulls_creation_restriction" aria-label="{{ctx.Locale.Tr "repo.settings.pulls.creation_restriction_desc"}}">
+									<option value="reader" {{if eq $pullCreationRestriction "reader"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_reader"}}</option>
+									<option value="member" {{if eq $pullCreationRestriction "member"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_member"}}</option>
+									<option value="writer" {{if eq $pullCreationRestriction "writer"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.creation_restriction_writer"}}</option>
+								</select>
+							</div>
+						</div>
 						<div class="field">
 							<p>
 								{{ctx.Locale.Tr "repo.settings.merge_style_desc"}}

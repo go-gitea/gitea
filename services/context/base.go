@@ -128,7 +128,7 @@ func (b *Base) RemoteAddr() string {
 func (b *Base) plainTextInternal(skip, status int, bs []byte) {
 	statusPrefix := status / 100
 	if statusPrefix == 4 || statusPrefix == 5 {
-		log.Log(skip, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
+		log.Log(skip+1, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
 	}
 	b.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	b.Resp.Header().Set("X-Content-Type-Options", "nosniff")
@@ -138,12 +138,12 @@ func (b *Base) plainTextInternal(skip, status int, bs []byte) {
 
 // PlainTextBytes renders bytes as plain text
 func (b *Base) PlainTextBytes(status int, bs []byte) {
-	b.plainTextInternal(2, status, bs)
+	b.plainTextInternal(1, status, bs)
 }
 
 // PlainText renders content as plain text
 func (b *Base) PlainText(status int, text string) {
-	b.plainTextInternal(2, status, []byte(text))
+	b.plainTextInternal(1, status, []byte(text))
 }
 
 // Redirect redirects the request

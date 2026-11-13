@@ -12,11 +12,14 @@ import (
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	git_service "gitea.dev/services/git"
 	notify_service "gitea.dev/services/notify"
 
@@ -24,13 +27,13 @@ import (
 )
 
 // CreateRefComment creates a commit reference comment to issue.
-func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, commitSHA string) error {
+func CreateRefComment(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, commitRepoID int64, content, commitSHA string) error {
 	if len(commitSHA) == 0 {
 		return errors.New("cannot create reference with empty commit SHA")
 	}
 
-	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, repo.OwnerID) {
-		if !access_model.IsUserRepoAdmin(ctx, repo, doer) {
+	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, issue.Repo.OwnerID) {
+		if !access_model.IsUserRepoAdmin(ctx, issue.Repo, doer) {
 			return user_model.ErrBlockedUser
 		}
 	}
@@ -50,10 +53,11 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 	_, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:      issues_model.CommentTypeCommitRef,
 		Doer:      doer,
-		Repo:      repo,
+		Repo:      issue.Repo,
 		Issue:     issue,
 		CommitSHA: commitSHA,
 		Content:   content,
+		RefRepoID: commitRepoID,
 	})
 	return err
 }
@@ -195,4 +199,58 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) error 
 	}
 
 	return nil
+}
+
+// FilterReadableComments drops comments pointing at issues or commits doer cannot read and loads RefRepo of the rest
+func FilterReadableComments(ctx context.Context, doer *user_model.User, perm access_model.Permission, issue *issues_model.Issue, comments issues_model.CommentList) (issues_model.CommentList, error) {
+	type refTarget struct {
+		repo *repo_model.Repository
+		perm access_model.Permission
+	}
+	targets := cache.NewEphemeralCache()
+	targets.Put("ref-target", issue.RepoID, refTarget{issue.Repo, perm})
+	getRepoPerm := func(refRepoID int64) (refTarget, error) {
+		return cache.GetWithEphemeralCache(ctx, targets, "ref-target", refRepoID, func(ctx context.Context, repoID int64) (refTarget, error) {
+			repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+			if err != nil {
+				return refTarget{}, err
+			}
+			repoPerm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
+			return refTarget{repo, repoPerm}, err
+		})
+	}
+
+	readable := comments[:0]
+	for _, c := range comments {
+		var refRepoID int64
+		var refUnit unit.Type
+		switch {
+		case issues_model.CommentTypeIsRef(c.Type):
+			refRepoID, refUnit = c.RefRepoID, util.Iif(c.RefIsPull, unit.TypePullRequests, unit.TypeIssues)
+		case c.Type == issues_model.CommentTypeCommitRef:
+			refRepoID, refUnit = c.RefRepoID, unit.TypeCode
+		case c.Type == issues_model.CommentTypeAddDependency || c.Type == issues_model.CommentTypeRemoveDependency:
+			if err := c.LoadDepIssueDetails(ctx); err != nil && !issues_model.IsErrIssueNotExist(err) {
+				return nil, err
+			}
+			if c.DependentIssue != nil {
+				refRepoID, refUnit = c.DependentIssue.RepoID, util.Iif(c.DependentIssue.IsPull, unit.TypePullRequests, unit.TypeIssues)
+			}
+		}
+		if refRepoID != 0 {
+			target, err := getRepoPerm(refRepoID)
+			if err != nil {
+				return nil, err
+			}
+			if !target.perm.CanRead(refUnit) {
+				continue
+			}
+			c.RefRepo = target.repo
+			if c.DependentIssue != nil {
+				c.DependentIssue.Repo = target.repo
+			}
+		}
+		readable = append(readable, c)
+	}
+	return readable, nil
 }

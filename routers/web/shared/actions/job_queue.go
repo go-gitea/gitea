@@ -58,7 +58,7 @@ func RenderJobQueue(ctx *context.Context, repoID int64, fullTemplate templates.T
 	if repoID == 0 {
 		var err error
 		if filterOwnerID, filterRepoID, err = renderJobQueueFilterOptions(ctx); err != nil {
-			ctx.ServerError("renderJobQueueFilterOptions", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -70,11 +70,11 @@ func RenderJobQueue(ctx *context.Context, repoID int64, fullTemplate templates.T
 		Status:  status,
 	}, page, jobQueuePageSize)
 	if err != nil {
-		ctx.ServerError("FindJobQueueJobs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := actions_model.ActionJobList(jobs).LoadAttributes(ctx, true); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -82,7 +82,7 @@ func RenderJobQueue(ctx *context.Context, repoID int64, fullTemplate templates.T
 		return job.TaskID, job.TaskID > 0
 	}))
 	if err != nil {
-		ctx.ServerError("GetTaskRunnerNames", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

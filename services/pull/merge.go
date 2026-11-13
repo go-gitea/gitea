@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 	"uuid"
 
@@ -666,7 +667,9 @@ func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *g
 	return nil
 }
 
-var escapedSymbols = regexp.MustCompile(`([*[?! \\])`)
+var escapedSymbols = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`([*[?! \\])`)
+})
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
 func IsUserAllowedToMerge(ctx context.Context, pr *issues_model.PullRequest, p access_model.Permission, user *user_model.User) (bool, error) {
@@ -858,6 +861,12 @@ func MarkAsMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommi
 		return false, err
 	} else if !ok {
 		return false, err
+	}
+	if err := git.UpdateRef(ctx, pr.Issue.Repo, git.MergedRefNameFromPullIndex(pr.Index).String(), pr.MergedCommitID); err != nil {
+		log.Error("UpdateRef for merged head: %v", err)
+	}
+	if err := git.RemoveRef(ctx, pr.Issue.Repo, git.MergeRefNameFromPullIndex(pr.Index).String()); err != nil {
+		log.Error("RemoveRef for test merge: %v", err)
 	}
 
 	err = markAsMergedPostProcess(ctx, pr.ID, merger, wasAutoMerged)

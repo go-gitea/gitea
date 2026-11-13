@@ -9,10 +9,12 @@ test('update profile biography and switch the theme from the footer', async ({pa
   await page.goto('/user/settings');
   await page.getByLabel('Biography').fill(bio);
   await page.getByRole('button', {name: 'Update Profile'}).click();
-  await expect(page.getByLabel('Biography')).toHaveValue(bio);
+  await expect(page.getByText('Your profile has been updated.', {exact: true})).toBeVisible();
+  await expect(page.getByLabel('Biography')).toHaveText(bio);
   await page.getByLabel('Biography').fill('');
   await page.getByRole('button', {name: 'Update Profile'}).click();
-  await expect(page.getByLabel('Biography')).toHaveValue('');
+  await expect(page.getByText('Your profile has been updated.', {exact: true})).toBeVisible();
+  await expect(page.getByLabel('Biography')).toHaveText('');
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'gitea-auto');
   await page.locator('#footer-theme-selector').getByRole('button').click();

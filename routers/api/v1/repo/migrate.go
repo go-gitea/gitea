@@ -49,12 +49,8 @@ func Migrate(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "409":
-	//     description: The repository with the same name already exists.
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm[*api.MigrateRepoOptions](ctx)
 
@@ -226,7 +222,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.APIError(http.StatusConflict, "The repository with the same name already exists.")
 	case repo_model.IsErrRepoFilesAlreadyExist(err):
-		ctx.APIError(http.StatusConflict, "Files already exist for this repository. Adopt them or delete them.")
+		ctx.APIError(http.StatusConflict, "Files already exist for this repository.")
 	case migrations.IsRateLimitError(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):

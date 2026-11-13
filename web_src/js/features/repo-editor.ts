@@ -2,7 +2,7 @@ import {html, htmlRaw} from '../utils/html.ts';
 import {createCodeEditor} from '../modules/codeeditor/main.ts';
 import {trimTrailingWhitespaceFromView} from '../modules/codeeditor/utils.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML, onInputDebounce} from '../utils/dom.ts';
-import {POST} from '../modules/fetch.ts';
+import {ExclusiveFetch} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {applyAreYouSure, ignoreAreYouSure} from '../modules/are-you-sure.ts';
@@ -25,6 +25,9 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
 
   const elPreviewTab = elTabMenu.querySelector('a[data-tab="preview"]')!;
   const elPreviewPanel = elForm.querySelector('.tab[data-tab="preview"]')!;
+
+  const previewFetch = new ExclusiveFetch(), diffFetch = new ExclusiveFetch();
+
   elPreviewTab.addEventListener('click', async () => {
     // "preview context" is the request path directory of the file, the rendered links will be resolved based on this path
     // TODO: MARKUP-RENDER-CONTEXT: due to various hacky patches, this logic is unnecessarily complicated, see the backend
@@ -34,13 +37,9 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
     formData.append('context', previewContext);
     formData.append('text', elTextarea.value);
     formData.append('file_path', elTreePath.value);
-    const resp = await POST(`${repoLink}/markup`, {data: formData});
-    if (!resp.ok) {
-      showErrorToast(`Failed to render preview: ${resp.status} ${resp.statusText}`);
-      return;
-    }
-    const data = await resp.text();
-    renderPreviewPanelContent(elPreviewPanel, data);
+    const resp = previewFetch.request(`${repoLink}/markup`, {method: 'POST', data: formData});
+    resp.onResponseError((details) => showErrorToast(`Failed to render preview: ${details.message}`, {duration: 2500}));
+    await resp.fetchText((data) => renderPreviewPanelContent(elPreviewPanel, data));
   });
 
   const elDiffTab = elTabMenu.querySelector('a[data-tab="diff"]');
@@ -50,12 +49,9 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
     elDiffTab.addEventListener('click', async () => {
       const diffUrl = `${repoLink}/_preview/${pathEscapeSegments(branchName)}/${pathEscapeSegments(elTreePath.value)}`;
       // don't use FormData, because FormData sends "\r\n" line endings, backend assumes "\n" line endings
-      const resp = await POST(diffUrl, {data: new URLSearchParams({content: elTextarea.value})});
-      if (!resp.ok) {
-        showErrorToast(`Failed to render diff: ${resp.status} ${resp.statusText}`);
-        return;
-      }
-      elDiffPanel.innerHTML = await resp.text();
+      const resp = diffFetch.request(diffUrl, {method: 'POST', data: new URLSearchParams({content: elTextarea.value})});
+      resp.onResponseError((details) => showErrorToast(`Failed to render diff: ${details.message}`, {duration: 2500}));
+      await resp.fetchText((data) => elDiffPanel.innerHTML = data);
     });
   }
 }

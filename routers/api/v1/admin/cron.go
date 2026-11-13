@@ -33,8 +33,8 @@ func ListCronTasks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CronList"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   default:
+	//     "$ref": "#/responses/error"
 	tasks := cron.ListTasks()
 	count := len(tasks)
 
@@ -72,8 +72,8 @@ func PostCronTask(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 	task := cron.GetTask(ctx.PathParam("task"))
 	if task == nil {
 		ctx.APIErrorNotFound()

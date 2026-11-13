@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/modules/globallock"
@@ -46,7 +47,9 @@ const (
 
 var (
 	errInvalidParameters = errors.New("request parameters are invalid")
-	illegalCharacters    = regexp.MustCompile(`[\\/:"<>|?*]`)
+	illegalCharacters    = sync.OnceValue(func() *regexp.Regexp {
+		return regexp.MustCompile(`[\\/:"<>|?*]`)
+	})
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -471,7 +474,7 @@ func extractPathParameters(ctx *context.Context) (parameters, error) {
 		parts = parts[:len(parts)-1]
 	}
 
-	if illegalCharacters.MatchString(p.Version) {
+	if illegalCharacters().MatchString(p.Version) {
 		return p, errInvalidParameters
 	}
 
@@ -482,7 +485,7 @@ func extractPathParameters(ctx *context.Context) (parameters, error) {
 	p.ArtifactID = parts[len(parts)-1]
 	p.GroupID = strings.Join(parts[:len(parts)-1], ".")
 
-	if illegalCharacters.MatchString(p.GroupID) || illegalCharacters.MatchString(p.ArtifactID) {
+	if illegalCharacters().MatchString(p.GroupID) || illegalCharacters().MatchString(p.ArtifactID) {
 		return p, errInvalidParameters
 	}
 

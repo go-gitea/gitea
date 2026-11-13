@@ -303,13 +303,6 @@ type swaggerNote struct {
 	Body api.Note `json:"body"`
 }
 
-// EmptyRepository
-// swagger:response EmptyRepository
-type swaggerEmptyRepository struct {
-	// in: body
-	Body api.APIError `json:"body"`
-}
-
 // FileResponse
 // swagger:response FileResponse
 type swaggerFileResponse struct {

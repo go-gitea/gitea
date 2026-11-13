@@ -49,7 +49,7 @@ func GeneralSettings(ctx *context.Context) {
 
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -60,14 +60,14 @@ func GeneralSettings(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["PageIsUserSettingsActionsGeneral"] = true
 	} else {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	// Load User/Org Actions Config
 	actionsCfg, err := actions_model.GetOwnerActionsConfig(ctx, rCtx.OwnerID)
 	if err != nil {
-		ctx.ServerError("GetOwnerActionsConfig", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -83,7 +83,7 @@ func GeneralSettings(ctx *context.Context) {
 	// Load Allowed Repositories
 	allowedRepos, err := repo_model.GetOwnerRepositoriesByIDs(ctx, rCtx.OwnerID, actionsCfg.AllowedCrossRepoIDs)
 	if err != nil {
-		ctx.ServerError("GetOwnerRepositoriesByIDs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -101,18 +101,18 @@ func GeneralSettings(ctx *context.Context) {
 func UpdateGeneralSettings(ctx *context.Context) {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if !rCtx.IsOrg && !rCtx.IsUser {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	actionsCfg, err := actions_model.GetOwnerActionsConfig(ctx, rCtx.OwnerID)
 	if err != nil {
-		ctx.ServerError("GetOwnerActionsConfig", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -125,7 +125,7 @@ func UpdateGeneralSettings(ctx *context.Context) {
 					ctx.JSONError("Repository doesn't exist")
 					return
 				}
-				ctx.ServerError("GetRepositoryByName", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if !slices.Contains(actionsCfg.AllowedCrossRepoIDs, targetRepo.ID) {
@@ -152,7 +152,7 @@ func UpdateGeneralSettings(ctx *context.Context) {
 	}
 
 	if err := actions_model.SetOwnerActionsConfig(ctx, rCtx.OwnerID, actionsCfg); err != nil {
-		ctx.ServerError("SetOwnerActionsConfig", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
