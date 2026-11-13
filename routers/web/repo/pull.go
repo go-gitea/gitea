@@ -9,11 +9,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"html"
 	"html/template"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +29,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/glob"
+	"gitea.dev/modules/htmlutil"
 	issue_template "gitea.dev/modules/issue/template"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
@@ -1397,7 +1396,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 	if pr != nil {
-		ctx.JSONError(ctx.Tr("repo.pulls.new.already_existed"))
+		ctx.JSONError(existingPullRequestMessage(ctx, pr.Index))
 		return
 	}
 
@@ -1540,6 +1539,11 @@ func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 	}
 }
 
+func existingPullRequestMessage(ctx *context.Context, index int64) template.HTML {
+	link := htmlutil.HTMLFormat(`<a href="%s/pulls/%d">%s#%d</a>`, ctx.Repo.RepoLink, index, ctx.Repo.Repository.FullName(), index)
+	return ctx.Tr("repo.pulls.has_pull_request", link)
+}
+
 // UpdatePullRequestTarget change pull request's target branch
 func UpdatePullRequestTarget(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
@@ -1575,8 +1579,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"user_error": errorMessage,
 			})
 		case errors.As(err, &prExistsErr):
-			RepoRelPath := ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
-			errorMessage := ctx.Tr("repo.pulls.has_pull_request", html.EscapeString(ctx.Repo.RepoLink+"/pulls/"+strconv.FormatInt(prExistsErr.IssueID, 10)), html.EscapeString(RepoRelPath), prExistsErr.IssueID) // FIXME: Creates url inside locale string
+			errorMessage := existingPullRequestMessage(ctx, prExistsErr.IssueID)
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusConflict, map[string]any{

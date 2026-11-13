@@ -157,7 +157,8 @@ func TestPullCreate(t *testing.T) {
 		req := NewRequestWithValues(t, "POST", link, map[string]string{
 			"title": "This is a pull title",
 		})
-		session.MakeRequest(t, req, http.StatusBadRequest)
+		resp = session.MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage, `<a href="`+url+`">user2/repo1#`+path.Base(url)+`</a>`)
 
 		// check .diff can be accessed and matches performed change
 		req = NewRequest(t, "GET", url+".diff")

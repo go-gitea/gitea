@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/perm"
 	"gitea.dev/models/renderhelper"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
@@ -92,7 +93,7 @@ func NewComment(ctx *context.Context) {
 			}
 
 			if branchOtherUnmergedPR != nil {
-				ctx.Flash.Error(ctx.Tr("repo.pulls.open_unmerged_pull_exists_link", fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, branchOtherUnmergedPR.Index), branchOtherUnmergedPR.Index))
+				ctx.Flash.Error(ctx.Tr("repo.pulls.open_unmerged_pull_exists", htmlutil.HTMLFormat(`<a href="%s/pulls/%d">#%d</a>`, ctx.Repo.RepoLink, branchOtherUnmergedPR.Index, branchOtherUnmergedPR.Index)))
 			} else {
 				// sync ref of PR <refs/pulls/pr_index/head> in base repo for a reopened PR
 				if pull.Flow == issues_model.PullRequestFlowGithub {
