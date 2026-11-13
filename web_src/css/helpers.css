@@ -46,6 +46,8 @@ Gitea's private styles use `g-` prefix.
 .interact-link { color: var(--color-primary); }
 .interact-link:hover { text-decoration: underline; }
 
+.interact-danger:hover { color: var(--color-danger) !important; }
+
 /* primary-color dot centered on the top-right corner of the element */
 .indicator-dot {
   position: relative;

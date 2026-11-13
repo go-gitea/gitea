@@ -67,26 +67,26 @@
 						<button type="button" class="ui mini basic button escape-button">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 					{{end}}
 				</div>
-				<a download class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.download_file"}}" href="{{$.RawFileLink}}">{{svg "octicon-download"}}</a>
-				<button type="button" class="btn btn-octicon {{if not .CanCopyContent}}disabled{{end}}" {{if not .CanCopyContent}}aria-disabled="true"{{end}} data-global-click="onCopyContentButtonClick"
+				<a download class="btn interact-fg" data-tooltip-content="{{ctx.Locale.Tr "repo.download_file"}}" href="{{$.RawFileLink}}">{{svg "octicon-download"}}</a>
+				<button type="button" class="btn interact-fg {{if not .CanCopyContent}}disabled{{end}}" {{if not .CanCopyContent}}aria-disabled="true"{{end}} data-global-click="onCopyContentButtonClick"
 					{{if not .IsDisplayingSource}}data-raw-file-link="{{$.RawFileLink}}"{{end}}
 					data-tooltip-content="{{if .CanCopyContent}}{{ctx.Locale.Tr "copy_content"}}{{else}}{{ctx.Locale.Tr "copy_type_unsupported"}}{{end}}"
 				>{{svg "octicon-copy"}}</button>
 				{{if and .EnableFeed .RefFullName.IsBranch}}
-				<a class="btn-octicon" href="{{$.RepoLink}}/rss/{{$.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+				<a class="btn interact-fg" href="{{$.RepoLink}}/rss/{{$.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 					{{svg "octicon-rss"}}
 				</a>
 				{{end}}
 				{{if .Repository.CanContentChange}}
 					{{if .CanEditFile}}
-						<a class="btn-octicon" data-tooltip-content="{{.EditFileTooltip}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-pencil"}}</a>
+						<a class="btn interact-fg" data-tooltip-content="{{.EditFileTooltip}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-pencil"}}</a>
 					{{else}}
-						<span class="btn-octicon disabled" data-tooltip-content="{{.EditFileTooltip}}">{{svg "octicon-pencil"}}</span>
+						<span class="btn disabled" data-tooltip-content="{{.EditFileTooltip}}">{{svg "octicon-pencil"}}</span>
 					{{end}}
 					{{if .CanDeleteFile}}
-						<a class="btn-octicon btn-octicon-danger" data-tooltip-content="{{.DeleteFileTooltip}}" href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-trash"}}</a>
+						<a class="btn interact-fg interact-danger" data-tooltip-content="{{.DeleteFileTooltip}}" href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-trash"}}</a>
 					{{else}}
-						<span class="btn-octicon disabled" data-tooltip-content="{{.DeleteFileTooltip}}">{{svg "octicon-trash"}}</span>
+						<span class="btn disabled" data-tooltip-content="{{.DeleteFileTooltip}}">{{svg "octicon-trash"}}</span>
 					{{end}}
 				{{end}}
 			{{else if .EscapeStatus.Escaped}}
@@ -94,7 +94,7 @@
 				<button type="button" class="ui mini basic button escape-button tw-mr-1">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			{{end}}
 			{{if and .ReadmeInList .CanEditReadmeFile}}
-				<a class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.edit_this_file"}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .FileTreePath}}">{{svg "octicon-pencil"}}</a>
+				<a class="btn interact-fg" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.edit_this_file"}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .FileTreePath}}">{{svg "octicon-pencil"}}</a>
 			{{end}}
 		</div>
 	</h4>

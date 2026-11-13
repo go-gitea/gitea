@@ -153,25 +153,8 @@
   font-size: 1em;
 }
 
-.non-diff-file-content .header .file-actions .btn-octicon {
-  line-height: var(--line-height-default);
+.non-diff-file-content .header .file-actions .btn {
   padding: 8px;
-  vertical-align: middle;
-  color: var(--color-text);
-}
-
-.non-diff-file-content .header .file-actions .btn-octicon:hover {
-  color: var(--color-primary);
-}
-
-.non-diff-file-content .header .file-actions .btn-octicon-danger:hover {
-  color: var(--color-red);
-}
-
-.non-diff-file-content .header .file-actions .btn-octicon.disabled {
-  color: inherit;
-  opacity: var(--opacity-disabled);
-  cursor: default;
 }
 
 .non-diff-file-content .plain-text {
