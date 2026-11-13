@@ -92,10 +92,10 @@
 						{{if .Default}}{{svg "octicon-star"}} {{end}}{{.Title}}
 					</div>
 					{{if $canWriteProject}}
-						<div class="ui dropdown tw-p-1">
-							{{svg "octicon-kebab-horizontal"}}
-							<div class="menu">
-								<a class="item button show-modal show-project-column-modal-edit" data-modal="#project-column-modal-edit"
+						<div class="dropdown-container">
+							<button type="button" class="dropdown-trigger btn tw-p-1" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-kebab-horizontal"}}</button>
+							<div class="dropdown-popup">
+								<button type="button" class="dropdown-item show-modal show-project-column-modal-edit" data-modal="#project-column-modal-edit"
 									data-modal-header="{{ctx.Locale.Tr "repo.projects.column.edit"}}"
 									data-modal-project-column-title-label="{{ctx.Locale.Tr "repo.projects.column.edit_title"}}"
 									data-modal-project-column-button-save="{{ctx.Locale.Tr "repo.projects.column.edit"}}"
@@ -104,20 +104,20 @@
 									data-modal-project-column-color-input="{{.Color}}"
 								>
 									{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.projects.column.edit"}}
-								</a>
+								</button>
 								{{if not .Default}}
-									<a class="item button link-action" data-url="{{$.Link}}/{{.ID}}/default"
+									<button type="button" class="dropdown-item link-action" data-url="{{$.Link}}/{{.ID}}/default"
 										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
 										data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.column.set_default_desc"}}"
 									>
 										{{svg "octicon-star"}} {{ctx.Locale.Tr "repo.projects.column.set_default"}}
-									</a>
-									<a class="item button link-action negative" data-url="{{$.Link}}/{{.ID}}" data-fetch-method="DELETE"
+									</button>
+									<button type="button" class="dropdown-item link-action negative" data-url="{{$.Link}}/{{.ID}}" data-fetch-method="DELETE"
 										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.delete"}}"
 										data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.column.deletion_desc"}}"
 									>
 										{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.projects.column.delete"}}
-									</a>
+									</button>
 								{{end}}
 							</div>
 						</div>

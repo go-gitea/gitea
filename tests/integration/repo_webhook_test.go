@@ -59,7 +59,8 @@ func TestNewWebHookLink(t *testing.T) {
 	for _, reqHref := range cases {
 		resp := session.MakeRequest(t, NewRequest(t, "GET", reqHref), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		menus := htmlDoc.doc.Find(".ui.top.attached.header .ui.dropdown .menu a")
+		menus := htmlDoc.doc.Find(".ui.top.attached.header .dropdown-popup a.dropdown-item")
+		assert.Positive(t, menus.Length())
 		menus.Each(func(i int, menu *goquery.Selection) {
 			foundHref := menu.AttrOr("href", "")
 			assert.True(t, strings.HasPrefix(foundHref, webhooksBaseHref))

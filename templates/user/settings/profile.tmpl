@@ -49,26 +49,11 @@
 				</div>
 
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
-					<span class="inline required field"><label>{{ctx.Locale.Tr "settings.visibility"}}</label></span>
-					<div class="ui selection type dropdown">
-						<input type="hidden" id="visibility" name="visibility" value="{{if .SignedUser.Visibility.IsPublic}}0{{else if .SignedUser.Visibility.IsLimited}}1{{else}}2{{end}}">
-						<div class="text">
-							{{if .SignedUser.Visibility.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
-							{{if .SignedUser.Visibility.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
-							{{if .SignedUser.Visibility.IsPrivate}}{{ctx.Locale.Tr "settings.visibility.private"}}{{end}}
-						</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							{{range $mode := .AllowedUserVisibilityModes}}
-								{{if $mode.IsPublic}}
-									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{ctx.Locale.Tr "settings.visibility.public"}}</div>
-								{{else if $mode.IsLimited}}
-									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{ctx.Locale.Tr "settings.visibility.limited"}}</div>
-								{{else if $mode.IsPrivate}}
-									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{ctx.Locale.Tr "settings.visibility.private"}}</div>
-								{{end}}
-							{{end}}
-						</div>
+					<span class="inline required field"><label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label></span>
+					<div class="select-field">
+						<select id="visibility" name="visibility">
+							{{template "shared/user_visibility_options" dict "Modes" .AllowedUserVisibilityModes "Value" .SignedUser.Visibility}}
+						</select>
 					</div>
 				</div>
 

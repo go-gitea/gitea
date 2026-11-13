@@ -70,8 +70,8 @@ const clear = () => { model.value = [] };
       </template>
     </div>
     <template v-else>
-      <button ref="elTrigger" type="button" class="ui selection dropdown custom" :aria-labelledby="`${labelId} ${valueId}`">
-        <span :id="valueId" class="text" :class="{default: multiple && !selected.length}">
+      <button ref="elTrigger" type="button" class="dropdown-trigger dropdown-field" :aria-labelledby="`${labelId} ${valueId}`">
+        <span :id="valueId" class="dropdown-text" :class="{'tw-text-text-light-2': multiple && !selected.length}">
           <template v-if="!multiple">{{ selected[0]!.text }}</template>
           <template v-else-if="!selected.length">{{ placeholder }}</template>
           <span v-else class="flex-text-inline tw-flex-wrap">
@@ -79,7 +79,7 @@ const clear = () => { model.value = [] };
             <span v-for="option in selected" :key="String(option.value)" v-html="option.html"/>
           </span>
         </span>
-        <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
+        <SvgIcon name="octicon-triangle-down" :size="14"/>
       </button>
       <!-- not .tippy-target: its "display: unset" puts the menu in an inline box, which Chromium can hit-test instead of the items -->
       <div class="tw-hidden">

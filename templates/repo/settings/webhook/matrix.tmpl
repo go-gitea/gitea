@@ -11,14 +11,11 @@
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.settings.matrix.message_type"}}</label>
-				<div class="ui selection dropdown">
-				<input type="hidden" id="message_type" name="message_type" value="{{if .MatrixHook.MessageType}}{{.MatrixHook.MessageType}}{{else}}1{{end}}">
-				<div class="default text"></div>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="menu">
-					<div class="item" data-value="1">m.notice</div>
-					<div class="item" data-value="2">m.text</div>
-				</div>
+			<div class="select-field">
+				<select id="message_type" name="message_type">
+					<option value="1" {{if ne .MatrixHook.MessageType 2}}selected{{end}}>m.notice</option>
+					<option value="2" {{if eq .MatrixHook.MessageType 2}}selected{{end}}>m.text</option>
+				</select>
 			</div>
 		</div>
 		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseAuthorizationHeader" "required"}}

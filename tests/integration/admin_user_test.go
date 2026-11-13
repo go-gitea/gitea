@@ -215,7 +215,7 @@ func TestAdminBotUser(t *testing.T) {
 		assert.False(t, bot.MustChangePassword)
 
 		doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d/edit", bot.ID)), http.StatusOK).Body)
-		assert.Equal(t, "Bot", doc.Find("#user_type").AttrOr("value", ""))
+		assert.Equal(t, "Bot", doc.Find("#user_type option[selected]").AttrOr("value", ""))
 		assert.Empty(t, doc.Find("#login_type").Nodes)
 		assert.Empty(t, doc.Find("#password").Nodes)
 		doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d", bot.ID)), http.StatusOK).Body)

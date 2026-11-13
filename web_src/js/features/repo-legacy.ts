@@ -1,4 +1,4 @@
-import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {
   initRepoCommentForm,
   initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
@@ -10,7 +10,7 @@ import {initRepoCloneButtons} from './repo-common.ts';
 import {initRepoCitationPanel} from './citation.ts';
 import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoSettings} from './repo-settings.ts';
-import {hideElem, queryElemChildren, queryElems, showElem} from '../utils/dom.ts';
+import {hideElem, queryElems, showElem} from '../utils/dom.ts';
 import {initRepoIssueCommentEdit} from './repo-issue-edit.ts';
 import {initRepoMilestone} from './repo-milestone.ts';
 import {initRepoNew} from './repo-new.ts';
@@ -18,6 +18,7 @@ import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 import {initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
+import {initDropdown} from '../modules/dropdown.ts';
 
 function initRepoBranchTagSelector() {
   registerGlobalInitFunc('initRepoBranchTagSelector', (elRoot: HTMLInputElement) => {
@@ -26,15 +27,16 @@ function initRepoBranchTagSelector() {
 }
 
 export function initBranchSelectorTabs() {
-  const elSelectBranches = document.querySelectorAll('.ui.dropdown.select-branch');
-  for (const elSelectBranch of elSelectBranches) {
-    queryElems(elSelectBranch, '.reference.column', (el) => el.addEventListener('click', () => {
-      hideElem(elSelectBranch.querySelectorAll('.scrolling.reference-list-menu'));
-      showElem(el.getAttribute('data-target')!);
-      queryElemChildren(el.parentNode!, '.branch-tag-item', (el) => el.classList.remove('active'));
+  registerGlobalSelectorFunc('.dropdown-container.select-branch', (elSelectBranch: HTMLElement) => {
+    const dropdown = initDropdown(elSelectBranch);
+    queryElems(dropdown.popup, '.branch-tag-item', (el) => el.addEventListener('click', () => {
+      hideElem(dropdown.popup.querySelectorAll('.reference-list-menu'));
+      showElem(dropdown.popup.querySelector(el.getAttribute('data-target')!)!);
+      queryElems(dropdown.popup, '.branch-tag-item', (el) => el.classList.remove('active'));
       el.classList.add('active');
+      dropdown.updateState();
     }));
-  }
+  });
 }
 
 export function initRepository() {

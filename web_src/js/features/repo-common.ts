@@ -8,12 +8,13 @@ import {createApp} from 'vue';
 import {createTippy} from '../modules/tippy.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {closestDropdown} from '../modules/dropdown.ts';
 
 async function onDownloadArchive(e: Event) {
   e.preventDefault();
   // there are many places using the "archive-link", eg: the dropdown on the repo code page, the release list
   const el = (e.target as HTMLElement).closest<HTMLAnchorElement>('a.archive-link[href]')!;
-  const targetLoading = el.closest('.ui.dropdown') ?? el;
+  const targetLoading = closestDropdown(el)?.trigger ?? el;
   targetLoading.classList.add('is-loading', 'loading-icon-2px');
   try {
     for (let tryCount = 0; ;tryCount++) {

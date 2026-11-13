@@ -8,7 +8,6 @@ import (
 
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/services/context"
 	user_service "gitea.dev/services/user"
@@ -23,9 +22,9 @@ func WebThemeList(ctx *context.Context) {
 	var results []map[string]any
 	for _, theme := range allThemes {
 		results = append(results, map[string]any{
-			"name":  renderUtils.RenderThemeItem(theme, 14),
-			"value": theme.InternalName,
-			"class": "item js-aria-clickable" + util.Iif(theme.InternalName == curWebTheme.InternalName, " selected", ""),
+			"name":   renderUtils.RenderThemeItem(theme, 14),
+			"value":  theme.InternalName,
+			"active": theme.InternalName == curWebTheme.InternalName,
 		})
 	}
 	ctx.JSON(http.StatusOK, map[string]any{"results": results})

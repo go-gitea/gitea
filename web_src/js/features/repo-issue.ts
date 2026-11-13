@@ -1,5 +1,5 @@
 import {errorMessage} from '../modules/errors.ts';
-import {html, htmlEscape, htmlRaw} from '../utils/html.ts';
+import {html, htmlRaw} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
@@ -13,17 +13,17 @@ import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {closestDropdown, initDropdown} from '../modules/dropdown.ts';
 import {showModal} from '../modules/modal.ts';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import type {FomanticApiResponse} from '../types.ts';
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 
 const {appSubUrl} = window.config;
 
 function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
+  const dropdown = initDropdown(elDropdown);
   const url = new URL(window.location.href);
   const showArchivedLabels = url.searchParams.get('archived_labels') === 'true';
   const queryLabels = url.searchParams.get('labels') || '';
@@ -44,30 +44,22 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   };
 
   // alt(or option) + click to exclude label
-  queryElems(elDropdown, '.label-filter-query-item', (el) => {
+  queryElems(dropdown.popup, '.label-filter-query-item', (el) => {
     el.addEventListener('click', (e: MouseEvent) => {
       if (e.altKey) excludeLabel(e, el);
     });
   });
-  // alt(or option) + enter to exclude selected label
-  elDropdown.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.isComposing) return;
-    if (e.altKey && e.key === 'Enter') {
-      const selectedItem = elDropdown.querySelector('.label-filter-query-item.selected');
-      if (selectedItem) excludeLabel(e, selectedItem);
-    }
-  });
   // no "labels" query parameter means "all issues"
-  elDropdown.querySelector('.label-filter-query-default')!.classList.toggle('selected', queryLabels === '');
+  dropdown.popup.querySelector('.label-filter-query-default')!.classList.toggle('active', queryLabels === '');
   // "labels=0" query parameter means "issues without label"
-  elDropdown.querySelector('.label-filter-query-not-set')!.classList.toggle('selected', queryLabels === '0');
+  dropdown.popup.querySelector('.label-filter-query-not-set')!.classList.toggle('active', queryLabels === '0');
 
   // prepare to process "archived" labels
-  const elShowArchivedLabel = elDropdown.querySelector('.label-filter-archived-toggle');
+  const elShowArchivedLabel = dropdown.popup.querySelector('.label-filter-archived-toggle');
   if (!elShowArchivedLabel) return;
   const elShowArchivedInput = elShowArchivedLabel.querySelector<HTMLInputElement>('input')!;
   elShowArchivedInput.checked = showArchivedLabels;
-  const archivedLabels = elDropdown.querySelectorAll('.item[data-is-archived]');
+  const archivedLabels = dropdown.popup.querySelectorAll('.dropdown-item[data-is-archived]');
   // if no archived labels, hide the toggle and return
   if (!archivedLabels.length) {
     hideElem(elShowArchivedLabel);
@@ -91,7 +83,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
 
 export function initRepoIssueFilterItemLabel() {
   // the "label-filter" is used in 2 templates: projects/view, issue/filter_list (issue list page including the milestone page)
-  queryElems(document, '.ui.dropdown.label-filter', initRepoIssueLabelFilter);
+  queryElems(document, '.dropdown-container.label-filter', initRepoIssueLabelFilter);
 }
 
 export function initRepoIssueCommentDelete() {
@@ -294,27 +286,20 @@ export function initRepoPullRequestReview() {
 }
 
 export function initRepoIssueReferenceIssue() {
-  const elDropdown = document.querySelector('.issue_reference_repository_search');
+  const elDropdown = document.querySelector<HTMLElement>('.issue_reference_repository_search');
   if (!elDropdown) return;
   const form = elDropdown.closest('form')!;
-  fomanticQuery(elDropdown).dropdown({
-    fullTextSearch: true,
-    apiSettings: {
-      url: `${appSubUrl}/repo/search?q={query}&limit=20`,
-      onResponse(response: {data: Array<{repository: {full_name: string}}>}) {
-        const filteredResponse: FomanticApiResponse<{name: string, value: string}> = {success: true, results: []};
-        for (const repo of response.data) {
-          filteredResponse.results.push({
-            name: htmlEscape(repo.repository.full_name),
-            value: repo.repository.full_name,
-          });
-        }
-        return filteredResponse;
-      },
+  const dropdown = initDropdown(elDropdown, {
+    async loadItems(query, signal) {
+      const response = await GET(`${appSubUrl}/repo/search?${new URLSearchParams({q: query, limit: '20'})}`, {signal});
+      const {data} = await response.json() as {data: Array<{repository: {full_name: string}}>};
+      return data.map(({repository}) => createElementFromHTML(html`
+        <div class="dropdown-item" data-value="${repository.full_name}">${repository.full_name}</div>
+      `));
     },
-    onChange(_value: string, _text: string, _$choice: any) {
-      form.setAttribute('action', `${appSubUrl}/${_text}/issues/new`);
-    },
+  });
+  dropdown.valueInput!.addEventListener('change', () => {
+    form.setAttribute('action', `${appSubUrl}/${dropdown.value}/issues/new`);
   });
 
   // Reference issue
@@ -396,7 +381,7 @@ export function initRepoIssueTitleEdit() {
   const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
 
   pullDescEditor?.querySelector('#branch-select')?.addEventListener('click', (e: Event) => {
-    const el = (e.target as HTMLElement).closest('.item[data-branch]');
+    const el = (e.target as HTMLElement).closest<HTMLElement>('.dropdown-item[data-branch]');
     if (!el) return;
     if (!pullTargetBranch) throw new Error('pullTargetBranch not found');
     const textCompareBase = pullTargetBranch.getAttribute('data-text-compare-base')!;
@@ -404,6 +389,7 @@ export function initRepoIssueTitleEdit() {
     const branchNameNew = el.getAttribute('data-branch')!;
     pullTargetBranch.textContent = `${textCompareBase}: ${baseUserName}:${branchNameNew}`;
     pullTargetBranch.setAttribute('data-branch', branchNameNew);
+    closestDropdown(el)!.setActiveItem(el);
   });
 
   const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button')!;

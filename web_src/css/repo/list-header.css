@@ -15,11 +15,7 @@
 
 .list-header-search > .ui.input {
   flex: 1;
-  min-width: 100px !important;
-}
-
-.list-header-search > .ui.input .ui.dropdown {
-  min-width: auto !important;
+  min-width: 100px;
 }
 
 .list-header-filters {
@@ -27,7 +23,7 @@
   align-items: center;
 }
 
-.list-header-filters > .item {
+.list-header-filters > .dropdown-container > .dropdown-trigger {
   padding: 5px 0 5px 10px;
 }
 

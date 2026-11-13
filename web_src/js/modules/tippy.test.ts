@@ -34,17 +34,31 @@ test('createTippy handles keys in menus only', async () => {
   panelButton.remove();
 });
 
-test('availableSizeForPlacement', () => {
+test('createTippy limitSizeToViewport opens towards the roomier side when the popup fits on neither', async () => {
+  const button = createElementFromHTML('<button style="position: fixed; bottom: 20px">button</button>');
+  document.body.append(button);
+  const instance = createTippy(button, {
+    content: createElementFromHTML('<div style="height: 3000px"></div>'),
+    trigger: 'manual',
+    placement: 'bottom-start',
+    limitSizeToViewport: {vertical: true},
+  });
+  instance.show();
+  await instance.popperInstance!.update();
+  expect(instance.popper.querySelector('.tippy-box')!.getAttribute('data-placement')).toEqual('top-start');
+  instance.destroy();
+  button.remove();
+});
+
+test('availableSizeForPlacement reserves viewport padding and the placement offset', () => {
   const rect = (values: Partial<DOMRect>) => values as DOMRect;
   vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(1000);
   vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(800);
 
-  // on the placement axis it is the gap to the edge the popup opens towards, the viewport on the other
   expect(availableSizeForPlacement(rect({top: 400, bottom: 432}), 'bottom-end', 0)).toEqual({width: 784, height: 560});
   expect(availableSizeForPlacement(rect({top: 400, bottom: 432}), 'top-end', 0)).toEqual({width: 784, height: 392});
   expect(availableSizeForPlacement(rect({left: 100, right: 300}), 'right', 0)).toEqual({width: 492, height: 984});
   expect(availableSizeForPlacement(rect({left: 100, right: 300}), 'left', 0)).toEqual({width: 92, height: 984});
 
-  // the placement offset eats into the space on that axis
   expect(availableSizeForPlacement(rect({top: 400, bottom: 432}), 'bottom-end', -6).height).toEqual(554);
 });

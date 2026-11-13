@@ -34,7 +34,7 @@ func TestActionsListFilters(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
 		var labels []string
-		htmlDoc.doc.Find(`[data-test-id="filter-branch"] .menu a.item`).Each(func(_ int, a *goquery.Selection) {
+		htmlDoc.doc.Find(`[data-test-id="filter-branch"] .dropdown-popup a.dropdown-item`).Each(func(_ int, a *goquery.Selection) {
 			labels = append(labels, strings.TrimSpace(a.Text()))
 		})
 		assert.Contains(t, labels, "master")

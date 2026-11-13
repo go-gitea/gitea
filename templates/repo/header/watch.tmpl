@@ -7,11 +7,11 @@
 		{{$isAll := eq $mode "all"}}
 		{{$isCustom := eq $mode "custom"}}
 		{{$isParticipating := eq $mode "participate"}}
-		<button type="button" class="ui dropdown custom compact small basic button" data-global-init="initRepoWatchMenu" aria-label="{{$buttonText}}">
+		<button type="button" class="dropdown-trigger ui compact small basic button" data-global-init="initRepoWatchMenu" aria-label="{{$buttonText}}">
 			{{svg (Iif $isIgnoring "octicon-eye-closed" "octicon-eye")}}
 			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
 			<span class="ui small label">{{$count}}</span>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			{{svg "octicon-triangle-down" 14}}
 		</button>
 		<div class="tippy-target">
 			{{$testParticipating := ctx.Locale.Tr "repo.watch.mode.participating"}}

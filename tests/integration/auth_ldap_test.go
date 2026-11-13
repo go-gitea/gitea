@@ -238,6 +238,10 @@ func testLDAPAuthChange(t *testing.T) {
 	assert.Equal(t, te.serverHost, host)
 	bindDN, _ = doc.Find(`input[name="bind_dn"]`).Attr("value")
 	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", bindDN)
+
+	req = NewRequestWithValues(t, "POST", hrefAuthSource, te.buildAuthSourcePayload(map[string]string{"name": strings.Repeat("x", 31)}))
+	doc = NewHTMLParser(t, session.MakeRequest(t, req, http.StatusOK).Body)
+	assert.Equal(t, "0", doc.Find(`select[name="security_protocol"] option[selected]`).AttrOr("value", ""))
 }
 
 func testLDAPUserSyncWithAttributeUsername(t *testing.T) {

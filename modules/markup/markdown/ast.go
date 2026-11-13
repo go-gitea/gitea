@@ -55,12 +55,6 @@ func NewSummary() *Summary {
 	return &Summary{}
 }
 
-// Icon is an inline for a Fomantic UI icon
-type Icon struct {
-	ast.BaseInline
-	Name []byte
-}
-
 // ColorPreview is an inline for a color preview
 type ColorPreview struct {
 	ast.BaseInline

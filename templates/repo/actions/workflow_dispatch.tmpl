@@ -1,8 +1,8 @@
-{{/* "z-index" is used to maintain continuous attached styling and keep the colored border-bottom visible (pre-existing fomantic issue with negative margins) */}}
+{{/* "z-index" is used to maintain continuous attached styling and keep the colored border-bottom visible (attached messages have negative margins) */}}
 <div class="ui blue info attached message flex-left-right tw-z-1">
 	<span>{{ctx.Locale.Tr "actions.workflow.has_workflow_dispatch"}}</span>
 	<div class="flex-text-block tw-bg-box-body tw-rounded">{{/*make the button have correct hovered color */}}
-		<button type="button" class="ui mini button show-modal" data-modal="#runWorkflowDispatchModal">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
+		<button type="button" class="ui mini button show-modal" data-modal="#runWorkflowDispatchModal">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14}}</button>
 	</div>
 </div>
 <dialog id="runWorkflowDispatchModal" class="modal-dialog">
@@ -12,40 +12,38 @@
 				<span class="ui inline required field">
 					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>
 				</span>
-				<div class="ui inline field dropdown button select-branch branch-selector-dropdown ellipsis-text-items">
-					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}"
+				<div class="dropdown-container select-branch" data-kind="select">
+					<button type="button" class="dropdown-trigger ui button">
+						{{svg "octicon-git-branch" 14}}
+						<span class="dropdown-text gt-ellipsis">{{index .Branches 0}}</span>
+						{{svg "octicon-triangle-down" 14}}
+					</button>
+					<input type="hidden" class="dropdown-value" name="ref" value="refs/heads/{{index .Branches 0}}"
 								data-fetch-trigger="change" data-fetch-sync="$body #runWorkflowDispatchModalInputs"
 								data-fetch-url="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}"
 					>
-					{{svg "octicon-git-branch" 14}}
-					<div class="default text">{{index .Branches 0}}</div>
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-					<div class="menu transition">
+					<div class="dropdown-popup issue-branch-popup">
 						<div class="ui icon search input">
 							<i class="icon">{{svg "octicon-filter" 16}}</i>
-							<input name="search" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
+							<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 						</div>
 						<div class="branch-tag-tab">
-							<button type="button" class="btn branch-tag-item reference column active" data-target="#branch-list">
+							<button type="button" class="btn branch-tag-item active" data-target=".branch-list">
 								{{svg "octicon-git-branch" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.branches"}}
 							</button>
-							<button type="button" class="btn branch-tag-item reference column" data-target="#tag-list">
+							<button type="button" class="btn branch-tag-item" data-target=".tag-list">
 								{{svg "octicon-tag" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.tags"}}
 							</button>
 						</div>
-						<div class="branch-tag-divider"></div>
-						<div id="branch-list" class="scrolling menu reference-list-menu">
+						<div class="dropdown-divider branch-tag-divider"></div>
+						<div class="reference-list-menu branch-list">
 							{{range .Branches}}
-								<div class="item" data-value="refs/heads/{{.}}" title="{{.}}">{{.}}</div>
-							{{else}}
-								<div class="item">{{ctx.Locale.Tr "no_results_found"}}</div>
+								<div class="dropdown-item" data-value="refs/heads/{{.}}" title="{{.}}">{{.}}</div>
 							{{end}}
 						</div>
-						<div id="tag-list" class="scrolling menu reference-list-menu tw-hidden">
+						<div class="reference-list-menu tag-list tw-hidden">
 							{{range .Tags}}
-								<div class="item" data-value="refs/tags/{{.}}" title="{{.}}">{{.}}</div>
-							{{else}}
-								<div class="item">{{ctx.Locale.Tr "no_results_found"}}</div>
+								<div class="dropdown-item" data-value="refs/tags/{{.}}" title="{{.}}">{{.}}</div>
 							{{end}}
 						</div>
 					</div>

@@ -1,6 +1,6 @@
 import {toggleElemClass} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {initDropdown} from '../modules/dropdown.ts';
 
 export function initRepoGraphGit() {
   const graphContainer = document.querySelector<HTMLElement>('#git-graph-container');
@@ -54,32 +54,18 @@ export function initRepoGraphGit() {
     dropdownSelected.unshift('...flow-hide-pr-refs');
   }
 
-  const $dropdown = fomanticQuery('#flow-select-refs-dropdown');
-  $dropdown.dropdown({clearable: true});
-  $dropdown.dropdown('set selected', dropdownSelected);
-  // must add the callback after setting the selected items, otherwise each "selected" item will trigger the callback
-  $dropdown.dropdown('setting', {
-    onRemove(toRemove: string) {
-      if (toRemove === '...flow-hide-pr-refs') {
-        params.delete('hide-pr-refs');
-      } else {
-        const branches = params.getAll('branch');
-        params.delete('branch');
-        for (const branch of branches) {
-          if (branch !== toRemove) {
-            params.append('branch', branch);
-          }
-        }
-      }
-      loadGitGraph();
-    },
-    onAdd(toAdd: string) {
-      if (toAdd === '...flow-hide-pr-refs') {
+  const dropdown = initDropdown(document.querySelector<HTMLElement>('#flow-select-refs-dropdown')!);
+  dropdown.setValue(dropdownSelected);
+  dropdown.valueInput!.addEventListener('change', () => {
+    params.delete('branch');
+    params.delete('hide-pr-refs');
+    for (const value of dropdown.values()) {
+      if (value === '...flow-hide-pr-refs') {
         params.set('hide-pr-refs', 'true');
       } else {
-        params.append('branch', toAdd);
+        params.append('branch', value);
       }
-      loadGitGraph();
-    },
+    }
+    loadGitGraph();
   });
 }

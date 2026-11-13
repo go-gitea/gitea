@@ -1,8 +1,10 @@
 import {showSuccessToast, showInfoToast, showWarningToast, showErrorToast} from './toast.ts';
 import {registerGlobalInitFunc} from './observer.ts';
 import {showModal} from './modal.ts';
-import {createElementFromHTML} from '../utils/dom.ts';
+import {initDropdown} from './dropdown.ts';
+import {createElementFromAttrs, createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
+import {sleep} from '../utils.ts';
 import {showGlobalErrorMessage} from './errors.ts';
 import {AnsiLineRenderer} from '../render/ansi.ts';
 import type {Intent} from '../types.ts';
@@ -102,9 +104,22 @@ function initDevtestAnsiRender(container: HTMLElement) {
   container.append(elConsole);
 }
 
+function initDevtestDropdownRemote(el: HTMLElement) {
+  initDropdown(el, {
+    async loadItems(query) {
+      await sleep(500);
+      if (query === 'error') throw new Error('devtest remote error');
+      return ['apple', 'banana', 'cherry', 'date', 'elderberry']
+        .filter((name) => name.includes(query))
+        .map((name) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': name}, name));
+    },
+  });
+}
+
 export function initDevtest() {
   registerGlobalInitFunc('initDevtestPage', initDevtestPage);
   registerGlobalInitFunc('initDevtestAnsiRender', initDevtestAnsiRender);
+  registerGlobalInitFunc('initDevtestDropdownRemote', initDevtestDropdownRemote);
   registerGlobalInitFunc('initDevtestDetailsErrorMessage', () => {
     for (let i = 0; i < 2; i++) {
       showGlobalErrorMessage('showGlobalErrorMessage single message', 'warning');

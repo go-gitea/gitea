@@ -156,7 +156,7 @@ func TestActionsScopedWorkflows(t *testing.T) {
 				fmt.Sprintf("/%s/%s/actions?workflow=push.yaml&scoped_workflow_source_repo_id=%d", reqConsumer.OwnerName, reqConsumer.Name, reqSource.ID)),
 				http.StatusOK).Body.String()
 			assert.Contains(t, requiredBody, "Disable Workflow")
-			assert.Contains(t, requiredBody, `class="item disabled"`, "required scoped workflow: Disable Workflow is rendered disabled")
+			assert.Contains(t, requiredBody, `aria-disabled="true"`, "required scoped workflow: Disable Workflow is rendered disabled")
 			assert.NotContains(t, requiredBody, "disable?workflow=push.yaml", "required scoped workflow: Disable Workflow has no clickable link")
 			rejectReq := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/disable?workflow=push.yaml&scoped_workflow_source_repo_id=%d", reqConsumer.OwnerName, reqConsumer.Name, reqSource.ID))
 			user2Session.MakeRequest(t, rejectReq, http.StatusBadRequest) // scoped_required_cannot_disable
