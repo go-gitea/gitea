@@ -115,7 +115,7 @@ func init() {
 	db.RegisterModel(new(Notification))
 }
 
-// CreateRepoTransferNotification creates  notification for the user a repository was transferred to
+// CreateRepoTransferNotification creates a notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		var notify []*Notification
@@ -125,9 +125,9 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 			if err != nil || len(users) == 0 {
 				return err
 			}
-			for i := range users {
+			for userID := range users {
 				notify = append(notify, &Notification{
-					UserID:    i,
+					UserID:    userID,
 					RepoID:    repo.ID,
 					Status:    NotificationStatusUnread,
 					UpdatedBy: doer.ID,
