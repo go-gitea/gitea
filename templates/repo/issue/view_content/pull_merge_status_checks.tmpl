@@ -3,13 +3,13 @@
 */}}
 {{$statusCheckData := $.StatusCheckData}}
 <details class="item merge-box-checks" data-kind="checks"{{if not $statusCheckData.AllPassed}} open{{end}}>
-	<summary>
+	<summary class="flex-text-block tw-items-start hover:tw-bg-hover">
 		{{template "repo/issue/view_content/pull_merge_section" (dict "MergeBoxSection" ($statusCheckData.Section ctx.Locale))}}
-		{{svg "octicon-chevron-right" 16 "merge-box-chevron"}}
+		{{svg "octicon-chevron-right" 16 "merge-box-chevron tw-mt-2 tw-mr-[8px]"}}
 	</summary>
-	<div class="merge-box-checks-body">
+	<div class="merge-box-checks-body tw-max-h-[300px] tw-overflow-y-auto tw-border-t tw-border-secondary">
 		{{if and $statusCheckData.RequireApprovalRunCount $statusCheckData.CanApprove}}
-			<div id="approve-status-checks">
+			<div id="approve-status-checks" class="tw-py-2 tw-px-[16px]">
 				<button type="button" class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
 					{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
 				</button>
@@ -17,21 +17,20 @@
 		{{end}}
 		{{range $group := $statusCheckData.Groups}}
 		<details class="merge-box-checks-group" data-kind="{{$group.Kind.Name}}" open>
-			<summary class="flex-text-inline">{{$group.Title ctx.Locale}}{{svg "octicon-chevron-right" 12 "merge-box-chevron"}}</summary>
-			<div class="flex-divided-list">
-				{{range $cs := $group.CommitStatuses}}
+			<summary class="flex-text-inline tw-py-1 tw-px-[16px] tw-text-12 tw-font-medium tw-text-text-light-2">{{$group.Title ctx.Locale}}{{svg "octicon-chevron-right" 12 "merge-box-chevron"}}</summary>
+			<div class="flex-divided-list tw-px-[16px]">
+				{{range $check := $group.Checks}}
 				<div class="item commit-status-item">
 					<div class="flex-text-block tw-flex-1">
-						{{$actionStatus := $statusCheckData.ActionsStatuses.IconStatus $cs}}
-						{{if $actionStatus}}
-							{{template "repo/icons/action_status" (dict "Status" $actionStatus "Size" 18 "ClassName" "commit-status icon")}}
+						{{if $check.ActionStatus}}
+							{{template "repo/icons/action_status" (dict "Status" $check.ActionStatus "Size" 18 "ClassName" "commit-status icon")}}
 						{{else}}
-							{{template "repo/icons/commit_status" $cs}}
+							{{template "repo/icons/commit_status" (dict "State" $check.State)}}
 						{{end}}
-						<span class="gt-ellipsis" title="{{$cs.Context}} {{$cs.Description}}">{{if $cs.TargetURL}}<a class="muted" href="{{$cs.TargetURL}}">{{$cs.Context}}</a>{{else}}{{$cs.Context}}{{end}} <span class="tw-text-12 tw-text-text-light-2">{{$cs.Description}}</span></span>
+						<span class="gt-ellipsis" title="{{$check.Context}} {{$check.Description}}">{{if $check.TargetURL}}<a class="muted" href="{{$check.TargetURL}}">{{$check.Context}}</a>{{else}}{{$check.Context}}{{end}} <span class="tw-text-12 tw-text-text-light-2">{{$check.Description}}</span></span>
 					</div>
-					{{if call $statusCheckData.IsContextRequired $cs.Context}}
-						<div class="ui basic label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
+					{{if $check.IsRequired}}
+						<div class="ui basic label tw-py-0 tw-leading-[18px]">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
 					{{end}}
 				</div>
 				{{end}}

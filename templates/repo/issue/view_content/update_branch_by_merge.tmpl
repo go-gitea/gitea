@@ -1,19 +1,19 @@
-{{$data := $.MergeBoxData}}
-{{$hasStyleMenu := gt (len $data.UpdateStyleOptions) 1}}
-<div class="ui buttons {{if $hasStyleMenu}}pull-update-style-buttons{{end}}">
-	<button type="button" class="ui button link-action" data-url="{{$data.UpdatePrimaryAction.URL}}">
-		{{$data.UpdatePrimaryAction.ButtonText}}
+{{$updateAction := $.UpdatePrimaryAction}}
+{{$hasStyleMenu := gt (len $.UpdateStyleOptions) 1}}
+<div class="ui buttons tw-shrink-0"{{if $hasStyleMenu}} data-pull-update-buttons{{end}}>
+	<button type="button" class="ui button link-action" data-url="{{$updateAction.URL}}">
+		{{$updateAction.ButtonText}}
 	</button>
 	{{if $hasStyleMenu}}
 	<button type="button" class="ui icon button" aria-label="{{ctx.Locale.Tr "repo.pulls.select_update_style"}}">{{svg "octicon-triangle-down" 14}}</button>
 	{{end}}
 </div>
 {{if $hasStyleMenu}}
-<div class="tippy-target merge-box-menu">
-	{{range $option := $data.UpdateStyleOptions}}
-		<a class="item" role="menuitemradio" aria-checked="{{$option.Selected}}" data-update-url="{{$option.URL}}" data-update-text="{{$option.ButtonText}}">
+<div class="tippy-target merge-box-menu" data-pull-update-menu>
+	{{range $updateOption := $.UpdateStyleOptions}}
+		<a class="item" role="menuitemradio" aria-checked="{{$updateOption.Selected}}" data-update-url="{{$updateOption.URL}}" data-update-text="{{$updateOption.ButtonText}}">
 			{{svg "octicon-check"}}
-			<div><strong>{{$option.Text}}</strong><small>{{$option.Description}}</small></div>
+			<div><strong>{{$updateOption.Text}}</strong><small>{{$updateOption.Description}}</small></div>
 		</a>
 	{{end}}
 </div>

@@ -67,7 +67,14 @@
 			<div class="timeline-item tw-hidden" id="timeline-comments-end"></div>
 
 			{{if and .Issue.IsPull (not $.Repository.IsArchived)}}
-				{{template "repo/issue/view_content/pull_merge_box".}}
+				{{template "repo/issue/view_content/pull_merge_box" (dict
+					"PullMergeBoxData" $.PullMergeBoxData
+					"Issue" $.Issue
+					"DeleteBranchLink" $.DeleteBranchLink
+					"HasIssuesOrPullsWritePermission" $.HasIssuesOrPullsWritePermission
+					"IsIssuePoster" $.IsIssuePoster
+					"WorkInProgressPrefix" $.WorkInProgressPrefix
+				)}}
 				{{if .PullMergeBoxData.ShowPullCommands}}
 					{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" .PullMergeBoxData}}
 				{{end}}

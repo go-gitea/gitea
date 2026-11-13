@@ -5,6 +5,7 @@ package repo
 
 import (
 	"html/template"
+	"net/http"
 
 	actions_model "gitea.dev/models/actions"
 	git_model "gitea.dev/models/git"
@@ -17,7 +18,8 @@ import (
 	"gitea.dev/services/context"
 )
 
-func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
+func DevtestPullMergeBox(ctx *context.Context) {
+	var scenarios []map[string]any
 	repo := &repo_model.Repository{ID: 1, OwnerName: "user2", Name: "repo1"}
 	prConfig := &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true, AllowManualMerge: true}
 	checks := func(statuses ...*git_model.CommitStatus) *pullCommitStatusCheckData {
@@ -28,8 +30,8 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 				actionsStatuses[cs.ID] = actions_model.StatusRunning
 			}
 		}
-		data := &pullCommitStatusCheckData{IsContextRequired: func(context string) bool { return context == "ci/test" }, ActionsStatuses: actionsStatuses}
-		data.groupStatuses(statuses)
+		data := &pullCommitStatusCheckData{}
+		data.groupStatuses(statuses, []string{"ci/test"}, actionsStatuses, ctx.Locale)
 		return data
 	}
 	status := func(context string, state commitstatus.CommitStatusState, description string) *git_model.CommitStatus {
@@ -37,9 +39,7 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 	}
 	review := func(data *pullMergeBoxData, icon, iconClass, titleKey string, detail template.HTML, blocking bool) {
 		data.ReviewSection = &pullMergeBoxSection{StatusIcon: icon, StatusIconClass: iconClass, SectionTitle: ctx.Locale.Tr(titleKey), SectionDetails: []template.HTML{detail}}
-		if blocking {
-			data.addOverridableBlocker(detail)
-		}
+		data.hasOverridableBlockers = data.hasOverridableBlockers || blocking
 	}
 	add := func(title string, setup func(prInfo *pullRequestViewInfo)) {
 		pull := &issues_model.PullRequest{Index: 1, Status: issues_model.PullRequestStatusMergeable, HeadRepo: repo, BaseRepo: repo, HeadBranch: "feature", BaseBranch: "main"}
@@ -52,11 +52,11 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 			data.IsPullBranchDeletable = true
 			prInfo.prepareMergeBoxClosedSection(ctx)
 		} else {
-			prInfo.prepareMergeBoxSections(ctx)
 			prInfo.prepareMergeBoxFormProps(ctx, prConfig, nil)
+			prInfo.prepareMergeBoxSections(ctx)
 		}
 		scenarios = append(scenarios, map[string]any{
-			"Title":                           title,
+			"ScenarioTitle":                   title,
 			"PullMergeBoxData":                data,
 			"Issue":                           issue,
 			"DeleteBranchLink":                "#",
@@ -96,7 +96,7 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 	})
 	add("Changes requested, auto-merge enabled", func(prInfo *pullRequestViewInfo) {
 		data := prInfo.MergeBoxData
-		review(data, "octicon-file-diff", "tw-bg-red", "repo.pulls.changes_requested", ctx.Locale.Tr("repo.pulls.blocked_by_rejection"), true)
+		review(data, "octicon-file-diff", "tw-bg-red", "repo.issues.review.rejected", ctx.Locale.Tr("repo.pulls.blocked_by_rejection"), true)
 		data.AutoMerge = &pull_model.AutoMerge{Doer: &user_model.User{Name: "user2"}, MergeStyle: repo_model.MergeStyleSquash}
 		data.CanCancelAutoMerge = true
 	})
@@ -107,5 +107,6 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 	add("Merged", func(prInfo *pullRequestViewInfo) {
 		prInfo.issue.IsClosed, prInfo.issue.PullRequest.HasMerged = true, true
 	})
-	return scenarios
+	ctx.Data["MergeBoxScenarios"] = scenarios
+	ctx.HTML(http.StatusOK, "devtest/pull-merge-box")
 }

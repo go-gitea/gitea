@@ -37,6 +37,8 @@ import (
 	git_service "gitea.dev/services/git"
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
+
+	"xorm.io/builder"
 )
 
 func getPullWorkingLockKey(prID int64) string {
@@ -334,7 +336,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 			return util.ErrorWrap(util.ErrInvalidArgument, "pull request status has changed")
 		}
 		if err := DisableAutoMergeIfNotWriter(ctx, doer, pr, "base_changed"); err != nil {
-			return fmt.Errorf("DisableAutoMergeIfNotWriter: %w", err)
+			return err
 		}
 
 		if err := syncCommitDivergence(ctx, pr); err != nil {
@@ -395,7 +397,7 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 }
 
 func DisableAutoMergeIfNotWriter(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) error {
-	if exist, _, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID); err != nil || !exist {
+	if exist, err := db.Exist[pull_model.AutoMerge](ctx, builder.Eq{"pull_id": pr.ID}); err != nil || !exist {
 		return err
 	}
 	if err := pr.LoadBaseRepo(ctx); err != nil {
@@ -415,8 +417,6 @@ type TestPullRequestOptions struct {
 	IsForcePush bool
 	OldCommitID string
 	NewCommitID string
-
-	UpdatedPullID int64 // the pull request whose head branch was updated from its base branch by Gitea itself
 }
 
 // AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
@@ -442,13 +442,6 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			pr.HeadRepo = repo // avoid loading again
 			if pr.Flow == issues_model.PullRequestFlowGithub {
-				// same-repo pushers can write, Actions and deploy key pushers have no user permission, "update branch" adds no content of the pusher
-				if opts.IsSync && pr.IsFromFork() && opts.UpdatedPullID != pr.ID {
-					if err := DisableAutoMergeIfNotWriter(ctx, opts.Doer, pr, "pushed_by_non_writer"); err != nil {
-						log.Error("DisableAutoMergeIfNotWriter: %v", err)
-						continue // don't sync the push while auto merge might still be scheduled
-					}
-				}
 				if err := PushToBaseRepo(ctx, pr); err != nil {
 					log.Error("PushToBaseRepo: %v", err)
 					continue
@@ -608,7 +601,7 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 }
 
 // UpdatePullsRefs update all the PRs head file pointers like /refs/pull/1/head so that it will be dependent by other operations
-func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *repo_module.PushUpdateOptions) {
+func UpdatePullsRefs(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, update *repo_module.PushUpdateOptions) {
 	branch := update.RefFullName.BranchName()
 	// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
 	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch)
@@ -618,6 +611,12 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 		for _, pr := range prs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			if pr.Flow == issues_model.PullRequestFlowGithub {
+				if pr.ID != update.PullRequestID { // "update branch" adds no content of the pusher
+					if err := DisableAutoMergeIfNotWriter(ctx, doer, pr, "pushed_by_non_writer"); err != nil {
+						log.Error("DisableAutoMergeIfNotWriter: %v", err)
+						continue // don't sync the push while auto merge might still be scheduled
+					}
+				}
 				if err := PushToBaseRepo(ctx, pr); err != nil {
 					log.Error("PushToBaseRepo: %v", err)
 				}

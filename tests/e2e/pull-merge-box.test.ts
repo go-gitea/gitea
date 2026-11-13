@@ -6,7 +6,7 @@ import {
 
 const owner = env.GITEA_TEST_E2E_USER;
 
-test('merge box merges a pull request', async ({page, request}) => {
+test('auto-merge can be canceled before a squash bypass merge', async ({page, request}) => {
   const repo = `e2e-merge-box-${randomString(8)}`;
   const createPR = (async () => {
     await apiCreateRepo(request, {name: repo});
@@ -24,10 +24,17 @@ test('merge box merges a pull request', async ({page, request}) => {
   await page.getByRole('button', {name: 'Enable auto-merge (merge commit)'}).click();
   await page.getByRole('button', {name: 'Confirm auto-merge (merge commit)'}).click();
   await expect(page.getByText('enabled auto-merge (merge commit)')).toBeVisible();
-  await page.waitForLoadState();
+  const commandInstructions = page.getByRole('button', {name: 'View command line instructions.'});
+  await expect(commandInstructions).toBeVisible();
+  await commandInstructions.press('Enter');
+  const commandDialog = page.getByRole('dialog', {name: 'Command line instructions'});
+  await expect(commandDialog.getByRole('heading', {name: 'Checkout', exact: true})).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(commandDialog).toBeHidden();
   await page.getByRole('button', {name: 'Disable auto-merge'}).click();
+  await expect(page.getByText('disabled auto-merge')).toBeVisible();
 
-  await page.getByRole('button', {name: 'Select merge method'}).click();
+  await page.getByRole('button', {name: 'Select merge style'}).click();
   await page.getByRole('menuitemradio', {name: /^Create squash commit/}).click();
   await page.getByLabel('Merge without waiting for requirements to be met (bypass rules)').check();
   await page.getByRole('button', {name: 'Bypass rules and merge (squash)'}).click();

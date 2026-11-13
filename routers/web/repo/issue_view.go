@@ -12,7 +12,6 @@ import (
 	"slices"
 	"sort"
 	"strconv"
-	"time"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -503,15 +502,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 		return
 	}
 
-	willSign, _, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo, pull.BaseBranch, pull.GetGitHeadRefName())
-	if willSign {
-		return
-	}
-	data.unsignable = true
-	data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.require_signed_wont_sign"))
-	if errWontSign, ok := err.(*asymkey_service.ErrWontSign); ok {
-		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.signing.wont_sign."+string(errWontSign.Reason)))
-	} else if err != nil && !errors.Is(err, util.ErrNotExist) {
+	_, _, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo, pull.BaseBranch, pull.GetGitHeadRefName())
+	data.mergeSigningError = err
+	if err != nil && !asymkey_service.IsErrWontSign(err) && !errors.Is(err, util.ErrNotExist) {
 		log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
 	}
 }
@@ -865,12 +858,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 					canDelete = true
 					ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
 				}
-				if !pull.HeadRepo.IsArchived {
+				if commentID := lastCommentIDOfType(issue.Comments, issues_model.CommentTypeDeleteBranch); commentID != 0 && !pull.HeadRepo.IsArchived {
 					if branches, err := git_model.GetBranches(ctx, pull.HeadRepo.ID, []string{pull.HeadBranch}, true); err != nil {
 						log.Error("GetBranches: %v", err)
 					} else if len(branches) == 1 && branches[0].IsDeleted {
 						ctx.Data["RestoreBranchLink"] = fmt.Sprintf("%s/branches/restore?branch_id=%d", pull.HeadRepo.Link(), branches[0].ID)
-						ctx.Data["RestoreBranchCommentID"] = lastCommentIDOfType(issue.Comments, issues_model.CommentTypeDeleteBranch)
+						ctx.Data["RestoreBranchCommentID"] = commentID
 					}
 				}
 			}
@@ -947,23 +940,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		return
 	}
 	data.CanCancelAutoMerge = data.AutoMerge != nil && ctx.IsSigned && (data.hasPermToMerge || ctx.Doer.ID == data.AutoMerge.DoerID || issue.IsPoster(ctx.Doer.ID))
-	mergeable := pull.IsStatusMergeable() || pull.IsEmpty()
-	if data.hasPermToMerge && data.AutoMerge == nil && mergeable && defaultMergeStyle(prConfig) == "" {
-		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_desc"), ctx.Locale.Tr("repo.pulls.no_merge_helper"))
-	}
+	prInfo.prepareMergeBoxFormProps(ctx, prConfig, ctx.Repo.GitRepo)
 
-	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress) > 0)
-	if data.AutoMerge != nil && mergeable && !data.hasOverridableBlockers && len(data.mergeBlockers) == 0 {
-		lastChange := data.AutoMerge.CreatedUnix
-		if data.StatusCheckData != nil {
-			lastChange = max(lastChange, data.StatusCheckData.lastUpdated)
-		}
-		needRefreshMergeBox = needRefreshMergeBox || time.Since(lastChange.AsTime()) < time.Minute // refresh briefly while the queued auto merge runs
-	}
+	needRefreshMergeBox := pull.IsChecking() || data.AutoMerge != nil ||
+		(data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress, statusCheckExpected) > 0)
 	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 
 	prInfo.prepareMergeBoxSections(ctx)
-	prInfo.prepareMergeBoxFormProps(ctx, prConfig, ctx.Repo.GitRepo)
 }
 
 func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context) {
@@ -1043,25 +1026,16 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 	data := prInfo.MergeBoxData
 
 	var reviewBlockers []template.HTML
-	addReviewBlocker := func(info template.HTML) {
-		data.addOverridableBlocker(info)
-		reviewBlockers = append(reviewBlockers, info)
-	}
 
-	approvals := issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
-	allowlistKey := util.Iif(pb.EnableApprovalsWhitelist, "_allowlist_", "_")
-	if approvals < pb.RequiredApprovals {
-		addReviewBlocker(ctx.Locale.TrN(pb.RequiredApprovals, "repo.pulls.approvals_required"+allowlistKey+"1", "repo.pulls.approvals_required"+allowlistKey+"n", pb.RequiredApprovals))
-	}
 	isBlockedByRejection := issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
 	if isBlockedByRejection {
-		addReviewBlocker(ctx.Locale.Tr("repo.pulls.blocked_by_rejection"))
+		reviewBlockers = append(reviewBlockers, ctx.Locale.Tr("repo.pulls.blocked_by_rejection"))
 	}
 	if issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull) {
-		addReviewBlocker(ctx.Locale.Tr("repo.pulls.blocked_by_official_review_requests"))
+		reviewBlockers = append(reviewBlockers, ctx.Locale.Tr("repo.pulls.blocked_by_official_review_requests"))
 	}
 	if !issue_service.HasAllRequiredCodeownerReviews(ctx, pb, pull) {
-		addReviewBlocker(ctx.Locale.Tr("repo.pulls.blocked_by_codeowners"))
+		reviewBlockers = append(reviewBlockers, ctx.Locale.Tr("repo.pulls.blocked_by_codeowners"))
 	}
 	if issues_model.MergeBlockedByOutdatedBranch(pb, pull) {
 		data.addOverridableBlocker(ctx.Locale.Tr("repo.pulls.blocked_by_outdated_branch"))
@@ -1073,13 +1047,19 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 	if len(reviewBlockers) == 0 && pb.RequiredApprovals == 0 {
 		return
 	}
+	approvals := issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
+	allowlistKey := util.Iif(pb.EnableApprovalsWhitelist, "_allowlist_", "_")
+	if approvals < pb.RequiredApprovals {
+		reviewBlockers = append([]template.HTML{ctx.Locale.TrN(pb.RequiredApprovals, "repo.pulls.approvals_required"+allowlistKey+"1", "repo.pulls.approvals_required"+allowlistKey+"n", pb.RequiredApprovals)}, reviewBlockers...)
+	}
 	review := &pullMergeBoxSection{StatusIcon: "octicon-check", StatusIconClass: "tw-bg-green", SectionTitle: ctx.Locale.Tr("repo.pulls.changes_approved"), SectionDetails: reviewBlockers}
 	if approvals > 0 {
 		review.SectionDetails = append(review.SectionDetails, ctx.Locale.TrN(approvals, "repo.pulls.approvals_granted"+allowlistKey+"1", "repo.pulls.approvals_granted"+allowlistKey+"n", approvals))
 	}
 	if len(reviewBlockers) > 0 {
+		data.hasOverridableBlockers = true
 		review.StatusIcon, review.StatusIconClass = util.Iif(isBlockedByRejection, "octicon-file-diff", "octicon-x"), "tw-bg-red"
-		review.SectionTitle = ctx.Locale.Tr(util.Iif(isBlockedByRejection, "repo.pulls.changes_requested", "repo.pulls.review_required"))
+		review.SectionTitle = ctx.Locale.Tr(util.Iif(isBlockedByRejection, "repo.issues.review.rejected", "repo.pulls.review_required"))
 	}
 	data.ReviewSection = review
 }

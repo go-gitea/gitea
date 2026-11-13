@@ -5,7 +5,7 @@
 		<div class="issue-content-left">
 			<div class="comment-list">
 				{{range $scenario := $.MergeBoxScenarios}}
-					<h2>{{$scenario.Title}}</h2>
+					<h2>{{$scenario.ScenarioTitle}}</h2>
 					{{template "repo/issue/view_content/pull_merge_box" $scenario}}
 				{{end}}
 			</div>

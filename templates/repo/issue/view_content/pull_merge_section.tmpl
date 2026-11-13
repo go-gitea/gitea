@@ -11,8 +11,9 @@
 {{else if $section.StatusIcon}}
 	<span class="merge-box-status {{$section.StatusIconClass}}">{{svg $section.StatusIcon}}</span>
 {{end}}
-<span class="item-main">
-	<span class="item-title" role="heading" aria-level="3">{{$section.SectionTitle}}</span>
+<span class="item-main tw-gap-0">
+	<span class="item-title tw-leading-[24px]" role="heading" aria-level="3">{{$section.SectionTitle}}</span>
 	{{range $detail := $section.SectionDetails}}<span class="merge-box-detail">{{$detail}}</span>{{end}}
-	{{range $fileName := $section.FileNames}}<span class="merge-box-file">{{svg "octicon-file"}}{{$fileName}}</span>{{end}}
+	{{range $fileName := $section.FileNames}}<span class="merge-box-file flex-text-block tw-gap-[8px] tw-py-[6px] tw-font-mono tw-text-12">{{svg "octicon-file"}}{{$fileName}}</span>{{end}}
+	{{if $section.HasMoreFiles}}<span class="merge-box-detail">…</span>{{end}}
 </span>

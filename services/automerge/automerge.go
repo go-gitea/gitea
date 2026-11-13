@@ -68,24 +68,20 @@ func populateRecentAutoMergeItems(ctx context.Context) {
 	}
 }
 
-// ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
-func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string, deleteBranchAfterMerge bool) (scheduled bool, err error) {
-	err = db.WithTx(ctx, func(ctx context.Context) error {
+func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string, deleteBranchAfterMerge bool) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
-		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, string(style))
+		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, string(style))
 		return err
 	})
-	// Old code made "scheduled" to be true after "ScheduleAutoMerge", but it's not right:
-	// If the transaction rolls back, then the pull request is not scheduled to auto merge.
-	// So we should only set "scheduled" to true if there is no error.
-	scheduled = err == nil
-	if scheduled {
+	if err == nil {
 		log.Trace("Pull request [%d] scheduled for auto merge with style [%s] and message [%s]", pull.ID, style, message)
+		pull_service.StartPullRequestCheckOnView(ctx, pull)
 		automergequeue.StartAutoMergeCheckByPullHead(ctx, pull)
 	}
-	return scheduled, err
+	return err
 }
 
 var ErrAutoMergeNotScheduled = util.NewNotExistErrorf("auto merge is not scheduled")
@@ -100,7 +96,7 @@ func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 	if err := pull.LoadIssue(ctx); err != nil {
 		return err
 	}
-	if doer.ID != autoMerge.DoerID && !pull.Issue.IsPoster(doer.ID) { // enablers and authors may cancel without merge permission
+	if doer.ID != autoMerge.DoerID && !pull.Issue.IsPoster(doer.ID) {
 		if allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, perm, doer); err != nil {
 			return err
 		} else if !allowed {
@@ -150,7 +146,7 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 		return nil
 	}
 
-	if (!pr.IsStatusMergeable() && !pr.IsEmpty()) || pr.IsWorkInProgress(ctx) {
+	if !pr.IsStatusMergeable() || pr.IsWorkInProgress(ctx) {
 		// quick check: if the PR can't be merged, just skip
 		return errors.Join(errSkipAutoMerge, errors.New("pull request is not mergeable or is work in progress"))
 	}

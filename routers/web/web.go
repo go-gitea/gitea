@@ -1774,6 +1774,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/mail-preview", devtest.MailPreview)
 			m.Any("/mail-preview/*", devtest.MailPreviewRender)
 			m.Any("/mail-preview-embed/*", devtest.MailPreviewEmbed)
+			m.Get("/pull-merge-box", repo.DevtestPullMergeBox)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
 			m.Get("/repo-action-view/artifacts/{artifact_name}/preview", devtest.MockActionsArtifactPreview)

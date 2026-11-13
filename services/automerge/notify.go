@@ -63,6 +63,11 @@ func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_m
 	}
 }
 
+func (n *automergeNotifier) PullRequestChangeTargetBranch(ctx context.Context, _doer *user_model.User, pr *issues_model.PullRequest, _oldBranch, _oldSHA string) {
+	// a writer's retarget keeps the schedule, and the new base may have made the pull request mergeable
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
+}
+
 func disableIssueAutoMerge(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reason string) {
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		log.Error("LoadPullRequest[%d]: %v", issue.ID, err)
@@ -71,7 +76,7 @@ func disableIssueAutoMerge(ctx context.Context, doer *user_model.User, issue *is
 	}
 }
 
-func (n *automergeNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, _ string, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
+func (n *automergeNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, _commitID string, issue *issues_model.Issue, _actionComment *issues_model.Comment, isClosed bool) {
 	if isClosed && issue.IsPull {
 		disableIssueAutoMerge(ctx, doer, issue, "closed")
 	}

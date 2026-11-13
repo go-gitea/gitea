@@ -352,20 +352,14 @@ export function initRepoIssueWipToggle() {
   // Toggle WIP for existing PR
   registerGlobalInitFunc('initPullRequestWipToggle', (toggleWip) => toggleWip.addEventListener('click', async (e) => {
     e.preventDefault();
-    const title = toggleWip.getAttribute('data-title');
+    const title = toggleWip.getAttribute('data-title')!;
     const wipPrefix = toggleWip.getAttribute('data-wip-prefix')!;
-    const updateUrl = toggleWip.getAttribute('data-update-url')!;
-
-    const params = new URLSearchParams();
-    params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
-    toggleWip.classList.add('disabled');
-    const response = await POST(updateUrl, {data: params});
-    if (!response.ok) {
-      toggleWip.classList.remove('disabled');
-      showErrorToast(`Failed to toggle 'work in progress' status`);
-      return;
-    }
-    window.location.reload();
+    if (await performFetchActionRequest(toggleWip, {
+      method: 'POST',
+      url: toggleWip.getAttribute('data-update-url')!,
+      data: new URLSearchParams({title: title.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`}),
+      loadingIndicator: '$this',
+    })) window.location.reload();
   }));
 }
 

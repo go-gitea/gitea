@@ -25,7 +25,6 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
@@ -35,7 +34,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/utils"
@@ -260,7 +258,7 @@ type pullMergeBoxData struct {
 	canBypassProtection    bool
 	hasOpenDependencies    bool
 	hasPermToMerge         bool
-	unsignable             bool // signed commits are required but Gitea can't sign the merge commit
+	mergeSigningError      error
 	mergeBlockers          []template.HTML
 
 	ShowUpdatePullInfo  bool
@@ -384,7 +382,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.Context) {
 	headCommitID := prInfo.CompareInfo.HeadCommitID
-	if headCommitID == "" || prInfo.issue.IsClosed {
+	if headCommitID == "" {
 		return
 	}
 
@@ -426,7 +424,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	data.StatusCheckData = statusCheckData
 	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID)
 
-	statusCheckData.ActionsStatuses = actions_module.GetCommitActionsStatusMap(ctx, commitStatuses)
 	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, ctx.Repo.Repository.ID, commitStatuses)
 	if err != nil {
 		log.Error("GetRunsFromCommitStatuses: %v", err)
@@ -440,34 +437,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		statusCheckData.CanApprove = ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	}
 
-	var expectedStatuses []*git_model.CommitStatus
-	for _, requiredContext := range requiredContexts {
-		matchesRequiredContext := createRequiredContextMatcher(requiredContext)
-		contextFound := slices.ContainsFunc(commitStatuses, func(presentStatus *git_model.CommitStatus) bool {
-			return matchesRequiredContext(presentStatus.Context)
-		})
-		if !contextFound {
-			expectedStatuses = append(expectedStatuses, &git_model.CommitStatus{Context: requiredContext, State: commitstatus.CommitStatusPending, Description: ctx.Locale.TrString("repo.pulls.status_checks_waiting")})
-		}
-	}
-	statusCheckData.groupStatuses(append(commitStatuses, expectedStatuses...))
-
-	statusCheckData.IsContextRequired = func(context string) bool {
-		for _, c := range requiredContexts {
-			if c == context {
-				return true
-			}
-			if gp, err := glob.Compile(c); err != nil {
-				// All newly created status_check_contexts are checked to ensure they are valid glob expressions before being stored in the database.
-				// But some old status_check_context created before glob was introduced may be invalid glob expressions.
-				// So log the error here for debugging.
-				log.Error("compile glob %q: %v", c, err)
-			} else if gp.Match(context) {
-				return true
-			}
-		}
-		return false
-	}
+	statusCheckData.groupStatuses(commitStatuses, requiredContexts, actions_module.GetCommitActionsStatusMap(ctx, commitStatuses), ctx.Locale)
 }
 
 // prepareViewMergedPullInfo show meta information for a merged pull request view page
@@ -478,14 +448,11 @@ func (prInfo *pullRequestViewInfo) prepareViewMergedPullInfo(ctx *context.Contex
 }
 
 type pullCommitStatusCheckData struct {
-	IsContextRequired       func(string) bool // function to check whether a context is required
-	RequireApprovalRunCount int               // number of workflow runs that require approval
-	CanApprove              bool              // whether the user can approve workflow runs
-	ApproveLink             string            // link to approve all checks
+	RequireApprovalRunCount int    // number of workflow runs that require approval
+	CanApprove              bool   // whether the user can approve workflow runs
+	ApproveLink             string // link to approve all checks
 	Groups                  []*statusCheckGroup
-	ActionsStatuses         actions_module.CommitActionsStatusMap
 	counts                  map[statusCheckKind]int
-	lastUpdated             timeutil.TimeStamp
 }
 
 func getViewPullHeadBranchCommitID(ctx *context.Context, pull *issues_model.PullRequest) (string, error) {
@@ -545,6 +512,7 @@ func createRequiredContextMatcher(requiredContext string) func(string) bool {
 		}
 	}
 
+	// Legacy status-check contexts can contain invalid glob expressions.
 	return func(contextToCheck string) bool {
 		return requiredContext == contextToCheck
 	}
@@ -1129,16 +1097,15 @@ func MergePullRequest(ctx *context.Context) {
 
 	if form.MergeWhenChecksSucceed {
 		// schedule auto merge
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
-		if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
+		if err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge); pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.auto_merge_already_enabled"))
 			return
 		} else if err != nil {
 			ctx.ServerErrorAuto(err)
 			return
-		} else if scheduled {
+		} else {
 			// nothing more to do ...
-			ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_newly_scheduled"))
+			ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_enabled"))
 			ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
 			return
 		}

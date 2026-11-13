@@ -960,15 +960,13 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
-		if err != nil {
-			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-				ctx.APIError(http.StatusConflict, err.Error())
-				return
-			}
+		if err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge); pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
+			ctx.APIError(http.StatusConflict, err.Error())
+			return
+		} else if err != nil {
 			ctx.APIErrorInternal(err)
 			return
-		} else if scheduled {
+		} else {
 			// nothing more to do ...
 			ctx.Status(http.StatusCreated)
 			return

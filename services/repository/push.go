@@ -290,8 +290,6 @@ func pushUpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo 
 		IsForcePush: isForcePush,
 		OldCommitID: opts.OldCommitID,
 		NewCommitID: opts.NewCommitID,
-
-		UpdatedPullID: opts.PullRequestID,
 	})
 	git.RemoveCommitsCountCache(repo, opts.RefFullName)
 	return l, nil

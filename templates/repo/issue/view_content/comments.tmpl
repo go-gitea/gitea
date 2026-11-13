@@ -663,7 +663,7 @@
 				<span class="comment-text-line">
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{if .Content}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_style_comment" (ctx.Locale.Tr (print "repo.pulls.merge_style_short." .Content)) $createdStr}}
-					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}{{end}}
+					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_comment" $createdStr}}{{end}}
 				</span>
 			</div>
 		{{else if eq .Type 35}}{{/* auto merge canceled, Content is the reason when it was disabled automatically */}}
@@ -678,7 +678,7 @@
 					{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
 					<span class="comment-text-line">
 						{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
-						{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}
+						{{ctx.Locale.Tr "repo.pulls.auto_merge_disabled_comment" $createdStr}}
 					</span>
 				{{end}}
 			</div>

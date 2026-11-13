@@ -11,6 +11,7 @@ import (
 	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
@@ -52,14 +53,18 @@ func hookPostReceiveCollectPushUpdates(opts *private.HookOptions, repo *repo_mod
 }
 
 func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository, updates []*repo_module.PushUpdateOptions) {
+	pusher, pusherErr := user_model.GetDoerPermissionUser(ctx, opts.UserID, opts.UserExtDoerData)
+	if pusherErr != nil {
+		log.Error("failed to load pusher: %v", pusherErr)
+	}
 	branchNames := make([]string, 0, len(updates))
 	for _, update := range updates {
 		if !update.RefFullName.IsBranch() {
 			continue
 		}
 		branchNames = append(branchNames, update.RefFullName.BranchName())
-		if !update.IsDelRef() {
-			pull_service.UpdatePullsRefs(ctx, repo, update)
+		if !update.IsDelRef() && pusherErr == nil {
+			pull_service.UpdatePullsRefs(ctx, pusher, repo, update)
 		}
 	}
 

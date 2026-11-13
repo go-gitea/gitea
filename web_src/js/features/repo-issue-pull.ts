@@ -1,7 +1,6 @@
 import {createApp, type App, type Component} from 'vue';
 import {GET} from '../modules/fetch.ts';
-import {createTippy} from '../modules/tippy.ts';
-import type {Instance} from 'tippy.js';
+import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
@@ -12,29 +11,31 @@ class PullMergeBox {
   private readonly el: HTMLElement;
   private chosenUpdateUrl = '';
   private chosenMergeStyle = '';
-  private mergeFormComponent?: Component; // cached so a refresh remounts the form before the next paint
+  private mergeFormComponent?: Component;
   private mergeFormApp?: App;
-  private updateStyleTippy?: Instance;
 
   constructor(el: HTMLElement) {
     this.el = el;
-    this.initContent();
+  }
+
+  async init() {
+    await this.initContent();
     activePageTimerRefresh({
-      interval: () => Number(el.getAttribute(reloadingIntervalAttr)),
+      interval: () => this.el.isConnected ? Number(this.el.getAttribute(reloadingIntervalAttr)) : 0,
       callback: () => this.refresh(),
     });
   }
 
-  private initContent() {
+  private async initContent() {
     this.initUpdateStyleMenu();
-    this.initMergeForm();
+    await this.initMergeForm();
   }
 
   private initUpdateStyleMenu() {
-    const elButtons = this.el.querySelector('.pull-update-style-buttons');
+    const elButtons = this.el.querySelector('[data-pull-update-buttons]');
     if (!elButtons) return;
     const [elButton, elTrigger] = elButtons.querySelectorAll<HTMLButtonElement>(':scope > button');
-    const menu = elButtons.nextElementSibling!;
+    const menu = this.el.querySelector('[data-pull-update-menu]')!;
     const menuTippy = createTippy(elTrigger, {
       content: menu,
       getReferenceClientRect: () => elButtons.getBoundingClientRect(),
@@ -52,7 +53,6 @@ class PullMergeBox {
       elButton.textContent = choice.getAttribute('data-update-text');
       elButton.setAttribute('data-url', this.chosenUpdateUrl);
     };
-    this.updateStyleTippy = menuTippy;
     addDelegatedEventListener(menu, 'click', '.item', (choice) => {
       choose(choice);
       menuTippy.hide();
@@ -62,19 +62,21 @@ class PullMergeBox {
   }
 
   private async initMergeForm() {
-    const elForm = this.el.querySelector('#pull-request-merge-form');
+    const elForm = this.el.querySelector('[data-merge-form-props]');
     if (!elForm) return;
 
     const data = JSON.parse(elForm.getAttribute('data-merge-form-props')!);
     if (data.mergeStyles.some((style: {name: string}) => style.name === this.chosenMergeStyle)) data.defaultMergeStyle = this.chosenMergeStyle;
-    this.mergeFormComponent ??= (await import('../components/PullRequestMergeForm.vue')).default;
+    this.mergeFormComponent ??= (await import('../components/PullRequestMergeForm.vue')).default; // cached so a refresh remounts the form before the next paint
+    if (!elForm.isConnected) return;
     this.mergeFormApp = createApp(this.mergeFormComponent, {mergeFormProps: data, onMergeStyleChange: (style: string) => { this.chosenMergeStyle = style }});
     this.mergeFormApp.mount(elForm);
   }
 
   private isBusy() {
-    // keep open menus, forms, bypass choices and pending requests
-    return Boolean(this.el.querySelector('[aria-expanded="true"], [data-fetch-is-loading], #pull-request-merge-form :is(form, :checked)'));
+    // keep focused controls, open menus and dialogs, forms, bypass choices and pending requests
+    return this.el.contains(document.activeElement) || Boolean(document.querySelector('#pull-merge-cmd-modal[open]') ||
+      this.el.querySelector('[aria-expanded="true"], [data-fetch-is-loading], [data-pull-merge-busy]'));
   }
 
   private async refresh() {
@@ -91,13 +93,13 @@ class PullMergeBox {
       if (open !== undefined) details.open = open;
     }
     const scrollTop = this.el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTop;
+    const oldElements = this.el.querySelectorAll('*');
     this.mergeFormApp?.unmount();
     this.mergeFormApp = undefined;
-    this.updateStyleTippy?.destroy();
-    this.updateStyleTippy = undefined;
+    for (const oldElement of oldElements) getAttachedTippyInstance(oldElement)?.destroy();
     this.el.replaceChildren(...newEl.childNodes); // don't morph, so data-global-init and Vue components are re-initialized
     this.el.setAttribute(reloadingIntervalAttr, newEl.getAttribute(reloadingIntervalAttr) ?? '0');
-    this.initContent();
+    await this.initContent();
     if (scrollTop) this.el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTo({top: scrollTop, behavior: 'instant'});
   }
 }
@@ -108,5 +110,5 @@ export function initRepoPullCloneUrl(el: HTMLElement) {
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {
-  new PullMergeBox(el);
+  return new PullMergeBox(el).init();
 }

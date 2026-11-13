@@ -1,10 +1,7 @@
 {{$data := $.MergeBoxData}}
 {{$pull := $.PullRequest}}
-<div class="ui small modal" id="pull-merge-cmd-modal">
-	{{svg "octicon-x" 16 "inside close"}}
-	{{if $data.ShowMergeInstructions}}
-	<div class="header">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_modal_title"}}</div>
-	{{end}}
+<dialog class="modal-dialog" id="pull-merge-cmd-modal">
+	<div class="header">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_modal_title"}}<button type="button" class="close-modal"></button></div>
 	<div class="content">
 		{{if $data.ShowMergeInstructions}}
 		<p>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_modal_desc"}}</p>
@@ -42,4 +39,4 @@
 		</div>
 		{{end}}
 	</div>
-</div>
+</dialog>

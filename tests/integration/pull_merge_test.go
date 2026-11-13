@@ -94,6 +94,24 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 	return resp
 }
 
+type pullMergeFormProps struct {
+	DefaultMergeStyle      string `json:"defaultMergeStyle"`
+	CanMergeNow            bool   `json:"canMergeNow"`
+	AllOverridableChecksOk bool   `json:"allOverridableChecksOk"`
+	CanAutoMerge           bool   `json:"canAutoMerge"`
+	MergeStyles            []struct {
+		Name string `json:"name"`
+	} `json:"mergeStyles"`
+}
+
+func parsePullMergeFormProps(t *testing.T, htmlDoc *HTMLDoc) pullMergeFormProps {
+	t.Helper()
+	var mergeForm pullMergeFormProps
+	require.NoError(t, json.Unmarshal([]byte(htmlDoc.Find("[data-merge-form-props]").AttrOr("data-merge-form-props", "")), &mergeForm))
+	require.NotEmpty(t, mergeForm.MergeStyles)
+	return mergeForm
+}
+
 func preparePullMergeWebhook(t *testing.T, repoID int64) {
 	require.NoError(t, db.TruncateBeans(t.Context(), &webhook.Webhook{}, &webhook.HookTask{}))
 	require.NoError(t, db.Insert(t.Context(), &webhook.Webhook{
@@ -331,6 +349,7 @@ func TestPullCleanUpAfterClose(t *testing.T) {
 			assert.Empty(t, link)
 
 			restoreLink := htmlDoc.doc.Find(`.timeline-item button[data-url*="/branches/restore"]`).AttrOr("data-url", "")
+			require.Regexp(t, `^/user1/repo1/branches/restore\?branch_id=\d+$`, restoreLink)
 			session.MakeRequest(t, NewRequest(t, "POST", restoreLink), http.StatusOK)
 			assert.NotEmpty(t, getDeleteBranchLink(t, session, "user2", "repo1", pullNumStr))
 		})
@@ -343,6 +362,12 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
+		require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
+			RepoID:                1,
+			RuleName:              "master",
+			ProtectedBranchConfig: git_model.ProtectedBranchConfig{ProtectedFilePatterns: "README.md"},
+		}))
+
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "[wip] This is a pull title")
 
 		req := NewRequest(t, "GET", test.RedirectURL(resp))
@@ -350,9 +375,10 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		wipToggleButtonCount := htmlDoc.Find(`.merge-section > .item button[data-global-init="initPullRequestWipToggle"]`).Length()
 		assert.Equal(t, 1, wipToggleButtonCount)
-		mergeFormProps := htmlDoc.Find("#pull-request-merge-form").AttrOr("data-merge-form-props", "")
-		assert.Contains(t, mergeFormProps, `"canMergeNow":false`)
-		assert.NotContains(t, mergeFormProps, `"hideAutoMerge":false`)
+		assert.Equal(t, 1, htmlDoc.Find(`.pull-merge-box .merge-box-detail:contains("This pull request is blocked because it changes a protected file.")`).Length())
+		mergeForm := parsePullMergeFormProps(t, htmlDoc)
+		assert.False(t, mergeForm.CanMergeNow)
+		assert.False(t, mergeForm.CanAutoMerge)
 		assert.Contains(t, htmlDoc.Find("#pull-merge-cmd-modal").Text(), "git checkout user1-master")
 	})
 }
@@ -399,6 +425,9 @@ func TestCantMergeConflict(t *testing.T) {
 		resp := session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/user1/repo1/pulls/%d/merge", pr.Index), map[string]string{"do": "merge", "merge_when_checks_succeed": "true"}), http.StatusOK)
 		assert.Equal(t, fmt.Sprintf("/user1/repo1/pulls/%d", pr.Index), DecodeJSON(t, resp, map[string]string{})["redirect"])
 		unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+
+		htmlDoc := NewHTMLParser(t, MakeRequest(t, NewRequestf(t, "GET", "/user1/repo1/pulls/%d", pr.Index), http.StatusOK).Body)
+		assert.Equal(t, 1, htmlDoc.Find(`.merge-box-footer button[data-modal="#pull-merge-cmd-modal"]`).Length())
 	})
 }
 
@@ -481,19 +510,14 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{RepoID: repo1.ID, Doer: user1, Branch: "unrelated"})
 
-		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		var pr *issues_model.PullRequest
-		require.Eventually(t, func() bool {
-			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{HeadRepoID: repo1.ID, BaseRepoID: repo1.ID, HeadBranch: "unrelated", BaseBranch: "base"})
-			return !pr.IsChecking()
-		}, 5*time.Second, 20*time.Millisecond)
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{HeadRepoID: repo1.ID, BaseRepoID: repo1.ID, HeadBranch: "unrelated", BaseBranch: "base"})
 		assert.True(t, pr.IsUnrelated())
 		resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user1/repo1/pulls/%d", pr.Index)), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t, htmlDoc.Find(".merge-section").Text(), "This branch has no history in common with the target branch.")
-		mergeFormProps := htmlDoc.Find("#pull-request-merge-form").AttrOr("data-merge-form-props", "")
-		assert.Contains(t, mergeFormProps, `"canMergeNow":false`)
-		assert.NotContains(t, mergeFormProps, `"hideAutoMerge":false`)
+		mergeForm := parsePullMergeFormProps(t, htmlDoc)
+		assert.False(t, mergeForm.CanMergeNow)
+		assert.False(t, mergeForm.CanAutoMerge)
 
 		err = pull_service.Merge(t.Context(), pr.ID, user1, repo_model.MergeStyleMerge, "", "UNRELATED", false)
 		assert.Error(t, err, "Merge should return an error due to unrelated")
@@ -854,9 +878,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		resetAutoMergeQueueMock := test.MockVariableValue(&automergequeue.AddToQueue, func(item automergequeue.AutoMergeItem) { addToQueuePullChan <- item })
 
 		// first time insert automerge record, return true
-		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
-		assert.NoError(t, err)
-		assert.True(t, scheduled)
+		assert.NoError(t, automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 		// and the pr should be added to automergequeue, in case it is already "mergeable"
 		select {
 		case <-addToQueuePullChan:
@@ -866,9 +888,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		resetAutoMergeQueueMock()
 
 		// second time insert automerge record, return false because it does exist
-		scheduled, err = automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
-		assert.Error(t, err)
-		assert.False(t, scheduled)
+		assert.Error(t, automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 
 		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
@@ -932,15 +952,14 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		})
 		baseSession.MakeRequest(t, req, http.StatusOK)
 
+		htmlDoc := NewHTMLParser(t, baseSession.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/pulls/%d", pr.Index), http.StatusOK).Body)
+		assert.Equal(t, 1, htmlDoc.Find(`.pull-merge-box .merge-box-detail:contains("At least 1 approving review is required by reviewers with write access.")`).Length())
+
 		// first time insert automerge record, return true
-		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false)
-		assert.NoError(t, err)
-		assert.True(t, scheduled)
+		assert.NoError(t, automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 
 		// second time insert automerge record, return false because it does exist
-		scheduled, err = automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false)
-		assert.Error(t, err)
-		assert.False(t, scheduled)
+		assert.Error(t, automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 
 		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
@@ -1046,14 +1065,10 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		// first time insert automerge record, return true
-		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
-		assert.NoError(t, err)
-		assert.True(t, scheduled)
+		assert.NoError(t, automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 
 		// second time insert automerge record, return false because it does exist
-		scheduled, err = automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
-		assert.Error(t, err)
-		assert.False(t, scheduled)
+		assert.Error(t, automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false))
 
 		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
@@ -1170,12 +1185,9 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 
 		resp = bypassSession.MakeRequest(t, NewRequest(t, "GET", pullURL), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		mergeFormProps, exists := htmlDoc.doc.Find("#pull-request-merge-form").Attr("data-merge-form-props")
-		require.True(t, exists)
-		var mergeForm map[string]any
-		require.NoError(t, json.Unmarshal([]byte(mergeFormProps), &mergeForm))
-		assert.Equal(t, true, mergeForm["canMergeNow"])
-		assert.Equal(t, false, mergeForm["allOverridableChecksOk"])
+		mergeForm := parsePullMergeFormProps(t, htmlDoc)
+		assert.True(t, mergeForm.CanMergeNow)
+		assert.False(t, mergeForm.AllOverridableChecksOk)
 
 		mergeReq := func(forceMerge bool) *RequestWrapper {
 			return NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/merge", prIndex), map[string]string{
