@@ -13,9 +13,9 @@
 			>{{ctx.Locale.Tr "repo.issues.delete"}}</button>
 		{{end}}
 	<!-- Labels -->
-		<div class="dropdown-container" data-placement="bottom-end">
+		<div class="dropdown-container">
 			<button type="button" class="dropdown-trigger item btn" {{if not .Labels}}disabled{{end}}>{{ctx.Locale.Tr "repo.issues.action_label"}} {{svg "octicon-triangle-down" 14}}</button>
-			<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
+			<div class="dropdown-popup issue-filter-popup">
 				<div class="dropdown-item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/labels">
 					{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}
 				</div>
@@ -35,9 +35,9 @@
 		</div>
 
 		<!-- Milestone -->
-		<div class="dropdown-container" data-placement="bottom-end">
+		<div class="dropdown-container">
 			<button type="button" class="dropdown-trigger item btn" {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}}>{{ctx.Locale.Tr "repo.issues.action_milestone"}} {{svg "octicon-triangle-down" 14}}</button>
-			<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
+			<div class="dropdown-popup issue-filter-popup">
 				<div class="dropdown-item issue-action" data-element-id="" data-url="{{$.Link}}/milestone">
 				{{ctx.Locale.Tr "repo.issues.action_milestone_no_select"}}
 				</div>
@@ -63,9 +63,9 @@
 		</div>
 
 		<!-- Projects -->
-		<div class="dropdown-container" data-placement="bottom-end">
+		<div class="dropdown-container">
 			<button type="button" class="dropdown-trigger item btn" {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}}>{{ctx.Locale.Tr "repo.projects"}} {{svg "octicon-triangle-down" 14}}</button>
-			<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
+			<div class="dropdown-popup issue-filter-popup">
 				<div class="dropdown-item issue-action" data-element-id="" data-url="{{$.Link}}/projects">
 				{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}
 				</div>
@@ -95,9 +95,9 @@
 		</div>
 
 		<!-- Assignees -->
-		<div class="dropdown-container" data-placement="bottom-end">
+		<div class="dropdown-container">
 			<button type="button" class="dropdown-trigger item btn" {{if not .Assignees}}disabled{{end}}>{{ctx.Locale.Tr "repo.issues.action_assignee"}} {{svg "octicon-triangle-down" 14}}</button>
-			<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
+			<div class="dropdown-popup issue-filter-popup">
 				<div class="dropdown-item issue-action" data-action="clear" data-url="{{$.Link}}/assignee">
 					{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}
 				</div>

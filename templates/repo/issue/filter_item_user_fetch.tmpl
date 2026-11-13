@@ -6,12 +6,12 @@
 * TextFilterTitle
 */}}
 {{$queryLink := .QueryLink}}
-<div class="dropdown-container" data-placement="bottom-end" data-global-init="initDropdownUserRemoteSearch"
+<div class="dropdown-container" data-global-init="initDropdownUserRemoteSearch"
 		data-search-url="{{$.UserSearchUrl}}"
 		data-action-jump-url="{{QueryBuild $queryLink $.QueryParamKey NIL}}&{{$.QueryParamKey}}={username}"
 >
 	<button type="button" class="dropdown-trigger item btn" {{if $.UserSearchUrl}}data-tooltip-content="{{ctx.Locale.Tr "repo.user_search_tooltip"}}"{{end}}>{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14}}</button>
-	<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
+	<div class="dropdown-popup issue-filter-popup">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
 			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr (Iif $.UserSearchUrl "repo.issues.filter_user_placeholder" "repo.issues.filter_by_username_placeholder")}}" value="{{$.SelectedUsername}}">

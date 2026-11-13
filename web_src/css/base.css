@@ -387,10 +387,6 @@ a.label,
   background: var(--color-hover);
 }
 
-.ui.ui.menu .dropdown-trigger:disabled {
-  color: var(--color-text-light-2);
-}
-
 .full.height {
   flex-grow: 1;
   padding-bottom: var(--page-space-bottom);

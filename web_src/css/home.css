@@ -73,7 +73,6 @@
   padding-left: 1em;
 }
 
-/* the theme item is also used for the trigger's content */
 .theme-menu-item {
   display: flex;
   align-items: center;
@@ -85,12 +84,4 @@
     flex-direction: column;
     gap: 0.5em;
   }
-}
-
-.footer-theme-menu .dropdown-item {
-  padding-inline: 16px;
-}
-
-.tippy-box[data-theme="dropdown"][data-placement^="top"]:has(.footer-language-menu, .footer-theme-menu) {
-  translate: 0 -4px;
 }

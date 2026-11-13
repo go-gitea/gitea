@@ -32,7 +32,7 @@
 							<span>@</span>
 							<label class="tw-sr-only" for="release-tag-target">{{ctx.Locale.Tr "repo.release.target"}}</label>
 							<div class="select-field">
-								<select id="release-tag-target" class="tw-w-auto tw-max-w-full tw-pl-[33.5px]" name="tag_target">
+								<select id="release-tag-target" class="tw-w-auto tw-max-w-full" name="tag_target">
 									{{if not (SliceUtils.Contains .Branches .tag_target)}}
 										<option value="{{.tag_target}}" selected>{{.tag_target}}</option>
 									{{end}}
@@ -40,7 +40,6 @@
 										<option value="{{.}}" {{if eq . $.tag_target}}selected{{end}}>{{.}}</option>
 									{{end}}
 								</select>
-								<span class="tw-pointer-events-none tw-absolute tw-inset-y-0 tw-left-[15px] tw-flex tw-items-center">{{svg "octicon-git-branch"}}</span>
 							</div>
 						</div>
 					</div>

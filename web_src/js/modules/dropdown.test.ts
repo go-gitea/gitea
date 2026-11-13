@@ -1,6 +1,6 @@
 import {userEvent} from 'vitest/browser';
 import {createElementFromAttrs, createElementFromHTML} from '../utils/dom.ts';
-import {closestDropdown, hideScopedEmptyDividers, initDropdown} from './dropdown.ts';
+import {closestDropdown, initDropdown} from './dropdown.ts';
 
 function createDropdown(html: string, opts?: Parameters<typeof initDropdown>[1]) {
   const container = createElementFromHTML<HTMLElement>(html);
@@ -8,9 +8,9 @@ function createDropdown(html: string, opts?: Parameters<typeof initDropdown>[1])
   return initDropdown(container, opts);
 }
 
-test('select in a field is named by its label, shows restored state, filters by keyboard, commits on Enter or Tab and fires change only on a new value', async () => {
+test('select has a field label, filters by keyboard and fires change on new selections with Enter or Tab', async () => {
   const field = createElementFromHTML(`<div class="field"><label>Fruit</label><div class="dropdown-container" data-kind="select">
-    <button type="button" class="dropdown-trigger"><span class="dropdown-text" data-placeholder="Pick">Stale</span></button>
+    <button type="button" class="dropdown-trigger"><span class="dropdown-text" data-placeholder="Pick">Apple</span></button>
     <input type="hidden" class="dropdown-value" value="apple">
     <div class="dropdown-popup">
       <input class="dropdown-filter">
@@ -47,8 +47,8 @@ test('select in a field is named by its label, shows restored state, filters by 
   expect(dropdown.trigger.textContent).toBe('Apple');
   dropdown.setValue('');
   expect(dropdown.trigger.textContent).toBe('Pick');
-  dropdown.filterInput!.value = 'ban';
   await userEvent.click(dropdown.trigger);
+  await userEvent.keyboard('ban');
   expect(dropdown.findItem('apple')!.hidden).toBe(true);
   await userEvent.keyboard('{ArrowDown}{Tab}');
   expect(changes).toEqual(['banana', 'banana']);
@@ -56,7 +56,7 @@ test('select in a field is named by its label, shows restored state, filters by 
   field.remove();
 });
 
-test('menu keeps popup controls in their form, skips disabled items, cycles repeated type-ahead letters and closes before item handlers, on Escape, Tab and removal', async () => {
+test('menu keeps popup controls in their form, skips disabled items and closes before item handlers, on Escape, Tab and removal', async () => {
   const dropdown = createDropdown(`<div class="dropdown-container">
     <button type="button" class="dropdown-trigger">Menu</button>
     <div class="dropdown-popup">
@@ -87,24 +87,24 @@ test('menu keeps popup controls in their form, skips disabled items, cycles repe
   expect(dropdown.highlighted).toBe(item);
   await userEvent.keyboard('{ArrowDown}');
   expect(dropdown.highlighted).toBe(otherItem);
+  await userEvent.keyboard('{ArrowUp}');
+  expect(dropdown.highlighted).toBe(item);
   await userEvent.keyboard('{Escape}');
   expect(dropdown.container.hasAttribute('data-shown')).toBe(false);
   expect(document.activeElement).toBe(dropdown.trigger);
-  await userEvent.keyboard('{ArrowUp}');
-  dropdown.popup.append(createElementFromHTML('<button type="button" class="dropdown-item">Other late</button>'));
-  await userEvent.keyboard('o');
-  expect(dropdown.highlighted!.textContent).toBe('Other late');
-  await userEvent.keyboard('o');
-  expect(dropdown.highlighted).toBe(otherItem);
+  await userEvent.keyboard('{Enter}');
+  expect(dropdown.container.hasAttribute('data-shown')).toBe(true);
   await userEvent.keyboard('{Tab}');
   expect(dropdown.container.hasAttribute('data-shown')).toBe(false);
-  await userEvent.click(dropdown.trigger);
+  dropdown.trigger.focus();
+  await userEvent.keyboard(' ');
+  expect(dropdown.container.hasAttribute('data-shown')).toBe(true);
   form.remove();
   await vi.waitFor(() => expect(dropdown.container.hasAttribute('data-shown')).toBe(false));
   expect(dropdown.popup.isConnected).toBe(false);
 });
 
-test('remote items in a search field apply the latest query only, Enter picks the first result without submitting and labels are removable by keyboard', async () => {
+test('remote search ignores stale responses, preserves static items, prevents submission and exposes removable chips', async () => {
   const pending: Array<{query: string, resolve: (items: Element[]) => void}> = [];
   const dropdown = createDropdown(`<div class="dropdown-container" data-kind="multiselect">
     <input type="hidden" class="dropdown-value" value="">
@@ -136,8 +136,8 @@ test('remote items in a search field apply the latest query only, Enter picks th
   await userEvent.click(dropdown.findItem('a2')!);
   expect(dropdown.values()).toEqual(['static', 'a2']);
   expect(Array.from(dropdown.trigger.querySelectorAll('.ui.label'), (el) => el.textContent)).toEqual(['Static', 'a2']);
-  await expect.element(dropdown.trigger.querySelector<SVGElement>('.ui.label[data-value="static"] .delete')).toHaveAccessibleName('Remove item "Static"');
-  await userEvent.keyboard('{Shift>}{Tab}{Tab}{/Shift}{Backspace}');
+  await expect.element(dropdown.trigger.querySelector<HTMLButtonElement>('.ui.label[data-value="static"] .delete')).toHaveAccessibleName('Remove item "Static"');
+  await userEvent.keyboard('{Shift>}{Tab}{Tab}{/Shift}{Enter}');
   expect(dropdown.values()).toEqual(['a2']);
   expect(document.activeElement).toBe(dropdown.filterInput);
   await userEvent.click(dropdown.trigger.querySelector('.ui.label[data-value="a2"] .delete')!);
@@ -145,38 +145,4 @@ test('remote items in a search field apply the latest query only, Enter picks th
   expect(dropdown.container.hasAttribute('data-shown')).toBe(true);
   expect(document.activeElement).toBe(dropdown.filterInput);
   form.remove();
-});
-
-test('hideScopedEmptyDividers', () => {
-  const container = createElementFromHTML(`<div>
-<div class="dropdown-header">top</div>
-<div class="dropdown-divider"></div>
-<div class="dropdown-header" hidden="">a</div>
-<div class="dropdown-item">a</div>
-<div class="dropdown-divider"></div>
-<div class="dropdown-divider"></div>
-<div class="dropdown-item" data-scope="b">b</div>
-<div class="dropdown-divider" data-scope="c"></div>
-<div class="dropdown-item" data-scope="c" hidden="">c</div>
-<div class="dropdown-divider" data-scope=""></div>
-<div class="dropdown-header">d</div>
-<div class="dropdown-item tw-hidden">d</div>
-<div class="dropdown-divider"></div>
-</div>`);
-  hideScopedEmptyDividers(container);
-  expect(container.innerHTML).toEqual(`
-<div class="dropdown-header">top</div>
-<div class="dropdown-divider"></div>
-<div class="dropdown-header">a</div>
-<div class="dropdown-item">a</div>
-<div class="dropdown-divider" hidden=""></div>
-<div class="dropdown-divider"></div>
-<div class="dropdown-item" data-scope="b">b</div>
-<div class="dropdown-divider" data-scope="c" hidden=""></div>
-<div class="dropdown-item" data-scope="c" hidden="">c</div>
-<div class="dropdown-divider" data-scope="" hidden=""></div>
-<div class="dropdown-header" hidden="">d</div>
-<div class="dropdown-item tw-hidden">d</div>
-<div class="dropdown-divider" hidden=""></div>
-`);
 });

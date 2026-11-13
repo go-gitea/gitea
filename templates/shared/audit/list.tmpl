@@ -5,25 +5,21 @@
 			<input type="text" name="actor" value="{{.AuditFilterActor}}" placeholder="{{ctx.Locale.Tr "audit.filter.actor"}}">
 			{{template "shared/search/button"}}
 		</div>
-		<div class="ui small input">
-			<div class="select-field">
-				<select name="action" aria-label="{{ctx.Locale.Tr "audit.filter.action"}}">
-					<option value="" data-placeholder>{{ctx.Locale.Tr "audit.filter.action"}}</option>
-					{{range $action := .AuditActions}}
-						<option{{if eq $.AuditFilterAction (print $action)}} selected{{end}} value="{{$action}}">{{$action}}</option>
-					{{end}}
-				</select>
-			</div>
+		<div class="select-field">
+			<select name="action" aria-label="{{ctx.Locale.Tr "audit.filter.action"}}">
+				<option value="" data-placeholder>{{ctx.Locale.Tr "audit.filter.action"}}</option>
+				{{range $action := .AuditActions}}
+					<option{{if eq $.AuditFilterAction (print $action)}} selected{{end}} value="{{$action}}">{{$action}}</option>
+				{{end}}
+			</select>
 		</div>
-		<div class="ui small input">
-			<div class="select-field">
-				<select name="origin" aria-label="{{ctx.Locale.Tr "audit.filter.origin"}}">
-					<option value="" data-placeholder>{{ctx.Locale.Tr "audit.filter.origin"}}</option>
-					{{range $origin := .AuditOrigins}}
-						<option{{if eq $.AuditFilterOrigin (print $origin)}} selected{{end}} value="{{$origin}}">{{$origin}}</option>
-					{{end}}
-				</select>
-			</div>
+		<div class="select-field">
+			<select name="origin" aria-label="{{ctx.Locale.Tr "audit.filter.origin"}}">
+				<option value="" data-placeholder>{{ctx.Locale.Tr "audit.filter.origin"}}</option>
+				{{range $origin := .AuditOrigins}}
+					<option{{if eq $.AuditFilterOrigin (print $origin)}} selected{{end}} value="{{$origin}}">{{$origin}}</option>
+				{{end}}
+			</select>
 		</div>
 	</form>
 </div>

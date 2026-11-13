@@ -32,8 +32,7 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
     },
   });
   const onChangeOwner = function () {
-    const ownerItem = repoOwnerDropdown.findItem(repoOwnerDropdown.value);
-    elCreateRepoErrorMessage.textContent = ownerItem?.getAttribute('data-create-repo-disallowed-prompt') ?? '';
+    elCreateRepoErrorMessage.textContent = repoOwnerDropdown.findItem(repoOwnerDropdown.value)!.getAttribute('data-create-repo-disallowed-prompt') ?? '';
     const hasError = Boolean(elCreateRepoErrorMessage.textContent);
     toggleElem(elCreateRepoErrorMessage, hasError);
     elSubmitButton.disabled = hasError;

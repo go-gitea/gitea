@@ -129,7 +129,7 @@
 
 .ui.menu:not(.vertical) .right.menu {
   display: inherit;
-  margin-left: auto !important;
+  margin-left: auto;
 }
 
 .ui.menu .right.menu > .item::before {
@@ -309,7 +309,7 @@
   border: none;
 }
 
-.ui.secondary.menu > .dropdown-container { /* align like the item trigger it wraps */
+.ui.secondary.menu > .dropdown-container {
   align-self: center;
 }
 
@@ -403,7 +403,7 @@
     width: 100% !important;
   }
   .ui.stackable.menu .right.menu {
-    margin-left: 0 !important;
+    margin-left: 0;
     flex-direction: column;
   }
 }
@@ -513,8 +513,7 @@
 .ui.tiny.menu {
   font-size: 0.85714286rem;
 }
-.ui.small.menu,
-.ui.small.menu .dropdown-container {
+.ui.small.menu {
   font-size: 0.92857143rem;
 }
 

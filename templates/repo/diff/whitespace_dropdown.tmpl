@@ -2,7 +2,7 @@
 	<button type="button" class="dropdown-trigger ui tiny basic button" aria-label="{{ctx.Locale.Tr "repo.diff.whitespace_button"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.whitespace_button"}}">
 		{{svg "gitea-whitespace"}}
 	</button>
-	<div class="dropdown-popup dropdown-popup-button tw-text-12">
+	<div class="dropdown-popup">
 		<a class="dropdown-item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all&show-outdated={{$.ShowOutdatedComments}}" aria-current="{{eq .WhitespaceBehavior "show-all"}}">
 			{{svg "octicon-check" 16 (Iif (eq .WhitespaceBehavior "show-all") "" "tw-invisible")}}
 			{{ctx.Locale.Tr "repo.diff.whitespace_show_everything"}}

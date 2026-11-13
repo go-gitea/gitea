@@ -7,7 +7,7 @@
 {{$queryLink := .QueryLink}}
 <div class="dropdown-container label-filter">
 	<button type="button" class="dropdown-trigger item btn" {{if not .Labels}}disabled{{end}}>{{ctx.Locale.Tr "repo.issues.filter_label"}} {{svg "octicon-triangle-down" 14}}</button>
-	<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu issue-filter-popup">
+	<div class="dropdown-popup dropdown-popup-flex issue-filter-popup">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
 			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_label"}}">
@@ -29,10 +29,10 @@
 		{{range .Labels}}
 			{{$exclusiveScope := .ExclusiveScope}}
 			{{if and (ne $previousExclusiveScope $exclusiveScope)}}
-				<div class="dropdown-divider" data-scope="{{.ExclusiveScope}}"></div>
+				<div class="dropdown-divider"></div>
 			{{end}}
 			{{$previousExclusiveScope = $exclusiveScope}}
-			<a class="dropdown-item label-filter-query-item" data-label-id="{{.ID}}" data-scope="{{.ExclusiveScope}}" {{if .IsArchived}}data-is-archived{{end}}
+			<a class="dropdown-item label-filter-query-item" data-label-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}}
 				href="{{QueryBuild $queryLink "labels" .QueryString}}">
 				{{if .IsExcluded}}
 					{{svg "octicon-circle-slash"}}

@@ -188,7 +188,7 @@ onBeforeUnmount(() => {
                 <button type="button" class="dropdown-trigger ui basic small compact icon button" :aria-label="locale.rerun">
                   <SvgIcon name="octicon-triangle-down" :size="14"/>
                 </button>
-                <div class="dropdown-popup dropdown-popup-button tw-text-13">
+                <div class="dropdown-popup">
                   <button type="button" class="dropdown-item link-action" :data-url="`${run.link}/rerun`">
                     {{ locale.rerun_all }}
                   </button>
@@ -205,7 +205,7 @@ onBeforeUnmount(() => {
               <span>{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current)!) }}</span>
               <SvgIcon name="octicon-triangle-down" :size="14"/>
             </button>
-            <div class="dropdown-popup dropdown-popup-button tw-text-13">
+            <div class="dropdown-popup">
               <a
                 v-for="attempt in run.attempts"
                 :key="attempt.attempt"

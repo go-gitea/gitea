@@ -43,7 +43,7 @@
 }
 
 .ui.active.button,
-:where(.dropdown-container) > .ui.button[aria-expanded="true"]:where(:not(.dropdown-button-inline)),
+.ui.button[aria-expanded="true"],
 .ui.button:active,
 .ui.active.button:active,
 .ui.active.button:hover {
@@ -105,28 +105,6 @@
   min-height: 38px;
   padding: 0.43em /* around 6px, keeps CJK text within min-height */ 1.43em /* around 20px */;
 }
-.ui.button:not(.icon) > .octicon-triangle-down {
-  opacity: 0.8;
-}
-
-.ui.button.dropdown-trigger {
-  gap: var(--gap-inline);
-}
-
-.ui.button.dropdown-trigger:not(.icon, .dropdown-button-inline):has(> .octicon-triangle-down) {
-  position: relative;
-  padding-right: 22px;
-}
-
-.ui.button.dropdown-trigger:is(.mini, .tiny):not(.icon, .dropdown-button-inline):has(> .octicon-triangle-down) {
-  padding-right: 20px;
-}
-
-.ui.button.dropdown-button-inline {
-  gap: var(--gap-block);
-  margin: 0;
-}
-
 .ui.compact.buttons .button,
 .ui.compact.button {
   gap: var(--gap-inline);
@@ -193,7 +171,7 @@
 
 .ui.basic.button:active,
 .ui.basic.active.button,
-:where(.dropdown-container) > .ui.basic.button[aria-expanded="true"]:where(:not(.dropdown-button-inline)),
+.ui.basic.button[aria-expanded="true"],
 .ui.basic.active.button:hover {
   color: var(--color-text);
   background: var(--color-active);

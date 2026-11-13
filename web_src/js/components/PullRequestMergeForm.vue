@@ -164,7 +164,7 @@ function clearMergeMessage() {
     </form>
 
     <div v-if="!showActionForm" class="tw-flex">
-      <div class="ui buttons merge-button dropdown-container" :class="mergeSelectStyleClass">
+      <div class="ui buttons dropdown-container" :class="mergeSelectStyleClass">
         <button type="button" class="ui button" @click="toggleActionForm(true)">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">
@@ -177,14 +177,14 @@ function clearMergeMessage() {
         <button type="button" class="dropdown-trigger ui icon button" :aria-label="i18n.more_items">
           <svg-icon name="octicon-triangle-down" :size="14"/>
         </button>
-        <div class="dropdown-popup dropdown-popup-button">
+        <div class="dropdown-popup">
           <template v-for="msd in mergeForm.mergeStyles" :key="msd.name">
-            <div class="merge-style-row" v-if="msd.allowed && mergeForm.canMergeNow">
-              <button type="button" class="dropdown-item action-text" @click="switchMergeStyle(msd.name)">
+            <div class="tw-flex" v-if="msd.allowed && mergeForm.canMergeNow">
+              <button type="button" class="dropdown-item tw-flex-1 tw-w-auto" @click="switchMergeStyle(msd.name)">
                 {{ msd.textDoMerge }}
               </button>
               <button
-                v-if="!msd.hideAutoMerge" type="button" class="dropdown-item flex-text-block auto-merge-small"
+                v-if="!msd.hideAutoMerge" type="button" class="dropdown-item flex-text-block tw-w-auto tw-justify-center"
                 :aria-label="msd.textDoMerge + ' ' + mergeForm.textAutoMergeButtonWhenSucceed"
                 :data-tooltip-content="mergeForm.textAutoMergeWhenSucceed"
                 @click="switchMergeStyle(msd.name, true)"
@@ -215,28 +215,5 @@ function clearMergeMessage() {
 <style scoped>
 .ui.checkbox label {
   cursor: pointer;
-}
-
-.merge-style-row {
-  display: flex;
-  align-items: stretch;
-}
-
-.action-text {
-  padding: 0.8rem;
-  flex: 1;
-  width: auto;
-  margin-right: 0;
-}
-
-.action-text:only-child {
-  margin-right: 4px;
-}
-
-.auto-merge-small {
-  flex: 0 0 40px;
-  width: 40px;
-  margin-left: 0;
-  justify-content: center;
 }
 </style>

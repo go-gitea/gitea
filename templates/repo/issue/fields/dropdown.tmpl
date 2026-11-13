@@ -6,7 +6,7 @@
 		<input type="hidden" class="dropdown-value" name="form-field-{{.item.ID}}" value="{{.item.Attributes.default}}">
 		<div class="dropdown-trigger dropdown-field dropdown-search-field">
 			<input class="dropdown-filter" type="text" aria-label="{{.item.Attributes.label}}">
-			<span class="dropdown-text" data-placeholder=""></span>
+			<span class="dropdown-text"></span>
 			{{svg "octicon-triangle-down" 14}}
 		</div>
 		<div class="dropdown-popup">
@@ -18,7 +18,7 @@
 	{{else}}
 	<div class="select-field">
 		<select name="form-field-{{.item.ID}}" aria-label="{{.item.Attributes.label}}" {{if .item.Validations.required}}required{{end}}>
-			<option value="" data-placeholder {{if eq .item.Attributes.default nil}}selected{{end}} {{if .item.Validations.required}}disabled{{end}}></option>
+			<option value="" {{if eq .item.Attributes.default nil}}selected{{end}} {{if .item.Validations.required}}disabled{{end}}></option>
 			{{range $i, $opt := .item.Attributes.options}}
 				<option value="{{$i}}" {{if eq $.item.Attributes.default $i}}selected{{end}}>{{$opt}}</option>
 			{{end}}

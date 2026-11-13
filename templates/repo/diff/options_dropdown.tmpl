@@ -2,7 +2,7 @@
 	<button type="button" class="dropdown-trigger ui tiny basic button" aria-label="{{ctx.Locale.Tr "repo.diff.options_button"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.options_button"}}">
 		{{svg "octicon-kebab-horizontal"}}
 	</button>
-	<div class="dropdown-popup dropdown-popup-button tw-text-12">
+	<div class="dropdown-popup">
 		{{if .Issue.Index}}
 			<a class="dropdown-item" href="{{$.RepoLink}}/pulls/{{.Issue.Index}}.patch" download="{{.Issue.Index}}.patch">{{ctx.Locale.Tr "repo.diff.download_patch"}}</a>
 			<a class="dropdown-item" href="{{$.RepoLink}}/pulls/{{.Issue.Index}}.diff" download="{{.Issue.Index}}.diff">{{ctx.Locale.Tr "repo.diff.download_diff"}}</a>

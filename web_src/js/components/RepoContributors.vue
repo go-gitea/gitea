@@ -372,11 +372,11 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
         </relative-time>
       </div>
       <div class="dropdown-container" data-placement="bottom-end">
-        <button type="button" class="dropdown-trigger dropdown-button-inline ui basic compact button">
+        <button type="button" class="dropdown-trigger ui basic compact button">
           <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
           <SvgIcon name="octicon-triangle-down" :size="14"/>
         </button>
-        <div class="dropdown-popup dropdown-popup-floating">
+        <div class="dropdown-popup">
           <button
             v-for="contributionType in (['commits', 'additions', 'deletions'] as const)" :key="contributionType"
             type="button" class="dropdown-item" :class="{active: type === contributionType}" @click="changeContributionType(contributionType)"

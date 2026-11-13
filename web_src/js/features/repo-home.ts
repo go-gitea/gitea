@@ -1,5 +1,4 @@
-import {stripTags} from '../utils.ts';
-import {createElementFromAttrs, hideElem, queryElemChildren, showElem, toggleElem} from '../utils/dom.ts';
+import {createElementFromAttrs, hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast, type Toast} from '../modules/toast.ts';
 import {initDropdown} from '../modules/dropdown.ts';
@@ -14,27 +13,14 @@ export function initRepoTopicBar() {
 
   const editDiv = document.querySelector('#topic_edit')!;
   const viewDiv = document.querySelector('#repo-topics')!;
-  const topicFromInput = createElementFromAttrs('div', {class: 'dropdown-item tw-hidden', 'data-static': ''});
   const topicDropdown = initDropdown(editDiv.querySelector<HTMLElement>('.dropdown-container')!, {
     async loadItems(query, signal) {
-      query = stripTags(query).toLowerCase().trim();
-      topicFromInput.setAttribute('data-value', query);
-      topicFromInput.textContent = query;
-      toggleElem(topicFromInput, Boolean(query));
+      query = query.toLowerCase().trim();
       const response = await GET(`${appSubUrl}/explore/topics/search?q=${encodeURIComponent(query)}`, {signal});
       const {topics} = await response.json() as TopicSearchResponse;
-      return topics.filter(({topic_name}) => topic_name !== query)
-        .map(({topic_name}) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': topic_name}, topic_name));
+      if (query && topics.every(({topic_name}) => topic_name !== query)) topics.unshift({topic_name: query});
+      return topics.map(({topic_name}) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': topic_name}, topic_name));
     },
-  });
-  topicDropdown.popup.append(topicFromInput);
-  topicDropdown.filterInput!.addEventListener('keydown', (e) => {
-    if (e.key !== ',' || e.isComposing) return;
-    e.preventDefault();
-    const topic = stripTags(topicDropdown.filterInput!.value).toLowerCase().trim();
-    if (topic && !topicDropdown.values().includes(topic)) topicDropdown.pick(topic);
-    topicDropdown.filterInput!.value = '';
-    topicDropdown.onFilterInput();
   });
   let lastErrorToast: Toast | null = null;
 
@@ -54,7 +40,7 @@ export function initRepoTopicBar() {
 
   document.querySelector<HTMLButtonElement>('#save_topic')!.addEventListener('click', async (e) => {
     lastErrorToast?.hideToast();
-    const topics = editDiv.querySelector<HTMLInputElement>('input[name=topics]')!.value;
+    const topics = topicDropdown.value;
 
     const data = new FormData();
     data.append('topics', topics);
@@ -66,9 +52,7 @@ export function initRepoTopicBar() {
       if (responseData.status === 'ok') {
         queryElemChildren(viewDiv, '.repo-topic', (el) => el.remove());
         if (topics.length) {
-          const topicArray = topics.split(',');
-          topicArray.sort();
-          for (const topic of topicArray) {
+          for (const topic of topics.split(',')) {
             const link = document.createElement('a');
             link.classList.add('repo-topic', 'ui', 'large', 'label', 'gt-ellipsis');
             link.href = `${appSubUrl}/explore/repos?q=${encodeURIComponent(topic)}&topic=1`;
@@ -83,12 +67,6 @@ export function initRepoTopicBar() {
     } else if (response.status === 422) {
       const responseData = await response.json();
       lastErrorToast = showErrorToast(responseData.message, {duration: 5000});
-      if (responseData.invalidTopics && responseData.invalidTopics.length > 0) {
-        const {invalidTopics} = responseData;
-        for (const chip of topicDropdown.trigger.querySelectorAll('.ui.label[data-value]')) {
-          chip.classList.toggle('red', invalidTopics.includes(chip.getAttribute('data-value')));
-        }
-      }
     }
   });
 }

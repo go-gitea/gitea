@@ -79,13 +79,11 @@ function onKeyDown(event: KeyboardEvent) {
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
     event.preventDefault();
     const items = Array.from(elRoot.value.querySelectorAll<HTMLElement>('.dropdown-item:not([aria-disabled="true"])'));
-    focusElem(items[items.indexOf(item) + (event.key === 'ArrowDown' ? 1 : -1)], item);
-    const focusedItem = document.activeElement!;
-    const commitIdx = focusedItem.matches('.dropdown-item') ? focusedItem.getAttribute('data-commit-idx') : null;
+    items[items.indexOf(item) + (event.key === 'ArrowDown' ? 1 : -1)]?.focus();
+    const commitIdx = document.activeElement!.getAttribute('data-commit-idx');
     if (commitIdx) highlight(commits.value[Number(commitIdx)]);
   } else if (event.key === 'Escape') {
     event.preventDefault();
-    item.tabIndex = -1;
     toggleMenu();
   }
 }
@@ -113,20 +111,8 @@ function highlight(commit: Commit) {
   }
 }
 
-/** Focus given element */
-function focusElem(elem: HTMLElement, prevElem: HTMLElement) {
-  if (elem) {
-    elem.tabIndex = 0;
-    if (prevElem) prevElem.tabIndex = -1;
-    elem.focus();
-  }
-}
-
-/** Opens our menu, loads commits before opening */
 async function toggleMenu() {
   menuVisible.value = !menuVisible.value;
-  // load our commits when the menu is not yet visible (it'll be toggled after loading)
-  // and we got no commits
   if (!commits.value.length && menuVisible.value && !isLoading.value) {
     isLoading.value = true;
     try {
@@ -135,14 +121,13 @@ async function toggleMenu() {
       isLoading.value = false;
     }
   }
-  // set correct tabindex to allow easier navigation
   nextTick(() => {
     if (menuVisible.value) {
-      focusElem(elShowAllChanges.value, elExpandBtn.value);
+      elShowAllChanges.value?.focus();
       const elActive = elMenu.value.querySelector<HTMLElement>('.dropdown-item.active');
       if (elActive) elMenu.value.scrollTop = elActive.offsetTop - elMenu.value.clientHeight / 2; // scrollIntoView would also scroll the page
     } else {
-      focusElem(elExpandBtn.value, elShowAllChanges.value);
+      elExpandBtn.value.focus();
     }
   });
 }
@@ -231,9 +216,9 @@ function commitClickedShift(commit: Commit) {
     >
       <svg-icon name="octicon-git-commit"/>
     </button>
-    <div class="dropdown-popup" ref="elMenu" :id="uniqueIdMenu" role="menu" v-show="menuVisible" v-cloak>
+    <div class="dropdown-popup dropdown-popup-flex" ref="elMenu" :id="uniqueIdMenu" role="menu" v-show="menuVisible" v-cloak>
       <div class="loading-indicator is-loading" v-if="isLoading"/>
-      <div v-if="!isLoading" class="dropdown-item" ref="elShowAllChanges" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
+      <div v-if="!isLoading" class="dropdown-item" ref="elShowAllChanges" role="menuitem" tabindex="-1" @keydown.enter="showAllChanges()" @click="showAllChanges()">
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
@@ -244,7 +229,7 @@ function commitClickedShift(commit: Commit) {
       <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
       <div
         v-if="lastReviewCommitSha != null"
-        class="dropdown-item" role="menuitem"
+        class="dropdown-item" role="menuitem" tabindex="-1"
         :aria-disabled="!commitsSinceLastReview"
         @keydown.enter="commitsSinceLastReview && changesSinceLastReviewClick()"
         @click="commitsSinceLastReview && changesSinceLastReviewClick()"
@@ -259,7 +244,7 @@ function commitClickedShift(commit: Commit) {
       <div v-if="!isLoading" class="dropdown-message">{{ locale.select_commit_hold_shift_for_range }}</div>
       <template v-for="(commit, idx) in commits" :key="commit.id">
         <div
-          class="dropdown-item" role="menuitem"
+          class="dropdown-item" role="menuitem" tabindex="-1"
           :class="{selected: commit.selected, hovered: commit.hovered, active: isActive(idx)}"
           :aria-current="isActive(idx) || undefined"
           :data-commit-idx="idx"
@@ -293,63 +278,34 @@ function commitClickedShift(commit: Commit) {
   </div>
 </template>
 <style scoped>
-  .diff-commit-selector .dropdown-popup {
+  .dropdown-popup {
     position: absolute;
     z-index: 11;
     top: 100%;
     right: 0;
     width: max-content;
     max-width: calc(100vw - 16px);
-    margin-top: 0.25em;
-    padding: 0;
     overflow-x: hidden;
-    max-height: 450px;
   }
 
-  .diff-commit-selector .loading-indicator {
+  .loading-indicator {
     height: 200px;
     width: 350px;
   }
 
-  .diff-commit-selector .dropdown-item,
-  .diff-commit-selector .dropdown-message {
-    display: flex;
-    align-items: stretch;
-    flex-direction: row;
-    line-height: 1.4;
-    gap: 0.25em;
-    width: auto;
-    margin: 0;
-    padding: 7px 14px;
-    border-radius: 0;
-  }
-
-  .diff-commit-selector .dropdown-item:not(:first-child),
-  .diff-commit-selector .dropdown-message:not(:first-child) {
-    border-top: 1px solid var(--color-secondary);
-  }
-
-  .diff-commit-selector .dropdown-item:hover:not([aria-disabled="true"]) {
-    background: var(--color-hover);
-  }
-
-  .diff-commit-selector .dropdown-item:focus {
+  .dropdown-item:focus {
     background: var(--color-active);
   }
 
-  .diff-commit-selector .dropdown-item.hovered {
+  .dropdown-item.hovered {
     background-color: var(--color-small-accent);
   }
 
-  .diff-commit-selector .dropdown-item.selected {
+  .dropdown-item.selected {
     background-color: var(--color-accent);
   }
 
-  .diff-commit-selector .dropdown-item.active {
-    font-weight: var(--font-weight-medium);
-  }
-
-  .diff-commit-selector .commit-list-summary {
+  .commit-list-summary {
     max-width: min(380px, 96vw);
   }
 </style>

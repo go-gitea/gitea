@@ -16,17 +16,14 @@ const visibleInstances = new Set<Instance>();
 
 const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
-// shrink tippy's default 3px arrow padding so the arrow can point at the center of
-// narrow references like 16px icons with "start"/"end" placements
 function arrowPadding({placement, reference}: {placement: Placement, reference: {width: number, height: number}}): number {
   const isVertical = placement.startsWith('left') || placement.startsWith('right');
   const referenceLength = isVertical ? reference.height : reference.width;
-  return Math.max(0, Math.min(3, referenceLength / 2 - 8)); // 8 = half of arrow width
+  return Math.max(0, Math.min(3, referenceLength / 2 - 8));
 }
 
 const viewportPadding = 8;
 
-// space left on the side the popup opens towards, the viewport on the other axis
 export function availableSizeForPlacement(referenceRect: DOMRect, placement: string, offset: number): {width: number, height: number} {
   const gap = Math.abs(offset) + viewportPadding;
   const spanWidth = window.innerWidth - viewportPadding * 2;
@@ -38,13 +35,12 @@ export function availableSizeForPlacement(referenceRect: DOMRect, placement: str
   return {width: window.innerWidth - referenceRect.right - gap, height: spanHeight};
 }
 
-// popper does not constrain size, publish it for the styles. Replaced by floating-ui's "size" on migration
 function sizeModifier(limit: {horizontal?: boolean, vertical?: boolean}): PopperModifier {
   return {
     name: 'tippyLimitSize',
     enabled: true,
     phase: 'beforeWrite',
-    requires: ['computeStyles'], // runs after "flip" and "offset", so both are final
+    requires: ['computeStyles'],
     fn({state}) {
       const referenceRect = state.elements.reference.getBoundingClientRect();
       const availableFor = (placement: Placement) => {
@@ -53,9 +49,8 @@ function sizeModifier(limit: {horizontal?: boolean, vertical?: boolean}): Popper
         return availableSizeForPlacement(referenceRect, placement, (isVertical ? offset?.y : offset?.x) ?? 0);
       };
       const available = availableFor(state.placement);
-      // "flip" keeps the preferred side when the popup fits on neither, open towards the roomier one instead
       const opposite = state.placement.replace(/^(top|bottom)/, (side) => side === 'top' ? 'bottom' : 'top') as Placement;
-      if (limit.vertical && state.rects.popper.height > available.height && availableFor(opposite).height > available.height) {
+      if (limit.vertical && state.rects.popper.height > available.height && availableFor(opposite).height > available.height) { // Popper keeps the preferred side when neither fits.
         state.placement = opposite;
         state.modifiersData.flip._skip = true;
         state.reset = true;
@@ -100,8 +95,6 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 });
 
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
-  // the callback functions should be destructured from opts,
-  // because we should use our own wrapper functions to handle them, do not let the user override them
   const {onHide, onHidden, onShow, onDestroy, role, theme, arrow, limitSizeToViewport, ...other} = opts;
   const resolvedTheme = theme || role || 'default';
   const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
@@ -113,7 +106,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     hideOnClick: false,
     interactiveBorder: 20,
     ignoreAttributes: true,
-    maxWidth: 500, // increase over default 350px
+    maxWidth: 500,
     onHide: (instance: Instance) => {
       visibleInstances.delete(instance);
       if (isMenu(instance) && instance.popper.contains(document.activeElement)) (instance.reference as HTMLElement).focus();
@@ -131,16 +124,15 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       return onDestroy?.(instance);
     },
     onShow: (instance: Instance) => {
-      // hide other tooltip instances so only one tooltip shows at a time
       for (const visibleInstance of visibleInstances) {
         if (visibleInstance.props.role === 'tooltip') {
           visibleInstance.hide();
         }
       }
       visibleInstances.add(instance);
-      if (!['tooltip', 'presentation'].includes(instance.props.role)) target.setAttribute('aria-controls', instance.popper.id); // tooltips use aria-describedby
+      if (!['tooltip', 'presentation'].includes(instance.props.role)) target.setAttribute('aria-controls', instance.popper.id);
       if (limitSizeToViewport) instance.popper.style.removeProperty('--tippy-max-height'); // flip by the uncapped height
-      if (isMenu(instance)) { // focusable by the arrow keys, out of the Tab order
+      if (isMenu(instance)) {
         for (const item of instance.popper.querySelectorAll<HTMLElement>('.item')) item.tabIndex = -1;
       }
       return onShow?.(instance);
@@ -149,12 +141,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     popperOptions: {modifiers: [
       {name: 'arrow', options: {padding: arrowPadding}},
       ...limitSizeToViewport ? [sizeModifier(limitSizeToViewport)] : [],
-      ...resolvedTheme === 'dropdown' ? [ // move only on a real overflow, at unrounded positions
-        ...['flip', 'preventOverflow'].map((name) => ({name, options: {padding: 0}})),
-        {name: 'computeStyles', options: {roundOffsets: false}},
-      ] : [],
     ]},
-    // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
     theme: resolvedTheme,
     offset: [0, resolvedArrow ? 10 : 6],
@@ -170,13 +157,6 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   return instance;
 }
 
-/**
- * Attach a tooltip tippy to the given target element.
- * If the target element already has a tooltip tippy attached, the tooltip will be updated with the new content.
- * If the target element has no content, then no tooltip will be attached, and it returns null.
- *
- * Note: "tooltip" doesn't equal to "tippy". "tooltip" means a auto-popup content, it just uses tippy as the implementation.
- */
 function attachTooltip(target: Element, content: Content | null = null): Instance | null {
   switchTitleToTooltip(target);
 
@@ -189,18 +169,12 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
     allowHTML = true;
   }
 
-  // when element has a clipboard target, we update the tooltip after copy
-  // in which case it is undesirable to automatically hide it on click as
-  // it would momentarily flash the tooltip out and in.
-  const hasClipboardTarget = target.hasAttribute('data-clipboard-target');
-  const hideOnClick = !hasClipboardTarget;
-
   const props: TippyOpts = {
     content,
     delay: 100,
     role: 'tooltip',
     theme: 'tooltip',
-    hideOnClick,
+    hideOnClick: !target.hasAttribute('data-clipboard-target'),
     allowHTML,
     placement: target.getAttribute('data-tooltip-placement') as Placement || 'top',
     followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
@@ -224,28 +198,16 @@ function switchTitleToTooltip(target: Element): void {
   }
 }
 
-/**
- * Creating tooltip tippy instance is expensive, so we only create it when the user hovers over the element
- * According to https://www.w3.org/TR/DOM-Level-3-Events/#events-mouseevent-event-order , mouseover event is fired before mouseenter event
- * Some browsers like PaleMoon don't support "addEventListener('mouseenter', capture)"
- * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
- */
 function lazyTooltipOnMouseHover(e: Event): void {
   const el = e.currentTarget as HTMLElement;
   el.removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
-  // Firefox skips enter/leave dispatch when the window had no such listeners at the time of the
-  // pointer crossing, so the new tippy misses its first "mouseenter". Show via a synthetic event,
-  // carrying over the cursor position for "followCursor" tooltips.
   const {clientX, clientY} = e as MouseEvent;
-  attachTooltip(el)?.reference.dispatchEvent(new MouseEvent('mouseenter', {clientX, clientY}));
+  attachTooltip(el)?.reference.dispatchEvent(new MouseEvent('mouseenter', {clientX, clientY})); // Firefox can skip the initial mouseenter.
 }
 
-// Activate the tooltip for current element.
-// If the element has no aria-label, use the tooltip content as aria-label.
 function attachLazyTooltip(el: HTMLElement): void {
   el.addEventListener('mouseover', lazyTooltipOnMouseHover, {capture: true});
 
-  // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
   if (!el.hasAttribute('aria-label')) {
     const content = el.getAttribute('data-tooltip-content');
     if (content) {
@@ -258,7 +220,6 @@ function attachLazyTooltip(el: HTMLElement): void {
   }
 }
 
-// Activate the tooltip for all children elements.
 function attachChildrenLazyTooltip(target: HTMLElement): void {
   for (const el of target.querySelectorAll<HTMLElement>('[data-tooltip-content]')) {
     attachLazyTooltip(el);
@@ -266,7 +227,6 @@ function attachChildrenLazyTooltip(target: HTMLElement): void {
 }
 
 export function initGlobalTooltips(): void {
-  // use MutationObserver to detect new "data-tooltip-content" elements added to the DOM, or attributes changed
   const observerConnect = (observer: MutationObserver) => observer.observe(document, {
     subtree: true,
     childList: true,
@@ -277,7 +237,6 @@ export function initGlobalTooltips(): void {
     observer.disconnect();
     for (const mutation of [...mutationList, ...pending]) {
       if (mutation.type === 'childList') {
-        // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes as NodeListOf<HTMLElement>) {
           if (!isDocumentFragmentOrElementNode(el)) continue;
           attachChildrenLazyTooltip(el);
@@ -297,7 +256,6 @@ export function initGlobalTooltips(): void {
 }
 
 export function showTemporaryTooltip(target: Element, content: Content): void {
-  // a popup or dropdown item closes on click, so show the tooltip on what opened it
   const popupTippy = target.closest('[data-tippy-root]')?._tippy;
   target = popupTippy ? document.body : target.closest('.dropdown-container')?.querySelector(':scope > .dropdown-trigger') ?? target;
   const refClientRect = (popupTippy?.reference ?? target).getBoundingClientRect();
@@ -308,16 +266,13 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
 
   tooltipTippy.setProps({
     onHidden: (tippy) => {
-      // reset the default tooltip content, if no default, then this temporary tooltip could be destroyed
       if (!attachTooltip(target)) {
         tippy.destroy();
       }
     },
   });
 
-  // on elements where the tooltip is re-located like "Copy Link" inside dropdowns, tippy.js gets
-  // no `mouseout` event and the tooltip stays visible, hide it with timeout.
-  if (!popupTippy) {
+  if (!popupTippy) { // A relocated tooltip receives no mouseout.
     setTimeout(() => {
       if (tooltipTippy.state.isVisible) tooltipTippy.hide();
     }, 1500);

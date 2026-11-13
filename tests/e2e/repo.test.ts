@@ -2,21 +2,16 @@ import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {login, apiCreateBranch, apiCreateFiles, apiCreateOrg, apiCreateRepo, apiSetRepoTopics, randomString} from './utils.ts';
 
-test('create a repository for an organization picked by keyboard', async ({page, request}) => {
+test('create a repository for an organization', async ({page, request}) => {
   const repoName = `e2e-repo-${randomString(8)}`;
   const orgName = `e2e-repo-org-${randomString(8)}`;
   await Promise.all([apiCreateOrg(request, orgName), login(page)]);
   await page.goto('/repo/create');
-  const nameInput = page.locator('input[name="repo_name"]');
-  await expect(nameInput).toBeFocused();
   const owner = page.locator('#repo_owner_dropdown').getByRole('button');
-  await owner.focus();
-  await page.keyboard.press('ArrowDown');
-  await page.keyboard.type(orgName);
-  await page.keyboard.press('Enter');
+  await owner.click();
+  await page.getByRole('option', {name: orgName}).click();
   await expect(owner).toContainText(orgName);
-  await expect(owner).toBeFocused();
-  await nameInput.fill(repoName);
+  await page.locator('input[name="repo_name"]').fill(repoName);
   await page.getByRole('button', {name: 'Create Repository'}).click();
   await page.waitForURL(new RegExp(`/${orgName}/${repoName}$`));
 });
@@ -43,7 +38,7 @@ test('delete a branch via its modal, add and remove repository topics', async ({
   await page.goto(`/${owner}/${repoName}`);
   await page.getByRole('button', {name: 'Manage Topics'}).click();
   await page.keyboard.insertText('e2e-keep');
-  await page.keyboard.press(',');
+  await page.getByRole('option', {name: 'e2e-keep', exact: true}).click();
   await page.getByRole('button', {name: 'Remove item "e2e-drop"'}).click();
   await page.keyboard.press('Escape');
   await page.getByRole('button', {name: 'Save', exact: true}).click();

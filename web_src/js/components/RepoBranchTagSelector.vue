@@ -88,7 +88,7 @@ const filteredItems = computed<ListItem[]>(() => {
 
 watch(filteredItems, (items) => {
   activeItemIndex.value = !items.length && showCreateNewRef.value ? 0 : -1;
-}, {flush: 'sync'});
+});
 
 const showNoResults = computed(() => {
   if (tabLoadingStates.value[selectedTab.value] !== 'done') return false;

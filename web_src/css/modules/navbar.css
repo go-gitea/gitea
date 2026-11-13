@@ -42,7 +42,6 @@
 }
 
 #navbar > .navbar-list > .dropdown-container > .item {
-  padding-right: 5px;
   gap: var(--gap-block);
   background: none;
   border: none;
@@ -136,10 +135,4 @@
 .issue-navbar {
   display: flex;
   justify-content: space-between;
-}
-
-.user-menu .dropdown-header {
-  margin-bottom: 4px;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--color-secondary);
 }

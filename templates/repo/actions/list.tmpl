@@ -18,7 +18,7 @@
 						<!-- Actor -->
 						<div class="dropdown-container">
 							<button type="button" class="dropdown-trigger item"{{if not .Actors}} disabled{{end}}>{{ctx.Locale.Tr "actions.runs.actor"}} {{svg "octicon-triangle-down" 14}}</button>
-							<div class="dropdown-popup dropdown-popup-menu">
+							<div class="dropdown-popup">
 								<div class="ui icon search input">
 									<i class="icon">{{svg "octicon-search" 16}}</i>
 									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
@@ -36,7 +36,7 @@
 						<!-- Status -->
 						<div class="dropdown-container">
 							<button type="button" class="dropdown-trigger item">{{ctx.Locale.Tr "actions.runs.status"}} {{svg "octicon-triangle-down" 14}}</button>
-							<div class="dropdown-popup dropdown-popup-menu">
+							<div class="dropdown-popup">
 								<div class="ui icon search input">
 									<i class="icon">{{svg "octicon-search" 16}}</i>
 									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
@@ -57,7 +57,7 @@
 						<!-- Branch -->
 						<div class="dropdown-container" data-test-id="filter-branch">
 							<button type="button" class="dropdown-trigger item"{{if not .RunBranches}} disabled{{end}}>{{ctx.Locale.Tr "actions.runs.branch"}} {{svg "octicon-triangle-down" 14}}</button>
-							<div class="dropdown-popup dropdown-popup-menu">
+							<div class="dropdown-popup">
 								<div class="ui icon search input">
 									<i class="icon">{{svg "octicon-search" 16}}</i>
 									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "actions.runs.branch"}}">

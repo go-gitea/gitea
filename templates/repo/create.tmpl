@@ -11,7 +11,7 @@
 				<div id="create-repo-error-message" class="ui negative message tw-text-center tw-hidden"></div>
 				<div class="inline required field {{if .Err_Owner}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
-					<div class="owner dropdown-container" data-kind="select" id="repo_owner_dropdown">
+					<div class="dropdown-container" data-kind="select" id="repo_owner_dropdown">
 						<input type="hidden" class="dropdown-value" name="uid" value="{{.ContextUser.ID}}">
 						<button type="button" class="dropdown-trigger dropdown-field">
 							<span class="dropdown-text">{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}} {{.ContextUser.ShortName 40}}</span>
@@ -71,7 +71,7 @@
 						</div>
 						<input type="hidden" class="dropdown-value" id="repo_template" name="repo_template" value="{{or .repo_template ""}}">
 						<div class="dropdown-popup">
-							<div class="dropdown-item" data-value="" data-static aria-label="{{ctx.Locale.Tr "repo.template_select"}}"></div>
+							<div class="dropdown-item" data-value="" data-static>{{ctx.Locale.Tr "repo.template_select"}}</div>
 						</div>
 					</div>
 				</div>
@@ -131,7 +131,7 @@
 							<div class="dropdown-popup">
 								<div class="dropdown-item" data-value="">{{ctx.Locale.Tr "repo.issue_labels_helper"}}</div>
 								{{range .LabelTemplateFiles}}
-									<div class="dropdown-item" data-value="{{.DisplayName}}" data-text="{{.DisplayName}}"><span>{{.DisplayName}}<br><i>({{.Description}})</i></span></div>
+									<div class="dropdown-item" data-value="{{.DisplayName}}" data-text="{{.DisplayName}}">{{.DisplayName}}<br><i>({{.Description}})</i></div>
 								{{end}}
 							</div>
 						</div>
@@ -200,12 +200,8 @@
 						<label>{{ctx.Locale.Tr "repo.object_format"}}</label>
 						<div class="select-field">
 							<select name="object_format_name">
-								{{$objectFormatFound := false}}
 								{{range .SupportedObjectFormats}}
-									<option value="{{.Name}}" {{if eq .Name (or $.object_format_name $.DefaultObjectFormat.Name)}}{{$objectFormatFound = true}}selected{{end}}>{{.Name}}</option>
-								{{end}}
-								{{if not $objectFormatFound}}
-									<option value="{{or .object_format_name .DefaultObjectFormat.Name}}" selected hidden>{{or .object_format_name .DefaultObjectFormat.Name}}</option>
+									<option value="{{.Name}}" {{if eq .Name (or $.object_format_name $.DefaultObjectFormat.Name)}}selected{{end}}>{{.Name}}</option>
 								{{end}}
 							</select>
 						</div>

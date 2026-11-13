@@ -16,9 +16,9 @@
 {{end}}
 
 <!-- Project -->
-<div class="dropdown-container project-filter" data-placement="bottom-end">
+<div class="dropdown-container project-filter">
 	<button type="button" class="dropdown-trigger item btn" {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}}>{{ctx.Locale.Tr "repo.issues.filter_project"}} {{svg "octicon-triangle-down" 14}}</button>
-	<div class="dropdown-popup dropdown-popup-flex dropdown-popup-menu issue-filter-popup">
+	<div class="dropdown-popup dropdown-popup-flex issue-filter-popup">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
 			<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_project"}}">
@@ -75,9 +75,9 @@
 
 {{if .IsSigned}}
 	<!-- Type -->
-	<div class="dropdown-container" data-placement="bottom-end">
+	<div class="dropdown-container">
 		<button type="button" class="dropdown-trigger item btn">{{ctx.Locale.Tr "repo.issues.filter_type"}} {{svg "octicon-triangle-down" 14}}</button>
-		<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
+		<div class="dropdown-popup issue-filter-popup">
 			<a class="{{if eq .ViewType "all"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "type" "all"}}">{{if .PageIsPullList}}{{ctx.Locale.Tr "repo.issues.filter_type.all_pull_requests"}}{{else}}{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}{{end}}</a>
 			<a class="{{if eq .ViewType "assigned"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "type" "assigned"}}">{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
 			<a class="{{if eq .ViewType "created_by"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "type" "created_by"}}">{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}</a>
@@ -91,9 +91,9 @@
 {{end}}
 
 <!-- Sort -->
-<div class="dropdown-container" data-placement="bottom-end">
+<div class="dropdown-container">
 	<button type="button" class="dropdown-trigger item btn">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</button>
-	<div class="dropdown-popup dropdown-popup-menu issue-filter-popup">
+	<div class="dropdown-popup issue-filter-popup">
 		<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "latest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
 		<a class="{{if eq .SortType "oldest"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "oldest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
 		<a class="{{if eq .SortType "recentupdate"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLink "sort" "recentupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>

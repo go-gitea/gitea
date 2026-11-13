@@ -8,7 +8,7 @@
 			{{if .ShowRepoColumn}}
 			<div class="dropdown-container">
 				<button type="button" class="dropdown-trigger item"{{if not .JobQueueFilterOwners}} disabled{{end}}>{{if .JobQueueFilterOwnerName}}{{.JobQueueFilterOwnerName}}{{else}}{{ctx.Locale.Tr "repo.owner"}}{{end}} {{svg "octicon-triangle-down" 14}}</button>
-				<div class="dropdown-popup dropdown-popup-menu">
+				<div class="dropdown-popup">
 					<div class="ui icon search input">
 						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.owner"}}">
@@ -21,7 +21,7 @@
 			</div>
 			<div class="dropdown-container">
 				<button type="button" class="dropdown-trigger item"{{if not .JobQueueFilterRepos}} disabled{{end}}>{{if .JobQueueFilterRepoName}}{{.JobQueueFilterRepoName}}{{else}}{{ctx.Locale.Tr "repository"}}{{end}} {{svg "octicon-triangle-down" 14}}</button>
-				<div class="dropdown-popup dropdown-popup-menu">
+				<div class="dropdown-popup">
 					<div class="ui icon search input">
 						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repository"}}">
@@ -35,7 +35,7 @@
 			{{end}}
 			<div class="dropdown-container">
 				<button type="button" class="dropdown-trigger item">{{if .JobQueueFilterStatus}}{{ctx.Locale.Tr (printf "actions.status.%s" .JobQueueFilterStatus)}}{{else}}{{ctx.Locale.Tr "actions.runs.status"}}{{end}} {{svg "octicon-triangle-down" 14}}</button>
-				<div class="dropdown-popup dropdown-popup-menu">
+				<div class="dropdown-popup">
 					<a class="dropdown-item{{if not .JobQueueFilterStatus}} active{{end}}" href="?owner_id={{.JobQueueFilterOwnerID}}&repo_id={{.JobQueueFilterRepoID}}">{{ctx.Locale.Tr "actions.runs.status_no_select"}}</a>
 					{{range $status := .JobQueueFilterStatuses}}
 						<a class="dropdown-item{{if eq $status $.JobQueueFilterStatus}} active{{end}}" href="?owner_id={{$.JobQueueFilterOwnerID}}&repo_id={{$.JobQueueFilterRepoID}}&status={{$status}}">

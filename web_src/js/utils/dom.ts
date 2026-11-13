@@ -396,9 +396,6 @@ export function activePageTimerRefresh(opts: ActivePageTimerOptions): ActivePage
 type ProtectedMorphElements = Record<string, string>;
 
 export function protectMorphElements(el: Element): ProtectedMorphElements {
-  // Some components like Dropdown manage their internal states and styles.
-  // If morph changes any style or layout, then the Dropdown will stop working.
-  // So, protect such fragile components ahead, then morph, then recover.
   const ret: ProtectedMorphElements = {};
   for (const it of el.querySelectorAll('.dropdown-container, [data-morph-protect]')) {
     const id = generateElemId();
@@ -422,22 +419,13 @@ export type MorphElementOptions = {
 
 export function morphElementWithProtection(el: Element, newEl: Element, opts: MorphElementOptions): Element {
   const protectedElems = protectMorphElements(newEl);
-  const selectorSkipElems = '.dropdown-container:is([data-shown], :focus-within)';
+  const selectorSkipElems = '.dropdown-container[data-shown]';
   const nodes = Idiomorph.morph(el, newEl, {
     morphStyle: opts.morphStyle,
     callbacks: {
-      beforeNodeMorphed: (oldNode /* , newNode */) => {
+      beforeNodeMorphed: (oldNode) => {
         if (!(oldNode instanceof Element)) return true;
-
-        // If the end user is operating a row, then don't refresh its content.
-        // Otherwise, there will be more edge cases and inconsistencies, e.g.: dropdown still shows old items but the icon has changed.
-        const oldNodeMorphWholeAndSkipChild = oldNode.matches('[data-morph-whole]') && oldNode.querySelector('.dropdown-container[data-shown]');
-
-        // If the element should be skipped, don't morph it
-        const oldNodeShouldSkip = oldNode.matches(selectorSkipElems);
-
-        const shouldSkip = oldNodeMorphWholeAndSkipChild || oldNodeShouldSkip;
-        return !shouldSkip;
+        return !oldNode.matches(selectorSkipElems) && !(oldNode.matches('[data-morph-whole]') && oldNode.querySelector(selectorSkipElems));
       },
     },
   });

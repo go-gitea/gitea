@@ -28,7 +28,7 @@
 		<div class="ui segment choose branch">
 			<a class="tw-mr-2" href="{{$.HeadRepo.Link}}/compare/{{PathEscapeSegments $.HeadBranch}}{{$compareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.BaseName}}/{{PathEscape $.Repository.Name}}:{{end}}{{PathEscapeSegments $.BaseBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_head_and_base"}}">{{svg "octicon-git-compare"}}</a>
 			<div class="dropdown-container select-branch">
-				<button type="button" class="dropdown-trigger dropdown-button-inline ui basic small button">
+				<button type="button" class="dropdown-trigger ui basic small button">
 					<span>{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: <strong>{{$BaseCompareName}}:{{$.BaseBranch}}</strong></span>
 					{{svg "octicon-triangle-down" 14}}
 				</button>
@@ -37,17 +37,13 @@
 						<i class="icon">{{svg "octicon-filter" 16}}</i>
 						<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 					</div>
-					<div class="dropdown-header">
-						<div class="ui grid">
-							<div class="two column row">
-								<button type="button" class="btn branch-tag-item column active" data-target=".branch-list">
-									{{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.branches"}}
-								</button>
-								<button type="button" class="btn branch-tag-item column" data-target=".tag-list">
-									{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.tags"}}
-								</button>
-							</div>
-						</div>
+					<div class="dropdown-header flex-text-block">
+						<button type="button" class="btn branch-tag-item active" data-target=".branch-list">
+							{{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.branches"}}
+						</button>
+						<button type="button" class="btn branch-tag-item" data-target=".tag-list">
+							{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.tags"}}
+						</button>
 					</div>
 					<div class="dropdown-list reference-list-menu branch-list">
 						{{range .Branches}}
@@ -95,7 +91,7 @@
 			<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{$compareSeparatorSwitch}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{svg "octicon-arrow-left" 16}}<div class="compare-separator">{{$compareSeparator}}</div></a>
 
 			<div class="dropdown-container select-branch">
-				<button type="button" class="dropdown-trigger dropdown-button-inline ui basic small button">
+				<button type="button" class="dropdown-trigger ui basic small button">
 					<span>{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}: <strong>{{$HeadCompareName}}:{{$.HeadBranch}}</strong></span>
 					{{svg "octicon-triangle-down" 14}}
 				</button>
@@ -104,17 +100,13 @@
 						<i class="icon">{{svg "octicon-filter" 16}}</i>
 						<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 					</div>
-					<div class="dropdown-header">
-						<div class="ui grid">
-							<div class="two column row">
-								<button type="button" class="btn branch-tag-item column active" data-target=".branch-list">
-									{{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.branches"}}
-								</button>
-								<button type="button" class="btn branch-tag-item column" data-target=".tag-list">
-									{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.tags"}}
-								</button>
-							</div>
-						</div>
+					<div class="dropdown-header flex-text-block">
+						<button type="button" class="btn branch-tag-item active" data-target=".branch-list">
+							{{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.branches"}}
+						</button>
+						<button type="button" class="btn branch-tag-item" data-target=".tag-list">
+							{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.tags"}}
+						</button>
 					</div>
 					<div class="dropdown-list reference-list-menu branch-list">
 						{{range .HeadBranches}}

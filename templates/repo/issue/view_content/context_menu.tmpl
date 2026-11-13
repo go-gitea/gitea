@@ -11,7 +11,7 @@
 {{$canEditContent := or ctx.RootData.Permission.IsAdmin ctx.RootData.HasIssuesOrPullsWritePermission $isCommentPoster -}}
 
 <div class="dropdown-container" data-placement="bottom-end">
-	<button type="button" class="dropdown-trigger btn interact-fg tw-p-[4px]" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-kebab-horizontal"}}</button>
+	<button type="button" class="dropdown-trigger btn interact-fg tw-p-1" aria-label="{{ctx.Locale.Tr "more_items"}}">{{svg "octicon-kebab-horizontal"}}</button>
 	<div class="dropdown-popup">
 		<button type="button" class="dropdown-item" data-clipboard-text="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "copy_link"}}</button>
 		<button type="button" class="dropdown-item" data-clipboard-target="#{{$item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</button>

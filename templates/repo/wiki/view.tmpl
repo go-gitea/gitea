@@ -6,11 +6,11 @@
 		<div class="repo-button-row">
 			<div class="flex-text-block tw-flex-1">
 				<div class="dropdown-container">
-					<button type="button" class="dropdown-trigger dropdown-button-inline ui basic small button">
+					<button type="button" class="dropdown-trigger ui basic small button">
 						<span>{{ctx.Locale.Tr "repo.wiki.page"}}: <strong>{{$title}}</strong></span>
 						{{svg "octicon-triangle-down" 14}}
 					</button>
-					<div class="dropdown-popup dropdown-popup-floating">
+					<div class="dropdown-popup">
 						<div class="ui icon search input">
 							<i class="icon">{{svg "octicon-filter" 16}}</i>
 							<input type="text" class="dropdown-filter" aria-label="{{ctx.Locale.Tr "repo.wiki.filter_page"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.filter_page"}}...">

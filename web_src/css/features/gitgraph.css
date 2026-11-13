@@ -12,8 +12,6 @@
 
 #flow-select-refs-dropdown > .dropdown-field {
   min-width: 250px;
-  min-height: 32px;
-  font-size: 12px;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
   border-right: none;
@@ -21,11 +19,6 @@
 
 #flow-select-refs-dropdown .ui.label {
   max-width: 180px;
-}
-
-.flow-select-refs-popup > .dropdown-item {
-  font-size: 12px;
-  min-height: 32px;
 }
 
 #git-graph-container li {

@@ -13,10 +13,6 @@
   user-select: none;
 }
 
-.repository .owner.dropdown-container {
-  min-width: 40%;
-}
-
 .issue-content {
   display: flex;
   align-items: flex-start;
@@ -44,16 +40,8 @@
   text-decoration-line: underline;
 }
 
-.issue-sidebar-combo .dropdown-trigger:has(> strong) {
-  align-items: flex-start;
-}
-
 .issue-sidebar-popup {
   max-width: 270px;
-}
-
-.issue-sidebar-popup .dropdown-item.tw-flex-col {
-  gap: 0;
 }
 
 .issue-sidebar-popup .item-secondary-info small {
@@ -73,18 +61,6 @@
 
 .issue-branch-popup {
   max-width: min(400px, 90vw);
-}
-
-.issue-branch-popup[role="listbox"] .reference-list-menu {
-  padding: 4px 0;
-}
-
-.issue-branch-popup[role="listbox"] .dropdown-item {
-  border-top: none;
-}
-
-.tippy-box[data-theme="dropdown"][data-placement^="bottom"]:has(.issue-branch-popup[role="listbox"]) {
-  translate: 0 -2px;
 }
 
 .ui.list.issue-sidebar-project-cards > .item {
@@ -1201,10 +1177,6 @@
   height: 30px;
 }
 
-.tippy-box[data-theme="dropdown"][data-placement^="bottom"]:has(.repo-file-menu) {
-  translate: 1px -3px;
-}
-
 tbody.commit-list {
   vertical-align: baseline;
 }
@@ -1709,7 +1681,7 @@ tbody.commit-list {
 
 .branch-selector-dropdown .branch-tag-list {
   padding: 4px 0;
-  max-height: 20.57142857rem;
+  max-height: min(300px, 40vh);
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -1729,15 +1701,6 @@ tbody.commit-list {
 @media (max-width: 767.98px) {
   .branch-selector-dropdown .branch-dropdown-button {
     max-width: 165px;
-  }
-  .branch-selector-dropdown .branch-tag-list {
-    max-height: 10.28571429rem;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 991.98px) {
-  .branch-selector-dropdown .branch-tag-list {
-    max-height: 15.42857143rem;
   }
 }
 
@@ -1768,10 +1731,6 @@ tbody.commit-list {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.branch-selector-dropdown .dropdown-item:hover {
-  background: var(--color-hover);
 }
 
 .branch-selector-dropdown .dropdown-item .rss-icon {

@@ -15,11 +15,7 @@
 
 .list-header-search > .ui.input {
   flex: 1;
-  min-width: 100px !important;
-}
-
-.list-header-search > .ui.input :is(.select-field > select, .dropdown-field) {
-  min-width: auto;
+  min-width: 100px;
 }
 
 .list-header-filters {

@@ -102,13 +102,13 @@
 						</div>
 						{{svg "octicon-arrow-right"}}
 						<div class="dropdown-container">
-							<button type="button" class="dropdown-trigger dropdown-button-inline ui basic small button">
+							<button type="button" class="dropdown-trigger ui basic small button">
 								<span id="pull-target-branch" class="gt-ellipsis" data-base-user-name="{{$baseUserName}}" data-old-target-branch="{{$baseBranch}}" data-branch="{{$baseBranch}}" data-text-compare-base="{{ctx.Locale.Tr "repo.pulls.compare_base"}}">
 									{{ctx.Locale.Tr "repo.pulls.compare_base"}}: {{$baseUserName}}:{{$baseBranch}}
 								</span>
 								{{svg "octicon-triangle-down" 14}}
 							</button>
-							<div class="dropdown-popup dropdown-popup-floating" id="branch-select">
+							<div class="dropdown-popup" id="branch-select">
 								<div class="ui icon search input">
 									<i class="icon">{{svg "octicon-filter" 16}}</i>
 									<input class="dropdown-filter" type="text" placeholder="{{ctx.Locale.Tr "repo.pulls.filter_branch"}}...">

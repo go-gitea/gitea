@@ -414,7 +414,7 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
             <button type="button" class="dropdown-trigger ui icon button tw-m-0" :title="textFilter" :aria-label="textFilter">
               <svg-icon name="octicon-filter" :size="16"/>
             </button>
-            <div class="dropdown-popup dropdown-popup-button">
+            <div class="dropdown-popup">
               <div class="dropdown-item" @click="toggleArchivedFilter()" role="menuitemcheckbox" :aria-checked="archivedFilter === 'both' ? 'mixed' : archivedFilter === 'archived'" :title="checkboxArchivedFilterTitle">
                 <span class="ui checkbox tw-pointer-events-none">
                   <input type="checkbox" tabindex="-1" aria-hidden="true" v-bind.prop="checkboxArchivedFilterProps">

@@ -22,11 +22,11 @@
 		{{if $.ViteModeIsDev}}<span class="ui basic label primary">ViteDevMode</span>{{end}}
 	</div>
 	<div class="right-links" role="group" aria-label="{{ctx.Locale.Tr "aria.footer.links"}}">
-		<div class="dropdown-container" id="footer-theme-selector" data-placement="top-start">
+		<div class="dropdown-container" id="footer-theme-selector">
 			<button type="button" class="dropdown-trigger btn">{{ctx.RenderUtils.RenderThemeItem ctx.CurrentWebTheme 16}}</button>
-			<div class="dropdown-popup footer-theme-menu"></div>
+			<div class="dropdown-popup"></div>
 		</div>
-		<div class="dropdown-container" data-placement="top-start">
+		<div class="dropdown-container">
 			<button type="button" class="dropdown-trigger btn">{{svg "octicon-globe" 14}} {{ctx.Locale.LangName}}</button>
 			<div class="dropdown-popup footer-language-menu">
 				{{range .AllLangs -}}

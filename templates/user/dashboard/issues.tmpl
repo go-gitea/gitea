@@ -87,10 +87,9 @@
 							}}
 						{{end}}
 
-						<!-- Sort -->
-						<div class="dropdown-container tw-text-13" data-placement="bottom-end">
-							<button type="button" class="dropdown-trigger item btn"><span class="tw-whitespace-nowrap">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</span></button>
-							<div class="dropdown-popup dropdown-popup-small issue-filter-popup">
+						<div class="dropdown-container">
+							<button type="button" class="dropdown-trigger item btn tw-whitespace-nowrap">{{ctx.Locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14}}</button>
+							<div class="dropdown-popup">
 								<a class="{{if eq .SortType "recentupdate"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLinkWithFilter "sort" "recentupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
 								<a class="{{if eq .SortType "leastupdate"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLinkWithFilter "sort" "leastupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
 								<a class="{{if eq .SortType "latest"}}active {{end}}dropdown-item" href="{{QueryBuild $queryLinkWithFilter "sort" "latest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>

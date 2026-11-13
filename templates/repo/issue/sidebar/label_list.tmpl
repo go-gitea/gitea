@@ -24,7 +24,7 @@
 					{{range $data.RepoLabels}}
 						{{$exclusiveScope := .ExclusiveScope}}
 						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-							<div class="dropdown-divider" data-scope="{{.ExclusiveScope}}"></div>
+							<div class="dropdown-divider"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
 						{{template "repo/issue/sidebar/label_list_item" dict "Label" . "LabelLink" (print $listBaseLink "?labels=" .ID)}}
@@ -34,7 +34,7 @@
 					{{range $data.OrgLabels}}
 						{{$exclusiveScope := .ExclusiveScope}}
 						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-							<div class="dropdown-divider" data-scope="{{.ExclusiveScope}}"></div>
+							<div class="dropdown-divider"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
 						{{template "repo/issue/sidebar/label_list_item" dict "Label" . "LabelLink" (print $listBaseLink "?labels=" .ID)}}

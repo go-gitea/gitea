@@ -119,6 +119,7 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
 
   const existingTags = getReleaseFormExistingTags(elForm);
   const previousTagDropdown = initDropdown(elModal.querySelector<HTMLElement>('.dropdown-container')!);
+  previousTagDropdown.setItems(existingTags.map((tag) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': tag}, tag)));
   const doShowModal = () => {
     const tagName = tagNameInput.value.trim();
     if (!tagName) {
@@ -128,9 +129,6 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
       return;
     }
 
-    if (!previousTagDropdown.items().length) {
-      previousTagDropdown.setItems(existingTags.map((tag) => createElementFromAttrs('div', {class: 'dropdown-item', 'data-value': tag}, tag)));
-    }
     previousTagDropdown.setValue(guessPreviousReleaseTag(tagName, existingTags));
 
     showModal(elModal, {
