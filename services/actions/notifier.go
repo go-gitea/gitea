@@ -683,27 +683,10 @@ func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doe
 		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
-
-	if err := pr.Issue.LoadRepo(ctx); err != nil {
-		log.Error("pr.Issue.LoadRepo: %v", err)
-		return
-	}
-
-	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, pr.Issue.Repo, pr.Issue.Poster)
-	newNotifyInput(pr.Issue.Repo, doer, webhook_module.HookEventPullRequest).
-		WithPayload(&api.PullRequestPayload{
-			Action: api.HookIssueEdited,
-			Index:  pr.Issue.Index,
-			Changes: &api.ChangesPayload{
-				Ref:  &api.ChangesFromPayload{From: oldBranch},
-				Base: &api.ChangesBasePayload{Ref: api.ChangesFromPayload{From: oldBranch}, Sha: api.ChangesFromPayload{From: oldSHA}},
-			},
-			PullRequest: convert.ToPayloadPullRequest(ctx, pr, nil),
-			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
-			Sender:      convert.ToUser(ctx, doer, nil),
-		}).
-		WithPullRequest(pr).
-		Notify(ctx)
+	notifyIssueEdited(ctx, doer, pr.Issue, &api.ChangesPayload{
+		Ref:  &api.ChangesFromPayload{From: oldBranch},
+		Base: &api.ChangesBasePayload{Ref: api.ChangesFromPayload{From: oldBranch}, Sha: api.ChangesFromPayload{From: oldSHA}},
+	})
 }
 
 func (n *actionsNotifier) NewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {

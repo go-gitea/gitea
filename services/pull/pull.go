@@ -301,17 +301,13 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		return err
 	}
 
-	oldBranch := pr.BaseBranch
-	oldBranches, err := git_model.GetBranches(ctx, pr.BaseRepoID, []string{oldBranch}, true) // includes deleted, retargeting runs on base branch deletion
+	oldSHAs, err := git_model.FindBranchesByRepoAndBranchName(ctx, map[int64]string{pr.BaseRepoID: pr.BaseBranch})
 	if err != nil {
 		return err
 	}
-	var oldSHA string
-	if len(oldBranches) > 0 {
-		oldSHA = oldBranches[0].CommitID
-	}
 
 	// Set new target branch
+	oldBranch := pr.BaseBranch
 	pr.BaseBranch = targetBranch
 
 	// Refresh patch
@@ -377,7 +373,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		return err
 	}
 	releaser()
-	notify_service.PullRequestChangeTargetBranch(ctx, doer, pr, oldBranch, oldSHA)
+	notify_service.PullRequestChangeTargetBranch(ctx, doer, pr, oldBranch, oldSHAs[pr.BaseRepoID])
 	return nil
 }
 

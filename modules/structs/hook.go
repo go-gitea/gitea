@@ -333,8 +333,7 @@ type ReleasePayload struct {
 	// The action performed on the release (published, updated, deleted)
 	Action HookReleaseAction `json:"action"`
 	// The release that was acted upon
-	Release *Release `json:"release"`
-	// Changes made to the release
+	Release *Release        `json:"release"`
 	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The repository containing the release
 	Repository *Repository `json:"repository"`
@@ -462,7 +461,6 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
-// ChangesBasePayload represents the previous base branch of a pull request
 type ChangesBasePayload struct {
 	Ref ChangesFromPayload `json:"ref"`
 	Sha ChangesFromPayload `json:"sha"`
@@ -475,19 +473,17 @@ type ChangesOwnerPayload struct {
 	} `json:"from"`
 }
 
-// ChangesPayload represents changes included in an event payload
+// ChangesPayload represents the payload information of issue change
 type ChangesPayload struct {
 	// Changes made to the title
 	Title *ChangesFromPayload `json:"title,omitempty"`
 	// Changes made to the body/description
 	Body *ChangesFromPayload `json:"body,omitempty"`
 	// Changes made to the reference
-	Ref *ChangesFromPayload `json:"ref,omitempty"`
-	// Changes made to the pull request base branch
+	Ref  *ChangesFromPayload `json:"ref,omitempty"`
 	Base *ChangesBasePayload `json:"base,omitempty"`
 	// Changes made to the repository or release name
-	Name *ChangesFromPayload `json:"name,omitempty"`
-	// Changes made to the release tag name
+	Name    *ChangesFromPayload `json:"name,omitempty"`
 	TagName *ChangesFromPayload `json:"tag_name,omitempty"`
 	// Changes made to the repository owner
 	Owner *ChangesOwnerPayload `json:"owner,omitempty"`
