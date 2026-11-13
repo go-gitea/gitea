@@ -3040,6 +3040,7 @@
   "admin.dashboard.delete_old_audit_events": "Delete audit events older than the retention period",
   "admin.dashboard.delete_old_audit_events.started": "Deletion of old audit events started",
   "admin.dashboard.update_checker": "Update checker",
+  "admin.dashboard.delete_old_notifications": "Delete old notifications from database",
   "admin.dashboard.delete_old_system_notices": "Delete all old system notices from database",
   "admin.dashboard.gc_lfs": "Garbage-collect LFS meta objects",
   "admin.dashboard.stop_zombie_tasks": "Stop actions zombie tasks",

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -421,4 +422,34 @@ func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, curr
 		Where("user_id = ? AND status = ?", user.ID, currentStatus).
 		Cols("status", "updated_by", "updated_unix").
 		Update(n)
+}
+
+// DeleteOldNotifications deletes read and unread notifications not updated for the given durations.
+// A duration <= 0 skips that status. Pinned notifications are always kept.
+func DeleteOldNotifications(ctx context.Context, readOlderThan, unreadOlderThan time.Duration) error {
+	for status, olderThan := range map[NotificationStatus]time.Duration{
+		NotificationStatusRead:   readOlderThan,
+		NotificationStatusUnread: unreadOlderThan,
+	} {
+		if olderThan <= 0 {
+			continue
+		}
+		cutoff := time.Now().Add(-olderThan).Unix()
+		for {
+			// delete by pre-queried IDs in batches to avoid long locks on big tables
+			var ids []int64
+			if err := db.GetEngine(ctx).Table("notification").
+				Where("status = ? AND updated_unix < ?", status, cutoff).
+				Cols("id").Limit(1000).Find(&ids); err != nil {
+				return err
+			}
+			if len(ids) == 0 {
+				break
+			}
+			if _, err := db.GetEngine(ctx).In("id", ids).Delete(&Notification{}); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

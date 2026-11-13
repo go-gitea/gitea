@@ -6,6 +6,7 @@ package activities_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
@@ -13,6 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -268,4 +270,42 @@ func TestSetIssueReadBy(t *testing.T) {
 	nt, err := activities_model.GetIssueNotification(t.Context(), user.ID, issue.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, activities_model.NotificationStatusRead, nt.Status)
+}
+
+func TestDeleteOldNotifications(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	old := timeutil.TimeStamp(time.Now().Add(-400 * 24 * time.Hour).Unix())
+	_, err := db.GetEngine(t.Context()).Where("1=1").NoAutoTime().Cols("updated_unix").Update(&activities_model.Notification{UpdatedUnix: old})
+	assert.NoError(t, err)
+	var notifs []*activities_model.Notification
+	assert.NoError(t, db.GetEngine(t.Context()).Find(&notifs))
+	counts := map[activities_model.NotificationStatus]int{}
+	for _, n := range notifs {
+		counts[n.Status]++
+	}
+	require.Positive(t, counts[activities_model.NotificationStatusRead])
+	require.Positive(t, counts[activities_model.NotificationStatusUnread])
+
+	// disabled durations delete nothing
+	assert.NoError(t, activities_model.DeleteOldNotifications(t.Context(), 0, 0))
+	total, err := db.GetEngine(t.Context()).Count(&activities_model.Notification{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, len(notifs), total)
+
+	// only read ones are deleted when unread is disabled
+	assert.NoError(t, activities_model.DeleteOldNotifications(t.Context(), 90*24*time.Hour, 0))
+	notifs = nil
+	assert.NoError(t, db.GetEngine(t.Context()).Find(&notifs))
+	assert.Len(t, notifs, int(total)-counts[activities_model.NotificationStatusRead])
+	for _, n := range notifs {
+		assert.NotEqual(t, activities_model.NotificationStatusRead, n.Status)
+	}
+
+	// unread are deleted too, pinned are kept
+	assert.NoError(t, activities_model.DeleteOldNotifications(t.Context(), 90*24*time.Hour, 365*24*time.Hour))
+	notifs = nil
+	assert.NoError(t, db.GetEngine(t.Context()).Find(&notifs))
+	for _, n := range notifs {
+		assert.Equal(t, activities_model.NotificationStatusPinned, n.Status)
+	}
 }
