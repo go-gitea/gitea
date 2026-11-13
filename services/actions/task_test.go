@@ -87,7 +87,7 @@ func TestRunnerWorkflowPayload(t *testing.T) {
 		payload, err := runnerWorkflowPayload(t.Context(), &actions_model.ActionRunJob{
 			JobID:                   "build",
 			RepoID:                  tc.repoID,
-			Run:                     &actions_model.ActionRun{RepoID: tc.repoID, WorkflowCommitSHA: "abc"},
+			Run:                     &actions_model.ActionRun{},
 			WorkflowSourceRepoID:    tc.sourceRepoID,
 			WorkflowSourceCommitSHA: "abc",
 			WorkflowPayload:         []byte("name: ci\njobs:\n  build:\n    if: false\n    steps:\n      - uses: $/${{ inputs.action }}\n      - uses: $/.gitea/actions/build\n"),

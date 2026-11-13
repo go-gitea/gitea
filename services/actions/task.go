@@ -178,28 +178,32 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 	}, job, nil
 }
 
-// runnerWorkflowPayload sets the job `if:` to `always()`, as Gitea has decided it and a runner must not re-evaluate it.
+// runnerWorkflowPayload sets the job `if:` to `always()` as Gitea has decided it, and pins `$/` steps to the job's workflow source, which a runner doesn't know.
 func runnerWorkflowPayload(ctx context.Context, job *actions_model.ActionRunJob, sha string) ([]byte, error) {
 	swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
 	if err != nil {
 		return nil, err
 	}
 	parsedJob.If = yaml.Node{Kind: yaml.ScalarNode, Value: "always()"}
+	var source *repo_model.Repository
+	var sourceSHA string
 	for _, step := range parsedJob.Steps {
 		uses, err := model.ParseActionUses(step.Uses)
 		if err != nil || uses.Kind != model.ActionUsesSelfRepo || strings.Contains(step.Uses, "${{") {
 			continue
 		}
-		sourceSHA := resolveSameRepoWorkflowSourceCommit(job.Run, job)
-		if job.WorkflowSourceRepoID == job.RepoID && sourceSHA == sha {
-			break
-		}
-		source, err := repo_model.GetRepositoryByID(ctx, job.WorkflowSourceRepoID)
-		if repo_model.IsErrRepoNotExist(err) {
-			break
-		}
-		if err != nil {
-			return nil, err
+		if source == nil {
+			sourceSHA = resolveSameRepoWorkflowSourceCommit(job.Run, job)
+			if job.WorkflowSourceRepoID == job.RepoID && sourceSHA == sha {
+				break
+			}
+			source, err = repo_model.GetRepositoryByID(ctx, job.WorkflowSourceRepoID)
+			if repo_model.IsErrRepoNotExist(err) {
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
 		}
 		step.Uses = "self:" + path.Join(source.FullName(), uses.Path) + "@" + sourceSHA
 	}

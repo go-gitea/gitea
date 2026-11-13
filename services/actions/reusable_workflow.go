@@ -111,7 +111,13 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 		if err != nil {
 			return err
 		}
+		crossSource := source.WorkflowSourceRepoID != run.RepoID || source.WorkflowSourceCommitSHA != run.WorkflowCommitSHA
 		for _, id := range slices.Sorted(maps.Keys(workflow.Jobs)) {
+			for _, step := range workflow.Jobs[id].Steps {
+				if crossSource && strings.HasPrefix(step.Uses, "$/") && strings.Contains(step.Uses, "${{") { // runnerWorkflowPayload can't pin these to the workflow source
+					return fmt.Errorf("job %s: `uses: %s` cannot use expressions in a workflow from another repository or commit", id, step.Uses)
+				}
+			}
 			uses := workflow.Jobs[id].Uses
 			if uses == "" {
 				continue
