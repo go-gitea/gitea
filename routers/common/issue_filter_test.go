@@ -4,10 +4,14 @@
 package common
 
 import (
+	"slices"
 	"testing"
 
+	"gitea.dev/models/db"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -91,4 +95,24 @@ func TestSearchIssuesRepoIDs(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("unit permission", func(t *testing.T) {
+		// team1 is user4's only access to the private org3/repo3, limit it to code and issues
+		_, err := db.Exec(t.Context(), "UPDATE team SET authorize = 0 WHERE id = 2")
+		require.NoError(t, err)
+		_, err = db.Exec(t.Context(), "UPDATE team_unit SET access_mode = 0 WHERE team_id = 2 AND type NOT IN (?, ?)", unit.TypeCode, unit.TypeIssues)
+		require.NoError(t, err)
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		searchesRepo3 := func(isPull optional.Option[bool]) bool {
+			repoIDs, _, err := SearchIssuesRepoIDs(t.Context(), SearchIssuesRepoIDsOptions{Doer: user4, OwnerName: "org3", IsPull: isPull})
+			require.NoError(t, err)
+			return slices.Contains(repoIDs, 3)
+		}
+		assert.True(t, searchesRepo3(optional.Some(false)))
+		assert.False(t, searchesRepo3(optional.Some(true)))
+
+		_, err = db.Exec(t.Context(), "UPDATE team_unit SET access_mode = 0 WHERE team_id = 2 AND type = ?", unit.TypeIssues)
+		require.NoError(t, err)
+		assert.False(t, searchesRepo3(optional.None[bool]()))
+	})
 }

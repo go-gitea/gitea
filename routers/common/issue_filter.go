@@ -13,6 +13,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 func ParseIssueFilterStateIsClosed(state string) optional.Option[bool] {
@@ -58,10 +60,23 @@ func ParseIssueFilterTypeIsPullWithPermission(userPerm access_model.Permission, 
 	}
 }
 
+// IssuesOrPullsRepoCondition narrows opts to the repositories whose issues, pull requests or either (isPull unset) the actor can read
+func IssuesOrPullsRepoCondition(opts repo_model.SearchRepoOptions, isPull optional.Option[bool]) builder.Cond {
+	unitCond := func(unitType unit.Type) builder.Cond {
+		opts.UnitType = unitType
+		return repo_model.SearchRepositoryCondition(opts)
+	}
+	if isPull.Has() {
+		return unitCond(util.Iif(isPull.Value(), unit.TypePullRequests, unit.TypeIssues))
+	}
+	return builder.Or(unitCond(unit.TypeIssues), unitCond(unit.TypePullRequests))
+}
+
 type SearchIssuesRepoIDsOptions struct {
 	Doer      *user_model.User
 	OwnerName string
 	TeamName  string
+	IsPull    optional.Option[bool]
 }
 
 // SearchIssuesRepoIDs resolves the repository filter of an issue search. allPublic makes the indexer
@@ -93,7 +108,7 @@ func SearchIssuesRepoIDs(ctx context.Context, opts SearchIssuesRepoIDsOptions) (
 
 	// SearchRepoOptions.AllPublic and AllLimited only apply under an owner filter, so the indexer covers them
 	allPublic = opts.OwnerName == ""
-	cond := repo_model.SearchRepositoryCondition(searchOpts)
+	cond := IssuesOrPullsRepoCondition(searchOpts, opts.IsPull)
 	if allPublic {
 		if !user_model.DoerCanViewPrivate(opts.Doer) {
 			return []int64{0}, allPublic, nil // sees nothing beyond is_public, so skip the query
