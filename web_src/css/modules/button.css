@@ -50,6 +50,7 @@
   color: var(--color-text);
 }
 
+.btn:disabled,
 .ui.buttons .disabled.button:not(.basic),
 .ui.disabled.button,
 .ui.button:disabled,

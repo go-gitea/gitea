@@ -29,7 +29,7 @@
 				<div class="field {{if .Err_Deadline}}error{{end}}">
 					<label>
 						{{ctx.Locale.Tr "repo.milestones.due_date"}}
-						<button type="button" class="btn interact-fg" id="milestone-clear-deadline">{{ctx.Locale.Tr "repo.milestones.clear"}}</button>
+						<button type="button" class="btn interact-fg tw-align-baseline" id="milestone-clear-deadline">{{ctx.Locale.Tr "repo.milestones.clear"}}</button>
 					</label>
 					<input type="date" name="deadline" class="tw-w-auto" value="{{.deadline}}" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}">
 				</div>
