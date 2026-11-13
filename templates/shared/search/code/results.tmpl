@@ -1,7 +1,13 @@
 <div class="flex-text-block tw-flex-wrap">
 	{{range $term := .SearchResultLanguages}}
+	{{$query := $.KeywordWithoutLanguage}}
+	{{if ne $.Language $term.Language}}
+		{{$language := $term.Language}}
+		{{if StringUtils.Contains $language " "}}{{$language = printf "%q" $language}}{{end}}
+		{{$query = printf "%s language:%s" $query $language}}
+	{{end}}
 	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label tw-m-0 tw-gap-2"
-		href="?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&search_mode={{$.SelectedSearchMode}}">
+		href="?q={{$query}}">
 		<i class="color-icon" style="background-color: {{$term.Color}}"></i>
 		{{$term.Language}}
 		<div class="detail tw-ml-2">{{$term.Count}}</div>
@@ -26,9 +32,11 @@
 				{{end}}
 				<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$repo.Link}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 			</h4>
-			<div class="ui attached table segment">
-				{{template "shared/searchfile" dict "RepoLink" $repo.Link "SearchResult" .}}
-			</div>
+			{{range $fragment := $result.Fragments}}
+				<div class="ui attached table segment">
+					{{template "shared/searchfile" dict "RepoLink" $repo.Link "SearchResult" $result "Lines" $fragment}}
+				</div>
+			{{end}}
 			{{template "shared/searchbottom" dict "result" .}}
 		</div>
 	{{end}}
