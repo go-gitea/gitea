@@ -514,7 +514,7 @@ func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.Hoo
 	return newNotifyInput(issue.Repo, issue.Poster, event)
 }
 
-func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction) {
+func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction, changes *api.ChangesPayload) {
 	if err := rel.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
@@ -527,6 +527,7 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 		WithPayload(&api.ReleasePayload{
 			Action:     action,
 			Release:    convert.ToAPIRelease(ctx, rel.Repo, rel),
+			Changes:    changes,
 			Repository: convert.ToRepo(ctx, rel.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
