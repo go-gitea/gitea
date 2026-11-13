@@ -144,9 +144,6 @@ func AddActionRunAttemptModel(ctx context.Context, x base.EngineMigration) error
 			concurrencyColumns = append(concurrencyColumns, col)
 		}
 	}
-	if len(concurrencyColumns) == 0 {
-		return nil
-	}
 	sess := x.NewSession()
 	defer sess.Close()
 	return base.DropTableColumns(sess, "action_run", concurrencyColumns...)

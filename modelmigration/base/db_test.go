@@ -89,21 +89,18 @@ func Test_DropTableColumns(t *testing.T) {
 		return
 	}
 	for _, sql := range []string{
-		"CREATE TABLE `drop_test` (`id` INTEGER PRIMARY KEY, \"keep_column\" TEXT, \"to_drop_column\" TEXT)",
+		"CREATE TABLE `drop_test` (`id` INTEGER, \"keep_column\" TEXT, \"to_drop_column\" TEXT)",
 		"CREATE INDEX `IDX_drop_test_composite` ON `drop_test` (`id`, `to_drop_column`)",
-		"INSERT INTO `drop_test` (`id`, `keep_column`) VALUES (1, 'keep')",
+		"CREATE INDEX `IDX_drop_test_keep` ON `drop_test` (`keep_column`)",
+		"INSERT INTO `drop_test` (`keep_column`) VALUES ('keep')",
 	} {
 		_, err := x.Exec(sql)
 		require.NoError(t, err)
 	}
 	require.NoError(t, base.EngineTransaction(x, func(sess base.Session) error {
-		return base.DropTableColumns(sess, "drop_test", "to_drop_column", "missing_column")
+		return base.DropTableColumns(sess, "drop_test", "ID", "TO_DROP_COLUMN", "missing_column")
 	}))
-	exist, err := x.Dialect().IsColumnExist(x.DB(), t.Context(), "drop_test", "to_drop_column")
+	rows, err := x.SQL("SELECT * FROM `drop_test` INDEXED BY `IDX_drop_test_keep`").QueryString()
 	require.NoError(t, err)
-	assert.False(t, exist)
-	rows, err := x.Query("SELECT `keep_column` FROM `drop_test`")
-	require.NoError(t, err)
-	require.Len(t, rows, 1)
-	assert.Equal(t, "keep", string(rows[0]["keep_column"]))
+	assert.Equal(t, []map[string]string{{"keep_column": "keep"}}, rows)
 }

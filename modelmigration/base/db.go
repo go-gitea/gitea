@@ -317,8 +317,8 @@ func DropTableColumns(sess Session, tableName string, columnNames ...string) (er
 
 	switch {
 	case setting.Database.Type.IsSQLite3():
-		names := "'" + strings.Join(columnNames, "','") + "'"
-		indexes, err := sess.Query(fmt.Sprintf("SELECT DISTINCT il.name FROM pragma_index_list('%s') AS il, pragma_index_info(il.name) AS ii WHERE ii.name COLLATE NOCASE IN (%s)", tableName, names))
+		names := strings.Join(columnNames, "','")
+		indexes, err := sess.Query(fmt.Sprintf("SELECT DISTINCT il.name FROM pragma_index_list('%s') AS il, pragma_index_info(il.name) AS ii WHERE ii.name COLLATE NOCASE IN ('%s')", tableName, names))
 		if err != nil {
 			return err
 		}
@@ -327,7 +327,7 @@ func DropTableColumns(sess Session, tableName string, columnNames ...string) (er
 				return err
 			}
 		}
-		columns, err := sess.Query(fmt.Sprintf("SELECT name FROM pragma_table_info('%s') WHERE name COLLATE NOCASE IN (%s)", tableName, names))
+		columns, err := sess.Query(fmt.Sprintf("SELECT name FROM pragma_table_info('%s') WHERE name COLLATE NOCASE IN ('%s')", tableName, names))
 		if err != nil {
 			return err
 		}
