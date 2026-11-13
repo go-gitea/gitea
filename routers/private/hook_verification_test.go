@@ -41,4 +41,7 @@ func TestVerifyCommits(t *testing.T) {
 			assert.Error(t, err)
 		}
 	}
+
+	err = verifyCommits(t.Context(), objectFormat.EmptyObjectID().String(), "gitea-missing-revision", gitRepo, nil)
+	assert.ErrorContains(t, err, "fatal: ambiguous argument 'gitea-missing-revision'")
 }

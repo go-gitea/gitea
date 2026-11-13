@@ -53,7 +53,7 @@ func userProfile(ctx *context.Context) {
 	// and the "profile readme" related logic also duplicates in both of FindOwnerProfileReadme and RenderUserOrgHeader
 	// TODO: it is a bad design and should be refactored later,
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.HTML(http.StatusOK, tplProfile)
@@ -106,7 +106,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		Page:     page,
 	})
 	if err != nil {
-		ctx.ServerError("GetUserFollowers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["NumFollowers"] = numFollowers
@@ -115,7 +115,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		Page:     page,
 	})
 	if err != nil {
-		ctx.ServerError("GetUserFollowing", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["NumFollowing"] = numFollowing
@@ -164,7 +164,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			},
 		})
 		if err != nil {
-			ctx.ServerError("GetFeeds", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["Feeds"] = items
@@ -195,7 +195,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			IsPrivate:          private,
 		})
 		if err != nil {
-			ctx.ServerError("SearchRepository", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -222,7 +222,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			IsPrivate:          private,
 		})
 		if err != nil {
-			ctx.ServerError("SearchRepository", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -250,7 +250,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			},
 		})
 		if err != nil {
-			ctx.ServerError("GetUserOrganizations", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		cards := make([]*user_model.User, 0, len(orgs))
@@ -281,7 +281,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			IsPrivate:          private,
 		})
 		if err != nil {
-			ctx.ServerError("SearchRepository", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -291,7 +291,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	ctx.Data["Total"] = total
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -313,12 +313,12 @@ func ActionUserFollow(ctx *context.Context) {
 		err = user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 	if err != nil {
-		ctx.ServerError("ActionUserFollow", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

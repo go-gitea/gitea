@@ -120,12 +120,12 @@ type CreateHookOption struct {
 type EditHookOption struct {
 	// Configuration settings for the webhook
 	Config map[string]string `json:"config"`
-	// List of events that trigger this webhook
+	// List of events that trigger this webhook, omitted or empty keeps the current events
 	Events []string `json:"events"`
-	// Branch filter pattern to determine which branches trigger the webhook
-	BranchFilter string `json:"branch_filter" binding:"GlobPattern"`
-	// Authorization header to include in webhook requests
-	AuthorizationHeader string `json:"authorization_header"`
+	// Branch filter pattern to determine which branches trigger the webhook, omitted keeps the current value
+	BranchFilter *string `json:"branch_filter" binding:"GlobPattern"`
+	// Authorization header to include in webhook requests, omitted keeps the current value unless the url changes
+	AuthorizationHeader *string `json:"authorization_header"`
 	// Whether the webhook is active and will be triggered
 	Active *bool `json:"active"`
 	// Optional human-readable name

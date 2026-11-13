@@ -191,6 +191,7 @@ func assertReleaseEqual(t *testing.T, expected, actual *base.Release) {
 	assert.Equal(t, expected.Body, actual.Body)
 	assert.Equal(t, expected.Draft, actual.Draft)
 	assert.Equal(t, expected.Prerelease, actual.Prerelease)
+	assert.Equal(t, expected.Latest, actual.Latest)
 	assert.Equal(t, expected.PublisherID, actual.PublisherID)
 	assert.Equal(t, expected.PublisherName, actual.PublisherName)
 	assert.Equal(t, expected.PublisherEmail, actual.PublisherEmail)

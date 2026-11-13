@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"unicode"
 
 	packages_model "gitea.dev/models/packages"
@@ -17,10 +18,15 @@ import (
 	packages_service "gitea.dev/services/packages"
 )
 
-var (
-	packageNameRegex = regexp.MustCompile(`\A[-_+.\w]+\z`)
-	filenameRegex    = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& \w]+\z`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	packageNameRegex *regexp.Regexp
+	filenameRegex    *regexp.Regexp
+},
+) {
+	ret.packageNameRegex = regexp.MustCompile(`\A[-_+.\w]+\z`)
+	ret.filenameRegex = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& \w]+\z`)
+	return ret
+})
 
 func apiError(ctx *context.Context, status int, obj any) {
 	message := helper.ProcessErrorForUser(ctx, status, obj)
@@ -54,11 +60,11 @@ func isValidPackageName(packageName string) bool {
 	if len(packageName) == 1 && !unicode.IsLetter(rune(packageName[0])) && !unicode.IsNumber(rune(packageName[0])) {
 		return false
 	}
-	return packageNameRegex.MatchString(packageName) && packageName != ".."
+	return globalVars().packageNameRegex.MatchString(packageName) && packageName != ".."
 }
 
 func isValidFileName(filename string) bool {
-	return filenameRegex.MatchString(filename) &&
+	return globalVars().filenameRegex.MatchString(filename) &&
 		strings.TrimSpace(filename) == filename &&
 		filename != "." && filename != ".."
 }

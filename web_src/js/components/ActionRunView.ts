@@ -3,7 +3,8 @@ import type {AnsiLineRenderer} from '../render/ansi.ts';
 import {reactive} from 'vue';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {IntervalId} from '../types.ts';
-import {POST} from '../modules/fetch.ts';
+import {ExclusiveFetch} from '../modules/fetch.ts';
+import {showErrorToast} from '../modules/toast.ts';
 
 // How GitHub Actions logs work:
 // * Workflow command outputs log commands like "::group::the-title", "::add-matcher::...."
@@ -161,54 +162,44 @@ export function createEmptyActionsRun(): ActionsRun {
 }
 
 export function createActionRunViewStore(viewUrl: string) {
-  let loadingAbortController: AbortController | null = null;
   let intervalID: IntervalId | null = null;
+  const exclusiveFetch = new ExclusiveFetch();
   const viewData = reactive({
     currentRun: createEmptyActionsRun(),
     runArtifacts: [] as Array<ActionsArtifact>,
   });
-  const loadCurrentRun = async () => {
-    if (loadingAbortController) return;
-    const abortController = new AbortController();
-    loadingAbortController = abortController;
-    try {
-      const resp = await POST(viewUrl, {signal: abortController.signal, data: {}});
-      const runResp = await resp.json();
-      if (loadingAbortController !== abortController) return;
 
+  const stopPollingCurrentRun = () => {
+    if (!intervalID) return;
+    clearInterval(intervalID);
+    intervalID = null;
+  };
+
+  const loadCurrentRun = async (force = false) => {
+    if (exclusiveFetch.isInFlight() && !force) return;
+    const resp = exclusiveFetch.request(viewUrl, {method: 'POST', data: {}});
+    resp.onResponseError((details) => {
+      if (details.response?.status === 404) stopPollingCurrentRun();
+      showErrorToast(`Failed to load current job run data: ${details.message}`, {duration: 2500});
+    });
+    await resp.fetchJson((runResp: any) => {
       viewData.runArtifacts = runResp.artifacts || [];
       viewData.currentRun = runResp.state.run;
-      // clear the interval timer if the job is done
-      if (viewData.currentRun.done && intervalID) {
-        clearInterval(intervalID);
-        intervalID = null;
-      }
-    } catch (e) {
-      // avoid network error while unloading page, and ignore "abort" error
-      if (e instanceof TypeError || abortController.signal.aborted) return;
-      throw e;
-    } finally {
-      if (loadingAbortController === abortController) loadingAbortController = null;
-    }
+      if (viewData.currentRun.done) stopPollingCurrentRun();
+    });
   };
 
   return {
     viewData,
 
     async startPollingCurrentRun() {
-      await loadCurrentRun();
       intervalID = setInterval(() => loadCurrentRun(), 1000);
+      await loadCurrentRun();
     },
     async forceReloadCurrentRun() {
-      loadingAbortController?.abort();
-      loadingAbortController = null;
-      await loadCurrentRun();
+      await loadCurrentRun(true);
     },
-    stopPollingCurrentRun() {
-      if (!intervalID) return;
-      clearInterval(intervalID);
-      intervalID = null;
-    },
+    stopPollingCurrentRun,
   };
 }
 

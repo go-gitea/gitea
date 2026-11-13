@@ -48,6 +48,8 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 
 	if strings.Contains(url, "status-not-ok") {
 		return &http.Response{StatusCode: http.StatusBadRequest}
+	} else if strings.Contains(url, "plaintext-error") {
+		return &http.Response{StatusCode: http.StatusNotFound, Status: "404 Not Found", Body: io.NopCloser(strings.NewReader("Not Found"))}
 	} else if strings.Contains(url, "invalid-json-response") {
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("invalid json"))}
 	} else if strings.Contains(url, "valid-batch-request-download") {
@@ -174,7 +176,8 @@ func TestHTTPClientTransfers(t *testing.T) {
 		{
 			name: "download",
 			cases: []clientCase{
-				{"https://status-not-ok.io", io.ErrUnexpectedEOF.Error()},
+				{"https://status-not-ok.io", `LFS server returned error, status: 400, body: ""`},
+				{"https://plaintext-error.io", `LFS server returned error, status: 404, body: "Not Found"`},
 				{"https://invalid-json-response.io", "/(invalid json|invalid character)/"},
 				{"https://valid-batch-request-download.io", ""},
 				{"https://response-no-objects.io", ""},
@@ -191,7 +194,8 @@ func TestHTTPClientTransfers(t *testing.T) {
 		{
 			name: "upload",
 			cases: []clientCase{
-				{"https://status-not-ok.io", io.ErrUnexpectedEOF.Error()},
+				{"https://status-not-ok.io", `LFS server returned error, status: 400, body: ""`},
+				{"https://plaintext-error.io", `LFS server returned error, status: 404, body: "Not Found"`},
 				{"https://invalid-json-response.io", "/(invalid json|invalid character)/"},
 				{"https://valid-batch-request-upload.io", ""},
 				{"https://response-no-objects.io", ""},

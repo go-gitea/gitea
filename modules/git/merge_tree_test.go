@@ -15,7 +15,7 @@ import (
 
 func prepareRepoDirRenameConflict(t *testing.T) string {
 	repoDir := filepath.Join(t.TempDir(), "repo-dir-rename-conflict.git")
-	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(repoDir).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(repoDir).RunWithStderr(t.Context()))
 	stdin := `blob
 mark :1
 data 2
@@ -62,7 +62,7 @@ B
 from :3
 M 100644 :5 z/d
 `
-	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(stdin)).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context()))
 	return repoDir
 }
 

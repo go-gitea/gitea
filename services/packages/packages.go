@@ -38,6 +38,7 @@ type Specialization interface {
 	PublicPropertyNames() []string // only properties locating the file, the others are internal and can be large
 	OnBeforeRemovePackageAll(ctx context.Context, doer *user_model.User, pkg *packages_model.Package, pds []*packages_model.PackageDescriptor) error
 	OnBeforeRemovePackageVersion(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) error
+	OnAfterRemovePackage(ctx context.Context, pkg *packages_model.Package) error // called after the package or one of its versions was removed
 	GetViewPackageVersionData(ctx context.Context, pd *packages_model.PackageDescriptor) (any, error)
 	RenderSetupManual(ctx context.Context, pkg *packages_model.PackageDescriptor, viewData any) template.HTML
 }
@@ -437,6 +438,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
 	case packages_model.TypeSwift:
 		typeSpecificSize = setting.Packages.LimitSizeSwift
+	case packages_model.TypeTerraformModule:
+		typeSpecificSize = setting.Packages.LimitSizeTerraformModule
 	case packages_model.TypeTerraformState:
 		typeSpecificSize = setting.Packages.LimitSizeTerraformState
 	case packages_model.TypeVagrant:
@@ -518,7 +521,8 @@ func RemovePackageVersion(ctx context.Context, doer *user_model.User, pv *packag
 	if err != nil {
 		return err
 	}
-	if err := GetSpecManager().Get(pd.Package.Type).OnBeforeRemovePackageVersion(ctx, doer, pd); err != nil {
+	spec := GetSpecManager().Get(pd.Package.Type)
+	if err := spec.OnBeforeRemovePackageVersion(ctx, doer, pd); err != nil {
 		return err
 	}
 	// HINT: PACKAGE-DEFER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by the cleanup_packages cron task.
@@ -532,7 +536,7 @@ func RemovePackageVersion(ctx context.Context, doer *user_model.User, pv *packag
 
 	notify_service.PackageDelete(ctx, doer, pd)
 
-	return nil
+	return spec.OnAfterRemovePackage(ctx, pd.Package)
 }
 
 // RemovePackageFileAndVersionIfUnreferenced deletes the package file and the version if there are no referenced files afterwards
@@ -679,7 +683,8 @@ func RemovePackage(ctx context.Context, doer *user_model.User, p *packages_model
 	if err != nil {
 		return err
 	}
-	if err := GetSpecManager().Get(p.Type).OnBeforeRemovePackageAll(ctx, doer, p, pds); err != nil {
+	spec := GetSpecManager().Get(p.Type)
+	if err := spec.OnBeforeRemovePackageAll(ctx, doer, p, pds); err != nil {
 		return err
 	}
 
@@ -714,7 +719,7 @@ func RemovePackage(ctx context.Context, doer *user_model.User, p *packages_model
 	for _, pd := range pds {
 		notify_service.PackageDelete(ctx, doer, pd)
 	}
-	return nil
+	return spec.OnAfterRemovePackage(ctx, p)
 }
 
 // RemoveAllPackages for User

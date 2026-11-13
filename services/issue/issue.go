@@ -25,13 +25,24 @@ import (
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs, projectIDs []int64) error {
+func NewIssue(ctx context.Context, repo *repo_model.Repository, perm access_model.Permission, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs, projectIDs []int64) error {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
 
-	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
-		return user_model.ErrBlockedUser
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) {
+		return util.ErrorWrapTranslatable(user_model.ErrBlockedUser, "repo.creation_blocked_by_owner")
+	}
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
+		return util.ErrorWrapTranslatable(user_model.ErrBlockedUser, "repo.creation_blocked_by_assignee")
+	}
+
+	restriction := repo.MustGetUnit(ctx, unit.TypeIssues).IssuesConfig().CreationRestriction
+	if restriction != repo_model.CreationRestrictionReader {
+		err := CheckCreationRestriction(perm, unit.TypeIssues, restriction)
+		if err != nil {
+			return err
+		}
 	}
 
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
@@ -175,8 +186,10 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 		if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
 			return err
 		}
-		if err := git.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
-			return err
+		for _, ref := range []git.RefName{git.RefNameFromPullIndex(issue.Index), git.MergeRefNameFromPullIndex(issue.Index), git.MergedRefNameFromPullIndex(issue.Index)} {
+			if err := git.RemoveRef(ctx, issue.PullRequest.BaseRepo, ref.String()); err != nil {
+				log.Error("RemoveRef %s: %v", ref, err)
+			}
 		}
 	}
 
