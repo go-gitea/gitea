@@ -412,7 +412,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 
 	assigneeID := ctx.FormString("assignee")
 	posterUsername := ctx.FormString("poster")
-	posterUserID := shared_user.GetFilterUserIDByName(ctx, posterUsername)
+	posterUserID := shared_user.GetPossibleDoerUserIDByName(ctx, posterUsername)
 	var mentionedID, reviewRequestedID, reviewedID int64
 
 	if ctx.IsSigned {

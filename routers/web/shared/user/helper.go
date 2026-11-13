@@ -49,26 +49,17 @@ func ToSearchUserResponse(ctx context.Context, self *user.User, users []*user.Us
 	return resp
 }
 
-// GetFilterUserIDByName tries to get the user ID from the given username.
-// Before, the "issue filter" passes user ID to query the list, but in many cases, it's impossible to pre-fetch the full user list.
-// So it's better to make it work like GitHub: users could input username directly.
-// Since it only converts the username to ID directly and is only used internally (to search issues), so no permission check is needed.
-// Return values:
-// * "": no filter
-// * "{the-id}": match the id
-// * "(nonexistent)": match no issue (due to the user doesn't exist)
-func GetFilterUserIDByName(ctx context.Context, name string) string {
+// GetPossibleDoerUserIDByName maps an issue filter username or legacy user ID to an ID, Ghost if unknown, no permission check as issue search enforces visibility
+func GetPossibleDoerUserIDByName(ctx context.Context, name string) string {
 	if name == "" {
 		return ""
 	}
-	u, err := user.GetUserByName(ctx, name)
+	ids, err := user.GetDoerUserIDsByNamesWithSystem(ctx, []string{name})
 	if err != nil {
 		if id, err := strconv.ParseInt(name, 10, 64); err == nil {
 			return strconv.FormatInt(id, 10)
 		}
-		// The "(nonexistent)" is for internal usage only: when doer tries to search non-existing user, use "(nonexistent)" to return empty result.
-		// It must not be "(none)", which means "no assignee" in the issue filter.
-		return "(nonexistent)"
+		return strconv.FormatInt(user.GhostUserID, 10)
 	}
-	return strconv.FormatInt(u.ID, 10)
+	return strconv.FormatInt(ids[0], 10)
 }

@@ -252,7 +252,6 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if options.PosterID != "" {
-		// "(none)" becomes 0, it means no poster
 		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
 		queries = append(queries, inner_bleve.NumericEqualityQuery(posterIDInt64, "poster_id"))
 	}
