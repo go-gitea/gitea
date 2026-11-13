@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"math/big"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -814,6 +815,15 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 	ctx.Data["NumParticipants"] = len(participants)
 }
 
+func lastCommentIDOfType(comments issues_model.CommentList, commentType issues_model.CommentType) int64 {
+	for _, comment := range slices.Backward(comments) {
+		if comment.Type == commentType {
+			return comment.ID
+		}
+	}
+	return 0
+}
+
 func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *issues_model.Issue) {
 	if prInfo.issue != issue {
 		panic("impossible, issue must be the same")
@@ -860,6 +870,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 						log.Error("GetBranches: %v", err)
 					} else if len(branches) == 1 && branches[0].IsDeleted {
 						ctx.Data["RestoreBranchLink"] = fmt.Sprintf("%s/branches/restore?branch_id=%d", pull.HeadRepo.Link(), branches[0].ID)
+						ctx.Data["RestoreBranchCommentID"] = lastCommentIDOfType(issue.Comments, issues_model.CommentTypeDeleteBranch)
 					}
 				}
 			}
@@ -936,12 +947,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		return
 	}
 	data.CanCancelAutoMerge = data.AutoMerge != nil && ctx.IsSigned && (data.hasPermToMerge || ctx.Doer.ID == data.AutoMerge.DoerID || issue.IsPoster(ctx.Doer.ID))
-	if data.hasPermToMerge && data.AutoMerge == nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && defaultMergeStyle(prConfig) == "" {
+	mergeable := pull.IsStatusMergeable() || pull.IsEmpty()
+	if data.hasPermToMerge && data.AutoMerge == nil && mergeable && defaultMergeStyle(prConfig) == "" {
 		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_desc"), ctx.Locale.Tr("repo.pulls.no_merge_helper"))
 	}
 
 	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress) > 0)
-	if data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && !data.hasOverridableBlockers && len(data.mergeBlockers) == 0 {
+	if data.AutoMerge != nil && mergeable && !data.hasOverridableBlockers && len(data.mergeBlockers) == 0 {
 		lastChange := data.AutoMerge.CreatedUnix
 		if data.StatusCheckData != nil {
 			lastChange = max(lastChange, data.StatusCheckData.lastUpdated)

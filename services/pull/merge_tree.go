@@ -113,6 +113,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	pr.MergeBase, err = git.MergeBase(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID)
 	if errors.Is(err, util.ErrNotExist) {
 		pr.Status = issues_model.PullRequestStatusUnrelated
+		pr.ConflictedFiles, pr.ChangedProtectedFiles = nil, nil
 		return nil
 	} else if err != nil {
 		// if the merge base can't be determined, then it's empty, still need to allow the pull request to be created

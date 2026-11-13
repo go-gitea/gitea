@@ -440,21 +440,17 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		statusCheckData.CanApprove = ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	}
 
+	var expectedStatuses []*git_model.CommitStatus
 	for _, requiredContext := range requiredContexts {
-		contextFound := false
 		matchesRequiredContext := createRequiredContextMatcher(requiredContext)
-		for _, presentStatus := range commitStatuses {
-			if matchesRequiredContext(presentStatus.Context) {
-				contextFound = true
-				break
-			}
-		}
-
+		contextFound := slices.ContainsFunc(commitStatuses, func(presentStatus *git_model.CommitStatus) bool {
+			return matchesRequiredContext(presentStatus.Context)
+		})
 		if !contextFound {
-			commitStatuses = append(commitStatuses, &git_model.CommitStatus{Context: requiredContext, State: commitstatus.CommitStatusPending, Description: ctx.Locale.TrString("repo.pulls.status_checks_waiting")})
+			expectedStatuses = append(expectedStatuses, &git_model.CommitStatus{Context: requiredContext, State: commitstatus.CommitStatusPending, Description: ctx.Locale.TrString("repo.pulls.status_checks_waiting")})
 		}
 	}
-	statusCheckData.groupStatuses(commitStatuses)
+	statusCheckData.groupStatuses(append(commitStatuses, expectedStatuses...))
 
 	statusCheckData.IsContextRequired = func(context string) bool {
 		for _, c := range requiredContexts {

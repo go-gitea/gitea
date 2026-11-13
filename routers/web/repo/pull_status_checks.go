@@ -81,8 +81,12 @@ func (d *pullCommitStatusCheckData) count(kinds ...statusCheckKind) (count int) 
 	return count
 }
 
-func (d *pullCommitStatusCheckData) AllPassed() bool {
+func (d *pullCommitStatusCheckData) allFinishedSuccessfully() bool {
 	return d.count(statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckExpected) == 0
+}
+
+func (d *pullCommitStatusCheckData) AllPassed() bool {
+	return d.allFinishedSuccessfully() && d.RequireApprovalRunCount == 0
 }
 
 func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMergeBoxSection {
@@ -99,16 +103,17 @@ func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMerg
 	allFailed := d.RequireApprovalRunCount == 0 && len(d.Groups) == 1 && d.Groups[0].Kind == statusCheckFailing
 	switch {
 	case d.RequireApprovalRunCount > 0:
+		section.StatusIcon, section.StatusIconClass = "octicon-alert-fill", "tw-bg-grey-light"
 		section.SectionTitle = locale.TrN(d.RequireApprovalRunCount, "repo.pulls.status_checks_need_approvals_1", "repo.pulls.status_checks_need_approvals_n", d.RequireApprovalRunCount)
 		section.SectionDetails = []template.HTML{locale.Tr("repo.pulls.status_checks_need_approvals_helper")}
 	case allFailed:
 		section.StatusIcon, section.StatusIconClass, section.SectionTitle = "octicon-x", "tw-bg-red", locale.Tr("repo.pulls.status_checks_all_failed")
 	case d.count(statusCheckFailing) > 0:
 		section.SectionTitle = locale.Tr("repo.pulls.status_checks_failure")
-	case !d.AllPassed():
+	case !d.allFinishedSuccessfully():
 		section.SectionTitle = locale.Tr("repo.pulls.status_checking")
 	}
-	if !d.AllPassed() && !allFailed {
+	if !d.allFinishedSuccessfully() && !allFailed {
 		section.ProgressSegments = d.progressSegments()
 	}
 	return section

@@ -81,7 +81,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context)
 		setDetail(ctx.Locale.Tr("repo.pulls.can_auto_merge_desc"))
 	}
 	data.MergeSection = section
-	if pull.IsFilesConflicted() || pull.IsChecking() {
+	if pull.IsChecking() {
 		data.ReviewSection = nil
 	}
 
@@ -91,7 +91,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context)
 			SectionDetails: []template.HTML{ctx.Locale.Tr("repo.pulls.work_in_progress_desc")},
 		}
 	}
-	if len(data.mergeBlockers) > 0 && data.WorkInProgressSection == nil && !pull.IsFilesConflicted() {
+	if len(data.mergeBlockers) > 0 && data.WorkInProgressSection == nil {
 		data.BlockedSection = &pullMergeBoxSection{
 			StatusIcon: "octicon-alert-fill", StatusIconClass: "tw-bg-red", SectionTitle: ctx.Locale.Tr("repo.pulls.merging_is_blocked"),
 			SectionDetails: data.mergeBlockers, FileNames: pull.ChangedProtectedFiles,

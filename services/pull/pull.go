@@ -301,10 +301,6 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
 		return err
 	}
-	if err := DisableAutoMergeIfNotWriter(ctx, doer, pr, "base_changed"); err != nil {
-		return err
-	}
-
 	// Set new target branch
 	oldBranch := pr.BaseBranch
 	pr.BaseBranch = targetBranch
@@ -330,6 +326,9 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		}
 		if updated == 0 {
 			return util.ErrorWrap(util.ErrInvalidArgument, "pull request status has changed")
+		}
+		if err := DisableAutoMergeIfNotWriter(ctx, doer, pr, "base_changed"); err != nil {
+			return fmt.Errorf("DisableAutoMergeIfNotWriter: %w", err)
 		}
 
 		if err := syncCommitDivergence(ctx, pr); err != nil {
@@ -404,6 +403,8 @@ type TestPullRequestOptions struct {
 	IsForcePush bool
 	OldCommitID string
 	NewCommitID string
+
+	UpdatedPullID int64 // the pull request whose head branch was updated from its base branch by Gitea itself
 }
 
 // AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
@@ -429,9 +430,11 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			pr.HeadRepo = repo // avoid loading again
 			if pr.Flow == issues_model.PullRequestFlowGithub {
-				if opts.IsSync && pr.IsFromFork() { // same-repo pushers can write, Actions and deploy key pushers have no user permission
+				// same-repo pushers can write, Actions and deploy key pushers have no user permission, "update branch" adds no content of the pusher
+				if opts.IsSync && pr.IsFromFork() && opts.UpdatedPullID != pr.ID {
 					if err := DisableAutoMergeIfNotWriter(ctx, opts.Doer, pr, "pushed_by_non_writer"); err != nil {
 						log.Error("DisableAutoMergeIfNotWriter: %v", err)
+						continue // don't sync the push while auto merge might still be scheduled
 					}
 				}
 				if err := PushToBaseRepo(ctx, pr); err != nil {

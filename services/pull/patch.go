@@ -79,10 +79,15 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 	}
 	defer tmpGitRepo.Close()
 
+	if pr.HeadCommitID, err = tmpGitRepo.GetRefCommitID(ctx, git.BranchPrefix+tmpRepoTrackingBranch); err != nil {
+		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
+	}
+
 	// 1. update merge base
 	pr.MergeBase, err = git.MergeBase(ctx, prCtx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch)
 	if errors.Is(err, util.ErrNotExist) {
 		pr.Status = issues_model.PullRequestStatusUnrelated
+		pr.ConflictedFiles, pr.ChangedProtectedFiles = nil, nil
 		return nil
 	} else if err != nil {
 		var err2 error
@@ -90,9 +95,6 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 		if err2 != nil {
 			return fmt.Errorf("GetMergeBase: %v and can't find commit ID for base: %w", err, err2)
 		}
-	}
-	if pr.HeadCommitID, err = tmpGitRepo.GetRefCommitID(ctx, git.BranchPrefix+tmpRepoTrackingBranch); err != nil {
-		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
 	}
 
 	if pr.HeadCommitID == pr.MergeBase {
