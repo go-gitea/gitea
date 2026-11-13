@@ -36142,7 +36142,7 @@
           "200": {
             "$ref": "#/components/responses/UserSettings"
           },
-          "404": {
+          "default": {
             "$ref": "#/components/responses/error"
           }
         },

@@ -44,7 +44,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
-	ctx.Data["ForcePublicActivity"] = setting.Service.ForcePublicActivity
+	ctx.Data["ForceUserActivityVisibility"] = setting.Service.ForceUserActivityVisibility
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -85,19 +85,15 @@ func ProfilePost(ctx *context.Context) {
 		return
 	}
 
-	opts := &user_service.UpdateOptions{
-		KeepEmailPrivate: optional.Some(form.KeepEmailPrivate),
-		FullName:         optional.FromPtr(form.FullName),
-		Description:      optional.Some(form.Description),
-		Website:          optional.Some(form.Website),
-		Location:         optional.Some(form.Location),
-		Visibility:       optional.Some(form.Visibility),
-	}
-	if !setting.Service.ForcePublicActivity {
-		opts.KeepActivityPrivate = optional.Some(form.KeepActivityPrivate)
-	}
-
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, &user_service.UpdateOptions{
+		KeepEmailPrivate:    optional.Some(form.KeepEmailPrivate),
+		FullName:            optional.FromPtr(form.FullName),
+		Description:         optional.Some(form.Description),
+		Website:             optional.Some(form.Website),
+		Location:            optional.Some(form.Location),
+		Visibility:          optional.Some(form.Visibility),
+		KeepActivityPrivate: util.Iif(setting.Service.ForceUserActivityVisibility == "", optional.Some(form.KeepActivityPrivate), nil),
+	}); err != nil {
 		ctx.JSONErrorAuto(err)
 		return
 	}

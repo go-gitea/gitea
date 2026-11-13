@@ -7,6 +7,8 @@ package system
 type RuntimeState struct {
 	LastAppPath    string `json:"last_app_path"`
 	LastCustomConf string `json:"last_custom_conf"`
+
+	LastForceUserActivityVisibility string `json:"last_force_user_activity_visibility"`
 }
 
 // Name returns the item name

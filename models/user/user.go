@@ -722,6 +722,7 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 
 	// set system defaults
 	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	u.KeepActivityPrivate = setting.Service.ForceUserActivityVisibility == "private"
 	u.Visibility = setting.Service.DefaultUserVisibilityMode
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
 	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
@@ -1018,6 +1019,13 @@ func UpdateUserColsNoAutoTime(ctx context.Context, u *User, cols ...string) erro
 	}
 
 	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).NoAutoTime().Update(u)
+	return err
+}
+
+// UpdateAllUsersKeepActivityPrivate sets the activity visibility of all users, organizations excluded
+func UpdateAllUsersKeepActivityPrivate(ctx context.Context, keepActivityPrivate bool) error {
+	_, err := db.GetEngine(ctx).Where(builder.Neq{"keep_activity_private": keepActivityPrivate, "type": UserTypeOrganization}).
+		Cols("keep_activity_private").NoAutoTime().Update(&User{KeepActivityPrivate: keepActivityPrivate})
 	return err
 }
 
@@ -1560,19 +1568,6 @@ func IsFeatureDisabledWithLoginType(user *User, features ...string) bool {
 		return setting.Admin.ExternalUserDisableFeatures.Contains(features...)
 	}
 	return setting.Admin.UserDisabledFeatures.Contains(features...)
-}
-
-// IsActivityPrivate reports whether the user's activity is hidden after applying the instance policy.
-func (u *User) IsActivityPrivate() bool {
-	return u.KeepActivityPrivate && !setting.Service.ForcePublicActivity
-}
-
-// ActivityPublicCond matches users whose activity is public, the SQL counterpart of IsActivityPrivate
-func ActivityPublicCond() builder.Cond {
-	if setting.Service.ForcePublicActivity {
-		return builder.NewCond()
-	}
-	return builder.Eq{"keep_activity_private": false}
 }
 
 // DisabledFeaturesWithLoginType returns the set of user features disabled, taking into account the login type

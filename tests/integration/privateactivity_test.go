@@ -16,9 +16,11 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	user_service "gitea.dev/services/user"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -263,30 +265,31 @@ func TestPrivateActivityHeatmapContent(t *testing.T) {
 	}
 }
 
-func TestPrivateActivityVisibilityLockedByAdmin(t *testing.T) {
+func TestPrivateActivityForcedVisibility(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	testPrivateActivityDoSomethingForActionEntries(t)
 	testPrivateActivityHelperEnablePrivateActivity(t)
-	defer test.MockVariableValue(&setting.Service.ForcePublicActivity, true)()
+	keepActivityPrivate := func() bool {
+		return unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: privateActivityTestUser}).KeepActivityPrivate
+	}
 
-	assert.True(t, testPrivateActivityHelperHasVisibleActivitiesFromPublic(t), "previously hidden activity should be public once locked")
-	assert.True(t, testPrivateActivityHelperHasHeatmapContentFromPublic(t))
+	defer test.MockVariableValue(&setting.Service.ForceUserActivityVisibility, "public")()
+	require.NoError(t, user_service.SyncForcedActivityVisibility(t.Context()))
+	assert.False(t, keepActivityPrivate())
 
 	session := loginUser(t, privateActivityTestUser)
-	profileResp := session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
-	profileDoc := NewHTMLParser(t, profileResp.Body)
-	AssertHTMLElement(t, profileDoc, `#keep-activity-private input[name="keep_activity_private"][disabled]`, true)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+	AssertHTMLElement(t, NewHTMLParser(t, resp.Body), `#keep-activity-private input[disabled]`, true)
+	testPrivateActivityHelperEnablePrivateActivity(t)
+	assert.False(t, keepActivityPrivate())
 
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(true)}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 	req = NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(false)}).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	assert.False(t, DecodeJSON(t, resp, &api.UserSettings{}).HideActivity)
+	MakeRequest(t, req, http.StatusOK)
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: privateActivityTestUser})
-	assert.True(t, user.KeepActivityPrivate, "stored preference should be kept for when the lock is lifted")
-
-	setting.Service.ForcePublicActivity = false
-	assert.False(t, testPrivateActivityHelperHasVisibleActivitiesFromPublic(t), "stored private preference should apply when the policy is disabled")
+	setting.Service.ForceUserActivityVisibility = "private"
+	require.NoError(t, user_service.SyncForcedActivityVisibility(t.Context()))
+	assert.True(t, keepActivityPrivate())
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"}).KeepActivityPrivate)
 }

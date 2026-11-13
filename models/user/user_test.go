@@ -600,24 +600,6 @@ func TestDisabledUserFeatures(t *testing.T) {
 	}
 }
 
-func TestActivityPrivacyPolicy(t *testing.T) {
-	for _, testCase := range []struct {
-		name   string
-		force  bool
-		result bool
-	}{
-		{name: "stored public", force: false, result: false},
-		{name: "stored private", force: false, result: true},
-		{name: "forced public", force: true, result: false},
-	} {
-		t.Run(testCase.name, func(t *testing.T) {
-			defer test.MockVariableValue(&setting.Service.ForcePublicActivity, testCase.force)()
-			user := &user_model.User{KeepActivityPrivate: testCase.name != "stored public"}
-			assert.Equal(t, testCase.result, user.IsActivityPrivate())
-		})
-	}
-}
-
 func TestGetInactiveUsers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

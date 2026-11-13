@@ -127,7 +127,7 @@ func User2UserSettings(user *user_model.User) api.UserSettings {
 		Description:   user.Description,
 		Theme:         user.Theme,
 		HideEmail:     user.KeepEmailPrivate,
-		HideActivity:  user.IsActivityPrivate(),
+		HideActivity:  user.KeepActivityPrivate,
 		DiffViewStyle: user.DiffViewStyle,
 	}
 }

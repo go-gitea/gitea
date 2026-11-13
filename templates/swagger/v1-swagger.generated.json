@@ -23054,7 +23054,7 @@
           "200": {
             "$ref": "#/responses/UserSettings"
           },
-          "404": {
+          "default": {
             "$ref": "#/responses/error"
           }
         }
