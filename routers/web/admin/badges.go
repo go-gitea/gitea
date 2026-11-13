@@ -71,7 +71,7 @@ func NewBadgePost(ctx *context.Context) {
 		if errors.Is(err, util.ErrAlreadyExist) {
 			ctx.JSONError(ctx.Tr("admin.badges.slug_been_taken"))
 		} else {
-			ctx.ServerError("CreateBadge", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -88,7 +88,7 @@ func prepareBadgeInfo(ctx *context.Context) *user_model.Badge {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Redirect(setting.AppSubURL + "/-/admin/badges")
 		} else {
-			ctx.ServerError("GetBadge", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return nil
 	}
@@ -114,7 +114,7 @@ func ViewBadge(ctx *context.Context) {
 	}
 	users, count, err := user_model.GetBadgeUsers(ctx, opts)
 	if err != nil {
-		ctx.ServerError("GetBadgeUsers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Users"] = users
@@ -152,7 +152,7 @@ func EditBadgePost(ctx *context.Context) {
 	b.Description = form.Description
 
 	if err := user_model.UpdateBadge(ctx, b); err != nil {
-		ctx.ServerError("UpdateBadge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -166,12 +166,12 @@ func EditBadgePost(ctx *context.Context) {
 func DeleteBadge(ctx *context.Context) {
 	b, err := user_model.GetBadge(ctx, ctx.PathParam("badge_slug"))
 	if err != nil {
-		ctx.ServerError("GetBadge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err = user_model.DeleteBadge(ctx, b); err != nil {
-		ctx.ServerError("DeleteBadge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -197,7 +197,7 @@ func BadgeUsers(ctx *context.Context) {
 	}
 	users, count, err := user_model.GetBadgeUsers(ctx, opts)
 	if err != nil {
-		ctx.ServerError("GetBadgeUsers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -218,7 +218,7 @@ func BadgeUsersPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
 			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		} else {
-			ctx.ServerError("GetUserByName", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -231,7 +231,7 @@ func BadgeUsersPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("admin.badges.user_already_has"))
 			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		} else {
-			ctx.ServerError("AddUserBadge", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -251,14 +251,14 @@ func DeleteBadgeUser(ctx *context.Context) {
 			ctx.JSONRedirect(badgeUsersURL)
 			return
 		} else {
-			ctx.ServerError("GetUserByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 	if err := user_model.RemoveUserBadge(ctx, user, &user_model.Badge{Slug: ctx.PathParam("badge_slug")}); err == nil {
 		ctx.Flash.Success(ctx.Tr("admin.badges.user_remove_success"))
 	} else {
-		ctx.ServerError("RemoveUserBadge", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -299,7 +299,7 @@ func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		badges, count, err = user_model.SearchBadges(ctx, opts)
 		if err != nil {
-			ctx.ServerError("SearchBadges", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

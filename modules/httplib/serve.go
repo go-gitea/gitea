@@ -80,7 +80,7 @@ func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
 func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	header := w.Header()
 
-	skipCompressionExts := container.SetOf(".gz", ".bz2", ".zip", ".xz", ".zst", ".deb", ".apk", ".jar", ".png", ".jpg", ".webp")
+	skipCompressionExts := container.SetOf(".gz", ".bz2", ".zip", ".xz", ".zst", ".deb", ".apk", ".jar", ".avif", ".png", ".jpeg", ".jpg", ".jxl", ".webp")
 	if skipCompressionExts.Contains(strings.ToLower(path.Ext(opts.Filename))) {
 		w.Header().Add(gzhttp.HeaderNoCompression, "1")
 	}

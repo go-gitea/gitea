@@ -15,7 +15,6 @@ import (
 	"gitea.dev/models/issues"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/charset"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -58,7 +57,7 @@ func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *co
 
 	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName)
 	if err != nil {
-		ctx.ServerError("PrepareCommitFormOptions", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 
@@ -69,7 +68,7 @@ func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *co
 
 	if commitFormOptions.WillSubmitToFork && !commitFormOptions.TargetRepo.CanContentChange() {
 		ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.editor.fork_not_editable")
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
@@ -123,7 +122,7 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 
 	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName)
 	if err != nil {
-		ctx.ServerError("PrepareCommitFormOptions", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	if commitFormOptions.NeedFork {
@@ -134,6 +133,10 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 
 	// check commit behavior
 	fromBaseBranch := ctx.FormString("from_base_branch")
+	if fromBaseBranch != "" && ctx.Repo.Repository.BaseRepo == nil {
+		ctx.NotFound()
+		return nil
+	}
 	commitToNewBranch := commonForm.CommitChoice == editorCommitChoiceNewBranch || fromBaseBranch != ""
 	targetBranchName := util.Iif(commitToNewBranch, commonForm.NewBranchName, ctx.Repo.BranchName)
 	if targetBranchName == ctx.Repo.BranchName && !commitFormOptions.CanCommitToBranch {
@@ -142,7 +145,7 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 	}
 
 	if !issues.CanMaintainerWriteToBranch(ctx, ctx.Repo.Permission, targetBranchName, ctx.Doer) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 
@@ -157,7 +160,7 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 		// if target branch exists, we should stop
 		targetBranchExists, err := git_model.IsBranchExist(ctx, commitFormOptions.TargetRepo.ID, targetBranchName)
 		if err != nil {
-			ctx.ServerError("IsBranchExist", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		} else if targetBranchExists {
 			if fromBaseBranch != "" {
@@ -226,24 +229,20 @@ func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditor
 func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.ReadCloser, fInfo *fileInfo) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
-		HandleGitError(ctx, "GetTreeEntryByPath", err)
+		HandleGitError(ctx, err)
 		return nil, nil, nil
 	}
 
 	// No way to edit a directory online.
 	if entry.IsDir() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil, nil, nil
 	}
 
 	blob := entry.Blob(ctx.Repo.GitRepo)
 	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("getFileReader", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return nil, nil, nil
 	}
 
@@ -251,11 +250,11 @@ func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.Read
 		lfsLock, err := git_model.GetTreePathLock(ctx, ctx.Repo.Repository.ID, ctx.Repo.TreePath)
 		if err != nil {
 			_ = dataRc.Close()
-			ctx.ServerError("GetTreePathLock", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil, nil
 		} else if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 			_ = dataRc.Close()
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return nil, nil, nil
 		}
 	}
@@ -312,7 +311,7 @@ func EditFile(ctx *context.Context) {
 		if ctx.Data["NotEditableReason"] == nil {
 			buf, err := io.ReadAll(io.MultiReader(bytes.NewReader(prefetch), dataRc))
 			if err != nil {
-				ctx.ServerError("ReadAll", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			ctx.Data["FileContent"] = string(charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true, ErrorReturnOrigin: true}))
@@ -405,7 +404,7 @@ func DeleteFilePost(ctx *context.Context) {
 	// Check if the path is a directory
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, treePath)
 	if err != nil {
-		ctx.ServerError("GetTreeEntryByPath", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

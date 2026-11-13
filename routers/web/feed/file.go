@@ -14,8 +14,7 @@ import (
 	"github.com/gorilla/feeds"
 )
 
-// ShowFileFeed shows tags and/or releases on the repo as RSS / Atom feed
-func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
+func showFileFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
 	if !checkRepoFeedTokenScope(ctx) {
 		return
 	}
@@ -30,7 +29,7 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 			Page:     1,
 		})
 	if err != nil {
-		ctx.ServerError("ShowBranchFeed", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -150,10 +150,16 @@ func TestDetectFileTypeBox(t *testing.T) {
 	assert.Equal(t, []string{"AAAA"}, brands)
 }
 
-func TestDetectContentTypeAvif(t *testing.T) {
-	buf := []byte("\x00\x00\x00\x20ftypavif.......................")
-	st := DetectContentType(buf)
-	assert.Equal(t, MimeTypeImageAvif, st.contentType)
+func TestDetectContentTypeImage(t *testing.T) {
+	t.Run("avif", func(t *testing.T) {
+		buf := []byte("\x00\x00\x00\x20ftypavif.......................")
+		st := DetectContentType(buf)
+		assert.Equal(t, MimeTypeImageAvif, st.contentType)
+	})
+	t.Run("jxl", func(t *testing.T) {
+		assert.Equal(t, MimeTypeImageJxl, DetectContentType([]byte("\xFF\x0A....")).contentType)
+		assert.Equal(t, MimeTypeImageJxl, DetectContentType([]byte("\x00\x00\x00\x0CJXL \x0D\x0A\x87\x0A...")).contentType)
+	})
 }
 
 func TestDetectContentTypeIncorrectFont(t *testing.T) {

@@ -1,6 +1,7 @@
 import {generateElemId} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {isDarkTheme} from '../utils.ts';
+import {resolveCssColor} from '../utils/color.ts';
 
 function safeRenderIframeLink(link: any): string | null {
   try {
@@ -36,7 +37,7 @@ function getRealBackgroundColor(el: HTMLElement) {
     const bgColor = style.backgroundColor;
     // 'rgba(0, 0, 0, 0)' is how most browsers represent transparent
     if (bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
-      return bgColor;
+      return resolveCssColor(bgColor);
     }
   }
   return '';

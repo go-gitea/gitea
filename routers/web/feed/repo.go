@@ -26,7 +26,7 @@ func ShowRepoFeed(ctx *context.Context, repo *repo_model.Repository, formatType 
 		Date:           ctx.FormString("date"),
 	})
 	if err != nil {
-		ctx.ServerError("GetFeeds", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -39,7 +39,7 @@ func ShowRepoFeed(ctx *context.Context, repo *repo_model.Repository, formatType 
 
 	feed.Items, err = feedActionsToFeedItems(ctx, actions)
 	if err != nil {
-		ctx.ServerError("convert feed", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -51,10 +51,8 @@ func GetTree(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitTreeResponse"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {

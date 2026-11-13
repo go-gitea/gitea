@@ -27,7 +27,7 @@ func TestPermissionsAPI(t *testing.T) {
 	}
 
 	resp := requestPermissions(t, "user1", "unknown", "org25", http.StatusNotFound)
-	assert.Equal(t, "user redirect does not exist [name: unknown]", DecodeJSON(t, resp, &api.APIError{}).Message)
+	assert.Equal(t, "user not found", DecodeJSON(t, resp, &api.APIError{}).Message)
 	requestPermissions(t, "user1", "user1", "unknown", http.StatusNotFound)
 	requestPermissions(t, "user8", "user5", "privated_org", http.StatusNotFound)
 

@@ -103,12 +103,6 @@
   border-radius: 0 0.28571429rem 0.28571429rem 0;
 }
 
-.ui.clearing.segment::after {
-  content: "";
-  display: block;
-  clear: both;
-}
-
 .ui.secondary.segment {
   background: var(--color-secondary-bg);
   color: var(--color-text-light);
