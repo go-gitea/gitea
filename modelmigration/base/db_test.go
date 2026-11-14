@@ -8,8 +8,11 @@ import (
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modelmigration/migrationtest"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"xorm.io/xorm/names"
 )
 
@@ -81,4 +84,23 @@ func Test_DropTableColumns(t *testing.T) {
 			}
 		}
 	}
+
+	if !setting.Database.Type.IsSQLite3() {
+		return
+	}
+	for _, sql := range []string{
+		"CREATE TABLE `drop_test` (`id` INTEGER, \"keep_column\" TEXT, \"to_drop_column\" TEXT)",
+		"CREATE INDEX `IDX_drop_test_composite` ON `drop_test` (`id`, `to_drop_column`)",
+		"CREATE INDEX `IDX_drop_test_keep` ON `drop_test` (`keep_column`)",
+		"INSERT INTO `drop_test` (`keep_column`) VALUES ('keep')",
+	} {
+		_, err := x.Exec(sql)
+		require.NoError(t, err)
+	}
+	require.NoError(t, base.EngineTransaction(x, func(sess base.Session) error {
+		return base.DropTableColumns(sess, "drop_test", "ID", "TO_DROP_COLUMN", "missing_column")
+	}))
+	rows, err := x.SQL("SELECT * FROM `drop_test` INDEXED BY `IDX_drop_test_keep`").QueryString()
+	require.NoError(t, err)
+	assert.Equal(t, []map[string]string{{"keep_column": "keep"}}, rows)
 }
