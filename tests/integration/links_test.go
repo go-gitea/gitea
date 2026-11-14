@@ -204,6 +204,7 @@ func testLinksAsUser(t *testing.T) {
 		"/commits/branch/master",
 		"/graph",
 		"/settings",
+		"/settings/actions/general",
 		"/settings/collaboration",
 		"/settings/branches",
 		"/settings/hooks",
