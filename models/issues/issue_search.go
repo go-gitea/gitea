@@ -31,7 +31,7 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	AllPublic          bool    // include also all public repositories
 	RepoCond           builder.Cond
 	AssigneeID         string // "(none)" or "(any)" or a user ID
-	PosterID           string // "(none)" or "(any)" or a user ID
+	PosterID           string // a user ID
 	MentionedID        int64
 	ReviewRequestedID  int64
 	ReviewedID         int64
@@ -373,18 +373,14 @@ func applyAssigneeCondition(sess db.Session, assigneeID string) {
 		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
 	} else if assigneeID == "(any)" {
 		sess.Where("issue.id IN (SELECT issue_id FROM issue_assignees)")
-	} else if assigneeIDInt64, _ := strconv.ParseInt(assigneeID, 10, 64); assigneeIDInt64 > 0 {
+	} else if assigneeIDInt64, _ := strconv.ParseInt(assigneeID, 10, 64); assigneeIDInt64 != 0 {
 		sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 			And("issue_assignees.assignee_id = ?", assigneeIDInt64)
 	}
 }
 
 func applyPosterCondition(sess db.Session, posterID string) {
-	// Actually every issue has a poster.
-	// The "(none)" is for internal usage only: when doer tries to search non-existing user as poster, use "(none)" to return empty result.
-	if posterID == "(none)" {
-		sess.And("issue.poster_id=0")
-	} else if posterIDInt64, _ := strconv.ParseInt(posterID, 10, 64); posterIDInt64 > 0 {
+	if posterIDInt64, _ := strconv.ParseInt(posterID, 10, 64); posterIDInt64 != 0 {
 		sess.And("issue.poster_id=?", posterIDInt64)
 	}
 }
