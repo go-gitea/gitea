@@ -14,6 +14,19 @@ import (
 	packages_service "gitea.dev/services/packages"
 )
 
+// ToPackageVersion converts a package version for the single version
+// endpoint, with the metadata of the types that publish it.
+func ToPackageVersion(ctx context.Context, pd *packages.PackageDescriptor, doer *user_model.User) (*api.Package, error) {
+	p, err := ToPackage(ctx, pd, doer)
+	if err != nil {
+		return nil, err
+	}
+	if publisher, ok := packages_service.GetSpecManager().Get(pd.Package.Type).(packages_service.PublicMetadataPublisher); ok {
+		p.Metadata = publisher.PublicMetadata(pd)
+	}
+	return p, nil
+}
+
 // ToPackage convert a packages.PackageDescriptor to api.Package
 func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_model.User) (*api.Package, error) {
 	var repo *api.Repository
