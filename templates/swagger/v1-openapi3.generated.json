@@ -3622,6 +3622,9 @@
             "type": "array",
             "x-go-name": "Commits"
           },
+          "merge_base_commit": {
+            "$ref": "#/components/schemas/Commit"
+          },
           "total_commits": {
             "format": "int64",
             "type": "integer",
@@ -21016,7 +21019,7 @@
             }
           },
           {
-            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "description": "include a list of affected files for every commit in `commits` (disable for speedup, default 'true')",
             "in": "query",
             "name": "files",
             "schema": {
