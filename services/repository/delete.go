@@ -11,6 +11,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	admin_model "gitea.dev/models/admin"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -31,6 +32,7 @@ import (
 	"gitea.dev/modules/storage"
 	actions_service "gitea.dev/services/actions"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	issue_service "gitea.dev/services/issue"
 
 	"xorm.io/builder"
@@ -414,6 +416,7 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
 				return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, owner.Name, owner.ID, err)
 			}
+			audit.Record(ctx, audit_model.RepositoryDelete, repo)
 		}
 	}
 	return nil

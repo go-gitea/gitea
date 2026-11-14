@@ -27,6 +27,8 @@ func TestAuditNotifier(t *testing.T) {
 	ctx := reqctx.NewRequestContextForTest(t)
 	SetRequestInfo(ctx, audit_model.OriginUI, "127.0.0.1")
 	notifier := new(auditNotifier)
+	migrator := &user_model.User{ID: 3, Name: "migrator"}
+	pr := &issues_model.PullRequest{Issue: &issues_model.Issue{Index: 7, Repo: repo}}
 
 	for _, tc := range []struct {
 		notify func()
@@ -60,10 +62,26 @@ func TestAuditNotifier(t *testing.T) {
 			func() { notifier.ChangeDefaultBranch(ctx, repo) },
 			audit_model.Event{Action: audit_model.RepositoryBranchDefault},
 		},
+		{
+			func() { notifier.MigrateRepository(ctx, migrator, migrator, repo) },
+			audit_model.Event{Action: audit_model.RepositoryCreate, ActorID: migrator.ID, Origin: audit_model.OriginUI},
+		},
+		{
+			func() { notifier.AutoMergePullRequest(ctx, doer, pr) },
+			audit_model.Event{Action: audit_model.PullRequestMerge, ActorID: doer.ID},
+		},
+		{
+			func() { notifier.PullRequestCodeComment(ctx, pr, &issues_model.Comment{ID: 32, Poster: doer}, nil) },
+			audit_model.Event{Action: audit_model.PullRequestCommentCreate, ActorID: doer.ID, Message: "Added comment 32 to pull request #7 in repository owner/repo."},
+		},
 	} {
 		tc.notify()
 		tc.event.ScopeType = audit_model.ScopeRepository
 		tc.event.ScopeID = repo.ID
 		unittest.AssertExistsAndLoadBean(t, &tc.event)
 	}
+	notifier.PullRequestReview(ctx, pr, &issues_model.Review{ID: 21, Type: issues_model.ReviewTypeApprove, Reviewer: doer}, &issues_model.Comment{ID: 31}, nil)
+	assert.JSONEq(t, `{"pull_request":"#7","comment_id":31,"review_id":21,"review_type":"approve"}`, unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
+		Action: audit_model.PullRequestCommentCreate, ActorID: doer.ID, Message: "Added comment 31 to pull request #7 in repository owner/repo.",
+	}).Metadata)
 }

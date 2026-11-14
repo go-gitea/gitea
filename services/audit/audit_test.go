@@ -9,6 +9,7 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	repository_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
@@ -214,6 +215,11 @@ func TestImpersonatorRef(t *testing.T) {
 	// an admin acting as themselves is not an impersonation
 	assert.Nil(t, impersonatorRef(admin, admin))
 	assert.Nil(t, impersonatorRef(nil, impersonated))
+
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+	RecordScoped(rc, impersonated, nil, SecretAdd, "secret", "name")
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserSecretAdd, ImpersonatorID: admin.ID})
 }
 
 // An unresolvable actor must still produce an event, so a missing entry point

@@ -29,6 +29,10 @@ func (n *auditNotifier) CreateRepository(ctx context.Context, doer, _ *user_mode
 	RecordAs(ctx, doer, audit_model.RepositoryCreate, repo)
 }
 
+func (n *auditNotifier) MigrateRepository(ctx context.Context, doer, _ *user_model.User, repo *repo_model.Repository) {
+	RecordAs(ctx, doer, audit_model.RepositoryCreate, repo)
+}
+
 func (n *auditNotifier) ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
 	RecordAs(ctx, doer, audit_model.RepositoryCreateFork, repo, "base_repo", oldRepo.FullName())
 }
@@ -63,6 +67,14 @@ func loadIssueRepo(ctx context.Context, issue *issues_model.Issue) *repo_model.R
 	return issue.Repo
 }
 
+func loadPullRequestRepo(ctx context.Context, pr *issues_model.PullRequest) *repo_model.Repository {
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("audit: LoadIssue for pull request %d: %v", pr.ID, err)
+		return nil
+	}
+	return loadIssueRepo(ctx, pr.Issue)
+}
+
 func issueOrPR(issue *issues_model.Issue, issueAction, prAction audit_model.Action) (audit_model.Action, string) {
 	if issue.IsPull {
 		return prAction, "pull_request"
@@ -94,13 +106,7 @@ func (n *auditNotifier) DeleteIssue(ctx context.Context, doer *user_model.User, 
 }
 
 func (n *auditNotifier) NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, _ []*user_model.User) {
-	if pr.Issue == nil {
-		if err := pr.LoadIssue(ctx); err != nil {
-			log.Error("audit: LoadIssue for pull request %d: %v", pr.ID, err)
-			return
-		}
-	}
-	repo := loadIssueRepo(ctx, pr.Issue)
+	repo := loadPullRequestRepo(ctx, pr)
 	if repo == nil {
 		return
 	}
@@ -108,17 +114,33 @@ func (n *auditNotifier) NewPullRequest(ctx context.Context, pr *issues_model.Pul
 }
 
 func (n *auditNotifier) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
-	if pr.Issue == nil {
-		if err := pr.LoadIssue(ctx); err != nil {
-			log.Error("audit: LoadIssue for pull request %d: %v", pr.ID, err)
-			return
-		}
-	}
-	repo := loadIssueRepo(ctx, pr.Issue)
+	repo := loadPullRequestRepo(ctx, pr)
 	if repo == nil {
 		return
 	}
 	RecordAs(ctx, doer, audit_model.PullRequestMerge, repo, issueMeta(pr.Issue, "pull_request")...)
+}
+
+func (n *auditNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	n.MergePullRequest(ctx, doer, pr)
+}
+
+var reviewTypeNames = map[issues_model.ReviewType]string{
+	issues_model.ReviewTypeApprove: "approve",
+	issues_model.ReviewTypeComment: "comment",
+	issues_model.ReviewTypeReject:  "reject",
+}
+
+func (n *auditNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, _ []*user_model.User) {
+	if repo := loadPullRequestRepo(ctx, pr); repo != nil {
+		RecordAs(ctx, review.Reviewer, audit_model.PullRequestCommentCreate, repo, "pull_request", issueLabel(pr.Issue), "comment_id", comment.ID, "review_id", review.ID, "review_type", reviewTypeNames[review.Type])
+	}
+}
+
+func (n *auditNotifier) PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, _ []*user_model.User) {
+	if repo := loadPullRequestRepo(ctx, pr); repo != nil {
+		RecordAs(ctx, comment.Poster, audit_model.PullRequestCommentCreate, repo, "pull_request", issueLabel(pr.Issue), "comment_id", comment.ID)
+	}
 }
 
 func (n *auditNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment, _ []*user_model.User) {

@@ -205,6 +205,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectUpdate, ctx.ContextUser, "project", project.Title, "project_id", project.ID)
 	ctx.JSONRedirect(project_model.ProjectLinkForOrg(ctx.ContextUser, project.ID))
 }
 
