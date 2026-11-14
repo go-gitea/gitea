@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"gitea.dev/modules/egress/policy"
@@ -186,15 +187,22 @@ func TestWriteUpstreamError(t *testing.T) {
 	}
 }
 
+type spliceFailConn struct{ net.Conn }
+
+func (spliceFailConn) WriteTo(io.Writer) (int64, error)  { return 0, syscall.EBADF }
+func (spliceFailConn) ReadFrom(io.Reader) (int64, error) { return 0, syscall.EBADF }
+
 func TestRelay(t *testing.T) {
 	t.Parallel()
 	client, clientEnd := net.Pipe()
 	upstreamEnd, upstream := net.Pipe()
 	done := make(chan struct{})
 	go func() {
-		relay(clientEnd, upstreamEnd)
+		relay(spliceFailConn{clientEnd}, upstreamEnd)
 		close(done)
 	}()
+	go func() { _, _ = io.Copy(upstream, upstream) }()
+	assertEcho(t, client, bufio.NewReader(client))
 	require.NoError(t, upstream.Close())
 	_, err := client.Read(make([]byte, 1))
 	assert.ErrorIs(t, err, io.EOF)

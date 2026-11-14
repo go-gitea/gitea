@@ -22,6 +22,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	"gitea.dev/modules/egress"
@@ -146,8 +147,7 @@ func tunnel(proxyURL, target string) error {
 		_, _ = io.Copy(conn, os.Stdin)
 		closeWrite(conn)
 	}()
-	_, err = io.Copy(os.Stdout, conn)
-	return err
+	return copyConn(os.Stdout, conn)
 }
 
 // proxyTLSConfig loads the files of git's http.proxySSL* options, like curl the CA file replaces the system roots
@@ -377,15 +377,24 @@ func withBuffered(conn net.Conn, r *bufio.Reader) net.Conn {
 func relay(client, upstream net.Conn) {
 	done := make(chan struct{})
 	go func() {
-		_, _ = io.Copy(upstream, client)
+		_ = copyConn(upstream, client)
 		closeWrite(upstream)
 		close(done)
 	}()
-	_, _ = io.Copy(client, upstream)
+	_ = copyConn(client, upstream)
 	closeWrite(client)
 	<-done
 	_ = client.Close()
 	_ = upstream.Close()
+}
+
+// copyConn falls back to a plain copy as some vendor kernels fail splice with EBADF, Go only does so on EINVAL
+func copyConn(dst io.Writer, src io.Reader) error {
+	n, err := io.Copy(dst, src)
+	if n == 0 && errors.Is(err, syscall.EBADF) {
+		_, err = io.Copy(struct{ io.Writer }{dst}, struct{ io.Reader }{src})
+	}
+	return err
 }
 
 func closeWrite(conn net.Conn) {
