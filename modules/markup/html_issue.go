@@ -51,10 +51,15 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		link := node.Data[m[0]:m[1]]
-		if !httplib.IsCurrentGiteaSiteURL(ctx, link) {
+		siteURL := httplib.ParseGiteaSiteURL(ctx, link)
+		if siteURL == nil {
 			return
 		}
-		text := "#" + node.Data[m[2]:m[3]]
+		isSameRepo := siteURL.OwnerName == ctx.RenderOptions.Metas["user"] && siteURL.RepoName == ctx.RenderOptions.Metas["repo"]
+
+		// external trackers reference local pull requests as "!N", like merge messages
+		_, hasExternalTracker := ctx.RenderOptions.Metas["externalTrackerLinkFormat"]
+		text := util.Iif(isSameRepo && hasExternalTracker && strings.HasPrefix(siteURL.RepoSubPath, "/pulls/"), "!", "#") + node.Data[m[2]:m[3]]
 		// if m[4] and m[5] is not -1, then link is to a comment
 		// indicate that in the text by appending (comment)
 		if m[4] != -1 && m[5] != -1 {
@@ -65,18 +70,10 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		}
 
-		// extract repo and org name from matched link like
-		// http://localhost:3000/gituser/myrepo/issues/1
-		linkParts := strings.Split(link, "/")
-		matchOrg := linkParts[len(linkParts)-4]
-		matchRepo := linkParts[len(linkParts)-3]
-
-		if matchOrg == ctx.RenderOptions.Metas["user"] && matchRepo == ctx.RenderOptions.Metas["repo"] {
-			replaceContent(node, m[0], m[1], createLink(ctx, link, text, "ref-issue"))
-		} else {
-			text = matchOrg + "/" + matchRepo + text
-			replaceContent(node, m[0], m[1], createLink(ctx, link, text, "ref-issue"))
+		if !isSameRepo {
+			text = siteURL.OwnerName + "/" + siteURL.RepoName + text
 		}
+		replaceContent(node, m[0], m[1], createLink(ctx, link, text, "ref-issue"))
 		start = 0
 		node = node.NextSibling.NextSibling
 	}
