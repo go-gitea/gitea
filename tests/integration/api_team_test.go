@@ -124,6 +124,8 @@ func TestAPITeam(t *testing.T) {
 		expectedTeamUnitsMap := map[string]string{"repo.code": "read", "repo.issues": "read"}
 		checkTeamResponse(t, "CreateTeam1", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, expectedTeamUnitsMap)
 		checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, expectedTeamUnitsMap)
+		// Visibility omitted in request, should fall back to the configured default (private).
+		assert.Equal(t, api.TeamVisibilityPrivate, apiTeam.Visibility)
 		teamID := apiTeam.ID
 
 		MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).AddTokenAuth(token), http.StatusConflict)

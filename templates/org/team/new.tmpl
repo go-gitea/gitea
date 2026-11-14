@@ -44,7 +44,7 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="visibility" value="private" {{if or .PageIsOrgTeamsNew .Team.IsPrivate}}checked{{end}}>
+										<input type="radio" name="visibility" value="private" {{if .Team.IsPrivate}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "org.teams.visibility_private"}}</label>
 										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_private_helper"}}</span>
 									</div>

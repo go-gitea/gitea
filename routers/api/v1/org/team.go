@@ -17,6 +17,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -210,13 +211,17 @@ func CreateTeam(ctx *context.APIContext) {
 	//   default:
 	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.CreateTeamOption](ctx)
+	visibility := setting.Service.DefaultTeamVisibilityMode
+	if form.Visibility != "" {
+		visibility = organization.NormalizeTeamVisibility(form.Visibility)
+	}
 	team := &organization.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
-		Visibility:              organization.NormalizeTeamVisibility(form.Visibility),
+		Visibility:              visibility,
 	}
 	_, err := assignTeamPermissionUnits(team, string(form.Permission), form.Units, form.UnitsMap)
 	if err != nil {
