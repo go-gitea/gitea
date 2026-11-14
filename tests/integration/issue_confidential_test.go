@@ -248,6 +248,9 @@ var renderTimingPattern = regexp.MustCompile(`(Page|Template): <strong>[0-9a-zµ
 
 var csrfValuePattern = regexp.MustCompile(`(?i)(_csrf|csrf_token)(["'=: ]+(?:value=)?["']?)[A-Za-z0-9_\-.:=]+`)
 
+// the site manifest is inlined as base64 JSON whose key order differs between renders
+var manifestLinkPattern = regexp.MustCompile(`(<link rel="manifest" href=")[^"]*`)
+
 type confidentialWebFixture struct {
 	issue          *issues_model.Issue
 	commentID      int64
@@ -292,12 +295,14 @@ func newConfidentialWebFixture(t *testing.T, keyword string) *confidentialWebFix
 	}
 }
 
-// doNormalized sends the request and returns status and body with the issue index, CSP nonces, render timings and CSRF values masked.
+// doNormalized sends the request and returns status and body with the issue index, CSP nonces, render timings,
+// the inlined manifest and CSRF values masked.
 func doNormalized(t *testing.T, session *TestSession, method, path string, index int64, values map[string]string) (int, string) {
 	req := NewRequestWithValues(t, method, strings.ReplaceAll(path, "{index}", strconv.FormatInt(index, 10)), values).SetHeader("Accept", "text/html")
 	resp := session.MakeRequest(t, req, NoExpectedStatus)
 	body := nonceValuePattern.ReplaceAllString(resp.Body.String(), "nonce$1***")
 	body = renderTimingPattern.ReplaceAllString(body, "$1: ***")
+	body = manifestLinkPattern.ReplaceAllString(body, "$1***")
 	body = strings.ReplaceAll(body, strconv.FormatInt(index, 10), "{index}")
 	return resp.Code, csrfValuePattern.ReplaceAllString(body, "$1$2***")
 }
