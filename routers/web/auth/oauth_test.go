@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -129,6 +130,7 @@ func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
 
 func TestOAuth2ScopeChange(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("oauth2-scope-change")}
@@ -175,6 +177,8 @@ func TestOAuth2ScopeChange(t *testing.T) {
 			assert.Empty(t, redirect.Query().Get("error"))
 			assert.Equal(t, "state", redirect.Query().Get("state"))
 			unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, Scope: tt.wantScope})
+			event := unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserOAuth2ApplicationGrant, ScopeID: doer.ID}, unittest.OrderBy("id DESC"))
+			assert.Equal(t, tt.wantScope, audit_model.DecodeMetadata(event.Metadata)["granted_scope"])
 			assert.NotEmpty(t, redirect.Query().Get("code"))
 			resp = authorize(tt.scope)
 			assert.Equal(t, http.StatusSeeOther, resp.Code)

@@ -163,5 +163,8 @@ func TwoFactorScratchPost(ctx *context.Context) {
 		return
 	}
 
+	if u, err := user_model.GetUserByID(ctx, id); err == nil {
+		audit.RecordAs(ctx, u, audit_model.UserAuthenticationFailTwoFactor, u)
+	}
 	ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplTwofaScratch, forms.TwoFactorScratchAuthForm{})
 }

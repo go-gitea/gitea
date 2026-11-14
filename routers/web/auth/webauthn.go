@@ -8,12 +8,14 @@ import (
 	"errors"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	wa "gitea.dev/modules/auth/webauthn"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -226,6 +228,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	if err != nil {
 		// Failed authentication attempt.
 		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
+		audit.RecordAs(ctx, user, audit_model.UserAuthenticationFailTwoFactor, user)
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -236,6 +239,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	if err != nil {
 		// Failed authentication attempt.
 		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
+		audit.RecordAs(ctx, user, audit_model.UserAuthenticationFailTwoFactor, user)
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -244,6 +248,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	// (This is set if the sign counter is less than the one we have stored.)
 	if cred.Authenticator.CloneWarning {
 		log.Info("Failed authentication attempt for %s from %s: cloned credential", user.Name, ctx.RemoteAddr())
+		audit.RecordAs(ctx, user, audit_model.UserAuthenticationFailTwoFactor, user)
 		ctx.Status(http.StatusForbidden)
 		return
 	}

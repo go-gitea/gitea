@@ -8,10 +8,13 @@ import (
 	"strconv"
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/stretchr/testify/assert"
@@ -20,6 +23,7 @@ import (
 
 func TestDisableTwoFactorCommand(t *testing.T) {
 	ctx := t.Context()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 	defer func() {
 		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.User{}, &auth_model.TwoFactor{}, &auth_model.WebAuthnCredential{}))
@@ -50,6 +54,7 @@ func TestDisableTwoFactorCommand(t *testing.T) {
 		has, err = auth_model.HasTwoFactorOrWebAuthn(ctx, user.ID)
 		require.NoError(t, err)
 		assert.False(t, has)
+		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserTwoFactorDisable, ScopeID: user.ID})
 	})
 
 	t.Run("disable by id", func(t *testing.T) {
@@ -70,6 +75,7 @@ func TestDisableTwoFactorCommand(t *testing.T) {
 	t.Run("no enrollment is a no-op", func(t *testing.T) {
 		require.NoError(t, microcmdUserCreate().Run(ctx, []string{"create", "--username", "plainuser", "--email", "plainuser@gitea.local", "--random-password"}))
 		require.NoError(t, microcmdUserDisableTwoFactor().Run(ctx, []string{"disable-2fa", "--username", "plainuser"}))
+		unittest.AssertNotExistsBean(t, &audit_model.Event{Action: audit_model.UserTwoFactorDisable, ScopeName: "plainuser"})
 	})
 
 	t.Run("id and username must match when both given", func(t *testing.T) {

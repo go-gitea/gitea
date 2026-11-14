@@ -6,15 +6,19 @@ package oauth2
 import (
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSource(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 	source := &Source{
 		Provider: "fake",
@@ -69,13 +73,15 @@ func TestSource(t *testing.T) {
 		})
 
 		t.Run("expired", func(t *testing.T) {
-			err := source.refresh(t.Context(), provider, &user_model.ExternalLoginUser{
-				ExternalID:    "external",
-				UserID:        user.ID,
-				LoginSourceID: user.LoginSource,
-				RefreshToken:  "expired",
-			})
-			assert.NoError(t, err)
+			for range 2 {
+				assert.NoError(t, source.refresh(t.Context(), provider, &user_model.ExternalLoginUser{
+					ExternalID:    "external",
+					UserID:        user.ID,
+					LoginSourceID: user.LoginSource,
+					RefreshToken:  "expired",
+				}))
+			}
+			unittest.AssertCount(t, &audit_model.Event{Action: audit_model.UserActive, ScopeID: user.ID, ActorID: user_model.AuthSourceUserID}, 1)
 
 			e, ok, err := user_model.GetExternalLogin(t.Context(), e.LoginSourceID, e.ExternalID)
 			assert.NoError(t, err)

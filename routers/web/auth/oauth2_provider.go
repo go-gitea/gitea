@@ -452,6 +452,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 			handleServerError(ctx, form.State, form.RedirectURI)
 			return
 		}
+		audit.Record(ctx, audit_model.UserOAuth2ApplicationGrant, ctx.Doer, "oauth2_application", app.Name, "granted_scope", form.Scope)
 	}
 
 	if len(form.Nonce) > 0 {
