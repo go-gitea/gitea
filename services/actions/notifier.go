@@ -218,6 +218,11 @@ func labelHookEvent(issue *issues_model.Issue) webhook_module.HookEventType {
 }
 
 func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction, changes *api.ChangesPayload) {
+	// every caller already returns for a confidential issue but IssueClearLabels did not; this is the one place they all pass
+	if issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
 		return
