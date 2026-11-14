@@ -7892,6 +7892,34 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "LinkExternalLoginOption": {
+        "description": "LinkExternalLoginOption options to link a user to an external account for migrated content attribution",
+        "properties": {
+          "external_id": {
+            "description": "The user's numeric ID on the external service",
+            "type": "string",
+            "x-go-name": "ExternalID"
+          },
+          "login_source_id": {
+            "description": "The ID of the authentication source the external account belongs to",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "LoginSourceID"
+          },
+          "provider": {
+            "description": "The migration service name, e.g. \"bitbucketserver\"",
+            "type": "string",
+            "x-go-name": "Provider"
+          }
+        },
+        "required": [
+          "provider",
+          "external_id",
+          "login_source_id"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "LockIssueOption": {
         "description": "LockIssueOption options to lock an issue",
         "properties": {
@@ -12514,6 +12542,46 @@
           }
         },
         "summary": "Add a badge to a user",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/users/{username}/external-logins": {
+      "post": {
+        "description": "Records the external account under an authentication source, so migrations from provider attribute its issues, pull requests and comments to the user. Relinking the same user succeeds. For OAuth2 sources the link also allows signing in, and the source has to be named like the provider.",
+        "operationId": "adminLinkExternalLogin",
+        "parameters": [
+          {
+            "description": "username of the user to link",
+            "in": "path",
+            "name": "username",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkExternalLoginOption"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Link a user to an account on an external service",
         "tags": [
           "admin"
         ]

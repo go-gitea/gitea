@@ -979,6 +979,47 @@
         }
       }
     },
+    "/admin/users/{username}/external-logins": {
+      "post": {
+        "description": "Records the external account under an authentication source, so migrations from provider attribute its issues, pull requests and comments to the user. Relinking the same user succeeds. For OAuth2 sources the link also allows signing in, and the source has to be named like the provider.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Link a user to an account on an external service",
+        "operationId": "adminLinkExternalLogin",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user to link",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LinkExternalLoginOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "default": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/admin/users/{username}/keys": {
       "post": {
         "consumes": [
@@ -30384,6 +30425,34 @@
           "description": "URL is the reference URL for the license",
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "LinkExternalLoginOption": {
+      "description": "LinkExternalLoginOption options to link a user to an external account for migrated content attribution",
+      "type": "object",
+      "required": [
+        "provider",
+        "external_id",
+        "login_source_id"
+      ],
+      "properties": {
+        "external_id": {
+          "description": "The user's numeric ID on the external service",
+          "type": "string",
+          "x-go-name": "ExternalID"
+        },
+        "login_source_id": {
+          "description": "The ID of the authentication source the external account belongs to",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LoginSourceID"
+        },
+        "provider": {
+          "description": "The migration service name, e.g. \"bitbucketserver\"",
+          "type": "string",
+          "x-go-name": "Provider"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"

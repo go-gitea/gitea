@@ -384,7 +384,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		// the cron clears all three token fields when it disables a user, so require the
 		// full signature; a RefreshToken alone is empty for many normal logins (e.g. GitHub
 		// or OIDC without offline_access), which would otherwise reactivate admin-disabled users
-		isDisabledByAutoSync := hasExt && extLogin.AccessToken == "" && extLogin.RefreshToken == "" && extLogin.ExpiresAt.IsZero()
+		isDisabledByAutoSync := hasExt && len(extLogin.RawData) > 0 && extLogin.AccessToken == "" && extLogin.RefreshToken == "" && extLogin.ExpiresAt.IsZero() // links never signed in through, e.g. created by an admin, have no RawData
 		if isDisabledByAutoSync {
 			opts.IsActive = optional.Some(true)
 		}

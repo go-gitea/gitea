@@ -710,9 +710,17 @@ func UpdateIssuesMigrationsByType(ctx context.Context, gitServiceType api.GitSer
 
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
 func UpdateReactionsMigrationsByType(ctx context.Context, gitServiceType api.GitServiceType, originalAuthorID string, userID int64) error {
-	_, err := db.GetEngine(ctx).Table("reaction").
-		Where("original_author_id = ?", originalAuthorID).
-		And(migratedIssueCond(gitServiceType)).
+	cond := builder.Eq{"original_author_id": originalAuthorID}.And(migratedIssueCond(gitServiceType))
+	duplicateIDs, err := db.FindIDs(ctx, "reaction", "id", cond.And(builder.Expr(`EXISTS (SELECT 1 FROM reaction own
+		WHERE own.user_id = ? AND own.original_author_id = 0 AND own.issue_id = reaction.issue_id AND own.comment_id = reaction.comment_id
+		AND own.release_id = reaction.release_id AND own.type = reaction.type)`, userID)))
+	if err != nil {
+		return err
+	}
+	if err := db.DeleteByIDs[Reaction](ctx, duplicateIDs...); err != nil {
+		return err
+	}
+	_, err = db.GetEngine(ctx).Table("reaction").Where(cond).
 		Update(map[string]any{
 			"user_id":            userID,
 			"original_author":    "",
