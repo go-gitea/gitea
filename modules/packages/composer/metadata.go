@@ -18,6 +18,7 @@ import (
 
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -206,13 +207,13 @@ func readPackageFile(pkgExt string, r ReadSeekAt, filename string, limit int) ([
 		return readPackageFileZip(r, filename, limit)
 	case pkgExtTarBz2:
 		bzip2Reader := bzip2.NewReader(r)
-		return readPackageFileTar(bzip2Reader, filename, limit)
+		return readPackageFileTar(packages.NewArchiveLimitedReader(bzip2Reader, r.Size()), filename, limit)
 	case pkgExtTarGz:
 		gzReader, err := gzip.NewReader(r)
 		if err != nil {
 			return nil, err
 		}
-		return readPackageFileTar(gzReader, filename, limit)
+		return readPackageFileTar(packages.NewArchiveLimitedReader(gzReader, r.Size()), filename, limit)
 	}
 	return nil, util.NewInvalidArgumentErrorf("not a valid package file")
 }

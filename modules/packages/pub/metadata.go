@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -59,7 +60,7 @@ type pubspecPackage struct {
 }
 
 // ParsePackage parses the Pub package file
-func ParsePackage(r io.Reader) (*Package, error) {
+func ParsePackage(r packages.SizedReader) (*Package, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
@@ -69,7 +70,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	var p *Package
 	var readme string
 
-	tr := tar.NewReader(gzr)
+	tr := tar.NewReader(packages.NewArchiveLimitedReader(gzr, r.Size()))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {

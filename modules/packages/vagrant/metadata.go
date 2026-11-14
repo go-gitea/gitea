@@ -27,14 +27,14 @@ type Metadata struct {
 }
 
 // ParseMetadataFromBox parses the metadata of a box file
-func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
+func ParseMetadataFromBox(r packages.SizedReader) (*Metadata, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(gzr)
+	tr := tar.NewReader(packages.NewArchiveLimitedReader(gzr, r.Size()))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {

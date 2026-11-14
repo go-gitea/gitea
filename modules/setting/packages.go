@@ -18,6 +18,7 @@ var (
 
 		LimitTotalOwnerCount     int64
 		LimitTotalOwnerSize      int64
+		MaxDecompressionRatio    int64
 		LimitSizeAlpine          int64
 		LimitSizeArch            int64
 		LimitSizeCargo           int64
@@ -45,8 +46,9 @@ var (
 
 		DefaultRPMSignEnabled bool
 	}{
-		Enabled:              true,
-		LimitTotalOwnerCount: -1,
+		Enabled:               true,
+		LimitTotalOwnerCount:  -1,
+		MaxDecompressionRatio: 200,
 	}
 )
 

@@ -24,3 +24,8 @@ func TestLimitedReader(t *testing.T) {
 	assert.Zero(t, n)
 	assert.ErrorIs(t, err, ErrContentTooLarge)
 }
+
+func TestArchiveLimitedReader(t *testing.T) {
+	assert.Equal(t, NewLimitedReader(nil, 512*1024*1024), NewArchiveLimitedReader(nil, 1))
+	assert.Equal(t, NewLimitedReader(nil, 200*10*1024*1024), NewArchiveLimitedReader(nil, 10*1024*1024))
+}

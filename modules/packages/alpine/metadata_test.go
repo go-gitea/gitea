@@ -7,7 +7,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"io"
 	"strings"
 	"testing"
 
@@ -44,7 +43,7 @@ provides = gitea`)
 }
 
 func TestParsePackage(t *testing.T) {
-	createPackage := func(name string, content []byte) io.Reader {
+	createPackage := func(name string, content []byte) *bytes.Reader {
 		names := []string{"first.stream", name}
 		contents := [][]byte{{0}, content}
 
@@ -70,7 +69,7 @@ func TestParsePackage(t *testing.T) {
 
 		zw.Close()
 
-		return &buf
+		return bytes.NewReader(buf.Bytes())
 	}
 
 	t.Run("MissingPKGINFOFile", func(t *testing.T) {
