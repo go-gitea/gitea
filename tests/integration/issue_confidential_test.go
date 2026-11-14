@@ -1368,3 +1368,50 @@ func TestConfidentialIssueMailReferences(t *testing.T) {
 	}
 	assert.Equal(t, 1, toWatcher, "the watcher gets the mail about the public issue")
 }
+
+// Every counter in an API response leaves out the confidential issues hidden from the caller, wherever the counted
+// object appears: the milestone of an issue, the answer to editing a milestone, the repository of a code search hit.
+func TestConfidentialIssueCountersInAPI(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	confidential := newConfidentialListIssue(t, "walrusconf", true)
+	_, err := db.GetEngine(t.Context()).ID(confidential.ID).Cols("milestone_id").Update(&issues_model.Issue{MilestoneID: 1})
+	require.NoError(t, err)
+	require.NoError(t, issues_model.UpdateMilestoneCounters(t.Context(), 1))
+
+	openIssues := func(token, method, link string) int {
+		req := NewRequest(t, method, link)
+		if method == "PATCH" {
+			req = NewRequestWithJSON(t, method, link, &api.EditMilestoneOption{})
+		}
+		if token != "" {
+			req.AddTokenAuth(token)
+		}
+		if strings.Contains(link, "/issues/") {
+			return DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Issue{}).Milestone.OpenIssues
+		}
+		return DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Milestone{}).OpenIssues
+	}
+	writer := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadRepository)
+	publicOnlyWriter := getUserToken(t, "user2", auth_model.AccessTokenScopePublicOnly, auth_model.AccessTokenScopeWriteIssue)
+
+	// issue #2 is the public issue in milestone 1
+	assert.Equal(t, 2, openIssues(writer, "GET", "/api/v1/repos/user2/repo1/issues/2"))
+	assert.Equal(t, 1, openIssues("", "GET", "/api/v1/repos/user2/repo1/milestones/1"))
+	assert.Equal(t, 1, openIssues("", "GET", "/api/v1/repos/user2/repo1/issues/2"), "the milestone of an issue counts like GET /milestones/1")
+	assert.Equal(t, 1, openIssues(publicOnlyWriter, "PATCH", "/api/v1/repos/user2/repo1/milestones/1"), "nor does editing it reveal the hidden issue")
+
+	repoCount := func(token string) int {
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
+		if token != "" {
+			req.AddTokenAuth(token)
+		}
+		return DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Repository{}).OpenIssues
+	}
+	results := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/code/search?q=repo1"), http.StatusOK), &api.CodeSearchResults{})
+	require.NotEmpty(t, results.Items)
+	for _, item := range results.Items {
+		assert.Equal(t, repoCount(""), item.Repository.OpenIssues, "a code search hit counts the repository's issues like GET /repos")
+	}
+	assert.Equal(t, repoCount(writer)-1, repoCount(""))
+}

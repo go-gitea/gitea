@@ -243,6 +243,12 @@ func EditMilestone(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	// after the update, which writes every column back: the counters it answers with leave out hidden issues
+	scope := issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission)
+	if err := (issues_model.MilestoneList{milestone}).SubtractHiddenIssues(ctx, scope); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 	ctx.JSON(http.StatusOK, convert.ToAPIMilestone(milestone))
 }
 

@@ -57,7 +57,7 @@ func respondCodeSearch(ctx *context.APIContext, opts *codesearch.Options) {
 			}
 		}
 		if permission.CanRead(unit.TypeCode) {
-			apiRepos[repo.ID] = convert.ToRepo(ctx, repo, permission)
+			apiRepos[repo.ID] = convert.ToAPIRepo(ctx, repo, permission, ctx.Doer)
 		}
 	}
 	items := make([]*api.CodeSearchResultItem, 0, len(result.Results))

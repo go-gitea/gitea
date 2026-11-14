@@ -115,10 +115,10 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 	}
 
 	if c.OldMilestone != nil {
-		comment.OldMilestone = ToAPIMilestone(c.OldMilestone)
+		comment.OldMilestone = toAPIMilestoneFor(ctx, doer, c.OldMilestone)
 	}
 	if c.Milestone != nil {
-		comment.Milestone = ToAPIMilestone(c.Milestone)
+		comment.Milestone = toAPIMilestoneFor(ctx, doer, c.Milestone)
 	}
 
 	if c.Time != nil {

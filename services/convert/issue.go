@@ -93,7 +93,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		return &api.Issue{}
 	}
 	if issue.Milestone != nil {
-		apiIssue.Milestone = ToAPIMilestone(issue.Milestone)
+		apiIssue.Milestone = toAPIMilestoneFor(ctx, doer, issue.Milestone)
 	}
 
 	if err := issue.LoadProjects(ctx); err != nil {
@@ -311,6 +311,27 @@ func ToLabelList(labels []*issues_model.Label, repo *repo_model.Repository, org 
 		result[i] = ToLabel(labels[i], repo, org)
 	}
 	return result
+}
+
+// toAPIMilestoneFor is ToAPIMilestone for a response to doer: like GET /milestones/{id}, its counters leave out
+// the confidential issues hidden from doer. The hidden counts are cached for the request, so a list of issues
+// sharing a milestone costs one query for it.
+func toAPIMilestoneFor(ctx context.Context, doer *user_model.User, m *issues_model.Milestone) *api.Milestone {
+	hidden, err := cache.GetWithContextCache(ctx, "convert:milestone-hidden-confidential", m.ID, func(ctx context.Context, id int64) (issues_model.HiddenIssueCounts, error) {
+		scope, err := issues_model.BuildVisibilityScope(ctx, doer, []int64{m.RepoID}, false)
+		if err != nil {
+			return issues_model.HiddenIssueCounts{}, err
+		}
+		counts, err := issues_model.CountHiddenConfidentialIssuesByMilestone(ctx, scope, []int64{id})
+		return counts[id], err
+	})
+	if err != nil {
+		log.Error("toAPIMilestoneFor(%d): %v", m.ID, err)
+		hidden = issues_model.HiddenIssueCounts{Open: m.NumOpenIssues, Closed: m.NumClosedIssues} // counts nothing rather than too much
+	}
+	counted := *m // the milestone may be shared by every issue of a list
+	counted.SubtractHiddenIssues(hidden)
+	return ToAPIMilestone(&counted)
 }
 
 // ToAPIMilestone converts Milestone into API Format
