@@ -4,9 +4,11 @@
 package integration
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -24,6 +26,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 	actions_service "gitea.dev/services/actions"
 
@@ -351,7 +354,7 @@ jobs:
 	})
 }
 
-func TestRunnerDisableEnable(t *testing.T) {
+func TestRunnerFetchTask(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
@@ -414,6 +417,41 @@ func TestRunnerDisableEnable(t *testing.T) {
 			task2 := testData.runner.fetchTask(t, 5*time.Second)
 			require.NotNil(t, task2, "after re-enable runner should receive tasks again")
 			testData.runner.execTask(t, task2, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+		})
+
+		t.Run("LongPoll", func(t *testing.T) {
+			testData := prepareRunnerDisableEnableTest(t, user2, token, "actions-runner-long-poll", "mock-runner-long-poll", "runner-long-poll")
+			testData.runner.execTask(t, testData.runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+			_, tasksVersion := testData.runner.fetchTaskOnce(t, 0)
+			defer test.MockVariableValue(&setting.Actions.RunnerLongPollTimeout, 5*time.Second)()
+			fetch := func(ctx context.Context) (*runnerv1.FetchTaskResponse, time.Duration) {
+				start := time.Now()
+				resp, err := testData.runner.client.runnerServiceClient.FetchTask(ctx, &runnerv1.FetchTaskRequest{TasksVersion: tasksVersion})
+				assert.NoError(t, err)
+				return resp, time.Since(start)
+			}
+
+			ctx, cancel := context.WithTimeout(t.Context(), 1200*time.Millisecond)
+			defer cancel()
+			resp, elapsed := fetch(ctx)
+			assert.Nil(t, resp.Task)
+			assert.Equal(t, tasksVersion, resp.TasksVersion)
+			assert.GreaterOrEqual(t, elapsed, 150*time.Millisecond, "the hold should end shortly before the client deadline")
+
+			requestWritten := make(chan struct{})
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				resp, elapsed = fetch(httptrace.WithClientTrace(t.Context(), &httptrace.ClientTrace{
+					WroteRequest: func(_info httptrace.WroteRequestInfo) { close(requestWritten) },
+				}))
+			}()
+			<-requestWritten
+			triggerRunnerDisableEnableRun(t, user2, token, testData.repo, "long-poll.txt")
+			<-done
+			require.NotNil(t, resp.Task, "the held request should return the queued task")
+			assert.Less(t, elapsed, 4*time.Second, "the queued task should wake the held request")
+			testData.runner.execTask(t, resp.Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		})
 	})
 }
