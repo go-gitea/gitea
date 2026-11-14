@@ -5,6 +5,7 @@ package gitproxy
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -21,6 +22,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"syscall"
 	"testing"
 
 	"gitea.dev/modules/egress/policy"
@@ -199,6 +202,19 @@ func TestRelay(t *testing.T) {
 	_, err := client.Read(make([]byte, 1))
 	assert.ErrorIs(t, err, io.EOF)
 	<-done
+}
+
+type spliceFailReader struct{ io.Reader }
+
+func (spliceFailReader) WriteTo(io.Writer) (int64, error) { return 0, syscall.EBADF }
+
+func TestCopyConn(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	n, err := copyConn(&buf, spliceFailReader{strings.NewReader("ping")})
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, n)
+	assert.Equal(t, "ping", buf.String())
 }
 
 func TestProxyCONNECT(t *testing.T) {

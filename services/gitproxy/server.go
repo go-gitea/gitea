@@ -22,6 +22,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	"gitea.dev/modules/egress"
@@ -146,7 +147,7 @@ func tunnel(proxyURL, target string) error {
 		_, _ = io.Copy(conn, os.Stdin)
 		closeWrite(conn)
 	}()
-	_, err = io.Copy(os.Stdout, conn)
+	_, err = copyConn(os.Stdout, conn)
 	return err
 }
 
@@ -377,15 +378,24 @@ func withBuffered(conn net.Conn, r *bufio.Reader) net.Conn {
 func relay(client, upstream net.Conn) {
 	done := make(chan struct{})
 	go func() {
-		_, _ = io.Copy(upstream, client)
+		_, _ = copyConn(upstream, client)
 		closeWrite(upstream)
 		close(done)
 	}()
-	_, _ = io.Copy(client, upstream)
+	_, _ = copyConn(client, upstream)
 	closeWrite(client)
 	<-done
 	_ = client.Close()
 	_ = upstream.Close()
+}
+
+// copyConn retries with a plain copy when splice fails before moving any data, some vendor kernels return EBADF where Go only falls back on EINVAL
+func copyConn(dst io.Writer, src io.Reader) (int64, error) {
+	n, err := io.Copy(dst, src)
+	if n == 0 && errors.Is(err, syscall.EBADF) {
+		return io.Copy(struct{ io.Writer }{dst}, struct{ io.Reader }{src})
+	}
+	return n, err
 }
 
 func closeWrite(conn net.Conn) {
