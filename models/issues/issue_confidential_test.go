@@ -403,3 +403,32 @@ func TestGetVisibleIssuesByIDs(t *testing.T) {
 	require.Len(t, issues, 1)
 	assert.Equal(t, a.publicIssue.ID, issues[0].ID)
 }
+
+// Every Actions task acts as the same user, so being the "poster" of an issue the bot created proves nothing about a
+// task: it sees a confidential issue only with Write on the repository's issues, as its token allows.
+func TestIsIssueVisibleConfidentialActionsUser(t *testing.T) {
+	a := setupConfidentialActors(t)
+	ctx := t.Context()
+	botIssue := &issues_model.Issue{RepoID: a.repo.ID, Repo: a.repo, Index: 9500, PosterID: user_model.ActionsUserID, Title: "bot report", IsConfidential: true}
+	require.NoError(t, db.Insert(ctx, botIssue))
+	task := user_model.NewActionsUser()
+
+	for name, tc := range map[string]struct {
+		perm access_model.Permission
+		want bool
+	}{
+		"task with issues read":  {doerPerm(t, a.repo, a.reader), false},
+		"task with issues write": {doerPerm(t, a.repo, a.writer), true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			visible, err := issues_model.IsIssueVisible(ctx, botIssue, task, tc.perm)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, visible)
+
+			scope := issues_model.NewVisibilityScopeForRepo(task, a.repo.ID, tc.perm)
+			issues, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{IssueIDs: []int64{botIssue.ID}, Visibility: scope})
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, len(issues) == 1, "the SQL rule agrees with IsIssueVisible")
+		})
+	}
+}

@@ -35,16 +35,24 @@ func applyVisibilityConditions(sess db.Session, opts *IssuesOptions) {
 
 func newVisibilityScope(doer *user_model.User) *VisibilityScope {
 	scope := &VisibilityScope{Unrestricted: user_model.DoerIsSiteAdminFullAccess(doer)}
-	if doer != nil && !user_model.IsPublicOnlyDoer(doer) {
+	// only a real user can be a poster or an assignee: every Actions task shares one negative user ID, so being
+	// the "poster" of an issue the bot created must not let any task see it
+	if scopeMayWrite(doer) && doer.ID > 0 {
 		scope.DoerID = doer.ID
 	}
 	return scope
 }
 
+// scopeMayWrite reports whether doer's Write permission on a repository's issues counts; a public-only token's
+// does not. An Actions task's does, as its token grants.
+func scopeMayWrite(doer *user_model.User) bool {
+	return doer != nil && !user_model.IsPublicOnlyDoer(doer)
+}
+
 // NewVisibilityScopeForRepo builds the scope for a single repository from an already computed permission, without SQL.
 func NewVisibilityScopeForRepo(doer *user_model.User, repoID int64, perm access_model.Permission) *VisibilityScope {
 	scope := newVisibilityScope(doer)
-	if scope.DoerID > 0 && perm.CanWriteIssuesOrPulls(false) {
+	if scopeMayWrite(doer) && perm.CanWriteIssuesOrPulls(false) {
 		scope.WriterRepoIDs = []int64{repoID}
 	}
 	return scope
@@ -78,7 +86,7 @@ func BuildVisibilityScopeByCond(ctx context.Context, doer *user_model.User, repo
 
 func buildVisibilityScopeByIssueCond(ctx context.Context, doer *user_model.User, issueCond builder.Cond) (*VisibilityScope, error) {
 	scope := newVisibilityScope(doer)
-	if scope.Unrestricted || scope.DoerID == 0 {
+	if scope.Unrestricted || !scopeMayWrite(doer) {
 		return scope, nil
 	}
 
