@@ -1566,6 +1566,7 @@
   "repo.issues.label_description": "Description",
   "repo.issues.label_color": "Color",
   "repo.issues.label_color_invalid": "Invalid color",
+  "repo.issues.label_color_random": "Generate random color",
   "repo.issues.label_exclusive": "Exclusive",
   "repo.issues.label_archive": "Archive Label",
   "repo.issues.label_archived_filter": "Show archived labels",

@@ -22,6 +22,18 @@ Gitea's private styles use `g-` prefix.
   text-overflow: ellipsis;
 }
 
+/* interact-xx classes can be used standalone, reset the <a> and <button> styles to default text styles */
+.interact-fg, .interact-bg, .interact-link {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: left;
+  margin: 0;
+  padding: 0;
+}
+
 .interact-fg { color: inherit !important; }
 .interact-fg:hover { color: var(--color-primary) !important; }
 .interact-fg:active { color: var(--color-primary-active) !important; }
@@ -31,8 +43,10 @@ Gitea's private styles use `g-` prefix.
 .interact-bg:active { background: var(--color-active) !important; }
 
 /* sometimes, we'd like to make "<button>" look like a link */
-.interact-link { color: var(--color-primary); cursor: pointer; }
+.interact-link { color: var(--color-primary); }
 .interact-link:hover { text-decoration: underline; }
+
+.interact-danger:hover { color: var(--color-danger) !important; }
 
 /* primary-color dot centered on the top-right corner of the element */
 .indicator-dot {

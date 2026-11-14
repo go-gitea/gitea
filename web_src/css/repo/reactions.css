@@ -50,6 +50,8 @@
 
 .bottom-reactions .ui.label:not(.disabled):hover {
   background: var(--color-reaction-hover-bg);
+  border-color: var(--color-secondary-dark-2);
+  color: var(--color-text);
 }
 
 .bottom-reactions .ui.label.disabled {
