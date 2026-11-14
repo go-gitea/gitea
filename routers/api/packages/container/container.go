@@ -88,6 +88,7 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 }
 
 func apiError(ctx *context.Context, status int, err error) {
+	status = helper.ErrorStatus(status, err)
 	_ = helper.ProcessErrorForUser(ctx, status, err)
 	writeResponseHeaders(ctx.Resp, &containerHeaders{Status: status})
 }
@@ -238,7 +239,8 @@ func PostBlobsUploads(ctx *context.Context) {
 
 	mount := ctx.FormTrim("mount")
 	from := ctx.FormTrim("from")
-	if mount != "" {
+	_, isTask := user_model.GetActionsUserTaskID(ctx.Doer)
+	if mount != "" && !isTask {
 		blob, _ := getExistingContainerBlob(ctx, &container_model.BlobSearchOptions{
 			Repository: from,
 			Digest:     mount,
@@ -314,7 +316,7 @@ func PostBlobsUploads(ctx *context.Context) {
 	}
 
 	writeResponseHeaders(ctx.Resp, &containerHeaders{
-		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, upload.ID),
+		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, uploadLocationID(ctx, upload.ID)),
 		UploadUUID: upload.ID,
 		Status:     http.StatusAccepted,
 	})
@@ -337,7 +339,7 @@ func GetBlobsUpload(ctx *context.Context) {
 
 	// FIXME: undefined behavior when the uploaded content is empty: https://github.com/opencontainers/distribution-spec/issues/578
 	respHeaders := &containerHeaders{
-		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, upload.ID),
+		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, uploadLocationID(ctx, upload.ID)),
 		UploadUUID: upload.ID,
 		Status:     http.StatusNoContent,
 	}
@@ -386,7 +388,7 @@ func PatchBlobsUpload(ctx *context.Context) {
 	}
 
 	respHeaders := &containerHeaders{
-		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, uploader.ID),
+		Location:   fmt.Sprintf("/v2/%s/%s/blobs/uploads/%s", ctx.Package.Owner.LowerName, image, uploadLocationID(ctx, uploader.ID)),
 		UploadUUID: uploader.ID,
 		Status:     http.StatusAccepted,
 	}

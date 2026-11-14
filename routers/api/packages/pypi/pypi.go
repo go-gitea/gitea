@@ -45,6 +45,7 @@ var globalVars = sync.OnceValue(func() (ret struct {
 var normalizer = strings.NewReplacer(".", "-", "_", "-")
 
 func apiError(ctx *context.Context, status int, obj any) {
+	status = helper.ErrorStatus(status, obj)
 	message := helper.ProcessErrorForUser(ctx, status, obj)
 	ctx.PlainText(status, message)
 }

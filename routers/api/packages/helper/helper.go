@@ -17,6 +17,13 @@ import (
 	"gitea.dev/services/context"
 )
 
+func ErrorStatus(status int, obj any) int {
+	if err, ok := obj.(error); ok && errors.Is(err, util.ErrPermissionDenied) {
+		return http.StatusForbidden
+	}
+	return status
+}
+
 // PackageErrorStatus returns the status to report for a package lookup error
 func PackageErrorStatus(err error) int {
 	if errors.Is(err, util.ErrNotExist) {

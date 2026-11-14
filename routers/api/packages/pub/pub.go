@@ -32,6 +32,7 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 }
 
 func apiError(ctx *context.Context, status int, obj any) {
+	status = helper.ErrorStatus(status, obj)
 	type Error struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
