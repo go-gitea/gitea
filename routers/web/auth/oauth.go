@@ -302,7 +302,7 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 func oauth2AvatarHTTPClient() *http.Client {
 	return &http.Client{
 		Timeout:   30 * time.Second,
-		Transport: egress.NewSecurityPolicy("oauth2-avatar").NewHTTPTransport(),
+		Transport: egress.NewSecurityPolicy("oauth2-avatar").NewHTTPTransport(nil),
 	}
 }
 
