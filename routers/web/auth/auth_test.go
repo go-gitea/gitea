@@ -126,10 +126,16 @@ func TestWebAuthOAuth2(t *testing.T) {
 		testSignIn(t, "/user/login", http.StatusOK, "")
 	})
 
-	t.Run("OIDCLogout", func(t *testing.T) {
+	t.Run("OIDC", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.AlternativeRootURLs, []string{"http://alt-host/"})()
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLAuto)()
 		var mockServer *httptest.Server
+		var tokenRedirectURI string
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
+			case "/token":
+				tokenRedirectURI = r.FormValue("redirect_uri")
+				http.Error(w, "invalid_grant", http.StatusBadRequest)
 			case "/.well-known/openid-configuration":
 				_, _ = w.Write([]byte(`{
 				"issuer": "` + mockServer.URL + `",
@@ -153,6 +159,27 @@ func TestWebAuthOAuth2(t *testing.T) {
 		require.NoError(t, err)
 
 		oauthUser := &user_model.User{ID: 1, LoginType: auth_model.OAuth2, LoginSource: authSource.ID}
+
+		t.Run("CallbackURLFollowsOnlyAlternativeRootURLs", func(t *testing.T) {
+			oauth2Source := auth_model.MustSourceCfg[*oauth2.Source](authSource)
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-callout")}
+			callout := func(host string) url.Values {
+				ctx, resp := contexttest.MockContext(t, "http://"+host+"/user/oauth2/oidc-auth-source", mockOpt)
+				require.NoError(t, oauth2Source.Callout(ctx.Req, ctx.Resp))
+				authURL, err := url.Parse(test.RedirectURL(resp))
+				require.NoError(t, err)
+				return authURL.Query()
+			}
+			assert.Equal(t, setting.AppURL+"user/oauth2/oidc-auth-source/callback", callout("other-host").Get("redirect_uri"))
+
+			authQuery := callout("alt-host")
+			const callbackURL = "http://alt-host/user/oauth2/oidc-auth-source/callback"
+			assert.Equal(t, callbackURL, authQuery.Get("redirect_uri"))
+			ctx, _ := contexttest.MockContext(t, callbackURL+"?code=dummy-code&state="+authQuery.Get("state"), mockOpt)
+			_, err := oauth2Source.Callback(ctx.Req, ctx.Resp)
+			assert.ErrorContains(t, err, "invalid_grant")
+			assert.Equal(t, callbackURL, tokenRedirectURI)
+		})
 
 		t.Run("OAuth2SignInRedirectsToOIDC", func(t *testing.T) {
 			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oauth")}

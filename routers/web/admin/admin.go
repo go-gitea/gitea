@@ -239,7 +239,7 @@ func SelfCheck(ctx *context.Context) {
 func SelfCheckPost(ctx *context.Context) {
 	var problems []string
 	frontendAppURL := ctx.FormString("location_origin") + setting.AppSubURL + "/"
-	ctxAppURL := httplib.GuessCurrentAppURL(ctx)
+	ctxAppURL := httplib.GuessCurrentRootURL(ctx)
 	if !strings.HasPrefix(ctxAppURL, frontendAppURL) {
 		problems = append(problems, ctx.Locale.TrString("admin.self_check.location_origin_mismatch", frontendAppURL, ctxAppURL))
 	}
