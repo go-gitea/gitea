@@ -759,28 +759,29 @@ func CreateBranchProtection(ctx *context.APIContext) {
 
 	protectBranch = &git_model.ProtectedBranch{
 		ProtectedBranchConfig: git_model.ProtectedBranchConfig{
-			CanPush:                       form.EnablePush,
-			EnableWhitelist:               form.EnablePush && form.EnablePushWhitelist,
-			CanForcePush:                  form.EnableForcePush,
-			EnableForcePushAllowlist:      form.EnableForcePush && form.EnableForcePushAllowlist,
-			CanDelete:                     form.EnablePush && form.EnableDeletion,
-			EnableDeletionAllowlist:       form.EnablePush && form.EnableDeletion && form.EnableDeletionAllowlist,
-			EnableMergeWhitelist:          form.EnableMergeWhitelist,
-			EnableBypassAllowlist:         form.EnableBypassAllowlist,
-			EnableStatusCheck:             form.EnableStatusCheck,
-			StatusCheckContexts:           form.StatusCheckContexts,
-			EnableApprovalsWhitelist:      form.EnableApprovalsWhitelist,
-			RequiredApprovals:             requiredApprovals,
-			BlockOnRejectedReviews:        form.BlockOnRejectedReviews,
-			BlockOnOfficialReviewRequests: form.BlockOnOfficialReviewRequests,
-			BlockOnCodeownerReviews:       form.BlockOnCodeownerReviews,
-			DismissStaleApprovals:         form.DismissStaleApprovals,
-			IgnoreStaleApprovals:          form.IgnoreStaleApprovals,
-			RequireSignedCommits:          form.RequireSignedCommits,
-			ProtectedFilePatterns:         form.ProtectedFilePatterns,
-			UnprotectedFilePatterns:       form.UnprotectedFilePatterns,
-			BlockOnOutdatedBranch:         form.BlockOnOutdatedBranch,
-			BlockAdminMergeOverride:       form.BlockAdminMergeOverride,
+			CanPush:                        form.EnablePush,
+			EnableWhitelist:                form.EnablePush && form.EnablePushWhitelist,
+			CanForcePush:                   form.EnableForcePush,
+			EnableForcePushAllowlist:       form.EnableForcePush && form.EnableForcePushAllowlist,
+			CanDelete:                      form.EnablePush && form.EnableDeletion,
+			EnableDeletionAllowlist:        form.EnablePush && form.EnableDeletion && form.EnableDeletionAllowlist,
+			EnableMergeWhitelist:           form.EnableMergeWhitelist,
+			EnableBypassAllowlist:          form.EnableBypassAllowlist,
+			EnableStatusCheck:              form.EnableStatusCheck,
+			StatusCheckContexts:            form.StatusCheckContexts,
+			EnableApprovalsWhitelist:       form.EnableApprovalsWhitelist,
+			RequiredApprovals:              requiredApprovals,
+			BlockOnRejectedReviews:         form.BlockOnRejectedReviews,
+			BlockOnOfficialReviewRequests:  form.BlockOnOfficialReviewRequests,
+			BlockOnCodeownerReviews:        form.BlockOnCodeownerReviews,
+			DismissStaleApprovals:          form.DismissStaleApprovals,
+			IgnoreStaleApprovals:           form.IgnoreStaleApprovals,
+			RequireSignedCommits:           form.RequireSignedCommits,
+			ProtectedFilePatterns:          form.ProtectedFilePatterns,
+			UnprotectedFilePatterns:        form.UnprotectedFilePatterns,
+			BlockOnOutdatedBranch:          form.BlockOnOutdatedBranch,
+			BlockOnUnresolvedConversations: form.BlockOnUnresolvedConversations,
+			BlockAdminMergeOverride:        form.BlockAdminMergeOverride,
 		},
 
 		RepoID:   ctx.Repo.Repository.ID,
@@ -961,6 +962,10 @@ func EditBranchProtection(ctx *context.APIContext) {
 
 	if form.BlockOnOutdatedBranch != nil {
 		protectBranch.BlockOnOutdatedBranch = *form.BlockOnOutdatedBranch
+	}
+
+	if form.BlockOnUnresolvedConversations != nil {
+		protectBranch.BlockOnUnresolvedConversations = *form.BlockOnUnresolvedConversations
 	}
 
 	if form.BlockAdminMergeOverride != nil {

@@ -905,11 +905,12 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"rule_name":             "master",
-			"enable_push":           "true",
-			"enable_status_check":   "true",
-			"status_check_contexts": "gitea/actions",
-			"required_approvals":    "1",
+			"rule_name":                         "master",
+			"enable_push":                       "true",
+			"enable_status_check":               "true",
+			"status_check_contexts":             "gitea/actions",
+			"required_approvals":                "1",
+			"block_on_unresolved_conversations": "true",
 		})
 		baseSession.MakeRequest(t, req, http.StatusOK)
 
@@ -933,6 +934,9 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.NoError(t, err)
 		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
+		require.NoError(t, pr.LoadIssue(t.Context()))
+		comment, err := pull_service.CreateCodeComment(t.Context(), forkUser, baseGitRepo, pr.Issue, 1, "Please resolve", "README.md", false, 0, sha, nil)
+		require.NoError(t, err)
 		baseGitRepo.Close()
 
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, baseUser, sha, &git_model.CommitStatus{
@@ -951,6 +955,17 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 
 		// approve the PR from non-author
 		testSubmitReview(t, baseSession, "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
+
+		require.NoError(t, automergequeue.AutoMergeQueue.FlushWithContext(t.Context(), 5*time.Second))
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+		assert.False(t, pr.HasMerged)
+
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/resolve_conversation", map[string]string{
+			"comment_id": strconv.FormatInt(comment.ID, 10),
+			"action":     "Resolve",
+			"origin":     "timeline",
+		})
+		baseSession.MakeRequest(t, req, http.StatusOK)
 
 		assert.Eventually(t, func() bool {
 			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})

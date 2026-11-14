@@ -2824,6 +2824,10 @@
             "type": "boolean",
             "x-go-name": "BlockOnRejectedReviews"
           },
+          "block_on_unresolved_conversations": {
+            "type": "boolean",
+            "x-go-name": "BlockOnUnresolvedConversations"
+          },
           "branch_name": {
             "type": "string",
             "x-deprecated": true,
@@ -3857,6 +3861,10 @@
           "block_on_rejected_reviews": {
             "type": "boolean",
             "x-go-name": "BlockOnRejectedReviews"
+          },
+          "block_on_unresolved_conversations": {
+            "type": "boolean",
+            "x-go-name": "BlockOnUnresolvedConversations"
           },
           "branch_name": {
             "type": "string",
@@ -5476,6 +5484,10 @@
           "block_on_rejected_reviews": {
             "type": "boolean",
             "x-go-name": "BlockOnRejectedReviews"
+          },
+          "block_on_unresolved_conversations": {
+            "type": "boolean",
+            "x-go-name": "BlockOnUnresolvedConversations"
           },
           "bypass_allowlist_teams": {
             "items": {

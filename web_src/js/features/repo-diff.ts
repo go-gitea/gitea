@@ -16,6 +16,7 @@ import {applyFiltersToFileBoxes, type DiffFileTreeLocale, diffTreeStore} from '.
 import {initImageDiff} from './imagediff.ts';
 import DiffCommitSelector from '../components/DiffCommitSelector.vue';
 import {registerAsyncHashChangeListener} from '../modules/hashchange.ts';
+import {reloadRepoPullMergeBox} from './repo-issue-pull.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -111,6 +112,7 @@ function initRepoDiffConversationForm() {
       if (elConversationHolder) {
         const elNewConversation = createElementFromHTML(data);
         elConversationHolder.replaceWith(elNewConversation);
+        reloadRepoPullMergeBox();
       } else {
         window.location.reload();
       }
