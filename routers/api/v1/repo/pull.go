@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"math"
@@ -63,6 +64,14 @@ func ListPullRequests(ctx *context.APIContext) {
 	// - name: base_branch
 	//   in: query
 	//   description: Filter by target base branch of the pull request
+	//   type: string
+	// - name: base
+	//   in: query
+	//   description: Alias of `base_branch`, for GitHub compatibility
+	//   type: string
+	// - name: head
+	//   in: query
+	//   description: Filter by head branch of the pull request, as `branch`, `owner:branch` or `owner/repo:branch`
 	//   type: string
 	// - name: state
 	//   in: query
@@ -127,6 +136,20 @@ func ListPullRequests(ctx *context.APIContext) {
 		}
 		posterID = poster.ID
 	}
+	var headRepoID int64
+	var headBranch string
+	if head := ctx.FormTrim("head"); head != "" {
+		headRepoID, headBranch, err = parsePullRequestHead(ctx, head)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if headRepoID == 0 {
+			ctx.SetTotalCountHeader(0)
+			ctx.JSON(http.StatusOK, []*api.PullRequest{})
+			return
+		}
+	}
 	listOptions := utils.GetListOptions(ctx)
 	prs, maxResults, err := issues_model.PullRequests(ctx, ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
 		ListOptions: listOptions,
@@ -135,11 +158,18 @@ func ListPullRequests(ctx *context.APIContext) {
 		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
 		PosterID:    posterID,
-		BaseBranch:  ctx.FormTrim("base_branch"),
+		BaseBranch:  cmp.Or(ctx.FormTrim("base_branch"), ctx.FormTrim("base")),
+		HeadRepoID:  headRepoID,
+		HeadBranch:  headBranch,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
+	}
+	if headRepoID != 0 {
+		for _, pr := range prs {
+			pull_service.StartPullRequestCheckOnView(ctx, pr)
+		}
 	}
 
 	apiPrs, err := convert.ToAPIPullRequests(ctx, ctx.Repo.Repository, prs, ctx.Doer)
@@ -208,93 +238,25 @@ func GetPullRequest(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
 }
 
-// GetPullRequest returns a single PR based on index
-func GetPullRequestByBaseHead(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/pulls/{base}/{head} repository repoGetPullRequestByBaseHead
-	// ---
-	// summary: Get a pull request by base and head
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: base
-	//   in: path
-	//   description: base of the pull request to get
-	//   type: string
-	//   required: true
-	// - name: head
-	//   in: path
-	//   description: head of the pull request to get
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/PullRequest"
-	//   default:
-	//     "$ref": "#/responses/error"
-
-	var headRepoID int64
-	var headBranch string
-	head := ctx.PathParam("*")
-	if strings.Contains(head, ":") {
-		split := strings.SplitN(head, ":", 2)
-		headBranch = split[1]
-		var owner, name string
-		if strings.Contains(split[0], "/") {
-			split = strings.Split(split[0], "/")
-			owner = split[0]
-			name = split[1]
-		} else {
-			owner = split[0]
-			name = ctx.Repo.Repository.Name
-		}
-		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner, name)
+// parsePullRequestHead treats an inaccessible fork as missing so its existence stays hidden
+func parsePullRequestHead(ctx *context.APIContext, head string) (int64, string, error) {
+	headOwner, headRepoName, headBranch := common.ParseHead(head)
+	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, ctx.Repo.Repository, headOwner, headRepoName)
+	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
+		return 0, "", nil
+	} else if err != nil {
+		return 0, "", err
+	}
+	if headRepo.ID != ctx.Repo.Repository.ID {
+		permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
 		if err != nil {
-			if repo_model.IsErrRepoNotExist(err) {
-				ctx.APIErrorNotFound()
-			} else {
-				ctx.APIErrorInternal(err)
-			}
-			return
+			return 0, "", err
 		}
-		headRepoID = repo.ID
-	} else {
-		headRepoID = ctx.Repo.Repository.ID
-		headBranch = head
-	}
-
-	pr, err := issues_model.GetPullRequestByBaseHeadInfo(ctx, ctx.Repo.Repository.ID, headRepoID, ctx.PathParam("base"), headBranch)
-	if err != nil {
-		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
+		if !permHead.HasAnyUnitAccessOrPublicAccess() {
+			return 0, "", nil
 		}
-		return
 	}
-
-	if err = pr.LoadBaseRepo(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if err = pr.LoadHeadRepo(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	// Consider API access a view for delayed checking.
-	pull_service.StartPullRequestCheckOnView(ctx, pr)
-
-	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
+	return headRepo.ID, headBranch, nil
 }
 
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
@@ -1014,7 +976,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	baseRepo := ctx.Repo.Repository
 	compareReq := common.ParseCompareRouterParam(compareParam)
 
-	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
+	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq.HeadOwner, compareReq.HeadRepoName)
 	switch {
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.APIError(http.StatusBadRequest, err.Error())
