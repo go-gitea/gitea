@@ -709,7 +709,11 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		if review != nil {
 			// skip it when reviewer has been request to review
 			if review.Type == ReviewTypeRequest {
-				return nil, nil // still commit the transaction, or committer.Close() will rollback it, even if it's a reused transaction.
+				superseded, err := db.Exist[Review](ctx, builder.Gt{"updated_unix": review.CreatedUnix}.
+					And(builder.Eq{"issue_id": issue.ID, "reviewer_id": reviewer.ID, "original_author_id": 0, "type": ReviewTypeComment}))
+				if err != nil || !superseded {
+					return nil, err // still commit the transaction, or committer.Close() will rollback it, even if it's a reused transaction.
+				}
 			}
 
 			if issue.IsClosed {
