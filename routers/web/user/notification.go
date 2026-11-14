@@ -146,7 +146,7 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
 
-	pager.RemoveParam(container.SetOf("div-only", "sequence-number"))
+	pager.RemoveParam(container.SetOf("sequence-number"))
 	ctx.Data["Page"] = pager
 	ctx.Data["PageQueryParams"] = templates.QueryBuild(pager.GetParams(), "page", page)
 }

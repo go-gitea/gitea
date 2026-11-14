@@ -61,6 +61,7 @@
   background-color: var(--color-tooltip-bg);
   color: var(--color-tooltip-text);
   border: none;
+  box-shadow: 0 2px 6px var(--color-shadow);
 }
 
 .tippy-box[data-theme="tooltip"] .tippy-content {

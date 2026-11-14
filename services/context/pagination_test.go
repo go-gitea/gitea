@@ -22,8 +22,10 @@ func TestPagination(t *testing.T) {
 	params.Add("k2", "21")
 	params.Add("k2", "22")
 	params.Add("foo", "bar")
+	params.Add("div-only", "true")
 
 	p.AddParamFromQuery(params)
+	params.Del("div-only")
 	v, _ := url.ParseQuery(string(p.GetParams()))
 	assert.Equal(t, params, v)
 

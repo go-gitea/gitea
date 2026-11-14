@@ -80,7 +80,7 @@ func (p *Pagination) WithUnlimitedPaging(curRows int, hasNext bool) *Pagination 
 
 func (p *Pagination) AddParamFromQuery(q url.Values) {
 	for key, values := range q {
-		if key == "page" || len(values) == 0 || (len(values) == 1 && values[0] == "") {
+		if key == "page" || key == "div-only" || len(values) == 0 || (len(values) == 1 && values[0] == "") {
 			continue
 		}
 		for _, value := range values {

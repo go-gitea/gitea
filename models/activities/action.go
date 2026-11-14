@@ -134,7 +134,7 @@ func (at ActionType) InActions(actions ...string) bool {
 // used in template render.
 type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 `xorm:"INDEX"` // Receiver user id.
+	UserID      int64 `xorm:"INDEX INDEX(user_created)"` // Receiver user id.
 	OpType      ActionType
 	ActUserID   int64            // Action user id.
 	ActUser     *user_model.User `xorm:"-"`
@@ -147,7 +147,7 @@ type Action struct {
 	RefName     string
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created INDEX(user_created)"`
 }
 
 func init() {
@@ -433,6 +433,7 @@ type GetFeedsOptions struct {
 	OnlyPerformedBy bool                   // only actions performed by requested user
 	IncludeDeleted  bool                   // include deleted actions
 	Date            string                 // the day we want activity for: YYYY-MM-DD
+	Year            int                    // the year we want activity for: YYYY
 	DontCount       bool                   // do counting in GetFeeds
 }
 
@@ -445,6 +446,10 @@ func ActivityReadable(user, doer *user_model.User) bool {
 func FeedDateCond(opts GetFeedsOptions) builder.Cond {
 	cond := builder.NewCond()
 	if opts.Date == "" {
+		if timeutil.IsValidYear(opts.Year) {
+			yearStart := time.Date(opts.Year, time.January, 1, 0, 0, 0, 0, setting.DefaultUILocation)
+			cond = cond.And(builder.Gte{"`action`.created_unix": yearStart.Unix()}, builder.Lt{"`action`.created_unix": yearStart.AddDate(1, 0, 0).Unix()})
+		}
 		return cond
 	}
 

@@ -126,6 +126,8 @@
 				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "tw-text-text-light tw-mr-1"}}
 			</div>
 		</div>
+	{{else}}
+		{{if .PageIsDashboard}}{{template "user/dashboard/guide" .}}{{end}}
 	{{end}}
 	{{template "base/paginate" .}}
 </div>

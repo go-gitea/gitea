@@ -99,3 +99,8 @@ func (ts TimeStamp) FormatDate() string {
 func (ts TimeStamp) IsZero() bool {
 	return int64(ts) == 0 || int64(ts) == timeZeroUnix
 }
+
+// IsValidYear returns whether the year is valid (between 1970 and 9999)
+func IsValidYear(year int) bool {
+	return year >= 1970 && year <= 9999
+}
