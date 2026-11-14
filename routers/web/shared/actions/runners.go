@@ -99,7 +99,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 // Runners render settings/actions/runners page for repo level
 func Runners(ctx *context.Context) {
 	ctx.Data["PageIsSharedSettingsRunners"] = true
-	ctx.Data["Title"] = ctx.Tr("actions.actions")
+	ctx.Data["Title"] = ctx.Tr("actions.runners")
 	ctx.Data["PageType"] = "runners"
 
 	rCtx, err := getRunnersCtx(ctx)

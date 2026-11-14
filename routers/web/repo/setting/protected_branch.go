@@ -74,7 +74,11 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["PageIsSettingsBranches"] = true
-	c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
+	if rule.RuleName == "" {
+		c.Data["Title"] = c.Locale.TrString("repo.settings.branches.add_new_rule")
+	} else {
+		c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
+	}
 
 	repoUsers, err := access_model.GetUsersWithAnyUnitAccess(c, c.Repo.Repository, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {

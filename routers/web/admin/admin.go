@@ -194,6 +194,7 @@ func DashboardPost(ctx *context.Context) {
 }
 
 func SelfCheck(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.self_check")
 	ctx.Data["PageIsAdminSelfCheck"] = true
 
 	ctx.Data["StartupProblems"] = setting.StartupProblems

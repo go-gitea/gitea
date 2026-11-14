@@ -20,7 +20,7 @@ const (
 
 // Webhooks render webhook list page
 func Webhooks(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings_title")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.hooks")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = setting.AppSubURL + "/user/settings/hooks"
 	ctx.Data["BaseLinkNew"] = setting.AppSubURL + "/user/settings/hooks"

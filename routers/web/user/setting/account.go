@@ -41,7 +41,6 @@ func Account(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("settings.account")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
 
@@ -58,7 +57,6 @@ func AccountPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm[*forms.ChangePasswordForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
 
@@ -108,7 +106,6 @@ func EmailPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm[*forms.AddEmailForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
 
@@ -285,6 +282,7 @@ func DeleteAccount(ctx *context.Context) {
 }
 
 func loadAccountData(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings.account")
 	emlist, err := user_model.GetEmailAddresses(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerErrorAuto(err)

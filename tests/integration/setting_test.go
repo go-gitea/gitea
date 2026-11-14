@@ -5,12 +5,14 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,6 +80,22 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 	}
 
 	setting.UI.ShowUserEmail = showUserEmail
+}
+
+func TestSettingPageTitlesMatchNavbar(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+	for _, root := range []string{"/-/admin", "/user/settings", "/org/org3/settings", "/user2/repo2/settings"} {
+		resp := session.MakeRequest(t, NewRequest(t, "GET", root), http.StatusOK)
+		NewHTMLParser(t, resp.Body).Find(".flex-container-nav a.item").Each(func(_ int, link *goquery.Selection) {
+			href := link.AttrOr("href", "")
+			resp := session.MakeRequest(t, NewRequest(t, "GET", href), http.StatusOK)
+			page := NewHTMLParser(t, resp.Body)
+			pageTitle, _, _ := strings.Cut(page.Find("title").Text(), " - ")
+			assert.Equal(t, strings.TrimSpace(page.Find(".flex-container-nav a.active.item").Text()), pageTitle, href)
+		})
+	}
 }
 
 func TestSettingLandingPage(t *testing.T) {
