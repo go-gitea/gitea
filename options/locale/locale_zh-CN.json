@@ -170,8 +170,6 @@
   "search.fuzzy_tooltip": "包含近似匹配搜索词的结果",
   "search.words": "词",
   "search.words_tooltip": "仅包含匹配搜索词的结果",
-  "search.regexp": "正则表达式",
-  "search.regexp_tooltip": "仅包含匹配正则表达式搜索词的结果",
   "search.exact": "精确",
   "search.exact_tooltip": "仅包含精确匹配搜索词的结果",
   "search.repo_kind": "搜索仓库…",
