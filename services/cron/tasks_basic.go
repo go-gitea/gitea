@@ -159,6 +159,28 @@ func registerSyncRepoLicenses() {
 	})
 }
 
+func registerCollectRepoRefCounts() {
+	RegisterTaskFatal("collect_repo_ref_counts", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: false,
+		Schedule:   "@every 1h",
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
+		mirror_service.CollectRepoRefCounts(ctx)
+		return nil
+	})
+}
+
+func registerCollectRepoObjectCounts() {
+	RegisterTaskFatal("collect_repo_object_counts", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: false,
+		Schedule:   "@every 1h",
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
+		mirror_service.CollectRepoObjectCounts(ctx)
+		return nil
+	})
+}
+
 func initBasicTasks() {
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
@@ -176,4 +198,10 @@ func initBasicTasks() {
 		registerCleanupPackages()
 	}
 	registerSyncRepoLicenses()
+	if setting.Metrics.Enabled && setting.Metrics.EnabledRefCount {
+		registerCollectRepoRefCounts()
+	}
+	if setting.Metrics.Enabled && setting.Metrics.EnabledObjectCount {
+		registerCollectRepoObjectCounts()
+	}
 }
