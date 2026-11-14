@@ -168,8 +168,6 @@
   "search.fuzzy_tooltip": "Dołącz wyniki blisko dopasowane do wyszukiwanego terminu",
   "search.words": "Słowa",
   "search.words_tooltip": "Dołącz tylko wyniki, które pasują do wyszukiwanych słów",
-  "search.regexp": "Wyrażenie regularne",
-  "search.regexp_tooltip": "Dołącz tylko wyniki pasujące do wyrażenia regularnego",
   "search.exact": "Dokładnie",
   "search.exact_tooltip": "Dołącz tylko te wyniki, które dokładnie pasują do wyszukiwanego terminu",
   "search.repo_kind": "Szukaj repozytoriów…",

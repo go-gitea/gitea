@@ -170,8 +170,6 @@
   "search.fuzzy_tooltip": "Cuir torthaí san áireamh a mheaitseálann go dlúth leis an téarma cuardaigh",
   "search.words": "Focail",
   "search.words_tooltip": "Ná cuir san áireamh ach torthaí a mheaitseálann na focail téarma cuardaigh",
-  "search.regexp": "Nathanna Rialta",
-  "search.regexp_tooltip": "Ná cuir ach torthaí a mheaitseálann an téarma cuardaigh nathanna rialta san áireamh",
   "search.exact": "Beacht",
   "search.exact_tooltip": "Ní chuir san áireamh ach torthaí a mheaitseálann leis an téarma",
   "search.repo_kind": "Cuardaigh stórais…",
