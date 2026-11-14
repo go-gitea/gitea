@@ -296,7 +296,9 @@ func TeamsRepoAction(ctx *context.Context) {
 	case "addall":
 		err = repo_service.AddAllRepositoriesToTeam(ctx, ctx.Org.Team)
 	case "removeall":
-		err = repo_service.RemoveAllRepositoriesFromTeam(ctx, ctx.Org.Team)
+		if !ctx.Org.Team.IncludesAllRepositories {
+			err = repo_service.RemoveAllRepositoriesFromTeam(ctx, ctx.Org.Team)
+		}
 	}
 
 	if err != nil {
