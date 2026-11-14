@@ -1,5 +1,6 @@
 import {initMarkupCodeMermaid} from './mermaid.ts';
 import {initMarkupCodeMath} from './math.ts';
+import {initMarkupCodeBlocks} from './codeblocks.ts';
 import {initMarkupCodeCopy} from './codecopy.ts';
 import {initMarkupTasklist} from './tasklist.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
@@ -9,6 +10,7 @@ import {initExternalRenderIframe} from './render-iframe.ts';
 export function initMarkupContent(): void {
   registerGlobalInitFunc('initExternalRenderIframe', initExternalRenderIframe);
   registerGlobalSelectorFunc('.markup', (el: HTMLElement) => {
+    initMarkupCodeBlocks(el);
     initMarkupCodeCopy(el);
     initMarkupTasklist(el);
     initMarkupCodeMermaid(el);
