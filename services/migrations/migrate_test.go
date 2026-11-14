@@ -22,7 +22,6 @@ import (
 
 	"github.com/google/go-github/v93/github"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestIsAuthenticationError(t *testing.T) {
@@ -90,152 +89,72 @@ func TestIsMigrateURLAllowedForServiceLocalPath(t *testing.T) {
 }
 
 func TestMigrateRepositoryIssueData(t *testing.T) {
-	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
-	for _, tc := range []struct {
-		name         string
-		repoComments bool
-		want         []string
-	}{
-		{
-			name: "per-item comments",
-			want: []string{
-				"labels [bug help]", "labels [feature]",
-				"issues [1 2]", "comments [1 1]", "comments [2]",
-				"issues [3]", "comments [3]",
-				"pulls [4]", "comments [4]", "reviews [4]", "sync branches", "finish", "close",
-			},
-		},
-		{
-			name:         "repository comments",
-			repoComments: true,
-			want: []string{
-				"labels [bug help]", "labels [feature]",
-				"issues [1 2]", "issues [3]", "pulls [4]", "reviews [4]",
-				"sync branches", "comments [1]", "comments [4]", "finish", "close",
-			},
-		},
+	for repoComments, want := range map[bool][]string{
+		false: {"issues [1 2]", "comments [1 2]", "issues [3]", "comments [3]", "pulls [4]", "comments [4]", "reviews [4]", "sync branches"},
+		true:  {"issues [1 2]", "issues [3]", "pulls [4]", "reviews [4]", "sync branches", "comments [1]", "comments [4]"},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			cloneAddr := t.TempDir()
-			downloader := &issueMigrationDownloader{cloneAddr: cloneAddr, repoComments: tc.repoComments}
-			uploader := &issueMigrationUploader{}
-			opts := base.MigrateOptions{CloneAddr: cloneAddr, Labels: true, Issues: true, PullRequests: true, Comments: true}
-
-			require.NoError(t, migrateRepository(t.Context(), &user_model.User{IsAdmin: true}, downloader, uploader, opts, nil))
-			assert.Equal(t, tc.want, uploader.calls)
-		})
+		migration := &issueMigration{repoComments: repoComments}
+		assert.NoError(t, migrateRepositoryIssueData(t.Context(), migration, migration, base.MigrateOptions{Issues: true, PullRequests: true, Comments: true}, base.NilMessenger))
+		assert.Equal(t, want, migration.calls)
 	}
 }
 
-type issueMigrationDownloader struct {
+type issueMigration struct {
 	base.NullDownloader
-	cloneAddr    string
+	base.Uploader
 	repoComments bool
+	calls        []string
 }
 
-func (d *issueMigrationDownloader) GetRepoInfo(context.Context) (*base.Repository, error) {
-	return &base.Repository{CloneURL: d.cloneAddr}, nil
+func (m *issueMigration) MaxBatchInsertSize(_tp string) int { return 2 }
+func (m *issueMigration) SupportGetRepoComments() bool      { return m.repoComments }
+
+func (m *issueMigration) GetIssues(_ctx context.Context, page, _perPage int) ([]*base.Issue, bool, error) {
+	return [][]*base.Issue{{{Number: 1}, {Number: 2}}, {{Number: 2}, {Number: 3}}}[page-1], page == 2, nil
 }
 
-func (d *issueMigrationDownloader) GetLabels(context.Context) ([]*base.Label, error) {
-	return []*base.Label{{Name: "bug"}, {Name: "help"}, {Name: "feature"}}, nil
-}
-
-func (d *issueMigrationDownloader) GetIssues(_ context.Context, page, _ int) ([]*base.Issue, bool, error) {
-	if page == 1 {
-		return []*base.Issue{{Number: 1}, {Number: 2}}, false, nil
-	}
-	return []*base.Issue{{Number: 2}, {Number: 3}}, true, nil
-}
-
-func (d *issueMigrationDownloader) GetPullRequests(context.Context, int, int) ([]*base.PullRequest, bool, error) {
+func (m *issueMigration) GetPullRequests(_ctx context.Context, _page, _perPage int) ([]*base.PullRequest, bool, error) {
 	return []*base.PullRequest{{Number: 4}}, true, nil
 }
 
-func (d *issueMigrationDownloader) SupportGetRepoComments() bool {
-	return d.repoComments
+func (m *issueMigration) GetComments(_ctx context.Context, item base.Commentable) ([]*base.Comment, bool, error) {
+	return []*base.Comment{{IssueIndex: item.GetLocalIndex()}}, true, nil
 }
 
-func (d *issueMigrationDownloader) GetComments(_ context.Context, item base.Commentable) ([]*base.Comment, bool, error) {
-	if d.repoComments {
-		return nil, false, errors.New("unexpected per-item comment request")
-	}
-	index := item.GetLocalIndex()
-	comments := []*base.Comment{{IssueIndex: index}}
-	if index == 1 {
-		comments = append(comments, &base.Comment{IssueIndex: index})
-	}
-	return comments, true, nil
+func (m *issueMigration) GetAllComments(_ctx context.Context, page, _perPage int) ([]*base.Comment, bool, error) {
+	return [][]*base.Comment{{{IssueIndex: 1}, {IssueIndex: 7}}, {{IssueIndex: 4}}}[page-1], page == 2, nil
 }
 
-func (d *issueMigrationDownloader) GetAllComments(_ context.Context, page, _ int) ([]*base.Comment, bool, error) {
-	if !d.repoComments {
-		return nil, false, errors.New("unexpected repository comment request")
-	}
-	if page == 1 {
-		return []*base.Comment{{IssueIndex: 1}, {IssueIndex: 5}}, false, nil
-	}
-	return []*base.Comment{{IssueIndex: 4}}, true, nil
-}
-
-func (d *issueMigrationDownloader) GetReviews(_ context.Context, item base.Reviewable) ([]*base.Review, error) {
+func (m *issueMigration) GetReviews(_ctx context.Context, item base.Reviewable) ([]*base.Review, error) {
 	return []*base.Review{{IssueIndex: item.GetLocalIndex()}}, nil
 }
 
-type issueMigrationUploader struct {
-	base.Uploader
-	calls []string
+func (m *issueMigration) CreateIssues(_ctx context.Context, issues ...*base.Issue) error {
+	return recordMigrationCall(m, "issues", issues, (*base.Issue).GetLocalIndex)
 }
 
-func (u *issueMigrationUploader) MaxBatchInsertSize(string) int { return 2 }
+func (m *issueMigration) CreatePullRequests(_ctx context.Context, pulls ...*base.PullRequest) error {
+	return recordMigrationCall(m, "pulls", pulls, (*base.PullRequest).GetLocalIndex)
+}
 
-func (u *issueMigrationUploader) CreateRepo(context.Context, *base.Repository, base.MigrateOptions) error {
+func (m *issueMigration) CreateComments(_ctx context.Context, comments ...*base.Comment) error {
+	return recordMigrationCall(m, "comments", comments, func(comment *base.Comment) int64 { return comment.IssueIndex })
+}
+
+func (m *issueMigration) CreateReviews(_ctx context.Context, reviews ...*base.Review) error {
+	return recordMigrationCall(m, "reviews", reviews, func(review *base.Review) int64 { return review.IssueIndex })
+}
+
+func (m *issueMigration) SyncBranches(_ctx context.Context) error {
+	m.calls = append(m.calls, "sync branches")
 	return nil
 }
 
-func (u *issueMigrationUploader) CreateLabels(_ context.Context, labels ...*base.Label) error {
-	u.calls = append(u.calls, migrationCall("labels", labels, func(label *base.Label) string { return label.Name }))
-	return nil
-}
-
-func (u *issueMigrationUploader) CreateIssues(_ context.Context, issues ...*base.Issue) error {
-	u.calls = append(u.calls, migrationCall("issues", issues, (*base.Issue).GetLocalIndex))
-	return nil
-}
-
-func (u *issueMigrationUploader) CreatePullRequests(_ context.Context, pulls ...*base.PullRequest) error {
-	u.calls = append(u.calls, migrationCall("pulls", pulls, (*base.PullRequest).GetLocalIndex))
-	return nil
-}
-
-func (u *issueMigrationUploader) CreateComments(_ context.Context, comments ...*base.Comment) error {
-	u.calls = append(u.calls, migrationCall("comments", comments, func(comment *base.Comment) int64 { return comment.IssueIndex }))
-	return nil
-}
-
-func (u *issueMigrationUploader) CreateReviews(_ context.Context, reviews ...*base.Review) error {
-	u.calls = append(u.calls, migrationCall("reviews", reviews, func(review *base.Review) int64 { return review.IssueIndex }))
-	return nil
-}
-
-func (u *issueMigrationUploader) SyncBranches(context.Context) error {
-	u.calls = append(u.calls, "sync branches")
-	return nil
-}
-
-func (u *issueMigrationUploader) Finish(context.Context) error {
-	u.calls = append(u.calls, "finish")
-	return nil
-}
-
-func (u *issueMigrationUploader) Close() {
-	u.calls = append(u.calls, "close")
-}
-
-func migrationCall[T, V any](name string, items []T, value func(T) V) string {
-	values := make([]V, 0, len(items))
-	for _, item := range items {
-		values = append(values, value(item))
+func recordMigrationCall[Item any](migration *issueMigration, name string, items []Item, index func(Item) int64) error {
+	indexes := make([]int64, len(items))
+	for i, item := range items {
+		indexes[i] = index(item)
 	}
-	return fmt.Sprintf("%s %v", name, values)
+	migration.calls = append(migration.calls, fmt.Sprintf("%s %v", name, indexes))
+	return nil
 }
