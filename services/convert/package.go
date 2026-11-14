@@ -44,10 +44,18 @@ func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_m
 // ToPackageFile converts packages.PackageFileDescriptor to api.PackageFile
 func ToPackageFile(packageType packages.Type, pfd *packages.PackageFileDescriptor) *api.PackageFile {
 	properties := make(map[string]string)
-	publicPropertyNames := packages_service.GetSpecManager().Get(packageType).PublicPropertyNames()
+	spec := packages_service.GetSpecManager().Get(packageType)
+	publicPropertyNames := spec.PublicPropertyNames()
 	for _, pp := range pfd.Properties {
 		if slices.Contains(publicPropertyNames, pp.Name) {
 			properties[pp.Name] = pp.Value
+		}
+	}
+	if aliaser, ok := spec.(packages_service.PublicPropertyAliaser); ok {
+		for stored, alias := range aliaser.PublicPropertyAliases() {
+			if v, ok := properties[stored]; ok {
+				properties[alias] = v
+			}
 		}
 	}
 	return &api.PackageFile{

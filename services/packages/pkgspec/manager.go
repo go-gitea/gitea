@@ -10,6 +10,7 @@ import (
 	"gitea.dev/services/packages/arch"
 	"gitea.dev/services/packages/conan"
 	"gitea.dev/services/packages/conda"
+	"gitea.dev/services/packages/cran"
 	"gitea.dev/services/packages/debian"
 	"gitea.dev/services/packages/nuget"
 	"gitea.dev/services/packages/rpm"
@@ -23,6 +24,7 @@ func InitManager() error {
 	mgr.Add(packages_model.TypeArch, &arch.Specialization{})
 	mgr.Add(packages_model.TypeConan, &conan.Specialization{})
 	mgr.Add(packages_model.TypeConda, &conda.Specialization{})
+	mgr.Add(packages_model.TypeCran, &cran.Specialization{})
 	mgr.Add(packages_model.TypeDebian, &debian.Specialization{})
 	mgr.Add(packages_model.TypeNuGet, &nuget.Specialization{})
 	mgr.Add(packages_model.TypeRpm, &rpm.Specialization{})
