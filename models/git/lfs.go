@@ -171,7 +171,7 @@ func RemoveLFSMetaObjectByOidFn(ctx context.Context, repoID int64, oid string, f
 
 // GetLFSMetaObjects returns all LFSMetaObjects associated with a repository
 func GetLFSMetaObjects(ctx context.Context, repoID int64, page, pageSize int) ([]*LFSMetaObject, error) {
-	sess := db.GetEngine(ctx)
+	sess := db.GetEngine(ctx).Asc("id")
 
 	if page >= 0 && pageSize > 0 {
 		start := 0
