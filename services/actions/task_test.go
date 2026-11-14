@@ -78,20 +78,21 @@ func TestRunnerWorkflowPayload(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	for _, tc := range []struct {
 		repoID, sourceRepoID int64
-		want                 string
+		sha, want            string
 	}{
-		{1, 1, "$/.gitea/actions/build"},
-		{2, 1, "self:user2/repo1/.gitea/actions/build@abc"},
-		{2, 0, "$/.gitea/actions/build"},
+		{1, 1, "abc", "$/.gitea/actions/build"},
+		{1, 1, "def", "self:user2/repo1/.gitea/actions/build@abc"},
+		{2, 1, "abc", "self:user2/repo1/.gitea/actions/build@abc"},
+		{2, 0, "abc", "$/.gitea/actions/build"},
 	} {
 		payload, err := runnerWorkflowPayload(t.Context(), &actions_model.ActionRunJob{
 			JobID:                   "build",
 			RepoID:                  tc.repoID,
-			Run:                     &actions_model.ActionRun{},
+			Run:                     &actions_model.ActionRun{RepoID: tc.repoID, CommitSHA: tc.sha},
 			WorkflowSourceRepoID:    tc.sourceRepoID,
 			WorkflowSourceCommitSHA: "abc",
 			WorkflowPayload:         []byte("name: ci\njobs:\n  build:\n    if: false\n    steps:\n      - uses: $/${{ inputs.action }}\n      - uses: $/.gitea/actions/build\n"),
-		}, "abc")
+		})
 		require.NoError(t, err)
 
 		swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(payload)

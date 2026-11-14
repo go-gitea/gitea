@@ -111,13 +111,10 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 		if err != nil {
 			return err
 		}
-		crossSource := source.WorkflowSourceRepoID != run.RepoID || source.WorkflowSourceCommitSHA != run.WorkflowCommitSHA
+		if err := checkSelfRepoStepExpressions(run, source, workflow); err != nil {
+			return err
+		}
 		for _, id := range slices.Sorted(maps.Keys(workflow.Jobs)) {
-			for _, step := range workflow.Jobs[id].Steps {
-				if crossSource && strings.HasPrefix(step.Uses, "$/") && strings.Contains(step.Uses, "${{") { // runnerWorkflowPayload can't pin these to the workflow source
-					return fmt.Errorf("job %s: `uses: %s` cannot use expressions in a workflow from another repository or commit", id, step.Uses)
-				}
-			}
 			uses := workflow.Jobs[id].Uses
 			if uses == "" {
 				continue
@@ -146,6 +143,22 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 		return nil
 	}
 	return validate(content, &actions_model.ActionRunJob{WorkflowSourceRepoID: run.WorkflowRepoID, WorkflowSourceCommitSHA: run.WorkflowCommitSHA}, 0)
+}
+
+// checkSelfRepoStepExpressions rejects `$/` steps with expressions that runnerWorkflowPayload can't pin to the workflow's source.
+func checkSelfRepoStepExpressions(run *actions_model.ActionRun, source *actions_model.ActionRunJob, workflow *model.Workflow) error {
+	for _, id := range slices.Sorted(maps.Keys(workflow.Jobs)) {
+		for _, step := range workflow.Jobs[id].Steps {
+			if !strings.HasPrefix(step.Uses, "$/") || !strings.Contains(step.Uses, "${{") {
+				continue
+			}
+			if _, runnerResolves := selfRepoSourceCommit(run, source); runnerResolves {
+				return nil
+			}
+			return fmt.Errorf("job %s: `uses: %s` cannot use expressions in a workflow from another repository or commit", id, step.Uses)
+		}
+	}
+	return nil
 }
 
 func errCallLevelExceeded(uses string) error {
@@ -300,6 +313,14 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		return err
 	}
 	if _, err := jobparser.ValidateWorkflowStatic(source.content); err != nil {
+		return fmt.Errorf("invalid called workflow: %w", err)
+	}
+	// run creation checked it too, but a branch or tag may have moved since, and a rerun expands again
+	calledWorkflow, err := jobparser.ReadWorkflow(source.content)
+	if err == nil {
+		err = checkSelfRepoStepExpressions(run, &actions_model.ActionRunJob{WorkflowSourceRepoID: source.repoID, WorkflowSourceCommitSHA: source.commitSHA}, calledWorkflow)
+	}
+	if err != nil {
 		return fmt.Errorf("invalid called workflow: %w", err)
 	}
 

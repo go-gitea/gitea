@@ -247,9 +247,14 @@ func TestLoadReusableWorkflowSourceFailsAlikeForMissingAndPrivateRepo(t *testing
 
 func TestValidateCalledWorkflowsRejectsCrossSourceSelfRepoExpressions(t *testing.T) {
 	content := []byte("on: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: $/${{ vars.ACTION }}\n")
-	require.NoError(t, validateCalledWorkflows(t.Context(), &actions_model.ActionRun{RepoID: 1, WorkflowRepoID: 1}, content))
-	assert.EqualError(t, validateCalledWorkflows(t.Context(), &actions_model.ActionRun{RepoID: 1, WorkflowRepoID: 2}, content),
-		"job build: `uses: $/${{ vars.ACTION }}` cannot use expressions in a workflow from another repository or commit")
+	require.NoError(t, validateCalledWorkflows(t.Context(), &actions_model.ActionRun{RepoID: 1, WorkflowRepoID: 1, WorkflowCommitSHA: "abc", CommitSHA: "abc"}, content))
+	for _, run := range []*actions_model.ActionRun{
+		{RepoID: 1, WorkflowRepoID: 2, WorkflowCommitSHA: "abc", CommitSHA: "abc"},
+		{RepoID: 1, WorkflowRepoID: 1, WorkflowCommitSHA: "abc", CommitSHA: "def", IsScopedRun: true}, // a scoped source triggering itself off its default branch
+	} {
+		assert.EqualError(t, validateCalledWorkflows(t.Context(), run, content),
+			"job build: `uses: $/${{ vars.ACTION }}` cannot use expressions in a workflow from another repository or commit")
+	}
 }
 
 func TestCheckRunJobLimit(t *testing.T) {
