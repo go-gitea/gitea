@@ -424,7 +424,14 @@ func PackageSettings(ctx *context.Context) {
 			ctx.ServerErrorAuto(err)
 			return
 		}
-		ctx.Data["LinkedRepoName"] = repo.Name
+		permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		if permission.HasAnyUnitAccessOrPublicAccess() {
+			ctx.Data["LinkedRepoName"] = repo.Name
+		}
 	}
 
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
@@ -445,33 +452,30 @@ func PackageSettingsPost(ctx *context.Context) {
 
 func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSettingForm) {
 	pd := ctx.Package.Descriptor
-	if form.RepoName == "" { // remove the link
-		if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, 0); err != nil {
-			ctx.JSONError(ctx.Tr("packages.settings.unlink.error"))
+	var repo *repo_model.Repository
+	if form.RepoName != "" {
+		var err error
+		repo, err = repo_model.GetRepositoryByName(ctx, pd.Owner.ID, form.RepoName)
+		if err != nil {
+			if repo_model.IsErrRepoNotExist(err) {
+				ctx.JSONError(ctx.Tr("packages.settings.link.repo_not_found", form.RepoName))
+			} else {
+				ctx.ServerErrorAuto(err)
+			}
 			return
 		}
+	}
 
+	if err := packages_service.UpdateRepositoryLink(ctx, pd.Package, repo, ctx.Doer); err != nil {
+		ctx.JSONErrorAuto(err)
+		return
+	}
+
+	if repo == nil {
 		ctx.Flash.Success(ctx.Tr("packages.settings.unlink.success"))
-		ctx.JSONRedirect("")
-		return
+	} else {
+		ctx.Flash.Success(ctx.Tr("packages.settings.link.success"))
 	}
-
-	repo, err := repo_model.GetRepositoryByName(ctx, pd.Owner.ID, form.RepoName)
-	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.JSONError(ctx.Tr("packages.settings.link.repo_not_found", form.RepoName))
-		} else {
-			ctx.ServerErrorAuto(err)
-		}
-		return
-	}
-
-	if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repo.ID); err != nil {
-		ctx.JSONError(ctx.Tr("packages.settings.link.error"))
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("packages.settings.link.success"))
 	ctx.JSONRedirect("")
 }
 
