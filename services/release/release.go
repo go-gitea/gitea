@@ -171,14 +171,15 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 
 // UpdateLatestRelease follows GitHub's make_latest, except that omitting it lets a newly published release become the latest only if it is the newest by date
 func UpdateLatestRelease(ctx context.Context, repo *repo_model.Repository, rel *repo_model.Release, wasEligible bool, makeLatest api.MakeLatest) error {
+	latestReleaseID := repo_model.GetLatestReleaseID(ctx, repo)
 	switch {
 	case makeLatest == api.MakeLatestTrue && rel.CanBeLatest():
 		return repo_model.SetLatestReleaseID(ctx, repo, rel.ID)
 	case makeLatest == api.MakeLatestLegacy:
-		return repo_model.UnsetLatestReleaseID(ctx, repo, repo.LatestReleaseID)
-	case repo.LatestReleaseID == rel.ID && !rel.CanBeLatest():
+		return repo_model.UnsetLatestReleaseID(ctx, repo, latestReleaseID)
+	case latestReleaseID == rel.ID && !rel.CanBeLatest():
 		return repo_model.UnsetLatestReleaseID(ctx, repo, rel.ID)
-	case wasEligible || !rel.CanBeLatest(), repo.LatestReleaseID == 0 && makeLatest != api.MakeLatestFalse:
+	case wasEligible || !rel.CanBeLatest(), latestReleaseID == 0 && makeLatest != api.MakeLatestFalse:
 		return nil
 	}
 	newest, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{ListOptions: db.ListOptions{PageSize: 2}, RepoID: repo.ID, IsPreRelease: optional.Some(false)})
@@ -186,9 +187,9 @@ func UpdateLatestRelease(ctx context.Context, repo *repo_model.Repository, rel *
 		return err
 	}
 	if makeLatest != api.MakeLatestFalse {
-		return repo_model.UnsetLatestReleaseID(ctx, repo, repo.LatestReleaseID)
+		return repo_model.UnsetLatestReleaseID(ctx, repo, latestReleaseID)
 	}
-	if repo.LatestReleaseID != 0 || len(newest) == 1 {
+	if latestReleaseID != 0 || len(newest) == 1 {
 		return nil
 	}
 	return repo_model.SetLatestReleaseID(ctx, repo, newest[1].ID)

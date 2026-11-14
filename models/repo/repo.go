@@ -209,7 +209,6 @@ type Repository struct {
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
 	ObjectFormatName                string             `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
-	LatestReleaseID                 int64              `xorm:"NOT NULL DEFAULT 0"` // 0 selects the latest release by date
 
 	TrustModel TrustModelType
 
@@ -419,6 +418,8 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 		ru.Config = new(ActionsConfig)
 	case unit.TypeProjects:
 		ru.Config = new(ProjectsConfig)
+	case unit.TypeReleases:
+		ru.Config = new(ReleasesConfig)
 	default: // other units don't have config
 	}
 	if ru.Config != nil {

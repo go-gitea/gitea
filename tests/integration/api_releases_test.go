@@ -248,7 +248,9 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	}
 	unittest.AssertExistsAndLoadBean(t, rel)
 	assert.Equal(t, rel.Note, newRelease.Note)
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID, LatestReleaseID: rel.ID})
+	assert.Equal(t, rel.ID, repo_model.GetLatestReleaseID(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})))
+	MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", owner.Name, repo.Name), &api.EditRepoOption{HasReleases: new(true)}).AddTokenAuth(token), http.StatusOK)
+	assert.Equal(t, rel.ID, repo_model.GetLatestReleaseID(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})))
 }
 
 func TestAPICreateRelease(t *testing.T) {

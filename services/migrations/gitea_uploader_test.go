@@ -148,11 +148,11 @@ func TestCreateReleases(t *testing.T) {
 	commit, err := gitRepo.GetTagCommit(t.Context(), "v1.1")
 	require.NoError(t, err)
 	assert.Equal(t, commit.Committer.When.Unix(), int64(unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, TagName: "v1.1"}).CreatedUnix))
-	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).LatestReleaseID)
+	assert.Zero(t, repo_model.GetLatestReleaseID(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})))
 	require.NoError(t, uploader.CreateReleases(t.Context(), &base.Release{TagName: "newer", Created: time.Now().Add(time.Hour)}))
 	require.NoError(t, uploader.SyncTags(t.Context()))
 	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, Title: "assets"})
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, LatestReleaseID: release.ID})
+	assert.Equal(t, release.ID, repo_model.GetLatestReleaseID(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})))
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ReleaseID: release.ID, Name: "kept", Size: 4})
 	unittest.AssertNotExistsBean(t, &repo_model.Attachment{ReleaseID: release.ID, Name: "gone"})
 

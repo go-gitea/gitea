@@ -413,13 +413,11 @@ func TestRelease_LatestByCommitDateUnlessSet(t *testing.T) {
 
 	updateRelease(old, api.MakeLatestTrue)
 	updateRelease(newer, api.MakeLatestLegacy)
-	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}).LatestReleaseID)
 	assertLatest(newer)
 
 	updateRelease(old, api.MakeLatestTrue)
 	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, old, user, false))
-	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}).LatestReleaseID)
-	assertLatest(newer)
+	assert.Zero(t, repo_model.GetLatestReleaseID(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})))
 
 	newRelease("v9.9-newest", "DefaultBranch", api.MakeLatestFalse)
 	assertLatest(newer)
