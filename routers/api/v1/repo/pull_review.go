@@ -379,6 +379,13 @@ func getPullReviewCommentToResolve(ctx *context.APIContext) *issues_model.Commen
 		ctx.APIErrorAuto(err)
 		return nil
 	}
+	if err = issues_model.CheckIssueVisible(ctx, comment.Issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		if issues_model.IsErrIssueNotExist(err) {
+			err = issues_model.ErrCommentNotExist{ID: comment.ID} // the same answer as for a comment that does not exist
+		}
+		ctx.APIErrorAuto(err)
+		return nil
+	}
 
 	if !comment.Issue.IsPull {
 		ctx.APIError(http.StatusBadRequest, "comment does not belong to a pull request")

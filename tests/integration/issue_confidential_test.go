@@ -1446,3 +1446,45 @@ func TestConfidentialIssuePeoplePickers(t *testing.T) {
 	assert.Contains(t, assigneeNames(&issues_model.VisibilityScope{Unrestricted: true}), "user8")
 	assert.NotContains(t, assigneeNames(nil), "user8")
 }
+
+// A hidden confidential issue answers byte for byte like a missing one on routes that are reached by a comment ID,
+// that ask for more than read access, or that only make sense for pull requests -- for clients that do not accept
+// HTML too, which get the error message as text.
+func TestConfidentialIssueExistenceProbes(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	fx := newConfidentialWebFixture(t, "ocelotconf")
+	const missingID = 999999
+
+	reader := loginUser(t, "user5")
+	token := getUserToken(t, "user5", auth_model.AccessTokenScopeWriteRepository)
+	answer := func(method, link string, id int64, values map[string]string, api bool) (int, string) {
+		path := strings.ReplaceAll(link, "{id}", strconv.FormatInt(id, 10))
+		var resp *httptest.ResponseRecorder
+		if api {
+			resp = MakeRequest(t, NewRequest(t, method, path).AddTokenAuth(token), NoExpectedStatus)
+		} else {
+			for k, v := range values {
+				values[k] = strings.ReplaceAll(v, "{id}", strconv.FormatInt(id, 10))
+			}
+			resp = reader.MakeRequest(t, NewRequestWithValues(t, method, path, values), NoExpectedStatus)
+		}
+		return resp.Code, strings.ReplaceAll(resp.Body.String(), strconv.FormatInt(id, 10), "{id}")
+	}
+	for _, r := range []struct {
+		method, link string
+		hidden       int64
+		values       map[string]string
+		api          bool
+	}{
+		{"GET", "/user2/repo1/comments/{id}/attachments", fx.commentID, nil, false},
+		{"POST", "/user2/repo1/issues/{id}/lock", fx.issue.Index, map[string]string{"reason": "off-topic"}, false},
+		{"POST", "/user2/repo1/issues/resolve_conversation", fx.commentID, map[string]string{"comment_id": "{id}", "action": "Resolve"}, false},
+		{"POST", "/api/v1/repos/user2/repo1/pulls/comments/{id}/resolve", fx.commentID, nil, true},
+	} {
+		wantStatus, wantBody := answer(r.method, r.link, missingID, maps.Clone(r.values), r.api)
+		gotStatus, gotBody := answer(r.method, r.link, r.hidden, maps.Clone(r.values), r.api)
+		assert.Equal(t, wantStatus, gotStatus, "%s %s", r.method, r.link)
+		assert.Equal(t, wantBody, gotBody, "%s %s", r.method, r.link)
+		assert.NotContains(t, gotBody, "ocelotconf")
+	}
+}

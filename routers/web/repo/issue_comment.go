@@ -150,6 +150,9 @@ func getRepoIssueComment(ctx *context.Context, commentID int64) *issues_model.Co
 		return nil
 	}
 	if err = issues_model.CheckIssueVisible(ctx, comment.Issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		if issues_model.IsErrIssueNotExist(err) {
+			err = issues_model.ErrCommentNotExist{ID: commentID} // the same answer as for a comment that does not exist
+		}
 		ctx.ServerErrorAuto(err)
 		return nil
 	}

@@ -141,6 +141,12 @@ func UpdateResolveConversation(ctx *context.Context) {
 		ctx.NotFound()
 		return
 	}
+	// only review comments of a pull request can be resolved, and pull requests are never confidential: any other
+	// comment answers like a missing one, before the permission check reads its pull request
+	if !comment.Issue.IsPull {
+		ctx.ServerErrorAuto(issues_model.ErrCommentNotExist{ID: commentID})
+		return
+	}
 
 	var permResult bool
 	if permResult, err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
