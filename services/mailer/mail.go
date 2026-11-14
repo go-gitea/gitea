@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/httplib"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/typesniffer"
+	gitea_context "gitea.dev/services/context"
 	sender_service "gitea.dev/services/mailer/sender"
 
 	"golang.org/x/net/html"
@@ -58,15 +60,23 @@ func sanitizeSubject(subject string) string {
 	return mime.QEncoding.Encode("utf-8", string(runes))
 }
 
+// withoutWebContext hides the web request of whoever triggered a mail. A mail body is rendered once and sent to
+// every recipient, so the references in it must not be resolved with the sender's permissions; the markdown
+// renderer only looks up titles of referenced issues when it has a web context.
+func withoutWebContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, gitea_context.WebContextKey, (*gitea_context.Context)(nil))
+}
+
 type mailAttachmentBase64Embedder struct {
 	doer         *user_model.User
 	repo         *repo_model.Repository
+	issueID      int64 // the issue the mail is about
 	maxSize      int64
 	estimateSize int64
 }
 
-func newMailAttachmentBase64Embedder(doer *user_model.User, repo *repo_model.Repository, maxSize int64) *mailAttachmentBase64Embedder {
-	return &mailAttachmentBase64Embedder{doer: doer, repo: repo, maxSize: maxSize}
+func newMailAttachmentBase64Embedder(doer *user_model.User, repo *repo_model.Repository, issueID, maxSize int64) *mailAttachmentBase64Embedder {
+	return &mailAttachmentBase64Embedder{doer: doer, repo: repo, issueID: issueID, maxSize: maxSize}
 }
 
 func (b64embedder *mailAttachmentBase64Embedder) Base64InlineImages(ctx context.Context, body template.HTML) (template.HTML, error) {
@@ -131,6 +141,16 @@ func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ct
 
 	if attachment.RepoID != b64embedder.repo.ID {
 		return "", errors.New("attachment does not belong to the repository")
+	}
+	// the recipients were chosen for the mailed issue; an attachment of another, confidential issue is not theirs
+	if attachment.IssueID != 0 && attachment.IssueID != b64embedder.issueID {
+		issue, err := issues_model.GetIssueByID(ctx, attachment.IssueID)
+		if err != nil {
+			return "", err
+		}
+		if issue.IsConfidential {
+			return "", errors.New("attachment belongs to a confidential issue")
+		}
 	}
 	if attachment.Size+b64embedder.estimateSize > b64embedder.maxSize {
 		return "", errors.New("total embedded images exceed max limit")

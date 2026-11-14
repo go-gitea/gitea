@@ -20,6 +20,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/gituser"
 	issues_model "gitea.dev/models/issues"
@@ -544,7 +545,7 @@ func TestEmbedBase64Images(t *testing.T) {
 	t.Run("EmbedInstanceImageSkipExternalImage", func(t *testing.T) {
 		mailBody := "<html><head></head><body><p>Test1</p>" + imgExternalImg + "<p>Test2</p>" + att1Img + "<p>Test3</p></body></html>"
 		expectedMailBody := "<html><head></head><body><p>Test1</p>" + imgExternalImg + "<p>Test2</p>" + att1ImgBase64 + "<p>Test3</p></body></html>"
-		b64embedder := newMailAttachmentBase64Embedder(user, repo, 1024)
+		b64embedder := newMailAttachmentBase64Embedder(user, repo, issue.ID, 1024)
 		resultMailBody, err := b64embedder.Base64InlineImages(t.Context(), template.HTML(mailBody))
 		require.NoError(t, err)
 		assert.Equal(t, expectedMailBody, string(resultMailBody))
@@ -552,17 +553,41 @@ func TestEmbedBase64Images(t *testing.T) {
 
 	t.Run("LimitedEmailBodySize", func(t *testing.T) {
 		mailBody := fmt.Sprintf("<html><head></head><body>%s%s</body></html>", att1Img, att2Img)
-		b64embedder := newMailAttachmentBase64Embedder(user, repo, 1024)
+		b64embedder := newMailAttachmentBase64Embedder(user, repo, issue.ID, 1024)
 		resultMailBody, err := b64embedder.Base64InlineImages(t.Context(), template.HTML(mailBody))
 		require.NoError(t, err)
 		expected := fmt.Sprintf("<html><head></head><body>%s%s</body></html>", att1ImgBase64, att2Img)
 		assert.Equal(t, expected, string(resultMailBody))
 
-		b64embedder = newMailAttachmentBase64Embedder(user, repo, 4096)
+		b64embedder = newMailAttachmentBase64Embedder(user, repo, issue.ID, 4096)
 		resultMailBody, err = b64embedder.Base64InlineImages(t.Context(), template.HTML(mailBody))
 		require.NoError(t, err)
 		expected = fmt.Sprintf("<html><head></head><body>%s%s</body></html>", att1ImgBase64, att2ImgBase64)
 		assert.Equal(t, expected, string(resultMailBody))
+	})
+
+	t.Run("SkipAttachmentOfAnotherConfidentialIssue", func(t *testing.T) {
+		mailBody := "<html><head></head><body>" + att1Img + "</body></html>"
+		other := &issues_model.Issue{RepoID: repo.ID, Index: 9400, PosterID: user.ID, Title: "other"}
+		require.NoError(t, db.Insert(t.Context(), other))
+		// mailing about another issue, the attachment of a public issue is still embedded
+		result, err := newMailAttachmentBase64Embedder(user, repo, other.ID, 1024).Base64InlineImages(t.Context(), template.HTML(mailBody))
+		require.NoError(t, err)
+		assert.Contains(t, string(result), att1Base64)
+
+		issue.IsConfidential = true
+		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "is_confidential"))
+		defer func() {
+			issue.IsConfidential = false
+			require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "is_confidential"))
+		}()
+		result, err = newMailAttachmentBase64Embedder(user, repo, other.ID, 1024).Base64InlineImages(t.Context(), template.HTML(mailBody))
+		require.NoError(t, err)
+		assert.Equal(t, mailBody, string(result), "an attachment of a confidential issue is never inlined into mail about another issue")
+		// mailing about the confidential issue itself goes to its own allowed recipients
+		result, err = newMailAttachmentBase64Embedder(user, repo, issue.ID, 1024).Base64InlineImages(t.Context(), template.HTML(mailBody))
+		require.NoError(t, err)
+		assert.Contains(t, string(result), att1Base64)
 	})
 }
 

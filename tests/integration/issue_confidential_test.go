@@ -33,8 +33,10 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/services/mailer"
 	"gitea.dev/services/mailer/incoming"
 	incoming_payload "gitea.dev/services/mailer/incoming/payload"
+	sender_service "gitea.dev/services/mailer/sender"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -1332,4 +1334,37 @@ func TestConfidentialIssueDependencyEditor(t *testing.T) {
 	titles, _ := apiIssueTitles(t, resp)
 	assert.Len(t, titles, 2, "the confidential blocker in the readable repository is dropped, the other two are listed")
 	assert.Contains(t, titles, "HIDDEN")
+}
+
+// A mail body is rendered once for all its recipients. A reference to a confidential issue in it must not be
+// expanded to that issue's title with the permissions of the person who wrote the comment.
+func TestConfidentialIssueMailReferences(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	const keyword = "manateeconf"
+	confidential := newConfidentialListIssue(t, keyword, true)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	watcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	require.NoError(t, repo_model.WatchRepoAuto(t.Context(), watcher, repo, true))
+
+	var sent []*sender_service.Message
+	defer test.MockVariableValue(&mailer.SendAsync, func(msgs ...*sender_service.Message) {
+		sent = append(sent, msgs...)
+	})()
+
+	// user2 is a writer and sees the confidential issue; the list item makes the renderer look up the title
+	session := loginUser(t, "user2")
+	req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/1/comments", map[string]string{"content": fmt.Sprintf("- see #%d", confidential.Index)})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	var toWatcher int
+	for _, msg := range sent {
+		if !strings.Contains(msg.To, watcher.Email) {
+			continue
+		}
+		toWatcher++
+		assert.NotContains(t, msg.Body, keyword)
+		assert.Contains(t, msg.Body, fmt.Sprintf("#%d", confidential.Index))
+	}
+	assert.Equal(t, 1, toWatcher, "the watcher gets the mail about the public issue")
 }
