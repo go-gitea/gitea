@@ -6,7 +6,6 @@ package auth
 import (
 	"fmt"
 
-	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -96,7 +95,7 @@ func oauth2UpdateSSHPubIfNeed(ctx *context.Context, authSource *auth.Source, got
 	if err != nil {
 		return err
 	}
-	if !asymkey_model.SynchronizePublicKeys(ctx, user, authSource, sshKeys, false) {
+	if !asymkey_service.SynchronizePublicKeys(ctx, user, authSource, sshKeys, false) {
 		return nil
 	}
 	return asymkey_service.RewriteAllPublicKeys(ctx)

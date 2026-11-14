@@ -8,9 +8,11 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
+	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -60,10 +62,28 @@ func TestAuditNotifier(t *testing.T) {
 			func() { notifier.ChangeDefaultBranch(ctx, repo) },
 			audit_model.Event{Action: audit_model.RepositoryBranchDefault},
 		},
+		{
+			func() {
+				notifier.PullReviewDismiss(ctx, doer, &issues_model.Review{ID: 41, Issue: &issues_model.Issue{Index: 8, Repo: repo}}, nil)
+			},
+			audit_model.Event{Action: audit_model.PullRequestReviewDismiss, ActorID: doer.ID, Message: "Dismissed review 41 of pull request #8 in repository owner/repo."},
+		},
+		{
+			func() { notifier.DeleteRef(ctx, doer, repo, git.RefNameFromTag("v1.0")) },
+			audit_model.Event{Action: audit_model.RepositoryTagRemove, ActorID: doer.ID, Message: "Removed tag v1.0 from repository owner/repo."},
+		},
 	} {
 		tc.notify()
 		tc.event.ScopeType = audit_model.ScopeRepository
 		tc.event.ScopeID = repo.ID
 		unittest.AssertExistsAndLoadBean(t, &tc.event)
 	}
+
+	notifier.DeleteRef(ctx, doer, repo, git.RefNameFromBranch("feature"))
+	unittest.AssertCount(t, &audit_model.Event{Action: audit_model.RepositoryTagRemove}, 1)
+
+	org := &user_model.User{ID: 3, Name: "org3", Type: user_model.UserTypeOrganization}
+	impersonatedCtx := WithImpersonator(ctx, &user_model.User{ID: 1, Name: "admin"})
+	notifier.PackageDelete(impersonatedCtx, doer, &packages_model.PackageDescriptor{Owner: org, Package: &packages_model.Package{Name: "pkg"}, Version: &packages_model.PackageVersion{Version: "1.0.0"}})
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.OrganizationPackageRemove, ActorID: doer.ID, ImpersonatorID: 1, ScopeType: audit_model.ScopeOrganization, ScopeID: org.ID})
 }

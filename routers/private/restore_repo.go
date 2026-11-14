@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/services/audit"
 	myCtx "gitea.dev/services/context"
 	"gitea.dev/services/migrations"
 )
@@ -32,7 +33,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 	}
 
 	if err := migrations.RestoreRepository(
-		ctx,
+		audit.WithCLIDoer(ctx),
 		params.RepoDir,
 		params.OwnerName,
 		params.RepoName,

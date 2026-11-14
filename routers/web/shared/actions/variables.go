@@ -190,7 +190,7 @@ func VariableDelete(ctx *context.Context) {
 		return
 	}
 
-	if err := actions_service.DeleteVariableByID(ctx, variable.ID); err != nil {
+	if err := actions_service.DeleteVariable(ctx, variable); err != nil {
 		log.Error("Delete variable [%d] failed: %v", id, err)
 		ctx.JSONError(ctx.Tr("actions.variables.deletion.failed"))
 		return

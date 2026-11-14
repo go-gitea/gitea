@@ -7,10 +7,13 @@ import (
 	"testing"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +39,7 @@ func TestAddLdapSSHPublicKeys(t *testing.T) {
 		{rsaKey + " nocomment\n382488320jasdj1lasmva/vasodifipi4193-fksma.cm\n" + ed25519Key + " nocomment", 2, []string{rsaKey, ed25519Key}},
 	} {
 		s.ID = int64(i) + 20
-		asymkey_model.AddPublicKeysBySource(t.Context(), user, s, []string{kase.keyString}, false)
+		AddPublicKeysBySource(t.Context(), user, s, []string{kase.keyString}, false)
 		keys, err := db.Find[asymkey_model.PublicKey](t.Context(), asymkey_model.FindPublicKeyOptions{
 			OwnerID:       user.ID,
 			LoginSourceID: s.ID,
@@ -53,5 +56,22 @@ func TestAddLdapSSHPublicKeys(t *testing.T) {
 		for _, key := range keys {
 			DeletePublicKey(t.Context(), user, key.ID)
 		}
+	}
+}
+
+func TestSynchronizePublicKeysAudit(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	s := &auth.Source{ID: 30, Name: "ldap"}
+	const key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEYv1rUQ6Sx6XQNM5o8URz8xvuXaV9bGXfj+OMkh8T0X"
+
+	assert.True(t, SynchronizePublicKeys(t.Context(), user, s, []string{key + " comment"}, false))
+	assert.True(t, SynchronizePublicKeys(t.Context(), user, s, nil, false))
+
+	for _, action := range []audit_model.Action{audit_model.UserKeySSHAdd, audit_model.UserKeySSHRemove} {
+		e := unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: action, ScopeType: audit_model.ScopeUser, ScopeID: user.ID})
+		assert.Equal(t, user_model.AuthSourceUserID, e.ActorID)
 	}
 }

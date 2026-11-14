@@ -80,6 +80,11 @@ func TestUpdateUser(t *testing.T) {
 	}
 	assertUpdatedUser(user)
 	assertUpdatedUser(unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28}))
+
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	assert.NoError(t, UpdateUser(t.Context(), org, &UpdateOptions{RepoAdminChangeTeamAccess: optional.Some(!org.RepoAdminChangeTeamAccess)}))
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.OrganizationTeamAccess, ScopeType: audit_model.ScopeOrganization, ScopeID: org.ID})
 }
 
 func TestUpdateAuth(t *testing.T) {
@@ -101,10 +106,12 @@ func TestUpdateAuth(t *testing.T) {
 	assert.NotEqual(t, userCopy.Passwd, user.Passwd)
 	assert.NotEqual(t, userCopy.Salt, user.Salt)
 
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
 		ProhibitLogin: optional.Some(true),
 	}))
 	assert.True(t, user.ProhibitLogin)
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserProhibitLogin, ScopeType: audit_model.ScopeUser, ScopeID: user.ID})
 
 	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
 		Password: optional.Some("aaaa"),

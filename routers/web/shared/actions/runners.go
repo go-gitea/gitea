@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -274,6 +275,7 @@ func ResetRunnerRegistrationToken(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	audit.RecordScopedByID(ctx, ownerID, repoID, audit.RunnerToken)
 	ctx.Flash.Success(ctx.Tr("actions.runners.reset_registration_token_success"))
 	ctx.JSONRedirect(redirectTo)
 }
@@ -307,6 +309,7 @@ func RunnerDeletePost(ctx *context.Context) {
 		return
 	}
 
+	audit.RecordScopedByID(ctx, runner.OwnerID, runner.RepoID, audit.RunnerRemove, "runner", runner.Name)
 	log.Info("DeleteRunnerPost success: %s", ctx.Req.URL)
 
 	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
@@ -350,6 +353,7 @@ func RunnerUpdatePost(ctx *context.Context) {
 		ctx.JSONRedirect("")
 		return
 	}
+	audit.RecordScopedByID(ctx, runner.OwnerID, runner.RepoID, audit.RunnerUpdate, "runner", runner.Name, "disabled", isDisabled.Value())
 
 	ctx.Flash.Success(ctx.Tr(successKey))
 	ctx.JSONRedirect("")
@@ -404,14 +408,13 @@ func RunnerBulkActionPost(ctx *context.Context) {
 				if err := actions_model.DeleteRunner(txCtx, r.ID); err != nil {
 					return err
 				}
-			case "disable":
-				if err := actions_model.SetRunnerDisabled(txCtx, r, true); err != nil {
+				audit.RecordScopedByID(txCtx, r.OwnerID, r.RepoID, audit.RunnerRemove, "runner", r.Name)
+			case "disable", "enable":
+				disabled := action == "disable"
+				if err := actions_model.SetRunnerDisabled(txCtx, r, disabled); err != nil {
 					return err
 				}
-			case "enable":
-				if err := actions_model.SetRunnerDisabled(txCtx, r, false); err != nil {
-					return err
-				}
+				audit.RecordScopedByID(txCtx, r.OwnerID, r.RepoID, audit.RunnerUpdate, "runner", r.Name, "disabled", disabled)
 			}
 		}
 		return nil

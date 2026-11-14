@@ -5,6 +5,7 @@ package audit
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	audit_model "gitea.dev/models/audit"
@@ -88,6 +89,14 @@ func TestBuildEvent(t *testing.T) {
 		assert.Equal(t, "TestUser/TestRepo", e.ScopeName)
 		assert.Equal(t, "Added push mirror to git@example.com:repo.git for repository TestUser/TestRepo.", e.Message)
 		assert.InDelta(t, float64(m.ID), audit_model.DecodeMetadata(e.Metadata)["mirror_id"], 0)
+	})
+
+	t.Run("LongMessageTruncatedToColumnSize", func(t *testing.T) {
+		e := buildEvent(context.Background(), RecordParams{
+			Action:   audit_model.RepositoryMirrorPullUpdate,
+			Metadata: metaPairs("remote_address", strings.Repeat("a", 300)),
+		})
+		assert.Len(t, e.Message, 255)
 	})
 
 	t.Run("StatusChangesIncludeTheirNewValue", func(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -26,6 +27,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context/upload"
 	notify_service "gitea.dev/services/notify"
 )
@@ -392,6 +394,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
 func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *repo_model.Release, doer *user_model.User, delTag bool) error {
+	isRelease := !rel.IsTag
 	if delTag {
 		protectedTags, err := git_model.GetProtectedTags(ctx, rel.RepoID)
 		if err != nil {
@@ -459,6 +462,9 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		}
 	}
 
+	if isRelease {
+		audit.RecordAs(ctx, doer, audit_model.RepositoryReleaseRemove, repo, "release", rel.TagName)
+	}
 	if !rel.IsDraft {
 		notify_service.DeleteRelease(ctx, doer, rel)
 	}

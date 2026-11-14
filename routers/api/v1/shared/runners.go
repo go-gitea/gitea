@@ -12,6 +12,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 )
@@ -28,6 +29,7 @@ func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.RecordScopedByID(ctx, ownerID, repoID, audit.RunnerToken)
 
 	ctx.JSON(http.StatusOK, RegistrationToken{Token: token.Token})
 }
@@ -112,11 +114,11 @@ func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 		return
 	}
 
-	err := actions_model.DeleteRunner(ctx, runner.ID)
-	if err != nil {
+	if err := actions_model.DeleteRunner(ctx, runner.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.RecordScopedByID(ctx, runner.OwnerID, runner.RepoID, audit.RunnerRemove, "runner", runner.Name)
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -136,6 +138,7 @@ func UpdateRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.RecordScopedByID(ctx, runner.OwnerID, runner.RepoID, audit.RunnerUpdate, "runner", runner.Name, "disabled", *form.Disabled)
 
 	GetRunner(ctx, ownerID, repoID, runnerID)
 }
