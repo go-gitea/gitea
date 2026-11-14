@@ -147,8 +147,7 @@ func tunnel(proxyURL, target string) error {
 		_, _ = io.Copy(conn, os.Stdin)
 		closeWrite(conn)
 	}()
-	_, err = copyConn(os.Stdout, conn)
-	return err
+	return copyConn(os.Stdout, conn)
 }
 
 // proxyTLSConfig loads the files of git's http.proxySSL* options, like curl the CA file replaces the system roots
@@ -378,24 +377,24 @@ func withBuffered(conn net.Conn, r *bufio.Reader) net.Conn {
 func relay(client, upstream net.Conn) {
 	done := make(chan struct{})
 	go func() {
-		_, _ = copyConn(upstream, client)
+		_ = copyConn(upstream, client)
 		closeWrite(upstream)
 		close(done)
 	}()
-	_, _ = copyConn(client, upstream)
+	_ = copyConn(client, upstream)
 	closeWrite(client)
 	<-done
 	_ = client.Close()
 	_ = upstream.Close()
 }
 
-// copyConn retries with a plain copy when splice fails before moving any data, some vendor kernels return EBADF where Go only falls back on EINVAL
-func copyConn(dst io.Writer, src io.Reader) (int64, error) {
+// copyConn falls back to a plain copy as some vendor kernels fail splice with EBADF, Go only does so on EINVAL
+func copyConn(dst io.Writer, src io.Reader) error {
 	n, err := io.Copy(dst, src)
 	if n == 0 && errors.Is(err, syscall.EBADF) {
-		return io.Copy(struct{ io.Writer }{dst}, struct{ io.Reader }{src})
+		_, err = io.Copy(struct{ io.Writer }{dst}, struct{ io.Reader }{src})
 	}
-	return n, err
+	return err
 }
 
 func closeWrite(conn net.Conn) {

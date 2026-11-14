@@ -5,7 +5,6 @@ package gitproxy
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -22,7 +21,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"testing"
 
@@ -189,32 +187,26 @@ func TestWriteUpstreamError(t *testing.T) {
 	}
 }
 
+type spliceFailConn struct{ net.Conn }
+
+func (spliceFailConn) WriteTo(io.Writer) (int64, error)  { return 0, syscall.EBADF }
+func (spliceFailConn) ReadFrom(io.Reader) (int64, error) { return 0, syscall.EBADF }
+
 func TestRelay(t *testing.T) {
 	t.Parallel()
 	client, clientEnd := net.Pipe()
 	upstreamEnd, upstream := net.Pipe()
 	done := make(chan struct{})
 	go func() {
-		relay(clientEnd, upstreamEnd)
+		relay(spliceFailConn{clientEnd}, upstreamEnd)
 		close(done)
 	}()
+	go func() { _, _ = io.Copy(upstream, upstream) }()
+	assertEcho(t, client, bufio.NewReader(client))
 	require.NoError(t, upstream.Close())
 	_, err := client.Read(make([]byte, 1))
 	assert.ErrorIs(t, err, io.EOF)
 	<-done
-}
-
-type spliceFailReader struct{ io.Reader }
-
-func (spliceFailReader) WriteTo(io.Writer) (int64, error) { return 0, syscall.EBADF }
-
-func TestCopyConn(t *testing.T) {
-	t.Parallel()
-	var buf bytes.Buffer
-	n, err := copyConn(&buf, spliceFailReader{strings.NewReader("ping")})
-	require.NoError(t, err)
-	assert.EqualValues(t, 4, n)
-	assert.Equal(t, "ping", buf.String())
 }
 
 func TestProxyCONNECT(t *testing.T) {
