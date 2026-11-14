@@ -1061,11 +1061,29 @@ func TestConfidentialIssueFeedsAndNotifications(t *testing.T) {
 	newBefore := map[string]int64{"user2": apiNew("user2"), "user5": apiNew("user5")}
 	assert.True(t, mentions("user5", "/"), "public dashboard")
 
+	thread := func(viewer string, wantStatus int) {
+		t.Helper()
+		userID := map[string]int64{"user2": 2, "user5": 5}[viewer]
+		n := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: userID, IssueID: issue.ID})
+		token := getUserToken(t, viewer, auth_model.AccessTokenScopeWriteNotification)
+		link := fmt.Sprintf("/api/v1/notifications/threads/%d", n.ID)
+		resp := MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(token), wantStatus)
+		assert.Equal(t, wantStatus == http.StatusOK, strings.Contains(resp.Body.String(), confidentialFeedTitle), "GET %s as %s", link, viewer)
+		if wantStatus == http.StatusNotFound { // marking a visible thread read would change the counts checked below
+			resp = MakeRequest(t, NewRequest(t, "PATCH", link).AddTokenAuth(token), http.StatusNotFound)
+			assert.NotContains(t, resp.Body.String(), confidentialFeedTitle, "PATCH %s as %s", link, viewer)
+		}
+	}
+	thread("user5", http.StatusOK)
+
 	setConfidentialColumn(t, issue, true)
 	for _, link := range pages {
 		assert.True(t, mentions("user2", link), "writer %s", link)
 		assert.False(t, mentions("user5", link), "hidden viewer %s", link)
 	}
+	// the stale thread of a viewer who can no longer see the issue answers like an unknown thread
+	thread("user5", http.StatusNotFound)
+	thread("user2", http.StatusOK)
 	assert.Equal(t, 1, apiListed("user2"))
 	assert.Equal(t, 0, apiListed("user5"))
 	assert.Equal(t, newBefore["user2"], apiNew("user2"))

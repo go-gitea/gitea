@@ -111,5 +111,20 @@ func getThread(ctx *context.APIContext) *activities_model.Notification {
 		ctx.APIError(http.StatusForbidden, fmt.Sprintf("only user itself and admin are allowed to read/change this thread %d", n.ID))
 		return nil
 	}
+	// a thread about an issue that became hidden (made confidential, or the doer unassigned) is not there any more
+	if n.IssueID > 0 {
+		issue, err := n.GetIssue(ctx)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return nil
+		}
+		if visible, err := issues_model.IsIssueVisibleForDoer(ctx, issue, ctx.Doer); err != nil {
+			ctx.APIErrorInternal(err)
+			return nil
+		} else if !visible {
+			ctx.APIErrorNotFound()
+			return nil
+		}
+	}
 	return n
 }
