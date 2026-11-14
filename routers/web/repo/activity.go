@@ -55,7 +55,7 @@ func Activity(ctx *context.Context) {
 		branchExist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, ctx.Repo.Repository.DefaultBranch)
 		if !branchExist {
 			ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 	}
@@ -70,12 +70,12 @@ func Activity(ctx *context.Context) {
 		issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission),
 	)
 	if err != nil {
-		ctx.ServerError("GetActivityStats", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if ctx.PageData["repoActivityTopAuthors"], err = activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10); err != nil {
-		ctx.ServerError("GetActivityStatsTopAuthors", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func ActivityAuthors(ctx *context.Context) {
 
 	authors, err := activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10)
 	if err != nil {
-		ctx.ServerError("GetActivityStatsTopAuthors", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

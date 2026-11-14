@@ -53,7 +53,7 @@ func TestAuditNotifier(t *testing.T) {
 			audit_model.Event{Action: audit_model.RepositoryCreate, ActorID: doer.ID, Origin: audit_model.OriginUI},
 		},
 		{
-			func() { notifier.TransferRepository(ctx, doer, repo, "previous_owner") },
+			func() { notifier.TransferRepository(ctx, doer, repo, &user_model.User{Name: "previous_owner"}) },
 			audit_model.Event{Action: audit_model.RepositoryTransferFinish, ActorID: doer.ID, Message: "Transferred repository owner/repo from previous_owner to owner."},
 		},
 		{

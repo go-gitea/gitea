@@ -32,7 +32,7 @@ func UpdateIssueConfidential(ctx *context.Context) {
 	case errors.Is(err, issue_service.ErrConfidentialPullRequest):
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{"errorMessage": ctx.Locale.TrString("repo.issues.confidential.pull_request"), "renderFormat": "text"})
 	case err != nil:
-		ctx.ServerError("ChangeConfidential", err)
+		ctx.ServerErrorAuto(err)
 	default:
 		ctx.JSONRedirect(issue.Link())
 	}

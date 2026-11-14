@@ -56,9 +56,6 @@ type CommonAuthOptions struct {
 func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
-
-	// for OpenID Connect
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 
 	if opt.EnableCaptcha {
@@ -214,7 +211,7 @@ func performAutoLogin(ctx *context.Context) bool {
 			ctx.Flash.Error(ctx.Tr("auth.remember_me.compromised"), true)
 			return false
 		}
-		ctx.ServerError("autoSignIn", err)
+		ctx.ServerErrorAuto(err)
 		return true
 	}
 
@@ -230,7 +227,6 @@ func performAutoLoginOAuth2(ctx *context.Context, data *preparedSignInData) bool
 	// If only 1 OAuth provider is present and other login methods are disabled, redirect to the OAuth provider.
 	onlySingleOAuth2 := len(data.oauth2Providers) == 1 &&
 		!setting.Service.EnablePasswordSignInForm &&
-		!setting.Service.EnableOpenIDSignIn &&
 		!setting.Service.EnablePasskeyAuth &&
 		!data.enableSSPI
 
@@ -322,7 +318,7 @@ func SignInPost(ctx *context.Context) {
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 		} else {
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -338,7 +334,7 @@ func SignInPost(ctx *context.Context) {
 	// Instead, redirect them to the 2FA authentication page.
 	hasTwoFactor, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 	if err != nil {
-		ctx.ServerError("HasTwoFactorOrWebAuthn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !hasTwoFactor {
@@ -353,12 +349,12 @@ func handleTwoFactorRequired(ctx *context.Context, u *user_model.User, remember 
 	updates := map[string]any{"twofaUid": u.ID, "twofaRemember": remember}
 	maps.Copy(updates, extra)
 	if err := regenerateSession(ctx, updates); err != nil {
-		ctx.ServerError("RegenerateSession", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 	if err != nil {
-		ctx.ServerError("HasWebAuthnRegistrationsByUID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if hasWebAuthn {
@@ -384,7 +380,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		}
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
-			ctx.ServerError("CreateAuthTokenForUserID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -393,7 +389,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 
 	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 	if err != nil {
-		ctx.ServerError("HasTwoFactorOrWebAuthn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -402,7 +398,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		session.KeyUID:                  u.ID,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
-		ctx.ServerError("RegenerateSession", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -413,7 +409,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 			Language: optional.Some(ctx.Locale.Language()),
 		}
 		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
-			ctx.ServerError("UpdateUser Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, ctx.Locale.Language()))
+			ctx.ServerErrorAuto(fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, ctx.Locale.Language()))
 			return
 		}
 	}
@@ -426,7 +422,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 
 	// Register last login
 	if err := user_service.UpdateUser(ctx, u, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
-		ctx.ServerError("UpdateUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 }
@@ -477,7 +473,7 @@ func SignOut(ctx *context.Context) {
 
 	exitedImpersonated, err := auth_service.ExitImpersonatedUser(ctx.Session)
 	if err != nil {
-		ctx.ServerError("ExitImpersonatedUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if exitedImpersonated {
@@ -521,14 +517,14 @@ func prepareSignUpPageData(ctx *context.Context) bool {
 
 	hasUsers, err := user_model.HasUsers(ctx)
 	if err != nil {
-		ctx.ServerError("HasUsers", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	ctx.Data["IsFirstTimeRegistration"] = !hasUsers.HasAnyUser
 
 	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
-		ctx.ServerError("GetOAuth2Providers", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
@@ -644,16 +640,12 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 				user, err := user_model.GetIndividualUserByName(ctx, u.Name)
 				if err != nil {
 					if !user_model.IsErrUserNotExist(err) {
-						ctx.ServerError("GetIndividualUserByName", err)
+						ctx.ServerErrorAuto(err)
 						return false
 					}
 					user, err = user_model.GetIndividualUserByPrimaryEmail(ctx, u.Email)
 					if err != nil {
-						if !user_model.IsErrUserNotExist(err) {
-							ctx.ServerError("GetIndividualUserByPrimaryEmail", err)
-						} else {
-							ctx.NotFound(err)
-						}
+						ctx.ServerErrorAuto(err)
 						return false
 					}
 				}
@@ -671,7 +663,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 
 		// handle error without a template
 		if len(tpl) == 0 {
-			ctx.ServerError("CreateUser", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 
@@ -700,7 +692,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", errNameCharsNotAllowed.Name), tpl, form)
 		default:
-			ctx.ServerError("CreateUser", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return false
 	}
@@ -715,7 +707,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, possibleLinkAcc
 	// Auto-set admin for the only user.
 	hasUsers, err := user_model.HasUsers(ctx)
 	if err != nil {
-		ctx.ServerError("HasUsers", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	if hasUsers.HasOnlyOneUser {
@@ -726,7 +718,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, possibleLinkAcc
 			SetLastLogin: true,
 		}
 		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
-			ctx.ServerError("UpdateUser", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 	}
@@ -882,21 +874,17 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	user.IsActive = true
 	var err error
 	if user.Rands, err = user_model.GetUserSalt(); err != nil {
-		ctx.ServerError("UpdateUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := user_model.UpdateUserCols(ctx, user, "is_active", "rands"); err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("UpdateUser", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := user_model.ActivateUserEmail(ctx, user.ID, user.Email, true); err != nil {
 		log.Error("Unable to activate email for user: %-v with email: %s: %v", user, user.Email, err)
-		ctx.ServerError("ActivateUserEmail", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -904,17 +892,17 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	if err := regenerateSession(ctx, map[string]any{session.KeyUID: user.ID}); err != nil {
 		log.Error("Unable to regenerate session for user: %-v with email: %s: %v", user, user.Email, err)
-		ctx.ServerError("ActivateUserEmail", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := resetLocale(ctx, user); err != nil {
-		ctx.ServerError("resetLocale", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := user_service.UpdateUser(ctx, user, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
-		ctx.ServerError("UpdateUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -930,7 +918,7 @@ func ActivateEmail(ctx *context.Context) {
 	// Verify code.
 	if email := user_model.VerifyActiveEmailCode(ctx, code, emailStr); email != nil {
 		if err := user_model.ActivateEmail(ctx, email); err != nil {
-			ctx.ServerError("ActivateEmail", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 

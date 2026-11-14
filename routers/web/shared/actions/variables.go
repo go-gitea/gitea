@@ -48,7 +48,7 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 
 	if ctx.Data["PageIsOrgSettings"] == true {
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-			ctx.ServerError("RenderUserOrgHeader", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil //nolint:nilnil // error is already handled by ctx.ServerError
 		}
 		return &variablesCtx{
@@ -87,7 +87,7 @@ func Variables(ctx *context.Context) {
 
 	vCtx, err := getVariablesCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getVariablesCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -95,7 +95,7 @@ func Variables(ctx *context.Context) {
 		BelongingScope: vCtx.BelongingScope,
 	})
 	if err != nil {
-		ctx.ServerError("FindVariables", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Variables"] = variables
@@ -107,7 +107,7 @@ func Variables(ctx *context.Context) {
 func VariableCreate(ctx *context.Context) {
 	vCtx, err := getVariablesCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getVariablesCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -131,7 +131,7 @@ func VariableCreate(ctx *context.Context) {
 func VariableUpdate(ctx *context.Context) {
 	vCtx, err := getVariablesCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getVariablesCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -167,10 +167,10 @@ func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *ac
 	}
 	got, err := actions_model.FindVariables(ctx, opts)
 	if err != nil {
-		ctx.ServerError("FindVariables", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	} else if len(got) == 0 {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 	return got[0]
@@ -179,7 +179,7 @@ func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *ac
 func VariableDelete(ctx *context.Context) {
 	vCtx, err := getVariablesCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getVariablesCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -278,7 +278,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		return nil, err
 	}
 	if isExist {
-		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
+		log.Error("Files already exist in %s", repo.FullName())
 		// Don't return directly, we need err in defer to cleanupRepository
 		err = repo_model.ErrRepoFilesAlreadyExist{
 			Uname: repo.OwnerName,
@@ -370,11 +370,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &repo_model.IssuesConfig{
-					EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
-					AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
-					EnableDependencies:               setting.Service.DefaultEnableDependencies,
-				},
+				Config: repo_model.DefaultIssuesConfig(),
 			})
 		case unit.TypePullRequests:
 			units = append(units, repo_model.DefaultPullRequestsUnit(repo.ID))

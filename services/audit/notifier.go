@@ -37,8 +37,8 @@ func (n *auditNotifier) RenameRepository(ctx context.Context, doer *user_model.U
 	RecordAs(ctx, doer, audit_model.RepositoryName, repo, "previous_name", oldRepoName)
 }
 
-func (n *auditNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
-	RecordAs(ctx, doer, audit_model.RepositoryTransferFinish, repo, "old_owner", oldOwnerName, "new_owner", repo.OwnerName)
+func (n *auditNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
+	RecordAs(ctx, doer, audit_model.RepositoryTransferFinish, repo, "old_owner", oldOwner.Name, "new_owner", repo.OwnerName)
 }
 
 func (n *auditNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {

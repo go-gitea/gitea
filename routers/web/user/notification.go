@@ -60,12 +60,12 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		Status: []activities_model.NotificationStatus{queryStatus},
 	}
 	if err := countOpts.ResolveHiddenIssues(ctx); err != nil {
-		ctx.ServerError("ResolveHiddenIssues", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	total, err := db.Count[activities_model.Notification](ctx, countOpts)
 	if err != nil {
-		ctx.ServerError("ErrGetNotificationCount", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -87,12 +87,12 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		Status: statuses,
 	}
 	if err := findOpts.ResolveHiddenIssues(ctx); err != nil {
-		ctx.ServerError("ResolveHiddenIssues", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	nls, err := db.Find[activities_model.Notification](ctx, findOpts)
 	if err != nil {
-		ctx.ServerError("db.Find[activities_model.Notification]", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -102,30 +102,30 @@ func prepareUserNotificationsData(ctx *context.Context) {
 
 	repos, failures, err := notifications.LoadRepos(ctx)
 	if err != nil {
-		ctx.ServerError("LoadRepos", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	notifications = notifications.Without(failures)
 	if err := repos.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	failCount += len(failures)
 	notifications, failures, err = filterNotificationsByRepoAccess(ctx, ctx.Doer, notifications)
 	if err != nil {
-		ctx.ServerError("filterNotificationsByRepoAccess", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	failCount += len(failures)
 
 	failures, err = notifications.LoadIssues(ctx)
 	if err != nil {
-		ctx.ServerError("LoadIssues", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err = notifications.LoadIssuePullRequests(ctx); err != nil {
-		ctx.ServerError("LoadIssuePullRequests", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -134,7 +134,7 @@ func prepareUserNotificationsData(ctx *context.Context) {
 
 	failures, err = notifications.LoadComments(ctx)
 	if err != nil {
-		ctx.ServerError("LoadComments", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	notifications = notifications.Without(failures)
@@ -195,7 +195,7 @@ func NotificationStatusPost(ctx *context.Context) {
 		return // ignore user's invalid input
 	}
 	if _, err := notifications.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
-		ctx.ServerError("SetNotificationStatus", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -209,7 +209,7 @@ func NotificationStatusPost(ctx *context.Context) {
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
 func NotificationPurgePost(ctx *context.Context) {
 	if err := notifications.MarkAllRead(ctx, ctx.Doer); err != nil {
-		ctx.ServerError("MarkAllRead", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(setting.AppSubURL + "/notifications")
@@ -219,12 +219,12 @@ func NotificationPurgePost(ctx *context.Context) {
 func NotificationPurgePagePost(ctx *context.Context) {
 	nl, err := activities_model.GetNotificationsByIDs(ctx, ctx.FormStringInt64s("ids"), ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("GetNotificationsByIDs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	_, err = notifications.SetManyNotificationStatuses(ctx, nl, ctx.Doer, activities_model.NotificationStatusRead)
 	if err != nil {
-		ctx.ServerError("SetManyNotificationStatuses", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect("")
@@ -276,7 +276,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 
 	visibility, err := issues_model.BuildVisibilityScopeByCond(ctx, ctx.Doer, nil)
 	if err != nil {
-		ctx.ServerError("BuildVisibilityScopeByCond", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	count, err := issues_model.CountIssues(ctx, &issues_model.IssuesOptions{
@@ -287,7 +287,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		Visibility:   visibility,
 	})
 	if err != nil {
-		ctx.ServerError("CountIssues", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	issues, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
@@ -303,13 +303,13 @@ func NotificationSubscriptions(ctx *context.Context) {
 		Visibility:   visibility,
 	})
 	if err != nil {
-		ctx.ServerError("Issues", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, ctx.Doer, issues)
 	if err != nil {
-		ctx.ServerError("GetIssuesAllCommitStatus", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["CommitLastStatus"] = lastStatus
@@ -319,7 +319,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 
 	approvalCounts, err := issues.GetApprovalCounts(ctx)
 	if err != nil {
-		ctx.ServerError("ApprovalCounts", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
@@ -426,7 +426,7 @@ func NotificationWatching(ctx *context.Context) {
 		IsPrivate:          private,
 	})
 	if err != nil {
-		ctx.ServerError("SearchRepository", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Total"] = count
@@ -434,7 +434,7 @@ func NotificationWatching(ctx *context.Context) {
 
 	watches, err := repo_model.GetUserWatches(ctx, ctx.Doer.ID, repos.IDs())
 	if err != nil {
-		ctx.ServerError("GetUserWatches", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Watches"] = watches

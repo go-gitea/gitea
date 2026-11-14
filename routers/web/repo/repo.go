@@ -43,14 +43,14 @@ const (
 // MustBeNotEmpty render when a repo is a empty git dir
 func MustBeNotEmpty(ctx *context.Context) {
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 }
 
 // MustBeEditable check that repo can be edited
 func MustBeEditable(ctx *context.Context) {
 	if !ctx.Repo.Repository.CanContentChange() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 }
@@ -58,14 +58,14 @@ func MustBeEditable(ctx *context.Context) {
 // MustBeAbleToUpload check that repo can be uploaded to
 func MustBeAbleToUpload(ctx *context.Context) {
 	if !setting.Repository.Upload.Enabled {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 
@@ -88,7 +88,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	}
 
 	if err != nil {
-		ctx.ServerError("GetUserByID", fmt.Errorf("[%d]: %w", uid, err))
+		ctx.ServerErrorAuto(fmt.Errorf("[%d]: %w", uid, err))
 		return nil
 	}
 
@@ -100,7 +100,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	if !ctx.Doer.IsAdmin {
 		canCreate, err := organization.OrgFromUser(org).CanCreateOrgRepo(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.ServerError("CanCreateOrgRepo", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		} else if !canCreate {
 			ctx.HTTPError(http.StatusForbidden)
@@ -164,7 +164,7 @@ func Create(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form any) {
+func handleCreateError(ctx *context.Context, owner *user_model.User, err error, tpl templates.TplName, form any) {
 	var errNameReserved db.ErrNameReserved
 	var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 	switch {
@@ -177,16 +177,7 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.repo_name_been_taken"), tpl, form)
 	case repo_model.IsErrRepoFilesAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
-		switch {
-		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
-		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
-		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
-		default:
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tpl, form)
-		}
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 	case errors.As(err, &errNameReserved):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), tpl, form)
@@ -194,7 +185,7 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tpl, form)
 	default:
-		ctx.ServerError(name, err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -281,7 +272,7 @@ func CreatePost(ctx *context.Context) {
 		}
 	}
 
-	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
+	handleCreateError(ctx, ctxUser, err, tplCreate, &form)
 }
 
 func handleRepoActionError(ctx *context.Context, err error) {
@@ -295,7 +286,7 @@ func handleRepoActionError(ctx *context.Context, err error) {
 	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.JSONError(ctx.Tr("error.permission_denied"))
 	default:
-		ctx.ServerError("RepoAction:"+ctx.PathParam("action"), err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -313,7 +304,7 @@ func RedirectDownload(ctx *context.Context) {
 		TagNames:      tagNames,
 	})
 	if err != nil {
-		ctx.ServerError("RedirectDownload", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if len(releases) == 1 {
@@ -330,7 +321,7 @@ func RedirectDownload(ctx *context.Context) {
 	} else if len(releases) == 0 && vTag == "latest" {
 		// GitHub supports the alias "latest" for the latest release
 		// We only fetch the latest release if the tag is "latest" and no release with the tag "latest" exists
-		release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
+		release, err := repo_model.GetLatestRelease(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.HTTPError(http.StatusNotFound)
 			return
@@ -361,7 +352,7 @@ func Download(ctx *context.Context) {
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.HTTPError(http.StatusNotFound, err.Error())
 		} else {
-			ctx.ServerError("archiver_service.NewRequest", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -370,7 +361,7 @@ func Download(ctx *context.Context) {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
 		} else {
-			ctx.ServerError("archiver_service.ServeRepoArchive", err)
+			ctx.ServerErrorAuto(err)
 		}
 	}
 }
@@ -402,12 +393,12 @@ func InitiateDownload(ctx *context.Context) {
 
 	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.Repo.ID, aReq.Type, aReq.CommitID)
 	if err != nil {
-		ctx.ServerError("archiver_service.StartArchive", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if archiver == nil || archiver.Status != repo_model.ArchiverReady {
 		if err := archiver_service.StartArchive(aReq); err != nil {
-			ctx.ServerError("archiver_service.StartArchive", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -603,7 +594,7 @@ func PrepareBranchList(ctx *context.Context) {
 	}
 	brs, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
-		ctx.ServerError("GetBranches", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	// always put default branch on the top if it exists

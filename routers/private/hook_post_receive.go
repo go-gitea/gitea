@@ -71,7 +71,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 		return
 	}
 
-	if err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames); err != nil {
+	if err = repo_service.SyncBranchesToDB(ctx, repo, opts.UserID, gitRepo, branchNames); err != nil {
 		log.Error("failed to sync branch to DB: %v", err)
 	}
 }
@@ -87,16 +87,20 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	// In the post-receive hook, the git repo has received all changes,
 	// So even if any error happens, nothing can be stopped or undone, so the errors should be skipped
 	repo := ctx.Repo.Repository
-	updates := hookPostReceiveCollectPushUpdates(opts, repo) // first, collect updates and sync branches
+	wasEmpty := repo.IsEmpty
+	updates := hookPostReceiveCollectPushUpdates(opts, repo)
+	hookPostReceiveUpdateRepoByOptions(ctx, opts, repo) // push options are only honored while the repo is still empty
 	hookPostReceiveSyncDatabaseBranches(ctx, opts, repo, updates)
-	hookPostReceiveSyncRepoDefaultBranch(ctx, opts, repo)
-	hookPostReceiveUpdateRepoByOptions(ctx, opts, repo)
 
 	// handle async updates (e.g.: notification, cache management, repo update time, etc.)
 	if err := repo_service.PushUpdates(updates...); err != nil {
 		log.Error("failed to push updates: %v", err)
 	}
 
+	if wasEmpty && !repo.IsFork {
+		ctx.JSON(http.StatusOK, private.HookPostReceiveResult{})
+		return
+	}
 	hookPostReceiveRespondWithTrailer(ctx, opts, repo)
 }
 
@@ -200,44 +204,4 @@ func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *
 		}
 	}
 	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{Results: results})
-}
-
-func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {
-	hasBranch := false
-	for _, refFullName := range opts.RefFullNames {
-		if hasBranch = refFullName.IsBranch(); hasBranch {
-			break
-		}
-	}
-	if !hasBranch {
-		return
-	}
-	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
-	if err != nil {
-		log.Error("failed to open git repo: %v", err)
-		return
-	}
-
-	// if default branch doesn't exist, try to guess one from existing git repo
-	_, err = gitRepo.GetBranchCommitID(ctx, repo.DefaultBranch)
-	if errors.Is(err, util.ErrNotExist) {
-		for _, guessBranchName := range []string{"main", "master"} {
-			if _, err = gitRepo.GetBranchCommitID(ctx, guessBranchName); err == nil {
-				repo.DefaultBranch = guessBranchName
-				err = repo_model.UpdateDefaultBranch(ctx, repo)
-				if err != nil {
-					log.Error("failed to update default branch: %v", err)
-					return
-				}
-				break
-			}
-		}
-	}
-
-	// if default branch was pushed, always keep the HEAD ref in sync
-	for _, refFullName := range opts.RefFullNames {
-		if refFullName.IsBranch() && refFullName.BranchName() == repo.DefaultBranch {
-			_ = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
-		}
-	}
 }

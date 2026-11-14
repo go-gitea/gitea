@@ -15,11 +15,11 @@ func AddDependency(ctx *context.Context) {
 	issueIndex := ctx.PathParamInt64("index")
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err = issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
-		ctx.ServerError("CheckIssueVisible", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -32,7 +32,7 @@ func AddDependency(ctx *context.Context) {
 	depID := ctx.FormInt64("newDependency")
 
 	if err = issue.LoadRepo(ctx); err != nil {
-		ctx.ServerError("LoadRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -43,7 +43,7 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 	if visible, err := issues_model.IsIssueVisibleForDoer(ctx, dep, ctx.Doer); err != nil {
-		ctx.ServerError("IsIssueVisibleForDoer", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if !visible {
 		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_dep_issue_not_exist"))
@@ -57,13 +57,13 @@ func AddDependency(ctx *context.Context) {
 			return
 		}
 		if err := dep.LoadRepo(ctx); err != nil {
-			ctx.ServerError("loadRepo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		// Can ctx.Doer read issues in the dep repo?
 		depRepoPerm, err := access_model.GetDoerRepoPermission(ctx, dep.Repo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {
@@ -86,7 +86,7 @@ func AddDependency(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
 		return
 	} else if err != nil {
-		ctx.ServerError("CreateOrUpdateIssueDependency", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONOK()
@@ -97,11 +97,11 @@ func RemoveDependency(ctx *context.Context) {
 	issueIndex := ctx.PathParamInt64("index")
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err = issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
-		ctx.ServerError("CheckIssueVisible", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -114,7 +114,7 @@ func RemoveDependency(ctx *context.Context) {
 	depID := ctx.FormInt64("removeDependencyID")
 
 	if err = issue.LoadRepo(ctx); err != nil {
-		ctx.ServerError("LoadRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -136,7 +136,7 @@ func RemoveDependency(ctx *context.Context) {
 	// Dependency
 	dep, err := issues_model.GetIssueByID(ctx, depID)
 	if err != nil {
-		ctx.ServerError("GetIssueByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -145,12 +145,12 @@ func RemoveDependency(ctx *context.Context) {
 	// doer can read the dependency's repository.
 	if issue.RepoID != dep.RepoID {
 		if err := dep.LoadRepo(ctx); err != nil {
-			ctx.ServerError("loadRepo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		depRepoPerm, err := access_model.GetDoerRepoPermission(ctx, dep.Repo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {
@@ -159,10 +159,10 @@ func RemoveDependency(ctx *context.Context) {
 		}
 	}
 	if visible, err := issues_model.IsIssueVisibleForDoer(ctx, dep, ctx.Doer); err != nil {
-		ctx.ServerError("IsIssueVisibleForDoer", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if !visible {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -171,7 +171,7 @@ func RemoveDependency(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
 		return
 	} else if err != nil {
-		ctx.ServerError("RemoveIssueDependency", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONOK()

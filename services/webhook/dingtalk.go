@@ -152,8 +152,8 @@ func (dc dingtalkConvertor) Repository(p *api.RepositoryPayload) (DingtalkPayloa
 				Content: title,
 			},
 		}, nil
-	case api.HookRepoRenamed:
-		title := fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
+	case api.HookRepoRenamed, api.HookRepoTransferred:
+		title := fmt.Sprintf("[%s] Repository %s from %s", p.Repository.FullName, p.Action, getRepoChangedFrom(p))
 		return createDingtalkPayload(title, title, "view repository", p.Repository.HTMLURL), nil
 	}
 

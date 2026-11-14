@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -436,7 +435,7 @@ func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest,
 		return nil
 	}
 
-	pr.ChangedProtectedFiles, err = CheckFileProtection(ctx, gitRepo, pr.HeadBranch, pr.MergeBase, headRef, pb.GetProtectedFilePatterns(), 10, os.Environ())
+	pr.ChangedProtectedFiles, err = CheckFileProtection(ctx, gitRepo, pr.HeadBranch, pr.MergeBase, headRef, pb.GetProtectedFilePatterns(), 10, nil)
 	if err != nil && !IsErrFilePathProtected(err) {
 		return err
 	}

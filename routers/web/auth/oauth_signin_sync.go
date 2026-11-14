@@ -25,12 +25,12 @@ func oauth2SignInSync(ctx *context.Context, authSourceID int64, u *user_model.Us
 
 	authSource, err := auth.GetSourceByID(ctx, authSourceID)
 	if err != nil {
-		ctx.ServerError("GetSourceByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	oauth2Source, _ := authSource.Cfg.(*oauth2.Source)
 	if !authSource.IsOAuth2() || oauth2Source == nil {
-		ctx.ServerError("oauth2SignInSync", fmt.Errorf("source %s is not an OAuth2 source", gothUser.Provider))
+		ctx.ServerErrorAuto(fmt.Errorf("source %s is not an OAuth2 source", gothUser.Provider))
 		return
 	}
 

@@ -264,7 +264,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 	e := db.GetEngine(ctx)
 
-	if _, err = e.ID(repo.ID).NoAutoTime().AllCols().Update(repo); err != nil {
+	if _, err = e.ID(repo.ID).NoAutoTime().AllCols().Omit("latest_release_id").Update(repo); err != nil { // the pin has its own writers, a stale snapshot must not revert it
 		return fmt.Errorf("update: %w", err)
 	}
 

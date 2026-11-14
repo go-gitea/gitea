@@ -273,7 +273,7 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		"", nil,
 	)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	if err := comment.LoadPoster(ctx); err != nil {
@@ -487,6 +487,13 @@ func CreatePullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	opts := web.GetForm[*api.CreatePullReviewOptions](ctx)
+	for _, comment := range opts.Comments {
+		if comment.Path == "" || (comment.NewLineNum <= 0 && comment.OldLineNum <= 0) {
+			ctx.APIError(http.StatusUnprocessableEntity, "review comments require a path and a positive new_position or old_position")
+			return
+		}
+	}
+
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -545,7 +552,7 @@ func CreatePullReview(ctx *context.APIContext) {
 			opts.CommitID,
 			nil,
 		); err != nil {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 	}
@@ -556,7 +563,7 @@ func CreatePullReview(ctx *context.APIContext) {
 		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) || issues_model.IsContentEmptyErr(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
@@ -650,7 +657,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) || issues_model.IsContentEmptyErr(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}

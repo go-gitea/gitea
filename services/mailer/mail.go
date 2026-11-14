@@ -15,6 +15,7 @@ import (
 	"mime"
 	"regexp"
 	"strings"
+	"sync"
 
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -31,7 +32,9 @@ import (
 
 const mailMaxSubjectRunes = 256 // There's no actual limit for subject in RFC 5322
 
-var subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
+var subjectRemoveSpaces = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`[\s]+`)
+})
 
 func LoadedTemplates() *templates.MailRender {
 	return templates.MailRenderer()
@@ -47,7 +50,7 @@ func SendTestMail(email string) error {
 }
 
 func sanitizeSubject(subject string) string {
-	runes := []rune(strings.TrimSpace(subjectRemoveSpaces.ReplaceAllLiteralString(subject, " ")))
+	runes := []rune(strings.TrimSpace(subjectRemoveSpaces().ReplaceAllLiteralString(subject, " ")))
 	if len(runes) > mailMaxSubjectRunes {
 		runes = runes[:mailMaxSubjectRunes]
 	}

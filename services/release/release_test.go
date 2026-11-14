@@ -15,6 +15,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/services/attachment"
@@ -61,7 +62,7 @@ func TestRelease_Create(t *testing.T) {
 			IsDraft:      testCase.isDraft,
 			IsPrerelease: testCase.isPrerelease,
 			IsTag:        false,
-		}, nil, ""))
+		}, nil, "", ""))
 	}
 
 	testPlayload := "testtest"
@@ -86,7 +87,7 @@ func TestRelease_Create(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        true,
 	}
-	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &release, []string{attach.UUID}, "test"))
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &release, []string{attach.UUID}, "test", ""))
 }
 
 func TestRelease_Update(t *testing.T) {
@@ -118,14 +119,14 @@ func TestRelease_Update(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: false,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", ""))
 	release, err := repo_model.GetRelease(t.Context(), repo.ID, "v1.1.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix := release.CreatedUnix
 	releasePublishedUnix := release.PublishedUnix
 	advance()
 	release.Note = "Changed note"
-	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil, ""))
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
@@ -144,13 +145,13 @@ func TestRelease_Update(t *testing.T) {
 		IsDraft:      true,
 		IsPrerelease: false,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", ""))
 	release, err = repo_model.GetRelease(t.Context(), repo.ID, "v1.2.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	advance()
 	release.Title = "Changed title"
-	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil, ""))
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
 	assert.NoError(t, err)
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
@@ -158,12 +159,12 @@ func TestRelease_Update(t *testing.T) {
 
 	// Test publishing and withdrawing that draft
 	release.IsDraft = false
-	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil, ""))
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
 	assert.NoError(t, err)
 	assert.NotZero(t, release.PublishedUnix, "publishing stamps the publication time")
 	release.IsDraft = true
-	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil, ""))
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
 	assert.NoError(t, err)
 	assert.Zero(t, release.PublishedUnix, "withdrawing unpublishes it again")
@@ -181,14 +182,14 @@ func TestRelease_Update(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: true,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", ""))
 	release, err = repo_model.GetRelease(t.Context(), repo.ID, "v1.3.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	advance()
 	release.Title = "Changed title"
 	release.Note = "Changed note"
-	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil, ""))
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
@@ -207,14 +208,14 @@ func TestRelease_Update(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	assert.NoError(t, CreateRelease(t.Context(), gitRepo, release, nil, ""))
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, release, nil, "", ""))
 	assert.Positive(t, release.ID)
 	assert.Empty(t, release.Attachments)
 
 	release.IsDraft = false
 	tagName := release.TagName
 
-	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil, ""))
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, tagName, release.TagName)
@@ -228,7 +229,7 @@ func TestRelease_Update(t *testing.T) {
 	}, strings.NewReader(samplePayload), int64(len([]byte(samplePayload))))
 	assert.NoError(t, err)
 
-	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, []string{attach.UUID}, nil, nil))
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, []string{attach.UUID}, nil, nil, ""))
 	unsavedRelease := &repo_model.Release{}
 	release.Attachments = nil
 	assert.NoError(t, repo_model.GetReleaseAttachments(t.Context(), unsavedRelease, release))
@@ -241,7 +242,7 @@ func TestRelease_Update(t *testing.T) {
 	// update the attachment name
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, map[string]string{
 		attach.UUID: "test2.txt",
-	}))
+	}, ""))
 	release.Attachments = nil
 	assert.NoError(t, repo_model.GetReleaseAttachments(t.Context(), release))
 	assert.Len(t, release.Attachments, 1)
@@ -252,7 +253,7 @@ func TestRelease_Update(t *testing.T) {
 	defer test.MockVariableValue(&setting.Repository.Release.AllowedTypes, ".zip")()
 	err = UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, map[string]string{
 		attach.UUID: "test.exe",
-	})
+	}, "")
 	assert.Error(t, err)
 	assert.True(t, upload.IsErrFileTypeForbidden(err))
 	release.Attachments = nil
@@ -261,7 +262,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.Equal(t, "test2.txt", release.Attachments[0].Name)
 
 	// delete the attachment
-	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, []string{attach.UUID}, nil))
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, []string{attach.UUID}, nil, ""))
 	release.Attachments = nil
 	assert.NoError(t, repo_model.GetReleaseAttachments(t.Context(), release))
 	assert.Empty(t, release.Attachments)
@@ -307,7 +308,7 @@ func TestRelease_createTag(t *testing.T) {
 			IsPrerelease: testCase.isPrerelease,
 			IsTag:        false,
 		}
-		_, err = createTag(t.Context(), gitRepo, release, "")
+		err = createTag(t.Context(), gitRepo, release, "")
 		assert.NoError(t, err)
 		if !testCase.isDraft && !testCase.isPrerelease {
 			assert.NotEmpty(t, release.CreatedUnix)
@@ -320,7 +321,7 @@ func TestRelease_createTag(t *testing.T) {
 		if !testCase.isDraft {
 			release.Note = "Changed note"
 		}
-		_, err = createTag(t.Context(), gitRepo, release, "")
+		err = createTag(t.Context(), gitRepo, release, "")
 		assert.NoError(t, err)
 		if testCase.isDraft {
 			assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
@@ -358,7 +359,7 @@ func TestCreateReleaseReaction(t *testing.T) {
 	assert.ErrorIs(t, err, user_model.ErrBlockedUser)
 }
 
-func TestRelease_DatedByTargetCommit(t *testing.T) {
+func TestRelease_LatestByCommitDateUnlessSet(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -366,25 +367,62 @@ func TestRelease_DatedByTargetCommit(t *testing.T) {
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	newRelease := func(tagName, target string) *repo_model.Release {
+	newRelease := func(tagName, target string, makeLatest api.MakeLatest) *repo_model.Release {
 		rel := &repo_model.Release{
 			RepoID: repo.ID, Repo: repo, PublisherID: user.ID, Publisher: user,
 			TagName: tagName, Target: target, Title: tagName,
 		}
-		assert.NoError(t, CreateRelease(t.Context(), gitRepo, rel, nil, ""))
+		assert.NoError(t, CreateRelease(t.Context(), gitRepo, rel, nil, "", makeLatest))
 		return rel
 	}
 
-	recent := newRelease("v9.9-recent", "DefaultBranch")
+	recent := newRelease("v9.9-recent", "DefaultBranch", "")
 	// released afterwards, but from an older commit, so it must not take over as the latest release
-	old := newRelease("v9.9-old", "master")
+	old := newRelease("v9.9-old", "master", "")
 
 	oldCommit, err := gitRepo.GetBranchCommit(t.Context(), "master")
 	assert.NoError(t, err)
 	assert.Equal(t, oldCommit.Committer.When.Unix(), int64(old.CreatedUnix), "a release is dated by the commit it points at")
 	assert.Greater(t, int64(old.PublishedUnix), int64(old.CreatedUnix), "but its publication time is now")
 
-	latest, err := repo_model.GetLatestReleaseByRepoID(t.Context(), repo.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, recent.ID, latest.ID)
+	assertLatest := func(expected *repo_model.Release) {
+		latest, err := repo_model.GetLatestRelease(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}))
+		assert.NoError(t, err)
+		assert.Equal(t, expected.TagName, latest.TagName)
+	}
+	updateRelease := func(rel *repo_model.Release, makeLatest api.MakeLatest) {
+		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil, makeLatest))
+	}
+	assertLatest(recent)
+
+	updateRelease(old, api.MakeLatestTrue)
+	assertLatest(old)
+	newRelease("v9.9-backport", "master", "")
+	assertLatest(old)
+
+	old.IsPrerelease = true
+	updateRelease(old, "")
+	assertLatest(recent)
+	old.IsPrerelease = false
+	updateRelease(old, "")
+	assertLatest(recent)
+
+	updateRelease(old, api.MakeLatestTrue)
+	newer := newRelease("v9.9-newer", "DefaultBranch", "")
+	assertLatest(newer)
+
+	updateRelease(old, api.MakeLatestTrue)
+	updateRelease(newer, api.MakeLatestLegacy)
+	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}).LatestReleaseID)
+	assertLatest(newer)
+
+	updateRelease(old, api.MakeLatestTrue)
+	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, old, user, false))
+	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}).LatestReleaseID)
+	assertLatest(newer)
+
+	newRelease("v9.9-newest", "DefaultBranch", api.MakeLatestFalse)
+	assertLatest(newer)
+	updateRelease(newer, api.MakeLatestFalse)
+	assertLatest(newer)
 }

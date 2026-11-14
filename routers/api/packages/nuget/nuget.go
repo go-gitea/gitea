@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
@@ -90,10 +91,15 @@ func FeedCapabilityResource(ctx *context.Context) {
 	xmlResponse(ctx, http.StatusOK, Metadata)
 }
 
-var (
-	searchTermExtract = regexp.MustCompile(`'([^']+)'`)
-	searchTermExact   = regexp.MustCompile(`\s+eq\s+'`)
-)
+var globalVars = sync.OnceValue(func() (ret struct {
+	searchTermExtract *regexp.Regexp
+	searchTermExact   *regexp.Regexp
+},
+) {
+	ret.searchTermExtract = regexp.MustCompile(`'([^']+)'`)
+	ret.searchTermExact = regexp.MustCompile(`\s+eq\s+'`)
+	return ret
+})
 
 func getSearchTerm(ctx *context.Context) packages_model.SearchValue {
 	searchTerm := strings.Trim(ctx.FormTrim("searchTerm"), "'")
@@ -109,11 +115,11 @@ func getSearchTerm(ctx *context.Context) packages_model.SearchValue {
 	// https://www.odata.org/documentation/odata-version-2-0/uri-conventions/ section 4.5
 	// We don't support these queries, just extract the search term.
 	filter := ctx.FormTrim("$filter")
-	match := searchTermExtract.FindStringSubmatch(filter)
+	match := globalVars().searchTermExtract.FindStringSubmatch(filter)
 	if len(match) == 2 {
 		return packages_model.SearchValue{
 			Value:      strings.TrimSpace(match[1]),
-			ExactMatch: searchTermExact.MatchString(filter),
+			ExactMatch: globalVars().searchTermExact.MatchString(filter),
 		}
 	}
 

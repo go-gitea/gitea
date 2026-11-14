@@ -23,13 +23,13 @@ func GetMentionsInRepo(ctx *context.Context) {
 	if issueIndex := ctx.FormInt64("issue_index"); issueIndex > 0 {
 		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("GetIssueByIndex", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if issue != nil {
 			visible, err := issues_model.IsIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission)
 			if err != nil {
-				ctx.ServerError("IsIssueVisible", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if !visible {
@@ -39,12 +39,12 @@ func GetMentionsInRepo(ctx *context.Context) {
 		if issue != nil {
 			userIDs, err := issue.GetParticipantIDsByIssue(ctx)
 			if err != nil {
-				ctx.ServerError("GetParticipantIDsByIssue", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			users, err := user_model.GetUsersByIDs(ctx, userIDs)
 			if err != nil {
-				ctx.ServerError("GetUsersByIDs", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			c.AddUsers(ctx, users)
@@ -54,14 +54,14 @@ func GetMentionsInRepo(ctx *context.Context) {
 	// Get repo assignees
 	assignees, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
-		ctx.ServerError("GetRepoAssignees", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	c.AddUsers(ctx, assignees)
 
 	// Get mentionable teams for org repos
 	if err := c.AddMentionableTeams(ctx, ctx.Doer, ctx.Repo.Owner); err != nil {
-		ctx.ServerError("AddMentionableTeams", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

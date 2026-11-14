@@ -9,12 +9,6 @@ import (
 	"gitea.dev/modelmigration/base"
 )
 
-func AddIsConfidentialToIssue(_ context.Context, x base.EngineMigration) error {
-	type Issue struct {
-		ID             int64 `xorm:"pk autoincr"`
-		RepoID         int64 `xorm:"INDEX(repo_confidential)"`
-		IsConfidential bool  `xorm:"INDEX(repo_confidential) NOT NULL DEFAULT false"`
-	}
-
-	return x.Sync(new(Issue))
+func DropUserOpenIDTable(_ctx context.Context, x base.EngineMigration) error {
+	return x.DropTables("user_open_id")
 }

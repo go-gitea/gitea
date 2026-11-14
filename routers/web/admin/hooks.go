@@ -40,7 +40,7 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	sys["BaseLink"] = setting.AppSubURL + "/-/admin/hooks"
 	sys["BaseLinkNew"] = setting.AppSubURL + "/-/admin/system-hooks"
 	if err != nil {
-		ctx.ServerError("GetWebhooksAdmin", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -50,7 +50,7 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	def["BaseLink"] = setting.AppSubURL + "/-/admin/hooks"
 	def["BaseLinkNew"] = setting.AppSubURL + "/-/admin/default-hooks"
 	if err != nil {
-		ctx.ServerError("GetWebhooksAdmin", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

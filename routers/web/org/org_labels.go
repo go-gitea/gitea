@@ -23,7 +23,7 @@ import (
 func RetrieveLabels(ctx *context.Context) {
 	labels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("RetrieveLabels.GetLabels", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for _, l := range labels {
@@ -31,11 +31,11 @@ func RetrieveLabels(ctx *context.Context) {
 	}
 	scope, err := issues_model.BuildVisibilityScopeByCond(ctx, ctx.Doer, builder.Eq{"owner_id": ctx.Org.Organization.ID})
 	if err != nil {
-		ctx.ServerError("BuildVisibilityScopeByCond", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := issues_model.SubtractHiddenIssuesFromLabels(ctx, labels, scope); err != nil {
-		ctx.ServerError("SubtractHiddenIssuesFromLabels", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Labels"] = labels
@@ -59,7 +59,7 @@ func NewLabel(ctx *context.Context) {
 		ExclusiveOrder: form.ExclusiveOrder,
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
-		ctx.ServerError("NewLabel", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/labels")
@@ -77,7 +77,7 @@ func UpdateLabel(ctx *context.Context) {
 		ctx.JSONErrorNotFound()
 		return
 	} else if err != nil {
-		ctx.ServerError("GetLabelInOrgByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -88,7 +88,7 @@ func UpdateLabel(ctx *context.Context) {
 	l.Color = form.Color
 	l.SetArchived(form.IsArchived)
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
-		ctx.ServerError("UpdateLabel", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/labels")
@@ -119,7 +119,7 @@ func InitializeLabels(ctx *context.Context) {
 			ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
 			return
 		}
-		ctx.ServerError("InitializeLabels", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")

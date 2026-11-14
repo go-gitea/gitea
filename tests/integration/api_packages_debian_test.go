@@ -281,6 +281,14 @@ func TestPackageDebian(t *testing.T) {
 
 		assert.Contains(t, body, "Components: "+strings.Join(components, " ")+"\n")
 		assert.Contains(t, body, "Architectures: "+architectures[1]+"\n")
+
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/debian/%s/%s", user.Name, packageName, packageVersion)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages", rootURL, distributions[1], components[0], architectures[1]))
+		body = MakeRequest(t, req, http.StatusOK).Body.String()
+		assert.NotContains(t, body, "Version: "+packageVersion+"\n")
+		assert.Contains(t, body, "Version: "+packageVersion2+"\n")
 	})
 
 	t.Run("Cleanup", func(t *testing.T) {

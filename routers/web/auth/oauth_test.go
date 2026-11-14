@@ -15,6 +15,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
@@ -53,7 +55,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider
 func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	grants, err := auth.GetOAuth2GrantsByUserID(t.Context(), 3)
+	grants, err := auth.GetOAuth2GrantsByUserID(t.Context(), 14)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)
 
@@ -83,6 +85,19 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
 	assert.Equal(t, user.Email, oidcToken.Email)
 	assert.Equal(t, user.IsActive, oidcToken.EmailVerified)
+
+	defer test.MockVariableValue(&setting.OAuth2.InvalidateRefreshTokens, true)()
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: user.ID}, "is_active"))
+	defer func() {
+		require.NoError(t, user_model.UpdateUserCols(t.Context(), user, "is_active"))
+	}()
+	signingKey, err := oauth2_provider.CreateJWTSigningKey("HS256", make([]byte, 32))
+	require.NoError(t, err)
+	counter := grants[0].Counter
+	response, tokenErr := oauth2_provider.NewAccessTokenResponse(t.Context(), grants[0], signingKey, signingKey)
+	assert.Nil(t, response)
+	assert.Equal(t, &oauth2_provider.AccessTokenError{ErrorCode: oauth2_provider.AccessTokenErrorCodeInvalidGrant, ErrorDescription: "user is not allowed to sign in"}, tokenErr)
+	assert.Equal(t, counter, unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: grants[0].ID}).Counter)
 }
 
 func TestOAuth2AvatarClientBlocksLoopback(t *testing.T) {

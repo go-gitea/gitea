@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
@@ -105,7 +104,7 @@ func Runners(ctx *context.Context) {
 
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -129,19 +128,19 @@ func Runners(ctx *context.Context) {
 
 	runners, count, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
-		ctx.ServerError("CountRunners", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := actions_model.RunnerList(runners).LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	// ownid=0,repo_id=0,means this token is used for global
 	token, err := actions_model.GetOrCreateActiveRunnerToken(ctx, opts.OwnerID, opts.RepoID)
 	if err != nil {
-		ctx.ServerError("GetOrCreateActiveRunnerToken", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -167,7 +166,7 @@ func RunnersEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners.edit_runner")
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -179,16 +178,15 @@ func RunnersEdit(ctx *context.Context) {
 
 	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
-		ctx.ServerError("GetRunnerByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := runner.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !runner.EditableInContext(ownerID, repoID) {
-		err = errors.New("no permission to edit this runner")
-		ctx.NotFound(err)
+		ctx.NotFound()
 		return
 	}
 
@@ -205,12 +203,12 @@ func RunnersEdit(ctx *context.Context) {
 
 	tasks, count, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)
 	if err != nil {
-		ctx.ServerError("CountTasks", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err = actions_model.TaskList(tasks).LoadAttributes(ctx); err != nil {
-		ctx.ServerError("TasksLoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -224,7 +222,7 @@ func RunnersEdit(ctx *context.Context) {
 func RunnersEditPost(ctx *context.Context) {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -236,11 +234,11 @@ func RunnersEditPost(ctx *context.Context) {
 	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.ServerError("RunnerDetailsEditPost.GetRunnerByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !runner.EditableInContext(ownerID, repoID) {
-		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to edit this runner"))
+		ctx.NotFound()
 		return
 	}
 
@@ -264,7 +262,7 @@ func RunnersEditPost(ctx *context.Context) {
 func ResetRunnerRegistrationToken(ctx *context.Context) {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -273,7 +271,7 @@ func ResetRunnerRegistrationToken(ctx *context.Context) {
 	redirectTo := rCtx.RedirectLink
 
 	if _, err := actions_model.NewRunnerToken(ctx, ownerID, repoID); err != nil {
-		ctx.ServerError("ResetRunnerRegistrationToken", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.runners.reset_registration_token_success"))
@@ -284,7 +282,7 @@ func ResetRunnerRegistrationToken(ctx *context.Context) {
 func RunnerDeletePost(ctx *context.Context) {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -294,7 +292,7 @@ func RunnerDeletePost(ctx *context.Context) {
 	}
 
 	if !runner.EditableInContext(rCtx.OwnerID, rCtx.RepoID) {
-		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to delete this runner"))
+		ctx.NotFound()
 		return
 	}
 
@@ -319,7 +317,7 @@ func RunnerDeletePost(ctx *context.Context) {
 func RunnerUpdatePost(ctx *context.Context) {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -329,7 +327,7 @@ func RunnerUpdatePost(ctx *context.Context) {
 	}
 
 	if !runner.EditableInContext(rCtx.OwnerID, rCtx.RepoID) {
-		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to edit this runner"))
+		ctx.NotFound()
 		return
 	}
 
@@ -362,7 +360,7 @@ func RunnerUpdatePost(ctx *context.Context) {
 func RunnerBulkActionPost(ctx *context.Context) {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getRunnersCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -395,7 +393,7 @@ func RunnerBulkActionPost(ctx *context.Context) {
 
 	runners, err := db.Find[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{IDs: runnerIDs})
 	if err != nil {
-		ctx.ServerError("FindRunners", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -453,10 +451,10 @@ func findActionsRunner(ctx *context.Context, rCtx *runnersCtx) *actions_model.Ac
 
 	got, err := db.Find[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
-		ctx.ServerError("FindRunner", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	} else if len(got) == 0 {
-		ctx.NotFound(errors.New("runner not found"))
+		ctx.NotFound()
 		return nil
 	}
 

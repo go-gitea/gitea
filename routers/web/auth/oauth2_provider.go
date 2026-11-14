@@ -105,7 +105,7 @@ func InfoOAuth(ctx *context.Context) {
 	// are unaffected and only explicitly-restricted tokens are rejected
 	tokenScope, _ := user_model.GetDoerTokenScope(ctx.Doer)
 	if allowed, err := tokenScope.HasScope(auth.AccessTokenScopeReadUser); err != nil {
-		ctx.ServerError("HasScope", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if !allowed {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea OAuth2"`)
@@ -123,7 +123,7 @@ func InfoOAuth(ctx *context.Context) {
 
 	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, user_model.IsPublicOnlyDoer(ctx.Doer))
 	if err != nil {
-		ctx.ServerError("Oauth groups for user", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	response.Groups = groups
@@ -185,25 +185,25 @@ func IntrospectOAuth(ctx *context.Context) {
 
 	grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
 	if err != nil {
-		ctx.ServerError("GetOAuth2GrantByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
-	if grant == nil || grant.ApplicationID != introspectingApp.ID {
+	if grant == nil || grant.ApplicationID != introspectingApp.ID || (token.Kind == oauth2_provider.KindRefreshToken && isRefreshTokenUsed(grant, token)) {
 		// RFC 7662 allows the server to reply inactive when the caller must not learn more.
 		// https://www.rfc-editor.org/rfc/rfc7662.html#section-2.2
 		ctx.JSON(http.StatusOK, response)
 		return
 	}
 
-	response.Active = true
-	response.Scope = oauth2_provider.NormalizeGrantScope(grant.Scope)
-	response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
-	user, err := user_model.GetUserByID(ctx, grant.UserID)
-	if err != nil {
-		ctx.ServerError("GetUserByID", err)
+	if user, err := user_model.GetValidDoerUserByID(ctx, grant.UserID); err == nil {
+		response.Active = true
+		response.Scope = oauth2_provider.NormalizeGrantScope(grant.Scope)
+		response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
+		response.Username = user.Name
+	} else if !errors.Is(err, util.ErrNotExist) && !errors.Is(err, util.ErrPermissionDenied) {
+		ctx.ServerErrorAuto(err)
 		return
 	}
-	response.Username = user.Name
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -237,7 +237,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 			}, "")
 			return
 		}
-		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -245,7 +245,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	if app.UID != 0 {
 		user, err = user_model.GetUserByID(ctx, app.UID)
 		if err != nil {
-			ctx.ServerError("GetUserByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -425,7 +425,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
-		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
@@ -563,6 +563,10 @@ func AccessTokenOAuth(ctx *context.Context) {
 	}
 }
 
+func isRefreshTokenUsed(grant *auth.OAuth2Grant, token *oauth2_provider.Token) bool {
+	return setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0)
+}
+
 func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2_provider.JWTSigningKey) {
 	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
@@ -614,7 +618,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	}
 
 	// check if token got already used
-	if setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0) {
+	if isRefreshTokenUsed(grant, token) {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "token was already used",
@@ -740,7 +744,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	}
 	redirect, err := url.Parse(redirectURI)
 	if err != nil {
-		ctx.ServerError("url.Parse", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	q := redirect.Query()

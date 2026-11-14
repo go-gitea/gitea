@@ -12,6 +12,7 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -73,7 +74,7 @@ type ProcReceiveOptions struct {
 }
 
 // ProcReceive handle proc receive work
-func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *ProcReceiveOptions) ([]private.HookProcReceiveRefResult, error) {
+func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, perm access.Permission, opts *ProcReceiveOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
@@ -193,7 +194,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				Issue:       prIssue,
 				PullRequest: pr,
 			}
-			if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
+			if err := pull_service.NewPullRequest(ctx, perm, prOpts); err != nil {
 				return nil, err
 			}
 
