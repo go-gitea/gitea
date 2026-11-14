@@ -1,0 +1,12 @@
+name: test
+cache-mode: read
+jobs:
+  job1:
+    runs-on: linux
+    cache-mode: write
+    steps:
+      - run: echo job1
+  job2:
+    runs-on: linux
+    steps:
+      - run: echo job2

@@ -154,6 +154,7 @@ func (w *SingleWorkflow) CloneHeader() *SingleWorkflow {
 		Defaults:       w.Defaults,
 		RawPermissions: w.RawPermissions,
 		RunName:        w.RunName,
+		CacheMode:      w.CacheMode,
 	}
 }
 

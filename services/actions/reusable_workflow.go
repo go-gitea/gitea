@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -295,7 +296,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 
 	// 2. Parse the caller's own job (Uses, With, RawSecrets) from its WorkflowPayload.
-	parsedJob, err := caller.ParseJob()
+	callerWorkflow, parsedJob, err := jobparser.ParseRawSingleWorkflow(caller.WorkflowPayload)
 	if err != nil {
 		return fmt.Errorf("parse caller job %d: %w", caller.ID, err)
 	}
@@ -408,7 +409,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 
 	// 9. We own the expansion: insert the direct children.
-	if err := insertCallerChildren(ctx, run, attempt, caller, source.content, source.repoID, source.commitSHA, vars, jobInputs); err != nil {
+	if err := insertCallerChildren(ctx, run, attempt, caller, cmp.Or(parsedJob.CacheMode, callerWorkflow.CacheMode), source.content, source.repoID, source.commitSHA, vars, jobInputs); err != nil {
 		// On failure, undo the partial expansion so an error return always leaves the caller unexpanded and childless.
 		return errors.Join(err, undoExpansion(ctx, caller))
 	}
@@ -422,7 +423,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 }
 
 // insertCallerChildren parses the called workflow with the caller's resolved inputs and inserts each parsed job.
-func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, content []byte, sourceRepoID int64, sourceCommitSHA string, vars map[string]string, inputs map[string]any) error {
+func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, callerCacheMode string, content []byte, sourceRepoID int64, sourceCommitSHA string, vars map[string]string, inputs map[string]any) error {
 	callerPermissions := caller.TokenPermissions
 	if callerPermissions == nil {
 		actionsUnit, err := run.Repo.GetUnit(ctx, unit.TypeActions)
@@ -469,6 +470,9 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		}
 		needs := parsedChild.Needs()
 		isMatrixDeferred := jobparser.HasDeferredMatrix(parsedChild)
+		if parsedChild.CacheMode, err = childCacheMode(callerCacheMode, cmp.Or(parsedChild.CacheMode, sw.CacheMode)); err != nil {
+			return fmt.Errorf("called job %q under caller %d: %w", jobID, caller.ID, err)
+		}
 		if err := sw.SetJob(jobID, parsedChild.EraseNeeds()); err != nil {
 			return err
 		}
@@ -536,6 +540,20 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		}
 	}
 	return nil
+}
+
+// childCacheMode caps a called job's cache-mode at its caller's explicit one.
+func childCacheMode(caller, child string) (string, error) {
+	if caller == "" {
+		return child, nil
+	}
+	mode := cmp.Or(child, caller)
+	reads := func(cacheMode string) bool { return cacheMode == "read" || cacheMode == "write" }
+	writes := func(cacheMode string) bool { return cacheMode == "write" || cacheMode == "write-only" }
+	if reads(mode) && !reads(caller) || writes(mode) && !writes(caller) {
+		return "", fmt.Errorf("cache-mode %s exceeds the caller's %s", mode, caller)
+	}
+	return mode, nil
 }
 
 // ResolveUses normalizes and parses a reusable workflow `uses:` value.

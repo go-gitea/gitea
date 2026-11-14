@@ -414,3 +414,22 @@ func TestQualifyRef(t *testing.T) {
 	assert.Equal(t, masterSHA, qualifyRef(t.Context(), repo, gitRepo, "refs/heads/master~0", masterSHA))
 	assert.Equal(t, "other-sha", qualifyRef(t.Context(), repo, gitRepo, "master", "other-sha"))
 }
+
+func TestChildCacheMode(t *testing.T) {
+	for _, tc := range []struct {
+		caller, child, want string
+		denied              bool
+	}{
+		{"", "", "", false},
+		{"", "write", "write", false},
+		{"read", "", "read", false},
+		{"write", "read", "read", false},
+		{"none", "none", "none", false},
+		{"read", "write", "", true},
+		{"write-only", "read", "", true},
+	} {
+		got, err := childCacheMode(tc.caller, tc.child)
+		assert.Equal(t, tc.want, got, tc)
+		assert.Equal(t, tc.denied, err != nil, tc)
+	}
+}
