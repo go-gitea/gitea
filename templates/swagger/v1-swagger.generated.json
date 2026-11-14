@@ -8812,7 +8812,7 @@
           },
           {
             "type": "boolean",
-            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "description": "include a list of affected files for every commit in `commits` (disable for speedup, default 'true')",
             "name": "files",
             "in": "query"
           }

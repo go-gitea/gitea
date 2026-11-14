@@ -56,7 +56,7 @@ func CompareDiff(ctx *context.APIContext) {
 	//   type: boolean
 	// - name: files
 	//   in: query
-	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
+	//   description: include a list of affected files for every commit in `commits` (disable for speedup, default 'true')
 	//   type: boolean
 	// responses:
 	//   "200":
@@ -95,6 +95,29 @@ func CompareDiff(ctx *context.APIContext) {
 	apiCommits := make([]*api.Commit, 0, len(compareInfo.Commits))
 	userCache := make(map[string]*user_model.User)
 
+	mergeBase := compareInfo.CompareBase
+	if compareInfo.CompareSeparator == ".." {
+		var err error
+		mergeBase, err = git.MergeBase(ctx, compareInfo.HeadRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+	var mergeBaseCommit *api.Commit
+	if mergeBase != "" {
+		commit, err := compareInfo.HeadGitRepo.GetCommit(ctx, mergeBase)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		mergeBaseCommit, err = convert.ToCommit(ctx, compareInfo.BaseRepo, compareInfo.BaseGitRepo, commit, userCache, convert.ToCommitOptions{Verification: verification})
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
 	for i := 0; i < len(compareInfo.Commits); i++ {
 		apiCommit, err := convert.ToCommit(
 			ctx,
@@ -115,46 +138,11 @@ func CompareDiff(ctx *context.APIContext) {
 		apiCommits = append(apiCommits, apiCommit)
 	}
 
-	mergeBase, err := getCompareMergeBase(ctx, compareInfo)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	var mergeBaseCommit *api.Commit
-	if mergeBase != "" {
-		commit, err := compareInfo.HeadGitRepo.GetCommit(ctx, mergeBase)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		mergeBaseCommit, err = convert.ToCommit(ctx, compareInfo.HeadRepo, compareInfo.HeadGitRepo, commit, userCache, convert.ToCommitOptions{
-			Stat:         true,
-			Verification: verification,
-			Files:        files,
-		})
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-	}
-
 	ctx.JSON(http.StatusOK, &api.Compare{
 		TotalCommits:    len(compareInfo.Commits),
 		Commits:         apiCommits,
 		MergeBaseCommit: mergeBaseCommit,
 	})
-}
-
-// getCompareMergeBase returns the merge base of the compared commits, empty if they have none
-func getCompareMergeBase(ctx *context.APIContext, compareInfo *git_service.CompareInfo) (string, error) {
-	if !compareInfo.DirectComparison() {
-		return compareInfo.CompareBase, nil
-	}
-	mergeBase, err := git.MergeBase(ctx, compareInfo.HeadRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
-	if errors.Is(err, util.ErrNotExist) {
-		return "", nil
-	}
-	return mergeBase, err
 }
 
 // downloadCompareDiffOrPatch writes a comparison's raw diff or patch to the response.

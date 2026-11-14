@@ -279,6 +279,11 @@ Hello from 2
 		assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
 		assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
 		assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
+
+		for _, separator := range []string{"...", ".."} {
+			req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/compare/master"+separator+"unrelated-history")
+			assert.Contains(t, MakeRequest(t, req, http.StatusOK).Body.String(), `"merge_base_commit":null`)
+		}
 	})
 }
 
