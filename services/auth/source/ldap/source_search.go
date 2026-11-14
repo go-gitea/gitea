@@ -216,7 +216,7 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 	}
 	log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
 	search := ldap.NewSearchRequest(
-		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
+		userDN, ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
 		[]string{ls.AttributeName},
 		nil)
 
@@ -241,7 +241,7 @@ func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
 	}
 	log.Trace("Checking restricted with filter %s and base %s", ls.RestrictedFilter, userDN)
 	search := ldap.NewSearchRequest(
-		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.RestrictedFilter,
+		userDN, ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false, ls.RestrictedFilter,
 		[]string{ls.AttributeName},
 		nil)
 
@@ -310,6 +310,13 @@ func (source *Source) getUserAttributeListedInGroup(entry *ldap.Entry) string {
 	}
 
 	return entry.GetAttributeValue(source.UserUID)
+}
+
+func userAttributeFilter(userFilter string, directBind bool, userBase string) string {
+	if !directBind || userBase != "" {
+		return "(objectClass=*)"
+	}
+	return userFilter
 }
 
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
@@ -395,6 +402,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 	if !ok {
 		return nil
 	}
+	attributeFilter := userAttributeFilter(userFilter, directBind, source.UserBase)
 
 	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 	isAttributeAvatarSet := strings.TrimSpace(source.AttributeAvatar) != ""
@@ -410,9 +418,11 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 		attribs = append(attribs, source.AttributeAvatar)
 	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, source.UserUID, userFilter, userDN)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, source.UserUID, attributeFilter, userDN)
+
+	// userDN is already the resolved leaf entry; do not search child entries.
 	search := ldap.NewSearchRequest(
-		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
+		userDN, ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false, attributeFilter,
 		attribs, nil)
 
 	sr, err := l.Search(search)
@@ -525,6 +535,8 @@ func (source *Source) SearchEntries() ([]*SearchResult, error) {
 	}
 
 	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, userFilter, source.UserBase)
+
+	// FIX: Restored ScopeWholeSubtree here since source.UserBase is a container, not a leaf.
 	search := ldap.NewSearchRequest(
 		source.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
