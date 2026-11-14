@@ -112,5 +112,7 @@ func TestManualMergeAutodetect(t *testing.T) {
 		emptyPR = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: emptyAPIPull.ID})
 		assert.False(t, emptyPR.HasMerged, "empty PR must not be detected as manually merged")
 		assert.Equal(t, issues_model.PullRequestStatusAncestor, emptyPR.Status)
+		resp := user2Ctx.Session.MakeRequest(t, NewRequestf(t, "GET", "/%s/%s/pulls/%d/merge_box", user2.Name, repoName, emptyAPIPull.Index), http.StatusOK)
+		assert.Equal(t, "manually-merged", parsePullMergeFormProps(t, NewHTMLParser(t, resp.Body)).DefaultMergeStyle)
 	})
 }

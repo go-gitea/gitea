@@ -43,7 +43,6 @@ var (
 	ErrNotReadyToMerge           = errors.New("not ready to merge")
 	ErrHasMerged                 = errors.New("has already been merged")
 	ErrIsWorkInProgress          = errors.New("work in progress PRs cannot be merged")
-	ErrIsChecking                = errors.New("cannot merge while conflict checking is in progress")
 	ErrNotMergeableState         = errors.New("not in mergeable state")
 	ErrDependenciesLeft          = errors.New("is blocked by an open dependency")
 	ErrHeadCommitsNotAllVerified = errors.New("the branch requires signed commits but not all head commits are verified")
@@ -168,12 +167,8 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 			return ErrIsWorkInProgress
 		}
 
-		if !pr.IsStatusMergeable() && !pr.IsEmpty() {
+		if !pr.IsStatusMergeable() && (mergeCheckType != MergeCheckTypeAuto || !pr.IsFilesConflicted() && !pr.IsChecking()) { // auto merge waits out conflicts and checking
 			return ErrNotMergeableState
-		}
-
-		if pr.IsChecking() {
-			return ErrIsChecking
 		}
 
 		if errProtection := CheckPullBranchProtections(ctx, pr, false); errProtection != nil {

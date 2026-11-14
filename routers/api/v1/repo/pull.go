@@ -850,6 +850,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "201":
+	//     "$ref": "#/responses/empty"
 	//   default:
 	//     "$ref": "#/responses/error"
 
@@ -906,7 +908,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
 		} else if asymkey_service.IsErrWontSign(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
+		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) || errors.Is(err, pull_service.ErrDependenciesLeft) {
 			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
@@ -958,15 +960,13 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
-		if err != nil {
-			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-				ctx.APIError(http.StatusConflict, err.Error())
-				return
-			}
+		if err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge); pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
+			ctx.APIError(http.StatusConflict, err.Error())
+			return
+		} else if err != nil {
 			ctx.APIErrorInternal(err)
 			return
-		} else if scheduled {
+		} else {
 			// nothing more to do ...
 			ctx.Status(http.StatusCreated)
 			return
@@ -1206,7 +1206,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	ctx.Status(http.StatusOK)
 }
 
-// MergePullRequest cancel an auto merge scheduled for a given PullRequest by index
+// CancelScheduledAutoMerge cancels an auto merge scheduled for a given PullRequest by index
 func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/merge repository repoCancelScheduledAutoMerge
 	// ---
@@ -1247,30 +1247,8 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 		return
 	}
 
-	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if !exist {
-		ctx.APIErrorNotFound()
-		return
-	}
-
-	if ctx.Doer.ID != autoMerge.DoerID {
-		allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, ctx.Repo.Permission, ctx.Doer)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		if !allowed {
-			ctx.APIError(http.StatusForbidden, "user has no permission to cancel the scheduled auto merge")
-			return
-		}
-	}
-
-	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull); err != nil {
-		ctx.APIErrorInternal(err)
+	if err := automerge.CancelScheduledAutoMerge(ctx, ctx.Doer, pull, ctx.Repo.Permission); err != nil {
+		ctx.APIErrorAuto(err)
 	} else {
 		ctx.Status(http.StatusNoContent)
 	}

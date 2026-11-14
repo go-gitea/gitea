@@ -20,6 +20,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -36,6 +37,8 @@ import (
 	git_service "gitea.dev/services/git"
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
+
+	"xorm.io/builder"
 )
 
 func getPullWorkingLockKey(prID int64) string {
@@ -332,6 +335,9 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		if updated == 0 {
 			return util.ErrorWrap(util.ErrInvalidArgument, "pull request status has changed")
 		}
+		if err := DisableAutoMergeIfNotWriter(ctx, doer, pr, "base_changed"); err != nil {
+			return err
+		}
 
 		if err := syncCommitDivergence(ctx, pr); err != nil {
 			return fmt.Errorf("syncCommitDivergence: %w", err)
@@ -375,6 +381,32 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	releaser()
 	notify_service.PullRequestChangeTargetBranch(ctx, doer, pr, oldBranch, oldSHAs[pr.BaseRepoID])
 	return nil
+}
+
+// RemoveScheduledAutoMerge cancels a previously scheduled pull request
+func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, reason string) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if n, err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
+			return err
+		} else if n == 0 {
+			return nil
+		}
+		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
+		return err
+	})
+}
+
+func DisableAutoMergeIfNotWriter(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) error {
+	if exist, err := db.Exist[pull_model.AutoMerge](ctx, builder.Eq{"pull_id": pr.ID}); err != nil || !exist {
+		return err
+	}
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return err
+	}
+	if perm, err := access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer); err != nil || perm.CanWrite(unit.TypeCode) {
+		return err
+	}
+	return RemoveScheduledAutoMerge(ctx, doer, pr, reason)
 }
 
 type TestPullRequestOptions struct {
@@ -569,7 +601,7 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 }
 
 // UpdatePullsRefs update all the PRs head file pointers like /refs/pull/1/head so that it will be dependent by other operations
-func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *repo_module.PushUpdateOptions) {
+func UpdatePullsRefs(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, update *repo_module.PushUpdateOptions) {
 	branch := update.RefFullName.BranchName()
 	// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
 	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch)
@@ -579,6 +611,12 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 		for _, pr := range prs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			if pr.Flow == issues_model.PullRequestFlowGithub {
+				if pr.ID != update.PullRequestID { // "update branch" adds no content of the pusher
+					if err := DisableAutoMergeIfNotWriter(ctx, doer, pr, "pushed_by_non_writer"); err != nil {
+						log.Error("DisableAutoMergeIfNotWriter: %v", err)
+						continue // don't sync the push while auto merge might still be scheduled
+					}
+				}
 				if err := PushToBaseRepo(ctx, pr); err != nil {
 					log.Error("PushToBaseRepo: %v", err)
 				}

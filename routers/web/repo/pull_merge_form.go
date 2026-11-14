@@ -7,151 +7,78 @@ import (
 	"errors"
 	"html/template"
 
-	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/svg"
-	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/context"
 	pull_service "gitea.dev/services/pull"
 )
 
-func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context) {
+type pullMergeStyleProps struct {
+	Name                   repo_model.MergeStyle `json:"name"`
+	TextDoMerge            template.HTML         `json:"textDoMerge"`
+	TextDescription        template.HTML         `json:"textDescription"`
+	TextConfirmMerge       template.HTML         `json:"textConfirmMerge,omitempty"`
+	TextAutoMerge          template.HTML         `json:"textAutoMerge,omitempty"`
+	TextConfirmAutoMerge   template.HTML         `json:"textConfirmAutoMerge,omitempty"`
+	TextBypassMerge        template.HTML         `json:"textBypassMerge,omitempty"`
+	TextConfirmBypassMerge template.HTML         `json:"textConfirmBypassMerge,omitempty"`
+	MergeTitleFieldText    string                `json:"mergeTitleFieldText,omitempty"`
+	MergeMessageFieldText  string                `json:"mergeMessageFieldText,omitempty"`
+	HideMergeMessageTexts  bool                  `json:"hideMergeMessageTexts"`
+}
+
+func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context, prConfig *repo_model.PullRequestsConfig, gitRepo *git.Repository) {
 	pull := prInfo.issue.PullRequest
-	if pull.HasMerged || prInfo.issue.IsClosed {
-		return
-	}
-	if !prInfo.MergeBoxData.hasPermToMerge {
-		return
-	}
-
-	prConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
-
-	// Check correct values and select default
+	data := prInfo.MergeBoxData
+	var mergeStyles []*pullMergeStyleProps
 	var mergeStyle repo_model.MergeStyle
-	if prConfig.IsMergeStyleAllowed(prConfig.DefaultMergeStyle) {
-		mergeStyle = prConfig.DefaultMergeStyle
-	} else if prConfig.AllowMerge {
-		mergeStyle = repo_model.MergeStyleMerge
-	} else if prConfig.AllowRebase {
-		mergeStyle = repo_model.MergeStyleRebase
-	} else if prConfig.AllowRebaseMerge {
-		mergeStyle = repo_model.MergeStyleRebaseMerge
-	} else if prConfig.AllowSquash {
-		mergeStyle = repo_model.MergeStyleSquash
-	} else if prConfig.AllowFastForwardOnly {
-		mergeStyle = repo_model.MergeStyleFastForwardOnly
-	} else if prConfig.AllowManualMerge {
-		mergeStyle = repo_model.MergeStyleManuallyMerged
-	}
-	if mergeStyle == "" {
-		return
-	}
-
-	// Check if there is a pending pr merge
-	hasPendingPullRequestMerge, pendingPullRequestMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-
-	var hasPendingPullRequestMergeTip template.HTML
-	if hasPendingPullRequestMerge {
-		createdPRMergeStr := templates.TimeSince(pendingPullRequestMerge.CreatedUnix)
-		hasPendingPullRequestMergeTip = ctx.Locale.Tr("repo.pulls.auto_merge_has_pending_schedule", pendingPullRequestMerge.Doer.Name, createdPRMergeStr)
-	}
-
-	var defaultMergeTitle, defaultMergeBody string
-	var defaultSquashMergeTitle, defaultSquashMergeBody string
-	var defaultSquashMergeCommitMessages string
-	if !prInfo.IsPullRequestBroken {
-		var err error
-		defaultMergeTitle, defaultMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
-		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			log.Error("GetDefaultMergeMessage for style %s failed, error: %v", mergeStyle, err)
+	addMergeStyle := func(props *pullMergeStyleProps) {
+		if mergeStyle == "" || props.Name == prConfig.DefaultMergeStyle {
+			mergeStyle = props.Name
 		}
-		defaultSquashMergeTitle, defaultSquashMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
-		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			log.Error("GetDefaultMergeMessage for squash failed, error: %v", err)
-		}
-		defaultSquashMergeCommitMessages, err = pull_service.GetSquashMergeCommitMessages(ctx, pull)
-		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			log.Error("GetSquashMergeCommitMessages failed, error: %v", err)
-		}
+		mergeStyles = append(mergeStyles, props)
 	}
-
-	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
-	mergeFormProps := map[string]any{
-		"baseLink":                       prInfo.issue.Link(),
-		"textCancel":                     ctx.Locale.Tr("cancel"),
-		"textDeleteBranch":               ctx.Locale.Tr("repo.branch.delete", prInfo.headTarget),
-		"textAutoMergeButtonWhenSucceed": ctx.Locale.Tr("repo.pulls.auto_merge_button_when_succeed"),
-		"textAutoMergeWhenSucceed":       ctx.Locale.Tr("repo.pulls.auto_merge_when_succeed"),
-		"textAutoMergeCancelSchedule":    ctx.Locale.Tr("repo.pulls.auto_merge_cancel_schedule"),
-		"textClearMergeMessage":          ctx.Locale.Tr("repo.pulls.clear_merge_message"),
-		"textClearMergeMessageHint":      ctx.Locale.Tr("repo.pulls.clear_merge_message_hint"),
-		"textMergeCommitId":              ctx.Locale.Tr("repo.pulls.merge_commit_id"),
-
-		"canMergeNow":                   prInfo.MergeBoxData.canMergeNow,
-		"allOverridableChecksOk":        allOverridableChecksOk,
-		"emptyCommit":                   pull.IsEmpty(),
-		"pullHeadCommitID":              prInfo.CompareInfo.HeadCommitID,
-		"isPullBranchDeletable":         prInfo.MergeBoxData.IsPullBranchDeletable,
-		"defaultMergeStyle":             mergeStyle,
-		"defaultDeleteBranchAfterMerge": prConfig.DefaultDeleteBranchAfterMerge,
-		"mergeMessageFieldPlaceHolder":  ctx.Locale.Tr("repo.editor.commit_message_desc"),
-		"defaultMergeMessage":           defaultMergeBody,
-
-		"hasPendingPullRequestMerge":    hasPendingPullRequestMerge,
-		"hasPendingPullRequestMergeTip": hasPendingPullRequestMergeTip,
+	hasEnabledStyle, hasUnsignableStyle := prConfig.AllowManualMerge, false
+	addRegularMergeStyle := func(style repo_model.MergeStyle, allowed bool, textKey string) {
+		hasEnabledStyle = hasEnabledStyle || allowed
+		if !allowed || pull.IsAncestor() || style == repo_model.MergeStyleFastForwardOnly && pull.CommitsBehind > 0 {
+			return
+		}
+		if data.mergeSigningError != nil && style != repo_model.MergeStyleFastForwardOnly { // fast-forward-only creates no commit to sign
+			hasUnsignableStyle = true
+			return
+		}
+		short := ctx.Locale.Tr("repo.pulls.merge_style_short." + string(style))
+		addMergeStyle(&pullMergeStyleProps{
+			Name:                   style,
+			TextDoMerge:            ctx.Locale.Tr(textKey),
+			TextDescription:        ctx.Locale.Tr("repo.pulls.merge_style_desc." + string(style)),
+			TextConfirmMerge:       ctx.Locale.Tr("repo.pulls.confirm_merge", short),
+			TextAutoMerge:          ctx.Locale.Tr("repo.pulls.enable_auto_merge", short),
+			TextConfirmAutoMerge:   ctx.Locale.Tr("repo.pulls.confirm_auto_merge", short),
+			TextBypassMerge:        ctx.Locale.Tr("repo.pulls.bypass_rules_and_merge", short),
+			TextConfirmBypassMerge: ctx.Locale.Tr("repo.pulls.confirm_bypass_rules_and_merge", short),
+			HideMergeMessageTexts:  style == repo_model.MergeStyleRebase || style == repo_model.MergeStyleFastForwardOnly,
+		})
 	}
+	addRegularMergeStyle(repo_model.MergeStyleMerge, prConfig.AllowMerge, "repo.pulls.merge_pull_request")
+	addRegularMergeStyle(repo_model.MergeStyleRebase, prConfig.AllowRebase, "repo.pulls.rebase_merge_pull_request")
+	addRegularMergeStyle(repo_model.MergeStyleRebaseMerge, prConfig.AllowRebaseMerge, "repo.pulls.rebase_merge_commit_pull_request")
+	addRegularMergeStyle(repo_model.MergeStyleSquash, prConfig.AllowSquash, "repo.pulls.squash_merge_pull_request")
+	addRegularMergeStyle(repo_model.MergeStyleFastForwardOnly, prConfig.AllowFastForwardOnly, "repo.pulls.fast_forward_only_merge_pull_request")
 
-	// if this pr can be merged now, then hide the auto merge
-	generalHideAutoMerge := prInfo.MergeBoxData.canMergeNow && allOverridableChecksOk
-	var mergeStyles []any
-	if pull.IsStatusMergeable() || pull.IsEmpty() {
-		mergeStyles = []any{
-			map[string]any{
-				"name":                  "merge",
-				"allowed":               prConfig.AllowMerge,
-				"textDoMerge":           ctx.Locale.Tr("repo.pulls.merge_pull_request"),
-				"mergeTitleFieldText":   defaultMergeTitle,
-				"mergeMessageFieldText": defaultMergeBody,
-				"hideAutoMerge":         generalHideAutoMerge,
-			},
-			map[string]any{
-				"name":                  "rebase",
-				"allowed":               prConfig.AllowRebase,
-				"textDoMerge":           ctx.Locale.Tr("repo.pulls.rebase_merge_pull_request"),
-				"hideMergeMessageTexts": true,
-				"hideAutoMerge":         generalHideAutoMerge,
-			},
-			map[string]any{
-				"name":                  "rebase-merge",
-				"allowed":               prConfig.AllowRebaseMerge,
-				"textDoMerge":           ctx.Locale.Tr("repo.pulls.rebase_merge_commit_pull_request"),
-				"mergeTitleFieldText":   defaultMergeTitle,
-				"mergeMessageFieldText": defaultMergeBody,
-				"hideAutoMerge":         generalHideAutoMerge,
-			},
-			map[string]any{
-				"name":                  "squash",
-				"allowed":               prConfig.AllowSquash,
-				"textDoMerge":           ctx.Locale.Tr("repo.pulls.squash_merge_pull_request"),
-				"mergeTitleFieldText":   defaultSquashMergeTitle,
-				"mergeMessageFieldText": git.CommitMessageMerge(defaultSquashMergeCommitMessages, defaultSquashMergeBody),
-				"hideAutoMerge":         generalHideAutoMerge,
-			},
-			map[string]any{
-				"name":                  "fast-forward-only",
-				"allowed":               prConfig.AllowFastForwardOnly && pull.CommitsBehind == 0,
-				"textDoMerge":           ctx.Locale.Tr("repo.pulls.fast_forward_only_merge_pull_request"),
-				"hideMergeMessageTexts": true,
-				"hideAutoMerge":         generalHideAutoMerge,
-			},
+	mergeable := pull.IsStatusMergeable()
+	canAttemptMerge := data.hasPermToMerge && len(mergeStyles) > 0 && !prInfo.IsPullRequestBroken && prInfo.workInProgressPrefix == "" && !data.hasOpenDependencies
+	canMergeNow := canAttemptMerge && mergeable && (!data.hasOverridableBlockers || data.canBypassProtection)
+	canAutoMerge := canAttemptMerge && (mergeable || pull.IsFilesConflicted() || pull.IsChecking())
+	data.IsReady = canMergeNow && !data.hasOverridableBlockers && !pull.IsEmpty() && (data.StatusCheckData == nil || data.StatusCheckData.AllPassed())
+	if len(mergeStyles) == 0 && hasUnsignableStyle {
+		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.require_signed_wont_sign"))
+		if errWontSign, ok := data.mergeSigningError.(*asymkey_service.ErrWontSign); ok {
+			data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.signing.wont_sign."+string(errWontSign.Reason)))
 		}
 	}
 
@@ -162,29 +89,73 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	//  - Merge the pull request branch locally and push the merged commit to Gitea
 	//  - Make some conflicts between the base branch and the pull request branch
 	//  Then the Manually Merged form will be shown in the merge form
-	canUseManualMerge := !pull.IsWorkInProgress(ctx) && !pull.IsChecking() && prConfig.AllowManualMerge
-	if canUseManualMerge {
-		mergeStyles = append(mergeStyles, map[string]any{
-			"name":                  "manually-merged",
-			"allowed":               prConfig.AllowManualMerge,
-			"textDoMerge":           ctx.Locale.Tr("repo.pulls.merge_manually"),
-			"hideMergeMessageTexts": true,
-			"hideAutoMerge":         true,
+	if prInfo.workInProgressPrefix == "" && !pull.IsChecking() && prConfig.AllowManualMerge {
+		addMergeStyle(&pullMergeStyleProps{
+			Name:                  repo_model.MergeStyleManuallyMerged,
+			TextDoMerge:           ctx.Locale.Tr("repo.pulls.merge_manually"),
+			TextDescription:       ctx.Locale.Tr("repo.pulls.merge_style_desc.manually-merged"),
+			HideMergeMessageTexts: true,
 		})
 	}
 
-	if len(mergeStyles) > 0 {
-		mergeFormProps["mergeStyles"] = mergeStyles
-		prInfo.MergeBoxData.MergeFormProps = mergeFormProps
-	} else if pull.IsStatusMergeable() || pull.IsEmpty() {
-		// no merge style was set in repo setting
-		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
-			svg.RenderHTML("octicon-x", 16, "tw-text-red"),
-			ctx.Locale.Tr("repo.pulls.no_merge_desc"),
-		)
-		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
-			svg.RenderHTML("octicon-info"),
-			ctx.Locale.Tr("repo.pulls.no_merge_helper"),
-		)
+	if !data.hasPermToMerge || data.AutoMerge != nil {
+		return
+	}
+	if len(mergeStyles) == 0 {
+		if mergeable && !hasEnabledStyle {
+			data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_desc"), ctx.Locale.Tr("repo.pulls.no_merge_helper"))
+		}
+		return
+	}
+	var defaultMergeTitle, defaultMergeBody string
+	var defaultSquashMergeTitle, defaultSquashMergeBody string
+	var defaultSquashMergeCommitMessages string
+	if gitRepo != nil && !prInfo.IsPullRequestBroken && !pull.IsUnrelated() {
+		var err error
+		defaultMergeTitle, defaultMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, gitRepo, pull, mergeStyle)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			log.Error("GetDefaultMergeMessage for style %s failed, error: %v", mergeStyle, err)
+		}
+		if prConfig.AllowSquash {
+			if mergeStyle == repo_model.MergeStyleSquash {
+				defaultSquashMergeTitle, defaultSquashMergeBody = defaultMergeTitle, defaultMergeBody
+			} else {
+				defaultSquashMergeTitle, defaultSquashMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, gitRepo, pull, repo_model.MergeStyleSquash)
+				if err != nil && !errors.Is(err, util.ErrNotExist) {
+					log.Error("GetDefaultMergeMessage for squash failed, error: %v", err)
+				}
+			}
+			defaultSquashMergeCommitMessages, err = pull_service.GetSquashMergeCommitMessages(ctx, pull)
+			if err != nil && !errors.Is(err, util.ErrNotExist) {
+				log.Error("GetSquashMergeCommitMessages failed, error: %v", err)
+			}
+		}
+	}
+
+	for _, style := range mergeStyles {
+		if style.Name == repo_model.MergeStyleSquash {
+			style.MergeTitleFieldText, style.MergeMessageFieldText = defaultSquashMergeTitle, git.CommitMessageMerge(defaultSquashMergeCommitMessages, defaultSquashMergeBody)
+		} else if !style.HideMergeMessageTexts {
+			style.MergeTitleFieldText, style.MergeMessageFieldText = defaultMergeTitle, defaultMergeBody
+		}
+	}
+
+	data.MergeFormProps = map[string]any{
+		"baseLink":             prInfo.issue.Link(),
+		"textCancel":           ctx.Locale.Tr("cancel"),
+		"textMergeCommitId":    ctx.Locale.Tr("repo.pulls.merge_commit_id"),
+		"textSelectMergeStyle": ctx.Locale.Tr("repo.pulls.select_merge_style"),
+		"textMergeTitle":       ctx.Locale.Tr("form.CommitMessage"),
+		"textMergeBlocked":     ctx.Locale.Tr("repo.pulls.merge_blocked_by_requirements"),
+
+		"isReady":                      data.IsReady,
+		"canMergeNow":                  canMergeNow,
+		"canAutoMerge":                 canAutoMerge && (!canMergeNow || data.hasOverridableBlockers),
+		"allOverridableChecksOk":       !data.hasOverridableBlockers,
+		"textBypassRules":              ctx.Locale.Tr("repo.pulls.merge_bypass_rules"),
+		"pullHeadCommitID":             prInfo.CompareInfo.HeadCommitID,
+		"defaultMergeStyle":            mergeStyle,
+		"mergeStyles":                  mergeStyles,
+		"mergeMessageFieldPlaceHolder": ctx.Locale.Tr("repo.editor.commit_message_desc"),
 	}
 }

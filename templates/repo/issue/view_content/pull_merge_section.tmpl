@@ -1,0 +1,19 @@
+{{/* Template Attributes:
+* MergeBoxSection: see backend pullMergeBoxSection struct
+*/}}
+{{$section := $.MergeBoxSection}}
+{{if $section.ProgressSegments}}
+	<svg class="merge-box-status" viewBox="0 0 100 100" fill="none" stroke-width="12" stroke-linecap="round" aria-hidden="true">
+		{{range $segment := $section.ProgressSegments}}
+			<circle class="{{$segment.StrokeClass}}" cx="50" cy="50" r="44" pathLength="100" stroke-dasharray="{{$segment.DashLength}} 100" stroke-dashoffset="{{$segment.DashOffset}}" transform="rotate(-90 50 50)"/>
+		{{end}}
+	</svg>
+{{else if $section.StatusIcon}}
+	<span class="merge-box-status {{$section.StatusIconClass}}">{{svg $section.StatusIcon}}</span>
+{{end}}
+<span class="item-main tw-gap-0">
+	<span class="item-title tw-leading-[24px]" role="heading" aria-level="3">{{$section.SectionTitle}}</span>
+	{{range $detail := $section.SectionDetails}}<span class="merge-box-detail">{{$detail}}</span>{{end}}
+	{{range $fileName := $section.FileNames}}<span class="merge-box-file flex-text-block tw-gap-[8px] tw-py-[6px] tw-font-mono tw-text-12">{{svg "octicon-file"}}{{$fileName}}</span>{{end}}
+	{{if $section.HasMoreFiles}}<span class="merge-box-detail">…</span>{{end}}
+</span>

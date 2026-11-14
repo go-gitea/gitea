@@ -7,185 +7,79 @@ import (
 	"html/template"
 
 	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/svg"
-	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
-type pullMergeBoxInfoItem struct {
-	SvgIconHTML template.HTML
-	InfoHTML    template.HTML
-	ListItems   []template.HTML
+type pullMergeBoxSection struct {
+	StatusIcon       string
+	StatusIconClass  string
+	SectionTitle     template.HTML
+	SectionDetails   []template.HTML
+	FileNames        []string
+	HasMoreFiles     bool
+	ProgressSegments []statusCheckProgressSegment // drawn as a donut chart instead of the status icon
 }
 
-type pullMergeBoxInfoItemCollection struct {
-	items []*pullMergeBoxInfoItem
-}
-
-type pullInfoSection struct {
-	InfoItems []*pullMergeBoxInfoItem
-}
-
-func escapeStringSliceToHTML(s []string) (ret []template.HTML) {
-	for _, v := range s {
-		ret = append(ret, template.HTML(template.HTMLEscapeString(v)))
-	}
-	return ret
-}
-
-func (c *pullMergeBoxInfoItemCollection) AddInfoItem(svg, info template.HTML, optItems ...[]template.HTML) {
-	c.items = append(c.items, &pullMergeBoxInfoItem{
-		SvgIconHTML: svg,
-		InfoHTML:    info,
-		ListItems:   util.OptionalArg(optItems),
-	})
-}
-
-func (c *pullMergeBoxInfoItemCollection) AddErrorItem(info template.HTML, optItems ...[]template.HTML) {
-	c.items = append(c.items, &pullMergeBoxInfoItem{
-		SvgIconHTML: svg.RenderHTML("octicon-x", 16, "tw-text-red"),
-		InfoHTML:    info,
-		ListItems:   util.OptionalArg(optItems),
-	})
-}
-
-func (prInfo *pullRequestViewInfo) prepareMergeBoxIconColor() {
+func (prInfo *pullRequestViewInfo) prepareMergeBoxClosedSection(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
-	mergeBoxData := prInfo.MergeBoxData
-
-	showAsNormalColor := prInfo.issue.IsClosed || prInfo.workInProgressPrefix != "" || pull.IsEmpty() || pull.IsFilesConflicted()
-	showAsErrorColor := false
-	showAsWarningColor := pull.IsChecking()
-
-	if statusCheckData := mergeBoxData.StatusCheckData; statusCheckData != nil {
-		showAsErrorColor = statusCheckData.pullCommitStatusState.IsError() || statusCheckData.pullCommitStatusState.IsFailure() ||
-			statusCheckData.RequiredChecksState.IsError() || statusCheckData.RequiredChecksState.IsFailure()
-
-		showAsWarningColor = showAsWarningColor ||
-			statusCheckData.pullCommitStatusState.IsWarning() || statusCheckData.pullCommitStatusState.IsPending() ||
-			((mergeBoxData.enableStatusCheck || mergeBoxData.hasRequiredStatusContexts) && (statusCheckData.RequiredChecksState.IsWarning() || statusCheckData.RequiredChecksState.IsPending()))
-	}
-
-	hasBlockers := len(mergeBoxData.infoCommitBlockers.items) > 0 || len(mergeBoxData.infoProtectionBlockers.items) > 0
-
+	data := prInfo.MergeBoxData
+	headTarget := htmlutil.HTMLFormat("<code>%s</code>", prInfo.headTarget)
+	title, detail := ctx.Locale.Tr("repo.pulls.closed_with_unmerged_commits"), ctx.Locale.Tr("repo.pulls.is_closed")
 	switch {
 	case pull.HasMerged:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-purple"
-	case showAsNormalColor:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-text-light"
-	case showAsErrorColor:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-red"
-	case showAsWarningColor:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-yellow"
-	case hasBlockers:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-red"
-	case pull.IsStatusMergeable():
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-green"
-	default:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-text-light"
+		title, detail = ctx.Locale.Tr("repo.pulls.merged_success"), ctx.Locale.Tr("repo.pulls.merged_info_desc")
+		if data.IsPullBranchDeletable {
+			detail = ctx.Locale.Tr("repo.pulls.merged_info_text", headTarget)
+		}
+	case prInfo.IsPullRequestBroken:
+		title, detail = ctx.Locale.Tr("repo.pulls.closed"), ctx.Locale.Tr("repo.pulls.cant_reopen_deleted_branch")
+	case data.IsPullBranchDeletable:
+		detail = ctx.Locale.Tr("repo.pulls.closed_with_unmerged_commits_desc", headTarget)
 	}
+	data.MergeSection = &pullMergeBoxSection{SectionTitle: title, SectionDetails: []template.HTML{detail}}
 }
 
-func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context) {
+func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	data := prInfo.MergeBoxData
 
-	if pull.HasMerged && data.IsPullBranchDeletable {
-		data.ClosedInfoTitle = ctx.Locale.Tr("repo.pulls.merged_success")
-		data.ClosedInfoBody = ctx.Locale.Tr("repo.pulls.merged_info_text", htmlutil.HTMLFormat("<code>%s</code>", prInfo.headTarget))
-		return
-	} else if prInfo.issue.IsClosed {
-		data.ClosedInfoTitle = ctx.Locale.Tr("repo.pulls.closed")
-		if prInfo.IsPullRequestBroken {
-			data.ClosedInfoBody = ctx.Locale.Tr("repo.pulls.cant_reopen_deleted_branch")
-		} else {
-			data.ClosedInfoBody = ctx.Locale.Tr("repo.pulls.reopen_to_merge")
-		}
-		return
+	section := &pullMergeBoxSection{StatusIcon: "octicon-alert-fill", StatusIconClass: "tw-bg-grey-light"}
+	switch {
+	case prInfo.IsPullRequestBroken:
+		section.StatusIcon, section.StatusIconClass, section.SectionTitle = "octicon-x", "tw-bg-red", ctx.Locale.Tr("repo.pulls.data_broken")
+	case pull.IsFilesConflicted():
+		section.SectionTitle, section.SectionDetails = ctx.Locale.Tr("repo.pulls.files_conflicted"), []template.HTML{ctx.Locale.Tr("repo.pulls.files_conflicted_desc")}
+		section.FileNames = pull.ConflictedFiles[:min(len(pull.ConflictedFiles), 10)]
+		section.HasMoreFiles = len(pull.ConflictedFiles) > len(section.FileNames)
+	case pull.IsChecking():
+		section.StatusIcon, section.SectionTitle, section.SectionDetails = "octicon-sync", ctx.Locale.Tr("repo.pulls.is_checking"), []template.HTML{ctx.Locale.Tr("repo.pulls.is_checking_desc")}
+	case pull.IsAncestor():
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.is_ancestor")
+	case pull.IsUnrelated():
+		section.StatusIcon, section.StatusIconClass, section.SectionTitle = "octicon-x", "tw-bg-red", ctx.Locale.Tr("repo.pulls.is_unrelated")
+	case pull.IsEmpty():
+		section.SectionTitle, section.SectionDetails = ctx.Locale.Tr("repo.pulls.is_empty"), []template.HTML{ctx.Locale.Tr("repo.pulls.can_auto_merge_desc")}
+	case !pull.IsStatusMergeable():
+		section.StatusIcon, section.StatusIconClass, section.SectionTitle = "octicon-x", "tw-bg-red", ctx.Locale.Tr("repo.pulls.merge_unavailable")
+	case data.ShowUpdatePullInfo:
+		section.SectionTitle = ctx.Locale.Tr("repo.pulls.outdated_with_base_branch")
+		section.SectionDetails = []template.HTML{ctx.Locale.Tr("repo.pulls.outdated_with_base_branch_desc", htmlutil.HTMLFormat("<code>%s</code>", pull.BaseBranch))}
+	default:
+		section.StatusIcon, section.StatusIconClass, section.SectionTitle = "octicon-check", "tw-bg-green", ctx.Locale.Tr("repo.pulls.no_conflicts")
+		section.SectionDetails = []template.HTML{ctx.Locale.Tr("repo.pulls.can_auto_merge_desc")}
 	}
+	data.MergeSection = section
 
-	if pull.IsFilesConflicted() {
-		detailItems := escapeStringSliceToHTML(pull.ConflictedFiles)
-		if len(detailItems) == 0 {
-			detailItems = append(detailItems, ctx.Locale.Tr("repo.pulls.files_conflicted_no_listed_files"))
-		}
-		if len(detailItems) > 10 {
-			detailItems = detailItems[:10]
-			detailItems = append(detailItems, "...")
-		}
-		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
-			svg.RenderHTML("octicon-x"),
-			ctx.Locale.Tr("repo.pulls.files_conflicted"),
-			detailItems,
-		)
-	}
-
-	if prInfo.IsPullRequestBroken {
-		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
-			svg.RenderHTML("octicon-x"),
-			ctx.Locale.Tr("repo.pulls.data_broken"),
-		)
-	}
-
-	if pull.IsChecking() {
-		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
-			svg.RenderHTML("gitea-running", 16, "rotate-clockwise"),
-			ctx.Locale.Tr("repo.pulls.is_checking"),
-		)
-	}
-
-	if pull.IsAncestor() {
-		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
-			svg.RenderHTML("octicon-alert"),
-			ctx.Locale.Tr("repo.pulls.is_ancestor"),
-		)
-	}
-
-	if !pull.IsStatusMergeable() {
-		// it is only a "protection" level blocker, it can be bypassed by admin (e.g.: manually merged)
-		if pull.IsEmpty() {
-			prInfo.MergeBoxData.infoProtectionBlockers.AddInfoItem(
-				svg.RenderHTML("octicon-alert"),
-				ctx.Locale.Tr("repo.pulls.is_empty"),
-			)
-		} else {
-			prInfo.MergeBoxData.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.cannot_auto_merge_desc"))
-			prInfo.MergeBoxData.infoProtectionBlockers.AddInfoItem(
-				svg.RenderHTML("octicon-info"),
-				ctx.Locale.Tr("repo.pulls.cannot_auto_merge_helper"),
-			)
+	if prInfo.workInProgressPrefix != "" {
+		data.WorkInProgressSection = &pullMergeBoxSection{
+			StatusIcon: "octicon-git-pull-request-draft", StatusIconClass: "tw-bg-grey-light", SectionTitle: ctx.Locale.Tr("repo.pulls.cannot_merge_work_in_progress"),
+			SectionDetails: []template.HTML{ctx.Locale.Tr("repo.pulls.work_in_progress_desc")},
 		}
 	}
-
-	if !data.hasPermToMerge {
-		prInfo.MergeBoxData.infoProtectionBlockers.AddInfoItem(
-			svg.RenderHTML("octicon-info"),
-			ctx.Locale.Tr("repo.pulls.no_merge_access"),
-		)
-	}
-
-	if data.canMergeNow {
-		if data.hasOverridableBlockers {
-			prompt := ctx.Locale.Tr("repo.pulls.required_status_check_bypass_allowlist")
-			if data.canBypassProtectionAsAdmin {
-				prompt = ctx.Locale.Tr("repo.pulls.required_status_check_administrator")
-			}
-			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
-				svg.RenderHTML("octicon-dot-fill"),
-				prompt,
-			)
-		} else if pull.IsStatusMergeable() || pull.IsEmpty() {
-			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
-				svg.RenderHTML("octicon-check"),
-				ctx.Locale.Tr("repo.pulls.can_auto_merge_desc"),
-			)
+	if len(data.mergeBlockers) > 0 {
+		data.BlockedSection = &pullMergeBoxSection{
+			StatusIcon: "octicon-alert-fill", StatusIconClass: "tw-bg-red", SectionTitle: ctx.Locale.Tr("repo.pulls.merging_is_blocked"),
+			SectionDetails: data.mergeBlockers, FileNames: pull.ChangedProtectedFiles,
 		}
 	}
-
-	if len(data.infoCommitBlockers.items) > 0 {
-		data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoCommitBlockers.items})
-	} else {
-		data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoProtectionBlockers.items})
-	}
-	data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoMergePrompts.items})
 }

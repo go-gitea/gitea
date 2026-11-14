@@ -105,10 +105,10 @@ export async function apiCreateBranch(requestContext: APIRequestContext, owner: 
   }), 'apiCreateBranch');
 }
 
-export async function apiCreateBranchProtection(requestContext: APIRequestContext, owner: string, repo: string, ruleName: string) {
+export async function apiCreateBranchProtection(requestContext: APIRequestContext, owner: string, repo: string, ruleName: string, options: Record<string, unknown> = {}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branch_protections`, {
     headers: apiHeaders(),
-    data: {rule_name: ruleName},
+    data: {rule_name: ruleName, ...options},
   }), 'apiCreateBranchProtection');
 }
 

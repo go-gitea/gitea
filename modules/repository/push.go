@@ -19,6 +19,8 @@ type PushUpdateOptions struct {
 	RefFullName git.RefName // branch, tag or other name to push
 	OldCommitID string
 	NewCommitID string
+
+	PullRequestID int64 // set when Gitea itself pushes for a pull request (merge or "update branch")
 }
 
 // IsNewRef return true if it's a first-time push to a branch, tag or etc.
