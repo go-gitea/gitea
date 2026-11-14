@@ -34,6 +34,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/feed"
 	"gitea.dev/routers/web/shared/issue"
 	"gitea.dev/routers/web/shared/user"
@@ -168,7 +169,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var (
-		userRepoCond = repo_model.SearchRepositoryCondition(repoOpts) // all repo condition user could visit
+		userRepoCond = common.IssuesOrPullsRepoCondition(repoOpts, optional.None[bool]())
 		repoCond     = userRepoCond
 		repoIDs      []int64
 
