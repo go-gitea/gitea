@@ -233,6 +233,8 @@ type ActionRunnerLabel struct {
 // ActionRunner represents a Runner
 type ActionRunner struct {
 	ID        int64                `json:"id"`
+	OwnerID   int64                `json:"owner_id"`
+	RepoID    int64                `json:"repo_id"`
 	Name      string               `json:"name"`
 	Status    string               `json:"status"`
 	Busy      bool                 `json:"busy"`
