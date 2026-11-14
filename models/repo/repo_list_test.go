@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -566,4 +567,29 @@ func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
 	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
+}
+
+func TestGetUserRepositoriesActorAccess(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	listIDs := func(ownerID int64, actor *user_model.User) []int64 {
+		repos, count, err := repo_model.GetUserRepositories(t.Context(), repo_model.SearchRepoOptions{
+			OwnerID:     ownerID,
+			Actor:       actor,
+			Private:     true,
+			ListOptions: db.ListOptionsAll,
+			OrderBy:     db.SearchOrderByID,
+		})
+		require.NoError(t, err)
+		assert.Len(t, repos, int(count))
+		return repoIDs(repos)
+	}
+
+	assert.Equal(t, []int64{3, 5, 32}, listIDs(3, nil))
+	assert.Equal(t, []int64{3, 5, 32}, listIDs(3, user_model.NewActionsUser()))
+
+	repo := &repo_model.Repository{OwnerID: 31}
+	require.NoError(t, db.Insert(t.Context(), repo))
+	require.NoError(t, db.Insert(t.Context(), &repo_model.Collaboration{RepoID: repo.ID, UserID: 4, Mode: perm.AccessModeRead}))
+	assert.Equal(t, []int64{repo.ID}, listIDs(31, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})))
 }
