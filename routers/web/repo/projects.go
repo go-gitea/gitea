@@ -294,6 +294,11 @@ func ViewProject(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	groupByLabels := ctx.FormString("group_by") == "labels"
+	issueLabelIDs := preparedLabelFilter.SelectedLabelIDs
+	if groupByLabels {
+		issueLabelIDs = nil // The label selector filters swimlanes, not issue label intersections.
+	}
 
 	assigneeID := ctx.FormString("assignee")
 	milestoneID := ctx.FormInt64("milestone")
@@ -307,7 +312,7 @@ func ViewProject(ctx *context.Context) {
 
 	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &issues_model.IssuesOptions{
 		RepoIDs:      []int64{ctx.Repo.Repository.ID},
-		LabelIDs:     preparedLabelFilter.SelectedLabelIDs,
+		LabelIDs:     issueLabelIDs,
 		AssigneeID:   assigneeID,
 		MilestoneIDs: milestoneIDs,
 	})
@@ -317,6 +322,14 @@ func ViewProject(ctx *context.Context) {
 	}
 	for _, column := range columns {
 		column.NumIssues = int64(len(issuesMap[column.ID]))
+	}
+	if groupByLabels {
+		lanes, counts := project_service.BuildLabelSwimlanes(columns, issuesMap, preparedLabelFilter.SelectedLabelIDs)
+		ctx.Data["GroupBy"] = "labels"
+		ctx.Data["Swimlanes"] = lanes
+		for _, column := range columns {
+			column.NumIssues = counts[column.ID]
+		}
 	}
 
 	if project.CardType != project_model.CardTypeTextOnly {
@@ -370,6 +383,9 @@ func ViewProject(ctx *context.Context) {
 		}
 	}
 
+	if groupByLabels {
+		clear(labelExclusiveScopes)
+	}
 	for _, l := range labels {
 		l.LoadSelectedLabelsAfterClick(preparedLabelFilter.SelectedLabelIDs, labelExclusiveScopes)
 	}
