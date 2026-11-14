@@ -1276,3 +1276,42 @@ func TestConfidentialIssueReferencesAndDependencies(t *testing.T) {
 		t.Run("published "+string(viewer), func(t *testing.T) { checkVisible(t, viewer) })
 	}
 }
+
+// A dependency editor of one repository sees blockers that live in other repositories, and may see the titles of
+// those in repositories they cannot read, so they can remove them. A confidential blocker hidden from them is only
+// ever counted.
+func TestConfidentialIssueDependencyEditor(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	const (
+		publicRepoKeyword  = "dugongconf"
+		privateRepoKeyword = "narwhalconf"
+		plainKeyword       = "pangolinplain"
+	)
+	target := &issues_model.Issue{RepoID: 4, Index: 9200, PosterID: 5, Title: "target issue", Content: "target"}
+	blockers := []*issues_model.Issue{
+		{RepoID: 1, Index: 9201, PosterID: 10, Title: "hidden " + publicRepoKeyword, IsConfidential: true},
+		{RepoID: 2, Index: 9202, PosterID: 2, Title: "hidden " + privateRepoKeyword, IsConfidential: true},
+		{RepoID: 2, Index: 9203, PosterID: 2, Title: "blocker " + plainKeyword},
+	}
+	require.NoError(t, db.Insert(t.Context(), target))
+	for _, blocker := range blockers {
+		require.NoError(t, db.Insert(t.Context(), blocker))
+		require.NoError(t, db.Insert(t.Context(), &issues_model.IssueDependency{UserID: 5, IssueID: target.ID, DependencyID: blocker.ID}))
+	}
+	enableRepoDependencies(t, 4)
+
+	// user5 owns repo4, reads the public repo1 and cannot read the private repo2
+	page := confidentialViewer("user5").request(t, "/user5/repo4/issues/9200").Body.String()
+	assert.NotContains(t, page, publicRepoKeyword)
+	assert.NotContains(t, page, privateRepoKeyword)
+	assert.Contains(t, page, plainKeyword, "a plain blocker in an unreadable repository keeps its title for the editor")
+	assert.Contains(t, page, "You do not have permission to read 2 dependencies")
+
+	resp := confidentialViewer("user5").apiRequest(t, "/api/v1/repos/user5/repo4/issues/9200/dependencies")
+	assert.NotContains(t, resp.Body.String(), publicRepoKeyword)
+	assert.NotContains(t, resp.Body.String(), privateRepoKeyword)
+	titles, _ := apiIssueTitles(t, resp)
+	assert.Len(t, titles, 2, "the confidential blocker in the readable repository is dropped, the other two are listed")
+	assert.Contains(t, titles, "HIDDEN")
+}

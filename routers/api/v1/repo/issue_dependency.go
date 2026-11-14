@@ -103,7 +103,8 @@ func GetIssueDependencies(ctx *context.APIContext) {
 
 		// check permission
 		if !perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
-			if !canWrite {
+			// writers may see the titles of blockers in repositories they cannot read, but never of a confidential one
+			if !canWrite || blocker.Issue.IsConfidential {
 				hiddenBlocker := &issues_model.DependencyInfo{
 					Issue: issues_model.Issue{
 						Title: "HIDDEN",

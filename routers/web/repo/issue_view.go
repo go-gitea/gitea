@@ -116,8 +116,10 @@ func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *u
 	return roleDesc, nil
 }
 
-// checkBlockedByIssues return canRead and notPermitted
-func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
+// checkBlockedByIssues splits blockers into the ones doer can read, the ones in repositories doer cannot read
+// (whose titles dependency editors still see, so they can remove them), and the number of confidential ones
+// hidden from doer, which are only ever counted.
+func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo, hidden int) {
 	repoPerms := make(map[int64]access_model.Permission)
 	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 	for _, blocker := range blockers {
@@ -133,24 +135,27 @@ func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.Depende
 			perm, err = access_model.GetDoerRepoPermission(ctx, &blocker.Repository, ctx.Doer)
 			if err != nil {
 				ctx.ServerErrorAuto(err)
-				return nil, nil
+				return nil, nil, 0
 			}
 			repoPerms[blocker.RepoID] = perm
 		}
 		visible, err := issues_model.IsIssueVisible(ctx, &blocker.Issue, ctx.Doer, perm)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
-			return nil, nil
+			return nil, nil, 0
 		}
-		if visible {
+		switch {
+		case visible:
 			canRead = append(canRead, blocker)
-		} else {
+		case blocker.Issue.IsConfidential:
+			hidden++
+		default:
 			notPermitted = append(notPermitted, blocker)
 		}
 	}
 	sortDependencyInfo(canRead)
 	sortDependencyInfo(notPermitted)
-	return canRead, notPermitted
+	return canRead, notPermitted, hidden
 }
 
 // markHiddenRefIssues flags reference comments whose referencing issue is confidential and hidden from the doer
@@ -525,7 +530,10 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	ctx.Data["BlockedByDependencies"], ctx.Data["BlockedByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blockedBy)
+	blockedByRead, blockedByNotPermitted, blockedByHidden := checkBlockedByIssues(ctx, blockedBy)
+	ctx.Data["BlockedByDependencies"], ctx.Data["BlockedByDependenciesNotPermitted"] = blockedByRead, blockedByNotPermitted
+	ctx.Data["BlockedByDependenciesHidden"] = blockedByHidden
+	ctx.Data["BlockedByDependenciesUnreadable"] = len(blockedByNotPermitted) + blockedByHidden
 	if ctx.Written() {
 		return
 	}
@@ -536,7 +544,9 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 		return
 	}
 
-	ctx.Data["BlockingDependencies"], ctx.Data["BlockingDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
+	blockingRead, blockingNotPermitted, blockingHidden := checkBlockedByIssues(ctx, blocking)
+	ctx.Data["BlockingDependencies"] = blockingRead
+	ctx.Data["BlockingDependenciesUnreadable"] = len(blockingNotPermitted) + blockingHidden
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Context) {
