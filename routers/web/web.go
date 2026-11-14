@@ -10,6 +10,7 @@ import (
 	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git"
@@ -1408,7 +1409,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/resolve_conversation", repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
 		}, reqUnitPullsReader)
 		m.Post("/pull/{index}/target_branch", reqUnitPullsReader, repo.UpdatePullRequestTarget)
-	}, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived())
+	}, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived(), context.RepoMustNotBeReadOnlyMirror())
 	// end "/{username}/{reponame}": create or edit issues, pulls, labels, milestones
 
 	m.Group("/{username}/{reponame}", func() { // repo code (at least "code reader")
@@ -1504,7 +1505,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Post("/topics", repo.TopicsPost)
-	}, optSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived())
+	}, optSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoMustNotBeArchived(), context.RepoMustNotBeSyncedByMirror(func(m *repo_model.Mirror) bool { return m.SyncTopics }))
 
 	m.Group("/{username}/{reponame}", func() {
 		if setting.Packages.Enabled {
@@ -1648,7 +1649,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				}, reqSignIn, context.RepoMustNotBeArchived())
 			})
 		})
-	}, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader)
+	}, optSignIn, context.RepoAssignment, repo.MustAllowPulls, reqUnitPullsReader, context.RepoMustNotBeReadOnlyMirror())
 	// end "/{username}/{reponame}/pulls/{index}": repo pull request
 
 	m.Group("/{username}/{reponame}", func() {

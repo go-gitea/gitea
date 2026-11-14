@@ -15,8 +15,8 @@ The variables in "ctx.Data" are different in each case, making this template fra
 	{{$editorconfig := $root.Editorconfig -}}
 	{{$canWrite := or $root.Permission.IsAdmin $root.HasIssuesOrPullsWritePermission -}}
 	{{$signedUserID := or $root.SignedUserID NIL -}}
-	{{$canMarkAsResolved := and $root.CanMarkConversation $hasReview (not $isReviewPending)}}
-	{{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived)}}
+	{{$canMarkAsResolved := and $root.CanMarkConversation $hasReview (not $isReviewPending) (not $root.IsReadOnlyMirror)}}
+	{{$canAddComment := and $root.SignedUserID (not $root.Repository.IsArchived) (not $root.IsReadOnlyMirror)}}
 	<div class="ui segments conversation-holder">
 		<div class="ui segment collapsible-comment-box tw-py-2 flex-left-right">
 			<div class="tw-flex tw-items-center">
@@ -91,7 +91,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 								</div>
 								<div class="comment-header-right">
 									{{template "repo/issue/view_content/show_role" dict "ShowRole" $comment.ShowRole}}
-									{{if not $repo.IsArchived}}
+									{{if and (not $repo.IsArchived) (not $root.IsReadOnlyMirror)}}
 										{{template "repo/issue/view_content/context_menu" dict "ConvContentType" "issue_comment" "ConvContentItem" $comment}}
 									{{end}}
 								</div>
@@ -141,6 +141,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 					{{end}}
 					{{if $canAddComment}}
 						<button type="button" class="comment-form-reply ui primary icon tiny button">
+
 							{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 						</button>
 					{{end}}

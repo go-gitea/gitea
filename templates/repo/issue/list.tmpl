@@ -20,12 +20,12 @@
 			{{template "repo/issue/search" .}}
 			<a class="ui small button" href="{{.RepoLink}}/labels">{{ctx.Locale.Tr "repo.labels"}}</a>
 			<a class="ui small button" href="{{.RepoLink}}/milestones">{{ctx.Locale.Tr "repo.milestones"}}</a>
-
-			{{if $.ShowNewIssueButton}}
+			{{/* a read-only mirror never offers creation; the compare link needs a pull request context */}}
+			{{if and $.ShowNewIssueButton (not .IsReadOnlyMirror)}}
 				<a class="ui small primary button issue-list-new" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
-			{{else if $.ShowNewPullButton}}
+			{{else if and $.ShowNewPullButton (not .IsReadOnlyMirror)}}
 				<a class="ui small primary button new-pr-button issue-list-new" href="{{.PullRequestCtx.MakeDefaultCompareLink .Repository.DefaultBranch}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
-			{{else if $.ShowCompareBranchButton}}
+			{{else if and .PullRequestCtx (or $.ShowCompareBranchButton (and .IsReadOnlyMirror (not .PageIsIssueList)))}}
 				<a class="ui small primary button issue-list-new" href="{{.PullRequestCtx.MakeDefaultCompareLink .Repository.DefaultBranch}}">{{ctx.Locale.Tr "action.compare_commits_general"}}</a>
 			{{end}}
 		</div>

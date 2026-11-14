@@ -20,6 +20,15 @@ type Uploader interface {
 	CreateComments(ctx context.Context, comments ...*Comment) error
 	CreatePullRequests(ctx context.Context, prs ...*PullRequest) error
 	CreateReviews(ctx context.Context, reviews ...*Review) error
+	// PatchIssues upserts issues: existing issues, matched on their index,
+	// are updated in place and new ones are created
+	PatchIssues(ctx context.Context, issues ...*Issue) error
+	// PatchPullRequests upserts pull requests, like PatchIssues
+	PatchPullRequests(ctx context.Context, prs ...*PullRequest) error
+	// PatchComments upserts comments, matched on their remote id
+	PatchComments(ctx context.Context, comments ...*Comment) error
+	// PatchReviews upserts pull request reviews, matched on their remote id
+	PatchReviews(ctx context.Context, reviews ...*Review) error
 	Rollback() error
 	Finish(ctx context.Context) error
 	Close()

@@ -11,6 +11,12 @@ import (
 	"gitea.dev/modules/git"
 )
 
+// PullRequestUpdate is a pull request's number and last update, listed before the pull request itself is fetched
+type PullRequestUpdate struct {
+	Number  int64
+	Updated time.Time
+}
+
 // PullRequest defines a standard pull request information
 type PullRequest struct {
 	Number         int64
