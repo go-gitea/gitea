@@ -100,6 +100,12 @@ func RebuildCargoIndex(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/packages")
 }
 
+func RegenerateDebianKeyPair(ctx *context.Context) {
+	shared.RegenerateDebianKeyPair(ctx, ctx.Doer)
+
+	ctx.Redirect(setting.AppSubURL + "/user/settings/packages")
+}
+
 func RegenerateChefKeyPair(ctx *context.Context) {
 	priv, pub, err := util.GenerateKeyPair(chef_module.KeyBits)
 	if err != nil {

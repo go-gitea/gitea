@@ -18,6 +18,7 @@ import (
 	packages_model "gitea.dev/models/packages"
 	debian_model "gitea.dev/models/packages/debian"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/globallock"
 	packages_module "gitea.dev/modules/packages"
 	debian_module "gitea.dev/modules/packages/debian"
 	"gitea.dev/modules/setting"
@@ -40,6 +41,29 @@ func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
 func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
 	return packages_service.GetOrCreateKeyPair(ctx, ownerID, debian_module.SettingKeyPrivate, debian_module.SettingKeyPublic, generateKeypair)
+}
+
+// RegenerateKeyPair replaces the owner's Debian signing keys and rebuilds repository metadata.
+func RegenerateKeyPair(ctx context.Context, ownerID int64) error {
+	err := globallock.LockAndDo(ctx, fmt.Sprintf("pkg-keypair-%s-%d", debian_module.SettingKeyPrivate, ownerID), func(ctx context.Context) error {
+		priv, pub, err := generateKeypair()
+		if err != nil {
+			return err
+		}
+
+		if err := user_model.SetUserSetting(ctx, ownerID, debian_module.SettingKeyPrivate, priv); err != nil {
+			return err
+		}
+		if err := user_model.SetUserSetting(ctx, ownerID, debian_module.SettingKeyPublic, pub); err != nil {
+			return err
+		}
+
+		return BuildAllRepositoryFiles(ctx, ownerID)
+	})
+	if err != nil {
+		return fmt.Errorf("RegenerateKeyPair: %w", err)
+	}
+	return nil
 }
 
 func generateKeypair() (string, string, error) {

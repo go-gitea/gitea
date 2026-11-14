@@ -1,0 +1,16 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "packages.owner.settings.debian.title"}}
+</h4>
+<div class="ui attached segment">
+	<div class="ui form">
+		<div class="field">
+			<label>{{ctx.Locale.Tr "packages.owner.settings.debian.keypair.description"}}</label>
+		</div>
+		<form class="field" action="{{.ActionURL}}" method="post">
+			<button type="submit" class="ui primary button">{{ctx.Locale.Tr "packages.owner.settings.debian.keypair"}}</button>
+		</form>
+		<div class="field">
+			<label>{{ctx.Locale.Tr "packages.registry.documentation" "Debian" "https://docs.gitea.com/usage/packages/debian/"}}</label>
+		</div>
+	</div>
+</div>

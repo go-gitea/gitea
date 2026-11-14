@@ -3,6 +3,8 @@
 		{{template "package/shared/cleanup_rules/list" .}}
 		{{template "package/shared/cargo" .}}
 
+		{{template "package/shared/debian" dict "ActionURL" (printf "%s/debian/regenerate_keypair" .Link)}}
+
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "packages.owner.settings.chef.title"}}
 		</h4>
