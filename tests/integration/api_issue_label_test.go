@@ -78,17 +78,20 @@ func TestAPIModifyLabels(t *testing.T) {
 
 			// CreateLabel
 			req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateLabelOption{
-				Name:        "TestL 1",
-				IsArchived:  true,
-				Color:       "abcdef",
-				Description: "test label",
+				Name:           "TestL 1",
+				IsArchived:     true,
+				ExclusiveOrder: 2,
+				Color:          "abcdef",
+				Description:    "test label",
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusCreated)
 			apiLabel := DecodeJSON(t, resp, &api.Label{})
 			assert.True(t, apiLabel.IsArchived)
+			assert.Equal(t, 2, apiLabel.ExclusiveOrder)
 			labelFilter.ID = apiLabel.ID
 			dbLabel := unittest.AssertExistsAndLoadBean(t, labelFilter)
 			assert.Equal(t, dbLabel.Name, apiLabel.Name)
+			assert.Equal(t, 2, dbLabel.ExclusiveOrder)
 			assert.Equal(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
 
 			req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateLabelOption{
@@ -130,11 +133,15 @@ func TestAPIModifyLabels(t *testing.T) {
 			apiLabel = DecodeJSON(t, resp, &api.Label{})
 			assert.Equal(t, newColor, apiLabel.Color)
 			assert.True(t, apiLabel.IsArchived)
+			assert.Equal(t, 2, apiLabel.ExclusiveOrder)
 			req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
-				IsArchived: new(false),
+				IsArchived:     new(false),
+				ExclusiveOrder: new(3),
 			}).AddTokenAuth(token)
 			resp = MakeRequest(t, req, http.StatusOK)
-			assert.False(t, DecodeJSON(t, resp, &api.Label{}).IsArchived)
+			apiLabel = DecodeJSON(t, resp, &api.Label{})
+			assert.False(t, apiLabel.IsArchived)
+			assert.Equal(t, 3, apiLabel.ExclusiveOrder)
 			req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
 				Color: &newColorWrong,
 			}).AddTokenAuth(token)

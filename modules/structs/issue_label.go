@@ -13,6 +13,9 @@ type Label struct {
 	Name string `json:"name"`
 	// example: false
 	Exclusive bool `json:"exclusive"`
+	// ExclusiveOrder sorts exclusive labels within their scope, 0 means unordered
+	// example: 0
+	ExclusiveOrder int `json:"exclusive_order"`
 	// example: false
 	IsArchived bool `json:"is_archived"`
 	// example: 00aabb
@@ -30,6 +33,9 @@ type CreateLabelOption struct {
 	Name string `json:"name" binding:"Required"`
 	// example: false
 	Exclusive bool `json:"exclusive"`
+	// ExclusiveOrder sorts exclusive labels within their scope, 0 means unordered
+	// example: 0
+	ExclusiveOrder int `json:"exclusive_order"`
 	// required:true
 	// example: #00aabb
 	Color string `json:"color" binding:"Required"`
@@ -45,6 +51,9 @@ type EditLabelOption struct {
 	Name *string `json:"name"`
 	// example: false
 	Exclusive *bool `json:"exclusive"`
+	// ExclusiveOrder sorts exclusive labels within their scope, 0 means unordered
+	// example: 0
+	ExclusiveOrder *int `json:"exclusive_order"`
 	// example: #00aabb
 	Color *string `json:"color"`
 	// Description provides additional context about the label's purpose
