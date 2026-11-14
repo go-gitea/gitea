@@ -170,8 +170,6 @@
   "search.fuzzy_tooltip": "검색어와 유사한 결과도 포함합니다",
   "search.words": "단어",
   "search.words_tooltip": "검색어와 일치하는 결과만 포함합니다",
-  "search.regexp": "정규 표현식",
-  "search.regexp_tooltip": "정규 표현식 검색어와 일치하는 결과만 포함합니다",
   "search.exact": "정확히 일치",
   "search.exact_tooltip": "검색어와 정확하게 일치하는 결과만 포함합니다",
   "search.repo_kind": "리포지토리 검색…",
