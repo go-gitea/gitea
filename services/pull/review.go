@@ -380,7 +380,13 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 		return err
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	type dismissNotification struct {
+		review  *issues_model.Review
+		comment *issues_model.Comment
+	}
+	notifications := make([]dismissNotification, 0, len(reviews))
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		for _, review := range reviews {
 			if err := issues_model.DismissReview(ctx, review, true); err != nil {
 				return err
@@ -401,11 +407,17 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 			comment.Review = review
 			comment.Poster = doer
 			comment.Issue = review.Issue
-
-			notify_service.PullReviewDismiss(ctx, doer, review, comment)
+			notifications = append(notifications, dismissNotification{review: review, comment: comment})
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	for _, notification := range notifications {
+		notify_service.PullReviewDismiss(ctx, doer, notification.review, notification.comment)
+	}
+	return nil
 }
 
 // DismissReview dismissing stale review by repo admin
