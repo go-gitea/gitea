@@ -455,6 +455,16 @@
         },
         "description": "EmailList"
       },
+      "FileBlame": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/FileBlame"
+            }
+          }
+        },
+        "description": ""
+      },
       "FileDeleteResponse": {
         "content": {
           "application/json": {
@@ -2728,6 +2738,62 @@
           "slug": {
             "type": "string",
             "x-go-name": "Slug"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "BlameCommit": {
+        "description": "BlameCommit is the commit that last changed a range of lines",
+        "properties": {
+          "author": {
+            "$ref": "#/components/schemas/CommitUser"
+          },
+          "committer": {
+            "$ref": "#/components/schemas/CommitUser"
+          },
+          "sha": {
+            "type": "string",
+            "x-go-name": "SHA"
+          },
+          "summary": {
+            "description": "Summary is the first line of the commit message",
+            "type": "string",
+            "x-go-name": "Summary"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "BlameRange": {
+        "description": "BlameRange is a run of consecutive lines last changed by the same commit",
+        "properties": {
+          "commit": {
+            "$ref": "#/components/schemas/BlameCommit"
+          },
+          "end_line": {
+            "description": "EndLine is the 1-based number of the range's last line",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "EndLine"
+          },
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "Lines"
+          },
+          "start_line": {
+            "description": "StartLine is the 1-based number of the range's first line",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "StartLine"
           }
         },
         "type": "object",
@@ -6585,6 +6651,36 @@
             "format": "uri",
             "type": "string",
             "x-go-name": "ExternalWikiURL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "FileBlame": {
+        "description": "FileBlame is the blame of a file at a commit",
+        "properties": {
+          "commit_id": {
+            "description": "CommitID is the commit the file was blamed at",
+            "type": "string",
+            "x-go-name": "CommitID"
+          },
+          "path": {
+            "description": "Path is the path of the file",
+            "type": "string",
+            "x-go-name": "Path"
+          },
+          "ranges": {
+            "description": "Ranges are the file's lines in order, grouped by the commit that last changed them",
+            "items": {
+              "$ref": "#/components/schemas/BlameRange"
+            },
+            "type": "array",
+            "x-go-name": "Ranges"
+          },
+          "uses_ignore_revs": {
+            "description": "UsesIgnoreRevs is true if commits listed in .git-blame-ignore-revs were skipped",
+            "type": "boolean",
+            "x-go-name": "UsesIgnoreRevs"
           }
         },
         "type": "object",
@@ -19754,6 +19850,69 @@
           }
         },
         "summary": "Update avatar",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/blame/{filepath}": {
+      "get": {
+        "description": "Commits listed in the file's `.git-blame-ignore-revs` are skipped, as in the web UI, unless `bypass_ignore_revs` is set.",
+        "operationId": "repoGetBlame",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "path of the file",
+            "in": "path",
+            "name": "filepath",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "the name of the commit/branch/tag, default to the repository’s default branch.",
+            "in": "query",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "don't skip the commits listed in `.git-blame-ignore-revs`",
+            "in": "query",
+            "name": "bypass_ignore_revs",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/FileBlame"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Get the blame of a file, the commit that last changed each of its lines",
         "tags": [
           "repository"
         ]
