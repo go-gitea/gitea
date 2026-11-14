@@ -21,7 +21,7 @@ func IssueSuggestions(ctx *context.Context) {
 		return
 	}
 
-	suggestions, err := issue_service.GetSuggestion(ctx, ctx.Repo.Repository, isPull, keyword)
+	suggestions, err := issue_service.GetSuggestion(ctx, ctx.Repo.Repository, ctx.Doer, ctx.Repo.Permission, isPull, keyword)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return

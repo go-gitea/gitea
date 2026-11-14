@@ -6,8 +6,10 @@ package issue
 import (
 	"testing"
 
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
@@ -17,6 +19,9 @@ func Test_Suggestion(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo1.OwnerID})
+	perm, err := access_model.GetDoerRepoPermission(t.Context(), repo1, owner)
+	assert.NoError(t, err)
 
 	testCases := []struct {
 		keyword         string
@@ -43,7 +48,7 @@ func Test_Suggestion(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.keyword, func(t *testing.T) {
-			issues, err := GetSuggestion(t.Context(), repo1, testCase.isPull, testCase.keyword)
+			issues, err := GetSuggestion(t.Context(), repo1, owner, perm, testCase.isPull, testCase.keyword)
 			assert.NoError(t, err)
 
 			issueIndexes := make([]int64, 0, len(issues))

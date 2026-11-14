@@ -545,17 +545,18 @@ func isPullToCond(isPull optional.Option[bool]) builder.Cond {
 	return builder.NewCond()
 }
 
-func FindLatestUpdatedIssues(ctx context.Context, repoID int64, isPull optional.Option[bool], pageSize int) (IssueList, error) {
+func FindLatestUpdatedIssues(ctx context.Context, repoID int64, isPull optional.Option[bool], scope *VisibilityScope, pageSize int) (IssueList, error) {
 	issues := make([]*Issue, 0, pageSize)
 	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
 		And(isPullToCond(isPull)).
+		And(scope.Cond()).
 		OrderBy("updated_unix DESC").
 		Limit(pageSize).
 		Find(&issues)
 	return issues, err
 }
 
-func FindIssuesSuggestionByKeyword(ctx context.Context, repoID int64, keyword string, isPull optional.Option[bool], excludedID int64, pageSize int) (IssueList, error) {
+func FindIssuesSuggestionByKeyword(ctx context.Context, repoID int64, keyword string, isPull optional.Option[bool], scope *VisibilityScope, excludedID int64, pageSize int) (IssueList, error) {
 	cond := builder.NewCond()
 	if excludedID > 0 {
 		cond = cond.And(builder.Neq{"`id`": excludedID})
@@ -570,6 +571,7 @@ func FindIssuesSuggestionByKeyword(ctx context.Context, repoID int64, keyword st
 	issues := make([]*Issue, 0, pageSize)
 	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
 		And(isPullToCond(isPull)).
+		And(scope.Cond()).
 		And(cond).
 		OrderBy("updated_unix DESC, `index` DESC").
 		Limit(pageSize).

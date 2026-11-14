@@ -753,6 +753,32 @@ func TestConfidentialIssueLists(t *testing.T) {
 	})
 }
 
+func TestConfidentialIssueSuggestions(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// the newest issue of the repository, so it is also among the suggestions shown before anything is typed
+	issue := newConfidentialListIssue(t, zebraKeyword, true)
+	suggested := func(viewer confidentialViewer, keyword string) bool {
+		suggestions := DecodeJSON(t, viewer.request(t, "/user2/repo1/issues/suggestions?q="+keyword), []api.Issue{})
+		return slices.ContainsFunc(suggestions, func(s api.Issue) bool { return s.ID == issue.ID })
+	}
+	check := func(t *testing.T, canSee map[confidentialViewer]bool) {
+		for viewer, sees := range canSee {
+			for _, keyword := range []string{"", zebraKeyword, strconv.FormatInt(issue.Index, 10)} {
+				assert.Equal(t, sees, suggested(viewer, keyword), "%q q=%q", viewer, keyword)
+			}
+		}
+	}
+
+	t.Run("confidential", func(t *testing.T) {
+		check(t, map[confidentialViewer]bool{"user2": true, "user10": true, "user8": true, "user4": false, "": false})
+	})
+	t.Run("published", func(t *testing.T) {
+		setConfidentialColumn(t, issue, false)
+		check(t, map[confidentialViewer]bool{"user4": true, "": true})
+	})
+}
+
 func TestConfidentialIssueSearchStaleIndex(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
