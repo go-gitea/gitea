@@ -61,6 +61,14 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 	if err != nil {
 		return nil, err
 	}
+	// the same actions the feeds leave out: those about confidential issues hidden from doer
+	if !user_model.DoerIsSiteAdminFullAccess(doer) {
+		hiddenCond, err := hiddenConfidentialActionsCond(ctx, doer, cond, 0)
+		if err != nil {
+			return nil, err
+		}
+		cond = cond.And(hiddenCond)
+	}
 
 	// HINT: USER-ACTIVITY-PUSH-COMMITS: it only uses the doer's action time, it doesn't use git commit's time
 	return hdata, db.GetEngine(ctx).

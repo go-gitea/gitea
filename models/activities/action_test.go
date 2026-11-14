@@ -215,3 +215,34 @@ func TestGetFeedsConfidential(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, feedContents(repoFeed(hiddenViewer)), "9001|t")
 }
+
+// The contribution heatmap counts the same actions the feeds show: an action about a confidential issue is counted
+// only for viewers who can see that issue.
+func TestGetUserHeatmapDataConfidential(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	hiddenViewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
+
+	contributions := func(doer *user_model.User) int64 {
+		data, err := activities_model.GetUserHeatmapDataByUser(ctx, owner, doer)
+		require.NoError(t, err)
+		var total int64
+		for _, d := range data {
+			total += d.Contributions
+		}
+		return total
+	}
+	ownerBefore, viewerBefore, anonymousBefore := contributions(owner), contributions(hiddenViewer), contributions(nil)
+
+	issue := &issue_model.Issue{RepoID: repo.ID, Repo: repo, Index: 9011, PosterID: owner.ID, Title: "t", IsConfidential: true}
+	require.NoError(t, db.Insert(ctx, issue))
+	require.NoError(t, db.Insert(ctx, &activities_model.Action{
+		UserID: owner.ID, ActUserID: owner.ID, RepoID: repo.ID, OpType: activities_model.ActionCreateIssue, Content: "9011|t",
+	}))
+
+	assert.Equal(t, ownerBefore+1, contributions(owner))
+	assert.Equal(t, viewerBefore, contributions(hiddenViewer))
+	assert.Equal(t, anonymousBefore, contributions(nil))
+}
