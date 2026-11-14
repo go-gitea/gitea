@@ -67,13 +67,16 @@ func TestPulls(t *testing.T) {
 	setting.UI.IssuePagingNum = 20
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx, _ := contexttest.MockContext(t, "pulls")
-	contexttest.LoadUser(t, ctx, 2)
-	ctx.Req.Form.Set("state", "open")
-	Pulls(ctx)
-	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
-
-	assert.Len(t, ctx.Data["Issues"], 5)
+	for filter, count := range map[string]int{"": 5, "poster": 0, "assignee": 0} {
+		ctx, _ := contexttest.MockContext(t, "pulls")
+		contexttest.LoadUser(t, ctx, 2)
+		if filter != "" {
+			ctx.Req.Form.Set(filter, "non-existent-user")
+		}
+		Pulls(ctx)
+		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+		assert.Len(t, ctx.Data["Issues"], count, filter)
+	}
 }
 
 func TestMilestones(t *testing.T) {

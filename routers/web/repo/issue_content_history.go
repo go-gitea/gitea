@@ -186,7 +186,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 	if ctx.Doer == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -202,11 +202,11 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 	if history.IssueID != issue.ID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
+		ctx.NotFound()
 		return
 	}
 	if history.CommentID != commentID {
-		ctx.NotFound(issues_model.ErrCommentNotExist{})
+		ctx.NotFound()
 		return
 	}
 	if commentID != 0 {
@@ -215,7 +215,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 			return
 		}
 		if comment.IssueID != issue.ID {
-			ctx.NotFound(issues_model.ErrCommentNotExist{})
+			ctx.NotFound()
 			return
 		}
 	}

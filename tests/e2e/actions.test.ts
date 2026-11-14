@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {apiCreateFiles, apiCreateRepo, apiHeaders, randomString} from './utils.ts';
+import {apiCreateFiles, apiCreateRepo, apiHeaders, login, randomString} from './utils.ts';
 
 test('job queue refreshes with filter open', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
@@ -28,7 +28,45 @@ test('job queue refreshes with filter open', async ({page, request}) => {
   await expect(waitingFilter).toBeVisible();
 });
 
-test('job log line permalink expands its step', async ({page}) => {
+test('workflow graph opens a job and steps expand by click or log permalink', async ({page}) => {
+  await page.goto('/devtest/repo-action-view/runs/10');
+  await page.locator('.workflow-graph .job-name').getByText('job-100', {exact: true}).click();
+  await page.waitForURL('**/devtest/repo-action-view/runs/10/jobs/10000');
+  await page.getByText('step 1 (mock fast)', {exact: true}).click();
+  await expect(page.getByText('message for: step=1, cursor=23', {exact: true})).toBeVisible();
+
   await page.goto('/devtest/repo-action-view/runs/10/jobs/1#jobstep-1-23');
   await expect(page.getByRole('link', {name: '23', exact: true})).toBeInViewport();
+});
+
+test('run workflow dispatches a queued run with an input', async ({page, request}) => {
+  const owner = env.GITEA_TEST_E2E_USER;
+  const repo = `e2e-dispatch-${randomString(8)}`;
+  await Promise.all([
+    (async () => {
+      await apiCreateRepo(request, {name: repo, autoInit: false});
+      await apiCreateFiles(request, owner, repo, [{
+        path: '.gitea/workflows/dispatch.yml',
+        content: `run-name: Dispatch \${{ inputs.message }}
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Run message
+jobs:
+  queued:
+    runs-on: no-runner
+    steps:
+      - run: exit 0
+`,
+      }]);
+    })(),
+    login(page),
+  ]);
+  await page.goto(`/${owner}/${repo}/actions?workflow=dispatch.yml`);
+  await page.getByRole('button', {name: 'Run Workflow', exact: true}).click();
+  const dispatchDialog = page.getByRole('dialog');
+  await dispatchDialog.getByLabel('Run message').fill('from UI');
+  await dispatchDialog.getByRole('button', {name: 'Run Workflow', exact: true}).click();
+  await expect(page.getByRole('link', {name: 'Dispatch from UI', exact: true})).toBeVisible();
 });

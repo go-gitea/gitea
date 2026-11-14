@@ -631,7 +631,6 @@ select.ui.dropdown {
   border-top: none;
 }
 
-.ui.dropdown > .animating.menu .scrolling.menu,
 .ui.dropdown > .visible.menu .scrolling.menu {
   display: block;
 }

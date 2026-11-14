@@ -49,7 +49,7 @@ $.fn.dropdown = function(parameters) {
       var
         settings          = ( $.isPlainObject(parameters) )
           ? $.extend(true, {}, $.fn.dropdown.settings, parameters)
-          : $.extend({}, $.fn.dropdown.settings),
+          : $.extend({}, $.fn.dropdown.settings, {templates: {...$.fn.dropdown.settings.templates}}), // GITEA-PATCH: copy "templates" so per-dropdown changes never reach the defaults
 
         className       = settings.className,
         message         = settings.message,

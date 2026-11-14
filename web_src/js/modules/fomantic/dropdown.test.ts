@@ -1,8 +1,12 @@
 import '../../../fomantic/build/fomantic.js';
+import {initGiteaFomantic} from '../fomantic.ts';
 import {createElementFromHTML} from '../../utils/dom.ts';
 import {hideScopedEmptyDividers} from './dropdown.ts';
 
-test('dropdown-item-literal-text', () => {
+initGiteaFomantic();
+
+test('dropdown-item-literal-text-and-default-templates-untouched', () => {
+  const defaultTemplates = {...$.fn.dropdown.settings.templates};
   // a "choice" workflow_dispatch input can offer the string "false" as an option.
   // jQuery `.data()` would coerce `data-text="false"` to the boolean `false`, which then renders as empty text.
   const $dropdown = $(`<select class="ui dropdown">
@@ -16,6 +20,9 @@ test('dropdown-item-literal-text', () => {
     expect($dropdown.dropdown('get text')).toEqual(value);
     expect($dropdown.dropdown('get value')).toEqual(value);
   }
+  $dropdown.dropdown('change values', [{name: 'dynamic', value: 'dynamic'}]);
+  expect($dropdown.closest('.ui.dropdown').find('[data-item-dynamic]').attr('role')).toEqual('menuitem');
+  expect($.fn.dropdown.settings.templates).toEqual(defaultTemplates);
 });
 
 test('hideScopedEmptyDividers-simple', () => {

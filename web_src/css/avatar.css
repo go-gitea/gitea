@@ -1,6 +1,4 @@
-img.ui.avatar,
-.ui.avatar img,
-.ui.avatar svg {
+img.ui.avatar {
   border-radius: var(--border-radius);
   object-fit: contain;
   aspect-ratio: 1;
