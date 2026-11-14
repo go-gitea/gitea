@@ -231,10 +231,12 @@ func moveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 	return moves, nil
 }
 
-func LoadIssuesAssigneesForProject(ctx context.Context, projectID int64) (users []*user_model.User, _ error) {
+// LoadIssuesAssigneesForProject returns the assignees of the project's issues that scope can see.
+func LoadIssuesAssigneesForProject(ctx context.Context, projectID int64, scope *issues_model.VisibilityScope) (users []*user_model.User, _ error) {
 	sub := builder.Select("distinct issue_assignees.assignee_id").
 		From("project_issue").Join("INNER", "issue_assignees", "project_issue.issue_id=issue_assignees.issue_id").
-		Where(builder.Eq{"project_issue.project_id": projectID})
+		Join("INNER", "issue", "issue.id=project_issue.issue_id").
+		Where(builder.Eq{"project_issue.project_id": projectID}.And(scope.Cond()))
 	err := db.GetEngine(ctx).Table("`user`").Where(builder.In("id", sub)).Find(&users)
 	if err != nil {
 		return nil, err

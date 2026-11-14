@@ -24,6 +24,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
+	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -37,6 +38,7 @@ import (
 	"gitea.dev/services/mailer/incoming"
 	incoming_payload "gitea.dev/services/mailer/incoming/payload"
 	sender_service "gitea.dev/services/mailer/sender"
+	project_service "gitea.dev/services/projects"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -1414,4 +1416,33 @@ func TestConfidentialIssueCountersInAPI(t *testing.T) {
 		assert.Equal(t, repoCount(""), item.Repository.OpenIssues, "a code search hit counts the repository's issues like GET /repos")
 	}
 	assert.Equal(t, repoCount(writer)-1, repoCount(""))
+}
+
+// Pickers that list people through issues -- the poster filter of the issue list, the assignee filter of a project
+// board -- only list them through issues the viewer can see.
+func TestConfidentialIssuePeoplePickers(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user10 posted it and user8 is assigned; neither has another issue in repo1 or project 1
+	confidential := newConfidentialListIssue(t, "lemurconf", true)
+	require.NoError(t, db.Insert(t.Context(), &project_model.ProjectIssue{ProjectID: 1, IssueID: confidential.ID}))
+
+	posters := func(viewer confidentialViewer) string {
+		return viewer.request(t, "/user2/repo1/issues/posters?q=user10").Body.String()
+	}
+	assert.Contains(t, posters("user2"), `"user10"`)
+	assert.NotContains(t, posters("user4"), `"user10"`)
+	assert.NotContains(t, posters(""), `"user10"`)
+
+	assigneeNames := func(scope *issues_model.VisibilityScope) []string {
+		users, err := project_service.LoadIssuesAssigneesForProject(t.Context(), 1, scope)
+		require.NoError(t, err)
+		names := make([]string, 0, len(users))
+		for _, u := range users {
+			names = append(names, u.Name)
+		}
+		return names
+	}
+	assert.Contains(t, assigneeNames(&issues_model.VisibilityScope{Unrestricted: true}), "user8")
+	assert.NotContains(t, assigneeNames(nil), "user8")
 }

@@ -74,12 +74,12 @@ func testRepoAssigneesNoTeamUnit(t *testing.T) {
 func testUserRepoGetIssuePostersWithSearch(t *testing.T) {
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 
-	users, err := repo_model.GetIssuePostersWithSearch(t.Context(), repo2, false, "USER")
+	users, err := repo_model.GetIssuePostersWithSearch(t.Context(), repo2, false, "USER", nil)
 	require.NoError(t, err)
 	require.Len(t, users, 1)
 	assert.Equal(t, "user2", users[0].Name)
 
-	users, err = repo_model.GetIssuePostersWithSearch(t.Context(), repo2, false, "TW%O")
+	users, err = repo_model.GetIssuePostersWithSearch(t.Context(), repo2, false, "TW%O", nil)
 	require.NoError(t, err)
 	require.Len(t, users, 1)
 	assert.Equal(t, "user2", users[0].Name)
