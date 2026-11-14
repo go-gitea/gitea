@@ -6,15 +6,21 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"testing"
 
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/indexer/code/gitgrep"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	commitstatus_service "gitea.dev/services/repository/commitstatus"
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -121,4 +127,35 @@ func testSearch(t *testing.T, url string, expected []string) *HTMLDoc {
 	filenames := resultFilenames(doc)
 	assert.Equal(t, expected, filenames, "url=%s", url)
 	return doc
+}
+
+func TestWebSearchRepoCommitStatus(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
+	require.NoError(t, err)
+	require.NoError(t, commitstatus_service.CreateCommitStatus(t.Context(), repo, owner, branch.CommitID, &git_model.CommitStatus{
+		State:     commitstatus.CommitStatusSuccess,
+		TargetURL: "https://example.com/ci",
+		Context:   "ci",
+	}))
+
+	req := NewRequestf(t, "GET", "/repo/search?uid=%d&q=%s", owner.ID, repo.Name)
+	resp := loginUser(t, "user4").MakeRequest(t, req, http.StatusOK)
+
+	type webSearchRepo struct {
+		Repository struct {
+			ID int64 `json:"id"`
+		} `json:"repository"`
+		LatestCommitStatus map[string]any `json:"latest_commit_status"`
+	}
+	var results struct {
+		Data []webSearchRepo `json:"data"`
+	}
+	DecodeJSON(t, resp, &results)
+	idx := slices.IndexFunc(results.Data, func(r webSearchRepo) bool { return r.Repository.ID == repo.ID })
+	require.GreaterOrEqual(t, idx, 0)
+	assert.Equal(t, map[string]any{"state": "success", "target_url": "https://example.com/ci"}, results.Data[idx].LatestCommitStatus)
 }
