@@ -170,8 +170,6 @@
   "search.fuzzy_tooltip": "検索語に近い結果も含めます",
   "search.words": "単語",
   "search.words_tooltip": "検索語と一致する結果だけを含めます",
-  "search.regexp": "正規表現",
-  "search.regexp_tooltip": "正規表現検索パターンと一致する結果だけを含めます",
   "search.exact": "完全一致",
   "search.exact_tooltip": "検索語と完全に一致する結果だけを含めます",
   "search.repo_kind": "リポジトリを検索…",

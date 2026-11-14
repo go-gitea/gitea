@@ -170,8 +170,6 @@
   "search.fuzzy_tooltip": "Incluir também os resultados que estejam próximos do termo de pesquisa",
   "search.words": "Palavras",
   "search.words_tooltip": "Incluir apenas os resultados que correspondam às palavras do termo de pesquisa",
-  "search.regexp": "Expressão regular",
-  "search.regexp_tooltip": "Incluir apenas os resultados que correspondam ao termo de pesquisa com expressões regulares",
   "search.exact": "Fiel",
   "search.exact_tooltip": "Incluir somente os resultados que correspondam rigorosamente ao termo de pesquisa",
   "search.repo_kind": "Pesquisar repositórios…",
