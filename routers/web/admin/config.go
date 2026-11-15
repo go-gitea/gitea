@@ -10,6 +10,7 @@ import (
 	system_model "gitea.dev/models/system"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -113,6 +114,7 @@ func ConfigSettings(ctx *context.Context) {
 }
 
 func validateConfigKeyValue(dynKey, input string) error {
+	cacheConfig := setting.Config().Repository.DiffHighlightCache
 	opt := config.GetConfigOption(dynKey)
 	if opt == nil {
 		return util.NewInvalidArgumentErrorf("unknown config key: %s", dynKey)
@@ -125,6 +127,12 @@ func validateConfigKeyValue(dynKey, input string) error {
 
 	if !json.Valid([]byte(input)) {
 		return util.NewInvalidArgumentErrorf("invalid json value for key: %s", dynKey)
+	}
+	if dynKey == cacheConfig.DynKey() {
+		value := cacheConfig.DefaultValue()
+		if err := json.Unmarshal([]byte(input), &value); err != nil || !value.Valid() {
+			return util.NewInvalidArgumentErrorf("diff highlight cache size must be a positive integer in MiB within the platform memory limit")
+		}
 	}
 	return nil
 }
@@ -157,5 +165,8 @@ loop:
 		return
 	}
 	config.GetDynGetter().InvalidateCache()
+	if _, changed := configSettings[setting.Config().Repository.DiffHighlightCache.DynKey()]; changed {
+		highlight.UpdateDiffHighlightCache(ctx)
+	}
 	ctx.JSONOK()
 }

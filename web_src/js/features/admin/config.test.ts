@@ -17,9 +17,10 @@ test('ConfigFormValueMapper', () => {
     <input name="k-flipped-false" type="checkbox" checked data-config-value-type="flipped">
 
     <!-- sub key -->
-    <input type="hidden" data-config-dyn-key="struct" data-config-value-json='{"SubBoolean": true, "SubTimestamp": 123456789, "OtherKey": "other-value"}'>
+    <input type="hidden" data-config-dyn-key="struct" data-config-value-json='{"SubBoolean": true, "SubTimestamp": 123456789, "SubNumber": 64, "OtherKey": "other-value"}'>
     <input name="struct.SubBoolean" type="checkbox" data-config-value-type="boolean">
     <input name="struct.SubTimestamp" type="datetime-local" data-config-value-type="timestamp">
+    <input name="struct.SubNumber" type="number" data-config-value-type="number">
     <textarea name="struct.NewKey">new-value</textarea>
 </form>
 `;
@@ -27,6 +28,9 @@ test('ConfigFormValueMapper', () => {
   const form = document.querySelector('form')!;
   const mapper = new ConfigFormValueMapper(form);
   mapper.fillFromSystemConfig();
+  const sizeInput = form.querySelector<HTMLInputElement>('input[type="number"]')!;
+  expect(sizeInput.value).toBe('64');
+  sizeInput.value = '128';
   const formData = mapper.collectToFormData();
   const result: Record<string, string> = {};
   const keys: string[] = [], values: string[] = [];
@@ -43,6 +47,6 @@ test('ConfigFormValueMapper', () => {
     'k-flipped-false': 'false',
     'k-flipped-true': 'true',
     'repository.open-with.editor-apps': '[{"DisplayName":"a","OpenURL":"b"}]', // TODO: OPEN-WITH-EDITOR-APP-JSON: it must match backend
-    'struct': '{"SubBoolean":true,"SubTimestamp":123456780,"OtherKey":"other-value","NewKey":"new-value"}',
+    'struct': '{"SubBoolean":true,"SubTimestamp":123456780,"SubNumber":128,"OtherKey":"other-value","NewKey":"new-value"}',
   });
 });

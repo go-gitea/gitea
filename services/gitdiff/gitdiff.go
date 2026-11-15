@@ -1416,10 +1416,10 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		shouldFullFileHighlight = shouldFullFileHighlight && time.Since(startTime) < MaxFullFileHighlightTimeLimit
 		if shouldFullFileHighlight {
 			if renderDetail.leftContent != nil {
-				diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, renderDetail.leftContent.buf.Bytes())
+				diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(ctx, diffFile, true /* left */, renderDetail.leftContent.buf.Bytes())
 			}
 			if renderDetail.rightContent != nil {
-				diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(diffFile, false /* right */, renderDetail.rightContent.buf.Bytes())
+				diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(ctx, diffFile, false /* right */, renderDetail.rightContent.buf.Bytes())
 			}
 		}
 	}
@@ -1427,16 +1427,16 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 	return diff, nil
 }
 
-func FillDiffFileHighlightLinesByContent(diffFile *DiffFile, left, right []byte) {
-	diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, left)
-	diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(diffFile, false /* right */, right)
+func FillDiffFileHighlightLinesByContent(ctx context.Context, diffFile *DiffFile, left, right []byte) {
+	diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(ctx, diffFile, true /* left */, left)
+	diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(ctx, diffFile, false /* right */, right)
 }
 
-func highlightCodeLinesForDiffFile(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
-	return highlightCodeLines(diffFile.Name, diffFile.language.value, diffFile.Sections, isLeft, rawContent)
+func highlightCodeLinesForDiffFile(ctx context.Context, diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
+	return highlightCodeLines(ctx, diffFile.Name, diffFile.language.value, diffFile.Sections, isLeft, rawContent)
 }
 
-func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool, rawContent []byte) map[int]template.HTML {
+func highlightCodeLines(ctx context.Context, name, lang string, sections []*DiffSection, isLeft bool, rawContent []byte) map[int]template.HTML {
 	if setting.Git.DisableDiffHighlight || len(rawContent) >= MaxFullFileHighlightSizeLimit {
 		return nil
 	}
@@ -1459,7 +1459,7 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 		}
 	}
 	lexer := highlight.DetectChromaLexerByFileName(name, lang)
-	return highlight.RenderCodeLinesByLexer(lexer, content, lineNumbers)
+	return highlight.RenderCodeLinesByLexerCached(ctx, lexer, content, lineNumbers)
 }
 
 type DiffShortStat struct {

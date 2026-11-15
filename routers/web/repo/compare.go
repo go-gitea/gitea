@@ -755,7 +755,7 @@ func ExcerptBlob(ctx *context.Context) {
 	}
 	defer reader.Close()
 
-	section, err := gitdiff.BuildBlobExcerptDiffSection(filePath, reader, opts)
+	section, err := gitdiff.BuildBlobExcerptDiffSection(ctx, filePath, reader, opts)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return

@@ -103,6 +103,9 @@ export class ConfigFormValueMapper {
     } else if (el.matches('[type="datetime-local"]')) {
       if (valType !== 'timestamp') requireExplicitValueType(el);
       if (val) el.value = toDatetimeLocalValue(val);
+    } else if (el.matches('input[type="number"]')) {
+      if (valType !== 'number') requireExplicitValueType(el);
+      el.value = String(val ?? el.value);
     } else if (el.matches('textarea') || (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text')) {
       el.value = String(val ?? el.value);
     } else {
@@ -122,6 +125,9 @@ export class ConfigFormValueMapper {
     } else if (el.matches('[type="datetime-local"]')) {
       if (valType !== 'timestamp') requireExplicitValueType(el);
       val = Math.floor(new Date(el.value).getTime() / 1000) ?? 0; // NaN is fine to JSON.stringify, it becomes null.
+    } else if (el.matches('input[type="number"]')) {
+      if (valType !== 'number') requireExplicitValueType(el);
+      val = el.valueAsNumber;
     } else if (el.matches('textarea') || (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text')) {
       val = el.value;
     } else {
