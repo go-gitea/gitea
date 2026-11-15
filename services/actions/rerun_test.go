@@ -106,6 +106,42 @@ func TestCloneRunJobForAttempt(t *testing.T) {
 	})
 }
 
+func TestResetJobForRerun(t *testing.T) {
+	newRanJob := func() *actions_model.ActionRunJob {
+		return &actions_model.ActionRunJob{
+			Status: actions_model.StatusSuccess, TaskID: 5, SourceTaskID: 4, Started: 10, Stopped: 20,
+			ConcurrencyGroup: "g", ConcurrencyCancel: true, IsConcurrencyEvaluated: true,
+			IsReusableCaller: true, IsExpanded: true, CallPayload: "{}",
+		}
+	}
+
+	job := newRanJob()
+	resetJobForRerun(job, false)
+	assert.Equal(t, &actions_model.ActionRunJob{Status: actions_model.StatusWaiting, IsReusableCaller: true}, job)
+
+	job = newRanJob()
+	job.Needs = []string{"build"}
+	resetJobForRerun(job, false)
+	assert.Equal(t, actions_model.StatusPending, job.Status)
+
+	job = newRanJob()
+	job.Needs = []string{"build"}
+	resetJobForRerun(job, true)
+	assert.Equal(t, actions_model.StatusBlocked, job.Status)
+}
+
+func TestMarkJobPassThrough(t *testing.T) {
+	template := &actions_model.ActionRunJob{TaskID: 7, Started: 10, Stopped: 20}
+
+	job := &actions_model.ActionRunJob{TaskID: 7}
+	markJobPassThrough(job, template, false)
+	assert.Equal(t, &actions_model.ActionRunJob{SourceTaskID: 7, Started: 10, Stopped: 20}, job)
+
+	job = &actions_model.ActionRunJob{TaskID: 7}
+	markJobPassThrough(job, template, true)
+	assert.Equal(t, &actions_model.ActionRunJob{SourceTaskID: 7}, job)
+}
+
 func TestRerunValidation(t *testing.T) {
 	runningRun := &actions_model.ActionRun{Status: actions_model.StatusRunning}
 

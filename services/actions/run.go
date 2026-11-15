@@ -13,7 +13,6 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
@@ -256,39 +255,40 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		return nil, nil, false, fmt.Errorf("evaluate job if: %w", err)
 	}
 	invalidKey := "if"
-	if runsOnProblem != "" && runJob.Status.IsWaiting() && slots.available(runJob) {
-		invalidKey, invalidErr = "runs-on", errors.New(runsOnProblem)
-		runJob.Status, runJob.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
-	}
 
-	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
-	// check job concurrency
 	if job.RawConcurrency != nil {
 		rawConcurrency, err := yaml.Marshal(job.RawConcurrency)
 		if err != nil {
 			return nil, nil, false, fmt.Errorf("marshal raw concurrency: %w", err)
 		}
 		runJob.RawConcurrency = string(rawConcurrency)
-
-		// a job enters its group at its gate, ApproveRuns gates an approval-blocked one with this evaluation
-		if runJob.Status == actions_model.StatusWaiting && slots.available(runJob) || len(needs) == 0 && run.NeedApproval {
-			if err := EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs); err != nil {
-				return nil, nil, false, fmt.Errorf("evaluate job concurrency: %w", err)
-			}
+	}
+	evaluateConcurrency := func() error {
+		return EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs)
+	}
+	checkRunsOn := func() error {
+		if runsOnProblem != "" {
+			return errors.New(runsOnProblem)
 		}
-
-		// A slot-starved job skips the check: it will not start, so it must not cancel its group peers.
-		if runJob.Status == actions_model.StatusWaiting && slots.available(runJob) {
-			var jobsToCancel []*actions_model.ActionRunJob
-			runJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, runJob)
-			if err != nil {
-				return nil, nil, false, fmt.Errorf("prepare to start job with concurrency: %w", err)
-			}
-			cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
-		}
+		return nil
 	}
 
-	applyMaxParallel(runJob, slots)
+	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
+	if runJob.Status == actions_model.StatusWaiting {
+		invalidRunsOn, jobsToCancel, err := admitJob(ctx, runJob, slots, checkRunsOn, evaluateConcurrency)
+		if err != nil {
+			return nil, nil, false, err
+		}
+		if invalidRunsOn != nil {
+			invalidKey, invalidErr = "runs-on", invalidRunsOn
+		}
+		cancelledConcurrencyJobs = jobsToCancel
+	} else if runJob.RawConcurrency != "" && len(needs) == 0 && run.NeedApproval {
+		// a job enters its group at its gate, ApproveRuns gates an approval-blocked one with this evaluation
+		if err := evaluateConcurrency(); err != nil {
+			return nil, nil, false, fmt.Errorf("evaluate job concurrency: %w", err)
+		}
+	}
 
 	if err := db.Insert(ctx, runJob); err != nil {
 		return nil, nil, false, err

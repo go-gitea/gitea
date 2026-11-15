@@ -15,7 +15,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -96,12 +95,11 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					}
 					continue
 				}
-				// A slot-starved job cannot start, skip the following checks.
-				if !slots.available(job) {
-					continue
+				runsOnErr, jobsToCancel, err := admitJob(ctx, job, slots, func() error { return invalidRunsOn(job) }, nil)
+				if err != nil {
+					return err
 				}
-				if invalid := invalidRunsOn(job); invalid != nil {
-					job.Status, job.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
+				if runsOnErr != nil {
 					n, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
 					if err != nil {
 						return err
@@ -109,18 +107,12 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					if n > 0 {
 						updatedJobs = append(updatedJobs, job)
 					}
-					if err := upsertJobErrorSummary(ctx, job, "runs-on", invalid); err != nil {
+					if err := upsertJobErrorSummary(ctx, job, "runs-on", runsOnErr); err != nil {
 						return err
 					}
 					continue
 				}
-				var jobsToCancel []*actions_model.ActionRunJob
-				job.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, job)
-				if err != nil {
-					return err
-				}
 				cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
-				applyMaxParallel(job, slots)
 				if job.Status != actions_model.StatusWaiting {
 					continue
 				}
