@@ -194,7 +194,7 @@ func DeleteHook(ctx *context.APIContext) {
 
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.ServerErrorAuto(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	if err := webhook.DeleteDefaultSystemWebhook(ctx, hook.ID); err != nil {
