@@ -6,6 +6,7 @@ package user
 import (
 	"net/http"
 
+	"gitea.dev/models/db"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -15,16 +16,32 @@ import (
 	"gitea.dev/services/convert"
 )
 
+func repoListOrder(ctx *context.APIContext, defaultOrder db.SearchOrderBy) (db.SearchOrderBy, bool) {
+	orderBy, ok := utils.ResolveSortOrder(ctx, repo_model.OrderByMap, defaultOrder)
+	if !ok || orderBy == "" || orderBy == db.SearchOrderByID || orderBy == db.SearchOrderByIDReverse {
+		return orderBy, ok
+	}
+	tiebreaker := db.SearchOrderByID
+	if ctx.FormString("order") == "desc" {
+		tiebreaker = db.SearchOrderByIDReverse
+	}
+	return orderBy + ", " + tiebreaker, true
+}
+
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
+	orderBy, ok := repoListOrder(ctx, db.SearchOrderByID)
+	if !ok {
+		return
+	}
 
 	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 		OwnerID:     u.ID,
 		Actor:       ctx.Doer,
 		Private:     private,
 		ListOptions: opts,
-		OrderBy:     "id ASC",
+		OrderBy:     orderBy,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -66,6 +83,17 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   description: username of the user whose owned repos are to be listed
 	//   type: string
 	//   required: true
+	// - name: sort
+	//   in: query
+	//   description: sort repos by attribute. Supported values are
+	//                "alpha", "created", "updated", "size", "git_size", "lfs_size", "stars", "forks" and "id".
+	//                Default is "id".
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending).
+	//                Default is "asc", ignored if "sort" is not specified.
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -91,6 +119,17 @@ func ListMyRepos(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: sort
+	//   in: query
+	//   description: sort repos by attribute. Supported values are
+	//                "alpha", "created", "updated", "size", "git_size", "lfs_size", "stars", "forks" and "id".
+	//                Default is "alpha".
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending).
+	//                Default is "asc", ignored if "sort" is not specified.
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -103,7 +142,12 @@ func ListMyRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
+	orderBy, ok := repoListOrder(ctx, "")
+	if !ok {
+		return
+	}
 	opts := repo_model.SearchRepoOptions{
+		OrderBy:            orderBy,
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.Doer.ID,
@@ -149,6 +193,17 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: sort
+	//   in: query
+	//   description: sort repos by attribute. Supported values are
+	//                "alpha", "created", "updated", "size", "git_size", "lfs_size", "stars", "forks" and "id".
+	//                Default is "id".
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending).
+	//                Default is "asc", ignored if "sort" is not specified.
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
