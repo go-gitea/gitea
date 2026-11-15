@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,10 +14,12 @@ import (
 
 	"gitea.dev/models/unittest"
 	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
@@ -187,6 +190,95 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 			}
 
 			assert.True(t, hookTask.IsSucceed)
+		})
+	}
+}
+
+func TestWebhookDeliveryOutcomes(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	cancellable := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/success":
+			w.WriteHeader(http.StatusNoContent)
+		case "/client-error":
+			w.WriteHeader(http.StatusBadRequest)
+		case "/server-error":
+			w.WriteHeader(http.StatusServiceUnavailable)
+		case "/timeout":
+			<-r.Context().Done()
+		case "/cancel":
+			close(cancellable)
+			<-r.Context().Done()
+		}
+	}))
+	t.Cleanup(server.Close)
+	closed := httptest.NewServer(http.NotFoundHandler())
+	closed.Close()
+
+	for _, tc := range []struct {
+		name      string
+		url       string
+		status    int
+		errorType webhook_model.HookDeliveryError
+	}{
+		{"success", server.URL + "/success", http.StatusNoContent, ""},
+		{"client error", server.URL + "/client-error", http.StatusBadRequest, ""},
+		{"server error", server.URL + "/server-error", http.StatusServiceUnavailable, ""},
+		{"timeout", server.URL + "/timeout", 0, webhook_model.HookDeliveryErrorTimeout},
+		{"connection failure", closed.URL, 0, webhook_model.HookDeliveryErrorConnection},
+		{"canceled", server.URL + "/cancel", 0, webhook_model.HookDeliveryErrorOther},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.errorType == webhook_model.HookDeliveryErrorTimeout {
+				client := *webhookHTTPClient
+				client.Timeout = 50 * time.Millisecond
+				defer test.MockVariableValue(&webhookHTTPClient, &client)()
+			}
+
+			hook := &webhook_model.Webhook{
+				RepoID:      3,
+				URL:         tc.url,
+				ContentType: webhook_model.ContentTypeJSON,
+				Events:      `{}`,
+				IsActive:    true,
+			}
+			require.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
+			task, err := webhook_model.CreateHookTask(t.Context(), &webhook_model.HookTask{
+				HookID:         hook.ID,
+				EventType:      webhook_module.HookEventPush,
+				PayloadVersion: 1,
+			})
+			require.NoError(t, err)
+
+			ctx := t.Context()
+			if tc.name == "canceled" {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(ctx)
+				defer cancel()
+				go func() {
+					select {
+					case <-cancellable:
+						cancel()
+					case <-ctx.Done():
+					}
+				}()
+			}
+			err = Deliver(ctx, task)
+			if tc.errorType == "" {
+				require.NoError(t, err)
+			} else if tc.name == "canceled" {
+				require.ErrorIs(t, err, context.Canceled)
+			} else {
+				require.Error(t, err)
+			}
+			stored, err := webhook_model.GetHookTaskByID(t.Context(), task.ID)
+			require.NoError(t, err)
+			assert.True(t, stored.IsDelivered)
+			assert.Equal(t, tc.status == http.StatusNoContent, stored.IsSucceed)
+			require.NotNil(t, stored.ResponseInfo)
+			assert.Equal(t, tc.status, stored.ResponseInfo.Status)
+			assert.Equal(t, tc.errorType, stored.ResponseInfo.ErrorType)
 		})
 	}
 }

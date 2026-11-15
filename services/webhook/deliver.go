@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -21,6 +22,7 @@ import (
 	user_model "gitea.dev/models/user"
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/egress"
+	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -220,7 +222,8 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
 
-		if err := webhook_model.UpdateHookTask(ctx, t); err != nil {
+		writeCtx := context.WithoutCancel(ctx)
+		if err := webhook_model.UpdateHookTask(writeCtx, t); err != nil {
 			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
 		}
 
@@ -230,7 +233,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		} else {
 			w.LastStatus = webhook_module.HookStatusFail
 		}
-		if err = webhook_model.UpdateWebhookLastStatus(ctx, w); err != nil {
+		if err = webhook_model.UpdateWebhookLastStatus(writeCtx, w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)
 			return
 		}
@@ -248,6 +251,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	resp, err := webhookHTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
+		t.ResponseInfo.ErrorType = deliveryErrorType(err)
 		return fmt.Errorf("unable to deliver webhook task[%d] in %s due to error in http client: %w", t.ID, w.URL, err)
 	}
 	defer resp.Body.Close()
@@ -266,6 +270,19 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	}
 	t.ResponseInfo.Body = string(p)
 	return nil
+}
+
+func deliveryErrorType(err error) webhook_model.HookDeliveryError {
+	if errors.Is(err, policy.ErrDenied) {
+		return webhook_model.HookDeliveryErrorBlocked
+	}
+	if netErr, ok := errors.AsType[net.Error](err); ok && netErr.Timeout() {
+		return webhook_model.HookDeliveryErrorTimeout
+	}
+	if _, ok := errors.AsType[*net.OpError](err); ok {
+		return webhook_model.HookDeliveryErrorConnection
+	}
+	return webhook_model.HookDeliveryErrorOther
 }
 
 var webhookHTTPClient *http.Client

@@ -18,6 +18,7 @@ type FetchActionOpts = {
   headers?: HeadersInit;
   data?: RequestData;
   formSubmitter?: HTMLElement | null;
+  ignoreDetached?: boolean;
 
   // pseudo selectors/commands to update the current page with the response text when the response is text (html)
   // e.g.: "$this", "$innerHTML", "$closest(tr) td .the-class", "$body #the-id"
@@ -184,7 +185,7 @@ export async function performFetchActionRequest(el: HTMLElement, opt: FetchActio
 export async function performFetchAction(el: HTMLElement, opt: FetchActionOpts) {
   if (!await confirmFetchAction(opt.formSubmitter ?? el)) return;
   const resp = await performFetchActionRequest(el, opt);
-  if (resp) await handleFetchActionSuccess(el, opt, resp);
+  if (resp && (!opt.ignoreDetached || el.isConnected)) await handleFetchActionSuccess(el, opt, resp);
 }
 
 type SubmitFormFetchActionOpts = {
@@ -278,6 +279,7 @@ export async function performFetchActionTrigger(el: HTMLElement, triggerType: Fe
   await performFetchAction(el, {
     method: el.getAttribute('data-fetch-method') || 'GET', // by default, the method is GET for fetch trigger action
     url: el.getAttribute('data-fetch-url')!,
+    ignoreDetached: triggerType === 'every',
     loadingIndicator: el.getAttribute('data-fetch-indicator') ?? defaultLoadingIndicator,
     successSync: el.getAttribute('data-fetch-sync') ?? '$this', // by default, the response will replace the current element
   });
@@ -326,7 +328,12 @@ async function handleFetchActionSuccessSync(el: Element, successSync: string, re
   if (res.targets.length > 1) throw new Error(`Fetch-sync command "${successSync}" found multiple target elements, which is not supported`);
   const target = res.targets[0];
   if (res.cmdMorph) {
-    Idiomorph.morph(target, respText, {morphStyle: res.cmdInnerHTML ? 'innerHTML' : 'outerHTML'});
+    Idiomorph.morph(target, respText, {
+      morphStyle: res.cmdInnerHTML ? 'innerHTML' : 'outerHTML',
+      callbacks: {
+        beforeAttributeUpdated: (attr, el) => !el.getAttribute('data-fetch-morph-keep')?.split(' ').includes(attr),
+      },
+    });
   } else if (res.cmdInnerHTML) {
     target.innerHTML = respText;
   } else {
@@ -425,6 +432,8 @@ export function initGlobalFetchAction() {
   //   * "$morph": use morph algorithm to update the target element
   //   * "$body #the-id .the-class": query the selector one by one from body
   //   * "$closest(tr) td": pseudo command can help to find the target element in a more flexible way
+  //
+  // * data-fetch-morph-keep: space-separated client-managed attributes to keep when morphing this element
   //
   // * data-modal-confirm: a "confirm modal dialog" will be shown before taking action.
   //   * it can be a string for the content of the modal dialog

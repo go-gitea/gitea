@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
@@ -35,6 +36,7 @@ import (
 
 const (
 	tplHooks        templates.TplName = "repo/settings/webhook/base"
+	tplHookHistory  templates.TplName = "repo/settings/webhook/history"
 	tplHookNew      templates.TplName = "repo/settings/webhook/new"
 	tplOrgHookNew   templates.TplName = "org/settings/hook_new"
 	tplUserHookNew  templates.TplName = "user/settings/hook_new"
@@ -288,10 +290,11 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["Webhook"] = w
-
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		if loadWebhookHistory(ctx, orCtx, w) {
+			setWebhookEditData(ctx, w)
+			ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		}
 		return
 	}
 
@@ -636,7 +639,65 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		}
 		return nil, nil
 	}
+	return orCtx, w
+}
 
+func loadWebhookHistory(ctx *context.Context, orCtx *ownerRepoCtx, w *webhook.Webhook) bool {
+	tasks, err := w.History(ctx, 1)
+	if err != nil {
+		ctx.ServerError("History", err)
+		return false
+	}
+
+	type delivery struct {
+		*webhook.HookTask
+		Status webhook.HookDeliveryStatus
+	}
+	history := make([]delivery, 0, len(tasks))
+	pending := false
+	now := time.Now()
+	for _, task := range tasks {
+		status := task.DeliveryStatus(now)
+		pending = pending || status == webhook.HookDeliveryQueued || status == webhook.HookDeliveryInProgress
+		history = append(history, delivery{task, status})
+	}
+	ctx.Data["Webhook"] = w
+	ctx.Data["WebhookLink"] = fmt.Sprintf("%s/%d", orCtx.Link, w.ID)
+	ctx.Data["WebhookHistoryPending"] = pending
+	ctx.Data["History"] = history
+	return true
+}
+
+func renderWebhookHistory(ctx *context.Context, orCtx *ownerRepoCtx, w *webhook.Webhook) {
+	if loadWebhookHistory(ctx, orCtx, w) {
+		ctx.Resp.Header().Set("Cache-Control", "no-store")
+		ctx.HTML(http.StatusOK, tplHookHistory)
+	}
+}
+
+// WebhookHistory renders the recent deliveries fragment.
+func WebhookHistory(ctx *context.Context) {
+	orCtx, w := checkWebhook(ctx)
+	if !ctx.Written() {
+		renderWebhookHistory(ctx, orCtx, w)
+	}
+}
+
+// WebHooksEdit render editing web hook page
+func WebHooksEdit(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() || !loadWebhookHistory(ctx, orCtx, w) {
+		return
+	}
+	setWebhookEditData(ctx, w)
+	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+}
+
+func setWebhookEditData(ctx *context.Context, w *webhook.Webhook) {
 	ctx.Data["HookType"] = w.Type
 	switch w.Type {
 	case webhook_module.SLACK:
@@ -650,36 +711,12 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	case webhook_module.PACKAGIST:
 		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
 	}
-
-	ctx.Data["History"], err = w.History(ctx, 1)
-	if err != nil {
-		ctx.ServerError("History", err)
-	}
-	return orCtx, w
-}
-
-// WebHooksEdit render editing web hook page
-func WebHooksEdit(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
 
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
-	hookID := ctx.PathParamInt64("id")
-	w, err := webhook.GetWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hookID)
-	if err != nil {
-		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
-		ctx.Status(http.StatusInternalServerError)
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -723,12 +760,10 @@ func TestWebhook(ctx *context.Context) {
 		Sender:       apiUser,
 	}
 	if err := webhook_service.PrepareTestWebhook(ctx, w, webhook_module.HookEventPush, p); err != nil {
-		ctx.Flash.Error("PrepareTestWebhook: " + err.Error())
-		ctx.Status(http.StatusInternalServerError)
-	} else {
-		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))
-		ctx.Status(http.StatusOK)
+		ctx.ServerError("PrepareTestWebhook", err)
+		return
 	}
+	renderWebhookHistory(ctx, orCtx, w)
 }
 
 // ReplayWebhook replays a webhook

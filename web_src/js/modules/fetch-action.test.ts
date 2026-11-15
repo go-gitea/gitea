@@ -1,4 +1,4 @@
-import {execPseudoSelectorCommands, handleFetchActionErrorFields, handleFetchActionSuccessJson} from './fetch-action.ts';
+import {execPseudoSelectorCommands, handleFetchActionErrorFields, handleFetchActionSuccessJson, performFetchAction} from './fetch-action.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {captureNavigations, normalizeTestHtml} from '../utils/testhelper.ts';
 
@@ -46,6 +46,25 @@ test('handleFetchActionSuccessJson', () => {
   handleFetchActionSuccessJson(document.body, {redirect: ''});
   handleFetchActionSuccessJson(document.body, {});
   expect(navigations.map((n) => n.type)).toEqual(['push', 'reload', 'reload']);
+});
+
+test('morph keeps client-managed attributes while updating content', async () => {
+  document.body.innerHTML = `
+    <div id="history">
+      <div id="details" class="open" data-fetch-morph-keep="class">Pending</div>
+      <div data-fetch-trigger="every 5s"></div>
+    </div>`;
+  const response = `<div id="history"><div id="details" class="closed" data-fetch-morph-keep="class">Delivered</div></div>`;
+  const fetchMock = vi.spyOn(window, 'fetch').mockResolvedValueOnce(new Response(response));
+  try {
+    const poll = document.querySelector<HTMLElement>('[data-fetch-trigger]')!;
+    await performFetchAction(poll, {method: 'GET', url: '/history', successSync: '$closest(#history) $morph'});
+    expect(document.querySelector('#details')!.className).toBe('open');
+    expect(document.querySelector('#details')!.textContent).toBe('Delivered');
+    expect(poll.isConnected).toBe(false);
+  } finally {
+    fetchMock.mockRestore();
+  }
 });
 
 test('handleFetchActionErrorFields', () => {

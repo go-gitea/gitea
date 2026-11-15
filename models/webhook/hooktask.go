@@ -47,11 +47,21 @@ type HookRequest struct {
 	Body       string            `json:"body"`
 }
 
+type HookDeliveryError string
+
+const (
+	HookDeliveryErrorTimeout    HookDeliveryError = "timeout"
+	HookDeliveryErrorConnection HookDeliveryError = "connection"
+	HookDeliveryErrorBlocked    HookDeliveryError = "blocked"
+	HookDeliveryErrorOther      HookDeliveryError = "other"
+)
+
 // HookResponse represents hook task response information.
 type HookResponse struct {
-	Status  int               `json:"status"`
-	Headers map[string]string `json:"headers"`
-	Body    string            `json:"body"`
+	Status    int               `json:"status"`
+	Headers   map[string]string `json:"headers"`
+	Body      string            `json:"body"`
+	ErrorType HookDeliveryError `json:"error_type,omitempty"`
 }
 
 // HookTask represents a hook task.
@@ -75,6 +85,30 @@ type HookTask struct {
 	RequestInfo     *HookRequest  `xorm:"-"`
 	ResponseContent string        `xorm:"LONGTEXT"`
 	ResponseInfo    *HookResponse `xorm:"-"`
+}
+
+type HookDeliveryStatus string
+
+const (
+	HookDeliveryQueued     HookDeliveryStatus = "queued"
+	HookDeliveryInProgress HookDeliveryStatus = "in_progress"
+	HookDeliverySucceeded  HookDeliveryStatus = "succeeded"
+	HookDeliveryFailed     HookDeliveryStatus = "failed"
+)
+
+func (t *HookTask) DeliveryStatus(now time.Time) HookDeliveryStatus {
+	switch {
+	case t.IsSucceed:
+		return HookDeliverySucceeded
+	case !t.IsDelivered:
+		return HookDeliveryQueued
+	case t.ResponseContent == "" && t.Delivered != 0:
+		timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
+		if timeout <= 0 || now.Sub(t.Delivered.AsTime()) < timeout+10*time.Second {
+			return HookDeliveryInProgress
+		}
+	}
+	return HookDeliveryFailed
 }
 
 func init() {
@@ -207,9 +241,10 @@ func FindUndeliveredHookTaskIDs(ctx context.Context, lowerID int64) ([]int64, er
 }
 
 func MarkTaskDelivered(ctx context.Context, task *HookTask) (bool, error) {
-	count, err := db.GetEngine(ctx).ID(task.ID).Where("is_delivered = ?", false).Cols("is_delivered").Update(&HookTask{
+	count, err := db.GetEngine(ctx).ID(task.ID).Where("is_delivered = ?", false).Cols("is_delivered", "delivered").Update(&HookTask{
 		ID:          task.ID,
 		IsDelivered: true,
+		Delivered:   timeutil.TimeStampNanoNow(),
 	})
 
 	return count != 0, err
