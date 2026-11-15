@@ -22,7 +22,6 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
-	repo_service "gitea.dev/services/repository"
 )
 
 type blameRow struct {
@@ -80,7 +79,7 @@ func RefBlame(ctx *context.Context) {
 	}
 
 	bypassBlameIgnore, _ := strconv.ParseBool(ctx.FormString("bypass-blame-ignore"))
-	result, err := repo_service.GetBlame(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, bypassBlameIgnore)
+	result, err := git.GetBlame(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, bypassBlameIgnore)
 	if err != nil {
 		ctx.NotFound(err)
 		return

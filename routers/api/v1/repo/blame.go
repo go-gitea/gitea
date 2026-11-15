@@ -5,15 +5,13 @@ package repo
 
 import (
 	"net/http"
-	"net/url"
-	"path"
 
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
-	repo_service "gitea.dev/services/repository"
+	files_service "gitea.dev/services/repository/files"
 )
 
 // GetBlame returns the blame of a file
@@ -21,7 +19,7 @@ func GetBlame(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/blame/{filepath} repository repoGetBlame
 	// ---
 	// summary: Get the blame of a file, the commit that last changed each of its lines
-	// description: Commits listed in the file's `.git-blame-ignore-revs` are skipped, as in the web UI, unless `bypass_ignore_revs` is set.
+	// description: Line contents are not included, get them from `/repos/{owner}/{repo}/raw/{filepath}?ref={commit_id}`. Commits listed in the file's `.git-blame-ignore-revs` are skipped, as in the web UI, unless `bypass_ignore_revs` is set.
 	// produces:
 	// - application/json
 	// parameters:
@@ -60,8 +58,8 @@ func GetBlame(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	treePath := path.Clean(ctx.PathParam("*")) // the same path the tree lookup resolves, for git blame
-	entry, err := refCommit.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, treePath)
+	treePath := files_service.CleanGitTreePath(ctx.PathParam("*"))
+	blob, err := refCommit.Commit.GetBlobByPath(ctx, ctx.Repo.GitRepo, treePath)
 	if git.IsErrNotExist(err) {
 		ctx.APIErrorNotFound()
 		return
@@ -69,16 +67,12 @@ func GetBlame(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if entry.IsDir() || entry.IsSubModule() {
-		ctx.APIErrorNotFound()
-		return
-	}
-	if entry.Blob(ctx.Repo.GitRepo).Size(ctx) >= setting.UI.MaxDisplayFileSize {
+	if blob.Size(ctx) >= setting.UI.MaxDisplayFileSize {
 		ctx.APIError(http.StatusUnprocessableEntity, "file is too large to blame")
 		return
 	}
 
-	result, err := repo_service.GetBlame(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, refCommit.Commit, treePath, ctx.FormBool("bypass_ignore_revs"))
+	result, err := git.GetBlame(ctx, ctx.Repo.GitRepo, refCommit.Commit, treePath, ctx.FormBool("bypass_ignore_revs"))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -97,7 +91,7 @@ func GetBlame(ctx *context.APIContext) {
 			}
 			commit = &api.BlameCommit{
 				SHA:       part.Sha,
-				URL:       ctx.Repo.Repository.APIURL() + "/git/commits/" + url.PathEscape(part.Sha),
+				URL:       ctx.Repo.Repository.APIURL(ctx) + "/git/commits/" + part.Sha,
 				Author:    convert.ToCommitUser(gitCommit.Author),
 				Committer: convert.ToCommitUser(gitCommit.Committer),
 				Summary:   gitCommit.MessageTitle(),
@@ -108,7 +102,6 @@ func GetBlame(ctx *context.APIContext) {
 			StartLine: line,
 			EndLine:   line + len(part.Lines) - 1,
 			Commit:    commit,
-			Lines:     part.Lines,
 		})
 		line += len(part.Lines)
 	}

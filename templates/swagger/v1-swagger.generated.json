@@ -7723,7 +7723,7 @@
     },
     "/repos/{owner}/{repo}/blame/{filepath}": {
       "get": {
-        "description": "Commits listed in the file's `.git-blame-ignore-revs` are skipped, as in the web UI, unless `bypass_ignore_revs` is set.",
+        "description": "Line contents are not included, get them from `/repos/{owner}/{repo}/raw/{filepath}?ref={commit_id}`. Commits listed in the file's `.git-blame-ignore-revs` are skipped, as in the web UI, unless `bypass_ignore_revs` is set.",
         "produces": [
           "application/json"
         ],
@@ -25194,13 +25194,6 @@
           "format": "int64",
           "x-go-name": "EndLine"
         },
-        "lines": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Lines"
-        },
         "start_line": {
           "description": "StartLine is the 1-based number of the range's first line",
           "type": "integer",
@@ -28993,12 +28986,11 @@
           "x-go-name": "CommitID"
         },
         "path": {
-          "description": "Path is the path of the file",
           "type": "string",
           "x-go-name": "Path"
         },
         "ranges": {
-          "description": "Ranges are the file's lines in order, grouped by the commit that last changed them",
+          "description": "Ranges are the file's line ranges in order",
           "type": "array",
           "items": {
             "$ref": "#/definitions/BlameRange"

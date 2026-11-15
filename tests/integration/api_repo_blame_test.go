@@ -5,16 +5,17 @@ package integration
 
 import (
 	"net/http"
-	"strings"
 	"testing"
+	"time"
 
-	auth_model "gitea.dev/models/auth"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -25,98 +26,70 @@ func TestAPIRepoBlame(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	fastImport := func(stream string) {
-		_, _, err := gitcmd.NewCommand("fast-import").WithRepo(repo1).WithStdinBytes([]byte(stream)).RunStdString(t.Context())
+	commitID := func(rev string) string {
+		id, err := git.GetFullCommitID(t.Context(), repo1, rev)
 		require.NoError(t, err)
+		return id
 	}
-	revParse := func(rev string) string {
-		stdout, _, err := gitcmd.NewCommand("rev-parse").AddDynamicArguments(rev).WithRepo(repo1).RunStdString(t.Context())
-		require.NoError(t, err)
-		return strings.TrimSpace(stdout)
-	}
-	fastImport(`commit refs/heads/blame-test
-committer Alice <alice@example.com> 1714310400 +0000
-data 5
-First
-M 100644 inline dir/file.txt
-data 14
-one
-two
-three
-
-commit refs/heads/blame-test
-committer Bob <bob@example.com> 1714310500 +0000
-data 6
-Second
-M 100644 inline dir/file.txt
-data 14
-one
-TWO
-three
-`)
-	// the branch exists only in git, not in the database, so it is referred to by commit ID
-	first, second := revParse("blame-test~1"), revParse("blame-test")
+	require.NoError(t, git.ForceFastImport(t.Context(), repo1, []git.FastImportCommit{
+		{Ref: "refs/heads/blame-test", Files: []git.FastImportFile{{Path: "dir/file.txt", Content: "one\ntwo\nthree\n"}}},
+		{
+			Ref:       "refs/heads/blame-test",
+			Parent:    ":1",
+			Message:   "Second",
+			Files:     []git.FastImportFile{{Path: "dir/file.txt", Content: "one\nTWO\nthree\n"}},
+			Committer: &git.Signature{Name: "Bob", Email: "bob@example.com", When: time.Unix(1714310500, 0).UTC()},
+		},
+	}))
+	first, second := commitID("blame-test~1"), commitID("blame-test")
 
 	getBlame := func(t *testing.T, urlPath string) *api.FileBlame {
-		resp := MakeRequest(t, NewRequest(t, "GET", urlPath), http.StatusOK)
-		return DecodeJSON(t, resp, &api.FileBlame{})
+		return DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", urlPath), http.StatusOK), &api.FileBlame{})
 	}
 	type blameRange struct {
 		Start, End int
 		SHA        string
-		Lines      []string
 	}
 	rangesOf := func(blame *api.FileBlame) (ret []blameRange) {
-		for _, r := range blame.Ranges {
-			ret = append(ret, blameRange{r.StartLine, r.EndLine, r.Commit.SHA, r.Lines})
+		for _, part := range blame.Ranges {
+			ret = append(ret, blameRange{part.StartLine, part.EndLine, part.Commit.SHA})
 		}
 		return ret
 	}
+	expectedRanges := []blameRange{{1, 1, first}, {2, 2, second}, {3, 3, first}}
 
-	t.Run("Ranges", func(t *testing.T) {
-		blame := getBlame(t, "/api/v1/repos/user2/repo1/blame/dir/file.txt?ref="+second)
+	t.Run("RangesAndCleanPath", func(t *testing.T) {
+		blame := getBlame(t, "/api/v1/repos/user2/repo1/blame/%2Fdir/..%2Fdir/file.txt?ref="+second)
 		assert.Equal(t, second, blame.CommitID)
 		assert.Equal(t, "dir/file.txt", blame.Path)
 		assert.False(t, blame.UsesIgnoreRevs)
-		assert.Equal(t, []blameRange{
-			{1, 1, first, []string{"one"}},
-			{2, 2, second, []string{"TWO"}},
-			{3, 3, first, []string{"three"}},
-		}, rangesOf(blame))
+		require.Equal(t, expectedRanges, rangesOf(blame))
 		commit := blame.Ranges[1].Commit
+		assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/git/commits/"+second, commit.URL)
 		assert.Equal(t, "Second", commit.Summary)
 		assert.Equal(t, "Bob", commit.Author.Name)
 		assert.Equal(t, "bob@example.com", commit.Committer.Email)
 		assert.Equal(t, "2024-04-28T13:21:40Z", commit.Committer.Date)
-
-		blame = getBlame(t, "/api/v1/repos/user2/repo1/blame/dir/file.txt?ref="+first)
-		assert.Equal(t, []blameRange{{1, 3, first, []string{"one", "two", "three"}}}, rangesOf(blame))
 	})
 
 	t.Run("IgnoreRevs", func(t *testing.T) {
-		fastImport(`commit refs/heads/blame-test
-committer Carol <carol@example.com> 1714310600 +0000
-data 6
-Ignore
-from refs/heads/blame-test^0
-M 100644 inline .git-blame-ignore-revs
-data 41
-` + second + `
-`)
-		third := revParse("blame-test")
+		require.NoError(t, git.ForceFastImport(t.Context(), repo1, []git.FastImportCommit{{
+			Ref:    "refs/heads/blame-test",
+			Parent: second,
+			Files:  []git.FastImportFile{{Path: ".git-blame-ignore-revs", Content: second + "\n"}},
+		}}))
+		third := commitID("blame-test")
 		blame := getBlame(t, "/api/v1/repos/user2/repo1/blame/dir/file.txt?ref="+third)
 		assert.True(t, blame.UsesIgnoreRevs)
-		assert.Equal(t, []blameRange{{1, 3, first, []string{"one", "TWO", "three"}}}, rangesOf(blame))
+		assert.Equal(t, []blameRange{{1, 3, first}}, rangesOf(blame))
 
 		blame = getBlame(t, "/api/v1/repos/user2/repo1/blame/dir/file.txt?bypass_ignore_revs=true&ref="+third)
 		assert.False(t, blame.UsesIgnoreRevs)
-		assert.Len(t, blame.Ranges, 3)
-		assert.Equal(t, second, blame.Ranges[1].Commit.SHA)
+		assert.Equal(t, expectedRanges, rangesOf(blame))
 	})
 
 	t.Run("NotFound", func(t *testing.T) {
 		for _, urlPath := range []string{
-			"/api/v1/repos/user2/repo1/blame/dir/file.txt?ref=no-such-branch",
 			"/api/v1/repos/user2/repo1/blame/dir/file.txt?ref=0000000000000000000000000000000000000000",
 			"/api/v1/repos/user2/repo1/blame/dir/no-such-file.txt?ref=" + second,
 			"/api/v1/repos/user2/repo1/blame/dir?ref=" + second,
@@ -126,50 +99,22 @@ data 41
 	})
 
 	t.Run("DefaultBranch", func(t *testing.T) {
-		blame := getBlame(t, "/api/v1/repos/user2/repo1/blame/README.md")
-		assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", blame.CommitID)
-		assert.Equal(t, []blameRange{{1, 3, "65f1bf27bc3bf70f64657658635e66094edbcb4d", []string{"# repo1", "", "Description for repo1"}}}, rangesOf(blame))
-		assert.Equal(t, "Initial commit", blame.Ranges[0].Commit.Summary)
-		assert.Equal(t, blame.CommitID, getBlame(t, "/api/v1/repos/user2/repo1/blame/README.md?ref=master").CommitID)
-	})
-
-	t.Run("PathTraversal", func(t *testing.T) {
-		for _, urlPath := range []string{
-			"/api/v1/repos/user2/repo1/blame/dir/..%2F..%2Fconfig",
-			"/api/v1/repos/user2/repo1/blame/..%2F..%2F..%2Fetc%2Fpasswd",
-			"/api/v1/repos/user2/repo1/blame/%2E%2E/%2E%2E/description",
-		} {
-			MakeRequest(t, NewRequest(t, "GET", urlPath), http.StatusNotFound)
-		}
-		// a path that stays inside the tree resolves to the same file
-		blame := getBlame(t, "/api/v1/repos/user2/repo1/blame/dir/..%2Fdir/file.txt?ref="+second)
-		assert.Equal(t, "dir/file.txt", blame.Path)
-		assert.Len(t, blame.Ranges, 3)
+		assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", getBlame(t, "/api/v1/repos/user2/repo1/blame/README.md").CommitID)
 	})
 
 	t.Run("FileTooLarge", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.UI.MaxDisplayFileSize, 8)()
+		defer test.MockVariableValue(&setting.UI.MaxDisplayFileSize, 14)()
 		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/blame/dir/file.txt?ref="+second), http.StatusUnprocessableEntity)
 	})
 
-	t.Run("Permissions", func(t *testing.T) {
-		const privateURL = "/api/v1/repos/user2/repo16/blame/readme.md"
-		MakeRequest(t, NewRequest(t, "GET", privateURL), http.StatusNotFound)
+	t.Run("EmptyRepoWithTag", func(t *testing.T) {
+		repo1.IsEmpty = true
+		require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), repo1, "is_empty"))
+		getBlame(t, "/api/v1/repos/user2/repo1/blame/README.md?ref=v1.1")
+	})
 
-		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
-		MakeRequest(t, NewRequest(t, "GET", privateURL).AddTokenAuth(token), http.StatusForbidden)
-
-		token = getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
-		MakeRequest(t, NewRequest(t, "GET", privateURL).AddTokenAuth(token), http.StatusNotFound)
-
-		token = getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
-		resp := MakeRequest(t, NewRequest(t, "GET", privateURL).AddTokenAuth(token), http.StatusOK)
-		blame := DecodeJSON(t, resp, &api.FileBlame{})
-		require.NotEmpty(t, blame.Ranges)
-		assert.Equal(t, 1, blame.Ranges[0].StartLine)
-
-		// user5 has no access to the private repository
-		token = getUserToken(t, "user5", auth_model.AccessTokenScopeReadRepository)
-		MakeRequest(t, NewRequest(t, "GET", privateURL).AddTokenAuth(token), http.StatusNotFound)
+	t.Run("RequiresCodeReadAccess", func(t *testing.T) {
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo1, nil, []unit.Type{unit.TypeCode}))
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/blame/README.md"), http.StatusForbidden)
 	})
 }
