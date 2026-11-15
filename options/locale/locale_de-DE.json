@@ -170,8 +170,6 @@
   "search.fuzzy_tooltip": "Ergebnisse einbeziehen, die dem Suchbegriff ähnlich sind",
   "search.words": "Wörter",
   "search.words_tooltip": "Nur Suchbegriffe einbeziehen, die den Suchbegriffen exakt entsprechen",
-  "search.regexp": "Regexp",
-  "search.regexp_tooltip": "Nur Suchbegriffe einbeziehen, die dem Regexp exakt entsprechen",
   "search.exact": "Exakt",
   "search.exact_tooltip": "Nur Suchbegriffe einbeziehen, die dem exakten Suchbegriff entsprechen",
   "search.repo_kind": "Repositories durchsuchen…",
