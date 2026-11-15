@@ -8,11 +8,15 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetFeeds(t *testing.T) {
@@ -55,6 +59,42 @@ func TestGetFeeds(t *testing.T) {
 			assert.Equal(t, int64(0), count)
 		})
 	}
+}
+
+func TestGetFeedsChecksUnitAccess(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	// user4 reaches the private org3/repo3 only through team1, which is reduced to the Issues unit
+	_, err := db.GetEngine(t.Context()).ID(2).Cols("authorize").Update(&organization.Team{AccessMode: perm.AccessModeNone})
+	require.NoError(t, err)
+	_, err = db.GetEngine(t.Context()).Where("team_id = ? AND type <> ?", 2, unit.TypeIssues).Delete(&organization.TeamUnit{})
+	require.NoError(t, err)
+	for _, opType := range []activities_model.ActionType{
+		activities_model.ActionCommitRepo,
+		activities_model.ActionCreateIssue,
+		activities_model.ActionCreatePullRequest,
+		activities_model.ActionPublishRelease,
+	} {
+		require.NoError(t, db.Insert(t.Context(), &activities_model.Action{UserID: org3.ID, ActUserID: 2, RepoID: 3, OpType: opType, IsPrivate: true}))
+	}
+
+	feedOpTypes := func(actor *user_model.User) []activities_model.ActionType {
+		actions, _, err := GetFeeds(t.Context(), activities_model.GetFeedsOptions{RequestedUser: org3, Actor: actor, IncludePrivate: true})
+		require.NoError(t, err)
+		var opTypes []activities_model.ActionType
+		for _, action := range actions {
+			opTypes = append(opTypes, action.OpType)
+		}
+		return opTypes
+	}
+	assert.ElementsMatch(t, []activities_model.ActionType{activities_model.ActionRenameRepo, activities_model.ActionCreateIssue}, feedOpTypes(user4))
+	assert.ElementsMatch(t, []activities_model.ActionType{
+		activities_model.ActionRenameRepo, activities_model.ActionCommitRepo, activities_model.ActionCreateIssue,
+		activities_model.ActionCreatePullRequest, activities_model.ActionPublishRelease,
+	}, feedOpTypes(user2))
 }
 
 func TestGetFeedsForRepos(t *testing.T) {

@@ -8,6 +8,9 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
@@ -55,6 +58,8 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 	}
 	// Prepare
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	// the issue closed by user16 is in repo22, which has no units in the fixtures
+	assert.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 22, Type: unit.TypeIssues, Config: &repo_model.IssuesConfig{}}))
 
 	// Mock time
 	timeutil.MockSet(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))
