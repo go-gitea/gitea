@@ -424,11 +424,7 @@ func DeleteHook(ctx *context.APIContext) {
 		return
 	}
 	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hook.ID); err != nil {
-		if webhook.IsErrWebhookNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	audit.RecordScoped(ctx, nil, ctx.Repo.Repository, audit.WebhookRemove, "webhook", hook.URL)
