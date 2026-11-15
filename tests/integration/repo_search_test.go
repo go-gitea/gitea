@@ -6,7 +6,6 @@ package integration
 import (
 	"net/http"
 	"net/url"
-	"slices"
 	"strconv"
 	"testing"
 
@@ -18,7 +17,6 @@ import (
 	"gitea.dev/modules/git"
 	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/indexer/code/gitgrep"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	commitstatus_service "gitea.dev/services/repository/commitstatus"
@@ -145,20 +143,36 @@ func TestWebSearchRepoCommitStatus(t *testing.T) {
 
 	req := NewRequestf(t, "GET", "/repo/search?uid=%d&q=%s", owner.ID, repo.Name)
 	resp := loginUser(t, "user4").MakeRequest(t, req, http.StatusOK)
-
-	type webSearchRepo struct {
-		Repository struct {
-			ID int64 `json:"id"`
-		} `json:"repository"`
-		LatestCommitStatus any `json:"latest_commit_status"`
-	}
-	var results struct {
-		Data []webSearchRepo `json:"data"`
-	}
-	DecodeJSON(t, resp, &results)
-	idx := slices.IndexFunc(results.Data, func(r webSearchRepo) bool { return r.Repository.ID == repo.ID })
-	require.GreaterOrEqual(t, idx, 0)
-	latestCommitStatus, err := json.Marshal(results.Data[idx].LatestCommitStatus)
-	require.NoError(t, err)
-	assert.JSONEq(t, `{"state":"success","target_url":"https://example.com/ci"}`, string(latestCommitStatus))
+	assert.JSONEq(t, `{
+  "ok": true,
+  "data": [ {
+    "repository": {
+      "id": 1, "owner": null, "name": "", "full_name": "user2/repo1", "description": "",
+      "empty": false, "private": false, "fork": false, "template": false, "mirror": false, "archived": false, "internal": false,
+      "size": 0, "language": "", "languages_url": "", "topics": null, "licenses": null,
+      "html_url": "`+setting.AppURL+`user2/repo1", "url": "", "link": "/user2/repo1", "avatar_url": "",
+      "ssh_url": "", "clone_url": "", "original_url": "", "website": "",
+      "stars_count": 0, "forks_count": 0, "watchers_count": 0, "branch_count": 0,
+      "open_issues_count": 0, "open_pr_counter": 0, "release_counter": 0,
+      "default_branch": "", "object_format_name": "",
+      "created_at": "0001-01-01T00:00:00Z",
+      "updated_at": "0001-01-01T00:00:00Z",
+      "archived_at": "0001-01-01T00:00:00Z",
+      "has_code": false, "has_issues": false, "has_wiki": false, "has_pull_requests": false, "has_projects": false,
+      "has_releases": false, "has_packages": false, "has_actions": false,
+      "projects_mode": "",
+      "ignore_whitespace_conflicts": false,
+      "allow_merge_commits": false, "allow_rebase": false, "allow_rebase_explicit": false, "allow_squash_merge": false,
+      "allow_fast_forward_only_merge": false, "allow_merge_update": false, "allow_rebase_update": false, "allow_manual_merge": false,
+      "autodetect_manual_merge": false, "default_delete_branch_after_merge": false, "default_merge_style": "", "default_update_style": "",
+      "squash_merge_commit_message": "",
+      "default_allow_maintainer_edit": false,
+      "pull_requests_creation_restriction": "",
+      "issues_creation_restriction": "",
+      "mirror_interval": "", "mirror_updated": "0001-01-01T00:00:00Z", "mirror_last_sync_at": "0001-01-01T00:00:00Z"
+    },
+    "latest_commit_status":{"state": "success", "target_url": "https://example.com/ci"},
+    "locale_latest_commit_status": "Success"
+  } ]
+}`, resp.Body.String())
 }
