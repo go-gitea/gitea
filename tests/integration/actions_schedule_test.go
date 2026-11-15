@@ -162,7 +162,6 @@ func testScheduleUpdateMirrorSync(t *testing.T) {
 			IsPrivate:     opts.Private,
 			IsMirror:      opts.Mirror,
 			DefaultBranch: repo.DefaultBranch,
-			Status:        repo_model.RepositoryBeingMigrated,
 		}, false)
 		assert.NoError(t, err)
 		assert.True(t, mirrorRepo.IsMirror)

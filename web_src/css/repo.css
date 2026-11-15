@@ -85,12 +85,6 @@
   padding: 8px;
 }
 
-.issue-content-right .ui.list.labels-list {
-  display: flex;
-  gap: var(--gap-inline);
-  flex-wrap: wrap;
-}
-
 .issue-content-right .empty-list {
   font-size: 12px;
 }
@@ -1521,11 +1515,6 @@ tbody.commit-list {
 .diff-stats-bar .diff-stats-add-bar {
   background-color: var(--color-diff-added-fg);
   height: 100%;
-}
-
-.ui.form .right .ui.button {
-  margin-left: 0.25em;
-  margin-right: 0;
 }
 
 .removed-code {

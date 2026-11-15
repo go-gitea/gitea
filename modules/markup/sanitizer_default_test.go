@@ -15,6 +15,8 @@ func TestSanitizer(t *testing.T) {
 		// Regular
 		`<a onblur="alert(secret)" href="http://www.google.com">Google</a>`, `<a href="http://www.google.com" rel="nofollow">Google</a>`,
 		"<scrİpt>&lt;script&gt;alert(document.domain)&lt;/script&gt;</scrİpt>", "&lt;script&gt;alert(document.domain)&lt;/script&gt;",
+		`<details>unclosed`, `<details>unclosed`,
+		`<div>unclosed</`, `<div>unclosed&lt;/`,
 
 		// Code highlighting class
 		`<code class="random string"></code>`, `<code></code>`,

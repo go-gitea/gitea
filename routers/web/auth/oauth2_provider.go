@@ -105,7 +105,7 @@ func InfoOAuth(ctx *context.Context) {
 	// are unaffected and only explicitly-restricted tokens are rejected
 	tokenScope, _ := user_model.GetDoerTokenScope(ctx.Doer)
 	if allowed, err := tokenScope.HasScope(auth.AccessTokenScopeReadUser); err != nil {
-		ctx.ServerError("HasScope", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if !allowed {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea OAuth2"`)
@@ -123,7 +123,7 @@ func InfoOAuth(ctx *context.Context) {
 
 	groups, err := oauth2_provider.GetOAuthGroupsForUser(ctx, ctx.Doer, user_model.IsPublicOnlyDoer(ctx.Doer))
 	if err != nil {
-		ctx.ServerError("Oauth groups for user", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	response.Groups = groups
@@ -185,7 +185,7 @@ func IntrospectOAuth(ctx *context.Context) {
 
 	grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
 	if err != nil {
-		ctx.ServerError("GetOAuth2GrantByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if grant == nil || grant.ApplicationID != introspectingApp.ID || (token.Kind == oauth2_provider.KindRefreshToken && isRefreshTokenUsed(grant, token)) {
@@ -201,7 +201,7 @@ func IntrospectOAuth(ctx *context.Context) {
 		response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
 		response.Username = user.Name
 	} else if !errors.Is(err, util.ErrNotExist) && !errors.Is(err, util.ErrPermissionDenied) {
-		ctx.ServerError("GetValidDoerUserByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -237,7 +237,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 			}, "")
 			return
 		}
-		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -245,7 +245,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	if app.UID != 0 {
 		user, err = user_model.GetUserByID(ctx, app.UID)
 		if err != nil {
-			ctx.ServerError("GetUserByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -425,7 +425,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
-		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
@@ -744,7 +744,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	}
 	redirect, err := url.Parse(redirectURI)
 	if err != nil {
-		ctx.ServerError("url.Parse", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	q := redirect.Query()

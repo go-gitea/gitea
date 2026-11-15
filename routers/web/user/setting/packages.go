@@ -103,12 +103,12 @@ func RebuildCargoIndex(ctx *context.Context) {
 func RegenerateChefKeyPair(ctx *context.Context) {
 	priv, pub, err := util.GenerateKeyPair(chef_module.KeyBits)
 	if err != nil {
-		ctx.ServerError("GenerateKeyPair", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, chef_module.SettingPublicPem, pub); err != nil {
-		ctx.ServerError("SetUserSetting", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

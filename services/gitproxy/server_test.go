@@ -437,7 +437,7 @@ func TestRun(t *testing.T) {
 		_ = daemon.Run()
 	}))
 	require.NoError(t, err)
-	require.NoError(t, gitcmd.NewCommand("clone", "-q", "--bare").AddDynamicArguments("git://127.0.0.1:"+port+"/repo1_bare", filepath.Join(base, "allowed")).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("clone", "-q", "--bare").AddDynamicArguments("git://127.0.0.1:"+port+"/repo1_bare", filepath.Join(base, "allowed")).RunWithStderr(t.Context()))
 	_, stderr, runErr := gitcmd.NewCommand("clone", "-q", "--bare").AddDynamicArguments("git://127.0.0.2:"+port+"/repo1_bare", filepath.Join(base, "denied")).RunStdString(t.Context())
 	require.Error(t, runErr)
 	assert.Contains(t, stderr, "target denied by policy")

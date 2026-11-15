@@ -23,9 +23,10 @@ func TestFilterReadableCommentsChecksUnitOfSameRepoTargets(t *testing.T) {
 	pullRef := &issues_model.Comment{Type: issues_model.CommentTypePullRef, RefRepoID: 1, RefIsPull: true}
 	issueDependency := &issues_model.Comment{Type: issues_model.CommentTypeAddDependency, DependentIssue: &issues_model.Issue{RepoID: 1}}
 	pullDependency := &issues_model.Comment{Type: issues_model.CommentTypeAddDependency, DependentIssue: &issues_model.Issue{RepoID: 1, IsPull: true}}
+	commitRef := &issues_model.Comment{Type: issues_model.CommentTypeCommitRef, RefRepoID: 1}
 	repo := &repo_model.Repository{ID: 1}
 
-	comments, err := FilterReadableComments(t.Context(), nil, perm, &issues_model.Issue{RepoID: 1, Repo: repo}, issues_model.CommentList{issueRef, pullRef, issueDependency, pullDependency})
+	comments, err := FilterReadableComments(t.Context(), nil, perm, &issues_model.Issue{RepoID: 1, Repo: repo}, issues_model.CommentList{issueRef, pullRef, issueDependency, pullDependency, commitRef})
 	require.NoError(t, err)
 	assert.Equal(t, issues_model.CommentList{issueRef, issueDependency}, comments)
 	assert.Same(t, repo, issueRef.RefRepo)

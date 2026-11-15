@@ -55,7 +55,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	ctx.Data["IsResetRequest"] = true
@@ -75,7 +75,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 			return
 		}
 
-		ctx.ServerError("user.ResetPasswd(check existence)", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -221,7 +221,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		case password.IsErrIsPwnedRequest(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
 		default:
-			ctx.ServerError("UpdateAuth", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -234,11 +234,11 @@ func ResetPasswdPost(ctx *context.Context) {
 		// Invalidate the scratch token.
 		_, err := twofa.GenerateScratchToken()
 		if err != nil {
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -255,7 +255,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	if twofa == nil {
 		hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 		if err != nil {
-			ctx.ServerError("HasWebAuthnRegistrationsByUID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if hasWebAuthn {
@@ -288,7 +288,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	if !common.CheckSignedInUser(ctx.Doer, ctx.Session).NeedChangePassword {
 		log.Debug("User %s attempted to access the must change password page, but they are not required to change their password", ctx.Doer.Name)
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -317,7 +317,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
 		default:
-			ctx.ServerError("UpdateAuth", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}

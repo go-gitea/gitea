@@ -33,9 +33,9 @@ func TestReceivePushRejectsDuplicateTreeEntries(t *testing.T) {
 	ctx := t.Context()
 
 	sourceDir := filepath.Join(t.TempDir(), "source.git")
-	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(sourceDir).Run(ctx))
+	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(sourceDir).RunWithStderr(ctx))
 	targetDir := filepath.Join(t.TempDir(), "target.git")
-	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(targetDir).Run(ctx))
+	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(targetDir).RunWithStderr(ctx))
 
 	hashBlob := func(content string) string {
 		stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").WithDir(sourceDir).WithStdinBytes([]byte(content)).RunStdString(ctx)
@@ -54,7 +54,7 @@ func TestReceivePushRejectsDuplicateTreeEntries(t *testing.T) {
 	require.NoError(t, err)
 	commitID = strings.TrimSpace(commitID)
 
-	require.NoError(t, gitcmd.NewCommand("update-ref", "refs/heads/atk").AddDynamicArguments(commitID).WithDir(sourceDir).Run(ctx))
+	require.NoError(t, gitcmd.NewCommand("update-ref", "refs/heads/atk").AddDynamicArguments(commitID).WithDir(sourceDir).RunWithStderr(ctx))
 
 	_, _, err = gitcmd.NewCommand("push").AddDynamicArguments(targetDir, "refs/heads/atk:refs/heads/atk").WithDir(sourceDir).RunStdString(ctx)
 	require.Error(t, err, "push of a commit with duplicate tree entries must be rejected by the receiving repository's fsck")

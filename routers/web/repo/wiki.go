@@ -56,7 +56,7 @@ func MustEnableWiki(ctx *context.Context) {
 				ctx.Repo.Repository,
 				ctx.Repo.Permission)
 		}
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -96,7 +96,7 @@ func findEntryForFile(ctx gocontext.Context, wikiRepo *git.Repository, commit *g
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
 	wikiGitRepo, errGitRepo := git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if errGitRepo != nil {
-		ctx.ServerError("OpenRepository", errGitRepo)
+		ctx.ServerErrorAuto(errGitRepo)
 		return nil, nil, errGitRepo
 	}
 
@@ -127,13 +127,13 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 func wikiContentsByEntry(ctx *context.Context, wikiRepo *git.Repository, entry *git.TreeEntry) []byte {
 	reader, err := entry.Blob(wikiRepo).DataAsync(ctx)
 	if err != nil {
-		ctx.ServerError("Blob.Data", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	defer reader.Close()
 	content, err := util.ReadWithLimit(reader, 5*1024*1024) // 5MB should be enough for a wiki page
 	if err != nil {
-		ctx.ServerError("ReadAll", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	return content
@@ -147,7 +147,7 @@ func wikiEntryByName(ctx *context.Context, wikiRepo *git.Repository, commit *git
 	gitFilename := wiki_service.WebPathToGitPath(wikiName)
 	entry, err := findEntryForFile(ctx, wikiRepo, commit, gitFilename)
 	if err != nil && !git.IsErrNotExist(err) {
-		ctx.ServerError("findEntryForFile", err)
+		ctx.ServerErrorAuto(err)
 		return nil, "", false, false
 	}
 	if entry == nil {
@@ -155,7 +155,7 @@ func wikiEntryByName(ctx *context.Context, wikiRepo *git.Repository, commit *git
 		gitFilename := strings.TrimSuffix(gitFilename, ".md")
 		entry, err = findEntryForFile(ctx, wikiRepo, commit, gitFilename)
 		if err != nil && !git.IsErrNotExist(err) {
-			ctx.ServerError("findEntryForFile", err)
+			ctx.ServerErrorAuto(err)
 			return nil, "", false, false
 		}
 		isRaw = true
@@ -180,7 +180,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	wikiGitRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if !git.IsErrNotExist(err) {
-			ctx.ServerError("GetBranchCommit", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return nil, nil
 	}
@@ -188,7 +188,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	// get the wiki pages list.
 	entries, err := commit.Tree().ListEntries(ctx, wikiGitRepo)
 	if err != nil {
-		ctx.ServerError("ListEntries", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 	pages := make([]PageMeta, 0, len(entries))
@@ -201,7 +201,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
-			ctx.ServerError("WikiFilenameToName", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil
 		} else if wikiName == "_Sidebar" || wikiName == "_Footer" {
 			continue
@@ -256,7 +256,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 
 	ctx.Data["EscapeStatus"], ctx.Data["WikiContentHTML"], err = renderFn(data)
 	if err != nil {
-		ctx.ServerError("Render", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 
@@ -273,7 +273,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		}
 		ctx.Data["WikiSidebarEscapeStatus"], ctx.Data["WikiSidebarHTML"], err = renderFn(sidebarContent)
 		if err != nil {
-			ctx.ServerError("Render", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil
 		}
 	}
@@ -285,7 +285,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		}
 		ctx.Data["WikiFooterEscapeStatus"], ctx.Data["WikiFooterHTML"], err = renderFn(footerContent)
 		if err != nil {
-			ctx.ServerError("Render", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil
 		}
 	}
@@ -301,7 +301,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	wikiGitRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if !git.IsErrNotExist(err) {
-			ctx.ServerError("GetBranchCommit", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return nil, nil
 	}
@@ -342,12 +342,12 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 			Page:     page,
 		})
 	if err != nil {
-		ctx.ServerError("CommitsByFileAndRange", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 	ctx.Data["Commits"], err = git_service.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository, "") // no current ref sub path for wiki commit list
 	if err != nil {
-		ctx.ServerError("ConvertFromGitCommit", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 
@@ -361,7 +361,7 @@ func renderEditPage(ctx *context.Context) {
 	wikiGitRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if !git.IsErrNotExist(err) {
-			ctx.ServerError("GetBranchCommit", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -404,14 +404,14 @@ func WikiPost(ctx *context.Context) {
 	switch ctx.FormString("action") {
 	case "_new":
 		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 		NewWikiPost(ctx)
 		return
 	case "_delete":
 		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 		DeleteWikiPagePost(ctx)
@@ -419,7 +419,7 @@ func WikiPost(ctx *context.Context) {
 	}
 
 	if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	EditWikiPost(ctx)
@@ -438,14 +438,14 @@ func Wiki(ctx *context.Context) {
 		return
 	case "_edit":
 		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 		EditWiki(ctx)
 		return
 	case "_new":
 		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 		NewWiki(ctx)
@@ -476,7 +476,7 @@ func Wiki(ctx *context.Context) {
 	// Get last change information.
 	lastCommit, err := wikiGitRepo.GetCommitByPath(ctx, wikiPath)
 	if err != nil {
-		ctx.ServerError("GetCommitByPath", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Committer"] = lastCommit.Committer
@@ -508,7 +508,7 @@ func WikiRevision(ctx *context.Context) {
 	wikiPath := entry.Name()
 	lastCommit, err := wikiGitRepo.GetCommitByPath(ctx, wikiPath)
 	if err != nil {
-		ctx.ServerError("GetCommitByPath", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Committer"] = lastCommit.Committer
@@ -535,20 +535,20 @@ func WikiPages(ctx *context.Context) {
 	treePath := "" // To support list sub folders' pages in the future
 	tree, err := commit.SubTree(ctx, wikiGitRepo, treePath)
 	if err != nil {
-		ctx.ServerError("SubTree", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	allEntries, err := tree.ListEntries(ctx, wikiGitRepo)
 	if err != nil {
-		ctx.ServerError("ListEntries", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	allEntries.CustomSort(base.NaturalSortCompare)
 
 	entries, _, err := allEntries.GetCommitsInfo(ctx, 0, ctx.Repo.RepoLink, wikiGitRepo, commit, treePath)
 	if err != nil {
-		ctx.ServerError("GetCommitsInfo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -562,7 +562,7 @@ func WikiPages(ctx *context.Context) {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
-			ctx.ServerError("WikiFilenameToName", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		_, displayName := wiki_service.WebPathToUserTitle(wikiName)
@@ -582,11 +582,7 @@ func WikiPages(ctx *context.Context) {
 func WikiRaw(ctx *context.Context) {
 	wikiGitRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.NotFound(nil)
-			return
-		}
-		ctx.ServerError("findEntryForfile", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -597,7 +593,7 @@ func WikiRaw(ctx *context.Context) {
 		// Try to find a file with that name
 		entry, err = findEntryForFile(ctx, wikiGitRepo, commit, providedGitPath)
 		if err != nil && !git.IsErrNotExist(err) {
-			ctx.ServerError("findFile", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -606,7 +602,7 @@ func WikiRaw(ctx *context.Context) {
 			providedGitPath = strings.TrimSuffix(providedGitPath, ".md")
 			entry, err = findEntryForFile(ctx, wikiGitRepo, commit, providedGitPath)
 			if err != nil && !git.IsErrNotExist(err) {
-				ctx.ServerError("findFile", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -614,12 +610,12 @@ func WikiRaw(ctx *context.Context) {
 
 	if entry != nil {
 		if err = common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, entry.Blob(wikiGitRepo), nil); err != nil {
-			ctx.ServerError("ServeBlob", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
 
-	ctx.NotFound(nil)
+	ctx.NotFound()
 }
 
 func wikiHandleEditError(ctx *context.Context, wikiName wiki_service.WebPath, err error) {
@@ -628,7 +624,7 @@ func wikiHandleEditError(ctx *context.Context, wikiName wiki_service.WebPath, er
 	} else if repo_model.IsErrWikiAlreadyExist(err) {
 		ctx.JSONErrorWithField(ctx.Tr("repo.wiki.page_already_exists"), "title")
 	} else {
-		ctx.ServerError("EditWiki", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -714,7 +710,7 @@ func DeleteWikiPagePost(ctx *context.Context) {
 	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
 	wikiName = util.IfZero(wikiName, "Home")
 	if err := wiki_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName); err != nil {
-		ctx.ServerError("DeleteWikiPage", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -37,12 +37,12 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 
 	if forkRepo.IsEmpty {
 		log.Trace("Empty repository %-v", forkRepo)
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 
 	if err := forkRepo.LoadOwner(ctx); err != nil {
-		ctx.ServerError("LoadOwner", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 
@@ -55,7 +55,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 
 	ownedOrgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	var orgs []*organization.Organization
@@ -79,7 +79,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		}
 		traverseParentRepo, err = repo_model.GetRepositoryByID(ctx, traverseParentRepo.ForkID)
 		if err != nil {
-			ctx.ServerError("GetRepositoryByID", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
 	}
@@ -110,7 +110,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		ExcludeBranchNames: []string{ctx.Repo.Repository.DefaultBranch},
 	})
 	if err != nil {
-		ctx.ServerError("FindBranchNames", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	ctx.Data["Branches"] = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
@@ -168,7 +168,7 @@ func ForkPost(ctx *context.Context) {
 		}
 		traverseParentRepo, err = repo_model.GetRepositoryByID(ctx, traverseParentRepo.ForkID)
 		if err != nil {
-			ctx.ServerError("GetRepositoryByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -177,7 +177,7 @@ func ForkPost(ctx *context.Context) {
 	if ctxUser.IsOrganization() {
 		isAllowedToFork, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.ServerError("CanCreateOrgRepo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		} else if !isAllowedToFork {
 			ctx.HTTPError(http.StatusForbidden)
@@ -219,7 +219,7 @@ func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_serv
 		case errors.Is(err, user_model.ErrBlockedUser):
 			ctx.JSONError(ctx.Tr("repo.fork.blocked_user"))
 		default:
-			ctx.ServerError("ForkPost", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return nil
 	}

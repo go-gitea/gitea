@@ -38,7 +38,6 @@ import (
 	"gitea.dev/services/gitdiff"
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
-	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 )
@@ -535,16 +534,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
-			ctx.APIError(http.StatusForbidden, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	if err := pull_service.NewPullRequest(ctx, ctx.Repo.Permission, prOpts); err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -753,7 +744,6 @@ func EditPullRequest(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
 	}
 
 	// update allow edits
