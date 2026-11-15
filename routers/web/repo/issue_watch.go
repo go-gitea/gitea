@@ -24,7 +24,7 @@ func IssueWatch(ctx *context.Context) {
 
 	watch := ctx.FormBool("watch")
 	if err := issues_model.CreateOrUpdateIssueWatch(ctx, ctx.Doer.ID, issue.ID, watch); err != nil {
-		ctx.ServerError("CreateOrUpdateIssueWatch", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
@@ -18,6 +19,7 @@ import (
 	"gitea.dev/routers/api/v1/repo"
 	"gitea.dev/routers/api/v1/utils"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 )
@@ -217,6 +219,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 		repo.HandleAddKeyError(ctx, err)
 		return
 	}
+	audit.Record(ctx, audit_model.UserKeySSHAdd, audit.ScopeFromUserID(ctx, uid), "fingerprint", key.Fingerprint)
 	apiLink := composePublicKeysAPILink()
 	apiKey := convert.ToPublicKey(apiLink, key)
 	if ctx.Doer.IsAdmin || ctx.Doer.ID == key.OwnerID {

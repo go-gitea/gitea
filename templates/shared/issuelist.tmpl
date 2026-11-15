@@ -17,7 +17,7 @@
 
 			<div class="item-main">
 				<div class="item-header">
-					<div>
+					<div class="tw-min-w-0">
 						<a class="list-item-large-title" href="{{if $issue.Link}}{{$issue.Link}}{{else}}{{$root.Link}}/{{$issue.Index}}{{end}}">{{$issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 						{{if $issue.IsPull}}
 							{{if (index $root.CommitStatuses $issue.PullRequest.ID)}}

@@ -4,13 +4,13 @@
 package actions
 
 import (
+	"errors"
 	"strconv"
 
 	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
-	"gitea.dev/modules/util"
 	actions_service "gitea.dev/services/actions"
 	context_module "gitea.dev/services/context"
 )
@@ -39,7 +39,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 			// a required scoped workflow can never be opted out
 			required, err := actions_model.IsScopedWorkflowRequired(ctx, ctx.Repo.Repository.OwnerID, scopedRepoID, workflow)
 			if err != nil {
-				ctx.ServerError("IsScopedWorkflowRequired", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			if required {
@@ -57,7 +57,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	}
 
 	if err := repo_model.UpdateRepoUnitConfig(ctx, cfgUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	actions_service.RecordWorkflowToggle(ctx, ctx.Repo.Repository, workflow, isEnable)
@@ -79,13 +79,13 @@ func Run(ctx *context_module.Context) {
 
 	workflowID := ctx.FormString("workflow")
 	if len(workflowID) == 0 {
-		ctx.ServerError("workflow", nil)
+		ctx.ServerErrorAuto(errors.New("workflow"))
 		return
 	}
 
 	ref := ctx.FormString("ref")
 	if len(ref) == 0 {
-		ctx.ServerError("ref", nil)
+		ctx.ServerErrorAuto(errors.New("ref"))
 		return
 	}
 	sourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
@@ -103,12 +103,8 @@ func Run(ctx *context_module.Context) {
 		return nil
 	})
 	if err != nil {
-		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-			ctx.Flash.Error(errTr.Translate(ctx.Locale))
-			ctx.Redirect(redirectURL)
-		} else {
-			ctx.ServerError("DispatchActionWorkflow", err)
-		}
+		ctx.FlashErrorAuto(err)
+		ctx.Redirect(redirectURL)
 		return
 	}
 

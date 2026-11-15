@@ -4,7 +4,6 @@
 package git
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -240,7 +239,7 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "2839944139e0de9737a044f78b0e4b40d989a9e3", commit.ID.String())
 
-	startCommitID, err := repo.GetCommitBranchStart(t.Context(), os.Environ(), "branch1", commit.ID.String())
+	startCommitID, err := getCommitBranchStart(t.Context(), repo, "branch1", commit.ID.String(), nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
 	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)

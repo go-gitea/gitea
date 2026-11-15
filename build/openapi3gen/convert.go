@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/json"
 
@@ -16,11 +17,19 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-// rxDeprecated matches "deprecated" as a word at the start of a description
-// or preceded by whitespace/punctuation that indicates a leading marker (e.g.
-// "Deprecated: true", "deprecated (use X instead)"). Rejects negated phrases
-// like "not deprecated" or "previously deprecated, now supported".
-var rxDeprecated = regexp.MustCompile(`(?i)(?:^|[\n.;])\s*deprecated\b`)
+var globalVars = sync.OnceValue(func() (ret struct {
+	rxDeprecated  *regexp.Regexp
+	rxSwaggerEnum *regexp.Regexp
+},
+) {
+	// rxDeprecated matches "deprecated" as a word at the start of a description
+	// or preceded by whitespace/punctuation that indicates a leading marker (e.g.
+	// "Deprecated: true", "deprecated (use X instead)"). Rejects negated phrases
+	// like "not deprecated" or "previously deprecated, now supported".
+	ret.rxDeprecated = regexp.MustCompile(`(?i)(?:^|[\n.;])\s*deprecated\b`)
+	ret.rxSwaggerEnum = regexp.MustCompile(`swagger:enum\s+(\w+)`)
+	return ret
+})
 
 // Convert parses a Swagger 2.0 spec and returns an OAS3 spec, applying
 // Gitea-specific post-processing: file-schema fixups, URI formats,
@@ -158,7 +167,7 @@ func addDeprecatedFlags(doc *openapi3.T) {
 			if propRef == nil || propRef.Value == nil || propRef.Ref != "" {
 				continue
 			}
-			if rxDeprecated.MatchString(propRef.Value.Description) {
+			if globalVars().rxDeprecated.MatchString(propRef.Value.Description) {
 				propRef.Value.Deprecated = true
 			}
 		}

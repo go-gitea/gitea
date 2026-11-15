@@ -76,7 +76,7 @@ func ScopedWorkflows(ctx *context.Context) {
 
 	swCtx, err := getScopedWorkflowsCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getScopedWorkflowsCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -91,7 +91,7 @@ func ScopedWorkflows(ctx *context.Context) {
 
 	sources, err := actions_model.GetScopedWorkflowSourcesByOwner(ctx, swCtx.OwnerID)
 	if err != nil {
-		ctx.ServerError("GetScopedWorkflowSourcesByOwner", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -129,8 +129,7 @@ func deriveScopedStatusContexts(prefix, displayName string, content []byte, even
 	}
 	eventNames := make([]string, 0, len(events))
 	for _, e := range events {
-		// only events whose runs post a commit status can be a required check; workflow_dispatch, schedule, etc. post none.
-		if actions_module.ShouldEventCreateCommitStatus(e.Name) {
+		if actions_module.IsPullRequestCheckEvent(e.Name) {
 			eventNames = append(eventNames, e.Name)
 		}
 	}
@@ -205,7 +204,7 @@ func listSourceScopedWorkflowFiles(ctx *context.Context, repo *repo_model.Reposi
 func ScopedWorkflowAdd(ctx *context.Context) {
 	swCtx, err := getScopedWorkflowsCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getScopedWorkflowsCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -229,7 +228,7 @@ func ScopedWorkflowAdd(ctx *context.Context) {
 	}
 
 	if err := actions_model.AddScopedWorkflowSource(ctx, swCtx.OwnerID, repo.ID); err != nil {
-		ctx.ServerError("AddScopedWorkflowSource", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.scoped_workflows.source.add_success"))
@@ -239,7 +238,7 @@ func ScopedWorkflowAdd(ctx *context.Context) {
 func ScopedWorkflowSetRequired(ctx *context.Context) {
 	swCtx, err := getScopedWorkflowsCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getScopedWorkflowsCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -250,7 +249,7 @@ func ScopedWorkflowSetRequired(ctx *context.Context) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.JSONError(ctx.Tr("actions.scoped_workflows.source.not_found"))
 		} else {
-			ctx.ServerError("GetScopedWorkflowSource", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -258,14 +257,14 @@ func ScopedWorkflowSetRequired(ctx *context.Context) {
 	// Live workflow entry names on the source default branch, used to distinguish orphan configs (whose workflow file no longer exists) from live ones.
 	sourceRepo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
-		ctx.ServerError("GetRepositoryByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	liveSet := make(container.Set[string])
 	if !sourceRepo.IsEmpty { // an empty source has no live workflows
 		_, parsed, err := actions_service.LoadParsedScopedWorkflows(ctx, sourceRepo)
 		if err != nil {
-			ctx.ServerError("LoadParsedScopedWorkflows", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		for _, p := range parsed {
@@ -295,7 +294,7 @@ func ScopedWorkflowSetRequired(ctx *context.Context) {
 		}
 	}
 	if err := actions_model.SetScopedWorkflowSourceConfigs(ctx, swCtx.OwnerID, repoID, configs); err != nil {
-		ctx.ServerError("SetScopedWorkflowSourceConfigs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.scoped_workflows.required.update_success"))
@@ -305,13 +304,13 @@ func ScopedWorkflowSetRequired(ctx *context.Context) {
 func ScopedWorkflowRemove(ctx *context.Context) {
 	swCtx, err := getScopedWorkflowsCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getScopedWorkflowsCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	repoID := ctx.FormInt64("repo_id")
 	if err := actions_model.RemoveScopedWorkflowSource(ctx, swCtx.OwnerID, repoID); err != nil {
-		ctx.ServerError("RemoveScopedWorkflowSource", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.scoped_workflows.source.remove_success"))

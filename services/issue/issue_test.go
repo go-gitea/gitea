@@ -13,9 +13,45 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestCheckCreationRestriction(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	for _, tc := range []struct {
+		name   string
+		repoID int64
+		userID int64
+		member bool
+	}{
+		{"owner", 1, 2, true},
+		{"site admin", 1, 1, true},
+		{"team member", 3, 4, true},
+		{"collaborator", 4, 4, true},
+		{"public reader", 1, 4, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: tc.repoID})
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.userID})
+			permission, err := access_model.GetDoerRepoPermission(t.Context(), repo, user)
+			require.NoError(t, err)
+			for _, unitType := range []unit.Type{unit.TypeIssues, unit.TypePullRequests} {
+				require.NoError(t, CheckCreationRestriction(permission, unitType, repo_model.CreationRestrictionReader))
+				for _, restriction := range []string{repo_model.CreationRestrictionMember, repo_model.CreationRestrictionWriter} {
+					err := CheckCreationRestriction(permission, unitType, restriction)
+					if tc.member {
+						assert.NoError(t, err)
+					} else {
+						assert.ErrorIs(t, err, util.ErrPermissionDenied)
+					}
+				}
+			}
+		})
+	}
+}
 
 func TestCanSelfChangeOrAccessContent(t *testing.T) {
 	doer := &user_model.User{ID: 1}

@@ -17,7 +17,7 @@ import (
 
 func TestMergeBaseNoCommonHistory(t *testing.T) {
 	repoDir := filepath.Join(t.TempDir(), "repo.git")
-	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoDir).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoDir).RunWithStderr(t.Context()))
 	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(strings.TrimSpace(`
 commit refs/heads/branch1
 committer User <user@example.com> 1714310400 +0000

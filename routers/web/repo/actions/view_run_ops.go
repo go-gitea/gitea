@@ -29,7 +29,7 @@ func checkRunRerunAllowed(ctx *context_module.Context, run *actions_model.Action
 	if run.IsScopedRun {
 		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, cfg, ctx.Repo.Repository.OwnerID, run.WorkflowRepoID, run.WorkflowID)
 		if err != nil {
-			ctx.ServerError("IsScopedWorkflowOptedOut", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 		disabled = optedOut
@@ -43,7 +43,7 @@ func checkRunRerunAllowed(ctx *context_module.Context, run *actions_model.Action
 
 func checkLatestAttempt(ctx *context_module.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) bool {
 	if attempt != nil && run.LatestAttemptID != attempt.ID {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return false
 	}
 	return true
@@ -69,7 +69,7 @@ func Rerun(ctx *context_module.Context) {
 
 	currentJob, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
 	if hasPathParam && currentJob == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -124,7 +124,7 @@ func handleWorkflowRerunError(ctx *context_module.Context, err error) {
 		ctx.JSON(http.StatusBadRequest, map[string]any{"message": err.Error()})
 		return
 	}
-	ctx.ServerError("RerunWorkflowRunJobs", err)
+	ctx.ServerErrorAuto(err)
 }
 
 func Cancel(ctx *context_module.Context) {
@@ -137,7 +137,7 @@ func Cancel(ctx *context_module.Context) {
 	}
 
 	if _, err := actions_service.CancelRun(ctx, run, jobs); err != nil {
-		ctx.ServerError("CancelRun", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONOK()
@@ -149,7 +149,7 @@ func Approve(ctx *context_module.Context) {
 		return
 	}
 	if _, err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
-		ctx.ServerError("ApproveRuns", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -168,7 +168,7 @@ func Delete(ctx *context_module.Context) {
 	}
 
 	if err := actions_service.DeleteRun(ctx, run); err != nil {
-		ctx.ServerError("DeleteRun", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -181,12 +181,12 @@ func ApproveAllChecks(ctx *context_module.Context) {
 
 	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
 	if err != nil {
-		ctx.ServerError("GetLatestCommitStatus", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, repo.ID, commitStatuses)
 	if err != nil {
-		ctx.ServerError("GetRunsFromCommitStatuses", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -203,7 +203,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 	}
 
 	if _, err := actions_service.ApproveRuns(ctx, repo, ctx.Doer, runIDs); err != nil {
-		ctx.ServerError("ApproveRuns", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

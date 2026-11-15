@@ -34,10 +34,8 @@ func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.A
 	} else {
 		run, err = actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("run"))
 	}
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.NotFound(nil)
-	} else if err != nil {
-		ctx.ServerError("GetRun:"+ctx.PathParam("run"), err)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
 	}
 	return run
 }
@@ -58,7 +56,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 
 	runNum := ctx.PathParamInt64("run")
 	if runNum <= 0 {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 
@@ -81,7 +79,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 				return runByID
 			}
 			if !errors.Is(err, util.ErrNotExist) {
-				ctx.ServerError("GetRun:"+ctx.PathParam("run"), err)
+				ctx.ServerErrorAuto(err)
 				return nil
 			}
 		}
@@ -92,16 +90,16 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 			return nil
 		}
 		if !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("GetRunByRepoAndIndex", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 
 	jobNum := ctx.PathParamInt64("job")
 	if jobNum < 0 {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 
@@ -117,12 +115,12 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 		// Probe the repo-scoped job ID first and only accept it when the job exists and belongs to the same runNum.
 		job, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobNum)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("GetRunJobByRepoAndID", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
 		if job != nil {
 			if err := job.LoadRun(ctx); err != nil {
-				ctx.ServerError("LoadRun", err)
+				ctx.ServerErrorAuto(err)
 				return nil
 			}
 			if job.Run.ID == runNum {
@@ -135,13 +133,13 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 	{
 		run, err := actions_model.GetRunByRepoAndIndex(ctx, ctx.Repo.Repository.ID, runNum)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("GetRunByRepoAndIndex", err)
+			ctx.ServerErrorAuto(err)
 			return nil
 		}
 		if run != nil {
 			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 			if err != nil {
-				ctx.ServerError("GetRunJobsByRunID", err)
+				ctx.ServerErrorAuto(err)
 				return nil
 			}
 			if jobNum < int64(len(jobs)) {
@@ -152,7 +150,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 	}
 
 	if runByID == nil && runByIndex == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil
 	}
 
@@ -192,7 +190,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		jobID := ctx.PathParamInt64("job")
 		selectedJob, err = actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID)
 		if err != nil {
-			ctx.ServerError("GetRunJobByRunAndID", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil, nil
 		}
 	}
@@ -207,21 +205,21 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		// Explicit attempt number in the URL — user is viewing a historical attempt.
 		attempt, err = actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
 		if err != nil {
-			ctx.ServerError("GetRunAttemptByRunIDAndAttemptNum", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil, nil
 		}
 	case selectedJob != nil && selectedJob.RunAttemptID > 0:
 		// No explicit attempt in the URL, but the requested job belongs to a known attempt — resolve via the job.
 		attempt, err = actions_model.GetRunAttemptByRepoAndID(ctx, selectedJob.RepoID, selectedJob.RunAttemptID)
 		if err != nil {
-			ctx.ServerError("GetRunAttemptByRepoAndID", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil, nil
 		}
 	default:
 		// No attempt context at all — show the latest attempt (nil for legacy runs).
 		attempt, _, err = run.GetLatestAttempt(ctx)
 		if err != nil {
-			ctx.ServerError("GetLatestAttempt", err)
+			ctx.ServerErrorAuto(err)
 			return nil, nil, nil
 		}
 	}
@@ -234,7 +232,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 	}
 	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, resolvedAttemptID)
 	if err != nil {
-		ctx.ServerError("get current jobs", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil, nil
 	}
 	jobs.SortMatrixGroupsByName()

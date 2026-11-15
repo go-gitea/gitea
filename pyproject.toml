@@ -5,9 +5,9 @@ requires-python = ">=3.12"
 
 [dependency-groups]
 dev = [
-  "djlint==1.47.1",
+  "djlint==1.49.9",
   "yamllint==1.38.0",
-  "zizmor==1.31.1",
+  "zizmor==1.32.0",
 ]
 
 [tool.djlint]

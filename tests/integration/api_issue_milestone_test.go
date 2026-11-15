@@ -49,9 +49,11 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	apiMilestone2 := DecodeJSON(t, resp, &structs.Milestone{})
 	assert.EqualValues(t, "closed", apiMilestone2.State)
 
-	req = NewRequestWithJSON(t, "PATCH", urlStr, map[string]any{"due_on": ""}).AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	assert.Nil(t, DecodeJSON(t, resp, &structs.Milestone{}).Deadline)
+	for _, dueOn := range []any{"", nil} {
+		req = NewRequestWithJSON(t, "PATCH", urlStr, map[string]any{"due_on": dueOn}).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		assert.Nil(t, DecodeJSON(t, resp, &structs.Milestone{}).Deadline)
+	}
 
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/milestones", owner.Name, repo.Name), structs.CreateMilestoneOption{
 		Title:       "wow",

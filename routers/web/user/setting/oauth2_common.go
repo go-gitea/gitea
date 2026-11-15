@@ -44,7 +44,7 @@ func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context, app *auth.O
 
 	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-			ctx.ServerError("RenderUserOrgHeader", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -70,7 +70,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 		SkipSecondaryAuthorization: form.SkipSecondaryAuthorization,
 	})
 	if err != nil {
-		ctx.ServerError("CreateOAuth2Application", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"), true)
 	ctx.Data["ClientSecret"], err = app.GenerateClientSecret(ctx)
 	if err != nil {
-		ctx.ServerError("GenerateClientSecret", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -91,15 +91,11 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 func (oa *OAuth2CommonHandlers) EditShow(ctx *context.Context) {
 	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		if auth.IsErrOAuthApplicationNotFound(err) {
-			ctx.NotFound(err)
-			return
-		}
-		ctx.ServerError("GetOAuth2ApplicationByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if app.UID != oa.ownerID() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	oa.renderEditPage(ctx, app)
@@ -112,15 +108,11 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 	if ctx.HasError() {
 		app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 		if err != nil {
-			if auth.IsErrOAuthApplicationNotFound(err) {
-				ctx.NotFound(err)
-				return
-			}
-			ctx.ServerError("GetOAuth2ApplicationByID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if app.UID != oa.ownerID() {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 		oa.renderEditPage(ctx, app)
@@ -136,7 +128,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 		SkipSecondaryAuthorization: form.SkipSecondaryAuthorization,
 	})
 	if err != nil {
-		ctx.ServerError("UpdateOAuth2Application", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -150,20 +142,16 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		if auth.IsErrOAuthApplicationNotFound(err) {
-			ctx.NotFound(err)
-			return
-		}
-		ctx.ServerError("GetOAuth2ApplicationByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if app.UID != oa.ownerID() {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	ctx.Data["ClientSecret"], err = app.GenerateClientSecret(ctx)
 	if err != nil {
-		ctx.ServerError("GenerateClientSecret", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -177,12 +165,12 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.ServerError("GetOAuth2ApplicationByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := auth.DeleteOAuth2Application(ctx, app.ID, oa.ownerID()); err != nil {
-		ctx.ServerError("DeleteOAuth2Application", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -196,24 +184,24 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 	grant, err := auth.GetOAuth2GrantByID(ctx, ctx.PathParamInt64("grantId"))
 	if err != nil {
-		ctx.ServerError("GetOAuth2GrantByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	// grants belong to individual users, so this also rejects the instance-wide
 	// (owner nil, ID 0) and organization handlers without assuming who routes here
 	if grant == nil || oa.Owner == nil || grant.UserID != oa.Owner.ID {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
 	if err != nil {
-		ctx.ServerError("GetOAuth2ApplicationByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := auth.RevokeOAuth2Grant(ctx, grant.ID, oa.ownerID()); err != nil {
-		ctx.ServerError("RevokeOAuth2Grant", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
