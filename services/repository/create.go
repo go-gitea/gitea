@@ -55,10 +55,6 @@ type CreateRepoOptions struct {
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir string, opts CreateRepoOptions) error {
-	if err := git.InitRepositoryLocal(ctx, tmpDir, false, repo.ObjectFormatName, ""); err != nil {
-		return fmt.Errorf("git init: %w", err)
-	}
-
 	// README
 	data, err := options.Readme(opts.Readme)
 	if err != nil {
@@ -120,6 +116,13 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 		}
 	}
 
+	// the initial commit must only contain the files written above, so start from a fresh git dir
+	if err = util.RemoveAllWithRetry(filepath.Join(tmpDir, ".git")); err != nil {
+		return fmt.Errorf("remove git dir: %w", err)
+	}
+	if err = git.InitRepositoryLocal(ctx, tmpDir, false, repo.ObjectFormatName, ""); err != nil {
+		return fmt.Errorf("git init: %w", err)
+	}
 	return nil
 }
 
