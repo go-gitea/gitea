@@ -2,6 +2,7 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  vertical-align: middle; /* align buttons with/without svg icon */
   min-width: 0;
   outline: none;
   font-family: var(--fonts-regular);
