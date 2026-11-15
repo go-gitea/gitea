@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
 	"testing"
 
@@ -37,7 +36,7 @@ func TestAddOauth(t *testing.T) {
 				"--name", "test",
 				"--provider", "github",
 				"--key", "some_key",
-				"--secret", "some_secret",
+				"--secret-file", secretPath,
 			},
 			config: &oauth2.Source{
 				Scopes:       []string{},
@@ -115,17 +114,6 @@ func TestAddOauth(t *testing.T) {
 			twoFactorPolicy: "skip",
 		},
 	}
-
-	fileCase := testCases[0]
-	fileCase.name = "secret from file"
-	fileCase.args = slices.Clone(fileCase.args)
-	for i, arg := range fileCase.args {
-		if arg == "--secret" {
-			fileCase.args[i], fileCase.args[i+1] = "--secret-file", secretPath
-			break
-		}
-	}
-	testCases = append(testCases, fileCase)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -248,7 +236,7 @@ func TestUpdateOauth(t *testing.T) {
 				"--name", "test",
 				"--provider", "gitlab",
 				"--key", "new_key",
-				"--secret", "new_secret",
+				"--secret-file", secretPath,
 			},
 			authSource: &auth_model.Source{
 				ID:       1,
@@ -323,17 +311,6 @@ func TestUpdateOauth(t *testing.T) {
 			},
 		},
 	}
-
-	fileCase := testCases[1]
-	fileCase.name = "secret from file"
-	fileCase.args = slices.Clone(fileCase.args)
-	for i, arg := range fileCase.args {
-		if arg == "--secret" {
-			fileCase.args[i], fileCase.args[i+1] = "--secret-file", secretPath
-			break
-		}
-	}
-	testCases = append(testCases, fileCase)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
