@@ -57,6 +57,14 @@ func TestAPITwoFactor(t *testing.T) {
 		AddBasicAuth(user.Name)
 	req.Header.Set("X-Gitea-OTP", passcode)
 	MakeRequest(t, req, http.StatusUnauthorized)
+
+	for range 4 {
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/user").AddBasicAuth(user.Name).SetHeader("X-Gitea-OTP", "0000000"), http.StatusUnauthorized)
+	}
+	nextPasscode, err := totp.GenerateCode(otpKey.Secret(), time.Now().Add(30*time.Second))
+	assert.NoError(t, err)
+	resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/user").AddBasicAuth(user.Name).SetHeader("X-Gitea-OTP", nextPasscode), http.StatusUnauthorized)
+	assert.Contains(t, resp.Body.String(), "too many failed OTP attempts")
 }
 
 func TestBasicAuthWithWebAuthn(t *testing.T) {
