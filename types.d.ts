@@ -20,6 +20,7 @@ declare module 'idiomorph' {
       morphStyle: 'innerHTML' | 'outerHTML',
       callbacks?: {
         beforeNodeMorphed?: (oldNode: Node, newNode: Node) => boolean,
+        beforeAttributeUpdated?: (attributeName: string, element: Element, updateType: 'update' | 'remove') => boolean,
       },
     }): Node[];
   }
