@@ -4,95 +4,69 @@
 package bleve
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
 	"gitea.dev/models/db"
-	indexer_module "gitea.dev/modules/indexer"
 	"gitea.dev/modules/indexer/code/internal"
 	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
-	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestBleveIndexerTokenFilter(t *testing.T) {
-	dir := t.TempDir()
-	indexer := NewIndexer(dir)
-	defer indexer.Close()
-
-	_, err := indexer.Init(t.Context())
-	require.NoError(t, err)
-
-	batch := inner_bleve.NewFlushingBatch(indexer.inner.Indexer, maxBatchSize)
-	batch.Index("2", &RepoIndexerData{RepoID: 2, Filename: ".sub-dir/.sub-filename", Content: "mDNS.port2=12345", UpdatedAt: time.Now()})
-	batch.Flush()
-
-	testCases := []struct {
-		keyword     string
-		expectedIDs []int64
-	}{
-		{keyword: "12345", expectedIDs: []int64{2}},
-		{keyword: "DNS", expectedIDs: []int64{2}},
-		{keyword: "mdns", expectedIDs: []int64{2}},
-		{keyword: "port", expectedIDs: []int64{2}},
-		{keyword: "port2", expectedIDs: []int64{2}},
-		{keyword: ".sub-dir", expectedIDs: []int64{2}},
-		{keyword: "sub-file", expectedIDs: []int64{2}}, // prefix matching? not sure whether this behavior is wanted
-		{keyword: "filename", expectedIDs: []int64{2}},
-		{keyword: "name", expectedIDs: []int64{}},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.keyword, func(t *testing.T) {
-			_, results, _, err := indexer.Search(t.Context(), &internal.SearchOptions{
-				Paginator: &db.ListOptions{Page: 1, PageSize: 1},
-				Keyword:   testCase.keyword,
-			})
-			require.NoError(t, err)
-			assert.ElementsMatch(t, testCase.expectedIDs, searchResultIDs(results))
-		})
-	}
-}
-
-func TestBleveIndexerPagesVerifiedCandidates(t *testing.T) {
+func TestBleveSearch(t *testing.T) {
 	indexer := NewIndexer(t.TempDir())
-	defer indexer.Close()
+	t.Cleanup(indexer.Close)
 	_, err := indexer.Init(t.Context())
 	require.NoError(t, err)
 
 	batch := inner_bleve.NewFlushingBatch(indexer.inner.Indexer, maxBatchSize)
-	for i, content := range []string{"abc bcd cde def", "abcdef", "abc bcd cde def", "abcdef", "abc bcd cde def"} {
-		filename := strconv.Itoa(i)
-		require.NoError(t, batch.Index(internal.FilenameIndexerID(1, filename), &RepoIndexerData{RepoID: 1, Filename: filename, Content: content, UpdatedAt: time.Now()}))
+	for _, document := range []RepoIndexerData{
+		{Filename: "hit.go", Content: "abcdef", Language: "Go"},
+		{Filename: "false.go", Content: "abc bcd cde def", Language: "Go"},
+		{Filename: "dir/a\nb.txt", Content: "needle"},
+	} {
+		document.RepoID = 9007199254740993
+		document.UpdatedAt = time.Now().UTC()
+		require.NoError(t, batch.Index(internal.FilenameIndexerID(document.RepoID, document.Filename), &document))
 	}
 	require.NoError(t, batch.Flush())
 
-	var filenames []string
-	for page := 1; page <= 3; page++ {
-		total, results, _, err := indexer.Search(t.Context(), &internal.SearchOptions{
-			Paginator:  &db.ListOptions{Page: page, PageSize: 1},
-			Keyword:    "abcdef",
-			SearchMode: indexer_module.SearchModeExact,
+	for _, testCase := range []struct {
+		name          string
+		term          string
+		path          string
+		page          int
+		total         int64
+		filenames     []string
+		languageCount int
+	}{
+		{name: "short term page past end", term: "abc", page: 3, total: 2, languageCount: 2},
+		{name: "verified language count", term: "abcdef", page: 1, total: 1, filenames: []string{"hit.go"}, languageCount: 1},
+		{name: "global directory with newline filename", term: "needle", path: "dir", page: 1, total: 1, filenames: []string{"dir/a\nb.txt"}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			total, results, languages, err := indexer.Search(t.Context(), &internal.SearchOptions{
+				Terms:     []string{testCase.term},
+				Path:      testCase.path,
+				Paginator: &db.ListOptions{Page: testCase.page, PageSize: 10},
+			})
+			require.NoError(t, err)
+			assert.Equal(t, testCase.total, total)
+			var filenames []string
+			for _, result := range results {
+				assert.EqualValues(t, 9007199254740993, result.RepoID)
+				filenames = append(filenames, result.Filename)
+			}
+			assert.Equal(t, testCase.filenames, filenames)
+			if testCase.languageCount > 0 {
+				require.Len(t, languages, 1)
+				assert.Equal(t, "Go", languages[0].Language)
+				assert.Equal(t, testCase.languageCount, languages[0].Count)
+			} else {
+				assert.Empty(t, languages)
+			}
 		})
-		require.NoError(t, err)
-		require.Len(t, results, util.Iif(page < 3, 1, 0))
-		if page == 3 {
-			assert.EqualValues(t, 2, total)
-		}
-		for _, result := range results {
-			filenames = append(filenames, result.Filename)
-		}
 	}
-	assert.ElementsMatch(t, []string{"1", "3"}, filenames)
-}
-
-func searchResultIDs(result []*internal.SearchResult) []int64 {
-	ids := make([]int64, 0, len(result))
-	for _, hit := range result {
-		ids = append(ids, hit.RepoID)
-	}
-	return ids
 }

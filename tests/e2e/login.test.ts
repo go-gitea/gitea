@@ -8,20 +8,19 @@ test('homepage', async ({page}) => {
   await expect(page.getByRole('img', {name: 'Logo'})).toHaveAttribute('src', '/assets/img/logo.svg');
 });
 
-test('login form in tab order and logout', async ({page}) => {
+test('login form in tab order and logout', async ({page, browserName}) => {
+  const tabKey = {chromium: 'Tab', firefox: 'Tab', webkit: 'Alt+Tab'}[browserName];
   await page.goto('/user/login');
-  await page.getByLabel('Username or Email Address').fill(env.GITEA_TEST_E2E_USER);
-  await page.keyboard.press('Tab');
+  const username = page.getByLabel('Username or Email Address');
+  await expect(username).toBeFocused();
+  await username.fill(env.GITEA_TEST_E2E_USER);
   const password = page.getByLabel('Password');
-  await expect(password).toBeFocused();
-  await password.fill(env.GITEA_TEST_E2E_PASSWORD);
-  await page.keyboard.press('Tab');
-  await expect(page.getByLabel('Remember This Device')).toBeFocused();
-  await page.keyboard.press('Tab');
   const signIn = page.getByRole('button', {name: 'Sign In', exact: true});
-  await expect(signIn).toBeFocused();
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', {name: 'Forgot password?'})).toBeFocused();
+  for (const element of [password, page.getByLabel('Remember This Device'), signIn, page.getByRole('link', {name: 'Forgot password?'})]) {
+    await page.keyboard.press(tabKey);
+    await expect(element).toBeFocused();
+  }
+  await password.fill(env.GITEA_TEST_E2E_PASSWORD);
   await signIn.click();
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeHidden();
   await logout(page);

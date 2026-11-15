@@ -293,8 +293,9 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 
 // GetAffectedFiles returns the affected files between two commits
 func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldCommitID, newCommitID string, env []string) ([]string, error) {
-	if oldCommitID == emptySha1ObjectID.String() || oldCommitID == emptySha256ObjectID.String() {
-		startCommitID, err := repo.GetCommitBranchStart(ctx, env, branchName, newCommitID)
+	// env contains GIT_QUARANTINE_PATH/GIT_OBJECT_DIRECTORY/GIT_ALTERNATE_OBJECT_DIRECTORIES from git push pre-receive hook
+	if IsEmptyObjectID(oldCommitID) {
+		startCommitID, err := getCommitBranchStart(ctx, repo, branchName, newCommitID, env)
 		if err != nil {
 			return nil, err
 		}
@@ -303,32 +304,7 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 		}
 		oldCommitID = startCommitID
 	}
-
-	affectedFiles := make([]string, 0, 32)
-
-	// Run `git diff --name-only` to get the names of the changed files
-	cmd := gitcmd.NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID)
-	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
-	defer stdoutReaderClose()
-	err := cmd.WithEnv(env).WithRepo(repo).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			// Now scan the output from the command
-			scanner := bufio.NewScanner(stdoutReader)
-			for scanner.Scan() {
-				path := strings.TrimSpace(scanner.Text())
-				if len(path) == 0 {
-					continue
-				}
-				affectedFiles = append(affectedFiles, path)
-			}
-			return scanner.Err()
-		}).
-		RunWithStderr(ctx)
-	if err != nil {
-		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.LogString(), err)
-	}
-
-	return affectedFiles, err
+	return getFilesChangedBetweenWithEnv(ctx, repo, oldCommitID, newCommitID, env)
 }
 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.

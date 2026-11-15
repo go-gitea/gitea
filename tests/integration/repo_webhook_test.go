@@ -348,6 +348,22 @@ func Test_WebhookRelease(t *testing.T) {
 		assert.Equal(t, "v0.0.99", payloads[0].Release.TagName)
 		assert.False(t, payloads[0].Release.IsDraft)
 		assert.False(t, payloads[0].Release.IsPrerelease)
+		assert.Nil(t, payloads[0].Changes)
+
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
+		editRelease := func(opts *api.EditReleaseOption) {
+			MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/user2/repo1/releases/%d", payloads[0].Release.ID), opts).AddTokenAuth(token), http.StatusOK)
+		}
+		editRelease(&api.EditReleaseOption{Title: "renamed", TagName: "v0.0.100"})
+		assert.Len(t, payloads, 2)
+		assert.Equal(t, api.HookReleaseUpdated, payloads[1].Action)
+		assert.Equal(t, &api.ChangesPayload{Name: &api.ChangesFromPayload{From: "v0.0.99"}, TagName: &api.ChangesFromPayload{From: "v0.0.99"}}, payloads[1].Changes)
+
+		editRelease(&api.EditReleaseOption{IsDraft: new(true)})
+		editRelease(&api.EditReleaseOption{IsDraft: new(false)})
+		assert.Len(t, payloads, 3)
+		assert.Equal(t, api.HookReleasePublished, payloads[2].Action)
+		assert.Nil(t, payloads[2].Changes)
 	})
 }
 

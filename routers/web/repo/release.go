@@ -207,7 +207,7 @@ func Releases(ctx *context.Context) {
 		RepoID:        ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.ServerError("getReleaseInfos", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for _, rel := range releases {
@@ -256,13 +256,13 @@ func TagsList(ctx *context.Context) {
 
 	releases, err := db.Find[repo_model.Release](ctx, opts)
 	if err != nil {
-		ctx.ServerError("GetReleasesByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	count, err := db.Count[repo_model.Release](ctx, opts)
 	if err != nil {
-		ctx.ServerError("GetReleasesByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -313,11 +313,11 @@ func SingleRelease(ctx *context.Context) {
 		IncludeTags:   true,
 	})
 	if err != nil {
-		ctx.ServerError("getReleaseInfos", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if len(releases) != 1 {
-		ctx.NotFound(err)
+		ctx.NotFound()
 		return
 	}
 
@@ -342,16 +342,12 @@ func SingleRelease(ctx *context.Context) {
 func LatestRelease(ctx *context.Context) {
 	release, err := repo_model.GetLatestRelease(ctx, ctx.Repo.Repository)
 	if err != nil {
-		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound(err)
-			return
-		}
-		ctx.ServerError("GetLatestRelease", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := release.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -363,7 +359,7 @@ func newReleaseCommon(ctx *context.Context) {
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Tags"] = tags
@@ -386,14 +382,14 @@ func NewRelease(ctx *context.Context) {
 	if tagName := ctx.FormString("tag"); tagName != "" {
 		rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 		if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-			ctx.ServerError("GetRelease", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
 		if rel != nil {
 			rel.Repo = ctx.Repo.Repository
 			if err = rel.LoadAttributes(ctx); err != nil {
-				ctx.ServerError("LoadAttributes", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 
@@ -444,7 +440,7 @@ func NewReleasePost(ctx *context.Context) {
 	// the logic should be done before the form error check to make the tmpl has correct variables
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.ServerError("GetRelease", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -481,7 +477,7 @@ func NewReleasePost(ctx *context.Context) {
 		case release_service.IsErrProtectedTagName(err):
 			ctx.JSONError(ctx.Tr("repo.release.tag_name_protected"))
 		default:
-			ctx.ServerError("handleTagReleaseError", err)
+			ctx.ServerErrorAuto(err)
 		}
 	}
 
@@ -563,15 +559,11 @@ func EditRelease(ctx *context.Context) {
 	tagName := ctx.PathParam("*")
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
-		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetRelease", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if rel.IsTag {
-		ctx.NotFound(err) // for a pure tag release, don't allow to edit it as a release
+		ctx.NotFound() // for a pure tag release, don't allow to edit it as a release
 		return
 	}
 
@@ -586,7 +578,7 @@ func EditRelease(ctx *context.Context) {
 
 	rel.Repo = ctx.Repo.Repository
 	if err := rel.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["attachments"] = rel.Attachments
@@ -608,7 +600,7 @@ func EditReleasePost(ctx *context.Context) {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.JSONErrorNotFound(err.Error())
 		} else {
-			ctx.ServerError("GetRelease", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -680,7 +672,7 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound(err)
+			ctx.ServerErrorAuto(err)
 		} else {
 			ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 			redirect()
@@ -718,11 +710,11 @@ func ChangeReleaseReaction(ctx *context.Context) {
 
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.ServerError("GetReleaseForRepoByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if rel.IsTag || rel.IsDraft {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	rel.Repo = ctx.Repo.Repository
@@ -734,26 +726,26 @@ func ChangeReleaseReaction(ctx *context.Context) {
 			ctx.HTTPError(http.StatusForbidden)
 			return
 		} else if err != nil && !errors.Is(err, util.ErrAlreadyExist) {
-			ctx.ServerError("CreateReleaseReaction", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	case "unreact":
 		if err = issues_model.DeleteReleaseReaction(ctx, ctx.Doer.ID, rel.ID, form.Content); err != nil {
-			ctx.ServerError("DeleteReleaseReaction", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	default:
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
 	reactions, err := issues_model.FindReleaseReactions(ctx, rel.ID)
 	if err != nil {
-		ctx.ServerError("FindReleaseReactions", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if _, err = reactions.LoadUsers(ctx, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("LoadUsers", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	renderReactions(ctx, fmt.Sprintf("%s/releases/%d/reactions", ctx.Repo.RepoLink, rel.ID), reactions, release_service.AllowedReleaseReactions())

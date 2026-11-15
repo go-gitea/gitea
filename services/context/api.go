@@ -74,25 +74,6 @@ type APIEmpty struct{}
 // swagger:response string
 type APIString string
 
-// APIErrorInternal responds with error message, status is 500
-func (ctx *APIContext) APIErrorInternal(err error) {
-	ctx.apiErrorInternal(1, err)
-}
-
-func (ctx *APIContext) apiErrorInternal(skip int, err error) {
-	log.ErrorWithSkip(skip+1, "InternalServerError: %v", err)
-
-	var message string
-	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
-		message = err.Error()
-	}
-
-	ctx.JSON(http.StatusInternalServerError, APIError{
-		Message: message,
-		URL:     setting.API.SwaggerURL,
-	})
-}
-
 // APIErrorNotFound handles 404s for APIContext
 func (ctx *APIContext) APIErrorNotFound(msg ...string) {
 	ctx.JSON(http.StatusNotFound, APIError{
@@ -104,9 +85,13 @@ func (ctx *APIContext) APIErrorNotFound(msg ...string) {
 // APIError responds with an error message to client.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) APIError(status int, msg string) {
+	ctx.apiError(1, status, msg)
+}
+
+func (ctx *APIContext) apiError(skip, status int, msg string) {
 	message := msg
 	if status == http.StatusInternalServerError {
-		log.ErrorWithSkip(1, "APIError: %s", message)
+		log.ErrorWithSkip(skip+1, "APIError: %s", message)
 
 		if setting.IsProd && !(ctx.Doer != nil && ctx.Doer.IsAdmin) {
 			message = ""
@@ -121,11 +106,19 @@ func (ctx *APIContext) APIError(status int, msg string) {
 
 // APIErrorAuto use error check function to determine the response code
 func (ctx *APIContext) APIErrorAuto(err error) {
+	ctx.apiErrorAuto(1, err)
+}
+
+func (ctx *APIContext) apiErrorAuto(skip int, err error) {
 	if errMsg, code := util.ErrorUnwrapForUser(err, ctx.Locale); errMsg != "" {
-		ctx.APIError(code, errMsg)
+		ctx.apiError(skip+1, code, errMsg)
 		return
 	}
-	ctx.apiErrorInternal(1, err)
+	ctx.apiError(skip+1, http.StatusInternalServerError, err.Error())
+}
+
+func (ctx *APIContext) APIErrorInternal(err error) {
+	ctx.apiErrorAuto(1, err)
 }
 
 type apiContextKeyType struct{}

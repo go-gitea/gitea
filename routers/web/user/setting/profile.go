@@ -44,6 +44,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
+	ctx.Data["ForceUserActivityVisibility"] = setting.Service.ForceUserActivityVisibility
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -91,7 +92,7 @@ func ProfilePost(ctx *context.Context) {
 		Website:             optional.Some(form.Website),
 		Location:            optional.Some(form.Location),
 		Visibility:          optional.Some(form.Visibility),
-		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
+		KeepActivityPrivate: util.Iif(setting.Service.ForceUserActivityVisibility == "", optional.Some(form.KeepActivityPrivate), nil),
 	}); err != nil {
 		ctx.JSONErrorAuto(err)
 		return
@@ -189,7 +190,7 @@ func Organization(ctx *context.Context) {
 
 	orgs, total, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
-		ctx.ServerError("FindOrgs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -213,13 +214,13 @@ func Repos(ctx *context.Context) {
 	}
 	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{OwnerID: ctx.Doer.ID, Private: true, ListOptions: opts})
 	if err != nil {
-		ctx.ServerError("GetUserRepositories", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for i := range repos {
 		if repos[i].IsFork {
 			if err := repos[i].GetBaseRepo(ctx); err != nil {
-				ctx.ServerError("GetBaseRepo", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -240,7 +241,7 @@ func Appearance(ctx *context.Context) {
 	var hiddenCommentTypes *big.Int
 	val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
 	if err != nil {
-		ctx.ServerError("GetUserSetting", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	hiddenCommentTypes, _ = new(big.Int).SetString(val, 10) // we can safely ignore the failed conversion here
@@ -300,7 +301,7 @@ func UpdateUserLang(ctx *context.Context) {
 		Language: optional.Some(form.Language),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
-		ctx.ServerError("UpdateUser", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -316,7 +317,7 @@ func UpdateUserLang(ctx *context.Context) {
 func UpdateUserHiddenComments(ctx *context.Context) {
 	err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes, forms.UserHiddenCommentTypesFromRequest(ctx).String())
 	if err != nil {
-		ctx.ServerError("SetUserSetting", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

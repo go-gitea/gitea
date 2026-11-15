@@ -150,6 +150,23 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	}
 
 	org := organization.OrgFromUser(o)
+	canViewRoles := false
+	if !user_model.IsPublicOnlyDoer(ctx.Doer) {
+		canViewRoles = ctx.Doer.ID == ctx.ContextUser.ID || user_model.DoerIsSiteAdminFullAccess(ctx.Doer)
+		if !canViewRoles && !ctx.Doer.IsRestricted {
+			isDoerMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			canViewRoles = isDoerMember
+		}
+	}
+	if !canViewRoles {
+		ctx.JSON(http.StatusOK, op)
+		return
+	}
+
 	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)

@@ -345,16 +345,13 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 func generateGitEnv(opts *private.HookOptions) (env []string) {
 	env = os.Environ()
 	if opts.GitAlternativeObjectDirectories != "" {
-		env = append(env,
-			private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
+		env = append(env, private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
 	}
 	if opts.GitObjectDirectory != "" {
-		env = append(env,
-			private.GitObjectDirectory+"="+opts.GitObjectDirectory)
+		env = append(env, private.GitObjectDirectory+"="+opts.GitObjectDirectory)
 	}
 	if opts.GitQuarantinePath != "" {
-		env = append(env,
-			private.GitQuarantinePath+"="+opts.GitQuarantinePath)
+		env = append(env, private.GitQuarantinePath+"="+opts.GitQuarantinePath)
 	}
 	return env
 }

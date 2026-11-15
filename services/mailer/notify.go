@@ -188,7 +188,7 @@ func (m *mailNotifier) PullReviewDismiss(ctx context.Context, doer *user_model.U
 	}
 }
 
-func (m *mailNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
+func (m *mailNotifier) NewRelease(ctx context.Context, _doer *user_model.User, rel *repo_model.Release) {
 	if err := rel.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return

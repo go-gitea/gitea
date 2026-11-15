@@ -273,7 +273,11 @@ func EditTeam(ctx *context.APIContext) {
 		team.CanCreateOrgRepo = team.IsOwnerTeam() || *form.CanCreateOrgRepo
 	}
 
-	if len(form.Name) > 0 {
+	if len(form.Name) > 0 && form.Name != team.Name {
+		if team.IsOwnerTeam() {
+			ctx.APIError(http.StatusUnprocessableEntity, "the owner team cannot be renamed")
+			return
+		}
 		team.Name = form.Name
 	}
 
