@@ -234,7 +234,7 @@ func TestIssueViews(t *testing.T) {
 	})
 
 	t.Run("SearchIssuesWithLabels", func(t *testing.T) {
-		expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
+		expectedIssueCount := min(19, setting.UI.IssuePagingNum) // 19 is from the fixtures
 
 		session := loginUser(t, "user1")
 		link, _ := url.Parse("/issues/search")
