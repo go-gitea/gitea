@@ -74,7 +74,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	canAttemptMerge := data.hasPermToMerge && len(mergeStyles) > 0 && !prInfo.IsPullRequestBroken && prInfo.workInProgressPrefix == "" && !data.hasOpenDependencies
 	canMergeNow := canAttemptMerge && mergeable && (!data.hasOverridableBlockers || data.canBypassProtection)
 	canAutoMerge := canAttemptMerge && (mergeable || pull.IsFilesConflicted() || pull.IsChecking())
-	data.IsReady = canMergeNow && !data.hasOverridableBlockers && !pull.IsEmpty() && (data.StatusCheckData == nil || data.StatusCheckData.AllPassed())
+	data.IsReadyToMerge = canMergeNow && !data.hasOverridableBlockers && !pull.IsEmpty() && (data.StatusCheckData == nil || data.StatusCheckData.AllPassed())
 	if len(mergeStyles) == 0 && hasUnsignableStyle {
 		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.require_signed_wont_sign"))
 		if errWontSign, ok := data.mergeSigningError.(*asymkey_service.ErrWontSign); ok {
@@ -148,7 +148,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"textMergeTitle":       ctx.Locale.Tr("form.CommitMessage"),
 		"textMergeBlocked":     ctx.Locale.Tr("repo.pulls.merge_blocked_by_requirements"),
 
-		"isReady":                      data.IsReady,
+		"isReadyToMerge":               data.IsReadyToMerge,
 		"canMergeNow":                  canMergeNow,
 		"canAutoMerge":                 canAutoMerge && (!canMergeNow || data.hasOverridableBlockers),
 		"allOverridableChecksOk":       !data.hasOverridableBlockers,

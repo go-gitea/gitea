@@ -1048,13 +1048,18 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 		return
 	}
 	approvals := issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
-	allowlistKey := util.Iif(pb.EnableApprovalsWhitelist, "_allowlist_", "_")
+	requiredKey1, requiredKeyN := "repo.pulls.approvals_required_1", "repo.pulls.approvals_required_n"
+	grantedKey1, grantedKeyN := "repo.pulls.approvals_granted_1", "repo.pulls.approvals_granted_n"
+	if pb.EnableApprovalsWhitelist {
+		requiredKey1, requiredKeyN = "repo.pulls.approvals_required_allowlist_1", "repo.pulls.approvals_required_allowlist_n"
+		grantedKey1, grantedKeyN = "repo.pulls.approvals_granted_allowlist_1", "repo.pulls.approvals_granted_allowlist_n"
+	}
 	if approvals < pb.RequiredApprovals {
-		reviewBlockers = append([]template.HTML{ctx.Locale.TrN(pb.RequiredApprovals, "repo.pulls.approvals_required"+allowlistKey+"1", "repo.pulls.approvals_required"+allowlistKey+"n", pb.RequiredApprovals)}, reviewBlockers...)
+		reviewBlockers = append([]template.HTML{ctx.Locale.TrN(pb.RequiredApprovals, requiredKey1, requiredKeyN, pb.RequiredApprovals)}, reviewBlockers...)
 	}
 	review := &pullMergeBoxSection{StatusIcon: "octicon-check", StatusIconClass: "tw-bg-green", SectionTitle: ctx.Locale.Tr("repo.pulls.changes_approved"), SectionDetails: reviewBlockers}
 	if approvals > 0 {
-		review.SectionDetails = append(review.SectionDetails, ctx.Locale.TrN(approvals, "repo.pulls.approvals_granted"+allowlistKey+"1", "repo.pulls.approvals_granted"+allowlistKey+"n", approvals))
+		review.SectionDetails = append(review.SectionDetails, ctx.Locale.TrN(approvals, grantedKey1, grantedKeyN, approvals))
 	}
 	if len(reviewBlockers) > 0 {
 		data.hasOverridableBlockers = true

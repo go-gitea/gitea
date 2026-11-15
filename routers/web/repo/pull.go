@@ -250,7 +250,7 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 
 type pullMergeBoxData struct {
 	ReloadingInterval int
-	IsReady           bool
+	IsReadyToMerge    bool
 
 	StatusCheckData *pullCommitStatusCheckData
 

@@ -20,6 +20,10 @@
   padding: 16px;
 }
 
+.merge-section .item-title {
+  line-height: 24px;
+}
+
 .merge-section:has(form) > .item:not(.merge-box-footer),
 .merge-section:has(form) .merge-box-command-link {
   display: none;
@@ -37,6 +41,10 @@
   color: var(--color-text-light-2);
 }
 
+.merge-box-file {
+  padding: 6px 0;
+}
+
 .merge-box-detail code {
   line-height: 1;
   color: var(--color-primary);
@@ -52,6 +60,11 @@
   display: none;
 }
 
+.merge-box-checks-body {
+  max-height: 300px;
+  padding: 0 16px; /* align with the section items */
+}
+
 .merge-box-chevron {
   color: var(--color-text-light-2);
   transition: transform 0.15s;
@@ -63,6 +76,14 @@ details[open] > summary > .merge-box-chevron {
 
 .merge-box-checks-group:only-of-type[open] > summary {
   display: none;
+}
+
+.merge-box-auto-merge-desc {
+  flex: 1 1 240px; /* wrap below the button on narrow screens */
+}
+
+.merge-box-form {
+  min-height: 38px;
 }
 
 .merge-box-menu .item > .svg {

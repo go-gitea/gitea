@@ -7,9 +7,9 @@
 		data-pull-link="{{$issue.Link}}"
 	{{end}}
 >
-	<div class="timeline-avatar merge-box-icon{{if $issue.PullRequest.HasMerged}} tw-bg-purple{{else if $mergeBoxData.IsReady}} tw-bg-green{{end}}">{{svg "octicon-git-merge" 24}}</div>
+	<div class="timeline-avatar merge-box-icon{{if $issue.PullRequest.HasMerged}} tw-bg-purple{{else if $mergeBoxData.IsReadyToMerge}} tw-bg-green{{end}}">{{svg "octicon-git-merge" 24}}</div>
 	<div class="content">
-		<div class="ui segment fitted{{if $issue.PullRequest.HasMerged}} tw-border-purple{{else if $mergeBoxData.IsReady}} tw-border-green{{end}}">
+		<div class="ui segment fitted{{if $issue.PullRequest.HasMerged}} tw-border-purple{{else if $mergeBoxData.IsReadyToMerge}} tw-border-green{{end}}">
 			<div class="merge-section flex-divided-list items-with-main">
 			{{if $mergeBoxData.ReviewSection}}
 				<div class="item">{{template "repo/issue/view_content/pull_merge_section" (dict "MergeBoxSection" $mergeBoxData.ReviewSection)}}</div>
@@ -45,10 +45,10 @@
 						{{if $mergeBoxData.CanCancelAutoMerge}}
 							<button type="button" class="ui button link-action tw-shrink-0" data-url="{{$issue.Link}}/cancel_auto_merge">{{ctx.Locale.Tr "repo.pulls.auto_merge_cancel_schedule"}}</button>
 						{{end}}
-						<span class="tw-flex-[1_1_240px]">{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_desc" $mergeBoxData.AutoMerge.Doer.GetDisplayName (ctx.Locale.Tr (print "repo.pulls.merge_style_short." $mergeBoxData.AutoMerge.MergeStyle))}}</span>
+						<span class="merge-box-auto-merge-desc">{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_desc" $mergeBoxData.AutoMerge.Doer.GetDisplayName (ctx.Locale.Tr (print "repo.pulls.merge_style_short." $mergeBoxData.AutoMerge.MergeStyle))}}</span>
 					{{else if $mergeBoxData.MergeFormProps}}
 						{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
-						<div class="tw-flex-auto tw-min-w-0 tw-min-h-[38px]" data-merge-form-props="{{JsonUtils.EncodeToString $mergeBoxData.MergeFormProps}}"></div>
+						<div class="merge-box-form tw-flex-auto tw-min-w-0" data-merge-form-props="{{JsonUtils.EncodeToString $mergeBoxData.MergeFormProps}}"></div>
 					{{end}}
 					{{if $mergeBoxData.ShowPullCommands}}
 						<span class="merge-box-command-link tw-text-12 tw-text-text-light-2">

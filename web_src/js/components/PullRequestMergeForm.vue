@@ -25,7 +25,7 @@ type MergeForm = {
   baseLink: string,
   canMergeNow: boolean, // includes an authorized protection bypass
   defaultMergeStyle: string,
-  isReady: boolean,
+  isReadyToMerge: boolean,
   mergeMessageFieldPlaceHolder: string,
   mergeStyles: MergeStyle[],
   pullHeadCommitID: string,
@@ -68,7 +68,7 @@ const buttonTexts = computed(() => {
   return {button: detail.textDoMerge, confirm: detail.textConfirmMerge ?? detail.textDoMerge};
 });
 
-const mergeButtonStyleClass = computed(() => mergeForm.isReady && mergeStyle.value !== mergeStyleManuallyMerged ? 'green' : '');
+const mergeButtonStyleClass = computed(() => mergeForm.isReadyToMerge && mergeStyle.value !== mergeStyleManuallyMerged ? 'green' : '');
 
 watch(mergeStyle, (val) => {
   forceMerge.value = false;

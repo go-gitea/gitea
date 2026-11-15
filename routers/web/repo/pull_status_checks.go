@@ -16,15 +16,15 @@ import (
 	"gitea.dev/modules/translation"
 )
 
-type statusCheckKind struct{ Name, strokeClass string }
+type statusCheckKind struct{ Name, countTrKey, strokeClass string }
 
 var (
-	statusCheckFailing    = statusCheckKind{"failing", "tw-stroke-red"}
-	statusCheckPending    = statusCheckKind{"pending", "tw-stroke-yellow"}
-	statusCheckInProgress = statusCheckKind{"in_progress", "tw-stroke-yellow"}
-	statusCheckExpected   = statusCheckKind{"expected", "tw-stroke-yellow"}
-	statusCheckSkipped    = statusCheckKind{"skipped", "tw-stroke-grey-light"}
-	statusCheckSuccessful = statusCheckKind{"successful", "tw-stroke-green"}
+	statusCheckFailing    = statusCheckKind{"failing", "repo.pulls.status_checks_failing", "tw-stroke-red"}
+	statusCheckPending    = statusCheckKind{"pending", "repo.pulls.status_checks_pending", "tw-stroke-yellow"}
+	statusCheckInProgress = statusCheckKind{"in_progress", "repo.pulls.status_checks_in_progress", "tw-stroke-yellow"}
+	statusCheckExpected   = statusCheckKind{"expected", "repo.pulls.status_checks_expected", "tw-stroke-yellow"}
+	statusCheckSkipped    = statusCheckKind{"skipped", "repo.pulls.status_checks_skipped", "tw-stroke-grey-light"}
+	statusCheckSuccessful = statusCheckKind{"successful", "repo.pulls.status_checks_successful", "tw-stroke-green"}
 )
 
 var statusCheckKinds = []statusCheckKind{statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckSkipped, statusCheckExpected, statusCheckSuccessful}
@@ -43,7 +43,7 @@ type statusCheckGroup struct {
 }
 
 func (g *statusCheckGroup) Title(locale translation.Locale) template.HTML {
-	return locale.TrN(len(g.Checks), "repo.pulls.status_checks_count_1", "repo.pulls.status_checks_count_n", locale.Tr("repo.pulls.status_checks_"+g.Kind.Name, len(g.Checks)))
+	return locale.TrN(len(g.Checks), "repo.pulls.status_checks_count_1", "repo.pulls.status_checks_count_n", locale.Tr(g.Kind.countTrKey, len(g.Checks)))
 }
 
 func statusCheckKindOf(cs *git_model.CommitStatus, actionsStatuses actions_module.CommitActionsStatusMap) statusCheckKind {
@@ -124,7 +124,7 @@ func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMerg
 	parts := make([]string, 0, len(statusCheckKinds))
 	for _, kind := range statusCheckKinds {
 		if count := d.count(kind); count > 0 {
-			parts = append(parts, string(locale.Tr("repo.pulls.status_checks_"+kind.Name, count)))
+			parts = append(parts, string(locale.Tr(kind.countTrKey, count)))
 		}
 	}
 	section := &pullMergeBoxSection{
