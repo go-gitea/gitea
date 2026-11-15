@@ -8,7 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/alecthomas/chroma/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func lines(s string) (out []template.HTML) {
@@ -178,6 +180,50 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 	assert.Len(t, ret, 2)
 	assert.Equal(t, "<span>a</span>\n", string(ret[0]))
 	assert.Equal(t, "<span>b\n</span>", string(ret[1]))
+}
+
+func TestRenderCodeLinesByLexer(t *testing.T) {
+	for _, test := range []struct {
+		name, code string
+	}{
+		{"test.c", "/* before\ninside <&>\nafter */\nint n = 1;\n"},
+		{"test.py", "s = '''before\ninside λ\nafter'''\nprint(s)"},
+		{"test.sh", "cat <<EOF\nhello $USER\nEOF\necho done\n"},
+		{"test.html", "<script>\n/* before\ninside\nafter */\n</script>\n"},
+		{"test.sql", "-- before\nSELECT 'hello\nworld';\n\nSELECT 2;\n"},
+		{"test.txt", "<>&\n\nλ\rvalue\nend"},
+		{"empty.py", ""},
+		{"empty.txt", ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			lexer := DetectChromaLexerByFileName(test.name, "")
+			full := UnsafeSplitHighlightedLines(RenderCodeByLexer(lexer, test.code))
+			for _, requested := range [][]int{nil, {0}, {1}, {2, 0, 2, -1, 99}, {0, 1, 2, 3, 4, 5, 6}} {
+				want := map[int]template.HTML{}
+				for _, line := range requested {
+					if line >= 0 && line < len(full) {
+						want[line] = template.HTML(full[line])
+					}
+				}
+				assert.Equal(t, want, RenderCodeLinesByLexer(lexer, test.code, requested), "lines=%v", requested)
+			}
+		})
+	}
+}
+
+func TestCodeTokensForLinesStops(t *testing.T) {
+	calls := 0
+	iterator := func() chroma.Token {
+		calls++
+		require.Equal(t, 1, calls, "must stop before requesting the unused tail")
+		return chroma.Token{Type: chroma.CommentMultiline, Value: "/* before\ninside\nafter */\nunused\n"}
+	}
+	selected := codeTokensForLines(iterator, []int{1, 2})
+	assert.Equal(t, []chroma.Token{
+		{Type: chroma.CommentMultiline, Value: "inside\n"},
+		{Type: chroma.CommentMultiline, Value: "after */\n"},
+	}, selected.Tokens())
+	assert.Equal(t, 1, calls)
 }
 
 func TestCodeBlockAttributes(t *testing.T) {

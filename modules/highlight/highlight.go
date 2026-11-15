@@ -110,26 +110,46 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 
 // RenderCodeByLexer returns an HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
-	if lexer == lexers.Fallback {
+	return renderCodeByLexer(lexer, code, nil)
+}
+
+func renderCodeByLexer(lexer chroma.Lexer, code string, filter func(chroma.Iterator) chroma.Iterator) template.HTML {
+	if lexer == lexers.Fallback && filter == nil {
 		return htmlEscape(code) // chroma is 3x slower for plain text
 	}
+	var iterator chroma.Iterator
+	if lexer == lexers.Fallback {
+		iterator = chroma.Literator(chroma.Token{Type: chroma.Text, Value: code})
+	} else {
+		var err error
+		iterator, err = lexer.Tokenise(nil, code)
+		if err != nil {
+			log.Error("Can't tokenize code: %v", err)
+			lexer = lexers.Fallback
+			iterator = chroma.Literator(chroma.Token{Type: chroma.Text, Value: code})
+		}
+	}
+	if filter != nil {
+		iterator = filter(iterator)
+	}
+	if lexer == lexers.Fallback {
+		var output strings.Builder
+		for token := iterator(); token != chroma.EOF; token = iterator() {
+			output.WriteString(string(htmlEscape(token.Value)))
+		}
+		return template.HTML(output.String())
+	}
+
 	formatter := chromahtml.New(chromahtml.WithClasses(true),
 		chromahtml.WithLineNumbers(false),
 		chromahtml.PreventSurroundingPre(true),
 	)
-
-	iterator, err := lexer.Tokenise(nil, code)
-	if err != nil {
-		log.Error("Can't tokenize code: %v", err)
-		return htmlEscape(code)
-	}
-
 	htmlBuf := &bytes.Buffer{}
 	// style not used for live site but need to pass something
-	err = formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
+	err := formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
 	if err != nil {
 		log.Error("Can't format code: %v", err)
-		return htmlEscape(code)
+		return renderCodeByLexer(lexers.Fallback, code, filter)
 	}
 	return template.HTML(util.UnsafeBytesToString(htmlBuf.Bytes()))
 }

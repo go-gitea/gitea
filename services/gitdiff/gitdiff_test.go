@@ -1019,6 +1019,15 @@ func TestHighlightCodeLines(t *testing.T) {
 		ret := highlightLines("a.c", []*DiffLine{{LeftIdx: 1, IsTruncated: true}}, "// anything")
 		assert.Empty(t, ret)
 	})
+	t.Run("MultilineContextBothSides", func(t *testing.T) {
+		file := &DiffFile{Name: "a.c", Sections: []*DiffSection{{Lines: []*DiffLine{
+			{LeftIdx: 2, RightIdx: 3},
+			{LeftIdx: 4, RightIdx: 5, IsTruncated: true},
+		}}}}
+		FillDiffFileHighlightLinesByContent(file, []byte("/*\nleft\n*/\nend\n"), []byte("// intro\n/*\nright\n*/\nend\n"))
+		assert.Equal(t, map[int]template.HTML{1: "<span class=\"cm\">left\n</span>"}, file.highlightedLeftLines.value)
+		assert.Equal(t, map[int]template.HTML{2: "<span class=\"cm\">right\n</span>"}, file.highlightedRightLines.value)
+	})
 }
 
 func TestSyncUserSpecificDiff_UpdatedFiles(t *testing.T) {
