@@ -5,6 +5,8 @@ package repository
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -85,10 +87,33 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			defer content.Close()
 
-			_, err := git_model.NewLFSMetaObject(ctx, repo.ID, p)
+			exist, err := contentStore.Exists(p)
+			if err != nil {
+				log.Error("Repo[%-v]: Error checking if LFS object %-v exists: %v", repo, p, err)
+				return err
+			}
+			if exist {
+				// the object is already in the content store, only use it if the remote delivers the same content
+				hash := sha256.New()
+				written, err := io.Copy(hash, content)
+				if err == nil && written != p.Size {
+					err = lfs.ErrSizeMismatch
+				} else if err == nil && hex.EncodeToString(hash.Sum(nil)) != p.Oid {
+					err = lfs.ErrHashMismatch
+				}
+				if err != nil {
+					log.Error("Repo[%-v]: Error verifying content for LFS meta object %-v: %v", repo, p, err)
+					return err
+				}
+			}
+
+			_, err = git_model.NewLFSMetaObject(ctx, repo.ID, p)
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
 				return err
+			}
+			if exist {
+				return nil
 			}
 
 			if err := contentStore.Put(p, content); err != nil {
@@ -124,32 +149,17 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		log.Trace("Repo[%-v]: LFS object %-v not present in repository", repo, pointerBlob.Pointer)
 
-		exist, err := contentStore.Exists(pointerBlob.Pointer)
-		if err != nil {
-			log.Error("Repo[%-v]: Error checking if LFS object %-v exists: %v", repo, pointerBlob.Pointer, err)
-			return err
+		if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
+			log.Info("Repo[%-v]: LFS object %-v download denied because of LFS_MAX_FILE_SIZE=%d < size %d", repo, pointerBlob.Pointer, setting.LFS.MaxFileSize, pointerBlob.Size)
+			continue
 		}
 
-		if exist {
-			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
-			_, err := git_model.NewLFSMetaObject(ctx, repo.ID, pointerBlob.Pointer)
-			if err != nil {
-				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
+		batch = append(batch, pointerBlob.Pointer)
+		if len(batch) >= lfsClient.BatchSize() {
+			if err := downloadObjects(batch); err != nil {
 				return err
 			}
-		} else {
-			if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
-				log.Info("Repo[%-v]: LFS object %-v download denied because of LFS_MAX_FILE_SIZE=%d < size %d", repo, pointerBlob.Pointer, setting.LFS.MaxFileSize, pointerBlob.Size)
-				continue
-			}
-
-			batch = append(batch, pointerBlob.Pointer)
-			if len(batch) >= lfsClient.BatchSize() {
-				if err := downloadObjects(batch); err != nil {
-					return err
-				}
-				batch = nil
-			}
+			batch = nil
 		}
 	}
 	if len(batch) > 0 {

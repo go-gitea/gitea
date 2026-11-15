@@ -13,6 +13,7 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -67,6 +68,9 @@ func TestMirrorPush(t *testing.T) {
 		})
 		t.Run("WikiDefaultBranchMismatch", func(t *testing.T) {
 			testMirrorPushWikiDefaultBranchMismatch(t, serverURL)
+		})
+		t.Run("LFS", func(t *testing.T) {
+			testMirrorPushLFS(t, serverURL)
 		})
 	})
 }
@@ -179,6 +183,30 @@ func testMirrorPushWikiDefaultBranchMismatch(t *testing.T, u *url.URL) {
 
 	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
+}
+
+func testMirrorPushLFS(t *testing.T, u *url.URL) {
+	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	srcRepo, ownPointer, otherPointer := createRepoWithLFSPointers(t, user, "test-push-mirror-lfs-src")
+
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name: "test-push-mirror-lfs",
+	}, true)
+	require.NoError(t, err)
+
+	session := loginUser(t, user.Name)
+	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
+	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")
+
+	mirrors, _, err := repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
+	require.NoError(t, err)
+	require.Len(t, mirrors, 1)
+	assert.True(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))
+
+	// only the objects of the source repository are pushed
+	unittest.AssertExistsAndLoadBean(t, &git_model.LFSMetaObject{RepositoryID: mirrorRepo.ID, Oid: ownPointer.Oid})
+	unittest.AssertNotExistsBean(t, &git_model.LFSMetaObject{RepositoryID: mirrorRepo.ID, Oid: otherPointer.Oid})
 }
 
 func testCreatePushMirror(t *testing.T, session *TestSession, owner, repo, address, username, password, interval string) {

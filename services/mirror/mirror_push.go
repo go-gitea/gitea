@@ -14,6 +14,7 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitrepo"
@@ -179,7 +180,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			if err != nil {
 				return fmt.Errorf("NewClientFromEndpoint failed: %w", err)
 			}
-			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
+			if err := pushAllLFSObjects(ctx, m.Repo.ID, gitRepo, lfsClient); err != nil {
 				return fmt.Errorf("pushAllLFSObjects failed: %w", err)
 			}
 		}
@@ -213,7 +214,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	return nil
 }
 
-func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient lfs.Client) error {
+func pushAllLFSObjects(ctx context.Context, repoID int64, gitRepo *git.Repository, lfsClient lfs.Client) error {
 	contentStore := lfs.NewContentStore()
 
 	pointerChan := make(chan lfs.PointerBlob)
@@ -228,7 +229,14 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 				return nil, objectError
 			}
 
-			content, err := contentStore.Get(p)
+			// p is taken from the remote's response, it must be an object of this repository
+			meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, p.Oid)
+			if err != nil {
+				log.Error("Error querying LFS meta object %v: %v", p, err)
+				return nil, err
+			}
+
+			content, err := contentStore.Get(meta.Pointer)
 			if err != nil {
 				log.Error("Error reading LFS object %v: %v", p, err)
 			}
@@ -246,6 +254,14 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 
 	var batch []lfs.Pointer
 	for pointerBlob := range pointerChan {
+		if _, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointerBlob.Oid); errors.Is(err, git_model.ErrLFSObjectNotExist) {
+			log.Trace("Skipping LFS object %v which doesn't belong to the repository", pointerBlob.Pointer)
+			continue
+		} else if err != nil {
+			log.Error("Error querying LFS meta object %v: %v", pointerBlob.Pointer, err)
+			return err
+		}
+
 		exists, err := contentStore.Exists(pointerBlob.Pointer)
 		if err != nil {
 			log.Error("Error checking if LFS object %v exists: %v", pointerBlob.Pointer, err)

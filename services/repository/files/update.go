@@ -630,7 +630,11 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 		if err != nil {
 			return nil, err
 		}
-		treeObjectContentReader, err = lfs.ReadMetaObject(pointer)
+		meta, err := git_model.GetLFSMetaObjectByOid(ctx, t.repo.ID, pointer.Oid)
+		if err != nil {
+			return nil, err
+		}
+		treeObjectContentReader, err = lfs.ReadMetaObject(meta.Pointer)
 		if err != nil {
 			return nil, err
 		}

@@ -12,10 +12,13 @@ import (
 	"testing"
 	"time"
 
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/services/contexttest"
 	files_service "gitea.dev/services/repository/files"
 
@@ -480,6 +483,30 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 		}
 		assert.Len(t, filesResponse.Files, 4)
 		assert.Equal(t, expectedFileResponse.Files, filesResponse.Files)
+
+		t.Run("LFSObjectNotInRepo", func(t *testing.T) {
+			content := "object of repo1"
+			pointer := lfs.Pointer{Oid: storeObjectInRepo(t, 1, content), Size: int64(len(content))}
+
+			// commit the pointer as is to a path tracked by LFS
+			restoreLFS := test.MockVariableValue(&setting.LFS.StartServer, false)
+			_, err := files_service.ChangeRepoFiles(t.Context(), repo, ctx.Doer, &files_service.ChangeRepoFilesOptions{
+				Files:     []*files_service.ChangeRepoFile{{Operation: "create", TreePath: "other.bin", ContentReader: strings.NewReader(pointer.StringContent())}},
+				OldBranch: repo.DefaultBranch,
+				NewBranch: repo.DefaultBranch,
+				Message:   "add LFS pointer",
+			})
+			restoreLFS()
+			require.NoError(t, err)
+
+			_, err = files_service.ChangeRepoFiles(t.Context(), repo, ctx.Doer, &files_service.ChangeRepoFilesOptions{
+				Files:     []*files_service.ChangeRepoFile{{Operation: "rename", FromTreePath: "other.bin", TreePath: "other.txt"}},
+				OldBranch: repo.DefaultBranch,
+				NewBranch: repo.DefaultBranch,
+				Message:   "rename LFS pointer",
+			})
+			assert.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+		})
 	})
 }
 
