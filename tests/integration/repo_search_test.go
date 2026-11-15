@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/git"
 	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/indexer/code/gitgrep"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	commitstatus_service "gitea.dev/services/repository/commitstatus"
@@ -149,7 +150,7 @@ func TestWebSearchRepoCommitStatus(t *testing.T) {
 		Repository struct {
 			ID int64 `json:"id"`
 		} `json:"repository"`
-		LatestCommitStatus map[string]any `json:"latest_commit_status"`
+		LatestCommitStatus any `json:"latest_commit_status"`
 	}
 	var results struct {
 		Data []webSearchRepo `json:"data"`
@@ -157,5 +158,7 @@ func TestWebSearchRepoCommitStatus(t *testing.T) {
 	DecodeJSON(t, resp, &results)
 	idx := slices.IndexFunc(results.Data, func(r webSearchRepo) bool { return r.Repository.ID == repo.ID })
 	require.GreaterOrEqual(t, idx, 0)
-	assert.Equal(t, map[string]any{"state": "success", "target_url": "https://example.com/ci"}, results.Data[idx].LatestCommitStatus)
+	latestCommitStatus, err := json.Marshal(results.Data[idx].LatestCommitStatus)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"state":"success","target_url":"https://example.com/ci"}`, string(latestCommitStatus))
 }
