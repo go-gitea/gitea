@@ -5,16 +5,25 @@ package cmd
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/services/auth/source/oauth2"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
 )
 
 func TestAddOauth(t *testing.T) {
+	secretPath := filepath.Join(t.TempDir(), "secret")
+	require.NoError(t, os.WriteFile(secretPath, []byte("some_secret\n"), 0o600))
+
 	testCases := []struct {
 		name            string
 		args            []string
@@ -107,6 +116,17 @@ func TestAddOauth(t *testing.T) {
 		},
 	}
 
+	fileCase := testCases[0]
+	fileCase.name = "secret from file"
+	fileCase.args = slices.Clone(fileCase.args)
+	for i, arg := range fileCase.args {
+		if arg == "--secret" {
+			fileCase.args[i], fileCase.args[i+1] = "--secret-file", secretPath
+			break
+		}
+	}
+	testCases = append(testCases, fileCase)
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var createdSource *auth_model.Source
@@ -146,7 +166,68 @@ func TestAddOauth(t *testing.T) {
 	}
 }
 
+func TestReadOAuthClientSecret(t *testing.T) {
+	read := func(args ...string) (string, error) {
+		var secret string
+		app := &cli.Command{
+			Flags: oauthCLIFlags(),
+			Action: func(ctx context.Context, c *cli.Command) error {
+				var err error
+				secret, err = readOAuthClientSecret(c)
+				return err
+			},
+		}
+		err := app.Run(t.Context(), append([]string{"oauth-test"}, args...))
+		return secret, err
+	}
+	for _, tc := range []struct {
+		name, content, want string
+		wantErr             bool
+	}{
+		{"no newline", "secret", "secret", false},
+		{"newline", "secret\n", "secret", false},
+		{"CRLF", "secret\r\n", "secret", false},
+		{"empty", "", "", true},
+		{"multiple lines", "secret\nother", "", true},
+		{"too large", strings.Repeat("s", 64*1024+1), "", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "secret")
+			require.NoError(t, os.WriteFile(path, []byte(tc.content), 0o600))
+			secret, err := read("--secret-file", path)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Empty(t, secret)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.want, secret)
+			}
+		})
+	}
+	path := filepath.Join(t.TempDir(), "secret")
+	require.NoError(t, os.WriteFile(path, []byte("secret"), 0o600))
+	_, err := read("--secret", "inline", "--secret-file", path)
+	assert.EqualError(t, err, "--secret and --secret-file cannot be used together")
+	_, err = read("--secret-file", "relative-secret")
+	assert.EqualError(t, err, "--secret-file must be an absolute path")
+	_, err = read("--secret-file", t.TempDir())
+	assert.Error(t, err)
+	_, err = read("--secret-file", path+"-missing")
+	assert.ErrorIs(t, err, os.ErrNotExist)
+	if runtime.GOOS != "windows" {
+		require.NoError(t, os.Symlink(path, path+"-link"))
+		_, err = read("--secret-file", path+"-link")
+		assert.Error(t, err)
+		require.NoError(t, os.Chmod(path, 0o640))
+		_, err = read("--secret-file", path)
+		assert.Error(t, err)
+	}
+}
+
 func TestUpdateOauth(t *testing.T) {
+	secretPath := filepath.Join(t.TempDir(), "secret")
+	require.NoError(t, os.WriteFile(secretPath, []byte("new_secret\n"), 0o600))
+
 	testCases := []struct {
 		name       string
 		args       []string
@@ -242,6 +323,17 @@ func TestUpdateOauth(t *testing.T) {
 			},
 		},
 	}
+
+	fileCase := testCases[1]
+	fileCase.name = "secret from file"
+	fileCase.args = slices.Clone(fileCase.args)
+	for i, arg := range fileCase.args {
+		if arg == "--secret" {
+			fileCase.args[i], fileCase.args[i+1] = "--secret-file", secretPath
+			break
+		}
+	}
+	testCases = append(testCases, fileCase)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
