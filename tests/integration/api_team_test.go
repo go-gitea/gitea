@@ -225,6 +225,23 @@ type TeamSearchResults struct {
 	Data []*api.Team `json:"data"`
 }
 
+func TestAPITeamRenameOwnerTeam(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	ownerTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1, Name: organization.OwnerTeamName})
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteOrganization)
+	teamURL := fmt.Sprintf("/api/v1/teams/%d", ownerTeam.ID)
+
+	req := NewRequestWithJSON(t, "PATCH", teamURL, api.EditTeamOption{Name: "renamed"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: ownerTeam.ID, Name: organization.OwnerTeamName})
+
+	description := "owner team"
+	req = NewRequestWithJSON(t, "PATCH", teamURL, api.EditTeamOption{Name: organization.OwnerTeamName, Description: &description}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+	unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: ownerTeam.ID, Name: organization.OwnerTeamName, Description: description})
+}
+
 func TestAPITeamSearch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
