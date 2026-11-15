@@ -37,19 +37,19 @@ func Packages(ctx *context.Context) {
 		IsInternal: optional.Some(false),
 	})
 	if err != nil {
-		ctx.ServerError("SearchLatestVersions", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	pds, err := packages.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		ctx.ServerError("GetPackageDescriptors", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	hasPackages, err := packages.HasRepositoryPackages(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("HasRepositoryPackages", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

@@ -85,12 +85,6 @@
   padding: 8px;
 }
 
-.issue-content-right .ui.list.labels-list {
-  display: flex;
-  gap: var(--gap-inline);
-  flex-wrap: wrap;
-}
-
 .issue-content-right .empty-list {
   font-size: 12px;
 }

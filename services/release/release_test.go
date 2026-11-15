@@ -309,7 +309,7 @@ func TestRelease_createTag(t *testing.T) {
 			IsPrerelease: testCase.isPrerelease,
 			IsTag:        false,
 		}
-		_, err = createTag(t.Context(), gitRepo, release, "")
+		err = createTag(t.Context(), gitRepo, release, "")
 		assert.NoError(t, err)
 		if !testCase.isDraft && !testCase.isPrerelease {
 			assert.NotEmpty(t, release.CreatedUnix)
@@ -322,7 +322,7 @@ func TestRelease_createTag(t *testing.T) {
 		if !testCase.isDraft {
 			release.Note = "Changed note"
 		}
-		_, err = createTag(t.Context(), gitRepo, release, "")
+		err = createTag(t.Context(), gitRepo, release, "")
 		assert.NoError(t, err)
 		if testCase.isDraft {
 			assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))

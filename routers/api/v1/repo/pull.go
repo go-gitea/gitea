@@ -38,7 +38,6 @@ import (
 	"gitea.dev/services/gitdiff"
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
-	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 )
@@ -745,7 +744,6 @@ func EditPullRequest(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
 	}
 
 	// update allow edits

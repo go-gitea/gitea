@@ -54,7 +54,6 @@ func TestMirrorPull(t *testing.T) {
 		Description: opts.Description,
 		IsPrivate:   opts.Private,
 		IsMirror:    opts.Mirror,
-		Status:      repo_model.RepositoryBeingMigrated,
 	}, false)
 	assert.NoError(t, err)
 	assert.True(t, mirrorRepo.IsMirror, "expected pull-mirror repo to be marked as a mirror immediately after its creation")

@@ -434,12 +434,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
-				ctx.NotFound(nil)
+				ctx.NotFound()
 				return
 			}
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.AnyRepoUnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			}
@@ -547,7 +547,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound(nil)
+				ctx.NotFound()
 				return
 			}
 		}, explore.Code)
@@ -911,7 +911,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode {
-				ctx.NotFound(nil)
+				ctx.NotFound()
 			}
 		}
 	}
@@ -922,12 +922,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			switch ctx.ContextUser.Visibility {
 			case structs.VisibleTypePrivate:
 				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			case structs.VisibleTypeLimited:
 				if ctx.Doer == nil {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			}
@@ -1131,7 +1131,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				})
 			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-					ctx.NotFound(nil)
+					ctx.NotFound()
 					return
 				}
 			})
@@ -1280,12 +1280,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
 		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
-		m.PathGroup("/compare/*", func(g *web.RouterPathGroup) {
-			g.MatchPath("GET", "/<basehead:*>.diff", repo.MustBeNotEmpty, repo.DownloadCompareDiff)
-			g.MatchPath("GET", "/<basehead:*>.patch", repo.MustBeNotEmpty, repo.DownloadComparePatch)
-			g.MatchPath("GET", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
-			g.MatchPath("POST", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind[*forms.CreateIssueForm](), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
-		})
+		m.Get("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
+		m.Post("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind[*forms.CreateIssueForm](), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 		m.Get("/pulls/new/*", repo.PullsNewRedirect)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo code: find, compare, list
@@ -1794,6 +1790,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req.Context())
 		defer routing.RecordFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))()
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	})
 }

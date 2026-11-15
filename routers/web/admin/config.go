@@ -158,11 +158,11 @@ loop:
 	}
 	_, oldSettings, err := system_model.GetAllSettings(ctx)
 	if err != nil {
-		ctx.ServerError("GetAllSettings", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := system_model.SetSettings(ctx, configSettings); err != nil {
-		ctx.ServerError("SetSettings", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	for _, key := range slices.Sorted(maps.Keys(configSettings)) {

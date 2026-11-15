@@ -235,7 +235,7 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 func MigrateRetryPost(ctx *context.Context) {
 	if err := task.RetryMigrateTask(ctx, ctx.Repo.Repository.ID); err != nil {
 		log.Error("Retry task failed: %v", err)
-		ctx.ServerError("task.RetryMigrateTask", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONOK()
@@ -251,7 +251,7 @@ func MigrateCancelPost(ctx *context.Context) {
 	if migratingTask.Status == structs.TaskStatusRunning {
 		taskUpdate := &admin_model.Task{ID: migratingTask.ID, Status: structs.TaskStatusFailed, Message: "canceled"}
 		if err = taskUpdate.UpdateCols(ctx, "status", "message"); err != nil {
-			ctx.ServerError("task.UpdateCols", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

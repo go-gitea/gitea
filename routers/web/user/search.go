@@ -28,7 +28,7 @@ func SearchCandidates(ctx *context.Context) {
 		ListOptions: db.ListOptions{PageSize: setting.UI.MembersPagingNum},
 	})
 	if err != nil {
-		ctx.ServerError("Unable to search users", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]any{"data": convert.ToUsers(ctx, ctx.Doer, users)})
