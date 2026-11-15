@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/perm"
@@ -20,6 +21,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 )
@@ -217,6 +219,7 @@ func CreateDeployKey(ctx *context.APIContext) {
 		HandleAddKeyError(ctx, err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryDeployKeyAdd, ctx.Repo.Repository, "deploy_key", key.Name)
 	ctx.JSON(http.StatusCreated, convert.ToDeployKey(ctx, ctx.Repo.Repository, key))
 }
 
@@ -257,6 +260,7 @@ func CreateDeployToken(ctx *context.APIContext) {
 		HandleAddKeyError(ctx, err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryDeployKeyAdd, ctx.Repo.Repository, "deploy_key", key.Name)
 
 	ctx.JSON(http.StatusCreated, convert.ToDeployKey(ctx, ctx.Repo.Repository, key))
 }
