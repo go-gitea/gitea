@@ -30,6 +30,7 @@ Gitea's private styles use `g-` prefix.
   cursor: pointer;
   text-decoration: none;
   text-align: left;
+  line-height: inherit;
   margin: 0;
   padding: 0;
 }
@@ -37,6 +38,7 @@ Gitea's private styles use `g-` prefix.
 .interact-fg { color: inherit !important; }
 .interact-fg:hover { color: var(--color-primary) !important; }
 .interact-fg:active { color: var(--color-primary-active) !important; }
+.interact-fg.disabled:hover { color: inherit !important; }
 
 .interact-bg { background: transparent !important; }
 .interact-bg:hover { background: var(--color-hover) !important; }

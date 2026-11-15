@@ -308,6 +308,11 @@ button:disabled,
   border: none;
 }
 
+.btn.disabled {
+  cursor: default;
+  opacity: var(--opacity-disabled);
+}
+
 /* sometimes, we'd like to make "<a href>" look like a button */
 a.btn,
 a.btn:hover {
