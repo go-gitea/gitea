@@ -244,13 +244,16 @@ func TestAuditLogUserEvents(t *testing.T) {
 	})
 
 	t.Run("AdminResetTwoFactor", func(t *testing.T) {
-		loginUser(t, "user1").MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/24/edit", map[string]string{
-			"login_name": "user24",
-			"login_type": "0-0",
-			"email":      "user24@example.com",
-			"active":     "on",
-			"reset_2fa":  "on",
-		}), http.StatusSeeOther)
+		session := loginUser(t, "user1")
+		for range 2 {
+			session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/24/edit", map[string]string{
+				"login_name": "user24",
+				"login_type": "0-0",
+				"email":      "user24@example.com",
+				"active":     "on",
+				"reset_2fa":  "on",
+			}), http.StatusSeeOther)
+		}
 		assert.Equal(t, int64(1), findEvent(t, audit_model.UserTwoFactorDisable, 24).ActorID)
 	})
 
