@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"slices"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/organization"
@@ -21,6 +22,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	pull_service "gitea.dev/services/pull"
@@ -805,6 +807,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryBranchProtectionAdd, ctx.Repo.Repository, "rule", protectBranch.RuleName)
 
 	// Reload from db to get all whitelists
 	bp, err := git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, ruleName)
@@ -1095,6 +1098,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryBranchProtectionUpdate, ctx.Repo.Repository, "rule", protectBranch.RuleName)
 
 	isPlainRule := !git_model.IsRuleNameSpecial(bpName)
 	var isBranchExist bool
@@ -1195,6 +1199,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	audit.Record(ctx, audit_model.RepositoryBranchProtectionRemove, ctx.Repo.Repository, "rule", bp.RuleName)
 
 	ctx.Status(http.StatusNoContent)
 }
