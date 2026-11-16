@@ -175,7 +175,7 @@ func InitFull() (err error) {
 		return err
 	}
 	if gnupgHome := filepath.Join(gitcmd.HomeDir(), ".gnupg"); os.Getenv("GNUPGHOME") == gnupgHome {
-		removeStaleKeyboxdLock(gnupgHome)
+		_ = os.Remove(filepath.Join(gnupgHome, "public-keys.d", "pubring.db.lock")) // gpg never breaks keyboxd's lock left under another hostname (re-created container), a live keyboxd keeps working without it
 	}
 	return syncGitConfig(context.Background())
 }
