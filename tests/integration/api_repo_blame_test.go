@@ -93,6 +93,7 @@ func TestAPIRepoBlame(t *testing.T) {
 			"/api/v1/repos/user2/repo1/blame/dir/file.txt?ref=0000000000000000000000000000000000000000",
 			"/api/v1/repos/user2/repo1/blame/dir/no-such-file.txt?ref=" + second,
 			"/api/v1/repos/user2/repo1/blame/dir?ref=" + second,
+			"/api/v1/repos/user2/repo1/blame/%2Fdir/..%2Fdir/file.txt?ref=" + second,
 		} {
 			MakeRequest(t, NewRequest(t, "GET", urlPath), http.StatusNotFound)
 		}
