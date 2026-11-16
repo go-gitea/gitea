@@ -248,6 +248,21 @@ func TestAPITeam(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
 	})
 
+	t.Run("RenameOwnerTeam", func(t *testing.T) {
+		ownerTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1, Name: organization.OwnerTeamName})
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteOrganization)
+		teamURL := fmt.Sprintf("/api/v1/teams/%d", ownerTeam.ID)
+
+		req := NewRequestWithJSON(t, "PATCH", teamURL, api.EditTeamOption{Name: "renamed"}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+		unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: ownerTeam.ID, Name: organization.OwnerTeamName})
+
+		description := "owner team"
+		req = NewRequestWithJSON(t, "PATCH", teamURL, api.EditTeamOption{Name: organization.OwnerTeamName, Description: &description}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: ownerTeam.ID, Name: organization.OwnerTeamName, Description: description})
+	})
+
 	t.Run("VisibilityAccess", func(t *testing.T) {
 		insertTestTeam := func(t *testing.T, orgID int64, name string, visibility structs.VisibleType) *organization.Team {
 			t.Helper()

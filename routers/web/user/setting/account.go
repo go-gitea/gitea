@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	org_model "gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
@@ -21,6 +22,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/db"
 	"gitea.dev/services/auth/source/smtp"
@@ -114,7 +116,8 @@ func EmailPost(ctx *context.Context) {
 
 	// Make email address primary.
 	if ctx.FormString("_method") == "PRIMARY" {
-		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.Doer.ID, ctx.FormInt64("id")); err != nil {
+		emailID := ctx.FormInt64("id")
+		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.Doer.ID, emailID); err != nil {
 			if user_model.IsErrEmailAddressNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("settings.email_primary_not_found"))
 				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
@@ -124,6 +127,11 @@ func EmailPost(ctx *context.Context) {
 			return
 		}
 
+		if email, err := user_model.GetEmailAddressByID(ctx, ctx.Doer.ID, emailID); err != nil {
+			log.Error("GetEmailAddressByID: %v", err)
+		} else if email != nil {
+			audit.Record(ctx, audit_model.UserEmailPrimaryChange, ctx.Doer, "email", email.Email)
+		}
 		log.Trace("Email made primary: %s", ctx.Doer.Name)
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
