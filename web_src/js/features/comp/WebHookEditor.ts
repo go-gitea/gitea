@@ -1,5 +1,4 @@
-import {showModal} from '../../modules/modal.ts';
-import {registerGlobalEventFunc, registerGlobalInitFunc} from '../../modules/observer.ts';
+import {registerGlobalInitFunc} from '../../modules/observer.ts';
 import {queryElems, toggleElem} from '../../utils/dom.ts';
 
 function initCompWebHookEditorForm(el: HTMLElement) {
@@ -34,10 +33,4 @@ function initCompWebHookEditorForm(el: HTMLElement) {
 
 export function initCompWebHookEditor() {
   registerGlobalInitFunc('initCompWebHookEditorForm', initCompWebHookEditorForm);
-  registerGlobalEventFunc('click', 'onWebhookDeliveryDetailsClick', (button) => {
-    const row = button.closest('.item')!;
-    const template = row.querySelector('template')!;
-    const dialog = document.importNode(template.content.querySelector('dialog')!, true);
-    showModal(dialog, {onHidden: () => dialog.remove()});
-  });
 }
