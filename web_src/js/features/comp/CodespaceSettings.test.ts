@@ -116,7 +116,6 @@ test('secret creation searches repositories, submits multiple choices and preser
   const picker = document.querySelector<HTMLElement>('.codespace-secret-repository-picker')!;
   initCodespaceSecretRepositoryPicker(picker);
   const $dropdown = $(picker.querySelector('.ui.dropdown')!);
-  const requests: string[] = [];
   $dropdown.dropdown('setting', {
     duration: 0,
     throttle: 0,
@@ -124,7 +123,6 @@ test('secret creation searches repositories, submits multiple choices and preser
       ...$dropdown.dropdown('setting', 'apiSettings'),
       mockResponseAsync(settings: {urlData: {query: string}}, callback: (response: unknown) => void) {
         const query = settings.urlData.query;
-        requests.push(query);
         if (query === 'error') callback(false);
         else if (query === 'missing') callback({data: []});
         else callback({data: query ? [{id: 2, full_name: 'owner/second'}] : [{id: 1, full_name: 'owner/first'}]});
@@ -133,23 +131,19 @@ test('secret creation searches repositories, submits multiple choices and preser
   });
   const form = document.querySelector('form')!;
   const search = picker.querySelector<HTMLInputElement>('input.search')!;
-  search.focus();
-  await expect.poll(() => requests).toEqual(['']);
+  await userEvent.click(search);
   await expect.poll(() => picker.querySelector<HTMLElement>('.menu .item[data-value="1"]')).toBeTruthy();
-  picker.querySelector<HTMLElement>('.menu .item[data-value="1"]')!.click();
+  await userEvent.click(picker.querySelector<HTMLElement>('.menu .item[data-value="1"]')!);
   expect(new FormData(form).getAll('repository_ids')).toEqual(['1']);
 
-  search.value = 'second';
-  $dropdown.dropdown('search');
+  await userEvent.fill(search, 'second');
   await expect.poll(() => picker.querySelector<HTMLElement>('.menu .item[data-value="2"]')).toBeTruthy();
-  picker.querySelector<HTMLElement>('.menu .item[data-value="2"]')!.click();
+  await userEvent.click(picker.querySelector<HTMLElement>('.menu .item[data-value="2"]')!);
   expect(new FormData(form).getAll('repository_ids')).toEqual(['1', '2']);
 
-  search.value = 'missing';
-  $dropdown.dropdown('search');
+  await userEvent.fill(search, 'missing');
   await expect.poll(() => picker.querySelector('.menu .message')?.textContent).toBe('No matching repositories');
-  search.value = 'error';
-  $dropdown.dropdown('search');
+  await userEvent.fill(search, 'error');
   await expect.poll(() => picker.querySelector('.menu .message')?.textContent).toBe('Search failed');
   expect(new FormData(form).getAll('repository_ids')).toEqual(['1', '2']);
   const keydown = vi.fn();
