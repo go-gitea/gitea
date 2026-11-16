@@ -25,8 +25,6 @@ import (
 
 const RequiredVersion = "2.34.0" // the minimum Git version required
 
-var isGnupgHomeManaged bool // GNUPGHOME is not set by the admin, Gitea owns the directory
-
 type Features struct {
 	gitVersion *version.Version
 
@@ -166,7 +164,6 @@ func InitSimple() error {
 	// when git works with gnupg (commit signing), there should be a stable home for gnupg commands
 	if _, ok := os.LookupEnv("GNUPGHOME"); !ok {
 		_ = os.Setenv("GNUPGHOME", filepath.Join(gitcmd.HomeDir(), ".gnupg"))
-		isGnupgHomeManaged = true
 	}
 	return nil
 }
@@ -177,8 +174,8 @@ func InitFull() (err error) {
 	if err = InitSimple(); err != nil {
 		return err
 	}
-	if isGnupgHomeManaged {
-		removeStaleGnupgLockFiles(os.Getenv("GNUPGHOME"))
+	if gnupgHome := filepath.Join(gitcmd.HomeDir(), ".gnupg"); os.Getenv("GNUPGHOME") == gnupgHome {
+		removeStaleKeyboxdLock(gnupgHome)
 	}
 	return syncGitConfig(context.Background())
 }
