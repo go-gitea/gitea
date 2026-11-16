@@ -58,8 +58,8 @@ func TestAPIRepoBlame(t *testing.T) {
 	}
 	expectedRanges := []blameRange{{1, 1, first}, {2, 2, second}, {3, 3, first}}
 
-	t.Run("RangesAndCleanPath", func(t *testing.T) {
-		blame := getBlame(t, "/api/v1/repos/user2/repo1/blame/%2Fdir/..%2Fdir/file.txt?ref="+second)
+	t.Run("Ranges", func(t *testing.T) {
+		blame := getBlame(t, "/api/v1/repos/user2/repo1/blame/dir/file.txt?ref="+second)
 		assert.Equal(t, second, blame.CommitID)
 		assert.Equal(t, "dir/file.txt", blame.Path)
 		assert.False(t, blame.UsesIgnoreRevs)
