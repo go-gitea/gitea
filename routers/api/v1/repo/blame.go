@@ -11,7 +11,6 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
-	files_service "gitea.dev/services/repository/files"
 )
 
 // GetBlame returns the blame of a file
@@ -58,13 +57,10 @@ func GetBlame(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	treePath := files_service.CleanGitTreePath(ctx.PathParam("*"))
+	treePath := ctx.PathParam("*")
 	blob, err := refCommit.Commit.GetBlobByPath(ctx, ctx.Repo.GitRepo, treePath)
-	if git.IsErrNotExist(err) {
-		ctx.APIErrorNotFound()
-		return
-	} else if err != nil {
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 	if blob.Size(ctx) >= setting.UI.MaxDisplayFileSize {
@@ -74,7 +70,7 @@ func GetBlame(ctx *context.APIContext) {
 
 	result, err := git.GetBlame(ctx, ctx.Repo.GitRepo, refCommit.Commit, treePath, ctx.FormBool("bypass_ignore_revs"))
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -86,7 +82,7 @@ func GetBlame(ctx *context.APIContext) {
 		if !ok {
 			gitCommit, err := ctx.Repo.GitRepo.GetCommit(ctx, part.Sha)
 			if err != nil {
-				ctx.APIErrorInternal(err)
+				ctx.APIErrorAuto(err)
 				return
 			}
 			commit = &api.BlameCommit{
