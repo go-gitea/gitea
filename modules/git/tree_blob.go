@@ -24,8 +24,8 @@ func (t *Tree) GetBlobByPath(ctx context.Context, gitRepo *Repository, relpath s
 }
 
 // GetTreeEntryByPath get the tree entries according the sub dir
-func (t *Tree) GetTreeEntryByPath(ctx context.Context, gitRepo *Repository, treePath string) (_ *TreeEntry, err error) {
-	if treePath == "" {
+func (t *Tree) GetTreeEntryByPath(ctx context.Context, gitRepo *Repository, relpath string) (_ *TreeEntry, err error) {
+	if relpath == "" {
 		return &TreeEntry{
 			ptree:     t,
 			ID:        t.ID,
@@ -34,7 +34,7 @@ func (t *Tree) GetTreeEntryByPath(ctx context.Context, gitRepo *Repository, tree
 		}, nil
 	}
 
-	parts := strings.Split(treePath, "/")
+	parts := strings.Split(relpath, "/")
 
 	tree := t
 	for _, name := range parts[:len(parts)-1] {
@@ -54,5 +54,5 @@ func (t *Tree) GetTreeEntryByPath(ctx context.Context, gitRepo *Repository, tree
 			return v, nil
 		}
 	}
-	return nil, ErrNotExist{"", treePath}
+	return nil, ErrNotExist{"", relpath}
 }
