@@ -22,8 +22,13 @@ import (
 // IssueDependencyCandidates searches the open issues and pull requests that can be added as a dependency of the issue.
 // It is used by the "add dependency" dropdown, so it leaves out the issue itself and the issues already linked to it.
 func IssueDependencyCandidates(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
 		return
 	}
 	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
@@ -38,11 +43,9 @@ func IssueDependencyCandidates(ctx *context.Context) {
 	}
 	excludedIDs = append(excludedIDs, issue.ID)
 
-	// The indexers can't leave out a list of issue IDs. Asking for one more result per excluded issue is enough:
-	// whichever of them are among the results, the first "limit" results left are the ones the dropdown should show.
 	limit := convert.ToCorrectPageSize(ctx.FormInt("limit"))
 	searchOpt := &issue_indexer.SearchOptions{
-		Paginator: &db.ListOptions{Page: 1, PageSize: limit + len(excludedIDs)},
+		Paginator: &db.ListOptions{PageSize: min(limit+len(excludedIDs), setting.API.MaxResponseItems)},
 		Keyword:   ctx.FormTrim("q"),
 		RepoIDs:   []int64{ctx.Repo.Repository.ID},
 		IsClosed:  optional.Some(false),
@@ -61,40 +64,45 @@ func IssueDependencyCandidates(ctx *context.Context) {
 		}
 	}
 
-	ids, _, err := issue_indexer.SearchIssues(ctx, searchOpt)
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	ids = slices.DeleteFunc(ids, func(id int64) bool { return slices.Contains(excludedIDs, id) })
-	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	if _, err = issues.LoadRepositories(ctx); err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-
-	// A repository can be accessible through a team that doesn't have its issues or pull requests unit.
-	// AddDependency refuses the issues the doer can't read, so they are no candidates either.
 	perms := map[int64]access_model.Permission{ctx.Repo.Repository.ID: ctx.Repo.Permission}
 	candidates := make(issues_model.IssueList, 0, limit)
-	for _, candidate := range issues {
-		if len(candidates) == limit {
-			break
+	// the indexers can't leave out the linked issues or the ones the doer can't read, so search on until the page is full
+	for page := 1; page <= 10 && len(candidates) < limit; page++ {
+		searchOpt.Paginator.Page = page
+		ids, _, err := issue_indexer.SearchIssues(ctx, searchOpt)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
 		}
-		perm, ok := perms[candidate.RepoID]
-		if !ok {
-			if perm, err = access_model.GetDoerRepoPermission(ctx, candidate.Repo, ctx.Doer); err != nil {
-				ctx.ServerErrorAuto(err)
-				return
+		hasMore := len(ids) == searchOpt.Paginator.PageSize
+		ids = slices.DeleteFunc(ids, func(id int64) bool { return slices.Contains(excludedIDs, id) })
+		issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		if _, err = issues.LoadRepositories(ctx); err != nil {
+			ctx.ServerErrorAuto(err)
+			return
+		}
+		for _, candidate := range issues {
+			if len(candidates) == limit {
+				break
 			}
-			perms[candidate.RepoID] = perm
+			perm, ok := perms[candidate.RepoID]
+			if !ok {
+				if perm, err = access_model.GetDoerRepoPermission(ctx, candidate.Repo, ctx.Doer); err != nil {
+					ctx.ServerErrorAuto(err)
+					return
+				}
+				perms[candidate.RepoID] = perm
+			}
+			if perm.CanReadIssuesOrPulls(candidate.IsPull) {
+				candidates = append(candidates, candidate)
+			}
 		}
-		if perm.CanReadIssuesOrPulls(candidate.IsPull) {
-			candidates = append(candidates, candidate)
+		if !hasMore {
+			break
 		}
 	}
 

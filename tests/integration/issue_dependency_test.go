@@ -9,6 +9,8 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -55,7 +57,6 @@ func TestIssueDependencyCandidates(t *testing.T) {
 	t.Run("FullPage", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.AllowCrossRepositoryDependencies, false)()
 
-		// pull 11 and pull 2 come before pull 3 but are left out, so they must not take a place of the page
 		assert.Equal(t, []int64{3}, candidates(t, user2, "/user2/repo1/pulls/2/dependency/candidates?limit=1"))
 		assert.Equal(t, []int64{3}, candidates(t, user2, "/user2/repo1/pulls/5/dependency/candidates?limit=1"))
 	})
@@ -80,5 +81,16 @@ func TestIssueDependencyCandidates(t *testing.T) {
 		// user4 can read repo1 but can't add dependencies to its issues
 		loginUser(t, "user4").MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/issues/1/dependency/candidates"), http.StatusForbidden)
 		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/issues/1/dependency/candidates"), http.StatusSeeOther)
+	})
+
+	t.Run("UnreadableNewerMatchesDoNotEmptyThePage", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.AllowCrossRepositoryDependencies, true)()
+		enableRepoDependencies(t, 2)
+		_, err := db.GetEngine(t.Context()).In("id", 1, 6, 7).Cols("name").Update(&issues_model.Issue{Title: "4023840238"})
+		require.NoError(t, err)
+		_, err = db.GetEngine(t.Context()).Delete(&repo_model.RepoUnit{RepoID: 3, Type: unit.TypeIssues})
+		require.NoError(t, err)
+
+		assert.Equal(t, []int64{1}, candidates(t, user2, "/user2/repo2/issues/2/dependency/candidates?q=4023840238&limit=1"))
 	})
 }
