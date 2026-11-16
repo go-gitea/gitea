@@ -12,13 +12,13 @@ import (
 	activities_model "gitea.dev/models/activities"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/graceful"
@@ -34,11 +34,17 @@ import (
 	pull_service "gitea.dev/services/pull"
 )
 
+// WebSearchCommitStatus is the latest commit status of a repository returned by web search
+type WebSearchCommitStatus struct {
+	State     commitstatus.CommitStatusState `json:"state"`
+	TargetURL string                         `json:"target_url"`
+}
+
 // WebSearchRepository represents a repository returned by web search
 type WebSearchRepository struct {
-	Repository               *structs.Repository     `json:"repository"`
-	LatestCommitStatus       *git_model.CommitStatus `json:"latest_commit_status"`
-	LocaleLatestCommitStatus string                  `json:"locale_latest_commit_status"`
+	Repository               *structs.Repository    `json:"repository"`
+	LatestCommitStatus       *WebSearchCommitStatus `json:"latest_commit_status"`
+	LocaleLatestCommitStatus string                 `json:"locale_latest_commit_status"`
 }
 
 // WebSearchResults results of a successful web search

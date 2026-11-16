@@ -32,7 +32,7 @@ func loadPagesSettingsData(ctx *context.Context) bool {
 	repoID := ctx.Repo.Repository.ID
 	site, hasSite, err := pages_model.GetSiteByRepoID(ctx, repoID)
 	if err != nil {
-		ctx.ServerError("GetSiteByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	if !hasSite {
@@ -40,7 +40,7 @@ func loadPagesSettingsData(ctx *context.Context) bool {
 	}
 	domains, err := pages_model.ListDomainsByRepoID(ctx, repoID)
 	if err != nil {
-		ctx.ServerError("ListDomainsByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	var activeDomain, pendingDomain, releasingDomain *pagesDomainView

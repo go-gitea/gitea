@@ -26,7 +26,7 @@ type pagesInstanceView struct {
 func loadPagesAdminData(ctx *context.Context) bool {
 	instances, err := pages_model.ListInstances(ctx)
 	if err != nil {
-		ctx.ServerError("ListInstances", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	ctx.Data["Title"] = ctx.Tr("admin.pages.title")
@@ -51,7 +51,7 @@ func Pages(ctx *context.Context) {
 	}
 	if token := ctx.Session.Get(pagesOneTimeTokenSessionKey); token != nil {
 		if err := ctx.Session.Delete(pagesOneTimeTokenSessionKey); err != nil {
-			ctx.ServerError("Session.Delete", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if token, ok := token.(string); ok {
@@ -71,7 +71,7 @@ func PagesPost(ctx *context.Context) {
 			break
 		}
 		if err := ctx.Session.Set(pagesOneTimeTokenSessionKey, token); err != nil {
-			ctx.ServerError("Session.Set", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	case "reset":
@@ -81,7 +81,7 @@ func PagesPost(ctx *context.Context) {
 			break
 		}
 		if err := ctx.Session.Set(pagesOneTimeTokenSessionKey, token); err != nil {
-			ctx.ServerError("Session.Set", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	case "remove":

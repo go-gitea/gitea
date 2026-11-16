@@ -54,7 +54,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	// Check if there is a pending pr merge
 	hasPendingPullRequestMerge, pendingPullRequestMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
 	if err != nil {
-		ctx.ServerError("GetScheduledMergeByPullID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

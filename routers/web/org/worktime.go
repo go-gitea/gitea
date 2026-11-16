@@ -32,11 +32,11 @@ func parseOrgTimes(ctx *context.Context) (unixFrom, unixTo int64) {
 
 	timeFrom, err := time.Parse("2006-01-02", rangeFrom)
 	if err != nil {
-		ctx.ServerError("time.Parse", err)
+		ctx.ServerErrorAuto(err)
 	}
 	timeTo, err := time.Parse("2006-01-02", rangeTo)
 	if err != nil {
-		ctx.ServerError("time.Parse", err)
+		ctx.ServerErrorAuto(err)
 	}
 	unixFrom = timeFrom.Unix()
 	unixTo = timeTo.Add(1440*time.Minute - 1*time.Second).Unix() // humans expect that we include the ending day too
@@ -68,12 +68,12 @@ func Worktime(ctx *context.Context) {
 		ctx.Data["WorktimeByRepos"] = true
 	}
 	if err != nil {
-		ctx.ServerError("GetWorktime", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

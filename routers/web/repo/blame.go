@@ -46,12 +46,16 @@ func RefBlame(ctx *context.Context) {
 
 	// Get current entry user currently looking at.
 	if ctx.Repo.TreePath == "" {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
-		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
+		HandleGitError(ctx, err)
+		return
+	}
+	if entry.IsDir() { // a directory has no blame, show its tree instead
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath))
 		return
 	}
 
@@ -74,14 +78,14 @@ func RefBlame(ctx *context.Context) {
 
 	_, ctx.Data["NumLines"], err = blob.GetBlobLineCount(ctx, nil)
 	if err != nil {
-		ctx.NotFound(err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	bypassBlameIgnore, _ := strconv.ParseBool(ctx.FormString("bypass-blame-ignore"))
 	result, err := performBlame(ctx, bypassBlameIgnore)
 	if err != nil {
-		ctx.NotFound(err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -199,11 +203,7 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 		if !ok {
 			commit, err = ctx.Repo.GitRepo.GetCommit(ctx, sha)
 			if err != nil {
-				if git.IsErrNotExist(err) {
-					ctx.NotFound(err)
-				} else {
-					ctx.ServerError("Repo.GitRepo.GetCommit", err)
-				}
+				ctx.ServerErrorAuto(err)
 				return nil
 			}
 			commitCache[sha] = commit
@@ -215,7 +215,7 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 	// populate commit email addresses to later look up avatars.
 	userCommits, err := gituser.GetUserCommitsByGitCommits(ctx, commits, ctx.Repo.RepoLink, ctx.Repo.RefFullName)
 	if err != nil {
-		ctx.ServerError("GetUserCommitsByGitCommits", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	for _, c := range userCommits {

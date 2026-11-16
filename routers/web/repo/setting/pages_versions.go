@@ -94,7 +94,7 @@ func loadPagesVersionsData(ctx *context.Context) bool {
 	repoID := ctx.Repo.Repository.ID
 	site, hasSite, err := pages_model.GetSiteByRepoID(ctx, repoID)
 	if err != nil {
-		ctx.ServerError("GetSiteByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	if !hasSite {
@@ -107,7 +107,7 @@ func loadPagesVersionsData(ctx *context.Context) bool {
 		RepoID:      repoID,
 	})
 	if err != nil {
-		ctx.ServerError("FindVersions", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	actionRunIDs := make([]int64, 0, len(versions))
@@ -118,7 +118,7 @@ func loadPagesVersionsData(ctx *context.Context) bool {
 	}
 	actionRuns, err := actions_model.GetRunsByRepoAndID(ctx, repoID, actionRunIDs)
 	if err != nil {
-		ctx.ServerError("GetRunsByRepoAndID", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 	actionRunByID := make(map[int64]*actions_model.ActionRun, len(actionRuns))
@@ -143,7 +143,7 @@ func loadPagesVersionsData(ctx *context.Context) bool {
 	if currentVersionOnPage {
 		deployment, err := pages_service.GetCurrentDeploymentStatus(ctx, ctx.Repo.Repository)
 		if err != nil {
-			ctx.ServerError("GetCurrentDeploymentStatus", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 		statusText := func(status pages_service.DeploymentStatus) string {
@@ -205,7 +205,7 @@ func PagesUploadArchive(ctx *context.Context) {
 
 	uploaded, err := repo_model.NewUpload(ctx, "pages.tar.gz", nil, file)
 	if err != nil {
-		ctx.ServerError("NewUpload", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]string{"uuid": uploaded.UUID})
@@ -214,7 +214,7 @@ func PagesUploadArchive(ctx *context.Context) {
 // PagesRemoveUpload removes an archive that has not been submitted.
 func PagesRemoveUpload(ctx *context.Context) {
 	if err := repo_model.DeleteUploadByUUID(ctx, ctx.FormString("file")); err != nil {
-		ctx.ServerError("DeleteUploadByUUID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

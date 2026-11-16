@@ -724,6 +724,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if oldDefaultBranch != "" {
 		actions_service.SwitchSchedulesToDefaultBranch(ctx, repo, oldDefaultBranch)
+		audit.Record(ctx, audit_model.RepositoryBranchDefault, repo, "default_branch", repo.DefaultBranch)
 	}
 
 	if visibilityChanged {
@@ -775,32 +776,24 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		} else {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 		}
+
 		if (opts.ExternalTracker == nil || opts.InternalTracker != nil) && !unit_model.TypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
-			var config *repo_model.IssuesConfig
-
-			if opts.InternalTracker != nil {
-				config = &repo_model.IssuesConfig{
-					EnableTimetracker:                opts.InternalTracker.EnableTimeTracker,
-					AllowOnlyContributorsToTrackTime: opts.InternalTracker.AllowOnlyContributorsToTrackTime,
-					EnableDependencies:               opts.InternalTracker.EnableIssueDependencies,
-				}
-			} else if unit, err := repo.GetUnit(ctx, unit_model.TypeIssues); err != nil {
-				// Unit type doesn't exist so we make a new config file with default values
-				config = &repo_model.IssuesConfig{
-					EnableTimetracker:                true,
-					AllowOnlyContributorsToTrackTime: true,
-					EnableDependencies:               true,
-				}
-			} else {
+			unit, err := repo.GetUnit(ctx, unit_model.TypeIssues)
+			if err != nil && !errors.Is(err, util.ErrNotExist) {
+				return err
+			}
+			config := repo_model.DefaultIssuesConfig()
+			if err == nil {
 				config = unit.IssuesConfig()
 			}
-
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   unit_model.TypeIssues,
-				Config: config,
-			})
+			if opts.InternalTracker != nil {
+				config.EnableTimetracker = opts.InternalTracker.EnableTimeTracker
+				config.AllowOnlyContributorsToTrackTime = opts.InternalTracker.AllowOnlyContributorsToTrackTime
+				config.EnableDependencies = opts.InternalTracker.EnableIssueDependencies
+				config.CreationRestriction = optional.FromPtr(opts.InternalTracker.CreationRestriction).ValueOrDefault(config.CreationRestriction)
+			}
+			units = append(units, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeIssues, Config: config})
 		} else {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 		}
@@ -886,6 +879,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			optional.AssignPtrValue(changed, &config.AllowRebaseUpdate, opts.AllowRebaseUpdate)
 			optional.AssignPtrValue(changed, &config.DefaultDeleteBranchAfterMerge, opts.DefaultDeleteBranchAfterMerge)
 			optional.AssignPtrValue(changed, &config.DefaultAllowMaintainerEdit, opts.DefaultAllowMaintainerEdit)
+			optional.AssignPtrValue(changed, &config.CreationRestriction, opts.PullRequestsCreationRestriction)
 			optional.AssignPtrString(changed, &config.DefaultMergeStyle, opts.DefaultMergeStyle)
 			optional.AssignPtrString(changed, &config.DefaultUpdateStyle, opts.DefaultUpdateStyle)
 			optional.AssignPtrString(changed, &config.DefaultSquashMergeMessage, opts.SquashMergeCommitMessage)
@@ -986,6 +980,9 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return err
 		}
+		if *opts.Archived == repo.IsArchived {
+			return nil
+		}
 		if *opts.Archived {
 			if err := repo_service.SetArchiveRepoState(ctx, repo, true); err != nil {
 				log.Error("Tried to archive a repo: %s", err)
@@ -995,6 +992,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			if err := actions_service.CleanRepoScheduleTasks(ctx, repo); err != nil {
 				log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 			}
+			audit.Record(ctx, audit_model.RepositoryArchive, repo)
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
 			if err := repo_service.SetArchiveRepoState(ctx, repo, false); err != nil {
@@ -1007,6 +1005,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 					log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 				}
 			}
+			audit.Record(ctx, audit_model.RepositoryUnarchive, repo)
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		}
 	}

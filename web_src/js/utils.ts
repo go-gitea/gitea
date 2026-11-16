@@ -180,7 +180,7 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function isImageFile({name, type}: {name: string | null, type: string | null}): boolean {
-  return Boolean(/\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
+  return Boolean(/\.(avif|jpeg|jpg|jxl|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
 }
 
 export function isVideoFile({name, type}: {name: string | null, type: string | null}): boolean {

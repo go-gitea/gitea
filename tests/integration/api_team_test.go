@@ -126,6 +126,9 @@ func TestAPITeam(t *testing.T) {
 		checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, expectedTeamUnitsMap)
 		teamID := apiTeam.ID
 
+		MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).AddTokenAuth(token), http.StatusConflict)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), api.EditTeamOption{Name: "team13NotCreators"}).AddTokenAuth(token), http.StatusConflict)
+
 		// Edit team.
 		editDescription := "team 1"
 		editFalse := false
@@ -243,6 +246,21 @@ func TestAPITeam(t *testing.T) {
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 		unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+	})
+
+	t.Run("RenameOwnerTeam", func(t *testing.T) {
+		ownerTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1, Name: organization.OwnerTeamName})
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteOrganization)
+		teamURL := fmt.Sprintf("/api/v1/teams/%d", ownerTeam.ID)
+
+		req := NewRequestWithJSON(t, "PATCH", teamURL, api.EditTeamOption{Name: "renamed"}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+		unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: ownerTeam.ID, Name: organization.OwnerTeamName})
+
+		description := "owner team"
+		req = NewRequestWithJSON(t, "PATCH", teamURL, api.EditTeamOption{Name: organization.OwnerTeamName, Description: &description}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: ownerTeam.ID, Name: organization.OwnerTeamName, Description: description})
 	})
 
 	t.Run("VisibilityAccess", func(t *testing.T) {

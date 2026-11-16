@@ -28,7 +28,7 @@ func Webhooks(ctx *context.Context) {
 
 	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{OwnerID: ctx.Doer.ID})
 	if err != nil {
-		ctx.ServerError("ListWebhooksByOpts", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
