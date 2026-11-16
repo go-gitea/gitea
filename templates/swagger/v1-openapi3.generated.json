@@ -3556,7 +3556,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State represents the status state (pending, success, error, failure)"
+            "description": "State represents the status state (pending, running, success, error, failure, warning, skipped)"
           },
           "target_url": {
             "description": "TargetURL is the URL to link to for more details",
@@ -3582,6 +3582,7 @@
       "CommitStatusState": {
         "enum": [
           "pending",
+          "running",
           "success",
           "error",
           "failure",
@@ -4929,7 +4930,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State represents the status state to set (pending, success, error, failure)"
+            "description": "State represents the status state to set (pending, running, success, error, failure, warning, skipped)"
           },
           "target_url": {
             "description": "TargetURL is the URL to link to for more details",
