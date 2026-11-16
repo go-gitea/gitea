@@ -103,6 +103,7 @@ func (t *HookTask) DeliveryStatus(now time.Time) HookDeliveryStatus {
 	case !t.IsDelivered:
 		return HookDeliveryQueued
 	case t.ResponseContent == "" && t.Delivered != 0:
+		// Legacy claims only recorded the time the delivery was queued.
 		timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 		if timeout <= 0 || now.Sub(t.Delivered.AsTime()) < timeout+10*time.Second {
 			return HookDeliveryInProgress

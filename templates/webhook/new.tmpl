@@ -27,7 +27,7 @@
 		<span>{{ctx.Locale.Tr "repo.settings.recent_deliveries"}}</span>
 		{{if ctx.RootData.Permission.IsAdmin}}
 			<button type="button" class="ui tiny button" data-fetch-url="{{ctx.RootData.WebhookLink}}/test" data-fetch-method="POST"
-				data-fetch-sync="$body #webhook-history $morph" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc"}}"
+				data-fetch-sync="$body #webhook-history" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc"}}"
 			>
 				{{ctx.Locale.Tr "repo.settings.webhook.test_delivery"}}
 			</button>

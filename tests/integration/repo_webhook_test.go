@@ -83,6 +83,11 @@ func TestWebhookDeliveryHistory(t *testing.T) {
 	require.NoError(t, err)
 	interrupted, err := webhook.CreateHookTask(t.Context(), &webhook.HookTask{HookID: hook.ID, Delivered: stale, IsDelivered: true, PayloadVersion: 1})
 	require.NoError(t, err)
+	legacy, err := webhook.CreateHookTask(t.Context(), &webhook.HookTask{
+		HookID: hook.ID, Delivered: stale, IsDelivered: true, PayloadVersion: 1,
+		RequestContent: `{}`, ResponseContent: `{"status":0,"body":"Delivery: connection refused"}`,
+	})
+	require.NoError(t, err)
 
 	session := loginUser(t, "user2")
 	hookURL := fmt.Sprintf("/user2/repo1/settings/hooks/%d", hook.ID)
@@ -96,14 +101,15 @@ func TestWebhookDeliveryHistory(t *testing.T) {
 	history := read(hookURL)
 	assert.Contains(t, history.Find(row(queued)).Text(), "Queued")
 	assert.Contains(t, history.Find(row(interrupted)).Text(), "Failed")
-	assert.Equal(t, historyURL, history.Find(poll).AttrOr("data-fetch-url", ""))
+	assert.Contains(t, history.Find(row(legacy)).Text(), "Failed")
+	assert.Equal(t, historyURL, history.Filter(poll).AttrOr("data-fetch-url", ""))
 
 	claimed, err := webhook.MarkTaskDelivered(t.Context(), queued)
 	require.NoError(t, err)
 	require.True(t, claimed)
 	history = read(historyURL)
 	assert.Contains(t, history.Find(row(queued)).Text(), "In progress")
-	assert.Equal(t, 1, history.Find(poll).Length())
+	assert.True(t, history.Is(poll))
 
 	queued.IsDelivered = true
 	queued.RequestInfo = &webhook.HookRequest{}
@@ -112,11 +118,11 @@ func TestWebhookDeliveryHistory(t *testing.T) {
 	history = read(historyURL)
 	assert.Contains(t, history.Find(row(queued)).Text(), "Failed")
 	assert.Equal(t, "502", history.Find(row(queued)+" .ui.red.label").Text())
-	assert.Zero(t, history.Find(poll).Length())
+	assert.False(t, history.Is(poll))
 
 	response := session.MakeRequest(t, NewRequest(t, "POST", hookURL+"/test"), http.StatusOK)
 	history = NewHTMLParser(t, response.Body).doc.Find("#webhook-history")
-	assert.Equal(t, 3, history.Find(".flex-divided-list > .item").Length())
+	assert.Equal(t, 4, history.Find(".flex-divided-list > .item").Length())
 }
 
 func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, repoName, url, event string, branchFilter ...string) {
