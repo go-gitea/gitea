@@ -3,6 +3,8 @@
 >
 	<div class="flex-divided-list">
 		{{range $history := .History}}
+			{{$reqInfo := $history.RequestInfo}}
+			{{$respInfo := $history.ResponseInfo}}
 			<div class="item" id="webhook-history-delivery-{{$history.ID}}">
 				<div class="flex-left-right">
 					<div class="flex-text-inline tw-flex-wrap">
@@ -17,8 +19,8 @@
 						<span class="tw-text-text-light">
 							{{$history.DeliveryStatusTr ctx.Locale}}
 						</span>
-						{{if and $history.ResponseInfo $history.ResponseInfo.Status}}
-							<span class="ui {{if $history.IsSucceed}}green{{else}}red{{end}} label">{{$history.ResponseInfo.Status}}</span>
+						{{if and $respInfo $respInfo.Status}}
+							<span class="ui {{if $history.IsSucceed}}green{{else}}red{{end}} label">{{$respInfo.Status}}</span>
 						{{end}}
 					</div>
 					<span class="tw-text-text-light">
@@ -57,25 +59,25 @@
 								{{end}}
 							</div>
 							<div class="ui bottom attached tab segment active" data-tab="webhook-history-request-{{$history.ID}}">
-								{{if $history.RequestInfo}}
+								{{if $reqInfo}}
 									<h5>{{ctx.Locale.Tr "repo.settings.webhook.headers"}}</h5>
-									<pre class="webhook-info"><strong>Request URL:</strong> {{$history.RequestInfo.URL}}
-<strong>Request method:</strong> {{if $history.RequestInfo.HTTPMethod}}{{$history.RequestInfo.HTTPMethod}}{{else}}POST{{end}}
-{{range $key, $val := $history.RequestInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
+									<pre class="webhook-info"><strong>Request URL:</strong> {{$reqInfo.URL}}
+<strong>Request method:</strong> {{if $reqInfo.HTTPMethod}}{{$reqInfo.HTTPMethod}}{{else}}POST{{end}}
+{{range $key, $val := $reqInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 									<h5>{{ctx.Locale.Tr "repo.settings.webhook.payload"}}</h5>
-									<pre class="webhook-info">{{or $history.RequestInfo.Body $history.PayloadContent}}</pre>
+									<pre class="webhook-info">{{or $reqInfo.Body $history.PayloadContent}}</pre>
 								{{else}}
 									-
 								{{end}}
 							</div>
 							<div class="ui bottom attached tab segment" data-tab="webhook-history-response-{{$history.ID}}">
-								{{if $history.ResponseInfo}}
+								{{if $respInfo}}
 									<h5>{{ctx.Locale.Tr "repo.settings.webhook.headers"}}</h5>
-									<pre class="webhook-info">{{range $key, $val := $history.ResponseInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
+									<pre class="webhook-info">{{range $key, $val := $respInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{else}}(no response header){{end}}</pre>
 									<h5>{{ctx.Locale.Tr "repo.settings.webhook.body"}}</h5>
-									<pre class="webhook-info">{{or $history.ResponseInfo.Body "(no response body)"}}</pre>
+									<pre class="webhook-info">{{or $respInfo.Body "(no response body)"}}</pre>
 								{{else}}
 									-
 								{{end}}
