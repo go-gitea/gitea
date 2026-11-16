@@ -14,6 +14,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 )
@@ -125,6 +126,13 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		OlderThan:               timeutil.TimeStamp(opts.OlderThan.Unix()),
 		UpdatedLessRecentlyThan: timeutil.TimeStamp(opts.UpdatedLessRecentlyThan.Unix()),
 	})
+
+	// objects removed before an error or errStop still change the stored LFS size
+	if collected > 0 {
+		if sizeErr := repo_module.UpdateRepoSize(ctx, repo); sizeErr != nil {
+			log.Error("Unable to update size of %-v after collecting LFSMetaObjects: %v", repo, sizeErr)
+		}
+	}
 
 	if err == errStop {
 		opts.LogDetail("Processing stopped at %d total LFSMetaObjects in %-v", total, repo)

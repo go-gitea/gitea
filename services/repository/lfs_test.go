@@ -62,16 +62,33 @@ func TestGarbageCollectLFSMetaObjectsForRepoAutoFix(t *testing.T) {
 	lfsContent := []byte("gitea2")
 	lfsOid := storeObjectInRepo(t, repo.ID, &lfsContent)
 
-	err = repo_service.GarbageCollectLFSMetaObjectsForRepo(t.Context(), repo, repo_service.GarbageCollectLFSMetaObjectsOptions{
+	// a stale size which only a size update after the collection can fix
+	const staleLFSSize = 12345
+	assert.NoError(t, repo_model.UpdateRepoSize(t.Context(), repo.ID, 0, staleLFSSize))
+
+	gcOpts := repo_service.GarbageCollectLFSMetaObjectsOptions{
 		LogDetail:               func(string, ...any) {},
-		AutoFix:                 true,
 		OlderThan:               time.Now().Add(24 * time.Hour * 7),
 		UpdatedLessRecentlyThan: time.Now().Add(24 * time.Hour * 3),
-	})
+	}
+
+	// without AutoFix nothing is removed and the size is untouched
+	assert.NoError(t, repo_service.GarbageCollectLFSMetaObjectsForRepo(t.Context(), repo, gcOpts))
+	_, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, lfsOid)
 	assert.NoError(t, err)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.EqualValues(t, staleLFSSize, repo.LFSSize)
+
+	gcOpts.AutoFix = true
+	assert.NoError(t, repo_service.GarbageCollectLFSMetaObjectsForRepo(t.Context(), repo, gcOpts))
 
 	_, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, lfsOid)
 	assert.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+
+	remainingLFSSize, err := git_model.GetRepoLFSSize(t.Context(), repo.ID)
+	assert.NoError(t, err)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.EqualValues(t, remainingLFSSize, repo.LFSSize)
 }
 
 func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string {

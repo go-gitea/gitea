@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"strings"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/git"
 	"gitea.dev/models/packages"
 	"gitea.dev/models/repo"
@@ -19,6 +20,8 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 type commonStorageCheckOptions struct {
@@ -79,6 +82,29 @@ func commonCheckStorage(logger log.Logger, autofix bool, opts *commonStorageChec
 	return nil
 }
 
+// updateRepoLFSSizes fixes the stored LFS size of the repositories which doesn't match their LFS meta objects
+func updateRepoLFSSizes(ctx context.Context, logger log.Logger) error {
+	cond := builder.Or(builder.Gt{"lfs_size": 0}, builder.In("id", builder.Select("repository_id").From("lfs_meta_object")))
+	updated := 0
+	if err := db.Iterate(ctx, cond, func(ctx context.Context, r *repo.Repository) error {
+		lfsSize, err := git.GetRepoLFSSize(ctx, r.ID)
+		if err == nil && lfsSize != r.LFSSize {
+			if err = repo.UpdateRepoSize(ctx, r.ID, r.GitSize, lfsSize); err == nil {
+				updated++
+			}
+		}
+		if err != nil {
+			logger.Error("Unable to update the LFS size of %-v: %v", r, err)
+		}
+		return nil
+	}); err != nil {
+		logger.Error("Error whilst iterating repositories to update the LFS size: %v", err)
+		return err
+	}
+	logger.Info("Updated the LFS size of %d repositories", updated)
+	return nil
+}
+
 type checkStorageOptions struct {
 	All          bool
 	Attachments  bool
@@ -128,6 +154,11 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 					name: "LFS file",
 				}); err != nil {
 				return err
+			}
+			if autofix {
+				if err := updateRepoLFSSizes(ctx, logger); err != nil {
+					return err
+				}
 			}
 		}
 
