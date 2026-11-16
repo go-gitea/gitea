@@ -207,10 +207,16 @@ The Core Team (formerly the Technical Oversight Committee, TOC) leads the projec
 - Resolves disputes and breaks ties.
 - Decides on applications for collaborator and maintainer, and moves inactive members to [advisors](#advisors).
 - Handles security decisions.
+- Decides the roadmap for the project.
 - May revert any merged PR that should not have been merged.
 
 At the start of 2023, the `Owners` team was dissolved and replaced by the TOC, which expanded the project leadership from three elected positions to six positions. Three positions are elected by the community, and the other three are appointed members from the Gitea company.
 <https://blog.gitea.com/quarterly-23q1/>
+
+Every decision within the core team must give a minimum deadline of 72 hours (three days) for participating.
+If a core team member does not participate in three subsequent decisions, they will be asked to step down from the core team.
+The core team will then continue with one member less until the next election.
+
 
 #### Core Team election process
 
