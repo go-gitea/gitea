@@ -26,7 +26,14 @@
 						{{end}}
 					</div>
 					<span class="tw-text-text-light">
-						{{DateUtils.FullTime .Delivered}}
+						{{if .Delivered}}
+							{{$delivered := .Delivered.AsTime}}
+							<relative-time datetime="{{$delivered.Format "2006-01-02T15:04:05Z07:00"}}" format="datetime"
+								weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric"
+								data-tooltip-content data-tooltip-interactive="true">
+								{{$delivered.Format "2006-01-02 15:04:05 -07:00"}}
+							</relative-time>
+						{{else}}-{{end}}
 					</span>
 				</div>
 				<template>
