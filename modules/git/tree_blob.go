@@ -6,7 +6,6 @@ package git
 
 import (
 	"context"
-	"path"
 	"strings"
 )
 
@@ -25,8 +24,8 @@ func (t *Tree) GetBlobByPath(ctx context.Context, gitRepo *Repository, relpath s
 }
 
 // GetTreeEntryByPath get the tree entries according the sub dir
-func (t *Tree) GetTreeEntryByPath(ctx context.Context, gitRepo *Repository, relpath string) (_ *TreeEntry, err error) {
-	if len(relpath) == 0 {
+func (t *Tree) GetTreeEntryByPath(ctx context.Context, gitRepo *Repository, treePath string) (_ *TreeEntry, err error) {
+	if treePath == "" {
 		return &TreeEntry{
 			ptree:     t,
 			ID:        t.ID,
@@ -35,8 +34,7 @@ func (t *Tree) GetTreeEntryByPath(ctx context.Context, gitRepo *Repository, relp
 		}, nil
 	}
 
-	relpath = path.Clean(relpath)
-	parts := strings.Split(relpath, "/")
+	parts := strings.Split(treePath, "/")
 
 	tree := t
 	for _, name := range parts[:len(parts)-1] {
@@ -56,5 +54,5 @@ func (t *Tree) GetTreeEntryByPath(ctx context.Context, gitRepo *Repository, relp
 			return v, nil
 		}
 	}
-	return nil, ErrNotExist{"", relpath}
+	return nil, ErrNotExist{"", treePath}
 }
