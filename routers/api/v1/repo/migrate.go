@@ -172,7 +172,6 @@ func Migrate(ctx *context.APIContext) {
 		GitServiceType: gitServiceType,
 		IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 		IsMirror:       opts.Mirror,
-		Status:         repo_model.RepositoryBeingMigrated,
 	}, false)
 	if err != nil {
 		handleMigrateError(ctx, repoOwner, err)

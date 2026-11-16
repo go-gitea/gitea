@@ -333,7 +333,8 @@ type ReleasePayload struct {
 	// The action performed on the release (published, updated, deleted)
 	Action HookReleaseAction `json:"action"`
 	// The release that was acted upon
-	Release *Release `json:"release"`
+	Release *Release        `json:"release"`
+	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The repository containing the release
 	Repository *Repository `json:"repository"`
 	// The user who performed the action
@@ -460,6 +461,11 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
+type ChangesBasePayload struct {
+	Ref ChangesFromPayload `json:"ref"`
+	Sha ChangesFromPayload `json:"sha"`
+}
+
 type ChangesOwnerPayload struct {
 	From struct {
 		User         *User `json:"user,omitempty"`
@@ -474,9 +480,11 @@ type ChangesPayload struct {
 	// Changes made to the body/description
 	Body *ChangesFromPayload `json:"body,omitempty"`
 	// Changes made to the reference
-	Ref *ChangesFromPayload `json:"ref,omitempty"`
-	// Changes made to the repository name
-	Name *ChangesFromPayload `json:"name,omitempty"`
+	Ref  *ChangesFromPayload `json:"ref,omitempty"`
+	Base *ChangesBasePayload `json:"base,omitempty"`
+	// Changes made to the repository or release name
+	Name    *ChangesFromPayload `json:"name,omitempty"`
+	TagName *ChangesFromPayload `json:"tag_name,omitempty"`
 	// Changes made to the repository owner
 	Owner *ChangesOwnerPayload `json:"owner,omitempty"`
 	// Changes made to the labels added

@@ -9,7 +9,6 @@ import (
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/indexer"
 	"gitea.dev/modules/indexer/internal"
 )
 
@@ -19,15 +18,13 @@ type Indexer interface {
 	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *RepoChanges) error
 	Delete(ctx context.Context, repoID int64) error
 	Search(ctx context.Context, opts *SearchOptions) (int64, []*SearchResult, []*SearchResultLanguages, error)
-	SupportedSearchModes() []indexer.SearchMode
 }
 
 type SearchOptions struct {
 	RepoIDs  []int64
-	Keyword  string
+	Terms    []string // case-insensitive literal substrings that must all occur in a file
 	Language string
-
-	SearchMode indexer.SearchModeType
+	Path     string // only search the files in this directory
 
 	db.Paginator
 }
@@ -41,10 +38,6 @@ func NewDummyIndexer() Indexer {
 
 type dummyIndexer struct {
 	internal.Indexer
-}
-
-func (d *dummyIndexer) SupportedSearchModes() []indexer.SearchMode {
-	return nil
 }
 
 func (d *dummyIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *RepoChanges) error {

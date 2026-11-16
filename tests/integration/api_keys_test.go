@@ -10,13 +10,16 @@ import (
 	"testing"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -100,6 +103,7 @@ func TestCreateDeployKey(t *testing.T) {
 
 func TestCreateUserKey(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
 
 	session := loginUser(t, "user1")
@@ -124,6 +128,8 @@ func TestCreateUserKey(t *testing.T) {
 		Fingerprint: fingerprint,
 		Mode:        perm.AccessModeWrite,
 	})
+	event := unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserKeySSHAdd, ScopeID: user.ID})
+	assert.Equal(t, fingerprint, audit_model.DecodeMetadata(event.Metadata)["fingerprint"])
 
 	// Search by fingerprint
 	for _, url := range []string{

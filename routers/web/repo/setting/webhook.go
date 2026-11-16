@@ -51,7 +51,7 @@ func Webhooks(ctx *context.Context) {
 
 	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
-		ctx.ServerError("GetWebhooksByRepoID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Webhooks"] = ws
@@ -127,7 +127,7 @@ func (orCtx *ownerRepoCtx) recordWebhookAudit(ctx *context.Context, actions audi
 func checkHookType(ctx *context.Context) string {
 	hookType := strings.ToLower(ctx.PathParam("type"))
 	if !util.SliceContainsString(setting.Webhook.Types, hookType, true) {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return ""
 	}
 	return hookType
@@ -140,7 +140,7 @@ func WebhooksNew(ctx *context.Context) {
 
 	orCtx, err := getOwnerRepoCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getOwnerRepoCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -227,7 +227,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 
 	orCtx, err := getOwnerRepoCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getOwnerRepoCtx", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
@@ -241,7 +241,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	if params.Meta != nil {
 		meta, err = json.Marshal(params.Meta)
 		if err != nil {
-			ctx.ServerError("Marshal", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -262,14 +262,14 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	}
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
 	if err != nil {
-		ctx.ServerError("SetHeaderAuthorization", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
-		ctx.ServerError("CreateWebhook", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -300,7 +300,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	if params.Meta != nil {
 		meta, err = json.Marshal(params.Meta)
 		if err != nil {
-			ctx.ServerError("Marshal", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
@@ -316,15 +316,15 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
 	if err != nil {
-		ctx.ServerError("SetHeaderAuthorization", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
+		ctx.ServerErrorAuto(err)
 		return
 	} else if err := webhook.UpdateWebhook(ctx, w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -614,7 +614,7 @@ func packagistHookParams(ctx *context.Context) webhookParams {
 func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	orCtx, err := getOwnerRepoCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getOwnerRepoCtx", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
@@ -629,11 +629,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.PathParamInt64("id"))
 	}
 	if err != nil || w == nil {
-		if webhook.IsErrWebhookNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetWebhookByID", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 
@@ -653,7 +649,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 
 	ctx.Data["History"], err = w.History(ctx, 1)
 	if err != nil {
-		ctx.ServerError("History", err)
+		ctx.ServerErrorAuto(err)
 	}
 	return orCtx, w
 }
@@ -741,11 +737,7 @@ func ReplayWebhook(ctx *context.Context) {
 	}
 
 	if err := webhook_service.ReplayHookTask(ctx, w, hookTaskUUID); err != nil {
-		if webhook.IsErrHookTaskNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("ReplayHookTask", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

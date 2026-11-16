@@ -20,11 +20,11 @@ func BlockedUsers(ctx *context.Context, blocker *user_model.User) {
 		BlockerID: blocker.ID,
 	})
 	if err != nil {
-		ctx.ServerError("FindBlockings", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if err := user_model.BlockingList(blocks).LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["UserBlocks"] = blocks

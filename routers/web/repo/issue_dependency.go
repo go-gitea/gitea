@@ -33,7 +33,7 @@ func IssueDependencyCandidates(ctx *context.Context) {
 
 	excludedIDs, err := issues_model.GetLinkedDependencyIssueIDs(ctx, issue.ID)
 	if err != nil {
-		ctx.ServerError("GetLinkedDependencyIssueIDs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	excludedIDs = append(excludedIDs, issue.ID)
@@ -56,24 +56,24 @@ func IssueDependencyCandidates(ctx *context.Context) {
 	if setting.Service.AllowCrossRepositoryDependencies {
 		searchOpt.RepoIDs, searchOpt.AllPublic, err = common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{Doer: ctx.Doer})
 		if err != nil {
-			ctx.ServerError("SearchIssuesRepoIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 
 	ids, _, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
-		ctx.ServerError("SearchIssues", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ids = slices.DeleteFunc(ids, func(id int64) bool { return slices.Contains(excludedIDs, id) })
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
-		ctx.ServerError("GetIssuesByIDs", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if _, err = issues.LoadRepositories(ctx); err != nil {
-		ctx.ServerError("LoadRepositories", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -88,7 +88,7 @@ func IssueDependencyCandidates(ctx *context.Context) {
 		perm, ok := perms[candidate.RepoID]
 		if !ok {
 			if perm, err = access_model.GetDoerRepoPermission(ctx, candidate.Repo, ctx.Doer); err != nil {
-				ctx.ServerError("GetDoerRepoPermission", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			perms[candidate.RepoID] = perm
@@ -106,7 +106,7 @@ func AddDependency(ctx *context.Context) {
 	issueIndex := ctx.PathParamInt64("index")
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -119,7 +119,7 @@ func AddDependency(ctx *context.Context) {
 	depID := ctx.FormInt64("newDependency")
 
 	if err = issue.LoadRepo(ctx); err != nil {
-		ctx.ServerError("LoadRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -137,13 +137,13 @@ func AddDependency(ctx *context.Context) {
 			return
 		}
 		if err := dep.LoadRepo(ctx); err != nil {
-			ctx.ServerError("loadRepo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		// Can ctx.Doer read issues in the dep repo?
 		depRepoPerm, err := access_model.GetDoerRepoPermission(ctx, dep.Repo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {
@@ -166,7 +166,7 @@ func AddDependency(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
 		return
 	} else if err != nil {
-		ctx.ServerError("CreateOrUpdateIssueDependency", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONOK()
@@ -177,7 +177,7 @@ func RemoveDependency(ctx *context.Context) {
 	issueIndex := ctx.PathParamInt64("index")
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -190,7 +190,7 @@ func RemoveDependency(ctx *context.Context) {
 	depID := ctx.FormInt64("removeDependencyID")
 
 	if err = issue.LoadRepo(ctx); err != nil {
-		ctx.ServerError("LoadRepo", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -212,7 +212,7 @@ func RemoveDependency(ctx *context.Context) {
 	// Dependency
 	dep, err := issues_model.GetIssueByID(ctx, depID)
 	if err != nil {
-		ctx.ServerError("GetIssueByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -221,12 +221,12 @@ func RemoveDependency(ctx *context.Context) {
 	// doer can read the dependency's repository.
 	if issue.RepoID != dep.RepoID {
 		if err := dep.LoadRepo(ctx); err != nil {
-			ctx.ServerError("loadRepo", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		depRepoPerm, err := access_model.GetDoerRepoPermission(ctx, dep.Repo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {
@@ -240,7 +240,7 @@ func RemoveDependency(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
 		return
 	} else if err != nil {
-		ctx.ServerError("RemoveIssueDependency", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.JSONOK()

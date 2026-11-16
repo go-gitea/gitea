@@ -52,6 +52,7 @@ import (
 	"gitea.dev/services/repository/archiver"
 	"gitea.dev/services/task"
 	"gitea.dev/services/uinotification"
+	user_service "gitea.dev/services/user"
 	"gitea.dev/services/webhook"
 	websocket_service "gitea.dev/services/websocket"
 )
@@ -158,6 +159,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, mailer_incoming.Init)
 
 	mustInitCtx(ctx, syncAppConfForGit)
+	mustInitCtx(ctx, user_service.SyncForcedActivityVisibility)
 
 	mustInit(ssh.Init)
 
