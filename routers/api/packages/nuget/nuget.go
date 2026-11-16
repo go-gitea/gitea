@@ -42,8 +42,6 @@ func xmlResponse(ctx *context.Context, status int, obj any) { //nolint:unparam /
 	_ = xml.NewEncoder(ctx.Resp).Encode(obj)
 }
 
-// buildNuGetRegistryURL returns the registry base URL for the address the client used,
-// so clients which reach Gitea on another host than ROOT_URL can follow the returned links.
 func buildNuGetRegistryURL(ctx *context.Context) string {
 	return httplib.GuessCurrentAppURL(ctx) + "api/packages/" + ctx.Package.Owner.Name + "/nuget"
 }
