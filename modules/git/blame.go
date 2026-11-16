@@ -150,13 +150,22 @@ func (r *BlameReader) cleanup() {
 }
 
 // CreateBlameReader creates reader for given git.Repository, commit and file
-func CreateBlameReader(ctx context.Context, gitRepo *Repository, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
+func CreateBlameReader(ctx context.Context, gitRepo *Repository, commit *Commit, file string, bypassBlameIgnore bool) (_ *BlameReader, retErr error) {
 	rd := &BlameReader{
 		done:         make(chan error, 1),
 		objectFormat: commit.ID.Type(),
 	}
+	defer func() {
+		if retErr != nil {
+			rd.cleanup()
+		}
+	}()
 
 	cmd := gitcmd.NewCommand("blame", "--porcelain")
+
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	rd.bufferedReader = bufio.NewReader(stdoutReader)
+	rd.cleanupFuncs = append(rd.cleanupFuncs, stdoutReaderClose)
 
 	if !bypassBlameIgnore {
 		ignoreRevsFileName, ignoreRevsFileCleanup, err := tryCreateBlameIgnoreRevsFile(ctx, gitRepo, commit)
@@ -170,10 +179,6 @@ func CreateBlameReader(ctx context.Context, gitRepo *Repository, commit *Commit,
 			cmd.AddOptionValues("--ignore-revs-file", ignoreRevsFileName)
 		}
 	}
-
-	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
-	rd.bufferedReader = bufio.NewReader(stdoutReader)
-	rd.cleanupFuncs = append(rd.cleanupFuncs, stdoutReaderClose)
 
 	cmd.AddDynamicArguments(commit.ID.String()).AddDashesAndList(file)
 
