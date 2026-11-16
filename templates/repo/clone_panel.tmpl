@@ -4,14 +4,14 @@
 {{$showCloneLinks := or $cloneLink.SupportHTTPS $cloneLink.SupportSSH}}
 {{$showOpenWithEditorApps := and $showCloneLinks $openWithEditorApps}}{{/* the editor apps need the clone link */}}
 {{$showCodespaces := $.CodespacesEnabled}}
-{{$showMainTabs := and $showCodespaces (or $showCloneLinks $showOpenWithEditorApps $downloadArchiveLinkPrefix)}}
-{{if or $showCloneLinks $showOpenWithEditorApps $downloadArchiveLinkPrefix $showCodespaces}}
+{{$showMainTabs := and $showCodespaces (or $showCloneLinks $downloadArchiveLinkPrefix)}}
+{{if or $showCloneLinks $downloadArchiveLinkPrefix $showCodespaces}}
 	<button type="button" class="ui compact primary button" data-global-init="initRepoClonePanel">
 		{{svg "octicon-code" 16}}
 		<span>{{ctx.Locale.Tr "repo.code"}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
-	<div class="clone-panel-popup tippy-target{{if $showCodespaces}} clone-panel-with-codespaces{{end}}">
+	<div class="clone-panel-popup tippy-target">
 		{{if $showMainTabs}}
 			<div class="clone-panel-tab clone-panel-main-tab" role="tablist" aria-label="{{ctx.Locale.Tr "repo.code"}}">
 				<button type="button" class="item repo-clone-main active" id="repo-clone-tab" role="tab" aria-selected="true" aria-controls="repo-clone-section">{{ctx.Locale.Tr "codespace.clone"}}</button>

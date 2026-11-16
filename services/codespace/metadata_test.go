@@ -97,10 +97,10 @@ func TestNormalizeRuntimeMetadataProtoValidation(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			metadata := serviceRuntimeMetadataProto(t, 1, bootStageReady, []map[string]any{{
-				"endpoint_id": "web",
-				"label":       "Web",
-				"public":      false,
+			metadata := serviceRuntimeMetadataProto(1, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, []*codespacev1.RuntimeEndpoint{{
+				EndpointId: "web",
+				Label:      "Web",
+				Public:     false,
 			}})
 			tc.mutate(metadata)
 			_, _, err := normalizeRuntimeMetadata(metadata)
@@ -109,10 +109,10 @@ func TestNormalizeRuntimeMetadataProtoValidation(t *testing.T) {
 	}
 
 	t.Run("workspace endpoint is optional", func(t *testing.T) {
-		metadata := serviceRuntimeMetadataProto(t, 1, bootStageReady, []map[string]any{{
-			"endpoint_id": "web",
-			"label":       "Web",
-			"public":      false,
+		metadata := serviceRuntimeMetadataProto(1, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, []*codespacev1.RuntimeEndpoint{{
+			EndpointId: "web",
+			Label:      "Web",
+			Public:     false,
 		}})
 		metadata.Endpoints = metadata.Endpoints[:1]
 		normalized, _, err := normalizeRuntimeMetadata(metadata)
@@ -121,7 +121,7 @@ func TestNormalizeRuntimeMetadataProtoValidation(t *testing.T) {
 	})
 
 	t.Run("workspace folder is optional while booting", func(t *testing.T) {
-		metadata := serviceRuntimeMetadataProto(t, 1, bootStagePrepareRuntime, nil)
+		metadata := serviceRuntimeMetadataProto(1, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PREPARE_RUNTIME, nil)
 		normalized, _, err := normalizeRuntimeMetadata(metadata)
 		require.NoError(t, err)
 		assert.Empty(t, normalized.WorkspaceFolder)
@@ -150,19 +150,19 @@ func TestNormalizeRuntimeMetadataLabelBoundaries(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			endpoints := []map[string]any{{
-				"endpoint_id": "web",
-				"label":       tc.label,
-				"public":      false,
+			endpoints := []*codespacev1.RuntimeEndpoint{{
+				EndpointId: "web",
+				Label:      tc.label,
+				Public:     false,
 			}}
 			if tc.secondLabelOK {
-				endpoints = append(endpoints, map[string]any{
-					"endpoint_id": "app",
-					"label":       tc.label,
-					"public":      true,
+				endpoints = append(endpoints, &codespacev1.RuntimeEndpoint{
+					EndpointId: "app",
+					Label:      tc.label,
+					Public:     true,
 				})
 			}
-			metadata, _, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(t, 1, bootStageReady, endpoints))
+			metadata, _, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(1, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, endpoints))
 			if tc.wantErr {
 				require.Error(t, err)
 				return
@@ -182,15 +182,15 @@ func TestNormalizeRuntimeMetadataLabelBoundaries(t *testing.T) {
 }
 
 func TestNormalizeRuntimeMetadataCanonicalizesEndpointOrder(t *testing.T) {
-	first, firstHash, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(t, 1, bootStageReady, []map[string]any{
-		{"endpoint_id": "z-api", "label": "Z API", "public": true, "port": 8080},
-		{"endpoint_id": "app", "label": "App", "public": true, "port": 3000},
+	first, firstHash, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(1, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "z-api", Label: "Z API", Public: true, Port: 8080},
+		{EndpointId: "app", Label: "App", Public: true, Port: 3000},
 	}))
 	require.NoError(t, err)
 
-	second, secondHash, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(t, 1, bootStageReady, []map[string]any{
-		{"endpoint_id": "app", "label": "App", "public": true, "port": 3000},
-		{"endpoint_id": "z-api", "label": "Z API", "public": true, "port": 8080},
+	second, secondHash, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(1, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "app", Label: "App", Public: true, Port: 3000},
+		{EndpointId: "z-api", Label: "Z API", Public: true, Port: 8080},
 	}))
 	require.NoError(t, err)
 
@@ -205,7 +205,7 @@ func TestNormalizeRuntimeMetadataCanonicalizesEndpointOrder(t *testing.T) {
 }
 
 func TestNormalizeRuntimeMetadataBootAndResourceUsage(t *testing.T) {
-	input := serviceRuntimeMetadataProto(t, 1, bootStagePublishReady, []map[string]any{})
+	input := serviceRuntimeMetadataProto(1, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PUBLISH_READY, nil)
 	input.ResourceUsage.Cpu.LimitMillicores = 0
 	input.ResourceUsage.Memory.LimitBytes = 0
 	metadata, hash, err := normalizeRuntimeMetadata(input)
@@ -226,4 +226,45 @@ func TestNormalizeRuntimeMetadataBootAndResourceUsage(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, hash, nextHash)
 	assert.Zero(t, metadata.ResourceUsage.ObservedUnix)
+}
+
+func serviceRuntimeMetadataEntry(t *testing.T, operationRVersion int64, endpoints []*codespacev1.RuntimeEndpoint) runtimeMetadataCacheEntry {
+	t.Helper()
+	metadata, hash, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(operationRVersion, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, endpoints))
+	require.NoError(t, err)
+	return runtimeMetadataCacheEntry{
+		Metadata:    metadata,
+		Generation:  1,
+		ContentHash: hash,
+	}
+}
+
+func serviceRuntimeMetadataProto(operationRVersion int64, stage codespacev1.RuntimeBootStage, endpoints []*codespacev1.RuntimeEndpoint) *codespacev1.RuntimeMetadata {
+	metadata := &codespacev1.RuntimeMetadata{
+		Endpoints: endpoints,
+		Boot: &codespacev1.RuntimeBoot{
+			OperationRversion: operationRVersion,
+			Stage:             stage,
+			StartedUnix:       100,
+			LastUpdateUnix:    101,
+		},
+		ResourceUsage: serviceRuntimeMetadataResourceUsage(),
+	}
+	if stage == codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PUBLISH_READY || stage == codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY {
+		metadata.Endpoints = append(metadata.Endpoints, &codespacev1.RuntimeEndpoint{
+			EndpointId: workspaceEndpointID,
+			Label:      workspaceEndpointLabel,
+		})
+		metadata.WorkspaceFolder = "/workspaces/project"
+	}
+	return metadata
+}
+
+func serviceRuntimeMetadataResourceUsage() *codespacev1.RuntimeResourceUsage {
+	return &codespacev1.RuntimeResourceUsage{
+		Cpu:          &codespacev1.RuntimeCPUUsage{UsedMillicores: 125, LimitMillicores: 1000},
+		Memory:       &codespacev1.RuntimeMemoryUsage{UsedBytes: 256 * 1024 * 1024, LimitBytes: 1024 * 1024 * 1024},
+		Disk:         &codespacev1.RuntimeDiskUsage{UsedBytes: 512 * 1024 * 1024, LimitBytes: 10 * 1024 * 1024 * 1024},
+		ObservedUnix: 101,
+	}
 }

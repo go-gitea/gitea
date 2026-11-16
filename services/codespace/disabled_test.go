@@ -33,9 +33,9 @@ func TestGatewayAndRuntimeRPCsRejectDisabledCodespace(t *testing.T) {
 		OperationRVersion:     91,
 		InteractionGeneration: 5,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(runningUUID, serviceRuntimeMetadataEntry(t, 91, []map[string]any{
-		{"endpoint_id": "app-3000", "label": "App", "public": true},
-		{"endpoint_id": "private-api", "label": "API", "public": false},
+	require.NoError(t, putRuntimeMetadataEntry(runningUUID, serviceRuntimeMetadataEntry(t, 91, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "app-3000", Label: "App", Public: true},
+		{EndpointId: "private-api", Label: "API", Public: false},
 	})))
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
 		UserID:      1,
@@ -93,7 +93,7 @@ func TestGatewayAndRuntimeRPCsRejectDisabledCodespace(t *testing.T) {
 	})
 	err = ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
 		CodespaceUUID:      creatingUUID,
-		Metadata:           serviceRuntimeMetadataProto(t, 92, "ready", nil),
+		Metadata:           serviceRuntimeMetadataProto(92, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	})
 	require.ErrorIs(t, err, ErrRuntimeMetadataStateUnavailable)

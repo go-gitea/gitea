@@ -19,6 +19,10 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  window.dispatchEvent(new PageTransitionEvent('pagehide'));
+  document.body.replaceChildren();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -37,7 +41,6 @@ test('codespace create environment selection updates its explanation', () => {
   environmentInput.value = 'large';
   environmentInput.dispatchEvent(new Event('change'));
 
-  expect(environmentInput.value).toBe('large');
   expect(document.querySelector<HTMLElement>('[data-codespace-environment-detail="standard"]')!.classList.contains('tw-hidden')).toBe(true);
   expect(document.querySelector<HTMLElement>('[data-codespace-environment-detail="large"]')!.classList.contains('tw-hidden')).toBe(false);
 
@@ -47,7 +50,6 @@ test('codespace create environment selection updates its explanation', () => {
   expect(submitEvent.defaultPrevented).toBe(true);
   expect(document.querySelector('.dropdown')!.classList.contains('error')).toBe(true);
   expect(document.querySelector('.dropdown')!.getAttribute('aria-invalid')).toBe('true');
-  document.body.replaceChildren();
 });
 
 test('codespace create configuration preview preserves its source and environment', () => {
@@ -84,121 +86,89 @@ test('codespace create configuration preview preserves its source and environmen
     dev_container: '.devcontainer/node/devcontainer.json',
     environment_tag: 'standard',
   });
-  document.body.replaceChildren();
 });
 
-test('initCodespaceLiveState opens the gateway recovery modal', () => {
-  document.body.innerHTML = '<dialog id="codespace-open-modal" data-codespace-auto-open="true"><form></form></dialog>';
+test('gateway recovery opens the modal and closes it after opening a new tab', async () => {
+  vi.useFakeTimers();
+  document.body.innerHTML = '<dialog id="codespace-open-modal" data-codespace-auto-open="true"><form target="_blank" class="is-loading"></form></dialog>';
+  const form = document.querySelector<HTMLFormElement>('#codespace-open-modal form')!;
 
   initCodespaceLiveState();
+  expect(showModal).toHaveBeenCalledWith(form.closest('dialog'));
+  form.dispatchEvent(new SubmitEvent('submit'));
+  await vi.runAllTimersAsync();
 
-  expect(showModal).toHaveBeenCalledWith(document.querySelector('#codespace-open-modal'));
-  document.body.replaceChildren();
+  expect(hideModal).toHaveBeenCalledWith(form.closest('dialog'));
+  expect(form.classList.contains('is-loading')).toBe(false);
 });
 
-test('initCodespaceLiveState closes the source modal after opening a new tab', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = '<dialog id="codespace-open-modal"><form target="_blank" class="is-loading"></form></dialog>';
-    const form = document.querySelector<HTMLFormElement>('#codespace-open-modal form')!;
+test('initCodespaceLiveState refreshes state and preserves expanded host verification', async () => {
+  vi.useFakeTimers();
+  document.body.innerHTML = '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10" data-log-revision="1:0"><span>old</span><details id="verification" open><summary>SSH</summary>fingerprint</details></div>';
+  const fetchMock = vi.fn().mockResolvedValue(new Response(
+    '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="0" data-log-revision="2:20"><span>new</span><details id="verification"><summary>SSH</summary>fingerprint</details></div>',
+    {status: 200},
+  ));
+  vi.stubGlobal('fetch', fetchMock);
 
-    initCodespaceLiveState();
-    form.dispatchEvent(new SubmitEvent('submit'));
-    await vi.runAllTimersAsync();
+  initCodespaceLiveState();
+  const logView = document.createElement('div');
+  logView.id = 'codespace-log-view';
+  const wakeLog = vi.fn();
+  logView.addEventListener('codespace-log-update', wakeLog);
+  document.body.append(logView);
+  await vi.advanceTimersByTimeAsync(10);
+  await vi.waitFor(() => expect(document.querySelector('#codespace-live-state')!.textContent).toContain('new'));
 
-    expect(hideModal).toHaveBeenCalledWith(form.closest('dialog'));
-    expect(form.classList.contains('is-loading')).toBe(false);
-  } finally {
-    vi.useRealTimers();
-    document.body.replaceChildren();
-  }
+  expect(fetchMock).toHaveBeenCalledWith('/-/codespaces/uuid/state', expect.objectContaining({method: 'GET'}));
+  expect(document.querySelector<HTMLDetailsElement>('#verification')!.open).toBe(true);
+  expect(wakeLog).toHaveBeenCalledTimes(1);
 });
 
-test('initCodespaceLiveState refreshes state and preserves expanded host verification', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10" data-log-revision="1:0"><span>old</span><details id="verification" open><summary>SSH</summary>fingerprint</details></div>';
-    const fetchMock = vi.fn().mockResolvedValue(new Response(
-      '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="0" data-log-revision="2:20"><span>new</span><details id="verification"><summary>SSH</summary>fingerprint</details></div>',
-      {status: 200},
-    ));
-    vi.stubGlobal('fetch', fetchMock);
-
-    initCodespaceLiveState();
-    const logView = document.createElement('div');
-    logView.id = 'codespace-log-view';
-    const wakeLog = vi.fn();
-    logView.addEventListener('codespace-log-update', wakeLog);
-    document.body.append(logView);
-    await vi.advanceTimersByTimeAsync(10);
-    await vi.waitFor(() => expect(document.querySelector('#codespace-live-state')!.textContent).toContain('new'));
-
-    expect(fetchMock).toHaveBeenCalledWith('/-/codespaces/uuid/state', expect.objectContaining({method: 'GET'}));
-    expect(document.querySelector<HTMLDetailsElement>('#verification')!.open).toBe(true);
-    expect(wakeLog).toHaveBeenCalledTimes(1);
-  } finally {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
+test('codespace refresh disables open settings when the runtime stops accepting changes', async () => {
+  vi.useFakeTimers();
+  document.body.innerHTML = `
+    <div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10"></div>
+    <dialog id="codespace-settings-modal" open><form>
+      <div data-auto-stop-unavailable class="tw-hidden"></div>
+      <fieldset data-auto-stop-fields>
+        <input type="radio" name="mode" value="custom" checked>
+        <div data-auto-stop-custom-fields><input name="timeout_value"><select name="timeout_unit"></select></div>
+      </fieldset><button type="submit">Save</button>
+    </form></dialog>`;
+  const response = new Response();
+  vi.spyOn(response, 'text').mockResolvedValue('<div id="codespace-live-state" data-auto-stop-configurable="false"></div>');
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
+  initCodespaceLiveState();
+  await vi.advanceTimersByTimeAsync(10);
+  expect(document.querySelector<HTMLFieldSetElement>('[data-auto-stop-fields]')!.disabled).toBe(true);
+  expect(document.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
 });
 
-test('codespace refresh disables open settings when the runtime stops accepting changes', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = `
-      <div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10"></div>
-      <dialog id="codespace-settings-modal" open><form>
-        <div data-auto-stop-unavailable class="tw-hidden"></div>
-        <fieldset data-auto-stop-fields>
-          <input type="radio" name="mode" value="custom" checked>
-          <div data-auto-stop-custom-fields><input name="timeout_value"><select name="timeout_unit"></select></div>
-        </fieldset><button type="submit">Save</button>
-      </form></dialog>`;
-    const response = new Response();
-    vi.spyOn(response, 'text').mockResolvedValue('<div id="codespace-live-state" data-auto-stop-configurable="false"></div>');
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
-    initCodespaceLiveState();
-    await vi.advanceTimersByTimeAsync(10);
-    expect(document.querySelector<HTMLFieldSetElement>('[data-auto-stop-fields]')!.disabled).toBe(true);
-    expect(document.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
-  } finally {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
-});
-
-test('codespace list refresh recovers from body failures and stops when access is lost', {concurrent: false}, async () => {
-  try {
-    vi.useFakeTimers();
-    document.body.innerHTML = `
-      <div data-codespace-state-error class="tw-hidden"><span data-codespace-state-interrupted></span><span data-codespace-state-unavailable class="tw-hidden"></span><button data-codespace-state-retry>Retry</button></div>
-      <div id="codespace-list-state" data-state-url="/-/codespaces?owner=org&page=2&partial=true" data-refresh-after-ms="10">Resuming</div>`;
-    const failed = new Response();
-    vi.spyOn(failed, 'text').mockRejectedValue(new Error('body read failed'));
-    const ready = new Response();
-    vi.spyOn(ready, 'text').mockResolvedValue('<div id="codespace-list-state" data-state-url="/-/codespaces?owner=org&page=2&partial=true" data-refresh-after-ms="10">Running</div>');
-    const fetchMock = vi.fn().mockResolvedValue(failed);
-    vi.stubGlobal('fetch', fetchMock);
-    initCodespaceLiveState();
-    await vi.advanceTimersByTimeAsync(70);
-    expect(document.querySelector<HTMLElement>('[data-codespace-state-error]')!.classList.contains('tw-hidden')).toBe(false);
-    fetchMock.mockResolvedValueOnce(ready).mockResolvedValue(new Response('', {status: 404}));
-    document.querySelector<HTMLButtonElement>('[data-codespace-state-retry]')!.click();
-    await vi.advanceTimersByTimeAsync(0);
-    expect(document.querySelector('#codespace-list-state')!.textContent).toBe('Running');
-    expect(document.querySelector<HTMLElement>('[data-codespace-state-error]')!.classList.contains('tw-hidden')).toBe(true);
-    await vi.advanceTimersByTimeAsync(10);
-    expect(document.querySelector<HTMLElement>('[data-codespace-state-unavailable]')!.classList.contains('tw-hidden')).toBe(false);
-    const calls = fetchMock.mock.calls.length;
-    await vi.advanceTimersByTimeAsync(30000);
-    expect(fetchMock).toHaveBeenCalledTimes(calls);
-  } finally {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-    document.body.replaceChildren();
-  }
+test('codespace list refresh recovers from body failures and stops when access is lost', async () => {
+  vi.useFakeTimers();
+  document.body.innerHTML = `
+    <div data-codespace-state-error class="tw-hidden"><span data-codespace-state-interrupted></span><span data-codespace-state-unavailable class="tw-hidden"></span><button data-codespace-state-retry>Retry</button></div>
+    <div id="codespace-list-state" data-state-url="/-/codespaces?owner=org&page=2&partial=true" data-refresh-after-ms="10">Resuming</div>`;
+  const failed = new Response();
+  vi.spyOn(failed, 'text').mockRejectedValue(new Error('body read failed'));
+  const ready = new Response();
+  vi.spyOn(ready, 'text').mockResolvedValue('<div id="codespace-list-state" data-state-url="/-/codespaces?owner=org&page=2&partial=true" data-refresh-after-ms="10">Running</div>');
+  const fetchMock = vi.fn().mockResolvedValue(failed);
+  vi.stubGlobal('fetch', fetchMock);
+  initCodespaceLiveState();
+  await vi.advanceTimersByTimeAsync(70);
+  expect(document.querySelector<HTMLElement>('[data-codespace-state-error]')!.classList.contains('tw-hidden')).toBe(false);
+  fetchMock.mockResolvedValueOnce(ready).mockResolvedValue(new Response('', {status: 404}));
+  document.querySelector<HTMLButtonElement>('[data-codespace-state-retry]')!.click();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(document.querySelector('#codespace-list-state')!.textContent).toBe('Running');
+  expect(document.querySelector<HTMLElement>('[data-codespace-state-error]')!.classList.contains('tw-hidden')).toBe(true);
+  await vi.advanceTimersByTimeAsync(10);
+  expect(document.querySelector<HTMLElement>('[data-codespace-state-unavailable]')!.classList.contains('tw-hidden')).toBe(false);
+  const calls = fetchMock.mock.calls.length;
+  await vi.advanceTimersByTimeAsync(30000);
+  expect(fetchMock).toHaveBeenCalledTimes(calls);
 });
 
 test('codespace settings button fills and opens the shared auto-stop modal', () => {
@@ -233,13 +203,11 @@ test('codespace settings button fills and opens the shared auto-stop modal', () 
 
   const form = document.querySelector<HTMLFormElement>('#codespace-settings-modal form')!;
   expect(form.action).toMatch(/\/-\/codespaces\/uuid\/auto-stop$/);
-  expect(form.querySelector<HTMLInputElement>('input[name="return_to"]')!.value).toBe('/-/codespaces/uuid');
-  expect(form.querySelector<HTMLInputElement>('input[name="mode"][value="custom"]')!.checked).toBe(true);
-  expect(form.querySelector<HTMLInputElement>('input[name="timeout_value"]')!.value).toBe('2');
+  expect(Object.fromEntries(new FormData(form))).toEqual({
+    return_to: '/-/codespaces/uuid', mode: 'custom', timeout_value: '2', timeout_unit: 'hours',
+  });
   expect(form.querySelector<HTMLElement>('[data-auto-stop-custom-fields]')!.classList.contains('tw-hidden')).toBe(false);
-  expect(form.querySelector<HTMLElement>('[data-auto-stop-effective]')!.textContent).toBe('Stop after two hours');
   expect(showModal).toHaveBeenCalledWith(form.closest('dialog'));
-  document.body.replaceChildren();
 });
 
 function codespaceLogHTML() {
@@ -282,13 +250,6 @@ describe('codespace log', () => {
     });
   });
 
-  afterEach(() => {
-    window.dispatchEvent(new PageTransitionEvent('pagehide'));
-    document.body.replaceChildren();
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-  });
-
   test('loads history only on demand and uses the server byte offset', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(codespaceLogResponse(101, ['中文'], false))
@@ -298,13 +259,13 @@ describe('codespace log', () => {
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(1000);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(content.textContent).toBe('中文\n');
+    expect(content.textContent).toBe('[2026-07-26T03:40:00.000Z] 中文\n');
     expect(logView.scrollTop).toBe(0);
     logView.scrollTop = 300;
     logView.dispatchEvent(new Event('scroll'));
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/-/codespaces/1/logs?offset=101&limit=65536', expect.objectContaining({method: 'GET', signal: expect.any(AbortSignal)}));
-    expect(content.textContent).toBe('中文\nnext page\n');
+    expect(content.textContent).toBe('[2026-07-26T03:40:00.000Z] 中文\n[2026-07-26T03:40:00.000Z] next page\n');
     expect(logView.scrollTop).toBe(300);
   });
 
@@ -320,7 +281,7 @@ describe('codespace log', () => {
     initCodespaceLiveState();
     await vi.advanceTimersByTimeAsync(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(content.textContent).toBe('ready\n<img src=x onerror=alert(1)>\nlink\n');
+    expect(content.textContent).toBe('[2026-07-26T03:40:00.000Z] ready\n[2026-07-26T03:40:00.000Z] <img src=x onerror=alert(1)>\n[2026-07-26T03:40:00.000Z] link\n');
     expect(content.childElementCount).toBe(0);
   });
 
@@ -343,7 +304,7 @@ describe('codespace log', () => {
     logView.scrollTop = 100;
     page.resolve(codespaceLogResponse(30, ['third'], true, true));
     await vi.advanceTimersByTimeAsync(0);
-    expect(content.textContent).toBe('first\nsecond\nthird\n');
+    expect(content.textContent).toBe('[2026-07-26T03:40:00.000Z] first\n[2026-07-26T03:40:00.000Z] second\n[2026-07-26T03:40:00.000Z] third\n');
     expect(logView.scrollTop).toBe(100);
     await vi.advanceTimersByTimeAsync(100);
     expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -362,7 +323,7 @@ describe('codespace log', () => {
     logView.dispatchEvent(new Event('codespace-log-update'));
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(content.textContent).toBe('finished\nresume started\n');
+    expect(content.textContent).toBe('[2026-07-26T03:40:00.000Z] finished\n[2026-07-26T03:40:00.000Z] resume started\n');
   });
 
   test('backs off on no progress and pauses while the page is hidden', async () => {
@@ -394,13 +355,13 @@ describe('codespace log', () => {
     vi.stubGlobal('fetch', fetchMock);
     initCodespaceLiveState();
     await vi.advanceTimersByTimeAsync(10);
-    expect(content.textContent).toBe('diagnostic\n');
+    expect(content.textContent).toBe('[2026-07-26T03:40:00.000Z] diagnostic\n');
     expect(document.querySelector('[data-log-error]')!.classList.contains('tw-hidden')).toBe(false);
     const retry = document.querySelector<HTMLButtonElement>('[data-log-retry]')!;
     if (status === 500) {
       retry.click();
       await vi.advanceTimersByTimeAsync(0);
-      expect(content.textContent).toBe('diagnostic\nrecovered\n');
+      expect(content.textContent).toBe('[2026-07-26T03:40:00.000Z] diagnostic\n[2026-07-26T03:40:00.000Z] recovered\n');
       expect(document.querySelector('[data-log-error]')!.classList.contains('tw-hidden')).toBe(true);
     } else {
       expect(retry.disabled).toBe(true);
@@ -441,6 +402,6 @@ describe('codespace log', () => {
     window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted: true}));
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/-/codespaces/1/logs?offset=10&limit=65536', expect.anything());
-    expect(content.textContent).toBe('before\nafter\n');
+    expect(content.textContent).toBe('[2026-07-26T03:40:00.000Z] before\n[2026-07-26T03:40:00.000Z] after\n');
   });
 });

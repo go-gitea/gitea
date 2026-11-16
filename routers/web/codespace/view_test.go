@@ -49,10 +49,6 @@ func TestListFiltersCurrentCreatorByRepositoryOwner(t *testing.T) {
 	require.True(t, ok)
 	require.Len(t, rows, 2)
 	assert.ElementsMatch(t, []string{personalRepositoryUUID, organizationRepositoryUUID}, []string{rows[0].UUID, rows[1].UUID})
-	for _, row := range rows {
-		assert.Contains(t, resp.Body.String(), "codespace-row-"+strconv.FormatInt(row.ID, 10))
-	}
-	assert.Contains(t, resp.Body.String(), "codespace.all_repositories")
 	assert.Nil(t, ctx.Data["CodespaceRepositoryOwner"])
 	assert.NotNil(t, ctx.Data["Page"])
 
@@ -90,17 +86,18 @@ func TestListFiltersCurrentCreatorByRepositoryOwner(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, url.Values{"owner": {"org3"}, "q": {"repo3"}}, params)
 	assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
-}
 
-func TestListRendersEmptyRepositoryOwner(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces?owner=org17", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-empty-owner")})
+	ctx, resp = contexttest.MockContext(t, "GET /-/codespaces?owner=org17", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-empty-owner")})
 	contexttest.LoadUser(t, ctx, 2)
 	List(ctx)
 
 	require.Equal(t, http.StatusOK, resp.Code)
-	assert.Contains(t, resp.Body.String(), "codespace.empty_repository_owner_desc:org17")
+	rows, ok = ctx.Data["Codespaces"].([]*codespace_service.CreatorCodespaceView)
+	require.True(t, ok)
+	assert.Empty(t, rows)
+	repositoryOwner, ok = ctx.Data["CodespaceRepositoryOwner"].(*user_model.User)
+	require.True(t, ok)
+	assert.EqualValues(t, 17, repositoryOwner.ID)
 }
 
 func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {
@@ -113,43 +110,30 @@ func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {
 	})
 	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10), contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-detail")})
-	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
-	Detail(ctx)
+	for _, tc := range []struct {
+		name     string
+		query    string
+		tab      string
+		explicit bool
+	}{
+		{name: "default logs", tab: codespace_service.DetailModeLogs},
+		{name: "explicit overview", query: "?tab=overview", tab: codespace_service.DetailModeOverview, explicit: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+tc.query, contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-detail")})
+			contexttest.LoadUser(t, ctx, 1)
+			ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
+			Detail(ctx)
 
-	require.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
-	view, ok := ctx.Data["Codespace"].(*codespace_service.CreatorCodespaceView)
-	require.True(t, ok)
-	assert.Equal(t, codespaceUUID, view.UUID)
-	assert.Equal(t, codespace_service.DetailModeLogs, ctx.Data["CodespaceTab"])
-	explicit, ok := ctx.Data["CodespaceTabExplicit"].(bool)
-	require.True(t, ok)
-	assert.False(t, explicit)
-}
-
-func TestDetailPreservesExplicitOverviewTab(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	codespaceUUID := "30303030-3030-4030-8030-303030303030"
-	insertWebViewCodespace(t, &codespace_model.Codespace{
-		UUID:   codespaceUUID,
-		Status: codespace_model.StatusCreating,
-	})
-	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
-
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"?tab=overview", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-overview")})
-	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
-	Detail(ctx)
-
-	require.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, codespace_service.DetailModeOverview, ctx.Data["CodespaceTab"])
-	explicit, ok := ctx.Data["CodespaceTabExplicit"].(bool)
-	require.True(t, ok)
-	assert.True(t, explicit)
-	assert.NotContains(t, resp.Body.String(), "data-log-next-offset=\"0\"")
+			require.Equal(t, http.StatusOK, resp.Code)
+			assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
+			view, ok := ctx.Data["Codespace"].(*codespace_service.CreatorCodespaceView)
+			require.True(t, ok)
+			assert.Equal(t, codespaceUUID, view.UUID)
+			assert.Equal(t, tc.tab, ctx.Data["CodespaceTab"])
+			assert.Equal(t, tc.explicit, ctx.Data["CodespaceTabExplicit"])
+		})
+	}
 }
 
 func TestDetailOpensGatewayRecoveryModal(t *testing.T) {

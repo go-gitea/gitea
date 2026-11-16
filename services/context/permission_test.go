@@ -24,71 +24,57 @@ func TestCheckRepoScopedTokenForCodespaceToken(t *testing.T) {
 	scope, err := auth_model.AccessTokenScope("write:repository").Normalize()
 	require.NoError(t, err)
 
-	t.Run("matched repo", func(t *testing.T) {
-		ctx, _ := contexttest.MockContext(t, "GET /user2/repo1.git/info/refs")
-		ctx.Data["IsApiToken"] = true
-		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
-		ctx.Data[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
+	for _, tc := range []struct {
+		name     string
+		request  string
+		repo     *repo_model.Repository
+		snapshot testCodespaceTokenSnapshot
+		level    auth_model.AccessTokenScopeLevel
+		status   int
+	}{
+		{
+			name: "matched repo", request: "GET /user2/repo1.git/info/refs",
+			repo: &repo_model.Repository{ID: 1}, snapshot: testCodespaceTokenSnapshot{repoID: 1},
+			level: auth_model.Read,
+		},
+		{
+			name: "private other repo read requires grant", request: "GET /user2/repo2.git/info/refs",
+			repo: &repo_model.Repository{ID: 2, IsPrivate: true}, snapshot: testCodespaceTokenSnapshot{repoID: 1},
+			level: auth_model.Read, status: http.StatusForbidden,
+		},
+		{
+			name: "granted other repo read", request: "GET /user2/repo2.git/info/refs",
+			repo:     &repo_model.Repository{ID: 2, IsPrivate: true},
+			snapshot: testCodespaceTokenSnapshot{repoID: 1, grants: map[int64]map[unit.Type]perm.AccessMode{2: {unit.TypeCode: perm.AccessModeRead}}},
+			level:    auth_model.Read,
+		},
+		{
+			name: "public other repo read", request: "GET /user2/repo2.git/info/refs",
+			repo: &repo_model.Repository{ID: 2, Owner: &user_model.User{}}, snapshot: testCodespaceTokenSnapshot{repoID: 1},
+			level: auth_model.Read,
+		},
+		{
+			name: "public other repo write", request: "POST /user2/repo2.git/git-receive-pack",
+			repo: &repo_model.Repository{ID: 2}, snapshot: testCodespaceTokenSnapshot{repoID: 1},
+			level: auth_model.Write, status: http.StatusForbidden,
+		},
+		{
+			name: "missing source repository", request: "GET /user2/repo1.git/info/refs",
+			repo:  &repo_model.Repository{ID: 1, IsPrivate: true},
+			level: auth_model.Read, status: http.StatusForbidden,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, _ := contexttest.MockContext(t, tc.request)
+			ctx.Data["IsApiToken"] = true
+			ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
+			ctx.Data[module_auth.CodespaceTokenAuthDataKey] = tc.snapshot
 
-		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 1}, unit.TypeCode, auth_model.Read)
+			gitea_context.CheckRepoScopedToken(ctx, tc.repo, unit.TypeCode, tc.level)
 
-		assert.Equal(t, 0, ctx.Resp.WrittenStatus())
-	})
-
-	t.Run("private other repo read requires grant", func(t *testing.T) {
-		ctx, _ := contexttest.MockContext(t, "GET /user2/repo1.git/info/refs")
-		ctx.Data["IsApiToken"] = true
-		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
-		ctx.Data[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
-
-		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 2, IsPrivate: true}, unit.TypeCode, auth_model.Read)
-
-		assert.Equal(t, http.StatusForbidden, ctx.Resp.WrittenStatus())
-	})
-
-	t.Run("granted other repo read", func(t *testing.T) {
-		ctx, _ := contexttest.MockContext(t, "GET /user2/repo1.git/info/refs")
-		ctx.Data["IsApiToken"] = true
-		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
-		ctx.Data[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1, grants: map[int64]map[unit.Type]perm.AccessMode{2: {unit.TypeCode: perm.AccessModeRead}}}
-
-		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 2}, unit.TypeCode, auth_model.Read)
-
-		assert.Equal(t, 0, ctx.Resp.WrittenStatus())
-	})
-
-	t.Run("public other repo read", func(t *testing.T) {
-		ctx, _ := contexttest.MockContext(t, "GET /user2/repo1.git/info/refs")
-		ctx.Data["IsApiToken"] = true
-		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
-		ctx.Data[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
-
-		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 2, Owner: &user_model.User{}}, unit.TypeCode, auth_model.Read)
-
-		assert.Equal(t, 0, ctx.Resp.WrittenStatus())
-	})
-
-	t.Run("public other repo write", func(t *testing.T) {
-		ctx, _ := contexttest.MockContext(t, "POST /user2/repo1.git/git-receive-pack")
-		ctx.Data["IsApiToken"] = true
-		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
-		ctx.Data[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 1}
-
-		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 2}, unit.TypeCode, auth_model.Write)
-
-		assert.Equal(t, http.StatusForbidden, ctx.Resp.WrittenStatus())
-	})
-
-	t.Run("missing source repository", func(t *testing.T) {
-		ctx, _ := contexttest.MockContext(t, "GET /user2/repo1.git/info/refs")
-		ctx.Data["IsApiToken"] = true
-		ctx.Doer = &user_model.User{ExtDoerData: user_model.NewTokenExtDoerData("codespace", 1, scope)}
-		ctx.Data[module_auth.CodespaceTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 0}
-
-		gitea_context.CheckRepoScopedToken(ctx, &repo_model.Repository{ID: 1, IsPrivate: true}, unit.TypeCode, auth_model.Read)
-
-		assert.Equal(t, http.StatusForbidden, ctx.Resp.WrittenStatus())
-	})
+			assert.Equal(t, tc.status, ctx.Resp.WrittenStatus())
+		})
+	}
 }
 
 type testCodespaceTokenSnapshot struct {

@@ -27,9 +27,9 @@ func TestValidatePublicEndpointAllowsPublicReadyEndpoint(t *testing.T) {
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 12,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 12, []map[string]any{
-		{"endpoint_id": "app-3000", "label": "App", "public": true},
-		{"endpoint_id": "private-api", "label": "API", "public": false},
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 12, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "app-3000", Label: "App", Public: true},
+		{EndpointId: "private-api", Label: "API", Public: false},
 	})))
 
 	result, err := ValidatePublicEndpoint(t.Context(), manager, ValidatePublicEndpointOptions{
@@ -51,8 +51,8 @@ func TestValidatePublicEndpointDeniesPrivateMissingAndWorkspace(t *testing.T) {
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 13,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 13, []map[string]any{
-		{"endpoint_id": "private-api", "label": "API", "public": false},
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 13, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "private-api", Label: "API", Public: false},
 	})))
 
 	for _, tc := range []struct {
@@ -87,8 +87,8 @@ func TestValidatePublicEndpointDeniesStateAndMetadata(t *testing.T) {
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	require.NoError(t, putRuntimeMetadataEntry(activeUUID, serviceRuntimeMetadataEntry(t, 14, []map[string]any{
-		{"endpoint_id": "app-3000", "label": "App", "public": true},
+	require.NoError(t, putRuntimeMetadataEntry(activeUUID, serviceRuntimeMetadataEntry(t, 14, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "app-3000", Label: "App", Public: true},
 	})))
 
 	result, err := ValidatePublicEndpoint(t.Context(), manager, ValidatePublicEndpointOptions{
@@ -127,91 +127,4 @@ func TestValidatePublicEndpointDeniesStateAndMetadata(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, PublicEndpointDeniedManagerOffline, result.GetDenied().GetCategory())
-}
-
-func serviceRuntimeMetadataEntry(t *testing.T, operationRVersion int64, endpoints []map[string]any) runtimeMetadataCacheEntry {
-	t.Helper()
-	metadata, hash, err := normalizeRuntimeMetadata(serviceRuntimeMetadataProto(t, operationRVersion, bootStageReady, endpoints))
-	require.NoError(t, err)
-	return runtimeMetadataCacheEntry{
-		Metadata:    metadata,
-		Generation:  1,
-		ContentHash: hash,
-	}
-}
-
-func serviceRuntimeMetadataProto(t *testing.T, operationRVersion int64, stage string, endpoints []map[string]any) *codespacev1.RuntimeMetadata {
-	t.Helper()
-	metadataEndpoints := make([]*codespacev1.RuntimeEndpoint, 0, len(endpoints)+1)
-	for _, endpoint := range endpoints {
-		endpointID, ok := endpoint["endpoint_id"].(string)
-		require.True(t, ok)
-		label, ok := endpoint["label"].(string)
-		require.True(t, ok)
-		public, ok := endpoint["public"].(bool)
-		require.True(t, ok)
-		var port uint32
-		if value, found := endpoint["port"]; found {
-			number, ok := value.(int)
-			require.True(t, ok)
-			port = uint32(number)
-		}
-		metadataEndpoints = append(metadataEndpoints, &codespacev1.RuntimeEndpoint{
-			EndpointId: endpointID,
-			Label:      label,
-			Public:     public,
-			Port:       port,
-		})
-	}
-	if stage == bootStagePublishReady || stage == bootStageReady {
-		metadataEndpoints = append(metadataEndpoints, &codespacev1.RuntimeEndpoint{
-			EndpointId: workspaceEndpointID,
-			Label:      workspaceEndpointLabel,
-		})
-	}
-	workspaceFolder := ""
-	if stage == bootStagePublishReady || stage == bootStageReady {
-		workspaceFolder = "/workspaces/project"
-	}
-	return &codespacev1.RuntimeMetadata{
-		Endpoints:       metadataEndpoints,
-		WorkspaceFolder: workspaceFolder,
-		Boot: &codespacev1.RuntimeBoot{
-			OperationRversion: operationRVersion,
-			Stage:             serviceRuntimeMetadataBootStage(t, stage),
-			StartedUnix:       100,
-			LastUpdateUnix:    101,
-		},
-		ResourceUsage: serviceRuntimeMetadataResourceUsage(),
-	}
-}
-
-func serviceRuntimeMetadataResourceUsage() *codespacev1.RuntimeResourceUsage {
-	return &codespacev1.RuntimeResourceUsage{
-		Cpu:          &codespacev1.RuntimeCPUUsage{UsedMillicores: 125, LimitMillicores: 1000},
-		Memory:       &codespacev1.RuntimeMemoryUsage{UsedBytes: 256 * 1024 * 1024, LimitBytes: 1024 * 1024 * 1024},
-		Disk:         &codespacev1.RuntimeDiskUsage{UsedBytes: 512 * 1024 * 1024, LimitBytes: 10 * 1024 * 1024 * 1024},
-		ObservedUnix: 101,
-	}
-}
-
-func serviceRuntimeMetadataBootStage(t *testing.T, stage string) codespacev1.RuntimeBootStage {
-	t.Helper()
-	switch stage {
-	case bootStagePrepareRuntime:
-		return codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PREPARE_RUNTIME
-	case bootStageInitializeSystem:
-		return codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_INITIALIZE_SYSTEM
-	case bootStagePrepareWorkspace:
-		return codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PREPARE_WORKSPACE
-	case bootStageStartEnvironment:
-		return codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_START_ENVIRONMENT
-	case bootStagePublishReady:
-		return codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PUBLISH_READY
-	case bootStageReady:
-		return codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY
-	default:
-		t.Fatalf("unknown runtime metadata stage %q", stage)
-		return codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_UNSPECIFIED
-	}
 }

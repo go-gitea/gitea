@@ -28,9 +28,9 @@ func TestRevalidateGatewaySessionAllowsPrivateEndpointAndSSH(t *testing.T) {
 		InteractionGeneration: 7,
 		LastActiveUnix:        12,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 61, []map[string]any{
-		{"endpoint_id": "app-3000", "label": "App", "public": false},
-		{"endpoint_id": "public-api", "label": "API", "public": true},
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 61, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "app-3000", Label: "App", Public: false},
+		{EndpointId: "public-api", Label: "API", Public: true},
 	})))
 
 	endpoint, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
@@ -73,8 +73,8 @@ func TestRevalidateGatewaySessionDeniesChangedEndpointAndState(t *testing.T) {
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 62,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 62, []map[string]any{
-		{"endpoint_id": "public-api", "label": "API", "public": true},
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 62, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "public-api", Label: "API", Public: true},
 	})))
 
 	publicEndpoint, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
@@ -101,7 +101,7 @@ func TestRevalidateGatewaySessionDeniesChangedEndpointAndState(t *testing.T) {
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	require.NoError(t, putRuntimeMetadataEntry(activeUUID, serviceRuntimeMetadataEntry(t, 63, []map[string]any{})))
+	require.NoError(t, putRuntimeMetadataEntry(activeUUID, serviceRuntimeMetadataEntry(t, 63, nil)))
 	active, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Ssh{Ssh: &codespacev1.SSHSessionBinding{
 			UserId: 1, RuntimeUuid: activeUUID,

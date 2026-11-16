@@ -218,13 +218,13 @@ func TestReportRuntimeMetadataRejectsStageRegression(t *testing.T) {
 
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
 		CodespaceUUID:      codespaceUUID,
-		Metadata:           serviceRuntimeMetadataProto(t, 5, "ready", nil),
+		Metadata:           serviceRuntimeMetadataProto(5, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	}))
 
 	err := ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
 		CodespaceUUID:      codespaceUUID,
-		Metadata:           serviceRuntimeMetadataProto(t, 5, "publish-ready", nil),
+		Metadata:           serviceRuntimeMetadataProto(5, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PUBLISH_READY, nil),
 		MetadataGeneration: 2,
 	})
 	require.Error(t, err)
@@ -244,7 +244,7 @@ func TestReportRuntimeMetadataResourceUsageRefresh(t *testing.T) {
 		OperationRVersion: 5, OperationTrigger: codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: 10, OperationStartedUnix: 11, OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
-	metadata := serviceRuntimeMetadataProto(t, 5, bootStageReady, nil)
+	metadata := serviceRuntimeMetadataProto(5, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil)
 	metadata.ResourceUsage = nil
 	options := ReportRuntimeMetadataOptions{CodespaceUUID: codespaceUUID, Metadata: metadata, MetadataGeneration: 1}
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, options))
@@ -296,13 +296,13 @@ func TestReportRuntimeMetadataRejectsGenerationExhaustion(t *testing.T) {
 		OperationStartedUnix:  11,
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
 	})
-	entry := serviceRuntimeMetadataEntry(t, 7, []map[string]any{})
+	entry := serviceRuntimeMetadataEntry(t, 7, nil)
 	entry.Generation = math.MaxInt64
 	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, entry))
 
 	err := ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
 		CodespaceUUID:      codespaceUUID,
-		Metadata:           serviceRuntimeMetadataProto(t, 7, "ready", nil),
+		Metadata:           serviceRuntimeMetadataProto(7, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: math.MaxInt64 - 1,
 	})
 	require.ErrorIs(t, err, ErrRuntimeMetadataVersionExhausted)
@@ -332,7 +332,7 @@ func TestReportRuntimeMetadataUsesCurrentManagerAvailability(t *testing.T) {
 
 	err = ReportRuntimeMetadata(t.Context(), &staleManager, ReportRuntimeMetadataOptions{
 		CodespaceUUID:      codespaceUUID,
-		Metadata:           serviceRuntimeMetadataProto(t, 6, "ready", nil),
+		Metadata:           serviceRuntimeMetadataProto(6, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	})
 	require.ErrorIs(t, err, ErrRuntimeMetadataManagerOffline)
@@ -350,7 +350,7 @@ func TestReportRuntimeMetadataUsesCurrentManagerAvailability(t *testing.T) {
 	require.NoError(t, err)
 	err = ReportRuntimeMetadata(t.Context(), &staleManager, ReportRuntimeMetadataOptions{
 		CodespaceUUID:      codespaceUUID,
-		Metadata:           serviceRuntimeMetadataProto(t, 6, "ready", nil),
+		Metadata:           serviceRuntimeMetadataProto(6, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	})
 	require.NoError(t, err)
@@ -373,7 +373,7 @@ func TestFinalizeOperationCreateDoneRejectsDamagedGiteaToken(t *testing.T) {
 	})
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
 		CodespaceUUID:      codespaceUUID,
-		Metadata:           serviceRuntimeMetadataProto(t, 6, "ready", nil),
+		Metadata:           serviceRuntimeMetadataProto(6, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	}))
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.GiteaToken{
@@ -415,7 +415,7 @@ func TestFinalizeStopClearsRuntimeMetadata(t *testing.T) {
 
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, ReportRuntimeMetadataOptions{
 		CodespaceUUID:      codespaceUUID,
-		Metadata:           serviceRuntimeMetadataProto(t, 6, "ready", nil),
+		Metadata:           serviceRuntimeMetadataProto(6, codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY, nil),
 		MetadataGeneration: 1,
 	}))
 	hasReady, err := hasReadyRuntimeMetadataForTest(codespaceUUID, 6)

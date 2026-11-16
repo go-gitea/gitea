@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
@@ -31,8 +32,8 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 		OperationCreatedUnix:  time.Now().Unix(),
 		InteractionGeneration: 5,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 81, []map[string]any{
-		{"endpoint_id": "app-3000", "label": "App", "public": false},
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 81, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "app-3000", Label: "App", Public: false},
 	})))
 
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
@@ -98,7 +99,7 @@ func TestValidateOpenTokenDeniesAndPreservesTemporarilyInvalidCode(t *testing.T)
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 82,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 82, []map[string]any{})))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 82, nil)))
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
 		UserID:      1,
 		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
@@ -128,7 +129,7 @@ func TestValidateOpenTokenDeletesExpiredCode(t *testing.T) {
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 83,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 83, []map[string]any{})))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 83, nil)))
 
 	expiredCode := generateOpenTokenCode()
 	insertOpenToken(t, expiredCode, codespaceUUID, "workspace", manager.ID, time.Now().Unix()-1)
@@ -150,8 +151,8 @@ func TestValidateOpenTokenEndpointMustRemainPrivate(t *testing.T) {
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 84,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 84, []map[string]any{
-		{"endpoint_id": "app-3000", "label": "App", "public": false},
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 84, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "app-3000", Label: "App", Public: false},
 	})))
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
 		UserID:      1,
@@ -159,8 +160,8 @@ func TestValidateOpenTokenEndpointMustRemainPrivate(t *testing.T) {
 		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 84, []map[string]any{
-		{"endpoint_id": "app-3000", "label": "App", "public": true},
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 84, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "app-3000", Label: "App", Public: true},
 	})))
 
 	result, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: issued.code})
@@ -182,7 +183,7 @@ func TestValidateOpenTokenVersionExhaustedConsumesCode(t *testing.T) {
 		OperationRVersion:     85,
 		InteractionGeneration: math.MaxInt64,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 85, []map[string]any{})))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 85, nil)))
 
 	code := generateOpenTokenCode()
 	now := time.Now().Unix()
@@ -206,8 +207,8 @@ func TestOpenEndpointPublicRedirectDoesNotIssueCodeOrAdvance(t *testing.T) {
 		OperationRVersion:     86,
 		InteractionGeneration: 11,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 86, []map[string]any{
-		{"endpoint_id": "app-3000", "label": "App", "public": true},
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 86, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "app-3000", Label: "App", Public: true},
 	})))
 
 	result, err := OpenEndpoint(t.Context(), OpenEndpointOptions{

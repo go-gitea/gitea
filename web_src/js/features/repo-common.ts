@@ -53,51 +53,35 @@ export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
 }
 
 function initRepoCloneButtonsCombo(parent: Element, onPanelChange?: () => void) {
-  initRepoCloneCodespaceTabs(parent, onPanelChange);
-
   // the clone section is not rendered at all when no git transport (HTTPS/SSH) is available
   const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url');
   if (!elCloneUrlInput) return;
 
-  const tabHttps = parent.querySelector('.repo-clone-https');
-  const tabSsh = parent.querySelector('.repo-clone-ssh');
-  const tabCli = parent.querySelector('.repo-clone-cli');
   const listOpenWithEditorApps = parent.querySelector('.repo-clone-with-apps');
-
   // not every tab exists in every panel, eg: the admin may disable HTTP/SSH, and the empty repo page has no Gitea CLI tab
-  const tabByScheme: Record<string, Element | null> = {https: tabHttps, ssh: tabSsh, cli: tabCli};
+  const tabByScheme: Record<string, Element | null> = {
+    https: parent.querySelector('.repo-clone-https'),
+    ssh: parent.querySelector('.repo-clone-ssh'),
+    cli: parent.querySelector('.repo-clone-cli'),
+  };
+  if (tabByScheme.https) {
+    tabByScheme.https.textContent = tabByScheme.https.getAttribute('data-link')!.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
+  }
   const updateClonePanelUi = function() {
     let scheme = localUserSettings.getString('repo-clone-protocol');
     // fall back to the first available tab when the preferred scheme's tab is absent (unset preference, or disabled protocol)
     if (!tabByScheme[scheme]) {
-      scheme = ['https', 'ssh', 'cli'].find((s) => tabByScheme[s]) ?? '';
+      scheme = Object.keys(tabByScheme).find((s) => tabByScheme[s])!;
     }
-
-    const isHttps = scheme === 'https';
-    const isSsh = scheme === 'ssh';
-    const isCli = scheme === 'cli';
 
     if (listOpenWithEditorApps) {
-      toggleElem(listOpenWithEditorApps, !isCli); // don't show the "Open with editor apps" list when "Gitea CLI" clone is selected
+      toggleElem(listOpenWithEditorApps, scheme !== 'cli'); // editor links need a Git URL, not a CLI command
+    }
+    for (const [candidate, tab] of Object.entries(tabByScheme)) {
+      tab?.classList.toggle('active', candidate === scheme);
     }
 
-    if (tabHttps) {
-      const link = tabHttps.getAttribute('data-link')!;
-      tabHttps.textContent = link.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
-      tabHttps.classList.toggle('active', isHttps);
-    }
-    if (tabSsh) {
-      tabSsh.classList.toggle('active', isSsh);
-    }
-    if (tabCli) {
-      tabCli.classList.toggle('active', isCli);
-    }
-
-    const tab = tabByScheme[scheme];
-    if (!tab) return; // no protocol available at all, leave the (hidden) input untouched
-
-    const link = tab.getAttribute('data-link')!;
-
+    const link = tabByScheme[scheme]!.getAttribute('data-link')!;
     for (const el of document.querySelectorAll('.js-clone-url')) {
       if (el.nodeName === 'INPUT') {
         (el as HTMLInputElement).value = link;
@@ -111,62 +95,24 @@ function initRepoCloneButtonsCombo(parent: Element, onPanelChange?: () => void) 
   };
 
   updateClonePanelUi();
-  // tabSsh or tabHttps might not both exist, eg: guest view, or one is disabled by the server
-  tabHttps?.addEventListener('click', () => {
-    localUserSettings.setString('repo-clone-protocol', 'https');
-    updateClonePanelUi();
-  });
-  tabSsh?.addEventListener('click', () => {
-    localUserSettings.setString('repo-clone-protocol', 'ssh');
-    updateClonePanelUi();
-  });
-  tabCli?.addEventListener('click', () => {
-    localUserSettings.setString('repo-clone-protocol', 'cli');
-    updateClonePanelUi();
-  });
+  for (const [scheme, tab] of Object.entries(tabByScheme)) {
+    tab?.addEventListener('click', () => {
+      localUserSettings.setString('repo-clone-protocol', scheme);
+      updateClonePanelUi();
+      onPanelChange?.();
+    });
+  }
   elCloneUrlInput.addEventListener('focus', () => {
     elCloneUrlInput.select();
   });
 }
 
-export function initRepoCloneCodespaceTabs(parent: Element, onPanelChange?: () => void) {
-  const cloneTab = parent.querySelector<HTMLButtonElement>('.repo-clone-main');
-  const codespacesTab = parent.querySelector<HTMLButtonElement>('.repo-codespaces-main');
-  const cloneSection = parent.querySelector<HTMLElement>('.repo-clone-section');
-  const codespacesSection = parent.querySelector<HTMLElement>('.repo-codespaces-section');
-  if (!cloneTab || !codespacesTab || !cloneSection || !codespacesSection) return;
-
-  const showClone = (visible: boolean) => {
-    cloneTab.classList.toggle('active', visible);
-    codespacesTab.classList.toggle('active', !visible);
-    cloneTab.setAttribute('aria-selected', String(visible));
-    codespacesTab.setAttribute('aria-selected', String(!visible));
-    cloneTab.tabIndex = visible ? 0 : -1;
-    codespacesTab.tabIndex = visible ? -1 : 0;
-    cloneSection.hidden = !visible;
-    codespacesSection.hidden = visible;
-    onPanelChange?.();
-  };
-
-  cloneTab.addEventListener('click', () => showClone(true));
-  codespacesTab.addEventListener('click', () => showClone(false));
-  cloneTab.addEventListener('keydown', (event) => {
-    if (event.key !== 'ArrowRight') return;
-    event.preventDefault();
-    codespacesTab.click();
-    codespacesTab.focus();
-  });
-  codespacesTab.addEventListener('keydown', (event) => {
-    if (event.key !== 'ArrowLeft') return;
-    event.preventDefault();
-    cloneTab.click();
-    cloneTab.focus();
-  });
-}
-
-function initRepoClonePanel(btn: HTMLButtonElement) {
+export function initRepoClonePanel(btn: HTMLButtonElement) {
   const elPanel = btn.nextElementSibling!;
   let tippyInstance: ReturnType<typeof createTippy>;
+  const observer = new IntersectionObserver(([entry]) => {
+    if (!entry.isIntersecting) tippyInstance.hide();
+  });
   // "init" must be before the "createTippy" otherwise the "tippy-target" will be removed from the document
   initRepoCloneButtonsCombo(elPanel, () => tippyInstance.popperInstance!.update());
   tippyInstance = createTippy(btn, {
@@ -177,7 +123,42 @@ function initRepoClonePanel(btn: HTMLButtonElement) {
     hideOnClick: true,
     arrow: false,
     limitSizeToViewport: {vertical: true},
+    onMount: () => observer.observe(btn),
+    onHidden: () => observer.disconnect(),
+    onDestroy: () => observer.disconnect(),
   });
+
+  const cloneTab = elPanel.querySelector<HTMLButtonElement>('.repo-clone-main');
+  if (cloneTab) {
+    const codespacesTab = elPanel.querySelector<HTMLButtonElement>('.repo-codespaces-main')!;
+    const cloneSection = elPanel.querySelector<HTMLElement>('.repo-clone-section')!;
+    const codespacesSection = elPanel.querySelector<HTMLElement>('.repo-codespaces-section')!;
+    const showClone = (visible: boolean) => {
+      cloneTab.classList.toggle('active', visible);
+      codespacesTab.classList.toggle('active', !visible);
+      cloneTab.setAttribute('aria-selected', String(visible));
+      codespacesTab.setAttribute('aria-selected', String(!visible));
+      cloneTab.tabIndex = visible ? 0 : -1;
+      codespacesTab.tabIndex = visible ? -1 : 0;
+      cloneSection.hidden = !visible;
+      codespacesSection.hidden = visible;
+      tippyInstance.popperInstance!.update();
+    };
+    cloneTab.addEventListener('click', () => showClone(true));
+    codespacesTab.addEventListener('click', () => showClone(false));
+    cloneTab.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowRight' || event.isComposing) return;
+      event.preventDefault();
+      codespacesTab.click();
+      codespacesTab.focus();
+    });
+    codespacesTab.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowLeft' || event.isComposing) return;
+      event.preventDefault();
+      cloneTab.click();
+      cloneTab.focus();
+    });
+  }
 }
 
 export function initRepoCloneButtons() {

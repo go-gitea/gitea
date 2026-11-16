@@ -1,4 +1,5 @@
-import {initRepoCloneCodespaceTabs, sanitizeRepoName, substituteRepoOpenWithUrl} from './repo-common.ts';
+import {userEvent} from 'vitest/browser';
+import {initRepoClonePanel, sanitizeRepoName, substituteRepoOpenWithUrl} from './repo-common.ts';
 
 test('substituteRepoOpenWithUrl', () => {
   // For example: "x-github-client://openRepo/https://github.com/go-gitea/gitea"
@@ -21,36 +22,59 @@ test('sanitizeRepoName', () => {
   expect(sanitizeRepoName('-')).toEqual('');
 });
 
-test('clone panel main tabs keep selection and panels in sync', () => {
+test('clone panel switches tabs and protocols and closes when its trigger leaves the viewport', async () => {
   document.body.innerHTML = `
-    <div>
-      <button class="repo-clone-main active" aria-selected="true"></button>
-      <button class="repo-codespaces-main" aria-selected="false" tabindex="-1"></button>
-      <div class="repo-clone-section"></div>
-      <div class="repo-codespaces-section" hidden></div>
+    <button id="clone-trigger" style="position: fixed; top: 50px; left: 50px">Code</button>
+    <div class="clone-panel-popup">
+      <button class="repo-clone-main active" aria-selected="true">Clone</button>
+      <button class="repo-codespaces-main" aria-selected="false" tabindex="-1">Codespaces</button>
+      <div class="repo-clone-section">
+        <button class="repo-clone-https" data-link="https://example.com/repo.git">HTTPS</button>
+        <button class="repo-clone-ssh" data-link="git@example.com:repo.git">SSH</button>
+        <button class="repo-clone-cli" data-link="gt repo clone owner/repo">CLI</button>
+        <input class="repo-clone-url js-clone-url">
+        <div class="repo-clone-with-apps">Open in editor</div>
+      </div>
+      <div class="repo-codespaces-section" hidden>Codespaces</div>
     </div>
   `;
-  const parent = document.body.firstElementChild!;
-  const cloneTab = parent.querySelector<HTMLButtonElement>('.repo-clone-main')!;
-  const codespacesTab = parent.querySelector<HTMLButtonElement>('.repo-codespaces-main')!;
-  const cloneSection = parent.querySelector<HTMLElement>('.repo-clone-section')!;
-  const codespacesSection = parent.querySelector<HTMLElement>('.repo-codespaces-section')!;
-  const onPanelChange = vi.fn();
-
-  initRepoCloneCodespaceTabs(parent, onPanelChange);
-  codespacesTab.click();
-  expect(cloneTab.getAttribute('aria-selected')).toEqual('false');
-  expect(codespacesTab.getAttribute('aria-selected')).toEqual('true');
-  expect(cloneTab.tabIndex).toEqual(-1);
-  expect(codespacesTab.tabIndex).toEqual(0);
-  expect(cloneSection.hidden).toEqual(true);
-  expect(codespacesSection.hidden).toEqual(false);
-  expect(onPanelChange).toHaveBeenCalledTimes(1);
-
-  codespacesTab.dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowLeft', bubbles: true}));
-  expect(cloneTab.getAttribute('aria-selected')).toEqual('true');
-  expect(codespacesTab.getAttribute('aria-selected')).toEqual('false');
-  expect(cloneSection.hidden).toEqual(false);
-  expect(codespacesSection.hidden).toEqual(true);
-  expect(onPanelChange).toHaveBeenCalledTimes(2);
+  const button = document.querySelector<HTMLButtonElement>('#clone-trigger')!;
+  initRepoClonePanel(button);
+  const instance = button._tippy;
+  try {
+    await userEvent.click(button);
+    await vi.waitFor(() => expect(instance.state.isMounted).toBe(true));
+    const cloneTab = instance.popper.querySelector<HTMLButtonElement>('.repo-clone-main')!;
+    const codespacesTab = instance.popper.querySelector<HTMLButtonElement>('.repo-codespaces-main')!;
+    const cloneSection = instance.popper.querySelector<HTMLElement>('.repo-clone-section')!;
+    const codespacesSection = instance.popper.querySelector<HTMLElement>('.repo-codespaces-section')!;
+    await userEvent.click(cloneTab);
+    for (const showClone of [false, true]) {
+      await userEvent.keyboard(showClone ? '{ArrowLeft}' : '{ArrowRight}');
+      expect(cloneTab.getAttribute('aria-selected')).toBe(String(showClone));
+      expect(codespacesTab.getAttribute('aria-selected')).toBe(String(!showClone));
+      expect(cloneTab.tabIndex).toBe(showClone ? 0 : -1);
+      expect(codespacesTab.tabIndex).toBe(showClone ? -1 : 0);
+      expect(document.activeElement).toBe(showClone ? cloneTab : codespacesTab);
+      expect(cloneSection.hidden).toBe(!showClone);
+      expect(codespacesSection.hidden).toBe(showClone);
+    }
+    for (const scheme of ['cli', 'https', 'ssh']) {
+      const tab = instance.popper.querySelector<HTMLButtonElement>(`.repo-clone-${scheme}`)!;
+      await userEvent.click(tab);
+      expect(instance.popper.querySelector<HTMLInputElement>('input')!.value).toBe(tab.getAttribute('data-link'));
+      expect(cloneSection.querySelector('.active')).toBe(tab);
+      expect(instance.popper.querySelector('.repo-clone-with-apps')!.classList.contains('tw-hidden')).toBe(scheme === 'cli');
+    }
+    button.style.top = '-100px';
+    await vi.waitFor(() => expect(instance.state.isVisible).toBe(false));
+    button.style.top = '50px';
+    await userEvent.click(button);
+    await vi.waitFor(() => expect(instance.state.isMounted).toBe(true));
+    expect(instance.state.isVisible).toBe(true);
+  } finally {
+    instance.destroy();
+    document.body.replaceChildren();
+    window.localUserSettings.setString('repo-clone-protocol', '');
+  }
 });

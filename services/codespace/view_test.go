@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
@@ -29,8 +30,8 @@ func TestListCreatorCodespacesShowsRunningWorkspace(t *testing.T) {
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 17,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 17, []map[string]any{
-		{"endpoint_id": "port-3000", "label": "App", "public": false},
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 17, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "port-3000", Label: "App", Public: false},
 	})))
 
 	result, err := ListCreatorCodespaces(t.Context(), CreatorListOptions{UserID: 1, RepoID: 2})
@@ -238,9 +239,9 @@ func TestGetCreatorCodespaceKeepsQueuedIdleStopInteractive(t *testing.T) {
 		OperationTrigger:     codespace_model.OperationTriggerIdle,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 18, []map[string]any{
-		{"endpoint_id": "private-app", "label": "Private app", "public": false, "port": 3000},
-		{"endpoint_id": "public-app", "label": "Public app", "public": true, "port": 8080},
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 18, []*codespacev1.RuntimeEndpoint{
+		{EndpointId: "private-app", Label: "Private app", Public: false, Port: 3000},
+		{EndpointId: "public-app", Label: "Public app", Public: true, Port: 8080},
 	})))
 
 	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})

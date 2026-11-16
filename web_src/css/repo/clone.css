@@ -13,14 +13,13 @@
   border-radius: 0; /* override fomantic border-radius for ".ui.input > input" */
 }
 
-/* Codespaces need a stable popup width because the clone and Codespaces tabs have different content. */
-.clone-panel-with-codespaces {
-  box-sizing: border-box;
-  width: min(360px, calc(100vw - 32px));
+/* Keep the outer width stable across tabs, including borders and scrollbars. */
+[data-tippy-root]:has(.clone-panel-popup) {
+  width: 360px;
 }
 
 /* The generic tippy target becomes inline after mounting, which would make this width content-dependent. */
-.tippy-content .clone-panel-with-codespaces.tippy-target {
+.tippy-content .clone-panel-popup.tippy-target {
   display: block !important;
 }
 
@@ -29,11 +28,11 @@
   margin: 10px;
 }
 
-.clone-panel-with-codespaces .clone-panel-field > .ui.action.input {
+.clone-panel-field > .ui.action.input {
   width: 100%;
 }
 
-.clone-panel-with-codespaces .clone-panel-field > .ui.action.input > input {
+.clone-panel-field > .ui.action.input > input {
   min-width: 0;
 }
 

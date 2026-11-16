@@ -38,24 +38,50 @@ export function availableSizeForPlacement(referenceRect: DOMRect, placement: str
   return {width: window.innerWidth - referenceRect.right - gap, height: spanHeight};
 }
 
-// popper does not constrain size, publish it for the styles. Replaced by floating-ui's "size" on migration
+// Size before positioning so top/left placements use the constrained dimensions.
 function sizeModifier(limit: {horizontal?: boolean, vertical?: boolean}): PopperModifier {
   return {
     name: 'tippyLimitSize',
     enabled: true,
-    phase: 'beforeWrite',
-    requires: ['computeStyles'], // runs after "flip" and "offset", so both are final
-    fn({state}) {
-      const offset = state.modifiersData.offset?.[state.placement];
-      const isVertical = state.placement.startsWith('top') || state.placement.startsWith('bottom');
+    phase: 'main',
+    requires: ['offset'],
+    requiresIfExists: ['flip'],
+    fn({state, name}) {
+      if (state.modifiersData[name].sized) return;
+      state.modifiersData[name].sized = true;
+
+      const reference = state.elements.reference.getBoundingClientRect();
+      const offsets = state.modifiersData.offset!;
+      const preferred = state.options.placement;
+      let placement = state.placement;
+      if (limit.vertical && /^(top|bottom)(-|$)/.test(preferred)) {
+        const opposite = preferred.replace(/^(top|bottom)/, (side) => side === 'top' ? 'bottom' : 'top') as Placement;
+        const preferredSpace = availableSizeForPlacement(reference, preferred, offsets[preferred]!.y).height;
+        const oppositeSpace = availableSizeForPlacement(reference, opposite, offsets[opposite]!.y).height;
+        const box = state.elements.popper.querySelector<HTMLElement>('.tippy-box')!;
+        const content = box.querySelector<HTMLElement>('.tippy-content')!;
+        const fullHeight = content.scrollHeight + box.offsetHeight - content.offsetHeight;
+        placement = fullHeight <= preferredSpace || preferredSpace >= oppositeSpace ? preferred : opposite;
+      }
+
+      const offset = offsets[placement]!;
+      const isVertical = placement.startsWith('top') || placement.startsWith('bottom');
       const available = availableSizeForPlacement(
-        state.elements.reference.getBoundingClientRect(),
-        state.placement,
-        (isVertical ? offset?.y : offset?.x) ?? 0,
+        reference,
+        placement,
+        isVertical ? offset.y : offset.x,
       );
       const {style} = state.elements.popper;
       if (limit.horizontal) style.setProperty('--tippy-max-width', `${Math.max(0, Math.floor(available.width))}px`);
       if (limit.vertical) style.setProperty('--tippy-max-height', `${Math.max(0, Math.floor(available.height))}px`);
+
+      const {width, height} = state.elements.popper.getBoundingClientRect();
+      if (placement !== state.placement || width !== state.rects.popper.width || height !== state.rects.popper.height) {
+        state.placement = placement;
+        Object.assign(state.rects.popper, {width, height});
+        if (state.modifiersData.flip) state.modifiersData.flip._skip = true;
+        state.reset = true;
+      }
     },
   };
 }

@@ -35,7 +35,7 @@ func TestVerifySSHPublicKeyAllowsAndCancelsQueuedIdleStop(t *testing.T) {
 		OperationCreatedUnix:  time.Now().Unix(),
 		InteractionGeneration: 9,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 51, []map[string]any{})))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 51, nil)))
 	insertServiceUserSSHKey(t, 1, testGitSSHPublicKey)
 
 	result, err := VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
@@ -66,7 +66,7 @@ func TestVerifySSHPublicKeyKeepsLifecycleUpdatedUnixWithoutIdleStop(t *testing.T
 		OperationRVersion:     51,
 		InteractionGeneration: 9,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 51, []map[string]any{})))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 51, nil)))
 	insertServiceUserSSHKey(t, 1, testGitSSHPublicKey)
 	updatedUnix := loadServiceCodespace(t, codespaceUUID).UpdatedUnix
 
@@ -96,7 +96,7 @@ func TestVerifySSHPublicKeyDeniesInvalidCredentials(t *testing.T) {
 		OperationRVersion:     52,
 		InteractionGeneration: 3,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 52, []map[string]any{})))
+	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 52, nil)))
 	insertServiceUserSSHKey(t, 1, testGitSSHPublicKey)
 
 	result, err := VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
@@ -130,7 +130,7 @@ func TestVerifySSHPublicKeyDeniesStateAndMetadata(t *testing.T) {
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	require.NoError(t, putRuntimeMetadataEntry(activeUUID, serviceRuntimeMetadataEntry(t, 53, []map[string]any{})))
+	require.NoError(t, putRuntimeMetadataEntry(activeUUID, serviceRuntimeMetadataEntry(t, 53, nil)))
 	result, err := VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
 		CodespaceUUID: activeUUID,
 		PublicKey:     servicePublicKeyWire(t, testGitSSHPublicKey),
@@ -166,7 +166,7 @@ func TestVerifySSHPublicKeyUsesUnifiedLoginRestrictions(t *testing.T) {
 		OperationRVersion:     55,
 		InteractionGeneration: 4,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(restrictedUUID, serviceRuntimeMetadataEntry(t, 55, []map[string]any{})))
+	require.NoError(t, putRuntimeMetadataEntry(restrictedUUID, serviceRuntimeMetadataEntry(t, 55, nil)))
 	_, err := db.GetEngine(t.Context()).
 		ID(1).
 		Cols("must_change_password").
@@ -194,7 +194,7 @@ func TestVerifySSHPublicKeyUsesUnifiedLoginRestrictions(t *testing.T) {
 		Cols("user_id").
 		Update(&codespace_model.Codespace{UserID: 32})
 	require.NoError(t, err)
-	require.NoError(t, putRuntimeMetadataEntry(webauthnUUID, serviceRuntimeMetadataEntry(t, 56, []map[string]any{})))
+	require.NoError(t, putRuntimeMetadataEntry(webauthnUUID, serviceRuntimeMetadataEntry(t, 56, nil)))
 
 	result, err = VerifySSHPublicKey(t.Context(), manager, VerifySSHPublicKeyOptions{
 		CodespaceUUID: webauthnUUID,

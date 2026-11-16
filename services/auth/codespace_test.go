@@ -18,6 +18,7 @@ import (
 	module_auth "gitea.dev/modules/auth"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	codespace_service "gitea.dev/services/codespace"
 
 	"github.com/stretchr/testify/assert"
@@ -72,46 +73,28 @@ func TestCodespaceTokenBearerAuth(t *testing.T) {
 
 func TestCodespaceTokenQueryAuthIsIgnored(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-
 	token, _ := createAuthCodespaceToken(t)
-	for _, queryName := range []string{"token", "access_token"} {
-		req, err := http.NewRequest(http.MethodGet, "https://example.test/api/v1/user?"+queryName+"="+token, nil)
-		require.NoError(t, err)
 
-		u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, make(reqctx.ContextData), nil)
-		require.NoError(t, err)
-		assert.Nil(t, u)
+	for _, tc := range []struct {
+		name         string
+		path         string
+		disableQuery bool
+	}{
+		{name: "API token", path: "/api/v1/user?token="},
+		{name: "API access_token", path: "/api/v1/user?access_token="},
+		{name: "query authentication disabled", path: "/api/v1/user?token=", disableQuery: true},
+		{name: "web token", path: "/user2/repo1?token="},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.DisableQueryAuthToken, tc.disableQuery)()
+			req, err := http.NewRequest(http.MethodGet, "https://example.test"+tc.path+token, nil)
+			require.NoError(t, err)
+
+			u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, make(reqctx.ContextData), nil)
+			require.NoError(t, err)
+			assert.Nil(t, u)
+		})
 	}
-}
-
-func TestCodespaceTokenQueryAuthHonorsDisableQueryToken(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	token, _ := createAuthCodespaceToken(t)
-	original := setting.DisableQueryAuthToken
-	setting.DisableQueryAuthToken = true
-	t.Cleanup(func() { setting.DisableQueryAuthToken = original })
-	req, err := http.NewRequest(http.MethodGet, "https://example.test/api/v1/user?token="+token, nil)
-	require.NoError(t, err)
-
-	u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, make(reqctx.ContextData), nil)
-	require.NoError(t, err)
-	assert.Nil(t, u)
-}
-
-func TestCodespaceTokenQueryAuthIgnoredForWebAuth(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	token, _ := createAuthCodespaceToken(t)
-	req, err := http.NewRequest(http.MethodGet, "https://example.test/user2/repo1?token="+token, nil)
-	require.NoError(t, err)
-	u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, make(reqctx.ContextData), nil)
-	require.NoError(t, err)
-	assert.Nil(t, u)
-
-	u, err = new(CodespaceToken).Verify(req, nil, make(reqctx.ContextData), nil)
-	require.NoError(t, err)
-	assert.Nil(t, u)
 }
 
 func TestCodespaceTokenRejectedStopsAuthGroupFallback(t *testing.T) {

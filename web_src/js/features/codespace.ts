@@ -281,7 +281,7 @@ function initCodespaceLog(logEl: HTMLElement) {
       if (!logEl.isConnected || lifetime.signal.aborted) return;
       if (!Array.isArray(result.lines) || !Number.isSafeInteger(result.next_offset) || result.next_offset < offset ||
           typeof result.eof !== 'boolean' || typeof result.operation_active !== 'boolean' ||
-          result.lines.some((line) => typeof line.message !== 'string') ||
+          result.lines.some((line) => typeof line.message !== 'string' || !Number.isFinite(line.timestamp)) ||
           (result.lines.length > 0 && result.next_offset === offset) || (!result.eof && result.next_offset === offset)) {
         throw new Error('Log offset did not advance');
       }
@@ -289,7 +289,7 @@ function initCodespaceLog(logEl: HTMLElement) {
       if (result.lines.length > 0) {
         const followNewLines = following && atBottom();
         // One text node per page keeps large logs cheap without interpreting log commands or HTML.
-        content.append(result.lines.map((line) => `${line.message}\n`).join(''));
+        content.append(result.lines.map((line) => `[${new Date(line.timestamp * 1000).toISOString()}] ${line.message}\n`).join(''));
         hideElem(empty);
         if (followNewLines) logEl.scrollTop = logEl.scrollHeight;
       }

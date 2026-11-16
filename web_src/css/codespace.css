@@ -570,30 +570,18 @@
   margin-bottom: 0;
 }
 
-.codespace-secret-repository-search,
-.codespace-secret-repository-search > .ui.input,
-.codespace-secret-repository-search > .results {
-  width: 100%;
-  max-width: 100%;
+.codespace-secret-scope-modal > form > .content {
+  max-height: none;
+  overflow: visible; /* The modal backdrop scrolls so repository menus can overlap the actions. */
 }
 
-.codespace-secret-selected-repositories.ui.list {
-  max-height: 220px;
-  margin: 8px 0 0;
-  overflow-y: auto;
+.ui.selection.dropdown.codespace-secret-repositories > .menu {
+  max-height: min(16rem, 40dvh);
 }
 
-.codespace-secret-selected-repositories.ui.list > .item {
-  min-width: 0;
-  padding: 8px 4px;
-}
-
-.codespace-secret-selected-repositories .item > span {
-  min-width: 0;
-}
-
-.codespace-secret-selected-repositories .item > .btn {
-  flex-shrink: 0;
+.ui.dropdown.codespace-secret-repositories > .menu > .item,
+.ui.dropdown.codespace-secret-repositories > .label {
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 991px) {

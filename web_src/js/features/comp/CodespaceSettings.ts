@@ -1,7 +1,7 @@
-import {attachSearchBox} from '../../modules/search.ts';
 import {showModal} from '../../modules/modal.ts';
-import {hideElem, showElem} from '../../utils/dom.ts';
-import {svg} from '../../svg.ts';
+import {hideElem, showElem, toggleElem} from '../../utils/dom.ts';
+import {htmlEscape} from '../../utils/html.ts';
+import {fomanticQuery} from '../../modules/fomantic/base.ts';
 import {createCodeEditor, type CodemirrorEditor} from '../../modules/codeeditor/main.ts';
 
 export function initCodespaceTemplateEditor(modal: HTMLDialogElement) {
@@ -60,62 +60,64 @@ type RepositorySearchResponse = {data: Array<{id: number, full_name: string}>};
 type SelectedRepository = {id: string, name: string};
 
 export function initCodespaceSecretRepositoryPicker(root: HTMLElement) {
+  const modal = root.closest('dialog')!;
   const checkbox = root.querySelector<HTMLInputElement>('.codespace-secret-all-repositories')!;
   const selectedScope = root.querySelector<HTMLElement>('.codespace-secret-selected-scope')!;
-  const search = root.querySelector<HTMLElement>('.codespace-secret-repository-search')!;
-  const searchInput = search.querySelector<HTMLInputElement>('input')!;
-  const list = root.querySelector<HTMLElement>('.codespace-secret-selected-repositories')!;
-  const selected = new Map<string, SelectedRepository>();
+  const select = root.querySelector<HTMLSelectElement>('select[name="repository_ids"]')!;
+  const $dropdown = fomanticQuery(select).dropdown({
+    forceSelection: false,
+    allowAdditions: false,
+    message: {
+      noResults: root.getAttribute('data-no-results')!,
+      serverError: root.getAttribute('data-search-error')!,
+    },
+    apiSettings: {
+      url: `${root.getAttribute('data-search-url')}?q={query}`,
+      cache: false,
+      beforeSend: (settings: unknown) => modal.open && !checkbox.checked && $dropdown[0].contains(document.activeElement) ? settings : false,
+      onResponse: (response: RepositorySearchResponse) => ({results: response.data.map((repository) => ({name: htmlEscape(repository.full_name), value: String(repository.id)}))}),
+      onFailure() {
+        $dropdown.dropdown('setup menu', {values: []});
+        $dropdown.dropdown('add message', root.getAttribute('data-search-error')!);
+        $dropdown.dropdown('show');
+      },
+    },
+    onShow: () => modal.open && !checkbox.checked && $dropdown[0].contains(document.activeElement),
+    onHide() {
+      if ($dropdown.data('module-api')) $dropdown.api('abort');
+    },
+  });
+  $dropdown.find('input.search').attr('aria-label', select.getAttribute('aria-label')!);
+  root.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !event.isComposing && $dropdown.dropdown('is visible')) event.preventDefault();
+  }, {capture: true});
 
-  const render = () => {
-    list.replaceChildren(...Array.from(selected.values(), (repository) => {
-      const item = document.createElement('div');
-      item.className = 'item tw-flex tw-items-center tw-gap-2';
-      const name = document.createElement('span');
-      name.className = 'tw-flex-1 tw-break-anywhere';
-      name.textContent = repository.name;
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'repository_ids';
-      input.value = repository.id;
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.className = 'btn interact-bg tw-p-2';
-      remove.setAttribute('aria-label', root.getAttribute('data-remove-label')!);
-      remove.setAttribute('data-tooltip-content', root.getAttribute('data-remove-label')!);
-      remove.innerHTML = svg('octicon-x');
-      remove.addEventListener('click', () => {
-        selected.delete(repository.id);
-        render();
-      });
-      item.append(input, name, remove);
-      return item;
-    }));
+  const clearSearch = () => {
+    if ($dropdown.data('module-api')) $dropdown.api('abort');
+    $dropdown.dropdown('hide');
+    $dropdown.dropdown('remove search term');
+    $dropdown.dropdown('remove message');
+    $dropdown.dropdown('setup menu', {values: []});
+  };
+
+  const updateScope = () => {
+    select.disabled = checkbox.checked;
+    $dropdown.toggleClass('disabled', checkbox.checked);
+    toggleElem(selectedScope, !checkbox.checked);
+    if (checkbox.checked) clearSearch();
   };
 
   const reset = (repositories: SelectedRepository[], allRepositories: boolean) => {
-    selected.clear();
-    for (const repository of repositories) selected.set(repository.id, repository);
+    $dropdown.children('.ui.label').remove(); // Form reset may already have cleared the select's values.
+    $dropdown.dropdown('change values', repositories.map((repository) => ({name: htmlEscape(repository.name), value: repository.id})));
+    $dropdown.dropdown('set selected', repositories.map((repository) => repository.id));
+    clearSearch();
     checkbox.checked = allRepositories;
-    searchInput.value = '';
-    if (allRepositories) hideElem(selectedScope); else showElem(selectedScope);
-    render();
+    updateScope();
   };
 
-  checkbox.addEventListener('change', () => {
-    if (checkbox.checked) hideElem(selectedScope); else showElem(selectedScope);
-  });
-  attachSearchBox(search, `${root.getAttribute('data-search-url')}?q={query}`, (response: RepositorySearchResponse) => response.data.map((repository) => ({
-    title: repository.full_name,
-    description: repository.full_name,
-    value: String(repository.id),
-  })), {
-    onSelect(result) {
-      selected.set(result.value!, {id: result.value!, name: result.title});
-      searchInput.value = '';
-      render();
-    },
-  });
+  checkbox.addEventListener('change', updateScope);
+  modal.addEventListener('close', clearSearch);
 
   if (root.closest('#codespace-secret-create-modal')) {
     document.querySelector('.codespace-secret-create-button')!.addEventListener('click', () => {
