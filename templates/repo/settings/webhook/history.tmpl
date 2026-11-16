@@ -2,32 +2,32 @@
 	{{if .WebhookHistoryPending}}data-fetch-url="{{.WebhookLink}}/history" data-fetch-trigger="every 5s"{{end}}
 >
 	<div class="flex-divided-list">
-		{{range .History}}
-			<div class="item" id="webhook-history-delivery-{{.ID}}">
+		{{range $history := .History}}
+			<div class="item" id="webhook-history-delivery-{{$history.ID}}">
 				<div class="flex-left-right">
 					<div class="flex-text-inline tw-flex-wrap">
-						{{if eq .Status "succeeded"}}
+						{{if eq $history.Status "succeeded"}}
 							<span class="tw-text-green">{{svg "octicon-check"}}</span>
-						{{else if or (eq .Status "queued") (eq .Status "in_progress")}}
+						{{else if or (eq $history.Status "queued") (eq $history.Status "in_progress")}}
 							<span class="tw-text-text-light">{{svg "octicon-stopwatch"}}</span>
 						{{else}}
 							<span class="tw-text-red">{{svg "octicon-alert"}}</span>
 						{{end}}
-						<button type="button" class="btn interact-bg tw-p-2" aria-haspopup="dialog" data-global-click="onWebhookDeliveryDetailsClick">{{.UUID}}</button>
+						<button type="button" class="btn interact-bg tw-p-2" aria-haspopup="dialog" data-global-click="onWebhookDeliveryDetailsClick">{{$history.UUID}}</button>
 						<span class="tw-text-text-light">
-							{{if and .ResponseInfo .ResponseInfo.ErrorType}}
-								{{ctx.Locale.Tr (print "repo.settings.webhook.delivery." .ResponseInfo.ErrorType)}}
+							{{if and $history.ResponseInfo $history.ResponseInfo.ErrorType}}
+								{{ctx.Locale.Tr (print "repo.settings.webhook.delivery." $history.ResponseInfo.ErrorType)}}
 							{{else}}
-								{{ctx.Locale.Tr (print "repo.settings.webhook.delivery." .Status)}}
+								{{ctx.Locale.Tr (print "repo.settings.webhook.delivery." $history.Status)}}
 							{{end}}
 						</span>
-						{{if and .ResponseInfo .ResponseInfo.Status}}
-							<span class="ui {{if .IsSucceed}}green{{else}}red{{end}} label">{{.ResponseInfo.Status}}</span>
+						{{if and $history.ResponseInfo $history.ResponseInfo.Status}}
+							<span class="ui {{if $history.IsSucceed}}green{{else}}red{{end}} label">{{$history.ResponseInfo.Status}}</span>
 						{{end}}
 					</div>
 					<span class="tw-text-text-light">
-						{{if .Delivered}}
-							{{$delivered := .Delivered.AsTime}}
+						{{if $history.Delivered}}
+							{{$delivered := $history.Delivered.AsTime}}
 							<relative-time datetime="{{$delivered.Format "2006-01-02T15:04:05Z07:00"}}" format="datetime"
 								weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric"
 								data-tooltip-content data-tooltip-interactive="true">
@@ -39,20 +39,20 @@
 				<template>
 					<dialog class="modal-dialog" id="webhook-delivery-details">
 						<div class="header">
-							{{.UUID}}
+							{{$history.UUID}}
 							<button type="button" class="close-modal"></button>
 						</div>
 						<div class="content">
 							<div class="ui top attached tabular menu" data-global-init="initTabSwitcher">
-								<a class="item active" data-tab="webhook-history-request-{{.ID}}">
+								<a class="item active" data-tab="webhook-history-request-{{$history.ID}}">
 									{{template "shared/misc/tabtitle" (ctx.Locale.Tr "repo.settings.webhook.request")}}
 								</a>
-								<a class="item" data-tab="webhook-history-response-{{.ID}}">
+								<a class="item" data-tab="webhook-history-response-{{$history.ID}}">
 									{{template "shared/misc/tabtitle" (ctx.Locale.Tr "repo.settings.webhook.response")}}
 								</a>
 								{{if or $.Permission.IsAdmin $.IsOrganizationOwner $.PageIsAdmin $.PageIsUserSettings}}
 									<div class="right menu">
-										<form class="tw-py-2" action="{{$.WebhookLink}}/replay/{{.UUID}}" method="post">
+										<form class="tw-py-2" action="{{$.WebhookLink}}/replay/{{$history.UUID}}" method="post">
 											<span data-tooltip-content="{{if $.Webhook.IsActive}}{{ctx.Locale.Tr "repo.settings.webhook.replay.description"}}{{else}}{{ctx.Locale.Tr "repo.settings.webhook.replay.description_disabled"}}{{end}}">
 												<button type="submit" class="ui tiny button tw-mr-0{{if not $.Webhook.IsActive}} disabled{{end}}">{{svg "octicon-sync"}}</button>
 											</span>
@@ -60,26 +60,26 @@
 									</div>
 								{{end}}
 							</div>
-							<div class="ui bottom attached tab segment active" data-tab="webhook-history-request-{{.ID}}">
-								{{if .RequestInfo}}
+							<div class="ui bottom attached tab segment active" data-tab="webhook-history-request-{{$history.ID}}">
+								{{if $history.RequestInfo}}
 									<h5>{{ctx.Locale.Tr "repo.settings.webhook.headers"}}</h5>
-									<pre class="webhook-info"><strong>Request URL:</strong> {{.RequestInfo.URL}}
-<strong>Request method:</strong> {{if .RequestInfo.HTTPMethod}}{{.RequestInfo.HTTPMethod}}{{else}}POST{{end}}
-{{range $key, $val := .RequestInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
+									<pre class="webhook-info"><strong>Request URL:</strong> {{$history.RequestInfo.URL}}
+<strong>Request method:</strong> {{if $history.RequestInfo.HTTPMethod}}{{$history.RequestInfo.HTTPMethod}}{{else}}POST{{end}}
+{{range $key, $val := $history.RequestInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 									<h5>{{ctx.Locale.Tr "repo.settings.webhook.payload"}}</h5>
-									<pre class="webhook-info">{{or .RequestInfo.Body .PayloadContent}}</pre>
+									<pre class="webhook-info">{{or $history.RequestInfo.Body $history.PayloadContent}}</pre>
 								{{else}}
 									-
 								{{end}}
 							</div>
-							<div class="ui bottom attached tab segment" data-tab="webhook-history-response-{{.ID}}">
-								{{if .ResponseInfo}}
+							<div class="ui bottom attached tab segment" data-tab="webhook-history-response-{{$history.ID}}">
+								{{if $history.ResponseInfo}}
 									<h5>{{ctx.Locale.Tr "repo.settings.webhook.headers"}}</h5>
-									<pre class="webhook-info">{{range $key, $val := .ResponseInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
+									<pre class="webhook-info">{{range $key, $val := $history.ResponseInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{else}}(no response header){{end}}</pre>
 									<h5>{{ctx.Locale.Tr "repo.settings.webhook.body"}}</h5>
-									<pre class="webhook-info">{{or .ResponseInfo.Body "(no response body)"}}</pre>
+									<pre class="webhook-info">{{or $history.ResponseInfo.Body "(no response body)"}}</pre>
 								{{else}}
 									-
 								{{end}}
