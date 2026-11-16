@@ -13,7 +13,6 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
@@ -26,6 +25,7 @@ import (
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
+	release_service "gitea.dev/services/release"
 )
 
 // pushQueue represents a queue to handle update pull request tests
@@ -97,13 +97,8 @@ func pushQueueHandleUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 		if opts.RefFullName.IsTag() {
 			if pusher == nil || pusher.ID != opts.PusherID {
-				if opts.PusherID == user_model.ActionsUserID {
-					pusher = user_model.NewActionsUser()
-				} else {
-					var err error
-					if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
-						return err
-					}
+				if _, pusher, err = user_model.GetPossibleUserByID(ctx, opts.PusherID); err != nil {
+					return err
 				}
 			}
 			tagName := opts.RefFullName.TagName()
@@ -144,13 +139,8 @@ func pushQueueHandleUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			}
 		} else if opts.RefFullName.IsBranch() {
 			if pusher == nil || pusher.ID != opts.PusherID {
-				if opts.PusherID == user_model.ActionsUserID {
-					pusher = user_model.NewActionsUser()
-				} else {
-					var err error
-					if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
-						return err
-					}
+				if _, pusher, err = user_model.GetPossibleUserByID(ctx, opts.PusherID); err != nil {
+					return err
 				}
 			}
 
@@ -205,7 +195,7 @@ func pushQueueHandleUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				notify_service.PushCommits(ctx, pusher, repo, opts, commits)
 
 				// Cache for big repository
-				if err := CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
+				if err := CacheRef(graceful.GetManager().HammerContext(), gitRepo, opts.RefFullName); err != nil {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {
@@ -264,17 +254,9 @@ func getCompareURL(ctx context.Context, repo *repo_model.Repository, gitRepo *gi
 }
 
 func pushNewBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
-	if repo.IsEmpty { // Change default branch and empty status only if pushed ref is non-empty branch.
-		repo.DefaultBranch = opts.RefName()
-		repo.IsEmpty = false
-		if repo.DefaultBranch != setting.Repository.DefaultBranch {
-			if err := git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
-				return nil, err
-			}
-		}
-		// Update the is empty and default_branch columns
-		if err := repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "default_branch", "is_empty"); err != nil {
-			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
+	if repo.IsEmpty {
+		if err := SyncBranchesToDB(ctx, repo, pusher.ID, gitRepo, []string{opts.RefName()}); err != nil {
+			return nil, fmt.Errorf("pushNewBranch: %w", err)
 		}
 	}
 
@@ -309,16 +291,7 @@ func pushUpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo 
 		OldCommitID: opts.OldCommitID,
 		NewCommitID: opts.NewCommitID,
 	})
-
-	if isForcePush {
-		log.Trace("Push %s is a force push", opts.NewCommitID)
-
-		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
-	} else {
-		// TODO: increment update the commit count cache but not remove
-		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
-	}
-
+	git.RemoveCommitsCountCache(repo, opts.RefFullName)
 	return l, nil
 }
 
@@ -378,51 +351,53 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			return fmt.Errorf("Commit: %w", err)
 		}
 
-		sig := tag.Tagger
-		if sig == nil {
-			sig = commit.Author
-		}
-		if sig == nil {
-			sig = commit.Committer
-		}
-
-		createdAt := time.Unix(1, 0)
-		if sig != nil {
-			createdAt = sig.When
+		createdUnix := timeutil.TimeStamp(commit.Committer.When.Unix()) // tagged whenever, but dated by its commit
+		publishedUnix := createdUnix
+		if tag.Tagger != nil {
+			publishedUnix = timeutil.TimeStamp(tag.Tagger.When.Unix())
 		}
 
 		rel, has := relMap[lowerTag]
 		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
 		if !has {
 			rel = &repo_model.Release{
-				RepoID:       repo.ID,
-				Title:        title,
-				TagName:      tags[i],
-				LowerTagName: lowerTag,
-				Target:       "",
-				Sha1:         commit.ID.String(),
-				NumCommits:   -1, // the commits count will be updated when the UI needs it
-				Note:         note,
-				IsDraft:      false,
-				IsPrerelease: false,
-				IsTag:        true,
-				PublisherID:  pusher.ID,
-				CreatedUnix:  timeutil.TimeStamp(createdAt.Unix()),
+				RepoID:        repo.ID,
+				Title:         title,
+				TagName:       tags[i],
+				LowerTagName:  lowerTag,
+				Target:        "",
+				Sha1:          commit.ID.String(),
+				NumCommits:    -1, // the commits count will be updated when the UI needs it
+				Note:          note,
+				IsDraft:       false,
+				IsPrerelease:  false,
+				IsTag:         true,
+				PublisherID:   pusher.ID,
+				CreatedUnix:   createdUnix,
+				PublishedUnix: publishedUnix,
 			}
 
 			newReleases = append(newReleases, rel)
 		} else {
+			wasLatestCandidate := rel.CanBeLatest()
 			rel.Sha1 = commit.ID.String()
-			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
+			rel.CreatedUnix = createdUnix
 			if rel.IsTag {
 				rel.Title = title
 				rel.Note = note
+				rel.PublishedUnix = publishedUnix
 			} else {
 				rel.IsDraft = false
+				if rel.PublishedUnix.IsZero() {
+					rel.PublishedUnix = timeutil.TimeStampNow()
+				}
 			}
 			rel.PublisherID = pusher.ID
 			if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 				return fmt.Errorf("Update: %w", err)
+			}
+			if err = release_service.UpdateLatestRelease(ctx, repo, rel, wasLatestCandidate, ""); err != nil {
+				return fmt.Errorf("pushUpdateAddTags: %w", err)
 			}
 		}
 	}

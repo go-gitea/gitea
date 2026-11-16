@@ -12,8 +12,7 @@
 }
 
 /* items have dividers between them, the dividers align with items */
-.flex-divided-list,
-.flex-divided-list > .item.flex-divided-list {
+.flex-divided-list {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -22,11 +21,6 @@
 
 .flex-divided-list > .item {
   padding: 10px 0;
-  flex-shrink: 0;
-}
-
-.flex-divided-list > .divider {
-  margin: 0;
   flex-shrink: 0;
 }
 

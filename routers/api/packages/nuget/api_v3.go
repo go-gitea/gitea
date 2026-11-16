@@ -111,7 +111,7 @@ func createRegistrationIndexResponse(l *linkBuilder, pds []*packages_model.Packa
 }
 
 func createRegistrationIndexPageItem(l *linkBuilder, pd *packages_model.PackageDescriptor) *RegistrationIndexPageItem {
-	metadata := pd.Metadata.(*nuget_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*nuget_module.Metadata](pd)
 
 	return &RegistrationIndexPageItem{
 		RegistrationLeafURL: l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version),
@@ -120,7 +120,7 @@ func createRegistrationIndexPageItem(l *linkBuilder, pd *packages_model.PackageD
 			CatalogLeafURL:           l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version),
 			Authors:                  metadata.Authors,
 			Copyright:                metadata.Copyright,
-			DependencyGroups:         createDependencyGroups(pd),
+			DependencyGroups:         createDependencyGroups(metadata),
 			Description:              metadata.Description,
 			IconURL:                  metadata.IconURL,
 			ID:                       pd.Package.Name,
@@ -139,9 +139,7 @@ func createRegistrationIndexPageItem(l *linkBuilder, pd *packages_model.PackageD
 	}
 }
 
-func createDependencyGroups(pd *packages_model.PackageDescriptor) []*PackageDependencyGroup {
-	metadata := pd.Metadata.(*nuget_module.Metadata)
-
+func createDependencyGroups(metadata *nuget_module.Metadata) []*PackageDependencyGroup {
 	dependencyGroups := make([]*PackageDependencyGroup, 0, len(metadata.Dependencies))
 	for k, v := range metadata.Dependencies {
 		dependencies := make([]*PackageDependency, 0, len(v))
@@ -172,7 +170,7 @@ type RegistrationLeafResponse struct {
 func createRegistrationLeafResponse(l *linkBuilder, pd *packages_model.PackageDescriptor) *RegistrationLeafResponse {
 	registrationLeafURL := l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version)
 	packageDownloadURL := l.GetPackageDownloadURL(pd.Package.Name, pd.Version.Version)
-	metadata := pd.Metadata.(*nuget_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*nuget_module.Metadata](pd)
 	return &RegistrationLeafResponse{
 		RegistrationLeafURL:  registrationLeafURL,
 		RegistrationIndexURL: l.GetRegistrationIndexURL(pd.Package.Name),
@@ -182,7 +180,7 @@ func createRegistrationLeafResponse(l *linkBuilder, pd *packages_model.PackageDe
 			CatalogLeafURL:           registrationLeafURL,
 			Authors:                  metadata.Authors,
 			Copyright:                metadata.Copyright,
-			DependencyGroups:         createDependencyGroups(pd),
+			DependencyGroups:         createDependencyGroups(metadata),
 			Description:              metadata.Description,
 			IconURL:                  metadata.IconURL,
 			ID:                       pd.Package.Name,
@@ -290,13 +288,13 @@ func createSearchResult(l *linkBuilder, pds []*packages_model.PackageDescriptor)
 		})
 	}
 
-	metadata := latest.Metadata.(*nuget_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*nuget_module.Metadata](latest)
 
 	return &SearchResult{
 		Authors:                  metadata.Authors,
 		Copyright:                metadata.Copyright,
 		Description:              metadata.Description,
-		DependencyGroups:         createDependencyGroups(latest),
+		DependencyGroups:         createDependencyGroups(metadata),
 		IconURL:                  metadata.IconURL,
 		ID:                       latest.Package.Name,
 		IsPrerelease:             latest.Version.IsPrerelease(),

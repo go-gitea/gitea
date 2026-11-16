@@ -9,20 +9,6 @@
   }
 }
 
-.user.profile .ui.secondary.stackable.pointing.menu {
-  flex-wrap: wrap;
-}
-
-.user.followers .header.name {
-  font-size: 20px;
-  line-height: 24px;
-  vertical-align: middle;
-}
-
-.user.followers .follow .ui.button {
-  padding: 8px 15px;
-}
-
 .user.link-account:not(.icon) {
   padding-top: 15px;
   padding-bottom: 5px;

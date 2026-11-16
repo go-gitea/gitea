@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"time"
+	"uuid"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/json"
@@ -15,9 +16,21 @@ import (
 	"gitea.dev/modules/timeutil"
 	webhook_module "gitea.dev/modules/webhook"
 
-	gouuid "github.com/google/uuid"
 	"xorm.io/builder"
 )
+
+type ListHookTaskOptions struct {
+	db.ListOptions
+	HookID int64
+}
+
+func (opts ListHookTaskOptions) ToConds() builder.Cond {
+	return builder.Eq{"hook_task.hook_id": opts.HookID}
+}
+
+func (opts ListHookTaskOptions) ToOrders() string {
+	return "hook_task.id DESC"
+}
 
 //   ___ ___                __   ___________              __
 //  /   |   \  ____   ____ |  | _\__    ___/____    _____|  | __
@@ -116,10 +129,23 @@ func HookTasks(ctx context.Context, hookID int64, page int) ([]*HookTask, error)
 		Find(&tasks)
 }
 
+func GetHookTaskByUUID(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
+	task, exist, err := db.Get[HookTask](ctx, builder.Eq{"hook_id": hookID, "uuid": uuid})
+	if err != nil {
+		return nil, err
+	} else if !exist {
+		return nil, ErrHookTaskNotExist{
+			HookID: hookID,
+			UUID:   uuid,
+		}
+	}
+	return task, nil
+}
+
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
-	t.UUID = gouuid.New().String()
+	t.UUID = uuid.New().String()
 	if t.Delivered == 0 {
 		t.Delivered = timeutil.TimeStampNanoNow()
 	}
@@ -152,14 +178,9 @@ func UpdateHookTask(ctx context.Context, t *HookTask) error {
 
 // ReplayHookTask copies a hook task to get re-delivered
 func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
-	task, exist, err := db.Get[HookTask](ctx, builder.Eq{"hook_id": hookID, "uuid": uuid})
+	task, err := GetHookTaskByUUID(ctx, hookID, uuid)
 	if err != nil {
 		return nil, err
-	} else if !exist {
-		return nil, ErrHookTaskNotExist{
-			HookID: hookID,
-			UUID:   uuid,
-		}
 	}
 
 	return CreateHookTask(ctx, &HookTask{

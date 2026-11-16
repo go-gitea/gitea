@@ -14,67 +14,31 @@ import (
 	"strconv"
 	"strings"
 
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/setting"
 )
 
-const passwordURL = "https://api.pwnedpasswords.com/range/"
-
-// ErrEmptyPassword is an empty password error
-var ErrEmptyPassword = errors.New("password cannot be empty")
+const (
+	passwordURL     = "https://api.pwnedpasswords.com/range/"
+	maxResponseSize = 1 << 20
+)
 
 // Client is a HaveIBeenPwned client
 type Client struct {
-	ctx  context.Context
-	http *http.Client
+	mockTransport http.RoundTripper
 }
 
-// New returns a new HaveIBeenPwned Client
-func New(options ...ClientOption) *Client {
-	client := &Client{
-		ctx:  context.Background(),
-		http: http.DefaultClient,
-	}
-
-	for _, opt := range options {
-		opt(client)
-	}
-
-	return client
-}
-
-// ClientOption is a way to modify a new Client
-type ClientOption func(*Client)
-
-// WithHTTP will set the http.Client of a Client
-func WithHTTP(httpClient *http.Client) func(pwnClient *Client) {
-	return func(pwnClient *Client) {
-		pwnClient.http = httpClient
-	}
-}
-
-// WithContext will set the context.Context of a Client
-func WithContext(ctx context.Context) func(pwnClient *Client) {
-	return func(pwnClient *Client) {
-		pwnClient.ctx = ctx
-	}
-}
-
-func newRequest(ctx context.Context, method, url string, body io.ReadCloser) (*http.Request, error) {
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Add("User-Agent", "Gitea "+setting.AppVer)
-	return req, nil
+func New() *Client {
+	return &Client{}
 }
 
 // CheckPassword returns the number of times a password has been compromised
 // Adding padding will make requests more secure, however is also slower
 // because artificial responses will be added to the response
 // For more information, see https://www.troyhunt.com/enhancing-pwned-passwords-privacy-with-padding/
-func (c *Client) CheckPassword(pw string, padding bool) (int64, error) {
+func (c *Client) CheckPassword(ctx context.Context, pw string, padding bool) (int64, error) {
 	if pw == "" {
-		return -1, ErrEmptyPassword
+		return -1, errors.New("password cannot be empty")
 	}
 
 	sha := sha1.New()
@@ -82,24 +46,29 @@ func (c *Client) CheckPassword(pw string, padding bool) (int64, error) {
 	enc := hex.EncodeToString(sha.Sum(nil))
 	prefix, suffix := enc[:5], enc[5:]
 
-	req, err := newRequest(c.ctx, http.MethodGet, fmt.Sprintf("%s%s", passwordURL, prefix), nil)
-	if err != nil {
-		return -1, nil
-	}
+	req := httplib.NewClientRequest(http.MethodGet, fmt.Sprintf("%s%s", passwordURL, prefix))
+	req.SetContext(ctx).SetTransport(c.mockTransport)
+	req.Header("User-Agent", "Gitea "+setting.AppVer)
 	if padding {
-		req.Header.Add("Add-Padding", "true")
+		req.Header("Add-Padding", "true")
 	}
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return -1, err
-	}
-
-	body, err := io.ReadAll(resp.Body)
+	resp, err := req.Response()
 	if err != nil {
 		return -1, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return -1, fmt.Errorf("unexpected status code %d from HaveIBeenPwned API", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize+1))
+	if err != nil {
+		return -1, err
+	}
+	if len(body) > maxResponseSize {
+		return -1, fmt.Errorf("response from HaveIBeenPwned API exceeds %d bytes", maxResponseSize)
+	}
 
 	for pair := range strings.SplitSeq(string(body), "\n") {
 		parts := strings.Split(pair, ":")

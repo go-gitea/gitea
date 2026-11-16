@@ -13,10 +13,18 @@ var (
 	backoffUpper = 2 * time.Second
 )
 
-type (
-	backoffFuncRetErr[T any] func() (retry bool, ret T, err error)
-	backoffFuncErr           func() (retry bool, err error)
-)
+type backoffFunc[T any] func() (retry bool, ret T, err error)
+
+type backoffOptions struct {
+	begin, upper time.Duration
+
+	notify <-chan struct{}
+	end    <-chan time.Time
+}
+
+func backoffOptionsDefault(notify <-chan struct{}, end <-chan time.Time) backoffOptions {
+	return backoffOptions{begin: backoffBegin, upper: backoffUpper, notify: notify, end: end}
+}
 
 func mockBackoffDuration(d time.Duration) func() {
 	oldBegin, oldUpper := backoffBegin, backoffUpper
@@ -26,18 +34,9 @@ func mockBackoffDuration(d time.Duration) func() {
 	}
 }
 
-func backoffRetErr[T any](ctx context.Context, begin, upper time.Duration, end <-chan time.Time, fn backoffFuncRetErr[T]) (ret T, err error) {
-	d := begin
+func backoffCall[T any](ctx context.Context, opts backoffOptions, fn backoffFunc[T]) (ret T, err error) {
+	d := opts.begin
 	for {
-		// check whether the context has been cancelled or has reached the deadline, return early
-		select {
-		case <-ctx.Done():
-			return ret, ctx.Err()
-		case <-end:
-			return ret, context.DeadlineExceeded
-		default:
-		}
-
 		// call the target function
 		retry, ret, err := fn()
 		if err != nil {
@@ -47,25 +46,19 @@ func backoffRetErr[T any](ctx context.Context, begin, upper time.Duration, end <
 			return ret, nil
 		}
 
-		// wait for a while before retrying, and also respect the context & deadline
+		// wait for a while before retrying, and also respect the context & deadline & notify
 		select {
 		case <-ctx.Done():
 			return ret, ctx.Err()
+		case <-opts.end:
+			return ret, context.DeadlineExceeded
+		case <-opts.notify:
+			continue
 		case <-time.After(d):
 			d *= 2
-			if d > upper {
-				d = upper
+			if d > opts.upper {
+				d = opts.upper
 			}
-		case <-end:
-			return ret, context.DeadlineExceeded
 		}
 	}
-}
-
-func backoffErr(ctx context.Context, begin, upper time.Duration, end <-chan time.Time, fn backoffFuncErr) error {
-	_, err := backoffRetErr(ctx, begin, upper, end, func() (retry bool, ret any, err error) {
-		retry, err = fn()
-		return retry, nil, err
-	})
-	return err
 }

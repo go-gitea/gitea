@@ -5,9 +5,7 @@ package git
 
 import (
 	"context"
-	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
 
@@ -38,40 +36,20 @@ func GetSigningKey(ctx context.Context) (*SigningKey, *Signature) {
 	}
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
-		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _, _ := gitcmd.NewCommand("config", "--global", "--get", "commit.gpgsign").RunStdString(ctx)
-		sign, valid := ParseBool(strings.TrimSpace(value))
-		if !sign || !valid {
+		commitSignSettings := GlobalCommitSignSettings.Value()
+		if !commitSignSettings.Sign {
 			return nil, nil
 		}
-
-		format, _, _ := gitcmd.NewCommand("config", "--global", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(ctx)
-		signingKey, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.signingkey").RunStdString(ctx)
-		signingName, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.name").RunStdString(ctx)
-		signingEmail, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.email").RunStdString(ctx)
-
-		if strings.TrimSpace(signingKey) == "" {
-			return nil, nil
-		}
-
-		return &SigningKey{
-				KeyID:  strings.TrimSpace(signingKey),
-				Format: strings.TrimSpace(format),
-			}, &Signature{
-				Name:  strings.TrimSpace(signingName),
-				Email: strings.TrimSpace(signingEmail),
-			}
+		sigKey := &SigningKey{KeyID: commitSignSettings.KeyID, Format: commitSignSettings.Format}
+		sig := &Signature{Name: commitSignSettings.Name, Email: commitSignSettings.Email}
+		return sigKey, sig
 	}
 
 	if setting.Repository.Signing.SigningKey == "" {
 		return nil, nil
 	}
 
-	return &SigningKey{
-			KeyID:  setting.Repository.Signing.SigningKey,
-			Format: setting.Repository.Signing.SigningFormat,
-		}, &Signature{
-			Name:  setting.Repository.Signing.SigningName,
-			Email: setting.Repository.Signing.SigningEmail,
-		}
+	sigKey := &SigningKey{KeyID: setting.Repository.Signing.SigningKey, Format: setting.Repository.Signing.SigningFormat}
+	sig := &Signature{Name: setting.Repository.Signing.SigningName, Email: setting.Repository.Signing.SigningEmail}
+	return sigKey, sig
 }

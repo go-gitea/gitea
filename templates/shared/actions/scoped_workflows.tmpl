@@ -11,7 +11,7 @@
 				<input class="prompt" name="repo_name" required placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
 			</div>
 		</div>
-		<button class="ui primary button">{{ctx.Locale.Tr "actions.scoped_workflows.source.add"}}</button>
+		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "actions.scoped_workflows.source.add"}}</button>
 	</form>
 </div>
 
@@ -23,7 +23,7 @@
 			<a class="tw-font-semibold gt-ellipsis tw-min-w-0" href="{{$src.Repo.Link}}">{{$src.Repo.FullName}}</a>
 			<form class="ui form form-fetch-action" method="post" action="{{$.Link}}/remove">
 				<input type="hidden" name="repo_id" value="{{$src.Repo.ID}}">
-				<button class="ui red tiny button">{{ctx.Locale.Tr "remove"}}</button>
+				<button type="submit" class="ui red tiny button">{{ctx.Locale.Tr "remove"}}</button>
 			</form>
 		</div>
 		{{if $src.ScopedWorkflowInfos}}
@@ -78,7 +78,7 @@
 					</tbody>
 				</table>
 				<div class="text grey tw-mb-2">{{ctx.Locale.Tr "actions.scoped_workflows.required.patterns_help"}}</div>
-				<button class="ui tiny primary button">{{ctx.Locale.Tr "save"}}</button>
+				<button type="submit" class="ui tiny primary button">{{ctx.Locale.Tr "save"}}</button>
 			</form>
 		{{else}}
 			<div class="text grey tw-mt-2">{{ctx.Locale.Tr "actions.scoped_workflows.no_files"}}</div>

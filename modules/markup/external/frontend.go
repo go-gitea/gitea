@@ -21,17 +21,10 @@ type frontendRenderer struct {
 	patterns []string
 }
 
-var (
-	_ markup.PostProcessRenderer = (*frontendRenderer)(nil)
-	_ markup.ExternalRenderer    = (*frontendRenderer)(nil)
-)
+var _ markup.ExternalRenderer = (*frontendRenderer)(nil)
 
 func (p *frontendRenderer) Name() string {
 	return p.name
-}
-
-func (p *frontendRenderer) NeedPostProcess() bool {
-	return false
 }
 
 func (p *frontendRenderer) FileNamePatterns() []string {

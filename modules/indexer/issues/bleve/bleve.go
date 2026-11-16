@@ -15,7 +15,6 @@ import (
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
-	"github.com/blevesearch/bleve/v2/analysis/token/camelcase"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
@@ -26,7 +25,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 7
+	issueIndexerLatestVersion = 8
 )
 
 const unicodeNormalizeName = "unicodeNormalize"
@@ -103,7 +102,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
-		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name},
+		"token_filters": []string{unicodeNormalizeName, camelCaseKeepWholeName, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}
@@ -253,7 +252,6 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if options.PosterID != "" {
-		// "(none)" becomes 0, it means no poster
 		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
 		queries = append(queries, inner_bleve.NumericEqualityQuery(posterIDInt64, "poster_id"))
 	}

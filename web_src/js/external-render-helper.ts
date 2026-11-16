@@ -51,7 +51,7 @@ body { background: ${backgroundColor}; }
 
 const iframeId = queryParams.get('gitea-iframe-id');
 // iframe is in different origin, so we need to use postMessage to communicate
-const postIframeMsg = (cmd: string, data: Record<string, any> = {}) => {
+const postIframeMsg = (cmd: 'resize' | 'open-link', data: Record<string, string | number | null> = {}) => {
   window.parent.postMessage({giteaIframeCmd: cmd, giteaIframeId: iframeId, ...data}, '*');
 };
 

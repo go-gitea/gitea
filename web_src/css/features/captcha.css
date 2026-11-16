@@ -24,7 +24,6 @@
 }
 
 @media (max-height: 575px) {
-  #rc-imageselect, /* google recaptcha */
   .g-recaptcha-style,
   .h-captcha-style {
     transform: scale(0.77);

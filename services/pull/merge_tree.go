@@ -22,6 +22,11 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 	if err != nil {
 		return false, fmt.Errorf("MergeTree: %w", err)
 	}
+	if pr.Index > 0 && !conflict {
+		if _, err := updateMergeRef(ctx, pr, baseCommitID, pr.HeadCommitID, treeHash); err != nil {
+			log.Error("updateMergeRef for %-v: %v", pr, err)
+		}
+	}
 	if conflict {
 		pr.Status = issues_model.PullRequestStatusConflict
 		// sometimes git merge-tree will detect conflicts but not list any conflicted files
@@ -36,7 +41,7 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 	// against the current base commit (baseCommitID) using `git diff-tree`. The command returns exit code 0
 	// if there is no diff between these trees (empty patch) and exit code 1 if there is a diff.
 	gitErr := gitcmd.NewCommand("diff-tree", "-r", "--quiet").
-		AddDynamicArguments(treeHash, baseCommitID).WithRepo(pr.BaseRepo).Run(ctx)
+		AddDynamicArguments(treeHash, baseCommitID).WithRepo(pr.BaseRepo).RunWithStderr(ctx)
 	switch {
 	case gitErr == nil:
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
@@ -90,11 +95,10 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	}
 
 	// 4. fetch head commit id into the current repository
-	// it will be checked in 2 weeks by default from git if the pull request created failure.
 	if !pr.IsSameRepo() {
 		if !baseGitRepo.IsReferenceExist(ctx, pr.HeadCommitID) {
-			if err := git.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
-				return fmt.Errorf("FetchRemoteCommit: %w", err)
+			if err := git.FetchRemoteTempCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
+				return fmt.Errorf("FetchRemoteTempCommit: %w", err)
 			}
 		}
 	}

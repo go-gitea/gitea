@@ -34,12 +34,14 @@ func TestFile(t *testing.T) {
 		name      string
 		code      string
 		want      []template.HTML
+		plainWant []template.HTML
 		lexerName string
 	}{
 		{
 			name:      "empty.py",
 			code:      "",
 			want:      lines(""),
+			plainWant: lines(""),
 			lexerName: "Python",
 		},
 		{
@@ -64,18 +66,21 @@ func TestFile(t *testing.T) {
 			name:      "tags.py",
 			code:      "<>",
 			want:      lines(`<span class="o">&lt;&gt;</span>`),
+			plainWant: lines("&lt;&gt;"),
 			lexerName: "Python",
 		},
 		{
 			name:      "eol-no.py",
 			code:      "a=1",
 			want:      lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>`),
+			plainWant: lines(`a=1`),
 			lexerName: "Python",
 		},
 		{
 			name:      "eol-newline1.py",
 			code:      "a=1\n",
 			want:      lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n`),
+			plainWant: lines(`a=1\n`),
 			lexerName: "Python",
 		},
 		{
@@ -86,6 +91,10 @@ func TestFile(t *testing.T) {
 \n
 			`,
 			),
+			plainWant: lines(`
+a=1\n
+\n
+			`),
 			lexerName: "Python",
 		},
 		{
@@ -106,6 +115,13 @@ c=2
     \n
 <span class="n">c</span><span class="o">=</span><span class="mi">2</span>`,
 			),
+			plainWant: lines(`
+def:\n
+    a=1\n
+\n
+b=&#39;&#39;\n
+    \n
+c=2`),
 			lexerName: "Python",
 		},
 		{
@@ -135,67 +151,14 @@ Content-Type: text/html
 			assert.Equal(t, tt.lexerName, lexerName)
 		})
 	}
-}
-
-func TestPlainText(t *testing.T) {
-	tests := []struct {
-		name string
-		code string
-		want []template.HTML
-	}{
-		{
-			name: "empty.py",
-			code: "",
-			want: lines(""),
-		},
-		{
-			name: "tags.py",
-			code: "<>",
-			want: lines("&lt;&gt;"),
-		},
-		{
-			name: "eol-no.py",
-			code: "a=1",
-			want: lines(`a=1`),
-		},
-		{
-			name: "eol-newline1.py",
-			code: "a=1\n",
-			want: lines(`a=1\n`),
-		},
-		{
-			name: "eol-newline2.py",
-			code: "a=1\n\n",
-			want: lines(`
-a=1\n
-\n
-			`),
-		},
-		{
-			name: "empty-line-with-space.py",
-			code: strings.ReplaceAll(strings.TrimSpace(`
-def:
-    a=1
-
-b=''
-{space}
-c=2
-			`), "{space}", "    "),
-			want: lines(`
-def:\n
-    a=1\n
-\n
-b=&#39;&#39;\n
-    \n
-c=2`),
-		},
-	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			out := renderPlainText([]byte(tt.code))
-			assert.Equal(t, tt.want, out)
-		})
+		if tt.plainWant != nil {
+			t.Run("plaintext/"+tt.name, func(t *testing.T) {
+				out := renderPlainText([]byte(tt.code))
+				assert.Equal(t, tt.plainWant, out)
+			})
+		}
 	}
 }
 
@@ -215,4 +178,20 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 	assert.Len(t, ret, 2)
 	assert.Equal(t, "<span>a</span>\n", string(ret[0]))
 	assert.Equal(t, "<span>b\n</span>", string(ret[1]))
+}
+
+func TestCodeBlockAttributes(t *testing.T) {
+	test := func(t *testing.T, lang string, css, attr template.HTML) {
+		t.Helper()
+		cssActual, attrActual := CodeBlockAttributes(lang)
+		assert.Equal(t, css, cssActual)
+		assert.Equal(t, attr, attrActual)
+	}
+	for _, s := range []string{"", "FALLback", "plainTEXT"} {
+		test(t, s, `class="code-block"`, `class="chroma language-text" data-code-language="text"`)
+	}
+	test(t, "math", `class="code-block is-loading"`, `class="chroma language-math" data-code-language="math"`)
+	test(t, "mermaid", `class="code-block is-loading"`, `class="chroma language-mermaid" data-code-language="mermaid"`)
+	test(t, "Visual Basic.NET", `class="code-block"`, `class="chroma language-visual_basic_net" data-code-language="Visual Basic.NET"`)
+	test(t, "c++-x", `class="code-block"`, `class="chroma language-c___x" data-code-language="c++-x"`)
 }

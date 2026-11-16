@@ -7,12 +7,17 @@ import (
 	"context"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	password_module "gitea.dev/modules/auth/password"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/system"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 )
 
 type UpdateOptionField[T any] struct {
@@ -53,6 +58,7 @@ type UpdateOptions struct {
 	AllowCreateOrganization      optional.Option[bool]
 	IsActive                     optional.Option[bool]
 	IsAdmin                      optional.Option[UpdateOptionField[bool]]
+	UserType                     optional.Option[user_model.UserType]
 	EmailNotificationsPreference optional.Option[string]
 	SetLastLogin                 bool
 	RepoAdminChangeTeamAccess    optional.Option[bool]
@@ -60,6 +66,9 @@ type UpdateOptions struct {
 
 func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) error {
 	cols := make([]string, 0, 20)
+
+	oldIsActive, oldIsRestricted, oldIsAdmin, oldVisibility, oldType := u.IsActive, u.IsRestricted, u.IsAdmin, u.Visibility, u.Type
+	oldRepoAdminChangeTeamAccess := u.RepoAdminChangeTeamAccess
 
 	if opts.KeepEmailPrivate.Has() {
 		u.KeepEmailPrivate = opts.KeepEmailPrivate.Value()
@@ -155,6 +164,9 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "visibility")
 	}
 	if opts.KeepActivityPrivate.Has() {
+		if forced := setting.Service.ForceUserActivityVisibility; forced != "" && opts.KeepActivityPrivate.Value() != (forced == "private") {
+			return util.ErrorWrap(util.ErrUnprocessableContent, "activity visibility is forced to %s", forced)
+		}
 		u.KeepActivityPrivate = opts.KeepActivityPrivate.Value()
 
 		cols = append(cols, "keep_activity_private")
@@ -171,6 +183,14 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "repo_admin_change_team_access")
 	}
 
+	if opts.UserType.Has() && opts.UserType.Value() != u.Type {
+		if err := CheckConvertUserType(u); err != nil {
+			return err
+		}
+		u.Type = opts.UserType.Value()
+		cols = append(cols, "type")
+	}
+
 	if opts.EmailNotificationsPreference.Has() {
 		u.EmailNotificationsPreference = opts.EmailNotificationsPreference.Value()
 
@@ -183,7 +203,30 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "last_login_unix")
 	}
 
-	return user_model.UpdateUserCols(ctx, u, cols...)
+	if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
+		return err
+	}
+
+	if u.IsActive != oldIsActive {
+		audit.Record(ctx, audit_model.UserActive, u, "active", u.IsActive)
+	}
+	if u.IsAdmin != oldIsAdmin {
+		audit.Record(ctx, audit_model.UserAdmin, u, "admin", u.IsAdmin)
+	}
+	if u.IsRestricted != oldIsRestricted {
+		audit.Record(ctx, audit_model.UserRestricted, u, "restricted", u.IsRestricted)
+	}
+	if u.Visibility != oldVisibility {
+		audit.Record(ctx, audit_model.UserVisibility, u, "old_visibility", oldVisibility.String(), "new_visibility", u.Visibility.String())
+	}
+	if u.Type != oldType {
+		audit.Record(ctx, audit_model.UserType, u, "user_type", u.Type.DisplayName())
+	}
+	if u.RepoAdminChangeTeamAccess != oldRepoAdminChangeTeamAccess {
+		audit.Record(ctx, audit_model.OrganizationTeamAccess, u, "repo_admin_change_team_access", u.RepoAdminChangeTeamAccess)
+	}
+
+	return nil
 }
 
 type UpdateAuthOptions struct {
@@ -195,11 +238,19 @@ type UpdateAuthOptions struct {
 }
 
 func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions) error {
+	if u.IsTypeBot() && (opts.Password.Has() || opts.LoginSource.Value() != 0 || opts.LoginName.Value() != "") {
+		return util.NewInvalidArgumentErrorf("a bot account cannot have a password or authentication source")
+	}
+	loginSourceChanged := false
+	authSourceName := ""
 	if opts.LoginSource.Has() {
 		source, err := auth_model.GetSourceByID(ctx, opts.LoginSource.Value())
 		if err != nil {
 			return err
 		}
+
+		loginSourceChanged = u.LoginSource != source.ID
+		authSourceName = source.Name
 
 		u.LoginType = source.Type
 		u.LoginSource = source.ID
@@ -232,6 +283,7 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	if opts.MustChangePassword.Has() {
 		u.MustChangePassword = opts.MustChangePassword.Value()
 	}
+	oldProhibitLogin := u.ProhibitLogin
 	if opts.ProhibitLogin.Has() {
 		u.ProhibitLogin = opts.ProhibitLogin.Value()
 	}
@@ -241,7 +293,50 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	}
 
 	if deleteAuthTokens {
-		return auth_model.DeleteAuthTokensByUserID(ctx, u.ID)
+		if err := auth_model.DeleteAuthTokensByUserID(ctx, u.ID); err != nil {
+			return err
+		}
+
+		audit.Record(ctx, audit_model.UserPassword, u)
+	}
+	if loginSourceChanged {
+		audit.Record(ctx, audit_model.UserAuthenticationSource, u, "auth_source", authSourceName)
+	}
+	if u.ProhibitLogin != oldProhibitLogin {
+		audit.Record(ctx, audit_model.UserProhibitLogin, u, "prohibit_login", u.ProhibitLogin)
+	}
+
+	return nil
+}
+
+func CheckConvertUserType(u *user_model.User) error {
+	switch {
+	case u.IsAdmin:
+		return user_model.ErrBotCanNotBeAdmin
+	case !u.IsIndividual() && !u.IsTypeBot():
+		return user_model.ErrUserTypeCanNotConvert
+	case !u.IsLocal():
+		return user_model.ErrBotMustBeLocal
 	}
 	return nil
+}
+
+// SyncForcedActivityVisibility applies FORCE_USER_ACTIVITY_VISIBILITY to all users when it changed since the last start
+func SyncForcedActivityVisibility(ctx context.Context) error {
+	lastConfig := new(system.LastConfig)
+	if err := system.AppState.Get(ctx, lastConfig); err != nil {
+		return err
+	}
+	forced := setting.Service.ForceUserActivityVisibility
+	if lastConfig.ForceUserActivityVisibility == forced {
+		return nil
+	}
+	if forced != "" {
+		log.Info("FORCE_USER_ACTIVITY_VISIBILITY changed to %q, updating all users", forced)
+		if err := user_model.UpdateAllUsersKeepActivityPrivate(ctx, forced == "private"); err != nil {
+			return err
+		}
+	}
+	lastConfig.ForceUserActivityVisibility = forced
+	return system.AppState.Set(ctx, lastConfig)
 }

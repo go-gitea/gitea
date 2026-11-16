@@ -43,7 +43,7 @@ func validateRunID(ctx *ArtifactContext) (*actions.ActionTask, int64, bool) {
 	return task, runID, true
 }
 
-func validateRunIDV4(ctx *ArtifactContext, rawRunID string) (*actions.ActionTask, int64, bool) { //nolint:unparam // ActionTask is never used
+func validateRunIDV4(ctx *ArtifactContext, rawRunID string) (*actions.ActionTask, int64, bool) {
 	task := ctx.ActionTask
 	runID, err := strconv.ParseInt(rawRunID, 10, 64)
 	if err != nil || task.Job.RunID != runID {
@@ -52,6 +52,18 @@ func validateRunIDV4(ctx *ArtifactContext, rawRunID string) (*actions.ActionTask
 		return nil, 0, false
 	}
 	return task, runID, true
+}
+
+// readableArtifactAttemptIDs resolves the attempts a task may read artifacts from:
+// its own attempt, plus the attempts it inherits from when only a subset of the run's jobs was re-run.
+func readableArtifactAttemptIDs(ctx *ArtifactContext, task *actions.ActionTask) ([]int64, bool) {
+	attemptIDs, err := actions.GetArtifactAttemptIDs(ctx, task.Job)
+	if err != nil {
+		log.Error("Error getting readable artifact attempts: %v", err)
+		ctx.HTTPError(http.StatusInternalServerError, "Error getting readable artifact attempts")
+		return nil, false
+	}
+	return attemptIDs, true
 }
 
 func validateArtifactHash(ctx *ArtifactContext, artifactName string) bool {
@@ -69,9 +81,9 @@ func validateArtifactHash(ctx *ArtifactContext, artifactName string) bool {
 func parseArtifactItemPath(ctx *ArtifactContext) (string, string, bool) {
 	// itemPath is generated from upload-artifact action
 	// it's formatted as {artifact_name}/{artfict_path_in_runner}
-	// act_runner in host mode on Windows, itemPath is joined by Windows slash '\'
+	// runner in host mode on Windows, itemPath is joined by Windows slash '\'
 	itemPath := util.PathJoinRelX(ctx.Req.URL.Query().Get("itemPath"))
-	artifactName := strings.Split(itemPath, "/")[0]
+	artifactName, _, _ := strings.Cut(itemPath, "/")
 	artifactPath := strings.TrimPrefix(itemPath, artifactName+"/")
 	if !validateArtifactHash(ctx, artifactName) {
 		return "", "", false

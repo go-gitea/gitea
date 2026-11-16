@@ -51,16 +51,16 @@ func AddPullRequestRebaseWithMerge(_ context.Context, x base.EngineMigration) er
 		// Allow the new merge style if all other merge styles are allowed
 		allowMergeRebase := true
 
-		if allowMerge, ok := unit.Config["AllowMerge"]; ok {
-			allowMergeRebase = allowMergeRebase && allowMerge.(bool)
+		if allowMerge, ok := unit.Config["AllowMerge"].(bool); ok {
+			allowMergeRebase = allowMergeRebase && allowMerge
 		}
 
-		if allowRebase, ok := unit.Config["AllowRebase"]; ok {
-			allowMergeRebase = allowMergeRebase && allowRebase.(bool)
+		if allowRebase, ok := unit.Config["AllowRebase"].(bool); ok {
+			allowMergeRebase = allowMergeRebase && allowRebase
 		}
 
-		if allowSquash, ok := unit.Config["AllowSquash"]; ok {
-			allowMergeRebase = allowMergeRebase && allowSquash.(bool)
+		if allowSquash, ok := unit.Config["AllowSquash"].(bool); ok {
+			allowMergeRebase = allowMergeRebase && allowSquash
 		}
 
 		if _, ok := unit.Config["AllowRebaseMerge"]; !ok {

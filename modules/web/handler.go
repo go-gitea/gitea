@@ -66,7 +66,7 @@ var (
 func preCheckHandler(fn reflect.Value, argsIn []reflect.Value) {
 	hasStatusProvider := false
 	for _, argIn := range argsIn {
-		if _, hasStatusProvider = argIn.Interface().(types.ResponseStatusProvider); hasStatusProvider {
+		if _, hasStatusProvider = reflect.TypeAssert[types.ResponseStatusProvider](argIn); hasStatusProvider {
 			break
 		}
 	}
@@ -119,7 +119,7 @@ func handleResponse(fn reflect.Value, ret []reflect.Value) {
 
 func hasResponseBeenWritten(argsIn []reflect.Value) bool {
 	for _, argIn := range argsIn {
-		if statusProvider, ok := argIn.Interface().(types.ResponseStatusProvider); ok {
+		if statusProvider, ok := reflect.TypeAssert[types.ResponseStatusProvider](argIn); ok {
 			if statusProvider.WrittenStatus() != 0 {
 				return true
 			}

@@ -38,6 +38,8 @@ type SignCommit struct {
 }
 
 const (
+	VerificationReasonCommitNotSigned = "gpg.error.not_signed_commit"
+
 	// BadSignature is used as the reason when the signature has a KeyID that is in the db
 	// but no key that has that ID verifies the signature. This is a suspicious failure.
 	BadSignature = "gpg.error.probable_bad_signature"
@@ -182,4 +184,8 @@ func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_
 	}
 
 	return err
+}
+
+func (cv *CommitVerification) IsCommitNotSigned() bool {
+	return !cv.Verified && cv.Reason == VerificationReasonCommitNotSigned
 }

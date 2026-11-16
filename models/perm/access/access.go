@@ -25,7 +25,7 @@ import (
 type Access struct {
 	ID     int64 `xorm:"pk autoincr"`
 	UserID int64 `xorm:"UNIQUE(s)"`
-	RepoID int64 `xorm:"UNIQUE(s)"`
+	RepoID int64 `xorm:"UNIQUE(s) INDEX"`
 	Mode   perm.AccessMode
 }
 
@@ -33,7 +33,9 @@ func init() {
 	db.RegisterModel(new(Access))
 }
 
-func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
+// modeByOwnerAndAccess returns the access mode of a user to a repository,
+// considering: the repository's owner (visibility and doer restriction), any explicit "access" records.
+func modeByOwnerAndAccess(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
 	mode := perm.AccessModeNone
 	var userID int64
 	restricted := false
@@ -69,14 +71,6 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 	return a.Mode, nil
 }
 
-func maxAccessMode(modes ...perm.AccessMode) perm.AccessMode {
-	maxMode := perm.AccessModeNone
-	for _, mode := range modes {
-		maxMode = max(maxMode, mode)
-	}
-	return maxMode
-}
-
 type userAccess struct {
 	User *user_model.User
 	Mode perm.AccessMode
@@ -85,7 +79,7 @@ type userAccess struct {
 // updateUserAccess updates an access map so that user has at least mode
 func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mode perm.AccessMode) {
 	if ua, ok := accessMap[user.ID]; ok {
-		ua.Mode = maxAccessMode(ua.Mode, mode)
+		ua.Mode = max(ua.Mode, mode)
 	} else {
 		accessMap[user.ID] = &userAccess{User: user, Mode: mode}
 	}
@@ -230,30 +224,32 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 
 // RecalculateUserAccess recalculates new access for a single user
 // Usable if we know access only affected one user
-func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid int64) (err error) {
+func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (err error) {
+	if err = repo.LoadOwner(ctx); err != nil {
+		return err
+	}
+
 	minMode := perm.AccessModeRead
-	if !repo.IsPrivate {
+	if !repo.IsPrivate && !repo.Owner.IsOrganization() && !user.IsRestricted {
 		minMode = perm.AccessModeWrite
 	}
 
 	accessMode := perm.AccessModeNone
 	e := db.GetEngine(ctx)
-	collaborator, err := repo_model.GetCollaboration(ctx, repo.ID, uid)
+	collaborator, err := repo_model.GetCollaboration(ctx, repo.ID, user.ID)
 	if err != nil {
 		return err
 	} else if collaborator != nil {
 		accessMode = collaborator.Mode
 	}
 
-	if err = repo.LoadOwner(ctx); err != nil {
-		return err
-	} else if repo.Owner.IsOrganization() {
+	if repo.Owner.IsOrganization() {
 		var teams []organization.Team
 		if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
 			Join("INNER", "team_user", "team_user.team_id = team.id").
 			Where("team.org_id = ?", repo.OwnerID).
 			And("team_repo.repo_id=?", repo.ID).
-			And("team_user.uid=?", uid).
+			And("team_user.uid=?", user.ID).
 			Find(&teams); err != nil {
 			return err
 		}
@@ -263,15 +259,15 @@ func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 				t.AccessMode = perm.AccessModeOwner
 			}
 
-			accessMode = maxAccessMode(accessMode, t.AccessMode)
+			accessMode = max(accessMode, t.AccessMode)
 		}
 	}
 
 	// Delete old user accesses and insert new one for repository.
-	if _, err = e.Delete(&Access{RepoID: repo.ID, UserID: uid}); err != nil {
+	if _, err = e.Delete(&Access{RepoID: repo.ID, UserID: user.ID}); err != nil {
 		return fmt.Errorf("delete old user accesses: %w", err)
 	} else if accessMode >= minMode {
-		if err = db.Insert(ctx, &Access{RepoID: repo.ID, UserID: uid, Mode: accessMode}); err != nil {
+		if err = db.Insert(ctx, &Access{RepoID: repo.ID, UserID: user.ID, Mode: accessMode}); err != nil {
 			return fmt.Errorf("insert new user accesses: %w", err)
 		}
 	}

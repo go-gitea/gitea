@@ -4,13 +4,10 @@
 package private
 
 import (
-	"errors"
 	"net/http"
+	"slices"
 
-	issues_model "gitea.dev/models/issues"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/agit"
@@ -19,29 +16,21 @@ import (
 
 // HookProcReceive proc-receive hook - only handles agit Proc-Receive requests at present
 func HookProcReceive(ctx *gitea_context.PrivateContext) {
-	opts := web.GetForm(ctx).(*private.HookOptions)
-	if !git.DefaultFeatures().SupportProcReceive {
-		ctx.Status(http.StatusNotFound)
+	opts := web.GetForm[*private.HookOptions](ctx)
+	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) ||
+		(slices.ContainsFunc(opts.RefFullNames, git.RefName.IsFor) && !assertCanCreatePullRequest(ctx, opts)) {
 		return
 	}
 
-	results, err := agit.ProcReceive(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, opts)
+	results, err := agit.ProcReceive(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.Permission, &agit.ProcReceiveOptions{
+		OldCommitIDs:   opts.OldCommitIDs,
+		NewCommitIDs:   opts.NewCommitIDs,
+		RefFullNames:   opts.RefFullNames,
+		GitPushOptions: opts.GitPushOptions,
+		Doer:           ctx.Doer,
+	})
 	if err != nil {
-		if errors.Is(err, issues_model.ErrMustCollaborator) {
-			ctx.JSON(http.StatusUnauthorized, private.Response{
-				Err: err.Error(), UserMsg: "You must be a collaborator to create pull request.",
-			})
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.JSON(http.StatusUnauthorized, private.Response{
-				Err: err.Error(), UserMsg: "Cannot create pull request because you are blocked by the repository owner.",
-			})
-		} else {
-			log.Error("agit.ProcReceive failed: %v", err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: err.Error(),
-			})
-		}
-
+		ctx.PrivateUserErrorAuto(err)
 		return
 	}
 

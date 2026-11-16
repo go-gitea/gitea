@@ -83,12 +83,12 @@ func TestRender_Source(t *testing.T) {
 int a;
 #+end_src
 `, `<div class="src src-c">
-<pre><code class="chroma language-c"><span class="kt">int</span> <span class="n">a</span><span class="p">;</span></code></pre>
+<pre class="code-block"><code class="chroma language-c" data-code-language="c"><span class="kt">int</span> <span class="n">a</span><span class="p">;</span></code></pre>
 </div>`)
 }
 
 func TestRender_IncludeLink(t *testing.T) {
 	testRender(t, `#+INCLUDE: "./other.org" src text`, `<div class="src src-text">
-<pre><code class="chroma language-plaintext">#+INCLUDE: [[other.org]]</code></pre>
+<pre class="code-block"><code class="chroma language-text" data-code-language="text">#+INCLUDE: [[other.org]]</code></pre>
 </div>`)
 }

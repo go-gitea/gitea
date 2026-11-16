@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/services/audit"
 
 	"github.com/urfave/cli/v3"
 )
@@ -54,6 +55,9 @@ func newAuthCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "auth",
 		Usage: "Modify external auth providers",
+		Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
+			return audit.WithCLIDoer(ctx), nil
+		},
 		Commands: []*cli.Command{
 			microcmdAuthAddOauth(),
 			microcmdAuthUpdateOauth(),

@@ -5,11 +5,13 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	admin_model "gitea.dev/models/admin"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -30,6 +32,7 @@ import (
 	"gitea.dev/modules/storage"
 	actions_service "gitea.dev/services/actions"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	issue_service "gitea.dev/services/issue"
 
 	"xorm.io/builder"
@@ -48,9 +51,11 @@ func deleteDBRepository(ctx context.Context, repoID int64) error {
 	return nil
 }
 
-// DeleteRepository deletes a repository for a user or organization.
-// make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
+// DeleteRepositoryDirectly deletes a repository for a user or organization.
 func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams ...bool) error {
+	if db.InTransaction(ctx) {
+		return errors.New("DeleteRepositoryDirectly must not be called within a transaction, it deletes storage once its own transaction commits")
+	}
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -133,6 +138,11 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 	if _, err := db.GetEngine(ctx).In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"webhook.repo_id": repo.ID})).
 		Delete(&webhook.HookTask{}); err != nil {
+		return err
+	}
+
+	if _, err := db.GetEngine(ctx).In("release_id", builder.Select("id").From("`release`").Where(builder.Eq{"repo_id": repoID})).
+		Delete(&issues_model.Reaction{}); err != nil {
 		return err
 	}
 
@@ -395,7 +405,6 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			},
 			Private: true,
 			OwnerID: owner.ID,
-			Actor:   owner,
 		})
 		if err != nil {
 			return fmt.Errorf("GetUserRepositories: %w", err)
@@ -407,6 +416,7 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 			if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
 				return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, owner.Name, owner.ID, err)
 			}
+			audit.Record(ctx, audit_model.RepositoryDelete, repo)
 		}
 	}
 	return nil

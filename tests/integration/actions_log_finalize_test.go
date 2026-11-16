@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/dbfs"
@@ -19,7 +19,6 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/storage"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -56,14 +55,14 @@ jobs:
 
 		task := runner.fetchTask(t)
 
-		resp, err := runner.client.runnerServiceClient.UpdateLog(t.Context(), connect.NewRequest(&runnerv1.UpdateLogRequest{
+		resp, err := runner.client.runnerServiceClient.UpdateLog(t.Context(), &runnerv1.UpdateLogRequest{
 			TaskId: task.Id,
 			Index:  0,
 			Rows:   nil,
 			NoMore: true,
-		}))
+		})
 		require.NoError(t, err)
-		assert.EqualValues(t, 0, resp.Msg.AckIndex)
+		assert.EqualValues(t, 0, resp.AckIndex)
 
 		freshTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id})
 		require.True(t, freshTask.LogInStorage, "log_in_storage must flip after empty NoMore=true")
@@ -78,13 +77,13 @@ jobs:
 		// A sealed log must ack the re-send and still reject new appended rows.
 		t.Run("re-sent finalize is idempotent", func(t *testing.T) {
 			finalize := &runnerv1.UpdateLogRequest{TaskId: task.Id, Index: 0, Rows: nil, NoMore: true}
-			resp, err := runner.client.runnerServiceClient.UpdateLog(t.Context(), connect.NewRequest(finalize))
+			resp, err := runner.client.runnerServiceClient.UpdateLog(t.Context(), finalize)
 			require.NoError(t, err)
-			assert.EqualValues(t, 0, resp.Msg.AckIndex)
+			assert.EqualValues(t, 0, resp.AckIndex)
 
-			_, err = runner.client.runnerServiceClient.UpdateLog(t.Context(), connect.NewRequest(&runnerv1.UpdateLogRequest{
+			_, err = runner.client.runnerServiceClient.UpdateLog(t.Context(), &runnerv1.UpdateLogRequest{
 				TaskId: task.Id, Index: 0, Rows: []*runnerv1.LogRow{{Content: "late"}}, NoMore: true,
-			}))
+			})
 			require.Error(t, err, "appending rows past the seal must be rejected")
 		})
 	})

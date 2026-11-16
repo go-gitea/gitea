@@ -1,19 +1,15 @@
-import {hideElem, showElem} from '../utils/dom.ts';
+import {toggleElem} from '../utils/dom.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 export function initUserSettings() {
-  if (!document.querySelector('.user.settings.profile')) return;
-
-  const usernameInput = document.querySelector<HTMLInputElement>('#username');
-  if (!usernameInput) return;
-  usernameInput.addEventListener('input', function () {
-    const prompt = document.querySelector('#name-change-prompt')!;
-    const promptRedirect = document.querySelector('#name-change-redirect-prompt')!;
-    if (this.value.toLowerCase() !== this.getAttribute('data-name')!.toLowerCase()) {
-      showElem(prompt);
-      showElem(promptRedirect);
-    } else {
-      hideElem(prompt);
-      hideElem(promptRedirect);
-    }
+  registerGlobalInitFunc('initUserSettingsForm', (elForm: HTMLFormElement) => {
+    const usernameInput = elForm.querySelector<HTMLInputElement>('input[name=name]')!;
+    usernameInput.addEventListener('input', () => {
+      const prompt = elForm.querySelector('#name-change-prompt')!;
+      const promptRedirect = elForm.querySelector('#name-change-redirect-prompt')!;
+      const showPrompt = usernameInput.value.toLowerCase() !== usernameInput.getAttribute('data-name')!.toLowerCase();
+      toggleElem(prompt, showPrompt);
+      toggleElem(promptRedirect, showPrompt);
+    });
   });
 }

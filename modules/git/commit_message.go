@@ -74,20 +74,43 @@ func (c *CommitMessage) MessageTrailer() CommitMessageTrailerValues {
 	return c.trailerValues
 }
 
-var commitMessageTrailerSplit = sync.OnceValue(func() *regexp.Regexp {
+var globalVars = sync.OnceValue(func() (ret struct {
+	commitMessageTrailerSplit *regexp.Regexp
+	hunkRegex                 *regexp.Regexp
+	refNamePatternInvalid     *regexp.Regexp
+	patchCommits              *regexp.Regexp
+},
+) {
 	// ref: https://git-scm.com/docs/git-interpret-trailers
 	// TODO: the regexp is not able to perfectly parse the all kinds of trailers
 	// It was just copied from legacy code, it is not exactly the same as how Git parses the trailer and not quite right in some cases.
 	// For the key characters: it follows RFC 822 field name syntax (or RFC 2822/RFC 5322): printable ASCII characters between 33 and 126 except the colon (:),
 	// but maybe we don't want to make it that complicated, so here we only support some common "symbol-like" characters.
-	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-\w]*:[^\n]*(\n\s+[^\n]*)*\n?)*\n*)$`)
+	ret.commitMessageTrailerSplit = regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-\w]*:[^\n]*(\n\s+[^\n]*)*\n?)*\n*)$`)
+	// Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
+	ret.hunkRegex = regexp.MustCompile(`^@@ -(?P<beginOld>[0-9]+)(,(?P<endOld>[0-9]+))? \+(?P<beginNew>[0-9]+)(,(?P<endNew>[0-9]+))? @@`)
+	// refNamePatternInvalid is regular expression with unallowed characters in git reference name
+	// They cannot have ASCII control characters (i.e. bytes whose values are lower than \040, or \177 DEL), space, tilde ~, caret ^, or colon : anywhere.
+	// They cannot have question-mark ?, asterisk *, or open bracket [ anywhere
+	ret.refNamePatternInvalid = regexp.MustCompile(
+		`[\000-\037\177 \\~^:?*[]|` + // No absolutely invalid characters
+			`(?:^[/.])|` + // Not HasPrefix("/") or "."
+			`(?:/\.)|` + // no "/."
+			`(?:\.lock$)|(?:\.lock/)|` + // No ".lock/"" or ".lock" at the end
+			`(?:\.\.)|` + // no ".." anywhere
+			`(?://)|` + // no "//" anywhere
+			`(?:@{)|` + // no "@{"
+			`(?:[/.]$)|` + // no terminal '/' or '.'
+			`(?:^@$)`) // Not "@"
+	ret.patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
+	return ret
 })
 
 // CommitMessageSplitTrailer tries to split the message by the trailer separator
 // content + sep + trailer will reconstruct the original message
 func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 	s = util.NormalizeStringEOL(s)
-	re := commitMessageTrailerSplit()
+	re := globalVars().commitMessageTrailerSplit
 	v := re.FindStringSubmatch(s)
 	if v == nil {
 		return s, "", ""
@@ -171,23 +194,24 @@ func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
 
 	addAuthor(c.Author.Name, c.Author.Email, commitIdentityRoleAuthor)
 	for _, coAuthorValue := range trailerCoAuthors {
-		addr, err := mail.ParseAddress(coAuthorValue)
-		coAuthorName, coAuthorEmail := coAuthorValue, ""
-		if err == nil {
-			coAuthorName, coAuthorEmail = addr.Name, addr.Address
-		}
+		coAuthorName, coAuthorEmail := parseCommitIdentityValue(coAuthorValue)
 		addAuthor(coAuthorName, coAuthorEmail, commitIdentityRoleCoAuthor)
 	}
 	return c.allAuthors
 }
 
-func (c *Commit) CoAuthorIdentities() (coAuthors []*CommitIdentity) {
-	all := c.AllAuthorIdentities()
-	if len(all) == 0 {
-		return nil
+func (c *Commit) CommitterIsAuthor() bool {
+	return c.Committer.Name == c.Author.Name && c.Committer.Email == c.Author.Email
+}
+
+// Git identities are not RFC 5322 addresses: net/mail rejects names like "dependabot[bot]", so fall back to the angle-addr.
+func parseCommitIdentityValue(value string) (name, email string) {
+	if addr, err := mail.ParseAddress(value); err == nil {
+		return addr.Name, addr.Address
 	}
-	if all[0].role == commitIdentityRoleAuthor {
-		return all[1:]
+	begin, end := strings.LastIndex(value, "<"), strings.LastIndex(value, ">")
+	if begin == -1 || end < begin {
+		return value, ""
 	}
-	return all
+	return strings.TrimSpace(value[:begin]), strings.TrimSpace(value[begin+1 : end])
 }

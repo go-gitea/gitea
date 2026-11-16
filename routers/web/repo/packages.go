@@ -37,19 +37,19 @@ func Packages(ctx *context.Context) {
 		IsInternal: optional.Some(false),
 	})
 	if err != nil {
-		ctx.ServerError("SearchLatestVersions", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	pds, err := packages.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		ctx.ServerError("GetPackageDescriptors", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	hasPackages, err := packages.HasRepositoryPackages(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("HasRepositoryPackages", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -64,8 +64,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = map[int64]bool{ctx.Repo.Repository.ID: true} // There is only the current repository
 
-	pager := context.NewPagination(total, setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.PackagesPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)

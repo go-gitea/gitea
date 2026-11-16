@@ -8,12 +8,14 @@ import (
 	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 )
@@ -66,8 +68,8 @@ func ListGPGKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listGPGKeys(ctx, ctx.ContextUser.ID, utils.GetListOptions(ctx))
 }
@@ -91,6 +93,8 @@ func ListMyGPGKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listGPGKeys(ctx, ctx.Doer.ID, utils.GetListOptions(ctx))
 }
@@ -112,8 +116,8 @@ func GetGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKey"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -149,6 +153,10 @@ func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid 
 		HandleAddGPGKeyError(ctx, err, token)
 		return
 	}
+	owner := audit.ScopeFromUserID(ctx, uid)
+	for _, key := range keys {
+		audit.Record(ctx, audit_model.UserKeyGPGAdd, owner, "gpg_key_id", key.KeyID)
+	}
 	ctx.JSON(http.StatusCreated, convert.ToGPGKey(keys[0]))
 }
 
@@ -163,8 +171,8 @@ func GetVerificationToken(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/string"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	token := asymkey_model.VerificationToken(ctx.Doer, 1)
 	ctx.PlainText(http.StatusOK, token)
@@ -182,12 +190,10 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/GPGKey"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*api.VerifyGPGKeyOption)
+	form := web.GetForm[*api.VerifyGPGKeyOption](ctx)
 	token := asymkey_model.VerificationToken(ctx.Doer, 1)
 	lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
@@ -243,12 +249,10 @@ func CreateGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/GPGKey"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*api.CreateGPGKeyOption)
+	form := web.GetForm[*api.CreateGPGKeyOption](ctx)
 	CreateUserGPGKey(ctx, *form, ctx.Doer.ID)
 }
 
@@ -269,19 +273,25 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
 		ctx.APIErrorNotFound("gpg keys setting is not allowed to be changed")
 		return
 	}
 
+	key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.PathParamInt64("id"))
+	if err != nil && !asymkey_model.IsErrGPGKeyNotExist(err) {
+		ctx.APIErrorInternal(err)
+		return
+	}
 	if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.PathParamInt64("id")); err != nil {
 		ctx.APIErrorInternal(err)
 		return
+	}
+	if key != nil {
+		audit.Record(ctx, audit_model.UserKeyGPGRemove, ctx.Doer, "gpg_key_id", key.KeyID)
 	}
 
 	ctx.Status(http.StatusNoContent)

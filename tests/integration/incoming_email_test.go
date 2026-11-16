@@ -23,6 +23,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIncomingEmail(t *testing.T) {
@@ -48,13 +49,15 @@ func TestIncomingEmail(t *testing.T) {
 
 			ref, err := incoming_payload.GetReferenceFromPayload(t.Context(), issuePayload)
 			assert.NoError(t, err)
-			assert.IsType(t, ref, new(issues_model.Issue))
-			assert.Equal(t, issue.ID, ref.(*issues_model.Issue).ID)
+			refIssue, ok := ref.(*issues_model.Issue)
+			require.True(t, ok)
+			assert.Equal(t, issue.ID, refIssue.ID)
 
 			ref, err = incoming_payload.GetReferenceFromPayload(t.Context(), commentPayload)
 			assert.NoError(t, err)
-			assert.IsType(t, ref, new(issues_model.Comment))
-			assert.Equal(t, comment.ID, ref.(*issues_model.Comment).ID)
+			refComment, ok := ref.(*issues_model.Comment)
+			require.True(t, ok)
+			assert.Equal(t, comment.ID, refComment.ID)
 		})
 
 		t.Run("Token", func(t *testing.T) {
@@ -66,22 +69,35 @@ func TestIncomingEmail(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotEmpty(t, token)
 
-			ht, u, p, err := token_service.DecodeToken(t.Context(), token)
-			assert.NoError(t, err)
-			assert.Equal(t, token_service.ReplyHandlerType, ht)
-			assert.Equal(t, user.ID, u.ID)
-			assert.Equal(t, payload, p)
-
 			// MTAs may lowercase the local-part of the reply-to address (RFC 5321 §2.4).
-			ht, u, p, err = token_service.DecodeToken(t.Context(), strings.ToLower(token))
-			assert.NoError(t, err)
-			assert.Equal(t, token_service.ReplyHandlerType, ht)
-			assert.Equal(t, user.ID, u.ID)
-			assert.Equal(t, payload, p)
+			for _, token := range []string{token, strings.ToLower(token)} {
+				ht, u, p, err := token_service.DecodeToken(t.Context(), token)
+				assert.NoError(t, err)
+				assert.Equal(t, token_service.ReplyHandlerType, ht)
+				assert.Equal(t, user.ID, u.ID)
+				assert.Equal(t, payload, p)
+			}
 		})
 
 		t.Run("Handler", func(t *testing.T) {
 			t.Run("Reply", func(t *testing.T) {
+				assertReplyComment := func(t *testing.T, issueID int64, commentType issues_model.CommentType, content *incoming.MailContent) {
+					comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
+						IssueID: issueID,
+						Type:    commentType,
+					})
+					assert.NoError(t, err)
+					assert.NotEmpty(t, comments)
+					comment := comments[len(comments)-1]
+					assert.Equal(t, user.ID, comment.PosterID)
+					assert.Equal(t, content.Content, comment.Content)
+					assert.NoError(t, comment.LoadAttachments(t.Context()))
+					assert.Len(t, comment.Attachments, 1)
+					attachment := comment.Attachments[0]
+					assert.Equal(t, content.Attachments[0].Name, attachment.Name)
+					assert.EqualValues(t, 4, attachment.Size)
+				}
+
 				t.Run("Comment", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
 
@@ -105,20 +121,7 @@ func TestIncomingEmail(t *testing.T) {
 
 					assert.NoError(t, handler.Handle(t.Context(), content, user, payload))
 
-					comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
-						IssueID: issue.ID,
-						Type:    issues_model.CommentTypeComment,
-					})
-					assert.NoError(t, err)
-					assert.NotEmpty(t, comments)
-					comment := comments[len(comments)-1]
-					assert.Equal(t, user.ID, comment.PosterID)
-					assert.Equal(t, content.Content, comment.Content)
-					assert.NoError(t, comment.LoadAttachments(t.Context()))
-					assert.Len(t, comment.Attachments, 1)
-					attachment := comment.Attachments[0]
-					assert.Equal(t, content.Attachments[0].Name, attachment.Name)
-					assert.EqualValues(t, 4, attachment.Size)
+					assertReplyComment(t, issue.ID, issues_model.CommentTypeComment, content)
 				})
 
 				t.Run("CodeComment", func(t *testing.T) {
@@ -143,20 +146,7 @@ func TestIncomingEmail(t *testing.T) {
 
 					assert.NoError(t, handler.Handle(t.Context(), content, user, payload))
 
-					comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
-						IssueID: issue.ID,
-						Type:    issues_model.CommentTypeCode,
-					})
-					assert.NoError(t, err)
-					assert.NotEmpty(t, comments)
-					comment = comments[len(comments)-1]
-					assert.Equal(t, user.ID, comment.PosterID)
-					assert.Equal(t, content.Content, comment.Content)
-					assert.NoError(t, comment.LoadAttachments(t.Context()))
-					assert.Len(t, comment.Attachments, 1)
-					attachment := comment.Attachments[0]
-					assert.Equal(t, content.Attachments[0].Name, attachment.Name)
-					assert.EqualValues(t, 4, attachment.Size)
+					assertReplyComment(t, issue.ID, issues_model.CommentTypeCode, content)
 				})
 			})
 

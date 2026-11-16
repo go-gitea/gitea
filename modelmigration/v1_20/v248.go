@@ -11,7 +11,7 @@ import (
 
 func AddVersionToActionRunner(_ context.Context, x base.EngineMigration) error {
 	type ActionRunner struct {
-		Version string `xorm:"VARCHAR(64)"` // the version of act_runner
+		Version string `xorm:"VARCHAR(64)"` // the version of the runner
 	}
 
 	return x.Sync(new(ActionRunner))

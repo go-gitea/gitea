@@ -184,7 +184,7 @@ func asLogStringer(v any) LogStringer {
 		// in case the receiver is a pointer, but the value is a struct
 		vp := reflect.New(a.Type())
 		vp.Elem().Set(a)
-		if s, ok := vp.Interface().(LogStringer); ok {
+		if s, ok := reflect.TypeAssert[LogStringer](vp); ok {
 			return s
 		}
 	}

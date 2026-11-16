@@ -77,8 +77,14 @@ func testLoadOrgListTeams(t *testing.T) {
 }
 
 func testDoerViewOtherVisibility(t *testing.T) {
+	viewer := &user_model.User{ID: 1}
+	other := &user_model.User{ID: 2}
+	restrictedViewer := &user_model.User{ID: 3, IsRestricted: true}
+
 	assert.Equal(t, structs.VisibleTypePublic, organization.DoerViewOtherVisibility(nil, nil))
-	assert.Equal(t, structs.VisibleTypeLimited, organization.DoerViewOtherVisibility(&user_model.User{ID: 1}, &user_model.User{ID: 2}))
-	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(&user_model.User{ID: 1}, &user_model.User{ID: 1}))
-	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(&user_model.User{ID: 1, IsAdmin: true}, &user_model.User{ID: 2}))
+	assert.Equal(t, structs.VisibleTypeLimited, organization.DoerViewOtherVisibility(viewer, other))
+	assert.Equal(t, structs.VisibleTypePublic, organization.DoerViewOtherVisibility(restrictedViewer, other))
+	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(viewer, viewer))
+	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(restrictedViewer, restrictedViewer))
+	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(&user_model.User{ID: 4, IsAdmin: true, IsRestricted: true}, other))
 }

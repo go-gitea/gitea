@@ -4,6 +4,9 @@
 package actions
 
 import (
+	"fmt"
+	"slices"
+	"strings"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -11,6 +14,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,12 +30,12 @@ func TestParseMaxParallel(t *testing.T) {
 		{"3", 3},
 		{"0", 0},
 		{"-1", 0},
-		{"1.5", 1},           // GitHub casts the YAML number to int
-		{"-1.5", 0},          // truncates to -1, which means unlimited
-		{"1e3", 256},         // clamped to MaxJobNumPerRun
-		{"nan", 0},           // must not reach the int cast
-		{"${{ vars.n }}", 0}, // expressions are not evaluated yet, logged as such
-		{"abc", 0},           // a plain workflow error, warned about rather than hidden
+		{"1.5", 1},   // GitHub casts the YAML number to int
+		{"-1.5", 0},  // truncates to -1, which means unlimited
+		{"1e3", 256}, // clamped to MaxJobNumPerRun
+		{"nan", 0},   // must not reach the int cast
+		{"${{ vars.n }}", 0},
+		{"abc", 0}, // a plain workflow error, warned about rather than hidden
 	}
 	for _, tt := range tests {
 		assert.Equal(t, tt.want, parseMaxParallel("job", tt.input), "input %q", tt.input)
@@ -44,16 +49,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 2
+      max-parallel: ${{ fromJSON('2') }}
       matrix:
         version: [1, 2, 3, 4, 5]
     steps:
       - run: echo hi
 `
 
-func insertMaxParallelRun(t *testing.T, workflow string, needApproval bool) *actions_model.ActionRun {
-	t.Helper()
-	run := &actions_model.ActionRun{
+func newMaxParallelRun(needApproval bool) *actions_model.ActionRun {
+	return &actions_model.ActionRun{
 		Title:             "max-parallel",
 		RepoID:            4,
 		OwnerID:           1,
@@ -68,6 +72,11 @@ func insertMaxParallelRun(t *testing.T, workflow string, needApproval bool) *act
 		WorkflowRepoID:    4,
 		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
 	}
+}
+
+func insertMaxParallelRun(t *testing.T, workflow string, needApproval bool) *actions_model.ActionRun {
+	t.Helper()
+	run := newMaxParallelRun(needApproval)
 	require.NoError(t, PrepareRunAndInsert(t.Context(), []byte(workflow), run, nil))
 	return run
 }
@@ -100,6 +109,52 @@ func TestPrepareRunAndInsert_MaxParallel(t *testing.T) {
 	for _, job := range jobs {
 		assert.Equal(t, 2, job.MaxParallel, "every matrix sibling carries the limit")
 	}
+}
+
+func TestCheckJobs_ApprovedRunWaitsOnNeedsThenMaxParallel(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
+
+	run := insertMaxParallelRun(t, `name: max-parallel
+on: push
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 2
+      matrix:
+        version: [1, 2, 3]
+    steps:
+      - run: echo hi
+`, true)
+	assert.Equal(t, map[actions_model.Status]int{actions_model.StatusBlocked: 4}, statusCounts(runJobs(t, run.ID, run.LatestAttemptID)))
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	_, err := ApproveRuns(t.Context(), repo, doer, []int64{run.ID})
+	require.NoError(t, err)
+	checkJobs := func() actions_model.ActionJobList {
+		_, err := checkJobsOfCurrentRunAttempt(t.Context(), unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID}))
+		require.NoError(t, err)
+		return runJobs(t, run.ID, run.LatestAttemptID)
+	}
+	jobs := checkJobs()
+	assert.Equal(t, map[actions_model.Status]int{actions_model.StatusWaiting: 1, actions_model.StatusPending: 3}, statusCounts(jobs))
+
+	setup := jobs[slices.IndexFunc(jobs, func(job *actions_model.ActionRunJob) bool { return job.JobID == "setup" })]
+	setup.Status = actions_model.StatusSuccess
+	_, err = actions_model.UpdateRunJob(t.Context(), setup, nil, "status")
+	require.NoError(t, err)
+	assert.Equal(t, map[actions_model.Status]int{
+		actions_model.StatusSuccess: 1,
+		actions_model.StatusWaiting: 2,
+		actions_model.StatusBlocked: 1,
+	}, statusCounts(checkJobs()))
 }
 
 // A reusable workflow declares its own strategy, so the limit must reach the child jobs.
@@ -149,6 +204,7 @@ jobs:
 // An approval-gated run inserts every job as Blocked, so the cap has to be applied on approval.
 func TestApproveRuns_MaxParallel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
 
 	run := insertMaxParallelRun(t, maxParallelWorkflow, true)
 	assert.Equal(t, map[actions_model.Status]int{actions_model.StatusBlocked: 5}, statusCounts(runJobs(t, run.ID, run.LatestAttemptID)))
@@ -177,6 +233,7 @@ func TestPrepareRunAndInsert_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
 
 	holder = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: holder.ID})
 	assert.Equal(t, actions_model.StatusRunning, holder.Status, "the starved job must not cancel the group holder")
+	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, Status: actions_model.StatusBlocked}).ConcurrencyGroup)
 }
 
 func Test_jobStatusResolver_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
@@ -199,6 +256,7 @@ func Test_jobStatusResolver_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
 
 func TestApproveRuns_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
 
 	holder := insertConcurrencyHolder(t, 9704, "cluster-b")
 	run := insertMaxParallelRun(t, maxParallelConcurrencyWorkflow, true)
@@ -252,4 +310,20 @@ func insertConcurrencyHolder(t *testing.T, index int64, group string) *actions_m
 	}
 	require.NoError(t, db.Insert(ctx, holder))
 	return holder
+}
+
+func TestPrepareRunAndInsert_MaxJobNumPerRun(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	workflow := func(jobCount int) []byte {
+		var sb strings.Builder
+		sb.WriteString("on: push\njobs:\n")
+		for i := range jobCount {
+			fmt.Fprintf(&sb, "  job%d:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n", i)
+		}
+		return []byte(sb.String())
+	}
+	require.NoError(t, PrepareRunAndInsert(t.Context(), workflow(actions_model.MaxJobNumPerRun), newMaxParallelRun(false), nil))
+	err := PrepareRunAndInsert(t.Context(), workflow(actions_model.MaxJobNumPerRun+1), newMaxParallelRun(false), nil)
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	assert.ErrorContains(t, err, "exceeds the maximum")
 }

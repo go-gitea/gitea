@@ -47,11 +47,11 @@ func ManagedRemoteRemove(ctx context.Context, repo RepositoryFacade, remoteName 
 
 func ParseRemoteAddressURL(ctx context.Context, repo RepositoryFacade, remoteName string) (*giturl.GitURL, error) {
 	addr, err := GetRemoteAddress(ctx, repo, remoteName)
+	if (addr == "" && err == nil) || IsRemoteNotExistError(err) {
+		return nil, util.NewNotExistErrorf("remote '%s' does not exist", remoteName)
+	}
 	if err != nil {
 		return nil, err
-	}
-	if addr == "" {
-		return nil, util.NewNotExistErrorf("remote '%s' does not exist", remoteName)
 	}
 	return giturl.ParseGitURL(addr)
 }

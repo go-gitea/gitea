@@ -1,6 +1,7 @@
 import {generateElemId} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {isDarkTheme} from '../utils.ts';
+import {resolveCssColor} from '../utils/color.ts';
 
 function safeRenderIframeLink(link: any): string | null {
   try {
@@ -36,13 +37,13 @@ function getRealBackgroundColor(el: HTMLElement) {
     const bgColor = style.backgroundColor;
     // 'rgba(0, 0, 0, 0)' is how most browsers represent transparent
     if (bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
-      return bgColor;
+      return resolveCssColor(bgColor);
     }
   }
   return '';
 }
 
-export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
+export function initExternalRenderIframe(iframe: HTMLIFrameElement) {
   const iframeSrcUrl = iframe.getAttribute('data-src')!;
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
 
@@ -53,6 +54,10 @@ export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
     if (cmd === 'resize') {
       iframe.style.height = `${e.data.iframeHeight}px`;
     } else if (cmd === 'open-link') {
+      if (!navigator.userActivation.isActive) {
+        console.error(`iframe attempted to open link without user activation: ${e.data.openLink}`);
+        return;
+      }
       navigateToIframeLink(e.data.openLink, e.data.anchorTarget);
     } else {
       throw new Error(`Unknown gitea iframe cmd: ${cmd}`);

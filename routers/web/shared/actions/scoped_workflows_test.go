@@ -13,7 +13,7 @@ import (
 )
 
 func TestDeriveScopedStatusContexts(t *testing.T) {
-	t.Run("jobs x events; job name is its name: or its id", func(t *testing.T) {
+	t.Run("jobs x events; job name is its unescaped name: or its id", func(t *testing.T) {
 		content := []byte(`name: CI
 on: [push, pull_request]
 jobs:
@@ -26,6 +26,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo
+  test:
+    name: "${{ matrix.os }} ${{ '${{' }}"
+    strategy:
+      matrix:
+        os: [linux]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
 `)
 		events, err := actions_module.GetEventsFromContent(content)
 		require.NoError(t, err)
@@ -35,10 +43,12 @@ jobs:
 			"org/src: CI / lint (pull_request)",
 			"org/src: CI / Build It (push)",
 			"org/src: CI / Build It (pull_request)",
+			"org/src: CI / linux ${{ (push)",
+			"org/src: CI / linux ${{ (pull_request)",
 		}, got)
 	})
 
-	t.Run("only status-producing events; workflow_dispatch/schedule/workflow_call skipped", func(t *testing.T) {
+	t.Run("only pull request check events; workflow_dispatch/schedule/workflow_call skipped", func(t *testing.T) {
 		content := []byte(`name: CI
 on:
   push:
@@ -55,21 +65,6 @@ jobs:
 		events, err := actions_module.GetEventsFromContent(content)
 		require.NoError(t, err)
 		got := deriveScopedStatusContexts("org/src", "CI", content, events)
-		assert.Equal(t, []string{"org/src: CI / j (push)"}, got) // only push posts a commit status
-	})
-
-	t.Run("a workflow_dispatch-only workflow has no expected contexts", func(t *testing.T) {
-		content := []byte(`name: Deploy
-on: workflow_dispatch
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo
-`)
-		events, err := actions_module.GetEventsFromContent(content)
-		require.NoError(t, err)
-		got := deriveScopedStatusContexts("org/src", "Deploy", content, events)
-		assert.Empty(t, got) // workflow_dispatch posts no commit status -> nothing to preview (and it cannot be a required check)
+		assert.Equal(t, []string{"org/src: CI / j (push)"}, got)
 	})
 }

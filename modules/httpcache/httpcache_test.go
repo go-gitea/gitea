@@ -16,47 +16,67 @@ import (
 
 func TestHandleGenericETagCache(t *testing.T) {
 	matchedEtag := `"matched-etag"`
+	weakEtag := `W/"matched-etag"`
 	lastModifiedTime := new(time.Date(2021, time.January, 2, 15, 4, 5, 0, time.FixedZone("test-zone", 8*3600)))
 	lastModified := lastModifiedTime.UTC().Format(http.TimeFormat)
 	cacheControl := "max-age=0, private, must-revalidate"
 	type testCase struct {
 		name        string
+		respEtag    string
 		reqHeaders  map[string]string
 		wantHandled bool
-		wantHeaders map[string]string
-		wantStatus  int
 	}
 	cases := []testCase{
 		{
 			name:        "No If-None-Match",
 			wantHandled: false,
-			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": cacheControl, "Etag": matchedEtag},
 		},
 		{
 			name:        "Mismatched If-None-Match",
 			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag"`},
 			wantHandled: false,
-			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": cacheControl, "Etag": matchedEtag},
 		},
 		{
 			name:        "Matched If-None-Match",
 			reqHeaders:  map[string]string{"If-None-Match": matchedEtag},
 			wantHandled: true,
-			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": "", "Etag": matchedEtag},
-			wantStatus:  http.StatusNotModified,
 		},
 		{
 			name:        "Multiple Mismatched If-None-Match",
 			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag1", "mismatched-etag2"`},
 			wantHandled: false,
-			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": cacheControl, "Etag": matchedEtag},
+		},
+		{
+			name:        "Wildcard If-None-Match matches any current representation",
+			reqHeaders:  map[string]string{"If-None-Match": "*"},
+			wantHandled: true,
+		},
+		{
+			name:        "Weak response tag matched by a strong request tag",
+			respEtag:    weakEtag,
+			reqHeaders:  map[string]string{"If-None-Match": matchedEtag},
+			wantHandled: true,
+		},
+		{
+			name:        "Weak response tag matched by a weak request tag",
+			respEtag:    weakEtag,
+			reqHeaders:  map[string]string{"If-None-Match": weakEtag},
+			wantHandled: true,
+		},
+		{
+			name:        "If-Modified-Since without If-None-Match",
+			reqHeaders:  map[string]string{"If-Modified-Since": lastModified},
+			wantHandled: true,
+		},
+		{
+			name:        "Mismatched If-None-Match takes precedence over If-Modified-Since",
+			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag"`, "If-Modified-Since": lastModified},
+			wantHandled: false,
 		},
 		{
 			name:        "Multiple Matched If-None-Match",
 			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag", ` + matchedEtag},
 			wantHandled: true,
-			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": "", "Etag": matchedEtag},
-			wantStatus:  http.StatusNotModified,
 		},
 	}
 
@@ -67,12 +87,16 @@ func TestHandleGenericETagCache(t *testing.T) {
 				req.Header.Set(k, v)
 			}
 			w := httptest.NewRecorder()
-			assert.Equal(t, tc.wantHandled, HandleGenericETagPrivateCache(req, w, matchedEtag, lastModifiedTime))
+			assert.Equal(t, tc.wantHandled, HandleGenericETagPrivateCache(req, w, util.IfZero(tc.respEtag, matchedEtag), lastModifiedTime))
 			resp := w.Result()
-			for k, v := range tc.wantHeaders {
+			for k, v := range map[string]string{
+				"Last-Modified": lastModified,
+				"Cache-Control": util.Iif(tc.wantHandled, "", cacheControl),
+				"Etag":          util.IfZero(tc.respEtag, matchedEtag),
+			} {
 				assert.Equal(t, v, resp.Header.Get(k))
 			}
-			assert.Equal(t, tc.wantStatus, util.Iif(resp.StatusCode == http.StatusOK, 0, resp.StatusCode))
+			assert.Equal(t, util.Iif(tc.wantHandled, http.StatusNotModified, 0), util.Iif(resp.StatusCode == http.StatusOK, 0, resp.StatusCode))
 		})
 	}
 }

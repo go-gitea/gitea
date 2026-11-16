@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -118,7 +119,7 @@ func (l *LocalStorage) Stat(path string) (os.FileInfo, error) {
 
 func (l *LocalStorage) deleteEmptyParentDirs(localFullPath string) {
 	for parent := filepath.Dir(localFullPath); len(parent) > len(l.dir); parent = filepath.Dir(parent) {
-		if err := util.RemoveWithRetry(parent); err != nil && !os.IsNotExist(err) {
+		if err := os.Remove(parent); err != nil && !os.IsNotExist(err) {
 			// since the target file has been deleted, parent dir error is not related to the file deletion itself.
 			break
 		}
@@ -138,7 +139,7 @@ func (l *LocalStorage) ServeDirectURL(path, name, _ string, reqParams *ServeDire
 }
 
 func (l *LocalStorage) normalizeWalkError(err error) error {
-	if errors.Is(err, os.ErrNotExist) {
+	if errors.Is(err, fs.ErrNotExist) {
 		// ignore it because the file may be deleted during the walk, and we don't care about it
 		return nil
 	}

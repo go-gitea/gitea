@@ -6,7 +6,6 @@ package repo
 
 import (
 	gocontext "context"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -128,9 +127,9 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		verification := asymkey_service.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
+			return repo_model.HasAccessToRepoCodeUnit(ctx, ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
-			ctx.ServerError("CalculateTrustStatus", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 
@@ -143,9 +142,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
-		if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
-			git_model.CommitStatusesHideActionsURL(ctx, statuses)
-		}
+		git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
 		ctx.Data["LatestCommitStatuses"] = statuses
@@ -154,27 +151,16 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	return true
 }
 
-func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, renderer markup.Renderer, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
-	markupRd, markupWr := io.Pipe()
-	defer markupWr.Close()
-
-	done := make(chan struct{})
-	go func() {
-		sb := &strings.Builder{}
-		if markup.RendererNeedPostProcess(renderer) {
-			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.EscapeOptionsForView())
-		} else {
-			escaped = &charset.EscapeStatus{}
-			_, _ = io.Copy(sb, markupRd)
-		}
-		output = template.HTML(sb.String())
-		close(done)
-	}()
-
-	err = markup.RenderWithRenderer(renderCtx, renderer, input, markupWr)
-	_ = markupWr.CloseWithError(err)
-	<-done
-	return escaped, output, err
+func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, renderer markup.Renderer, input io.Reader) (*charset.EscapeStatus, template.HTML, error) {
+	sb := &strings.Builder{}
+	if err := markup.RenderWithRenderer(renderCtx, renderer, input, sb); err != nil {
+		return nil, "", err
+	}
+	if !markup.RendererNeedPostProcess(renderer) {
+		return &charset.EscapeStatus{}, template.HTML(sb.String()), nil
+	}
+	escaped, output := charset.EscapeControlHTML(template.HTML(sb.String()), ctx.Locale, charset.EscapeOptionsForView())
+	return escaped, output, nil
 }
 
 func checkHomeCodeViewable(ctx *context.Context) {
@@ -188,12 +174,12 @@ func checkHomeCodeViewable(ctx *context.Context) {
 					ctx.HTML(http.StatusOK, tplMigrating)
 					return
 				}
-				ctx.ServerError("models.GetMigratingTask", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 			cfg, err := task.MigrateConfig()
 			if err != nil {
-				ctx.ServerError("task.MigrateConfig", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 
@@ -207,7 +193,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		if ctx.IsSigned {
 			// Set repo notification-status read if unread
 			if err := activities_model.SetRepoReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
-				ctx.ServerError("ReadBy", err)
+				ctx.ServerErrorAuto(err)
 				return
 			}
 		}
@@ -231,7 +217,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound(errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
+	ctx.NotFound()
 }
 
 // LastCommit returns lastCommit data for the provided branch/tag/commit and directory (in url) and filenames in body
@@ -271,7 +257,7 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) (*git.TreeEntry, git.Entries) {
 	tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
-		HandleGitError(ctx, "Repo.Commit.SubTree", err)
+		HandleGitError(ctx, err)
 		return nil, nil
 	}
 
@@ -282,25 +268,25 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) (*git.Tre
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
-		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
+		HandleGitError(ctx, err)
 		return nil, nil
 	}
 
 	if !entry.IsDir() {
-		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
+		HandleGitError(ctx, err)
 		return nil, nil
 	}
 
 	subEntries, err := tree.ListEntries(ctx, ctx.Repo.GitRepo)
 	if err != nil {
-		ctx.ServerError("ListEntries", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 	subEntries.CustomSort(base.NaturalSortCompare)
 
 	files, latestCommit, err := subEntries.GetCommitsInfo(ctx, timeout, ctx.Repo.RepoLink, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
-		ctx.ServerError("GetCommitsInfo", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 
@@ -344,15 +330,15 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 	if page <= 0 {
 		page = 1
 	}
-	pager := context.NewPagination(int64(total), setting.ItemsPerPage, page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(int64(total)).PerPageLimit(setting.ItemsPerPage).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	items, err := getter(db.ListOptions{
-		Page:     pager.Paginater.Current(),
+		Page:     pager.Paginator.Current(),
 		PageSize: setting.ItemsPerPage,
 	})
 	if err != nil {
-		ctx.ServerError("getter", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Cards"] = items
@@ -393,16 +379,16 @@ func Forks(ctx *context.Context) {
 		PageSize: pageSize,
 	})
 	if err != nil {
-		ctx.ServerError("FindForks", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err := repo_model.RepositoryList(forks).LoadOwners(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	pager := context.NewPagination(total, pageSize, page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(pageSize).CurPage(page).Build()
 	ctx.Data["ShowRepoOwnerAvatar"] = true
 	ctx.Data["ShowRepoOwnerOnList"] = true
 	ctx.Data["Page"] = pager

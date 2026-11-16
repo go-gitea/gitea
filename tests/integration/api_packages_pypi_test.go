@@ -20,6 +20,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackagePyPI(t *testing.T) {
@@ -73,65 +74,55 @@ func TestPackagePyPI(t *testing.T) {
 		uploadHelper(t, body, writer.FormDataContentType(), expectedStatus)
 	}
 
-	t.Run("Upload", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	for _, upload := range []struct {
+		name      string
+		filename  string
+		fileCount int
+	}{
+		{"Upload", "test.whl", 1},
+		{"UploadAddFile", "test.tar.gz", 2},
+	} {
+		t.Run(upload.name, func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		filename := "test.whl"
-		uploadFile(t, filename, content, http.StatusCreated)
+			uploadFile(t, upload.filename, content, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypePyPI)
-		assert.NoError(t, err)
-		assert.Len(t, pvs, 1)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypePyPI)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
-		assert.NoError(t, err)
-		assert.Nil(t, pd.SemVer)
-		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
-		assert.Equal(t, projectURL, pd.Metadata.(*pypi.Metadata).ProjectURL)
-		assert.Equal(t, packageName, pd.Package.Name)
-		assert.Equal(t, packageVersion, pd.Version.Version)
+			pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
+			assert.NoError(t, err)
+			assert.Nil(t, pd.SemVer)
+			if upload.fileCount == 1 {
+				metadata, ok := pd.Metadata.(*pypi.Metadata)
+				require.True(t, ok)
+				assert.Equal(t, projectURL, metadata.ProjectURL)
+			} else {
+				assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
+			}
+			assert.Equal(t, packageName, pd.Package.Name)
+			assert.Equal(t, packageVersion, pd.Version.Version)
 
-		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
-		assert.NoError(t, err)
-		assert.Len(t, pfs, 1)
-		assert.Equal(t, filename, pfs[0].Name)
-		assert.True(t, pfs[0].IsLead)
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
+			assert.NoError(t, err)
+			assert.Len(t, pfs, upload.fileCount)
 
-		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
-		assert.NoError(t, err)
-		assert.Equal(t, int64(4), pb.Size)
-	})
+			var pf *packages.PackageFile
+			if upload.fileCount == 1 {
+				pf = pfs[0]
+			} else {
+				pf, err = packages.GetFileForVersionByName(t.Context(), pvs[0].ID, upload.filename, packages.EmptyFileKey)
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, upload.filename, pf.Name)
+			assert.True(t, pf.IsLead)
 
-	t.Run("UploadAddFile", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		filename := "test.tar.gz"
-		uploadFile(t, filename, content, http.StatusCreated)
-
-		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypePyPI)
-		assert.NoError(t, err)
-		assert.Len(t, pvs, 1)
-
-		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
-		assert.NoError(t, err)
-		assert.Nil(t, pd.SemVer)
-		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
-		assert.Equal(t, packageName, pd.Package.Name)
-		assert.Equal(t, packageVersion, pd.Version.Version)
-
-		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
-		assert.NoError(t, err)
-		assert.Len(t, pfs, 2)
-
-		pf, err := packages.GetFileForVersionByName(t.Context(), pvs[0].ID, filename, packages.EmptyFileKey)
-		assert.NoError(t, err)
-		assert.Equal(t, filename, pf.Name)
-		assert.True(t, pf.IsLead)
-
-		pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
-		assert.NoError(t, err)
-		assert.Equal(t, int64(4), pb.Size)
-	})
+			pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
+			assert.NoError(t, err)
+			assert.Equal(t, int64(4), pb.Size)
+		})
+	}
 
 	t.Run("UploadHashMismatch", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -165,8 +156,9 @@ func TestPackagePyPI(t *testing.T) {
 
 		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
-		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
-		assert.Equal(t, projectURL, pd.Metadata.(*pypi.Metadata).ProjectURL)
+		metadata, ok := pd.Metadata.(*pypi.Metadata)
+		require.True(t, ok)
+		assert.Equal(t, projectURL, metadata.ProjectURL)
 	})
 
 	t.Run("UploadWithoutAnyHomepageURLMetadata", func(t *testing.T) {
@@ -185,8 +177,9 @@ func TestPackagePyPI(t *testing.T) {
 
 		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
-		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
-		assert.Empty(t, pd.Metadata.(*pypi.Metadata).ProjectURL)
+		metadata, ok := pd.Metadata.(*pypi.Metadata)
+		require.True(t, ok)
+		assert.Empty(t, metadata.ProjectURL)
 	})
 
 	t.Run("Download", func(t *testing.T) {

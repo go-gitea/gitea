@@ -4,7 +4,7 @@
 package markdown
 
 import (
-	"fmt"
+	"strconv"
 
 	"gitea.dev/modules/markup"
 
@@ -14,71 +14,37 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*TaskCheckBoxListItem)
-	if entering {
-		if n.Attributes() != nil {
-			_, _ = w.WriteString("<li")
-			html.RenderAttributes(w, n, html.ListItemAttributeFilter)
-			_ = w.WriteByte('>')
-		} else {
-			_, _ = w.WriteString("<li>")
-		}
-		fmt.Fprintf(w, `<input type="checkbox" disabled="" data-source-position="%d"`, n.SourcePosition)
-		if n.IsChecked {
-			_, _ = w.WriteString(` checked=""`)
-		}
-		if r.XHTML {
-			_, _ = w.WriteString(` />`)
-		} else {
-			_ = w.WriteByte('>')
-		}
-		fc := n.FirstChild()
-		if fc != nil {
-			if _, ok := fc.(*ast.TextBlock); !ok {
-				_ = w.WriteByte('\n')
-			}
-		}
+func (r *HTMLRenderer) renderTaskCheckBox(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	checkBox, ok := node.(*east.TaskCheckBox)
+	if !entering || !ok {
+		return ast.WalkContinue, nil
+	}
+	_, _ = w.WriteString(`<input type="checkbox" disabled=""`)
+	html.RenderAttributes(w, checkBox, nil)
+	if checkBox.IsChecked {
+		_, _ = w.WriteString(` checked=""`)
+	}
+	if r.XHTML {
+		_, _ = w.WriteString(` />`)
 	} else {
-		_, _ = w.WriteString("</li>\n")
+		_ = w.WriteByte('>')
 	}
 	return ast.WalkContinue, nil
 }
 
-func (r *HTMLRenderer) renderTaskCheckBox(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	return ast.WalkContinue, nil
-}
-
 func (g *ASTTransformer) transformList(_ *markup.RenderContext, v *ast.List, rc *RenderConfig) {
-	if v.HasChildren() {
-		children := make([]ast.Node, 0, v.ChildCount())
-		child := v.FirstChild()
-		for child != nil {
-			children = append(children, child)
-			child = child.NextSibling()
+	for listItem := v.FirstChild(); listItem != nil; listItem = listItem.NextSibling() {
+		block := listItem.FirstChild()
+		if block == nil {
+			continue
 		}
-		v.RemoveChildren(v)
-
-		for _, child := range children {
-			listItem := child.(*ast.ListItem)
-			if !child.HasChildren() || !child.FirstChild().HasChildren() {
-				v.AppendChild(v, child)
-				continue
-			}
-			taskCheckBox, ok := child.FirstChild().FirstChild().(*east.TaskCheckBox)
-			if !ok {
-				v.AppendChild(v, child)
-				continue
-			}
-			newChild := NewTaskCheckBoxListItem(listItem)
-			newChild.IsChecked = taskCheckBox.IsChecked
-			newChild.SetAttributeString(g.renderInternal.SafeAttr("class"), []byte(g.renderInternal.SafeValue("task-list-item")))
-			segments := newChild.FirstChild().Lines()
-			if segments.Len() > 0 {
-				segment := segments.At(0)
-				newChild.SourcePosition = rc.metaLength + segment.Start
-			}
-			v.AppendChild(v, newChild)
+		checkBox, ok := block.FirstChild().(*east.TaskCheckBox)
+		if !ok {
+			continue
+		}
+		listItem.SetAttributeString(g.renderInternal.SafeAttr("class"), []byte(g.renderInternal.SafeValue("task-list-item")))
+		if lines := block.Lines(); lines.Len() > 0 {
+			checkBox.SetAttributeString("data-source-position", []byte(strconv.Itoa(rc.metaLength+lines.At(0).Start)))
 		}
 	}
 

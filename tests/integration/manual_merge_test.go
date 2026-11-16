@@ -5,6 +5,7 @@ package integration
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
@@ -59,6 +60,10 @@ func TestManualMergeAutodetect(t *testing.T) {
 			require.NoError(t, err)
 		}
 
+		testAPICreateBranch(t, user2Ctx.Session, user2.Name, repoName, defaultBranch, "empty-pr", http.StatusCreated)
+		emptyAPIPull, err := doAPICreatePullRequest(user1Ctx, user2.Name, repoName, defaultBranch, "empty-pr")(t)
+		require.NoError(t, err)
+
 		// user1 clones, then merges every branch sequentially, then pushes once.
 		// The first merge fast-forwards; the rest produce real merge commits,
 		// which generates multiple commits for "git rev-list --ancestry-path --merges ...".
@@ -80,6 +85,9 @@ func TestManualMergeAutodetect(t *testing.T) {
 			require.NoError(t, cmdErr)
 			expectedMergeCommits[i] = strings.TrimSpace(head)
 		}
+		emptyPR := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: emptyAPIPull.ID})
+		emptyPR.Status = issues_model.PullRequestStatusChecking
+		require.NoError(t, emptyPR.UpdateCols(t.Context(), "status"))
 		doGitPushTestRepository(dstPath, "origin", defaultBranch)(t)
 
 		// Every PR should be detected as manually merged by the background task, not just the last one.
@@ -90,7 +98,7 @@ func TestManualMergeAutodetect(t *testing.T) {
 					return false
 				}
 			}
-			return true
+			return unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: emptyAPIPull.ID}).Status == issues_model.PullRequestStatusAncestor
 		}, 10*time.Second, 100*time.Millisecond)
 
 		for i, apiPull := range apiPulls {
@@ -100,5 +108,9 @@ func TestManualMergeAutodetect(t *testing.T) {
 			assert.Equalf(t, user1.ID, pr.MergerID, "PR %d (%s) merger should be the pusher", i+1, branchNames[i])
 			assert.Equalf(t, expectedMergeCommits[i], pr.MergedCommitID, "PR %d (%s) should be attributed to its own merge commit, not another PR's", i+1, branchNames[i])
 		}
+
+		emptyPR = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: emptyAPIPull.ID})
+		assert.False(t, emptyPR.HasMerged, "empty PR must not be detected as manually merged")
+		assert.Equal(t, issues_model.PullRequestStatusAncestor, emptyPR.Status)
 	})
 }

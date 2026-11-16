@@ -212,12 +212,12 @@ func doAPICreateDeployKey(ctx APITestContext, keyname, keyFile string, readOnly 
 	}
 }
 
-func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBranch string) func(*testing.T) (api.PullRequest, error) {
+func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headOwnerBranch string) func(*testing.T) (api.PullRequest, error) {
 	return func(t *testing.T) (api.PullRequest, error) {
 		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner, repo), &api.CreatePullRequestOption{
-			Head:  headBranch,
+			Head:  headOwnerBranch,
 			Base:  baseBranch,
-			Title: fmt.Sprintf("create a pr from %s to %s", headBranch, baseBranch),
+			Title: fmt.Sprintf("create a pr from %s to %s", headOwnerBranch, baseBranch),
 		}).AddTokenAuth(ctx.Token)
 
 		expected := http.StatusCreated

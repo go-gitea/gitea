@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -20,7 +19,6 @@ import (
 	"gitea.dev/modules/log"
 	packages_module "gitea.dev/modules/packages"
 	container_module "gitea.dev/modules/packages/container"
-	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
 	packages_service "gitea.dev/services/packages"
 	container_service "gitea.dev/services/packages/container"
@@ -379,25 +377,9 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 }
 
 func createManifestBlob(ctx context.Context, contentStore *packages_module.ContentStore, mci *manifestCreationInfo, pv *packages_model.PackageVersion, buf *packages_module.HashedBuffer) (_ *packages_model.PackageBlob, created bool, manifestDigest string, _ error) {
-	pb, exists, err := packages_model.GetOrInsertBlob(ctx, packages_service.NewPackageBlob(buf))
+	pb, exists, err := packages_service.GetOrSavePackageBlob(ctx, contentStore, packages_service.NewPackageBlob(buf), buf)
 	if err != nil {
-		log.Error("Error inserting package blob: %v", err)
 		return nil, false, "", err
-	}
-	// FIXME: Workaround to be removed in v1.20
-	// https://github.com/go-gitea/gitea/issues/19586
-	if exists {
-		err = contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256))
-		if err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
-			log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
-			exists = false
-		}
-	}
-	if !exists {
-		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), buf, buf.Size()); err != nil {
-			log.Error("Error saving package blob in content store: %v", err)
-			return nil, false, "", err
-		}
 	}
 
 	manifestDigest = digestFromHashSummer(buf)

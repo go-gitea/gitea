@@ -5,13 +5,16 @@ package helm
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"io"
 	"strings"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
+	"github.com/ProtonMail/go-crypto/openpgp/clearsign"
 	"github.com/hashicorp/go-version"
 	"go.yaml.in/yaml/v4"
 )
@@ -25,6 +28,8 @@ var (
 	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 	// ErrInvalidChart indicates an invalid chart
 	ErrInvalidChart = util.NewInvalidArgumentErrorf("chart is invalid")
+	// ErrInvalidProvenance indicates an invalid provenance file
+	ErrInvalidProvenance = util.NewInvalidArgumentErrorf("provenance file is invalid")
 )
 
 // Metadata for a Chart file. This models the structure of a Chart.yaml file.
@@ -65,6 +70,8 @@ type Dependency struct {
 	Alias        string   `json:"alias,omitempty" yaml:"alias,omitempty"`
 }
 
+const maxArchiveSize = 256 * 1024 * 1024 // tar members are inflated while looking for Chart.yaml
+
 // ParseChartArchive parses the metadata of a Helm archive
 func ParseChartArchive(r io.Reader) (*Metadata, error) {
 	gzr, err := gzip.NewReader(r)
@@ -73,7 +80,7 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(gzr)
+	tr := tar.NewReader(packages.NewLimitedReader(gzr, maxArchiveSize))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
@@ -102,7 +109,7 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 // ParseChartFile parses a Chart.yaml file to retrieve the metadata of a Helm chart
 func ParseChartFile(r io.Reader) (*Metadata, error) {
 	var metadata *Metadata
-	if err := yaml.NewDecoder(r).Decode(&metadata); err != nil {
+	if err := yaml.NewDecoder(packages.NewLimitedReader(r, packages.MaxMetadataSize)).Decode(&metadata); err != nil {
 		return nil, err
 	}
 
@@ -127,4 +134,21 @@ func ParseChartFile(r io.Reader) (*Metadata, error) {
 	}
 
 	return metadata, nil
+}
+
+// ParseProvenanceFile parses a provenance file to retrieve the metadata of a Helm chart
+func ParseProvenanceFile(r io.Reader) (*Metadata, error) {
+	data, err := io.ReadAll(io.LimitReader(r, 1<<20))
+	if err != nil {
+		return nil, err
+	}
+
+	// A provenance file must be a clearsigned PGP message
+	block, _ := clearsign.Decode(data)
+	if block == nil {
+		return nil, ErrInvalidProvenance
+	}
+
+	// Use the plaintext content from the clearsigned message
+	return ParseChartFile(bytes.NewReader(block.Plaintext))
 }

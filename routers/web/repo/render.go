@@ -24,17 +24,13 @@ func RenderFile(ctx *context.Context) {
 		blob, err = ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	}
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetBlobByPath", err)
-		}
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	blobReader, err := blob.DataAsync(ctx)
 	if err != nil {
-		ctx.ServerError("DataAsync", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	defer blobReader.Close()
@@ -64,6 +60,9 @@ func RenderFile(ctx *context.Context) {
 	extRendererOpts := extRenderer.GetExternalRendererOptions()
 	if extRendererOpts.ContentSandbox != "" {
 		ctx.Resp.Header().Add("Content-Security-Policy", "sandbox "+extRendererOpts.ContentSandbox)
+	} else {
+		// if no sandbox, just apply the same CSP as a general Gitea web page
+		ctx.SetHeaderContentSecurityPolicyGeneral()
 	}
 
 	err = markup.RenderWithRenderer(rctx, renderer, rendererInput, ctx.Resp)

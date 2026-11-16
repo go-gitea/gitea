@@ -16,7 +16,7 @@ import (
 	"strings"
 	"testing"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -189,37 +189,85 @@ func TestActionsJobSummaryUpload(t *testing.T) {
 	})
 }
 
-func TestActionsArtifactUploadSingleFile(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
+func TestActionsArtifactUpload(t *testing.T) {
+	type uploadingFile struct {
+		Path    string
+		Content string
+		MD5     string
+	}
 
-	// acquire artifact upload url
-	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
-		Type: "actions_storage",
-		Name: "artifact",
-	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
-	resp := MakeRequest(t, req, http.StatusOK)
-	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
-	assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
+	for _, test := range []struct {
+		name          string
+		artifactName  string
+		confirmName   string
+		retentionDays int64
+		files         []uploadingFile
+	}{
+		{
+			name:         "single-file",
+			artifactName: "artifact",
+			confirmName:  "artifact-single",
+			files:        []uploadingFile{{"abc-2.txt", strings.Repeat("C", 1024), "XVlf820rMInUi64wmMi6EA=="}},
+		},
+		{
+			name:         "multiple-files",
+			artifactName: "multi-files",
+			confirmName:  "multi-files",
+			files: []uploadingFile{
+				{"abc-3.txt", strings.Repeat("D", 1024), "9nqj7E8HZmfQtPifCJ5Zww=="},
+				{"xyz/def-2.txt", strings.Repeat("E", 1024), "/s1kKvxeHlUX85vaTaVxuA=="},
+			},
+		},
+		{
+			name:          "retention-days",
+			artifactName:  "artifact-retention-days",
+			confirmName:   "artifact-retention-days",
+			retentionDays: 9,
+			files:         []uploadingFile{{"abc.txt", strings.Repeat("A", 1024), "1HsSe8LeLWh93ILaw1TEFQ=="}},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			defer prepareTestEnvActionsArtifacts(t)()
 
-	// get upload url
-	idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-	url := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=artifact/abc-2.txt"
+			// acquire artifact upload url
+			req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
+				Type:          "actions_storage",
+				Name:          test.artifactName,
+				RetentionDays: test.retentionDays,
+			}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+			resp := MakeRequest(t, req, http.StatusOK)
+			uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
+			assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
-	// upload artifact chunk
-	body := strings.Repeat("C", 1024)
-	req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body)).
-		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
-		SetHeader("Content-Range", "bytes 0-1023/1024").
-		SetHeader("x-tfs-filelength", "1024").
-		SetHeader("x-actions-results-md5", "XVlf820rMInUi64wmMi6EA==") // base64(md5(body))
-	MakeRequest(t, req, http.StatusOK)
+			querySeparator := "?"
+			if test.retentionDays != 0 {
+				assert.Contains(t, uploadResp.FileContainerResourceURL, "?retentionDays=9")
+				querySeparator = "&"
+			}
+			for _, file := range test.files {
+				// get upload url
+				idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
+				url := uploadResp.FileContainerResourceURL[idx:] + querySeparator + "itemPath=" + test.artifactName + "/" + file.Path
 
-	t.Logf("Create artifact confirm")
+				// upload artifact chunk
+				req = NewRequestWithBody(t, "PUT", url, strings.NewReader(file.Content)).
+					AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+					SetHeader("Content-Range", "bytes 0-1023/1024").
+					SetHeader("Content-Encoding", "video/mp4,text/html").
+					SetHeader("x-tfs-filelength", "1024").
+					SetHeader("x-actions-results-md5", file.MD5) // base64(md5(body))
+				MakeRequest(t, req, http.StatusOK)
+				assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{RunID: 791, ArtifactName: test.artifactName, ArtifactPath: file.Path}).ContentEncodingOrType)
+			}
 
-	// confirm artifact upload
-	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName=artifact-single").
-		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
-	MakeRequest(t, req, http.StatusOK)
+			t.Logf("Create artifact confirm")
+
+			// confirm artifact upload
+			req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName="+test.confirmName).
+				AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+			MakeRequest(t, req, http.StatusOK)
+		})
+	}
 }
 
 func TestActionsArtifactUploadInvalidHash(t *testing.T) {
@@ -314,61 +362,6 @@ func TestActionsArtifactDownload(t *testing.T) {
 	assert.Equal(t, body, resp.Body.String())
 }
 
-func TestActionsArtifactUploadMultipleFile(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	const testArtifactName = "multi-files"
-
-	// acquire artifact upload url
-	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
-		Type: "actions_storage",
-		Name: testArtifactName,
-	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
-	resp := MakeRequest(t, req, http.StatusOK)
-	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
-	assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
-
-	type uploadingFile struct {
-		Path    string
-		Content string
-		MD5     string
-	}
-
-	files := []uploadingFile{
-		{
-			Path:    "abc-3.txt",
-			Content: strings.Repeat("D", 1024),
-			MD5:     "9nqj7E8HZmfQtPifCJ5Zww==",
-		},
-		{
-			Path:    "xyz/def-2.txt",
-			Content: strings.Repeat("E", 1024),
-			MD5:     "/s1kKvxeHlUX85vaTaVxuA==",
-		},
-	}
-
-	for _, f := range files {
-		// get upload url
-		idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-		url := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=" + testArtifactName + "/" + f.Path
-
-		// upload artifact chunk
-		req = NewRequestWithBody(t, "PUT", url, strings.NewReader(f.Content)).
-			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
-			SetHeader("Content-Range", "bytes 0-1023/1024").
-			SetHeader("x-tfs-filelength", "1024").
-			SetHeader("x-actions-results-md5", f.MD5) // base64(md5(body))
-		MakeRequest(t, req, http.StatusOK)
-	}
-
-	t.Logf("Create artifact confirm")
-
-	// confirm artifact upload
-	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName="+testArtifactName).
-		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
-	MakeRequest(t, req, http.StatusOK)
-}
-
 func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
@@ -420,41 +413,6 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, strings.Repeat(bodyChar, 1024), resp.Body.String())
 	}
-}
-
-func TestActionsArtifactUploadWithRetentionDays(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	// acquire artifact upload url
-	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
-		Type:          "actions_storage",
-		Name:          "artifact-retention-days",
-		RetentionDays: 9,
-	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
-	resp := MakeRequest(t, req, http.StatusOK)
-	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
-	assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
-	assert.Contains(t, uploadResp.FileContainerResourceURL, "?retentionDays=9")
-
-	// get upload url
-	idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-	url := uploadResp.FileContainerResourceURL[idx:] + "&itemPath=artifact-retention-days/abc.txt"
-
-	// upload artifact chunk
-	body := strings.Repeat("A", 1024)
-	req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body)).
-		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
-		SetHeader("Content-Range", "bytes 0-1023/1024").
-		SetHeader("x-tfs-filelength", "1024").
-		SetHeader("x-actions-results-md5", "1HsSe8LeLWh93ILaw1TEFQ==") // base64(md5(body))
-	MakeRequest(t, req, http.StatusOK)
-
-	t.Logf("Create artifact confirm")
-
-	// confirm artifact upload
-	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName=artifact-retention-days").
-		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
-	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestActionsArtifactOverwrite(t *testing.T) {
@@ -583,6 +541,10 @@ jobs:
 		t.Run("testActionRunAttemptArtifactV4", func(t *testing.T) {
 			testActionRunAttemptArtifactV4(t, repo, session, runner)
 		})
+
+		t.Run("testPartialRerunArtifactInheritance", func(t *testing.T) {
+			testPartialRerunArtifactInheritance(t, user2, token, repo, session, runner)
+		})
 	})
 }
 
@@ -625,6 +587,107 @@ func testActionRunAttemptArtifactV3(t *testing.T, repo *repo_model.Repository, s
 	assert.Equal(t, strings.Repeat("C", 32), sharedContent1)
 	sharedContent2 := downloadArtifactFileContentByAttempt(t, session, repo.OwnerName, repo.Name, run.ID, "artifact-shared", 2, "shared.txt")
 	assert.Equal(t, strings.Repeat("D", 32), sharedContent2)
+}
+
+func testPartialRerunArtifactInheritance(t *testing.T, user *user_model.User, token string, repo *repo_model.Repository, session *TestSession, runner *mockRunner) {
+	wfTreePath := ".gitea/workflows/partial-rerun-artifact.yml"
+	wfFileContent := `name: partial-rerun-artifact
+on:
+  workflow_dispatch:
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job1'
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    steps:
+      - run: echo 'job2'
+`
+	opts := getWorkflowCreateFileOptions(user, repo.DefaultBranch, "create "+wfTreePath, wfFileContent)
+	createWorkflowFile(t, token, user.Name, repo.Name, wfTreePath, opts)
+
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/run?workflow=%s", repo.OwnerName, repo.Name, "partial-rerun-artifact.yml"), map[string]string{
+		"ref": "refs/heads/main",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// job1 uploads the artifacts and succeeds
+	task1 := runner.fetchTask(t)
+	_, job1, run := getTaskAndJobAndRunByTaskID(t, task1.Id)
+	taskToken1 := task1.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "job1-only", strings.Repeat("A", 32))
+	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "job1-shared", strings.Repeat("B", 32))
+	// a v3 artifact is one row per file, so this one spans two rows
+	uploadTestArtifactFile(t, run.ID, taskToken1, "job1-v3", "a.txt", strings.Repeat("D", 32))
+	uploadTestArtifactFile(t, run.ID, taskToken1, "job1-v3", "b.txt", strings.Repeat("E", 32))
+	runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
+	// job2 fails
+	task2 := runner.fetchTask(t)
+	_, job2, _ := getTaskAndJobAndRunByTaskID(t, task2.Id)
+	runner.execTask(t, task2, &mockTaskOutcome{result: runnerv1.Result_RESULT_FAILURE})
+
+	// re-run only the failed job, so job1 is passed through and never uploads its artifacts again
+	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun-failed", repo.OwnerName, repo.Name, run.ID))
+	session.MakeRequest(t, req, http.StatusOK)
+
+	task3 := runner.fetchTask(t)
+	_, job3, _ := getTaskAndJobAndRunByTaskID(t, task3.Id)
+	require.Equal(t, job2.JobID, job3.JobID)
+	require.NotEqual(t, job2.RunAttemptID, job3.RunAttemptID)
+	taskToken3 := task3.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+
+	// the new attempt inherits what the previous attempt uploaded
+	assert.Equal(t, []string{"job1-only", "job1-shared"}, listArtifactNamesForRunV4(t, run.ID, job3.ID, taskToken3))
+	assert.Equal(t, strings.Repeat("A", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-only"))
+	assert.Contains(t, listArtifactNamesForRun(t, run.ID, taskToken3), "job1-v3")
+
+	// a pending upload of this attempt must not shadow the confirmed copy it inherited
+	createTestArtifactV4(t, run.ID, job3.ID, taskToken3, "job1-only")
+	assert.Equal(t, strings.Repeat("A", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-only"))
+
+	// both rows of the inherited v3 artifact are readable
+	inheritedV3 := getArtifactDownloadItemsForRun(t, run.ID, taskToken3, "job1-v3")
+	require.Len(t, inheritedV3, 2)
+	assert.Equal(t, strings.Repeat("D", 32), downloadArtifactItemContent(t, taskToken3, inheritedV3[0]))
+
+	// uploading an inherited name in this attempt shadows the inherited artifact
+	inheritedSharedID := listArtifactIDForRunV4(t, run.ID, job3.ID, taskToken3, "job1-shared")
+	require.Len(t, listArtifactsByIDV4(t, run.ID, job3.ID, inheritedSharedID, taskToken3), 1)
+	uploadTestArtifactFileV4(t, run.ID, job3.ID, taskToken3, "job1-shared", strings.Repeat("C", 32))
+	assert.Equal(t, []string{"job1-only", "job1-shared"}, listArtifactNamesForRunV4(t, run.ID, job3.ID, taskToken3))
+	assert.Equal(t, strings.Repeat("C", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-shared"))
+
+	// a shadowed artifact is not listed by id either: a download resolves by name
+	assert.Empty(t, listArtifactsByIDV4(t, run.ID, job3.ID, inheritedSharedID, taskToken3))
+
+	// the shadowed v3 artifact is dropped as a whole, its b.txt row must not survive next to the new a.txt
+	uploadTestArtifactFile(t, run.ID, taskToken3, "job1-v3", "a.txt", strings.Repeat("F", 32))
+	shadowedV3 := getArtifactDownloadItemsForRun(t, run.ID, taskToken3, "job1-v3")
+	require.Len(t, shadowedV3, 1)
+	assert.Equal(t, strings.Repeat("F", 32), downloadArtifactItemContent(t, taskToken3, shadowedV3[0]))
+
+	runner.execTask(t, task3, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+}
+
+func getArtifactDownloadItemsForRun(t *testing.T, runID int64, taskToken, artifactName string) []downloadArtifactResponseItem {
+	t.Helper()
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/artifacts/%x/download_url?itemPath=%s", runID, md5.Sum([]byte(artifactName)), artifactName)).
+		AddTokenAuth(taskToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	return DecodeJSON(t, resp, &downloadArtifactResponse{}).Value
+}
+
+func downloadArtifactItemContent(t *testing.T, taskToken string, item downloadArtifactResponseItem) string {
+	t.Helper()
+
+	idx := strings.Index(item.ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
+	require.NotEqual(t, -1, idx)
+	req := NewRequest(t, "GET", item.ContentLocation[idx:]).AddTokenAuth(taskToken)
+	return MakeRequest(t, req, http.StatusOK).Body.String()
 }
 
 func uploadTestArtifactFile(t *testing.T, runID int64, authToken, artifactName, fileName, content string) {

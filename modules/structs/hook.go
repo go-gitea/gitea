@@ -46,6 +46,50 @@ type Hook struct {
 // HookList represents a list of API hook.
 type HookList []*Hook
 
+// HookDeliveryRequest represents the request information of a webhook delivery
+type HookDeliveryRequest struct {
+	// The URL the delivery was sent to
+	URL string `json:"url"`
+	// The HTTP method used for the delivery
+	HTTPMethod string `json:"http_method"`
+	// The headers sent with the delivery
+	Headers map[string]string `json:"headers"`
+	// The body sent with the delivery
+	Body string `json:"body"`
+}
+
+// HookDeliveryResponse represents the response information of a webhook delivery
+type HookDeliveryResponse struct {
+	// The HTTP status code of the response
+	Status int `json:"status"`
+	// The headers received in the response
+	Headers map[string]string `json:"headers"`
+	// The body received in the response
+	Body string `json:"body"`
+}
+
+// HookDelivery represents a single delivery attempt for a webhook
+type HookDelivery struct {
+	// The unique identifier of the delivery
+	UUID string `json:"uuid"`
+	// The event type that triggered this delivery
+	EventType string `json:"event_type"`
+	// Whether the delivery has been sent
+	IsDelivered bool `json:"is_delivered"`
+	// Whether the delivery was successful (2xx response)
+	IsSucceeded bool `json:"is_succeeded"`
+	// swagger:strfmt date-time
+	// The date and time when the delivery was sent
+	Delivered *time.Time `json:"delivered_at"`
+	// The request that was sent
+	Request *HookDeliveryRequest `json:"request"`
+	// The response that was received
+	Response *HookDeliveryResponse `json:"response"`
+}
+
+// HookDeliveryList represents a list of API hook deliveries.
+type HookDeliveryList []*HookDelivery
+
 // CreateHookOptionConfig has all config options in it
 // required are "content_type" and "url" Required
 type CreateHookOptionConfig map[string]string
@@ -76,12 +120,12 @@ type CreateHookOption struct {
 type EditHookOption struct {
 	// Configuration settings for the webhook
 	Config map[string]string `json:"config"`
-	// List of events that trigger this webhook
+	// List of events that trigger this webhook, omitted or empty keeps the current events
 	Events []string `json:"events"`
-	// Branch filter pattern to determine which branches trigger the webhook
-	BranchFilter string `json:"branch_filter" binding:"GlobPattern"`
-	// Authorization header to include in webhook requests
-	AuthorizationHeader string `json:"authorization_header"`
+	// Branch filter pattern to determine which branches trigger the webhook, omitted keeps the current value
+	BranchFilter *string `json:"branch_filter" binding:"GlobPattern"`
+	// Authorization header to include in webhook requests, omitted keeps the current value unless the url changes
+	AuthorizationHeader *string `json:"authorization_header"`
 	// Whether the webhook is active and will be triggered
 	Active *bool `json:"active"`
 	// Optional human-readable name
@@ -289,7 +333,8 @@ type ReleasePayload struct {
 	// The action performed on the release (published, updated, deleted)
 	Action HookReleaseAction `json:"action"`
 	// The release that was acted upon
-	Release *Release `json:"release"`
+	Release *Release        `json:"release"`
+	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The repository containing the release
 	Repository *Repository `json:"repository"`
 	// The user who performed the action
@@ -393,7 +438,7 @@ type IssuePayload struct {
 	Action HookIssueAction `json:"action"`
 	// The index number of the issue
 	Index int64 `json:"number"`
-	// Changes made to the issue (for edit actions)
+	// Changes made to the issue
 	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The issue that was acted upon
 	Issue *Issue `json:"issue"`
@@ -416,6 +461,18 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
+type ChangesBasePayload struct {
+	Ref ChangesFromPayload `json:"ref"`
+	Sha ChangesFromPayload `json:"sha"`
+}
+
+type ChangesOwnerPayload struct {
+	From struct {
+		User         *User `json:"user,omitempty"`
+		Organization *User `json:"organization,omitempty"`
+	} `json:"from"`
+}
+
 // ChangesPayload represents the payload information of issue change
 type ChangesPayload struct {
 	// Changes made to the title
@@ -423,13 +480,21 @@ type ChangesPayload struct {
 	// Changes made to the body/description
 	Body *ChangesFromPayload `json:"body,omitempty"`
 	// Changes made to the reference
-	Ref *ChangesFromPayload `json:"ref,omitempty"`
-	// Changes made to the repository name
-	Name *ChangesFromPayload `json:"name,omitempty"`
+	Ref  *ChangesFromPayload `json:"ref,omitempty"`
+	Base *ChangesBasePayload `json:"base,omitempty"`
+	// Changes made to the repository or release name
+	Name    *ChangesFromPayload `json:"name,omitempty"`
+	TagName *ChangesFromPayload `json:"tag_name,omitempty"`
+	// Changes made to the repository owner
+	Owner *ChangesOwnerPayload `json:"owner,omitempty"`
 	// Changes made to the labels added
 	AddedLabels []*Label `json:"added_labels"`
 	// Changes made to the labels removed
 	RemovedLabels []*Label `json:"removed_labels"`
+	// Assignees added
+	AddedAssignees []*User `json:"added_assignees,omitempty"`
+	// Assignees removed
+	RemovedAssignees []*User `json:"removed_assignees,omitempty"`
 }
 
 // PullRequestPayload represents a payload information of pull request event.
@@ -442,7 +507,7 @@ type PullRequestPayload struct {
 	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
-	// Changes made to the pull request (for edit actions)
+	// Changes made to the pull request
 	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The pull request that was acted upon
 	PullRequest *PullRequest `json:"pull_request"`
@@ -465,7 +530,7 @@ func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 
 // ReviewPayload FIXME
 type ReviewPayload struct {
-	// The type of review (approved, rejected, comment)
+	// The review event type: pull_request_review_approved, pull_request_review_rejected or pull_request_review_comment
 	Type string `json:"type"`
 	// The content/body of the review
 	Content string `json:"content"`
@@ -512,6 +577,8 @@ const (
 	HookRepoDeleted HookRepoAction = "deleted"
 	// HookRepoRenamed renamed
 	HookRepoRenamed HookRepoAction = "renamed"
+	// HookRepoTransferred transferred
+	HookRepoTransferred HookRepoAction = "transferred"
 )
 
 // RepositoryPayload payload for repository webhooks

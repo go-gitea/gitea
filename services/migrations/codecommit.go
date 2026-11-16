@@ -5,19 +5,22 @@ package migrations
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	git_module "gitea.dev/modules/git"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
-
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/codecommit"
-	"github.com/aws/aws-sdk-go-v2/service/codecommit/types"
 )
 
 var (
@@ -63,12 +66,13 @@ func (c *CodeCommitDownloaderFactory) GitServiceType() structs.GitServiceType {
 
 func NewCodeCommitDownloader(_ context.Context, repoName, baseURL, accessKeyID, secretAccessKey, region string) *CodeCommitDownloader {
 	downloader := CodeCommitDownloader{
-		repoName: repoName,
-		baseURL:  baseURL,
-		codeCommitClient: codecommit.New(codecommit.Options{
-			Credentials: credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, ""),
-			Region:      region,
-		}),
+		repoName:        repoName,
+		baseURL:         baseURL,
+		client:          getMigrationHTTPClient(),
+		endpoint:        "https://codecommit." + region + ".amazonaws.com",
+		region:          region,
+		accessKeyID:     accessKeyID,
+		secretAccessKey: secretAccessKey,
 	}
 
 	return &downloader
@@ -77,7 +81,11 @@ func NewCodeCommitDownloader(_ context.Context, repoName, baseURL, accessKeyID, 
 // CodeCommitDownloader implements a downloader for AWS CodeCommit
 type CodeCommitDownloader struct {
 	base.NullDownloader
-	codeCommitClient  *codecommit.Client
+	client            *http.Client
+	endpoint          string
+	region            string
+	accessKeyID       string
+	secretAccessKey   string
 	repoName          string
 	baseURL           string
 	allPullRequestIDs []string
@@ -85,42 +93,48 @@ type CodeCommitDownloader struct {
 
 // GetRepoInfo returns a repository information
 func (c *CodeCommitDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, error) {
-	output, err := c.codeCommitClient.GetRepository(ctx, &codecommit.GetRepositoryInput{
-		RepositoryName: new(c.repoName),
-	})
-	if err != nil {
+	var output struct {
+		RepositoryMetadata struct {
+			AccountID             string `json:"accountId"`
+			CloneURLHTTP          string `json:"cloneUrlHttp"`
+			DefaultBranch         string `json:"defaultBranch"`
+			RepositoryDescription string `json:"repositoryDescription"`
+			RepositoryName        string `json:"repositoryName"`
+		} `json:"repositoryMetadata"`
+	}
+	if err := c.callAPI(ctx, "GetRepository", map[string]string{"repositoryName": c.repoName}, &output); err != nil {
 		return nil, err
 	}
 	repoMeta := output.RepositoryMetadata
 
-	repo := &base.Repository{
-		Name:      *repoMeta.RepositoryName,
-		Owner:     *repoMeta.AccountId,
-		IsPrivate: true, // CodeCommit repos are always private
-		CloneURL:  *repoMeta.CloneUrlHttp,
-	}
-	if repoMeta.DefaultBranch != nil {
-		repo.DefaultBranch = *repoMeta.DefaultBranch
-	}
-	if repoMeta.RepositoryDescription != nil {
-		repo.DefaultBranch = *repoMeta.RepositoryDescription
-	}
-	return repo, nil
+	return &base.Repository{
+		Name:          repoMeta.RepositoryName,
+		Owner:         repoMeta.AccountID,
+		IsPrivate:     true, // CodeCommit repos are always private
+		CloneURL:      repoMeta.CloneURLHTTP,
+		DefaultBranch: repoMeta.DefaultBranch,
+		Description:   repoMeta.RepositoryDescription,
+	}, nil
 }
 
 // GetComments returns comments of an issue or PR
 func (c *CodeCommitDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
-	var (
-		nextToken *string
-		comments  []*base.Comment
-	)
+	var comments []*base.Comment
+	input := map[string]string{"pullRequestId": strconv.FormatInt(commentable.GetForeignIndex(), 10)}
 
 	for {
-		resp, err := c.codeCommitClient.GetCommentsForPullRequest(ctx, &codecommit.GetCommentsForPullRequestInput{
-			NextToken:     nextToken,
-			PullRequestId: new(strconv.FormatInt(commentable.GetForeignIndex(), 10)),
-		})
-		if err != nil {
+		var resp struct {
+			CommentsForPullRequestData []struct {
+				Comments []struct {
+					AuthorArn        string  `json:"authorArn"`
+					Content          string  `json:"content"`
+					CreationDate     float64 `json:"creationDate"`
+					LastModifiedDate float64 `json:"lastModifiedDate"`
+				} `json:"comments"`
+			} `json:"commentsForPullRequestData"`
+			NextToken string `json:"nextToken"`
+		}
+		if err := c.callAPI(ctx, "GetCommentsForPullRequest", input, &resp); err != nil {
 			return nil, false, err
 		}
 
@@ -128,19 +142,19 @@ func (c *CodeCommitDownloader) GetComments(ctx context.Context, commentable base
 			for _, ccComment := range prComment.Comments {
 				comment := &base.Comment{
 					IssueIndex: commentable.GetForeignIndex(),
-					PosterName: c.getUsernameFromARN(*ccComment.AuthorArn),
-					Content:    *ccComment.Content,
-					Created:    *ccComment.CreationDate,
-					Updated:    *ccComment.LastModifiedDate,
+					PosterName: c.getUsernameFromARN(ccComment.AuthorArn),
+					Content:    ccComment.Content,
+					Created:    time.Unix(int64(ccComment.CreationDate), 0),
+					Updated:    time.Unix(int64(ccComment.LastModifiedDate), 0),
 				}
 				comments = append(comments, comment)
 			}
 		}
 
-		nextToken = resp.NextToken
-		if nextToken == nil {
+		if resp.NextToken == "" {
 			break
 		}
+		input["nextToken"] = resp.NextToken
 	}
 
 	return comments, true, nil
@@ -159,56 +173,71 @@ func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPag
 
 	prs := make([]*base.PullRequest, 0, len(batch))
 	for _, id := range batch {
-		output, err := c.codeCommitClient.GetPullRequest(ctx, &codecommit.GetPullRequestInput{
-			PullRequestId: new(id),
-		})
-		if err != nil {
+		var output struct {
+			PullRequest struct {
+				AuthorArn          string  `json:"authorArn"`
+				CreationDate       float64 `json:"creationDate"`
+				Description        string  `json:"description"`
+				LastActivityDate   float64 `json:"lastActivityDate"`
+				PullRequestID      string  `json:"pullRequestId"`
+				PullRequestStatus  string  `json:"pullRequestStatus"`
+				PullRequestTargets []struct {
+					DestinationCommit    string `json:"destinationCommit"`
+					DestinationReference string `json:"destinationReference"`
+					MergeMetadata        struct {
+						IsMerged      bool   `json:"isMerged"`
+						MergeCommitID string `json:"mergeCommitId"`
+					} `json:"mergeMetadata"`
+					SourceCommit    string `json:"sourceCommit"`
+					SourceReference string `json:"sourceReference"`
+				} `json:"pullRequestTargets"`
+				Title string `json:"title"`
+			} `json:"pullRequest"`
+		}
+		if err := c.callAPI(ctx, "GetPullRequest", map[string]string{"pullRequestId": id}, &output); err != nil {
 			return nil, false, err
 		}
 		orig := output.PullRequest
-		number, err := strconv.ParseInt(*orig.PullRequestId, 10, 64)
+		number, err := strconv.ParseInt(orig.PullRequestID, 10, 64)
 		if err != nil {
-			log.Error("CodeCommit pull request id is not a number: %s", *orig.PullRequestId)
+			log.Error("CodeCommit pull request id is not a number: %s", orig.PullRequestID)
 			continue
 		}
 		if len(orig.PullRequestTargets) == 0 {
-			log.Error("CodeCommit pull request does not contain targets", *orig.PullRequestId)
+			log.Error("CodeCommit pull request %s does not contain targets", orig.PullRequestID)
 			continue
 		}
 		target := orig.PullRequestTargets[0]
-		description := ""
-		if orig.Description != nil {
-			description = *orig.Description
-		}
+		lastActivity := time.Unix(int64(orig.LastActivityDate), 0)
 		pr := &base.PullRequest{
 			Number:     number,
-			Title:      *orig.Title,
-			PosterName: c.getUsernameFromARN(*orig.AuthorArn),
-			Content:    description,
+			Title:      orig.Title,
+			PosterName: c.getUsernameFromARN(orig.AuthorArn),
+			Content:    orig.Description,
 			State:      "open",
-			Created:    *orig.CreationDate,
-			Updated:    *orig.LastActivityDate,
+			Created:    time.Unix(int64(orig.CreationDate), 0),
+			Updated:    lastActivity,
 			Merged:     target.MergeMetadata.IsMerged,
 			Head: base.PullRequestBranch{
-				Ref:      strings.TrimPrefix(*target.SourceReference, git_module.BranchPrefix),
-				SHA:      *target.SourceCommit,
+				Ref:      strings.TrimPrefix(target.SourceReference, git_module.BranchPrefix),
+				SHA:      target.SourceCommit,
 				RepoName: c.repoName,
 			},
 			Base: base.PullRequestBranch{
-				Ref:      strings.TrimPrefix(*target.DestinationReference, git_module.BranchPrefix),
-				SHA:      *target.DestinationCommit,
+				Ref:      strings.TrimPrefix(target.DestinationReference, git_module.BranchPrefix),
+				SHA:      target.DestinationCommit,
 				RepoName: c.repoName,
 			},
 			ForeignIndex: number,
 		}
 
-		if orig.PullRequestStatus == types.PullRequestStatusEnumClosed {
+		if orig.PullRequestStatus == "CLOSED" {
 			pr.State = "closed"
-			pr.Closed = orig.LastActivityDate
+			pr.Closed = &lastActivity
 		}
 		if pr.Merged {
-			pr.MergeCommitSHA = *target.MergeMetadata.MergeCommitId
-			pr.MergedTime = orig.LastActivityDate
+			pr.MergeCommitSHA = target.MergeMetadata.MergeCommitID
+			pr.MergedTime = &lastActivity
 		}
 
 		_ = CheckAndEnsureSafePR(pr, c.baseURL, c)
@@ -233,24 +262,22 @@ func (c *CodeCommitDownloader) getAllPullRequestIDs(ctx context.Context) ([]stri
 		return c.allPullRequestIDs, nil
 	}
 
-	var (
-		nextToken *string
-		prIDs     []string
-	)
+	var prIDs []string
+	input := map[string]string{"repositoryName": c.repoName}
 
 	for {
-		output, err := c.codeCommitClient.ListPullRequests(ctx, &codecommit.ListPullRequestsInput{
-			RepositoryName: new(c.repoName),
-			NextToken:      nextToken,
-		})
-		if err != nil {
+		var output struct {
+			NextToken      string   `json:"nextToken"`
+			PullRequestIDs []string `json:"pullRequestIds"`
+		}
+		if err := c.callAPI(ctx, "ListPullRequests", input, &output); err != nil {
 			return nil, err
 		}
-		prIDs = append(prIDs, output.PullRequestIds...)
-		nextToken = output.NextToken
-		if nextToken == nil {
+		prIDs = append(prIDs, output.PullRequestIDs...)
+		if output.NextToken == "" {
 			break
 		}
+		input["nextToken"] = output.NextToken
 	}
 
 	c.allPullRequestIDs = prIDs
@@ -263,4 +290,38 @@ func (c *CodeCommitDownloader) getUsernameFromARN(arn string) string {
 		return parts[len(parts)-1]
 	}
 	return ""
+}
+
+func (c *CodeCommitDownloader) callAPI(ctx context.Context, operation string, input map[string]string, output any) error {
+	body, err := json.Marshal(input)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, strings.NewReader(string(body)))
+	if err != nil {
+		return err
+	}
+	amzDate, target := time.Now().UTC().Format("20060102T150405Z"), "CodeCommit_20150413."+operation
+	scope := amzDate[:8] + "/" + c.region + "/codecommit/aws4_request"
+	canonicalRequest := fmt.Sprintf("POST\n/\n\ncontent-type:application/x-amz-json-1.1\nhost:%s\nx-amz-date:%s\nx-amz-target:%s\n\ncontent-type;host;x-amz-date;x-amz-target\n%x", req.URL.Host, amzDate, target, sha256.Sum256(body))
+	signature := []byte("AWS4" + c.secretAccessKey)
+	for _, data := range []string{amzDate[:8], c.region, "codecommit", "aws4_request", fmt.Sprintf("AWS4-HMAC-SHA256\n%s\n%s\n%x", amzDate, scope, sha256.Sum256([]byte(canonicalRequest)))} { // SigV4 key derivation, the last round signs
+		mac := hmac.New(sha256.New, signature)
+		_, _ = mac.Write([]byte(data))
+		signature = mac.Sum(nil)
+	}
+	req.Header.Set("Content-Type", "application/x-amz-json-1.1")
+	req.Header.Set("X-Amz-Date", amzDate)
+	req.Header.Set("X-Amz-Target", target)
+	req.Header.Set("Authorization", fmt.Sprintf("AWS4-HMAC-SHA256 Credential=%s/%s, SignedHeaders=content-type;host;x-amz-date;x-amz-target, Signature=%x", c.accessKeyID, scope, signature))
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		return json.NewDecoder(resp.Body).Decode(output)
+	}
+	respBody, _ := io.ReadAll(resp.Body)
+	return fmt.Errorf("CodeCommit %s: %s: %s", operation, resp.Status, respBody)
 }

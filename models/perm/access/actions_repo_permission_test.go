@@ -93,6 +93,17 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 
 		// Fork PR never gets cross-repo access to other private repos
 		assert.False(t, perm.CanRead(unit.TypeCode))
+
+		publicCaller := *repo2
+		publicCaller.IsPrivate = false
+		run := &actions_model.ActionRun{RepoID: repo2.ID, Repo: &publicCaller}
+		allowed, err := CanReadWorkflowCrossRepo(ctx, repo15, run)
+		require.NoError(t, err)
+		assert.False(t, allowed)
+		run.Repo = repo2
+		allowed, err = CanReadWorkflowCrossRepo(ctx, repo15, run)
+		require.NoError(t, err)
+		assert.True(t, allowed)
 	})
 
 	t.Run("CollaborativeOwner_ForkPR_Denied", func(t *testing.T) {
@@ -121,6 +132,18 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		perm, err = GetActionsUserRepoPermission(ctx, repo15, actionsUser, task53.ID)
 		require.NoError(t, err)
 		assert.False(t, perm.CanRead(unit.TypeCode))
+
+		// Reusable workflows use a separate authorization path and must enforce
+		// the same fork-PR restriction.
+		run := &actions_model.ActionRun{RepoID: repo2.ID, IsForkPullRequest: true}
+		allowed, err := CanReadWorkflowCrossRepo(ctx, repo15, run)
+		require.NoError(t, err)
+		assert.False(t, allowed)
+
+		run.IsForkPullRequest = false
+		allowed, err = CanReadWorkflowCrossRepo(ctx, repo15, run)
+		require.NoError(t, err)
+		assert.True(t, allowed)
 
 		// Restore state for subsequent subtests.
 		task53.IsForkPullRequest = false

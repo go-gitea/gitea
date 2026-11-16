@@ -4,36 +4,20 @@
 package actions
 
 import (
-	"math"
-	"strconv"
 	"strings"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/modules/log"
 )
 
 // parseMaxParallel returns strategy.max-parallel for a job, 0 meaning unlimited.
-// GitHub accepts any YAML number here and casts it to an int, so 1.5 truncates to 1.
-// Expressions are not evaluated yet and fall back to unlimited.
 func parseMaxParallel(jobID, maxParallelString string) int {
-	if maxParallelString == "" {
-		return 0
+	limit, err := model.Strategy{MaxParallelString: maxParallelString}.MaxParallel()
+	if err != nil && !strings.Contains(maxParallelString, "${{") { // a deferred matrix placeholder's expression is evaluated at expansion
+		log.Warn("job %s: %v, treating as unlimited", jobID, err)
 	}
-	maxParallel, err := strconv.ParseFloat(maxParallelString, 64)
-	if err != nil || math.IsNaN(maxParallel) {
-		// Both fall back to unlimited, but an expression is a gap in Gitea while a non-number is the
-		// author's mistake, so dropping the cap must not be reported the same way.
-		if strings.Contains(maxParallelString, "${{") {
-			// TODO: evaluate it against the contexts `if:` and the matrix already resolve, so that an
-			// expression can actually cap a job instead of quietly disabling the cap.
-			log.Debug("job %s: max-parallel %q is an expression, which is not evaluated yet: treating as unlimited", jobID, maxParallelString)
-		} else {
-			log.Warn("job %s: max-parallel %q is not a number, treating as unlimited", jobID, maxParallelString)
-		}
-		return 0
-	}
-	// a run can never hold more jobs than MaxJobNumPerRun, so clamping there keeps the cast total
-	return int(min(max(maxParallel, 0), actions_model.MaxJobNumPerRun))
+	return min(limit, actions_model.MaxJobNumPerRun)
 }
 
 // maxParallelSlots counts the jobs holding a max-parallel slot. Slots are scoped by ParentJobID as

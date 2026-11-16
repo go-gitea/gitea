@@ -10,14 +10,15 @@ import (
 	"strings"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/graceful"
@@ -27,15 +28,22 @@ import (
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 )
 
+// WebSearchCommitStatus is the latest commit status of a repository returned by web search
+type WebSearchCommitStatus struct {
+	State     commitstatus.CommitStatusState `json:"state"`
+	TargetURL string                         `json:"target_url"`
+}
+
 // WebSearchRepository represents a repository returned by web search
 type WebSearchRepository struct {
-	Repository               *structs.Repository     `json:"repository"`
-	LatestCommitStatus       *git_model.CommitStatus `json:"latest_commit_status"`
-	LocaleLatestCommitStatus string                  `json:"locale_latest_commit_status"`
+	Repository               *structs.Repository    `json:"repository"`
+	LatestCommitStatus       *WebSearchCommitStatus `json:"latest_commit_status"`
+	LocaleLatestCommitStatus string                 `json:"locale_latest_commit_status"`
 }
 
 // WebSearchResults results of a successful web search
@@ -68,7 +76,13 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		notify_service.DeleteRepository(ctx, doer, repo)
 	}
 
-	return DeleteRepositoryDirectly(ctx, repo.ID)
+	if err := DeleteRepositoryDirectly(ctx, repo.ID); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.RepositoryDelete, repo)
+
+	return nil
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
@@ -127,6 +141,16 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 }
 
 func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository, private bool) (err error) {
+	if err := setRepoVisibility(ctx, repo, private); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.RepositoryVisibility, repo, "visibility", private)
+
+	return nil
+}
+
+func setRepoVisibility(ctx context.Context, repo *repo_model.Repository, private bool) (err error) {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo.IsPrivate = private
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
@@ -173,8 +197,8 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository, private b
 				return fmt.Errorf("getRepositoriesByForkID: %w", err)
 			}
 			for _, forkRepo := range forkRepos {
-				if err = MakeRepoPrivate(ctx, forkRepo, private); err != nil {
-					return fmt.Errorf("MakeRepoPrivate[%d]: %w", forkRepo.ID, err)
+				if err = setRepoVisibility(ctx, forkRepo, private); err != nil {
+					return fmt.Errorf("setRepoVisibility[%d]: %w", forkRepo.ID, err)
 				}
 			}
 		}
@@ -246,7 +270,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 	e := db.GetEngine(ctx)
 
-	if _, err = e.ID(repo.ID).NoAutoTime().AllCols().Update(repo); err != nil {
+	if _, err = e.ID(repo.ID).NoAutoTime().AllCols().Omit("latest_release_id").Update(repo); err != nil { // the pin has its own writers, a stale snapshot must not revert it
 		return fmt.Errorf("update: %w", err)
 	}
 

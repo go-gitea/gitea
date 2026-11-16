@@ -50,7 +50,7 @@
 										</div>
 									</div>
 								</div>
-								<button class="ui small button" id="delete-selection" data-link="{{.Link}}/delete">
+								<button type="button" class="ui small button" id="delete-selection" data-link="{{.Link}}/delete">
 									<span class="text">{{ctx.Locale.Tr "admin.notices.delete_selected"}}</span>
 								</button>
 							</th>
@@ -61,9 +61,9 @@
 		{{template "base/paginate" .}}
 	</div>
 
-<div class="ui modal admin" id="detail-modal">
+<dialog class="modal-dialog admin" id="detail-modal">
 	<div class="header">{{ctx.Locale.Tr "admin.notices.view_detail_header"}}</div>
 	<div class="content"><pre></pre></div>
-</div>
+</dialog>
 
 {{template "admin/layout_footer" .}}

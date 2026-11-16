@@ -37,8 +37,8 @@ func ListHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	utils.ListOwnerHooks(
 		ctx,
@@ -68,8 +68,8 @@ func GetHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	hook, err := utils.GetOwnerHook(ctx, ctx.ContextUser.ID, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -107,13 +107,13 @@ func CreateHook(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Hook"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	utils.AddOwnerHook(
 		ctx,
 		ctx.ContextUser,
-		web.GetForm(ctx).(*api.CreateHookOption),
+		web.GetForm[*api.CreateHookOption](ctx),
 	)
 }
 
@@ -145,13 +145,13 @@ func EditHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	utils.EditOwnerHook(
 		ctx,
 		ctx.ContextUser,
-		web.GetForm(ctx).(*api.EditHookOption),
+		web.GetForm[*api.EditHookOption](ctx),
 		ctx.PathParamInt64("id"),
 	)
 }
@@ -178,8 +178,8 @@ func DeleteHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	utils.DeleteOwnerHook(
 		ctx,

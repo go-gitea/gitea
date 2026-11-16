@@ -174,8 +174,10 @@ func TestGlob(t *testing.T) {
 	} {
 		g, err := Compile(test.pattern, test.delimiters...)
 		require.NoError(t, err)
+		compiler, ok := g.(*globCompiler)
+		require.True(t, ok)
 		result := g.Match(test.match)
-		assert.Equal(t, test.should, result, "pattern %q matching %q should be %v but got %v, compiled=%s", test.pattern, test.match, test.should, result, g.(*globCompiler).regexpPattern)
+		assert.Equal(t, test.should, result, "pattern %q matching %q should be %v but got %v, compiled=%s", test.pattern, test.match, test.should, result, compiler.regexpPattern)
 	}
 }
 

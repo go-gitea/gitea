@@ -37,10 +37,8 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     description: output blob content
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	jobID := ctx.PathParamInt64("job_id")
 	curJob, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobID)
@@ -79,15 +77,48 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
 
+	cancelWorkflowRun(ctx, false)
+}
+
+func ForceCancelWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/force-cancel repository forceCancelWorkflowRun
+	// ---
+	// summary: Force-cancel a workflow run
+	// description: |
+	//   Cancels a workflow run without waiting for its runners to acknowledge the cancellation.
+	//   The jobs are marked cancelled at once and anything a runner reports for them afterwards is discarded.
+	//   Only use this endpoint when the workflow run does not respond to `POST /repos/{owner}/{repo}/actions/runs/{run}/cancel`.
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRun"
+	//   default:
+	//     "$ref": "#/responses/error"
+
+	cancelWorkflowRun(ctx, true)
+}
+
+func cancelWorkflowRun(ctx *context.APIContext, force bool) {
 	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
 	if ctx.Written() {
 		return
@@ -99,7 +130,12 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	run, err := actions_service.CancelRun(ctx, run, jobs)
+	var err error
+	if force {
+		run, err = actions_service.ForceCancelRun(ctx, run, jobs)
+	} else {
+		run, err = actions_service.CancelRun(ctx, run, jobs)
+	}
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -132,25 +168,19 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowRun"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
 
 	run := getCurrentRepoActionRunByID(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	if !run.NeedApproval {
+	if !run.IsAwaitingApproval() {
 		// Approving twice is idempotent, but a run that never awaited approval gets 409 rather
 		// than GitHub's 403, which would be indistinguishable from a permission denial.
 		if run.ApprovedBy == 0 {
-			ctx.APIError(http.StatusConflict, "run does not require approval")
+			ctx.APIError(http.StatusConflict, "run is not waiting for approval")
 			return
 		}
 		respondRepoActionWorkflowRun(ctx, run)
@@ -190,8 +220,8 @@ func GetWorkflowRunLogs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     description: Logs archive
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	run := getCurrentRepoActionRunByID(ctx)
 	if ctx.Written() {

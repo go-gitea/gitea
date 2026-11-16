@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	auth_model "gitea.dev/models/auth"
@@ -49,16 +50,18 @@ type requestContext struct {
 
 // Claims is a JWT Token Claims
 type Claims struct {
-	RepoID int64
-	Op     string
-	UserID int64
+	RepoID          int64
+	Op              string
+	UserID          int64
+	UserExtDoerData string
 	jwt.RegisteredClaims
 }
 
 type AuthTokenOptions struct {
-	Op     string
-	UserID int64
-	RepoID int64
+	Op              string
+	UserID          int64
+	UserExtDoerData string
+	RepoID          int64
 }
 
 func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
@@ -68,9 +71,10 @@ func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
 			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
 			NotBefore: jwt.NewNumericDate(now),
 		},
-		RepoID: opts.RepoID,
-		Op:     opts.Op,
-		UserID: opts.UserID,
+		RepoID:          opts.RepoID,
+		Op:              opts.Op,
+		UserID:          opts.UserID,
+		UserExtDoerData: opts.UserExtDoerData,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
@@ -108,7 +112,9 @@ func CheckAcceptMediaType(ctx *context.Context) {
 	}
 }
 
-var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)-(\d*).*`)
+var rangeHeaderRegexp = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`bytes=(\d+)-(\d*).*`)
+})
 
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
@@ -125,7 +131,7 @@ func DownloadHandler(ctx *context.Context) {
 	toByte = meta.Size - 1
 	statusCode := http.StatusOK
 	if rangeHdr := ctx.Req.Header.Get("Range"); rangeHdr != "" {
-		match := rangeHeaderRegexp.FindStringSubmatch(rangeHdr)
+		match := rangeHeaderRegexp().FindStringSubmatch(rangeHdr)
 		if len(match) > 1 {
 			statusCode = http.StatusPartialContent
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
@@ -470,9 +476,9 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 	}
 
 	if requireWrite {
-		context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
+		context.CheckRepoScopedToken(ctx, auth_model.Write)
 	} else {
-		context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
+		context.CheckRepoScopedToken(ctx, auth_model.Read)
 	}
 
 	if ctx.Written() {
@@ -544,15 +550,6 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		accessMode = perm_model.AccessModeWrite
 	}
 
-	if taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer); ok {
-		perm, err := access_model.GetActionsUserRepoPermission(ctx, repository, ctx.Doer, taskID)
-		if err != nil {
-			log.Error("Unable to GetActionsUserRepoPermission for task[%d] Error: %v", taskID, err)
-			return false
-		}
-		return perm.CanAccess(accessMode, unit.TypeCode)
-	}
-
 	// it works for both anonymous request and signed-in user, then perm.CanAccess will do the permission check
 	perm, err := access_model.GetDoerRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
@@ -560,10 +557,9 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		return false
 	}
 
-	canAccess := perm.CanAccess(accessMode, unit.TypeCode)
 	// if it doesn't require sign-in and anonymous user has access, return true
 	// if the user is already signed in (for example: by session auth method), and the doer can access, return true
-	if canAccess && (!requireSigned || ctx.IsSigned) {
+	if perm.CanAccess(accessMode, unit.TypeCode) && ((!requireSigned && !setting.Service.RequireSignInViewStrict) || ctx.IsSigned) {
 		return true
 	}
 
@@ -604,9 +600,9 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 		return nil, errors.New("invalid token claim")
 	}
 
-	u, err := user_model.GetUserByID(ctx, claims.UserID)
+	u, err := user_model.GetDoerPermissionUser(ctx, claims.UserID, claims.UserExtDoerData)
 	if err != nil {
-		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
+		log.Error("Unable to GetDoerUser[%d]: Error: %v", claims.UserID, err)
 		return nil, err
 	}
 	if !u.IsActive || u.ProhibitLogin {

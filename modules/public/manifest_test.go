@@ -43,7 +43,7 @@ func TestViteManifest(t *testing.T) {
 		storeManifestFromBytes([]byte(``), 0, time.Now())
 		// not in manifest -> custom theme fallback
 		assert.Equal(t, "/assets/css/theme-gitea-dark.css", AssetURI("web_src/css/themes/theme-gitea-dark.css"))
-		assert.Empty(t, entryStyleURLs("web_src/js/index.ts", "web_src/css/index.css"))
+		assert.Empty(t, entryStyleURLs("web_src/js/index.ts"))
 		assert.Empty(t, AssetNameFromHashedPath("css/no-such-file.css"))
 	})
 
@@ -62,7 +62,7 @@ func TestViteManifest(t *testing.T) {
 			"/assets/css/index.B3zrQPqD.css",
 			"/assets/css/index-extra.CcCcCcCc.css",
 			"/assets/css/shared.BbBbBbBb.css",
-		}, entryStyleURLs("web_src/js/index.ts", "web_src/css/index.css"))
+		}, entryStyleURLs("web_src/js/index.ts"))
 		assert.Equal(t, template.HTML(
 			`<link rel="stylesheet" href="/assets/css/index.B3zrQPqD.css">`+
 				`<link rel="stylesheet" href="/assets/css/index-extra.CcCcCcCc.css">`+

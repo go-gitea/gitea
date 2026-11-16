@@ -33,6 +33,7 @@ import (
 	"gitea.dev/modules/packages/rpm"
 	"gitea.dev/modules/packages/rubygems"
 	"gitea.dev/modules/packages/swift"
+	"gitea.dev/modules/packages/terraform_module"
 	"gitea.dev/modules/packages/vagrant"
 	"gitea.dev/modules/util"
 
@@ -212,8 +213,10 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 		metadata = &rubygems.Metadata{}
 	case TypeSwift:
 		metadata = &swift.Metadata{}
+	case TypeTerraformModule:
+		metadata = &terraform_module.Metadata{}
 	case TypeTerraformState:
-		// terraform packages have no metadata
+		// terraform state packages have no metadata
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:
@@ -237,6 +240,15 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 		Metadata:          metadata,
 		Files:             pfds,
 	}, nil
+}
+
+// DescriptorMetadata returns the descriptor's metadata, which getPackageDescriptor has created from the package type
+func DescriptorMetadata[T interface{ *E }, E any](pd *PackageDescriptor) T {
+	metadata, ok := pd.Metadata.(T)
+	if !ok {
+		panic(fmt.Errorf("package %s of type %s has metadata type %T instead of %T", pd.Package.Name, pd.Package.Type, pd.Metadata, metadata))
+	}
+	return metadata
 }
 
 // GetPackageFileDescriptor gets a package file descriptor for a package file

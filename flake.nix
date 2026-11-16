@@ -36,7 +36,7 @@
               go = pkgs.go_1_26;
               nodejs = pkgs.nodejs_26;
               python3 = pkgs.python314;
-              pnpm = pkgs.pnpm_10;
+              pnpm = pkgs.pnpm_11;
 
               # Platform-specific dependencies
               linuxOnlyInputs = lib.optionals pkgs.stdenv.isLinux [

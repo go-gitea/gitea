@@ -22,4 +22,4 @@ type sourceInterface interface {
 	auth_model.UseTLSer
 }
 
-var _ (sourceInterface) = &ldap.Source{}
+var _ sourceInterface = &ldap.Source{}

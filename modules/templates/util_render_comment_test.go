@@ -15,7 +15,7 @@ import (
 )
 
 func TestRenderTimelineEventComment(t *testing.T) {
-	ctx := reqctx.NewRequestContextForTest(t.Context())
+	ctx := reqctx.NewRequestContextForTest(t)
 	ctx.SetContextValue(translation.ContextKey, &translation.MockLocale{})
 	ut := &RenderUtils{ctx: ctx}
 	var createdStr template.HTML = "(created-at)"

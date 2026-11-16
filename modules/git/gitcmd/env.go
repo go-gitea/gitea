@@ -6,12 +6,20 @@ package gitcmd
 import (
 	"fmt"
 	"os/exec"
+	"sync/atomic"
 
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 )
 
 var GitExecutable = "git" // the command name of git, will be updated to an absolute path during initialization
+
+var extraEnvs atomic.Pointer[[]string]
+
+// SetExtraEnvs adds envs to every git command, the git proxy routes git's network remotes with them
+func SetExtraEnvs(envs []string) {
+	extraEnvs.Store(&envs)
+}
 
 // SetExecutablePath changes the path of git executable and checks the file permission and version.
 func SetExecutablePath(path string) error {

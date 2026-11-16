@@ -13,14 +13,18 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/tests"
@@ -42,6 +46,7 @@ func TestAPIActionsWorkflowRun(t *testing.T) {
 	t.Run("GetWorkflowJobLogsNotFound", testAPIActionsGetWorkflowJobLogsNotFound)
 	// finishes run 793, so it must come after everything that needs it still running
 	t.Run("CancelWorkflowRun", testAPIActionsCancelWorkflowRun)
+	t.Run("ForceCancelWorkflowRun", testAPIActionsForceCancelWorkflowRun)
 	t.Run("ApproveWorkflowRun", testAPIActionsApproveWorkflowRun)
 	// deletes run 795, so it must come after everything that reads it
 	t.Run("DeleteRunGeneral", testAPIActionsDeleteRunGeneral)
@@ -63,6 +68,12 @@ func testAPIActionsGetWorkflowRun(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/803", repo.FullName())).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
+	})
+
+	t.Run("ListRunsUnknownActor", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs?actor=no-such-user", repo.FullName())).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("GetJobSteps", func(t *testing.T) {
@@ -188,13 +199,11 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 		session := loginUser(t, user.Name)
 		writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusBadRequest)
-
-		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/jobs/194/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusBadRequest)
+		for _, endpoint := range []string{"runs/793/rerun", "runs/793/jobs/194/rerun"} {
+			req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/%s", repo.FullName(), endpoint)).
+				AddTokenAuth(writeToken)
+			MakeRequest(t, req, http.StatusBadRequest)
+		}
 	})
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
@@ -203,6 +212,13 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 
 	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	for _, jobID := range []int64{198, 199} {
+		job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: jobID})
+		job.WorkflowPayload = minimalConcurrentWorkflowPayload(job.JobID)
+		_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "workflow_payload")
+		require.NoError(t, err)
+	}
 
 	t.Run("RunLogs", func(t *testing.T) {
 		// run 795 (workflow "test.yaml") has job 198 "job_1" on task 53 and job 199 "job_2" on task 54
@@ -295,41 +311,30 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, hasLatestAttempt)
 
-		job198 := getLatestAttemptJobByTemplateJobID(t, 795, 198)
-		assert.Equal(t, actions_model.StatusWaiting, job198.Status)
-		assert.Equal(t, latestAttempt.Attempt, job198.Attempt)
-		assert.Equal(t, int64(0), job198.TaskID)
-
-		job199 := getLatestAttemptJobByTemplateJobID(t, 795, 199)
-		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
-		assert.Equal(t, latestAttempt.Attempt, job199.Attempt)
-		assert.Equal(t, int64(0), job199.TaskID)
+		for _, jobID := range []int64{198, 199} {
+			job := getLatestAttemptJobByTemplateJobID(t, 795, jobID)
+			assert.Equal(t, actions_model.StatusWaiting, job.Status)
+			assert.Equal(t, latestAttempt.Attempt, job.Attempt)
+			assert.Equal(t, int64(0), job.TaskID)
+		}
 	})
 
-	t.Run("ForbiddenWithoutWriteScope", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
-			AddTokenAuth(readToken)
-		MakeRequest(t, req, http.StatusForbidden)
-	})
-
-	t.Run("NotFound", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("NotFoundJob", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/999999/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("NoLogsAfterRerun", func(t *testing.T) {
+	for _, testCase := range []struct {
+		name, method, endpoint, token string
+		status                        int
+	}{
+		{"ForbiddenWithoutWriteScope", "POST", "runs/795/rerun", readToken, http.StatusForbidden},
+		{"NotFound", "POST", "runs/999999/rerun", writeToken, http.StatusNotFound},
+		{"NotFoundJob", "POST", "runs/795/jobs/999999/rerun", writeToken, http.StatusNotFound},
 		// the full rerun above cleared both TaskID and SourceTaskID on every latest-attempt job
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
+		{"NoLogsAfterRerun", "GET", "runs/795/logs", writeToken, http.StatusNotFound},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			req := NewRequest(t, testCase.method, fmt.Sprintf("/api/v1/repos/%s/actions/%s", repo.FullName(), testCase.endpoint)).
+				AddTokenAuth(testCase.token)
+			MakeRequest(t, req, testCase.status)
+		})
+	}
 }
 
 func testAPIActionsCancelWorkflowRun(t *testing.T) {
@@ -373,6 +378,131 @@ func testAPIActionsCancelWorkflowRun(t *testing.T) {
 	})
 }
 
+func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	ownerSession := loginUser(t, owner.Name)
+	ownerToken := getTokenForLoggedInUser(t, ownerSession, auth_model.AccessTokenScopeWriteRepository)
+
+	// repo4's master head, so the run's commit statuses are created against a commit that exists
+	const commitSHA = "c7cd3cd144e6d23c9d6f3d07e52b2c1a956e0338"
+	eventPayload, err := json.Marshal(&api.PushPayload{HeadCommit: &api.PayloadCommit{ID: commitSHA}})
+	require.NoError(t, err)
+
+	// A running run whose runner advertises cancelling support and reports on time:
+	// a normal cancel only starts the graceful cancelling handshake, so only a force-cancel finishes it.
+	run := &actions_model.ActionRun{
+		Title:         "force-cancel-test",
+		RepoID:        repo.ID,
+		OwnerID:       repo.OwnerID,
+		WorkflowID:    "force-cancel.yaml",
+		Index:         9601,
+		TriggerUserID: owner.ID,
+		Ref:           "refs/heads/master",
+		CommitSHA:     commitSHA,
+		Event:         "push",
+		TriggerEvent:  "push",
+		EventPayload:  string(eventPayload),
+		Status:        actions_model.StatusRunning,
+		Started:       timeutil.TimeStampNow(),
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+
+	attempt := &actions_model.ActionRunAttempt{
+		RepoID:        run.RepoID,
+		RunID:         run.ID,
+		Attempt:       1,
+		TriggerUserID: owner.ID,
+		Status:        actions_model.StatusRunning,
+		Started:       timeutil.TimeStampNow(),
+	}
+	require.NoError(t, db.Insert(t.Context(), attempt))
+	run.LatestAttemptID = attempt.ID
+	require.NoError(t, actions_model.UpdateRun(t.Context(), run, "latest_attempt_id"))
+
+	job := &actions_model.ActionRunJob{
+		RunID:        run.ID,
+		RunAttemptID: attempt.ID,
+		RepoID:       run.RepoID,
+		OwnerID:      run.OwnerID,
+		CommitSHA:    run.CommitSHA,
+		Name:         "job1",
+		Attempt:      1,
+		JobID:        "job1",
+		Status:       actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+
+	runner := &actions_model.ActionRunner{
+		UUID:                 "force-cancel-runner",
+		Name:                 "force-cancel-runner",
+		RepoID:               repo.ID,
+		HasCancellingSupport: true,
+	}
+	runner.GenerateAndFillToken()
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	task := &actions_model.ActionTask{
+		JobID:     job.ID,
+		Attempt:   1,
+		RunnerID:  runner.ID,
+		Status:    actions_model.StatusRunning,
+		Started:   timeutil.TimeStampNow(),
+		RepoID:    run.RepoID,
+		OwnerID:   run.OwnerID,
+		CommitSHA: run.CommitSHA,
+	}
+	require.NoError(t, db.Insert(t.Context(), task))
+
+	job.TaskID = task.ID
+	_, err = actions_model.UpdateRunJob(t.Context(), job, nil, "task_id")
+	require.NoError(t, err)
+
+	cancelURL := fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/cancel", repo.FullName(), run.ID)
+	forceCancelURL := fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/force-cancel", repo.FullName(), run.ID)
+
+	// a normal cancel only starts the graceful handshake
+	MakeRequest(t, NewRequest(t, "POST", cancelURL).AddTokenAuth(ownerToken), http.StatusOK)
+	cancellingTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.ID})
+	assert.Equal(t, actions_model.StatusCancelling, cancellingTask.Status)
+
+	// the commit status describes the cancellation, not the job's pre-cancel state
+	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, commitSHA, db.ListOptionsAll)
+	require.NoError(t, err)
+	require.Len(t, statuses, 1)
+	assert.Equal(t, "Canceling", statuses[0].Description)
+
+	// force-cancel bypasses the handshake and finishes the run immediately
+	resp := MakeRequest(t, NewRequest(t, "POST", forceCancelURL).AddTokenAuth(ownerToken), http.StatusOK)
+	cancelledRun := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
+	assert.Equal(t, "completed", cancelledRun.Status)
+	assert.Equal(t, "cancelled", cancelledRun.Conclusion)
+
+	cancelledTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.ID})
+	assert.Equal(t, actions_model.StatusCancelled, cancelledTask.Status)
+	gotAttempt := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: attempt.ID})
+	assert.Equal(t, actions_model.StatusCancelled, gotAttempt.Status)
+	gotRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+	assert.Equal(t, actions_model.StatusCancelled, gotRun.Status)
+
+	// the run is done, so its commit status must be final instead of pending
+	statuses, err = git_model.GetLatestCommitStatus(t.Context(), repo.ID, commitSHA, db.ListOptionsAll)
+	require.NoError(t, err)
+	require.Len(t, statuses, 1)
+	assert.Equal(t, commitstatus.CommitStatusFailure, statuses[0].State)
+
+	// both endpoints refuse the completed run
+	MakeRequest(t, NewRequest(t, "POST", cancelURL).AddTokenAuth(ownerToken), http.StatusConflict)
+	MakeRequest(t, NewRequest(t, "POST", forceCancelURL).AddTokenAuth(ownerToken), http.StatusConflict)
+
+	// the route is guarded like /cancel: user2 has no access to repo4, owned by user5
+	user2Token := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteRepository)
+	MakeRequest(t, NewRequest(t, "POST", forceCancelURL).AddTokenAuth(user2Token), http.StatusForbidden)
+
+	missingRunURL := fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/force-cancel", repo.FullName())
+	MakeRequest(t, NewRequest(t, "POST", missingRunURL).AddTokenAuth(ownerToken), http.StatusNotFound)
+}
+
 func testAPIActionsApproveWorkflowRun(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	// user5 owns repo4, user4 is a write collaborator on it, user2 has no access at all
@@ -393,6 +523,7 @@ func testAPIActionsApproveWorkflowRun(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunJob{
 			RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA,
 			Name: "job1", Attempt: 1, JobID: "job1", Status: actions_model.StatusBlocked, RunsOn: []string{"ubuntu-latest"},
+			WorkflowPayload: minimalConcurrentWorkflowPayload("job1"),
 		}))
 		return run
 	}
@@ -451,6 +582,7 @@ func testAPIActionsApproveWorkflowRun(t *testing.T) {
 
 func testAPIActionsListUserWorkflows(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 2, Type: unit.TypeActions, Config: &repo_model.ActionsConfig{}}))
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
@@ -601,39 +733,29 @@ func testAPIActionsGetWorkflowJobLogsNotFound(t *testing.T) {
 func TestAPIOrgActionsRunsAccessControl(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	checkAccess := func(token, runMessage, jobMessage string) {
+		req := NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
+		for _, run := range runs.Entries {
+			assert.NotEqual(t, int64(802), run.ID, runMessage)
+		}
+
+		req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+		for _, job := range jobs.Entries {
+			assert.NotEqual(t, int64(802), job.RunID, jobMessage)
+		}
+	}
+
 	// org3 has action run 802 (and its jobs) in the private repo5; user28 is an org3 member
 	// (teams 12/13) with no access to repo5.
 	token := getUserToken(t, "user28", auth_model.AccessTokenScopeReadOrganization)
-
-	req := NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
-	for _, r := range runs.Entries {
-		assert.NotEqual(t, int64(802), r.ID, "must not leak a run from an inaccessible repo")
-	}
-
-	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
-	for _, j := range jobs.Entries {
-		assert.NotEqual(t, int64(802), j.RunID, "must not leak a job from an inaccessible repo run")
-	}
+	checkAccess(token, "must not leak a run from an inaccessible repo", "must not leak a job from an inaccessible repo run")
 
 	// user1 is a site admin: it normally bypasses the per-repo access filter, but a public-only token
 	// must stay confined to public repos, so the run/job in the private repo5 must not be listed.
 	adminPublicOnly := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopePublicOnly)
-
-	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(adminPublicOnly)
-	resp = MakeRequest(t, req, http.StatusOK)
-	adminRuns := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
-	for _, r := range adminRuns.Entries {
-		assert.NotEqual(t, int64(802), r.ID, "a public-only admin token must not list a private repo's run")
-	}
-
-	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(adminPublicOnly)
-	resp = MakeRequest(t, req, http.StatusOK)
-	adminJobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
-	for _, j := range adminJobs.Entries {
-		assert.NotEqual(t, int64(802), j.RunID, "a public-only admin token must not list a private repo's job")
-	}
+	checkAccess(adminPublicOnly, "a public-only admin token must not list a private repo's run", "a public-only admin token must not list a private repo's job")
 }

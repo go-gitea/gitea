@@ -21,7 +21,7 @@ var (
 
 func newOAuth2CommonHandlers() *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
-		OwnerID:            0,
+		Owner:              nil, // instance-wide
 		BasePathList:       setting.AppSubURL + "/-/admin/applications",
 		BasePathEditPrefix: setting.AppSubURL + "/-/admin/applications/oauth2",
 		TplAppEdit:         tplSettingsOauth2ApplicationEdit,
@@ -37,7 +37,7 @@ func Applications(ctx *context.Context) {
 		IsGlobal: true,
 	})
 	if err != nil {
-		ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Applications"] = apps

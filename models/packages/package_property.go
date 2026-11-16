@@ -30,9 +30,9 @@ const (
 // PackageProperty represents a property of a package, version or file
 type PackageProperty struct {
 	ID      int64        `xorm:"pk autoincr"`
-	RefType PropertyType `xorm:"INDEX NOT NULL"`
-	RefID   int64        `xorm:"INDEX NOT NULL"`
-	Name    string       `xorm:"INDEX NOT NULL"`
+	RefType PropertyType `xorm:"NOT NULL"`
+	RefID   int64        `xorm:"INDEX(ref_id_name) NOT NULL"`
+	Name    string       `xorm:"INDEX(ref_id_name) NOT NULL"`
 	Value   string       `xorm:"LONGTEXT NOT NULL"`
 }
 

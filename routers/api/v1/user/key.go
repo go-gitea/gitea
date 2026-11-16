@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
@@ -18,6 +19,7 @@ import (
 	"gitea.dev/routers/api/v1/repo"
 	"gitea.dev/routers/api/v1/utils"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 )
@@ -121,6 +123,8 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listPublicKeys(ctx, ctx.Doer)
 }
@@ -153,8 +157,8 @@ func ListPublicKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	listPublicKeys(ctx, ctx.ContextUser)
 }
@@ -176,8 +180,8 @@ func GetPublicKey(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKey"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -215,6 +219,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 		repo.HandleAddKeyError(ctx, err)
 		return
 	}
+	audit.Record(ctx, audit_model.UserKeySSHAdd, audit.ScopeFromUserID(ctx, uid), "fingerprint", key.Fingerprint)
 	apiLink := composePublicKeysAPILink()
 	apiKey := convert.ToPublicKey(apiLink, key)
 	if ctx.Doer.IsAdmin || ctx.Doer.ID == key.OwnerID {
@@ -240,10 +245,10 @@ func CreatePublicKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PublicKey"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*api.CreateKeyOption)
+	form := web.GetForm[*api.CreateKeyOption](ctx)
 	CreateUserPublicKey(ctx, *form, ctx.Doer.ID)
 }
 
@@ -264,10 +269,8 @@ func DeletePublicKey(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
 		ctx.APIErrorNotFound("ssh keys setting is not allowed to be changed")

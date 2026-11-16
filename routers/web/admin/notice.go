@@ -30,14 +30,14 @@ func Notices(ctx *context.Context) {
 
 	notices, err := system_model.Notices(ctx, page, setting.UI.Admin.NoticePagingNum)
 	if err != nil {
-		ctx.ServerError("Notices", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Notices"] = notices
 
 	ctx.Data["Total"] = total
 
-	ctx.Data["Page"] = context.NewPagination(total, setting.UI.Admin.NoticePagingNum, page, 5)
+	ctx.Data["Page"] = context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.Admin.NoticePagingNum).CurPage(page).Build()
 
 	ctx.HTML(http.StatusOK, tplNotices)
 }
@@ -65,7 +65,7 @@ func DeleteNotices(ctx *context.Context) {
 // EmptyNotices delete all the notices
 func EmptyNotices(ctx *context.Context) {
 	if err := system_model.DeleteNotices(ctx, 0, 0); err != nil {
-		ctx.ServerError("DeleteNotices", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

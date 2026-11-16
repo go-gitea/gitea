@@ -7,26 +7,26 @@
 			It might be renamed to "link-fetch-action" to match the "form-fetch-action".
 		</div>
 		<div>
-			<button class="link-action" data-url="fetch-action-test?k=1">test action</button>
-			<button class="link-action" data-url="fetch-action-test?k=1" data-modal-confirm="confirm?">test with confirm</button>
-			<button class="ui red button link-action" data-url="fetch-action-test?k=1" data-modal-confirm="confirm?">test with risky confirm</button>
-			<button class="ui button link-action" data-url="fetch-action-test?k=1" data-modal-confirm-header="confirm header" data-modal-confirm-content="confirm content">test with confirm header</button>
+			<button type="button" class="link-action" data-url="fetch-action-test?k=1">test action</button>
+			<button type="button" class="link-action" data-url="fetch-action-test?k=1" data-modal-confirm="confirm?">test with confirm</button>
+			<button type="button" class="ui red button link-action" data-url="fetch-action-test?k=1" data-modal-confirm="confirm?">test with risky confirm</button>
+			<button type="button" class="ui button link-action" data-url="fetch-action-test?k=1" data-modal-confirm-header="confirm header" data-modal-confirm-content="confirm content">test with confirm header</button>
 		</div>
 	</div>
 	<div>
 		<h1>form-fetch-action</h1>
 		<div class="flex-relaxed-list fetch-action-demo-forms">
 			<form method="get" action="./fetch-action-test?k=1" class="form-fetch-action">
-				<button name="btn">submit get</button>
+				<button type="submit" name="btn">submit get</button>
 			</form>
 			<form method="post" action="./fetch-action-test?k=1" class="form-fetch-action">
 				<div><textarea name="text" rows="3"></textarea></div>
 				<div><label><input name="check" type="checkbox"> check</label></div>
-				<div><button name="btn">submit post</button></div>
+				<div><button type="submit" name="btn">submit post</button></div>
 			</form>
 			<form method="post" action="/-/no-such-uri" class="form-fetch-action">
 				<div class="tw-py-8">bad action url</div>
-				<div><button name="btn">submit test</button></div>
+				<div><button type="submit" name="btn">submit test</button></div>
 			</form>
 		</div>
 	</div>

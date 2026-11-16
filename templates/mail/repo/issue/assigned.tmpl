@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<title>{{.Subject}}</title>
+	{{template "mail/base/head" .Subject}}
 </head>
 
 {{$repo_url := HTMLFormat "<a href='%s'>%s</a>" .Issue.Repo.HTMLURL .Issue.Repo.FullName}}
@@ -10,17 +9,12 @@
 <body>
 	<p>
 		{{if .IsPull}}
-			{{.locale.Tr "mail.issue_assigned.pull" .Doer.Name $link $repo_url}}
+			{{.locale.Tr "mail.issue_assigned.pull" .Doer.DisplayNameWithFullName $link $repo_url}}
 		{{else}}
-			{{.locale.Tr "mail.issue_assigned.issue" .Doer.Name $link $repo_url}}
+			{{.locale.Tr "mail.issue_assigned.issue" .Doer.DisplayNameWithFullName $link $repo_url}}
 		{{end}}
 	</p>
-	<div style="font-size:small; color:#666;">
-		<p>
-			---
-			<br>
-			<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
-		</p>
-	</div>
+	{{if .CanReply}}<p>{{.locale.Tr "mail.reply_directly"}}.</p>{{end}}
+	{{template "mail/base/footer"}}
 </body>
 </html>

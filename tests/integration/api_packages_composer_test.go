@@ -5,6 +5,8 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	neturl "net/url"
@@ -56,6 +58,7 @@ func TestPackageComposer(t *testing.T) {
 		]
 	}`,
 	}).Bytes()
+	contentChecksum := sha1.Sum(content)
 
 	url := fmt.Sprintf("%sapi/packages/%s/composer", setting.AppURL, user.Name)
 
@@ -193,25 +196,30 @@ func TestPackageComposer(t *testing.T) {
 	t.Run("PackageMetadata", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
-			AddBasicAuth(user.Name)
-		resp := MakeRequest(t, req, http.StatusOK)
+		assertPackageMetadata := func() []*composer.PackageVersionMetadata {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
+				AddBasicAuth(user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
 
-		result := DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+			result := DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
 
-		assert.Contains(t, result.Packages, packageName)
-		pkgs := result.Packages[packageName]
-		assert.Len(t, pkgs, 1)
-		assert.Equal(t, packageName, pkgs[0].Name)
-		assert.Equal(t, packageVersion, pkgs[0].Version)
-		assert.Equal(t, packageType, pkgs[0].Type)
-		assert.Equal(t, packageDescription, pkgs[0].Description)
-		assert.Len(t, pkgs[0].Authors, 1)
-		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
-		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
-		assert.Len(t, pkgs[0].Bin, 1)
-		assert.Equal(t, packageBin, pkgs[0].Bin[0])
+			assert.Contains(t, result.Packages, packageName)
+			pkgs := result.Packages[packageName]
+			assert.Len(t, pkgs, 1)
+			assert.Equal(t, packageName, pkgs[0].Name)
+			assert.Equal(t, packageVersion, pkgs[0].Version)
+			assert.Equal(t, packageType, pkgs[0].Type)
+			assert.Equal(t, packageDescription, pkgs[0].Description)
+			assert.Len(t, pkgs[0].Authors, 1)
+			assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
+			assert.Equal(t, "zip", pkgs[0].Dist.Type)
+			assert.Equal(t, hex.EncodeToString(contentChecksum[:]), pkgs[0].Dist.Checksum)
+			assert.Len(t, pkgs[0].Bin, 1)
+			assert.Equal(t, packageBin, pkgs[0].Bin[0])
+			return pkgs
+		}
+
+		assertPackageMetadata()
 
 		// Test package linked to repository
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -223,25 +231,7 @@ func TestPackageComposer(t *testing.T) {
 		err = packages.SetRepositoryLink(t.Context(), userPkgs[0].ID, repo1.ID)
 		assert.NoError(t, err)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
-			AddBasicAuth(user.Name)
-		resp = MakeRequest(t, req, http.StatusOK)
-
-		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
-
-		assert.Contains(t, result.Packages, packageName)
-		pkgs = result.Packages[packageName]
-		assert.Len(t, pkgs, 1)
-		assert.Equal(t, packageName, pkgs[0].Name)
-		assert.Equal(t, packageVersion, pkgs[0].Version)
-		assert.Equal(t, packageType, pkgs[0].Type)
-		assert.Equal(t, packageDescription, pkgs[0].Description)
-		assert.Len(t, pkgs[0].Authors, 1)
-		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
-		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
-		assert.Len(t, pkgs[0].Bin, 1)
-		assert.Equal(t, packageBin, pkgs[0].Bin[0])
+		pkgs := assertPackageMetadata()
 		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
 		assert.Equal(t, "git", pkgs[0].Source.Type)
 		assert.Equal(t, packageVersion, pkgs[0].Source.Reference)
@@ -251,11 +241,11 @@ func TestPackageComposer(t *testing.T) {
 		err = packages.SetRepositoryLink(t.Context(), userPkgs[0].ID, repo2.ID)
 		assert.NoError(t, err)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
 			AddBasicAuth(user.Name)
-		resp = MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		result := DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
 		pkgs = result.Packages[packageName]
 		assert.Len(t, pkgs, 1)
 		assert.Equal(t, repo2.HTMLURL(), pkgs[0].Source.URL)

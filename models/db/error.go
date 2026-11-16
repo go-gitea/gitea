@@ -14,12 +14,6 @@ type ErrCancelled struct {
 	Message string
 }
 
-// IsErrCancelled checks if an error is a ErrCancelled.
-func IsErrCancelled(err error) bool {
-	_, ok := err.(ErrCancelled)
-	return ok
-}
-
 func (err ErrCancelled) Error() string {
 	return "Cancelled: " + err.Message
 }

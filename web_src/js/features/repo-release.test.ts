@@ -1,6 +1,6 @@
 import {guessPreviousReleaseTag} from './repo-release.ts';
 
-test('guessPreviousReleaseTag', async () => {
+test('guessPreviousReleaseTag', () => {
   expect(guessPreviousReleaseTag('v0.9', ['v1.0', 'v1.2', 'v1.4', 'v1.6'])).toBe('');
   expect(guessPreviousReleaseTag('1.3', ['v1.0', 'v1.2', 'v1.4', 'v1.6'])).toBe('v1.2');
   expect(guessPreviousReleaseTag('rel/1.3', ['v1.0', 'v1.2', 'v1.4', 'v1.6'])).toBe('v1.2');

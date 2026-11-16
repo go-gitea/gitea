@@ -42,8 +42,10 @@ func UpdateUserSettings(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserSettings"
+	//   default:
+	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*api.UserSettingsOptions)
+	form := web.GetForm[*api.UserSettingsOptions](ctx)
 
 	opts := &user_service.UpdateOptions{
 		FullName:            optional.FromPtr(form.FullName),

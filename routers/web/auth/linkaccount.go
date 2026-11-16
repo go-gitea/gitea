@@ -38,6 +38,7 @@ func prepareLinkAccountPageData(ctx *context.Context) {
 	ctx.Data["ShowRegistrationButton"] = false
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 
+	// FIXME: this logic is not right: captcha is enabled, but LinkAccountPostSignIn never checks for captcha
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha,
 	})
@@ -65,7 +66,7 @@ func LinkAccount(ctx *context.Context) {
 
 	uname, err := extractUserNameFromOAuth2(&linkAccountData.GothUser)
 	if err != nil {
-		ctx.ServerError("UserSignIn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	email := linkAccountData.GothUser.Email
@@ -75,7 +76,7 @@ func LinkAccount(ctx *context.Context) {
 	if email != "" {
 		u, err := user_model.GetUserByEmail(ctx, email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if u != nil {
@@ -84,7 +85,7 @@ func LinkAccount(ctx *context.Context) {
 	} else if uname != "" {
 		u, err := user_model.GetUserByName(ctx, uname)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if u != nil {
@@ -95,7 +96,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplLinkAccount)
 }
 
-func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl templates.TplName, invoker string, err error) {
+func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl templates.TplName, err error) {
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if errors.Is(err, util.ErrInvalidArgument) {
@@ -107,13 +108,13 @@ func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl 
 		ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 		ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 	} else {
-		ctx.ServerError(invoker, err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
 func LinkAccountPostSignIn(ctx *context.Context) {
-	signInForm := web.GetForm(ctx).(*forms.SignInForm)
+	signInForm := web.GetForm[*forms.SignInForm](ctx)
 
 	ctx.Data["LinkAccountModeSignIn"] = true
 
@@ -121,7 +122,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 
 	linkAccountData := oauth2GetLinkAccountData(ctx)
 	if linkAccountData == nil {
-		ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
+		ctx.ServerErrorAuto(errors.New("not in LinkAccount session"))
 		return
 	}
 
@@ -132,7 +133,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 
 	u, _, err := auth_service.UserSignIn(ctx, signInForm.UserName, signInForm.Password)
 	if err != nil {
-		handleSignInError(ctx, signInForm.UserName, &signInForm, tplLinkAccount, "UserLinkAccount", err)
+		handleSignInError(ctx, signInForm.UserName, &signInForm, tplLinkAccount, err)
 		return
 	}
 
@@ -148,16 +149,14 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
 	// We deliberately ignore the skip local 2fa setting here because we are linking to a previous user here
-	_, err := auth.GetTwoFactorByUID(ctx, u.ID)
+	hasTwoFactor, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 	if err != nil {
-		if !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("UserLinkAccount", err)
-			return
-		}
-
-		err = externalaccount.LinkAccountToUser(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser)
-		if err != nil {
-			ctx.ServerError("UserLinkAccount", err)
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	if !hasTwoFactor {
+		if err := externalaccount.LinkAccountToUser(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser); err != nil {
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -166,34 +165,19 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 	}
 
 	if err := Oauth2SetLinkAccountData(ctx, *linkAccountData); err != nil {
-		ctx.ServerError("Oauth2SetLinkAccountData", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	if err := regenerateSession(ctx, map[string]any{
-		// User needs to use 2FA, save data and redirect to 2FA page.
-		"twofaUid":              u.ID,
-		"twofaRemember":         remember,
+	handleTwoFactorRequired(ctx, u, remember, map[string]any{
 		"linkAccount":           true,
 		session.KeySignInMethod: session.SignInMethodOAuth2,
-	}); err != nil {
-		ctx.ServerError("RegenerateSession", err)
-		return
-	}
-
-	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
-	if err == nil && len(regs) > 0 {
-		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
+	})
 }
 
 // LinkAccountPostRegister handle the creation of a new account for an external account using signUp
 func LinkAccountPostRegister(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RegisterForm)
+	form := web.GetForm[*forms.RegisterForm](ctx)
 
 	ctx.Data["LinkAccountModeRegister"] = true
 
@@ -201,7 +185,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 
 	linkAccountData := oauth2GetLinkAccountData(ctx)
 	if linkAccountData == nil {
-		ctx.ServerError("UserSignUp", errors.New("not in LinkAccount session"))
+		ctx.ServerErrorAuto(errors.New("not in LinkAccount session"))
 		return
 	}
 	if ctx.HasError() {
@@ -215,8 +199,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha {
-		context.VerifyCaptcha(ctx, tplLinkAccount, form)
-		if ctx.Written() {
+		if !context.VerifyCaptcha(ctx, tplLinkAccount, form) {
 			return
 		}
 	}
@@ -267,19 +250,23 @@ func LinkAccountPostRegister(ctx *context.Context) {
 
 	authSource, err := auth.GetSourceByID(ctx, linkAccountData.AuthSourceID)
 	if err != nil {
-		ctx.ServerError("GetSourceByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
-	source := authSource.Cfg.(*oauth2.Source)
+	source := auth.MustSourceCfg[*oauth2.Source](authSource)
 	if err := syncGroupsToTeams(ctx, source, &linkAccountData.GothUser, u); err != nil {
-		ctx.ServerError("SyncGroupsToTeams", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	handleSignIn(ctx, u, false)
 }
 
-func linkAccountFromContext(ctx *context.Context, user *user_model.User) error {
+func completePendingLinks(ctx *context.Context, user *user_model.User) error {
+	if ctx.Session.Get("linkAccount") == nil {
+		return nil
+	}
+
 	linkAccountData := oauth2GetLinkAccountData(ctx)
 	if linkAccountData == nil {
 		return errors.New("not in LinkAccount session")

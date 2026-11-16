@@ -9,6 +9,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -39,6 +40,29 @@ func (tasks TaskList) LoadJobs(ctx context.Context) error {
 		jobsList = append(jobsList, j)
 	}
 	return jobsList.LoadAttributes(ctx, true)
+}
+
+func (tasks TaskList) LoadSteps(ctx context.Context) error {
+	taskIDs := container.FilterSlice(tasks, func(task *ActionTask) (int64, bool) {
+		return task.ID, task.Steps == nil
+	})
+	if len(taskIDs) == 0 {
+		return nil
+	}
+	var steps []*ActionTaskStep
+	if err := db.GetEngine(ctx).In("task_id", taskIDs).OrderBy("task_id, `index`").Find(&steps); err != nil {
+		return err
+	}
+	stepsByTask := make(map[int64][]*ActionTaskStep, len(taskIDs))
+	for _, step := range steps {
+		stepsByTask[step.TaskID] = append(stepsByTask[step.TaskID], step)
+	}
+	for _, task := range tasks {
+		if task.Steps == nil {
+			task.Steps = util.SliceNilAsEmpty(stepsByTask[task.ID])
+		}
+	}
+	return nil
 }
 
 func (tasks TaskList) LoadAttributes(ctx context.Context) error {

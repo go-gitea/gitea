@@ -34,7 +34,7 @@ func Stacktrace(ctx *context.Context) {
 		showNoSystem := show == "process"
 		processStacks, processCount, _, err := process.GetManager().ProcessStacktraces(false, showNoSystem)
 		if err != nil {
-			ctx.ServerError("GoroutineStacktrace", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 

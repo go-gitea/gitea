@@ -15,24 +15,14 @@ import (
 )
 
 func TestLogIndexes_ToDB(t *testing.T) {
-	tests := []struct {
-		indexes LogIndexes
-	}{
-		{
-			indexes: []int64{1, 2, 0, -1, -2, math.MaxInt64, math.MinInt64},
-		},
-	}
-	for _, tt := range tests {
-		t.Run("", func(t *testing.T) {
-			got, err := tt.indexes.ToDB()
-			require.NoError(t, err)
+	inputIndexes := LogIndexes{1, 2, 0, -1, -2, math.MaxInt64, math.MinInt64}
+	got, err := inputIndexes.ToDB()
+	require.NoError(t, err)
 
-			indexes := LogIndexes{}
-			require.NoError(t, indexes.FromDB(got))
+	indexes := LogIndexes{}
+	require.NoError(t, indexes.FromDB(got))
 
-			assert.Equal(t, tt.indexes, indexes)
-		})
-	}
+	assert.Equal(t, inputIndexes, indexes)
 }
 
 func Test_calculateDuration(t *testing.T) {
@@ -72,6 +62,14 @@ func Test_calculateDuration(t *testing.T) {
 				status:  StatusRunning,
 			},
 			want: 500 * time.Second,
+		},
+		{
+			name: "running started in the future",
+			args: args{
+				started: 1005,
+				status:  StatusRunning,
+			},
+			want: 0,
 		},
 		{
 			name: "done",

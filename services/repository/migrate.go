@@ -71,7 +71,7 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
 func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *repo_model.Repository, opts migration.MigrateOptions,
-	httpTransport *http.Transport,
+	httpTransport http.RoundTripper,
 ) (*repo_model.Repository, error) {
 	if u.IsOrganization() {
 		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
@@ -145,7 +145,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		if _, _, err := repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, u.ID); err != nil {
-			return repo, fmt.Errorf("SyncRepoBranchesWithRepo: %v", err)
+			return repo, fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
 		}
 
 		// if releases migration are not requested, we will sync all tags here

@@ -60,15 +60,9 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, timeout time.Duration, re
 		entryNames = append(entryNames, entry.Name())
 	}
 
-	var revs map[string]*Commit
-	var remainingEntryNames []string
-	if gitRepo.LastCommitCache != nil {
-		revs, remainingEntryNames, err = getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryNames, gitRepo.LastCommitCache)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		revs, remainingEntryNames = map[string]*Commit{}, entryNames
+	revs, remainingEntryNames, err := getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryNames, gitRepo.LastCommitCache)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if len(remainingEntryNames) > 0 {
@@ -118,4 +112,37 @@ func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string
 	}
 
 	return results, unHitEntryPaths, nil
+}
+
+// GetLastCommitForPaths returns last commit information
+func GetLastCommitForPaths(ctx context.Context, gitRepo *Repository, commit *Commit, treePath string, paths []string) (map[string]*Commit, error) {
+	// We read backwards from the commit to obtain all of the commits
+	revs, err := walkGitLog(ctx, gitRepo, commit, treePath, paths...)
+	if err != nil {
+		return nil, err
+	}
+
+	commitsMap := map[string]*Commit{}
+	commitsMap[commit.ID.String()] = commit
+
+	commitCommits := map[string]*Commit{}
+	for path, commitID := range revs {
+		if len(commitID) == 0 {
+			continue
+		}
+
+		c, ok := commitsMap[commitID]
+		if ok {
+			commitCommits[path] = c
+			continue
+		}
+
+		c, err := gitRepo.GetCommit(ctx, commitID) // Ensure the commit exists in the repository
+		if err != nil {
+			return nil, err
+		}
+		commitCommits[path] = c
+	}
+
+	return commitCommits, nil
 }

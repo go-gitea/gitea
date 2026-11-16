@@ -8,10 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,14 +59,21 @@ func TestAdminUserCreate(t *testing.T) {
 	t.Run("UserType", func(t *testing.T) {
 		reset()
 		assert.ErrorContains(t, createUser("u", "--user-type", "invalid"), "invalid user type")
-		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--password", "123"), "can only be set for individual users")
-		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--must-change-password"), "can only be set for individual users")
+		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--password", "123"), "can only be set for user accounts")
+		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--must-change-password"), "can only be set for user accounts")
+		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--admin"), "bot user can not be a site administrator")
 
 		assert.NoError(t, createUser("u", "--user-type", "bot"))
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"})
 		assert.Equal(t, user_model.UserTypeBot, u.Type)
 		assert.Empty(t, u.Passwd)
 		assert.False(t, u.MustChangePassword, "bot users should not be forced to change password")
+
+		changeType := func(userType string) error {
+			return microcmdUserChangeType().Run(t.Context(), []string{"change-type", "--username", "u", "--user-type", userType})
+		}
+		assert.NoError(t, changeType("User"))
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"}).IsIndividual())
 	})
 
 	t.Run("AccessToken", func(t *testing.T) {
@@ -131,5 +141,17 @@ func TestAdminUserCreate(t *testing.T) {
 		assert.NoError(t, createUser("u-FullNameEmpty", "--random-password", "--fullname", ""))
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u-fullnameempty"})
 		assert.Empty(t, u.FullName)
+	})
+
+	t.Run("AuditEvents", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+		reset()
+		require.NoError(t, db.TruncateBeans(t.Context(), &audit_model.Event{}))
+
+		require.NoError(t, createUser("u", "--random-password", "--access-token"))
+		require.NoError(t, newUserGenerateAccessTokenCommand().Run(t.Context(), []string{"generate-access-token", "--username", "u", "--token-name", "cli-token", "--scopes", "read:user", "--raw"}))
+
+		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserCreate, ScopeName: "u"})
+		unittest.AssertCount(t, &audit_model.Event{Action: audit_model.UserAccessTokenAdd, ScopeName: "u"}, 2)
 	})
 }

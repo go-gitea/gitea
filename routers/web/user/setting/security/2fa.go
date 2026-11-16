@@ -12,12 +12,14 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 
@@ -41,21 +43,23 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		} else {
-			ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
 
 	token, err := t.GenerateScratchToken()
 	if err != nil {
-		ctx.ServerError("SettingsTwoFactor: Failed to GenerateScratchToken", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
 	if err = auth.UpdateTwoFactor(ctx, t); err != nil {
-		ctx.ServerError("SettingsTwoFactor: Failed to UpdateTwoFactor", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserTwoFactorRegenerate, ctx.Doer, "two_factor_id", t.ID)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_scratch_token_regenerated", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -77,7 +81,7 @@ func DisableTwoFactor(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		} else {
-			ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -88,10 +92,12 @@ func DisableTwoFactor(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		} else {
-			ctx.ServerError("SettingsTwoFactor: Failed to DeleteTwoFactorByID", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserTwoFactorDisable, ctx.Doer, "two_factor_id", t.ID)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -100,16 +106,15 @@ func DisableTwoFactor(ctx *context.Context) {
 func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	var otpKey *otp.Key
 	var err error
-	uri := ctx.Session.Get("twofaUri")
-	if uri != nil {
-		otpKey, err = otp.NewKeyFromURL(uri.(string))
+	if uri, ok := ctx.Session.Get("twofaUri").(string); ok {
+		otpKey, err = otp.NewKeyFromURL(uri)
 		if err != nil {
-			ctx.ServerError("SettingsTwoFactor: Failed NewKeyFromURL: ", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 	}
 	// Filter unsafe character ':' in issuer
-	issuer := strings.ReplaceAll(setting.AppName+" ("+setting.Domain+")", ":", "")
+	issuer := strings.ReplaceAll(setting.AppName+" ("+setting.AppDomain+")", ":", "")
 	if otpKey == nil {
 		otpKey, err = totp.Generate(totp.GenerateOpts{
 			SecretSize:  40,
@@ -117,7 +122,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 			AccountName: ctx.Doer.Name,
 		})
 		if err != nil {
-			ctx.ServerError("SettingsTwoFactor: totpGenerate Failed", err)
+			ctx.ServerErrorAuto(err)
 			return false
 		}
 	}
@@ -125,25 +130,25 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	ctx.Data["TwofaSecret"] = otpKey.Secret()
 	img, err := otpKey.Image(320, 240)
 	if err != nil {
-		ctx.ServerError("SettingsTwoFactor: otpKey image generation failed", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 
 	var imgBytes bytes.Buffer
 	if err = png.Encode(&imgBytes, img); err != nil {
-		ctx.ServerError("SettingsTwoFactor: otpKey png encoding failed", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 
 	ctx.Data["QrUri"] = template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(imgBytes.Bytes()))
 
 	if err := ctx.Session.Set("twofaSecret", otpKey.Secret()); err != nil {
-		ctx.ServerError("SettingsTwoFactor: Failed to set session for twofaSecret", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 
 	if err := ctx.Session.Set("twofaUri", otpKey.String()); err != nil {
-		ctx.ServerError("SettingsTwoFactor: Failed to set session for twofaUri", err)
+		ctx.ServerErrorAuto(err)
 		return false
 	}
 
@@ -175,7 +180,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 		return
 	}
 	if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
-		ctx.ServerError("SettingsTwoFactor: GetTwoFactorByUID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -193,7 +198,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.TwoFactorAuthForm)
+	form := web.GetForm[*forms.TwoFactorAuthForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
@@ -206,7 +211,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 	if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
-		ctx.ServerError("SettingsTwoFactor: Failed to check if already enrolled with GetTwoFactorByUID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -218,14 +223,13 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	secretRaw := ctx.Session.Get("twofaSecret")
-	if secretRaw == nil {
+	secret, ok := ctx.Session.Get("twofaSecret").(string)
+	if !ok {
 		ctx.Flash.Error(ctx.Tr("settings.twofa_failed_get_secret"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security/two_factor/enroll")
 		return
 	}
 
-	secret := secretRaw.(string)
 	if !totp.Validate(form.Passcode, secret) {
 		if !twofaGenerateSecretAndQr(ctx) {
 			return
@@ -240,12 +244,12 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	}
 	err = t.SetSecret(secret)
 	if err != nil {
-		ctx.ServerError("SettingsTwoFactor: Failed to set secret", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	token, err := t.GenerateScratchToken()
 	if err != nil {
-		ctx.ServerError("SettingsTwoFactor: Failed to generate scratch token", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -271,9 +275,11 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	if newTwoFactorErr != nil {
 		// FIXME: We need to handle a unique constraint fail here it's entirely possible that another request has beaten us.
 		// If there is a unique constraint fail we should just tolerate the error
-		ctx.ServerError("SettingsTwoFactor: Failed to save two factor", newTwoFactorErr)
+		ctx.ServerErrorAuto(newTwoFactorErr)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserTwoFactorEnable, ctx.Doer)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")

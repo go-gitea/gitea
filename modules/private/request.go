@@ -52,7 +52,7 @@ func (re responseError) Error() string {
 // * If the "res" is a struct pointer, the response will be parsed as JSON
 // * If the "res" is ResponseText pointer, the response will be stored as text in it
 // * If the "res" is responseCallback pointer, the callback function should set the ResponseExtra fields accordingly
-func requestJSONResp[T any](req *httplib.Request, res *T) (ret *T, extra ResponseExtra) {
+func requestJSONResp[T any](req *httplib.ClientRequest, res *T) (ret *T, extra ResponseExtra) {
 	resp, err := req.Response()
 	if err != nil {
 		extra.UserMsg = "Internal Server Connection Error"
@@ -118,7 +118,7 @@ func requestJSONResp[T any](req *httplib.Request, res *T) (ret *T, extra Respons
 
 // requestJSONClientMsg sends a request to the gitea server, server only responds text message status=200 with "success" body
 // If the request succeeds (200), the argument clientSuccessMsg will be used as ResponseExtra.UserMsg.
-func requestJSONClientMsg(req *httplib.Request, clientSuccessMsg string) ResponseExtra {
+func requestJSONClientMsg(req *httplib.ClientRequest, clientSuccessMsg string) ResponseExtra {
 	_, extra := requestJSONResp(req, &ResponseText{})
 	if extra.HasError() {
 		return extra

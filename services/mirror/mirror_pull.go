@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	giturl "gitea.dev/modules/git/url"
@@ -19,11 +19,11 @@ import (
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
-	"gitea.dev/modules/proxy"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/migrations"
 	notify_service "gitea.dev/services/notify"
 	repo_service "gitea.dev/services/repository"
@@ -45,7 +45,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	}
 
 	err = git.ManagedRemoteAdd(ctx, repo, remoteName, addr, git.RemoteOptionMirrorFetch)
-	if err != nil && !git.IsRemoteNotExistError(err) {
+	if err != nil {
 		return err
 	}
 
@@ -58,21 +58,26 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		}
 
 		err = git.ManagedRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, git.RemoteOptionMirrorFetch)
-		if err != nil && !git.IsRemoteNotExistError(err) {
+		if err != nil {
 			return err
 		}
 	}
 
 	// erase authentication before storing in database
 	u.User = nil
+	oldURL := m.Repo.OriginalURL
 	m.Repo.OriginalURL = u.String()
-	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
+	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url"); err != nil {
+		return err
+	}
+	if m.Repo.OriginalURL != oldURL {
+		audit.Record(ctx, audit_model.RepositoryMirrorPullUpdate, m.Repo, "remote_address", m.Repo.OriginalURL)
+	}
+	return nil
 }
 
 func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration) error {
-	cmd := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
-	git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
-	stdout, _, pruneErr := cmd.WithRepo(gitRepo).RunStdString(ctx)
+	stdout, _, pruneErr := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithRepo(gitRepo).RunStdString(ctx)
 	if pruneErr != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
 		stderrMessage := util.SanitizeCredentialURLs(pruneErr.Stderr())
@@ -123,17 +128,15 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			return nil, false
 		}
 	}
-	envs := proxy.EnvWithProxy(remoteURL.URL)
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
 		cmd := gitcmd.NewCommand("fetch", "--tags")
-		git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
-		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
+		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
 	}
 
 	var err error
@@ -210,9 +213,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
-		git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
-		return cmd
+		return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
@@ -266,7 +267,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	for _, branch := range branches {
-		cache.Remove(m.Repo.GetCommitsCountCacheKey(branch, true))
+		git.RemoveCommitsCountCache(m.Repo, git.RefNameFromBranch(branch))
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()

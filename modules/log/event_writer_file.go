@@ -29,7 +29,7 @@ var _ EventWriter = (*eventWriterFile)(nil)
 
 func NewEventWriterFile(name string, mode WriterMode) EventWriter {
 	w := &eventWriterFile{EventWriterBaseImpl: NewEventWriterBase(name, "file", mode)}
-	opt := mode.WriterOption.(WriterFileOption)
+	opt := mode.WriterOption.(WriterFileOption) //nolint:forcetypeassert // a file writer is only created with WriterFileOption
 	var err error
 	w.fileWriter, err = rotatingfilewriter.Open(opt.FileName, &rotatingfilewriter.Options{
 		Rotate:           opt.LogRotate,

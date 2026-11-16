@@ -1,9 +1,10 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
-import {renderAnsiInto} from '../render/ansi.ts';
+import type {AnsiLineRenderer} from '../render/ansi.ts';
 import {reactive} from 'vue';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {IntervalId} from '../types.ts';
-import {POST} from '../modules/fetch.ts';
+import {ExclusiveFetch} from '../modules/fetch.ts';
+import {showErrorToast} from '../modules/toast.ts';
 
 // How GitHub Actions logs work:
 // * Workflow command outputs log commands like "::group::the-title", "::add-matcher::...."
@@ -76,11 +77,11 @@ function decodeLineMessage(line: LogLine, cmd: LogLineCommand | null): string {
   if (cmd.name === 'command') return msg; // "command" is only an output tag, do not parse or escape it
   // "##[cmd]" also escapes ";" and "]" which delimit its header, "::cmd::" does not
   if (!cmd.prefix.startsWith('::')) msg = msg.replace(/%3B/g, ';').replace(/%5D/g, ']');
-  // renderAnsiInto breaks a line per "\r", so "%0D%0A" is one break. "%25" last keeps "%250A" literal
+  // a line breaks per "\r" when rendered, so "%0D%0A" is one break. "%25" last keeps "%250A" literal
   return msg.replace(/(?:%0D)?%0A/g, '\n').replace(/%0D/g, '\r').replace(/%25/g, '%');
 }
 
-export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
+export function createLogLineMessage(ansi: AnsiLineRenderer, line: LogLine, cmd: LogLineCommand | null) {
   const logMsgAttrs = {class: 'log-msg'};
   if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd.name}`; // make it easier to add styles to some commands like "error"
 
@@ -90,10 +91,10 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   if (label) {
     logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
     const msgSpan = document.createElement('span');
-    renderAnsiInto(msgSpan, ` ${msgContent.trimStart()}`);
+    ansi.renderLine(msgSpan, ` ${msgContent.trimStart()}`);
     logMsg.append(msgSpan);
   } else {
-    renderAnsiInto(logMsg, msgContent);
+    ansi.renderLine(logMsg, msgContent);
   }
   return logMsg;
 }
@@ -161,54 +162,44 @@ export function createEmptyActionsRun(): ActionsRun {
 }
 
 export function createActionRunViewStore(viewUrl: string) {
-  let loadingAbortController: AbortController | null = null;
   let intervalID: IntervalId | null = null;
+  const exclusiveFetch = new ExclusiveFetch();
   const viewData = reactive({
     currentRun: createEmptyActionsRun(),
     runArtifacts: [] as Array<ActionsArtifact>,
   });
-  const loadCurrentRun = async () => {
-    if (loadingAbortController) return;
-    const abortController = new AbortController();
-    loadingAbortController = abortController;
-    try {
-      const resp = await POST(viewUrl, {signal: abortController.signal, data: {}});
-      const runResp = await resp.json();
-      if (loadingAbortController !== abortController) return;
 
+  const stopPollingCurrentRun = () => {
+    if (!intervalID) return;
+    clearInterval(intervalID);
+    intervalID = null;
+  };
+
+  const loadCurrentRun = async (force = false) => {
+    if (exclusiveFetch.isInFlight() && !force) return;
+    const resp = exclusiveFetch.request(viewUrl, {method: 'POST', data: {}});
+    resp.onResponseError((details) => {
+      if (details.response?.status === 404) stopPollingCurrentRun();
+      showErrorToast(`Failed to load current job run data: ${details.message}`, {duration: 2500});
+    });
+    await resp.fetchJson((runResp: any) => {
       viewData.runArtifacts = runResp.artifacts || [];
       viewData.currentRun = runResp.state.run;
-      // clear the interval timer if the job is done
-      if (viewData.currentRun.done && intervalID) {
-        clearInterval(intervalID);
-        intervalID = null;
-      }
-    } catch (e) {
-      // avoid network error while unloading page, and ignore "abort" error
-      if (e instanceof TypeError || abortController.signal.aborted) return;
-      throw e;
-    } finally {
-      if (loadingAbortController === abortController) loadingAbortController = null;
-    }
+      if (viewData.currentRun.done) stopPollingCurrentRun();
+    });
   };
 
   return {
     viewData,
 
     async startPollingCurrentRun() {
-      await loadCurrentRun();
       intervalID = setInterval(() => loadCurrentRun(), 1000);
+      await loadCurrentRun();
     },
     async forceReloadCurrentRun() {
-      loadingAbortController?.abort();
-      loadingAbortController = null;
-      await loadCurrentRun();
+      await loadCurrentRun(true);
     },
-    stopPollingCurrentRun() {
-      if (!intervalID) return;
-      clearInterval(intervalID);
-      intervalID = null;
-    },
+    stopPollingCurrentRun,
   };
 }
 

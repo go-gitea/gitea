@@ -6,19 +6,20 @@ package user
 import (
 	"os"
 	"os/user"
-	"runtime"
 	"strings"
+
+	"gitea.dev/modules/consts"
 )
 
-// CurrentUsername return current login OS user name
+// CurrentUsername return current login OS username
 func CurrentUsername() string {
 	userinfo, err := user.Current()
 	if err != nil {
 		return fallbackCurrentUsername()
 	}
 	username := userinfo.Username
-	if runtime.GOOS == "windows" {
-		parts := strings.Split(username, "\\")
+	if consts.IsWindows {
+		parts := strings.Split(username, "\\") // remove domain if present
 		username = parts[len(parts)-1]
 	}
 	return username

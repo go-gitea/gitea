@@ -4,65 +4,113 @@
 package session
 
 import (
-	"bytes"
-	"encoding/gob"
+	"maps"
 	"net/http"
+	"sync"
+	"time"
 
-	"gitea.com/go-chi/session"
+	"gitea.dev/modules/util"
 )
 
-type mockMemRawStore struct {
-	s *session.MemStore
+type memoryBackend struct {
+	lock        sync.Mutex
+	maxLifetime time.Duration
+	sessions    map[string]memorySession
 }
 
-var _ session.RawStore = (*mockMemRawStore)(nil)
+type memorySession struct {
+	data     []byte
+	accessed time.Time
+}
 
-func (m *mockMemRawStore) Set(k, v any) error {
-	// We need to use gob to encode the value, to make it have the same behavior as other stores and catch abuses.
-	// Because gob needs to "Register" the type before it can encode it, and it's unable to decode a struct to "any" so use a map to help to decode the value.
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(map[string]any{"v": v}); err != nil {
-		return err
+func newMemoryBackend(maxLifetime int64) *memoryBackend {
+	return &memoryBackend{maxLifetime: time.Duration(maxLifetime) * time.Second, sessions: map[string]memorySession{}}
+}
+
+func (b *memoryBackend) expired(sess memorySession) bool {
+	return time.Since(sess.accessed) > b.maxLifetime
+}
+
+func (b *memoryBackend) load(sid string) ([]byte, error) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	sess, ok := b.sessions[sid]
+	if !ok || b.expired(sess) {
+		return nil, nil
 	}
-	return m.s.Set(k, buf.Bytes())
+	sess.accessed = time.Now()
+	b.sessions[sid] = sess
+	return sess.data, nil
 }
 
-func (m *mockMemRawStore) Get(k any) (ret any) {
-	v, ok := m.s.Get(k).([]byte)
-	if !ok {
-		return nil
+func (b *memoryBackend) save(sid string, data []byte, create bool) error {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	if _, exists := b.sessions[sid]; exists || create {
+		b.sessions[sid] = memorySession{data: data, accessed: time.Now()}
 	}
-	var w map[string]any
-	_ = gob.NewDecoder(bytes.NewBuffer(v)).Decode(&w)
-	return w["v"]
+	return nil
 }
 
-func (m *mockMemRawStore) Delete(k any) error {
-	return m.s.Delete(k)
+func (b *memoryBackend) destroy(sid string) error {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	delete(b.sessions, sid)
+	return nil
 }
 
-func (m *mockMemRawStore) ID() string {
-	return m.s.ID()
-}
-
-func (m *mockMemRawStore) Release() error {
-	return m.s.Release()
-}
-
-func (m *mockMemRawStore) Flush() error {
-	return m.s.Flush()
+func (b *memoryBackend) gc() {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	maps.DeleteFunc(b.sessions, func(_ string, sess memorySession) bool { return b.expired(sess) })
 }
 
 type mockMemStore struct {
-	*mockMemRawStore
+	sid  string
+	data map[any][]byte
 }
 
 var _ Store = (*mockMemStore)(nil)
 
-func (m mockMemStore) Destroy(writer http.ResponseWriter, request *http.Request) error {
+// NewMockMemStore returns a store encoding each value like the real backends do, to catch values that can't be stored
+func NewMockMemStore(sid string) Store {
+	return &mockMemStore{sid: sid, data: map[any][]byte{}}
+}
+
+func (m *mockMemStore) Set(key, value any) error {
+	encoded, err := util.PackData(map[any]any{key: value})
+	if err == nil {
+		m.data[key] = encoded
+	}
+	return err
+}
+
+func (m *mockMemStore) Get(key any) any {
+	var decoded map[any]any
+	_ = util.UnpackData(m.data[key], &decoded)
+	return decoded[key]
+}
+
+func (m *mockMemStore) Delete(key any) error {
+	delete(m.data, key)
 	return nil
 }
 
-func NewMockMemStore(sid string) Store {
-	return &mockMemStore{&mockMemRawStore{session.NewMemStore(sid)}}
+func (m *mockMemStore) ID() string {
+	return m.sid
 }
+
+func (m *mockMemStore) Release() error {
+	return nil
+}
+
+func (m *mockMemStore) Flush() error {
+	clear(m.data)
+	return nil
+}
+
+func (m *mockMemStore) Destroy(http.ResponseWriter, *http.Request) error {
+	return nil
+}
+
+func (m *mockMemStore) Regenerate(http.ResponseWriter, *http.Request) {}

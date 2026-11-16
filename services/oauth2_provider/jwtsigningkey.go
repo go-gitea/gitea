@@ -12,13 +12,14 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"io/fs"
 	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
@@ -81,7 +82,7 @@ type rsaSingingKey struct {
 }
 
 func newRSASingingKey(signingMethod jwt.SigningMethod, key *rsa.PrivateKey) (rsaSingingKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*rsa.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(&key.PublicKey)
 	if err != nil {
 		return rsaSingingKey{}, err
 	}
@@ -110,7 +111,7 @@ func (key rsaSingingKey) VerifyKey() any {
 }
 
 func (key rsaSingingKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(*rsa.PublicKey)
+	pubKey := &key.key.PublicKey
 
 	return map[string]string{
 		"kty": "RSA",
@@ -132,7 +133,7 @@ type eddsaSigningKey struct {
 }
 
 func newEdDSASingingKey(signingMethod jwt.SigningMethod, key ed25519.PrivateKey) (eddsaSigningKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(ed25519.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(key.Public().(ed25519.PublicKey)) //nolint:forcetypeassert // ed25519.PrivateKey.Public always returns ed25519.PublicKey
 	if err != nil {
 		return eddsaSigningKey{}, err
 	}
@@ -161,7 +162,7 @@ func (key eddsaSigningKey) VerifyKey() any {
 }
 
 func (key eddsaSigningKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(ed25519.PublicKey)
+	pubKey := key.key.Public().(ed25519.PublicKey) //nolint:forcetypeassert // ed25519.PrivateKey.Public always returns ed25519.PublicKey
 
 	return map[string]string{
 		"alg": key.SigningMethod().Alg(),
@@ -183,7 +184,7 @@ type ecdsaSingingKey struct {
 }
 
 func newECDSASingingKey(signingMethod jwt.SigningMethod, key *ecdsa.PrivateKey) (ecdsaSingingKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*ecdsa.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(&key.PublicKey)
 	if err != nil {
 		return ecdsaSingingKey{}, err
 	}
@@ -212,7 +213,7 @@ func (key ecdsaSingingKey) VerifyKey() any {
 }
 
 func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(*ecdsa.PublicKey)
+	pubKey := &key.key.PublicKey
 
 	// PublicKey.Bytes returns the uncompressed SEC 1 format: 0x04 || X || Y
 	pubKeyBytes, err := pubKey.Bytes()
@@ -321,7 +322,7 @@ func InitSigningKey() error {
 	case "ES512":
 		fallthrough
 	case "EdDSA":
-		key, err = loadOrCreateAsymmetricKey()
+		key, err = LoadOrCreateAsymmetricKey(setting.OAuth2.JWTSigningPrivateKeyFile, setting.OAuth2.JWTSigningAlgorithm)
 	default:
 		return ErrInvalidAlgorithmType{setting.OAuth2.JWTSigningAlgorithm}
 	}
@@ -340,24 +341,24 @@ func InitSigningKey() error {
 	return nil
 }
 
-// loadOrCreateAsymmetricKey checks if the configured private key exists.
-// If it does not exist a new random key gets generated and saved on the configured path.
-func loadOrCreateAsymmetricKey() (any, error) {
-	keyPath := setting.OAuth2.JWTSigningPrivateKeyFile
-
+func LoadOrCreateAsymmetricKey(keyPath, algorithm string) (any, error) {
 	isExist, err := util.IsExist(keyPath)
 	if err != nil {
-		log.Fatal("Unable to check if %s exists. Error: %v", keyPath, err)
+		return nil, fmt.Errorf("unable to check if %s exists: %w", keyPath, err)
 	}
 	if !isExist {
 		err := func() error {
 			key, err := func() (any, error) {
 				switch {
-				case strings.HasPrefix(setting.OAuth2.JWTSigningAlgorithm, "RS"):
+				case strings.HasPrefix(algorithm, "RS"):
 					return rsa.GenerateKey(rand.Reader, 4096)
-				case setting.OAuth2.JWTSigningAlgorithm == "EdDSA":
+				case algorithm == "EdDSA":
 					_, pk, err := ed25519.GenerateKey(rand.Reader)
 					return pk, err
+				case algorithm == "ES384":
+					return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+				case algorithm == "ES512":
+					return ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 				default:
 					return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 				}
@@ -377,21 +378,22 @@ func loadOrCreateAsymmetricKey() (any, error) {
 				return err
 			}
 
-			f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+			f, err := os.CreateTemp(filepath.Dir(keyPath), filepath.Base(keyPath)+".*.tmp")
 			if err != nil {
 				return err
 			}
-			defer func() {
-				if err = f.Close(); err != nil {
-					log.Error("Close: %v", err)
-				}
-			}()
-
-			return pem.Encode(f, privateKeyPEM)
+			defer func() { _ = util.RemoveWithRetry(f.Name()) }()
+			if err := errors.Join(pem.Encode(f, privateKeyPEM), f.Close()); err != nil {
+				return err
+			}
+			// publish complete keys only, without replacing one another instance sharing the data path created first
+			if err := os.Link(f.Name(), keyPath); err != nil && !errors.Is(err, fs.ErrExist) {
+				return util.RenameWithRetry(f.Name(), keyPath) // filesystems without hard links
+			}
+			return nil
 		}()
 		if err != nil {
-			log.Fatal("Error generating private key: %v", err)
-			return nil, err
+			return nil, fmt.Errorf("error generating private key: %w", err)
 		}
 	}
 

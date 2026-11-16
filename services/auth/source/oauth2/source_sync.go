@@ -11,6 +11,9 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/services/audit"
+	user_service "gitea.dev/services/user"
 
 	"github.com/markbates/goth"
 	"golang.org/x/oauth2"
@@ -40,8 +43,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		Expired:         true,
 		LoginSourceID:   source.AuthSource.ID,
 	}
-
-	return user_model.IterateExternalLogin(ctx, opts, func(ctx context.Context, u *user_model.ExternalLoginUser) error {
+	return db.IterateByColumn(ctx, "external_id", opts.ToConds(), func(ctx context.Context, u *user_model.ExternalLoginUser) error {
 		return source.refresh(ctx, provider, u)
 	})
 }
@@ -74,8 +76,8 @@ func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *us
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			if hasUser {
 				log.Info("SyncExternalUsers[%s] disabling user %d", source.AuthSource.Name, user.ID)
-				user.IsActive = false
-				if err := user_model.UpdateUserCols(ctx, user, "is_active"); err != nil {
+				opts := &user_service.UpdateOptions{IsActive: optional.Some(false)}
+				if err := user_service.UpdateUser(audit.WithDoer(ctx, user_model.NewAuthSourceUser()), user, opts); err != nil {
 					return err
 				}
 			}

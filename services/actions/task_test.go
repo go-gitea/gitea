@@ -9,6 +9,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/actions/jobparser"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,9 +61,9 @@ func TestReleaseTaskForRunnerCleanup(t *testing.T) {
 	runner.GenerateAndFillToken()
 	require.NoError(t, db.Insert(t.Context(), runner))
 
-	task, ok, err := actions_model.CreateTaskForRunner(t.Context(), runner)
+	task, _, err := actions_model.CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
-	require.True(t, ok)
+	require.NotNil(t, task)
 	require.Equal(t, actions_model.StatusRunning, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
 
 	// the cleanup helper uses its own context, so the claimed job is returned to the waiting queue
@@ -71,4 +72,34 @@ func TestReleaseTaskForRunnerCleanup(t *testing.T) {
 	assert.Equal(t, actions_model.StatusWaiting, released.Status)
 	assert.Zero(t, released.TaskID)
 	unittest.AssertNotExistsBean(t, &actions_model.ActionTask{ID: task.ID})
+}
+
+func TestRunnerWorkflowPayload(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	for _, tc := range []struct {
+		repoID, sourceRepoID int64
+		sha, want            string
+	}{
+		{1, 1, "abc", "$/.gitea/actions/build"},
+		{1, 1, "def", "self:user2/repo1/.gitea/actions/build@abc"},
+		{2, 1, "abc", "self:user2/repo1/.gitea/actions/build@abc"},
+		{2, 0, "abc", "$/.gitea/actions/build"},
+	} {
+		payload, err := runnerWorkflowPayload(t.Context(), &actions_model.ActionRunJob{
+			JobID:                   "build",
+			RepoID:                  tc.repoID,
+			Run:                     &actions_model.ActionRun{RepoID: tc.repoID, CommitSHA: tc.sha},
+			WorkflowSourceRepoID:    tc.sourceRepoID,
+			WorkflowSourceCommitSHA: "abc",
+			WorkflowPayload:         []byte("name: ci\njobs:\n  build:\n    if: false\n    steps:\n      - uses: $/${{ inputs.action }}\n      - uses: $/.gitea/actions/build\n"),
+		})
+		require.NoError(t, err)
+
+		swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(payload)
+		require.NoError(t, err)
+		assert.Equal(t, "ci", swf.Name)
+		assert.Equal(t, "always()", parsedJob.If.Value)
+		assert.Equal(t, "$/${{ inputs.action }}", parsedJob.Steps[0].Uses)
+		assert.Equal(t, tc.want, parsedJob.Steps[1].Uses)
+	}
 }

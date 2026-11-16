@@ -114,8 +114,8 @@ func runRecreateTable(ctx context.Context, cmd *cli.Command) error {
 
 	setting.Database.LogSQL = debug
 	if err := db.InitEngine(ctx); err != nil {
-		fmt.Println(err)
-		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
+		cprintln(cmd, err)
+		cprintln(cmd, "Check if you are using the right config file. You can use a --config directive to specify one.")
 		return nil
 	}
 

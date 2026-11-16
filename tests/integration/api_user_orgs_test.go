@@ -19,66 +19,165 @@ import (
 
 func TestUserOrgs(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	adminUsername := "user1"
-	normalUsername := "user2"
-	privateMemberUsername := "user4"
-	unrelatedUsername := "user5"
 
-	orgs := getUserOrgs(t, adminUsername, normalUsername)
+	t.Run("UserOrgs", func(t *testing.T) {
+		adminUsername := "user1"
+		normalUsername := "user2"
+		privateMemberUsername := "user4"
+		unrelatedUsername := "user5"
 
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
-	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
-	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
+		orgs := getUserOrgs(t, adminUsername, normalUsername)
 
-	assert.Equal(t, []*api.Organization{
-		{
-			ID:          17,
-			Name:        org17.Name,
-			UserName:    org17.Name,
-			FullName:    org17.FullName,
-			Email:       org17.Email,
-			AvatarURL:   org17.AvatarLink(t.Context()),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "public",
-		},
-		{
-			ID:          3,
-			Name:        org3.Name,
-			UserName:    org3.Name,
-			FullName:    org3.FullName,
-			Email:       org3.Email,
-			AvatarURL:   org3.AvatarLink(t.Context()),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "public",
-		},
-		{
-			ID:          35,
-			Name:        org35.Name,
-			UserName:    org35.Name,
-			FullName:    org35.FullName,
-			Email:       org35.Email,
-			AvatarURL:   org35.AvatarLink(t.Context()),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "private",
-		},
-	}, orgs)
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+		org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+		org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
-	// user itself should get it's org's he is a member of
-	orgs = getUserOrgs(t, privateMemberUsername, privateMemberUsername)
-	assert.Len(t, orgs, 1)
+		assert.Equal(t, []*api.Organization{
+			{
+				ID:          17,
+				Name:        org17.Name,
+				UserName:    org17.Name,
+				FullName:    org17.FullName,
+				Email:       org17.Email,
+				AvatarURL:   org17.AvatarLink(t.Context()),
+				Description: "",
+				Website:     "",
+				Location:    "",
+				Visibility:  "public",
+			},
+			{
+				ID:          3,
+				Name:        org3.Name,
+				UserName:    org3.Name,
+				FullName:    org3.FullName,
+				Email:       org3.Email,
+				AvatarURL:   org3.AvatarLink(t.Context()),
+				Description: "",
+				Website:     "",
+				Location:    "",
+				Visibility:  "public",
+			},
+			{
+				ID:          35,
+				Name:        org35.Name,
+				UserName:    org35.Name,
+				FullName:    org35.FullName,
+				Email:       org35.Email,
+				AvatarURL:   org35.AvatarLink(t.Context()),
+				Description: "",
+				Website:     "",
+				Location:    "",
+				Visibility:  "private",
+			},
+		}, orgs)
 
-	// unrelated user should not get private org membership of privateMemberUsername
-	orgs = getUserOrgs(t, unrelatedUsername, privateMemberUsername)
-	assert.Empty(t, orgs)
+		// user itself should get it's org's he is a member of
+		orgs = getUserOrgs(t, privateMemberUsername, privateMemberUsername)
+		assert.Len(t, orgs, 1)
 
-	// not authenticated call should not be allowed
-	testUserOrgsUnauthenticated(t, privateMemberUsername)
+		// unrelated user should not get private org membership of privateMemberUsername
+		orgs = getUserOrgs(t, unrelatedUsername, privateMemberUsername)
+		assert.Empty(t, orgs)
+
+		orgs = getUserOrgs(t, "user29", adminUsername)
+		assert.Empty(t, orgs)
+
+		// not authenticated call should not be allowed
+		testUserOrgsUnauthenticated(t, privateMemberUsername)
+	})
+
+	t.Run("MyOrgs", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/orgs")
+		MakeRequest(t, req, http.StatusUnauthorized)
+
+		normalUsername := "user2"
+		token := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
+		req = NewRequest(t, "GET", "/api/v1/user/orgs").
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		orgs := DecodeJSON(t, resp, []*api.Organization{})
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+		org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+		org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
+
+		assert.Equal(t, []*api.Organization{
+			{
+				ID:          17,
+				Name:        org17.Name,
+				UserName:    org17.Name,
+				FullName:    org17.FullName,
+				Email:       org17.Email,
+				AvatarURL:   org17.AvatarLink(t.Context()),
+				Description: "",
+				Website:     "",
+				Location:    "",
+				Visibility:  "public",
+			},
+			{
+				ID:          3,
+				Name:        org3.Name,
+				UserName:    org3.Name,
+				FullName:    org3.FullName,
+				Email:       org3.Email,
+				AvatarURL:   org3.AvatarLink(t.Context()),
+				Description: "",
+				Website:     "",
+				Location:    "",
+				Visibility:  "public",
+			},
+			{
+				ID:          35,
+				Name:        org35.Name,
+				UserName:    org35.Name,
+				FullName:    org35.FullName,
+				Email:       org35.Email,
+				AvatarURL:   org35.AvatarLink(t.Context()),
+				Description: "",
+				Website:     "",
+				Location:    "",
+				Visibility:  "private",
+			},
+		}, orgs)
+	})
+
+	t.Run("MyOrgsPublicOnly", func(t *testing.T) {
+		normalUsername := "user2"
+		token := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
+		req := NewRequest(t, "GET", "/api/v1/user/orgs").
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var orgs []*api.Organization
+		DecodeJSON(t, resp, &orgs)
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+		org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+
+		assert.Equal(t, []*api.Organization{
+			{
+				ID:          17,
+				Name:        org17.Name,
+				UserName:    org17.Name,
+				FullName:    org17.FullName,
+				Email:       org17.Email,
+				AvatarURL:   org17.AvatarLink(t.Context()),
+				Description: "",
+				Website:     "",
+				Location:    "",
+				Visibility:  "public",
+			},
+			{
+				ID:          3,
+				Name:        org3.Name,
+				UserName:    org3.Name,
+				FullName:    org3.FullName,
+				Email:       org3.Email,
+				AvatarURL:   org3.AvatarLink(t.Context()),
+				Description: "",
+				Website:     "",
+				Location:    "",
+				Visibility:  "public",
+			},
+		}, orgs)
+	})
 }
 
 func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organization) {
@@ -97,101 +196,4 @@ func testUserOrgsUnauthenticated(t *testing.T, userCheck string) {
 	session := emptyTestSession(t)
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/orgs", userCheck)
 	session.MakeRequest(t, req, http.StatusUnauthorized)
-}
-
-func TestMyOrgs(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	req := NewRequest(t, "GET", "/api/v1/user/orgs")
-	MakeRequest(t, req, http.StatusUnauthorized)
-
-	normalUsername := "user2"
-	token := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
-	req = NewRequest(t, "GET", "/api/v1/user/orgs").
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	orgs := DecodeJSON(t, resp, []*api.Organization{})
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
-	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
-	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
-
-	assert.Equal(t, []*api.Organization{
-		{
-			ID:          17,
-			Name:        org17.Name,
-			UserName:    org17.Name,
-			FullName:    org17.FullName,
-			Email:       org17.Email,
-			AvatarURL:   org17.AvatarLink(t.Context()),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "public",
-		},
-		{
-			ID:          3,
-			Name:        org3.Name,
-			UserName:    org3.Name,
-			FullName:    org3.FullName,
-			Email:       org3.Email,
-			AvatarURL:   org3.AvatarLink(t.Context()),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "public",
-		},
-		{
-			ID:          35,
-			Name:        org35.Name,
-			UserName:    org35.Name,
-			FullName:    org35.FullName,
-			Email:       org35.Email,
-			AvatarURL:   org35.AvatarLink(t.Context()),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "private",
-		},
-	}, orgs)
-}
-
-func TestMyOrgsPublicOnly(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	normalUsername := "user2"
-	token := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
-	req := NewRequest(t, "GET", "/api/v1/user/orgs").
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var orgs []*api.Organization
-	DecodeJSON(t, resp, &orgs)
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
-	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
-
-	assert.Equal(t, []*api.Organization{
-		{
-			ID:          17,
-			Name:        org17.Name,
-			UserName:    org17.Name,
-			FullName:    org17.FullName,
-			Email:       org17.Email,
-			AvatarURL:   org17.AvatarLink(t.Context()),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "public",
-		},
-		{
-			ID:          3,
-			Name:        org3.Name,
-			UserName:    org3.Name,
-			FullName:    org3.FullName,
-			Email:       org3.Email,
-			AvatarURL:   org3.AvatarLink(t.Context()),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "public",
-		},
-	}, orgs)
 }

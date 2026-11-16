@@ -8,10 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/structs"
+	"gitea.dev/services/audit"
 
 	"github.com/markbates/goth"
 )
@@ -46,6 +48,9 @@ func LinkAccountToUser(ctx context.Context, authSourceID int64, user *user_model
 		return err
 	}
 
+	audit.RecordAs(ctx, user, audit_model.UserExternalLoginAdd, user,
+		"external_id", externalLoginUser.ExternalID, "provider", externalLoginUser.Provider)
+
 	externalID := externalLoginUser.ExternalID
 
 	var tp structs.GitServiceType
@@ -66,7 +71,12 @@ func LinkAccountToUser(ctx context.Context, authSourceID int64, user *user_model
 // EnsureLinkExternalToUser link the gothUser to the user
 func EnsureLinkExternalToUser(ctx context.Context, authSourceID int64, user *user_model.User, gothUser goth.User) error {
 	externalLoginUser := toExternalLoginUser(authSourceID, user, gothUser)
-	return user_model.EnsureLinkExternalToUser(ctx, externalLoginUser)
+	inserted, err := user_model.EnsureLinkExternalToUser(ctx, externalLoginUser)
+	if inserted {
+		audit.RecordAs(ctx, user, audit_model.UserExternalLoginAdd, user,
+			"external_id", externalLoginUser.ExternalID, "provider", externalLoginUser.Provider)
+	}
+	return err
 }
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID

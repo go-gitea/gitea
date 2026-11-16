@@ -6,6 +6,7 @@ package files
 import (
 	"context"
 
+	"gitea.dev/models/asymkey"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/structs"
 	asymkey_service "gitea.dev/services/asymkey"
@@ -28,7 +29,7 @@ func GetPayloadCommitVerification(ctx context.Context, commit *git.Commit) *stru
 	verification.Verified = commitVerification.Verified
 	verification.Reason = commitVerification.Reason
 	if verification.Reason == "" && !verification.Verified {
-		verification.Reason = "gpg.error.not_signed_commit"
+		verification.Reason = asymkey.VerificationReasonCommitNotSigned
 	}
 	return verification
 }

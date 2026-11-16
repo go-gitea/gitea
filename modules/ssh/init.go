@@ -11,10 +11,16 @@ import (
 	"strconv"
 	"strings"
 
+	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
+
+// builtinUnused informs our cleanup routine that we will not be using a ssh port
+func builtinUnused() {
+	graceful.GetManager().InformCleanup()
+}
 
 func Init() error {
 	if setting.SSH.Disabled {

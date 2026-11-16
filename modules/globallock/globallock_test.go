@@ -7,6 +7,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"testing/synctest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,11 +18,15 @@ func TestLockAndDo(t *testing.T) {
 		locker := newTestRedisLocker(t)
 		defaultLocker.Store(new(locker))
 		testLockAndDo(t)
-		require.NoError(t, locker.(*redisLocker).Close())
+		rl, ok := locker.(*redisLocker)
+		require.True(t, ok)
+		require.NoError(t, rl.Close())
 	})
 	t.Run("memory", func(t *testing.T) {
-		defaultLocker.Store(new(NewMemoryLocker()))
-		testLockAndDo(t)
+		synctest.Test(t, func(t *testing.T) {
+			defaultLocker.Store(new(NewMemoryLocker()))
+			testLockAndDo(t)
+		})
 	})
 }
 

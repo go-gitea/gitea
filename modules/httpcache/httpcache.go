@@ -55,13 +55,20 @@ func CacheControlForPrivateStatic() *CacheControlOptions {
 
 // checkIfNoneMatchIsValid tests if the header If-None-Match matches the ETag
 func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
-	ifNoneMatch := req.Header.Get("If-None-Match")
-	if len(ifNoneMatch) > 0 {
-		for item := range strings.SplitSeq(ifNoneMatch, ",") {
-			item = strings.TrimPrefix(strings.TrimSpace(item), "W/") // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#directives
-			if item == etag {
-				return true
-			}
+	ifNoneMatch := strings.TrimSpace(req.Header.Get("If-None-Match"))
+	if ifNoneMatch == "" {
+		return false
+	}
+	// https://www.rfc-editor.org/rfc/rfc9110#section-13.1.2
+	if ifNoneMatch == "*" {
+		return true
+	}
+	// https://www.rfc-editor.org/rfc/rfc9110#section-8.8.3.2
+	etag = strings.TrimPrefix(etag, "W/")
+	for item := range strings.SplitSeq(ifNoneMatch, ",") {
+		item = strings.TrimPrefix(strings.TrimSpace(item), "W/")
+		if item == etag {
+			return true
 		}
 	}
 	return false
@@ -92,7 +99,9 @@ func handleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 			return true
 		}
 	}
-	if lastModified != nil && !lastModified.IsZero() {
+	// https://www.rfc-editor.org/rfc/rfc9110#section-13.1.3
+	// A recipient MUST ignore If-Modified-Since if the request contains an If-None-Match header field
+	if lastModified != nil && !lastModified.IsZero() && req.Header.Get("If-None-Match") == "" {
 		ifModifiedSince := req.Header.Get("If-Modified-Since")
 		if ifModifiedSince != "" {
 			t, err := time.Parse(http.TimeFormat, ifModifiedSince)

@@ -72,6 +72,8 @@ type RepoTransfer struct { //nolint:revive // export stutter
 	TeamIDs     []int64
 	Teams       []*organization.Team `xorm:"-"`
 
+	RecipientAccessGranted bool `xorm:"NOT NULL DEFAULT false"`
+
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
 }
@@ -221,7 +223,7 @@ func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
 
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
-func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
+func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repoID int64, teams []*organization.Team, recipientAccessGranted bool) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo, err := GetRepositoryByID(ctx, repoID)
 		if err != nil {
@@ -270,6 +272,8 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 			UpdatedUnix: timeutil.TimeStampNow(),
 			DoerID:      doer.ID,
 			TeamIDs:     make([]int64, 0, len(teams)),
+
+			RecipientAccessGranted: recipientAccessGranted,
 		}
 
 		for k := range teams {

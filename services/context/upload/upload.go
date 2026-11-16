@@ -5,16 +5,18 @@ package upload
 
 import (
 	"mime"
-	"net/http"
 	"net/url"
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
@@ -33,7 +35,13 @@ func (err ErrFileTypeForbidden) Error() string {
 	return "This file cannot be uploaded or modified due to a forbidden file extension or type."
 }
 
-var wildcardTypeRe = regexp.MustCompile(`^[a-z]+/\*$`)
+func (err ErrFileTypeForbidden) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
+var wildcardTypeRe = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^[a-z]+/\*$`)
+})
 
 // Verify validates whether a file is allowed to be uploaded. If buf is empty, it will just check if the file
 // has an allowed file extension.
@@ -52,7 +60,7 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 		return nil // everything is allowed
 	}
 
-	fullMimeType := http.DetectContentType(buf)
+	fullMimeType := typesniffer.DetectContentType(buf).GetMimeType()
 	mimeType, _, err := mime.ParseMediaType(fullMimeType)
 	if err != nil {
 		log.Warn("Detected attachment type could not be parsed %s", fullMimeType)
@@ -75,7 +83,7 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 		if mimeType == allowEntry {
 			return nil // mime type is allowed
 		}
-		if wildcardTypeRe.MatchString(allowEntry) && strings.HasPrefix(mimeType, allowEntry[:len(allowEntry)-1]) {
+		if wildcardTypeRe().MatchString(allowEntry) && strings.HasPrefix(mimeType, allowEntry[:len(allowEntry)-1]) {
 			return nil // wildcard match, e.g. image/*
 		}
 	}
@@ -87,27 +95,45 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 	return ErrFileTypeForbidden{Type: fullMimeType}
 }
 
+type uploadOptions struct {
+	UploadUrl       string
+	UploadRemoveUrl string
+	UploadLinkUrl   string
+	UploadAccepts   string
+	UploadMaxFiles  int
+	UploadMaxSize   int64
+	NeedUuidLink    bool // issue/comment Markdown editor needs the uuid link to be copiable
+}
+
 // AddUploadContext renders template values for dropzone
 func AddUploadContext(ctx *context.Context, uploadType string) {
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	switch uploadType {
 	case "release":
-		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/releases/attachments"
-		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/releases/attachments/remove"
-		ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/releases/attachments"
-		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Release.AllowedTypes, "|", ",")
-		ctx.Data["UploadMaxFiles"] = setting.Repository.Release.MaxFiles
-		ctx.Data["UploadMaxSize"] = setting.Repository.Release.FileMaxSize
-	case "comment":
-		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
-		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"
-		if len(ctx.PathParam("index")) > 0 {
-			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.PathParam("index")) + "/attachments"
-		} else {
-			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
+		ctx.Data["UploadOptions"] = uploadOptions{
+			UploadUrl:       ctx.Repo.RepoLink + "/releases/attachments",
+			UploadRemoveUrl: ctx.Repo.RepoLink + "/releases/attachments/remove",
+			UploadLinkUrl:   ctx.Repo.RepoLink + "/releases/attachments",
+			UploadAccepts:   strings.ReplaceAll(setting.Repository.Release.AllowedTypes, "|", ","),
+			UploadMaxFiles:  setting.Repository.Release.MaxFiles,
+			UploadMaxSize:   setting.Repository.Release.FileMaxSize,
 		}
-		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Attachment.AllowedTypes, "|", ",")
-		ctx.Data["UploadMaxFiles"] = setting.Attachment.MaxFiles
-		ctx.Data["UploadMaxSize"] = setting.Attachment.MaxSize
+	case "comment":
+		var uploadLinkUrl string
+		if len(ctx.PathParam("index")) > 0 {
+			uploadLinkUrl = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.PathParam("index")) + "/attachments"
+		} else {
+			uploadLinkUrl = ctx.Repo.RepoLink + "/issues/attachments"
+		}
+		ctx.Data["UploadOptions"] = uploadOptions{
+			UploadUrl:       ctx.Repo.RepoLink + "/issues/attachments",
+			UploadRemoveUrl: ctx.Repo.RepoLink + "/issues/attachments/remove",
+			UploadLinkUrl:   uploadLinkUrl,
+			UploadAccepts:   strings.ReplaceAll(setting.Attachment.AllowedTypes, "|", ","),
+			UploadMaxFiles:  setting.Attachment.MaxFiles,
+			UploadMaxSize:   setting.Attachment.MaxSize,
+			NeedUuidLink:    true,
+		}
 	default:
 		setting.PanicInDevOrTesting("Invalid upload type: %s", uploadType)
 	}
@@ -115,10 +141,12 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 
 func AddUploadContextForRepo(ctx reqctx.RequestContext, repo *repo_model.Repository) {
 	ctxData, repoLink := ctx.GetData(), repo.Link()
-	ctxData["UploadUrl"] = repoLink + "/upload-file"
-	ctxData["UploadRemoveUrl"] = repoLink + "/upload-remove"
-	ctxData["UploadLinkUrl"] = repoLink + "/upload-file"
-	ctxData["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Upload.AllowedTypes, "|", ",")
-	ctxData["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
-	ctxData["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
+	ctxData["UploadOptions"] = uploadOptions{
+		UploadUrl:       repoLink + "/upload-file",
+		UploadRemoveUrl: repoLink + "/upload-remove",
+		// UploadLinkUrl: TODO: REPO-UPLOAD-FILE-VIEW: there is no endpoint for this yet, it is in "upload" table but not "attachment" table
+		UploadAccepts:  strings.ReplaceAll(setting.Repository.Upload.AllowedTypes, "|", ","),
+		UploadMaxFiles: setting.Repository.Upload.MaxFiles,
+		UploadMaxSize:  setting.Repository.Upload.FileMaxSize,
+	}
 }
