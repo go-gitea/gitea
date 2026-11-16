@@ -9,7 +9,7 @@
 						{{if eq .Status "succeeded"}}
 							<span class="tw-text-green">{{svg "octicon-check"}}</span>
 						{{else if or (eq .Status "queued") (eq .Status "in_progress")}}
-							<span class="tw-text-orange">{{svg "octicon-stopwatch"}}</span>
+							<span class="tw-text-text-light">{{svg "octicon-stopwatch"}}</span>
 						{{else}}
 							<span class="tw-text-red">{{svg "octicon-alert"}}</span>
 						{{end}}
@@ -26,7 +26,7 @@
 						{{end}}
 					</div>
 					<span class="tw-text-text-light">
-						{{DateUtils.TimeSince .Delivered}}
+						{{DateUtils.FullTime .Delivered}}
 					</span>
 				</div>
 				<template>
