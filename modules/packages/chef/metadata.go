@@ -9,6 +9,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/packages"
@@ -21,13 +22,20 @@ const (
 	SettingPublicPem = "chef.public_pem"
 )
 
+var globalVars = sync.OnceValue(func() (ret struct {
+	namePattern    *regexp.Regexp
+	versionPattern *regexp.Regexp
+},
+) {
+	ret.namePattern = regexp.MustCompile(`\A\S+\z`)
+	ret.versionPattern = regexp.MustCompile(`\A\d+\.\d+(?:\.\d+)?\z`)
+	return ret
+})
+
 var (
 	ErrMissingMetadataFile = util.NewInvalidArgumentErrorf("metadata.json file is missing")
 	ErrInvalidName         = util.NewInvalidArgumentErrorf("package name is invalid")
 	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
-
-	namePattern    = regexp.MustCompile(`\A\S+\z`)
-	versionPattern = regexp.MustCompile(`\A\d+\.\d+(?:\.\d+)?\z`)
 )
 
 // Package represents a Chef package
@@ -108,11 +116,11 @@ func ParseChefMetadata(r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
-	if !namePattern.MatchString(cm.Name) {
+	if !globalVars().namePattern.MatchString(cm.Name) {
 		return nil, ErrInvalidName
 	}
 
-	if !versionPattern.MatchString(cm.Version) {
+	if !globalVars().versionPattern.MatchString(cm.Version) {
 		return nil, ErrInvalidVersion
 	}
 

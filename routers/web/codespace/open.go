@@ -20,7 +20,7 @@ func Open(ctx *context.Context) {
 func OpenEndpoint(ctx *context.Context) {
 	endpointID := ctx.PathParam("endpoint_id")
 	if endpointID == "workspace" {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	openEndpoint(ctx, endpointID)
@@ -28,7 +28,7 @@ func OpenEndpoint(ctx *context.Context) {
 
 func openEndpoint(ctx *context.Context, endpointID string) {
 	if ctx.Doer == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	codespaceID, ok := codespaceIDParam(ctx)
@@ -42,7 +42,7 @@ func openEndpoint(ctx *context.Context, endpointID string) {
 	})
 	if err != nil {
 		if errors.Is(err, codespace_service.ErrOpenEndpointNotFound) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 		if errors.Is(err, codespace_service.ErrOpenEndpointUnavailable) {
@@ -50,7 +50,7 @@ func openEndpoint(ctx *context.Context, endpointID string) {
 			ctx.Redirect(codespaceDetailPath(codespaceID), http.StatusSeeOther)
 			return
 		}
-		ctx.ServerError("OpenEndpoint", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.RespHeader().Set("Cache-Control", "no-store")

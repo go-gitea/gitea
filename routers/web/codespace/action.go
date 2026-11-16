@@ -41,7 +41,7 @@ type lifecycleActionFunc func(gocontext.Context, codespace_service.LifecycleActi
 
 func lifecycleAction(ctx *context.Context, action lifecycleActionFunc, fallback string) {
 	if ctx.Doer == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	codespaceID, ok := codespaceIDParam(ctx)
@@ -57,7 +57,7 @@ func lifecycleAction(ctx *context.Context, action lifecycleActionFunc, fallback 
 		CodespaceID: codespaceID,
 	})
 	if err != nil {
-		handleLifecycleActionError(ctx, "CodespaceLifecycleAction", err, returnPath)
+		handleLifecycleActionError(ctx, err, returnPath)
 		return
 	}
 	ctx.Redirect(returnPath, http.StatusSeeOther)
@@ -66,7 +66,7 @@ func lifecycleAction(ctx *context.Context, action lifecycleActionFunc, fallback 
 // Continue records that the creator is still using the running Codespace.
 func Continue(ctx *context.Context) {
 	if ctx.Doer == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	codespaceID, ok := codespaceIDParam(ctx)
@@ -79,7 +79,7 @@ func Continue(ctx *context.Context) {
 		CodespaceID: codespaceID,
 	})
 	if err != nil {
-		handleInteractionError(ctx, "ContinueCodespace", err, returnPath)
+		handleInteractionError(ctx, err, returnPath)
 		return
 	}
 	ctx.Redirect(returnPath, http.StatusSeeOther)
@@ -88,7 +88,7 @@ func Continue(ctx *context.Context) {
 // AutoStop saves the creator's auto-stop setting.
 func AutoStop(ctx *context.Context) {
 	if ctx.Doer == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	codespaceID, ok := codespaceIDParam(ctx)
@@ -138,35 +138,35 @@ func AutoStop(ctx *context.Context) {
 	ctx.JSONRedirect(returnPath)
 }
 
-func handleInteractionError(ctx *context.Context, name string, err error, returnPath string) {
+func handleInteractionError(ctx *context.Context, err error, returnPath string) {
 	switch {
 	case errors.Is(err, codespace_service.ErrInteractionInvalidArgument):
 		ctx.Flash.Error(ctx.Tr("codespace.error.invalid_request"))
 	case errors.Is(err, codespace_service.ErrInteractionNotFound):
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	case errors.Is(err, codespace_service.ErrInteractionStateUnavailable):
 		ctx.Flash.Warning(ctx.Tr("codespace.error.state_unavailable"))
 	case errors.Is(err, codespace_service.ErrInteractionVersionExhausted):
 		ctx.Flash.Warning(ctx.Tr("codespace.error.version_exhausted"))
 	default:
-		ctx.ServerError(name, err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Redirect(returnPath, http.StatusSeeOther)
 }
 
-func handleLifecycleActionError(ctx *context.Context, name string, err error, returnPath string) {
+func handleLifecycleActionError(ctx *context.Context, err error, returnPath string) {
 	switch {
 	case errors.Is(err, codespace_service.ErrLifecycleActionNotFound):
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	case errors.Is(err, codespace_service.ErrLifecycleActionStateUnavailable):
 		ctx.Flash.Warning(ctx.Tr("codespace.error.state_unavailable"))
 	case errors.Is(err, codespace_service.ErrLifecycleActionVersionExhausted):
 		ctx.Flash.Warning(ctx.Tr("codespace.error.version_exhausted"))
 	default:
-		ctx.ServerError(name, err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Redirect(returnPath, http.StatusSeeOther)
@@ -175,7 +175,7 @@ func handleLifecycleActionError(ctx *context.Context, name string, err error, re
 func codespaceIDParam(ctx *context.Context) (int64, bool) {
 	codespaceID, err := strconv.ParseInt(ctx.PathParam("codespace_id"), 10, 64)
 	if err != nil || codespaceID <= 0 {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return 0, false
 	}
 	return codespaceID, true

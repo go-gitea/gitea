@@ -21,7 +21,7 @@ const tplUserCodespaceSecrets templates.TplName = "codespace/user_secrets"
 func UserSecretSettings(ctx *context.Context) {
 	secrets, err := codespace_service.ListUserSecrets(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("ListUserSecrets", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("codespace.secrets")

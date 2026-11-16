@@ -27,7 +27,7 @@ func ActionsGeneralSettings(ctx *context.Context) {
 
 	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
 	if err != nil && !repo_model.IsErrUnitTypeNotExist(err) {
-		ctx.ServerError("GetUnit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if actionsUnit == nil { // no actions unit
@@ -50,7 +50,7 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	} else {
 		ownerActionsConfig, err := actions.GetOwnerActionsConfig(ctx, ctx.Repo.Repository.OwnerID)
 		if err != nil {
-			ctx.ServerError("GetOwnerActionsConfig", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["MaxTokenPermissions"] = ownerActionsConfig.GetMaxTokenPermissions()
@@ -62,7 +62,7 @@ func ActionsGeneralSettings(ctx *context.Context) {
 		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
 		collaborativeOwners, err := user_model.GetUsersByIDs(ctx, collaborativeOwnerIDs)
 		if err != nil {
-			ctx.ServerError("GetUsersByIDs", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["CollaborativeOwners"] = collaborativeOwners
@@ -84,7 +84,7 @@ func ActionsUnitPost(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.ServerError("UpdateRepositoryUnits", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -98,20 +98,20 @@ func AddCollaborativeOwner(ctx *context.Context) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.JSONError(ctx.Tr("form.user_not_exist"))
 		} else {
-			ctx.ServerError("GetUserByName", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
 
 	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
 	if err != nil {
-		ctx.ServerError("GetUnit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	actionsCfg := actionsUnit.ActionsConfig()
 	actionsCfg.AddCollaborativeOwner(collUser.ID)
 	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnitConfig", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -123,7 +123,7 @@ func DeleteCollaborativeOwner(ctx *context.Context) {
 
 	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
 	if err != nil {
-		ctx.ServerError("GetUnit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	actionsCfg := actionsUnit.ActionsConfig()
@@ -134,7 +134,7 @@ func DeleteCollaborativeOwner(ctx *context.Context) {
 	}
 	actionsCfg.RemoveCollaborativeOwner(ownerID)
 	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnitConfig", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -147,7 +147,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 
 	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
 	if err != nil {
-		ctx.ServerError("GetUnit", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -182,7 +182,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	}
 
 	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnitConfig", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

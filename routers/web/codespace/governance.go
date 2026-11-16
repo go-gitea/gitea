@@ -34,7 +34,7 @@ func AdminForceDelete(ctx *context.Context) {
 	}
 	err := codespace_service.ForceDeleteCodespace(ctx, opts)
 	if err != nil {
-		handleGovernanceActionError(ctx, "ForceDeleteCodespace", redirectTo, err)
+		handleGovernanceActionError(ctx, redirectTo, err)
 		return
 	}
 	ctx.Redirect(redirectTo, http.StatusSeeOther)
@@ -46,7 +46,7 @@ func governanceAction(ctx *context.Context, fn governanceActionFunc) {
 	opts, redirectTo := governanceTarget(ctx)
 	_, err := fn(ctx, opts)
 	if err != nil {
-		handleGovernanceActionError(ctx, "GovernanceCodespaceAction", redirectTo, err)
+		handleGovernanceActionError(ctx, redirectTo, err)
 		return
 	}
 	ctx.Redirect(redirectTo, http.StatusSeeOther)
@@ -67,10 +67,10 @@ func governanceTarget(ctx *context.Context) (codespace_service.GovernanceActionO
 	}, base
 }
 
-func handleGovernanceActionError(ctx *context.Context, name, redirectTo string, err error) {
+func handleGovernanceActionError(ctx *context.Context, redirectTo string, err error) {
 	switch {
 	case errors.Is(err, codespace_service.ErrGovernanceNotFound):
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	case errors.Is(err, codespace_service.ErrGovernanceStateUnavailable):
 		ctx.Flash.Warning(ctx.Tr("codespace.error.state_unavailable"))
 		ctx.Redirect(redirectTo, http.StatusSeeOther)
@@ -78,6 +78,6 @@ func handleGovernanceActionError(ctx *context.Context, name, redirectTo string, 
 		ctx.Flash.Warning(ctx.Tr("codespace.error.version_exhausted"))
 		ctx.Redirect(redirectTo, http.StatusSeeOther)
 	default:
-		ctx.ServerError(name, err)
+		ctx.ServerErrorAuto(err)
 	}
 }

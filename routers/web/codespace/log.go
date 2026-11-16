@@ -23,7 +23,7 @@ type logErrorResponse struct {
 // Logs returns one byte-offset based Codespace log page for the creator.
 func Logs(ctx *context.Context) {
 	if ctx.Doer == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	codespaceID, ok := codespaceIDParam(ctx)
@@ -63,7 +63,7 @@ func Logs(ctx *context.Context) {
 		case errors.Is(err, codespace_service.ErrReadLogNotFound):
 			writeLogError(ctx, http.StatusNotFound, "codespace_not_found", 0)
 		default:
-			ctx.ServerError("ReadLog", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -74,7 +74,7 @@ func Logs(ctx *context.Context) {
 // DownloadLogs downloads the creator's Codespace log as plain text.
 func DownloadLogs(ctx *context.Context) {
 	if ctx.Doer == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	codespaceID, ok := codespaceIDParam(ctx)
@@ -120,11 +120,11 @@ func DownloadLogs(ctx *context.Context) {
 func handleDownloadLogError(ctx *context.Context, err error) {
 	switch {
 	case errors.Is(err, codespace_service.ErrReadLogNotFound):
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	case errors.Is(err, codespace_service.ErrReadLogInvalidArgument), errors.Is(err, codespace_service.ErrReadLogOffsetConflict):
 		ctx.HTTPError(http.StatusConflict)
 	default:
-		ctx.ServerError("ReadLog", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 

@@ -146,7 +146,7 @@ func PublicAccessPost(ctx *context.Context) {
 			EveryoneAccessMode:  parsed.EveryoneAccessMode,
 		})
 		if err != nil {
-			ctx.ServerError("UpdateRepoUnitPublicAccess", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

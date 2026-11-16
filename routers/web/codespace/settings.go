@@ -112,7 +112,7 @@ func renderManagerSettings(ctx *context.Context, opts managerSettingsRenderOptio
 		UserID: opts.UserID,
 	})
 	if err != nil {
-		ctx.ServerError("ListManagerSettings", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Title"] = "Codespaces"
@@ -129,7 +129,7 @@ func renderManagerSettings(ctx *context.Context, opts managerSettingsRenderOptio
 			PageSize:   setting.UI.Admin.UserPagingNum,
 		})
 		if err != nil {
-			ctx.ServerError("ListUnassignedCodespaces", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["Codespaces"] = unassigned.Rows
@@ -151,9 +151,9 @@ func renderManagerDetail(ctx *context.Context, opts managerSettingsRenderOptions
 	})
 	if err != nil {
 		if errors.Is(err, codespace_service.ErrManagerSettingsNotFound) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 		} else {
-			ctx.ServerError("GetManagerDetail", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}

@@ -33,12 +33,12 @@ const (
 // List renders the current user's Codespaces.
 func List(ctx *context.Context) {
 	if ctx.Doer == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	orgs, err := organization.GetUserOrgsList(ctx, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetUserOrgsList", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Orgs"] = orgs
@@ -59,7 +59,7 @@ func List(ctx *context.Context) {
 				}
 			}
 			if selectedOrg == nil {
-				ctx.NotFound(nil)
+				ctx.NotFound()
 				return
 			}
 			ownerName = selectedOrg.Name
@@ -79,7 +79,7 @@ func List(ctx *context.Context) {
 		PageSize:    pageSize,
 	})
 	if err != nil {
-		ctx.ServerError("ListCreatorCodespaces", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if page > 1 && len(result.Rows) == 0 && result.Total > 0 {
@@ -193,7 +193,7 @@ func setCreatorDetailTab(ctx *context.Context, view *codespace_service.CreatorCo
 
 func loadCreatorDetail(ctx *context.Context) (*codespace_service.CreatorCodespaceView, bool) {
 	if ctx.Doer == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return nil, false
 	}
 	codespaceID, ok := codespaceIDParam(ctx)
@@ -207,9 +207,9 @@ func loadCreatorDetail(ctx *context.Context) (*codespace_service.CreatorCodespac
 	if err != nil {
 		switch {
 		case errors.Is(err, codespace_service.ErrViewNotFound):
-			ctx.NotFound(nil)
+			ctx.NotFound()
 		default:
-			ctx.ServerError("GetCreatorCodespace", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return nil, false
 	}

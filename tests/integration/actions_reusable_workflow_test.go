@@ -660,6 +660,35 @@ jobs:
 			assert.Contains(t, summary.Content, "secret token is required, but not provided while calling")
 		})
 
+		t.Run("Callee changed after run creation is checked again on expansion", func(t *testing.T) {
+			libRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: createActionsTestRepo(t, user2Token, "self-repo-steps-lib", false).ID})
+			libPath := ".gitea/workflows/lib.yml"
+			libFile := createWorkflowFile(t, user2Token, libRepo.OwnerName, libRepo.Name, libPath, getWorkflowCreateFileOptions(user2, libRepo.DefaultBranch, "create lib",
+				"on: workflow_call\njobs:\n  inner:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"))
+
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: createActionsTestRepo(t, user2Token, "self-repo-steps-caller", false).ID})
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
+				"on: push\njobs:\n  plain_job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n  call:\n    needs: plain_job\n    uses: user2/self-repo-steps-lib/"+libPath+"@main\n")
+			plainTask := runner.fetchTask(t)
+
+			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", libRepo.OwnerName, libRepo.Name, libPath), &api.UpdateFileOptions{
+				SHA:           libFile.Content.SHA,
+				FileOptions:   api.FileOptions{BranchName: libRepo.DefaultBranch, Message: "use a dynamic $/ step"},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("on: workflow_call\njobs:\n  inner:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: $/${{ vars.ACTION }}\n")),
+			}).AddTokenAuth(user2Token)
+			MakeRequest(t, req, http.StatusOK)
+			runner.execTask(t, plainTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
+			_, _, run := getTaskAndJobAndRunByTaskID(t, plainTask.Id)
+			call := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "call"})
+			assert.Equal(t, actions_model.StatusFailure, call.Status)
+			summary, err := actions_model.GetActionRunJobSummary(t.Context(), repo.ID, run.ID, call.RunAttemptID, call.ID, 0)
+			require.NoError(t, err)
+			assert.Contains(t, summary.Content, "job inner: `uses: $/${{ vars.ACTION }}` cannot use expressions in a workflow from another repository or commit")
+		})
+
 		t.Run("Fork PR with secrets: inherit does not leak base repo secrets", func(t *testing.T) {
 			// user2 owns the base repo, configures a secret, and registers a reusable workflow that declares a required secret.
 			// The caller workflow uses `secrets: inherit`.

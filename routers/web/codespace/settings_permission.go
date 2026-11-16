@@ -21,7 +21,7 @@ const tplUserCodespacePermissions templates.TplName = "codespace/user_permission
 func UserPermissionSettings(ctx *context.Context) {
 	authorizations, err := codespace_service.ListPermissionAuthorizations(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("ListPermissionAuthorizations", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("codespace.permissions")
@@ -55,7 +55,7 @@ func UserPermissionSettingsPost(ctx *context.Context) {
 	}
 	if err != nil {
 		if errors.Is(err, codespace_service.ErrPermissionAuthorizationNotFound) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 		ctx.Flash.Error(ctx.Tr("codespace.error.invalid_request"))

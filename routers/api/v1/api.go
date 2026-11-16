@@ -402,6 +402,21 @@ func reqUsersExploreEnabled() func(ctx *context.APIContext) {
 	}
 }
 
+func reqCodeSearchEnabled() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !setting.Indexer.RepoIndexerEnabled || setting.Service.Explore.DisableCodePage || unit.TypeCode.UnitGlobalDisabled() {
+			ctx.APIErrorNotFound()
+			return
+		}
+		needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+		} else if needTwoFactor {
+			ctx.APIError(http.StatusForbidden, "two-factor authentication is required")
+		}
+	}
+}
+
 func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.IsSigned && setting.Service.EnableReverseProxyAuthAPI && ctx.Data["AuthedMethod"] == auth.ReverseProxyMethodName {
@@ -1455,6 +1470,7 @@ func Routes() *web.Router {
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
 				m.Get("/raw/*", codespaceTokenRepositoryRoute, context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
+				m.Get("/code/search", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.SearchRepoCode)
 				m.Get("/media/*", codespaceTokenRepositoryRoute, context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
 				m.Methods("HEAD,GET", "/archive/*", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.GetArchive)
 				m.Get("/forks", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), repo.ListForks)
@@ -1993,11 +2009,6 @@ func Routes() *web.Router {
 				m.Get("", admin.GetAllEmails)
 				m.Get("/search", admin.SearchEmail)
 			})
-			m.Group("/unadopted", func() {
-				m.Get("", admin.ListUnadoptedRepositories)
-				m.Post("/{username}/{reponame}", admin.AdoptRepository)
-				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
-			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(admin.ListHooks).
 					Post(bind(api.CreateHookOption{}), admin.CreateHook)
@@ -2021,6 +2032,8 @@ func Routes() *web.Router {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		m.Get("/search/code", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqToken(), reqCodeSearchEnabled(), repo.SearchCode)
 	}, sudo())
 
 	return m

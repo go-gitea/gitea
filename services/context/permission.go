@@ -45,7 +45,7 @@ func CheckTokenScopes(ctx *Context, scopes ...auth_model.AccessTokenScope) {
 
 	scopeMatched, err := scope.HasAnyScope(scopes...)
 	if err != nil {
-		ctx.ServerError("HasAnyScope", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -58,7 +58,7 @@ func CheckTokenScopes(ctx *Context, scopes ...auth_model.AccessTokenScope) {
 func RequireRepoAdmin() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || !ctx.Repo.Permission.IsAdmin() {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 	}
@@ -68,7 +68,7 @@ func RequireRepoAdmin() func(ctx *Context) {
 func CanWriteToBranch() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
-			ctx.NotFound(nil)
+			ctx.NotFound()
 			return
 		}
 	}
@@ -80,7 +80,7 @@ func RequireUnitWriter(unitTypes ...unit.Type) func(ctx *Context) {
 		if slices.ContainsFunc(unitTypes, ctx.Repo.Permission.CanWrite) {
 			return
 		}
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 }
 
@@ -95,7 +95,7 @@ func RequireUnitReader(unitTypes ...unit.Type) func(ctx *Context) {
 				return
 			}
 		}
-		ctx.NotFound(nil)
+		ctx.NotFound()
 	}
 }
 

@@ -88,7 +88,7 @@ type devContainerTemplateRenderOptions struct {
 func renderDevContainerTemplateSettings(ctx *context.Context, opts devContainerTemplateRenderOptions) {
 	templates, err := codespace_service.ListDevContainerTemplates(ctx, opts.UserID)
 	if err != nil {
-		ctx.ServerError("ListDevContainerTemplates", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("codespace.dev_container_templates")

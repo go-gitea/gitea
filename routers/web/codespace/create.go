@@ -36,7 +36,7 @@ type createEnvironmentOption struct {
 // New renders the creation confirmation for a repository and ref.
 func New(ctx *context.Context) {
 	if ctx.Doer == nil || ctx.Repo == nil || ctx.Repo.Repository == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	opts := codespace_service.CreateCodespaceOptions{
@@ -62,7 +62,7 @@ func New(ctx *context.Context) {
 // Create creates a Codespace after the user reviews the current plan.
 func Create(ctx *context.Context) {
 	if ctx.Doer == nil || ctx.Repo == nil || ctx.Repo.Repository == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	opts := codespace_service.CreateCodespaceOptions{

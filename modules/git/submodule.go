@@ -37,7 +37,7 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repo RepositoryFacade) (su
 			}
 			return scanner.Err()
 		}).
-		Run(ctx)
+		RunWithStderr(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("GetTemplateSubmoduleCommits: error running git ls-tree: %v", err)
 	}

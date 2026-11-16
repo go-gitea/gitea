@@ -15,7 +15,7 @@ import {
   type Plugin,
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
-import {chartJsColors} from '../utils/color.ts';
+import {chartJsColor} from '../utils/color.ts';
 import {
   startDaysBetween,
   firstStartDateAfterDate,
@@ -239,7 +239,7 @@ function toGraphData(data: DayData[]): ChartData<'line'> {
         pointRadius: 0,
         pointHitRadius: 0,
         fill: 'start',
-        backgroundColor: chartJsColors[type.value],
+        backgroundColor: chartJsColor(type.value),
         borderWidth: 0,
         tension: 0.3,
       },

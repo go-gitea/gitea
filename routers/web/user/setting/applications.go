@@ -47,7 +47,7 @@ type AccessTokensPanel struct {
 func NewAccessTokensPanel(ctx *context.Context, owner *user_model.User, link string) *AccessTokensPanel {
 	tokens, err := db.Find[auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{UserID: owner.ID})
 	if err != nil {
-		ctx.ServerError("ListAccessTokens", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	panel := &AccessTokensPanel{
@@ -81,7 +81,7 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 
 	scope, err := auth_model.AccessTokenScope(strings.Join(scopeNames, ",")).Normalize()
 	if err != nil {
-		ctx.ServerError("GetScope", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if !scope.HasPermissionScope() {
@@ -97,7 +97,7 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 
 	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
 	if err != nil {
-		ctx.ServerError("AccessTokenByNameExists", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	if exist {
@@ -112,7 +112,7 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 	if hasApiTokenScope {
 		hasScope, err := apiTokenScope.CanCreateChildScope(t.Scope)
 		if err != nil {
-			ctx.ServerError("CanCreateChildScope", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if !hasScope {
@@ -120,13 +120,13 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 			return
 		}
 		if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
-			ctx.ServerError("EnforcePublicOnlyFrom", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}
 
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {
-		ctx.ServerError("NewAccessToken", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -138,7 +138,7 @@ func CreateAccessToken(ctx *context.Context, owner *user_model.User) {
 	}
 	panel.NewTokenValue = t.Token
 	if err := ctx.Render.HTML(ctx.Resp, http.StatusOK, tplAccessTokens, panel, ctx.TemplateContext); err != nil {
-		ctx.ServerError("Render", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
@@ -176,7 +176,7 @@ func ApplicationsRegenerateToken(ctx *context.Context) {
 func RegenerateAccessToken(ctx *context.Context, owner *user_model.User) {
 	t, err := auth_model.RegenerateAccessToken(ctx, ctx.FormInt64("id"), owner.ID)
 	if err != nil {
-		ctx.ServerError("RegenerateAccessToken", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	audit.Record(ctx, audit_model.UserAccessTokenRegenerate, owner, "token", t.Name)
@@ -199,12 +199,12 @@ func loadApplicationsData(ctx *context.Context) {
 			OwnerID: ctx.Doer.ID,
 		})
 		if err != nil {
-			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		ctx.Data["Grants"], err = auth_model.GetOAuth2GrantsByUserID(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.ServerError("GetOAuth2GrantsByUserID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 	}

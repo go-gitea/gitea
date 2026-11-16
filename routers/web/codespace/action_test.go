@@ -94,9 +94,9 @@ func TestCodespaceActionErrorResponses(t *testing.T) {
 			ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/12/action")
 			ctx.SetPathParam("codespace_id", "12")
 			if test.interaction {
-				handleInteractionError(ctx, "TestAction", test.err, "/-/codespaces/12")
+				handleInteractionError(ctx, test.err, "/-/codespaces/12")
 			} else {
-				handleLifecycleActionError(ctx, "TestAction", test.err, "/-/codespaces/12")
+				handleLifecycleActionError(ctx, test.err, "/-/codespaces/12")
 			}
 			assert.Equal(t, test.status, resp.Code)
 			if test.redirect {
