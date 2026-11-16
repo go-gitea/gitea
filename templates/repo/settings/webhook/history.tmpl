@@ -6,20 +6,16 @@
 			<div class="item" id="webhook-history-delivery-{{$history.ID}}">
 				<div class="flex-left-right">
 					<div class="flex-text-inline tw-flex-wrap">
-						{{if eq $history.Status "succeeded"}}
+						{{if $history.IsSucceed}}
 							<span class="tw-text-green">{{svg "octicon-check"}}</span>
-						{{else if or (eq $history.Status "queued") (eq $history.Status "in_progress")}}
+						{{else if or (not $history.IsDelivered) ($history.IsDeliveryInProgress)}}
 							<span class="tw-text-text-light">{{svg "octicon-stopwatch"}}</span>
 						{{else}}
 							<span class="tw-text-red">{{svg "octicon-alert"}}</span>
 						{{end}}
 						<button type="button" class="btn interact-bg tw-p-2" aria-haspopup="dialog" data-global-click="onWebhookDeliveryDetailsClick">{{$history.UUID}}</button>
 						<span class="tw-text-text-light">
-							{{if and $history.ResponseInfo $history.ResponseInfo.ErrorType}}
-								{{ctx.Locale.Tr (print "repo.settings.webhook.delivery." $history.ResponseInfo.ErrorType)}}
-							{{else}}
-								{{ctx.Locale.Tr (print "repo.settings.webhook.delivery." $history.Status)}}
-							{{end}}
+							{{$history.DeliveryStatusTr ctx.Locale}}
 						</span>
 						{{if and $history.ResponseInfo $history.ResponseInfo.Status}}
 							<span class="ui {{if $history.IsSucceed}}green{{else}}red{{end}} label">{{$history.ResponseInfo.Status}}</span>

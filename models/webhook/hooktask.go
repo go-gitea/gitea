@@ -6,6 +6,7 @@ package webhook
 import (
 	"context"
 	"errors"
+	"html/template"
 	"time"
 	"uuid"
 
@@ -14,6 +15,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"xorm.io/builder"
@@ -87,29 +89,29 @@ type HookTask struct {
 	ResponseInfo    *HookResponse `xorm:"-"`
 }
 
-type HookDeliveryStatus string
+func (t *HookTask) IsDeliveryInProgress() bool {
+	if !t.IsDelivered || t.IsSucceed || t.ResponseContent != "" || t.Delivered == 0 {
+		return false
+	}
+	// Legacy claims only recorded the time the delivery was queued.
+	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
+	return timeout <= 0 || time.Since(t.Delivered.AsTime()) < timeout+10*time.Second
+}
 
-const (
-	HookDeliveryQueued     HookDeliveryStatus = "queued"
-	HookDeliveryInProgress HookDeliveryStatus = "in_progress"
-	HookDeliverySucceeded  HookDeliveryStatus = "succeeded"
-	HookDeliveryFailed     HookDeliveryStatus = "failed"
-)
-
-func (t *HookTask) DeliveryStatus(now time.Time) HookDeliveryStatus {
+func (t *HookTask) DeliveryStatusTr(locale translation.Locale) template.HTML {
+	if t.ResponseInfo != nil && t.ResponseInfo.ErrorType != "" {
+		return locale.Tr("repo.settings.webhook.delivery." + string(t.ResponseInfo.ErrorType))
+	}
 	switch {
 	case t.IsSucceed:
-		return HookDeliverySucceeded
+		return locale.Tr("repo.settings.webhook.delivery.succeeded")
 	case !t.IsDelivered:
-		return HookDeliveryQueued
-	case t.ResponseContent == "" && t.Delivered != 0:
-		// Legacy claims only recorded the time the delivery was queued.
-		timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
-		if timeout <= 0 || now.Sub(t.Delivered.AsTime()) < timeout+10*time.Second {
-			return HookDeliveryInProgress
-		}
+		return locale.Tr("repo.settings.webhook.delivery.queued")
+	case t.IsDeliveryInProgress():
+		return locale.Tr("repo.settings.webhook.delivery.in_progress")
+	default:
+		return locale.Tr("repo.settings.webhook.delivery.failed")
 	}
-	return HookDeliveryFailed
 }
 
 func init() {

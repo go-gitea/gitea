@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"time"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
@@ -645,22 +644,14 @@ func loadWebhookHistory(ctx *context.Context, orCtx *ownerRepoCtx, w *webhook.We
 		return false
 	}
 
-	type delivery struct {
-		*webhook.HookTask
-		Status webhook.HookDeliveryStatus
-	}
-	history := make([]delivery, 0, len(tasks))
 	pending := false
-	now := time.Now()
 	for _, task := range tasks {
-		status := task.DeliveryStatus(now)
-		pending = pending || status == webhook.HookDeliveryQueued || status == webhook.HookDeliveryInProgress
-		history = append(history, delivery{task, status})
+		pending = pending || (!task.IsSucceed && (!task.IsDelivered || task.IsDeliveryInProgress()))
 	}
 	ctx.Data["Webhook"] = w
 	ctx.Data["WebhookLink"] = fmt.Sprintf("%s/%d", orCtx.Link, w.ID)
 	ctx.Data["WebhookHistoryPending"] = pending
-	ctx.Data["History"] = history
+	ctx.Data["History"] = tasks
 	return true
 }
 
