@@ -178,6 +178,61 @@ func TestAdminAuditLogExport(t *testing.T) {
 	})
 }
 
+func TestAuditLogAdministrationEvents(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeAll)
+	const repoAPI = "/api/v1/repos/user2/repo1"
+
+	assertEvent := func(t *testing.T, action audit_model.Action, scopeType audit_model.ScopeType, scopeID int64) {
+		t.Helper()
+		unittest.AssertCount(t, &audit_model.Event{Action: action, ScopeType: scopeType, ScopeID: scopeID}, 1)
+	}
+
+	t.Run("ActionsRunners", func(t *testing.T) {
+		MakeRequest(t, NewRequest(t, "POST", repoAPI+"/actions/runners/registration-token").AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", repoAPI+"/actions/runners/34348", &api.EditActionRunnerOption{Disabled: new(true)}).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "DELETE", repoAPI+"/actions/runners/34348").AddTokenAuth(token), http.StatusNoContent)
+		for _, action := range []audit_model.Action{audit_model.RepositoryRunnerToken, audit_model.RepositoryRunnerUpdate, audit_model.RepositoryRunnerRemove} {
+			assertEvent(t, action, audit_model.ScopeRepository, 1)
+		}
+	})
+
+	t.Run("ActionsVariables", func(t *testing.T) {
+		MakeRequest(t, NewRequestWithJSON(t, "POST", repoAPI+"/actions/variables/AUDIT_VAR", &api.CreateVariableOption{Value: "a"}).AddTokenAuth(token), http.StatusCreated)
+		MakeRequest(t, NewRequestWithJSON(t, "PUT", repoAPI+"/actions/variables/AUDIT_VAR", &api.UpdateVariableOption{Value: "b"}).AddTokenAuth(token), http.StatusNoContent)
+		MakeRequest(t, NewRequest(t, "DELETE", repoAPI+"/actions/variables/AUDIT_VAR").AddTokenAuth(token), http.StatusNoContent)
+		for _, action := range []audit_model.Action{audit_model.RepositoryVariableAdd, audit_model.RepositoryVariableUpdate, audit_model.RepositoryVariableRemove} {
+			assertEvent(t, action, audit_model.ScopeRepository, 1)
+		}
+	})
+
+	t.Run("SystemConfig", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		for range 2 {
+			session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/config", map[string]string{
+				"key":   "instance.web_banner",
+				"value": `{"DisplayEnabled":true,"ContentMessage":"audit"}`,
+			}), http.StatusOK)
+		}
+		assertEvent(t, audit_model.SystemConfigUpdate, audit_model.ScopeSystem, 0)
+	})
+
+	t.Run("PullReviewDelete", func(t *testing.T) {
+		MakeRequest(t, NewRequest(t, "DELETE", repoAPI+"/pulls/2/reviews/1").AddTokenAuth(token), http.StatusNoContent)
+		assertEvent(t, audit_model.PullRequestReviewDelete, audit_model.ScopeRepository, 1)
+	})
+
+	t.Run("OAuth2ApplicationSecret", func(t *testing.T) {
+		option := &api.CreateOAuth2ApplicationOptions{Name: "audit-app", RedirectURIs: []string{"https://example.com/callback"}}
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/user/applications/oauth2", option).AddTokenAuth(token), http.StatusCreated)
+		app := DecodeJSON(t, resp, &api.OAuth2Application{})
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/user/applications/oauth2/%d", app.ID), option).AddTokenAuth(token), http.StatusOK)
+		assertEvent(t, audit_model.UserOAuth2ApplicationSecret, audit_model.ScopeUser, 1)
+	})
+}
+
 func TestAuditLogUserEvents(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()

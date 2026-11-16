@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
@@ -338,6 +339,20 @@ func TestCreateNewTag(t *testing.T) {
 
 	assert.NoError(t, CreateNewTag(t.Context(), user, repo, "master", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
+}
+
+func TestDeleteReleaseByIDAuditEvents(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	for _, id := range []int64{1, 3} {
+		rel := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: id})
+		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, rel, user, rel.IsTag))
+	}
+	unittest.AssertCount(t, &audit_model.Event{Action: audit_model.RepositoryReleaseRemove}, 1)
+	unittest.AssertCount(t, &audit_model.Event{Action: audit_model.RepositoryTagRemove}, 1)
 }
 
 func TestCreateReleaseReaction(t *testing.T) {
