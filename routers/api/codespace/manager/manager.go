@@ -61,14 +61,12 @@ func (s *Service) RegisterManager(
 
 // CheckManager confirms the authenticated Manager identity without changing it.
 func (s *Service) CheckManager(
-	ctx context.Context,
+	_ context.Context,
 	_ *codespacev1.CheckManagerRequest,
 ) (*codespacev1.CheckManagerResponse, error) {
-	manager := GetManager(ctx)
 	_, _, giteaWebURL := codespace_service.ManagerServiceTimings()
 	return &codespacev1.CheckManagerResponse{
 		GiteaWebUrl: giteaWebURL,
-		ManagerName: manager.Name,
 	}, nil
 }
 
@@ -109,7 +107,6 @@ func (s *Service) FetchOperations(
 		AcceptedCreateTags:       req.GetAcceptedCreateTags(),
 		ObservedOperations:       req.GetObservedOperations(),
 		CleanupCapacityAvailable: req.GetCleanupCapacityAvailable(),
-		WaitTimeoutMilliseconds:  req.GetWaitTimeoutMilliseconds(),
 	})
 	if err != nil {
 		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
@@ -181,7 +178,7 @@ func (s *Service) FinalizeOperation(
 	return response, nil
 }
 
-// UpdateLog appends sanitized log lines for the authenticated Manager's active operation.
+// UpdateLog appends sanitized log lines for the Manager's current executed operation, including final output.
 func (s *Service) UpdateLog(
 	ctx context.Context,
 	req *codespacev1.UpdateLogRequest,

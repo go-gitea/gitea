@@ -7,6 +7,8 @@ import (
 	"errors"
 	"html/template"
 	"net/http"
+	"slices"
+	"strings"
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -25,6 +27,14 @@ type createConfigurationOption struct {
 	Selection  string
 	Name       string
 	ScopeLabel string
+}
+
+type createSecretField struct {
+	Name        string
+	Description string
+	Source      string
+	Available   bool
+	Recommended bool
 }
 
 type createEnvironmentOption struct {
@@ -87,11 +97,18 @@ func Create(ctx *context.Context) {
 	for _, permission := range plan.Permissions {
 		opts.PermissionGrants[permission.FormName] = ctx.FormString(permission.FormName)
 	}
-	opts.RecommendedSecretValues = make(map[string]string, len(plan.RecommendedSecrets))
-	opts.RecommendedSecretEnabled = make(map[string]bool, len(plan.RecommendedSecrets))
-	for _, secret := range plan.RecommendedSecrets {
-		opts.RecommendedSecretValues[secret.Name] = ctx.FormString("recommended_secret_value_" + secret.Name)
-		opts.RecommendedSecretEnabled[secret.Name] = ctx.FormBool("recommended_secret_enable_" + secret.Name)
+	names := ctx.Req.PostForm["secret_name"]
+	sources := ctx.Req.PostForm["secret_source"]
+	values := ctx.Req.PostForm["secret_value"]
+	if len(names) != len(sources) || len(names) != len(values) || len(names) > codespace_service.MaxCreateSecrets {
+		renderCreateConfirm(ctx, http.StatusUnprocessableEntity, plan, opts, ctx.Tr("codespace.secret_create_invalid"))
+		return
+	}
+	opts.Secrets = make([]codespace_service.CreateSecretInput, 0, len(names))
+	for i, name := range names {
+		opts.Secrets = append(opts.Secrets, codespace_service.CreateSecretInput{
+			Name: name, Source: sources[i], Value: values[i],
+		})
 	}
 	result, err := codespace_service.CreateCodespace(ctx, opts)
 	if err != nil {
@@ -111,7 +128,22 @@ func Create(ctx *context.Context) {
 			renderCreateConfirm(ctx, http.StatusUnprocessableEntity, plan, opts, errorMessage)
 			return
 		}
-		renderCreateConfirm(ctx, http.StatusUnprocessableEntity, plan, opts, ctx.Tr("codespace.error.invalid_create_request"))
+		errorKey := "codespace.error.invalid_create_request"
+		switch {
+		case errors.Is(err, codespace_service.ErrCreateSecretUnavailable):
+			errorKey = "codespace.secret_saved_unavailable"
+		case errors.Is(err, codespace_service.ErrUserSecretNameInvalid):
+			errorKey = "codespace.secret_name_invalid"
+		case errors.Is(err, codespace_service.ErrUserSecretNameConflict):
+			errorKey = "codespace.secret_name_conflict"
+		case errors.Is(err, codespace_service.ErrUserSecretValueInvalid):
+			errorKey = "codespace.secret_value_invalid"
+		case errors.Is(err, codespace_service.ErrUserSecretCountLimit):
+			errorKey = "codespace.secret_count_limit"
+		case errors.Is(err, codespace_service.ErrCreateSecretSizeLimit):
+			errorKey = "codespace.secret_size_limit"
+		}
+		renderCreateConfirm(ctx, http.StatusUnprocessableEntity, plan, opts, ctx.Tr(errorKey))
 		return
 	}
 	ctx.Redirect(setting.AppSubURL+codespaceDetailPath(result.CodespaceID), http.StatusSeeOther)
@@ -153,9 +185,25 @@ func renderCreateConfirm(ctx *context.Context, status int, plan *codespace_servi
 			permissionGrants[permission.FormName] = value
 		}
 	}
-	hasPendingRecommendedSecret := false
-	for _, secret := range plan.RecommendedSecrets {
-		hasPendingRecommendedSecret = hasPendingRecommendedSecret || !secret.Available
+	secrets := opts.Secrets
+	if secrets == nil {
+		secrets = make([]codespace_service.CreateSecretInput, 0, len(plan.RecommendedSecrets))
+		for _, recommendation := range plan.RecommendedSecrets {
+			secrets = append(secrets, codespace_service.CreateSecretInput{Name: recommendation.Name, Source: codespace_service.SecretSourceNone})
+		}
+	}
+	recommendations := make(map[string]string, len(plan.RecommendedSecrets))
+	for _, recommendation := range plan.RecommendedSecrets {
+		recommendations[recommendation.Name] = recommendation.Description
+	}
+	secretFields := make([]createSecretField, 0, len(secrets))
+	for _, secret := range secrets {
+		name := strings.ToUpper(strings.TrimSpace(secret.Name))
+		description, recommended := recommendations[name]
+		secretFields = append(secretFields, createSecretField{
+			Name: name, Description: description, Source: secret.Source,
+			Available: slices.Contains(plan.AvailableSecrets, name), Recommended: recommended,
+		})
 	}
 
 	ctx.Data["Title"] = ctx.Tr("codespace.confirm_create")
@@ -163,8 +211,10 @@ func renderCreateConfirm(ctx *context.Context, status int, plan *codespace_servi
 	ctx.Data["CreateEnvironmentOptions"] = environmentOptions
 	ctx.Data["CreatePermissionRepositories"] = permissionRepositories
 	ctx.Data["CreatePermissionGrants"] = permissionGrants
-	ctx.Data["CreateRecommendedSecretEnabled"] = opts.RecommendedSecretEnabled
-	ctx.Data["CreateHasPendingRecommendedSecret"] = hasPendingRecommendedSecret
+	ctx.Data["CreateSecretFields"] = secretFields
+	ctx.Data["CreateSecretTemplate"] = createSecretField{Source: codespace_service.SecretSourceNone}
+	ctx.Data["CreateEnvironmentExplicit"] = opts.EnvironmentTag != ""
+	ctx.Data["CreateSecretsNeedReentry"] = opts.Secrets != nil
 	ctx.Data["CreateError"] = errorMessage
 	configurationOptions := make([]createConfigurationOption, 0, len(plan.DevContainerOptions))
 	for _, option := range plan.DevContainerOptions {

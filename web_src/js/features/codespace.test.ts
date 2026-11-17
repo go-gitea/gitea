@@ -1,15 +1,12 @@
+import '../../fomantic/build/fomantic.js';
 import {initCodespaceCreateForm, initCodespaceLiveState} from './codespace.ts';
 import {hideModal, showModal} from '../modules/modal.ts';
 import {captureNavigations} from '../utils/testhelper.ts';
+import {initGiteaFomantic} from '../modules/fomantic.ts';
+import {userEvent} from 'vitest/browser';
 
 vi.mock('../modules/modal.ts', () => ({hideModal: vi.fn(), showModal: vi.fn()}));
-vi.mock('../modules/fomantic/base.ts', () => ({
-  fomanticQuery: (select: HTMLSelectElement) => ({
-    dropdown: (_action: string, value: string) => {
-      select.value = value;
-    },
-  }),
-}));
+beforeAll(() => initGiteaFomantic());
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -20,6 +17,7 @@ beforeEach(() => {
 
 afterEach(() => {
   window.dispatchEvent(new PageTransitionEvent('pagehide'));
+  for (const dropdown of document.querySelectorAll('.ui.dropdown')) $(dropdown).data('module-dropdown')?.destroy();
   document.body.replaceChildren();
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -52,7 +50,7 @@ test('codespace create environment selection updates its explanation', () => {
   expect(document.querySelector('.dropdown')!.getAttribute('aria-invalid')).toBe('true');
 });
 
-test('codespace create configuration preview preserves its source and environment', () => {
+test.each([false, true])('codespace configuration preview preserves an explicitly selected environment: %s', (explicit) => {
   const navigations = captureNavigations();
   document.body.innerHTML = `
     <form data-codespace-create-form>
@@ -60,12 +58,13 @@ test('codespace create configuration preview preserves its source and environmen
       <input type="hidden" data-codespace-dev-container data-preview-url="/owner/repo/codespaces/new"
         data-ref-type="branch" data-ref-name="main" value=".devcontainer/devcontainer.json">
       <input name="request_hash" value="reviewed">
-      <input name="recommended_secret_value_TOKEN" value="private-value">
+      <input name="secret_value" value="private-value">
       <button type="button" data-codespace-review class="tw-hidden">Update configuration</button>
       <button data-codespace-create>Create</button>
     </form>`;
 
   initCodespaceCreateForm();
+  if (explicit) document.querySelector('[name="environment_tag"]')!.dispatchEvent(new Event('change'));
   const input = document.querySelector<HTMLInputElement>('[data-codespace-dev-container]')!;
   input.value = '.devcontainer/node/devcontainer.json';
   input.dispatchEvent(new Event('change'));
@@ -84,8 +83,75 @@ test('codespace create configuration preview preserves its source and environmen
     ref_type: 'branch',
     ref_name: 'main',
     dev_container: '.devcontainer/node/devcontainer.json',
-    environment_tag: 'standard',
+    ...(explicit && {environment_tag: 'standard'}),
   });
+});
+
+test('codespace secret dropdowns select saved or multiline custom values and preserve row order', async () => {
+  document.body.innerHTML = `
+    <form class="ui form" data-codespace-create-form>
+      <div data-codespace-secret-list>
+        <div data-codespace-secret-row>
+          <input name="secret_name" value="TOKEN" readonly>
+          <select class="ui selection dropdown custom" name="secret_source"><option value="none" selected>Omit</option><option value="saved">Saved</option><option value="custom">Custom</option></select>
+          <div data-codespace-secret-value class="tw-hidden"><textarea name="secret_value"></textarea></div>
+        </div>
+      </div>
+      <template data-codespace-secret-template>
+        <div data-codespace-secret-row>
+          <select class="ui search selection dropdown custom" name="secret_name"><option value="">Select or enter a name</option><option value="TOKEN">TOKEN</option><option value="SECOND_TOKEN">SECOND_TOKEN</option></select>
+          <select class="ui selection dropdown custom" name="secret_source"><option value="none" selected>Omit</option><option value="saved" disabled>Saved</option><option value="custom">Custom</option></select>
+          <div data-codespace-secret-value class="tw-hidden"><textarea name="secret_value"></textarea></div>
+          <button type="button" data-codespace-secret-remove>Remove</button>
+        </div>
+      </template>
+      <button type="button" data-codespace-secret-add>Add</button>
+    </form>`;
+  initCodespaceCreateForm();
+  const declaredSource = document.querySelector<HTMLSelectElement>('[name="secret_source"]')!;
+  expect(declaredSource.value).toBe('none');
+  $(declaredSource).dropdown('set selected', 'saved');
+  await userEvent.click(document.querySelector<HTMLButtonElement>('[data-codespace-secret-add]')!);
+  const row = document.querySelector('[data-codespace-secret-list]')!.lastElementChild!;
+  const name = row.querySelector<HTMLSelectElement>('[name="secret_name"]')!;
+  const source = row.querySelector<HTMLSelectElement>('[name="secret_source"]')!;
+  const value = row.querySelector<HTMLTextAreaElement>('[name="secret_value"]')!;
+  const search = row.querySelector<HTMLInputElement>('input.search')!;
+  await expect.poll(() => document.activeElement === search).toBe(true);
+  await userEvent.fill(search, 'token');
+  await userEvent.click(name.closest('.dropdown')!.querySelector<HTMLElement>('.menu > [data-value="TOKEN"]')!);
+  expect(name.value).toBe('TOKEN');
+  expect(source.value).toBe('none');
+  expect(source.querySelector<HTMLOptionElement>('[value="saved"]')!.disabled).toBe(false);
+  await userEvent.click(source.closest('.dropdown')!);
+  await userEvent.click(source.closest('.dropdown')!.querySelector<HTMLElement>('.menu > [data-value="saved"]')!);
+  expect(source.value).toBe('saved');
+  expect(value.parentElement!.classList.contains('tw-hidden')).toBe(true);
+  $(name).dropdown('set selected', 'SECOND_TOKEN');
+  expect(source.value).toBe('none');
+  $(source).dropdown('set selected', 'saved');
+  await userEvent.fill(search, '<b>OTHER</b>');
+  await expect.poll(() => name.closest('.dropdown')!.querySelector('.addition')?.textContent).toBe('<b>OTHER</b>');
+  expect(name.closest('.dropdown')!.querySelector('.addition b')).toBeNull();
+  await userEvent.fill(search, 'OTHER');
+  await expect.poll(() => name.closest('.dropdown')!.querySelector('.addition[data-value="OTHER"]')).toBeTruthy();
+  await userEvent.keyboard('{Enter}');
+  expect(name.value).toBe('OTHER');
+  expect(source.value).toBe('none');
+  expect(source.querySelector<HTMLOptionElement>('[value="saved"]')!.disabled).toBe(true);
+  $(source).dropdown('set selected', 'custom');
+  expect(value.parentElement!.classList.contains('tw-hidden')).toBe(false);
+  value.value = ' first\nsecond\n';
+  const form = document.querySelector('form')!;
+  expect(new FormData(form).getAll('secret_name')).toEqual(['TOKEN', 'OTHER']);
+  expect(new FormData(form).getAll('secret_source')).toEqual(['saved', 'custom']);
+  expect(new FormData(form).getAll('secret_value')).toEqual(['', ' first\nsecond\n']);
+  $(source).dropdown('set selected', 'none');
+  expect(value.parentElement!.classList.contains('tw-hidden')).toBe(true);
+  expect(new FormData(form).getAll('secret_source')).toEqual(['saved', 'none']);
+  expect(new FormData(form).getAll('secret_value')).toHaveLength(2);
+  row.querySelector<HTMLButtonElement>('[data-codespace-secret-remove]')!.click();
+  expect(Array.from(new FormData(form))).toEqual([['secret_name', 'TOKEN'], ['secret_source', 'saved'], ['secret_value', '']]);
 });
 
 test('gateway recovery opens the modal and closes it after opening a new tab', async () => {
@@ -210,18 +276,6 @@ test('codespace settings button fills and opens the shared auto-stop modal', () 
   expect(showModal).toHaveBeenCalledWith(form.closest('dialog'));
 });
 
-function codespaceLogHTML() {
-  return `
-    <section class="codespace-log-panel">
-      <div id="codespace-log-view" data-log-url="/-/codespaces/1/logs" data-log-next-offset="0" data-log-refresh-after-ms="10">
-        <div data-log-empty-message>Empty</div>
-        <pre data-log-content></pre>
-      </div>
-      <div class="tw-hidden" data-log-error>Log unavailable<button data-log-retry>Retry</button></div>
-    </section>
-  `;
-}
-
 function codespaceLogResponse(nextOffset: number, messages: string[] = [], eof = true, active = false) {
   const response = new Response();
   // Native response body reads run outside fake timers.
@@ -239,7 +293,14 @@ describe('codespace log', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    document.body.innerHTML = codespaceLogHTML();
+    document.body.innerHTML = `
+      <section class="codespace-log-panel">
+        <div id="codespace-log-view" data-log-url="/-/codespaces/1/logs" data-log-next-offset="0" data-log-refresh-after-ms="10">
+          <div data-log-empty-message>Empty</div>
+          <pre data-log-content></pre>
+        </div>
+        <div class="tw-hidden" data-log-error>Log unavailable<button data-log-retry>Retry</button></div>
+      </section>`;
     logView = document.querySelector<HTMLElement>('#codespace-log-view')!;
     content = logView.querySelector<HTMLElement>('[data-log-content]')!;
     height = 400;

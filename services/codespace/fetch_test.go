@@ -20,61 +20,80 @@ import (
 )
 
 func TestFetchOperationsClaimsCreate(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	configureGitTransportTestSettings(t, codespace_model.GitProtocolHTTP, false, false, nil)
+	for _, source := range []struct {
+		name    string
+		path    string
+		content string
+	}{
+		{name: "repository", path: ".devcontainer/devcontainer.json"},
+		{name: "template", content: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`},
+	} {
+		t.Run(source.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			configureGitTransportTestSettings(t, codespace_model.GitProtocolHTTP, false, false, nil)
 
-	fullManager := insertServiceManager(t)
-	markServiceManagerOnline(t, fullManager, `[{"tag":"default"}]`)
-	manager := insertServiceManager(t)
-	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "10101010-1010-4010-8010-101010101010"
-	insertServiceCodespace(t, 0, &codespace_model.Codespace{
-		UUID:                 codespaceUUID,
-		Status:               codespace_model.StatusCreating,
-		OperationRVersion:    31,
-		OperationTrigger:     codespace_model.OperationTriggerUser,
-		OperationCreatedUnix: time.Now().Unix(),
-	})
+			fullManager := insertServiceManager(t)
+			markServiceManagerOnline(t, fullManager, `[{"tag":"default"}]`)
+			manager := insertServiceManager(t)
+			markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
+			empty, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{})
+			require.NoError(t, err)
+			assert.Empty(t, empty.Operations)
+			assert.Empty(t, empty.RenewedLeases)
+			codespaceUUID := "10101010-1010-4010-8010-101010101010"
+			insertServiceCodespace(t, 0, &codespace_model.Codespace{
+				UUID:                 codespaceUUID,
+				DevContainerPath:     source.path,
+				DevContainerContent:  source.content,
+				Status:               codespace_model.StatusCreating,
+				OperationRVersion:    31,
+				OperationTrigger:     codespace_model.OperationTriggerUser,
+				OperationCreatedUnix: time.Now().Unix(),
+			})
 
-	fullResult, err := FetchOperations(t.Context(), fullManager, FetchOperationsOptions{
-		AcceptedOperationTypes: []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
-		AcceptedCreateTags:     []string{"default"},
-	})
-	require.NoError(t, err)
-	assert.Empty(t, fullResult.Operations)
-	waiting := loadServiceCodespace(t, codespaceUUID)
-	assert.Zero(t, waiting.ManagerID)
-	assert.True(t, codespace_model.IsOperationQueued(waiting))
+			fullResult, err := FetchOperations(t.Context(), fullManager, FetchOperationsOptions{
+				AcceptedOperationTypes: []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
+				AcceptedCreateTags:     []string{"default"},
+			})
+			require.NoError(t, err)
+			assert.Empty(t, fullResult.Operations)
+			waiting := loadServiceCodespace(t, codespaceUUID)
+			assert.Zero(t, waiting.ManagerID)
+			assert.True(t, codespace_model.IsOperationQueued(waiting))
 
-	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
-		StartupCapacityAvailable: 1,
-		AcceptedOperationTypes:   []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
-		AcceptedCreateTags:       []string{"default"},
-	})
-	require.NoError(t, err)
-	require.Len(t, result.Operations, 1)
-	operation := result.Operations[0]
-	assert.Equal(t, codespaceUUID, operation.GetRuntimeUuid())
-	assert.EqualValues(t, 31, operation.GetOperationRversion())
-	assert.EqualValues(t, setting.Codespace.OperationLeaseTimeout/time.Millisecond, operation.GetLeaseValidForMilliseconds())
-	create := operation.GetCreate()
-	require.NotNil(t, create)
-	repository := create.GetRepository()
-	require.NotNil(t, repository)
-	assert.NotEmpty(t, repository.GetFullName())
-	assert.NotEmpty(t, repository.GetCloneHttpUrl())
-	assert.Empty(t, repository.GetCloneSshUrl())
-	assert.Equal(t, "refs/heads/main", repository.GetStartRef())
-	assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_HTTP, repository.GetPreferredProtocol())
-	assert.True(t, create.GetRuntimeSettings().GetAutoStopEnabled())
-	assert.EqualValues(t, setting.Codespace.AutoStopDefaultTimeout/time.Second, create.GetRuntimeSettings().GetIdleTimeoutSeconds())
-	row := loadServiceCodespace(t, codespaceUUID)
-	assert.Equal(t, row.RepoID, repository.GetRepositoryId())
-	assert.Equal(t, row.UserID, create.GetGitIdentity().GetUserId())
-	assert.Equal(t, manager.ID, row.ManagerID)
-	assert.True(t, codespace_model.IsOperationRunning(row))
-	assert.Positive(t, row.OperationStartedUnix)
-	assert.Positive(t, row.OperationDeadlineUnix)
+			result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
+				StartupCapacityAvailable: 1,
+				AcceptedOperationTypes:   []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
+				AcceptedCreateTags:       []string{"default"},
+			})
+			require.NoError(t, err)
+			require.Len(t, result.Operations, 1)
+			operation := result.Operations[0]
+			assert.Equal(t, codespaceUUID, operation.GetRuntimeUuid())
+			assert.EqualValues(t, 31, operation.GetOperationRversion())
+			assert.EqualValues(t, setting.Codespace.OperationLeaseTimeout/time.Millisecond, operation.GetLeaseValidForMilliseconds())
+			create := operation.GetCreate()
+			require.NotNil(t, create)
+			assert.Equal(t, source.path, create.GetDevContainer().GetRepositoryPath())
+			assert.Equal(t, source.content, create.GetDevContainer().GetTemplateContent())
+			repository := create.GetRepository()
+			require.NotNil(t, repository)
+			assert.NotEmpty(t, repository.GetFullName())
+			assert.NotEmpty(t, repository.GetCloneHttpUrl())
+			assert.Empty(t, repository.GetCloneSshUrl())
+			assert.Equal(t, "refs/heads/main", repository.GetStartRef())
+			assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_HTTP, repository.GetPreferredProtocol())
+			assert.True(t, create.GetRuntimeSettings().GetAutoStopEnabled())
+			assert.EqualValues(t, setting.Codespace.AutoStopDefaultTimeout/time.Second, create.GetRuntimeSettings().GetIdleTimeoutSeconds())
+			row := loadServiceCodespace(t, codespaceUUID)
+			assert.Equal(t, row.RepoID, repository.GetRepositoryId())
+			assert.Equal(t, row.UserID, create.GetGitIdentity().GetUserId())
+			assert.Equal(t, manager.ID, row.ManagerID)
+			assert.True(t, codespace_model.IsOperationRunning(row))
+			assert.Positive(t, row.OperationStartedUnix)
+			assert.Positive(t, row.OperationDeadlineUnix)
+		})
+	}
 }
 
 func TestFetchOperationsReleasesCreateClaimWhenPayloadInvalid(t *testing.T) {
@@ -379,7 +398,8 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 	assert.Equal(t, codespaceUUID, result.RenewedLeases[0].GetRuntimeUuid())
 	assert.EqualValues(t, 32, result.RenewedLeases[0].GetOperationRversion())
 	assert.EqualValues(t, setting.Codespace.OperationLeaseTimeout/time.Millisecond, result.RenewedLeases[0].GetLeaseValidForMilliseconds())
-	assert.Greater(t, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix, time.Now().Unix()+1)
+	deadline := loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix
+	assert.Greater(t, deadline, time.Now().Unix()+1)
 
 	_, err = db.GetEngine(t.Context()).ID(manager.ID).Cols("runtime_state").Update(&codespace_model.Manager{RuntimeState: codespace_model.ManagerRuntimeStateRecovering})
 	require.NoError(t, err)
@@ -399,6 +419,8 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 	assert.Empty(t, result.Operations)
 	require.Len(t, result.RenewedLeases, 1)
 	assert.True(t, codespace_model.IsOperationQueued(loadServiceCodespace(t, queuedUUID)))
+	assert.Equal(t, deadline, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix)
+	assert.InDelta(t, time.Until(time.Unix(deadline, 0)).Milliseconds(), result.RenewedLeases[0].GetLeaseValidForMilliseconds(), 100)
 }
 
 func TestFetchOperationsRejectsStateHistoryConflictBeforeWrites(t *testing.T) {
@@ -466,29 +488,45 @@ func TestFetchOperationsRedeliversUnobservedRunningOperation(t *testing.T) {
 	assert.Equal(t, originalDeadline, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix)
 }
 
-func TestFetchOperationsExpiresUnobservedRunningOperation(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	manager := insertServiceManager(t)
-	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	codespaceUUID := "23232323-2323-4323-8323-232323232322"
-	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		UUID:                  codespaceUUID,
-		Status:                codespace_model.StatusCreating,
-		OperationRVersion:     40,
-		OperationTrigger:      codespace_model.OperationTriggerUser,
-		OperationCreatedUnix:  time.Now().Add(-time.Minute).Unix(),
-		OperationStartedUnix:  time.Now().Add(-time.Minute).Unix(),
-		OperationDeadlineUnix: time.Now().Add(-time.Second).Unix(),
-	})
-
-	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{})
-	require.NoError(t, err)
-	assert.Empty(t, result.Operations)
-	assert.Empty(t, result.RenewedLeases)
-	current := loadServiceCodespace(t, codespaceUUID)
-	assert.Equal(t, codespace_model.StatusFailed, current.Status)
-	assert.False(t, hasActiveOperation(current))
+func TestFetchOperationsExpiresRunningOperation(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		started  time.Duration
+		deadline time.Duration
+		observed bool
+	}{
+		{name: "unobserved lease expired", started: -time.Minute, deadline: -time.Second},
+		{name: "observed total duration expired", started: -setting.Codespace.OperationMaxDuration - time.Minute, deadline: 2 * time.Second, observed: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			manager := insertServiceManager(t)
+			markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
+			codespaceUUID := "23232323-2323-4323-8323-232323232322"
+			now := time.Now()
+			insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+				UUID:                  codespaceUUID,
+				Status:                codespace_model.StatusCreating,
+				OperationRVersion:     40,
+				OperationTrigger:      codespace_model.OperationTriggerUser,
+				OperationCreatedUnix:  now.Add(tc.started).Unix(),
+				OperationStartedUnix:  now.Add(tc.started).Unix(),
+				OperationDeadlineUnix: now.Add(tc.deadline).Unix(),
+			})
+			opts := FetchOperationsOptions{}
+			if tc.observed {
+				opts.ObservedOperations = []*codespacev1.ObservedOperation{{RuntimeUuid: codespaceUUID, OperationRversion: 40}}
+			}
+			result, err := FetchOperations(t.Context(), manager, opts)
+			require.NoError(t, err)
+			assert.Empty(t, result.Operations)
+			assert.Empty(t, result.RenewedLeases)
+			current := loadServiceCodespace(t, codespaceUUID)
+			assert.Equal(t, codespace_model.StatusFailed, current.Status)
+			assert.False(t, hasActiveOperation(current))
+			assert.Contains(t, readServiceLog(t, codespaceLogFilename(codespaceUUID)), "operation create#40 timeout as failed")
+		})
+	}
 }
 
 func TestFetchOperationsReturnsCurrentPayloadForLowerObservedVersion(t *testing.T) {
@@ -570,19 +608,6 @@ func TestFetchOperationsRejectsStateHistoryConflict(t *testing.T) {
 		}},
 	})
 	require.ErrorIs(t, err, ErrFetchStateHistoryConflict)
-}
-
-func TestFetchOperationsWaitsWhenNoWorkIsAvailable(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	manager := insertServiceManager(t)
-	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	started := time.Now()
-	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{WaitTimeoutMilliseconds: 20})
-	require.NoError(t, err)
-	assert.Empty(t, result.Operations)
-	assert.Empty(t, result.RenewedLeases)
-	assert.GreaterOrEqual(t, time.Since(started), 20*time.Millisecond)
 }
 
 func markServiceManagerOnline(t *testing.T, manager *codespace_model.Manager, tagsJSON string) {

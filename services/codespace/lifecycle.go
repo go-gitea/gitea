@@ -54,7 +54,7 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 	var stateSummary *internalStateSummary
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
+		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Omit("secrets_encrypted").Get(codespace)
 		if err != nil {
 			return err
 		}
@@ -147,6 +147,17 @@ func applyFinalOperation(ctx context.Context, codespace *codespace_model.Codespa
 
 func isConvergentOperation(operationType string) bool {
 	return operationType == codespace_model.OperationStop || operationType == codespace_model.OperationDelete
+}
+
+func applyRunningTimeout(ctx context.Context, codespace *codespace_model.Codespace, now int64) (*internalStateSummary, error) {
+	operationType := codespace_model.ActiveOperationType(codespace)
+	if isConvergentOperation(operationType) {
+		summary := operationRetrySummary(codespace)
+		return summary, retryConvergentOperation(ctx, codespace, now)
+	}
+	status := timeoutStatus(operationType)
+	summary := operationTimeoutSummary(codespace, status)
+	return summary, applyFinalState(ctx, codespace, status, now)
 }
 
 func retryConvergentOperation(ctx context.Context, codespace *codespace_model.Codespace, now int64) error {

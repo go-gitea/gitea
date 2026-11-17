@@ -40,7 +40,7 @@
 								<label for="codespace-environment-tag">{{ctx.Locale.Tr "codespace.runtime_environment"}}</label>
 								{{$selectedEnvironment := .CreateSelectedEnvironment}}
 								<div id="codespace-environment-tag" class="ui fluid selection dropdown codespace-scope-dropdown" tabindex="0">
-									<input type="hidden" name="environment_tag" value="{{if $selectedEnvironment}}{{$selectedEnvironment.Tag}}{{end}}">
+									<input type="hidden" name="environment_tag" data-explicit="{{.CreateEnvironmentExplicit}}" value="{{if $selectedEnvironment}}{{$selectedEnvironment.Tag}}{{end}}">
 									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 									<div class="{{if not $selectedEnvironment}}default {{end}}text">
 										{{if $selectedEnvironment}}
@@ -137,56 +137,19 @@
 
 				<div class="ui attached segment codespace-create-section">
 					<h4 class="ui header">{{ctx.Locale.Tr "codespace.secrets"}}</h4>
-					{{if not .CreatePlan.SecretInjectionAllowed}}
+					<p class="help">{{ctx.Locale.Tr "codespace.secrets_create_description"}}</p>
+					{{if not .CreatePlan.SavedSecretsAllowed}}
 						<div class="ui warning message">
 							{{if and .CreatePlan.PullRequest .CreatePlan.PullRequest.IsFork}}{{ctx.Locale.Tr "codespace.secrets_fork_pull_unavailable"}}{{else}}{{ctx.Locale.Tr "codespace.secrets_write_access_required"}}{{end}}
 						</div>
-					{{else}}
-						{{if .CreatePlan.AvailableSecrets}}
-								<p class="help">{{ctx.Locale.Tr "codespace.secrets_available_description"}}</p>
-								<div class="flex-divided-list items-with-main codespace-create-secret-list">
-									{{range $secret := .CreatePlan.AvailableSecrets}}
-										<div class="item codespace-create-secret-item">
-											<div class="item-leading">{{svg "octicon-key" 24}}</div>
-											<div class="item-main">
-												<div class="item-title"><strong>{{$secret.Name}}</strong></div>
-												{{if $secret.Description}}<div class="item-body">{{$secret.Description}}</div>{{end}}
-										</div>
-									</div>
-								{{end}}
-							</div>
-						{{else}}
-							<div class="codespace-create-secret-empty">{{ctx.Locale.Tr "codespace.secrets_none_for_create"}}</div>
-						{{end}}
-						{{if .CreateHasPendingRecommendedSecret}}
-							<h5 class="ui header codespace-create-recommended-secret-heading">{{ctx.Locale.Tr "codespace.recommended_secrets"}}</h5>
-							<p class="help">{{ctx.Locale.Tr "codespace.recommended_secrets_description"}}</p>
-							<div class="flex-divided-list items-with-main codespace-create-secret-list">
-								{{range $secret := .CreatePlan.RecommendedSecrets}}
-									{{if not $secret.Available}}
-										<div class="item codespace-create-secret-item">
-											<div class="item-leading">{{svg "octicon-key" 24}}</div>
-											<div class="item-main">
-												<div class="item-title"><strong>{{$secret.Name}}</strong></div>
-												{{if $secret.Description}}<div class="item-body">{{$secret.Description}}</div>{{end}}
-											</div>
-											<div class="item-trailing codespace-create-secret-control">
-												{{if $secret.Configured}}
-											<label class="gt-checkbox">
-												<input type="checkbox" name="recommended_secret_enable_{{$secret.Name}}" value="true"{{if index $.CreateRecommendedSecretEnabled $secret.Name}} checked{{end}}>
-												{{ctx.Locale.Tr "codespace.secret_allow_repository"}}
-											</label>
-												{{else}}
-													<input type="password" name="recommended_secret_value_{{$secret.Name}}" autocomplete="new-password" placeholder="{{ctx.Locale.Tr "codespace.secret_optional_value"}}" aria-label="{{$secret.Name}}">
-												{{end}}
-											</div>
-										</div>
-									{{end}}
-								{{end}}
-							</div>
-						{{end}}
 					{{end}}
-					<div class="codespace-create-secret-footer">
+					{{if .CreateSecretsNeedReentry}}<p class="help">{{ctx.Locale.Tr "codespace.secrets_reenter"}}</p>{{end}}
+					<div class="flex-divided-list items-with-main tw-mb-3" data-codespace-secret-list>
+						{{range .CreateSecretFields}}{{template "codespace/create_secret" (dict "Field" . "AvailableSecrets" $.CreatePlan.AvailableSecrets)}}{{end}}
+					</div>
+					<template data-codespace-secret-template>{{template "codespace/create_secret" (dict "Field" .CreateSecretTemplate "AvailableSecrets" .CreatePlan.AvailableSecrets)}}</template>
+					<button type="button" class="ui small button" data-codespace-secret-add>{{svg "octicon-plus"}} {{ctx.Locale.Tr "secrets.add_secret"}}</button>
+					<div class="tw-mt-4">
 						<a href="{{AppSubUrl}}/user/settings/codespaces/secrets" target="_blank" rel="noopener noreferrer">{{ctx.Locale.Tr "codespace.secrets_manage"}} {{svg "octicon-link-external" 14}}</a>
 					</div>
 				</div>

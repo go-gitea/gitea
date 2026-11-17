@@ -68,7 +68,7 @@ func ResolveGitSSHKeyUser(ctx context.Context, key *asymkey_model.PublicKey, rep
 	}
 
 	codespace := new(codespace_model.Codespace)
-	has, err = db.GetEngine(ctx).ID(relation.CodespaceID).Get(codespace)
+	has, err = db.GetEngine(ctx).ID(relation.CodespaceID).Omit("secrets_encrypted").Get(codespace)
 	if err != nil {
 		return nil, err
 	}

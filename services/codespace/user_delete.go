@@ -49,15 +49,6 @@ func deleteUserResourcesLocked(ctx context.Context, userID int64) error {
 		if _, err := db.GetEngine(ctx).Where("user_id = ?", userID).Delete(new(codespace_model.ManagerRegistrationToken)); err != nil {
 			return err
 		}
-		var secrets []*codespace_model.UserSecret
-		if err := db.GetEngine(ctx).Where("user_id = ?", userID).Find(&secrets); err != nil {
-			return err
-		}
-		for _, secret := range secrets {
-			if _, err := db.GetEngine(ctx).Where("secret_id = ?", secret.ID).Delete(new(codespace_model.UserSecretRepository)); err != nil {
-				return err
-			}
-		}
 		if _, err := db.GetEngine(ctx).Where("user_id = ?", userID).Delete(new(codespace_model.UserSecret)); err != nil {
 			return err
 		}
@@ -122,6 +113,7 @@ func deleteUserCodespacesLocked(ctx context.Context, userID int64) error {
 			Where("user_id = ?", userID).
 			Asc("id").
 			Limit(userDeleteBatchSize).
+			Omit("secrets_encrypted").
 			Find(&rows); err != nil {
 			return err
 		}
@@ -131,7 +123,7 @@ func deleteUserCodespacesLocked(ctx context.Context, userID int64) error {
 		for _, row := range rows {
 			if err := db.WithTx(ctx, func(ctx context.Context) error {
 				codespace := new(codespace_model.Codespace)
-				has, err := db.GetEngine(ctx).ID(row.ID).Get(codespace)
+				has, err := db.GetEngine(ctx).ID(row.ID).Omit("secrets_encrypted").Get(codespace)
 				if err != nil || !has || codespace.UserID != userID {
 					return err
 				}

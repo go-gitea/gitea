@@ -23,6 +23,7 @@ type codespace struct {
 	CommitSHA                 string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 	DevContainerPath          string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
 	DevContainerContent       string `xorm:"TEXT NOT NULL"`
+	SecretsEncrypted          string `xorm:"LONGTEXT"`
 	PermissionAuthorizationID int64  `xorm:"NOT NULL DEFAULT 0 index"`
 	ManagerID                 int64  `xorm:"NOT NULL DEFAULT 0"`
 	Status                    string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
@@ -146,19 +147,12 @@ func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
 	}
 
 	type codespaceUserSecret struct {
-		ID              int64
-		UserID          int64  `xorm:"NOT NULL unique(user_name)"`
-		Name            string `xorm:"VARCHAR(255) NOT NULL unique(user_name)"`
-		DataEncrypted   string `xorm:"LONGTEXT NOT NULL"`
-		DataSize        int64  `xorm:"NOT NULL DEFAULT 0"`
-		AllRepositories bool   `xorm:"NOT NULL DEFAULT false"`
-		CreatedUnix     int64  `xorm:"NOT NULL DEFAULT 0"`
-		UpdatedUnix     int64  `xorm:"NOT NULL DEFAULT 0"`
-	}
-
-	type codespaceUserSecretRepository struct {
-		SecretID int64 `xorm:"pk NOT NULL"`
-		RepoID   int64 `xorm:"pk NOT NULL index"`
+		ID            int64
+		UserID        int64  `xorm:"NOT NULL unique(user_name)"`
+		Name          string `xorm:"VARCHAR(255) NOT NULL unique(user_name)"`
+		DataEncrypted string `xorm:"LONGTEXT NOT NULL"`
+		CreatedUnix   int64  `xorm:"NOT NULL DEFAULT 0"`
+		UpdatedUnix   int64  `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	type codespaceDevContainerTemplate struct {
@@ -185,7 +179,6 @@ func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
 		new(codespacePermissionAuthorization),
 		new(codespacePermissionRepository),
 		new(codespaceUserSecret),
-		new(codespaceUserSecretRepository),
 		new(codespaceDevContainerTemplate),
 	); err != nil {
 		_ = sess.Rollback()

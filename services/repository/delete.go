@@ -409,9 +409,6 @@ func deleteRepositoryDirectlyLocked(ctx context.Context, repoID int64, ignoreOrg
 }
 
 func unbindCodespacesFromRepository(ctx context.Context, repoID int64) error {
-	if _, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Delete(new(codespace_model.UserSecretRepository)); err != nil {
-		return err
-	}
 	if _, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Cols("repo_id").Update(&codespace_model.Codespace{}); err != nil {
 		return err
 	}

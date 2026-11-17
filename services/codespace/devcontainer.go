@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	codespace_model "gitea.dev/models/codespace"
-	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -31,7 +30,6 @@ const (
 	maxDevContainerConfigurations         = 32
 	maxCodespacePermissionRepositories    = 32
 	maxCodespacePermissionRepositoryRules = 128
-	maxRecommendedSecrets                 = 100
 )
 
 // CreateDevContainerOption describes one configuration available at the selected commit.
@@ -47,6 +45,7 @@ var ErrCreateConfigurationInvalid = errors.New("selected Dev Container configura
 
 // createDevContainerPlan contains the immutable runtime choice and confirmation data.
 type createDevContainerPlan struct {
+	EnvironmentTag         string
 	Selection              string
 	Path                   string
 	Content                string
@@ -55,21 +54,10 @@ type createDevContainerPlan struct {
 	RecommendedSecrets     []CreateRecommendedSecret
 }
 
-type devContainerDocument struct {
-	Name           string                        `json:"name"`
-	Image          string                        `json:"image"`
-	Build          any                           `json:"build"`
-	DockerFile     string                        `json:"dockerFile"`
-	DockerCompose  any                           `json:"dockerComposeFile"`
-	Features       map[string]any                `json:"features"`
-	Mounts         []devContainerMount           `json:"mounts"`
+// Runtime properties are interpreted by Codespace; Gitea reads creation metadata.
+type devContainerMetadata struct {
 	Secrets        map[string]devContainerSecret `json:"secrets"`
 	Customizations devContainerCustomizations    `json:"customizations"`
-}
-
-type devContainerMount struct {
-	Type   string `json:"type"`
-	Source string `json:"source"`
 }
 
 type devContainerSecret struct {
@@ -81,7 +69,8 @@ type devContainerCustomizations struct {
 }
 
 type devContainerGiteaCustomization struct {
-	Repositories map[string]devContainerRepositoryPermission `json:"repositories"`
+	EnvironmentTag string                                      `json:"environmentTag"`
+	Repositories   map[string]devContainerRepositoryPermission `json:"repositories"`
 }
 
 type devContainerRepositoryPermission struct {
@@ -228,55 +217,27 @@ func loadRepositoryDevContainer(ctx context.Context, gitRepo *git.Repository, co
 	if err != nil {
 		return nil, err
 	}
-	if int64(len(content)) > devContainerConfigMaxSize {
-		return nil, fmt.Errorf("%w: configuration %q exceeds %d bytes", ErrCreateConfigurationInvalid, configPath, devContainerConfigMaxSize)
-	}
-	document, err := parseDevContainerDocument(content, configPath)
+	plan, err := parseDevContainerPlan(content, configPath)
 	if err != nil {
 		return nil, errors.Join(ErrCreateConfigurationInvalid, err)
 	}
-	repositories, err := devContainerPermissionRepositories(document.Customizations)
-	if err != nil {
-		return nil, fmt.Errorf("%w: parse Dev Container configuration %q: %w", ErrCreateConfigurationInvalid, configPath, err)
-	}
-	recommendedSecrets, err := parseRecommendedSecrets(document.Secrets)
-	if err != nil {
-		return nil, fmt.Errorf("%w: parse Dev Container configuration %q: %w", ErrCreateConfigurationInvalid, configPath, err)
-	}
-	return &createDevContainerPlan{
-		Selection:              configPath,
-		Path:                   configPath,
-		PermissionRepositories: repositories,
-		RecommendedSecrets:     recommendedSecrets,
-	}, nil
+	plan.Selection = configPath
+	plan.Path = configPath
+	return plan, nil
 }
 
 func loadTemplateDevContainer(template *codespace_model.DevContainerTemplate) (*createDevContainerPlan, error) {
 	content := strings.TrimSpace(template.Content)
-	document, err := parseDevContainerDocument([]byte(content), template.Name)
+	plan, err := parseDevContainerPlan([]byte(content), template.Name)
 	if err != nil {
 		return nil, err
 	}
-	if err := validateTemplateDevContainer(document); err != nil {
-		return nil, fmt.Errorf("parse Dev Container template %q: %w", template.Name, err)
-	}
-	repositories, err := devContainerPermissionRepositories(document.Customizations)
-	if err != nil {
-		return nil, fmt.Errorf("parse Dev Container template %q: %w", template.Name, err)
-	}
-	recommendedSecrets, err := parseRecommendedSecrets(document.Secrets)
-	if err != nil {
-		return nil, fmt.Errorf("parse Dev Container template %q: %w", template.Name, err)
-	}
-	return &createDevContainerPlan{
-		Selection:              devContainerTemplateSelectionPrefix + strconv.FormatInt(template.ID, 10),
-		Content:                content,
-		PermissionRepositories: repositories,
-		RecommendedSecrets:     recommendedSecrets,
-	}, nil
+	plan.Selection = devContainerTemplateSelectionPrefix + strconv.FormatInt(template.ID, 10)
+	plan.Content = content
+	return plan, nil
 }
 
-func parseDevContainerDocument(content []byte, name string) (*devContainerDocument, error) {
+func parseDevContainerPlan(content []byte, name string) (*createDevContainerPlan, error) {
 	if int64(len(content)) > devContainerConfigMaxSize {
 		return nil, fmt.Errorf("Dev Container configuration %q exceeds %d bytes", name, devContainerConfigMaxSize)
 	}
@@ -284,37 +245,35 @@ func parseDevContainerDocument(content []byte, name string) (*devContainerDocume
 	if err != nil {
 		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", name, err)
 	}
-	var document devContainerDocument
+	var document *devContainerMetadata
 	if err := json.Unmarshal(standard, &document); err != nil {
 		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", name, err)
 	}
-	return &document, nil
-}
-
-func validateTemplateDevContainer(document *devContainerDocument) error {
-	if strings.TrimSpace(document.Image) == "" || document.Build != nil || strings.TrimSpace(document.DockerFile) != "" || document.DockerCompose != nil {
-		return errors.New("template must select an image")
+	if document == nil {
+		return nil, fmt.Errorf("Dev Container configuration %q must be a JSON object", name)
 	}
-	for reference := range document.Features {
-		if strings.HasPrefix(reference, "./") || strings.HasPrefix(reference, "../") {
-			return errors.New("template cannot use relative Features")
-		}
+	environmentTag := document.Customizations.Gitea.EnvironmentTag
+	if environmentTag != "" && !environmentTagPattern.MatchString(environmentTag) {
+		return nil, fmt.Errorf("invalid Gitea environment tag %q", environmentTag)
 	}
-	for _, mount := range document.Mounts {
-		source := strings.TrimSpace(mount.Source)
-		if source == "" || strings.Contains(source, "${") {
-			continue
-		}
-		if mount.Type == "bind" && !path.IsAbs(source) {
-			return errors.New("template cannot use relative bind mounts")
-		}
+	repositories, err := devContainerPermissionRepositories(document.Customizations)
+	if err != nil {
+		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", name, err)
 	}
-	return nil
+	recommendedSecrets, err := parseRecommendedSecrets(document.Secrets)
+	if err != nil {
+		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", name, err)
+	}
+	return &createDevContainerPlan{
+		EnvironmentTag:         environmentTag,
+		PermissionRepositories: repositories,
+		RecommendedSecrets:     recommendedSecrets,
+	}, nil
 }
 
 func parseRecommendedSecrets(configured map[string]devContainerSecret) ([]CreateRecommendedSecret, error) {
-	if len(configured) > maxRecommendedSecrets {
-		return nil, fmt.Errorf("Dev Container recommends more than %d secrets", maxRecommendedSecrets)
+	if len(configured) > MaxCreateSecrets {
+		return nil, fmt.Errorf("Dev Container recommends more than %d secrets", MaxCreateSecrets)
 	}
 	secrets := make([]CreateRecommendedSecret, 0, len(configured))
 	seen := make(map[string]struct{}, len(configured))
@@ -331,50 +290,6 @@ func parseRecommendedSecrets(configured map[string]devContainerSecret) ([]Create
 	}
 	sort.Slice(secrets, func(i, j int) bool { return secrets[i].Name < secrets[j].Name })
 	return secrets, nil
-}
-
-func resolveCreateSecrets(ctx context.Context, userID, repoID int64, recommendations []CreateRecommendedSecret) ([]CreateRecommendedSecret, []CreateSecretSummary, error) {
-	var secrets []*codespace_model.UserSecret
-	if err := db.GetEngine(ctx).Cols("id", "name", "all_repositories").Where("user_id = ?", userID).Asc("name").Find(&secrets); err != nil {
-		return nil, nil, err
-	}
-	byName := make(map[string]*codespace_model.UserSecret, len(secrets))
-	secretIDs := make([]int64, 0, len(secrets))
-	for _, secret := range secrets {
-		byName[secret.Name] = secret
-		secretIDs = append(secretIDs, secret.ID)
-	}
-	availableSecretIDs := make(map[int64]struct{}, len(secrets))
-	if len(secretIDs) > 0 {
-		var bindings []*codespace_model.UserSecretRepository
-		if err := db.GetEngine(ctx).In("secret_id", secretIDs).Where("repo_id = ?", repoID).Find(&bindings); err != nil {
-			return nil, nil, err
-		}
-		for _, binding := range bindings {
-			availableSecretIDs[binding.SecretID] = struct{}{}
-		}
-	}
-	for i := range recommendations {
-		secret := byName[recommendations[i].Name]
-		if secret == nil {
-			continue
-		}
-		recommendations[i].Configured = true
-		_, selected := availableSecretIDs[secret.ID]
-		recommendations[i].Available = secret.AllRepositories || selected
-	}
-	descriptions := make(map[string]string, len(recommendations))
-	for _, recommendation := range recommendations {
-		descriptions[recommendation.Name] = recommendation.Description
-	}
-	available := make([]CreateSecretSummary, 0, len(secrets))
-	for _, secret := range secrets {
-		_, selected := availableSecretIDs[secret.ID]
-		if secret.AllRepositories || selected {
-			available = append(available, CreateSecretSummary{Name: secret.Name, Description: descriptions[secret.Name]})
-		}
-	}
-	return recommendations, available, nil
 }
 
 func devContainerPermissionRepositories(customizations devContainerCustomizations) (map[string]map[string]string, error) {

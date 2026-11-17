@@ -87,6 +87,45 @@ func TestOpenEndpointHidesOtherCreatorCodespace(t *testing.T) {
 	require.ErrorIs(t, err, ErrOpenEndpointNotFound)
 }
 
+func TestOpenEndpointDuringInitialization(t *testing.T) {
+	for _, status := range []string{codespace_model.StatusCreating, codespace_model.StatusStopped} {
+		t.Run(status, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			manager := insertServiceManager(t)
+			markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
+			setServiceManagerGatewayURL(t, manager, "https://gateway.example.com")
+			cs := &codespace_model.Codespace{
+				UUID: "91919191-9191-4919-8919-919191919191", Status: status, OperationRVersion: 81,
+				OperationTrigger: codespace_model.OperationTriggerUser, OperationCreatedUnix: time.Now().Unix(),
+				OperationStartedUnix: time.Now().Unix(), OperationDeadlineUnix: time.Now().Add(time.Minute).Unix(),
+			}
+			insertServiceCodespace(t, manager.ID, cs)
+			opts := OpenEndpointOptions{UserID: cs.UserID, CodespaceID: cs.ID, EndpointID: workspaceEndpointID}
+			require.NoError(t, putRuntimeMetadataEntry(cs.UUID, serviceRuntimeMetadataEntry(t, 80, nil)))
+			_, err := openEndpoint(t.Context(), opts)
+			require.ErrorIs(t, err, ErrOpenEndpointUnavailable)
+			require.NoError(t, putRuntimeMetadataEntry(cs.UUID, serviceRuntimeMetadataEntry(t, 81, nil)))
+			issued, err := openEndpoint(t.Context(), opts)
+			require.NoError(t, err)
+			validated, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: issued.code})
+			require.NoError(t, err)
+			require.NotNil(t, validated.GetAllowed())
+			_, failure, err := loadGatewayRuntimeAccess(t.Context(), manager.ID, cs.UUID, false)
+			require.NoError(t, err)
+			require.Empty(t, failure)
+			view := &CreatorCodespaceView{}
+			applyCreatorDisplayState(cs, view, manager, true)
+			applyCreatorActions(cs, view, manager)
+			require.True(t, view.CanOpen)
+			require.Contains(t, []string{DisplayBooting, DisplayResuming}, view.DisplayStatus)
+			_, err = db.GetEngine(t.Context()).ID(cs.ID).Cols("operation_deadline_unix").Update(&codespace_model.Codespace{OperationDeadlineUnix: time.Now().Add(-time.Second).Unix()})
+			require.NoError(t, err)
+			_, err = openEndpoint(t.Context(), opts)
+			require.ErrorIs(t, err, ErrOpenEndpointUnavailable)
+		})
+	}
+}
+
 func TestValidateOpenTokenDeniesAndPreservesTemporarilyInvalidCode(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 

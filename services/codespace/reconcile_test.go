@@ -4,6 +4,7 @@
 package codespace
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -133,7 +134,7 @@ func TestReconcileCodespacesRequiresPositiveRetention(t *testing.T) {
 	assert.Nil(t, result)
 }
 
-func TestReconcileCodespacesLeavesStableRowsUnchanged(t *testing.T) {
+func TestReconcileCodespacesCleansExpiredTokensAndKeepsStableRows(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	manager := insertServiceManager(t)
@@ -143,10 +144,22 @@ func TestReconcileCodespacesLeavesStableRowsUnchanged(t *testing.T) {
 		Status:      codespace_model.StatusRunning,
 		UpdatedUnix: 1,
 	})
+	now := time.Now().Unix()
+	for i := range reconcileCodespacesBatchSize + 1 {
+		require.NoError(t, db.Insert(t.Context(), &codespace_model.OpenToken{
+			CodeHash: fmt.Sprintf("%064x", i), ExpiresUnix: now - 60,
+		}))
+	}
+	validHash := openTokenCodeHash(generateOpenTokenCode())
+	require.NoError(t, db.Insert(t.Context(), &codespace_model.OpenToken{CodeHash: validHash, ExpiresUnix: now + 3600}))
 
 	result, err := ReconcileCodespaces(t.Context(), ReconcileCodespacesOptions{FailedOlderThan: time.Hour})
 	require.NoError(t, err)
-	assert.Equal(t, &ReconcileCodespacesResult{}, result)
+	assert.Equal(t, &ReconcileCodespacesResult{OpenTokensDeleted: reconcileCodespacesBatchSize}, result)
+	result, err = ReconcileCodespaces(t.Context(), ReconcileCodespacesOptions{FailedOlderThan: time.Hour})
+	require.NoError(t, err)
+	assert.Equal(t, &ReconcileCodespacesResult{OpenTokensDeleted: 1}, result)
+	assertServiceExists(t, new(codespace_model.OpenToken), "code_hash = ?", validHash)
 	var count int64
 	count, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Count(new(codespace_model.Codespace))
 	require.NoError(t, err)

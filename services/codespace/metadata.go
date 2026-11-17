@@ -103,9 +103,19 @@ func (m runtimeMetadata) endpointByID(endpointID string) (runtimeMetadataEndpoin
 	return runtimeMetadataEndpoint{}, false
 }
 
-func runtimeMetadataReadyForRunning(codespace *codespace_model.Codespace, metadata runtimeMetadata) bool {
-	return metadata.Boot.Stage == bootStageReady &&
-		metadata.Boot.OperationRVersion == codespace.RuntimeOperationRVersion
+func runtimeMetadataReadyForAccess(codespace *codespace_model.Codespace, metadata runtimeMetadata) bool {
+	if metadata.Boot.Stage != bootStageReady {
+		return false
+	}
+	if hasActiveStartup(codespace) {
+		return metadata.Boot.OperationRVersion == codespace.OperationRVersion
+	}
+	return codespace.Status == codespace_model.StatusRunning && (!hasActiveOperation(codespace) || isQueuedIdleStop(codespace)) && metadata.Boot.OperationRVersion == codespace.RuntimeOperationRVersion
+}
+
+func hasActiveStartup(codespace *codespace_model.Codespace) bool {
+	operation := codespace_model.ActiveOperationType(codespace)
+	return (operation == codespace_model.OperationCreate || operation == codespace_model.OperationResume) && codespace_model.IsOperationRunning(codespace) && codespace.OperationDeadlineUnix > time.Now().Unix()
 }
 
 type runtimeMetadataBoot struct {
@@ -172,7 +182,7 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 			return ErrRuntimeMetadataManagerOffline
 		}
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Select(codespaceStateColumns).Get(codespace)
 		if err != nil {
 			return err
 		}

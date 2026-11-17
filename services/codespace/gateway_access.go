@@ -36,7 +36,7 @@ func loadGatewayRuntimeAccess(ctx context.Context, managerID int64, codespaceUUI
 	}
 
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Omit("secrets_encrypted").Get(codespace)
 	if err != nil {
 		return nil, "", err
 	}
@@ -46,10 +46,11 @@ func loadGatewayRuntimeAccess(ctx context.Context, managerID int64, codespaceUUI
 	if codespace.ManagerID != managerID {
 		return nil, gatewayAccessManagerMismatch, nil
 	}
-	if codespace.Status != codespace_model.StatusRunning {
+	startup := hasActiveStartup(codespace)
+	if codespace.Status != codespace_model.StatusRunning && !startup {
 		return nil, gatewayAccessCodespaceNotRunning, nil
 	}
-	if hasActiveOperation(codespace) && !(allowQueuedIdleStop && isQueuedIdleStop(codespace)) {
+	if hasActiveOperation(codespace) && !startup && !(allowQueuedIdleStop && isQueuedIdleStop(codespace)) {
 		return nil, gatewayAccessActiveOperation, nil
 	}
 
@@ -57,7 +58,7 @@ func loadGatewayRuntimeAccess(ctx context.Context, managerID int64, codespaceUUI
 	if err != nil {
 		return nil, "", err
 	}
-	if !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
+	if !hasEntry || !runtimeMetadataReadyForAccess(codespace, entry.Metadata) {
 		return nil, gatewayAccessMetadataRebuilding, nil
 	}
 	return &gatewayRuntimeAccess{codespace: codespace, metadata: entry.Metadata}, "", nil

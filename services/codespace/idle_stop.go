@@ -55,7 +55,7 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 			return ErrRequestIdleStopManagerUnavailable
 		}
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Omit("secrets_encrypted").Get(codespace)
 		if err != nil {
 			return err
 		}

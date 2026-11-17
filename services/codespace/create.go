@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -43,16 +44,15 @@ var (
 
 // CreateCodespaceOptions contains a creator request from a repository page.
 type CreateCodespaceOptions struct {
-	User                     *user_model.User
-	Repo                     *repo_model.Repository
-	RefType                  string
-	RefName                  string
-	RequestHash              string
-	DevContainerSelection    string
-	EnvironmentTag           string
-	PermissionGrants         map[string]string
-	RecommendedSecretValues  map[string]string
-	RecommendedSecretEnabled map[string]bool
+	User                  *user_model.User
+	Repo                  *repo_model.Repository
+	RefType               string
+	RefName               string
+	RequestHash           string
+	DevContainerSelection string
+	EnvironmentTag        string
+	PermissionGrants      map[string]string
+	Secrets               []CreateSecretInput
 }
 
 // CreateCodespaceResult contains the new object identity and initial state.
@@ -64,16 +64,16 @@ type CreateCodespaceResult struct {
 
 // CreateCodespacePlan is a side-effect-free description presented for user confirmation.
 type CreateCodespacePlan struct {
-	RequestHash            string
-	RefType                string
-	RefName                string
-	PullRequest            *CreatePullRequestSource
-	DevContainerOptions    []CreateDevContainerOption
-	Environments           []CreateEnvironmentOption
-	Permissions            []CreatePermissionRequest
-	RecommendedSecrets     []CreateRecommendedSecret
-	AvailableSecrets       []CreateSecretSummary
-	SecretInjectionAllowed bool
+	RequestHash         string
+	RefType             string
+	RefName             string
+	PullRequest         *CreatePullRequestSource
+	DevContainerOptions []CreateDevContainerOption
+	Environments        []CreateEnvironmentOption
+	Permissions         []CreatePermissionRequest
+	RecommendedSecrets  []CreateRecommendedSecret
+	AvailableSecrets    []string
+	SavedSecretsAllowed bool
 }
 
 // CreateEnvironmentOption describes one visible Manager environment on the confirmation page.
@@ -88,14 +88,6 @@ type CreateEnvironmentOption struct {
 
 // CreateRecommendedSecret describes one Dev Container recommended secret without exposing its value.
 type CreateRecommendedSecret struct {
-	Name        string
-	Description string
-	Configured  bool
-	Available   bool
-}
-
-// CreateSecretSummary identifies one secret currently available to the source repository without exposing its value.
-type CreateSecretSummary struct {
 	Name        string
 	Description string
 }
@@ -132,12 +124,11 @@ type createSourceRef struct {
 }
 
 type preparedCodespace struct {
-	sourceRef              *createSourceRef
-	devContainer           *createDevContainerPlan
-	devContainerOptions    []CreateDevContainerOption
-	requestHash            string
-	availableSecrets       []CreateSecretSummary
-	secretInjectionAllowed bool
+	sourceRef           *createSourceRef
+	devContainer        *createDevContainerPlan
+	devContainerOptions []CreateDevContainerOption
+	requestHash         string
+	savedSecretsAllowed bool
 }
 
 var codespacePermissionUnits = map[string]unit_model.Type{
@@ -157,21 +148,32 @@ func PrepareCodespace(ctx context.Context, opts CreateCodespaceOptions) (*Create
 		return nil, err
 	}
 	configurationErr := err
-	environments, err := listVisibleCreateEnvironments(ctx, opts.User.ID, opts.EnvironmentTag)
+	selectedTag := opts.EnvironmentTag
+	if selectedTag == "" {
+		selectedTag = prepared.devContainer.EnvironmentTag
+	}
+	environments, err := listVisibleCreateEnvironments(ctx, opts.User.ID, selectedTag)
 	if err != nil {
 		return nil, err
 	}
+	var availableSecrets []string
+	if prepared.savedSecretsAllowed {
+		availableSecrets, err = listUserSecretNames(ctx, opts.User.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &CreateCodespacePlan{
-		RequestHash:            prepared.requestHash,
-		RefType:                prepared.sourceRef.Type,
-		RefName:                prepared.sourceRef.FormName,
-		PullRequest:            prepared.sourceRef.PullRequest,
-		DevContainerOptions:    prepared.devContainerOptions,
-		Environments:           environments,
-		Permissions:            prepared.devContainer.Permissions,
-		RecommendedSecrets:     prepared.devContainer.RecommendedSecrets,
-		AvailableSecrets:       prepared.availableSecrets,
-		SecretInjectionAllowed: prepared.secretInjectionAllowed,
+		RequestHash:         prepared.requestHash,
+		RefType:             prepared.sourceRef.Type,
+		RefName:             prepared.sourceRef.FormName,
+		PullRequest:         prepared.sourceRef.PullRequest,
+		DevContainerOptions: prepared.devContainerOptions,
+		Environments:        environments,
+		Permissions:         prepared.devContainer.Permissions,
+		RecommendedSecrets:  prepared.devContainer.RecommendedSecrets,
+		AvailableSecrets:    availableSecrets,
+		SavedSecretsAllowed: prepared.savedSecretsAllowed,
 	}, configurationErr
 }
 
@@ -246,12 +248,12 @@ func CreateCodespace(ctx context.Context, opts CreateCodespaceOptions) (*CreateC
 				if err != nil {
 					return err
 				}
-				if prepared.secretInjectionAllowed {
-					if err := configureRecommendedSecrets(ctx, user, repo, prepared.devContainer.RecommendedSecrets, opts.RecommendedSecretValues, opts.RecommendedSecretEnabled); err != nil {
-						return err
-					}
+				secretsEncrypted, err := encryptCreateSecrets(ctx, user.ID, prepared.savedSecretsAllowed, opts.Secrets)
+				if err != nil {
+					return err
 				}
 				codespace := newCreateCodespaceRow(user.ID, repo.ID, environmentTag, prepared.sourceRef, prepared.devContainer, authorizationID)
+				codespace.SecretsEncrypted = secretsEncrypted
 				if err := codespace_model.ValidateCodespace(codespace); err != nil {
 					return err
 				}
@@ -319,17 +321,10 @@ func prepareCodespace(ctx context.Context, opts CreateCodespaceOptions) (*prepar
 		}
 		return nil, err
 	}
-	// Fork pull requests execute code outside the source repository's trust boundary, so they never receive user secrets.
-	secretInjectionAllowed := sourceRef.PullRequest == nil || !sourceRef.PullRequest.IsFork
-	if secretInjectionAllowed {
-		secretInjectionAllowed, err = userCanUseSecretRepository(ctx, opts.User, opts.Repo)
-		if err != nil {
-			return nil, err
-		}
-	}
-	var availableSecrets []CreateSecretSummary
-	if secretInjectionAllowed {
-		devContainer.RecommendedSecrets, availableSecrets, err = resolveCreateSecrets(ctx, opts.User.ID, opts.Repo.ID, devContainer.RecommendedSecrets)
+	// Fork code may receive explicitly entered values, but cannot reuse saved secrets.
+	savedSecretsAllowed := sourceRef.PullRequest == nil || !sourceRef.PullRequest.IsFork
+	if savedSecretsAllowed {
+		savedSecretsAllowed, err = access_model.HasAccessUnit(ctx, opts.User, opts.Repo, unit_model.TypeCode, perm_model.AccessModeWrite)
 		if err != nil {
 			return nil, err
 		}
@@ -364,12 +359,11 @@ func prepareCodespace(ctx context.Context, opts CreateCodespaceOptions) (*prepar
 		})
 	}
 	return &preparedCodespace{
-		sourceRef:              sourceRef,
-		devContainer:           devContainer,
-		devContainerOptions:    options,
-		requestHash:            createPlanHash(opts.Repo.ID, sourceRef, devContainer),
-		availableSecrets:       availableSecrets,
-		secretInjectionAllowed: secretInjectionAllowed,
+		sourceRef:           sourceRef,
+		devContainer:        devContainer,
+		devContainerOptions: options,
+		requestHash:         createPlanHash(opts.Repo.ID, sourceRef, devContainer),
+		savedSecretsAllowed: savedSecretsAllowed,
 	}, nil
 }
 
@@ -685,18 +679,25 @@ func ensurePermissionAuthorization(ctx context.Context, userID, sourceRepoID int
 	if len(permissions) == 0 {
 		return 0, nil
 	}
-	var authorizations []*codespace_model.PermissionAuthorization
-	err := db.GetEngine(ctx).
+	var authorizationIDs []int64
+	err := db.GetEngine(ctx).Table(new(codespace_model.PermissionAuthorization)).
 		Where("user_id = ? AND source_repo_id = ? AND request_hash = ? AND revoked_unix = 0", userID, sourceRepoID, requestHash).
-		Find(&authorizations)
+		Cols("id").Find(&authorizationIDs)
 	if err != nil {
 		return 0, err
 	}
-	for _, authorization := range authorizations {
+	rulesByAuthorization := make(map[int64][]*codespace_model.PermissionRepository, len(authorizationIDs))
+	for ids := range slices.Chunk(authorizationIDs, db.DefaultMaxInSize) {
 		var rules []*codespace_model.PermissionRepository
-		if err := db.GetEngine(ctx).Where("authorization_id = ?", authorization.ID).Asc("target_repo_id", "unit_type").Find(&rules); err != nil {
+		if err := db.GetEngine(ctx).In("authorization_id", ids).Asc("target_repo_id", "unit_type").Find(&rules); err != nil {
 			return 0, err
 		}
+		for _, rule := range rules {
+			rulesByAuthorization[rule.AuthorizationID] = append(rulesByAuthorization[rule.AuthorizationID], rule)
+		}
+	}
+	for _, authorizationID := range authorizationIDs {
+		rules := rulesByAuthorization[authorizationID]
 		if len(rules) != len(permissions) {
 			continue
 		}
@@ -709,7 +710,7 @@ func ensurePermissionAuthorization(ctx context.Context, userID, sourceRepoID int
 			}
 		}
 		if matches {
-			return authorization.ID, nil
+			return authorizationID, nil
 		}
 	}
 	now := time.Now().Unix()

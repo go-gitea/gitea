@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -93,9 +94,31 @@ func TestCodespaceRoutes(t *testing.T) {
 		user2Session.MakeRequest(t, NewRequestf(t, http.MethodGet, "/user/settings/codespaces/managers/%d", manager.ID), http.StatusOK)
 		loginUser(t, "user4").MakeRequest(t, NewRequestf(t, http.MethodGet, "/user/settings/codespaces/managers/%d", manager.ID), http.StatusNotFound)
 
-		created := createCodespaceFromRepository(t, user2Session, "/user2/repo1/codespaces", "branch", "master")
+		secretSettings := "/user/settings/codespaces/secrets"
+		user2Session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, secretSettings, map[string]string{
+			"name": "PROJECT_TOKEN", "value": "saved-secret-value",
+		}), http.StatusOK)
+		saved := unittest.AssertExistsAndLoadBean(t, &codespace_model.UserSecret{UserID: 2, Name: "PROJECT_TOKEN"})
+		secretPage := user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, secretSettings), http.StatusOK)
+		assert.Contains(t, secretPage.Body.String(), saved.Name)
+		assert.NotContains(t, secretPage.Body.String(), "saved-secret-value")
+		assert.NotContains(t, secretPage.Body.String(), saved.DataEncrypted)
+		_, err = db.GetEngine(t.Context()).Where("user_id = ? AND name = ?", 0, "Default").Cols("content").Update(&codespace_model.DevContainerTemplate{
+			Content: `{"image":"ubuntu:24.04","secrets":{"PROJECT_TOKEN":{"description":"Project API token"}}}`,
+		})
+		require.NoError(t, err)
+		confirmation := user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, "/user2/repo1/codespaces/new?ref_type=branch&ref_name=master"), http.StatusOK)
+		secretRow := NewHTMLParser(t, confirmation.Body).doc.Find(`[data-codespace-secret-list] [data-codespace-secret-row]`).First()
+		assert.Equal(t, "PROJECT_TOKEN", secretRow.Find(`[name="secret_name"]`).AttrOr("value", ""))
+		assert.Equal(t, "none", secretRow.Find(`[name="secret_source"] option[selected]`).AttrOr("value", ""))
+		assert.False(t, secretRow.Find(`[name="secret_source"] option[value="saved"]`).Is("[disabled]"))
+
+		created := createCodespaceFromRepository(t, user2Session, "/user2/repo1/codespaces", "branch", "master", nil)
 		location := created.Header().Get("Location")
 		require.True(t, strings.HasPrefix(location, "/-/codespaces/"))
+		instance := unittest.AssertExistsAndLoadBean(t, &codespace_model.Codespace{ID: integrationCodespaceIDFromLocation(t, location)})
+		assert.Empty(t, instance.SecretsEncrypted)
+		user2Session.MakeRequest(t, NewRequestf(t, http.MethodPost, "%s/%d/delete", secretSettings, saved.ID), http.StatusOK)
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, location), http.StatusOK)
 		loginUser(t, "user4").MakeRequest(t, NewRequest(t, http.MethodGet, location), http.StatusNotFound)
 		forceDeleteCodespace := &codespace_model.Codespace{Status: codespace_model.StatusFailed, OperationRVersion: 1}
@@ -368,7 +391,9 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		)
 
 		user2Session := loginUser(t, "user2")
-		created := createCodespaceFromRepository(t, user2Session, "/user2/repo1/codespaces", "branch", "master")
+		created := createCodespaceFromRepository(t, user2Session, "/user2/repo1/codespaces", "branch", "master", map[string]string{
+			"secret_name": "PROJECT_TOKEN", "secret_source": "custom", "secret_value": " first\nsecond\n",
+		})
 		codespaceID := integrationCodespaceIDFromLocation(t, created.Header().Get("Location"))
 		codespacePath := "/-/codespaces/" + strconv.FormatInt(codespaceID, 10)
 
@@ -417,6 +442,9 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.True(t, strings.HasPrefix(tokenResponse.GetAccess().GetGiteaToken(), "gcs_"))
+		require.Len(t, tokenResponse.GetAccess().GetSecrets(), 1)
+		assert.Equal(t, "PROJECT_TOKEN", tokenResponse.GetAccess().GetSecrets()[0].GetName())
+		assert.Equal(t, " first\nsecond\n", tokenResponse.GetAccess().GetSecrets()[0].GetValue())
 
 		finalCreate, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, codespaceUUID, 1, codespacev1.OperationType_OPERATION_TYPE_CREATE, codespacev1.FinalStatus_FINAL_STATUS_DONE))
 		require.NoError(t, err)
@@ -613,9 +641,10 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 	})
 }
 
-func createCodespaceFromRepository(t *testing.T, session *TestSession, path, refType, refName string) *httptest.ResponseRecorder {
+func createCodespaceFromRepository(t *testing.T, session *TestSession, path, refType, refName string, secretFields map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
 	values := map[string]string{"ref_type": refType, "ref_name": refName}
+	maps.Copy(values, secretFields)
 	query := url.Values{}
 	query.Set("ref_type", refType)
 	query.Set("ref_name", refName)

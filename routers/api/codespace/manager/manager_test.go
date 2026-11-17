@@ -70,7 +70,6 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 
 	checked, err := client.CheckManager(managerContext(t.Context(), managerID, secret), &codespacev1.CheckManagerRequest{ProtocolVersion: 1})
 	require.NoError(t, err)
-	assert.Equal(t, "Gitea Manager", checked.GetManagerName())
 	assert.NotEmpty(t, checked.GetGiteaWebUrl())
 	managerBeforeDeclare := new(codespace_model.Manager)
 	has, err := db.GetEngine(t.Context()).ID(managerID).Get(managerBeforeDeclare)

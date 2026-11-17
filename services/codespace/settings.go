@@ -271,7 +271,7 @@ func deleteManagerIdentityLocked(ctx context.Context, managerID int64, batchSize
 				Where("manager_id = ?", managerID).
 				Asc("id").
 				Limit(batchSize).
-				Find(&rows); err != nil {
+				Omit("secrets_encrypted").Find(&rows); err != nil {
 				return err
 			}
 			if len(rows) == 0 {
@@ -500,7 +500,7 @@ func managerInSettingsScope(manager *codespace_model.Manager, scope string, user
 func deleteManagerCodespace(ctx context.Context, managerID, codespaceID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(codespaceID).Get(codespace)
+		has, err := db.GetEngine(ctx).ID(codespaceID).Omit("secrets_encrypted").Get(codespace)
 		if err != nil || !has || codespace.ManagerID != managerID {
 			return err
 		}

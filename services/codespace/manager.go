@@ -135,7 +135,7 @@ func BindRuntimeIdentity(ctx context.Context, manager *codespace_model.Manager, 
 	var updateErr error
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
+		has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Omit("secrets_encrypted").Get(codespace)
 		if err != nil {
 			return err
 		}

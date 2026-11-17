@@ -57,10 +57,8 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 		RequestedMode: perm.AccessModeRead, GrantedMode: perm.AccessModeRead,
 	}
 	require.NoError(t, db.Insert(t.Context(), rule))
-	secret := &codespace_model.UserSecret{UserID: userID, Name: "DATABASE_PASSWORD", DataEncrypted: "encrypted", DataSize: 8}
+	secret := &codespace_model.UserSecret{UserID: userID, Name: "DATABASE_PASSWORD", DataEncrypted: "encrypted"}
 	require.NoError(t, db.Insert(t.Context(), secret))
-	secretRepository := &codespace_model.UserSecretRepository{SecretID: secret.ID, RepoID: 2}
-	require.NoError(t, db.Insert(t.Context(), secretRepository))
 	registrationToken := &codespace_model.ManagerRegistrationToken{UserID: userID, Token: "1111111111111111111111111111111111111111", IsActive: true}
 	require.NoError(t, db.Insert(t.Context(), registrationToken))
 
@@ -73,6 +71,5 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 	assertServiceNotExists(t, new(codespace_model.PermissionAuthorization), "id = ?", authorization.ID)
 	assertServiceNotExists(t, new(codespace_model.PermissionRepository), "authorization_id = ? AND target_repo_id = ? AND unit_type = ?", rule.AuthorizationID, rule.TargetRepoID, rule.UnitType)
 	assertServiceNotExists(t, new(codespace_model.UserSecret), "id = ?", secret.ID)
-	assertServiceNotExists(t, new(codespace_model.UserSecretRepository), "secret_id = ? AND repo_id = ?", secretRepository.SecretID, secretRepository.RepoID)
 	assertServiceNotExists(t, new(codespace_model.ManagerRegistrationToken), "id = ?", registrationToken.ID)
 }

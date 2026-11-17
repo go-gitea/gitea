@@ -190,7 +190,7 @@ func ListCreatorCodespaces(ctx context.Context, opts CreatorListOptions) (*Creat
 	if opts.UserID <= 0 {
 		return nil, errors.New("user_id must be positive")
 	}
-	query := db.GetEngine(ctx).Table("codespace").Select("codespace.*").Where("codespace.user_id = ?", opts.UserID)
+	query := db.GetEngine(ctx).Table("codespace").Select(codespaceStateColumns).Where("codespace.user_id = ?", opts.UserID)
 	if opts.RepoID > 0 {
 		query.And("codespace.repo_id = ?", opts.RepoID)
 	}
@@ -283,7 +283,7 @@ func GetCreatorCodespace(ctx context.Context, opts CreatorDetailOptions) (*Creat
 
 func findCreatorCodespace(ctx context.Context, userID, codespaceID int64) (*codespace_model.Codespace, bool, error) {
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(codespaceID).Where("user_id = ?", userID).Get(codespace)
+	has, err := db.GetEngine(ctx).ID(codespaceID).Where("user_id = ?", userID).Omit("secrets_encrypted").Get(codespace)
 	return codespace, has, err
 }
 
@@ -417,6 +417,7 @@ func creatorDurationView(seconds int64) CreatorDurationView {
 }
 
 func applyCreatorDisplayState(codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager, includeDetailData bool) {
+	managerReady := manager != nil && manager.RuntimeState == codespace_model.ManagerRuntimeStateOnline && !isManagerOffline(manager)
 	view.DisplayStatus = codespace.Status
 	switch codespace.Status {
 	case codespace_model.StatusCreating:
@@ -426,7 +427,16 @@ func applyCreatorDisplayState(codespace *codespace_model.Codespace, view *Creato
 			view.DisplayStatus = DisplayBooting
 		}
 	case codespace_model.StatusRunning:
-		view.DisplayStatus = runningDisplayStatus(codespace, view, manager, includeDetailData)
+		switch {
+		case codespace_model.ActiveOperationType(codespace) == codespace_model.OperationStop && !isQueuedIdleStop(codespace):
+			view.DisplayStatus = DisplayStopping
+		case !managerReady:
+			view.DisplayStatus = DisplayRecovering
+		case !applyRuntimeAccessView(codespace, view, manager, includeDetailData):
+			view.DisplayStatus = DisplayMetadataRebuilding
+		default:
+			view.DisplayStatus = DisplayRunning
+		}
 	case codespace_model.StatusStopped:
 		if codespace_model.ActiveOperationType(codespace) == codespace_model.OperationResume {
 			view.DisplayStatus = DisplayResuming
@@ -436,6 +446,9 @@ func applyCreatorDisplayState(codespace *codespace_model.Codespace, view *Creato
 	case codespace_model.StatusFailed:
 		view.DisplayStatus = DisplayFailed
 	}
+	if managerReady && hasActiveStartup(codespace) {
+		applyRuntimeAccessView(codespace, view, manager, includeDetailData)
+	}
 	view.RefreshAfterMillis = refreshStableMilliseconds
 	switch view.DisplayStatus {
 	case DisplayQueued, DisplayBooting, DisplayStopping, DisplayResuming, DisplayDeleting, DisplayMetadataRebuilding, DisplayRecovering:
@@ -443,21 +456,15 @@ func applyCreatorDisplayState(codespace *codespace_model.Codespace, view *Creato
 	}
 	view.DisplayStatusKey = "codespace.status." + view.DisplayStatus
 	view.StatusSummaryKey = "codespace.status_summary." + view.DisplayStatus
-	if view.DisplayStatus == DisplayStopped && (manager == nil || manager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(manager)) {
+	if view.DisplayStatus == DisplayStopped && !managerReady {
 		view.StatusSummaryKey = "codespace.stopped_manager_unavailable"
 	}
 }
 
-func runningDisplayStatus(codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager, includeDetailData bool) string {
-	if codespace_model.ActiveOperationType(codespace) == codespace_model.OperationStop && !isQueuedIdleStop(codespace) {
-		return DisplayStopping
-	}
-	if manager == nil || manager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(manager) {
-		return DisplayRecovering
-	}
+func applyRuntimeAccessView(codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager, includeDetailData bool) bool {
 	entry, hasEntry, err := getRuntimeMetadataEntry(codespace.UUID)
-	if err != nil || !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
-		return DisplayMetadataRebuilding
+	if err != nil || !hasEntry || !runtimeMetadataReadyForAccess(codespace, entry.Metadata) {
+		return false
 	}
 	for _, endpoint := range entry.Metadata.Endpoints {
 		if endpoint.EndpointID == workspaceEndpointID {
@@ -485,7 +492,7 @@ func runningDisplayStatus(codespace *codespace_model.Codespace, view *CreatorCod
 		view.ResourceUsage = creatorResourceUsageView(entry.Metadata.ResourceUsage)
 		view.SSH = creatorSSHView(codespace, manager, entry.Metadata.WorkspaceFolder)
 	}
-	return DisplayRunning
+	return true
 }
 
 func creatorSSHView(codespace *codespace_model.Codespace, manager *codespace_model.Manager, workspaceFolder string) *CreatorSSHView {
@@ -562,12 +569,13 @@ func formatBytes(value int64) string {
 func applyCreatorActions(codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager) {
 	view.CanDelete = codespace.Status != codespace_model.StatusDeleting
 	view.CanConfigureAutoStop = codespace.Status == codespace_model.StatusRunning || codespace.Status == codespace_model.StatusStopped
-	view.CanOpen = view.DisplayStatus == DisplayRunning && view.Workspace != nil && (!hasActiveOperation(codespace) || isQueuedIdleStop(codespace))
+	startup := hasActiveStartup(codespace)
+	view.CanOpen = view.Workspace != nil && (startup || (view.DisplayStatus == DisplayRunning && (!hasActiveOperation(codespace) || isQueuedIdleStop(codespace))))
 	if view.Workspace != nil {
 		view.Workspace.CanOpen = view.CanOpen
 	}
 	for i := range view.Endpoints {
-		view.Endpoints[i].CanOpen = view.DisplayStatus == DisplayRunning && (!hasActiveOperation(codespace) || (!view.Endpoints[i].Public && isQueuedIdleStop(codespace)))
+		view.Endpoints[i].CanOpen = startup || (view.DisplayStatus == DisplayRunning && (!hasActiveOperation(codespace) || (!view.Endpoints[i].Public && isQueuedIdleStop(codespace))))
 	}
 	view.CanContinue = codespace.Status == codespace_model.StatusRunning && isQueuedIdleStop(codespace)
 	view.CanStop = codespace.Status == codespace_model.StatusRunning && (!hasActiveOperation(codespace) || isQueuedIdleStop(codespace))

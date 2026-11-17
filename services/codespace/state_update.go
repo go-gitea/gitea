@@ -13,6 +13,14 @@ import (
 
 var errCodespaceStateChanged = errors.New("codespace state changed")
 
+const codespaceStateColumns = "codespace.id, codespace.uuid, codespace.user_id, codespace.repo_id, " +
+	"codespace.ref_type, codespace.ref_name, codespace.environment_tag, codespace.commit_sha, " +
+	"codespace.permission_authorization_id, codespace.manager_id, codespace.status, " +
+	"codespace.operation_r_version, codespace.runtime_operation_r_version, codespace.operation_trigger, " +
+	"codespace.operation_created_unix, codespace.operation_started_unix, codespace.operation_deadline_unix, " +
+	"codespace.last_active_unix, codespace.auto_stop_mode, codespace.auto_stop_timeout_seconds, " +
+	"codespace.interaction_generation, codespace.created_unix, codespace.updated_unix, codespace.log_size"
+
 type codespaceStateSnapshot struct {
 	id                       int64
 	uuid                     string

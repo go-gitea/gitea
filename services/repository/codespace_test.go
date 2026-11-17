@@ -43,12 +43,8 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 		RequestedMode: perm.AccessModeRead, GrantedMode: perm.AccessModeRead,
 	}
 	require.NoError(t, db.Insert(t.Context(), rule))
-	secret := &codespace_model.UserSecret{UserID: user.ID, Name: "DATABASE_PASSWORD", DataEncrypted: "encrypted", DataSize: 8}
+	secret := &codespace_model.UserSecret{UserID: user.ID, Name: "DATABASE_PASSWORD", DataEncrypted: "encrypted"}
 	require.NoError(t, db.Insert(t.Context(), secret))
-	targetSecretRepository := &codespace_model.UserSecretRepository{SecretID: secret.ID, RepoID: targetRepo.ID}
-	require.NoError(t, db.Insert(t.Context(), targetSecretRepository))
-	sourceSecretRepository := &codespace_model.UserSecretRepository{SecretID: secret.ID, RepoID: repo.ID}
-	require.NoError(t, db.Insert(t.Context(), sourceSecretRepository))
 
 	codespaceUUID := uuid.NewV4().String()
 	codespace := &codespace_model.Codespace{
@@ -84,16 +80,12 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 	require.NoError(t, DeleteRepositoryDirectly(t.Context(), targetRepo.ID))
 	assertRepositoryServiceNotExists(t, new(codespace_model.PermissionRepository), "authorization_id = ? AND target_repo_id = ? AND unit_type = ?", rule.AuthorizationID, rule.TargetRepoID, rule.UnitType)
 	unittest.AssertExistsAndLoadBean(t, &codespace_model.PermissionAuthorization{ID: authorization.ID})
-	assertRepositoryServiceNotExists(t, new(codespace_model.UserSecretRepository), "secret_id = ? AND repo_id = ?", targetSecretRepository.SecretID, targetSecretRepository.RepoID)
-	has, err := db.GetEngine(t.Context()).Where("secret_id = ? AND repo_id = ?", sourceSecretRepository.SecretID, sourceSecretRepository.RepoID).Exist(new(codespace_model.UserSecretRepository))
-	require.NoError(t, err)
-	assert.True(t, has)
 
 	require.NoError(t, DeleteRepositoryDirectly(t.Context(), repo.ID))
 
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{ID: repo.ID})
 	persistedCodespace := new(codespace_model.Codespace)
-	has, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Get(persistedCodespace)
+	has, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Get(persistedCodespace)
 	require.NoError(t, err)
 	require.True(t, has)
 	assert.Zero(t, persistedCodespace.RepoID)
@@ -106,7 +98,6 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, has)
 	unittest.AssertNotExistsBean(t, &codespace_model.PermissionAuthorization{ID: authorization.ID})
-	assertRepositoryServiceNotExists(t, new(codespace_model.UserSecretRepository), "secret_id = ? AND repo_id = ?", sourceSecretRepository.SecretID, sourceSecretRepository.RepoID)
 	unittest.AssertExistsAndLoadBean(t, &codespace_model.UserSecret{ID: secret.ID})
 }
 

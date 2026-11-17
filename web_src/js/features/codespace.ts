@@ -1,6 +1,6 @@
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {fomanticQuery, initAriaLabels} from '../modules/fomantic/base.ts';
 import {hideModal, showModal} from '../modules/modal.ts';
 import {Idiomorph} from 'idiomorph';
 import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
@@ -22,9 +22,11 @@ export function initCodespaceCreateForm() {
   if (!form) return;
 
   const environmentInput = form.querySelector<HTMLInputElement>('input[name="environment_tag"]');
+  let environmentExplicit = environmentInput?.getAttribute('data-explicit') === 'true';
   const environmentDropdown = environmentInput?.closest<HTMLElement>('.dropdown');
   const environmentDetails = form.querySelectorAll<HTMLElement>('[data-codespace-environment-detail]');
   environmentInput?.addEventListener('change', () => {
+    environmentExplicit = true;
     environmentDropdown?.classList.remove('error');
     environmentDropdown?.removeAttribute('aria-invalid');
     for (const detail of environmentDetails) {
@@ -60,9 +62,52 @@ export function initCodespaceCreateForm() {
     previewURL.searchParams.set('ref_type', devContainerInput.getAttribute('data-ref-type')!);
     previewURL.searchParams.set('ref_name', devContainerInput.getAttribute('data-ref-name')!);
     previewURL.searchParams.set('dev_container', devContainerInput.value);
-    if (environmentInput?.value) previewURL.searchParams.set('environment_tag', environmentInput.value);
+    if (environmentExplicit && environmentInput?.value) previewURL.searchParams.set('environment_tag', environmentInput.value);
     ignoreAreYouSure(form);
     window.location.assign(previewURL);
+  });
+
+  const secretList = form.querySelector<HTMLElement>('[data-codespace-secret-list]');
+  if (!secretList) return;
+  const secretTemplate = form.querySelector<HTMLTemplateElement>('[data-codespace-secret-template]')!;
+  const savedNames = new Set(Array.from(secretTemplate.content.querySelectorAll<HTMLOptionElement>('[name="secret_name"] option'), (option) => option.value).filter(Boolean));
+  const initSecretRow = (row: Element) => {
+    initAriaLabels(row);
+    const name = row.querySelector<HTMLSelectElement>('select[name="secret_name"]');
+    if (name) fomanticQuery(name).dropdown({
+      allowAdditions: true,
+      hideAdditions: false,
+      preserveHTML: false,
+      message: {addResult: '{term}'},
+    });
+    fomanticQuery(row.querySelector('[name="secret_source"]')!).dropdown();
+  };
+  for (const row of secretList.children) initSecretRow(row);
+  secretList.addEventListener('change', (event) => {
+    const row = (event.target as HTMLElement).closest<HTMLElement>('[data-codespace-secret-row]');
+    if (!row) return;
+    const name = row.querySelector<HTMLInputElement | HTMLSelectElement>('[name="secret_name"]')!;
+    const source = row.querySelector<HTMLSelectElement>('[name="secret_source"]')!;
+    const saved = source.querySelector<HTMLOptionElement>('[value="saved"]')!;
+    saved.disabled = !savedNames.has(name.value.trim().toUpperCase());
+    const dropdown = source.closest('.ui.dropdown')!;
+    dropdown.querySelector('.menu > [data-value="saved"]')!.classList.toggle('disabled', saved.disabled);
+    if (event.target === name) fomanticQuery(dropdown).dropdown('set selected', 'none');
+    toggleElem(row.querySelector('[data-codespace-secret-value]')!, source.value === 'custom');
+  });
+  secretList.addEventListener('click', (event) => {
+    const remove = (event.target as HTMLElement).closest('[data-codespace-secret-remove]');
+    if (!remove) return;
+    const row = remove.closest('[data-codespace-secret-row]')!;
+    for (const dropdown of row.querySelectorAll('.ui.dropdown')) fomanticQuery(dropdown).data('module-dropdown').destroy();
+    row.remove();
+  });
+  form.querySelector('[data-codespace-secret-add]')!.addEventListener('click', () => {
+    secretList.append(secretTemplate.content.cloneNode(true));
+    const row = secretList.lastElementChild!;
+    initSecretRow(row);
+    // Open the new dropdown after the Add button's click has reached document handlers.
+    requestAnimationFrame(() => row.querySelector<HTMLInputElement>('input.search')!.focus());
   });
 }
 

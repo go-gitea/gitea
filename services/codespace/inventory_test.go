@@ -4,6 +4,9 @@
 package codespace
 
 import (
+	"context"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/xorm/contexts"
 )
 
 func TestReportInstancesReturnsSettingsAndActions(t *testing.T) {
@@ -183,7 +187,7 @@ func TestReportInstancesGenerationAndMissingState(t *testing.T) {
 		OperationRVersion: 101,
 	})
 	missingCreateUUID := "c2c2c2c2-c2c2-4c2c-8c2c-c2c2c2c2c2c2"
-	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+	missingCreate := &codespace_model.Codespace{
 		UUID:                  missingCreateUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     102,
@@ -191,7 +195,11 @@ func TestReportInstancesGenerationAndMissingState(t *testing.T) {
 		OperationCreatedUnix:  time.Now().Unix(),
 		OperationStartedUnix:  time.Now().Unix(),
 		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
-	})
+	}
+	insertServiceCodespace(t, manager.ID, missingCreate)
+	unboundCreate := *missingCreate
+	unboundCreate.ID, unboundCreate.UUID = 0, ""
+	insertServiceCodespace(t, manager.ID, &unboundCreate)
 
 	result, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 3,
@@ -200,8 +208,11 @@ func TestReportInstancesGenerationAndMissingState(t *testing.T) {
 	assert.Empty(t, result.Results)
 	missingRunning := loadServiceCodespace(t, missingRunningUUID)
 	assert.Equal(t, codespace_model.StatusFailed, missingRunning.Status)
+	assert.Zero(t, missingRunning.RuntimeOperationRVersion)
+	require.NoError(t, codespace_model.ValidateCodespace(missingRunning))
 	assert.Contains(t, readServiceLog(t, codespaceLogFilename(missingRunning.UUID)), "Gitea recorded missing runtime as failed.")
 	assert.Equal(t, codespace_model.StatusCreating, loadServiceCodespace(t, missingCreateUUID).Status)
+	assert.Equal(t, codespace_model.StatusCreating, loadServiceCodespaceByID(t, unboundCreate.ID).Status)
 
 	result, err = ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 3,
@@ -215,18 +226,46 @@ func TestReportInstancesGenerationAndMissingState(t *testing.T) {
 	var stale *StaleGenerationError
 	require.ErrorAs(t, err, &stale)
 	assert.EqualValues(t, 3, stale.CurrentGeneration)
+	assert.EqualValues(t, 3, loadServiceManager(t, manager.ID).InventoryGeneration)
 }
 
-func TestAcceptInventoryGenerationDoesNotRegress(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
+type inventoryQueryCounter struct{ reads int }
 
+func (c *inventoryQueryCounter) BeforeProcess(h *contexts.ContextHook) (context.Context, error) {
+	if h.Ctx.Value(c) == true && strings.HasPrefix(h.SQL, "SELECT") {
+		c.reads++
+	}
+	return h.Ctx, nil
+}
+
+func (*inventoryQueryCounter) AfterProcess(*contexts.ContextHook) error { return nil }
+
+func TestReportInstancesBatchesUnchangedInventory(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 	manager := insertServiceManager(t)
-	require.NoError(t, acceptInventoryGeneration(t.Context(), manager.ID, 9))
-	err := acceptInventoryGeneration(t.Context(), manager.ID, 8)
-	var stale *StaleGenerationError
-	require.ErrorAs(t, err, &stale)
-	assert.EqualValues(t, 9, stale.CurrentGeneration)
-	assert.EqualValues(t, 9, loadServiceManager(t, manager.ID).InventoryGeneration)
+	instances := make([]*codespacev1.RuntimeInstanceRef, 0, db.DefaultMaxInSize+1)
+	for i := range db.DefaultMaxInSize + 1 {
+		uuid := fmt.Sprintf("d1d1d1d1-d1d1-41d1-81d1-%012d", i)
+		insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+			UUID: uuid, Status: codespace_model.StatusRunning, OperationRVersion: 1,
+		})
+		instances = append(instances, &codespacev1.RuntimeInstanceRef{
+			RuntimeUuid: uuid, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 1,
+		})
+	}
+	counter := new(inventoryQueryCounter)
+	unittest.GetXORMEngine().AddHook(counter)
+	ctx := context.WithValue(t.Context(), counter, true)
+	result, err := ReportInstances(ctx, manager, ReportInstancesOptions{InventoryGeneration: 1, Instances: instances})
+	require.NoError(t, err)
+	require.Len(t, result.Results, len(instances))
+	for i, row := range result.Results {
+		assert.Equal(t, instances[i].RuntimeUuid, row.RuntimeUuid)
+		assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEAR_OPERATION_CONTEXT, row.Action)
+	}
+	batches := (len(instances) + db.DefaultMaxInSize - 1) / db.DefaultMaxInSize
+	assert.LessOrEqual(t, counter.reads, 2*batches+3)
+	t.Logf("%d instances reconciled with %d SELECTs", len(instances), counter.reads)
 }
 
 func TestProcessMissingRuntimeInstanceRechecksGenerationAndBinding(t *testing.T) {

@@ -522,33 +522,6 @@
   flex-wrap: wrap;
 }
 
-.codespace-create-secret-item {
-  align-items: center;
-}
-
-.codespace-create-secret-control {
-  width: min(260px, 40%);
-}
-
-.codespace-create-secret-control input[type="password"] {
-  width: 100%;
-}
-
-.codespace-create-secret-empty {
-  padding: 12px;
-  border: 1px dashed var(--color-secondary);
-  border-radius: var(--border-radius);
-  color: var(--color-text-light-1);
-}
-
-.ui.header.codespace-create-recommended-secret-heading {
-  margin-top: 20px;
-}
-
-.codespace-create-secret-footer {
-  margin-top: 16px;
-}
-
 .codespace-secret-modal-name {
   min-width: 0;
   padding: 9px 12px;
@@ -560,28 +533,6 @@
 
 .codespace-secret-modal-name code {
   color: var(--color-text);
-}
-
-.codespace-secret-modal .ui.divider {
-  margin: 20px 0;
-}
-
-.ui.form .codespace-secret-repository-picker {
-  margin-bottom: 0;
-}
-
-.codespace-secret-scope-modal > form > .content {
-  max-height: none;
-  overflow: visible; /* The modal backdrop scrolls so repository menus can overlap the actions. */
-}
-
-.ui.selection.dropdown.codespace-secret-repositories > .menu {
-  max-height: min(16rem, 40dvh);
-}
-
-.ui.dropdown.codespace-secret-repositories > .menu > .item,
-.ui.dropdown.codespace-secret-repositories > .label {
-  overflow-wrap: anywhere;
 }
 
 @media (max-width: 991px) {
@@ -664,15 +615,6 @@
 
   .codespace-create-permission-options {
     justify-content: flex-start;
-  }
-
-  .codespace-create-secret-item {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .codespace-create-secret-control {
-    width: 100%;
   }
 }
 

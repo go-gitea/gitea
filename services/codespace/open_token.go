@@ -123,7 +123,7 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 			unavailableCategory = OpenTokenDeniedMetadataRebuilding
 			return nil
 		}
-		if codespace.Status != codespace_model.StatusRunning {
+		if codespace.Status != codespace_model.StatusRunning && !hasActiveStartup(codespace) {
 			unavailableCategory = OpenTokenDeniedCodespaceNotRunning
 			return nil
 		}
@@ -146,7 +146,7 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 		if err != nil {
 			return err
 		}
-		if !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
+		if !hasEntry || !runtimeMetadataReadyForAccess(codespace, entry.Metadata) {
 			unavailableCategory = OpenTokenDeniedMetadataRebuilding
 			return nil
 		}
@@ -165,9 +165,6 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 
 		code := generateOpenTokenCode()
 		now := time.Now().Unix()
-		if _, err := db.GetEngine(ctx).Where("expires_unix <= ?", now).Delete(new(codespace_model.OpenToken)); err != nil {
-			return err
-		}
 		if err := db.Insert(ctx, &codespace_model.OpenToken{
 			CodeHash:    openTokenCodeHash(code),
 			CodespaceID: codespace.ID,
@@ -253,7 +250,7 @@ func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, op
 		}
 
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(openToken.CodespaceID).Get(codespace)
+		has, err := db.GetEngine(ctx).ID(openToken.CodespaceID).Omit("secrets_encrypted").Get(codespace)
 		if err != nil {
 			return err
 		}
@@ -269,11 +266,11 @@ func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, op
 			result = denyOpenToken(OpenTokenDeniedPermissionDenied)
 			return nil
 		}
-		if codespace.Status != codespace_model.StatusRunning {
+		if codespace.Status != codespace_model.StatusRunning && !hasActiveStartup(codespace) {
 			result = denyOpenToken(OpenTokenDeniedCodespaceNotRunning)
 			return nil
 		}
-		if hasActiveOperation(codespace) && !isQueuedIdleStop(codespace) {
+		if hasActiveOperation(codespace) && !hasActiveStartup(codespace) && !isQueuedIdleStop(codespace) {
 			result = denyOpenToken(OpenTokenDeniedStateUnavailable)
 			return nil
 		}
@@ -288,7 +285,7 @@ func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, op
 		if err != nil {
 			return err
 		}
-		if !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
+		if !hasEntry || !runtimeMetadataReadyForAccess(codespace, entry.Metadata) {
 			result = denyOpenToken(OpenTokenDeniedMetadataRebuilding)
 			return nil
 		}
@@ -396,14 +393,7 @@ func openEndpointInfo(codespace *codespace_model.Codespace, metadata runtimeMeta
 		public:      endpoint.Public,
 		available:   true,
 	}
-	if endpoint.Public {
-		if hasActiveOperation(codespace) {
-			target.available = false
-			target.unavailableCategory = OpenTokenDeniedStateUnavailable
-		}
-		return target, nil
-	}
-	if hasActiveOperation(codespace) && !isQueuedIdleStop(codespace) {
+	if hasActiveOperation(codespace) && !hasActiveStartup(codespace) && (endpoint.Public || !isQueuedIdleStop(codespace)) {
 		target.available = false
 		target.unavailableCategory = OpenTokenDeniedStateUnavailable
 	}

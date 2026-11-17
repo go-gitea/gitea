@@ -108,6 +108,11 @@ func TestListVisibleCreateEnvironmentsMergesManagerDeclarations(t *testing.T) {
 	assert.Equal(t, CreateEnvironmentOption{Tag: "gpu", Description: "Accelerated", Site: true, Online: true}, environments[0])
 	assert.Equal(t, CreateEnvironmentOption{Tag: "personal", Personal: true, Online: true}, environments[1])
 	assert.Equal(t, CreateEnvironmentOption{Tag: "standard", Description: "General development", Site: true, Personal: true, Online: true, Selected: true}, environments[2])
+	environments, err = listVisibleCreateEnvironments(t.Context(), 2, "foreign")
+	require.NoError(t, err)
+	for _, environment := range environments {
+		assert.False(t, environment.Selected)
+	}
 }
 
 func TestCreateCodespaceRequiresExplicitEnvironmentSelection(t *testing.T) {
@@ -208,7 +213,7 @@ CONFIG
 	require.NoError(t, err)
 	require.NotNil(t, plan.PullRequest)
 	assert.True(t, plan.PullRequest.IsFork)
-	assert.False(t, plan.SecretInjectionAllowed)
+	assert.False(t, plan.SavedSecretsAllowed)
 	assert.Empty(t, plan.AvailableSecrets)
 	assert.Equal(t, []CreateRecommendedSecret{{Name: "FORK_SECRET", Description: "Fork secret"}}, plan.RecommendedSecrets)
 	assert.Equal(t, "user13/repo11", plan.PullRequest.HeadRepoFullName)
@@ -220,13 +225,20 @@ CONFIG
 
 	insertServiceManagerWithTags(t, user.ID, "default")
 	_, err = CreateCodespace(t.Context(), CreateCodespaceOptions{
+		User: user, Repo: repo, RefType: "pull", RefName: "1", RequestHash: plan.RequestHash,
+		EnvironmentTag: "default", Secrets: []CreateSecretInput{{Name: "FORK_SECRET", Source: SecretSourceSaved}},
+	})
+	require.ErrorIs(t, err, ErrCreateSecretUnavailable)
+	result, err := CreateCodespace(t.Context(), CreateCodespaceOptions{
 		User: user, Repo: repo, RefType: "pull", RefName: "1",
-		RequestHash:             plan.RequestHash,
-		EnvironmentTag:          "default",
-		RecommendedSecretValues: map[string]string{"FORK_SECRET": "submitted-value"},
+		RequestHash:    plan.RequestHash,
+		EnvironmentTag: "default",
+		Secrets:        []CreateSecretInput{{Name: "FORK_SECRET", Source: SecretSourceCustom, Value: "submitted-value"}},
 	})
 	require.NoError(t, err)
-	unittest.AssertNotExistsBean(t, &codespace_model.UserSecret{UserID: user.ID, Name: "FORK_SECRET"})
+	secrets, err := decryptCodespaceSecrets(loadServiceCodespaceByID(t, result.CodespaceID))
+	require.NoError(t, err)
+	assert.Equal(t, []RuntimeSecret{{Name: "FORK_SECRET", Value: "submitted-value"}}, secrets)
 }
 
 func TestDevContainerSelectionAndRecommendedSecrets(t *testing.T) {
@@ -234,7 +246,7 @@ func TestDevContainerSelectionAndRecommendedSecrets(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	require.NoError(t, CreateUserSecret(t.Context(), user, "runtime_token", "secret-value", false, []int64{repo.ID}))
+	require.NoError(t, CreateUserSecret(t.Context(), user, "runtime_token", "secret-value"))
 	_, _, runErr := gitcmd.NewCommand("fast-import").WithRepo(repo.CodeStorageRepo()).WithStdinBytes([]byte(`commit refs/heads/master
 committer user2 <user2@example.com> 1714310400 +0000
 data <<COMMIT
@@ -243,11 +255,11 @@ COMMIT
 from refs/heads/master^0
 M 100644 inline .devcontainer.json
 data <<ROOT
-{"name":"Root","image":"debian:12","secrets":{"database_password":{"description":"Database password"}}}
+{"name":"Root","image":"debian:12","customizations":{"gitea":{"environmentTag":"default"}},"mounts":["type=volume,source=data,target=/data"],"secrets":{"database_password":{"description":"Database password"}}}
 ROOT
 M 100644 inline .devcontainer/node/devcontainer.json
 data <<NODE
-{"name":"Node","image":"node:24"}
+{"name":"Node","image":"node:24","customizations":{"gitea":{"environmentTag":"other"}}}
 NODE
 M 100644 inline .devcontainer/invalid/devcontainer.json
 data <<INVALID
@@ -256,34 +268,52 @@ INVALID
 `)).RunStdString(t.Context())
 	require.NoError(t, runErr)
 
+	insertServiceManagerWithTags(t, user.ID, "default", "other")
 	rootPlan, err := PrepareCodespace(t.Context(), CreateCodespaceOptions{User: user, Repo: repo})
 	require.NoError(t, err)
 	require.Len(t, rootPlan.DevContainerOptions, 3)
 	assert.Equal(t, devContainerRootPath, rootPlan.DevContainerOptions[0].Selection)
 	assert.True(t, rootPlan.DevContainerOptions[0].Selected)
 	assert.Equal(t, []CreateRecommendedSecret{{Name: "DATABASE_PASSWORD", Description: "Database password"}}, rootPlan.RecommendedSecrets)
-	assert.True(t, rootPlan.SecretInjectionAllowed)
-	assert.Equal(t, []CreateSecretSummary{{Name: "RUNTIME_TOKEN"}}, rootPlan.AvailableSecrets)
+	assert.True(t, rootPlan.SavedSecretsAllowed)
+	assert.Equal(t, []string{"RUNTIME_TOKEN"}, rootPlan.AvailableSecrets)
 
-	insertServiceManagerWithTags(t, user.ID, "default")
+	assert.True(t, rootPlan.Environments[0].Selected)
 	secretOptions := CreateCodespaceOptions{
 		User: user, Repo: repo, RequestHash: rootPlan.RequestHash + "changed",
-		EnvironmentTag:          "default",
-		RecommendedSecretValues: map[string]string{"DATABASE_PASSWORD": "database-value"},
+		EnvironmentTag: "default",
+		Secrets: []CreateSecretInput{
+			{Name: "DATABASE_PASSWORD", Source: SecretSourceCustom, Value: " first\nsecond\n"},
+			{Name: "RUNTIME_TOKEN", Source: SecretSourceSaved},
+		},
 	}
 	_, err = CreateCodespace(t.Context(), secretOptions)
 	require.ErrorIs(t, err, ErrCreateRequestChanged)
 	unittest.AssertNotExistsBean(t, &codespace_model.UserSecret{UserID: user.ID, Name: "DATABASE_PASSWORD"})
 
 	secretOptions.RequestHash = rootPlan.RequestHash
-	_, err = CreateCodespace(t.Context(), secretOptions)
+	result, err := CreateCodespace(t.Context(), secretOptions)
 	require.NoError(t, err)
-	resolvedSecrets, err := resolveUserSecretsForRepository(t.Context(), user.ID, repo.ID)
+	row := loadServiceCodespaceByID(t, result.CodespaceID)
+	assert.NotContains(t, row.SecretsEncrypted, "secret-value")
+	resolvedSecrets, err := decryptCodespaceSecrets(row)
 	require.NoError(t, err)
 	assert.Equal(t, []RuntimeSecret{
-		{Name: "DATABASE_PASSWORD", Value: "database-value"},
+		{Name: "DATABASE_PASSWORD", Value: " first\nsecond\n"},
 		{Name: "RUNTIME_TOKEN", Value: "secret-value"},
 	}, resolvedSecrets)
+	saved := unittest.AssertExistsAndLoadBean(t, &codespace_model.UserSecret{UserID: user.ID, Name: "RUNTIME_TOKEN"})
+	require.NoError(t, UpdateUserSecretValue(t.Context(), user.ID, saved.ID, "changed"))
+	require.NoError(t, DeleteUserSecret(t.Context(), user.ID, saved.ID))
+	retained, err := decryptCodespaceSecrets(loadServiceCodespaceByID(t, result.CodespaceID))
+	require.NoError(t, err)
+	assert.Equal(t, resolvedSecrets, retained)
+	_, err = CreateCodespace(t.Context(), secretOptions)
+	require.ErrorIs(t, err, ErrCreateSecretUnavailable)
+	unittest.AssertNotExistsBean(t, &codespace_model.UserSecret{UserID: user.ID, Name: "DATABASE_PASSWORD"})
+	_, err = DeleteCodespace(t.Context(), LifecycleActionOptions{UserID: user.ID, CodespaceID: row.ID})
+	require.NoError(t, err)
+	unittest.AssertNotExistsBean(t, &codespace_model.Codespace{ID: row.ID})
 
 	nodePath := ".devcontainer/node/devcontainer.json"
 	nodePlan, err := PrepareCodespace(t.Context(), CreateCodespaceOptions{User: user, Repo: repo, DevContainerSelection: nodePath})
@@ -291,6 +321,10 @@ INVALID
 	assert.Equal(t, nodePath, nodePlan.DevContainerOptions[2].Selection)
 	assert.True(t, nodePlan.DevContainerOptions[2].Selected)
 	assert.NotEqual(t, rootPlan.RequestHash, nodePlan.RequestHash)
+	assert.True(t, nodePlan.Environments[1].Selected)
+	explicit, err := PrepareCodespace(t.Context(), CreateCodespaceOptions{User: user, Repo: repo, DevContainerSelection: nodePath, EnvironmentTag: "default"})
+	require.NoError(t, err)
+	assert.True(t, explicit.Environments[0].Selected)
 	invalidOptions := CreateCodespaceOptions{User: user, Repo: repo, DevContainerSelection: ".devcontainer/invalid/devcontainer.json", RequestHash: rootPlan.RequestHash, EnvironmentTag: "default"}
 	invalidPlan, err := PrepareCodespace(t.Context(), invalidOptions)
 	require.ErrorIs(t, err, ErrCreateConfigurationInvalid)
@@ -410,7 +444,11 @@ CONFIG
 	require.NoError(t, ReducePermissionRepository(t.Context(), user.ID, authorization.ID, codeRule.TargetRepoID, codeRule.UnitType, perm.AccessModeNone))
 	third, err := CreateCodespace(t.Context(), opts)
 	require.NoError(t, err)
-	assert.NotEqual(t, authorization.ID, loadServiceCodespaceByID(t, third.CodespaceID).PermissionAuthorizationID)
+	thirdAuthorizationID := loadServiceCodespaceByID(t, third.CodespaceID).PermissionAuthorizationID
+	assert.NotEqual(t, authorization.ID, thirdAuthorizationID)
+	fourth, err := CreateCodespace(t.Context(), opts)
+	require.NoError(t, err)
+	assert.Equal(t, thirdAuthorizationID, loadServiceCodespaceByID(t, fourth.CodespaceID).PermissionAuthorizationID)
 }
 
 func createConfirmedCodespace(t *testing.T, opts CreateCodespaceOptions) (*CreateCodespaceResult, error) {

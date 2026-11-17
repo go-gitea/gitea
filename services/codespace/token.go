@@ -110,17 +110,9 @@ func (s *GiteaTokenAuthSnapshot) CodespaceTokenAllowsAnyRepository(repoID int64)
 }
 
 type giteaTokenAuthCandidate struct {
-	Token     *codespace_model.GiteaToken    `xorm:"extends"`
-	Codespace *codespace_model.Codespace     `xorm:"extends"`
-	User      *user_model.User               `xorm:"extends"`
-	TwoFactor *auth_model.TwoFactor          `xorm:"extends"`
-	WebAuthn  *auth_model.WebAuthnCredential `xorm:"extends"`
-}
-
-func (c *giteaTokenAuthCandidate) hasTwoFactorOrWebAuthn() bool {
-	return c != nil &&
-		(c.TwoFactor != nil && c.TwoFactor.ID > 0 ||
-			c.WebAuthn != nil && c.WebAuthn.ID > 0)
+	Token     *codespace_model.GiteaToken `xorm:"extends"`
+	Codespace *codespace_model.Codespace  `xorm:"extends"`
+	User      *user_model.User            `xorm:"extends"`
 }
 
 // CodespaceTokenRepoID returns the repository bound to this Codespace Token snapshot.
@@ -131,7 +123,7 @@ func (s *GiteaTokenAuthSnapshot) CodespaceTokenRepoID() int64 {
 	return s.RepoID
 }
 
-// RequestRuntimeAccess returns the current token, user secrets, and Git SSH trust material.
+// RequestRuntimeAccess returns the current token, instance secrets, and Git SSH trust material.
 func RequestRuntimeAccess(ctx context.Context, manager *codespace_model.Manager, opts RequestRuntimeAccessOptions) (*RequestRuntimeAccessResult, error) {
 	if err := validateRuntimeAccessRequest(manager, opts.CodespaceUUID, opts.OperationRVersion); err != nil {
 		return nil, err
@@ -208,7 +200,7 @@ func prepareRuntimeAccessLocked(ctx context.Context, manager *codespace_model.Ma
 			return err
 		}
 
-		secrets, err = resolveCodespaceRuntimeSecrets(ctx, user, codespace)
+		secrets, err = decryptCodespaceSecrets(codespace)
 		if err != nil {
 			return err
 		}
@@ -317,8 +309,12 @@ func ResolveGiteaToken(ctx context.Context, token string) (*GiteaTokenAuthSnapsh
 		if user == nil || user.ID == 0 {
 			return nil, ErrResolveGiteaTokenRejected
 		}
-		if err := checkCodespaceTokenUserAllowed(user, candidate.hasTwoFactorOrWebAuthn()); err != nil {
+		allowed, err := codespaceUserCanLogIn(ctx, user)
+		if err != nil {
 			return nil, err
+		}
+		if !allowed {
+			return nil, fmt.Errorf("%w: login_restricted", ErrResolveGiteaTokenForbidden)
 		}
 		scope, err := auth_model.AccessTokenScope(GiteaTokenScope).Normalize()
 		if err != nil {
@@ -372,11 +368,10 @@ func loadTokenRepositoryPermissions(ctx context.Context, codespace *codespace_mo
 func findGiteaTokenAuthCandidates(ctx context.Context, tokenLastEight string) ([]*giteaTokenAuthCandidate, error) {
 	rows, err := db.GetEngine(ctx).
 		Table("codespace_gitea_token").
+		Select("codespace_gitea_token.codespace_id, codespace_gitea_token.token_hash, codespace_gitea_token.token_salt, codespace_gitea_token.token_last_eight, "+codespaceStateColumns+", `user`.*").
 		Where("codespace_gitea_token.token_last_eight = ?", tokenLastEight).
 		Join("INNER", "codespace", "codespace.id = codespace_gitea_token.codespace_id").
 		Join("INNER", "`user`", "`user`.id = codespace.user_id").
-		Join("LEFT", "two_factor", "two_factor.uid = `user`.id").
-		Join("LEFT", "webauthn_credential", "webauthn_credential.user_id = `user`.id").
 		Limit(20).
 		Rows(new(giteaTokenAuthCandidate))
 	if err != nil {
@@ -400,16 +395,6 @@ func giteaTokenLifecycleAllows(codespace *codespace_model.Codespace, now int64) 
 		return true
 	}
 	return createOrResumeOperationActive(codespace, now)
-}
-
-func checkCodespaceTokenUserAllowed(user *user_model.User, hasTwoFactorOrWebAuthn bool) error {
-	if user == nil || !user.IsActive || user.ProhibitLogin || user.MustChangePassword {
-		return fmt.Errorf("%w: login_restricted", ErrResolveGiteaTokenForbidden)
-	}
-	if setting.TwoFactorAuthEnforced && !hasTwoFactorOrWebAuthn {
-		return fmt.Errorf("%w: login_restricted", ErrResolveGiteaTokenForbidden)
-	}
-	return nil
 }
 
 func readCurrentGiteaToken(ctx context.Context, codespaceID int64) (string, bool, error) {

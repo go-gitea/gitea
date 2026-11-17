@@ -74,6 +74,7 @@ type Codespace struct {
 	CommitSHA                 string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 	DevContainerPath          string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
 	DevContainerContent       string `xorm:"TEXT NOT NULL"`
+	SecretsEncrypted          string `xorm:"LONGTEXT" json:"-"`
 	PermissionAuthorizationID int64  `xorm:"NOT NULL DEFAULT 0 index"`
 	ManagerID                 int64  `xorm:"NOT NULL DEFAULT 0"`
 	Status                    string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
@@ -311,8 +312,21 @@ func NextVersion(current int64) (int64, error) {
 	return current + 1, nil
 }
 
-// ValidateCodespace validates the persisted lifecycle invariants of a Codespace row.
+// ValidateCodespace validates a complete persisted Codespace row.
 func ValidateCodespace(codespace *Codespace) error {
+	if err := ValidateCodespaceLifecycle(codespace); err != nil {
+		return err
+	}
+	hasDevContainerPath := strings.TrimSpace(codespace.DevContainerPath) != ""
+	hasDevContainerContent := strings.TrimSpace(codespace.DevContainerContent) != ""
+	if hasDevContainerPath == hasDevContainerContent {
+		return errors.New("invalid Dev Container configuration")
+	}
+	return nil
+}
+
+// ValidateCodespaceLifecycle validates state independently of the creation configuration.
+func ValidateCodespaceLifecycle(codespace *Codespace) error {
 	if codespace == nil {
 		return errors.New("codespace is nil")
 	}
@@ -342,11 +356,6 @@ func ValidateCodespace(codespace *Codespace) error {
 	}
 	if codespace.UUID != "" && codespace.ManagerID <= 0 {
 		return errors.New("bound codespace requires a manager")
-	}
-	hasDevContainerPath := strings.TrimSpace(codespace.DevContainerPath) != ""
-	hasDevContainerContent := strings.TrimSpace(codespace.DevContainerContent) != ""
-	if hasDevContainerPath == hasDevContainerContent {
-		return errors.New("invalid Dev Container configuration")
 	}
 	hasOperation := codespace.OperationCreatedUnix > 0
 	if !hasOperation {

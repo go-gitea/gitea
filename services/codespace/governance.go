@@ -104,8 +104,9 @@ func ListGovernanceCodespaces(ctx context.Context, opts GovernanceListOptions) (
 	var rows []*codespace_model.Codespace
 	total, err := db.GetEngine(ctx).
 		Where(queryCondition).
-		Desc("updated_unix", "created_unix").
+		Desc("updated_unix", "created_unix", "id").
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		Select(codespaceStateColumns).
 		FindAndCount(&rows)
 	if err != nil {
 		return nil, err
@@ -337,7 +338,7 @@ func loadGovernanceCodespace(ctx context.Context, opts GovernanceActionOptions) 
 	} else {
 		query = query.Where("uuid = ?", opts.CodespaceUUID)
 	}
-	has, err := query.Get(codespace)
+	has, err := query.Table(codespace).Omit("secrets_encrypted").Get(codespace)
 	if err != nil {
 		return nil, err
 	}

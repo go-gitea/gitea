@@ -48,7 +48,7 @@ var (
 
 	// ErrUpdateLogNotFound is returned when the Codespace no longer exists.
 	ErrUpdateLogNotFound = errors.New("codespace not found")
-	// ErrUpdateLogStaleOperation is returned when the request no longer matches the active operation.
+	// ErrUpdateLogStaleOperation is returned when the request no longer matches the current executed operation.
 	ErrUpdateLogStaleOperation = errors.New("codespace log operation is stale")
 	// ErrUpdateLogOffsetConflict is returned when the request offset overlaps different existing bytes.
 	ErrUpdateLogOffsetConflict = errors.New("codespace log offset conflict")
@@ -145,14 +145,15 @@ func UpdateLog(ctx context.Context, manager *codespace_model.Manager, opts Updat
 	err = globallock.LockAndDo(ctx, updateLogLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).
+				Cols("id", "uuid", "manager_id", "operation_r_version", "operation_created_unix", "operation_started_unix", "log_size").Get(codespace)
 			if err != nil {
 				return err
 			}
 			if !has {
 				return ErrUpdateLogNotFound
 			}
-			if !isCurrentRunningOperation(codespace, manager.ID, opts.OperationRVersion) {
+			if codespace.ManagerID != manager.ID || codespace.OperationRVersion != opts.OperationRVersion || (codespace.OperationCreatedUnix > 0 && codespace.OperationStartedUnix == 0) {
 				return ErrUpdateLogStaleOperation
 			}
 			logFilename := codespaceLogFilename(codespace.UUID)
@@ -319,7 +320,7 @@ func appendEncodedLogLines(ctx context.Context, codespace *codespace_model.Codes
 	codespace.LogSize = previousSize + int64(len(encoded))
 	query := db.GetEngine(ctx).Where("id = ? AND log_size = ?", codespace.ID, previousSize)
 	if expectedManagerID > 0 {
-		query = query.And("manager_id = ? AND operation_r_version = ? AND operation_created_unix > 0 AND operation_started_unix > 0", expectedManagerID, expectedOperationRVersion)
+		query = query.And("manager_id = ? AND operation_r_version = ? AND (operation_created_unix = 0 OR operation_started_unix > 0)", expectedManagerID, expectedOperationRVersion)
 	}
 	affected, err := query.Cols("log_size").Update(codespace)
 	if err != nil {
@@ -343,7 +344,7 @@ func appendInternalStateSummary(ctx context.Context, summary *internalStateSumma
 	err := globallock.LockAndDo(ctx, updateLogLockKey(summary.CodespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", summary.CodespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", summary.CodespaceUUID).Cols("id", "uuid", "log_size").Get(codespace)
 			if err != nil || !has {
 				return err
 			}

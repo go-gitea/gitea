@@ -66,6 +66,15 @@ func TestUpdateLogAppendsAndReplaysIdempotently(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, result.NextOffset, replay.NextOffset)
 	assert.Equal(t, beforeReplay, readServiceLog(t, codespaceLogFilename(row.UUID)))
+	_, err = db.GetEngine(t.Context()).ID(row.ID).Cols("status", "runtime_operation_r_version", "operation_trigger", "operation_created_unix", "operation_started_unix", "operation_deadline_unix").Update(&codespace_model.Codespace{Status: codespace_model.StatusRunning, RuntimeOperationRVersion: 22})
+	require.NoError(t, err)
+	result, err = UpdateLog(t.Context(), manager, UpdateLogOptions{
+		CodespaceUUID: codespaceUUID, OperationRVersion: 22, Offset: replay.NextOffset,
+		Lines: []*codespacev1.LogLine{{TimestampUnixNano: time.Now().UnixNano(), Message: "tail after completion"}},
+	})
+	require.NoError(t, err)
+	assert.Greater(t, result.NextOffset, replay.NextOffset)
+	assert.Contains(t, readServiceLog(t, codespaceLogFilename(row.UUID)), "tail after completion")
 }
 
 func TestUpdateLogRedactsCommonCredentials(t *testing.T) {
