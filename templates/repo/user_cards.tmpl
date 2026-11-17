@@ -6,21 +6,18 @@
 	<ul>
 		{{range $card := .Cards}}
 			<li class="ui segment">
-				<a href="{{$card.HomeLink}}">
-					{{ctx.AvatarUtils.Avatar $card 48}}
-				</a>
+				<a href="{{$card.HomeLink}}">{{ctx.AvatarUtils.Avatar $card 48}}</a>
 				<div class="flex-relaxed-list">
-					<div class="item">
-						<a href="{{$card.HomeLink}}">{{$card.DisplayName}}</a>
-						{{template "shared/user/user_type_label" $card}}
+					<div class="item tw-text-xl">
+						{{template "shared/user/name" $card}}
 					</div>
-					<div class="item">
+					<div class="item flex-text-inline">
 						{{if $card.Website}}
 							{{svg "octicon-link"}} <a href="{{$card.Website}}" target="_blank" class="muted">{{$card.Website}}</a>
 						{{else if $card.Location}}
-							{{svg "octicon-location"}} {{$card.Location}}
+							{{svg "octicon-location"}} <span>{$card.Location}}</span>
 						{{else}}
-							{{svg "octicon-calendar"}} {{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort $card.CreatedUnix)}}
+							{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort $card.CreatedUnix)}}</span>
 						{{end}}
 					</div>
 				</div>
