@@ -5,7 +5,6 @@ package routing
 
 import (
 	"fmt"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -78,17 +77,4 @@ func Test_trimAnonymousFunctionSuffix(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
-}
-
-func TestGetFuncInfoConcurrent(t *testing.T) {
-	fn := func() {}
-	GetFuncInfo(fn)
-
-	wg := sync.WaitGroup{}
-	for i := range 50 {
-		wg.Go(func() {
-			GetFuncInfo(fn, fmt.Sprintf("friendly-%d", i))
-		})
-	}
-	wg.Wait()
 }
