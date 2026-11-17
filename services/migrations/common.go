@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	system_model "gitea.dev/models/system"
@@ -43,6 +44,15 @@ func downloadAsset(ctx context.Context, client *http.Client, assetURL string) (i
 func hasBaseURL(toCheck, baseURL string) bool {
 	if baseURL == "" {
 		return false
+	}
+	if strings.HasPrefix(baseURL, "file://") && strings.HasPrefix(toCheck, "file://") {
+		basePath := filepath.Clean(strings.TrimPrefix(baseURL, "file://"))
+		checkPath := filepath.Clean(strings.TrimPrefix(toCheck, "file://"))
+		rel, err := filepath.Rel(basePath, checkPath)
+		if err != nil {
+			return false
+		}
+		return rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 	}
 	if len(baseURL) > 0 && baseURL[len(baseURL)-1] != '/' {
 		baseURL += "/"
