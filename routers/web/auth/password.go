@@ -180,6 +180,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	if twofa != nil {
 		if ctx.FormBool("scratch_code") {
 			if !twofa.VerifyScratchToken(ctx.FormString("token")) {
+				audit.RecordAs(ctx, u, audit_model.UserAuthenticationFailTwoFactor, u)
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Token"] = true
 				ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
@@ -195,6 +196,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			}
 			if tfaResult != auth.TwoFactorResultValid {
 				log.Warn("Failed authentication attempt for %s from %s: invalid two-factor passcode", u.Name, ctx.RemoteAddr())
+				audit.RecordAs(ctx, u, audit_model.UserAuthenticationFailTwoFactor, u)
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Passcode"] = true
 				errMsg := ctx.Tr(util.Iif(tfaResult == auth.TwoFactorResultTooManyAttempts, "auth.twofa_too_many_attempts", "auth.twofa_passcode_incorrect"))
@@ -208,7 +210,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		Password:           optional.Some(ctx.FormString("password")),
 		MustChangePassword: optional.Some(false),
 	}
-	if err := user_service.UpdateAuth(ctx, u, opts); err != nil {
+	if err := user_service.UpdateAuth(audit.WithDoer(ctx, u), u, opts); err != nil {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
 		switch {

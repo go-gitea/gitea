@@ -32,7 +32,6 @@ func Packages(ctx *context.Context) {
 }
 
 func PackagesRuleAdd(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
 
 	shared.SetRuleAddContext(ctx)
@@ -41,7 +40,6 @@ func PackagesRuleAdd(ctx *context.Context) {
 }
 
 func PackagesRuleEdit(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
 
 	shared.SetRuleEditContext(ctx, ctx.Doer)
@@ -50,7 +48,6 @@ func PackagesRuleEdit(ctx *context.Context) {
 }
 
 func PackagesRuleAddPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsPackages"] = true
 
 	shared.PerformRuleAddPost(
@@ -62,7 +59,6 @@ func PackagesRuleAddPost(ctx *context.Context) {
 }
 
 func PackagesRuleEditPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
 
 	shared.PerformRuleEditPost(
@@ -74,7 +70,6 @@ func PackagesRuleEditPost(ctx *context.Context) {
 }
 
 func PackagesRulePreview(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
 
 	shared.SetRulePreviewContext(ctx, ctx.Doer)

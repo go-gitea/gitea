@@ -537,7 +537,10 @@ func SearchRepo(ctx *context.Context) {
 		}
 
 		if latestCommitStatuses[i] != nil {
-			results[i].LatestCommitStatus = latestCommitStatuses[i]
+			results[i].LatestCommitStatus = &repo_service.WebSearchCommitStatus{
+				State:     latestCommitStatuses[i].State,
+				TargetURL: latestCommitStatuses[i].TargetURL,
+			}
 			results[i].LocaleLatestCommitStatus = latestCommitStatuses[i].LocaleString(ctx.Locale)
 		}
 	}

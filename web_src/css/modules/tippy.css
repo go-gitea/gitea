@@ -95,6 +95,9 @@
   padding: 9px 14px;
   border-radius: var(--border-radius);
   color: inherit;
+  border: none;
+  text-align: left;
+  line-height: inherit;
   background: inherit;
   text-decoration: none;
   gap: 10px;

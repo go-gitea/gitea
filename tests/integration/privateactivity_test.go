@@ -13,10 +13,14 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	user_service "gitea.dev/services/user"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -259,4 +263,33 @@ func TestPrivateActivityHeatmapContent(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPrivateActivityForcedVisibility(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	testPrivateActivityHelperEnablePrivateActivity(t)
+	keepActivityPrivate := func() bool {
+		return unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: privateActivityTestUser}).KeepActivityPrivate
+	}
+
+	defer test.MockVariableValue(&setting.Service.ForceUserActivityVisibility, "public")()
+	require.NoError(t, user_service.SyncForcedActivityVisibility(t.Context()))
+	assert.False(t, keepActivityPrivate())
+
+	session := loginUser(t, privateActivityTestUser)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+	AssertHTMLElement(t, NewHTMLParser(t, resp.Body), `#keep-activity-private input[disabled]`, true)
+	testPrivateActivityHelperEnablePrivateActivity(t)
+	assert.False(t, keepActivityPrivate())
+
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(true)}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	req = NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{HideActivity: new(false)}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	setting.Service.ForceUserActivityVisibility = "private"
+	require.NoError(t, user_service.SyncForcedActivityVisibility(t.Context()))
+	assert.True(t, keepActivityPrivate())
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"}).KeepActivityPrivate)
 }

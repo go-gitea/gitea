@@ -27,8 +27,8 @@ type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 's
 type WebSearchRepo = {
   repository: DashboardRepo,
   latest_commit_status: {
-    State: CommitStatus,
-    TargetURL: string,
+    state: CommitStatus,
+    target_url: string,
   } | null,
   locale_latest_commit_status: string,
 };
@@ -306,8 +306,8 @@ async function searchRepos() {
     repos.value = json.data.map((webSearchRepo) => {
       return {
         ...webSearchRepo.repository,
-        latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
-        latest_commit_status_state_link: webSearchRepo.latest_commit_status?.TargetURL,
+        latest_commit_status_state: webSearchRepo.latest_commit_status?.state, // if latest_commit_status is null, it means there is no commit status
+        latest_commit_status_state_link: webSearchRepo.latest_commit_status?.target_url,
         locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
       };
     });

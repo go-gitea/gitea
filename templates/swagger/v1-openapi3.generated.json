@@ -5071,7 +5071,7 @@
                 "$ref": "#/components/schemas/TeamVisibility"
               }
             ],
-            "description": "Team visibility within the organization. Defaults to \"private\"."
+            "description": "Team visibility within the organization. Defaults to the instance's default team visibility, \"private\" unless configured."
           }
         },
         "required": [
@@ -36384,6 +36384,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/UserSettings"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
           }
         },
         "summary": "Update user settings",

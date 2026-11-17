@@ -173,7 +173,7 @@
 									<div class="tw-p-3">
 										{{if $file.IsIncomplete}}
 											{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
-											<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
+											<button type="button" class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</button>
 										{{else}}
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
 										{{end}}
@@ -226,10 +226,10 @@
 						<span id="diff-load-progress" class="tw-text-text-light-2" data-text-too-many-files="{{ctx.Locale.Tr "repo.diff.too_many_files"}}">
 							{{ctx.Locale.Tr "repo.diff.too_many_files" (len .Diff.Files) .DiffShortStat.NumFiles}}
 						</span>
-						<a class="ui basic tiny button" id="diff-show-more-files" data-global-click="diffLoadMoreFiles" data-href="?skip-to={{.Diff.End}}&file-only=true"
+						<button type="button" class="ui basic tiny button" id="diff-show-more-files" data-global-click="diffLoadMoreFiles" data-href="?skip-to={{.Diff.End}}&file-only=true"
 							data-text-default="{{ctx.Locale.Tr "repo.diff.show_more"}}"
 							data-text-matching="{{ctx.Locale.Tr "repo.diff.show_more_matching"}}"
-						>{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
+						>{{ctx.Locale.Tr "repo.diff.show_more"}}</button>
 					</div>
 				{{end}}
 				</div>
