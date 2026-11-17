@@ -1013,6 +1013,12 @@
   margin-top: 5px;
 }
 
+@media (max-width: 767.98px) {
+  .user-cards .list .item {
+    width: 100%;
+  }
+}
+
 #search-user-box .results .result .image {
   order: 0;
   margin-right: 12px;
