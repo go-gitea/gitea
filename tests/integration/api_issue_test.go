@@ -92,6 +92,34 @@ func TestAPIIssue(t *testing.T) {
 	t.Run("IssueProjects", testAPIIssueProjects)
 }
 
+func TestAPIListIssuesWithOrganizationLabel(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6, RepoID: repo.ID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	token := getTokenForLoggedInUser(t, loginUser(t, "user1"), auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeReadIssue)
+
+	labelsURL := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels", owner.Name, repo.Name, issue.Index)
+	req := NewRequestWithJSON(t, "POST", labelsURL, &api.IssueLabelsOption{Labels: []any{"orglabel4"}}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	listURL := fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repo.Name)
+	query := url.Values{"labels": {"orglabel4"}, "state": {"all"}}
+	req = NewRequest(t, "GET", listURL+"?"+query.Encode()).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	apiIssues := DecodeJSON(t, resp, []*api.Issue{})
+	if assert.Len(t, apiIssues, 1) {
+		assert.Equal(t, issue.ID, apiIssues[0].ID)
+	}
+
+	query.Set("labels", "does-not-exist")
+	req = NewRequest(t, "GET", listURL+"?"+query.Encode()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
+	assert.Empty(t, apiIssues)
+}
+
 func testAPIListIssues(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
