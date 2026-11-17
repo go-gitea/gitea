@@ -17,8 +17,10 @@ import (
 	"gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/services/convert"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
@@ -110,6 +112,7 @@ func TestAPITeam(t *testing.T) {
 		org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
 
 		// Create team.
+		defer test.MockVariableValue(&setting.Service.DefaultTeamVisibilityMode, api.VisibleTypeLimited)()
 		teamToCreate := &api.CreateTeamOption{
 			Name:                    "team1",
 			Description:             "team one",
@@ -124,6 +127,7 @@ func TestAPITeam(t *testing.T) {
 		expectedTeamUnitsMap := map[string]string{"repo.code": "read", "repo.issues": "read"}
 		checkTeamResponse(t, "CreateTeam1", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, expectedTeamUnitsMap)
 		checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, expectedTeamUnitsMap)
+		assert.Equal(t, api.TeamVisibilityLimited, apiTeam.Visibility)
 		teamID := apiTeam.ID
 
 		MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).AddTokenAuth(token), http.StatusConflict)
@@ -187,6 +191,7 @@ func TestAPITeam(t *testing.T) {
 			Description:             "team two",
 			IncludesAllRepositories: true,
 			UnitsMap:                map[string]string{"repo.code": "read", "repo.issues": "write", "repo.wiki": "none"},
+			Visibility:              api.TeamVisibilityPrivate,
 		}
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
 			AddTokenAuth(token)
@@ -194,6 +199,7 @@ func TestAPITeam(t *testing.T) {
 		apiTeam = DecodeJSON(t, resp, &api.Team{})
 		checkTeamResponse(t, "CreateTeam2", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, teamToCreate.UnitsMap)
 		checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, api.AccessLevelNameNone, teamToCreate.UnitsMap)
+		assert.Equal(t, api.TeamVisibilityPrivate, apiTeam.Visibility)
 		teamID = apiTeam.ID
 
 		// Create a team with permission=write, then edit it to granular permissions later, team's permission should be reset to none
