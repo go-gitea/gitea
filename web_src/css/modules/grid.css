@@ -19,40 +19,16 @@
   margin-top: 1rem;
 }
 
-.ui.grid > .column:not(.row),
-.ui.grid > .row > .column {
+.ui.grid > .column:not(.row) {
   position: relative;
   display: inline-block;
   width: 6.25%;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding: 1rem;
   vertical-align: top;
 }
 .ui.grid > * {
   padding-left: 1rem;
   padding-right: 1rem;
-}
-
-.ui.grid > .row {
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: inherit;
-  align-items: stretch;
-  width: 100% !important;
-  padding: 0;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-}
-
-.ui.grid > .column:not(.row) {
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-}
-.ui.grid > .row > .column {
-  margin-top: 0;
-  margin-bottom: 0;
 }
 
 .ui.grid > .row > .column > img {
@@ -115,10 +91,6 @@
 
 .ui[class*="two column"].grid > .column:not(.row) {
   width: 50%;
-}
-
-.ui.grid > [class*="two column"].row > .column {
-  width: 50% !important;
 }
 
 .ui.grid > [class*="three wide"].column {
