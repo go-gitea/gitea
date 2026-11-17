@@ -145,7 +145,7 @@ function initPinRemoveButton() {
       const response = await DELETE(el.getAttribute('data-unpin-url')!);
       if (response.ok) {
         // Delete the tooltip
-        el._tippy.destroy();
+        el._tippy?.destroy();
         // Remove the Card
         el.closest(`div.issue-card[data-issue-id="${CSS.escape(String(id))}"]`)!.remove();
       }
