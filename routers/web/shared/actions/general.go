@@ -45,7 +45,7 @@ func ParseMaxTokenPermissions(ctx *context.Context) *repo_model.ActionsTokenPerm
 
 // GeneralSettings renders the actions general settings page
 func GeneralSettings(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("actions.actions")
+	ctx.Data["Title"] = ctx.Tr("actions.general")
 
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {

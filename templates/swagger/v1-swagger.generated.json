@@ -27547,7 +27547,7 @@
           }
         },
         "visibility": {
-          "description": "Team visibility within the organization. Defaults to \"private\".",
+          "description": "Team visibility within the organization. Defaults to the instance's default team visibility, \"private\" unless configured.",
           "type": "string",
           "enum": [
             "public",
