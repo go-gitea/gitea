@@ -113,6 +113,14 @@ func TestAPIListIssuesWithOrganizationLabel(t *testing.T) {
 		assert.Equal(t, issue.ID, apiIssues[0].ID)
 	}
 
+	query.Set("labels", "orglabel4,does-not-exist")
+	req = NewRequest(t, "GET", listURL+"?"+query.Encode()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiIssues = DecodeJSON(t, resp, []*api.Issue{})
+	if assert.Len(t, apiIssues, 1) {
+		assert.Equal(t, issue.ID, apiIssues[0].ID)
+	}
+
 	query.Set("labels", "does-not-exist")
 	req = NewRequest(t, "GET", listURL+"?"+query.Encode()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
