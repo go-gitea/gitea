@@ -1870,6 +1870,10 @@ func Routes() *web.Router {
 				m.Get("", admin.GetAllEmails)
 				m.Get("/search", admin.SearchEmail)
 			})
+			m.Group("/repos/{username}/{reponame}", func() {
+				m.Post("/sync-branches", admin.SyncRepoBranches)
+				m.Post("/sync-tags", admin.SyncRepoTags)
+			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(admin.ListHooks).
 					Post(bind(api.CreateHookOption{}), admin.CreateHook)
