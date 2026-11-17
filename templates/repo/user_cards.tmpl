@@ -15,7 +15,7 @@
 						{{if $card.Website}}
 							{{svg "octicon-link"}} <a href="{{$card.Website}}" target="_blank" class="muted">{{$card.Website}}</a>
 						{{else if $card.Location}}
-							{{svg "octicon-location"}} <span>{$card.Location}}</span>
+							{{svg "octicon-location"}} <span>{{$card.Location}}</span>
 						{{else}}
 							{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort $card.CreatedUnix)}}</span>
 						{{end}}
