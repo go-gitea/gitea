@@ -987,11 +987,12 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(400px, 100%), 1fr));
   gap: var(--gap-block);
 }
 
-.user-cards > ul > li {
+.user-cards > ul > li.ui.segment {
+  margin: 0;
   list-style: none;
   display: flex;
   gap: var(--gap-block);
