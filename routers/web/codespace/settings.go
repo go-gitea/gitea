@@ -115,7 +115,7 @@ func renderManagerSettings(ctx *context.Context, opts managerSettingsRenderOptio
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	ctx.Data["Title"] = "Codespaces"
+	ctx.Data["Title"] = ctx.Tr("codespace.managers")
 	ctx.Data[opts.PageFlag] = true
 	ctx.Data["ManagerSettings"] = settingsView
 	ctx.Data["ManagerTotal"] = len(settingsView.Managers)

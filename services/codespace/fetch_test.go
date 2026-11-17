@@ -376,14 +376,16 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	codespaceUUID := "20202020-2020-4020-8020-202020202020"
+	now := time.Now()
+	originalDeadline := now.Add(setting.Codespace.OperationLeaseTimeout / 4).Unix()
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
 		UUID:                  codespaceUUID,
 		Status:                codespace_model.StatusCreating,
 		OperationRVersion:     32,
 		OperationTrigger:      codespace_model.OperationTriggerUser,
-		OperationCreatedUnix:  time.Now().Add(-time.Minute).Unix(),
-		OperationStartedUnix:  time.Now().Add(-time.Minute).Unix(),
-		OperationDeadlineUnix: time.Now().Add(time.Second).Unix(),
+		OperationCreatedUnix:  now.Add(-time.Minute).Unix(),
+		OperationStartedUnix:  now.Add(-time.Minute).Unix(),
+		OperationDeadlineUnix: originalDeadline,
 	})
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
@@ -399,7 +401,7 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 	assert.EqualValues(t, 32, result.RenewedLeases[0].GetOperationRversion())
 	assert.EqualValues(t, setting.Codespace.OperationLeaseTimeout/time.Millisecond, result.RenewedLeases[0].GetLeaseValidForMilliseconds())
 	deadline := loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix
-	assert.Greater(t, deadline, time.Now().Unix()+1)
+	assert.Greater(t, deadline, originalDeadline)
 
 	_, err = db.GetEngine(t.Context()).ID(manager.ID).Cols("runtime_state").Update(&codespace_model.Manager{RuntimeState: codespace_model.ManagerRuntimeStateRecovering})
 	require.NoError(t, err)
@@ -409,18 +411,22 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 		OperationRVersion: 1, OperationTrigger: codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
+	fetchStarted := time.Now()
 	result, err = FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		StartupCapacityAvailable: 1, CleanupCapacityAvailable: 1,
 		AcceptedOperationTypes: []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
 		AcceptedCreateTags:     []string{"default"},
 		ObservedOperations:     []*codespacev1.ObservedOperation{{RuntimeUuid: codespaceUUID, OperationRversion: 32}},
 	})
+	fetchFinished := time.Now()
 	require.NoError(t, err)
 	assert.Empty(t, result.Operations)
 	require.Len(t, result.RenewedLeases, 1)
 	assert.True(t, codespace_model.IsOperationQueued(loadServiceCodespace(t, queuedUUID)))
 	assert.Equal(t, deadline, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix)
-	assert.InDelta(t, time.Until(time.Unix(deadline, 0)).Milliseconds(), result.RenewedLeases[0].GetLeaseValidForMilliseconds(), 100)
+	leaseMillis := result.RenewedLeases[0].GetLeaseValidForMilliseconds()
+	assert.GreaterOrEqual(t, leaseMillis, time.Unix(deadline, 0).Sub(fetchFinished).Milliseconds())
+	assert.LessOrEqual(t, leaseMillis, time.Unix(deadline, 0).Sub(fetchStarted).Milliseconds())
 }
 
 func TestFetchOperationsRejectsStateHistoryConflictBeforeWrites(t *testing.T) {
