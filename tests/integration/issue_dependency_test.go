@@ -9,8 +9,6 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -61,7 +59,7 @@ func TestIssueDependencyCandidates(t *testing.T) {
 		assert.Equal(t, []int64{3}, candidates(t, user2, "/user2/repo1/pulls/5/dependency/candidates?limit=1"))
 	})
 
-	t.Run("CrossRepository", func(t *testing.T) {
+	t.Run("SameOwnerRepositories", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.AllowCrossRepositoryDependencies, true)()
 
 		ids := candidates(t, user2, "/user2/repo1/issues/1/dependency/candidates?limit=50")
@@ -70,6 +68,9 @@ func TestIssueDependencyCandidates(t *testing.T) {
 		assert.NotContains(t, ids, int64(1))
 		assert.NotContains(t, ids, int64(2))
 		assert.NotContains(t, ids, int64(3))
+		// only the repositories of the same owner, issue 6 is in org3/repo3 and issue 8 in another owner's public repo
+		assert.NotContains(t, ids, int64(6))
+		assert.NotContains(t, ids, int64(8))
 
 		// user40 can write to repo1 but can't read repo2
 		ids = candidates(t, loginUser(t, "user40"), "/user2/repo1/issues/1/dependency/candidates?limit=50")
@@ -85,12 +86,15 @@ func TestIssueDependencyCandidates(t *testing.T) {
 
 	t.Run("UnreadableNewerMatchesDoNotEmptyThePage", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.AllowCrossRepositoryDependencies, true)()
-		enableRepoDependencies(t, 2)
-		_, err := db.GetEngine(t.Context()).In("id", 1, 6, 7).Cols("name").Update(&issues_model.Issue{Title: "4023840238"})
+		engine := db.GetEngine(t.Context())
+		_, err := engine.Where("1=1").Delete(&issues_model.IssueDependency{})
 		require.NoError(t, err)
-		_, err = db.GetEngine(t.Context()).Delete(&repo_model.RepoUnit{RepoID: 3, Type: unit.TypeIssues})
+		// user40 can't read repo2, so its two open issues are the newest matches and fill the first page
+		_, err = engine.In("id", 1, 2, 4, 7).Cols("name").Update(&issues_model.Issue{Title: "4023840238"})
+		require.NoError(t, err)
+		_, err = engine.ID(4).Cols("is_closed").Update(&issues_model.Issue{IsClosed: false})
 		require.NoError(t, err)
 
-		assert.Equal(t, []int64{1}, candidates(t, user2, "/user2/repo2/issues/2/dependency/candidates?q=4023840238&limit=1"))
+		assert.Equal(t, []int64{2}, candidates(t, loginUser(t, "user40"), "/user2/repo1/issues/1/dependency/candidates?q=4023840238&limit=1"))
 	})
 }

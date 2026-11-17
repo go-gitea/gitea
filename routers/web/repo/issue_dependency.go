@@ -57,7 +57,11 @@ func IssueDependencyCandidates(ctx *context.Context) {
 		searchOpt.IsPull = optional.Some(false)
 	}
 	if setting.Service.AllowCrossRepositoryDependencies {
-		searchOpt.RepoIDs, searchOpt.AllPublic, err = common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{Doer: ctx.Doer})
+		// only the repositories of the same owner, so the search doesn't scale with the number of repositories of the instance
+		searchOpt.RepoIDs, searchOpt.AllPublic, err = common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
+			Doer:      ctx.Doer,
+			OwnerName: ctx.Repo.Repository.OwnerName,
+		})
 		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return
