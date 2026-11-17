@@ -18,6 +18,7 @@ import (
 
 var cliHelpPrinterOld = cli.HelpPrinter
 
+
 func init() {
 	cli.HelpPrinter = cliHelpPrinterNew
 }
