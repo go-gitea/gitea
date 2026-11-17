@@ -48,6 +48,18 @@ func (n *automergeNotifier) PullReviewDismiss(ctx context.Context, doer *user_mo
 	automergequeue.StartAutoMergeCheckByPullHead(ctx, review.Issue.PullRequest)
 }
 
+func (n *automergeNotifier) PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+	if isRequest {
+		return
+	}
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		log.Error("LoadPullRequest: %v", err)
+		return
+	}
+	// as an official review request could have blocked a pending automerge let's recheck
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, issue.PullRequest)
+}
+
 func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {
 	if !status.State.IsSuccess() {
 		return
