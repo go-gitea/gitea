@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	notify_service "gitea.dev/services/notify"
+	repo_service "gitea.dev/services/repository"
 )
 
 type indexerNotifier struct {
@@ -27,6 +28,27 @@ var _ notify_service.Notifier = &indexerNotifier{}
 // NewNotifier create a new indexerNotifier notifier
 func NewNotifier() notify_service.Notifier {
 	return &indexerNotifier{}
+}
+
+func updateRepoStats(repo *repo_model.Repository) {
+	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+	}
+	queueRepoContributors(repo)
+}
+
+func queueRepoContributors(repo *repo_model.Repository) {
+	if err := repo_service.AddRepoToContributorsQueue(repo.ID); err != nil {
+		log.Error("AddRepoToContributorsQueue(%d) failed: %v", repo.ID, err)
+	}
+}
+
+func (r *indexerNotifier) CreateRepository(_ctx context.Context, _doer, _u *user_model.User, repo *repo_model.Repository) {
+	queueRepoContributors(repo)
+}
+
+func (r *indexerNotifier) ForkRepository(_ctx context.Context, _doer *user_model.User, _oldRepo, repo *repo_model.Repository) {
+	queueRepoContributors(repo)
 }
 
 func (r *indexerNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
@@ -75,9 +97,7 @@ func (r *indexerNotifier) MigrateRepository(ctx context.Context, doer, u *user_m
 	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
-	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
-		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
-	}
+	updateRepoStats(repo)
 }
 
 func (r *indexerNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
@@ -88,9 +108,7 @@ func (r *indexerNotifier) PushCommits(ctx context.Context, pusher *user_model.Us
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.BranchName() == repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
-	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
-		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
-	}
+	updateRepoStats(repo)
 }
 
 func (r *indexerNotifier) SyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
@@ -101,18 +119,14 @@ func (r *indexerNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.BranchName() == repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
-	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
-		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
-	}
+	updateRepoStats(repo)
 }
 
 func (r *indexerNotifier) ChangeDefaultBranch(ctx context.Context, repo *repo_model.Repository) {
 	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
-	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
-		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
-	}
+	updateRepoStats(repo)
 }
 
 func (r *indexerNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {

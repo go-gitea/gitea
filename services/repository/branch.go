@@ -792,9 +792,6 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newB
 		}); err != nil {
 			log.Error("AddRepoToLicenseUpdaterQueue: %v", err)
 		}
-		if err := AddRepoToContributorsQueue(repo.ID); err != nil {
-			log.Error("AddRepoToContributorsQueue: %v", err)
-		}
 	}
 
 	// clear divergence cache

@@ -15,7 +15,6 @@ export async function initRepoContributors() {
           commits: el.getAttribute('data-locale-contribution-type-commits'),
           additions: el.getAttribute('data-locale-contribution-type-additions'),
           deletions: el.getAttribute('data-locale-contribution-type-deletions'),
-          additions_deletions: el.getAttribute('data-locale-contribution-type-additions-deletions'),
         },
         periodFilterLabel: el.getAttribute('data-locale-period-filter-label'),
         periods: ['all', '1', '3', '6', '12', '24'].map((value) => ({value, label: el.getAttribute(`data-locale-period-${value}`)})),

@@ -83,7 +83,7 @@ func ListContributors(ctx *context.APIContext) {
 
 	apiContributors := make([]*api.Contributor, len(contributors))
 	for i, contributor := range contributors {
-		apiContributor := &api.Contributor{Type: "Anonymous", Name: contributor.Name, Email: contributor.Email, Contributions: contributor.Commits, Additions: contributor.Additions, Deletions: contributor.Deletions}
+		apiContributor := &api.Contributor{Type: "Anonymous", Name: contributor.Name, Email: contributor.Email, Contributions: contributor.Commits}
 		if user := contributor.User; user != nil {
 			apiContributor.Type, apiContributor.ID, apiContributor.Login = string(convert.UserTypeToString(user.Type)), user.ID, user.Name
 			apiContributor.AvatarURL, apiContributor.HTMLURL = user.AvatarLink(ctx), user.HTMLURL(ctx)

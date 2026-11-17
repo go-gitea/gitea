@@ -62,6 +62,7 @@ async function fetchGraphData() {
     if (response.ok) {
       const dayDataObject: DayDataObject = await response.json();
       const weekValues = Object.values(dayDataObject);
+      if (!weekValues.length) return;
       const start = weekValues[0].week;
       const end = firstStartDateAfterDate(new Date());
       const startDays = startDaysBetween(start, end);

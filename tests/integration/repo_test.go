@@ -67,7 +67,7 @@ func testViewRepoSidebarContributors(t *testing.T) {
 
 	header := findContributors().Parent()
 	assert.Equal(t, "2", strings.TrimSpace(header.Find(".ui.label").Text()))
-	avatarLinks := header.Next().Find("a").Map(func(_ int, a *goquery.Selection) string { return a.AttrOr("href", "") })
+	avatarLinks := header.Next().Find("a").Map(func(_index int, a *goquery.Selection) string { return a.AttrOr("href", "") })
 	assert.Equal(t, []string{"/user2", "/user21"}, avatarLinks)
 }
 

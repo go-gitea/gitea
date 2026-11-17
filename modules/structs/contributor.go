@@ -22,6 +22,4 @@ type Contributor struct {
 	Email string `json:"email,omitzero"`
 	// number of commits, merges included
 	Contributions int64 `json:"contributions"`
-	Additions     int64 `json:"additions"`
-	Deletions     int64 `json:"deletions"`
 }

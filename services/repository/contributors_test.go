@@ -26,8 +26,8 @@ func TestUpdateRepoContributors(t *testing.T) {
 	const week = 1501977600000
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 	countedContributors := []*repo_model.RepoContributor{
-		{RepoID: repoID, UserID: 2, Commits: 2, Additions: 2, Deletions: 1},
-		{RepoID: repoID, UserID: 21, Commits: 1, Additions: 1, Deletions: 1},
+		{RepoID: repoID, UserID: 2, Commits: 2},
+		{RepoID: repoID, UserID: 21, Commits: 1},
 	}
 	countedWeeks := []*repo_model.RepoContributorWeek{
 		{RepoID: repoID, UserID: 2, Week: week, Commits: 2, Additions: 2, Deletions: 1},
@@ -60,15 +60,21 @@ func TestUpdateRepoContributors(t *testing.T) {
 	})
 
 	t.Run("FastForward", func(t *testing.T) {
-		gitRepo, err := git.OpenRepository(t.Context(), repo)
-		require.NoError(t, err)
-		defer gitRepo.Close()
-		contributors, weeks, err := collectContributorStats(t.Context(), gitRepo, repoID, parentID)
+		contributors, weeks, err := collectContributorStats(t.Context(), repo, parentID)
 		require.NoError(t, err)
 		setStats(t, parentID, append(contributors, new(*marker)), weeks)
 
 		require.NoError(t, UpdateRepoContributors(t.Context(), repoID))
 		assertStats(t, append([]*repo_model.RepoContributor{marker}, countedContributors...))
+	})
+
+	t.Run("FastForwardWithEmailClaimedByUser", func(t *testing.T) {
+		contributors, weeks, err := collectContributorStats(t.Context(), repo, parentID)
+		require.NoError(t, err)
+		setStats(t, parentID, append(contributors, &repo_model.RepoContributor{RepoID: repoID, Email: "user5@example.com", Commits: 9}), weeks)
+
+		require.NoError(t, UpdateRepoContributors(t.Context(), repoID))
+		assertStats(t, countedContributors)
 	})
 
 	t.Run("RewrittenHistory", func(t *testing.T) {

@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// ErrAwaitGeneration is returned while the contributor stats of a repository are generated for the first time
 var ErrAwaitGeneration = errors.New("contributor stats are being generated")
 
 type WeekData struct {
@@ -30,18 +29,15 @@ type WeekData struct {
 
 // ContributorData represents statistical git commit count data
 type ContributorData struct {
-	Name         string              `json:"name"`  // Display name of the contributor
-	Login        string              `json:"login"` // Login name of the contributor in case it exists
-	AvatarLink   string              `json:"avatar_link"`
-	HomeLink     string              `json:"home_link"`
-	TotalCommits int64               `json:"total_commits"`
-	Weeks        map[int64]*WeekData `json:"weeks"`
+	Name       string              `json:"name"` // Display name of the contributor
+	AvatarLink string              `json:"avatar_link"`
+	HomeLink   string              `json:"home_link"`
+	Weeks      map[int64]*WeekData `json:"weeks"`
 }
 
-// EnsureContributorStats queues counting when the stats lag behind the default branch
 func EnsureContributorStats(ctx context.Context, repo *repo_model.Repository) error {
-	headID, countedID, err := getContributorStatsCommits(ctx, repo)
-	if err != nil || headID == countedID {
+	headID, countedID, claimed, err := getContributorStatsCommits(ctx, repo)
+	if err != nil || (headID == countedID && !claimed) {
 		return err
 	}
 	if countErr, failed := cache.GetCache().Get(contributorsErrorCacheKey(repo.ID)); failed {
@@ -101,7 +97,7 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 		if c.User != nil {
 			data.Name, data.AvatarLink = c.User.DisplayName(), c.User.AvatarLinkWithSize(ctx, 0)
 			if c.User.ID > 0 {
-				data.Login, data.HomeLink = c.User.LowerName, c.User.HomeLink()
+				data.HomeLink = c.User.HomeLink()
 			}
 		} else if data.Name == "" {
 			data.Name, data.AvatarLink = c.Name, cmp.Or(avatars.GenerateEmailAvatarFastLink(ctx, c.Email, 0), ghostAvatarLink)
@@ -128,7 +124,6 @@ func (data *ContributorData) addWeek(w *repo_model.RepoContributorWeek) {
 	week.Additions += int(w.Additions)
 	week.Deletions += int(w.Deletions)
 	week.Commits += int(w.Commits)
-	data.TotalCommits += w.Commits
 }
 
 func GetWeeklyTotals(ctx context.Context, repo *repo_model.Repository) (map[int64]*WeekData, error) {

@@ -28,7 +28,7 @@ import {sleep} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 
-type ContributionType = 'commits' | 'additions' | 'deletions' | 'additions_deletions';
+type ContributionType = 'commits' | 'additions' | 'deletions';
 type ChartType = 'main' | 'contributor';
 
 const oneWeek = 7 * 24 * 60 * 60 * 1000;
@@ -82,7 +82,6 @@ type Contributor = ContributorStats & {
   total_commits: number,
   total_additions: number,
   total_deletions: number,
-  total_additions_deletions: number,
   max_contribution_type: number,
 };
 type ContributorsData = Record<string, ContributorInfo & {weeks: DayDataObject}>;
@@ -139,11 +138,7 @@ onMounted(() => {
 
 function periodStart() {
   if (period.value === 'all') return xAxisStart!;
-  return Math.max(xAxisStart!, dayjs(xAxisEnd).subtract(Number(period.value), 'month').valueOf());
-}
-
-function weekValue(week: DayData, contributionType: ContributionType) {
-  return contributionType === 'additions_deletions' ? week.additions + week.deletions : week[contributionType];
+  return Math.max(xAxisStart!, dayjs().subtract(Number(period.value), 'month').valueOf());
 }
 
 function sortContributors() {
@@ -219,7 +214,7 @@ function filterContributorWeeksByDateRange() {
         totalCommits += week.commits;
         totalAdditions += week.additions;
         totalDeletions += week.deletions;
-        maxContributionType = Math.max(maxContributionType, weekValue(week, contributionType));
+        maxContributionType = Math.max(maxContributionType, week[contributionType]);
         return true;
       }
       return false;
@@ -234,7 +229,6 @@ function filterContributorWeeksByDateRange() {
       total_commits: totalCommits,
       total_additions: totalAdditions,
       total_deletions: totalDeletions,
-      total_additions_deletions: totalAdditions + totalDeletions,
       max_contribution_type: maxContributionType,
       email: key,
     });
@@ -244,7 +238,7 @@ function filterContributorWeeksByDateRange() {
 }
 
 const maxMainGraph = computed(() => {
-  return roundUpMax(Math.max(...totalStats.value.filter((o) => o.week + oneWeek > periodStart()).map((o) => weekValue(o, type.value))));
+  return roundUpMax(Math.max(...totalStats.value.filter((o) => o.week + oneWeek > periodStart()).map((o) => o[type.value])));
 });
 
 // one shared maximum, otherwise the contributor graphs cannot be compared
@@ -257,7 +251,7 @@ function toGraphData(data: DayData[]): ChartData<'line'> {
   return {
     datasets: [
       {
-        data: data.map((i) => ({x: i.week, y: weekValue(i, contributionType)})),
+        data: data.map((i) => ({x: i.week, y: i[contributionType]})),
         pointRadius: 0,
         pointHitRadius: 0,
         fill: 'start',
@@ -417,17 +411,8 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
             <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
           <div class="left menu">
-            <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
-              {{ locale.contributionType.commits }}
-            </div>
-            <div :class="['item', {'selected': type === 'additions'}]" data-value="additions">
-              {{ locale.contributionType.additions }}
-            </div>
-            <div :class="['item', {'selected': type === 'deletions'}]" data-value="deletions">
-              {{ locale.contributionType.deletions }}
-            </div>
-            <div :class="['item', {'selected': type === 'additions_deletions'}]" data-value="additions_deletions">
-              {{ locale.contributionType.additions_deletions }}
+            <div v-for="(label, contributionType) in locale.contributionType" :key="contributionType" :class="['item', {'selected': type === contributionType}]" :data-value="contributionType">
+              {{ label }}
             </div>
           </div>
         </div>

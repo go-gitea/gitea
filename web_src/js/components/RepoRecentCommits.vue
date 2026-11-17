@@ -58,7 +58,9 @@ async function fetchGraphData() {
     } while (response.status === 202);
     if (response.ok) {
       const dayDataObj: DayDataObject = await response.json();
-      const start = Object.values(dayDataObj)[0].week;
+      const weekValues = Object.values(dayDataObj);
+      if (!weekValues.length) return;
+      const start = weekValues[0].week;
       const end = firstStartDateAfterDate(new Date());
       const startDays = startDaysBetween(start, end);
       data.value = fillEmptyStartDaysWithZeroes(startDays, dayDataObj).slice(-52);

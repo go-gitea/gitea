@@ -72,12 +72,12 @@ func UpdateRepoContributors(ctx context.Context, repoID int64) error {
 		} else if err != nil {
 			return err
 		}
-		headID, countedID, err := getContributorStatsCommits(ctx, repo)
-		if err != nil || headID == countedID {
+		headID, countedID, claimed, err := getContributorStatsCommits(ctx, repo)
+		if err != nil || (headID == countedID && !claimed) {
 			return err
 		}
 		locked, err := globallock.TryLockAndDo(ctx, fmt.Sprintf("repo_contributors_%d", repoID), func(ctx context.Context) error {
-			return updateRepoContributors(ctx, repo, headID, countedID)
+			return updateRepoContributors(ctx, repo, headID, countedID, claimed)
 		})
 		if err != nil || !locked {
 			return err
@@ -85,26 +85,27 @@ func UpdateRepoContributors(ctx context.Context, repoID int64) error {
 	}
 }
 
-func getContributorStatsCommits(ctx context.Context, repo *repo_model.Repository) (headID, countedID string, err error) {
+func getContributorStatsCommits(ctx context.Context, repo *repo_model.Repository) (headID, countedID string, claimed bool, err error) {
 	if repo.IsEmpty {
-		return "", "", nil
+		return "", "", false, nil
 	}
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
-		return "", "", err
+		return "", "", false, err
 	}
 	defer closer.Close()
 	if headID, err = gitRepo.GetBranchCommitID(ctx, repo.DefaultBranch); err != nil {
-		return "", "", err
+		return "", "", false, err
 	}
 	status, err := repo_model.GetIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeContributors)
 	if err != nil {
-		return "", "", err
+		return "", "", false, err
 	}
-	return headID, status.CommitSha, nil
+	claimed, err = repo_model.HasClaimedContributorEmails(ctx, repo.ID)
+	return headID, status.CommitSha, claimed, err
 }
 
-func updateRepoContributors(ctx context.Context, repo *repo_model.Repository, headID, countedID string) error {
+func updateRepoContributors(ctx context.Context, repo *repo_model.Repository, headID, countedID string, claimed bool) error {
 	status, err := repo_model.GetIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeContributors)
 	if err != nil || status.CommitSha != countedID {
 		return err
@@ -113,20 +114,14 @@ func updateRepoContributors(ctx context.Context, repo *repo_model.Repository, he
 	ctx, _, finished := process.GetManager().AddContext(ctx, "UpdateRepoContributors: "+repo.FullName())
 	defer finished()
 
-	gitRepo, err := git.OpenRepository(ctx, repo)
-	if err != nil {
-		return err
-	}
-	defer gitRepo.Close()
-
 	revision := headID
-	// add to the counted stats only on top of an ancestor with an unchanged .mailmap, otherwise count everything again
-	if countedID != "" && gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(countedID, headID).WithRepo(gitRepo).Run(ctx) == nil &&
-		gitcmd.NewCommand("diff", "--quiet").AddDynamicArguments(countedID, headID).AddDashesAndList(".mailmap").WithRepo(gitRepo).Run(ctx) == nil {
+	// add to the counted stats only on top of an ancestor with an unchanged .mailmap and no claimed emails, otherwise count everything again
+	if countedID != "" && !claimed && gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(countedID, headID).WithRepo(repo).Run(ctx) == nil &&
+		gitcmd.NewCommand("diff", "--quiet").AddDynamicArguments(countedID, headID).AddDashesAndList(".mailmap").WithRepo(repo).Run(ctx) == nil {
 		revision = countedID + ".." + headID
 	}
 
-	contributors, weeks, err := collectContributorStats(ctx, gitRepo, repo.ID, revision)
+	contributors, weeks, err := collectContributorStats(ctx, repo, revision)
 	if err != nil {
 		return err
 	}
@@ -148,9 +143,9 @@ type contributionStats struct {
 }
 
 type authorStats struct {
-	name   string
-	merges int64
-	weeks  map[int64]*contributionStats
+	name    string
+	commits int64
+	weeks   map[int64]*contributionStats
 }
 
 type contributorKey struct {
@@ -163,8 +158,8 @@ type contributorWeekKey struct {
 	week int64
 }
 
-func collectContributorStats(ctx context.Context, gitRepo *git.Repository, repoID int64, revision string) ([]*repo_model.RepoContributor, []*repo_model.RepoContributorWeek, error) {
-	authors, err := getAuthorStats(ctx, gitRepo, revision)
+func collectContributorStats(ctx context.Context, repo *repo_model.Repository, revision string) ([]*repo_model.RepoContributor, []*repo_model.RepoContributorWeek, error) {
+	authors, err := getAuthorStats(ctx, repo, revision)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -185,22 +180,19 @@ func collectContributorStats(ctx context.Context, gitRepo *git.Repository, repoI
 			}
 			contributor := contributors[key]
 			if contributor == nil {
-				contributor = &repo_model.RepoContributor{RepoID: repoID, UserID: key.userID, Email: key.email, Name: name}
+				contributor = &repo_model.RepoContributor{RepoID: repo.ID, UserID: key.userID, Email: key.email, Name: name}
 				contributors[key] = contributor
 			}
-			contributor.Commits += author.merges
+			contributor.Commits += author.commits
 			for weekStart, stats := range author.weeks {
 				week := weeks[contributorWeekKey{key, weekStart}]
 				if week == nil {
-					week = &repo_model.RepoContributorWeek{RepoID: repoID, UserID: key.userID, Email: key.email, Week: weekStart}
+					week = &repo_model.RepoContributorWeek{RepoID: repo.ID, UserID: key.userID, Email: key.email, Week: weekStart}
 					weeks[contributorWeekKey{key, weekStart}] = week
 				}
 				week.Commits += stats.commits
 				week.Additions += stats.additions
 				week.Deletions += stats.deletions
-				contributor.Commits += stats.commits
-				contributor.Additions += stats.additions
-				contributor.Deletions += stats.deletions
 			}
 		}
 	}
@@ -211,54 +203,41 @@ func collectContributorStats(ctx context.Context, gitRepo *git.Repository, repoI
 	return contributorList, slices.Collect(maps.Values(weeks)), nil
 }
 
-func getAuthorStats(ctx context.Context, gitRepo *git.Repository, revision string) (map[string]*authorStats, error) {
-	cmd := gitcmd.NewCommand("log", "--shortstat", "--format=%x00%aN%x00%aE%x00%as%x00%P").AddDynamicArguments(revision)
-	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
-	defer stdoutReaderClose()
-
+func getAuthorStats(ctx context.Context, repo *repo_model.Repository, revision string) (map[string]*authorStats, error) {
+	// merges and empty commits print no stat line, so like on GitHub they only count in the contributor list
+	cmd := gitcmd.NewCommand("log", "--shortstat", "--no-renames", "--format=%x00%aN%x00%aE%x00%as").AddDynamicArguments(revision).WithRepo(repo)
 	authors := make(map[string]*authorStats)
-	err := cmd.WithRepo(gitRepo).WithPipelineFunc(func(gitcmd.Context) error {
-		var week *contributionStats
-		scanner := bufio.NewScanner(stdoutReader)
-		for scanner.Scan() {
-			line := scanner.Text()
-			if header, ok := strings.CutPrefix(line, "\x00"); ok {
-				name, rest, _ := strings.Cut(header, "\x00")
-				email, rest, _ := strings.Cut(rest, "\x00")
-				date, parents, _ := strings.Cut(rest, "\x00")
-				email = strings.ToLower(strings.TrimSpace(email))
-				week = nil
-				if email == "" {
-					continue
-				}
-				author := authors[email]
-				if author == nil {
-					author = &authorStats{name: name, weeks: make(map[int64]*contributionStats)}
-					authors[email] = author
-				}
-				if strings.Contains(parents, " ") {
-					author.merges++
-					continue
-				}
-				authorDate, err := time.Parse(time.DateOnly, date)
-				if err != nil {
-					return err
-				}
-				weekStart := authorDate.AddDate(0, 0, -int(authorDate.Weekday())).UnixMilli()
-				week = author.weeks[weekStart]
-				if week == nil {
-					week = &contributionStats{}
-					author.weeks[weekStart] = week
-				}
-				week.commits++
-			} else if week != nil && line != "" {
-				additions, deletions := parseShortStat(line)
-				week.additions += additions
-				week.deletions += deletions
+	var author *authorStats
+	var weekStart int64
+	err := gitcmd.RunWithScannerSplit(ctx, cmd, bufio.ScanLines, func(_ctx gitcmd.Context, chunk []byte) error {
+		line := string(chunk)
+		if header, ok := strings.CutPrefix(line, "\x00"); ok {
+			name, rest, _ := strings.Cut(header, "\x00")
+			email, date, _ := strings.Cut(rest, "\x00")
+			email = strings.ToLower(strings.TrimSpace(email))
+			if author = authors[email]; email == "" {
+				return nil
+			} else if author == nil {
+				author = &authorStats{name: name, weeks: make(map[int64]*contributionStats)}
+				authors[email] = author
 			}
+			author.commits++
+			authorDate, err := time.Parse(time.DateOnly, date)
+			weekStart = authorDate.AddDate(0, 0, -int(authorDate.Weekday())).UnixMilli()
+			return err
+		} else if author != nil && line != "" {
+			week := author.weeks[weekStart]
+			if week == nil {
+				week = &contributionStats{}
+				author.weeks[weekStart] = week
+			}
+			additions, deletions := parseShortStat(line)
+			week.commits++
+			week.additions += additions
+			week.deletions += deletions
 		}
-		return scanner.Err()
-	}).RunWithStderr(ctx)
+		return nil
+	})
 	if err != nil {
 		return nil, fmt.Errorf("getAuthorStats: %w", err)
 	}

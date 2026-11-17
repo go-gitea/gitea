@@ -32,9 +32,8 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 	}, keys)
 
 	assert.Equal(t, &ContributorData{
-		Name:         "Ethan Koenig",
-		AvatarLink:   "/assets/img/avatar_default.png",
-		TotalCommits: 1,
+		Name:       "Ethan Koenig",
+		AvatarLink: "/assets/img/avatar_default.png",
 		Weeks: map[int64]*WeekData{
 			1511654400000: {
 				Week:      1511654400000, // sunday 2017-11-26
@@ -45,9 +44,8 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		},
 	}, data["ethantkoenig@gmail.com"])
 	assert.Equal(t, &ContributorData{
-		Name:         "Total",
-		AvatarLink:   "",
-		TotalCommits: 3,
+		Name:       "Total",
+		AvatarLink: "",
 		Weeks: map[int64]*WeekData{
 			1511654400000: {
 				Week:      1511654400000, // sunday 2017-11-26 (2017-11-26 20:31:18 -0800)

@@ -3782,11 +3782,6 @@
       "Contributor": {
         "description": "Contributor represents a commit author of the default branch of a repository",
         "properties": {
-          "additions": {
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "Additions"
-          },
           "avatar_url": {
             "description": "not set for type \"Anonymous\"",
             "format": "uri",
@@ -3798,11 +3793,6 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "Contributions"
-          },
-          "deletions": {
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "Deletions"
           },
           "email": {
             "description": "the git author email, only set for type \"Anonymous\"",

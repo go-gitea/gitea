@@ -41,7 +41,6 @@ const chartColorVars = {
   commits: 'primary-alpha-60',
   additions: 'green',
   deletions: 'red',
-  additions_deletions: 'orange',
 };
 
 export function chartJsColor(name: keyof typeof chartColorVars): string {

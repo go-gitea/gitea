@@ -36,8 +36,6 @@ func TestAPIRepoContributors(t *testing.T) {
 				AvatarURL:     contributors[1].AvatarURL,
 				HTMLURL:       contributors[1].HTMLURL,
 				Contributions: 1,
-				Additions:     1,
-				Deletions:     1,
 			}, contributors[1])
 		}
 	})
@@ -48,10 +46,9 @@ func TestAPIRepoContributors(t *testing.T) {
 		assert.Contains(t, header.Get("Link"), `rel="next"`)
 		assert.Equal(t, []*api.Contributor{{
 			Type:          "Anonymous",
-			Name:          "Ethan Koenig",
-			Email:         "ethantkoenig@gmail.com",
+			Name:          "Jon",
+			Email:         "jon@allspice.io",
 			Contributions: 1,
-			Additions:     3,
 		}}, contributors)
 
 		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo2/contributors").AddTokenAuth(token), http.StatusOK)

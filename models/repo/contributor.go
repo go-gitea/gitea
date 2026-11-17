@@ -16,19 +16,17 @@ import (
 
 // RepoContributor holds an author's default branch commits including merges, keyed by UserID if matched to a user, else by lower-cased Email
 type RepoContributor struct { //revive:disable-line:exported
-	ID        int64  `xorm:"pk autoincr"`
-	RepoID    int64  `xorm:"UNIQUE(s) NOT NULL"`
-	UserID    int64  `xorm:"UNIQUE(s) NOT NULL DEFAULT 0"`
-	Email     string `xorm:"UNIQUE(s) VARCHAR(255) NOT NULL DEFAULT ''"`
-	Name      string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	Commits   int64  `xorm:"NOT NULL DEFAULT 0"`
-	Additions int64  `xorm:"NOT NULL DEFAULT 0"`
-	Deletions int64  `xorm:"NOT NULL DEFAULT 0"`
+	ID      int64  `xorm:"pk autoincr"`
+	RepoID  int64  `xorm:"UNIQUE(s) INDEX(commits) NOT NULL"`
+	UserID  int64  `xorm:"UNIQUE(s) NOT NULL DEFAULT 0"`
+	Email   string `xorm:"UNIQUE(s) VARCHAR(255) NOT NULL DEFAULT ''"`
+	Name    string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	Commits int64  `xorm:"INDEX(commits) NOT NULL DEFAULT 0"`
 
 	User *user_model.User `xorm:"-"`
 }
 
-// RepoContributorWeek holds the non-merge commits of a RepoContributor per week, Week being the Unix milliseconds of its starting Sunday
+// RepoContributorWeek holds the non-merge, non-empty commits of a RepoContributor per week, Week being the Unix milliseconds of its starting Sunday
 type RepoContributorWeek struct { //revive:disable-line:exported
 	ID        int64  `xorm:"pk autoincr"`
 	RepoID    int64  `xorm:"UNIQUE(s) NOT NULL"`
@@ -60,7 +58,14 @@ func (opts FindRepoContributorsOptions) ToConds() builder.Cond {
 }
 
 func (opts FindRepoContributorsOptions) ToOrders() string {
-	return "commits DESC, id ASC"
+	return "commits DESC, id DESC" // same directions, so the commits index serves the order
+}
+
+func HasClaimedContributorEmails(ctx context.Context, repoID int64) (bool, error) {
+	return db.GetEngine(ctx).Table("repo_contributor").
+		Join("INNER", "email_address", "email_address.lower_email = repo_contributor.email AND email_address.is_activated = ?", true).
+		Join("INNER", "`user`", "`user`.id = email_address.uid").
+		Where("repo_contributor.repo_id = ? AND repo_contributor.user_id = 0", repoID).Exist()
 }
 
 func GetRepoContributorWeeks(ctx context.Context, repoID int64) ([]*RepoContributorWeek, error) {
@@ -100,7 +105,7 @@ func AddRepoContributors(ctx context.Context, contributors []*RepoContributor, w
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, c := range contributors {
 			sess := db.GetEngine(ctx).Where("repo_id = ? AND user_id = ? AND email = ?", c.RepoID, c.UserID, c.Email).
-				Incr("commits", c.Commits).Incr("additions", c.Additions).Incr("deletions", c.Deletions)
+				Incr("commits", c.Commits)
 			if err := updateOrInsert(ctx, sess, &RepoContributor{Name: c.Name}, c); err != nil {
 				return err
 			}
