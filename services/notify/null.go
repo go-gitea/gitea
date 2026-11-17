@@ -68,7 +68,7 @@ func (*NullNotifier) PullRequestSynchronized(ctx context.Context, doer *user_mod
 }
 
 // PullRequestChangeTargetBranch places a place holder function
-func (*NullNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
+func (*NullNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch, oldSHA string) {
 }
 
 // PullRequestPushCommits notifies when push commits to pull request's head branch
@@ -100,11 +100,11 @@ func (*NullNotifier) DeleteWikiPage(ctx context.Context, doer *user_model.User, 
 }
 
 // NewRelease places a place holder function
-func (*NullNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
+func (*NullNotifier) NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 }
 
 // UpdateRelease places a place holder function
-func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel, oldRelease *repo_model.Release) {
 }
 
 // DeleteRelease places a place holder function

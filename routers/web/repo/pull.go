@@ -1565,8 +1565,6 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		}
 		return
 	}
-	notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, targetBranch)
-
 	ctx.JSON(http.StatusOK, map[string]any{
 		"base_branch": pr.BaseBranch,
 	})

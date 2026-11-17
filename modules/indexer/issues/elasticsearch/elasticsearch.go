@@ -173,7 +173,6 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if options.PosterID != "" {
-		// "(none)" becomes 0, it means no poster
 		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
 		query.Must(es.TermQuery("poster_id", posterIDInt64))
 	}

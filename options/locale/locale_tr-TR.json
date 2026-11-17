@@ -164,8 +164,6 @@
   "search.fuzzy_tooltip": "Arama terimine benzeyen sonuçları da içer",
   "search.words": "Kelimeler",
   "search.words_tooltip": "Sadece arama terimi kelimeleriyle eşleşen sonuçları içer",
-  "search.regexp": "Regexp",
-  "search.regexp_tooltip": "Sadece regexp arama terimiyle tamamen eşleşen sonuçları içer",
   "search.exact": "Tam",
   "search.exact_tooltip": "Sadece arama terimiyle tamamen eşleşen sonuçları içer",
   "search.repo_kind": "Depoları ara...",

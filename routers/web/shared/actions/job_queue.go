@@ -24,7 +24,7 @@ import (
 // JobQueue renders the instance-wide Actions job queue on the admin settings page.
 func JobQueue(ctx *context.Context) {
 	ctx.Data["PageIsSharedSettingsActionsJobQueue"] = true
-	ctx.Data["Title"] = ctx.Tr("actions.actions")
+	ctx.Data["Title"] = ctx.Tr("actions.job_queue.title")
 	ctx.Data["PageType"] = "job_queue"
 
 	RenderJobQueue(ctx, 0, "admin/actions")

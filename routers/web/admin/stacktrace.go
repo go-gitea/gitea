@@ -13,7 +13,7 @@ import (
 )
 
 func monitorTraceCommon(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor")
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.trace")
 	ctx.Data["PageIsAdminMonitorTrace"] = true
 	// Hide the performance trace tab in production, because it shows a lot of SQLs and is not that useful for end users.
 	// To avoid confusing end users, do not let them know this tab. End users should "download diagnosis report" instead.
