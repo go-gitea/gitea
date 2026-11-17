@@ -983,48 +983,18 @@
   padding: 0 10px;
 }
 
-.user-cards .list {
+.user-cards > ul {
+  margin: 0;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: var(--gap-block);
 }
 
-.user-cards .list .item {
+.user-cards > ul > li {
   list-style: none;
-  width: 32%;
-  margin: 10px 10px 10px 0;
-  padding-bottom: 14px;
-  float: left;
-}
-
-.user-cards .list .item .avatar {
-  float: left;
-  display: block;
-  margin-right: 10px;
-}
-
-.user-cards .list .item .name {
-  margin-top: 0;
-  margin-bottom: 0;
-  font-weight: var(--font-weight-normal);
-}
-
-.user-cards .list .item .meta {
-  margin-top: 5px;
-}
-
-/* The name and meta lines are flex containers (".flex-text-block"), so their link
-   children cannot shrink below their min-content width. A single long word (a long
-   username or a long website URL) then overflows the card instead of wrapping. */
-.user-cards .list .item .name,
-.user-cards .list .item .meta {
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 767.98px) {
-  .user-cards .list .item {
-    width: 100%;
-  }
+  display: flex;
+  gap: var(--gap-block);
 }
 
 #search-user-box .results .result .image {
@@ -1338,7 +1308,7 @@ tbody.commit-list {
 }
 
 .issue-keyword:hover {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 
 .file-header {
@@ -1420,7 +1390,7 @@ tbody.commit-list {
 .webhook-info {
   padding: 7px 12px;
   margin: 10px 0;
-  background: var(--color-markup-code-block);
+  background-color: var(--color-markup-code-block);
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   font-size: 13px;
@@ -1504,13 +1474,13 @@ tbody.commit-list {
 
 .diff-stats-bar {
   display: inline-block;
-  background: var(--color-diff-removed-fg); /* the background is used as "text foreground color" */
+  background-color: var(--color-diff-removed-fg); /* the background is used as "text foreground color" */
   height: 12px;
   width: 44px;
 }
 
 .diff-stats-bar .diff-stats-add-bar {
-  background: var(--color-diff-added-fg);
+  background-color: var(--color-diff-added-fg);
   height: 100%;
 }
 
@@ -1634,7 +1604,7 @@ tbody.commit-list {
     margin-right: 2px;
   }
   /* Don't show the general avatar, we show the inline avatar on mobile.
-   * And don't show the role labels, there is no place for that. */
+   * And don't show the role labels, there's no place for that. */
   .repository.view.issue .comment-list .timeline-avatar,
   .repository.view.issue .comment-list .comment-header-right .role-label {
     display: none;
