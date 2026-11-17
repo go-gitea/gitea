@@ -17,7 +17,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 
@@ -86,6 +85,9 @@ func TestManualMergeAutodetect(t *testing.T) {
 			require.NoError(t, cmdErr)
 			expectedMergeCommits[i] = strings.TrimSpace(head)
 		}
+		emptyPR := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: emptyAPIPull.ID})
+		emptyPR.Status = issues_model.PullRequestStatusChecking
+		require.NoError(t, emptyPR.UpdateCols(t.Context(), "status"))
 		doGitPushTestRepository(dstPath, "origin", defaultBranch)(t)
 
 		// Every PR should be detected as manually merged by the background task, not just the last one.
@@ -96,7 +98,7 @@ func TestManualMergeAutodetect(t *testing.T) {
 					return false
 				}
 			}
-			return true
+			return unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: emptyAPIPull.ID}).Status == issues_model.PullRequestStatusAncestor
 		}, 10*time.Second, 100*time.Millisecond)
 
 		for i, apiPull := range apiPulls {
@@ -107,8 +109,7 @@ func TestManualMergeAutodetect(t *testing.T) {
 			assert.Equalf(t, expectedMergeCommits[i], pr.MergedCommitID, "PR %d (%s) should be attributed to its own merge commit, not another PR's", i+1, branchNames[i])
 		}
 
-		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
-		emptyPR := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: emptyAPIPull.ID})
+		emptyPR = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: emptyAPIPull.ID})
 		assert.False(t, emptyPR.HasMerged, "empty PR must not be detected as manually merged")
 		assert.Equal(t, issues_model.PullRequestStatusAncestor, emptyPR.Status)
 	})

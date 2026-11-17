@@ -5,12 +5,12 @@
 package git
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 func newTree(id ObjectID) *Tree {
@@ -46,20 +46,17 @@ func (t *Tree) SubTree(ctx context.Context, gitRepo *Repository, rpath string) (
 }
 
 // LsTree checks if the given filenames are in the tree
-func (repo *Repository) LsTree(ctx context.Context, ref string, filenames ...string) ([]string, error) {
-	cmd := gitcmd.NewCommand("ls-tree", "-z", "--name-only").
+func (repo *Repository) LsTree(ctx context.Context, ref string, filenames ...string) (files []string, _ error) {
+	cmd := gitcmd.NewCommand("ls-tree", "-z", "--name-only").WithRepo(repo).
 		AddDashesAndList(append([]string{ref}, filenames...)...)
 
-	res, _, err := cmd.WithRepo(repo).RunStdBytes(ctx)
-	if err != nil {
-		return nil, err
-	}
-	filelist := make([]string, 0, len(filenames))
-	for line := range bytes.SplitSeq(res, []byte{'\000'}) {
-		filelist = append(filelist, string(line))
-	}
-
-	return filelist, err
+	err := gitcmd.RunWithScannerSplit(ctx, cmd, util.BufioScannerSplit(0), func(ctx gitcmd.Context, chunk []byte) error {
+		if len(chunk) > 0 {
+			files = append(files, string(chunk))
+		}
+		return nil
+	})
+	return files, err
 }
 
 // GetTreePathLatestCommit returns the latest commit of a tree path

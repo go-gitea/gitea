@@ -345,6 +345,7 @@ nwIDAQAB
 		assert.Equal(t, "opscode", info.LocationType)
 		assert.Equal(t, setting.AppURL+root[1:], info.LocationPath)
 		assert.Equal(t, fmt.Sprintf("%s%s/cookbooks/%s/versions/%s/download", setting.AppURL, root[1:], packageName, packageVersion), info.DownloadURL)
+		assert.Equal(t, map[string]string{}, info.Dependencies)
 	})
 
 	type listCase struct {
@@ -463,6 +464,7 @@ nwIDAQAB
 		assert.Equal(t, packageVersion, result.Version)
 		assert.Equal(t, packageURL, result.Cookbook)
 		assert.Equal(t, fmt.Sprintf("%s/versions/%s/download", packageURL, packageVersion), result.File)
+		assert.Equal(t, map[string]string{}, result.Dependencies)
 	})
 
 	t.Run("Delete", func(t *testing.T) {

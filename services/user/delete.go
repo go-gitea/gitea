@@ -82,7 +82,6 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		&activities_model.Action{UserID: u.ID},
 		&issues_model.IssueUser{UID: u.ID},
 		&user_model.EmailAddress{UID: u.ID},
-		&user_model.UserOpenID{UID: u.ID},
 		&issues_model.Reaction{UserID: u.ID},
 		&organization.TeamUser{UID: u.ID},
 		&issues_model.Stopwatch{UserID: u.ID},

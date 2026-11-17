@@ -47,10 +47,8 @@ func NewCommitStatus(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/CommitStatus"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm[*api.CreateStatusOption](ctx)
 	sha := ctx.PathParam("sha")
@@ -118,10 +116,8 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitStatusList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	getCommitStatuses(ctx, ctx.PathParam("sha"))
 }
@@ -172,10 +168,8 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitStatusList"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {
@@ -246,10 +240,8 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CombinedStatus"
-	//   "400":
+	//   default:
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {

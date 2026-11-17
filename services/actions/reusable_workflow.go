@@ -37,7 +37,7 @@ import (
 // MaxReusableCallLevels allows nine calls across ten workflows, including the top-level workflow.
 const MaxReusableCallLevels = 8
 
-// checkRunJobLimit rejects an expansion that would push the attempt over actions_model.MaxJobNumPerRun.
+// checkRunJobLimit rejects adding jobs that would push the attempt over actions_model.MaxJobNumPerRun.
 // checkCallerChain bounds nesting *depth*, but a reusable graph also fans out in *breadth*: without a
 // cumulative cap a tiny set of files can drive exponential job-row insertion and exhaust the database.
 func checkRunJobLimit(ctx context.Context, runID, attemptID int64, adding int) error {
@@ -46,9 +46,14 @@ func checkRunJobLimit(ctx context.Context, runID, attemptID int64, adding int) e
 		return fmt.Errorf("count existing jobs of run %d attempt %d: %w", runID, attemptID, err)
 	}
 	if existing+int64(adding) > actions_model.MaxJobNumPerRun {
-		return fmt.Errorf("workflow run exceeds the maximum of %d jobs", actions_model.MaxJobNumPerRun)
+		return runJobLimitError()
 	}
 	return nil
+}
+
+func runJobLimitError() error {
+	err := util.NewInvalidArgumentErrorf("workflow run exceeds the maximum of %d jobs", actions_model.MaxJobNumPerRun)
+	return util.ErrorWrapTranslatable(err, "actions.runs.invalid_workflow_helper", err.Error())
 }
 
 type reusableWorkflowSource struct {
@@ -106,6 +111,9 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 		if err != nil {
 			return err
 		}
+		if err := checkSelfRepoStepExpressions(run, source, workflow); err != nil {
+			return err
+		}
 		for _, id := range slices.Sorted(maps.Keys(workflow.Jobs)) {
 			uses := workflow.Jobs[id].Uses
 			if uses == "" {
@@ -135,6 +143,22 @@ func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 		return nil
 	}
 	return validate(content, &actions_model.ActionRunJob{WorkflowSourceRepoID: run.WorkflowRepoID, WorkflowSourceCommitSHA: run.WorkflowCommitSHA}, 0)
+}
+
+// checkSelfRepoStepExpressions rejects `$/` steps with expressions that runnerWorkflowPayload can't pin to the workflow's source.
+func checkSelfRepoStepExpressions(run *actions_model.ActionRun, source *actions_model.ActionRunJob, workflow *model.Workflow) error {
+	for _, id := range slices.Sorted(maps.Keys(workflow.Jobs)) {
+		for _, step := range workflow.Jobs[id].Steps {
+			if !strings.HasPrefix(step.Uses, "$/") || !strings.Contains(step.Uses, "${{") {
+				continue
+			}
+			if _, runnerResolves := selfRepoSourceCommit(run, source); runnerResolves {
+				return nil
+			}
+			return fmt.Errorf("job %s: `uses: %s` cannot use expressions in a workflow from another repository or commit", id, step.Uses)
+		}
+	}
+	return nil
 }
 
 func errCallLevelExceeded(uses string) error {
@@ -289,6 +313,14 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		return err
 	}
 	if _, err := jobparser.ValidateWorkflowStatic(source.content); err != nil {
+		return fmt.Errorf("invalid called workflow: %w", err)
+	}
+	// run creation checked it too, but a branch or tag may have moved since, and a rerun expands again
+	calledWorkflow, err := jobparser.ReadWorkflow(source.content)
+	if err == nil {
+		err = checkSelfRepoStepExpressions(run, &actions_model.ActionRunJob{WorkflowSourceRepoID: source.repoID, WorkflowSourceCommitSHA: source.commitSHA}, calledWorkflow)
+	}
+	if err != nil {
 		return fmt.Errorf("invalid called workflow: %w", err)
 	}
 

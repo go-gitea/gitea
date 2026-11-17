@@ -4,14 +4,17 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -19,6 +22,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
@@ -30,8 +34,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPullView_ReviewerMissed(t *testing.T) {
+func TestPullReview(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("ReviewerMissed", testPullReviewReviewerMissed)
+	t.Run("LockedOrBlocked", testPullReviewLockedOrBlocked)
+}
+
+func testPullReviewReviewerMissed(t *testing.T) {
 	session := loginUser(t, "user1")
 
 	req := NewRequest(t, "GET", "/pulls")
@@ -50,6 +59,41 @@ func TestPullView_ReviewerMissed(t *testing.T) {
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 }
 
+func testPullReviewLockedOrBlocked(t *testing.T) {
+	require.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: 3, IsLocked: true}, "is_locked"))
+	for _, tc := range []struct {
+		reviewerID, index, replyCommentID int64
+		webStatus                         int
+	}{
+		{4, 3, 7, http.StatusBadRequest},
+		{34, 2, 4, http.StatusForbidden},
+	} {
+		reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.reviewerID})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: tc.index})
+		pendingReview, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{Type: issues_model.ReviewTypePending, Issue: issue, Reviewer: reviewer})
+		require.NoError(t, err)
+		commentCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID})
+		pullPath := fmt.Sprintf("user2/repo1/pulls/%d", tc.index)
+		session := loginUser(t, reviewer.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		testSubmitReview(t, session, "user2", "repo1", strconv.FormatInt(tc.index, 10), "", "comment", tc.webStatus)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/"+pullPath+"/files/reviews/comments", map[string]string{
+			"origin": "diff", "content": "test", "path": "README.md", "side": "proposed", "line": "1",
+		}), tc.webStatus)
+		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/"+pullPath+"/reviews", &api.CreatePullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
+		MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/reviews/%d", pullPath, pendingReview.ID), &api.SubmitPullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
+		MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/comments/%d/replies", pullPath, tc.replyCommentID), &api.CreatePullReviewCommentReplyOptions{Body: "test"}).AddTokenAuth(token), http.StatusForbidden)
+		unittest.AssertCount(t, &issues_model.Comment{IssueID: issue.ID}, commentCount)
+	}
+	MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls/3/reviews", &api.CreatePullReviewOptions{Event: api.ReviewStateComment, Body: "test"}).AddTokenAuth(getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)), http.StatusOK)
+
+	for name, status := range map[string]int{"user5": http.StatusForbidden, "user40": http.StatusOK} {
+		require.NoError(t, db.Insert(t.Context(), &user_model.Blocking{BlockerID: 1, BlockeeID: unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: name}).ID}))
+		testSubmitReview(t, loginUser(t, name), "user2", "repo1", "2", "", "comment", status)
+	}
+}
+
 func TestPullView_CodeOwner(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -65,6 +109,12 @@ func TestPullView_CodeOwner(t *testing.T) {
 			DefaultBranch:    "master",
 		}, true)
 		assert.NoError(t, err)
+
+		for _, reviewer := range []*user_model.User{user5, user8} {
+			require.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), reviewer, repo, repo_model.WatchOptions{
+				Mode: repo_model.WatchModeCustom, WatchPullRequests: true,
+			}))
+		}
 
 		// create code owner branch protection
 		protectBranch := git_model.ProtectedBranch{
@@ -89,6 +139,31 @@ func TestPullView_CodeOwner(t *testing.T) {
 			},
 		})
 		assert.NoError(t, err)
+
+		t.Run("File owners", func(t *testing.T) {
+			session := loginUser(t, "user2")
+			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_codeowner/src/branch/master/README.md"), http.StatusOK)
+			doc := NewHTMLParser(t, resp.Body)
+			assert.Equal(t, "@user5", doc.Find(".file-codeowners a").Text())
+
+			_, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+				OldBranch: repo.DefaultBranch,
+				NewBranch: "file-owners",
+				Files: []*files_service.ChangeRepoFile{{
+					Operation:     "update",
+					TreePath:      "CODEOWNERS",
+					ContentReader: strings.NewReader("## review-request=false\n[Docs] @user8 @org3/team1\n*.md\n"),
+				}},
+			})
+			require.NoError(t, err)
+			resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_codeowner/src/branch/file-owners/README.md"), http.StatusOK)
+			doc = NewHTMLParser(t, resp.Body)
+			assert.Equal(t, "@user8", doc.Find(".file-codeowners a[href='/user8']").Text())
+			assert.Equal(t, "@org3/team1", doc.Find(".file-codeowners a[href='/org3/teams/team1']").Text())
+			resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/test_codeowner/src/branch/file-owners/CODEOWNERS"), http.StatusOK)
+			doc = NewHTMLParser(t, resp.Body)
+			assert.Zero(t, doc.Find(".file-codeowners").Length())
+		})
 
 		readmeBranchOptions := func(branch, content string) *files_service.ChangeRepoFilesOptions {
 			return &files_service.ChangeRepoFilesOptions{

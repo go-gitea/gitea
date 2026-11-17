@@ -49,6 +49,7 @@
 @import "./features/console.css";
 @import "./features/captcha.css";
 
+@import "./markup/attention.css";
 @import "./markup/content.css";
 @import "./markup/codeblock.css";
 @import "./markup/codepreview.css";

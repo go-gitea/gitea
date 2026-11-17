@@ -146,6 +146,24 @@ func (m *webhookNotifier) RenameRepository(ctx context.Context, doer *user_model
 	}
 }
 
+func (m *webhookNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
+	changes := &api.ChangesPayload{Owner: &api.ChangesOwnerPayload{}}
+	if oldOwner.IsOrganization() {
+		changes.Owner.From.Organization = convert.ToUser(ctx, oldOwner, nil)
+	} else {
+		changes.Owner.From.User = convert.ToUser(ctx, oldOwner, nil)
+	}
+	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventRepository, &api.RepositoryPayload{
+		Action:       api.HookRepoTransferred,
+		Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
+		Organization: convert.ToUser(ctx, repo.MustOwner(ctx), nil),
+		Sender:       convert.ToUser(ctx, doer, nil),
+		Changes:      changes,
+	}); err != nil {
+		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+	}
+}
+
 func (m *webhookNotifier) MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	// Add to hook queue for created repo after session commit.
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventRepository, &api.RepositoryPayload{
@@ -723,7 +741,7 @@ func (*webhookNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 	}
 }
 
-func (m *webhookNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
+func (m *webhookNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch, oldSHA string) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
@@ -736,9 +754,8 @@ func (m *webhookNotifier) PullRequestChangeTargetBranch(ctx context.Context, doe
 		Action: api.HookIssueEdited,
 		Index:  issue.Index,
 		Changes: &api.ChangesPayload{
-			Ref: &api.ChangesFromPayload{
-				From: oldBranch,
-			},
+			Ref:  &api.ChangesFromPayload{From: oldBranch},
+			Base: &api.ChangesBasePayload{Ref: api.ChangesFromPayload{From: oldBranch}, Sha: api.ChangesFromPayload{From: oldSHA}},
 		},
 		PullRequest: convert.ToPayloadPullRequest(ctx, pr, doer),
 		Repository:  convert.ToRepo(ctx, issue.Repo, mode),
@@ -869,7 +886,7 @@ func (m *webhookNotifier) DeleteRef(ctx context.Context, pusher *user_model.User
 	}
 }
 
-func sendReleaseHook(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction) {
+func sendReleaseHook(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction, changes *api.ChangesPayload) {
 	if err := rel.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
@@ -879,6 +896,7 @@ func sendReleaseHook(ctx context.Context, doer *user_model.User, rel *repo_model
 	if err := PrepareWebhooks(ctx, EventSource{Repository: rel.Repo}, webhook_module.HookEventRelease, &api.ReleasePayload{
 		Action:     action,
 		Release:    convert.ToAPIRelease(ctx, rel.Repo, rel),
+		Changes:    changes,
 		Repository: convert.ToRepo(ctx, rel.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
 	}); err != nil {
@@ -886,16 +904,16 @@ func sendReleaseHook(ctx context.Context, doer *user_model.User, rel *repo_model
 	}
 }
 
-func (m *webhookNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
-	sendReleaseHook(ctx, rel.Publisher, rel, api.HookReleasePublished)
+func (m *webhookNotifier) NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	sendReleaseHook(ctx, doer, rel, api.HookReleasePublished, nil)
 }
 
-func (m *webhookNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
-	sendReleaseHook(ctx, doer, rel, api.HookReleaseUpdated)
+func (m *webhookNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel, oldRelease *repo_model.Release) {
+	sendReleaseHook(ctx, doer, rel, api.HookReleaseUpdated, convert.ToReleaseChanges(rel, oldRelease))
 }
 
 func (m *webhookNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
-	sendReleaseHook(ctx, doer, rel, api.HookReleaseDeleted)
+	sendReleaseHook(ctx, doer, rel, api.HookReleaseDeleted, nil)
 }
 
 func (m *webhookNotifier) SyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {

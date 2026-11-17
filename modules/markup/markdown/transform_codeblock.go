@@ -4,6 +4,8 @@
 package markdown
 
 import (
+	"bytes"
+
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
 )
@@ -18,14 +20,7 @@ func (g *ASTTransformer) transformFencedCodeblock(v *ast.FencedCodeBlock, reader
 		return
 	}
 	info := v.Info.Segment.Value(reader.Source())
-	newEnd := -1
-	for i, b := range info {
-		if b == ' ' || b == ',' || b == ':' {
-			newEnd = i
-			break
-		}
-	}
-	if newEnd != -1 {
+	if newEnd := bytes.IndexAny(info, " ,:"); newEnd != -1 {
 		start := v.Info.Segment.Start
 		v.Info = ast.NewTextSegment(text.NewSegment(start, start+newEnd))
 	}

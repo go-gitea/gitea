@@ -102,9 +102,9 @@ func TestRenderRepoComment(t *testing.T) {
 ![remote image](<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>)
 [[local image|image.jpg]]
 [[remote link|<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>]]
-<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="compare"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
+<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="commit">user/repo@<code>88fc37a3c0...12fc37a3c0</code>#hash</a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit"><code>88fc37a3c0</code></a>
+<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit">user/repo@<code>88fc37a3c0</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com">mail@domain.com</a>
@@ -134,6 +134,23 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 		// a URL embedded in larger subject text still becomes its own link
 		expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">see </a><a href="https://example.com/x" data-markdown-generated-content="">https://example.com/x</a><a href="https://example.com/link" class="muted title-full-link"> here</a></span>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("see https://example.com/x here", "https://example.com/link", mockRepo))
+	})
+
+	t.Run("RenderCommitMessageLinkSubjectEmoji", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.UI.CustomEmojisMap, map[string]string{"custom-emoji": ":custom-emoji:"})()
+		for _, tt := range []struct {
+			name, subject, content string
+		}{
+			{"native", "Bug ❌ Feature ✅", `Bug <span class="emoji" data-alias="x">❌</span> Feature <span class="emoji" data-alias="white_check_mark">✅</span>`},
+			{"shortcode", "Ship :+1: today", `Ship <span class="emoji" data-alias="+1">👍</span> today`},
+			{"emoji only", "👍", `<span class="emoji" data-alias="+1">👍</span>`},
+			{"custom", "Ship :custom-emoji:", `Ship <span class="emoji"><img alt=":custom-emoji:" src="/assets/img/emoji/custom-emoji.png"/></span>`},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">` + tt.content + `</a></span>`
+				assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject(tt.subject, "https://example.com/link", mockRepo))
+			})
+		}
 	})
 
 	t.Run("RenderIssueTitle", func(t *testing.T) {
@@ -209,9 +226,9 @@ func TestRenderMarkdownToHtml(t *testing.T) {
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a>
 <a href="/image.jpg" rel="nofollow"><img src="/image.jpg" title="local image" alt="local image"/></a>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a>
-<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
+<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">user/repo@<code>88fc37a3c0...12fc37a3c0</code>#hash</a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a>
+<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">user/repo@<code>88fc37a3c0</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>

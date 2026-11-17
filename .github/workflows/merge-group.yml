@@ -1,0 +1,16 @@
+name: merge-group
+
+# Reports the required giteabot/lgtm check on merge queue commits. giteabot only sets it
+# on PR heads, which already passed it before entering the queue.
+
+on:
+  merge_group:
+
+permissions: {}
+
+jobs:
+  lgtm:
+    name: giteabot/lgtm
+    runs-on: ubuntu-latest
+    steps:
+      - run: "true"

@@ -37,7 +37,7 @@ func TestRepository_CommitQueries(t *testing.T) {
 			for _, testCase := range testCases {
 				commit, err := bareRepo1.GetCommit(t.Context(), testCase.CommitID)
 				assert.NoError(t, err)
-				branches, err := bareRepo1.getBranches(t.Context(), nil, commit.ID.String(), 2)
+				branches, err := getCommitBranchNames(t.Context(), bareRepo1, commit.ID.String(), 2, nil)
 				assert.NoError(t, err)
 				assert.Equal(t, testCase.ExpectedBranches, branches)
 			}
@@ -150,7 +150,7 @@ func TestCommitsByFileAndRange(t *testing.T) {
 	assert.False(t, hasMore)
 
 	repoFollowRenameDir := filepath.Join(t.TempDir(), "repo.git")
-	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoFollowRenameDir).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoFollowRenameDir).RunWithStderr(t.Context()))
 	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoFollowRenameDir).WithStdinBytes([]byte(strings.TrimSpace(`
 blob
 mark :1
