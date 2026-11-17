@@ -32,7 +32,6 @@ func Keys(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("settings.ssh_gpg_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
@@ -46,7 +45,6 @@ func Keys(ctx *context.Context) {
 // KeysPost response for change user's SSH/GPG keys
 func KeysPost(ctx *context.Context) {
 	form := web.GetForm[*forms.AddKeyForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
@@ -316,6 +314,7 @@ func DeleteKey(ctx *context.Context) {
 }
 
 func loadKeysData(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings.ssh_gpg_keys")
 	keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 		OwnerID:    ctx.Doer.ID,
 		NotKeytype: asymkey_model.KeyTypePrincipal,
