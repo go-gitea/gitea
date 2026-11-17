@@ -67,9 +67,6 @@ M 100644 :5 z/d
 }
 
 func TestMergeTreeDirectoryRenameConflictWithoutFiles(t *testing.T) {
-	if !DefaultFeatures().SupportGitMergeTree {
-		t.Skip("git merge-tree is not supported")
-	}
 	repoDir := prepareRepoDirRenameConflict(t)
 	require.DirExists(t, repoDir)
 	repo := mockRepository(repoDir)
