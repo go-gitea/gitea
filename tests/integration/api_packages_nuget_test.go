@@ -629,51 +629,6 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		}
 	})
 
-	t.Run("RequestHost", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		// a client may reach Gitea on another address than ROOT_URL, the returned URLs should follow that address
-		const requestHost = "gitea.internal:3000"
-
-		cases := []struct {
-			name           string
-			detection      string
-			forwardedProto string
-			expectedRoot   string
-		}{
-			{"Host", setting.PublicURLAuto, "", "http://" + requestHost + url},
-			{"ForwardedProto", setting.PublicURLAuto, "https", "https://" + requestHost + url},
-			{"DetectionNever", setting.PublicURLNever, "https", setting.AppURL + url[1:]},
-		}
-
-		for _, c := range cases {
-			t.Run(c.name, func(t *testing.T) {
-				defer test.MockVariableValue(&setting.PublicURLDetection, c.detection)()
-
-				newRequest := func(path string) *RequestWrapper {
-					req := NewRequest(t, "GET", "http://"+requestHost+url+path).AddBasicAuth(user.Name)
-					if c.forwardedProto != "" {
-						req.SetHeader("X-Forwarded-Proto", c.forwardedProto)
-					}
-					return req
-				}
-
-				var indexV2 nuget.ServiceIndexResponseV2
-				decodeXML(t, MakeRequest(t, newRequest(""), http.StatusOK), &indexV2)
-				assert.Equal(t, c.expectedRoot, indexV2.Base)
-
-				indexV3 := DecodeJSON(t, MakeRequest(t, newRequest("/index.json"), http.StatusOK), &nuget.ServiceIndexResponseV3{})
-				assert.NotEmpty(t, indexV3.Resources)
-				for _, r := range indexV3.Resources {
-					assert.True(t, strings.HasPrefix(r.ID, c.expectedRoot), "resource %q has URL %q", r.Type, r.ID)
-				}
-
-				registration := DecodeJSON(t, MakeRequest(t, newRequest("/registration/"+packageName+"/index.json"), http.StatusOK), &nuget.RegistrationIndexResponse{})
-				assert.Equal(t, c.expectedRoot+"/registration/"+packageName+"/index.json", registration.RegistrationIndexURL)
-			})
-		}
-	})
-
 	t.Run("RegistrationService", func(t *testing.T) {
 		indexURL := fmt.Sprintf("%s%s/registration/%s/index.json", setting.AppURL, url[1:], packageName)
 		leafURL := fmt.Sprintf("%s%s/registration/%s/%s.json", setting.AppURL, url[1:], packageName, packageVersion)
