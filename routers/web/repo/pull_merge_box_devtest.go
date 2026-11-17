@@ -71,8 +71,8 @@ func DevtestPullMergeBox(ctx *context.Context) {
 		data.StatusCheckData = checks(status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 32s"), status("ci/test", commitstatus.CommitStatusSuccess, "Successful in 2m"))
 		data.ShowUpdatePullInfo = true
 		data.UpdateStyleOptions = []*pullUpdateAction{
-			{URL: "#", Text: ctx.Tr("repo.pulls.update_branch"), Selected: true, Description: ctx.Tr("repo.pulls.update_branch_desc"), ButtonText: ctx.Tr("repo.pulls.update_branch_button")},
-			{URL: "#", Text: ctx.Tr("repo.pulls.update_branch_rebase"), Description: ctx.Tr("repo.pulls.update_branch_rebase_desc"), ButtonText: ctx.Tr("repo.pulls.update_branch_rebase_button")},
+			{URL: "#", Selected: true, StyleTitle: ctx.Tr("repo.pulls.update_branch"), StyleDescription: ctx.Tr("repo.pulls.update_branch_desc"), StyleButtonText: ctx.Tr("repo.pulls.update_branch_button")},
+			{URL: "#", StyleTitle: ctx.Tr("repo.pulls.update_branch_rebase"), StyleDescription: ctx.Tr("repo.pulls.update_branch_rebase_desc"), StyleButtonText: ctx.Tr("repo.pulls.update_branch_rebase_button")},
 		}
 		data.UpdatePrimaryAction = data.UpdateStyleOptions[0]
 	})
@@ -98,6 +98,7 @@ func DevtestPullMergeBox(ctx *context.Context) {
 		data := prInfo.MergeBoxData
 		review(data, "octicon-file-diff", "tw-bg-red", "repo.issues.review.rejected", ctx.Locale.Tr("repo.pulls.blocked_by_rejection"), true)
 		data.AutoMerge = &pull_model.AutoMerge{Doer: &user_model.User{Name: "user2"}, MergeStyle: repo_model.MergeStyleSquash}
+		data.AutoMergeStyleName = trMergeStyleShortName(ctx.Locale, data.AutoMerge.MergeStyle)
 		data.CanCancelAutoMerge = true
 	})
 	add("Work in progress, conflicts", func(prInfo *pullRequestViewInfo) {

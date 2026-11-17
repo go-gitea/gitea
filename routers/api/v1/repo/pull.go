@@ -904,11 +904,8 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
 		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Please try again later")
-		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
-			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-		} else if asymkey_service.IsErrWontSign(err) {
-			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
-		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) || errors.Is(err, pull_service.ErrDependenciesLeft) {
+		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) || asymkey_service.IsErrWontSign(err) ||
+			errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) || errors.Is(err, pull_service.ErrDependenciesLeft) {
 			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)

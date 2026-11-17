@@ -776,6 +776,10 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 					comment.Content = comment.Content[1:]
 				}
 			}
+		} else if comment.Type == issues_model.CommentTypePRScheduledToAutoMerge {
+			comment.RenderedContent = trMergeStyleShortName(ctx.Locale, repo_model.MergeStyle(comment.Content))
+		} else if comment.Type == issues_model.CommentTypePRUnScheduledToAutoMerge {
+			comment.RenderedContent = trAutoMergeDisabledReason(ctx.Locale, comment.Content)
 		}
 
 		if comment.Type == issues_model.CommentTypeClose || comment.Type == issues_model.CommentTypeMergePull {
@@ -939,11 +943,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		ctx.ServerErrorAuto(err)
 		return
 	}
-	data.CanCancelAutoMerge = data.AutoMerge != nil && ctx.IsSigned && (data.hasPermToMerge || ctx.Doer.ID == data.AutoMerge.DoerID || issue.IsPoster(ctx.Doer.ID))
+	if data.AutoMerge != nil {
+		data.AutoMergeStyleName = trMergeStyleShortName(ctx.Locale, data.AutoMerge.MergeStyle)
+		data.CanCancelAutoMerge = ctx.IsSigned && (data.hasPermToMerge || ctx.Doer.ID == data.AutoMerge.DoerID || issue.IsPoster(ctx.Doer.ID))
+	}
 	prInfo.prepareMergeBoxFormProps(ctx, prConfig, ctx.Repo.GitRepo)
 
-	needRefreshMergeBox := pull.IsChecking() || data.AutoMerge != nil ||
-		(data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress, statusCheckExpected) > 0)
+	autoMergeImminent := data.AutoMerge != nil && pull.IsStatusMergeable() && !data.hasOverridableBlockers && !data.hasOpenDependencies
+	needRefreshMergeBox := pull.IsChecking() || autoMergeImminent ||
+		(data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress) > 0)
 	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 
 	prInfo.prepareMergeBoxSections(ctx)
@@ -963,18 +971,16 @@ func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context
 
 	issueLink := prInfo.issue.Link()
 	mergeAction := &pullUpdateAction{
-		URL:  issueLink + "/update?style=merge",
-		Text: ctx.Tr("repo.pulls.update_branch"),
-
-		Description: ctx.Tr("repo.pulls.update_branch_desc"),
-		ButtonText:  ctx.Tr("repo.pulls.update_branch_button"),
+		URL:              issueLink + "/update?style=merge",
+		StyleTitle:       ctx.Tr("repo.pulls.update_branch"),
+		StyleDescription: ctx.Tr("repo.pulls.update_branch_desc"),
+		StyleButtonText:  ctx.Tr("repo.pulls.update_branch_button"),
 	}
 	rebaseAction := &pullUpdateAction{
-		URL:  issueLink + "/update?style=rebase",
-		Text: ctx.Tr("repo.pulls.update_branch_rebase"),
-
-		Description: ctx.Tr("repo.pulls.update_branch_rebase_desc"),
-		ButtonText:  ctx.Tr("repo.pulls.update_branch_rebase_button"),
+		URL:              issueLink + "/update?style=rebase",
+		StyleTitle:       ctx.Tr("repo.pulls.update_branch_rebase"),
+		StyleDescription: ctx.Tr("repo.pulls.update_branch_rebase_desc"),
+		StyleButtonText:  ctx.Tr("repo.pulls.update_branch_rebase_button"),
 	}
 
 	if userUpdateStyles.MergeAllowed {

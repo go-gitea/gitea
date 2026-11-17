@@ -614,7 +614,6 @@ func UpdatePullsRefs(ctx context.Context, doer *user_model.User, repo *repo_mode
 				if pr.ID != update.PullRequestID { // "update branch" adds no content of the pusher
 					if err := DisableAutoMergeIfNotWriter(ctx, doer, pr, "pushed_by_non_writer"); err != nil {
 						log.Error("DisableAutoMergeIfNotWriter: %v", err)
-						continue // don't sync the push while auto merge might still be scheduled
 					}
 				}
 				if err := PushToBaseRepo(ctx, pr); err != nil {

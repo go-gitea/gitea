@@ -28,7 +28,15 @@ class PullMergeBox {
 
   private async initContent() {
     this.initUpdateStyleMenu();
-    await this.initMergeForm();
+    const elForm = this.el.querySelector('[data-merge-form-props]');
+    if (!elForm) return;
+
+    const data = JSON.parse(elForm.getAttribute('data-merge-form-props')!);
+    if (data.mergeStyles.some((style: {name: string}) => style.name === this.chosenMergeStyle)) data.defaultMergeStyle = this.chosenMergeStyle;
+    this.mergeFormComponent ??= (await import('../components/PullRequestMergeForm.vue')).default; // cached so a refresh remounts the form before the next paint
+    if (!elForm.isConnected) return;
+    this.mergeFormApp = createApp(this.mergeFormComponent, {mergeFormProps: data, onMergeStyleChange: (style: string) => { this.chosenMergeStyle = style }});
+    this.mergeFormApp.mount(elForm);
   }
 
   private initUpdateStyleMenu() {
@@ -61,21 +69,9 @@ class PullMergeBox {
     if (chosen) choose(chosen);
   }
 
-  private async initMergeForm() {
-    const elForm = this.el.querySelector('[data-merge-form-props]');
-    if (!elForm) return;
-
-    const data = JSON.parse(elForm.getAttribute('data-merge-form-props')!);
-    if (data.mergeStyles.some((style: {name: string}) => style.name === this.chosenMergeStyle)) data.defaultMergeStyle = this.chosenMergeStyle;
-    this.mergeFormComponent ??= (await import('../components/PullRequestMergeForm.vue')).default; // cached so a refresh remounts the form before the next paint
-    if (!elForm.isConnected) return;
-    this.mergeFormApp = createApp(this.mergeFormComponent, {mergeFormProps: data, onMergeStyleChange: (style: string) => { this.chosenMergeStyle = style }});
-    this.mergeFormApp.mount(elForm);
-  }
-
   private isBusy() {
     // keep focused controls, open menus and dialogs, forms, bypass choices and pending requests
-    return this.el.contains(document.activeElement) || Boolean(document.querySelector('#pull-merge-cmd-modal[open]') ||
+    return this.el.contains(document.activeElement) || Boolean(document.querySelector('dialog[open]') ||
       this.el.querySelector('[aria-expanded="true"], [data-fetch-is-loading], [data-pull-merge-busy]'));
   }
 

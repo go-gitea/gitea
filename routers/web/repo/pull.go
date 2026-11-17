@@ -250,7 +250,7 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 
 type pullMergeBoxData struct {
 	ReloadingInterval int
-	IsReadyToMerge    bool
+	IsMergeStateClean bool // mergeable now without bypass and every check passed, GitHub's "clean" merge state
 
 	StatusCheckData *pullCommitStatusCheckData
 
@@ -266,6 +266,7 @@ type pullMergeBoxData struct {
 	UpdateStyleOptions  []*pullUpdateAction
 
 	AutoMerge          *pull_model.AutoMerge
+	AutoMergeStyleName template.HTML
 	CanCancelAutoMerge bool
 
 	MergeFormProps        map[string]any
@@ -287,11 +288,11 @@ func (d *pullMergeBoxData) addOverridableBlocker(info template.HTML) {
 
 type pullUpdateAction struct {
 	URL      string
-	Text     template.HTML
 	Selected bool
 
-	Description template.HTML
-	ButtonText  template.HTML
+	StyleTitle       template.HTML
+	StyleDescription template.HTML
+	StyleButtonText  template.HTML
 }
 
 // pullRequestViewInfo is a structured type for viewing pull request
@@ -451,7 +452,7 @@ type pullCommitStatusCheckData struct {
 	RequireApprovalRunCount int    // number of workflow runs that require approval
 	CanApprove              bool   // whether the user can approve workflow runs
 	ApproveLink             string // link to approve all checks
-	Groups                  []*statusCheckGroup
+	StatusCheckGroups       []*statusCheckGroup
 	counts                  map[statusCheckKind]int
 }
 

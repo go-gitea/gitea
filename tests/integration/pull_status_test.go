@@ -133,7 +133,7 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 
 		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
 		assert.Contains(t, text, "The changes on this branch are already on the target branch. This will be an empty commit.")
-		assert.Contains(t, text, "Merging can be performed automatically.")
+		assert.Contains(t, text, "This pull request can be merged automatically.")
 		mergeForm := parsePullMergeFormProps(t, doc)
 		assert.True(t, mergeForm.CanMergeNow)
 		assert.Equal(t, "merge", mergeForm.MergeStyles[0].Name)

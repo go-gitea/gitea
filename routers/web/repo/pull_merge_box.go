@@ -48,7 +48,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context)
 	case prInfo.IsPullRequestBroken:
 		section.StatusIcon, section.StatusIconClass, section.SectionTitle = "octicon-x", "tw-bg-red", ctx.Locale.Tr("repo.pulls.data_broken")
 	case pull.IsFilesConflicted():
-		section.SectionTitle, section.SectionDetails = ctx.Locale.Tr("repo.pulls.files_conflicted"), []template.HTML{ctx.Locale.Tr("repo.pulls.files_conflicted_desc")}
+		section.SectionTitle, section.SectionDetails = ctx.Locale.Tr("repo.pulls.files_conflicted"), []template.HTML{ctx.Locale.Tr("repo.pulls.cannot_auto_merge_helper")}
 		section.FileNames = pull.ConflictedFiles[:min(len(pull.ConflictedFiles), 10)]
 		section.HasMoreFiles = len(pull.ConflictedFiles) > len(section.FileNames)
 	case pull.IsChecking():

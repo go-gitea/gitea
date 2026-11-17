@@ -75,8 +75,8 @@
 					"IsIssuePoster" $.IsIssuePoster
 					"WorkInProgressPrefix" $.WorkInProgressPrefix
 				)}}
-				{{if .PullMergeBoxData.ShowPullCommands}}
-					{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" .PullMergeBoxData}}
+				{{if $.PullMergeBoxData.ShowPullCommands}}
+					{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" $.Issue.PullRequest "MergeBoxData" $.PullMergeBoxData}}
 				{{end}}
 			{{end}}
 

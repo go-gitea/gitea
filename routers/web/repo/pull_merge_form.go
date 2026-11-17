@@ -10,11 +10,41 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/context"
 	pull_service "gitea.dev/services/pull"
 )
+
+var mergeStyleTrKeys = map[repo_model.MergeStyle]struct{ shortName, description string }{
+	repo_model.MergeStyleMerge:           {"repo.pulls.merge_style_short.merge", "repo.pulls.merge_style_desc.merge"},
+	repo_model.MergeStyleRebase:          {"repo.pulls.merge_style_short.rebase", "repo.pulls.merge_style_desc.rebase"},
+	repo_model.MergeStyleRebaseMerge:     {"repo.pulls.merge_style_short.rebase-merge", "repo.pulls.merge_style_desc.rebase-merge"},
+	repo_model.MergeStyleSquash:          {"repo.pulls.merge_style_short.squash", "repo.pulls.merge_style_desc.squash"},
+	repo_model.MergeStyleFastForwardOnly: {"repo.pulls.merge_style_short.fast-forward-only", "repo.pulls.merge_style_desc.fast-forward-only"},
+}
+
+func trMergeStyleShortName(locale translation.Locale, style repo_model.MergeStyle) template.HTML {
+	if keys, ok := mergeStyleTrKeys[style]; ok {
+		return locale.Tr(keys.shortName)
+	}
+	return ""
+}
+
+var autoMergeDisabledReasonTrKeys = map[string]string{
+	"closed":               "repo.pulls.auto_merge_disabled_reason.closed",
+	"pushed_by_non_writer": "repo.pulls.auto_merge_disabled_reason.pushed_by_non_writer",
+	"base_changed":         "repo.pulls.auto_merge_disabled_reason.base_changed",
+	"work_in_progress":     "repo.pulls.auto_merge_disabled_reason.work_in_progress",
+}
+
+func trAutoMergeDisabledReason(locale translation.Locale, reason string) template.HTML {
+	if key, ok := autoMergeDisabledReasonTrKeys[reason]; ok {
+		return locale.Tr(key)
+	}
+	return ""
+}
 
 type pullMergeStyleProps struct {
 	Name                   repo_model.MergeStyle `json:"name"`
@@ -51,11 +81,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 			hasUnsignableStyle = true
 			return
 		}
-		short := ctx.Locale.Tr("repo.pulls.merge_style_short." + string(style))
+		short := trMergeStyleShortName(ctx.Locale, style)
 		addMergeStyle(&pullMergeStyleProps{
 			Name:                   style,
 			TextDoMerge:            ctx.Locale.Tr(textKey),
-			TextDescription:        ctx.Locale.Tr("repo.pulls.merge_style_desc." + string(style)),
+			TextDescription:        ctx.Locale.Tr(mergeStyleTrKeys[style].description),
 			TextConfirmMerge:       ctx.Locale.Tr("repo.pulls.confirm_merge", short),
 			TextAutoMerge:          ctx.Locale.Tr("repo.pulls.enable_auto_merge", short),
 			TextConfirmAutoMerge:   ctx.Locale.Tr("repo.pulls.confirm_auto_merge", short),
@@ -74,7 +104,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	canAttemptMerge := data.hasPermToMerge && len(mergeStyles) > 0 && !prInfo.IsPullRequestBroken && prInfo.workInProgressPrefix == "" && !data.hasOpenDependencies
 	canMergeNow := canAttemptMerge && mergeable && (!data.hasOverridableBlockers || data.canBypassProtection)
 	canAutoMerge := canAttemptMerge && (mergeable || pull.IsFilesConflicted() || pull.IsChecking())
-	data.IsReadyToMerge = canMergeNow && !data.hasOverridableBlockers && !pull.IsEmpty() && (data.StatusCheckData == nil || data.StatusCheckData.AllPassed())
+	data.IsMergeStateClean = canMergeNow && !data.hasOverridableBlockers && !pull.IsEmpty() && (data.StatusCheckData == nil || data.StatusCheckData.AllPassed())
 	if len(mergeStyles) == 0 && hasUnsignableStyle {
 		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.require_signed_wont_sign"))
 		if errWontSign, ok := data.mergeSigningError.(*asymkey_service.ErrWontSign); ok {
@@ -148,10 +178,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"textMergeTitle":       ctx.Locale.Tr("form.CommitMessage"),
 		"textMergeBlocked":     ctx.Locale.Tr("repo.pulls.merge_blocked_by_requirements"),
 
-		"isReadyToMerge":               data.IsReadyToMerge,
+		"isMergeStateClean":            data.IsMergeStateClean,
 		"canMergeNow":                  canMergeNow,
-		"canAutoMerge":                 canAutoMerge && (!canMergeNow || data.hasOverridableBlockers),
-		"allOverridableChecksOk":       !data.hasOverridableBlockers,
+		"showAutoMerge":                canAutoMerge && (!canMergeNow || data.hasOverridableBlockers),
+		"canBypassMerge":               canMergeNow && data.hasOverridableBlockers,
 		"textBypassRules":              ctx.Locale.Tr("repo.pulls.merge_bypass_rules"),
 		"pullHeadCommitID":             prInfo.CompareInfo.HeadCommitID,
 		"defaultMergeStyle":            mergeStyle,

@@ -20,15 +20,15 @@ type MergeStyle = {
 };
 
 type MergeForm = {
-  allOverridableChecksOk: boolean,
-  canAutoMerge: boolean,
   baseLink: string,
+  canBypassMerge: boolean,
   canMergeNow: boolean, // includes an authorized protection bypass
   defaultMergeStyle: string,
-  isReadyToMerge: boolean,
+  isMergeStateClean: boolean,
   mergeMessageFieldPlaceHolder: string,
   mergeStyles: MergeStyle[],
   pullHeadCommitID: string,
+  showAutoMerge: boolean,
   textBypassRules: string,
   textCancel: string,
   textMergeBlocked: string,
@@ -37,14 +37,12 @@ type MergeForm = {
   textSelectMergeStyle: string,
 };
 
-const props = defineProps<{
+const {mergeFormProps: mergeForm} = defineProps<{
   mergeFormProps: MergeForm,
 }>();
 const emit = defineEmits<{mergeStyleChange: [style: string]}>();
 
 const mergeStyleManuallyMerged = 'manually-merged';
-
-const mergeForm = props.mergeFormProps;
 
 const forceMerge = shallowRef(false);
 const bypassId = generateElemId('pull-merge-bypass-');
@@ -58,7 +56,7 @@ const mergeButton = useTemplateRef<HTMLButtonElement>('mergeButton');
 const menuTrigger = useTemplateRef<HTMLButtonElement>('menuTrigger');
 const menuPanel = useTemplateRef<HTMLDivElement>('menuPanel');
 
-const autoMergeWhenSucceed = computed(() => mergeForm.canAutoMerge && mergeStyle.value !== mergeStyleManuallyMerged && !forceMerge.value);
+const autoMergeWhenSucceed = computed(() => mergeForm.showAutoMerge && mergeStyle.value !== mergeStyleManuallyMerged && !forceMerge.value);
 const actionDisabled = computed(() => !autoMergeWhenSucceed.value && !mergeForm.canMergeNow && mergeStyle.value !== mergeStyleManuallyMerged);
 
 const buttonTexts = computed(() => {
@@ -68,7 +66,7 @@ const buttonTexts = computed(() => {
   return {button: detail.textDoMerge, confirm: detail.textConfirmMerge ?? detail.textDoMerge};
 });
 
-const mergeButtonStyleClass = computed(() => mergeForm.isReadyToMerge && mergeStyle.value !== mergeStyleManuallyMerged ? 'green' : '');
+const mergeButtonStyleClass = computed(() => mergeForm.isMergeStateClean && mergeStyle.value !== mergeStyleManuallyMerged ? 'green' : '');
 
 watch(mergeStyle, (val) => {
   forceMerge.value = false;
@@ -103,7 +101,7 @@ async function toggleActionForm(show: boolean) {
 
 <template>
   <div :data-pull-merge-busy="showActionForm || forceMerge ? '' : undefined">
-    <div class="ui checkbox tw-flex tw-mb-4" v-if="!showActionForm && mergeForm.canMergeNow && !mergeForm.allOverridableChecksOk && mergeStyle !== mergeStyleManuallyMerged">
+    <div class="ui checkbox tw-flex tw-mb-4" v-if="!showActionForm && mergeForm.canBypassMerge && mergeStyle !== mergeStyleManuallyMerged">
       <input type="checkbox" v-model="forceMerge" :id="bypassId">
       <label class="tw-text-red tw-cursor-pointer" :for="bypassId">{{ mergeForm.textBypassRules }}</label>
     </div>
@@ -146,10 +144,10 @@ async function toggleActionForm(show: boolean) {
       </button>
     </div>
     <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu" @click="menuTippy!.hide()">
-      <a v-for="msd in mergeForm.mergeStyles" :key="msd.name" class="item" role="menuitemradio" :aria-checked="msd.name === mergeStyle" @click="mergeStyle = msd.name">
+      <button v-for="msd in mergeForm.mergeStyles" :key="msd.name" type="button" class="item" role="menuitemradio" :aria-checked="msd.name === mergeStyle" @click="mergeStyle = msd.name">
         <svg-icon name="octicon-check"/>
         <div><strong>{{ msd.textDoMerge }}</strong><small>{{ msd.textDescription }}</small></div>
-      </a>
+      </button>
     </div>
   </div>
 </template>

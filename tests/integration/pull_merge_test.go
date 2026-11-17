@@ -95,11 +95,11 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 }
 
 type pullMergeFormProps struct {
-	DefaultMergeStyle      string `json:"defaultMergeStyle"`
-	CanMergeNow            bool   `json:"canMergeNow"`
-	AllOverridableChecksOk bool   `json:"allOverridableChecksOk"`
-	CanAutoMerge           bool   `json:"canAutoMerge"`
-	MergeStyles            []struct {
+	DefaultMergeStyle string `json:"defaultMergeStyle"`
+	CanMergeNow       bool   `json:"canMergeNow"`
+	CanBypassMerge    bool   `json:"canBypassMerge"`
+	ShowAutoMerge     bool   `json:"showAutoMerge"`
+	MergeStyles       []struct {
 		Name string `json:"name"`
 	} `json:"mergeStyles"`
 }
@@ -378,7 +378,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		assert.Equal(t, 1, htmlDoc.Find(`.pull-merge-box .merge-box-detail:contains("This pull request is blocked because it changes a protected file.")`).Length())
 		mergeForm := parsePullMergeFormProps(t, htmlDoc)
 		assert.False(t, mergeForm.CanMergeNow)
-		assert.False(t, mergeForm.CanAutoMerge)
+		assert.False(t, mergeForm.ShowAutoMerge)
 		assert.Contains(t, htmlDoc.Find("#pull-merge-cmd-modal").Text(), "git checkout user1-master")
 	})
 }
@@ -517,7 +517,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.Contains(t, htmlDoc.Find(".merge-section").Text(), "This branch has no history in common with the target branch.")
 		mergeForm := parsePullMergeFormProps(t, htmlDoc)
 		assert.False(t, mergeForm.CanMergeNow)
-		assert.False(t, mergeForm.CanAutoMerge)
+		assert.False(t, mergeForm.ShowAutoMerge)
 
 		err = pull_service.Merge(t.Context(), pr.ID, user1, repo_model.MergeStyleMerge, "", "UNRELATED", false)
 		assert.Error(t, err, "Merge should return an error due to unrelated")
@@ -1187,7 +1187,7 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		mergeForm := parsePullMergeFormProps(t, htmlDoc)
 		assert.True(t, mergeForm.CanMergeNow)
-		assert.False(t, mergeForm.AllOverridableChecksOk)
+		assert.True(t, mergeForm.CanBypassMerge)
 
 		mergeReq := func(forceMerge bool) *RequestWrapper {
 			return NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/merge", prIndex), map[string]string{

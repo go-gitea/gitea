@@ -27,25 +27,25 @@ func TestGroupStatusChecks(t *testing.T) {
 		{ID: 8, Context: "ci2", State: commitstatus.CommitStatusPending},
 	}, []string{"[Cc][Ii]*", "missing", "test"}, actions_module.CommitActionsStatusMap{3: actions_model.StatusRunning}, translation.MockLocale{})
 
-	require.Len(t, checkData.Groups, 5)
-	assert.Equal(t, statusCheckPending, checkData.Groups[1].Kind)
+	require.Len(t, checkData.StatusCheckGroups, 5)
+	assert.Equal(t, statusCheckPending, checkData.StatusCheckGroups[1].CheckKind)
 	for i, context := range []string{"ci2", "CI10", "missing"} {
-		assert.Equal(t, context, checkData.Groups[1].Checks[i].Context)
-		assert.True(t, checkData.Groups[1].Checks[i].IsRequired)
+		assert.Equal(t, context, checkData.StatusCheckGroups[1].StatusChecks[i].StatusContext)
+		assert.True(t, checkData.StatusCheckGroups[1].StatusChecks[i].IsRequired)
 	}
 	assert.Equal(t, &pullStatusCheck{
-		Context: "missing", Description: "repo.pulls.status_checks_waiting",
-		State: commitstatus.CommitStatusPending, Kind: statusCheckExpected, IsRequired: true,
-	}, checkData.Groups[1].Checks[2])
-	assert.False(t, checkData.Groups[0].Checks[0].IsRequired)
-	assert.Equal(t, "running", checkData.Groups[2].Checks[0].ActionStatus)
-	assert.True(t, checkData.Groups[4].Checks[0].IsRequired)
-	assert.EqualValues(t, "repo.pulls.status_checks_count_1:repo.pulls.status_checks_failing:1, repo.pulls.status_checks_pending:2, repo.pulls.status_checks_in_progress:1, repo.pulls.status_checks_skipped:1, repo.pulls.status_checks_expected:1, repo.pulls.status_checks_successful:1", checkData.Section(translation.MockLocale{}).SectionDetails[0])
+		StatusContext: "missing", StatusDescription: "repo.pulls.status_checks_waiting",
+		StatusState: commitstatus.CommitStatusPending, CheckKind: statusCheckExpected, IsRequired: true,
+	}, checkData.StatusCheckGroups[1].StatusChecks[2])
+	assert.False(t, checkData.StatusCheckGroups[0].StatusChecks[0].IsRequired)
+	assert.Equal(t, "running", checkData.StatusCheckGroups[2].StatusChecks[0].ActionStatus)
+	assert.True(t, checkData.StatusCheckGroups[4].StatusChecks[0].IsRequired)
+	assert.EqualValues(t, "repo.pulls.status_checks_count_1:repo.pulls.status_checks_failing:1, repo.pulls.status_checks_pending:2, repo.pulls.status_checks_in_progress:1, repo.pulls.status_checks_skipped:1, repo.pulls.status_checks_expected:1, repo.pulls.status_checks_successful:1", checkData.StatusChecksSection(translation.MockLocale{}).SectionDetails[0])
 
 	approvalData := &pullCommitStatusCheckData{RequireApprovalRunCount: 1}
 	approvalData.groupStatuses([]*git_model.CommitStatus{{ID: 1, Context: "lint", State: commitstatus.CommitStatusSuccess}}, nil, nil, translation.MockLocale{})
 	assert.False(t, approvalData.AllPassed())
-	assert.Equal(t, "octicon-alert-fill", approvalData.Section(translation.MockLocale{}).StatusIcon)
+	assert.Equal(t, "octicon-alert-fill", approvalData.StatusChecksSection(translation.MockLocale{}).StatusIcon)
 
 	missingData := &pullCommitStatusCheckData{}
 	missingData.groupStatuses(nil, []string{"CI/linux", "[A-Z]I/*"}, nil, translation.MockLocale{})

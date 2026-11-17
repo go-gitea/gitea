@@ -2,7 +2,7 @@
 {{$hasStyleMenu := gt (len $.UpdateStyleOptions) 1}}
 <div class="ui buttons tw-shrink-0"{{if $hasStyleMenu}} data-pull-update-buttons{{end}}>
 	<button type="button" class="ui button link-action" data-url="{{$updateAction.URL}}">
-		{{$updateAction.ButtonText}}
+		{{$updateAction.StyleButtonText}}
 	</button>
 	{{if $hasStyleMenu}}
 	<button type="button" class="ui icon button" aria-label="{{ctx.Locale.Tr "repo.pulls.select_update_style"}}">{{svg "octicon-triangle-down" 14}}</button>
@@ -11,10 +11,10 @@
 {{if $hasStyleMenu}}
 <div class="tippy-target merge-box-menu" data-pull-update-menu>
 	{{range $updateOption := $.UpdateStyleOptions}}
-		<a class="item" role="menuitemradio" aria-checked="{{$updateOption.Selected}}" data-update-url="{{$updateOption.URL}}" data-update-text="{{$updateOption.ButtonText}}">
+		<button type="button" class="item" role="menuitemradio" aria-checked="{{$updateOption.Selected}}" data-update-url="{{$updateOption.URL}}" data-update-text="{{$updateOption.StyleButtonText}}">
 			{{svg "octicon-check"}}
-			<div><strong>{{$updateOption.Text}}</strong><small>{{$updateOption.Description}}</small></div>
-		</a>
+			<div><strong>{{$updateOption.StyleTitle}}</strong><small>{{$updateOption.StyleDescription}}</small></div>
+		</button>
 	{{end}}
 </div>
 {{end}}
