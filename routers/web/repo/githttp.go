@@ -130,8 +130,8 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 	// Only public pulls don't need auth: repo must exist, not require-sign-in
 	canAnonymousPull := false
 	if isPull && repoExist && !setting.Service.RequireSignInViewStrict {
-		// allow anonymous pulls if owner is public and repo is public (not private)
-		if owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate {
+		// allow anonymous pulls if owner is public and repo is public (not private), and the unit is enabled
+		if owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate && repo.UnitEnabled(ctx, unitType) {
 			canAnonymousPull = true
 		}
 		// then check "public anonymous access" permission
