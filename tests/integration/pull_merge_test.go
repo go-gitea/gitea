@@ -21,6 +21,7 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
@@ -964,61 +965,80 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 
 func TestPullAutoMergeAfterReviewRequestRemoved(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		// create a pull request
-		baseUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		baseSession := loginUser(t, "user2")
-		forkUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-		forkSession := loginUser(t, "user5")
-		forkedName := "repo1-fork"
-		testRepoFork(t, forkSession, "user2", "repo1", forkUser.Name, forkedName, "")
-		testEditFile(t, forkSession, forkUser.Name, forkedName, "master", "README.md", "Hello, World (Edited)\n")
-		testPullCreate(t, forkSession, forkUser.Name, forkedName, false, "master", "master", "Indexer notifier test pull")
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user2Session := loginUser(t, "user2")
+		user5Session := loginUser(t, "user5")
+		testRepoFork(t, user5Session, "user2", "repo1", "user5", "repo1-fork", "")
+		for _, repo := range []string{"user2/repo1", "org3/repo3"} {
+			req := NewRequestWithValues(t, "POST", "/"+repo+"/settings/branches/edit", map[string]string{
+				"rule_name":                         "master",
+				"enable_push":                       "true",
+				"block_on_official_review_requests": "true",
+			})
+			user2Session.MakeRequest(t, req, http.StatusOK)
+		}
 
-		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
-		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: forkUser.Name, Name: forkedName})
-		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
-			BaseRepoID: baseRepo.ID,
-			BaseBranch: "master",
-			HeadRepoID: forkedRepo.ID,
-			HeadBranch: "master",
+		forkPull := func(branch string) createPullRequestOptions {
+			testCreateFile(t, user5Session, "user5", "repo1-fork", "master", branch, branch+".txt", branch)
+			return createPullRequestOptions{
+				BaseRepoOwner: "user2", BaseRepoName: "repo1", BaseBranch: "master",
+				HeadRepoOwner: "user5", HeadRepoName: "repo1-fork", HeadBranch: branch, Title: branch,
+			}
+		}
+		requestUser2 := func(t *testing.T, isAdd bool) func(pr *issues_model.PullRequest) {
+			return func(pr *issues_model.PullRequest) {
+				_, err := issue_service.ReviewRequest(t.Context(), pr.Issue, user2, nil, user2, isAdd)
+				require.NoError(t, err)
+			}
+		}
+
+		t.Run("RemoveUserRequest", func(t *testing.T) {
+			testPullAutoMergeUnblocked(t, user2, user5Session, forkPull("remove-user-request"), requestUser2(t, true), requestUser2(t, false))
 		})
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
-		require.NoError(t, issue.LoadRepo(t.Context()))
 
-		// Change master branch to protected
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"rule_name":                         "master",
-			"enable_push":                       "true",
-			"block_on_official_review_requests": "true",
+		t.Run("CommentReview", func(t *testing.T) {
+			testPullAutoMergeUnblocked(t, user2, user5Session, forkPull("comment-review"), requestUser2(t, true), func(pr *issues_model.PullRequest) {
+				testSubmitReview(t, user2Session, "user2", "repo1", strconv.FormatInt(pr.Index, 10), "", "comment", http.StatusOK)
+			})
 		})
-		baseSession.MakeRequest(t, req, http.StatusOK)
 
-		// request an official review, which blocks the merge
-		_, err := issue_service.ReviewRequest(t.Context(), issue, baseUser, nil, baseUser, true)
-		require.NoError(t, err)
-
-		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false)
-		assert.NoError(t, err)
-		assert.True(t, scheduled)
-
-		require.NoError(t, automergequeue.AutoMergeQueue.FlushWithContext(t.Context(), 5*time.Second))
-
-		// reload pr again
-		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
-		assert.False(t, pr.HasMerged)
-		assert.Empty(t, pr.MergedCommitID)
-
-		// remove the review request, then it should be merged automatically
-		_, err = issue_service.ReviewRequest(t.Context(), issue, baseUser, nil, baseUser, false)
-		require.NoError(t, err)
-
-		assert.Eventually(t, func() bool {
-			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
-			return pr.HasMerged
-		}, 2*time.Second, 100*time.Millisecond)
-		assert.NotEmpty(t, pr.MergedCommitID)
-		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+		t.Run("RemoveTeamRequest", func(t *testing.T) {
+			ownersTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{OrgID: 3, LowerName: "owners"})
+			requestTeam := func(isAdd bool) func(pr *issues_model.PullRequest) {
+				return func(pr *issues_model.PullRequest) {
+					_, err := issue_service.TeamReviewRequest(t.Context(), pr.Issue, user2, ownersTeam, isAdd)
+					require.NoError(t, err)
+				}
+			}
+			testCreateFile(t, user2Session, "org3", "repo3", "master", "remove-team-request", "remove-team-request.txt", "remove-team-request")
+			testPullAutoMergeUnblocked(t, user2, user2Session, createPullRequestOptions{
+				BaseRepoOwner: "org3", BaseRepoName: "repo3", BaseBranch: "master", HeadBranch: "remove-team-request", Title: "remove-team-request",
+			}, requestTeam(true), requestTeam(false))
+		})
 	})
+}
+
+// testPullAutoMergeUnblocked checks that an official review request added by block holds back a scheduled auto merge,
+// and that the pull request gets merged once unblock removes it
+func testPullAutoMergeUnblocked(t *testing.T, doer *user_model.User, posterSession *TestSession, opts createPullRequestOptions, block, unblock func(pr *issues_model.PullRequest)) {
+	testPullCreateDirectly(t, posterSession, opts)
+	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: opts.BaseRepoOwner, Name: opts.BaseRepoName})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: baseRepo.ID, HeadBranch: opts.HeadBranch})
+	require.NoError(t, pr.LoadIssue(t.Context()))
+	require.NoError(t, pr.Issue.LoadRepo(t.Context()))
+
+	block(pr)
+	scheduled, err := automerge.ScheduleAutoMerge(t.Context(), doer, pr, repo_model.MergeStyleMerge, "auto merge test", false)
+	require.NoError(t, err)
+	require.True(t, scheduled)
+	require.NoError(t, automergequeue.AutoMergeQueue.FlushWithContext(t.Context(), 5*time.Second))
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).HasMerged)
+
+	unblock(pr)
+	assert.Eventually(t, func() bool {
+		return unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).HasMerged
+	}, 2*time.Second, 100*time.Millisecond)
+	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 }
 
 func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.T) {

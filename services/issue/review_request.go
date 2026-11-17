@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/services/automergequeue"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -192,6 +193,14 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 		return nil, err
 	}
 
+	if comment != nil && !isAdd {
+		// team removals skip the notifier, but removing an official team review request may unblock a pending automerge
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			log.Error("LoadPullRequest: %v", err)
+		} else {
+			automergequeue.StartAutoMergeCheckIfScheduled(ctx, issue.PullRequest)
+		}
+	}
 	if comment == nil || !isAdd {
 		return nil, nil //nolint:nilnil // return nil because no comment was created or it is a removal
 	}
