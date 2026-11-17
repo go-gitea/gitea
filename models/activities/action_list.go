@@ -229,6 +229,9 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 			return nil, 0, err
 		}
 	}
+	if len(opts.ExcludeRepoIDs) > 0 {
+		cond = cond.And(builder.NotIn("`action`.repo_id", opts.ExcludeRepoIDs))
+	}
 
 	actions := make([]*Action, 0, opts.PageSize)
 	var count int64

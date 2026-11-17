@@ -44,6 +44,17 @@ func TestGetFeeds(t *testing.T) {
 			assert.Equal(t, int64(1), count)
 
 			actions, count, err = GetFeeds(t.Context(), activities_model.GetFeedsOptions{
+				RequestedUser:  test.requestedUser,
+				Actor:          user,
+				IncludePrivate: true,
+				IncludeDeleted: true,
+				ExcludeRepoIDs: []int64{actions[0].RepoID},
+			})
+			assert.NoError(t, err)
+			assert.Empty(t, actions)
+			assert.Equal(t, int64(0), count)
+
+			actions, count, err = GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 				RequestedUser:   test.requestedUser,
 				Actor:           user,
 				IncludePrivate:  false,

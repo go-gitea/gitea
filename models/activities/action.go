@@ -434,6 +434,7 @@ type GetFeedsOptions struct {
 	IncludeDeleted  bool                   // include deleted actions
 	Date            string                 // the day we want activity for: YYYY-MM-DD
 	DontCount       bool                   // do counting in GetFeeds
+	ExcludeRepoIDs  []int64                // repositories whose actions are left out
 }
 
 // ActivityReadable return whether doer can read activities of user

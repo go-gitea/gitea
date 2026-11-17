@@ -158,5 +158,28 @@
 				</div>
 			</form>
 		</div>
+
+		<h4 class="ui top attached header" id="hidden-feed-repos">
+			{{ctx.Locale.Tr "settings.hidden_feed_repos"}}
+		</h4>
+		<div class="ui attached segment">
+			<p class="help">{{ctx.Locale.Tr "settings.hidden_feed_repos_description"}}</p>
+			{{if .HiddenFeedRepos}}
+				<div class="flex-divided-list items-with-main">
+					{{range .HiddenFeedRepos}}
+						<div class="item">
+							<div class="item-main">
+								<a class="item-title" href="{{.Link}}">{{.FullName}}</a>
+							</div>
+							<div class="item-trailing">
+								<button type="button" class="ui button link-action" data-url="{{$.Link}}/hidden_feed_repos?action=show&repo_id={{.ID}}">{{ctx.Locale.Tr "settings.hidden_feed_repos_show"}}</button>
+							</div>
+						</div>
+					{{end}}
+				</div>
+			{{else}}
+				{{ctx.Locale.Tr "settings.hidden_feed_repos_none"}}
+			{{end}}
+		</div>
 	</div>
 {{template "user/settings/layout_footer" .}}
