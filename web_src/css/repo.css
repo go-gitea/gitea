@@ -1000,10 +1000,6 @@
   margin: 0; /* remove margin reserved for avatar because we move it to left via `order: 0` */
 }
 
-.ui.menu .item > img:not(.ui) {
-  width: auto;
-}
-
 .page.buttons {
   padding-top: 15px;
 }

@@ -468,10 +468,6 @@
   visibility: visible;
 }
 
-.ui.pointing.menu .active.item .menu .active.item::after {
-  display: none;
-}
-
 .ui.pointing.menu .active.item::after,
 .ui.pointing.menu .active.item:hover::after {
   background-color: var(--color-active);
