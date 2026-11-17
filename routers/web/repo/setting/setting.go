@@ -19,7 +19,6 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/indexer/code"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/indexer/stats"
@@ -189,10 +188,6 @@ func SettingsPost(ctx *context.Context) {
 		handleSettingsPostMaintenanceSyncBranches(ctx)
 	case "maintenance-sync-tags":
 		handleSettingsPostMaintenanceSyncTags(ctx)
-	case "maintenance-remove-stale-locks":
-		handleSettingsPostMaintenanceRemoveStaleLocks(ctx)
-	case "maintenance-gc":
-		handleSettingsPostMaintenanceGC(ctx)
 	case "admin":
 		handleSettingsPostAdmin(ctx)
 	case "admin_index":
@@ -743,34 +738,6 @@ func handleSettingsPostMaintenanceSyncTags(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("repo.settings.maintenance.failed"))
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.maintenance.sync_tags_success"))
-	}
-	ctx.Redirect(repo.Link() + "/settings")
-}
-
-func handleSettingsPostMaintenanceRemoveStaleLocks(ctx *context.Context) {
-	repo := ctx.Repo.Repository
-	removed, err := repo_service.RemoveStaleRepoLockFiles(ctx, repo)
-	if err != nil {
-		log.Error("RemoveStaleRepoLockFiles failed for %-v: %v", repo, err)
-		ctx.Flash.Error(ctx.Tr("repo.settings.maintenance.failed"))
-	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.maintenance.remove_stale_locks_success", removed))
-	}
-	ctx.Redirect(repo.Link() + "/settings")
-}
-
-func handleSettingsPostMaintenanceGC(ctx *context.Context) {
-	repo := ctx.Repo.Repository
-	// the git args are set by config, they can be safe to be trusted
-	err := repo_service.GarbageCollectRepo(ctx, repo, gitcmd.ToTrustedCmdArgs(setting.Git.GCArgs))
-	switch {
-	case errors.Is(err, repo_service.ErrGitGcAlreadyRunning):
-		ctx.Flash.Warning(ctx.Tr("repo.settings.maintenance.gc_already_running"))
-	case err != nil:
-		log.Error("GarbageCollectRepo failed for %-v: %v", repo, err)
-		ctx.Flash.Error(ctx.Tr("repo.settings.maintenance.failed"))
-	default:
-		ctx.Flash.Success(ctx.Tr("repo.settings.maintenance.gc_success"))
 	}
 	ctx.Redirect(repo.Link() + "/settings")
 }

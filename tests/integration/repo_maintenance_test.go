@@ -5,36 +5,19 @@ package integration
 
 import (
 	"net/http"
-	"os"
-	"path/filepath"
 	"testing"
-	"time"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/git/gitrepo"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// createTestLockFiles creates an old (stale) and a fresh lock file in the git repository of repo1, and returns their paths
-func createTestLockFiles(t *testing.T) (stale, fresh string) {
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	refsDir := filepath.Join(gitrepo.RepoLocalPath(repo), "refs", "heads")
-	stale, fresh = filepath.Join(refsDir, "stale-branch.lock"), filepath.Join(refsDir, "fresh-branch.lock")
-	for _, p := range []string{stale, fresh} {
-		require.NoError(t, os.WriteFile(p, nil, 0o644))
-	}
-	old := time.Now().Add(-48 * time.Hour)
-	require.NoError(t, os.Chtimes(stale, old, old))
-	return stale, fresh
-}
 
 func TestAPIRepoMaintenance(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -69,32 +52,18 @@ func TestAPIRepoMaintenance(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, TagName: "v1.1"}) // a real release without a git tag is kept
 	})
 
-	t.Run("RemoveStaleLocks", func(t *testing.T) {
-		stale, fresh := createTestLockFiles(t)
-		req := NewRequest(t, "POST", "/api/v1/repos/user2/repo1/maintenance/remove-stale-locks").AddTokenAuth(ownerToken)
-		MakeRequest(t, req, http.StatusNoContent)
-		assert.NoFileExists(t, stale)
-		assert.FileExists(t, fresh) // might be held by a running git process
-		require.NoError(t, os.Remove(fresh))
-	})
-
-	t.Run("GarbageCollect", func(t *testing.T) {
-		req := NewRequest(t, "POST", "/api/v1/repos/user2/repo1/maintenance/gc").AddTokenAuth(ownerToken)
-		MakeRequest(t, req, http.StatusNoContent)
-	})
-
 	t.Run("EmptyRepo", func(t *testing.T) {
 		userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{Name: "maintenance-empty"}).AddTokenAuth(userToken)
 		MakeRequest(t, req, http.StatusCreated)
 
-		for _, action := range []string{"sync-branches", "sync-tags", "remove-stale-locks", "gc"} {
+		for _, action := range []string{"sync-branches", "sync-tags"} {
 			req = NewRequest(t, "POST", "/api/v1/repos/user2/maintenance-empty/maintenance/"+action).AddTokenAuth(ownerToken)
 			MakeRequest(t, req, http.StatusNoContent)
 		}
 	})
 
-	for _, action := range []string{"sync-branches", "sync-tags", "remove-stale-locks", "gc"} {
+	for _, action := range []string{"sync-branches", "sync-tags"} {
 		t.Run("Errors/"+action, func(t *testing.T) {
 			req := NewRequest(t, "POST", "/api/v1/repos/user2/no-such-repo/maintenance/"+action).AddTokenAuth(ownerToken)
 			MakeRequest(t, req, http.StatusNotFound)
@@ -136,28 +105,10 @@ func TestRepoSettingsMaintenance(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &repo_model.Release{RepoID: 1, TagName: "delete-tag"})
 	})
 
-	t.Run("RemoveStaleLocks", func(t *testing.T) {
-		stale, fresh := createTestLockFiles(t)
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings", map[string]string{"action": "maintenance-remove-stale-locks"})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-		assert.NoFileExists(t, stale)
-		assert.FileExists(t, fresh)
-		require.NoError(t, os.Remove(fresh))
-	})
-
-	t.Run("GarbageCollect", func(t *testing.T) {
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings", map[string]string{"action": "maintenance-gc"})
-		resp := session.MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, "/user2/repo1/settings", resp.Header().Get("Location"))
-		flash := session.GetCookieFlashMessage()
-		assert.NotEmpty(t, flash.SuccessMsg)
-		assert.Empty(t, flash.ErrorMsg)
-	})
-
 	t.Run("PageShowsMaintenance", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/settings")
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		for _, action := range []string{"maintenance-sync-branches", "maintenance-sync-tags", "maintenance-remove-stale-locks", "maintenance-gc"} {
+		for _, action := range []string{"maintenance-sync-branches", "maintenance-sync-tags"} {
 			assert.Contains(t, resp.Body.String(), `value="`+action+`"`)
 		}
 	})

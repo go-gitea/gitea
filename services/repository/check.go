@@ -5,7 +5,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -17,10 +16,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
-	"gitea.dev/modules/setting"
 	"gitea.dev/services/audit"
 
 	"xorm.io/builder"
@@ -204,40 +201,4 @@ func ReinitMissingRepositories(ctx context.Context) error {
 		}
 	}
 	return nil
-}
-
-// ErrGitGcAlreadyRunning is returned by GarbageCollectRepo when another "git gc" is already running on the repository.
-var ErrGitGcAlreadyRunning = errors.New("garbage collection is already running on this repository")
-
-// GarbageCollectRepo runs "git gc" on a single repository on behalf of a user and updates the stored repository size.
-// Unlike GitGcRepo (used by the cron task), failures are only returned to the caller and are not reported as system notices.
-func GarbageCollectRepo(ctx context.Context, repo *repo_model.Repository, args gitcmd.TrustedCmdArgs) error {
-	log.Trace("Running user-requested git gc on %-v", repo)
-	timeout := time.Duration(setting.Git.Timeout.GC) * time.Second
-	if _, _, err := gitcmd.NewCommand("gc").AddArguments(args...).WithTimeout(timeout).WithRepo(repo).RunStdString(ctx); err != nil {
-		// git itself prevents concurrent runs: "fatal: gc is already running on machine '...' pid ... (use --force if not)"
-		if stderr, ok := gitcmd.ErrorAsStderr(err); ok && strings.Contains(stderr, "gc is already running") {
-			return ErrGitGcAlreadyRunning
-		}
-		return fmt.Errorf("repository garbage collection failed in repo: %s, error: %w", repo.FullName(), err)
-	}
-	return repo_module.UpdateRepoSize(ctx, repo)
-}
-
-// RemoveStaleRepoLockFiles removes the stale git lock files (left behind by git processes which were killed or canceled,
-// for example after a push timeout or an unexpected shutdown) from a repository and its wiki, and returns the number of removed files.
-func RemoveStaleRepoLockFiles(ctx context.Context, repo *repo_model.Repository) (removed int, err error) {
-	for _, r := range []gitrepo.RepositoryFacade{repo, repo.WikiStorageRepo()} {
-		select {
-		case <-ctx.Done():
-			return removed, ctx.Err()
-		default:
-		}
-		n, removeErr := git.RemoveStaleLockFiles(r, git.StaleLockFileMinAge)
-		removed += n
-		if removeErr != nil {
-			return removed, fmt.Errorf("unable to remove stale lock files of %s: %w", r.LogString(), removeErr)
-		}
-	}
-	return removed, nil
 }

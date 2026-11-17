@@ -1454,8 +1454,6 @@ func Routes() *web.Router {
 				m.Group("/maintenance", func() {
 					m.Post("/sync-branches", repo.MaintenanceSyncBranches)
 					m.Post("/sync-tags", repo.MaintenanceSyncTags)
-					m.Post("/remove-stale-locks", repo.MaintenanceRemoveStaleLocks)
-					m.Post("/gc", repo.MaintenanceGarbageCollect)
 				}, reqToken(), reqAdmin())
 				m.Group("/push_mirrors", func() {
 					m.Combo("").Get(repo.ListPushMirrors).
