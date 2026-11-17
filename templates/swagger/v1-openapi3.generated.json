@@ -12198,80 +12198,6 @@
         ]
       }
     },
-    "/admin/repos/{owner}/{repo}/sync-branches": {
-      "post": {
-        "operationId": "adminSyncRepoBranches",
-        "parameters": [
-          {
-            "description": "owner of the repo",
-            "in": "path",
-            "name": "owner",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "name of the repo",
-            "in": "path",
-            "name": "repo",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/components/responses/empty"
-          },
-          "default": {
-            "$ref": "#/components/responses/error"
-          }
-        },
-        "summary": "Synchronize the branches of a repository with its git data",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/admin/repos/{owner}/{repo}/sync-tags": {
-      "post": {
-        "operationId": "adminSyncRepoTags",
-        "parameters": [
-          {
-            "description": "owner of the repo",
-            "in": "path",
-            "name": "owner",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "name of the repo",
-            "in": "path",
-            "name": "repo",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/components/responses/empty"
-          },
-          "default": {
-            "$ref": "#/components/responses/error"
-          }
-        },
-        "summary": "Synchronize the tags of a repository with its git data",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
     "/admin/users": {
       "get": {
         "operationId": "adminSearchUsers",
@@ -27061,6 +26987,158 @@
           }
         },
         "summary": "Get repo licenses",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/maintenance/gc": {
+      "post": {
+        "operationId": "repoMaintenanceGarbageCollect",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "409": {
+            "$ref": "#/components/responses/error"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Run garbage collection (\"git gc\") on a repository",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/maintenance/remove-stale-locks": {
+      "post": {
+        "description": "Removes git lock files left behind by interrupted git processes, which have not been modified for at least one hour.",
+        "operationId": "repoMaintenanceRemoveStaleLocks",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Remove the stale git lock files of a repository",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/maintenance/sync-branches": {
+      "post": {
+        "operationId": "repoMaintenanceSyncBranches",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Synchronize the branches of a repository with its git data",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/maintenance/sync-tags": {
+      "post": {
+        "operationId": "repoMaintenanceSyncTags",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "default": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Synchronize the tags of a repository with its git data",
         "tags": [
           "repository"
         ]

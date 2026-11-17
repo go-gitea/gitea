@@ -1451,6 +1451,12 @@ func Routes() *web.Router {
 				}, mustEnableUnit(unit.TypeReleases), mustNotBeArchived)
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
 				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
+				m.Group("/maintenance", func() {
+					m.Post("/sync-branches", repo.MaintenanceSyncBranches)
+					m.Post("/sync-tags", repo.MaintenanceSyncTags)
+					m.Post("/remove-stale-locks", repo.MaintenanceRemoveStaleLocks)
+					m.Post("/gc", repo.MaintenanceGarbageCollect)
+				}, reqToken(), reqAdmin())
 				m.Group("/push_mirrors", func() {
 					m.Combo("").Get(repo.ListPushMirrors).
 						Post(mustNotBeArchived, bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
@@ -1869,10 +1875,6 @@ func Routes() *web.Router {
 			m.Group("/emails", func() {
 				m.Get("", admin.GetAllEmails)
 				m.Get("/search", admin.SearchEmail)
-			})
-			m.Group("/repos/{username}/{reponame}", func() {
-				m.Post("/sync-branches", admin.SyncRepoBranches)
-				m.Post("/sync-tags", admin.SyncRepoTags)
 			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(admin.ListHooks).

@@ -12,9 +12,6 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/glob"
@@ -368,54 +365,4 @@ func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{Email: new("user2@example.org")}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
-}
-
-func TestAPIAdminSyncRepoBranchesAndTags(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	adminToken := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteAdmin)
-
-	t.Run("Branches", func(t *testing.T) {
-		_, err := db.GetEngine(t.Context()).Where("repo_id = ? AND name = ?", 1, "branch2").Delete(&git_model.Branch{})
-		require.NoError(t, err)
-		unittest.AssertNotExistsBean(t, &git_model.Branch{RepoID: 1, Name: "branch2"})
-
-		req := NewRequest(t, "POST", "/api/v1/admin/repos/user2/repo1/sync-branches").AddTokenAuth(adminToken)
-		MakeRequest(t, req, http.StatusNoContent)
-		unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: 1, Name: "branch2"})
-	})
-
-	t.Run("Tags", func(t *testing.T) {
-		unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, TagName: "delete-tag"})
-
-		req := NewRequest(t, "POST", "/api/v1/admin/repos/user2/repo1/sync-tags").AddTokenAuth(adminToken)
-		MakeRequest(t, req, http.StatusNoContent)
-		unittest.AssertNotExistsBean(t, &repo_model.Release{RepoID: 1, TagName: "delete-tag"})
-		unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, TagName: "v1.1"}) // a real release without a git tag is kept
-	})
-
-	t.Run("EmptyRepo", func(t *testing.T) {
-		userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{Name: "sync-empty"}).AddTokenAuth(userToken)
-		MakeRequest(t, req, http.StatusCreated)
-
-		for _, action := range []string{"sync-branches", "sync-tags"} {
-			req = NewRequest(t, "POST", "/api/v1/admin/repos/user2/sync-empty/"+action).AddTokenAuth(adminToken)
-			MakeRequest(t, req, http.StatusNoContent)
-		}
-	})
-
-	for _, action := range []string{"sync-branches", "sync-tags"} {
-		t.Run("Errors/"+action, func(t *testing.T) {
-			req := NewRequest(t, "POST", "/api/v1/admin/repos/user2/no-such-repo/"+action).AddTokenAuth(adminToken)
-			MakeRequest(t, req, http.StatusNotFound)
-
-			req = NewRequest(t, "POST", "/api/v1/admin/repos/user2/repo1/"+action)
-			MakeRequest(t, req, http.StatusUnauthorized)
-
-			userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeAll)
-			req = NewRequest(t, "POST", "/api/v1/admin/repos/user2/repo1/"+action).AddTokenAuth(userToken)
-			MakeRequest(t, req, http.StatusForbidden)
-		})
-	}
 }
