@@ -164,7 +164,7 @@ func (a *actionNotifier) RenameRepository(ctx context.Context, doer *user_model.
 	}
 }
 
-func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
 	if err := NotifyWatchers(ctx, &activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -172,7 +172,7 @@ func (a *actionNotifier) TransferRepository(ctx context.Context, doer *user_mode
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		Content:   path.Join(oldOwnerName, repo.Name),
+		Content:   path.Join(oldOwner.Name, repo.Name),
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
@@ -453,14 +453,14 @@ func (a *actionNotifier) SyncDeleteRef(ctx context.Context, doer *user_model.Use
 	}
 }
 
-func (a *actionNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
-	if err := rel.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+func (a *actionNotifier) NewRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	if err := rel.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
 		return
 	}
 	if err := NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: rel.PublisherID,
-		ActUser:   rel.Publisher,
+		ActUserID: doer.ID,
+		ActUser:   doer,
 		OpType:    activities_model.ActionPublishRelease,
 		RepoID:    rel.RepoID,
 		Repo:      rel.Repo,

@@ -8,8 +8,8 @@
 			</div>
 			<div class="flex-text-block">
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					<a class="issue-due-edit muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil"}}</a>
-					<a class="issue-due-remove muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_remove"}}">{{svg "octicon-trash"}}</a>
+					<button type="button" class="btn interact-fg issue-due-edit" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil"}}</button>
+					<button type="button" class="btn interact-fg issue-due-remove" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_remove"}}">{{svg "octicon-trash"}}</button>
 				{{end}}
 			</div>
 		</div>

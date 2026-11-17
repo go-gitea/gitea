@@ -13,8 +13,8 @@
 }
 
 .btn.is-loading > *,
-.btn-octicon.is-loading > *,
-.button.is-loading > * {
+.button.is-loading > *,
+button.is-loading > * {
   opacity: 0;
 }
 

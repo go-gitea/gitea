@@ -9,8 +9,10 @@ import (
 
 	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
+	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	notify_service "gitea.dev/services/notify"
 )
@@ -29,6 +31,10 @@ func (n *auditNotifier) CreateRepository(ctx context.Context, doer, _ *user_mode
 	RecordAs(ctx, doer, audit_model.RepositoryCreate, repo)
 }
 
+func (n *auditNotifier) MigrateRepository(ctx context.Context, doer, _ *user_model.User, repo *repo_model.Repository) {
+	RecordAs(ctx, doer, audit_model.RepositoryCreate, repo)
+}
+
 func (n *auditNotifier) ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
 	RecordAs(ctx, doer, audit_model.RepositoryCreateFork, repo, "base_repo", oldRepo.FullName())
 }
@@ -37,8 +43,8 @@ func (n *auditNotifier) RenameRepository(ctx context.Context, doer *user_model.U
 	RecordAs(ctx, doer, audit_model.RepositoryName, repo, "previous_name", oldRepoName)
 }
 
-func (n *auditNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
-	RecordAs(ctx, doer, audit_model.RepositoryTransferFinish, repo, "old_owner", oldOwnerName, "new_owner", repo.OwnerName)
+func (n *auditNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwner *user_model.User) {
+	RecordAs(ctx, doer, audit_model.RepositoryTransferFinish, repo, "old_owner", oldOwner.Name, "new_owner", repo.OwnerName)
 }
 
 func (n *auditNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
@@ -61,6 +67,14 @@ func loadIssueRepo(ctx context.Context, issue *issues_model.Issue) *repo_model.R
 		}
 	}
 	return issue.Repo
+}
+
+func loadPullRequestRepo(ctx context.Context, pr *issues_model.PullRequest) *repo_model.Repository {
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("audit: LoadIssue for pull request %d: %v", pr.ID, err)
+		return nil
+	}
+	return loadIssueRepo(ctx, pr.Issue)
 }
 
 func issueOrPR(issue *issues_model.Issue, issueAction, prAction audit_model.Action) (audit_model.Action, string) {
@@ -94,13 +108,7 @@ func (n *auditNotifier) DeleteIssue(ctx context.Context, doer *user_model.User, 
 }
 
 func (n *auditNotifier) NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, _ []*user_model.User) {
-	if pr.Issue == nil {
-		if err := pr.LoadIssue(ctx); err != nil {
-			log.Error("audit: LoadIssue for pull request %d: %v", pr.ID, err)
-			return
-		}
-	}
-	repo := loadIssueRepo(ctx, pr.Issue)
+	repo := loadPullRequestRepo(ctx, pr)
 	if repo == nil {
 		return
 	}
@@ -108,17 +116,33 @@ func (n *auditNotifier) NewPullRequest(ctx context.Context, pr *issues_model.Pul
 }
 
 func (n *auditNotifier) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
-	if pr.Issue == nil {
-		if err := pr.LoadIssue(ctx); err != nil {
-			log.Error("audit: LoadIssue for pull request %d: %v", pr.ID, err)
-			return
-		}
-	}
-	repo := loadIssueRepo(ctx, pr.Issue)
+	repo := loadPullRequestRepo(ctx, pr)
 	if repo == nil {
 		return
 	}
 	RecordAs(ctx, doer, audit_model.PullRequestMerge, repo, issueMeta(pr.Issue, "pull_request")...)
+}
+
+func (n *auditNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	n.MergePullRequest(ctx, doer, pr)
+}
+
+var reviewTypeNames = map[issues_model.ReviewType]string{
+	issues_model.ReviewTypeApprove: "approve",
+	issues_model.ReviewTypeComment: "comment",
+	issues_model.ReviewTypeReject:  "reject",
+}
+
+func (n *auditNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, _ []*user_model.User) {
+	if repo := loadPullRequestRepo(ctx, pr); repo != nil {
+		RecordAs(ctx, review.Reviewer, audit_model.PullRequestCommentCreate, repo, "pull_request", issueLabel(pr.Issue), "comment_id", comment.ID, "review_id", review.ID, "review_type", reviewTypeNames[review.Type])
+	}
+}
+
+func (n *auditNotifier) PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, _ []*user_model.User) {
+	if repo := loadPullRequestRepo(ctx, pr); repo != nil {
+		RecordAs(ctx, comment.Poster, audit_model.PullRequestCommentCreate, repo, "pull_request", issueLabel(pr.Issue), "comment_id", comment.ID)
+	}
 }
 
 func (n *auditNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment, _ []*user_model.User) {
@@ -151,4 +175,21 @@ func (n *auditNotifier) EditWikiPage(ctx context.Context, doer *user_model.User,
 
 func (n *auditNotifier) DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string) {
 	RecordAs(ctx, doer, audit_model.WikiPageDelete, repo, "page", page)
+}
+
+func (n *auditNotifier) PullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, _ *issues_model.Comment) {
+	if repo := loadIssueRepo(ctx, review.Issue); repo != nil {
+		RecordAs(ctx, doer, audit_model.PullRequestReviewDismiss, repo, "pull_request", issueLabel(review.Issue), "review_id", review.ID)
+	}
+}
+
+// DeleteRef only records tags, branch deletions are as routine as pushes.
+func (n *auditNotifier) DeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
+	if refFullName.IsTag() {
+		RecordAs(ctx, doer, audit_model.RepositoryTagRemove, repo, "tag", refFullName.TagName())
+	}
+}
+
+func (n *auditNotifier) PackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
+	RecordScoped(WithDoer(ctx, doer), pd.Owner, nil, PackageRemove, "package", pd.Package.Name, "version", pd.Version.Version)
 }

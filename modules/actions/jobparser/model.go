@@ -86,7 +86,7 @@ func (w *SingleWorkflow) Marshal() ([]byte, error) {
 	return marshalYAML(&payload)
 }
 
-// marshalYAML never wraps lines, go-yaml wraps more-indented lines of folded scalars until https://github.com/yaml/go-yaml/pull/441 is released.
+// marshalYAML never wraps lines, re-encoding must not reflow long values.
 func marshalYAML(v any) ([]byte, error) {
 	return yaml.Dump(v, yaml.WithV3Defaults(), yaml.WithIndent(2), yaml.WithLineWidth(-1))
 }

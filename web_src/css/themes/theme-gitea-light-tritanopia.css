@@ -10,6 +10,6 @@ gitea-theme-meta-info {
 :root {
   --color-diff-added-fg: #0860cc;
   --color-diff-added-linenum-bg: #b6e3ff;
-  --color-diff-added-row-bg: #ddf4ff;
+  --color-diff-added-row-bg: #dff5ff;
   --color-diff-added-word-bg: #b6e3ff;
 }

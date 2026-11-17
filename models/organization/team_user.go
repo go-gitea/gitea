@@ -12,12 +12,12 @@ import (
 	"xorm.io/builder"
 )
 
-// TeamUser represents an team-user relation.
+// TeamUser represents a team-user relation.
 type TeamUser struct {
 	ID     int64 `xorm:"pk autoincr"`
 	OrgID  int64 `xorm:"INDEX"`
 	TeamID int64 `xorm:"UNIQUE(s)"`
-	UID    int64 `xorm:"UNIQUE(s)"`
+	UID    int64 `xorm:"UNIQUE(s) INDEX"`
 }
 
 // IsTeamMember returns true if given user is a member of team.

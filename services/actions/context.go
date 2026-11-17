@@ -40,22 +40,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 
-	baseRef := ""
-	headRef := ""
-	ref := run.Ref
-	sha := run.CommitSHA
-	if pullPayload, err := run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
-		baseRef = pullPayload.PullRequest.Base.Ref
-		headRef = pullPayload.PullRequest.Head.Ref
-
-		// if the TriggerEvent is pull_request_target, ref and sha need to be set according to the base of pull request
-		// In GitHub's documentation, ref should be the branch or tag that triggered workflow. But when the TriggerEvent is pull_request_target,
-		// the ref will be the base branch.
-		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-			ref = git.BranchPrefix + pullPayload.PullRequest.Base.Ref
-			sha = pullPayload.PullRequest.Base.Sha
-		}
-	}
+	baseRef, headRef, ref, sha := runRefs(run)
 
 	refName := git.RefName(ref)
 	refType := refName.RefType()
@@ -66,6 +51,11 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	if err != nil {
 		log.Error("GenerateGiteaContext: check protection for ref %q: %v", refName, err)
 		refProtected = false
+	}
+
+	retentionDays := "" // not "0", v3 artifact uploads would read it as a 0-day limit
+	if setting.Actions.ArtifactRetentionDays > 0 {
+		retentionDays = strconv.FormatInt(setting.Actions.ArtifactRetentionDays, 10)
 	}
 
 	gitContext := GiteaContext{
@@ -93,7 +83,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"repository":        run.Repo.OwnerName + "/" + run.Repo.Name, // string, The owner and repository name. For example, Codertocat/Hello-World.
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
 		"repositoryUrl":     run.Repo.HTMLURL(),                       // string, The Git URL to the repository. For example, git://github.com/codertocat/hello-world.git.
-		"retention_days":    "",                                       // string, The number of days that workflow run logs and artifacts are kept.
+		"retention_days":    retentionDays,                            // string, The number of days that artifacts are kept, empty when kept forever.
 		"run_id":            strconv.FormatInt(run.ID, 10),            // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
 		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
 		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
@@ -143,6 +133,21 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	return gitContext
+}
+
+// runRefs returns the run's `github.base_ref`, `github.head_ref`, `github.ref` and `github.sha`.
+func runRefs(run *actions_model.ActionRun) (baseRef, headRef, ref, sha string) {
+	ref, sha = run.Ref, run.CommitSHA
+	if pullPayload, err := run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
+		baseRef = pullPayload.PullRequest.Base.Ref
+		headRef = pullPayload.PullRequest.Head.Ref
+		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+			ref, sha = git.BranchPrefix+pullPayload.PullRequest.Base.Ref, pullPayload.PullRequest.Base.Sha
+		} else if run.TriggerEvent == actions_module.GithubEventPullRequest && !pullPayload.PullRequest.HasMerged && pullPayload.PullRequest.MergedCommitID != nil {
+			ref, sha = git.MergeRefNameFromPullIndex(pullPayload.PullRequest.Index).String(), *pullPayload.PullRequest.MergedCommitID
+		}
+	}
+	return baseRef, headRef, ref, sha
 }
 
 type TaskNeed struct {

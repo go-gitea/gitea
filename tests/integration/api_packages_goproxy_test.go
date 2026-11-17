@@ -98,52 +98,43 @@ func TestPackageGo(t *testing.T) {
 	t.Run("Info", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/%s.info", url, packageName, packageVersion))
-		resp := MakeRequest(t, req, http.StatusOK)
-
 		type Info struct {
 			Version string    `json:"Version"`
 			Time    time.Time `json:"Time"`
 		}
 
-		info := DecodeJSON(t, resp, &Info{})
+		for _, infoRequest := range []struct {
+			path, version string
+		}{
+			{"@v/" + packageVersion + ".info", packageVersion},
+			{"@v/latest.info", packageVersion2},
+			{"@latest", packageVersion2},
+		} {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s", url, packageName, infoRequest.path))
+			resp := MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, packageVersion, info.Version)
-
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/latest.info", url, packageName))
-		resp = MakeRequest(t, req, http.StatusOK)
-
-		info = DecodeJSON(t, resp, &Info{})
-		assert.Equal(t, packageVersion2, info.Version)
-
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/@latest", url, packageName))
-		resp = MakeRequest(t, req, http.StatusOK)
-
-		info = DecodeJSON(t, resp, &Info{})
-		assert.Equal(t, packageVersion2, info.Version)
+			info := DecodeJSON(t, resp, &Info{})
+			assert.Equal(t, infoRequest.version, info.Version)
+		}
 	})
 
 	t.Run("GoMod", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/%s.mod", url, packageName, packageVersion))
-		resp := MakeRequest(t, req, http.StatusOK)
+		for _, version := range []string{packageVersion, "latest"} {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/%s.mod", url, packageName, version))
+			resp := MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, goModContent, resp.Body.String())
-
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/latest.mod", url, packageName))
-		resp = MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, goModContent, resp.Body.String())
+			assert.Equal(t, goModContent, resp.Body.String())
+		}
 	})
 
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/%s.zip", url, packageName, packageVersion))
-		MakeRequest(t, req, http.StatusOK)
-
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/latest.zip", url, packageName))
-		MakeRequest(t, req, http.StatusOK)
+		for _, version := range []string{packageVersion, "latest"} {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/%s.zip", url, packageName, version))
+			MakeRequest(t, req, http.StatusOK)
+		}
 	})
 }

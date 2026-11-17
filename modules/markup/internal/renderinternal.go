@@ -70,7 +70,7 @@ func (r *RenderInternal) ProtectSafeAttrs(content template.HTML) template.HTML {
 	return template.HTML(reAttrClass().ReplaceAllString(string(content), `$1 data-attr-class="`+r.secureIDPrefix+`$2"$3`))
 }
 
-func (r *RenderInternal) FormatWithSafeAttrs(w io.Writer, fmt template.HTML, a ...any) error {
+func (r *RenderInternal) FormatWithSafeAttrsf(w io.Writer, fmt template.HTML, a ...any) error {
 	htmlStr := r.ProtectSafeAttrs(htmlutil.HTMLFormat(fmt, a...))
 	_, err := io.WriteString(w, string(htmlStr))
 	return err

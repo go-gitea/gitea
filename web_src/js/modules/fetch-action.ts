@@ -123,7 +123,9 @@ async function handleFetchActionError(el: HTMLElement, resp: Response) {
   const isRespJson = resp.headers.get('content-type')?.includes('application/json');
   const respText = await resp.text();
   const respJson = isRespJson ? JSON.parse(respText) : null;
-  if (respJson?.errorMessage) {
+  if (respJson?.redirect) {
+    fetchActionDoRedirect(respJson.redirect);
+  } else if (respJson?.errorMessage) {
     // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
     // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
     showErrorToast(respJson.errorMessage, {useHtmlBody: respJson.renderFormat === 'html'});
@@ -231,10 +233,10 @@ export async function submitFormFetchAction(elForm: HTMLFormElement, opts: Submi
 }
 
 async function confirmFetchAction(el: HTMLElement) {
-  let elModal: HTMLElement | null = null;
+  let elModal: HTMLDialogElement | null = null;
   const dataModalConfirm = el.getAttribute('data-modal-confirm') || '';
   if (dataModalConfirm.startsWith('#') && dataModalConfirm.length > 1) {
-    elModal = document.querySelector<HTMLElement>(`#${CSS.escape(dataModalConfirm.substring(1))}`);
+    elModal = document.querySelector<HTMLDialogElement>(`#${CSS.escape(dataModalConfirm.substring(1))}`);
     if (elModal) {
       elModal = createElementFromHTML(elModal.outerHTML);
       elModal.removeAttribute('id');

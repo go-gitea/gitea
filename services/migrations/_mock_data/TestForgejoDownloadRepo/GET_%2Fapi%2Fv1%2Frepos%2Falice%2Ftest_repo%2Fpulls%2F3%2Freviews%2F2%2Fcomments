@@ -1,0 +1,7 @@
+Cache-Control: max-age=0, private, must-revalidate
+Content-Length: 1023
+Content-Type: application/json;charset=utf-8
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+
+[{"id":10,"body":"fix this","user":{"id":2,"login":"bob","login_name":"","source_id":0,"full_name":"","email":"bob@example.com","avatar_url":"https://forgejo.example/avatars/4b9bb80620f03eb3719e0a061c14283d","html_url":"https://forgejo.example/bob","language":"","is_admin":false,"last_login":"1970-01-01T00:00:00Z","created":"2026-09-25T01:13:51Z","restricted":false,"active":true,"prohibit_login":false,"location":"","pronouns":"","website":"","description":"","visibility":"public","followers_count":0,"following_count":0,"starred_repos_count":0,"username":"bob"},"resolver":null,"pull_request_review_id":2,"created_at":"2026-09-25T01:14:04Z","updated_at":"2026-09-25T01:14:04Z","path":"open.txt","commit_id":"0310ab0fc7512cab1652c77eadb401e0b15fb974","original_commit_id":"","diff_hunk":"@@ -0,0 +1 @@\n+open.txt","position":1,"original_position":0,"extra_lines_count":0,"html_url":"https://forgejo.example/alice/test_repo/pulls/3#issuecomment-10","pull_request_url":"https://forgejo.example/alice/test_repo/pulls/3"}]

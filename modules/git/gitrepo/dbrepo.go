@@ -18,7 +18,7 @@ func RepoWikiGitRepoRelativePath(ownerName, repoName string) string {
 }
 
 // CodeRepoByName returns an unmanaged repository facade for the code repository of the given owner and repository name.
-// Usually it is used for migration fixes or repository adoption/creation/rename/transfer.
+// Usually it is used for migration fixes or repository creation/rename/transfer.
 func CodeRepoByName(ownerName, repoName string) RepositoryFacade {
 	return RepositoryUnmanaged(RepoCodeGitRepoRelativePath(ownerName, repoName))
 }

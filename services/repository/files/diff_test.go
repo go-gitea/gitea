@@ -31,24 +31,21 @@ func TestGetDiffPreview(t *testing.T) {
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"
 
 	t.Run("Errors", func(t *testing.T) {
-		t.Run("empty repo", func(t *testing.T) {
-			diff, err := GetDiffPreview(ctx, &repo_model.Repository{}, branch, treePath, oldContent, content)
-			assert.Nil(t, diff)
-			assert.EqualError(t, err, "repository does not exist [id: 0, uid: 0, owner_name: , name: ]")
-		})
-
-		t.Run("bad branch", func(t *testing.T) {
-			badBranch := "bad_branch"
-			diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, badBranch, treePath, oldContent, content)
-			assert.Nil(t, diff)
-			assert.EqualError(t, err, "branch does not exist [name: "+badBranch+"]")
-		})
-
-		t.Run("empty treePath", func(t *testing.T) {
-			diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, branch, "", oldContent, content)
-			assert.Nil(t, diff)
-			assert.EqualError(t, err, "path is invalid [path: ]")
-		})
+		for _, test := range []struct {
+			name                            string
+			repo                            *repo_model.Repository
+			branch, treePath, expectedError string
+		}{
+			{"empty repo", &repo_model.Repository{}, branch, treePath, "repository does not exist [id: 0, uid: 0, owner_name: , name: ]"},
+			{"bad branch", ctx.Repo.Repository, "bad_branch", treePath, "branch does not exist [name: bad_branch]"},
+			{"empty treePath", ctx.Repo.Repository, branch, "", "path is invalid [path: ]"},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				diff, err := GetDiffPreview(ctx, test.repo, test.branch, test.treePath, oldContent, content)
+				assert.Nil(t, diff)
+				assert.EqualError(t, err, test.expectedError)
+			})
+		}
 	})
 
 	expectedDiff := &gitdiff.Diff{
@@ -133,23 +130,20 @@ func TestGetDiffPreview(t *testing.T) {
 		IsIncomplete: false,
 	}
 
-	t.Run("with given branch", func(t *testing.T) {
-		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, branch, treePath, oldContent, content)
-		assert.NoError(t, err)
-		expectedBs, err := json.Marshal(expectedDiff)
-		assert.NoError(t, err)
-		bs, err := json.Marshal(diff)
-		assert.NoError(t, err)
-		assert.JSONEq(t, string(expectedBs), string(bs))
-	})
-
-	t.Run("empty branch, same results", func(t *testing.T) {
-		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, "", treePath, oldContent, content)
-		assert.NoError(t, err)
-		expectedBs, err := json.Marshal(expectedDiff)
-		assert.NoError(t, err)
-		bs, err := json.Marshal(diff)
-		assert.NoError(t, err)
-		assert.JSONEq(t, string(expectedBs), string(bs))
-	})
+	for _, test := range []struct {
+		name, branch string
+	}{
+		{"with given branch", branch},
+		{"empty branch, same results", ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, test.branch, treePath, oldContent, content)
+			assert.NoError(t, err)
+			expectedBs, err := json.Marshal(expectedDiff)
+			assert.NoError(t, err)
+			bs, err := json.Marshal(diff)
+			assert.NoError(t, err)
+			assert.JSONEq(t, string(expectedBs), string(bs))
+		})
+	}
 }

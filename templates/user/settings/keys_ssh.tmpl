@@ -103,7 +103,7 @@
 			{{end}}
 		{{end}}
 	</div>
-	<div class="ui small modal" id="delete-ssh">
+	<dialog class="modal-dialog" id="delete-ssh">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.ssh_key_deletion"}}
@@ -112,5 +112,5 @@
 			<p>{{ctx.Locale.Tr "settings.ssh_key_deletion_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
-	</div>
+	</dialog>
 </div>

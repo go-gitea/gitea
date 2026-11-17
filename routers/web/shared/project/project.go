@@ -26,7 +26,7 @@ func findProject(ctx *context.Context) *project_model.Project {
 		project, err = project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
 	}
 	if err != nil {
-		ctx.ServerError("GetProject", err)
+		ctx.ServerErrorAuto(err)
 		return nil
 	}
 	return project
@@ -39,7 +39,7 @@ func findColumn(ctx *context.Context) (*project_model.Project, *project_model.Co
 	}
 	column, err := project_model.GetColumnByIDAndProjectID(ctx, ctx.PathParamInt64("columnID"), project.ID)
 	if err != nil {
-		ctx.ServerError("GetColumnByIDAndProjectID", err)
+		ctx.ServerErrorAuto(err)
 		return nil, nil
 	}
 	return project, column
@@ -60,7 +60,7 @@ func MoveColumns(ctx *context.Context) {
 
 	form := &movedColumnsForm{}
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.ServerError("DecodeMovedColumnsForm", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -70,7 +70,7 @@ func MoveColumns(ctx *context.Context) {
 	}
 
 	if err := project_model.MoveColumnsOnProject(ctx, project, sortedColumnIDs); err != nil {
-		ctx.ServerError("MoveColumnsOnProject", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -127,7 +127,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 	}
 
 	if err := project_model.DeleteColumnByID(ctx, column.ID); err != nil {
-		ctx.ServerError("DeleteProjectColumnByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -141,7 +141,7 @@ func SetDefaultProjectColumn(ctx *context.Context) {
 	}
 
 	if err := project_model.SetDefaultColumn(ctx, project.ID, column.ID); err != nil {
-		ctx.ServerError("SetDefaultColumn", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -154,50 +154,30 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	type movedIssuesForm struct {
-		Issues []struct {
-			IssueID int64 `json:"issueID"`
-			Sorting int64 `json:"sorting"`
-		} `json:"issues"`
-	}
-
-	form := &movedIssuesForm{}
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.ServerError("DecodeMovedIssuesForm", err)
+	form := &struct {
+		IssueID     int64 `json:"issueID"`
+		PrevIssueID int64 `json:"prevIssueID"`
+	}{}
+	if err := json.NewDecoder(ctx.Req.Body).Decode(form); err != nil {
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
-	issueIDs := make([]int64, 0, len(form.Issues))
-	sortedIssueIDs := make(map[int64]int64)
-	for _, issue := range form.Issues {
-		issueIDs = append(issueIDs, issue.IssueID)
-		sortedIssueIDs[issue.Sorting] = issue.IssueID
-	}
-	movedIssues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
+	issue, err := issues_model.GetIssueByID(ctx, form.IssueID)
 	if err != nil {
-		ctx.ServerError("GetIssueByID", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
-
-	if len(movedIssues) != len(form.Issues) {
-		ctx.ServerError("some issues do not exist", errors.New("some issues do not exist"))
+	if err = issue.LoadRepo(ctx); err != nil {
+		ctx.ServerErrorAuto(err)
 		return
 	}
-
-	if _, err = movedIssues.LoadRepositories(ctx); err != nil {
-		ctx.ServerError("LoadRepositories", err)
+	if !project.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
+		ctx.ServerErrorAuto(errors.New("Some issue's repoID is not equal to project's repoID"))
 		return
 	}
-
-	for _, issue := range movedIssues {
-		if !project.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
-			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
-			return
-		}
-	}
-
-	if err = project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {
-		ctx.ServerError("MoveIssuesOnProjectColumn", err)
+	if err = project_service.MoveIssueAfter(ctx, ctx.Doer, column, issue, form.PrevIssueID); err != nil {
+		ctx.ServerErrorAuto(err)
 		return
 	}
 

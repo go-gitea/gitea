@@ -4,55 +4,38 @@
 package bleve
 
 import (
-	"regexp"
-	"unicode"
+	"bytes"
+	"unicode/utf8"
 
 	"github.com/blevesearch/bleve/v2/analysis"
-	"github.com/blevesearch/bleve/v2/analysis/tokenizer/character"
 	"github.com/blevesearch/bleve/v2/registry"
 )
 
 const codeTokenizerName = "codeTokenizer"
 
-func codeTokenizerConstructor(_ map[string]any, _ *registry.Cache) (analysis.Tokenizer, error) {
-	// Old code used "letter" tokenizer which doesn't support CJK.
-	// Here it still doesn't support CJK, since there is no usable CJK tokenizer at the moment.
-	return character.NewCharacterTokenizer(func(r rune) bool {
-		return unicode.IsLetter(r) || unicode.IsNumber(r)
-	}), nil
-}
+// codeTokenizer emits every distinct lowercase gram of 1 to 3 runes once, search verifies longer terms against the content
+type codeTokenizer struct{}
 
-const codeTokenFilterName = "codeTokenFilter"
-
-type codeTokenFilter struct {
-	re *regexp.Regexp
-}
-
-func (c codeTokenFilter) Filter(stream analysis.TokenStream) (ret analysis.TokenStream) {
-	// split one token to "letter" parts and "number" parts (to keep the old behavior).
-	// e.g.: input token="port123", then the output tokens are "port123", "port", "123"
-	for _, token := range stream {
-		ret = append(ret, token)
-		m := c.re.FindAllIndex(token.Term, -1)
-		if len(m) > 1 {
-			for _, it := range m {
-				p1, p2 := it[0], it[1]
-				t := &analysis.Token{
-					Start:    token.Start + p1,
-					End:      token.Start + p2,
-					Term:     token.Term[p1:p2],
-					Position: token.Position,
-					Type:     analysis.AlphaNumeric,
-				}
-				ret = append(ret, t)
+func (codeTokenizer) Tokenize(input []byte) analysis.TokenStream {
+	lower := bytes.ToLower(input)
+	seen := make(map[string]bool)
+	var tokens analysis.TokenStream
+	var starts [3]int
+	for end, count := 0, 0; end < len(lower); {
+		starts[0], starts[1], starts[2] = starts[1], starts[2], end
+		count = min(count+1, len(starts))
+		_, size := utf8.DecodeRune(lower[end:])
+		end += size
+		for _, start := range starts[len(starts)-count:] {
+			if gram := lower[start:end]; !seen[string(gram)] {
+				seen[string(gram)] = true
+				tokens = append(tokens, &analysis.Token{Start: start, End: end, Term: gram, Position: len(tokens) + 1, Type: analysis.AlphaNumeric})
 			}
 		}
 	}
-	return ret
+	return tokens
 }
 
-func codeTokenFilterConstructor(_ map[string]any, _ *registry.Cache) (analysis.TokenFilter, error) {
-	return &codeTokenFilter{
-		re: regexp.MustCompile("[a-zA-Z]+|[0-9]+"),
-	}, nil
+func codeTokenizerConstructor(_config map[string]any, _cache *registry.Cache) (analysis.Tokenizer, error) {
+	return codeTokenizer{}, nil
 }

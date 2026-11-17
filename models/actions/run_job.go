@@ -25,7 +25,6 @@ import (
 
 // MaxJobNumPerRun is the maximum number of jobs in a single run.
 // https://docs.github.com/en/actions/reference/limits#existing-system-limits
-// TODO: check this limit when creating jobs
 const MaxJobNumPerRun = 256
 
 // ActionRunJob represents a job of a run
@@ -100,7 +99,7 @@ type ActionRunJob struct {
 
 	// IsReusableCaller marks this job as a reusable workflow caller.
 	// Caller jobs do not run on a runner; their status is derived from their child jobs.
-	IsReusableCaller bool `xorm:"index NOT NULL DEFAULT FALSE"`
+	IsReusableCaller bool `xorm:"NOT NULL DEFAULT FALSE"`
 	// IsExpanded reports whether this job's lazy expansion (children-row insertion) is complete.
 	// For a reusable workflow caller, true means children rows exist and CallPayload is populated.
 	IsExpanded bool `xorm:"NOT NULL DEFAULT FALSE"`
@@ -460,14 +459,6 @@ func CollectAllDescendantJobs(parent *ActionRunJob, allJobs []*ActionRunJob) []*
 	return out
 }
 
-// hasWaitingJobsToPick reports whether any waiting, unclaimed, non-reusable job
-// remains in the repo, i.e. work that an idle runner could still pick up.
-func hasWaitingJobsToPick(ctx context.Context, repoID int64) (bool, error) {
-	return db.GetEngine(ctx).
-		Where("repo_id = ? AND task_id = ? AND status = ? AND is_reusable_caller = ?", repoID, 0, StatusWaiting, false).
-		Exist(&ActionRunJob{})
-}
-
 func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, cols ...string) (int64, error) {
 	e := db.GetEngine(ctx)
 
@@ -518,7 +509,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 			// Only bump when waiting work actually remains for this repo, otherwise
 			// every job completion would needlessly bump the global version and wake
 			// every idle runner instance-wide for nothing.
-			hasWaiting, err := hasWaitingJobsToPick(ctx, job.RepoID)
+			hasWaiting, err := JobQueueOptions{RepoID: job.RepoID, Status: StatusWaiting}.session(ctx).Exist(new(ActionRunJob))
 			if err != nil {
 				return 0, err
 			}

@@ -28,7 +28,6 @@ type sshServer struct {
 type sshSession struct {
 	gossh.Channel
 	conn   *gossh.ServerConn
-	ctx    context.Context
 	rawCmd string
 	env    []string
 }
@@ -86,10 +85,7 @@ func (srv *sshServer) serve(listener net.Listener) error {
 func (srv *sshServer) handleConn(netConn net.Conn) {
 	defer netConn.Close()
 
-	ctx, cancel := context.WithCancel(graceful.GetManager().HammerContext())
-	defer cancel()
-
-	sshConn, sshChannels, sshReqs, err := gossh.NewServerConn(netConn, srv.newServerConfig(ctx))
+	sshConn, sshChannels, sshReqs, err := gossh.NewServerConn(netConn, srv.newServerConfig(graceful.GetManager().HammerContext()))
 	if err != nil {
 		// OpenSSH's logs are something like:
 		// * disconnect without sending anything: "Connection closed by 1.2.3.4 port 5678"
@@ -107,11 +103,11 @@ func (srv *sshServer) handleConn(netConn net.Conn) {
 			_ = newChan.Reject(gossh.UnknownChannelType, "unsupported channel type")
 			continue
 		}
-		go handleSessionChannel(ctx, sshConn, newChan)
+		go handleSessionChannel(sshConn, newChan)
 	}
 }
 
-func handleSessionChannel(ctx context.Context, conn *gossh.ServerConn, newChan gossh.NewChannel) {
+func handleSessionChannel(conn *gossh.ServerConn, newChan gossh.NewChannel) {
 	channel, reqs, err := newChan.Accept()
 	if err != nil {
 		log.Error("SSH: Accept session channel: %v", err)
@@ -119,7 +115,7 @@ func handleSessionChannel(ctx context.Context, conn *gossh.ServerConn, newChan g
 	}
 	defer channel.Close()
 
-	session := &sshSession{Channel: channel, conn: conn, ctx: ctx}
+	session := &sshSession{Channel: channel, conn: conn}
 	for req := range reqs {
 		switch req.Type {
 		case "env":

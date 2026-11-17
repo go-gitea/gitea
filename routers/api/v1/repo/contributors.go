@@ -56,8 +56,8 @@ func ListContributors(ctx *context.APIContext) {
 	//     description: The contributors are still being counted, retry later
 	//   "204":
 	//     description: The repository is empty
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   default:
+	//     "$ref": "#/responses/error"
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Status(http.StatusNoContent)

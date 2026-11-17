@@ -93,15 +93,12 @@ const (
 	StderrPathSpec           StderrPrefix = "fatal: pathspec"
 	StderrBadRevision        StderrPrefix = "fatal: bad revision"
 	StderrNoSuchPath         StderrPrefix = "fatal: no such path"
-
-	StderrNoSuchRemote StderrPrefix = "error: no such remote"
+	StderrBadObject          StderrPrefix = "fatal: bad object "
 
 	StderrAuthenticationFailed StderrPrefix = "fatal: Authentication failed for"
 	StderrCouldNotReadUsername StderrPrefix = "fatal: could not read Username"
 
-	StderrUnknownRevisionOrPath StderrRegexp = "^fatal: .*: unknown revision or path not in the working tree"
-	StderrNoMergeBase           StderrRegexp = "^fatal: .*: no merge base"
-	StderrFileNoEnoughLines     StderrRegexp = `^fatal: file .* has only \d+ lines?`
+	StderrFileNoEnoughLines StderrRegexp = `^fatal: file .* has only \d+ lines?`
 )
 
 func matchStderrCheck(stderr string, checkIntf StderrCheck) (match bool) {

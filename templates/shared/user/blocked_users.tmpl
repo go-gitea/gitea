@@ -52,7 +52,7 @@
 		{{end}}
 	</div>
 </div>
-<div class="ui small modal" id="block-user-note-modal">
+<dialog class="modal-dialog" id="block-user-note-modal">
 	<div class="header">{{ctx.Locale.Tr "user.block.note.edit"}}</div>
 	<div class="content">
 		<form class="ui form form-fetch-action" action="{{$.Link}}" method="post">
@@ -69,4 +69,4 @@
 			</div>
 		</form>
 	</div>
-</div>
+</dialog>

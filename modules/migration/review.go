@@ -8,6 +8,7 @@ import "time"
 // Reviewable can be reviewed
 type Reviewable interface {
 	GetLocalIndex() int64
+	GetContext() DownloaderContext
 
 	// GetForeignIndex presents the foreign index, which could be misused:
 	// For example, if there are 2 Gitea sites: site-A exports a dataset, then site-B imports it:
@@ -40,7 +41,8 @@ type Review struct {
 	CommitID     string `yaml:"commit_id"`
 	Content      string
 	CreatedAt    time.Time `yaml:"created_at"`
-	State        string    // PENDING, APPROVED, REQUEST_CHANGES, or COMMENT
+	State        string
+	Dismissed    bool
 	Comments     []*ReviewComment
 }
 
@@ -61,6 +63,7 @@ type ReviewComment struct {
 	Line      int
 	CommitID  string `yaml:"commit_id"`
 	PosterID  int64  `yaml:"poster_id"`
+	Resolved  bool   // the conversation of this (first) comment is resolved
 	Reactions []*Reaction
 	CreatedAt time.Time `yaml:"created_at"`
 	UpdatedAt time.Time `yaml:"updated_at"`
