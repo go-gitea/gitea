@@ -25,15 +25,28 @@ func TestAPIRepoTeams(t *testing.T) {
 
 	// publicOrgRepo = org3/repo21
 	publicOrgRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
-	// user4
+	// user4 is an org member but not in the private teams Owners and test_team
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	ownerToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 
 	// ListTeams
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/teams", publicOrgRepo.FullName())).
 		AddTokenAuth(token)
 	res := MakeRequest(t, req, http.StatusOK)
+	assert.Empty(t, DecodeJSON(t, res, []*api.Team{}))
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), "Test_Team")).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/teams", publicOrgRepo.FullName())).
+		AddTokenAuth(getUserToken(t, "user5", auth_model.AccessTokenScopeReadRepository))
+	res = MakeRequest(t, req, http.StatusOK)
+	assert.Empty(t, DecodeJSON(t, res, []*api.Team{}))
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/teams", publicOrgRepo.FullName())).
+		AddTokenAuth(ownerToken)
+	res = MakeRequest(t, req, http.StatusOK)
 	teams := DecodeJSON(t, res, []*api.Team{})
 	if assert.Len(t, teams, 2) {
 		assert.Equal(t, "Owners", teams[0].Name)
@@ -49,13 +62,13 @@ func TestAPIRepoTeams(t *testing.T) {
 
 	// IsTeam
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), "Test_Team")).
-		AddTokenAuth(token)
+		AddTokenAuth(ownerToken)
 	res = MakeRequest(t, req, http.StatusOK)
 	team := DecodeJSON(t, res, &api.Team{})
 	assert.Equal(t, teams[1], team)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), "NonExistingTeam")).
-		AddTokenAuth(token)
+		AddTokenAuth(ownerToken)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// AddTeam with user4
