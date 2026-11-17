@@ -125,9 +125,9 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 	}
 
 	htmlBuf := &bytes.Buffer{}
-	gv := globalVars()
+	vars := globalVars()
 	// style not used for live site but need to pass something
-	err = gv.htmlFormatter.Format(htmlBuf, gv.githubStyles, iterator)
+	err = vars.htmlFormatter.Format(htmlBuf, vars.githubStyles, iterator)
 	if err != nil {
 		log.Error("Can't format code: %v", err)
 		return htmlEscape(code)
