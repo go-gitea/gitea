@@ -500,12 +500,15 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 		}
 	}
 
-	// if user in an owner team
+	// Apply repository-level access from teams.
 	for _, team := range perm.orgRepoTeams {
 		if team.IsOwnerTeam() || team.AccessMode == perm_model.AccessModeOwner {
 			perm.AccessMode = perm_model.AccessModeOwner
 			perm.unitsMode = nil
 			return perm, nil
+		}
+		if team.AccessMode == perm_model.AccessModeAdmin {
+			perm.AccessMode = max(perm.AccessMode, perm_model.AccessModeAdmin)
 		}
 	}
 

@@ -65,6 +65,7 @@ var Service = struct {
 	McaptchaSitekey                         string
 	McaptchaURL                             string
 	DefaultKeepEmailPrivate                 bool
+	ForceUserActivityVisibility             string
 	DefaultAllowCreateOrganization          bool
 	DefaultUserIsRestricted                 bool
 	EnableTimetracking                      bool
@@ -193,6 +194,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.McaptchaSecret = sec.Key("MCAPTCHA_SECRET").MustString("")
 	Service.McaptchaSitekey = sec.Key("MCAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
+	Service.ForceUserActivityVisibility = sec.Key("FORCE_USER_ACTIVITY_VISIBILITY").In("", []string{"public", "private"})
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.DefaultUserIsRestricted = sec.Key("DEFAULT_USER_IS_RESTRICTED").MustBool(false)
 	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)
