@@ -389,6 +389,7 @@ func relay(client, upstream net.Conn) {
 }
 
 // copyConn falls back to a plain copy as some vendor kernels fail splice with EBADF, Go only does so on EINVAL
+// needed because of https://github.com/go-gitea/gitea/issues/40367
 func copyConn(dst io.Writer, src io.Reader) error {
 	n, err := io.Copy(dst, src)
 	if n == 0 && errors.Is(err, syscall.EBADF) {
