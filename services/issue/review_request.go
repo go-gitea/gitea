@@ -194,12 +194,10 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	}
 
 	if comment != nil && !isAdd {
-		// team removals skip the notifier, but removing an official team review request may unblock a pending automerge
 		if err := issue.LoadPullRequest(ctx); err != nil {
-			log.Error("LoadPullRequest: %v", err)
-		} else {
-			automergequeue.StartAutoMergeCheckIfScheduled(ctx, issue.PullRequest)
+			return nil, err
 		}
+		automergequeue.StartAutoMergeCheckByPullHead(ctx, issue.PullRequest) // team removals don't reach the notifier
 	}
 	if comment == nil || !isAdd {
 		return nil, nil //nolint:nilnil // return nil because no comment was created or it is a removal

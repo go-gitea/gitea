@@ -35,6 +35,13 @@ func StartAutoMergeCheckByPullCommit(pullID int64, commitID string) {
 }
 
 func StartAutoMergeCheckByPullHead(ctx context.Context, pull *issues_model.PullRequest) {
+	if scheduled, err := db.Exist[pull_model.AutoMerge](ctx, builder.Eq{"pull_id": pull.ID}); !scheduled {
+		if err != nil {
+			log.Error("Exist AutoMerge: %v", err)
+		}
+		return
+	}
+
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return
@@ -53,16 +60,4 @@ func StartAutoMergeCheckByPullHead(ctx context.Context, pull *issues_model.PullR
 		return
 	}
 	StartAutoMergeCheckByPullCommit(pull.ID, commitID)
-}
-
-// StartAutoMergeCheckIfScheduled avoids opening the git repository for events on pull requests without a scheduled auto merge
-func StartAutoMergeCheckIfScheduled(ctx context.Context, pull *issues_model.PullRequest) {
-	scheduled, err := db.Exist[pull_model.AutoMerge](ctx, builder.Eq{"pull_id": pull.ID})
-	if err != nil {
-		log.Error("Exist AutoMerge: %v", err)
-		return
-	}
-	if scheduled {
-		StartAutoMergeCheckByPullHead(ctx, pull)
-	}
 }
