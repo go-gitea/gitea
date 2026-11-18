@@ -15,7 +15,6 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
-	"gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -290,14 +289,7 @@ func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullReques
 		return err
 	}
 
-	// if there is a scheduled merge for this pull request, start the auto merge check (again)
-	hasScheduledMerge, _, err := pull.GetScheduledMergeByPullID(ctx, pr.ID)
-	if err != nil {
-		return err
-	}
-	if hasScheduledMerge {
-		automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
-	}
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
 	return nil
 }
 
