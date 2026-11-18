@@ -5,7 +5,7 @@ package highlight
 
 import (
 	"crypto/sha256"
-	"encoding/binary"
+	"fmt"
 	"html/template"
 	"slices"
 	"strings"
@@ -74,28 +74,17 @@ func (cache *linesCache) add(key linesCacheKey, lines map[int]template.HTML) {
 
 // RenderCodeLinesByLexer highlights the zero-based lines with all preceding code as lexer context, the returned map is cached and must not be modified
 func RenderCodeLinesByLexer(lexer chroma.Lexer, code string, lineNumbers []int) map[int]template.HTML {
-	if len(lineNumbers) == 0 {
-		return nil
-	}
 	lineNumbers = slices.Compact(slices.Sorted(slices.Values(lineNumbers)))
-	key := linesCacheKey{digest: linesDigest(code, lineNumbers), lexer: lexer.Config()}
+	hash := sha256.New()
+	_, _ = fmt.Fprint(hash, lineNumbers)
+	_, _ = hash.Write(util.UnsafeStringToBytes(code))
+	key := linesCacheKey{digest: [sha256.Size]byte(hash.Sum(nil)), lexer: lexer.Config()}
 	if lines, ok := renderedLinesCache.get(key); ok {
 		return lines
 	}
 	lines := renderCodeLines(lexer, code, lineNumbers)
 	renderedLinesCache.add(key, lines)
 	return lines
-}
-
-func linesDigest(code string, lineNumbers []int) [sha256.Size]byte {
-	numbers := binary.LittleEndian.AppendUint64(nil, uint64(len(code)))
-	for _, line := range lineNumbers {
-		numbers = binary.LittleEndian.AppendUint64(numbers, uint64(line))
-	}
-	hash := sha256.New()
-	_, _ = hash.Write(numbers)
-	_, _ = hash.Write(util.UnsafeStringToBytes(code))
-	return [sha256.Size]byte(hash.Sum(nil))
 }
 
 func renderCodeLines(lexer chroma.Lexer, code string, lineNumbers []int) map[int]template.HTML {
@@ -107,11 +96,7 @@ func renderCodeLines(lexer chroma.Lexer, code string, lineNumbers []int) map[int
 			return nil
 		}
 	}
-	html, err := formatTokens(codeTokensForLines(iterator, lineNumbers))
-	if err != nil {
-		log.Error("Can't format code: %v", err)
-		return nil
-	}
+	html := formatTokens(codeTokensForLines(iterator, lineNumbers))
 	lines := make(map[int]template.HTML, len(lineNumbers))
 	for idx, line := range UnsafeSplitHighlightedLines(template.HTML(strings.Clone(string(html)))) { // drop the buffer's spare capacity, the cache budget counts length
 		lines[lineNumbers[idx]] = template.HTML(util.UnsafeBytesToString(line))

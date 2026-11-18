@@ -118,23 +118,17 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 		log.Error("Can't tokenize code: %v", err)
 		return htmlEscape(code)
 	}
-	html, err := formatTokens(iterator)
-	if err != nil {
-		log.Error("Can't format code: %v", err)
-		return htmlEscape(code)
-	}
-	return html
+	return formatTokens(iterator)
 }
 
-func formatTokens(iterator chroma.Iterator) (template.HTML, error) {
+func formatTokens(iterator chroma.Iterator) template.HTML {
 	formatter := chromahtml.New(chromahtml.WithClasses(true),
 		chromahtml.WithLineNumbers(false),
 		chromahtml.PreventSurroundingPre(true),
 	)
 	htmlBuf := &bytes.Buffer{}
-	// style not used for live site but need to pass something
-	err := formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
-	return template.HTML(util.UnsafeBytesToString(htmlBuf.Bytes())), err
+	_ = formatter.Format(htmlBuf, globalVars().githubStyles, iterator) // the style is unused with classes, and Format only fails in standalone mode
+	return template.HTML(util.UnsafeBytesToString(htmlBuf.Bytes()))
 }
 
 // RenderFullFile returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name

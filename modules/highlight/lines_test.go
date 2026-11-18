@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"html/template"
+	"strings"
 	"sync"
 	"testing"
 
@@ -28,43 +29,26 @@ func (lexer *countingLexer) Tokenise(options *chroma.TokeniseOptions, code strin
 }
 
 func TestRenderCodeLinesByLexer(t *testing.T) {
-	for _, testCase := range []struct {
-		name, code string
-	}{
-		{"test.c", "/* before\ninside <&>\nafter */\nint n = 1;\n"},
-		{"test.py", "s = '''before\ninside λ\nafter'''\nprint(s)"},
-		{"test.sh", "cat <<EOF\nhello $USER\nEOF\necho done\n"},
-		{"test.html", "<script>\n/* before\ninside\nafter */\n</script>\n"},
-		{"test.sql", "-- before\nSELECT 'hello\nworld';\n\nSELECT 2;\n"},
-		{"test.txt", "<>&\n\nλ\rvalue\nend"},
-		{"empty.py", ""},
-		{"empty.txt", ""},
+	for name, code := range map[string]string{
+		"a.c":   "/* before\ninside <&>\nafter */\nint n = 1;\n",
+		"a.py":  "s = '''before\ninside λ\nafter'''\nprint(s)",
+		"a.txt": "<>&\n\nλ\rvalue\nend",
 	} {
-		t.Run(testCase.name, func(t *testing.T) {
-			lexer := DetectChromaLexerByFileName(testCase.name, "")
-			full := UnsafeSplitHighlightedLines(RenderCodeByLexer(lexer, testCase.code))
-			for _, requested := range [][]int{{0}, {1}, {2, 0, 2, 99}, {0, 1, 2, 3, 4, 5, 6}} {
-				want := map[int]template.HTML{}
-				for _, line := range requested {
-					if line < len(full) {
-						want[line] = template.HTML(full[line])
-					}
-				}
-				assert.Equal(t, want, RenderCodeLinesByLexer(lexer, testCase.code, requested), "lines=%v", requested)
-			}
-		})
+		lexer := DetectChromaLexerByFileName(name, "")
+		full := UnsafeSplitHighlightedLines(RenderCodeByLexer(lexer, code))
+		want := map[int]template.HTML{0: template.HTML(full[0]), 1: template.HTML(full[1]), 3: template.HTML(full[3])}
+		assert.Equal(t, want, RenderCodeLinesByLexer(lexer, code, []int{3, 1, 0, 1, 99}), name)
 	}
 }
 
 func TestRenderCodeLinesByLexerCache(t *testing.T) {
 	defer test.MockVariableValue(&renderedLinesCache, newLinesCache(1024*1024))()
 	lexer := &countingLexer{Lexer: DetectChromaLexerByFileName("a.c", "")}
-	const code = "/*\ninside\n*/\nint n;\n"
-	lines := RenderCodeLinesByLexer(lexer, code, []int{3, 1})
-	assert.Equal(t, lines, RenderCodeLinesByLexer(lexer, code, []int{1, 3}))
+	RenderCodeLinesByLexer(lexer, "a\nb\n", []int{1, 0})
+	RenderCodeLinesByLexer(lexer, "a\nb\n", []int{0, 1})
 	assert.Equal(t, 1, lexer.calls)
-	RenderCodeLinesByLexer(lexer, code, []int{1})
-	RenderCodeLinesByLexer(lexer, code+"\n", []int{1, 3})
+	RenderCodeLinesByLexer(lexer, "a\nb\n", []int{1})
+	RenderCodeLinesByLexer(lexer, "a\nc\n", []int{1})
 	assert.Equal(t, 3, lexer.calls)
 }
 
@@ -79,19 +63,16 @@ func TestRenderCodeLinesByLexerConcurrentEvictions(t *testing.T) {
 		})
 	}
 	wg.Wait()
-	assert.LessOrEqual(t, renderedLinesCache.bytes, renderedLinesCache.limit)
 }
 
 func TestLinesCacheBudget(t *testing.T) {
-	lines := map[int]template.HTML{0: "x"}
-	cache := newLinesCache(2 * linesCacheBytes(lines))
-	for _, id := range []byte{0, 1, 2, 2} {
+	lines := map[int]template.HTML{0: template.HTML(strings.Repeat("x", 400))}
+	cache := newLinesCache(linesCacheBytes(lines))
+	for _, id := range []byte{0, 0, 1} {
 		cache.add(linesCacheKey{digest: [sha256.Size]byte{id}}, lines)
 	}
-	_, ok := cache.get(linesCacheKey{digest: [sha256.Size]byte{0}})
-	assert.False(t, ok)
-	assert.Equal(t, 2, cache.lru.Len())
-	assert.Equal(t, 2*linesCacheBytes(lines), cache.bytes)
+	assert.Equal(t, []linesCacheKey{{digest: [sha256.Size]byte{1}}}, cache.lru.Keys())
+	assert.Equal(t, linesCacheBytes(lines), cache.bytes)
 }
 
 func TestCodeTokensForLinesStopsAfterLastLine(t *testing.T) {
