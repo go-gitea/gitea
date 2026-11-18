@@ -31,7 +31,6 @@ import (
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	git_service "gitea.dev/services/git"
@@ -601,8 +600,7 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 }
 
 // UpdatePullsRefs update all the PRs head file pointers like /refs/pull/1/head so that it will be dependent by other operations
-func UpdatePullsRefs(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, update *repo_module.PushUpdateOptions) {
-	branch := update.RefFullName.BranchName()
+func UpdatePullsRefs(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string, pullRequestID int64) {
 	// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
 	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch)
 	if err != nil {
@@ -611,7 +609,7 @@ func UpdatePullsRefs(ctx context.Context, doer *user_model.User, repo *repo_mode
 		for _, pr := range prs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			if pr.Flow == issues_model.PullRequestFlowGithub {
-				if pr.ID != update.PullRequestID { // "update branch" adds no content of the pusher
+				if pr.ID != pullRequestID { // "update branch" adds no content of the pusher
 					if err := DisableAutoMergeIfNotWriter(ctx, doer, pr, "pushed_by_non_writer"); err != nil {
 						log.Error("DisableAutoMergeIfNotWriter: %v", err)
 					}

@@ -137,36 +137,30 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		}
 		return
 	}
-	var defaultMergeTitle, defaultMergeBody string
-	var defaultSquashMergeTitle, defaultSquashMergeBody string
-	var defaultSquashMergeCommitMessages string
 	if gitRepo != nil && !prInfo.IsPullRequestBroken && !pull.IsUnrelated() {
-		var err error
-		defaultMergeTitle, defaultMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, gitRepo, pull, mergeStyle)
+		defaultMergeTitle, defaultMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, gitRepo, pull, mergeStyle)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			log.Error("GetDefaultMergeMessage for style %s failed, error: %v", mergeStyle, err)
 		}
-		if prConfig.AllowSquash {
-			if mergeStyle == repo_model.MergeStyleSquash {
-				defaultSquashMergeTitle, defaultSquashMergeBody = defaultMergeTitle, defaultMergeBody
-			} else {
-				defaultSquashMergeTitle, defaultSquashMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, gitRepo, pull, repo_model.MergeStyleSquash)
+		for _, style := range mergeStyles {
+			if style.HideMergeMessageTexts {
+				continue
+			}
+			style.MergeTitleFieldText, style.MergeMessageFieldText = defaultMergeTitle, defaultMergeBody
+			if style.Name != repo_model.MergeStyleSquash {
+				continue
+			}
+			if mergeStyle != repo_model.MergeStyleSquash {
+				style.MergeTitleFieldText, style.MergeMessageFieldText, err = pull_service.GetDefaultMergeMessage(ctx, gitRepo, pull, repo_model.MergeStyleSquash)
 				if err != nil && !errors.Is(err, util.ErrNotExist) {
 					log.Error("GetDefaultMergeMessage for squash failed, error: %v", err)
 				}
 			}
-			defaultSquashMergeCommitMessages, err = pull_service.GetSquashMergeCommitMessages(ctx, pull)
+			squashCommitMessages, err := pull_service.GetSquashMergeCommitMessages(ctx, pull)
 			if err != nil && !errors.Is(err, util.ErrNotExist) {
 				log.Error("GetSquashMergeCommitMessages failed, error: %v", err)
 			}
-		}
-	}
-
-	for _, style := range mergeStyles {
-		if style.Name == repo_model.MergeStyleSquash {
-			style.MergeTitleFieldText, style.MergeMessageFieldText = defaultSquashMergeTitle, git.CommitMessageMerge(defaultSquashMergeCommitMessages, defaultSquashMergeBody)
-		} else if !style.HideMergeMessageTexts {
-			style.MergeTitleFieldText, style.MergeMessageFieldText = defaultMergeTitle, defaultMergeBody
+			style.MergeMessageFieldText = git.CommitMessageMerge(squashCommitMessages, style.MergeMessageFieldText)
 		}
 	}
 

@@ -32,7 +32,6 @@ var statusCheckKinds = []statusCheckKind{statusCheckFailing, statusCheckPending,
 type pullStatusCheck struct {
 	StatusContext, StatusDescription, StatusTargetURL string
 	StatusState                                       commitstatus.CommitStatusState
-	CheckKind                                         statusCheckKind
 	ActionStatus                                      string
 	IsRequired                                        bool
 }
@@ -47,48 +46,44 @@ func (g *statusCheckGroup) GroupTitle(locale translation.Locale) template.HTML {
 }
 
 func (d *pullCommitStatusCheckData) groupStatuses(commitStatuses []*git_model.CommitStatus, requiredContexts []string, actionsStatuses actions_module.CommitActionsStatusMap, locale translation.Locale) {
+	d.counts = map[statusCheckKind]int{}
+	byKind := map[statusCheckKind][]*pullStatusCheck{}
 	checks := make([]*pullStatusCheck, len(commitStatuses))
 	for i, cs := range commitStatuses {
 		checks[i] = &pullStatusCheck{
 			StatusContext: cs.Context, StatusDescription: cs.Description, StatusTargetURL: cs.TargetURL,
-			StatusState: cs.State, CheckKind: statusCheckSkipped, ActionStatus: actionsStatuses.IconStatus(cs),
+			StatusState: cs.State, ActionStatus: actionsStatuses.IconStatus(cs),
 		}
+		kind := statusCheckSkipped
 		switch {
 		case cs.State.IsError() || cs.State.IsFailure() || cs.State.IsWarning():
-			checks[i].CheckKind = statusCheckFailing
+			kind = statusCheckFailing
 		case cs.State.IsPending() && actionsStatuses[cs.ID] == actions_model.StatusRunning:
-			checks[i].CheckKind = statusCheckInProgress
+			kind = statusCheckInProgress
 		case cs.State.IsPending():
-			checks[i].CheckKind = statusCheckPending
+			kind = statusCheckPending
 		case cs.State.IsSuccess():
-			checks[i].CheckKind = statusCheckSuccessful
+			kind = statusCheckSuccessful
 		}
+		d.counts[kind]++
+		byKind[kind] = append(byKind[kind], checks[i])
 	}
 	for _, requiredContext := range requiredContexts {
 		matchesRequiredContext := createRequiredContextMatcher(requiredContext)
 		contextFound := false
-		for i, cs := range commitStatuses {
-			if matchesRequiredContext(cs.Context) {
-				checks[i].IsRequired = true
+		for _, check := range checks {
+			if matchesRequiredContext(check.StatusContext) {
+				check.IsRequired = true
 				contextFound = true
 			}
 		}
 		if !contextFound {
-			checks = append(checks, &pullStatusCheck{
+			d.counts[statusCheckExpected]++
+			byKind[statusCheckPending] = append(byKind[statusCheckPending], &pullStatusCheck{
 				StatusContext: requiredContext, StatusDescription: locale.TrString("repo.pulls.status_checks_waiting"),
-				StatusState: commitstatus.CommitStatusPending, CheckKind: statusCheckExpected, IsRequired: true,
+				StatusState: commitstatus.CommitStatusPending, IsRequired: true,
 			})
 		}
-	}
-	d.counts = map[statusCheckKind]int{}
-	byKind := map[statusCheckKind][]*pullStatusCheck{}
-	for _, check := range checks {
-		d.counts[check.CheckKind]++
-		kind := check.CheckKind
-		if kind == statusCheckExpected {
-			kind = statusCheckPending
-		}
-		byKind[kind] = append(byKind[kind], check)
 	}
 	for _, kind := range statusCheckKinds {
 		if checks := byKind[kind]; len(checks) > 0 {
@@ -153,16 +148,13 @@ type statusCheckProgressSegment struct {
 func (d *pullCommitStatusCheckData) progressSegments() (segments []statusCheckProgressSegment) {
 	const segmentGap = 5
 	total, start := float64(d.count(statusCheckKinds...)), segmentGap/2.0
-	for _, kind := range []statusCheckKind{statusCheckSuccessful, statusCheckSkipped, statusCheckPending, statusCheckFailing} {
-		count := d.count(kind)
-		if kind == statusCheckPending {
-			count += d.count(statusCheckInProgress, statusCheckExpected)
-		}
+	for _, kinds := range [][]statusCheckKind{{statusCheckSuccessful}, {statusCheckSkipped}, {statusCheckPending, statusCheckInProgress, statusCheckExpected}, {statusCheckFailing}} {
+		count := d.count(kinds...)
 		if count == 0 {
 			continue
 		}
 		length := 100 * float64(count) / total
-		segments = append(segments, statusCheckProgressSegment{StrokeClass: kind.strokeClass, DashLength: max(length-segmentGap, 0), DashOffset: -start})
+		segments = append(segments, statusCheckProgressSegment{StrokeClass: kinds[0].strokeClass, DashLength: max(length-segmentGap, 0), DashOffset: -start})
 		start += length
 	}
 	if len(segments) == 1 {

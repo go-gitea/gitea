@@ -42,8 +42,6 @@ func hookPostReceiveCollectPushUpdates(opts *private.HookOptions, repo *repo_mod
 				PusherName:   opts.UserName,
 				RepoUserName: repo.OwnerName,
 				RepoName:     repo.Name,
-
-				PullRequestID: opts.PullRequestID,
 			}
 			updates = append(updates, option)
 		}
@@ -59,7 +57,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 		}
 		branchNames = append(branchNames, update.RefFullName.BranchName())
 		if !update.IsDelRef() {
-			pull_service.UpdatePullsRefs(ctx, ctx.Doer, repo, update)
+			pull_service.UpdatePullsRefs(ctx, ctx.Doer, repo, update.RefFullName.BranchName(), opts.PullRequestID)
 		}
 	}
 

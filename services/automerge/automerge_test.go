@@ -12,8 +12,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
-	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/test"
 	"gitea.dev/services/automergequeue"
 	issue_service "gitea.dev/services/issue"
@@ -69,11 +67,10 @@ func TestAutoMergeDisabledOrCanceled(t *testing.T) {
 	writer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: pr.BaseRepo.OwnerID})
 	pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
 	require.NoError(t, ScheduleAutoMerge(t.Context(), writer, pr, repo_model.MergeStyleMerge, "title", false))
-	headPush := &repo_module.PushUpdateOptions{RefFullName: git.RefNameFromBranch(pr.HeadBranch)}
-	pull_service.UpdatePullsRefs(t.Context(), writer, pr.HeadRepo, headPush)
-	pull_service.UpdatePullsRefs(t.Context(), pusher, pr.HeadRepo, &repo_module.PushUpdateOptions{RefFullName: headPush.RefFullName, PullRequestID: pr.ID})
+	pull_service.UpdatePullsRefs(t.Context(), writer, pr.HeadRepo, pr.HeadBranch, 0)
+	pull_service.UpdatePullsRefs(t.Context(), pusher, pr.HeadRepo, pr.HeadBranch, pr.ID)
 	unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
-	pull_service.UpdatePullsRefs(t.Context(), pusher, pr.HeadRepo, headPush)
+	pull_service.UpdatePullsRefs(t.Context(), pusher, pr.HeadRepo, pr.HeadBranch, 0)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge, PosterID: pusher.ID, Content: "pushed_by_non_writer"})
 
 	require.NoError(t, ScheduleAutoMerge(t.Context(), writer, pr, repo_model.MergeStyleMerge, "title", false))

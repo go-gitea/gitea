@@ -2,7 +2,6 @@
 import {computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {createTippy} from '../modules/tippy.ts';
-import {generateElemId} from '../utils/dom.ts';
 import type {Instance} from 'tippy.js';
 
 type MergeStyle = {
@@ -45,7 +44,6 @@ const emit = defineEmits<{mergeStyleChange: [style: string]}>();
 const mergeStyleManuallyMerged = 'manually-merged';
 
 const forceMerge = shallowRef(false);
-const bypassId = generateElemId('pull-merge-bypass-');
 
 const mergeStyle = shallowRef(mergeForm.defaultMergeStyle);
 const mergeStyleDetail = computed(() => mergeForm.mergeStyles.find((style) => style.name === mergeStyle.value)!);
@@ -102,8 +100,8 @@ async function toggleActionForm(show: boolean) {
 <template>
   <div :data-pull-merge-busy="showActionForm || forceMerge ? '' : undefined">
     <div class="ui checkbox tw-flex tw-mb-4" v-if="!showActionForm && mergeForm.canBypassMerge && mergeStyle !== mergeStyleManuallyMerged">
-      <input type="checkbox" v-model="forceMerge" :id="bypassId">
-      <label class="tw-text-red tw-cursor-pointer" :for="bypassId">{{ mergeForm.textBypassRules }}</label>
+      <input type="checkbox" v-model="forceMerge">
+      <label class="tw-text-red tw-cursor-pointer">{{ mergeForm.textBypassRules }}</label>
     </div>
 
     <form ref="actionForm" class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">

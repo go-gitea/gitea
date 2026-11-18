@@ -1,7 +1,6 @@
 import {createApp, type App, type Component} from 'vue';
 import {GET} from '../modules/fetch.ts';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
-import {localUserSettings} from '../modules/user-settings.ts';
 import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
 const reloadingIntervalAttr = 'data-pull-merge-box-reloading-interval';
@@ -98,11 +97,6 @@ class PullMergeBox {
     await this.initContent();
     if (scrollTop) this.el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTo({top: scrollTop, behavior: 'instant'});
   }
-}
-
-export function initRepoPullCloneUrl(el: HTMLElement) {
-  const url = el.getAttribute(`data-clone-${localUserSettings.getString('repo-clone-protocol')}`);
-  if (url) el.textContent = url;
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {

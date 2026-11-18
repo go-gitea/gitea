@@ -13,13 +13,10 @@
 		{{$args := $pull.GetInstructionsCliArgs}}
 		<div class="ui secondary segment tw-font-mono tw-overflow-x-auto tw-whitespace-nowrap">
 			{{$gitRemoteName := ctx.RootData.SystemConfig.Repository.GitGuideRemoteName.Value ctx}}
-			{{if ne $pull.Flow 0}}
-			<div>git fetch -u {{$gitRemoteName}} {{$pull.GetGitHeadRefName}}:{{$args.LocalBranchArg}}</div>
-			{{else if eq $pull.HeadRepo.ID $pull.BaseRepo.ID}}
-			<div>git fetch -u {{$gitRemoteName}} {{$args.HeadBranchArg}}:{{$args.LocalBranchArg}}</div>
+			{{if eq $pull.Flow 0}}
+			<div>git fetch -u {{if ne $pull.HeadRepo.ID $pull.BaseRepo.ID}}{{$pull.HeadRepo.HTMLURL ctx}}{{else}}{{$gitRemoteName}}{{end}} {{$args.HeadBranchArg}}:{{$args.LocalBranchArg}}</div>
 			{{else}}
-			{{$cloneLink := $pull.HeadRepo.CloneLink ctx ctx.RootData.SignedUser}}
-			<div>git fetch -u <span data-global-init="initRepoPullCloneUrl"{{if $cloneLink.SupportHTTPS}} data-clone-https="{{$cloneLink.HTTPS}}"{{end}}{{if $cloneLink.SupportSSH}} data-clone-ssh="{{$cloneLink.SSH}}"{{end}}>{{Iif $cloneLink.SupportHTTPS $cloneLink.HTTPS $cloneLink.SSH}}</span> {{$args.HeadBranchArg}}:{{$args.LocalBranchArg}}</div>
+			<div>git fetch -u {{$gitRemoteName}} {{$pull.GetGitHeadRefName}}:{{$args.LocalBranchArg}}</div>
 			{{end}}
 			<div>git checkout {{$args.LocalBranchArg}}</div>
 		</div>

@@ -13,10 +13,16 @@
   background: var(--color-grey-light);
 }
 
+.merge-box-status {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
 .merge-section > .item,
 .merge-box-checks > summary {
   flex-wrap: wrap;
-  gap: 8px;
   padding: 16px;
 }
 
@@ -29,15 +35,7 @@
   display: none;
 }
 
-.merge-box-status {
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-}
-
-.merge-box-detail,
-.merge-box-file > .svg {
+.merge-box-detail {
   color: var(--color-text-light-2);
 }
 
@@ -89,7 +87,6 @@ details[open] > summary > .merge-box-chevron {
 .merge-box-menu .item > .svg {
   align-self: flex-start;
   margin-top: 2px;
-  color: var(--color-text-light-2);
 }
 
 .merge-box-menu .item[aria-checked="false"] > .svg {
