@@ -1,0 +1,222 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package auth
+
+import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"net/http"
+	"testing"
+	"time"
+
+	auth_model "gitea.dev/models/auth"
+	codespace_model "gitea.dev/models/codespace"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	module_auth "gitea.dev/modules/auth"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	codespace_service "gitea.dev/services/codespace"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
+)
+
+func TestCodespaceTokenBasicAuth(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	token, codespaceID := createAuthCodespaceToken(t)
+	req, err := http.NewRequest(http.MethodGet, "https://example.test/api/v1/user", nil)
+	require.NoError(t, err)
+	req.SetBasicAuth(token, "x-oauth-basic")
+	store := make(reqctx.ContextData)
+
+	u, err := NewGroup(&CodespaceToken{}, &Basic{}).Verify(req, nil, store, nil)
+	require.NoError(t, err)
+	require.NotNil(t, u)
+	assert.EqualValues(t, 1, u.ID)
+	assert.True(t, u.IsAdmin)
+	assert.False(t, user_model.DoerIsSiteAdminFullAccess(u))
+	assert.Equal(t, CodespaceTokenMethodName, store.GetData()["LoginMethod"])
+	assert.Equal(t, true, store.GetData()["IsApiToken"])
+	scope, ok := user_model.GetDoerTokenScope(u)
+	require.True(t, ok)
+	assertContainsCodespaceScopes(t, scope)
+	snapshot, ok := store.GetData()[module_auth.CodespaceTokenAuthDataKey].(*codespace_service.GiteaTokenAuthSnapshot)
+	require.True(t, ok)
+	assert.Equal(t, codespaceID, snapshot.CodespaceID)
+	assert.EqualValues(t, 2, snapshot.RepoID)
+}
+
+func TestCodespaceTokenBearerAuth(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	token, _ := createAuthCodespaceToken(t)
+	req, err := http.NewRequest(http.MethodGet, "https://example.test/api/v1/user", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	store := make(reqctx.ContextData)
+
+	u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, store, nil)
+	require.NoError(t, err)
+	require.NotNil(t, u)
+	assert.EqualValues(t, 1, u.ID)
+	assert.Equal(t, CodespaceTokenMethodName, store.GetData()["LoginMethod"])
+	scope, ok := user_model.GetDoerTokenScope(u)
+	require.True(t, ok)
+	assertContainsCodespaceScopes(t, scope)
+}
+
+func TestCodespaceTokenQueryAuthIsIgnored(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	token, _ := createAuthCodespaceToken(t)
+
+	for _, tc := range []struct {
+		name         string
+		path         string
+		disableQuery bool
+	}{
+		{name: "API token", path: "/api/v1/user?token="},
+		{name: "API access_token", path: "/api/v1/user?access_token="},
+		{name: "query authentication disabled", path: "/api/v1/user?token=", disableQuery: true},
+		{name: "web token", path: "/user2/repo1?token="},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.DisableQueryAuthToken, tc.disableQuery)()
+			req, err := http.NewRequest(http.MethodGet, "https://example.test"+tc.path+token, nil)
+			require.NoError(t, err)
+
+			u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, make(reqctx.ContextData), nil)
+			require.NoError(t, err)
+			assert.Nil(t, u)
+		})
+	}
+}
+
+func TestCodespaceTokenRejectedStopsAuthGroupFallback(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, "https://example.test/api/v1/user", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer gcs_bad")
+	fallback := &fallbackAuthMethod{}
+	group := NewGroup(&CodespaceToken{}, &OAuth2{}, fallback)
+
+	u, err := group.Verify(req, nil, make(reqctx.ContextData), nil)
+	assert.Nil(t, u)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrAuthMethodTerminal)
+	assert.False(t, fallback.called)
+}
+
+func TestCodespaceTokenRejectValidStopsFallback(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	token, _ := createAuthCodespaceToken(t)
+	req, err := http.NewRequest(http.MethodGet, "https://example.test/user/settings", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	fallback := &fallbackAuthMethod{}
+	group := NewGroup(&CodespaceToken{RejectValid: true}, fallback)
+
+	u, err := group.Verify(req, nil, make(reqctx.ContextData), nil)
+	assert.Nil(t, u)
+	require.Error(t, err)
+	assert.True(t, IsCodespaceTokenForbidden(err))
+	assert.False(t, fallback.called)
+}
+
+func TestCodespaceTokenUnavailableStateIsForbidden(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	token, codespaceID := createAuthCodespaceToken(t)
+	_, err := db.GetEngine(t.Context()).
+		ID(codespaceID).
+		Cols("status").
+		Update(&codespace_model.Codespace{Status: codespace_model.StatusStopped})
+	require.NoError(t, err)
+	req, err := http.NewRequest(http.MethodGet, "https://example.test/api/v1/user", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	u, err := NewGroup(&CodespaceToken{}, &OAuth2{}).Verify(req, nil, make(reqctx.ContextData), nil)
+	assert.Nil(t, u)
+	require.Error(t, err)
+	assert.True(t, IsCodespaceTokenForbidden(err))
+}
+
+type fallbackAuthMethod struct {
+	called bool
+}
+
+func (m *fallbackAuthMethod) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
+	m.called = true
+	return user_model.NewGhostUser(), nil
+}
+
+func (m *fallbackAuthMethod) Name() string {
+	return "fallback"
+}
+
+func createAuthCodespaceToken(t *testing.T) (string, int64) {
+	t.Helper()
+	original := setting.Codespace.Enabled
+	setting.Codespace.Enabled = true
+	t.Cleanup(func() { setting.Codespace.Enabled = original })
+
+	manager := &codespace_model.Manager{
+		Name:           "manager",
+		RuntimeState:   codespace_model.ManagerRuntimeStateOnline,
+		TagsJSON:       "[]",
+		CreatedUnix:    time.Now().Unix(),
+		LastOnlineUnix: time.Now().Unix(),
+	}
+	manager.GenerateManagerSecret()
+	require.NoError(t, db.Insert(t.Context(), manager))
+
+	codespaceID := int64(1212)
+	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
+		ID:                codespaceID,
+		UserID:            1,
+		RepoID:            2,
+		RefType:           "branch",
+		RefName:           "main",
+		EnvironmentTag:    "default",
+		CommitSHA:         "0123456789abcdef0123456789abcdef01234567",
+		ManagerID:         manager.ID,
+		Status:            codespace_model.StatusRunning,
+		OperationRVersion: 1,
+		AutoStopMode:      codespace_model.AutoStopModeDefault,
+		CreatedUnix:       time.Now().Unix(),
+		UpdatedUnix:       time.Now().Unix(),
+	}))
+	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	publicKey, err := ssh.NewPublicKey(privateKey.Public())
+	require.NoError(t, err)
+	result, err := codespace_service.RequestRuntimeAccess(t.Context(), manager, codespace_service.RequestRuntimeAccessOptions{
+		CodespaceID:       codespaceID,
+		OperationRVersion: 1,
+		GitSSHPublicKey:   publicKey.Marshal(),
+	})
+	require.NoError(t, err)
+	return result.Token, codespaceID
+}
+
+func assertContainsCodespaceScopes(t *testing.T, scope auth_model.AccessTokenScope) {
+	t.Helper()
+	for _, required := range []auth_model.AccessTokenScope{
+		auth_model.AccessTokenScopeWriteIssue,
+		auth_model.AccessTokenScopeWriteRepository,
+		auth_model.AccessTokenScopeReadUser,
+	} {
+		ok, err := scope.HasScope(required)
+		require.NoError(t, err)
+		assert.True(t, ok)
+	}
+	ok, err := scope.HasScope(auth_model.AccessTokenScopeWriteUser)
+	require.NoError(t, err)
+	assert.False(t, ok)
+}

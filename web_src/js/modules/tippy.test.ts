@@ -1,6 +1,9 @@
 import {userEvent} from 'vitest/browser';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {availableSizeForPlacement, createTippy} from './tippy.ts';
+import tippyStyles from '../../css/modules/tippy.css?inline';
+
+afterEach(() => vi.restoreAllMocks());
 
 test('createTippy handles keys in menus only', async () => {
   const menuButton = createElementFromHTML('<button>menu</button>');
@@ -47,4 +50,44 @@ test('availableSizeForPlacement', () => {
 
   // the placement offset eats into the space on that axis
   expect(availableSizeForPlacement(rect({top: 400, bottom: 432}), 'bottom-end', -6).height).toEqual(554);
+});
+
+test('limited popups use the larger side and reposition after content changes', async () => {
+  const style = document.createElement('style');
+  style.textContent = tippyStyles;
+  document.head.append(style);
+  const button = createElementFromHTML<HTMLButtonElement>('<button style="position: fixed; left: 100px; width: 100px; height: 32px">Open</button>');
+  button.style.top = `${Math.floor(window.innerHeight * 0.65)}px`;
+  document.body.append(button);
+  const content = createElementFromHTML<HTMLElement>('<div style="width: 240px">Content</div>');
+  content.style.height = `${window.innerHeight * 2}px`;
+  const instance = createTippy(button, {
+    content, placement: 'bottom-end', trigger: 'manual', interactive: true,
+    arrow: false, limitSizeToViewport: {vertical: true},
+  });
+  try {
+    instance.show();
+    await instance.popperInstance!.update();
+    const box = instance.popper.querySelector<HTMLElement>('.tippy-box')!;
+    const scroll = instance.popper.querySelector<HTMLElement>('.tippy-content')!;
+    expect(box.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+    expect(box.getBoundingClientRect().bottom).toBeLessThan(button.getBoundingClientRect().top);
+    expect(scroll.scrollHeight).toBeGreaterThan(scroll.clientHeight);
+    scroll.scrollTop = scroll.scrollHeight;
+    expect(scroll.scrollTop).toBeGreaterThan(0);
+
+    content.style.height = '30px';
+    await instance.popperInstance!.update();
+    expect(box.getBoundingClientRect().top).toBeGreaterThan(button.getBoundingClientRect().bottom);
+    expect(box.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight);
+
+    content.style.height = `${window.innerHeight * 2}px`;
+    await instance.popperInstance!.update();
+    expect(box.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+    expect(box.getBoundingClientRect().bottom).toBeLessThan(button.getBoundingClientRect().top);
+  } finally {
+    instance.destroy();
+    button.remove();
+    style.remove();
+  }
 });

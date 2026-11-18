@@ -9,6 +9,7 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httpcache"
 	"gitea.dev/modules/httplib"
@@ -20,7 +21,7 @@ import (
 )
 
 func checkDownloadTokenScope(ctx *context.Context) bool {
-	context.CheckRepoScopedToken(ctx, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, unit.TypeCode, auth_model.Read)
 	return !ctx.Written()
 }
 

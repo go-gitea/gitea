@@ -5,12 +5,42 @@ package repo
 
 import (
 	"context"
+	"errors"
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 
 	"xorm.io/builder"
 )
+
+// ShareForkTree reports whether both repositories descend from the same root repository.
+func ShareForkTree(ctx context.Context, first, second *Repository) (bool, error) {
+	rootID := func(repo *Repository) (int64, error) {
+		visited := map[int64]struct{}{}
+		for repo != nil {
+			if _, ok := visited[repo.ID]; ok {
+				return 0, errors.New("repository fork tree contains a cycle")
+			}
+			visited[repo.ID] = struct{}{}
+			if !repo.IsFork {
+				return repo.ID, nil
+			}
+			var err error
+			repo, err = GetRepositoryByID(ctx, repo.ForkID)
+			if err != nil {
+				return 0, err
+			}
+		}
+		return 0, errors.New("repository is required")
+	}
+
+	firstRootID, err := rootID(first)
+	if err != nil {
+		return false, err
+	}
+	secondRootID, err := rootID(second)
+	return firstRootID == secondRootID, err
+}
 
 // GetRepositoriesByForkID returns all repositories with given fork ID.
 func GetRepositoriesByForkID(ctx context.Context, forkID int64) ([]*Repository, error) {

@@ -1,0 +1,45 @@
+{{if .Codespaces}}
+	<div class="flex-divided-list codespace-list">
+		{{range $codespace := .Codespaces}}
+			<div class="item flex-relaxed-list" id="codespace-row-{{$codespace.ID}}">
+				<div class="flex-left-right">
+					<span class="list-item-large-title flex-text-inline tw-flex-1 tw-min-w-0">
+						{{svg "octicon-codespaces" 16}}
+						<a class="muted gt-ellipsis" href="{{AppSubUrl}}/-/codespaces/{{$codespace.ID}}{{QueryBuild "?" "return_to" $.CodespaceListReturnTo}}" data-tooltip-content="{{if $codespace.RepoFullName}}{{$codespace.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}">{{if $codespace.RepoFullName}}{{$codespace.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}</a>
+					</span>
+					<span class="ui tiny label codespace-state-label codespace-state-{{$codespace.DisplayStatus}}">{{ctx.Locale.Tr $codespace.DisplayStatusKey}}</span>
+				</div>
+				<div class="list-item-secondary-bar">
+					<div class="flex-text-block tw-flex-wrap">
+						<div class="flex-text-inline">
+							{{svg "octicon-git-branch" 14}}
+							<span class="gt-ellipsis tw-max-w-[300px]" data-tooltip-content="{{$codespace.RefDisplayName}}">{{$codespace.RefDisplayName}}</span>
+						</div>
+						<div class="flex-text-inline">
+							{{svg "octicon-server" 14}}
+							<span class="gt-ellipsis tw-max-w-[300px]" data-tooltip-content="{{$codespace.EnvironmentTag}}">{{$codespace.EnvironmentTag}}</span>
+						</div>
+						<div class="flex-text-inline">
+							{{svg "octicon-clock" 14}}
+							{{ctx.Locale.Tr "codespace.last_active"}}: {{if $codespace.LastActiveUnix}}{{DateUtils.TimeSince $codespace.LastActiveUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
+		{{end}}
+	</div>
+{{else}}
+	<div class="empty-placeholder">
+		{{svg "octicon-codespaces" 48}}
+		<h2>{{ctx.Locale.Tr "codespace.empty"}}</h2>
+		{{if .Keyword}}
+			<p>{{ctx.Locale.Tr "codespace.search_empty_desc"}}</p>
+		{{else}}
+			{{with .CodespaceRepositoryOwner}}
+				<p>{{ctx.Locale.Tr "codespace.empty_repository_owner_desc" (.ShortName 40)}}</p>
+			{{else}}
+				<p>{{ctx.Locale.Tr "codespace.empty_desc"}}</p>
+			{{end}}
+		{{end}}
+	</div>
+{{end}}

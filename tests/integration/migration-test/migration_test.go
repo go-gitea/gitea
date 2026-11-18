@@ -174,7 +174,7 @@ func doMigrationTest(t *testing.T, version string) {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	currentEngine.Close()
 
 	// We do this a second time to ensure that there is not a problem with retained indices
@@ -182,7 +182,7 @@ func doMigrationTest(t *testing.T, version string) {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	currentEngine.Close()
 }

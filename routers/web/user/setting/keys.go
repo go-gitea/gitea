@@ -316,8 +316,8 @@ func DeleteKey(ctx *context.Context) {
 func loadKeysData(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.ssh_gpg_keys")
 	keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
-		OwnerID:    ctx.Doer.ID,
-		NotKeytype: asymkey_model.KeyTypePrincipal,
+		OwnerID:  ctx.Doer.ID,
+		KeyTypes: []asymkey_model.KeyType{asymkey_model.KeyTypeUser},
 	})
 	if err != nil {
 		ctx.ServerErrorAuto(err)

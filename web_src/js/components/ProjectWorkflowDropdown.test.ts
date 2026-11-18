@@ -8,9 +8,10 @@ test('label filter gets focus on open and keeps space, enter and left/right insi
   const app = createApp(ProjectWorkflowDropdown, {label: 'Labels', options: [{value: 1, text: 'bug', html: 'bug'}], readonly: false, modelValue: []});
   app.mount(root);
   await nextTick();
-  const menu = root.querySelector('button')!._tippy;
-  menu.show();
+  const button = root.querySelector('button')!;
+  const menu = button._tippy;
   const filter = menu.popper.querySelector('input')!;
+  await userEvent.click(button);
   await expect.poll(() => document.activeElement).toBe(filter);
   await userEvent.keyboard('a b{ArrowLeft}c{Enter}');
   expect(filter.value).toEqual('a cb');

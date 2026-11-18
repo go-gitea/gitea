@@ -4,13 +4,37 @@
 package context
 
 import (
+	"context"
 	"net/http"
 	"slices"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	module_auth "gitea.dev/modules/auth"
+	"gitea.dev/modules/reqctx"
 )
+
+// isPublicRepository applies anonymous visibility to ungranted Codespace reads.
+func isPublicRepository(ctx context.Context, repo *repo_model.Repository) bool {
+	return repo != nil && !repo.IsPrivate && repo.LoadOwner(ctx) == nil && repo.Owner != nil && repo.Owner.Visibility.IsPublic()
+}
+
+type codespaceTokenRepoSnapshot interface {
+	CodespaceTokenRepoID() int64
+	CodespaceTokenAllowsAnyRepository(repoID int64) bool
+	CodespaceTokenAllowsRepository(repoID int64, unitType unit.Type, mode perm.AccessMode) bool
+}
+
+func codespaceTokenSnapshotFromData(data reqctx.ContextData) (codespaceTokenRepoSnapshot, bool) {
+	snapshot, ok := data[module_auth.CodespaceTokenAuthDataKey].(codespaceTokenRepoSnapshot)
+	if !ok {
+		return nil, false
+	}
+	return snapshot, true
+}
 
 // CheckTokenScopes checks whether the authenticated API token contains any of the given scopes.
 func CheckTokenScopes(ctx *Context, scopes ...auth_model.AccessTokenScope) {
@@ -76,6 +100,20 @@ func RequireUnitReader(unitTypes ...unit.Type) func(ctx *Context) {
 }
 
 // CheckRepoScopedToken checks whether the authenticated API token has repo scope.
-func CheckRepoScopedToken(ctx *Context, level auth_model.AccessTokenScopeLevel) {
+func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, unitType unit.Type, level auth_model.AccessTokenScopeLevel) {
+	if snapshot, ok := codespaceTokenSnapshotFromData(ctx.Data); ok {
+		mode := perm.AccessModeRead
+		if level == auth_model.Write {
+			mode = perm.AccessModeWrite
+		}
+		allowed := repo != nil && snapshot.CodespaceTokenAllowsRepository(repo.ID, unitType, mode)
+		if !allowed && mode == perm.AccessModeRead && repo != nil {
+			allowed = isPublicRepository(ctx, repo)
+		}
+		if !allowed {
+			ctx.HTTPError(http.StatusForbidden)
+			return
+		}
+	}
 	CheckTokenScopes(ctx, auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)...)
 }

@@ -14,6 +14,16 @@
 						<a class="ui tiny button" href="{{.SourcePath}}">
 							{{ctx.Locale.Tr "repo.diff.browse_source"}}
 						</a>
+						{{template "repo/codespace_source_button" (dict
+							"Enabled" $.CodespaceSourcePanelEnabled
+							"ButtonClasses" "primary tiny"
+							"Codespaces" $.CodespaceSourcePanelRows
+							"RefType" $.CodespaceSourceRefType
+							"RefName" $.CodespaceSourceRefName
+							"RefLabel" $.CodespaceSourceRefLabel
+							"CreateURL" $.CodespaceSourceCreateURL
+							"CsrfTokenHtml" $.CsrfTokenHtml
+						)}}
 						{{if and ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
 							<div class="ui dropdown tiny button">
 								{{ctx.Locale.Tr "repo.commit.operations"}}
