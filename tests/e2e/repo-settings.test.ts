@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {apiCreateBranchProtection, apiCreateRepo, apiCreateWebhookWithDelivery, login, randomString} from './utils.ts';
+import {apiCreateBranchProtection, apiCreateRepo, apiCreateWebhook, apiTestWebhook, login, randomString} from './utils.ts';
 
 test('branch protection rule keeps its push allowlist and dragged priority', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
@@ -50,7 +50,9 @@ test('webhook delivery', async ({page, request}) => {
   const [hookId] = await Promise.all([
     (async () => {
       await apiCreateRepo(request, {name: repo});
-      return apiCreateWebhookWithDelivery(request, owner, repo);
+      const id = await apiCreateWebhook(request, owner, repo, 'http://127.0.0.1/webhook', {active: false});
+      await apiTestWebhook(request, owner, repo, id);
+      return id;
     })(),
     login(page),
   ]);
