@@ -866,10 +866,16 @@ func getRefNameLegacy(ctx *Base, repo *Repository, reqPath, extraRef string) (re
 	if refName := getRefName(ctx, repo, reqRefPath, git.RefTypeTag); refName != "" {
 		return refName, git.RefTypeTag, false
 	}
-	if git.IsStringValidObjectID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), reqRefPathParts[0]) {
-		// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
-		repo.TreePath = strings.Join(reqRefPathParts[1:], "/")
-		return reqRefPathParts[0], git.RefTypeCommit, false
+	if git.IsStringValidObjectID(repo.GetObjectFormat(), reqRefPathParts[0], 4) {
+		if repo.GitRepo != nil {
+			if commit, err := repo.GitRepo.GetCommit(ctx, reqRefPathParts[0]); err == nil && commit != nil {
+				repo.TreePath = strings.Join(reqRefPathParts[1:], "/")
+				return commit.ID.String(), git.RefTypeCommit, false
+			}
+		} else if len(reqRefPathParts[0]) == repo.GetObjectFormat().FullLength() {
+			repo.TreePath = strings.Join(reqRefPathParts[1:], "/")
+			return reqRefPathParts[0], git.RefTypeCommit, false
+		}
 	}
 	// FIXME: the old code falls back to default branch if "ref" doesn't exist, there could be an edge case:
 	// "README?ref=no-such" would read the README file from the default branch, but the user might expect a 404

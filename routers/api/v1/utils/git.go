@@ -11,6 +11,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
@@ -52,7 +53,8 @@ func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, in
 		}
 	}
 	if refCommit.RefName == "" {
-		if git.IsStringValidObjectID(git.ObjectFormatFromName(repo.ObjectFormatName), inputRef, minCommitIDLen...) {
+		minLen := util.OptionalArg(minCommitIDLen, 4)
+		if git.IsStringValidObjectID(git.ObjectFormatFromName(repo.ObjectFormatName), inputRef, minLen) {
 			refCommit.RefName = git.RefNameFromCommit(inputRef)
 		}
 	}
