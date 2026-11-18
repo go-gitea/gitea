@@ -8,37 +8,56 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
-// SyncFile synchronizes the two files. This is skipped if both files
-// exist and the size, modtime, and mode match.
-func SyncFile(srcPath, destPath string) error {
-	dest, err := os.Stat(destPath)
+type syncSource struct {
+	entries []string // util.ListDirRecursively appends a slash to the directory names
+	infos   map[string]os.FileInfo
+}
+
+var (
+	syncSourcesMu sync.Mutex
+	syncSources   = map[string]*syncSource{}
+)
+
+func loadSyncSource(srcPath string) (*syncSource, error) {
+	syncSourcesMu.Lock()
+	defer syncSourcesMu.Unlock()
+	if src, ok := syncSources[srcPath]; ok {
+		return src, nil
+	}
+	entries, err := util.ListDirRecursively(srcPath, &util.ListDirOptions{IncludeDir: true})
 	if err != nil {
-		if os.IsNotExist(err) {
-			return util.CopyFile(srcPath, destPath)
+		return nil, err
+	}
+	src := &syncSource{entries: entries, infos: make(map[string]os.FileInfo, len(entries))}
+	for _, entry := range entries {
+		if src.infos[entry], err = os.Stat(filepath.Join(srcPath, entry)); err != nil {
+			return nil, err
 		}
+	}
+	syncSources[srcPath] = src
+	return src, nil
+}
+
+// syncFile copies the source file unless the destination has the same size, modtime and mode
+func syncFile(srcInfo os.FileInfo, srcPath, destPath string) error {
+	dest, err := os.Stat(destPath)
+	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-
-	src, err := os.Stat(srcPath)
-	if err != nil {
-		return err
-	}
-
-	if src.Size() == dest.Size() &&
-		src.ModTime().Equal(dest.ModTime()) &&
-		src.Mode() == dest.Mode() {
+	if err == nil && srcInfo.Size() == dest.Size() && srcInfo.ModTime().Equal(dest.ModTime()) && srcInfo.Mode() == dest.Mode() {
 		return nil
 	}
-
 	return util.CopyFile(srcPath, destPath)
 }
 
 // SyncDirs synchronizes files recursively from source to target directory.
+// The source directory is only listed once per process, it must not change.
 // It returns error when error occurs in underlying functions.
 func SyncDirs(srcPath, destPath string) error {
 	destPath = filepath.Clean(destPath)
@@ -52,6 +71,11 @@ func SyncDirs(srcPath, destPath string) error {
 	}
 	if strings.HasPrefix(destPathAbs+string(filepath.Separator), devDataPathAbs+string(filepath.Separator)) {
 		return errors.New("destination path should not be inside Gitea data directory, otherwise your data for dev mode will be removed")
+	}
+
+	src, err := loadSyncSource(srcPath)
+	if err != nil {
+		return err
 	}
 
 	err = os.MkdirAll(destPath, os.ModePerm)
@@ -68,35 +92,20 @@ func SyncDirs(srcPath, destPath string) error {
 		return err
 	}
 	for _, destFile := range destFiles {
-		destFilePath := filepath.Join(destPath, destFile)
-		shouldRemove := filepath.Base(destFilePath) == keepFile
-		if _, err = os.Stat(filepath.Join(srcPath, destFile)); err != nil {
-			if os.IsNotExist(err) {
-				shouldRemove = true
-			} else {
-				return err
-			}
-		}
-		// if src file does not exist, remove dest file
-		if shouldRemove {
-			if err = os.RemoveAll(destFilePath); err != nil {
+		if _, ok := src.infos[destFile]; !ok || filepath.Base(destFile) == keepFile {
+			if err = os.RemoveAll(filepath.Join(destPath, destFile)); err != nil {
 				return err
 			}
 		}
 	}
 
 	// sync src files to dest
-	srcFiles, err := util.ListDirRecursively(srcPath, &util.ListDirOptions{IncludeDir: true})
-	if err != nil {
-		return err
-	}
-	for _, srcFile := range srcFiles {
+	for _, srcFile := range src.entries {
 		destFilePath := filepath.Join(destPath, srcFile)
-		// util.ListDirRecursively appends a slash to the directory name
 		if strings.HasSuffix(srcFile, "/") {
 			err = os.MkdirAll(destFilePath, os.ModePerm)
 		} else if filepath.Base(destFilePath) != keepFile {
-			err = SyncFile(filepath.Join(srcPath, srcFile), destFilePath)
+			err = syncFile(src.infos[srcFile], filepath.Join(srcPath, srcFile), destFilePath)
 		}
 		if err != nil {
 			return err
