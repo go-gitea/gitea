@@ -4,11 +4,10 @@
 package archiver
 
 import (
+	"bytes"
 	"testing"
 
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/contexttest"
 
@@ -20,22 +19,6 @@ import (
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m)
-}
-
-func TestArchiveQueueItemJSON(t *testing.T) {
-	orig := &archiveQueueItem{
-		RepoID:              7,
-		Type:                repo_model.ArchiveZip,
-		CommitID:            "abc123",
-		Paths:               []string{"agents"},
-		ArchiveRefShortName: "main",
-	}
-	bs, err := json.Marshal(orig)
-	require.NoError(t, err)
-
-	var decoded archiveQueueItem
-	require.NoError(t, json.Unmarshal(bs, &decoded))
-	assert.Equal(t, *orig, decoded)
 }
 
 func TestArchive_Basic(t *testing.T) {
@@ -92,49 +75,11 @@ func TestArchive_Basic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, secondReq)
 
-	inFlight := make([]*ArchiveRequest, 3)
-	inFlight[0] = zipReq
-	inFlight[1] = tgzReq
-	inFlight[2] = secondReq
-
-	doArchive(t.Context(), zipReq)
-	doArchive(t.Context(), tgzReq)
-	doArchive(t.Context(), secondReq)
-
-	// Make sure sending an unprocessed request through doesn't affect the queue
-	// count.
-	doArchive(t.Context(), zipReq)
-
-	zipReq2, err := NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
-	assert.NoError(t, err)
-	// This zipReq should match what's sitting in the queue, as we haven't
-	// let it release yet.  From the consumer's point of view, this looks like
-	// a long-running archive task.
-	assert.Equal(t, zipReq, zipReq2)
-
-	// We still have the other three stalled at completion, waiting to remove
-	// from archiveInProgress.  Try to submit this new one before its
-	// predecessor has cleared out of the queue.
-	doArchive(t.Context(), zipReq2)
-
-	// Now we'll submit a request and TimedWaitForCompletion twice, before and
-	// after we release it.  We should trigger both the timeout and non-timeout
-	// cases.
-	timedReq, err := NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, secondCommit+".tar.gz", nil)
-	assert.NoError(t, err)
-	assert.NotNil(t, timedReq)
-	doArchive(t.Context(), timedReq)
-
-	zipReq2, err = NewRequest(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".zip", nil)
-	assert.NoError(t, err)
-	// Now, we're guaranteed to have released the original zipReq from the queue.
-	// Ensure that we don't get handed back the released entry somehow, but they
-	// should remain functionally equivalent in all fields.  The exception here
-	// is zipReq.cchan, which will be non-nil because it's a completed request.
-	// It's fine to go ahead and set it to nil now.
-
-	assert.Equal(t, zipReq, zipReq2)
-	assert.NotSame(t, zipReq, zipReq2)
+	for _, request := range []*ArchiveRequest{zipReq, tgzReq, secondReq} {
+		var archive bytes.Buffer
+		require.NoError(t, request.Stream(ctx, &archive))
+		assert.Positive(t, archive.Len())
+	}
 
 	// Same commit, different compression formats should have different names.
 	// Ideally, the extension would match what we originally requested.

@@ -260,7 +260,6 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		excludes = append(excludes, setting.LFS.Storage.Path)
 		excludes = append(excludes, setting.Attachment.Storage.Path)
 		excludes = append(excludes, setting.Packages.Storage.Path)
-		excludes = append(excludes, setting.RepoArchive.Storage.Path)
 		excludes = append(excludes, setting.Log.RootPath)
 		if err := dumper.AddRecursiveExclude("data", setting.AppDataPath, excludes); err != nil {
 			fatal("Failed to include data directory: %v", err)

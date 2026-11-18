@@ -50,7 +50,6 @@ func TestRepoDownloadArchive(t *testing.T) {
 	})
 
 	t.Run("Conditional", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.Repository.StreamArchives, true)()
 		archiveURL := "/user2/repo1/archive/archive-test.tar.gz"
 		etag := MakeRequest(t, NewRequest(t, "GET", archiveURL), http.StatusOK).Header().Get("ETag")
 		assert.True(t, strings.HasPrefix(etag, `W/"`))
@@ -58,17 +57,11 @@ func TestRepoDownloadArchive(t *testing.T) {
 		MakeRequest(t, NewRequest(t, "GET", archiveURL+"?path=aaa.doc").SetHeader("If-None-Match", etag), http.StatusOK)
 		assert.NotEqual(t, etag, MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/archive/master.tar.gz"), http.StatusOK).Header().Get("ETag"))
 
-		restoreStreaming := test.MockVariableValue(&setting.Repository.StreamArchives, false)
-		MakeRequest(t, NewRequest(t, "GET", archiveURL).SetHeader("If-None-Match", etag), http.StatusOK)
-		restoreStreaming()
-
 		defer test.MockVariableValue(&setting.Repository.PrefixArchiveFiles, !setting.Repository.PrefixArchiveFiles)()
 		MakeRequest(t, NewRequest(t, "GET", archiveURL).SetHeader("If-None-Match", etag), http.StatusOK)
 	})
 
 	t.Run("SubPath", func(t *testing.T) {
-		// When using "archiving and caching" approach, archiving with paths will always use streaming and never be cached
-		defer test.MockVariableValue(&setting.Repository.StreamArchives, false)() // this can be removed if there is always streaming mode
 		req := NewRequest(t, "GET", "/user2/repo1/archive/archive-test.tar.gz?path=aaa.doc&path=x/y")
 		resp := MakeRequest(t, req, http.StatusOK)
 		content, err := test.ReadAllTarGzContent(resp.Body)

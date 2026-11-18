@@ -36,7 +36,7 @@ func newMigrateStorageCommand() *cli.Command {
 				Name:    "type",
 				Aliases: []string{"t"},
 				Value:   "",
-				Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log', 'actions-artifacts'",
+				Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'packages', 'actions-log', 'actions-artifacts'",
 			},
 			&cli.StringFlag{
 				Name:    "storage",
@@ -163,14 +163,6 @@ func migrateRepoAvatars(ctx context.Context, dstStorage storage.ObjectStorage) e
 	})
 }
 
-func migrateRepoArchivers(ctx context.Context, dstStorage storage.ObjectStorage) error {
-	return db.Iterate(ctx, nil, func(ctx context.Context, archiver *repo_model.RepoArchiver) error {
-		p := archiver.RelativePath()
-		_, err := storage.Copy(dstStorage, p, storage.RepoArchives, p)
-		return err
-	})
-}
-
 func migratePackages(ctx context.Context, dstStorage storage.ObjectStorage) error {
 	return db.Iterate(ctx, nil, func(ctx context.Context, pb *packages_model.PackageBlob) error {
 		p := packages_module.KeyToRelativePath(packages_module.BlobHash256Key(pb.HashSHA256))
@@ -291,7 +283,6 @@ func runMigrateStorage(ctx context.Context, cmd *cli.Command) error {
 		"lfs":               migrateLFS,
 		"avatars":           migrateAvatars,
 		"repo-avatars":      migrateRepoAvatars,
-		"repo-archivers":    migrateRepoArchivers,
 		"packages":          migratePackages,
 		"actions-log":       migrateActionsLog,
 		"actions-artifacts": migrateActionsArtifacts,
