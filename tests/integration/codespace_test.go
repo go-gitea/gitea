@@ -553,13 +553,13 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 			strings.TrimRight(giteaURL.String(), "/")+"/api/codespace")),
 		)
 
-		runningID := int64(999)
-		insertIntegrationCodespace(t, manager.ID, &codespace_model.Codespace{
-			ID:                    runningID,
+		running := &codespace_model.Codespace{
 			Status:                codespace_model.StatusRunning,
 			OperationRVersion:     11,
 			InteractionGeneration: 21,
-		})
+		}
+		insertIntegrationCodespace(t, manager.ID, running)
+		runningID := running.ID
 
 		inventory, err := client.ReportInstances(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.ReportInstancesRequest{
 			InventoryGeneration: 1,
