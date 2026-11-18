@@ -72,6 +72,12 @@ func ListMilestones(ctx *context.APIContext) {
 		return
 	}
 
+	scope := issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission)
+	if err := issues_model.MilestoneList(milestones).SubtractHiddenIssues(ctx, scope); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	apiMilestones := make([]*api.Milestone, len(milestones))
 	for i := range milestones {
 		apiMilestones[i] = convert.ToAPIMilestone(milestones[i])
@@ -112,6 +118,12 @@ func GetMilestone(ctx *context.APIContext) {
 
 	milestone := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {
+		return
+	}
+
+	scope := issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission)
+	if err := (issues_model.MilestoneList{milestone}).SubtractHiddenIssues(ctx, scope); err != nil {
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -228,6 +240,12 @@ func EditMilestone(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.UpdateMilestone(ctx, milestone, oldIsClosed); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	// after the update, which writes every column back: the counters it answers with leave out hidden issues
+	scope := issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission)
+	if err := (issues_model.MilestoneList{milestone}).SubtractHiddenIssues(ctx, scope); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

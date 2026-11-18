@@ -82,6 +82,13 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 		return nil
 	}
 
+	if visible, err := issues_model.IsIssueVisible(ctx, issue, doer, perm); err != nil {
+		return err
+	} else if !visible {
+		log.Debug("can't read issue or pull")
+		return nil
+	}
+
 	attachmentIDs := make([]string, 0, len(content.Attachments))
 	if setting.Attachment.Enabled {
 		for _, attachment := range content.Attachments {
@@ -176,6 +183,13 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, _ *MailContent, doer *u
 		}
 
 		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+			log.Debug("can't read issue or pull")
+			return nil
+		}
+
+		if visible, err := issues_model.IsIssueVisible(ctx, issue, doer, perm); err != nil {
+			return err
+		} else if !visible {
 			log.Debug("can't read issue or pull")
 			return nil
 		}

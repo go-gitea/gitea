@@ -523,16 +523,17 @@ func TestGitlabGetReviews(t *testing.T) {
 	assert.Empty(t, rvs)
 }
 
-func TestGitlabSkipsConfidentialIssuesAndInternalNotes(t *testing.T) {
+func TestGitlabImportsConfidentialIssuesAndSkipsInternalNotes(t *testing.T) {
 	mux, server, client := gitlabClientMockSetup(t)
 	defer gitlabClientMockTeardown(server)
 	downloader := &GitlabDownloader{client: client, repoID: 1, maxPerPage: 100}
 	const timestamps = `"created_at": "2020-01-01T00:00:00Z", "updated_at": "2020-01-01T00:00:00Z"`
 	empty := func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, `[]`) }
 	mux.HandleFunc("/api/v4/projects/1/issues", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `[{"iid": 1, "author": {}, `+timestamps+`}, {"iid": 2, "confidential": true}]`)
+		fmt.Fprint(w, `[{"iid": 1, "author": {}, `+timestamps+`}, {"iid": 2, "author": {}, "confidential": true, `+timestamps+`}]`)
 	})
 	mux.HandleFunc("/api/v4/projects/1/issues/1/award_emoji", empty)
+	mux.HandleFunc("/api/v4/projects/1/issues/2/award_emoji", empty)
 	mux.HandleFunc("/api/v4/projects/1/issues/1/discussions", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, `[{"notes": [{"id": 1, `+timestamps+`}, {"internal": true}]}]`)
 	})
@@ -540,7 +541,9 @@ func TestGitlabSkipsConfidentialIssuesAndInternalNotes(t *testing.T) {
 
 	issues, _, err := downloader.GetIssues(t.Context(), 1, 100)
 	require.NoError(t, err)
-	require.Len(t, issues, 1)
+	require.Len(t, issues, 2)
+	assert.False(t, issues[0].IsConfidential)
+	assert.True(t, issues[1].IsConfidential)
 	assert.EqualValues(t, 3, downloader.iidResolver.generatePullRequestNumber(1))
 
 	comments, _, err := downloader.GetComments(t.Context(), issues[0])

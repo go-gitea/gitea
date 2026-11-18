@@ -68,14 +68,14 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 	}
 
 	// This is the body of the new issue or comment, not the mail body
-	rctx := renderhelper.NewRenderContextRepoComment(ctx, comment.Issue.Repo).WithUseAbsoluteLink(true)
+	rctx := renderhelper.NewRenderContextRepoComment(withoutWebContext(ctx), comment.Issue.Repo).WithUseAbsoluteLink(true)
 	body, err := markdown.RenderString(rctx, comment.Content)
 	if err != nil {
 		return nil, err
 	}
 
 	if setting.MailService.EmbedAttachmentImages {
-		attEmbedder := newMailAttachmentBase64Embedder(comment.Doer, comment.Issue.Repo, maxEmailBodySize)
+		attEmbedder := newMailAttachmentBase64Embedder(comment.Doer, comment.Issue.Repo, comment.Issue.ID, maxEmailBodySize)
 		bodyAfterEmbedding, err := attEmbedder.Base64InlineImages(ctx, body)
 		if err != nil {
 			log.Error("Failed to embed images in mail body: %v", err)

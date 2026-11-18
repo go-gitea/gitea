@@ -195,7 +195,12 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	opts := &activities_model.FindNotificationOptions{
 		UserID:            ctx.Doer.ID,
 		RepoID:            ctx.Repo.Repository.ID,
+		Viewer:            ctx.Doer,
 		UpdatedBeforeUnix: lastRead,
+	}
+	if err := opts.ResolveHiddenIssues(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	if !ctx.FormBool("all") {

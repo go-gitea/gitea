@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	shared_user "gitea.dev/routers/web/shared/user"
@@ -22,7 +23,9 @@ func IssuePullPosters(ctx *context.Context) {
 func issuePosters(ctx *context.Context, isPullList bool) {
 	repo := ctx.Repo.Repository
 	search := strings.TrimSpace(ctx.FormString("q"))
-	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search)
+	// a poster whose only issues are confidential ones hidden from the viewer is not listed
+	visible := issues_model.NewVisibilityScopeForRepo(ctx.Doer, repo.ID, ctx.Repo.Permission).Cond()
+	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, visible)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return

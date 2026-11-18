@@ -18,6 +18,10 @@ func AddDependency(ctx *context.Context) {
 		ctx.ServerErrorAuto(err)
 		return
 	}
+	if err = issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
@@ -35,6 +39,13 @@ func AddDependency(ctx *context.Context) {
 	// Dependency
 	dep, err := issues_model.GetIssueByID(ctx, depID)
 	if err != nil {
+		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_dep_issue_not_exist"))
+		return
+	}
+	if visible, err := issues_model.IsIssueVisibleForDoer(ctx, dep, ctx.Doer); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	} else if !visible {
 		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_dep_issue_not_exist"))
 		return
 	}
@@ -86,6 +97,10 @@ func RemoveDependency(ctx *context.Context) {
 	issueIndex := ctx.PathParamInt64("index")
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	if err = issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
@@ -142,6 +157,13 @@ func RemoveDependency(ctx *context.Context) {
 			ctx.JSONError(ctx.Locale.TrString("error.permission_denied"))
 			return
 		}
+	}
+	if visible, err := issues_model.IsIssueVisibleForDoer(ctx, dep, ctx.Doer); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	} else if !visible {
+		ctx.NotFound()
+		return
 	}
 
 	err = issues_model.RemoveIssueDependency(ctx, ctx.Doer, issue, dep, depType)

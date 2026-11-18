@@ -178,7 +178,7 @@ func ListPinnedIssues(ctx *context.APIContext) {
 	//     "$ref": "#/responses/IssueList"
 	//   default:
 	//     "$ref": "#/responses/error"
-	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, false)
+	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, false, issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -210,7 +210,7 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 	//     "$ref": "#/responses/PullRequestList"
 	//   default:
 	//     "$ref": "#/responses/error"
-	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, true)
+	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, true, issues_model.NewVisibilityScopeForRepo(ctx.Doer, ctx.Repo.Repository.ID, ctx.Repo.Permission))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

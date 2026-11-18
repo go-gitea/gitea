@@ -97,6 +97,14 @@ func (m *Milestone) AfterLoad() {
 	}
 }
 
+// SubtractHiddenIssues adjusts the in-memory counters only; never persist the milestone afterwards.
+func (m *Milestone) SubtractHiddenIssues(c HiddenIssueCounts) {
+	m.NumIssues = max(m.NumIssues-c.Open-c.Closed, 0)
+	m.NumClosedIssues = max(m.NumClosedIssues-c.Closed, 0)
+	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
+	m.BeforeUpdate() // recomputes Completeness
+}
+
 // State returns string representation of milestone status.
 func (m *Milestone) State() api.StateType {
 	if m.IsClosed {

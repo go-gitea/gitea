@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/indexer/issues/internal/tests"
 	"gitea.dev/modules/test"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,4 +51,8 @@ func TestElasticsearchIndexer(t *testing.T) {
 	defer indexer.Close()
 
 	tests.TestIndexer(t, indexer)
+}
+
+func TestElasticsearchIndexerVersion(t *testing.T) {
+	assert.Equal(t, 5, issueIndexerLatestVersion) // bumped for the is_confidential field
 }

@@ -1,5 +1,47 @@
+{{if or .CanChangeConfidential (and .IsRepoAdmin (not .Repository.IsArchived))}}<div class="divider"></div>{{end}}
+
+{{if .CanChangeConfidential}}
+	<button type="button" class="tw-mt-1 fluid ui show-modal button" data-modal="#sidebar-confidential">
+		{{if .Issue.IsConfidential}}
+			{{svg "octicon-eye"}} {{ctx.Locale.Tr "repo.issues.confidential.make_public"}}
+		{{else}}
+			{{svg "octicon-eye-closed"}} {{ctx.Locale.Tr "repo.issues.confidential.make_confidential"}}
+		{{end}}
+	</button>
+	<dialog class="modal-dialog" id="sidebar-confidential">
+		<div class="header">
+			{{if .Issue.IsConfidential}}
+				{{ctx.Locale.Tr "repo.issues.confidential.make_public.title"}}
+			{{else}}
+				{{ctx.Locale.Tr "repo.issues.confidential.make_confidential.title"}}
+			{{end}}
+		</div>
+		<div class="content">
+			<div class="ui warning message">
+				{{if .Issue.IsConfidential}}
+					{{ctx.Locale.Tr "repo.issues.confidential.make_public.notice"}}
+				{{else}}
+					{{ctx.Locale.Tr "repo.issues.confidential.make_confidential.notice"}}
+				{{end}}
+			</div>
+			<form class="ui form form-fetch-action" method="post" action="{{.Issue.Link}}/confidential">
+				<input type="hidden" name="confidential" value="{{not .Issue.IsConfidential}}">
+				<div class="actions">
+					<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+					<button type="submit" class="ui {{if .Issue.IsConfidential}}red{{else}}primary{{end}} button" autofocus>
+						{{if .Issue.IsConfidential}}
+							{{ctx.Locale.Tr "repo.issues.confidential.make_public"}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.issues.confidential.make_confidential"}}
+						{{end}}
+					</button>
+				</div>
+			</form>
+		</div>
+	</dialog>
+{{end}}
+
 {{if and .IsRepoAdmin (not .Repository.IsArchived)}}
-	<div class="divider"></div>
 
 	{{/* Pin issue */}}
 	{{if or .PinEnabled .Issue.IsPinned}}

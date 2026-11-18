@@ -173,8 +173,8 @@ func GetIssuePinsByRepoID(ctx context.Context, repoID int64, isPull bool) ([]*Is
 	return pins, nil
 }
 
-// GetPinnedIssues returns the pinned Issues for the given Repo and type
-func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) (IssueList, error) {
+// GetPinnedIssues returns the pinned Issues for the given Repo and type that scope can see
+func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool, scope *VisibilityScope) (IssueList, error) {
 	issuePins, err := GetIssuePinsByRepoID(ctx, repoID, isPull)
 	if err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) (IssueList,
 	}
 
 	issues := make(IssueList, 0, len(ids))
-	if err := db.GetEngine(ctx).In("id", ids).Find(&issues); err != nil {
+	if err := db.GetEngine(ctx).In("issue.id", ids).And(scope.Cond()).Find(&issues); err != nil {
 		return nil, err
 	}
 	for _, issue := range issues {

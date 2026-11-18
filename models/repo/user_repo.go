@@ -159,14 +159,19 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 }
 
 // GetIssuePostersWithSearch returns users with limit of 30 whose username started with prefix that have authored an issue/pull request for the given repository
-// It searches with the "user.name" and "user.full_name" fields case-insensitively.
-func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, search string) ([]*user_model.User, error) {
+// It searches with the "user.name" and "user.full_name" fields case-insensitively. Only the issues matching issueCond
+// count, so a caller can leave out the issues the viewer cannot see.
+func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, search string, issueCond builder.Cond) ([]*user_model.User, error) {
 	users := make([]*user_model.User, 0, 30)
 
+	if issueCond == nil {
+		issueCond = builder.NewCond()
+	}
 	cond := builder.In("`user`.id",
 		builder.Select("poster_id").From("issue").Where(
 			builder.Eq{"repo_id": repo.ID}.
-				And(builder.Eq{"is_pull": isPull}),
+				And(builder.Eq{"is_pull": isPull}).
+				And(issueCond),
 		).GroupBy("poster_id"))
 
 	if search != "" {

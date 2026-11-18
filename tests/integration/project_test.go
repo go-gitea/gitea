@@ -416,7 +416,7 @@ func TestProjects(t *testing.T) {
 			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 2},
 			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 4},
 		))
-		assignees, err := project.LoadIssuesAssigneesForProject(t.Context(), 1)
+		assignees, err := project.LoadIssuesAssigneesForProject(t.Context(), 1, &issues_model.VisibilityScope{Unrestricted: true})
 		require.NoError(t, err)
 		require.Len(t, assignees, 4)
 		require.Equal(t, "user1", assignees[0].Name)

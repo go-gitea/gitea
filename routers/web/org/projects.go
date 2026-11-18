@@ -436,7 +436,12 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["MilestoneID"] = milestoneID
 
 	// Get assignees.
-	assigneeUsers, err := project_service.LoadIssuesAssigneesForProject(ctx, project.ID)
+	assigneeScope, err := issues_model.BuildVisibilityScopeByCond(ctx, ctx.Doer, builder.Eq{"owner_id": project.OwnerID})
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	assigneeUsers, err := project_service.LoadIssuesAssigneesForProject(ctx, project.ID, assigneeScope)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return

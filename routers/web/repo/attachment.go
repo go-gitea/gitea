@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -158,6 +159,24 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		if !perm.CanRead(unitType) {
 			ctx.HTTPError(http.StatusNotFound)
 			return
+		}
+
+		// Attachments of a hidden confidential issue (or of its comments) look like an unknown UUID.
+		if unitType == unit.TypeIssues && attach.IssueID != 0 {
+			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
+			if err != nil {
+				ctx.ServerErrorAuto(err)
+				return
+			}
+			visible, err := issues_model.IsIssueVisible(ctx, issue, ctx.Doer, perm)
+			if err != nil {
+				ctx.ServerErrorAuto(err)
+				return
+			}
+			if !visible {
+				ctx.HTTPError(http.StatusNotFound)
+				return
+			}
 		}
 
 		// Draft release attachments must not be exposed to anyone without write

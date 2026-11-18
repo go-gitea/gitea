@@ -78,6 +78,8 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.UpdatedBeforeUnix = optional.Some(opts.UpdatedBeforeUnix)
 	}
 
+	searchOpt.Visibility = ToVisibilityFilter(opts.Visibility)
+
 	searchOpt.Paginator = opts.Paginator
 
 	switch opts.SortType {
@@ -109,4 +111,16 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 	}
 
 	return searchOpt
+}
+
+// ToVisibilityFilter converts a visibility scope to the indexer filter; a nil scope stays nil (anonymous).
+func ToVisibilityFilter(scope *issues_model.VisibilityScope) *internal.VisibilityFilter {
+	if scope == nil {
+		return nil
+	}
+	return &internal.VisibilityFilter{
+		Unrestricted:  scope.Unrestricted,
+		ViewerID:      scope.DoerID,
+		WriterRepoIDs: scope.WriterRepoIDs,
+	}
 }

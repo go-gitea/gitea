@@ -44,7 +44,7 @@ func getStarredRepos(ctx *context.APIContext, user *user_model.User, private boo
 		if !permission.HasAnyUnitAccessOrPublicAccess() {
 			continue
 		}
-		repos = append(repos, convert.ToRepo(ctx, starred, permission))
+		repos = append(repos, convert.ToAPIRepo(ctx, starred, permission, ctx.Doer))
 	}
 	return repos, nil
 }

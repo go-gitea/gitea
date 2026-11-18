@@ -66,6 +66,10 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
+	if !checkCommentIssueVisible(ctx, comment) {
+		return
+	}
+
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, "no permission to get reactions")
 		return
@@ -184,6 +188,9 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		ctx.APIErrorAuto(err)
 		return
 	}
+	if !checkCommentIssueVisible(ctx, comment) {
+		return
+	}
 	if !issue_service.CanSelfChangeOrAccessContent(ctx.Doer, ctx.Repo.Permission, comment.Issue, comment.PosterID, perm.AccessModeRead) {
 		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
 		return
@@ -270,6 +277,14 @@ func GetIssueReactions(ctx *context.APIContext) {
 		} else {
 			ctx.APIErrorInternal(err)
 		}
+		return
+	}
+
+	if visible, err := issues_model.IsIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	} else if !visible {
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -390,6 +405,14 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		} else {
 			ctx.APIErrorInternal(err)
 		}
+		return
+	}
+
+	if visible, err := issues_model.IsIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	} else if !visible {
+		ctx.APIErrorNotFound()
 		return
 	}
 

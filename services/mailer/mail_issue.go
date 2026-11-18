@@ -148,6 +148,13 @@ func mailIssueCommentBatch(ctx context.Context, comment *mailComment, users []*u
 			continue
 		}
 
+		if visible, err := issues_model.IsIssueVisibleForDoer(ctx, comment.Issue, user); err != nil || !visible {
+			if err != nil {
+				log.Error("IsIssueVisibleForDoer: %v", err)
+			}
+			continue
+		}
+
 		langMap[user.Language] = append(langMap[user.Language], user)
 	}
 

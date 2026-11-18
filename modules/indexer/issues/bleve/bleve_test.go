@@ -98,3 +98,7 @@ func searchResultIDs(result *internal.SearchResult) []int64 {
 	}
 	return ids
 }
+
+func TestBleveIndexerVersion(t *testing.T) {
+	assert.Equal(t, 9, issueIndexerLatestVersion) // bumped for the is_confidential field
+}

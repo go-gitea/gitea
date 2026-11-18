@@ -8,6 +8,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 )
 
@@ -18,10 +19,20 @@ func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) 
 }
 
 func notificationCountEvent(ctx context.Context, userID int64) []byte {
-	count, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+	viewer, err := user_model.GetUserByID(ctx, userID)
+	if err != nil {
+		log.Error("websocket: load user %d: %v", userID, err)
+		return nil
+	}
+	opts := activities_model.FindNotificationOptions{
 		UserID: userID,
+		Viewer: viewer,
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
-	})
+	}
+	var count int64
+	if err = opts.ResolveHiddenIssues(ctx); err == nil {
+		count, err = db.Count[activities_model.Notification](ctx, opts)
+	}
 	if err != nil {
 		log.Error("websocket: count notifications for user %d: %v", userID, err)
 		return nil

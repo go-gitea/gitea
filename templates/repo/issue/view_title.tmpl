@@ -52,6 +52,7 @@
 		{{else}}
 			<div class="ui green label issue-state-label">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.open_title"}}</div>
 		{{end}}
+		{{if .Issue.IsConfidential}}<div class="ui warning label issue-state-label">{{svg "octicon-eye-closed"}} {{ctx.Locale.Tr "repo.issues.confidential"}}</div>{{end}}
 		<div class="flex-text-block">
 			{{if .Issue.IsPull}}
 				{{$headHref := .HeadTarget}}

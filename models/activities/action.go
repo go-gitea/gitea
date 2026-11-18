@@ -606,3 +606,22 @@ func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
 	}
 	return 0, nil
 }
+
+// hiddenConfidentialActionsCond excludes the action rows of feedCond about issues hidden from actor.
+func hiddenConfidentialActionsCond(ctx context.Context, actor *user_model.User, feedCond builder.Cond, requestedRepoID int64) (builder.Cond, error) {
+	repoCond := builder.In("id", builder.Select("repo_id").From("action").Where(feedCond))
+	if requestedRepoID != 0 {
+		repoCond = builder.Eq{"id": requestedRepoID}
+	}
+	scope, err := issues_model.BuildVisibilityScopeByCond(ctx, actor, repoCond)
+	if err != nil {
+		return nil, fmt.Errorf("hiddenConfidentialActionsCond: %w", err)
+	}
+	if scope.Unrestricted {
+		return builder.NewCond(), nil
+	}
+	return builder.Not{builder.And(
+		builder.In("action.op_type", ActionCreateIssue, ActionCommentIssue, ActionCloseIssue, ActionReopenIssue),
+		issues_model.HiddenConfidentialIssuesOfActionsCond(scope),
+	)}, nil
+}

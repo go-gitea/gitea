@@ -273,7 +273,17 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, excludePullRequests bool) (_ *api.ActionWorkflowRun, err error) {
+// ToAPIActionWorkflowRun converts a run for a REST response, its repository counts the issues doer can see
+func ToAPIActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, excludePullRequests bool, doer *user_model.User) (*api.ActionWorkflowRun, error) {
+	return toActionWorkflowRun(ctx, run, attempt, excludePullRequests, doer, false)
+}
+
+// ToActionWorkflowRun converts a run for webhook and Actions payloads, its repository keeps the stored counter
+func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, excludePullRequests bool) (*api.ActionWorkflowRun, error) {
+	return toActionWorkflowRun(ctx, run, attempt, excludePullRequests, nil, true)
+}
+
+func toActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, excludePullRequests bool, doer *user_model.User, isPayload bool) (_ *api.ActionWorkflowRun, err error) {
 	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
@@ -319,6 +329,15 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		}
 	}
 
+	apiRepo := ToRepo(ctx, run.Repo, access_model.Permission{AccessMode: perm.AccessModeNone})
+	if !isPayload {
+		repoPermission, err := access_model.GetDoerRepoPermission(ctx, run.Repo, doer)
+		if err != nil {
+			return nil, err
+		}
+		apiRepo = ToAPIRepo(ctx, run.Repo, repoPermission, doer)
+	}
+
 	runURL := run.APIURL(ctx)
 	return &api.ActionWorkflowRun{
 		ID:                 run.ID,
@@ -343,7 +362,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		Status:             status,
 		Conclusion:         conclusion,
 		Path:               fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
-		Repository:         ToRepo(ctx, run.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repository:         apiRepo,
 		TriggerActor:       ToUser(ctx, triggerUser, nil),
 		Actor:              ToUser(ctx, actor, nil),
 		PullRequests:       pullRequests,

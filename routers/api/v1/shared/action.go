@@ -214,7 +214,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 			total--
 			continue
 		}
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, latestAttempts[run.LatestAttemptID], excludePullRequests)
+		convertedRun, err := convert.ToAPIActionWorkflowRun(ctx, run, latestAttempts[run.LatestAttemptID], excludePullRequests, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -22,6 +23,18 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 		ids = append(ids, ms.ID)
 	}
 	return ids
+}
+
+// SubtractHiddenIssues removes the confidential issues hidden from scope from the in-memory counters only.
+func (milestones MilestoneList) SubtractHiddenIssues(ctx context.Context, scope *VisibilityScope) error {
+	counts, err := CountHiddenConfidentialIssuesByMilestone(ctx, scope, milestones.getMilestoneIDs())
+	if err != nil {
+		return fmt.Errorf("SubtractHiddenIssues: %w", err)
+	}
+	for _, m := range milestones {
+		m.SubtractHiddenIssues(counts[m.ID])
+	}
+	return nil
 }
 
 // SplitByOpenClosed splits the milestone list into open and closed milestones

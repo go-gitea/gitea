@@ -8,17 +8,22 @@ import (
 	"strconv"
 
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/structs"
 )
 
-func GetSuggestion(ctx context.Context, repo *repo_model.Repository, isPull optional.Option[bool], keyword string) ([]*structs.Issue, error) {
+// GetSuggestion returns the issues to suggest to doer, whose permission on repo is perm; a confidential issue
+// doer cannot see is never suggested.
+func GetSuggestion(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, perm access_model.Permission, isPull optional.Option[bool], keyword string) ([]*structs.Issue, error) {
+	scope := issues_model.NewVisibilityScopeForRepo(doer, repo.ID, perm)
 	var issues issues_model.IssueList
 	var err error
 	pageSize := 5
 	if keyword == "" {
-		issues, err = issues_model.FindLatestUpdatedIssues(ctx, repo.ID, isPull, pageSize)
+		issues, err = issues_model.FindLatestUpdatedIssues(ctx, repo.ID, isPull, scope, pageSize)
 		if err != nil {
 			return nil, err
 		}
@@ -32,12 +37,21 @@ func GetSuggestion(ctx context.Context, repo *repo_model.Repository, isPull opti
 				return nil, err
 			}
 			if issueByIndex != nil {
+				visible, err := issues_model.IsIssueVisible(ctx, issueByIndex, doer, perm)
+				if err != nil {
+					return nil, err
+				}
+				if !visible {
+					issueByIndex = nil
+				}
+			}
+			if issueByIndex != nil {
 				excludedID = issueByIndex.ID
 				pageSize--
 			}
 		}
 
-		issues, err = issues_model.FindIssuesSuggestionByKeyword(ctx, repo.ID, keyword, isPull, excludedID, pageSize)
+		issues, err = issues_model.FindIssuesSuggestionByKeyword(ctx, repo.ID, keyword, isPull, scope, excludedID, pageSize)
 		if err != nil {
 			return nil, err
 		}

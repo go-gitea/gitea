@@ -124,6 +124,10 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 		ctx.ServerErrorAuto(err)
 		return nil, false
 	}
+	if err := issues_model.CheckIssueVisible(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
+		ctx.ServerErrorAuto(err)
+		return nil, false
+	}
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, emoji.ReplaceAliases(issue.Title))
 	ctx.Data["Issue"] = issue
 

@@ -234,6 +234,17 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
+	milestoneRepoIDs := container.FilterSlice(milestones, func(m *issues_model.Milestone) (int64, bool) { return m.RepoID, true })
+	scope, err := issues_model.BuildVisibilityScope(ctx, ctx.Doer, milestoneRepoIDs, false)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	if err := issues_model.MilestoneList(milestones).SubtractHiddenIssues(ctx, scope); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+
 	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
@@ -504,6 +515,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.ReviewedID = ctx.Doer.ID
 	}
 
+	visibility, err := issues_model.BuildVisibilityScope(ctx, ctx.Doer, opts.RepoIDs, ctx.Doer.ID == ctxUser.ID)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
+	opts.Visibility = visibility
+
 	// keyword holds the search term entered into the search field.
 	keyword := strings.Trim(ctx.FormString("q"), " ")
 	ctx.Data["Keyword"] = keyword
@@ -547,7 +565,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			ctx.ServerErrorAuto(err)
 			return
 		}
-		issues, err = issues_model.GetIssuesByIDs(ctx, issueIDs, true)
+		issues, err = issues_model.GetVisibleIssuesByIDs(ctx, issueIDs, visibility)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return

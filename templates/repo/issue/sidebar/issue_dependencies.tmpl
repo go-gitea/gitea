@@ -2,7 +2,7 @@
 	<div class="divider"></div>
 
 	<div class="ui depending">
-		{{if (and (not .BlockedByDependencies) (not .BlockedByDependenciesNotPermitted) (not .BlockingDependencies) (not .BlockingDependenciesNotPermitted))}}
+		{{if (and (not .BlockedByDependencies) (not .BlockedByDependenciesUnreadable) (not .BlockingDependencies) (not .BlockingDependenciesUnreadable))}}
 			<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.dependency.title"}}</strong></span>
 			<br>
 			<p>
@@ -14,7 +14,7 @@
 			</p>
 		{{end}}
 
-		{{if or .BlockingDependencies .BlockingDependenciesNotPermitted}}
+		{{if or .BlockingDependencies .BlockingDependenciesUnreadable}}
 			<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{ctx.Locale.Tr "repo.issues.dependency.pr_close_blocks"}}{{else}}{{ctx.Locale.Tr "repo.issues.dependency.issue_close_blocks"}}{{end}}">
 				<strong>{{ctx.Locale.Tr "repo.issues.dependency.blocks_short"}}</strong>
 			</span>
@@ -40,15 +40,15 @@
 						</div>
 					</div>
 				{{end}}
-				{{if .BlockingDependenciesNotPermitted}}
-					<div class="item gt-ellipsis">
-						<span>{{ctx.Locale.TrN (len .BlockingDependenciesNotPermitted) "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" (len .BlockingDependenciesNotPermitted)}}</span>
+				{{if .BlockingDependenciesUnreadable}}
+					<div class="item">
+						<span>{{ctx.Locale.TrN .BlockingDependenciesUnreadable "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" .BlockingDependenciesUnreadable}}</span>
 					</div>
 				{{end}}
 			</div>
 		{{end}}
 
-		{{if or .BlockedByDependencies .BlockedByDependenciesNotPermitted}}
+		{{if or .BlockedByDependencies .BlockedByDependenciesUnreadable}}
 			<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{ctx.Locale.Tr "repo.issues.dependency.pr_closing_blockedby"}}{{else}}{{ctx.Locale.Tr "repo.issues.dependency.issue_closing_blockedby"}}{{end}}">
 				<strong>{{ctx.Locale.Tr "repo.issues.dependency.blocked_by_short"}}</strong>
 			</span>
@@ -99,9 +99,15 @@
 							</div>
 						</div>
 					{{end}}
-				{{else if .BlockedByDependenciesNotPermitted}}
-					<div class="item gt-ellipsis">
-						<span>{{ctx.Locale.TrN (len .BlockedByDependenciesNotPermitted) "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" (len .BlockedByDependenciesNotPermitted)}}</span>
+					{{/* confidential dependencies hidden from the viewer are counted, never titled, even for dependency editors */}}
+					{{if .BlockedByDependenciesHidden}}
+						<div class="item">
+							<span>{{ctx.Locale.TrN .BlockedByDependenciesHidden "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" .BlockedByDependenciesHidden}}</span>
+						</div>
+					{{end}}
+				{{else if .BlockedByDependenciesUnreadable}}
+					<div class="item">
+						<span>{{ctx.Locale.TrN .BlockedByDependenciesUnreadable "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" .BlockedByDependenciesUnreadable}}</span>
 					</div>
 				{{end}}
 			</div>

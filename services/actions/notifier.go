@@ -39,6 +39,10 @@ func NewNotifier() notify_service.Notifier {
 
 // NewIssue notifies issue created event
 func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, _ []*user_model.User) {
+	if issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	ctx = withMethod(ctx, "NewIssue")
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("issue.LoadRepo: %v", err)
@@ -71,11 +75,19 @@ func (n *actionsNotifier) IssueChangeTitle(ctx context.Context, doer *user_model
 }
 
 func notifyIssueEdited(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, changes *api.ChangesPayload) {
+	if issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	notifyIssueChange(ctx, doer, issue, util.Iif(issue.IsPull, webhook_module.HookEventPullRequest, webhook_module.HookEventIssues), api.HookIssueEdited, changes)
 }
 
 // IssueChangeStatus notifies close or reopen issue to notifiers
 func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
+	if issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	ctx = withMethod(ctx, "IssueChangeStatus")
 	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	if issue.IsPull {
@@ -122,6 +134,10 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 
 // IssueChangeAssignee notifies assigned or unassigned to notifiers
 func (n *actionsNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
+	if issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	ctx = withMethod(ctx, "IssueChangeAssignee")
 
 	action := api.HookIssueAssigned
@@ -143,6 +159,10 @@ func (n *actionsNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 
 // IssueChangeMilestone notifies assignee to notifiers
 func (n *actionsNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
+	if issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	ctx = withMethod(ctx, "IssueChangeMilestone")
 
 	var action api.HookIssueAction
@@ -163,6 +183,10 @@ func (n *actionsNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label,
 ) {
+	if issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	ctx = withMethod(ctx, "IssueChangeLabels")
 
 	if err := issue.LoadRepo(ctx); err != nil {
@@ -194,6 +218,11 @@ func labelHookEvent(issue *issues_model.Issue) webhook_module.HookEventType {
 }
 
 func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction, changes *api.ChangesPayload) {
+	// every caller already returns for a confidential issue but IssueClearLabels did not; this is the one place they all pass
+	if issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
 		return
@@ -246,6 +275,10 @@ func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues
 func (n *actionsNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, _ []*user_model.User,
 ) {
+	if issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", issue.ID)
+		return
+	}
 	ctx = withMethod(ctx, "CreateIssueComment")
 
 	if issue.IsPull {
@@ -256,6 +289,10 @@ func (n *actionsNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 }
 
 func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
+	if c.Issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", c.Issue.ID)
+		return
+	}
 	ctx = withMethod(ctx, "UpdateComment")
 
 	if c.Issue.IsPull {
@@ -266,6 +303,10 @@ func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 }
 
 func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
+	if comment.Issue.IsConfidential {
+		log.Debug("actions: skip event for confidential issue %d", comment.Issue.ID)
+		return
+	}
 	ctx = withMethod(ctx, "DeleteComment")
 
 	if comment.Issue.IsPull {

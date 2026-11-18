@@ -18,6 +18,8 @@ type IndexerData struct {
 	RepoID   int64 `json:"repo_id"`
 	IsPublic bool  `json:"is_public"` // If the repo is public
 
+	IsConfidential bool `json:"is_confidential"`
+
 	// Fields used for keyword searching
 	Title    string   `json:"title"`
 	Content  string   `json:"content"`
@@ -60,6 +62,18 @@ type Match struct {
 type SearchResult struct {
 	Total int64
 	Hits  []Match
+}
+
+// VisibilityFilter mirrors issues_model.VisibilityScope, which this package cannot import.
+type VisibilityFilter struct {
+	Unrestricted  bool    // no confidential filtering at all
+	ViewerID      int64   // 0 for anonymous viewers
+	WriterRepoIDs []int64 // repos where the viewer sees every issue
+}
+
+// NeedsFilter returns true if confidential issues must be filtered out for the viewer.
+func (v *VisibilityFilter) NeedsFilter() bool {
+	return v == nil || !v.Unrestricted
 }
 
 // SearchOptions represents search options.
@@ -111,6 +125,8 @@ type SearchOptions struct {
 
 	UpdatedAfterUnix  optional.Option[int64]
 	UpdatedBeforeUnix optional.Option[int64]
+
+	Visibility *VisibilityFilter // nil: only is_confidential=false documents
 
 	Paginator *db.ListOptions
 

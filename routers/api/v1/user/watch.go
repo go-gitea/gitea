@@ -39,7 +39,7 @@ func getWatchedRepos(ctx *context.APIContext, user *user_model.User, private boo
 		if err != nil {
 			return nil, 0, err
 		}
-		repos[i] = convert.ToRepo(ctx, watched, permission)
+		repos[i] = convert.ToAPIRepo(ctx, watched, permission, ctx.Doer)
 	}
 	return repos, total, nil
 }

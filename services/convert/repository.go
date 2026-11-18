@@ -9,10 +9,12 @@ import (
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -23,9 +25,36 @@ func ToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo a
 	return innerToRepo(ctx, repo, permissionInRepo, false)
 }
 
-func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, isParent bool) *api.Repository {
-	var parent *api.Repository
+// ToAPIRepo converts a Repository for a REST response, counting only the open issues doer can see.
+func ToAPIRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, doer *user_model.User) *api.Repository {
+	apiRepo := innerToRepo(ctx, repo, permissionInRepo, false)
+	if apiRepo == nil {
+		return nil
+	}
+	apiRepo.OpenIssues = countOpenIssuesForDoer(ctx, repo, permissionInRepo, doer)
+	if apiRepo.Parent != nil {
+		parentPermission, err := access_model.GetDoerRepoPermission(ctx, repo.BaseRepo, doer)
+		if err != nil {
+			log.Error("ToAPIRepo: %v", err)
+			apiRepo.Parent.OpenIssues = 0
+			return apiRepo
+		}
+		apiRepo.Parent.OpenIssues = countOpenIssuesForDoer(ctx, repo.BaseRepo, parentPermission, doer)
+	}
+	return apiRepo
+}
 
+// countOpenIssuesForDoer reports no open issues on error rather than the stored counter
+func countOpenIssuesForDoer(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, doer *user_model.User) int {
+	count, err := issues_model.CountOpenIssuesForViewer(ctx, repo, issues_model.NewVisibilityScopeForRepo(doer, repo.ID, withRepoUnits(ctx, repo, permissionInRepo)))
+	if err != nil {
+		log.Error("ToAPIRepo: %v", err)
+		return 0
+	}
+	return count
+}
+
+func withRepoUnits(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission) access_model.Permission {
 	if !permissionInRepo.HasUnits() && permissionInRepo.AccessMode > perm.AccessModeNone {
 		// If units is empty, it means that it's a hard-coded permission, like access_model.Permission{AccessMode: perm.AccessModeAdmin}
 		// So we need to load units for the repo, otherwise UnitAccessMode will just return perm.AccessModeNone.
@@ -34,6 +63,13 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		_ = repo.LoadUnits(ctx) // the error is not important, so ignore it
 		permissionInRepo.SetUnitsWithDefaultAccessMode(repo.Units, permissionInRepo.AccessMode)
 	}
+	return permissionInRepo
+}
+
+func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, isParent bool) *api.Repository {
+	var parent *api.Repository
+
+	permissionInRepo = withRepoUnits(ctx, repo, permissionInRepo)
 
 	// TODO: ideally we should pass "doer" into "ToRepo" to make CloneLink could generate user-related links
 	// And passing "doer" in will also fix other FIXMEs in this file.

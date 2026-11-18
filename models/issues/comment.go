@@ -121,6 +121,9 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypeMakeConfidential // 39 Make an issue confidential
+	CommentTypeMakePublic       // 40 Make a confidential issue public
 )
 
 var commentStrings = []string{
@@ -163,6 +166,8 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"make_confidential",
+	"make_public",
 }
 
 func (t CommentType) String() string {
@@ -357,6 +362,8 @@ type Comment struct {
 	RefRepo    *repo_model.Repository `xorm:"-"`
 	RefIssue   *Issue                 `xorm:"-"`
 	RefComment *Comment               `xorm:"-"`
+
+	RefIssueHidden bool `xorm:"-"` // the referenced issue is confidential and hidden from the viewer
 
 	CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
 
@@ -1117,6 +1124,9 @@ type FindCommentsOptions struct {
 	IssueIDs    []int64
 	Invalidated optional.Option[bool]
 	IsPull      optional.Option[bool]
+
+	// Visibility hides the comments of confidential issues the scope cannot see
+	Visibility *VisibilityScope
 }
 
 func (opts FindCommentsOptions) ToOrders() string {
@@ -1157,6 +1167,9 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 	}
 	if opts.IsPull.Has() {
 		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.Value()})
+	}
+	if opts.Visibility != nil {
+		cond = cond.And(builder.In("comment.issue_id", builder.Select("id").From("issue").Where(opts.Visibility.Cond())))
 	}
 	return cond
 }

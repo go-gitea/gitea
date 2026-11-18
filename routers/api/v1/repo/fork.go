@@ -76,7 +76,7 @@ func ListForks(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		apiForks[i] = convert.ToRepo(ctx, fork, permission)
+		apiForks[i] = convert.ToAPIRepo(ctx, fork, permission, ctx.Doer)
 	}
 
 	ctx.SetLinkHeader(total, listOptions.PageSize)
@@ -164,5 +164,5 @@ func CreateFork(ctx *context.APIContext) {
 	}
 
 	// TODO change back to 201
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, fork, access_model.Permission{AccessMode: perm.AccessModeOwner}))
+	ctx.JSON(http.StatusAccepted, convert.ToAPIRepo(ctx, fork, access_model.Permission{AccessMode: perm.AccessModeOwner}, ctx.Doer))
 }

@@ -117,6 +117,16 @@
 					{{end}}
 				</span>
 			</div>
+		{{else if and (eq .Type 3 5 6) .RefIssueHidden}}
+			{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-eye-closed"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="comment-text-line">
+					{{template "shared/user/authorlink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.ref_confidential_placeholder" $createdStr}}
+				</span>
+			</div>
 		{{else if eq .Type 3 5 6}}
 			{{$refFrom:= ""}}
 			{{if ne .RefRepoID .Issue.RepoID}}
@@ -475,6 +485,24 @@
 				<span class="comment-text-line">
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
 					{{ctx.Locale.Tr "repo.issues.unlock_comment" $createdStr}}
+				</span>
+			</div>
+		{{else if eq .Type 39}}
+			<div class="timeline-item event">
+				<span class="badge">{{svg "octicon-eye-closed"}}</span>
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
+				<span class="comment-text-line">
+					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
+					{{ctx.Locale.Tr "repo.issues.confidential_comment" $createdStr}}
+				</span>
+			</div>
+		{{else if eq .Type 40}}
+			<div class="timeline-item event">
+				<span class="badge">{{svg "octicon-eye"}}</span>
+				{{template "repo/issue/view_content/comments_avatarlink" dict "comment" .}}
+				<span class="comment-text-line">
+					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
+					{{ctx.Locale.Tr "repo.issues.public_comment" $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 25}}

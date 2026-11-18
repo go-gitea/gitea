@@ -83,7 +83,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 	locale := translation.NewLocale(lang)
 
 	var err error
-	rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
+	rctx := renderhelper.NewRenderContextRepoComment(withoutWebContext(ctx), rel.Repo).WithUseAbsoluteLink(true)
 	rel.RenderedNote, err = markdown.RenderString(rctx,
 		rel.Note)
 	if err != nil {

@@ -319,6 +319,15 @@ func IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_
 	}
 }
 
+// IssueChangeConfidential notifies change of the confidential flag to notifiers
+func IssueChangeConfidential(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	defer recoverPanic()
+
+	for _, notifier := range notifiers {
+		notifier.IssueChangeConfidential(ctx, doer, issue)
+	}
+}
+
 // IssueChangeRef notifies change reference to notifiers
 func IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string) {
 	defer recoverPanic()

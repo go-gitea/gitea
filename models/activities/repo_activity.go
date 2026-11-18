@@ -45,7 +45,7 @@ type ActivityStats struct {
 }
 
 // GetActivityStats return stats for repository at given time range
-func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
+func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, releases, issues, prs, code bool, scope *issues_model.VisibilityScope) (*ActivityStats, error) {
 	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(ctx, repo.ID, timeFrom); err != nil {
@@ -58,11 +58,11 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 		}
 	}
 	if issues {
-		if err := stats.FillIssues(ctx, repo.ID, timeFrom); err != nil {
+		if err := stats.FillIssues(ctx, repo.ID, timeFrom, scope); err != nil {
 			return nil, fmt.Errorf("FillIssues: %w", err)
 		}
 	}
-	if err := stats.FillUnresolvedIssues(ctx, repo.ID, timeFrom, issues, prs); err != nil {
+	if err := stats.FillUnresolvedIssues(ctx, repo.ID, timeFrom, issues, prs, scope); err != nil {
 		return nil, fmt.Errorf("FillUnresolvedIssues: %w", err)
 	}
 	if code {
@@ -256,12 +256,12 @@ func pullRequestsForActivityStatement(ctx context.Context, repoID int64, fromTim
 }
 
 // FillIssues returns issue information for activity page
-func (stats *ActivityStats) FillIssues(ctx context.Context, repoID int64, fromTime time.Time) error {
+func (stats *ActivityStats) FillIssues(ctx context.Context, repoID int64, fromTime time.Time, scope *issues_model.VisibilityScope) error {
 	var err error
 	var count int64
 
 	// Closed issues
-	sess := issuesForActivityStatement(ctx, repoID, fromTime, true, false)
+	sess := issuesForActivityStatement(ctx, repoID, fromTime, true, false, scope)
 	sess.OrderBy("issue.closed_unix DESC")
 	stats.ClosedIssues = make(issues_model.IssueList, 0)
 	if err = sess.Find(&stats.ClosedIssues); err != nil {
@@ -269,14 +269,14 @@ func (stats *ActivityStats) FillIssues(ctx context.Context, repoID int64, fromTi
 	}
 
 	// Closed issue authors
-	sess = issuesForActivityStatement(ctx, repoID, fromTime, true, false)
+	sess = issuesForActivityStatement(ctx, repoID, fromTime, true, false, scope)
 	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(&count); err != nil {
 		return err
 	}
 	stats.ClosedIssueAuthorCount = count
 
 	// New issues
-	sess = newlyCreatedIssues(ctx, repoID, fromTime)
+	sess = newlyCreatedIssues(ctx, repoID, fromTime, scope)
 	sess.OrderBy("issue.created_unix ASC")
 	stats.OpenedIssues = make(issues_model.IssueList, 0)
 	if err = sess.Find(&stats.OpenedIssues); err != nil {
@@ -284,7 +284,7 @@ func (stats *ActivityStats) FillIssues(ctx context.Context, repoID int64, fromTi
 	}
 
 	// Active issues
-	sess = activeIssues(ctx, repoID, fromTime)
+	sess = activeIssues(ctx, repoID, fromTime, scope)
 	sess.OrderBy("issue.created_unix ASC")
 	stats.ActiveIssues = make(issues_model.IssueList, 0)
 	if err = sess.Find(&stats.ActiveIssues); err != nil {
@@ -292,7 +292,7 @@ func (stats *ActivityStats) FillIssues(ctx context.Context, repoID int64, fromTi
 	}
 
 	// Opened issue authors
-	sess = issuesForActivityStatement(ctx, repoID, fromTime, false, false)
+	sess = issuesForActivityStatement(ctx, repoID, fromTime, false, false, scope)
 	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(&count); err != nil {
 		return err
 	}
@@ -302,12 +302,12 @@ func (stats *ActivityStats) FillIssues(ctx context.Context, repoID int64, fromTi
 }
 
 // FillUnresolvedIssues returns unresolved issue and pull request information for activity page
-func (stats *ActivityStats) FillUnresolvedIssues(ctx context.Context, repoID int64, fromTime time.Time, issues, prs bool) error {
+func (stats *ActivityStats) FillUnresolvedIssues(ctx context.Context, repoID int64, fromTime time.Time, issues, prs bool, scope *issues_model.VisibilityScope) error {
 	// Check if we need to select anything
 	if !issues && !prs {
 		return nil
 	}
-	sess := issuesForActivityStatement(ctx, repoID, fromTime, false, true)
+	sess := issuesForActivityStatement(ctx, repoID, fromTime, false, true, scope)
 	if !issues || !prs {
 		sess.And("issue.is_pull = ?", prs)
 	}
@@ -316,28 +316,31 @@ func (stats *ActivityStats) FillUnresolvedIssues(ctx context.Context, repoID int
 	return sess.Find(&stats.UnresolvedIssues)
 }
 
-func newlyCreatedIssues(ctx context.Context, repoID int64, fromTime time.Time) db.Session {
+func newlyCreatedIssues(ctx context.Context, repoID int64, fromTime time.Time, scope *issues_model.VisibilityScope) db.Session {
 	sess := db.GetEngine(ctx).Where("issue.repo_id = ?", repoID).
-		And("issue.is_pull = ?", false).                // Retain the is_pull check to exclude pull requests
-		And("issue.created_unix >= ?", fromTime.Unix()) // Include all issues created after fromTime
+		And("issue.is_pull = ?", false).                 // Retain the is_pull check to exclude pull requests
+		And("issue.created_unix >= ?", fromTime.Unix()). // Include all issues created after fromTime
+		And(scope.Cond())
 
 	return sess
 }
 
-func activeIssues(ctx context.Context, repoID int64, fromTime time.Time) db.Session {
+func activeIssues(ctx context.Context, repoID int64, fromTime time.Time, scope *issues_model.VisibilityScope) db.Session {
 	sess := db.GetEngine(ctx).Where("issue.repo_id = ?", repoID).
 		And("issue.is_pull = ?", false).
 		And(builder.Or(
 			builder.Gte{"issue.created_unix": fromTime.Unix()},
 			builder.Gte{"issue.closed_unix": fromTime.Unix()},
-		))
+		)).
+		And(scope.Cond())
 
 	return sess
 }
 
-func issuesForActivityStatement(ctx context.Context, repoID int64, fromTime time.Time, closed, unresolved bool) db.Session {
+func issuesForActivityStatement(ctx context.Context, repoID int64, fromTime time.Time, closed, unresolved bool, scope *issues_model.VisibilityScope) db.Session {
 	sess := db.GetEngine(ctx).Where("issue.repo_id = ?", repoID).
-		And("issue.is_closed = ?", closed)
+		And("issue.is_closed = ?", closed).
+		And(scope.Cond())
 
 	if !unresolved {
 		sess.And("issue.is_pull = ?", false)

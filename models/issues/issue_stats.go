@@ -41,6 +41,10 @@ var MaxQueryParameters = 300
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
 func CountIssuesByRepo(ctx context.Context, opts *IssuesOptions) (map[int64]int64, error) {
+	opts, err := opts.resolveVisibility(ctx)
+	if err != nil {
+		return nil, err
+	}
 	sess := db.GetEngine(ctx).
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
@@ -66,6 +70,10 @@ func CountIssuesByRepo(ctx context.Context, opts *IssuesOptions) (map[int64]int6
 
 // CountIssues number return of issues by given conditions.
 func CountIssues(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Cond) (int64, error) {
+	opts, err := opts.resolveVisibility(ctx)
+	if err != nil {
+		return 0, err
+	}
 	sess := db.GetEngine(ctx).
 		Select("COUNT(issue.id) AS count").
 		Table("issue").
@@ -81,6 +89,10 @@ func CountIssues(ctx context.Context, opts *IssuesOptions, otherConds ...builder
 
 // GetIssueStats returns issue statistic information by given conditions.
 func GetIssueStats(ctx context.Context, opts *IssuesOptions) (*IssueStats, error) {
+	opts, err := opts.resolveVisibility(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if len(opts.IssueIDs) <= MaxQueryParameters {
 		return getIssueStatsChunk(ctx, opts, opts.IssueIDs)
 	}
@@ -129,6 +141,8 @@ func getIssueStatsChunk(ctx context.Context, opts *IssuesOptions, issueIDs []int
 }
 
 func applyIssuesOptions(sess db.Session, opts *IssuesOptions, issueIDs []int64) db.Session {
+	applyVisibilityConditions(sess, opts)
+
 	if len(opts.RepoIDs) > 1 {
 		sess.In("issue.repo_id", opts.RepoIDs)
 	} else if len(opts.RepoIDs) == 1 {

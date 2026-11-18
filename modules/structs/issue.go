@@ -66,7 +66,9 @@ type Issue struct {
 	Assignees []*User   `json:"assignees"`
 	State     StateType `json:"state"`
 	IsLocked  bool      `json:"is_locked"`
-	Comments  int       `json:"comments"`
+	// Whether the issue is confidential (visible only to the poster, assignees and users with write access)
+	Confidential bool `json:"confidential"`
+	Comments     int  `json:"comments"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -104,6 +106,8 @@ type CreateIssueOption struct {
 	// list of project ids
 	Projects []int64 `json:"projects"`
 	Closed   bool    `json:"closed"`
+	// whether the issue is confidential
+	Confidential bool `json:"confidential"`
 }
 
 // EditIssueOption options for editing an issue
@@ -124,6 +128,8 @@ type EditIssueOption struct {
 	RemoveDeadline *bool                    `json:"unset_due_date"`
 	// The current version of the issue content to detect conflicts during editing
 	ContentVersion *int `json:"content_version"`
+	// whether the issue is confidential
+	Confidential *bool `json:"confidential"`
 }
 
 // IssueAssigneesOption options for adding/removing issue assignees

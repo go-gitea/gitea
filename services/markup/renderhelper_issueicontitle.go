@@ -52,6 +52,13 @@ func renderRepoIssueIconTitle(ctx context.Context, opts markup.RenderIssueIconTi
 	if !permission.CanReadIssuesOrPulls(issue.IsPull) {
 		return "", util.ErrPermissionDenied
 	}
+	visible, err := issues.IsIssueVisible(ctx, issue, webCtx.Doer, permission)
+	if err != nil {
+		return "", err
+	}
+	if !visible {
+		return "", util.ErrPermissionDenied
+	}
 
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
