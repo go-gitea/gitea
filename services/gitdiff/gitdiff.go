@@ -1446,6 +1446,7 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 		content = strings.ReplaceAll(content, "\r\n", "\n")
 		content = strings.ReplaceAll(content, "\r", "␍")
 	}
+	lexer := highlight.DetectChromaLexerByFileName(name, lang)
 	var lineNumbers []int
 	for _, sec := range sections {
 		for _, ln := range sec.Lines {
@@ -1458,7 +1459,6 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 			}
 		}
 	}
-	lexer := highlight.DetectChromaLexerByFileName(name, lang)
 	return highlight.RenderCodeLinesByLexer(lexer, content, lineNumbers)
 }
 

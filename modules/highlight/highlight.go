@@ -121,6 +121,54 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 	return formatTokens(iterator)
 }
 
+// RenderCodeLinesByLexer highlights the ascending zero-based lines with all preceding code as lexer context
+func RenderCodeLinesByLexer(lexer chroma.Lexer, code string, lineNumbers []int) map[int]template.HTML {
+	iterator := chroma.Literator(chroma.Token{Type: chroma.Text, Value: code})
+	if lexer != lexers.Fallback {
+		var err error
+		if iterator, err = lexer.Tokenise(nil, code); err != nil {
+			log.Error("Can't tokenize code: %v", err)
+			return nil
+		}
+	}
+	lines := make(map[int]template.HTML, len(lineNumbers))
+	for idx, line := range UnsafeSplitHighlightedLines(formatTokens(codeTokensForLines(iterator, lineNumbers))) {
+		lines[lineNumbers[idx]] = template.HTML(util.UnsafeBytesToString(line))
+	}
+	return lines
+}
+
+func codeTokensForLines(iterator chroma.Iterator, lineNumbers []int) chroma.Iterator {
+	line, target := 0, 0
+	var pending chroma.Token
+	return func() chroma.Token {
+		for target < len(lineNumbers) {
+			if pending.Value == "" {
+				if pending = iterator(); pending == chroma.EOF {
+					return chroma.EOF
+				}
+			}
+			token := pending
+			nl := strings.IndexByte(token.Value, '\n')
+			if nl >= 0 {
+				token.Value = token.Value[:nl+1]
+			}
+			pending.Value = pending.Value[len(token.Value):]
+			selected := line == lineNumbers[target]
+			if nl >= 0 {
+				line++
+				if selected {
+					target++
+				}
+			}
+			if selected {
+				return token
+			}
+		}
+		return chroma.EOF
+	}
+}
+
 func formatTokens(iterator chroma.Iterator) template.HTML {
 	formatter := chromahtml.New(chromahtml.WithClasses(true),
 		chromahtml.WithLineNumbers(false),
