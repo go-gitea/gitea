@@ -578,8 +578,3 @@ func FindTagsByCommitIDs(ctx context.Context, repoID int64, commitIDs ...string)
 	}
 	return res, nil
 }
-
-func DeleteRepoReleases(ctx context.Context, repoID int64) error {
-	_, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Delete(new(Release))
-	return err
-}

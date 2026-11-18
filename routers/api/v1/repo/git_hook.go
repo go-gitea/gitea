@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 
 	"gitea.dev/modules/git"
@@ -83,11 +82,7 @@ func GetGitHook(ctx *context.APIContext) {
 	hookID := ctx.PathParam("id")
 	hook, err := git.GetHook(ctx.Repo.GitRepo, hookID)
 	if err != nil {
-		if errors.Is(err, git.ErrNotValidHook) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToGitHook(hook))
@@ -130,11 +125,7 @@ func EditGitHook(ctx *context.APIContext) {
 	hookID := ctx.PathParam("id")
 	hook, err := git.GetHook(ctx.Repo.GitRepo, hookID)
 	if err != nil {
-		if errors.Is(err, git.ErrNotValidHook) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -179,11 +170,7 @@ func DeleteGitHook(ctx *context.APIContext) {
 	hookID := ctx.PathParam("id")
 	hook, err := git.GetHook(ctx.Repo.GitRepo, hookID)
 	if err != nil {
-		if errors.Is(err, git.ErrNotValidHook) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 

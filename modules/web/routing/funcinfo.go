@@ -62,7 +62,6 @@ func GetFuncInfo(fn any, friendlyName ...string) *FuncInfo {
 			info = copyFuncInfo(info)
 			info.shortName = name
 
-			funcInfoNameMap[name] = info
 			funcInfoMapMu.Lock()
 			funcInfoNameMap[name] = info
 			funcInfoMapMu.Unlock()

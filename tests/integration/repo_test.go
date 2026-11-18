@@ -276,6 +276,9 @@ func testBlameFileInRepo(t *testing.T) {
 	assert.Equal(t, 0, description.Length())
 	assert.Equal(t, 0, repoTopics.Length())
 	assert.Equal(t, 0, repoSummary.Length())
+
+	resp = session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo20/blame/branch/master/a"), http.StatusSeeOther)
+	assert.Equal(t, "/user2/repo20/src/branch/master/a", test.RedirectURL(resp))
 }
 
 // TestViewRepoDirectory repo description, topics and summary should not be displayed when within a directory

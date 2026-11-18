@@ -464,7 +464,6 @@
   "repo.forks": "Garpu",
   "repo.reactions_more": "dan %d lainnya",
   "repo.unit_disabled": "Administrator web menonaktifkan bagian repositori ini.",
-  "repo.delete_preexisting_label": "Hapus",
   "repo.desc.private": "Pribadi",
   "repo.desc.public": "Publik",
   "repo.desc.template": "Contoh",

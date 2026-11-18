@@ -8,7 +8,7 @@ AIR_PACKAGE ?= github.com/air-verse/air@v1.67.4 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v4/cmd/editorconfig-checker@v4.0.2 # renovate: datasource=go
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.17 # renovate: datasource=go
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.6 # renovate: datasource=go
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.7 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.9.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
 SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker

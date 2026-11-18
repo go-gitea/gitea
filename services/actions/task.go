@@ -7,12 +7,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
+	"strings"
 	"sync"
 	"time"
 
+	"gitea.dev/actionslib/pkg/model"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/graceful"
@@ -159,7 +163,7 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 		return nil, nil, fmt.Errorf("generateTaskContext: %w", err)
 	}
 
-	payload, err := runnerWorkflowPayload(job)
+	payload, err := runnerWorkflowPayload(ctx, job)
 	if err != nil {
 		return nil, nil, fmt.Errorf("runnerWorkflowPayload: %w", err)
 	}
@@ -174,17 +178,47 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 	}, job, nil
 }
 
-// runnerWorkflowPayload sets the job `if:` to `always()`, as Gitea has decided it and a runner must not re-evaluate it.
-func runnerWorkflowPayload(job *actions_model.ActionRunJob) ([]byte, error) {
+// runnerWorkflowPayload sets the job `if:` to `always()` as Gitea has decided it, and pins `$/` steps to the job's workflow source, which a runner doesn't know.
+func runnerWorkflowPayload(ctx context.Context, job *actions_model.ActionRunJob) ([]byte, error) {
 	swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
 	if err != nil {
 		return nil, err
 	}
 	parsedJob.If = yaml.Node{Kind: yaml.ScalarNode, Value: "always()"}
+	var source *repo_model.Repository
+	var sourceSHA string
+	for _, step := range parsedJob.Steps {
+		uses, err := model.ParseActionUses(step.Uses)
+		if err != nil || uses.Kind != model.ActionUsesSelfRepo || strings.Contains(step.Uses, "${{") {
+			continue
+		}
+		if source == nil {
+			var runnerResolves bool
+			if sourceSHA, runnerResolves = selfRepoSourceCommit(job.Run, job); runnerResolves {
+				break
+			}
+			source, err = repo_model.GetRepositoryByID(ctx, job.WorkflowSourceRepoID)
+			if repo_model.IsErrRepoNotExist(err) {
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
+		}
+		step.Uses = "self:" + path.Join(source.FullName(), uses.Path) + "@" + sourceSHA
+	}
 	if err := swf.SetJob(job.JobID, parsedJob); err != nil {
 		return nil, err
 	}
 	return swf.Marshal()
+}
+
+// selfRepoSourceCommit returns the commit `$/` steps of a workflow from source must resolve at,
+// and whether a runner resolves them there by itself, as it uses `github.repository` at `github.sha`.
+func selfRepoSourceCommit(run *actions_model.ActionRun, source *actions_model.ActionRunJob) (sha string, runnerResolves bool) {
+	sha = resolveSameRepoWorkflowSourceCommit(run, source)
+	_, _, _, runSHA := runRefs(run)
+	return sha, source.WorkflowSourceRepoID == run.RepoID && sha == runSHA
 }
 
 func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*structpb.Struct, error) {

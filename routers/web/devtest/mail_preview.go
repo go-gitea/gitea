@@ -65,7 +65,7 @@ func MailPreviewRender(ctx *context.Context) {
 func MailPreviewEmbed(ctx *context.Context) {
 	content, err := mailer.LoadMailIcon(ctx.PathParam("*"))
 	if err != nil {
-		ctx.NotFound(err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", "image/png")

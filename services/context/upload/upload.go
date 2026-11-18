@@ -5,7 +5,6 @@ package upload
 
 import (
 	"mime"
-	"net/http"
 	"net/url"
 	"path"
 	"regexp"
@@ -16,6 +15,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
@@ -60,7 +60,7 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 		return nil // everything is allowed
 	}
 
-	fullMimeType := http.DetectContentType(buf)
+	fullMimeType := typesniffer.DetectContentType(buf).GetMimeType()
 	mimeType, _, err := mime.ParseMediaType(fullMimeType)
 	if err != nil {
 		log.Warn("Detected attachment type could not be parsed %s", fullMimeType)
