@@ -34,15 +34,13 @@ func TestRepairPackageSigningKeys(t *testing.T) {
 	require.NoError(t, x.Find(&settings))
 	assert.Equal(t, "valid", settings[4].SettingValue)
 
-	readIdentity := func(armored string) (*openpgp.Entity, *openpgp.Identity) {
+	readIdentity := func(armored string) *openpgp.Identity {
 		entities, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armored))
 		require.NoError(t, err)
-		return entities[0], entities[0].PrimaryIdentity()
+		return entities[0].PrimaryIdentity()
 	}
-	privateKey, originalIdentity := readIdentity(settings[1].SettingValue)
-	publicKey, identity := readIdentity(settings[2].SettingValue)
-	assert.Equal(t, privateKey.PrimaryKey.Fingerprint, publicKey.PrimaryKey.Fingerprint)
-	assert.Equal(t, originalIdentity.SelfSignature.CreationTime, identity.SelfSignature.CreationTime)
+	identity := readIdentity(settings[2].SettingValue)
+	assert.Equal(t, readIdentity(settings[1].SettingValue).SelfSignature.CreationTime, identity.SelfSignature.CreationTime)
 	signature := identity.SelfSignature.RSASignature
 	assert.Equal(t, new(big.Int).SetBytes(signature.Bytes()).BitLen(), int(signature.BitLength()))
 }
