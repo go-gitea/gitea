@@ -44,7 +44,6 @@ var (
 // FetchOperationsOptions contains one Manager operation fetch request.
 type FetchOperationsOptions struct {
 	StartupCapacityAvailable int32
-	AcceptedOperationTypes   []codespacev1.AcceptedOperationType
 	AcceptedCreateTags       []string
 	ObservedOperations       []*codespacev1.ObservedOperation
 	CleanupCapacityAvailable int32
@@ -111,7 +110,7 @@ func FetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 			return nil
 		}
 		capacity := int(opts.StartupCapacityAvailable)
-		if slices.Contains(opts.AcceptedOperationTypes, codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE) && len(acceptedCreateTags) > 0 {
+		if len(acceptedCreateTags) > 0 {
 			claimed, err := claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, capacity, acceptedCreateTags, []string{codespace_model.OperationCreate}, result)
 			if err != nil {
 				return err
@@ -119,7 +118,7 @@ func FetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 			remaining -= claimed
 			capacity -= claimed
 		}
-		if remaining > 0 && capacity > 0 && slices.Contains(opts.AcceptedOperationTypes, codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_RESUME) {
+		if remaining > 0 && capacity > 0 {
 			_, err = claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, capacity, nil, []string{codespace_model.OperationResume}, result)
 		}
 		return err
@@ -161,11 +160,6 @@ func validateFetchOptions(opts FetchOperationsOptions) error {
 			return errors.New("observed_operations contains duplicate codespace id")
 		}
 		seen[observed.GetCodespaceId()] = struct{}{}
-	}
-	for _, acceptedType := range opts.AcceptedOperationTypes {
-		if acceptedType != codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE && acceptedType != codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_RESUME {
-			return fmt.Errorf("invalid accepted operation type %d", acceptedType)
-		}
 	}
 	return nil
 }
@@ -600,17 +594,18 @@ func buildCreatePayload(ctx context.Context, codespace *codespace_model.Codespac
 	if err != nil {
 		return nil, err
 	}
-	httpCloneURL := cloneLink.HTTPS
-	if !capabilities.HTTPEnabled {
-		httpCloneURL = ""
+	cloneURLs := make([]string, 0, 2)
+	if capabilities.HTTPEnabled && cloneLink.HTTPS != "" {
+		cloneURLs = append(cloneURLs, cloneLink.HTTPS)
 	}
-	sshCloneURL := cloneLink.SSH
-	if !capabilities.SSHEnabled {
-		sshCloneURL = ""
+	if capabilities.SSHEnabled && cloneLink.SSH != "" {
+		cloneURLs = append(cloneURLs, cloneLink.SSH)
 	}
-	gitProtocolValue, err := gitProtocolMessage(gitProtocol)
-	if err != nil {
-		return nil, err
+	if gitProtocol == codespace_model.GitProtocolSSH {
+		slices.Reverse(cloneURLs)
+	}
+	if len(cloneURLs) == 0 {
+		return nil, errors.New("codespace repository has no usable clone URL")
 	}
 	devContainer := &codespacev1.DevContainerConfiguration{}
 	if strings.TrimSpace(codespace.DevContainerPath) != "" && strings.TrimSpace(codespace.DevContainerContent) == "" {
@@ -622,13 +617,11 @@ func buildCreatePayload(ctx context.Context, codespace *codespace_model.Codespac
 	}
 	return &codespacev1.CreateOperationPayload{
 		Repository: &codespacev1.RepositoryCheckout{
-			RepositoryId:      repository.ID,
-			FullName:          repository.FullName(),
-			CloneHttpUrl:      httpCloneURL,
-			CloneSshUrl:       sshCloneURL,
-			PreferredProtocol: gitProtocolValue,
-			StartRef:          startRef,
-			CommitSha:         codespace.CommitSHA,
+			RepositoryId: repository.ID,
+			FullName:     repository.FullName(),
+			CloneUrls:    cloneURLs,
+			StartRef:     startRef,
+			CommitSha:    codespace.CommitSHA,
 		},
 		EnvironmentTag: codespace.EnvironmentTag,
 		GitIdentity: &codespacev1.GitIdentity{
@@ -678,17 +671,6 @@ func canonicalStartRef(refType, refName string) (string, error) {
 	return "", fmt.Errorf("invalid persisted codespace ref %q %q", refType, refName)
 }
 
-func gitProtocolMessage(protocol string) (codespacev1.GitProtocol, error) {
-	switch protocol {
-	case codespace_model.GitProtocolHTTP:
-		return codespacev1.GitProtocol_GIT_PROTOCOL_HTTP, nil
-	case codespace_model.GitProtocolSSH:
-		return codespacev1.GitProtocol_GIT_PROTOCOL_SSH, nil
-	default:
-		return codespacev1.GitProtocol_GIT_PROTOCOL_UNSPECIFIED, fmt.Errorf("unsupported git protocol %q", protocol)
-	}
-}
-
 func effectiveRuntimeSettings(codespace *codespace_model.Codespace) RuntimeSettings {
 	settings := RuntimeSettings{
 		AutoStopEnabled:       setting.Codespace.Enabled,
@@ -714,7 +696,6 @@ func effectiveRuntimeSettings(codespace *codespace_model.Codespace) RuntimeSetti
 
 func runtimeSettingsMessage(settings RuntimeSettings) *codespacev1.EffectiveCodespaceRuntimeSettings {
 	return &codespacev1.EffectiveCodespaceRuntimeSettings{
-		AutoStopEnabled:       settings.AutoStopEnabled,
 		IdleTimeoutSeconds:    settings.IdleTimeoutSeconds,
 		InteractionGeneration: settings.InteractionGeneration,
 	}

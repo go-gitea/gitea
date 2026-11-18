@@ -5,6 +5,7 @@ package codespace
 
 import (
 	"context"
+	"time"
 
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
@@ -46,7 +47,7 @@ func loadGatewayRuntimeAccess(ctx context.Context, managerID, codespaceID int64,
 	if codespace.ManagerID != managerID {
 		return nil, gatewayAccessManagerMismatch, nil
 	}
-	startup := hasActiveStartup(codespace)
+	startup := hasActiveStartup(codespace, time.Now().Unix())
 	if codespace.Status != codespace_model.StatusRunning && !startup {
 		return nil, gatewayAccessCodespaceNotRunning, nil
 	}

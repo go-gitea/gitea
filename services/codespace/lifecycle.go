@@ -22,7 +22,6 @@ var ErrFinalizeGiteaTokenRequired = errors.New("codespace gitea token is require
 type FinalizeOperationOptions struct {
 	CodespaceID       int64
 	OperationRVersion int64
-	OperationType     codespacev1.OperationType
 	FinalStatus       codespacev1.FinalStatus
 }
 
@@ -36,10 +35,6 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 	}
 	if opts.OperationRVersion <= 0 {
 		return nil, util.NewInvalidArgumentErrorf("operation_rversion must be positive")
-	}
-	operationType := finalOperationType(opts.OperationType)
-	if operationType == "" {
-		return nil, util.NewInvalidArgumentErrorf("invalid final operation type %d", opts.OperationType)
 	}
 	if opts.FinalStatus != codespacev1.FinalStatus_FINAL_STATUS_DONE && opts.FinalStatus != codespacev1.FinalStatus_FINAL_STATUS_FAILED {
 		return nil, util.NewInvalidArgumentErrorf("invalid final status %d", opts.FinalStatus)
@@ -59,17 +54,17 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 		if err := codespace_model.ValidateCodespace(codespace); err != nil {
 			return fmt.Errorf("invalid persisted Codespace: %w", err)
 		}
-
 		// A stale final ends Manager work but must not overwrite a newer operation, so acknowledge it without changing state.
-		if !isCurrentRunningOperation(codespace, manager.ID, opts.OperationRVersion) || codespace_model.ActiveOperationType(codespace) != operationType {
+		if !isCurrentRunningOperation(codespace, manager.ID, opts.OperationRVersion) {
 			return nil
 		}
+		operationType := codespace_model.ActiveOperationType(codespace)
 		now := time.Now().Unix()
 		if isConvergentOperation(operationType) {
 			if opts.FinalStatus == codespacev1.FinalStatus_FINAL_STATUS_FAILED {
 				return util.NewInvalidArgumentErrorf("stop and delete operations must converge or let their lease expire")
 			}
-			return applyFinalOperation(ctx, codespace, opts, now)
+			return applyFinalOperation(ctx, codespace, operationType, opts.FinalStatus, now)
 		}
 		if codespace.OperationDeadlineUnix > 0 && now >= codespace.OperationDeadlineUnix {
 			resultStatus := timeoutStatus(operationType)
@@ -77,7 +72,7 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 			return applyFinalState(ctx, codespace, resultStatus, now)
 		}
 		if opts.FinalStatus == codespacev1.FinalStatus_FINAL_STATUS_DONE &&
-			(opts.OperationType == codespacev1.OperationType_OPERATION_TYPE_CREATE || opts.OperationType == codespacev1.OperationType_OPERATION_TYPE_RESUME) {
+			(operationType == codespace_model.OperationCreate || operationType == codespace_model.OperationResume) {
 			hasToken, err := hasValidCurrentGiteaToken(ctx, codespace.ID)
 			if err != nil {
 				return err
@@ -86,7 +81,7 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 				return ErrFinalizeGiteaTokenRequired
 			}
 		}
-		return applyFinalOperation(ctx, codespace, opts, now)
+		return applyFinalOperation(ctx, codespace, operationType, opts.FinalStatus, now)
 	})
 	if err != nil {
 		if errors.Is(err, errCodespaceStateChanged) {
@@ -108,25 +103,30 @@ func hasActiveOperation(codespace *codespace_model.Codespace) bool {
 	return codespace_model.ActiveOperationType(codespace) != ""
 }
 
-func applyFinalOperation(ctx context.Context, codespace *codespace_model.Codespace, opts FinalizeOperationOptions, now int64) error {
-	switch opts.FinalStatus {
+func hasActiveStartup(codespace *codespace_model.Codespace, now int64) bool {
+	operation := codespace_model.ActiveOperationType(codespace)
+	return (operation == codespace_model.OperationCreate || operation == codespace_model.OperationResume) && codespace_model.IsOperationRunning(codespace) && codespace.OperationDeadlineUnix > now
+}
+
+func applyFinalOperation(ctx context.Context, codespace *codespace_model.Codespace, operationType string, finalStatus codespacev1.FinalStatus, now int64) error {
+	switch finalStatus {
 	case codespacev1.FinalStatus_FINAL_STATUS_DONE:
-		switch opts.OperationType {
-		case codespacev1.OperationType_OPERATION_TYPE_CREATE:
+		switch operationType {
+		case codespace_model.OperationCreate:
 			return applyFinalState(ctx, codespace, codespace_model.StatusRunning, now)
-		case codespacev1.OperationType_OPERATION_TYPE_RESUME:
+		case codespace_model.OperationResume:
 			codespace.LastActiveUnix = now
 			return applyFinalState(ctx, codespace, codespace_model.StatusRunning, now)
-		case codespacev1.OperationType_OPERATION_TYPE_STOP:
+		case codespace_model.OperationStop:
 			return applyFinalState(ctx, codespace, codespace_model.StatusStopped, now)
-		case codespacev1.OperationType_OPERATION_TYPE_DELETE:
+		case codespace_model.OperationDelete:
 			return deleteCodespaceRowForFinal(ctx, codespace)
 		}
 	case codespacev1.FinalStatus_FINAL_STATUS_FAILED:
-		switch opts.OperationType {
-		case codespacev1.OperationType_OPERATION_TYPE_CREATE:
+		switch operationType {
+		case codespace_model.OperationCreate:
 			return applyFinalState(ctx, codespace, codespace_model.StatusFailed, now)
-		case codespacev1.OperationType_OPERATION_TYPE_RESUME:
+		case codespace_model.OperationResume:
 			return applyFinalState(ctx, codespace, codespace_model.StatusStopped, now)
 		}
 	}
@@ -176,21 +176,6 @@ func timeoutStatus(operationType string) string {
 		return codespace_model.StatusStopped
 	default:
 		return codespace_model.StatusFailed
-	}
-}
-
-func finalOperationType(operationType codespacev1.OperationType) string {
-	switch operationType {
-	case codespacev1.OperationType_OPERATION_TYPE_CREATE:
-		return codespace_model.OperationCreate
-	case codespacev1.OperationType_OPERATION_TYPE_RESUME:
-		return codespace_model.OperationResume
-	case codespacev1.OperationType_OPERATION_TYPE_STOP:
-		return codespace_model.OperationStop
-	case codespacev1.OperationType_OPERATION_TYPE_DELETE:
-		return codespace_model.OperationDelete
-	default:
-		return ""
 	}
 }
 

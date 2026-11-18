@@ -111,7 +111,7 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 		if !has {
 			return ErrOpenEndpointNotFound
 		}
-		if codespace.Status != codespace_model.StatusRunning && !hasActiveStartup(codespace) {
+		if codespace.Status != codespace_model.StatusRunning && !hasActiveStartup(codespace, time.Now().Unix()) {
 			unavailableCategory = OpenTokenDeniedCodespaceNotRunning
 			return nil
 		}
@@ -134,16 +134,17 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 			unavailableCategory = OpenTokenDeniedMetadataRebuilding
 			return nil
 		}
-		if err := validateRuntimeAddresses(entry.Metadata, manager); err != nil {
-			unavailableCategory = OpenTokenDeniedMetadataRebuilding
-			return nil
-		}
 		endpoint, found := entry.Metadata.endpointByID(opts.EndpointID)
 		if !found {
 			unavailableCategory = OpenTokenDeniedEndpointNotFound
 			return nil
 		}
-		if hasActiveOperation(codespace) && !hasActiveStartup(codespace) && (endpoint.Public || !isQueuedIdleStop(codespace)) {
+		redirectURL, err := parseRuntimeEndpointURL(endpoint.URL, manager.GatewayURL)
+		if err != nil {
+			unavailableCategory = OpenTokenDeniedMetadataRebuilding
+			return nil
+		}
+		if hasActiveOperation(codespace) && !hasActiveStartup(codespace, time.Now().Unix()) && (endpoint.Public || !isQueuedIdleStop(codespace)) {
 			unavailableCategory = OpenTokenDeniedStateUnavailable
 			return nil
 		}
@@ -164,13 +165,9 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 		}); err != nil {
 			return err
 		}
-		redirectURL, err := url.Parse(endpoint.OpenURL)
-		if err != nil {
-			return err
-		}
-		query := redirectURL.Query()
-		query.Set("code", code)
-		redirectURL.RawQuery = query.Encode()
+		redirectURL.Path = "/.gitea-codespace/open"
+		redirectURL.RawPath = ""
+		redirectURL.RawQuery = url.Values{"code": {code}}.Encode()
 		nextGeneration, err := advanceCodespaceInteraction(ctx, codespace, now)
 		if err != nil {
 			return err
@@ -258,11 +255,11 @@ func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, op
 			result = denyOpenToken(OpenTokenDeniedPermissionDenied)
 			return nil
 		}
-		if codespace.Status != codespace_model.StatusRunning && !hasActiveStartup(codespace) {
+		if codespace.Status != codespace_model.StatusRunning && !hasActiveStartup(codespace, time.Now().Unix()) {
 			result = denyOpenToken(OpenTokenDeniedCodespaceNotRunning)
 			return nil
 		}
-		if hasActiveOperation(codespace) && !hasActiveStartup(codespace) && !isQueuedIdleStop(codespace) {
+		if hasActiveOperation(codespace) && !hasActiveStartup(codespace, time.Now().Unix()) && !isQueuedIdleStop(codespace) {
 			result = denyOpenToken(OpenTokenDeniedStateUnavailable)
 			return nil
 		}

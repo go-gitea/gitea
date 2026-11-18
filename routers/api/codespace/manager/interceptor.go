@@ -6,7 +6,6 @@ package manager
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
@@ -22,20 +21,14 @@ import (
 const (
 	managerIDHeader     = "x-codespace-manager-id"
 	managerSecretHeader = "x-codespace-manager-secret"
-	protocolVersion     = 1
 )
 
 type managerCtxKey struct{}
-
-type versionedRequest interface {
-	GetProtocolVersion() int32
-}
 
 func withManager(next connect.ServerFunc) connect.ServerFunc {
 	return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
 		ctx, cancel := context.WithTimeout(ctx, setting.Codespace.ControlPlaneTimeout)
 		defer cancel()
-		stream = versionedStream{stream}
 		if spec.Procedure == codespacev1connect.ManagerServiceRegisterManagerProcedure {
 			return next(ctx, spec, stream)
 		}
@@ -65,18 +58,6 @@ func withManager(next connect.ServerFunc) connect.ServerFunc {
 	}
 }
 
-type versionedStream struct{ connect.ServerStream }
-
-func (s versionedStream) Receive(message any) error {
-	if err := s.ServerStream.Receive(message); err != nil {
-		return err
-	}
-	if err := validateProtocolVersion(message); err != nil {
-		return failureError(connect.CodeFailedPrecondition, "protocol_mismatch", err)
-	}
-	return nil
-}
-
 // GetManager returns the Manager authenticated before each ManagerService RPC.
 func GetManager(ctx context.Context) *codespace_model.Manager {
 	if value := ctx.Value(managerCtxKey{}); value != nil {
@@ -97,17 +78,6 @@ func authenticate(ctx context.Context, header *connect.Header) (*codespace_model
 		return nil, err
 	}
 	return manager, nil
-}
-
-func validateProtocolVersion(message any) error {
-	request, ok := message.(versionedRequest)
-	if !ok {
-		return errors.New("request does not carry protocol version")
-	}
-	if request.GetProtocolVersion() != protocolVersion {
-		return fmt.Errorf("unsupported protocol version %d", request.GetProtocolVersion())
-	}
-	return nil
 }
 
 func failureError(code connect.Code, category string, err error) *connect.Error {

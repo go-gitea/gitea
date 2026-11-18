@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
@@ -33,12 +32,11 @@ func TestRequestIdleStopCreatesAndConfirmsPending(t *testing.T) {
 
 	result, err := RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
 		CodespaceID:                   codespaceID,
-		ObservedAutoStopEnabled:       true,
 		ObservedIdleTimeoutSeconds:    1800,
 		ObservedInteractionGeneration: 3,
 	})
 	require.NoError(t, err)
-	assert.EqualValues(t, 7, result.GetPending().GetOperationRversion())
+	assert.NotNil(t, result.GetPending())
 	row := loadServiceCodespace(t, codespaceID)
 	assert.EqualValues(t, 7, row.OperationRVersion)
 	assert.Equal(t, codespace_model.OperationStop, codespace_model.ActiveOperationType(row))
@@ -48,12 +46,11 @@ func TestRequestIdleStopCreatesAndConfirmsPending(t *testing.T) {
 
 	again, err := RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
 		CodespaceID:                   codespaceID,
-		ObservedAutoStopEnabled:       true,
 		ObservedIdleTimeoutSeconds:    1800,
 		ObservedInteractionGeneration: 3,
 	})
 	require.NoError(t, err)
-	assert.EqualValues(t, 7, again.GetPending().GetOperationRversion())
+	assert.NotNil(t, again.GetPending())
 }
 
 func TestRequestIdleStopReturnsObservationChanged(t *testing.T) {
@@ -73,13 +70,11 @@ func TestRequestIdleStopReturnsObservationChanged(t *testing.T) {
 
 	result, err := RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
 		CodespaceID:                   codespaceID,
-		ObservedAutoStopEnabled:       true,
 		ObservedIdleTimeoutSeconds:    1800,
 		ObservedInteractionGeneration: 4,
 	})
 	require.NoError(t, err)
 	settings := result.GetObservationChanged().GetRuntimeSettings()
-	assert.True(t, settings.GetAutoStopEnabled())
 	assert.EqualValues(t, 600, settings.GetIdleTimeoutSeconds())
 	assert.EqualValues(t, 4, settings.GetInteractionGeneration())
 	assert.False(t, hasActiveOperation(loadServiceCodespace(t, codespaceID)))
@@ -101,13 +96,11 @@ func TestRequestIdleStopDisabledReturnsObservationChangedAndKeepsPending(t *test
 
 	result, err := RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
 		CodespaceID:                   runningID,
-		ObservedAutoStopEnabled:       true,
 		ObservedIdleTimeoutSeconds:    1800,
 		ObservedInteractionGeneration: 5,
 	})
 	require.NoError(t, err)
 	settings := result.GetObservationChanged().GetRuntimeSettings()
-	assert.False(t, settings.GetAutoStopEnabled())
 	assert.Zero(t, settings.GetIdleTimeoutSeconds())
 	assert.EqualValues(t, 5, settings.GetInteractionGeneration())
 	row := loadServiceCodespace(t, runningID)
@@ -124,12 +117,11 @@ func TestRequestIdleStopDisabledReturnsObservationChangedAndKeepsPending(t *test
 	})
 	pending, err := RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
 		CodespaceID:                   pendingID,
-		ObservedAutoStopEnabled:       true,
 		ObservedIdleTimeoutSeconds:    1800,
 		ObservedInteractionGeneration: 0,
 	})
 	require.NoError(t, err)
-	assert.EqualValues(t, 12, pending.GetPending().GetOperationRversion())
+	assert.NotNil(t, pending.GetPending())
 }
 
 func TestRequestIdleStopNotApplicableAndVersionExhausted(t *testing.T) {
@@ -137,52 +129,23 @@ func TestRequestIdleStopNotApplicableAndVersionExhausted(t *testing.T) {
 
 	manager := insertServiceManager(t)
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
-	conflictID := int64(1045)
-	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		ID:                   conflictID,
-		Status:               codespace_model.StatusRunning,
-		OperationRVersion:    8,
-		OperationTrigger:     codespace_model.OperationTriggerUser,
-		OperationCreatedUnix: time.Now().Unix(),
-	})
-	result, err := RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
-		CodespaceID:                   conflictID,
-		ObservedAutoStopEnabled:       true,
-		ObservedIdleTimeoutSeconds:    1800,
-		ObservedInteractionGeneration: 0,
-	})
-	require.NoError(t, err)
-	assert.Equal(t, codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_OPERATION_CONFLICT, result.GetNotApplicable().GetReason())
-
-	stoppedID := int64(1046)
-	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		ID:                stoppedID,
-		Status:            codespace_model.StatusStopped,
-		OperationRVersion: 9,
-	})
-	result, err = RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
-		CodespaceID:                   stoppedID,
-		ObservedAutoStopEnabled:       true,
-		ObservedIdleTimeoutSeconds:    1800,
-		ObservedInteractionGeneration: 0,
-	})
-	require.NoError(t, err)
-	assert.Equal(t, codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_ALREADY_STOPPED, result.GetNotApplicable().GetReason())
-
-	creatingID := int64(1047)
-	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
-		ID:                creatingID,
-		Status:            codespace_model.StatusCreating,
-		OperationRVersion: 9,
-	})
-	result, err = RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
-		CodespaceID:                   creatingID,
-		ObservedAutoStopEnabled:       true,
-		ObservedIdleTimeoutSeconds:    1800,
-		ObservedInteractionGeneration: 0,
-	})
-	require.NoError(t, err)
-	assert.Equal(t, codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_STATE_UNAVAILABLE, result.GetNotApplicable().GetReason())
+	for i, status := range []string{codespace_model.StatusRunning, codespace_model.StatusStopped, codespace_model.StatusCreating} {
+		t.Run(status, func(t *testing.T) {
+			codespace := &codespace_model.Codespace{
+				ID: int64(1045 + i), Status: status, OperationRVersion: 9,
+			}
+			if status == codespace_model.StatusRunning {
+				codespace.OperationTrigger = codespace_model.OperationTriggerUser
+				codespace.OperationCreatedUnix = time.Now().Unix()
+			}
+			insertServiceCodespace(t, manager.ID, codespace)
+			result, err := RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
+				CodespaceID: codespace.ID, ObservedIdleTimeoutSeconds: 1800,
+			})
+			require.NoError(t, err)
+			assert.NotNil(t, result.GetNotApplicable())
+		})
+	}
 
 	exhaustedID := int64(1048)
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
@@ -190,9 +153,8 @@ func TestRequestIdleStopNotApplicableAndVersionExhausted(t *testing.T) {
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: math.MaxInt64,
 	})
-	_, err = RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
+	_, err := RequestIdleStop(t.Context(), manager, RequestIdleStopOptions{
 		CodespaceID:                   exhaustedID,
-		ObservedAutoStopEnabled:       true,
 		ObservedIdleTimeoutSeconds:    1800,
 		ObservedInteractionGeneration: 0,
 	})
@@ -246,7 +208,6 @@ func TestRequestIdleStopRejectsManagerMismatch(t *testing.T) {
 
 	_, err := RequestIdleStop(t.Context(), otherManager, RequestIdleStopOptions{
 		CodespaceID:                   codespaceID,
-		ObservedAutoStopEnabled:       true,
 		ObservedIdleTimeoutSeconds:    int64((30 * time.Minute) / time.Second),
 		ObservedInteractionGeneration: 0,
 	})

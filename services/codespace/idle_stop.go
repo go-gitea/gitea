@@ -28,7 +28,6 @@ var (
 // RequestIdleStopOptions contains one Manager idle-stop authorization request.
 type RequestIdleStopOptions struct {
 	CodespaceID                   int64
-	ObservedAutoStopEnabled       bool
 	ObservedIdleTimeoutSeconds    int64
 	ObservedInteractionGeneration int64
 }
@@ -41,8 +40,11 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 	if opts.CodespaceID <= 0 {
 		return nil, util.NewInvalidArgumentErrorf("codespace_id must be positive")
 	}
-	if err := validateObservedRuntimeSettings(opts); err != nil {
-		return nil, util.NewInvalidArgumentErrorf("%v", err)
+	if opts.ObservedInteractionGeneration < 0 {
+		return nil, util.NewInvalidArgumentErrorf("observed_interaction_generation must not be negative")
+	}
+	if opts.ObservedIdleTimeoutSeconds < 0 {
+		return nil, util.NewInvalidArgumentErrorf("observed_idle_timeout_seconds must not be negative")
 	}
 
 	var response *codespacev1.RequestIdleStopResponse
@@ -67,25 +69,16 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 		}
 
 		if isQueuedIdleStop(codespace) {
-			response = idleStopPendingResponse(codespace.OperationRVersion)
+			response = idleStopPendingResponse()
 			return nil
 		}
-		if hasActiveOperation(codespace) {
-			response = notApplicableIdleStop(codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_OPERATION_CONFLICT)
-			return nil
-		}
-		switch codespace.Status {
-		case codespace_model.StatusStopped:
-			response = notApplicableIdleStop(codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_ALREADY_STOPPED)
-			return nil
-		case codespace_model.StatusRunning:
-		default:
-			response = notApplicableIdleStop(codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_STATE_UNAVAILABLE)
+		if hasActiveOperation(codespace) || codespace.Status != codespace_model.StatusRunning {
+			response = idleStopNotApplicableResponse()
 			return nil
 		}
 
 		settings := effectiveRuntimeSettings(codespace)
-		if !settings.AutoStopEnabled || settingsChanged(settings, opts) {
+		if !settings.AutoStopEnabled || settings.IdleTimeoutSeconds != opts.ObservedIdleTimeoutSeconds || settings.InteractionGeneration != opts.ObservedInteractionGeneration {
 			response = &codespacev1.RequestIdleStopResponse{
 				Outcome: &codespacev1.RequestIdleStopResponse_ObservationChanged{
 					ObservationChanged: &codespacev1.IdleStopObservationChanged{RuntimeSettings: runtimeSettingsMessage(settings)},
@@ -114,12 +107,12 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 			"updated_unix",
 		); err != nil {
 			if errors.Is(err, errCodespaceStateChanged) {
-				response = notApplicableIdleStop(codespacev1.IdleStopNotApplicableReason_IDLE_STOP_NOT_APPLICABLE_REASON_OPERATION_CONFLICT)
+				response = idleStopNotApplicableResponse()
 				return nil
 			}
 			return err
 		}
-		response = idleStopPendingResponse(nextVersion)
+		response = idleStopPendingResponse()
 		return nil
 	})
 	if err != nil {
@@ -128,46 +121,24 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 	return response, nil
 }
 
-func validateObservedRuntimeSettings(opts RequestIdleStopOptions) error {
-	if opts.ObservedInteractionGeneration < 0 {
-		return errors.New("observed_interaction_generation must not be negative")
-	}
-	if opts.ObservedAutoStopEnabled {
-		if opts.ObservedIdleTimeoutSeconds <= 0 {
-			return errors.New("observed_idle_timeout_seconds must be positive when auto stop is enabled")
-		}
-		return nil
-	}
-	if opts.ObservedIdleTimeoutSeconds != 0 {
-		return errors.New("observed_idle_timeout_seconds must be zero when auto stop is disabled")
-	}
-	return nil
-}
-
 func isQueuedIdleStop(codespace *codespace_model.Codespace) bool {
 	return codespace_model.ActiveOperationType(codespace) == codespace_model.OperationStop &&
 		codespace_model.IsOperationQueued(codespace) &&
 		codespace.OperationTrigger == codespace_model.OperationTriggerIdle
 }
 
-func idleStopPendingResponse(operationRVersion int64) *codespacev1.RequestIdleStopResponse {
+func idleStopPendingResponse() *codespacev1.RequestIdleStopResponse {
 	return &codespacev1.RequestIdleStopResponse{
 		Outcome: &codespacev1.RequestIdleStopResponse_Pending{
-			Pending: &codespacev1.IdleStopPending{OperationRversion: operationRVersion},
+			Pending: &codespacev1.IdleStopPending{},
 		},
 	}
 }
 
-func notApplicableIdleStop(reason codespacev1.IdleStopNotApplicableReason) *codespacev1.RequestIdleStopResponse {
+func idleStopNotApplicableResponse() *codespacev1.RequestIdleStopResponse {
 	return &codespacev1.RequestIdleStopResponse{
 		Outcome: &codespacev1.RequestIdleStopResponse_NotApplicable{
-			NotApplicable: &codespacev1.IdleStopNotApplicable{Reason: reason},
+			NotApplicable: &codespacev1.IdleStopNotApplicable{},
 		},
 	}
-}
-
-func settingsChanged(settings RuntimeSettings, opts RequestIdleStopOptions) bool {
-	return settings.AutoStopEnabled != opts.ObservedAutoStopEnabled ||
-		settings.IdleTimeoutSeconds != opts.ObservedIdleTimeoutSeconds ||
-		settings.InteractionGeneration != opts.ObservedInteractionGeneration
 }

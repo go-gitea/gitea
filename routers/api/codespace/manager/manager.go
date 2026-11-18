@@ -103,7 +103,6 @@ func (s *Service) FetchOperations(
 	manager := GetManager(ctx)
 	result, err := codespace_service.FetchOperations(ctx, manager, codespace_service.FetchOperationsOptions{
 		StartupCapacityAvailable: req.GetStartupCapacityAvailable(),
-		AcceptedOperationTypes:   req.GetAcceptedOperationTypes(),
 		AcceptedCreateTags:       req.GetAcceptedCreateTags(),
 		ObservedOperations:       req.GetObservedOperations(),
 		CleanupCapacityAvailable: req.GetCleanupCapacityAvailable(),
@@ -145,7 +144,6 @@ func (s *Service) FinalizeOperation(
 	response, err := codespace_service.FinalizeOperation(ctx, manager, codespace_service.FinalizeOperationOptions{
 		CodespaceID:       req.GetCodespaceId(),
 		OperationRVersion: req.GetOperationRversion(),
-		OperationType:     req.GetOperationType(),
 		FinalStatus:       req.GetStatus(),
 	})
 	if err != nil {
@@ -242,7 +240,7 @@ func (s *Service) RequestRuntimeAccess(
 	result, err := codespace_service.RequestRuntimeAccess(ctx, manager, codespace_service.RequestRuntimeAccessOptions{
 		CodespaceID:       req.GetCodespaceId(),
 		OperationRVersion: req.GetOperationRversion(),
-		GitSSHPublicKey:   req.GetGitSshKey().GetPublicKey(),
+		GitSSHPublicKey:   req.GetGitSshPublicKey(),
 	})
 	if err != nil {
 		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
@@ -262,10 +260,10 @@ func (s *Service) RequestRuntimeAccess(
 	}
 	return &codespacev1.RequestRuntimeAccessResponse{
 		Access: &codespacev1.RuntimeAccessBundle{
-			GiteaToken:     result.Token,
-			GiteaServerUrl: result.ServerURL,
-			Secrets:        secrets,
-			GitSshTrust:    &codespacev1.GitSSHTrust{KnownHostsLines: result.GitSSHKnownHosts},
+			GiteaToken:       result.Token,
+			GiteaServerUrl:   result.ServerURL,
+			Secrets:          secrets,
+			GitSshKnownHosts: result.GitSSHKnownHosts,
 		},
 	}, nil
 }
@@ -279,7 +277,6 @@ func (s *Service) RequestIdleStop(
 	settings := req.GetObservedSettings()
 	result, err := codespace_service.RequestIdleStop(ctx, manager, codespace_service.RequestIdleStopOptions{
 		CodespaceID:                   req.GetCodespaceId(),
-		ObservedAutoStopEnabled:       settings.GetAutoStopEnabled(),
 		ObservedIdleTimeoutSeconds:    settings.GetIdleTimeoutSeconds(),
 		ObservedInteractionGeneration: settings.GetInteractionGeneration(),
 	})

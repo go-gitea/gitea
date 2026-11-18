@@ -135,7 +135,6 @@ func TestReportInstancesReturnsDisabledRuntimeSettings(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, result.Results, 1)
 	require.NotNil(t, result.Results[0].RuntimeSettings)
-	assert.False(t, result.Results[0].RuntimeSettings.GetAutoStopEnabled())
 	assert.Zero(t, result.Results[0].RuntimeSettings.GetIdleTimeoutSeconds())
 	assert.EqualValues(t, 9, result.Results[0].RuntimeSettings.GetInteractionGeneration())
 	assert.Equal(t, codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_UNSPECIFIED, result.Results[0].GetAction())

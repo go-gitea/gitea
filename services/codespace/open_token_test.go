@@ -32,9 +32,14 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 		OperationCreatedUnix:  time.Now().Unix(),
 		InteractionGeneration: 5,
 	})
-	require.NoError(t, putRuntimeMetadataEntry(codespaceID, serviceRuntimeMetadataEntry(t, 81, []*codespacev1.RuntimeEndpoint{
+	entry := serviceRuntimeMetadataEntry(t, 81, []*codespacev1.RuntimeEndpoint{
 		{EndpointId: "app-3000", Label: "App", Public: false},
-	})))
+	})
+	entry.Metadata.Endpoints[0].URL += "project%20path?code=old&next=old"
+	require.NoError(t, putRuntimeMetadataEntry(codespaceID, entry))
+	manager.GatewaySSHAddr = "new-ssh.example.com:22"
+	_, err := db.GetEngine(t.Context()).ID(manager.ID).Cols("gateway_ssh_addr").Update(manager)
+	require.NoError(t, err)
 
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
 		CodespaceID: codespaceID,
@@ -64,6 +69,10 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 	again, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: issued.code})
 	require.NoError(t, err)
 	assert.Equal(t, OpenTokenDeniedInvalidCredentials, again.GetDenied().GetCategory())
+
+	setServiceManagerGatewayURL(t, manager, "https://new-gateway.example.com")
+	_, err = OpenEndpoint(t.Context(), OpenEndpointOptions{CodespaceID: codespaceID, UserID: 1, EndpointID: "app-3000"})
+	require.ErrorIs(t, err, ErrOpenEndpointUnavailable)
 }
 
 func TestOpenEndpointHidesOtherCreatorCodespace(t *testing.T) {

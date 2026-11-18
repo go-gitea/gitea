@@ -39,7 +39,6 @@ func TestFinalizeOperationResumeFailedTransaction(t *testing.T) {
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
 		CodespaceID:       codespaceID,
 		OperationRVersion: 3,
-		OperationType:     codespacev1.OperationType_OPERATION_TYPE_RESUME,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_FAILED,
 	})
 	require.NoError(t, err)
@@ -70,7 +69,6 @@ func TestFinalizeOperationCreateFailureWaitsForCleanupInventory(t *testing.T) {
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
 		CodespaceID:       codespace.ID,
 		OperationRVersion: 3,
-		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_FAILED,
 	})
 	require.NoError(t, err)
@@ -104,7 +102,6 @@ func TestFinalizeOperationCreateUsesDurablePrerequisites(t *testing.T) {
 	_, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
 		CodespaceID:       codespaceID,
 		OperationRVersion: 3,
-		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.NoError(t, err)
@@ -135,7 +132,6 @@ func TestFinalizeOperationRejectsWrongManagerAsStale(t *testing.T) {
 	_, err := FinalizeOperation(t.Context(), otherManager, FinalizeOperationOptions{
 		CodespaceID:       codespaceID,
 		OperationRVersion: 4,
-		OperationType:     codespacev1.OperationType_OPERATION_TYPE_STOP,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.NoError(t, err)
@@ -161,7 +157,6 @@ func TestFinalizeOperationAcceptsConvergentCompletionAfterDeadline(t *testing.T)
 	_, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
 		CodespaceID:       codespaceID,
 		OperationRVersion: 41,
-		OperationType:     codespacev1.OperationType_OPERATION_TYPE_STOP,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.NoError(t, err)
@@ -184,8 +179,7 @@ func TestFinalizeOperationRejectsConvergentFailure(t *testing.T) {
 
 	_, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
 		CodespaceID: codespaceID, OperationRVersion: 42,
-		OperationType: codespacev1.OperationType_OPERATION_TYPE_DELETE,
-		FinalStatus:   codespacev1.FinalStatus_FINAL_STATUS_FAILED,
+		FinalStatus: codespacev1.FinalStatus_FINAL_STATUS_FAILED,
 	})
 	require.Error(t, err)
 	row := loadServiceCodespace(t, codespaceID)
@@ -285,7 +279,6 @@ func TestReportRuntimeMetadataAddresses(t *testing.T) {
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, opts))
 
 	metadata.Endpoints[0].Url = "https://new.gateway.example.com/"
-	metadata.Endpoints[0].OpenUrl = "https://new.gateway.example.com/.gitea-codespace/open"
 	require.ErrorIs(t, ReportRuntimeMetadata(t.Context(), manager, opts), ErrRuntimeMetadataGenerationConflict)
 	opts.MetadataGeneration++
 	require.NoError(t, ReportRuntimeMetadata(t.Context(), manager, opts))
@@ -295,8 +288,19 @@ func TestReportRuntimeMetadataAddresses(t *testing.T) {
 	assert.Equal(t, metadata.Endpoints[0].Url, entry.Metadata.Endpoints[0].URL)
 
 	opts.MetadataGeneration++
-	for _, address := range []string{"https://other.gateway.example.com/open", "https://outside.example.com/open"} {
-		metadata.Endpoints[0].OpenUrl = address
+	for _, address := range []string{"http://new.gateway.example.com/", "https://outside.example.com/"} {
+		metadata.Endpoints[0].Url = address
+		require.Error(t, ReportRuntimeMetadata(t.Context(), manager, opts))
+	}
+	metadata.Endpoints[0].Url = "https://new.gateway.example.com/"
+	for _, address := range []string{
+		"https://reported-runtime@ssh.example.com:2222",
+		"ssh://reported-runtime@outside.example.com:2222",
+		"ssh://reported-runtime:password@ssh.example.com:2222",
+		"ssh://reported-runtime@ssh.example.com:0",
+		"ssh://reported-runtime@ssh.example.com:2222/workspaces/project",
+	} {
+		metadata.Ssh = address
 		require.Error(t, ReportRuntimeMetadata(t.Context(), manager, opts))
 	}
 }
@@ -407,7 +411,6 @@ func TestFinalizeOperationCreateDoneRejectsDamagedGiteaToken(t *testing.T) {
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
 		CodespaceID:       codespaceID,
 		OperationRVersion: 6,
-		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.ErrorIs(t, err, ErrFinalizeGiteaTokenRequired)
@@ -444,7 +447,6 @@ func TestFinalizeStopClearsRuntimeMetadata(t *testing.T) {
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
 		CodespaceID:       codespaceID,
 		OperationRVersion: 6,
-		OperationType:     codespacev1.OperationType_OPERATION_TYPE_STOP,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_DONE,
 	})
 	require.NoError(t, err)
@@ -534,7 +536,7 @@ func hasReadyRuntimeMetadataForTest(codespaceID, operationRVersion int64) (bool,
 	if err != nil || !has {
 		return false, err
 	}
-	return entry.Metadata.Boot.Stage == bootStageReady && entry.Metadata.Boot.OperationRVersion == operationRVersion, nil
+	return entry.Metadata.Boot.Stage == codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY && entry.Metadata.Boot.OperationRVersion == operationRVersion, nil
 }
 
 func insertServiceCredentials(t *testing.T, codespaceID int64) {

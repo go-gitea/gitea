@@ -147,7 +147,6 @@ func webOpenRuntimeMetadata(t *testing.T, operationRVersion int64, endpoints []*
 	metadataEndpoints = append(metadataEndpoints, &codespacev1.RuntimeEndpoint{EndpointId: "workspace", Label: "Workspace"})
 	for _, endpoint := range metadataEndpoints {
 		endpoint.Url = "https://" + endpoint.EndpointId + ".gateway.example.com/"
-		endpoint.OpenUrl = endpoint.Url + ".gitea-codespace/open"
 	}
 	return &codespacev1.RuntimeMetadata{
 		Endpoints:       metadataEndpoints,

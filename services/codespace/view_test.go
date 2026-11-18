@@ -261,22 +261,33 @@ func TestGetCreatorCodespaceKeepsQueuedIdleStopInteractive(t *testing.T) {
 	assert.Equal(t, "https://private-app.gateway.example.com/", view.Endpoints[0].URL)
 	require.NotNil(t, view.SSH)
 	assert.Equal(t, "ssh -p 2222 reported-runtime@ssh.example.com", view.SSH.Command)
-	assert.Equal(t, "/workspaces/project", view.SSH.WorkspaceFolder)
 	assert.Equal(t, "vscode://vscode-remote/ssh-remote+reported-runtime@ssh.example.com:2222/workspaces/project", string(view.SSH.VSCodeURL))
 	assert.Equal(t, "zed://ssh/reported-runtime@ssh.example.com:2222/workspaces/project", string(view.SSH.ZedURL))
 	assert.Equal(t, "ssh-ed25519", view.SSH.HostKeyAlgorithm)
 	assert.Equal(t, "SHA256:view", view.SSH.HostKeyFingerprint)
 }
 
-func TestCreatorSSHViewFormatsIPv6Address(t *testing.T) {
-	view := creatorSSHView(&codespace_model.Manager{}, runtimeMetadata{
-		WorkspaceFolder: "/workspaces/project",
-		SSH:             runtimeMetadataSSH{Host: "2001:db8::1", Port: 2222, User: "runtime", VSCodeURL: "vscode://vscode-remote/ssh-remote+runtime@%5B2001:db8::1%5D:2222/workspaces/project"},
-	})
-
-	require.NotNil(t, view)
-	assert.Equal(t, "ssh -p 2222 runtime@[2001:db8::1]", view.Command)
-	assert.Equal(t, "vscode://vscode-remote/ssh-remote+runtime@%5B2001:db8::1%5D:2222/workspaces/project", string(view.VSCodeURL))
+func TestCreatorSSHViewFormatsConnection(t *testing.T) {
+	for _, tc := range []struct {
+		uri     string
+		command string
+		remote  string
+	}{
+		{"ssh://runtime@ssh.example.com:22", "ssh runtime@ssh.example.com", "runtime@ssh.example.com"},
+		{"ssh://runtime@[2001:db8::1]:2222", "ssh -p 2222 runtime@[2001:db8::1]", "runtime@%5B2001:db8::1%5D:2222"},
+		{"ssh://runtime@[2001:db8::1]:22", "ssh runtime@[2001:db8::1]", "runtime@%5B2001:db8::1%5D"},
+	} {
+		t.Run(tc.uri, func(t *testing.T) {
+			view := creatorSSHView(&codespace_model.Manager{}, runtimeMetadata{
+				WorkspaceFolder: "/workspaces/项目 #1",
+				SSH:             tc.uri,
+			})
+			require.NotNil(t, view)
+			assert.Equal(t, tc.command, view.Command)
+			assert.Equal(t, "vscode://vscode-remote/ssh-remote+"+tc.remote+"/workspaces/%E9%A1%B9%E7%9B%AE%20%231", string(view.VSCodeURL))
+			assert.Equal(t, "zed://ssh/"+tc.remote+"/workspaces/%E9%A1%B9%E7%9B%AE%20%231", string(view.ZedURL))
+		})
+	}
 }
 
 func TestGetCreatorCodespaceRunsWithoutWorkspaceEndpoint(t *testing.T) {
@@ -336,7 +347,7 @@ func TestGetCreatorCodespaceShowsCurrentBootStage(t *testing.T) {
 		OperationRVersion: 29,
 	})
 	entry := serviceRuntimeMetadataEntry(t, 29, nil)
-	entry.Metadata.Boot.Stage = bootStagePrepareWorkspace
+	entry.Metadata.Boot.Stage = codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PREPARE_WORKSPACE
 	require.NoError(t, putRuntimeMetadataEntry(codespaceID, entry))
 
 	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceID})

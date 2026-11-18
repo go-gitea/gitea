@@ -149,7 +149,7 @@ func TestDetailOpensGatewayRecoveryModal(t *testing.T) {
 	insertWebOpenCodespace(t, manager.ID, codespaceID, 94)
 	manager.GatewaySSHAddr = "ssh.example.com:2222"
 	metadata := webOpenRuntimeMetadata(t, 94, []*codespacev1.RuntimeEndpoint{{EndpointId: "app-3000", Label: "App"}})
-	metadata.Ssh = &codespacev1.RuntimeSSH{Host: "ssh.example.com", Port: 2222, User: "reported-runtime", VscodeUrl: "vscode://vscode-remote/ssh-remote+reported-runtime@ssh.example.com:2222/workspaces/project", ZedUrl: "zed://ssh/reported-runtime@ssh.example.com:2222/workspaces/project"}
+	metadata.Ssh = "ssh://reported-runtime@ssh.example.com:2222"
 	require.NoError(t, codespace_service.ReportRuntimeMetadata(t.Context(), manager, codespace_service.ReportRuntimeMetadataOptions{
 		CodespaceID:        codespaceID,
 		Metadata:           metadata,

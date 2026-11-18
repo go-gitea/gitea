@@ -377,7 +377,6 @@ func TestFinalizeFailedDeletesCodespaceGitPublicKey(t *testing.T) {
 	outcome, err := FinalizeOperation(t.Context(), manager, FinalizeOperationOptions{
 		CodespaceID:       codespaceID,
 		OperationRVersion: 18,
-		OperationType:     codespacev1.OperationType_OPERATION_TYPE_CREATE,
 		FinalStatus:       codespacev1.FinalStatus_FINAL_STATUS_FAILED,
 	})
 	require.NoError(t, err)

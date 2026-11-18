@@ -387,12 +387,8 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		require.JSONEq(t, `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`, row.DevContainerContent)
 
 		fetched, err := client.FetchOperations(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.FetchOperationsRequest{
-			ProtocolVersion:          1,
 			StartupCapacityAvailable: 1,
-			AcceptedOperationTypes: []codespacev1.AcceptedOperationType{
-				codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE,
-			},
-			AcceptedCreateTags: []string{"default"},
+			AcceptedCreateTags:       []string{"default"},
 		})
 		require.NoError(t, err)
 		require.Len(t, fetched.GetOperations(), 1)
@@ -400,16 +396,15 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		assert.NotNil(t, operation.GetCreate())
 		require.Equal(t, codespaceID, operation.GetCodespaceId())
 
-		_, err = client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, 1, codespacev1.OperationType_OPERATION_TYPE_CREATE, codespacev1.FinalStatus_FINAL_STATUS_DONE))
+		_, err = client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, 1, codespacev1.FinalStatus_FINAL_STATUS_DONE))
 		require.Error(t, err)
 		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 		assert.Equal(t, "gitea_token_required", integrationFailureDetailCategory(t, err))
 
 		tokenResponse, err := client.RequestRuntimeAccess(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.RequestRuntimeAccessRequest{
-			ProtocolVersion:   1,
 			CodespaceId:       codespaceID,
 			OperationRversion: 1,
-			GitSshKey:         &codespacev1.RuntimeGitSSHKey{PublicKey: integrationGitSSHPublicKey(t)},
+			GitSshPublicKey:   integrationGitSSHPublicKey(t),
 		})
 		require.NoError(t, err)
 		require.True(t, strings.HasPrefix(tokenResponse.GetAccess().GetGiteaToken(), "gcs_"))
@@ -417,7 +412,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		assert.Equal(t, "PROJECT_TOKEN", tokenResponse.GetAccess().GetSecrets()[0].GetName())
 		assert.Equal(t, " first\nsecond\n", tokenResponse.GetAccess().GetSecrets()[0].GetValue())
 
-		finalCreate, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, 1, codespacev1.OperationType_OPERATION_TYPE_CREATE, codespacev1.FinalStatus_FINAL_STATUS_DONE))
+		finalCreate, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, 1, codespacev1.FinalStatus_FINAL_STATUS_DONE))
 		require.NoError(t, err)
 		assert.False(t, finalCreate.GetResourceAbsent())
 		row = loadIntegrationCodespace(t, codespaceID)
@@ -429,7 +424,6 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		readyMetadata := integrationRuntimeMetadata(1)
 		readyMetadata.ResourceUsage = nil
 		_, err = client.ReportRuntimeMetadata(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.ReportRuntimeMetadataRequest{
-			ProtocolVersion:    1,
 			CodespaceId:        codespaceID,
 			MetadataGeneration: 1,
 			Metadata:           readyMetadata,
@@ -448,17 +442,14 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		assert.EqualValues(t, 30*60, row.AutoStopTimeoutSeconds)
 
 		idleStop, err := client.RequestIdleStop(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.RequestIdleStopRequest{
-			ProtocolVersion: 1,
-			CodespaceId:     codespaceID,
+			CodespaceId: codespaceID,
 			ObservedSettings: &codespacev1.EffectiveCodespaceRuntimeSettings{
-				AutoStopEnabled:       true,
 				IdleTimeoutSeconds:    int64(setting.Codespace.AutoStopDefaultTimeout / time.Second),
 				InteractionGeneration: row.InteractionGeneration,
 			},
 		})
 		require.NoError(t, err)
 		require.NotNil(t, idleStop.GetPending())
-		assert.EqualValues(t, 2, idleStop.GetPending().GetOperationRversion())
 
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodPost, codespacePath+"/continue"), http.StatusSeeOther)
 		row = loadIntegrationCodespace(t, codespaceID)
@@ -469,10 +460,8 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		for cycle, trigger := range []string{codespace_model.OperationTriggerUser, codespace_model.OperationTriggerIdle} {
 			if trigger == codespace_model.OperationTriggerIdle {
 				idleStop, err = client.RequestIdleStop(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.RequestIdleStopRequest{
-					ProtocolVersion: 1,
-					CodespaceId:     codespaceID,
+					CodespaceId: codespaceID,
 					ObservedSettings: &codespacev1.EffectiveCodespaceRuntimeSettings{
-						AutoStopEnabled:       true,
 						IdleTimeoutSeconds:    row.AutoStopTimeoutSeconds,
 						InteractionGeneration: row.InteractionGeneration,
 					},
@@ -483,14 +472,13 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 				user2Session.MakeRequest(t, NewRequest(t, http.MethodPost, codespacePath+"/stop"), http.StatusSeeOther)
 			}
 			fetched, err = client.FetchOperations(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.FetchOperationsRequest{
-				ProtocolVersion:          1,
 				CleanupCapacityAvailable: 1,
 			})
 			require.NoError(t, err)
 			require.Len(t, fetched.GetOperations(), 1)
 			assert.NotNil(t, fetched.GetOperations()[0].GetStop())
 			stopVersion := fetched.GetOperations()[0].GetOperationRversion()
-			finalStop, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, stopVersion, codespacev1.OperationType_OPERATION_TYPE_STOP, codespacev1.FinalStatus_FINAL_STATUS_DONE))
+			finalStop, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, stopVersion, codespacev1.FinalStatus_FINAL_STATUS_DONE))
 			require.NoError(t, err)
 			assert.False(t, finalStop.GetResourceAbsent())
 			row = loadIntegrationCodespace(t, codespaceID)
@@ -503,31 +491,25 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 			assert.Equal(t, codespace_model.OperationResume, codespace_model.ActiveOperationType(row))
 			assert.EqualValues(t, cycle+2, row.InteractionGeneration)
 			fetched, err = client.FetchOperations(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.FetchOperationsRequest{
-				ProtocolVersion:          1,
 				StartupCapacityAvailable: 1,
-				AcceptedOperationTypes: []codespacev1.AcceptedOperationType{
-					codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_RESUME,
-				},
 			})
 			require.NoError(t, err)
 			require.Len(t, fetched.GetOperations(), 1)
 			assert.NotNil(t, fetched.GetOperations()[0].GetResume())
 			resumeVersion := fetched.GetOperations()[0].GetOperationRversion()
 			_, err = client.RequestRuntimeAccess(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.RequestRuntimeAccessRequest{
-				ProtocolVersion:   1,
 				CodespaceId:       codespaceID,
 				OperationRversion: resumeVersion,
-				GitSshKey:         &codespacev1.RuntimeGitSSHKey{PublicKey: integrationGitSSHPublicKey(t)},
+				GitSshPublicKey:   integrationGitSSHPublicKey(t),
 			})
 			require.NoError(t, err)
 			_, err = client.ReportRuntimeMetadata(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.ReportRuntimeMetadataRequest{
-				ProtocolVersion:    1,
 				CodespaceId:        codespaceID,
 				MetadataGeneration: int64(cycle + 2),
 				Metadata:           integrationRuntimeMetadata(resumeVersion),
 			})
 			require.NoError(t, err)
-			finalResume, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, resumeVersion, codespacev1.OperationType_OPERATION_TYPE_RESUME, codespacev1.FinalStatus_FINAL_STATUS_DONE))
+			finalResume, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, resumeVersion, codespacev1.FinalStatus_FINAL_STATUS_DONE))
 			require.NoError(t, err)
 			assert.False(t, finalResume.GetResourceAbsent())
 			row = loadIntegrationCodespace(t, codespaceID)
@@ -539,14 +521,13 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		}), http.StatusSeeOther)
 		assertIntegrationNotExists(t, new(codespace_model.GiteaToken), "codespace_id = ?", codespaceID)
 		fetched, err = client.FetchOperations(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.FetchOperationsRequest{
-			ProtocolVersion:          1,
 			CleanupCapacityAvailable: 1,
 		})
 		require.NoError(t, err)
 		require.Len(t, fetched.GetOperations(), 1)
 		assert.NotNil(t, fetched.GetOperations()[0].GetDelete())
 		deleteVersion := fetched.GetOperations()[0].GetOperationRversion()
-		finalDelete, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, deleteVersion, codespacev1.OperationType_OPERATION_TYPE_DELETE, codespacev1.FinalStatus_FINAL_STATUS_DONE))
+		finalDelete, err := client.FinalizeOperation(codespaceManagerContext(t.Context(), manager.ID, secret), createFinalRequest(codespaceID, deleteVersion, codespacev1.FinalStatus_FINAL_STATUS_DONE))
 		require.NoError(t, err)
 		assert.False(t, finalDelete.GetResourceAbsent())
 		assertIntegrationNotExists(t, new(codespace_model.Codespace), "id = ?", codespaceID)
@@ -581,7 +562,6 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 		})
 
 		inventory, err := client.ReportInstances(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.ReportInstancesRequest{
-			ProtocolVersion:     1,
 			InventoryGeneration: 1,
 			Instances: []*codespacev1.RuntimeInstanceRef{
 				{CodespaceId: runningID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
@@ -596,7 +576,6 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 		assert.EqualValues(t, 1, loadIntegrationManager(t, manager.ID).InventoryGeneration)
 
 		_, err = client.ReportInstances(codespaceManagerContext(t.Context(), manager.ID, secret), &codespacev1.ReportInstancesRequest{
-			ProtocolVersion:     1,
 			InventoryGeneration: 2,
 			Instances: []*codespacev1.RuntimeInstanceRef{{
 				CodespaceId:               runningID,
@@ -784,20 +763,18 @@ func codespaceManagerContext(ctx context.Context, managerID int64, secret string
 	return ctx
 }
 
-func createFinalRequest(codespaceID, operationRVersion int64, operationType codespacev1.OperationType, finalStatus codespacev1.FinalStatus) *codespacev1.FinalizeOperationRequest {
+func createFinalRequest(codespaceID, operationRVersion int64, finalStatus codespacev1.FinalStatus) *codespacev1.FinalizeOperationRequest {
 	return &codespacev1.FinalizeOperationRequest{
-		ProtocolVersion: 1,
-		CodespaceId:     codespaceID,
+		CodespaceId: codespaceID,
 
 		OperationRversion: operationRVersion,
 		Status:            finalStatus,
-		OperationType:     operationType,
 	}
 }
 
 func integrationRuntimeMetadata(operationRVersion int64) *codespacev1.RuntimeMetadata {
 	return &codespacev1.RuntimeMetadata{
-		Endpoints:       []*codespacev1.RuntimeEndpoint{{EndpointId: "workspace", Label: "Workspace", Url: "https://reported.workspace.example.com/", OpenUrl: "https://reported.workspace.example.com/.gitea-codespace/open"}},
+		Endpoints:       []*codespacev1.RuntimeEndpoint{{EndpointId: "workspace", Label: "Workspace", Url: "https://reported.workspace.example.com/"}},
 		WorkspaceFolder: "/workspaces/project",
 		Boot: &codespacev1.RuntimeBoot{
 			OperationRversion: operationRVersion,

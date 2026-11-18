@@ -52,8 +52,7 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 			})
 
 			fullResult, err := FetchOperations(t.Context(), fullManager, FetchOperationsOptions{
-				AcceptedOperationTypes: []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
-				AcceptedCreateTags:     []string{"default"},
+				AcceptedCreateTags: []string{"default"},
 			})
 			require.NoError(t, err)
 			assert.Empty(t, fullResult.Operations)
@@ -63,7 +62,6 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 
 			result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 				StartupCapacityAvailable: 1,
-				AcceptedOperationTypes:   []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
 				AcceptedCreateTags:       []string{"default"},
 			})
 			require.NoError(t, err)
@@ -79,11 +77,9 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 			repository := create.GetRepository()
 			require.NotNil(t, repository)
 			assert.NotEmpty(t, repository.GetFullName())
-			assert.NotEmpty(t, repository.GetCloneHttpUrl())
-			assert.Empty(t, repository.GetCloneSshUrl())
+			require.Len(t, repository.GetCloneUrls(), 1)
 			assert.Equal(t, "refs/heads/main", repository.GetStartRef())
-			assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_HTTP, repository.GetPreferredProtocol())
-			assert.True(t, create.GetRuntimeSettings().GetAutoStopEnabled())
+			assert.Contains(t, repository.GetCloneUrls()[0], "/user2/repo2.git")
 			assert.EqualValues(t, setting.Codespace.AutoStopDefaultTimeout/time.Second, create.GetRuntimeSettings().GetIdleTimeoutSeconds())
 			row := loadServiceCodespace(t, codespaceID)
 			assert.Equal(t, row.RepoID, repository.GetRepositoryId())
@@ -115,7 +111,6 @@ func TestFetchOperationsReleasesCreateClaimWhenPayloadInvalid(t *testing.T) {
 
 	_, err = FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		StartupCapacityAvailable: 1,
-		AcceptedOperationTypes:   []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
 		AcceptedCreateTags:       []string{"default"},
 	})
 	require.Error(t, err)
@@ -145,7 +140,6 @@ func TestFetchOperationsClaimsOnlyAcceptedCreateTag(t *testing.T) {
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		StartupCapacityAvailable: 1,
-		AcceptedOperationTypes:   []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
 		AcceptedCreateTags:       []string{"gpu"},
 	})
 	require.NoError(t, err)
@@ -170,7 +164,6 @@ func TestFetchOperationsResumeUsesExistingManagerBinding(t *testing.T) {
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		StartupCapacityAvailable: 1,
-		AcceptedOperationTypes:   []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_RESUME},
 	})
 	require.NoError(t, err)
 	require.Len(t, result.Operations, 1)
@@ -212,7 +205,7 @@ func TestBuildCreatePayloadUsesPullRequestHeadBranch(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, payload.GetRepository())
 	assert.Equal(t, "user2/repo1", payload.GetRepository().GetFullName())
-	assert.Contains(t, payload.GetRepository().GetCloneHttpUrl(), "/user2/repo1.git")
+	assert.Contains(t, payload.GetRepository().GetCloneUrls()[0], "/user2/repo1.git")
 	assert.Equal(t, "refs/heads/branch2", payload.GetRepository().GetStartRef())
 }
 
@@ -233,7 +226,7 @@ func TestBuildCreatePayloadUsesForkPullRequestRepository(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, payload.GetRepository())
 	assert.Equal(t, "user12/repo10", payload.GetRepository().GetFullName())
-	assert.Contains(t, payload.GetRepository().GetCloneHttpUrl(), "/user13/repo11.git")
+	assert.Contains(t, payload.GetRepository().GetCloneUrls()[0], "/user13/repo11.git")
 	assert.Equal(t, "refs/heads/branch2", payload.GetRepository().GetStartRef())
 }
 
@@ -256,7 +249,6 @@ func TestFetchOperationsReturnsSSHCloneURLWhenEnabled(t *testing.T) {
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		StartupCapacityAvailable: 1,
-		AcceptedOperationTypes:   []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
 		AcceptedCreateTags:       []string{"default"},
 	})
 	require.NoError(t, err)
@@ -264,9 +256,8 @@ func TestFetchOperationsReturnsSSHCloneURLWhenEnabled(t *testing.T) {
 	create := result.Operations[0].GetCreate()
 	require.NotNil(t, create)
 	require.NotNil(t, create.GetRepository())
-	assert.NotEmpty(t, create.GetRepository().GetCloneHttpUrl())
-	assert.NotEmpty(t, create.GetRepository().GetCloneSshUrl())
-	assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_SSH, create.GetRepository().GetPreferredProtocol())
+	require.Len(t, create.GetRepository().GetCloneUrls(), 2)
+	assert.Contains(t, create.GetRepository().GetCloneUrls()[0], "sshuser@")
 }
 
 func TestFetchOperationsSkipsCreateOutsideManagerUserScope(t *testing.T) {
@@ -288,7 +279,6 @@ func TestFetchOperationsSkipsCreateOutsideManagerUserScope(t *testing.T) {
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		StartupCapacityAvailable: 1,
-		AcceptedOperationTypes:   []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
 		AcceptedCreateTags:       []string{"default"},
 	})
 	require.NoError(t, err)
@@ -345,10 +335,6 @@ func TestFetchOperationsDisabledDrainsWithoutClaimingStartup(t *testing.T) {
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		StartupCapacityAvailable: 1,
-		AcceptedOperationTypes: []codespacev1.AcceptedOperationType{
-			codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE,
-			codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_RESUME,
-		},
 		AcceptedCreateTags:       []string{"default"},
 		CleanupCapacityAvailable: 1,
 		ObservedOperations: []*codespacev1.ObservedOperation{
@@ -414,9 +400,8 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 	fetchStarted := time.Now()
 	result, err = FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		StartupCapacityAvailable: 1, CleanupCapacityAvailable: 1,
-		AcceptedOperationTypes: []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
-		AcceptedCreateTags:     []string{"default"},
-		ObservedOperations:     []*codespacev1.ObservedOperation{{CodespaceId: codespaceID, OperationRversion: 32}},
+		AcceptedCreateTags: []string{"default"},
+		ObservedOperations: []*codespacev1.ObservedOperation{{CodespaceId: codespaceID, OperationRversion: 32}},
 	})
 	fetchFinished := time.Now()
 	require.NoError(t, err)

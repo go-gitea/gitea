@@ -257,7 +257,7 @@ func runtimeAccessLifecycleAllows(codespace *codespace_model.Codespace, operatio
 	if codespace.Status == codespace_model.StatusRunning {
 		return !hasActiveOperation(codespace)
 	}
-	return createOrResumeOperationActive(codespace, now)
+	return hasActiveStartup(codespace, now)
 }
 
 func loadRuntimeAccessCodespace(ctx context.Context, managerID, codespaceID, operationRVersion int64) (*codespace_model.Codespace, error) {
@@ -394,7 +394,7 @@ func giteaTokenLifecycleAllows(codespace *codespace_model.Codespace, now int64) 
 	if codespace.Status == codespace_model.StatusRunning {
 		return true
 	}
-	return createOrResumeOperationActive(codespace, now)
+	return hasActiveStartup(codespace, now)
 }
 
 func readCurrentGiteaToken(ctx context.Context, codespaceID int64) (string, bool, error) {

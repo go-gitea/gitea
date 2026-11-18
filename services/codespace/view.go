@@ -8,10 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -52,6 +54,15 @@ const (
 	refreshTransitionMilliseconds = 2000
 	refreshStableMilliseconds     = 15000
 )
+
+var bootStageTranslationKeys = map[codespacev1.RuntimeBootStage]string{
+	codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PREPARE_RUNTIME:   "codespace.boot_stage.prepare_runtime",
+	codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_INITIALIZE_SYSTEM: "codespace.boot_stage.initialize_system",
+	codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PREPARE_WORKSPACE: "codespace.boot_stage.prepare_workspace",
+	codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_START_ENVIRONMENT: "codespace.boot_stage.start_environment",
+	codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_PUBLISH_READY:     "codespace.boot_stage.publish_ready",
+	codespacev1.RuntimeBootStage_RUNTIME_BOOT_STAGE_READY:             "codespace.boot_stage.ready",
+}
 
 // ErrViewNotFound is returned when the Codespace cannot be found.
 var ErrViewNotFound = errors.New("codespace view not found")
@@ -153,7 +164,6 @@ type CreatorEndpointView struct {
 // CreatorSSHView contains the current SSH command shown on the detail page.
 type CreatorSSHView struct {
 	Command            string
-	WorkspaceFolder    string
 	VSCodeURL          template.URL
 	ZedURL             template.URL
 	HostKeyAlgorithm   string
@@ -324,10 +334,7 @@ func creatorCodespaceView(codespace *codespace_model.Codespace, cache *codespace
 	if includeDetailData && (view.DisplayStatus == DisplayBooting || view.DisplayStatus == DisplayResuming) {
 		entry, hasEntry, err := getRuntimeMetadataEntry(codespace.ID)
 		if err == nil && hasEntry && entry.Metadata.Boot.OperationRVersion == codespace.OperationRVersion {
-			switch entry.Metadata.Boot.Stage {
-			case bootStagePrepareRuntime, bootStageInitializeSystem, bootStagePrepareWorkspace, bootStageStartEnvironment, bootStagePublishReady, bootStageReady:
-				view.BootStageKey = "codespace.boot_stage." + strings.ReplaceAll(entry.Metadata.Boot.Stage, "-", "_")
-			}
+			view.BootStageKey = bootStageTranslationKeys[entry.Metadata.Boot.Stage]
 		}
 	}
 	applyCreatorActions(codespace, view, manager)
@@ -440,7 +447,7 @@ func applyCreatorDisplayState(codespace *codespace_model.Codespace, view *Creato
 	case codespace_model.StatusFailed:
 		view.DisplayStatus = DisplayFailed
 	}
-	if managerReady && hasActiveStartup(codespace) {
+	if managerReady && hasActiveStartup(codespace, time.Now().Unix()) {
 		applyRuntimeAccessView(codespace, view, manager, includeDetailData)
 	}
 	view.RefreshAfterMillis = refreshStableMilliseconds
@@ -464,7 +471,6 @@ func applyRuntimeAccessView(codespace *codespace_model.Codespace, view *CreatorC
 		if endpoint.EndpointID == workspaceEndpointID {
 			view.Workspace = &CreatorEndpointView{
 				EndpointID: workspaceEndpointID,
-				Label:      workspaceEndpointLabel,
 				OpenPath:   codespaceDetailPath(codespace.ID) + "/open",
 			}
 			continue
@@ -489,23 +495,25 @@ func applyRuntimeAccessView(codespace *codespace_model.Codespace, view *CreatorC
 }
 
 func creatorSSHView(manager *codespace_model.Manager, metadata runtimeMetadata) *CreatorSSHView {
-	ssh := metadata.SSH
-	if ssh.Host == "" {
+	ssh, err := parseRuntimeSSHURI(metadata.SSH)
+	if err != nil {
 		return nil
 	}
-	remoteHost := ssh.Host
+	remoteHost := ssh.Hostname()
 	if strings.Contains(remoteHost, ":") {
 		remoteHost = "[" + remoteHost + "]"
 	}
-	command := "ssh " + ssh.User + "@" + remoteHost
-	if ssh.Port != 22 {
-		command = fmt.Sprintf("ssh -p %d %s@%s", ssh.Port, ssh.User, remoteHost)
+	user := ssh.User.Username()
+	command := "ssh " + user + "@" + remoteHost
+	if ssh.Port() != "22" {
+		command = fmt.Sprintf("ssh -p %s %s@%s", ssh.Port(), user, remoteHost)
+		remoteHost = ssh.Host
 	}
+	remote := user + "@" + remoteHost
 	return &CreatorSSHView{
 		Command:            command,
-		WorkspaceFolder:    metadata.WorkspaceFolder,
-		VSCodeURL:          template.URL(ssh.VSCodeURL),
-		ZedURL:             template.URL(ssh.ZedURL),
+		VSCodeURL:          template.URL((&url.URL{Scheme: "vscode", Host: "vscode-remote", Path: "/ssh-remote+" + remote + metadata.WorkspaceFolder}).String()),
+		ZedURL:             template.URL((&url.URL{Scheme: "zed", Host: "ssh", Path: "/" + remote + metadata.WorkspaceFolder}).String()),
 		HostKeyAlgorithm:   strings.TrimSpace(manager.GatewaySSHHostKeyAlgorithm),
 		HostKeyFingerprint: strings.TrimSpace(manager.GatewaySSHHostKeyFingerprintSHA256),
 	}
@@ -554,11 +562,8 @@ func formatBytes(value int64) string {
 func applyCreatorActions(codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager) {
 	view.CanDelete = codespace.Status != codespace_model.StatusDeleting
 	view.CanConfigureAutoStop = codespace.Status == codespace_model.StatusRunning || codespace.Status == codespace_model.StatusStopped
-	startup := hasActiveStartup(codespace)
+	startup := hasActiveStartup(codespace, time.Now().Unix())
 	view.CanOpen = view.Workspace != nil && (startup || (view.DisplayStatus == DisplayRunning && (!hasActiveOperation(codespace) || isQueuedIdleStop(codespace))))
-	if view.Workspace != nil {
-		view.Workspace.CanOpen = view.CanOpen
-	}
 	for i := range view.Endpoints {
 		view.Endpoints[i].CanOpen = startup || (view.DisplayStatus == DisplayRunning && (!hasActiveOperation(codespace) || (!view.Endpoints[i].Public && isQueuedIdleStop(codespace))))
 	}
