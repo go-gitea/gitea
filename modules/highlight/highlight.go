@@ -28,6 +28,7 @@ const sizeLimit = 1024 * 1024
 type globalVarsType struct {
 	highlightMapping map[string]string
 	githubStyles     *chroma.Style
+	htmlFormatter    *chromahtml.Formatter // shared because it caches the CSS built from the style
 }
 
 var (
@@ -43,6 +44,10 @@ func globalVars() *globalVarsType {
 		globalVarsPtr = &globalVarsType{}
 		globalVarsPtr.githubStyles = styles.Get("github")
 		globalVarsPtr.highlightMapping = setting.GetHighlightMapping()
+		globalVarsPtr.htmlFormatter = chromahtml.New(chromahtml.WithClasses(true),
+			chromahtml.WithLineNumbers(false),
+			chromahtml.PreventSurroundingPre(true),
+		)
 	}
 	return globalVarsPtr
 }
@@ -170,12 +175,9 @@ func codeTokensForLines(iterator chroma.Iterator, lineNumbers []int) chroma.Iter
 }
 
 func formatTokens(iterator chroma.Iterator) template.HTML {
-	formatter := chromahtml.New(chromahtml.WithClasses(true),
-		chromahtml.WithLineNumbers(false),
-		chromahtml.PreventSurroundingPre(true),
-	)
 	htmlBuf := &bytes.Buffer{}
-	_ = formatter.Format(htmlBuf, globalVars().githubStyles, iterator) // the style is unused with classes, and Format only fails in standalone mode
+	vars := globalVars()
+	_ = vars.htmlFormatter.Format(htmlBuf, vars.githubStyles, iterator) // the style is unused with classes, and Format only fails in standalone mode
 	return template.HTML(util.UnsafeBytesToString(htmlBuf.Bytes()))
 }
 
