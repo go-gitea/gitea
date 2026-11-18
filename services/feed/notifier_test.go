@@ -4,6 +4,7 @@
 package feed
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -13,6 +14,11 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	_ "gitea.dev/models"
 	_ "gitea.dev/models/actions"
@@ -80,4 +86,72 @@ func TestPullRequestReviewActionExcerpts(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{OpType: activities_model.ActionCommentPull, CommentID: codeComment.ID, Content: "1|explanation…"})
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{OpType: activities_model.ActionApprovePullRequest, CommentID: reviewComment.ID, Content: "1|**summary**\nmore"})
+}
+
+func TestPushCommits_FeedMaxCommitNum(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.UI.FeedMaxCommitNum, 5)()
+
+	pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// create 7 push commits, with setting.UI.FeedMaxCommitNum = 5
+	pushCommits := repository.NewPushCommits()
+	pushCommits.Len = 7
+	for i := range 7 {
+		pushCommits.Commits = append(pushCommits.Commits, &repository.PushCommit{
+			Sha1:    fmt.Sprintf("sha%d", i),
+			Message: fmt.Sprintf("commit %d", i),
+		})
+	}
+	pushCommits.HeadCommit = pushCommits.Commits[6]
+	pushCommits.CompareURL = "compare/sha0...sha6"
+
+	opts := &repository.PushUpdateOptions{
+		RefFullName: git.RefName("refs/heads/feed-max-test"),
+		OldCommitID: "sha0",
+		NewCommitID: "sha6",
+	}
+
+	NewNotifier().PushCommits(t.Context(), pusher, repo, opts, pushCommits)
+
+	// Ensure the original pushCommits object was NOT mutated/truncated in place
+	assert.Len(t, pushCommits.Commits, 7)
+	assert.Equal(t, 7, pushCommits.Len)
+
+	// Verify that the Action stored in the database has truncated commits in JSON Content
+	action := unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		OpType:    activities_model.ActionCommitRepo,
+		ActUserID: pusher.ID,
+		RepoID:    repo.ID,
+		RefName:   "refs/heads/feed-max-test",
+	})
+
+	var storedCommits repository.PushCommits
+	assert.NoError(t, json.Unmarshal([]byte(action.Content), &storedCommits))
+	assert.Len(t, storedCommits.Commits, 5)
+	assert.Equal(t, 7, storedCommits.Len)
+
+	// Also verify SyncPushCommits does not mutate pushCommits and truncates for feed
+	syncOpts := &repository.PushUpdateOptions{
+		RefFullName: git.RefName("refs/heads/feed-sync-test"),
+		OldCommitID: "sha0",
+		NewCommitID: "sha6",
+	}
+
+	NewNotifier().SyncPushCommits(t.Context(), pusher, repo, syncOpts, pushCommits)
+
+	assert.Len(t, pushCommits.Commits, 7)
+	assert.Equal(t, 7, pushCommits.Len)
+
+	syncAction := unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		OpType:  activities_model.ActionMirrorSyncPush,
+		RepoID:  repo.ID,
+		RefName: "refs/heads/feed-sync-test",
+	})
+
+	var storedSyncCommits repository.PushCommits
+	assert.NoError(t, json.Unmarshal([]byte(syncAction.Content), &storedSyncCommits))
+	assert.Len(t, storedSyncCommits.Commits, 5)
+	assert.Equal(t, 7, storedSyncCommits.Len)
 }
