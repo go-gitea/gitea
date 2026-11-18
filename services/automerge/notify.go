@@ -29,10 +29,7 @@ func NewNotifier() notify_service.Notifier {
 }
 
 func (n *automergeNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
-	// as a missing / blocking reviews could have blocked a pending automerge let's recheck
-	if review.Type == issues_model.ReviewTypeApprove {
-		automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
-	}
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, pr) // not only approvals, every review clears the reviewer's review request
 }
 
 func (n *automergeNotifier) PullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
@@ -46,6 +43,17 @@ func (n *automergeNotifier) PullReviewDismiss(ctx context.Context, doer *user_mo
 	}
 	// as reviews could have blocked a pending automerge let's recheck
 	automergequeue.StartAutoMergeCheckByPullHead(ctx, review.Issue.PullRequest)
+}
+
+func (n *automergeNotifier) PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+	if isRequest {
+		return
+	}
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		log.Error("LoadPullRequest: %v", err)
+		return
+	}
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, issue.PullRequest)
 }
 
 func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {
