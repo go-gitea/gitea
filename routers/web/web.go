@@ -686,7 +686,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/rebuild", user_setting.RebuildCargoIndex)
 			})
 			m.Post("/chef/regenerate_keypair", user_setting.RegenerateChefKeyPair)
-			m.Post("/debian/regenerate_keypair", user_setting.RegenerateDebianKeyPair)
 		}, packagesEnabled)
 
 		m.Group("/actions", func() {
@@ -1058,7 +1057,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Post("/initialize", org.InitializeCargoIndex)
 						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
-					m.Post("/debian/regenerate_keypair", org.RegenerateDebianKeyPair)
 				}, packagesEnabled)
 
 				m.Group("/blocked_users", func() {

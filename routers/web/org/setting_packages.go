@@ -120,9 +120,3 @@ func RebuildCargoIndex(ctx *context.Context) {
 
 	ctx.Redirect(fmt.Sprintf("%s/org/%s/settings/packages", setting.AppSubURL, ctx.ContextUser.Name))
 }
-
-func RegenerateDebianKeyPair(ctx *context.Context) {
-	shared.RegenerateDebianKeyPair(ctx, ctx.ContextUser)
-
-	ctx.Redirect(fmt.Sprintf("%s/org/%s/settings/packages", setting.AppSubURL, ctx.ContextUser.Name))
-}
