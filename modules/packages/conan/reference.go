@@ -5,7 +5,6 @@ package conan
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"gitea.dev/modules/log"
@@ -21,12 +20,7 @@ const (
 	DefaultRevision = "0"
 )
 
-var (
-	namePattern     = regexp.MustCompile(fmt.Sprintf(`^[a-zA-Z0-9_][a-zA-Z0-9_\+\.-]{%d,%d}$`, minChars-1, maxChars-1))
-	revisionPattern = regexp.MustCompile(fmt.Sprintf(`^[a-zA-Z0-9]{1,%d}$`, maxChars))
-
-	ErrValidation = util.NewInvalidArgumentErrorf("could not validate one or more reference fields")
-)
+var ErrValidation = util.NewInvalidArgumentErrorf("could not validate one or more reference fields")
 
 // RecipeReference represents a recipe <Name>/<Version>@<User>/<Channel>#<Revision>
 type RecipeReference struct {
@@ -51,7 +45,7 @@ func NewRecipeReference(name, version, user, channel, revision string) (*RecipeR
 		return nil, ErrValidation
 	}
 
-	if !namePattern.MatchString(name) {
+	if !globalVars().namePattern.MatchString(name) {
 		return nil, ErrValidation
 	}
 
@@ -59,13 +53,13 @@ func NewRecipeReference(name, version, user, channel, revision string) (*RecipeR
 	if v == "" {
 		return nil, ErrValidation
 	}
-	if user != "" && !namePattern.MatchString(user) {
+	if user != "" && !globalVars().namePattern.MatchString(user) {
 		return nil, ErrValidation
 	}
-	if channel != "" && !namePattern.MatchString(channel) {
+	if channel != "" && !globalVars().namePattern.MatchString(channel) {
 		return nil, ErrValidation
 	}
-	if revision != "" && !revisionPattern.MatchString(revision) {
+	if revision != "" && !globalVars().revisionPattern.MatchString(revision) {
 		return nil, ErrValidation
 	}
 
@@ -124,10 +118,10 @@ func NewPackageReference(recipe *RecipeReference, reference, revision string) (*
 	if recipe == nil {
 		return nil, ErrValidation
 	}
-	if reference == "" || !revisionPattern.MatchString(reference) {
+	if reference == "" || !globalVars().revisionPattern.MatchString(reference) {
 		return nil, ErrValidation
 	}
-	if revision != "" && !revisionPattern.MatchString(revision) {
+	if revision != "" && !globalVars().revisionPattern.MatchString(revision) {
 		return nil, ErrValidation
 	}
 

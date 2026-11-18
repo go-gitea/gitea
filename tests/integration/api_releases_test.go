@@ -236,6 +236,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 		IsDraft:      &release.IsDraft,
 		IsPrerelease: &release.IsPrerelease,
 		Target:       release.Target,
+		MakeLatest:   "true",
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
@@ -247,6 +248,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	}
 	unittest.AssertExistsAndLoadBean(t, rel)
 	assert.Equal(t, rel.Note, newRelease.Note)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID, LatestReleaseID: rel.ID})
 }
 
 func TestAPICreateRelease(t *testing.T) {

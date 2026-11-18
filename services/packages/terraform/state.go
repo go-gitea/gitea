@@ -14,7 +14,7 @@ import (
 // IsLocked is a helper function to check if the terraform state is locked
 func IsLocked(ctx context.Context, pkg *packages_model.Package) (bool, error) {
 	// Non terraform state packages aren't handled here
-	if pkg.Type == packages_model.TypeTerraformState {
+	if pkg.Type != packages_model.TypeTerraformState {
 		return false, nil
 	}
 
@@ -27,7 +27,7 @@ func IsLocked(ctx context.Context, pkg *packages_model.Package) (bool, error) {
 
 // IsLatest is a helper function to check if the terraform state is the latest version
 func IsLatest(ctx context.Context, pd *packages_model.PackageDescriptor) (bool, error) {
-	if pd.Package.Type == packages_model.TypeTerraformState {
+	if pd.Package.Type != packages_model.TypeTerraformState {
 		return false, nil
 	}
 	latestPvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{

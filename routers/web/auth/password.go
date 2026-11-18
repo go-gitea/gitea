@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/audit"
@@ -54,7 +55,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 	ctx.Data["IsResetRequest"] = true
@@ -74,7 +75,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 			return
 		}
 
-		ctx.ServerError("user.ResetPasswd(check existence)", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 
@@ -179,6 +180,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	if twofa != nil {
 		if ctx.FormBool("scratch_code") {
 			if !twofa.VerifyScratchToken(ctx.FormString("token")) {
+				audit.RecordAs(ctx, u, audit_model.UserAuthenticationFailTwoFactor, u)
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Token"] = true
 				ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
@@ -187,15 +189,18 @@ func ResetPasswdPost(ctx *context.Context) {
 			regenerateScratchToken = true
 		} else {
 			passcode := ctx.FormString("passcode")
-			ok, err := twofa.ValidateAndConsumeTOTP(ctx, passcode)
+			tfaResult, err := twofa.ValidateAndConsumeTOTP(ctx, passcode)
 			if err != nil {
 				ctx.HTTPError(http.StatusInternalServerError, "ValidateAndConsumeTOTP", err.Error())
 				return
 			}
-			if !ok {
+			if tfaResult != auth.TwoFactorResultValid {
+				log.Warn("Failed authentication attempt for %s from %s: invalid two-factor passcode", u.Name, ctx.RemoteAddr())
+				audit.RecordAs(ctx, u, audit_model.UserAuthenticationFailTwoFactor, u)
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Passcode"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
+				errMsg := ctx.Tr(util.Iif(tfaResult == auth.TwoFactorResultTooManyAttempts, "auth.twofa_too_many_attempts", "auth.twofa_passcode_incorrect"))
+				ctx.RenderWithErrDeprecated(errMsg, tplResetPassword, nil)
 				return
 			}
 		}
@@ -205,7 +210,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		Password:           optional.Some(ctx.FormString("password")),
 		MustChangePassword: optional.Some(false),
 	}
-	if err := user_service.UpdateAuth(ctx, u, opts); err != nil {
+	if err := user_service.UpdateAuth(audit.WithDoer(ctx, u), u, opts); err != nil {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
 		switch {
@@ -218,7 +223,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		case password.IsErrIsPwnedRequest(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
 		default:
-			ctx.ServerError("UpdateAuth", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}
@@ -231,11 +236,11 @@ func ResetPasswdPost(ctx *context.Context) {
 		// Invalidate the scratch token.
 		_, err := twofa.GenerateScratchToken()
 		if err != nil {
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
-			ctx.ServerError("UserSignIn", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 
@@ -252,7 +257,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	if twofa == nil {
 		hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 		if err != nil {
-			ctx.ServerError("HasWebAuthnRegistrationsByUID", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		if hasWebAuthn {
@@ -285,7 +290,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	if !common.CheckSignedInUser(ctx.Doer, ctx.Session).NeedChangePassword {
 		log.Debug("User %s attempted to access the must change password page, but they are not required to change their password", ctx.Doer.Name)
-		ctx.NotFound(nil)
+		ctx.NotFound()
 		return
 	}
 
@@ -314,7 +319,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
 		default:
-			ctx.ServerError("UpdateAuth", err)
+			ctx.ServerErrorAuto(err)
 		}
 		return
 	}

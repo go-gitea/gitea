@@ -206,12 +206,6 @@ type ChangePasswordForm struct {
 	Retype      string `form:"retype"`
 }
 
-// AddOpenIDForm is for changing openid uri
-type AddOpenIDForm struct {
-	middleware.FormDefaultValidator
-	Openid string `binding:"Required;MaxSize(256)"`
-}
-
 // AddKeyForm form for adding SSH/GPG key
 type AddKeyForm struct {
 	middleware.FormDefaultValidator

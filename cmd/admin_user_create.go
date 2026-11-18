@@ -9,12 +9,14 @@ import (
 	"fmt"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	pwd "gitea.dev/modules/auth/password"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
 
 	"github.com/urfave/cli/v3"
 )
@@ -224,6 +226,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
+	audit.Record(ctx, audit_model.UserCreate, u)
 	cprintf(c, "New user '%s' has been successfully created!\n", username)
 
 	// create the access token
@@ -232,6 +235,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
+		audit.Record(ctx, audit_model.UserAccessTokenAdd, u, "token", t.Name, "token_scope", t.Scope)
 		cprintf(c, "Access token was successfully created... %s\n", t.Token)
 	}
 	return nil

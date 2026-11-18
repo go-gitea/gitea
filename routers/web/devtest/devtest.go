@@ -32,7 +32,7 @@ import (
 func List(ctx *context.Context) {
 	templateNames, err := templates.AssetFS().ListFiles("devtest", true)
 	if err != nil {
-		ctx.ServerError("AssetFS().ListFiles", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	var subNames []string
@@ -150,7 +150,7 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 			err = fmt.Errorf("unknown badge style: %s", selectedStyle)
 		}
 		if err != nil {
-			ctx.ServerError("RenderToHTML", err)
+			ctx.ServerErrorAuto(err)
 			return
 		}
 		badgeSVGs = append(badgeSVGs, h)
@@ -218,13 +218,13 @@ func prepareMockDataAvatarStack(ctx *context.Context) {
 func prepareMockDataMarkdown(ctx *context.Context) {
 	content, err := templates.AssetFS().ReadFile("devtest/markdown.md")
 	if err != nil {
-		ctx.ServerError("ReadFile", err)
+		ctx.ServerErrorAuto(err)
 		return
 	}
 	rctx := markup.NewRenderContext(ctx).WithMetas(markup.ComposeSimpleDocumentMetas()).WithEnableHeadingIDGeneration(true)
 	ctx.Data["MarkdownHTML"], err = markdown.RenderString(rctx, string(content))
 	if err != nil {
-		ctx.ServerError("RenderString", err)
+		ctx.ServerErrorAuto(err)
 	}
 }
 
